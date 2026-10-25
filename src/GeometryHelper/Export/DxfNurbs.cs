@@ -24,6 +24,9 @@ namespace GeometryHelper.Export
         private readonly GeoPoint3[] _points;
         private readonly double[] _w;
 
+        // How near the halves of a piece agree with the whole for a length worked out loosely, as for cuts.
+        private const double Loose = 1E-9;
+
         static DxfNurbs()
         {
             const int N = 20;
@@ -177,6 +180,38 @@ namespace GeometryHelper.Export
             return length;
         }
 
+        /// <summary>
+        /// The length between two parameters, the second above the first, worked out span by span from the first: each piece
+        /// halved until the halves agree with the whole to 1E-9 of a unit, a millionth of the point tolerance, rather than the
+        /// 1E-15 of it <see cref="LengthTo"/> holds to, for cutting at many parameters in one walk along the spline.
+        /// </summary>
+        internal double LengthBetween(double a, double b)
+        {
+            a = Math.Max(Start, Math.Min(End, a));
+            b = Math.Max(Start, Math.Min(End, b));
+
+            if (!(b > a))
+            {
+                return 0.0;
+            }
+
+            double length = 0.0;
+            double from = a;
+
+            for (int k = Span(a) + 1; k <= _points.Length && from < b; k++)
+            {
+                double to = Math.Min(_u[k], b);
+
+                if (to > from)
+                {
+                    length += Integrate(from, to, 0, Loose);
+                    from = to;
+                }
+            }
+
+            return from < b ? length + Integrate(from, b, 0, Loose) : length;
+        }
+
         /// <summary>The parameter at a length from the start, found by halving and Newton's steps until it no longer moves.</summary>
         internal double ParameterAtLength(double length)
         {
@@ -296,18 +331,18 @@ namespace GeometryHelper.Export
             return d.Length;
         }
 
-        private double Integrate(double a, double b, int depth)
+        private double Integrate(double a, double b, int depth, double loose = 0.0)
         {
             double whole = Gauss(a, b);
             double middle = 0.5 * (a + b);
             double halves = Gauss(a, middle) + Gauss(middle, b);
 
-            if (depth > 30 || Math.Abs(whole - halves) <= 1E-15 * Math.Max(1.0, Math.Abs(halves)))
+            if (depth > 30 || Math.Abs(whole - halves) <= Math.Max(loose, 1E-15 * Math.Max(1.0, Math.Abs(halves))))
             {
                 return halves;
             }
 
-            return Integrate(a, middle, depth + 1) + Integrate(middle, b, depth + 1);
+            return Integrate(a, middle, depth + 1, loose) + Integrate(middle, b, depth + 1, loose);
         }
 
         private double Gauss(double a, double b)

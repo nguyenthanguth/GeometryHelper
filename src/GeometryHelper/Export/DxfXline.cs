@@ -219,8 +219,9 @@ namespace GeometryHelper.Export
 
         /// <summary>
         /// Gets the xline at a distance from this one in the plane of a normal, as AutoCAD's
-        /// <c>GetOffsetCurvesGivenPlaneNormal</c>: to the left of its direction seen from the tip of the normal where the
-        /// distance is above nought, as a <see cref="DxfLine"/> is offset.
+        /// <c>GetOffsetCurvesGivenPlaneNormal</c>: to the right of its direction seen from the tip of the normal where the
+        /// distance is above nought, the side every curve offsets to (AutoCAD's side for a circle and an arc, where the radius
+        /// grows), as a <see cref="DxfLine"/> is offset.
         /// </summary>
         /// <param name="planeNormal">The normal of the plane; only its part square to the xline counts.</param>
         /// <param name="offsetDist">The distance.</param>

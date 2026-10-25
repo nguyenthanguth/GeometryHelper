@@ -49,13 +49,21 @@ namespace GeometryHelper.Export
         /// <summary>
         /// Takes the vertex out of its polyline, as AutoCAD's <c>Erase</c> does, every other vertex keeping its handle. A
         /// <see cref="DxfPolyline2d"/> or a <see cref="DxfPolyline3d"/> keeps two vertices at least, as AutoCAD keeps one on save
-        /// and audit: a vertex of one with two is not taken out.
+        /// and audit: a vertex of one with two is not taken out. A point or face of a <see cref="DxfPolyFaceMesh"/> is taken out
+        /// with the mesh's counts (groups 71 and 72) one less and the faces' numbers of the later points one less; a point a face
+        /// names is kept.
         /// </summary>
-        /// <exception cref="InvalidOperationException">Thrown when the vertex is of a polyline of two vertices, is in no file, or
-        /// is erased already.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the vertex is of a polyline of two vertices, is a point of a mesh
+        /// a face names, is in no file, or is erased already.</exception>
         public override void Erase()
         {
             DxfItem parent = Item.Parent;
+
+            if (parent != null && !IsErased && Polyline is DxfPolyFaceMesh mesh)
+            {
+                mesh.Remove(this);
+                return;
+            }
 
             if (parent != null && !IsErased && (Polyline is DxfPolyline2d || Polyline is DxfPolyline3d))
             {
@@ -74,6 +82,9 @@ namespace GeometryHelper.Export
 
             base.Erase();
         }
+
+        /// <summary>Takes the vertex's record out of its polyline, with no check of its own.</summary>
+        internal void EraseRecord() => base.Erase();
 
         /// <summary>The own groups of the vertex's record as they stand.</summary>
         private protected IReadOnlyList<DxfTypedValue> OwnGroups() => GetOwnGroups(0);

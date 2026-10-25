@@ -214,7 +214,8 @@ namespace GeometryHelper.Export
 
         /// <summary>
         /// Gets the ray at a distance from this one in the plane of a normal, as AutoCAD's <c>GetOffsetCurvesGivenPlaneNormal</c>:
-        /// to the left of its direction seen from the tip of the normal where the distance is above nought, as a
+        /// to the right of its direction seen from the tip of the normal where the distance is above nought, the side every curve
+        /// offsets to (AutoCAD's side for a circle and an arc, where the radius grows), as a
         /// <see cref="DxfLine"/> is offset.
         /// </summary>
         /// <param name="planeNormal">The normal of the plane; only its part square to the ray counts.</param>
@@ -377,11 +378,11 @@ namespace GeometryHelper.Export
             return Math.Abs(length - 1.0) <= 1E-12 ? raw : raw.Divide(length);
         }
 
-        /// <summary>The shift that offsets a ray or an xline in the plane of a normal: to the left of its direction seen from the tip of the normal.</summary>
+        /// <summary>The shift that offsets a ray or an xline in the plane of a normal: to the right of its direction seen from the tip of the normal.</summary>
         internal static GeoVector3 Sideways(GeoVector3 planeNormal, GeoVector3 direction, double offsetDist)
         {
             Guard.Finite(offsetDist, nameof(offsetDist), "An offset has to be a finite number.");
-            GeoVector3 side = planeNormal.CrossProduct(direction);
+            GeoVector3 side = direction.CrossProduct(planeNormal);
             double length = side.Length;
 
             if (!planeNormal.IsValid || !(length > Tolerance.Default.EqualVector * Math.Max(1.0, planeNormal.Length)) || double.IsInfinity(length))

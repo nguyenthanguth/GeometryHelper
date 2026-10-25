@@ -80,6 +80,12 @@ namespace GeometryHelper.UnitTest.Export
             Assert.Equal(Bits(new GeoPoint3(0, 9, 0)), Bits(((DxfRay)pieces[2]).BasePoint));
             Assert.IsType<DxfXline>(Assert.Single(xline.GetSplitCurves(new double[0])));
 
+            // Offset to the right of (0, 1, 0) seen from the tip of (0, 0, 1), the side every curve offsets to: +x.
+            var right = (DxfXline)Assert.Single(xline.GetOffsetCurvesGivenPlaneNormal(new GeoVector3(0, 0, 1), 2.0));
+            Assert.Equal(Bits(new GeoPoint3(2, 5, 0)), Bits(right.BasePoint));
+            var left = (DxfXline)Assert.Single(xline.GetOffsetCurvesGivenPlaneNormal(new GeoVector3(0, 0, -1), 2.0));
+            Assert.Equal(Bits(new GeoPoint3(-2, 5, 0)), Bits(left.BasePoint));
+
             xline.ReverseCurve();
             Assert.Equal(Bits(new GeoVector3(0, -1, 0)), Bits(xline.UnitDir));
         }

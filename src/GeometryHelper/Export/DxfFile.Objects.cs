@@ -255,7 +255,7 @@ namespace GeometryHelper.Export
             Edited();
         }
 
-        /// <summary>The groups of the own part of an object (from its first subclass marker), as <see cref="OwnGroupsOf"/> reads an entity's.</summary>
+        /// <summary>The groups of the own part of an object (from its first subclass marker), as <see cref="OwnGroupsOf(DxfItem, int)"/> reads an entity's.</summary>
         internal IReadOnlyList<DxfTypedValue> ObjectGroupsOf(DxfItem item) => OwnGroupsOf(item, 0);
 
         /// <summary>Whether the file holds objects of the OBJECTS section: from R13 on, with such a section.</summary>

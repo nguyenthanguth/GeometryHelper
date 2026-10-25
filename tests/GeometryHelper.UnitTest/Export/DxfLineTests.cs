@@ -186,9 +186,12 @@ namespace GeometryHelper.UnitTest.Export
             Assert.Throws<ArgumentOutOfRangeException>(() => line.GetPointAtParameter(51));
             Assert.Throws<ArgumentException>(() => line.GetParameterAtPoint(new GeoPoint3(1, 0, 0)));
 
-            // The offset to the left seen from the normal's tip, the pieces of a split, an extension and a reversal.
+            // The offset to the right seen from the normal's tip, the side an arc's radius grows to, as every curve offsets;
+            // to the left about the normal turned over. The pieces of a split, an extension and a reversal.
             var offset = (DxfLine)Assert.Single(line.GetOffsetCurves(5.0));
-            Near(new GeoPoint3(-4, 3, 0), offset.StartPoint);
+            Near(new GeoPoint3(4, -3, 0), offset.StartPoint);
+            Near(new GeoPoint3(34, 37, 0), offset.EndPoint);
+            Near(new GeoPoint3(-4, 3, 0), ((DxfLine)Assert.Single(line.GetOffsetCurvesGivenPlaneNormal(new GeoVector3(0, 0, -1), 5.0))).StartPoint);
             Assert.Equal(new[] { 20.0, 30.0 }, line.GetSplitCurves(new[] { 20.0 }).Select(c => ((DxfLine)c).Length));
             line.Extend(60.0);
             Assert.Equal(new GeoPoint3(36, 48, 0), line.EndPoint);

@@ -77,6 +77,9 @@ namespace GeometryHelper.Export
             }
         }
 
+        /// <summary>Sets the flags of the vertex (group 70), as the fitting of its polyline marks the vertices it makes.</summary>
+        internal void SetFlags(int flags) => SetGroups(DxfFollowers.WholeChange(OwnGroups(), 70, flags, 0));
+
         [DxfType("VERTEX")]
         internal static DxfEntity Create(DxfItem item)
             => item.Parent != null && (ParentFlags(item) & 8) != 0 && (ParentFlags(item) & (16 | 64)) == 0 ? new DxfPolylineVertex3d(item) : null;

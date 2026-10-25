@@ -320,6 +320,9 @@ namespace GeometryHelper.Export
                 _bytes.Write(style.LineEnd, 0, style.LineEnd.Length);
             }
 
+            /// <summary>How many bytes are written so far.</summary>
+            internal int Length => (int)_bytes.Length;
+
             internal Rec Done(string type)
             {
                 byte[] bytes = _bytes.ToArray();

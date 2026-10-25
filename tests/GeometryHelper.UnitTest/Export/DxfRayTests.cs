@@ -91,8 +91,9 @@ namespace GeometryHelper.UnitTest.Export
             Assert.Equal(Bits(new GeoPoint3(1, 2, 13)), Bits(((DxfLine)pieces[1]).EndPoint));
             Assert.Equal(Bits(new GeoPoint3(1, 2, 13)), Bits(((DxfRay)pieces[2]).BasePoint));
 
+            // To the right of (0, 0, 1) seen from the tip of (1, 0, 0), the side every curve offsets to: +y.
             var moved = (DxfRay)Assert.Single(ray.GetOffsetCurvesGivenPlaneNormal(new GeoVector3(1, 0, 0), 2.0));
-            Assert.Equal(Bits(new GeoPoint3(1, 0, 3)), Bits(moved.BasePoint));
+            Assert.Equal(Bits(new GeoPoint3(1, 4, 3)), Bits(moved.BasePoint));
 
             ray.Extend(-3.0);
             Assert.Equal(Bits(new GeoPoint3(1, 2, 0)), Bits(ray.BasePoint));

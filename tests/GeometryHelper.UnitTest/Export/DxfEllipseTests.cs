@@ -110,8 +110,26 @@ namespace GeometryHelper.UnitTest.Export
             Assert.True(ellipse.GetFirstDerivative(0.0).IsEqualTo(new GeoVector3(0, 5, 0), near));
             Assert.True(ellipse.GetSecondDerivative(0.0).IsEqualTo(new GeoVector3(-10, 0, 0), near));
             Assert.True(ellipse.GetClosestPointTo(new GeoPoint3(20, 0, 3), false).IsEqualTo(new GeoPoint3(10, 0, 0), near));
-            Assert.Throws<NotSupportedException>(() => ellipse.GetOffsetCurves(1.0));
             Assert.Throws<NotSupportedException>(() => ellipse.Extend(7.0));
+
+            // The curve 1 out from the ellipse of radii 10 and 5 is a spline, as AutoCAD gives one; 1 in about the reversed normal too.
+            var outer = (DxfSpline)Assert.Single(ellipse.GetOffsetCurves(1.0));
+            var flipped = (DxfSpline)Assert.Single(ellipse.GetOffsetCurvesGivenPlaneNormal(new GeoVector3(0, 0, -1), 1.0));
+            var inner = (DxfSpline)Assert.Single(ellipse.GetOffsetCurves(-1.0));
+
+            for (int i = 0; i < 24; i++)
+            {
+                GeoPoint3 q = outer.GetPointAtParameter(outer.StartParam + (outer.EndParam - outer.StartParam) * i / 24);
+                Assert.True(Math.Abs(ellipse.GetClosestPointTo(q, false).DistanceTo(q) - 1.0) <= Tolerance.Default.EqualPoint);
+                Assert.True(q.X * q.X / 100 + q.Y * q.Y / 25 > 1.0);
+                GeoPoint3 r = flipped.GetPointAtParameter(flipped.StartParam + (flipped.EndParam - flipped.StartParam) * i / 24);
+                Assert.True(r.X * r.X / 100 + r.Y * r.Y / 25 > 1.0);
+                GeoPoint3 s = inner.GetPointAtParameter(inner.StartParam + (inner.EndParam - inner.StartParam) * i / 24);
+                Assert.True(s.X * s.X / 100 + s.Y * s.Y / 25 < 1.0);
+            }
+
+            Assert.True(outer.Closed);
+            Assert.Throws<ArgumentException>(() => ellipse.GetOffsetCurvesGivenPlaneNormal(new GeoVector3(1, 0, 0), 1.0));
 
             IReadOnlyList<DxfCurve> pieces = ellipse.GetSplitCurves(new[] { 1.0, 4.0 });
             Assert.Equal(2, pieces.Count);

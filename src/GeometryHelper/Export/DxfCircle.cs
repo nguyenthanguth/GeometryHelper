@@ -329,7 +329,10 @@ namespace GeometryHelper.Export
 
         /// <summary>
         /// Gets the circle at a distance from this one in the plane of a normal, as AutoCAD's
-        /// <c>GetOffsetCurvesGivenPlaneNormal</c>: as <see cref="GetOffsetCurves(double)"/>, the plane being the circle's own.
+        /// <c>GetOffsetCurvesGivenPlaneNormal</c>: as <see cref="GetOffsetCurves(double)"/>, the plane being the circle's own, its
+        /// radius growing with a distance above nought whichever way the normal given points, as AutoCAD offsets a circle by its
+        /// radius. An arc, a circle and an ellipse are the exceptions to the side every other curve offsets to, the right seen from
+        /// the tip of the normal given.
         /// </summary>
         /// <param name="planeNormal">The normal of the plane, along the circle's <see cref="Normal"/> either way.</param>
         /// <param name="offsetDist">The distance.</param>

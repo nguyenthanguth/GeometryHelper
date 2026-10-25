@@ -22,7 +22,7 @@ namespace GeometryHelper.Export
     /// A file of R12 has no SPLINE: <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/> refuses one there.
     /// </para>
     /// </remarks>
-    public sealed class DxfSpline : DxfCurve
+    public sealed partial class DxfSpline : DxfCurve
     {
         // The groups of AcDbSpline in the order AutoCAD writes them.
         private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 210, 220, 230, 70, 71, 72, 73, 74, 42, 43, 44, 12, 22, 32, 13, 23, 33, 40, 41, 10, 20, 30, 11, 21, 31 });

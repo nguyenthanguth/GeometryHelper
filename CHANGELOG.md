@@ -124,6 +124,29 @@ written, put in or taken out, every other vertex keeping its handle, and its own
 2 000 vertices writes them in one pass, 50 milliseconds on .NET 10. A LWPOLYLINE or a SPLINE added to a file of R12 is
 refused; a `DxfPolyline2d` is the polyline R12 holds.
 
+**NEW.** The curves of the editing model edit as AutoCAD's do. Every curve gives the `Spline` that is exactly it (a circle of
+radius 10 is the rational quadratic of 9 control points) and is projected onto a plane by `GetProjectedCurve` and
+`GetOrthoProjectedCurve`: a circle of radius 10 on the floor projected along (0, 0, 1) onto the plane y + z = 0 is a
+`DxfEllipse` of radii 14.14 and 10, a polyline with arcs onto a plane not its own the `DxfSpline` of them. The three polylines
+and the spline are cut by `GetSplitCurves`, offset by `GetOffsetCurves`, to the right of their way so that a closed polyline
+running counter-clockwise grows (the square of side 10 offset by 1 is 12 by 12), the side an arc's radius grows to;
+`DxfLine`, `DxfRay` and `DxfXline` offset to that side too, where they went to the left before, so that every curve
+agrees. They are run on by `Extend`, a line along itself, an arc round its circle, a spline along the polynomial of its
+end span. `DxfPolyline.ConvertFrom` and `ConvertTo`
+turn a LWPOLYLINE into a POLYLINE of the plane and back, the one taking the other's place with its handle where asked. A
+polyline is fitted by `CurveFit`, `SplineFit` and `ConvertToPolyType`, of the header's SPLINETYPE and SPLINESEGS, and
+straightened again; a polygon mesh smoothed by `SurfaceFit` and `ConvertToPolyMeshType`, of SURFTYPE, SURFU and SURFV, and
+desmoothed by `Straighten`. A spline gives and takes its whole `NurbsData` and `FitData`, has its degree raised exactly by
+`ElevateDegree`, control points put in and taken out (`InsertControlPointAt`, `RemoveControlPointAt`), fit points put in,
+moved and taken out with the curve fitted anew through them, `UpdateFitData`, `ModifyPositionAndTangent`, `Rebuild` and
+`ToPolyline` and `ToPolylineWithPrecision`. A point or face of a polyface mesh erased keeps the mesh's counts and the
+faces' numbers true; a polygon mesh's point has its `VertexType`. A vertex of a POLYLINE appended or set one at a time no
+longer reads the whole polyline each time to grow the drawing's extents: 20 000 vertices appended one by one take 0.17 s on
+.NET 10, where 10 000 took 81 s, and 10 000 points appended to a polyface mesh 0.05 s, where they took 32 s. A LWPOLYLINE's
+vertex put in, set or taken out rewrites only that vertex's groups and the count: 10 000 put in one by one take 0.8 s, where
+they took 97 s, and set one by one 1.2 s, where they took 287 s. Straightening a fitted polyline or desmoothing a mesh takes
+the made vertices out in one writing: 90 000 in 0.6 s, where they took 29 s.
+
 **NEW.** `DxfDBText`, `DxfMText`, `DxfBlockReference`, `DxfMInsertBlock`, `DxfAttributeReference` and
 `DxfAttributeDefinition` read and edit TEXT, MTEXT, INSERT, MINSERT, ATTRIB and ATTDEF with AutoCAD's names and meanings,
 points in world coordinates. An INSERT moved, turned, scaled or given a new normal carries its ATTRIBs with it;

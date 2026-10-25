@@ -841,8 +841,12 @@ AutoCAD's properties: `Clayer`, `Insunits`, `Extmin`, `Extmax`, `Handseed`, `Cel
 `Auprec`, `Angbase` (in radians; the file writes degrees), `Angdir`, `Orthomode`, `Fillmode`, `Mirrtext`,
 `LineWeightDisplay`, `Saveproxygraphics`, `Splinesegs`, `Splinetype`, `Surftype`, `Surfu` and `Surfv`. A variable R2000 brought, `$INSUNITS`, `$CELWEIGHT`, `$LWDISPLAY` and
 `$PROXYGRAPHICS` among them, is refused in a file of R12, as AutoCAD writes none there. `$EXTMIN` and
-`$EXTMAX` grow to hold what is written and are never shrunk. What is written is in the file's own style: its line end, its
-padding, the numbers as `DxfWriter` prints them, and the text in its encoding, a letter the page cannot hold, or whose
+`$EXTMAX` grow to hold what is written and are never shrunk: an entity whose own record is written whole, as a LINE moved
+or a POLYLINE given a new flag, grows them at once; a run of groups of its record written in place (a LWPOLYLINE's vertex,
+a SPLINE's knots) or a record that follows it (a VERTEX put in or set in a POLYLINE, a point of a mesh) grows them by the
+entity as it stands when the header is next read or the file saved, once however many vertices were written, so that a
+vertex moved out and back between two readings leaves no trace.
+What is written is in the file's own style: its line end, its padding, the numbers as `DxfWriter` prints them, and the text in its encoding, a letter the page cannot hold, or whose
 bytes would read back as UTF-8, written as its escape (`\U+00E9`). A file that names no version is written as one of R12,
 or of R2000 where its records carry subclass markers. Editing is for one thread at a time.
 
@@ -942,3 +946,55 @@ keeps none of them, about 460 bytes a copy, so that the explode of an INSERT of 
 INSERT places its block as the drawing it was copied from has it now, edits and all, and keeps to it when it is renamed
 there: appended to another drawing it names the block by its name now, and is refused where that drawing has no block of
 that name; a copy whose block was erased since places nothing.
+
+The curves edit as AutoCAD's do, each result a new entity of the same look in no file, to be appended:
+
+```csharp
+DxfPolyline pl = db.ModelSpace.OfType<DxfPolyline>().First();
+IReadOnlyList<DxfCurve> pieces = pl.GetSplitCurves(new[] { 1.5 });   // cut half way along the second segment
+IReadOnlyList<DxfCurve> outer = pl.GetOffsetCurves(5.0);              // to the right of its way: a counter-clockwise loop grows
+pl.Extend(pl.EndParam + 0.5);                                         // the last segment run on by half its length or angle
+DxfSpline spline = pl.Spline;                                         // the spline that is exactly the polyline
+DxfCurve flat = spline.GetOrthoProjectedCurve(new GeoPlane3(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1)));
+```
+
+A segment cut keeps the part of its arc and its widths read off along it: the polyline (0, 0), (10, 0), (10, 10) with a
+bulge of 1 on its second vertex cut at 1.5 is (0, 0), (10, 0), (15, 5) and (15, 5), (10, 10), each arc of bulge 0.414. An
+offset keeps arcs as arcs and runs the corners on until they meet, as AutoCAD's OFFSETGAPTYPE 0; the square of side 10
+running counter-clockwise offset by 1 is 12 by 12, running clockwise 8 by 8. Every curve offsets to that side, the right of
+its way seen from the tip of its normal, where an arc's radius grows, as AutoCAD offsets a circle and an arc: the line from
+(0, 0, 0) to (30, 40, 0) offset by 5 runs from (4, -3, 0). The exceptions are an arc, a circle and an ellipse given a normal
+by `GetOffsetCurvesGivenPlaneNormal`: their radius grows with a distance above nought whichever way the normal points, as
+AutoCAD offsets them by their radius, so that under the normal turned over an arc and a polyline of that one arc offset to
+opposite sides. An ellipse is offset as the spline of the curve at the distance, as AutoCAD gives one. A spline is offset
+piece by piece between its corners (knots standing as many times as its degree where its direction turns), each piece a
+cubic fitted through points of the true offset, more of them only in the spans that need them, until it keeps within
+1E-3 of the true offset both ways; the pieces are joined as a polyline's offsets are, so that the L of degree 2 from
+(0, 0) to (10, 0) to (10, 10) offset by 1 has its corner at (11, -1). A span that does not keep within 1E-3 at 512 points
+is given as fitted. A cubic of 300 spans with one corner gives an offset of some 9 600 control points in 0.6 s. A spline
+is run on along the polynomial of its end span. A curve projected keeps its kind where it can: a circle of radius 10 on
+the floor projected along (0, 0, 1) onto the plane y + z = 0 is an ellipse of radii 14.14 and 10.
+
+`DxfPolyline.ConvertFrom(polyline2d, true)` and `ConvertTo(true)` turn a LWPOLYLINE into a POLYLINE of the plane and back
+in its place, its handle, owner, look, extended data and extension dictionary kept, the old object erased, as AutoCAD hands
+the object id over; with `false` the new polyline is made in no file and the old one kept. A polyline of the plane is
+fitted with `CurveFit` (a pair of arcs on each segment through every vertex) or `SplineFit` (a uniform B-spline on its
+vertices as a frame, of the header's SPLINETYPE, 5 quadratic or 6 cubic, and SPLINESEGS segments to each span), a 3D
+polyline with `SplineFit`, a polygon mesh with `SurfaceFit` (of SURFTYPE, SURFU and SURFV), each straightened by
+`Straighten` or `ConvertToPolyType` / `ConvertToPolyMeshType`; the vertices of the frame keep their handles. The reader reads
+a fitted polyline along the vertices the fitting made, and a smoothed mesh as its grid.
+
+A spline gives and takes its `NurbsData` and `FitData` whole. `ElevateDegree` raises its degree with the curve kept to the
+rounding, `InsertControlPointAt` and `RemoveControlPointAt` put a control point in and take one out with a knot,
+`InsertFitPointAt`, `SetFitPointAt` and `RemoveFitPointAt` fit it anew through its points (its knots the lengths of the
+chords, so that a spline through (0, 0, 0), (30, 40, 0) and (60, 0, 0) runs from 0 to 100), `ModifyPositionAndTangent`
+makes it pass a point in a direction, `Rebuild` fits it again of another degree and count of points, and `ToPolyline` /
+`ToPolylineWithPrecision` give the polyline along it, of arcs where it is flat, within a thousandth of the spline's size
+at precision 0 and a tenth of that for each 10 more, never finer than a millionth of its size: the cubic on (0, 0),
+(10, 10), (20, 10) and (30, 0) made lines gives 65 vertices at precision 10 and 513 from precision 30 up. A point or face
+of a polyface mesh erased keeps the mesh's counts and the faces' numbers of its points true. Vertices of a POLYLINE
+appended or set one at a time cost about the same each, however many the polyline has: 20 000 appended one by one take a
+fifth of a second, 10 000 points of a polyface mesh a twentieth. A LWPOLYLINE's vertex put in, set or taken out rewrites
+only that vertex's groups and the count: 10 000 put in one by one take 0.8 s, set one by one 1.2 s. Straightening a
+fitted polyline or desmoothing a mesh takes the made vertices out in one writing: a polyline fitted to 90 000 vertices is
+straightened in 0.6 s.

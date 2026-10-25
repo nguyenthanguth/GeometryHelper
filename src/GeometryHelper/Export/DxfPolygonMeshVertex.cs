@@ -47,6 +47,22 @@ namespace GeometryHelper.Export
             set => SetGroups(DxfFollowers.PointChanges(OwnGroups(), 10, value, Origin, 3));
         }
 
+        /// <summary>
+        /// Gets what the point is to its mesh, as AutoCAD's <c>VertexType</c>: a point of the grid a smoothed mesh is the frame of
+        /// (flag 16 of group 70), one the smoothing made (8), or one of its own.
+        /// </summary>
+        public DxfVertex3dType VertexType
+        {
+            get
+            {
+                int flags = DxfFollowers.Whole(OwnGroups(), 70, 0);
+                return (flags & 16) != 0 ? DxfVertex3dType.ControlVertex : (flags & 8) != 0 ? DxfVertex3dType.FitVertex : DxfVertex3dType.SimpleVertex;
+            }
+        }
+
+        /// <summary>Sets the flags of the point (group 70), as the smoothing of its mesh marks the points it makes.</summary>
+        internal void SetFlags(int flags) => SetGroups(DxfFollowers.WholeChange(OwnGroups(), 70, flags, 0));
+
         /// <summary>Moves the point, as AutoCAD's <c>TransformBy</c>, in the world.</summary>
         /// <param name="transform">The transformation.</param>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>

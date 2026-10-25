@@ -247,8 +247,11 @@ namespace GeometryHelper.Export
 
         /// <summary>
         /// Gets the line at a distance from this one in the plane of its <see cref="Normal"/>, as AutoCAD's
-        /// <c>GetOffsetCurves</c>: to the left of its direction seen from the tip of the normal where the distance is above
-        /// nought, to the right where below, as the library's <see cref="GeoLine3.OffsetInPlane(double, GeoVector3)"/> offsets.
+        /// <c>GetOffsetCurves</c>: to the right of its direction seen from the tip of the normal where the distance is above
+        /// nought, to the left where below. The side follows AutoCAD's convention for a circle and an arc, whose radius grows
+        /// with a distance above nought, the side to the right of an arc running counter-clockwise, so that every curve of the
+        /// library offsets to the same side as a <see cref="DxfArc"/>, a <see cref="DxfPolyline"/> and a <see cref="DxfSpline"/>
+        /// do: the line from (0, 0, 0) to (30, 40, 0) offset by 5 runs from (4, -3, 0) to (34, 37, 0).
         /// </summary>
         /// <param name="offsetDist">The distance.</param>
         /// <returns>The one line, of the same look, in no file.</returns>
@@ -258,8 +261,8 @@ namespace GeometryHelper.Export
 
         /// <summary>
         /// Gets the line at a distance from this one in the plane of a normal, as AutoCAD's
-        /// <c>GetOffsetCurvesGivenPlaneNormal</c>: to the left of its direction seen from the tip of the normal where the
-        /// distance is above nought.
+        /// <c>GetOffsetCurvesGivenPlaneNormal</c>: to the right of its direction seen from the tip of the normal where the
+        /// distance is above nought, as <see cref="GetOffsetCurves(double)"/> says, so to the left about the normal turned over.
         /// </summary>
         /// <param name="planeNormal">The normal of the plane; only its part square to the line counts.</param>
         /// <param name="offsetDist">The distance.</param>
@@ -269,7 +272,8 @@ namespace GeometryHelper.Export
         /// <exception cref="InvalidOperationException">Thrown when the line has no length to give it a direction.</exception>
         public override IReadOnlyList<DxfCurve> GetOffsetCurvesGivenPlaneNormal(GeoVector3 planeNormal, double offsetDist)
         {
-            GeoLine3 moved = Segment().OffsetInPlane(offsetDist, planeNormal, Tolerance.Default);
+            // The library's offset in a plane goes to the left: the right is the left of the distance turned over.
+            GeoLine3 moved = Segment().OffsetInPlane(-offsetDist, planeNormal, Tolerance.Default);
             var copy = (DxfLine)Copy();
             copy.StartPoint = moved.StartPoint;
             copy.EndPoint = moved.EndPoint;

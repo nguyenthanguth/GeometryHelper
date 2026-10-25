@@ -388,7 +388,11 @@ namespace GeometryHelper.Export
 
         /// <summary>
         /// Gets the arc at a distance from this one in the plane of a normal, as AutoCAD's
-        /// <c>GetOffsetCurvesGivenPlaneNormal</c>: as <see cref="GetOffsetCurves(double)"/>, the plane being the arc's own.
+        /// <c>GetOffsetCurvesGivenPlaneNormal</c>: as <see cref="GetOffsetCurves(double)"/>, the plane being the arc's own, its radius
+        /// growing with a distance above nought whichever way the normal given points, as AutoCAD offsets an arc by its radius.
+        /// An arc, a circle and an ellipse are the exceptions to the side every other curve offsets to, the right seen from the
+        /// tip of the normal given: a <see cref="DxfPolyline"/> of one segment that is this arc goes the other way under the
+        /// normal turned over.
         /// </summary>
         /// <param name="planeNormal">The normal of the plane, along the arc's <see cref="Normal"/> either way.</param>
         /// <param name="offsetDist">The distance.</param>

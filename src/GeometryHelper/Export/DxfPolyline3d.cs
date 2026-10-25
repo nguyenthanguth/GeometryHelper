@@ -45,12 +45,12 @@ namespace GeometryHelper.Export
         /// Initializes a 3D polyline of vertices, as AutoCAD's <c>new Polyline3d(type, vertices, closed)</c>, on layer 0 in no
         /// file until it is added to one.
         /// </summary>
-        /// <param name="type">How it is drawn: <see cref="DxfPoly3dType.SimplePoly"/>, the one made in code.</param>
+        /// <param name="type">How it is drawn: <see cref="DxfPoly3dType.SimplePoly"/>, the one made in code; fit it afterwards with <see cref="ConvertToPolyType"/>.</param>
         /// <param name="vertices">The vertices, in the world.</param>
         /// <param name="closed">Whether a segment runs from the last vertex back to the first.</param>
         /// <exception cref="ArgumentNullException">Thrown when the vertices are null.</exception>
         /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number.</exception>
-        /// <exception cref="NotSupportedException">Thrown for a type other than <see cref="DxfPoly3dType.SimplePoly"/>, whose fitted vertices the library does not make yet.</exception>
+        /// <exception cref="NotSupportedException">Thrown for a type other than <see cref="DxfPoly3dType.SimplePoly"/>: make the polyline straight and fit it with <see cref="ConvertToPolyType"/>.</exception>
         public DxfPolyline3d(DxfPoly3dType type, IEnumerable<GeoPoint3> vertices, bool closed)
             : base("POLYLINE", Head(closed))
         {
@@ -61,7 +61,7 @@ namespace GeometryHelper.Export
 
             if (type != DxfPoly3dType.SimplePoly)
             {
-                throw new NotSupportedException("A polyline fitted with a spline is not made in code yet: make it of SimplePoly.");
+                throw new NotSupportedException("A polyline is made in code straight: make it of SimplePoly and fit it with ConvertToPolyType.");
             }
 
             SetFollowers(new[] { new KeyValuePair<string, KeyValuePair<int, string>[]>("SEQEND", new KeyValuePair<int, string>[0]) });
@@ -100,27 +100,119 @@ namespace GeometryHelper.Export
         /// Gets or sets how the polyline is drawn through its vertices, as AutoCAD's <c>PolyType</c>: as a spline (flag 4 of group
         /// 70, quadratic where group 75 is 5, cubic otherwise), or straight.
         /// </summary>
-        /// <value>Set, <see cref="DxfPoly3dType.SimplePoly"/>, which straightens it as <see cref="Straighten"/> does.</value>
-        /// <exception cref="NotSupportedException">Thrown when set to a fitted type, whose vertices the library does not make yet.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when set on a polyline that is erased.</exception>
+        /// <value>Set, the polyline converted to the type as <see cref="ConvertToPolyType"/> converts it; its own type changes nothing.</value>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the type set is not one of <see cref="DxfPoly3dType"/>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when set on a polyline that is erased, or has too few vertices to fit.</exception>
         public DxfPoly3dType PolyType
         {
             get => (GetInt(70, 0) & 4) == 0 ? DxfPoly3dType.SimplePoly : GetInt(75, 0) == 5 ? DxfPoly3dType.QuadSplinePoly : DxfPoly3dType.CubicSplinePoly;
 
             set
             {
-                if (value == PolyType)
+                if (value != PolyType)
                 {
-                    return;
+                    ConvertToPolyType(value);
                 }
-
-                if (value != DxfPoly3dType.SimplePoly)
-                {
-                    throw new NotSupportedException("A polyline is not fitted with a spline by the library yet.");
-                }
-
-                Straighten();
             }
+        }
+
+        /// <summary>
+        /// Converts the polyline to a type, as AutoCAD's <c>ConvertToPolyType</c>: straightened for
+        /// <see cref="DxfPoly3dType.SimplePoly"/>, fitted with a quadratic or cubic B-spline of the header's SPLINESEGS segments
+        /// to a span (8 where the file gives none) as <see cref="SplineFit(DxfPoly3dType, int)"/> fits it.
+        /// </summary>
+        /// <param name="newVal">The type.</param>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the type is not one of <see cref="DxfPoly3dType"/>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the polyline is erased, or has too few vertices to fit.</exception>
+        public void ConvertToPolyType(DxfPoly3dType newVal)
+        {
+            switch (newVal)
+            {
+                case DxfPoly3dType.SimplePoly:
+                    Straighten();
+                    break;
+
+                case DxfPoly3dType.QuadSplinePoly:
+                case DxfPoly3dType.CubicSplinePoly:
+                    SplineFit(newVal, DxfPolylineFit.Header(Item, "$SPLINESEGS", 8));
+                    break;
+
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(newVal), newVal, "A 3D polyline is simple, or fitted with a quadratic or cubic spline.");
+            }
+        }
+
+        /// <summary>
+        /// Fits the polyline with a spline, as AutoCAD's <c>SplineFit</c>: of the header's SPLINETYPE (5 quadratic, 6 cubic, cubic
+        /// where the file gives none) and SPLINESEGS (8 where it gives none), as <see cref="SplineFit(DxfPoly3dType, int)"/> fits it.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the polyline has fewer than two vertices, or three for a closed one, or is erased.</exception>
+        public void SplineFit()
+        {
+            int type = DxfPolylineFit.Header(Item, "$SPLINETYPE", 6);
+            SplineFit(type == 5 ? DxfPoly3dType.QuadSplinePoly : DxfPoly3dType.CubicSplinePoly, DxfPolylineFit.Header(Item, "$SPLINESEGS", 8));
+        }
+
+        /// <summary>
+        /// Fits the polyline with a spline, as AutoCAD's <c>SplineFit</c>: its vertices made the frame of a uniform B-spline in
+        /// space (flag 16 of their group 70, each keeping its handle), clamped to the first and last vertex of an open polyline
+        /// and running round a closed one, and the vertices of the curve added after them (flag 8), as many segments to each span
+        /// of the spline as asked (their count is taken where it is below nought, a 3D polyline having no arcs); flag 4 of the
+        /// polyline's group 70 and group 75, 5 or 6. A fitted polyline is straightened first.
+        /// </summary>
+        /// <param name="value">The spline, <see cref="DxfPoly3dType.QuadSplinePoly"/> or <see cref="DxfPoly3dType.CubicSplinePoly"/>.</param>
+        /// <param name="segments">The segments to a span, not nought.</param>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the type is not a spline, or the segments are nought.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the polyline has fewer than two vertices, or three for a closed one, or is erased.</exception>
+        public void SplineFit(DxfPoly3dType value, int segments)
+        {
+            if (value != DxfPoly3dType.QuadSplinePoly && value != DxfPoly3dType.CubicSplinePoly)
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), value, "A polyline is fitted with a quadratic or a cubic spline.");
+            }
+
+            if (segments == 0 || segments == int.MinValue)
+            {
+                throw new ArgumentOutOfRangeException(nameof(segments), segments, "A spline-fitted polyline has some segments to each span.");
+            }
+
+            Straighten();
+            List<KeyValuePair<int, IReadOnlyList<DxfTypedValue>>> vertices = DxfFollowers.Vertices(Item);
+            bool closed = Closed;
+
+            if (vertices.Count < (closed ? 3 : 2))
+            {
+                throw new InvalidOperationException("A polyline is fitted on two vertices at least, three for a closed one, and this one has " + vertices.Count.ToString(CultureInfo.InvariantCulture) + ".");
+            }
+
+            var frame = new List<GeoPoint3>(vertices.Count);
+            var changes = new List<KeyValuePair<int, KeyValuePair<int, string>[]>>();
+
+            foreach (KeyValuePair<int, IReadOnlyList<DxfTypedValue>> vertex in vertices)
+            {
+                frame.Add(DxfFollowers.Point(vertex.Value, 10, Origin));
+                changes.Add(new KeyValuePair<int, KeyValuePair<int, string>[]>(vertex.Key, DxfFollowers.WholeChange(vertex.Value, 70, DxfFollowers.Whole(vertex.Value, 70, 0) | 16, 0)));
+            }
+
+            DxfNurbs spline = DxfPolylineFit.Spline(frame, value == DxfPoly3dType.QuadSplinePoly ? 2 : 3, closed, out double start, out double end);
+            var made = new List<DxfPolylineVertex3d>();
+
+            foreach (double step in DxfPolylineFit.Steps(start, end, Math.Abs(segments), closed))
+            {
+                var vertex = new DxfPolylineVertex3d(spline.PointAt(step));
+                vertex.SetFlags(8 | 32);
+                made.Add(vertex);
+            }
+
+            SetGroupsAtMany(changes, VertexOrder);
+            int place = RecordCount > 1 && RecordType(RecordCount - 1) == "SEQEND" ? RecordCount - 1 : RecordCount;
+
+            foreach (DxfPolylineVertex3d vertex in made)
+            {
+                InsertFollowerAt(place++, vertex);
+            }
+
+            SetGroups(new KeyValuePair<int, string>(70, (GetInt(70, 0) | 4).ToString(CultureInfo.InvariantCulture)), new KeyValuePair<int, string>(75, value == DxfPoly3dType.QuadSplinePoly ? "5" : "6"));
         }
 
         /// <summary>Gets the length of the polyline, the sum of those of its segments, as AutoCAD's <c>Length</c>.</summary>
@@ -232,10 +324,7 @@ namespace GeometryHelper.Export
 
             SetGroupsAtMany(frame, VertexOrder);
 
-            for (int i = made.Count - 1; i >= 0; i--)
-            {
-                FollowerAt(made[i]).Erase();
-            }
+            Item.File.RemoveFollowers(Item, made);
 
             SetGroups(new KeyValuePair<int, string>(70, (GetInt(70, 0) & ~4).ToString(CultureInfo.InvariantCulture)), new KeyValuePair<int, string>(75, null));
         }
@@ -391,6 +480,266 @@ namespace GeometryHelper.Export
             }
 
             SetGroupsAtMany(DxfFollowers.Moved(Item, transform, _ => true), VertexOrder);
+        }
+
+        /// <summary>
+        /// Gets the pieces the polyline is cut into at parameters, as AutoCAD's <c>GetSplitCurves</c>: 3D polylines of the same
+        /// look in no file, an open one from its start to the first parameter, on to the next and to its end, a closed one from
+        /// each to the next and from the last on round its first vertex to the first, given whole where it is cut at fewer than
+        /// two places; (0, 0, 0), (3, 4, 0), (3, 4, 12) cut at 1.5 is (0, 0, 0), (3, 4, 0), (3, 4, 6) and (3, 4, 6), (3, 4, 12). A
+        /// parameter at an end or within the point tolerance along the polyline of another cuts nothing; a fitted polyline is
+        /// cut along the vertices it is drawn through, and its pieces are straight.
+        /// </summary>
+        /// <param name="parameters">The parameters to cut at, from nought to <see cref="EndParam"/>.</param>
+        /// <returns>The pieces, in the order of the polyline.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the parameters are null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when a parameter is past either end.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the polyline has fewer than two vertices drawn.</exception>
+        public override IReadOnlyList<DxfCurve> GetSplitCurves(IReadOnlyList<double> parameters)
+        {
+            List<DxfPolyVertex> v = Model(out _);
+            DxfBulgeChain chain = Chain();
+            Two(v.Count);
+            double end = chain.EndParam;
+            bool closed = Closed;
+            List<double> cuts = DxfCurveTools.Cuts(parameters, 0.0, end, closed, (a, b) => chain.DistanceAt(b) - chain.DistanceAt(a), x => Within(x, end, nameof(parameters)));
+            List<List<DxfPolyVertex>> pieces = DxfPolylineEdit.Split(v, closed, cuts);
+
+            if (pieces.Count == 0)
+            {
+                return new DxfCurve[] { (DxfPolyline3d)Copy() };
+            }
+
+            var result = new List<DxfCurve>(pieces.Count);
+
+            foreach (List<DxfPolyVertex> piece in pieces)
+            {
+                result.Add(Made(piece, false));
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Gets the polylines at a distance from this one in the plane it lies in, as AutoCAD's <c>GetOffsetCurves</c>, as
+        /// <see cref="GetOffsetCurvesGivenPlaneNormal"/> offsets it about the normal of that plane turned to the side its largest
+        /// part is above nought on, (0, 0, 1) for a polyline on the floor: to the right of its way seen from above, so that a
+        /// closed polyline running counter-clockwise grows.
+        /// </summary>
+        /// <param name="offsetDist">The distance.</param>
+        /// <returns>The 3D polylines, of the same look, in no file.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not finite.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the polyline does not lie in one plane, or has fewer than two vertices drawn.</exception>
+        public override IReadOnlyList<DxfCurve> GetOffsetCurves(double offsetDist)
+        {
+            List<DxfPolyVertex> v = Model(out _);
+            Two(v.Count);
+
+            if (!DxfCurveTools.TryPlane(Points(v), default(GeoVector3), out GeoVector3 normal))
+            {
+                throw new InvalidOperationException("A 3D polyline that does not lie in one plane has no side to be offset to: give the plane's normal.");
+            }
+
+            return Offset(v, normal, offsetDist);
+        }
+
+        /// <summary>
+        /// Gets the polylines at a distance from this one in the plane of a normal, as AutoCAD's
+        /// <c>GetOffsetCurvesGivenPlaneNormal</c>: the polyline taken into the plane square to the normal it lies in, offset there
+        /// as a <see cref="DxfPolyline"/> offsets its own, to the right of its way seen from the tip of the normal where the
+        /// distance is above nought, and taken back; an arc a corner comes round by is given as the chords that keep within the
+        /// point tolerance of it, a 3D polyline having none.
+        /// </summary>
+        /// <param name="planeNormal">The normal of the plane, square to the polyline.</param>
+        /// <param name="offsetDist">The distance.</param>
+        /// <returns>The 3D polylines, of the same look, in no file.</returns>
+        /// <exception cref="ArgumentException">Thrown when the normal has no length, or the polyline does not lie in a plane square to it.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not finite.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the polyline has fewer than two vertices drawn.</exception>
+        public override IReadOnlyList<DxfCurve> GetOffsetCurvesGivenPlaneNormal(GeoVector3 planeNormal, double offsetDist)
+        {
+            List<DxfPolyVertex> v = Model(out _);
+            Two(v.Count);
+
+            if (!planeNormal.IsValid || !(planeNormal.Length > 0.0) || !DxfCurveTools.TryPlane(Points(v), planeNormal, out GeoVector3 normal) || !normal.IsParallelTo(planeNormal, Tolerance.Default))
+            {
+                throw new ArgumentException("A 3D polyline is offset in a plane it lies in: the normal " + planeNormal + " is not square to it.", nameof(planeNormal));
+            }
+
+            return Offset(v, planeNormal.Normalize(), offsetDist);
+        }
+
+        /// <summary>
+        /// Runs an end segment of the polyline on to a parameter past an end, as AutoCAD's <c>Extend</c>: above
+        /// <see cref="EndParam"/> the last segment on along itself, its end vertex moved to how far past it the parameter is
+        /// along that segment; below nought the first back. The one vertex record is written, every handle kept.
+        /// </summary>
+        /// <param name="newParameter">The parameter, below nought or above <see cref="EndParam"/>.</param>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the parameter lies on the polyline, or is not finite.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the polyline is closed or fitted, has fewer than two vertices or an
+        /// end segment of no length, or is erased.</exception>
+        public override void Extend(double newParameter)
+        {
+            Guard.Finite(newParameter, nameof(newParameter), "A parameter has to be a finite number.");
+            List<DxfPolyVertex> v = Model(out List<int> records);
+            Open(v.Count);
+
+            if (newParameter >= 0.0 && newParameter <= v.Count - 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(newParameter), newParameter, "The parameter lies on the polyline: one past an end extends it.");
+            }
+
+            DxfPolylineEdit.Extend(v, newParameter, nameof(newParameter));
+            WriteEnd(v, records, newParameter < 0.0 ? 0 : v.Count - 1);
+        }
+
+        /// <summary>Moves an end of the polyline to a point on the line through its end segment past that end, as AutoCAD's <c>Extend</c>; a point on the segment itself is refused.</summary>
+        /// <param name="extendStart">Whether the first vertex is moved, else the last.</param>
+        /// <param name="toPoint">The point, within the point tolerance of the line through the end segment.</param>
+        /// <exception cref="ArgumentException">Thrown when the point is off the line through the end segment, or on the polyline itself rather than past the end.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the polyline is closed or fitted, has fewer than two vertices or an
+        /// end segment of no length, or is erased.</exception>
+        public override void Extend(bool extendStart, GeoPoint3 toPoint)
+        {
+            List<DxfPolyVertex> v = Model(out List<int> records);
+            Open(v.Count);
+            double share = DxfPolylineEdit.ShareOf(v, extendStart, toPoint.X, toPoint.Y, toPoint.Z, false);
+
+            if (double.IsNaN(share))
+            {
+                throw new ArgumentException("The point " + toPoint + " is not on the line through the polyline's end segment.", nameof(toPoint));
+            }
+
+            DxfPolylineEdit.Beyond(share, extendStart, toPoint, nameof(toPoint));
+            DxfPolylineEdit.Extend(v, !extendStart, share, nameof(toPoint));
+            WriteEnd(v, records, extendStart ? 0 : v.Count - 1);
+        }
+
+        #endregion
+
+        #region The vertices as the editing sees them
+
+        /// <summary>The vertices drawn in the editing's model (those of a fitted polyline's frame left out), in the world; and the index of each one's record.</summary>
+        internal List<DxfPolyVertex> Model(out List<int> records)
+        {
+            List<KeyValuePair<int, IReadOnlyList<DxfTypedValue>>> vertices = DxfFollowers.Vertices(Item);
+            bool fitted = vertices.Exists(v => (DxfFollowers.Whole(v.Value, 70, 0) & 8) != 0);
+            var model = new List<DxfPolyVertex>(vertices.Count);
+            records = new List<int>(vertices.Count);
+
+            foreach (KeyValuePair<int, IReadOnlyList<DxfTypedValue>> vertex in vertices)
+            {
+                if (fitted && (DxfFollowers.Whole(vertex.Value, 70, 0) & 16) != 0)
+                {
+                    continue;
+                }
+
+                GeoPoint3 at = DxfFollowers.Point(vertex.Value, 10, Origin);
+                model.Add(new DxfPolyVertex(at.X, at.Y, at.Z, 0.0, 0.0, 0.0, false));
+                records.Add(vertex.Key);
+            }
+
+            return model;
+        }
+
+        /// <summary>The polylines at a distance in the plane of a unit normal, through the plane's system.</summary>
+        private IReadOnlyList<DxfCurve> Offset(List<DxfPolyVertex> v, GeoVector3 normal, double distance)
+        {
+            Guard.Finite(distance, nameof(distance), "An offset has to be a finite number.");
+            var local = new List<DxfPolyVertex>(v.Count);
+
+            foreach (DxfPolyVertex q in v)
+            {
+                GeoPoint3 p = WorldToOcs(normal, new GeoPoint3(q.X, q.Y, q.Z));
+                local.Add(new DxfPolyVertex(p.X, p.Y, p.Z, 0.0, 0.0, 0.0, false));
+            }
+
+            double elevation = local[0].Z;
+            var result = new List<DxfCurve>();
+
+            foreach (KeyValuePair<List<DxfPolyVertex>, bool> one in DxfPolylineEdit.Offset(local, Closed, distance, elevation))
+            {
+                var world = new List<DxfPolyVertex>();
+
+                foreach (DxfPolyVertex q in DxfPolylineEdit.Straightened(one.Key, one.Value))
+                {
+                    GeoPoint3 p = OcsToWorld(normal, new GeoPoint3(q.X, q.Y, elevation));
+                    world.Add(new DxfPolyVertex(p.X, p.Y, p.Z, 0.0, 0.0, 0.0, false));
+                }
+
+                result.Add(Made(world, one.Value));
+            }
+
+            return result;
+        }
+
+        /// <summary>A 3D polyline of this one's look in no file, of vertices of the editing's model: straight, closed or not.</summary>
+        private DxfPolyline3d Made(List<DxfPolyVertex> model, bool closed)
+        {
+            var copy = (DxfPolyline3d)Copy();
+            copy.SetGroups(new KeyValuePair<int, string>(70, ((GetInt(70, 0) & ~5) | (closed ? 1 : 0)).ToString(CultureInfo.InvariantCulture)), new KeyValuePair<int, string>(75, null));
+            var records = new List<KeyValuePair<string, KeyValuePair<int, string>[]>>(model.Count);
+
+            foreach (DxfPolyVertex q in model)
+            {
+                records.Add(new KeyValuePair<string, KeyValuePair<int, string>[]>("VERTEX", new[]
+                {
+                    new KeyValuePair<int, string>(100, "AcDbVertex"),
+                    new KeyValuePair<int, string>(100, "AcDb3dPolylineVertex"),
+                    new KeyValuePair<int, string>(10, Numbers.Exact(q.X + 0.0)),
+                    new KeyValuePair<int, string>(20, Numbers.Exact(q.Y + 0.0)),
+                    new KeyValuePair<int, string>(30, Numbers.Exact(q.Z + 0.0)),
+                    new KeyValuePair<int, string>(70, "32"),
+                }));
+            }
+
+            copy.SetFollowers(records);
+            return copy;
+        }
+
+        /// <summary>Writes one end vertex of the editing's model into its record.</summary>
+        private void WriteEnd(List<DxfPolyVertex> model, List<int> records, int index)
+        {
+            DxfPolyVertex q = model[index];
+            IReadOnlyList<DxfTypedValue> groups = GetOwnGroups(records[index]);
+            SetGroupsAt(records[index], VertexOrder, DxfFollowers.PointChanges(groups, 10, new GeoPoint3(q.X, q.Y, q.Z), Origin, 3));
+        }
+
+        private static List<GeoPoint3> Points(List<DxfPolyVertex> v)
+        {
+            var points = new List<GeoPoint3>(v.Count);
+
+            foreach (DxfPolyVertex q in v)
+            {
+                points.Add(new GeoPoint3(q.X, q.Y, q.Z));
+            }
+
+            return points;
+        }
+
+        /// <summary>Refuses a polyline of fewer than two vertices drawn, which has no segment to work on.</summary>
+        private static void Two(int count)
+        {
+            if (count < 2)
+            {
+                throw new InvalidOperationException("A polyline of " + count.ToString(CultureInfo.InvariantCulture) + " vertices drawn has no segment.");
+            }
+        }
+
+        /// <summary>Refuses a closed or fitted polyline, which has no end of its own to be extended, or one of fewer than two vertices.</summary>
+        private void Open(int count)
+        {
+            Two(count);
+
+            if (Closed)
+            {
+                throw new InvalidOperationException("A closed polyline has no end to be extended.");
+            }
+
+            if (PolyType != DxfPoly3dType.SimplePoly)
+            {
+                throw new InvalidOperationException("A fitted polyline is drawn through vertices the fitting made: straighten it to extend it.");
+            }
         }
 
         #endregion

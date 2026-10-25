@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Export
@@ -86,18 +87,21 @@ namespace GeometryHelper.Export
                 throw new ArgumentNullException(nameof(vertexToAppend));
             }
 
+            // After the last point: found from the end back over the faces, which follow the points, so that points appended one
+            // by one each cost one record read, not the whole mesh.
             int at = 1;
 
-            foreach (KeyValuePair<int, IReadOnlyList<DxfTypedValue>> vertex in DxfFollowers.Vertices(Item))
+            for (int record = RecordCount - 1; record >= 1; record--)
             {
-                if ((DxfFollowers.Whole(vertex.Value, 70, 0) & 64) != 0)
+                if (RecordType(record) == "VERTEX" && (DxfFollowers.Whole(GetOwnGroups(record), 70, 0) & 64) != 0)
                 {
-                    at = vertex.Key + 1;
+                    at = record + 1;
+                    break;
                 }
             }
 
             InsertFollowerAt(at, vertexToAppend);
-            SetInt(71, NumVertices + 1, 0);
+            Count(71, NumVertices + 1);
         }
 
         /// <summary>Appends a face made in code after the last, as AutoCAD's <c>AppendFaceRecord</c>; group 72 counts it.</summary>
@@ -112,7 +116,7 @@ namespace GeometryHelper.Export
             }
 
             InsertFollowerAt(RecordCount > 1 && RecordType(RecordCount - 1) == "SEQEND" ? RecordCount - 1 : RecordCount, faceRecord);
-            SetInt(72, NumFaces + 1, 0);
+            Count(72, NumFaces + 1);
         }
 
         /// <summary>
@@ -135,6 +139,86 @@ namespace GeometryHelper.Export
             }
 
             SetGroupsAtMany(DxfFollowers.Moved(Item, transform, v => (DxfFollowers.Whole(v, 70, 0) & 64) != 0), VertexOrder);
+        }
+
+        /// <summary>
+        /// Takes a point or a face of the mesh out, as AutoCAD's <c>Erase</c> of one, the mesh kept true: a face with the count of
+        /// the faces (group 72) one less; a point that no face names with the count of the points (71) one less and every
+        /// face's number of a later point one less, the edge it starts hidden or not as it was. A point a face names is kept.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when a face names the point.</exception>
+        internal void Remove(DxfVertex vertex)
+        {
+            List<KeyValuePair<int, IReadOnlyList<DxfTypedValue>>> records = DxfFollowers.Vertices(Item);
+            int number = 0;
+            bool point = false;
+
+            foreach (KeyValuePair<int, IReadOnlyList<DxfTypedValue>> record in records)
+            {
+                bool isPoint = (DxfFollowers.Whole(record.Value, 70, 0) & 64) != 0;
+                number += isPoint ? 1 : 0;
+
+                if (record.Key == vertex.Record)
+                {
+                    point = isPoint;
+                    break;
+                }
+            }
+
+            if (!point)
+            {
+                vertex.EraseRecord();
+                Count(72, Math.Max(0, NumFaces - 1));
+                return;
+            }
+
+            var renumbered = new List<KeyValuePair<int, KeyValuePair<int, string>[]>>();
+
+            foreach (KeyValuePair<int, IReadOnlyList<DxfTypedValue>> record in records)
+            {
+                if ((DxfFollowers.Whole(record.Value, 70, 0) & 64) != 0)
+                {
+                    continue;
+                }
+
+                var changes = new List<KeyValuePair<int, string>>();
+
+                for (int code = 71; code <= 74; code++)
+                {
+                    int corner = DxfFollowers.Whole(record.Value, code, 0);
+
+                    if (Math.Abs(corner) == number)
+                    {
+                        throw new InvalidOperationException("The point " + number.ToString(CultureInfo.InvariantCulture) + " of the mesh is a corner of a face: erase the face first.");
+                    }
+
+                    if (Math.Abs(corner) > number)
+                    {
+                        changes.AddRange(DxfFollowers.WholeChange(record.Value, code, corner > 0 ? corner - 1 : corner + 1, 0));
+                    }
+                }
+
+                if (changes.Count > 0)
+                {
+                    renumbered.Add(new KeyValuePair<int, KeyValuePair<int, string>[]>(record.Key, changes.ToArray()));
+                }
+            }
+
+            SetGroupsAtMany(renumbered, VertexOrder);
+            vertex.EraseRecord();
+            Count(71, Math.Max(0, NumVertices - 1));
+        }
+
+        /// <summary>
+        /// Writes a count of the mesh's head (71 its points, 72 its faces) with no growing of the extents by it: a count is no
+        /// geometry, and growing by the whole mesh at each point appended would read every point each time.
+        /// </summary>
+        private void Count(int code, int value)
+        {
+            if (value != GetInt(code, 0))
+            {
+                Item.File.SetValues(Item, new[] { new KeyValuePair<int, string>(code, value.ToString(CultureInfo.InvariantCulture)) }, GroupOrder, false);
+            }
         }
 
         [DxfType("POLYLINE")]

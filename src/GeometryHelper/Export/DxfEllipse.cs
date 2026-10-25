@@ -476,20 +476,44 @@ namespace GeometryHelper.Export
             return major.Multiply(Math.Cos(value)).Add(minor.Multiply(Math.Sin(value))).Negate();
         }
 
-        /// <summary>Refuses: the curve at a distance from an ellipse is not an ellipse, and AutoCAD gives a spline for it, which the library does not make.</summary>
-        /// <param name="offsetDist">The distance.</param>
-        /// <returns>Nothing: it throws.</returns>
-        /// <exception cref="NotSupportedException">Thrown always.</exception>
+        /// <summary>
+        /// Gets the curve at a distance from the ellipse, as AutoCAD's <c>GetOffsetCurves</c>: not an ellipse, so a
+        /// <see cref="DxfSpline"/>, as AutoCAD gives one, of the ellipse's look in no file: its <see cref="DxfCurve.Spline"/> offset as
+        /// <see cref="DxfSpline.GetOffsetCurvesGivenPlaneNormal"/> offsets one about the ellipse's normal, outwards where the distance
+        /// is above nought, as a circle's radius grows. The curve 1 out from the ellipse of radii 10 and 5 keeps 1 from it within
+        /// the 1E-3 the spline is fitted to.
+        /// </summary>
+        /// <param name="offsetDist">The distance: outwards above nought, inwards below.</param>
+        /// <returns>The one spline.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not finite.</exception>
         public override IReadOnlyList<DxfCurve> GetOffsetCurves(double offsetDist)
-            => throw new NotSupportedException("The curve at a distance from an ellipse is not an ellipse: AutoCAD gives a spline, which the library does not make.");
+        {
+            DxfSpline spline = Spline;
+            var offset = (DxfSpline)spline.GetOffsetCurvesGivenPlaneNormal(GetNormal(), offsetDist)[0];
+            offset.SetPropertiesFrom(this);
+            offset.XData = XData;
+            return new DxfCurve[] { offset };
+        }
 
-        /// <summary>Refuses: the curve at a distance from an ellipse is not an ellipse, and AutoCAD gives a spline for it, which the library does not make.</summary>
-        /// <param name="planeNormal">The normal of the plane.</param>
-        /// <param name="offsetDist">The distance.</param>
-        /// <returns>Nothing: it throws.</returns>
-        /// <exception cref="NotSupportedException">Thrown always.</exception>
+        /// <summary>
+        /// Gets the curve at a distance from the ellipse in the plane of a normal, as AutoCAD's
+        /// <c>GetOffsetCurvesGivenPlaneNormal</c>: as <see cref="GetOffsetCurves(double)"/>, the plane being the ellipse's own and
+        /// the side outwards for a distance above nought whichever way the normal given points, as a circle's.
+        /// </summary>
+        /// <param name="planeNormal">The normal of the plane, along the ellipse's <see cref="Normal"/> either way.</param>
+        /// <param name="offsetDist">The distance: outwards above nought, inwards below.</param>
+        /// <returns>The one spline.</returns>
+        /// <exception cref="ArgumentException">Thrown when the normal is not along the ellipse's within the vector tolerance.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not finite.</exception>
         public override IReadOnlyList<DxfCurve> GetOffsetCurvesGivenPlaneNormal(GeoVector3 planeNormal, double offsetDist)
-            => GetOffsetCurves(offsetDist);
+        {
+            if (!planeNormal.IsValid || planeNormal.IsZeroLength(Tolerance.Default) || !planeNormal.IsParallelTo(GetNormal(), Tolerance.Default))
+            {
+                throw new ArgumentException("An ellipse is offset in its own plane: the normal " + planeNormal + " is not along the ellipse's.", nameof(planeNormal));
+            }
+
+            return GetOffsetCurves(offsetDist);
+        }
 
         /// <summary>
         /// Turns the ellipse to run from its end to its start, as AutoCAD's <c>ReverseCurve</c>: its normal turned over, which

@@ -1342,7 +1342,7 @@ namespace GeometryHelper.Export
         {
             Editable(follower);
             DxfItem parent = follower.Parent;
-            List<Rec> records = RecordsOf(parent);
+            List<Rec> records = parent.Piece != null ? parent.Piece.Records : RecordsOf(parent);
             int index = follower.Index;
 
             if (records[index].Type == "SEQEND")
@@ -1366,6 +1366,75 @@ namespace GeometryHelper.Export
                 }
             }
 
+            Edited();
+        }
+
+        /// <summary>
+        /// Takes several records out of those that follow an entity in one writing of it, each as <see cref="RemoveFollower"/>
+        /// takes one: the vertices a fitting made, 80 000 of them, at the cost of one, where one at a time would move the
+        /// records after each. Every other record keeps its handle, bytes and item.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when an index is not that of a record that follows the entity.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the entity is erased, or a record is the SEQEND, which the entity keeps.</exception>
+        internal void RemoveFollowers(DxfItem parent, IReadOnlyList<int> indices)
+        {
+            Editable(parent);
+
+            if (indices.Count == 0)
+            {
+                return;
+            }
+
+            List<Rec> records = parent.Piece != null ? parent.Piece.Records : RecordsOf(parent);
+            List<DxfItem> followers = FollowersOf(parent);
+            var gone = new bool[records.Count];
+
+            foreach (int index in indices)
+            {
+                if (index < 1 || index >= records.Count)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(indices), index, "The records that follow the " + parent.Type + " are 1 to " + Number(records.Count - 1) + ".");
+                }
+
+                if (records[index].Type == "SEQEND")
+                {
+                    throw new InvalidOperationException("The SEQEND of a " + parent.Type + " ends its records, and is kept.");
+                }
+
+                gone[index] = true;
+            }
+
+            var kept = new List<Rec>(records.Count);
+            var items = new List<DxfItem>(records.Count);
+
+            for (int i = 0; i < records.Count; i++)
+            {
+                if (gone[i])
+                {
+                    if (followers[i] != null)
+                    {
+                        Detach(followers[i]);
+                    }
+
+                    Retire(records[i]);
+                    continue;
+                }
+
+                kept.Add(records[i]);
+                items.Add(followers[i]);
+            }
+
+            for (int i = 1; i < items.Count; i++)
+            {
+                if (items[i] != null)
+                {
+                    items[i].Index = i;
+                }
+            }
+
+            SetRecords(parent, kept);
+            parent.Changed(kept[0].Type);
+            parent.Followers = items;
             Edited();
         }
 
@@ -1510,7 +1579,7 @@ namespace GeometryHelper.Export
                     }
                 }
             }
-            List<Rec> records = RecordsOf(item);
+            List<Rec> records = item.Parent == null && item.Piece != null ? item.Piece.Records : RecordsOf(item);
             Rec record = records[index];
             bool changed = false;
 
@@ -1560,7 +1629,14 @@ namespace GeometryHelper.Export
         /// AcDbEntity (that marker and those after it among them), or from its start in a file of R12, outside the groups of the
         /// applications and before its extended data; comments left out.
         /// </summary>
-        internal IReadOnlyList<DxfTypedValue> OwnGroupsOf(DxfItem item, int index)
+        internal IReadOnlyList<DxfTypedValue> OwnGroupsOf(DxfItem item, int index) => OwnGroupsOf(item, index, null);
+
+        /// <summary>
+        /// The own groups as <see cref="OwnGroupsOf(DxfItem, int)"/> gives them, and where each stands in the record where asked:
+        /// two numbers a group, where its code line begins and where the next group begins, counted in bytes from the record's
+        /// start, for <see cref="SpliceRecord"/>.
+        /// </summary>
+        internal IReadOnlyList<DxfTypedValue> OwnGroupsOf(DxfItem item, int index, List<int> places)
         {
             Rec record = RecordAt(item, index);
             List<Pair> pairs = PairsOf(record);
@@ -1578,6 +1654,8 @@ namespace GeometryHelper.Export
                 else if (!braced && pairs[i].Code != 999)
                 {
                     groups.Add(DxfTypedValue.Read(pairs[i].Code, Text(record, pairs[i])));
+                    places?.Add(pairs[i].Start - record.Start);
+                    places?.Add(pairs[i].End - record.Start);
                 }
             }
 
@@ -1593,7 +1671,7 @@ namespace GeometryHelper.Export
         internal void ReplaceOwn(DxfItem item, int index, ICollection<int> codes, IList<KeyValuePair<int, string>> groups, IReadOnlyList<int> order, bool geometry)
         {
             Editable(item);
-            List<Rec> records = RecordsOf(item);
+            List<Rec> records = item.Parent == null && item.Piece != null ? item.Piece.Records : RecordsOf(item);
             Rec record = records[index];
             List<Pair> pairs = PairsOf(record);
             int data = DataAt(record, pairs);
@@ -1649,7 +1727,54 @@ namespace GeometryHelper.Export
             }
 
             records[index] = b.Done(record.Type);
-            Rewritten(item, records, geometry);
+            Rewritten(item, records, false);
+
+            if (geometry)
+            {
+                GrowLater(item.Parent ?? item);
+            }
+        }
+
+        /// <summary>
+        /// Replaces the bytes of one record of an entity from <paramref name="from"/> to <paramref name="to"/>, counted from the
+        /// record's start as <see cref="OwnGroupsOf(DxfItem, int, List{int})"/> places its groups, by the groups given, the bytes
+        /// before and after copied as they are: a vertex of a LWPOLYLINE put in, set or taken out costs a copy of the bytes of
+        /// its record, not a reading of every group of it. The extents grow by the entity at the next reading of the header
+        /// where asked.
+        /// </summary>
+        /// <returns>How many bytes the groups given were written in.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the bytes are not within the record.</exception>
+        internal int SpliceRecord(DxfItem item, int index, int from, int to, IList<KeyValuePair<int, string>> groups, bool geometry)
+        {
+            Editable(item);
+            List<Rec> records = item.Parent == null && item.Piece != null ? item.Piece.Records : RecordsOf(item);
+            Rec record = records[index];
+
+            if (from < 0 || to < from || record.Start + to > record.End)
+            {
+                throw new ArgumentOutOfRangeException(nameof(from), from, "The bytes are not within the " + Number(record.End - record.Start) + " of the record.");
+            }
+
+            var b = new Builder(this);
+            b.Raw(record, record.Start, record.Start + from);
+            int before = b.Length;
+
+            foreach (KeyValuePair<int, string> group in groups)
+            {
+                b.Group(group.Key, group.Value);
+            }
+
+            int written = b.Length - before;
+            b.Raw(record, record.Start + to, record.End);
+            records[index] = b.Done(record.Type);
+            Rewritten(item, records, false);
+
+            if (geometry)
+            {
+                GrowLater(item.Parent ?? item);
+            }
+
+            return written;
         }
 
         /// <summary>

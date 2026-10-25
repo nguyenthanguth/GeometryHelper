@@ -192,6 +192,9 @@ namespace GeometryHelper.Export
             Position = transform.Transform(Position);
         }
 
+        /// <summary>Sets the flags of the vertex (group 70), as the fitting of its polyline marks the vertices it makes.</summary>
+        internal void SetFlags(int flags) => SetGroups(DxfFollowers.WholeChange(OwnGroups(), 70, flags, 0));
+
         /// <summary>Puts a vertex made in code at the height of the polyline it is to be appended to, as AutoCAD keeps a vertex in the plane of its polyline.</summary>
         internal void AtElevation(double elevation)
         {
