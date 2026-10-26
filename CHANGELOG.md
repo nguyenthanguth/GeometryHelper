@@ -1109,6 +1109,71 @@ segment that misses is asked whether it touches only where it reaches the tolera
 circle's plane and sphere at once: 100 000 random segments against arcs take 36.4 milliseconds on .NET 10, the median
 of six runs, where they took 27.9, and as many rays 41.1, where they took 27.2.
 
+**FIXED.** Two ellipses in space are searched along both rims where the one not read is narrow, and an ellipse and a
+circle drawing the same curve are answered alike whatever type the circle is given as. The ellipse that comes first is
+read at points no further apart along its rim than twice the tolerance, so where the gap between two places the other
+passes within the tolerance rises above it over a shorter stretch than that, both lay between two readings and were one:
+a rim 30 080 by 18 333 passing 0.000013 from either side of a needle 2.78 by 0.0028, leaning 0.56 radians off its plane,
+touched it at one side only, asked either way. Where the other ellipse's rim lies no more than 32 tolerances from its
+major axis beside a place found, it is searched too, along 16 tolerances of it about the opposite angle, where its other
+side is, beyond the stretch about the place that runs within the tolerance, and a place found there is given unless it
+stands within the tolerance of one given already or either rim runs within the tolerance of the other all the way to
+one: the two touch at both sides now, 0.0026 apart, and the end of a rim 100 000 by 1, which a copy 0.001 larger in its
+plane rings within the tolerance, is still one place. Searched only within four tolerances, an ellipse 21.25 by 0.93, b²
+/ a 4.07 tolerances at a tolerance of 0.01, passing a rim 5.26 by 3.59 at two places 0.058 apart, the gap rising 4.4 %
+above the tolerance between, was given one, and searched only within eight, an ellipse 23.46 by 1.379, its rim 9.29
+tolerances from its major axis beside the touch, passing a rim 10 336.8 by 7 088.3 at two places 0.0755 apart, the gap
+rising 4 % above the tolerance between, was too; and searched from inside the stretch about the place found, near the
+end of the major axis, a rim 36.66 by 30.95 passing an ellipse 21.88 by 0.908, b² / a 3.77 tolerances, within 0.0020
+either side of its end, the two places 0.056 apart and the gap rising 4 % above the tolerance of 0.01 between, was given
+one too. Only the other's two sides, and only where it is that narrow, are parted so: two touches the reading of a
+narrow ellipse read first makes one stay one, as a needle 0.754 by 0.108 passing a rim 31 536 by 14 839 at two places
+0.0357 apart, the gap rising 15 % above the tolerance between at a tolerance of 0.01, is given one place. Of 7 500 rims
+drawn across the end of an ellipse whose b² / a is 2 to 24 tolerances, at tolerances of 0.001, 0.01 and 0.05, each
+passing it within the tolerance at two places with the gap rising up to 15 % above it between, 27 are given one place,
+where 164 were before: 22 read from the ellipse, and 5 read from the rim, the ellipse 14.9 to 21.9 tolerances wide
+beside the place and the gap rising under 0.7 % above the tolerance between. An ellipse and a circle read as an ellipse by
+`GeoEllipse3.FromCircle`, its two radii one to within 1E-12 of the larger, are the same ellipse where the circle's own
+test calls them one circle, the centres and both radii within the point tolerance, whichever way the ellipse's axis
+points: the ellipse 100.0007 by 99.9995 and the circle of radius 100 about its centre crossed nowhere asked as a circle
+and at four places asked as an ellipse, and cross nowhere either way, as they do with the circle drawn as an ellipse 100
+by 99.99999999999999, its radii a rounding apart. Two ellipses neither of which is drawn as a circle are the same
+ellipse only with their axes along one line, or with both round within the point tolerance whatever their axes, as
+before: one 100.0004 by 99.9998 and one 100.0003 by 99.9999 turned a quarter about one centre cross nowhere, while one
+1.04978 by 1.04840, its radii 0.00138 apart, and one 1.04936 by 1.04903 about centres 0.00032 apart still cross at four
+places. Curves drawing the same one touch where their rims come within the point tolerance anywhere, not only where
+either holds where the other starts: an ellipse 100.0009 by 99.9995 leaning 8E-6 radians, 0.0012 off the circle of
+radius 100 at either start and within 0.00042 of it elsewhere, touched nothing, and touches the circle, the circle read
+as an ellipse, and an arc of it passing there; where neither start lies on the other the rim is searched, 0.5 to 1.5
+milliseconds a call where the starts took 2 to 4 microseconds. Against an independent oracle, the gap sampled along both
+curves and every stretch within the tolerance found, linked into touches and its least refined, of 19 500 pairs in 225
+corpora (two ellipses, an ellipse and a circle or an arc, two circles, two arcs: grazing, tilted 0.001 to 1 radian,
+thin, needles, huge against small, in one plane, copies, near copies, rims running along each other; at tolerances of
+0.001, 0.01 and 0.05), 26 answers change and the other 19 474 are the same to the bit. 12 pairs of ellipses are given
+more places than they were, each new one 1.08 to 12.2 tolerances from a place given before and the gap between rising
+above the tolerance along both curves, by 1.0 % to 66 %, or by 70 tolerances where two thin ellipses cross each other's
+sides: 6 of them a touch the oracle finds and the answer missed, the gap rising 12.5 % to 66 % above the tolerance
+between, 3 of those a huge rim beside a needle; 3 given places 2.39 to 12.2 tolerances from one given before, the gap
+rising 3.5 % to 4.0 %, one of them the two sides of either end of a thin rim 315.68 by 0.646 that a copy 0.01 larger
+rings; and 3 given two places 1.08, 1.99 and 1.99 tolerances apart, which the oracle takes for one touch, the gap
+between rising 1.0 % and 1.1 %, and across the two thin ellipses 70 tolerances, above the tolerance along both curves,
+two touches by the rule that parts runs. 14 near copies drawing the same curve, their rims within 0.036 to 0.998
+tolerances of each other, collide where they did not, and still cross nowhere. Asked of a circle and of the circle read
+as an ellipse, 18 pairs collided one way and not the other, and none does. Against the oracle of the earlier review, of
+1 950 more pairs of ellipses and 348 searched for every region within the tolerance, 4 that collided neither way
+collide, 1 touch lost is found, and 5 pairs are given two places within twice the tolerance of each other, the gap
+between rising 7 % to 20 % above it along both curves. Pairs of an ellipse and a circle or an arc, of two circles and of
+two arcs are answered as before but for those near copies. On .NET 10 and on .NET Framework 4.8, each call the least of
+three and each corpus the lesser of two runs, the median call of 135 corpora of two ellipses, an ellipse and a circle,
+and an ellipse and an arc is unchanged within 1 % in the middle of them and at most 1.75 times what it was: needles at a
+tolerance of 0.01 take 311 microseconds where they took 177 on .NET 10 (189 and 167 on .NET Framework 4.8), and thin
+ellipses at 0.05 take 71 where they took 48, and 40.3 where they took 26.8 on .NET Framework 4.8; a near copy of an
+ellipse asked whether it touches a circle at that tolerance takes 1.4 times as long on .NET Framework 4.8 (220
+microseconds, 158), and pairs in parallel planes, apart in under two microseconds, up to a tenth of a microsecond
+longer. Rims drawn across the end of a narrow ellipse take up to 2.25 times as long, 39.9 microseconds where they took
+17.7 on .NET Framework 4.8, and 59.7 where they took 37.0 on .NET 10, at a tolerance of 0.001. The slowest calls, about
+14 milliseconds for copies and near copies, are as before.
+
 **FIXED.** An ellipse, a circle or an arc in space that passes within the point tolerance of another curve at two places
 close together along its rim, the gap rising above the tolerance between, is given both places. The rim was read every
 64th of a turn and a piece of it with an end within the tolerance kept whole, so touches that fell in one piece, or in

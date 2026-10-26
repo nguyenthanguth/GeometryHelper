@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Core
@@ -100,7 +101,12 @@ namespace GeometryHelper.Core
         /// </returns>
         /// <remarks>
         /// An arc lying on the rim crosses it nowhere and touches it all along, so where the ellipse is the arc's circle,
-        /// within the tolerance, the two touch when either holds an end of the other, as two arcs of one circle do.
+        /// within the tolerance, the two touch when either holds an end of the other, as two arcs of one circle do, or where
+        /// the arc comes within the point tolerance of the rim anywhere else: an ellipse 100.0009 by 99.9995 leaning 8E-6
+        /// radians off the plane of the circle of radius 100 about its centre touches the arc running the long way round
+        /// that circle from 0.3 radians past the end of its major axis to 0.3 short of it, whose ends lie 0.0011 off the rim
+        /// and which comes within 0.00042 of it between. Asked so, a near copy whose ends stand off is searched along its
+        /// rim, about half a millisecond, where the ends alone take a few microseconds.
         /// </remarks>
         public static bool CollidesWith(GeoEllipse3 ellipse, GeoArc3 arc, Tolerance tolerance)
         {
@@ -111,7 +117,8 @@ namespace GeometryHelper.Core
             {
                 return arc.IsPointOn(StartOf(ellipse), tolerance)
                     || OnRim(ellipse, arc.StartPoint, tolerance)
-                    || OnRim(ellipse, arc.EndPoint, tolerance);
+                    || OnRim(ellipse, arc.EndPoint, tolerance)
+                    || Passes(ellipse, NearPass3.Target.Of(arc, tolerance), tolerance);
             }
 
             return GetIntersections(ellipse, arc, tolerance).Length > 0;
@@ -133,6 +140,13 @@ namespace GeometryHelper.Core
         /// plan about the origin is inside the ellipse 300 by 100 about it and touches nothing: the rims are what count, not
         /// the discs.
         /// </returns>
+        /// <remarks>
+        /// Drawing the same curve, the two touch where either holds where the other starts, or where the rims come within the
+        /// point tolerance of each other anywhere else: an ellipse 100.0009 by 99.9995 about the centre of the circle of
+        /// radius 100, its major axis towards where the circle starts and leaning 8E-6 radians, stands 0.0012 off the circle
+        /// at either start, comes within 0.00042 of it elsewhere, and touches it. Where neither start lies on the other, the
+        /// rim is searched, which takes up to about a millisecond and a half, where the starts alone take a few microseconds.
+        /// </remarks>
         public static bool CollidesWith(GeoEllipse3 ellipse, GeoCircle3 circle, Tolerance tolerance)
         {
             if (IsCoplanar(ellipse, circle.GetPlane(), tolerance)
@@ -142,7 +156,9 @@ namespace GeometryHelper.Core
             {
                 GeoArc3 rim = Arc3.AsArc(circle);
 
-                return OnRim(ellipse, rim.StartPoint, tolerance) || rim.IsPointOn(StartOf(ellipse), tolerance);
+                return OnRim(ellipse, rim.StartPoint, tolerance)
+                    || rim.IsPointOn(StartOf(ellipse), tolerance)
+                    || Passes(ellipse, NearPass3.Target.Of(rim, tolerance), tolerance);
             }
 
             return GetIntersections(ellipse, circle, tolerance).Length > 0;
@@ -163,15 +179,43 @@ namespace GeometryHelper.Core
         /// true if the rims cross or touch, or the two are the same ellipse; otherwise, false. The ellipse 150 by 50 lying in
         /// the plan inside the ellipse 300 by 100 about the same centre touches nothing.
         /// </returns>
+        /// <remarks>
+        /// The same ellipse, as <see cref="GetIntersections(GeoEllipse3, GeoEllipse3, Tolerance)"/> reads it, touches where
+        /// either holds where the other starts, or where the rims come within the point tolerance of each other anywhere else,
+        /// as an ellipse and a circle drawing the same curve do, the rim searched where neither start lies on the other.
+        /// </remarks>
         public static bool CollidesWith(GeoEllipse3 ellipse, GeoEllipse3 other, Tolerance tolerance)
         {
             if (InOnePlane(ref ellipse, ref other, tolerance)
-                && Ellipse2.IsEqualTo(Flat(ellipse), LayOut(ellipse, other), tolerance))
+                && SameCurve(Flat(ellipse), LayOut(ellipse, other), tolerance))
             {
-                return OnRim(ellipse, StartOf(other), tolerance) || OnRim(other, StartOf(ellipse), tolerance);
+                return OnRim(ellipse, StartOf(other), tolerance)
+                    || OnRim(other, StartOf(ellipse), tolerance)
+                    || Passes(ellipse, AsTarget(other, tolerance), tolerance);
             }
 
             return GetIntersections(ellipse, other, tolerance).Length > 0;
+        }
+
+        /// <summary>
+        /// Determines whether the rim passes within the point tolerance of a curve drawing the same one anywhere, searched
+        /// along the rim (<see cref="NearPass3"/>).
+        /// </summary>
+        /// <remarks>
+        /// Two curves drawing the same one cross nowhere, and touch where either holds where the other starts; but a copy
+        /// leaning off the plane by up to the planar tolerance may stand further than the point tolerance off the other there
+        /// and come within it elsewhere: an ellipse 100.0009 by 99.9995 about the centre of a circle of radius 100, its major
+        /// axis towards where the circle starts and leaning 8E-6 radians, stands 0.0012 off the circle at either start and
+        /// comes within 0.00042 of it elsewhere, and was taken to touch nothing. The search takes 0.5 to 1.5 milliseconds for
+        /// such a copy, where the starts alone took 2 to 4 microseconds.
+        /// </remarks>
+        private static bool Passes(GeoEllipse3 ellipse, NearPass3.Target target, Tolerance tolerance)
+        {
+            var found = new List<GeoPoint3>();
+
+            NearPass3.Add(found, AsRim(ellipse, tolerance), target, tolerance);
+
+            return found.Count > 0;
         }
 
         #endregion

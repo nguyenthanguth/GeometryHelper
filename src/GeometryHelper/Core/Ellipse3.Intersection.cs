@@ -403,7 +403,13 @@ namespace GeometryHelper.Core
         /// <returns>
         /// The points the two rims share, in the order the circle's crossings of a circle come in. The ellipse 300 by 100
         /// lying in the plan about the origin and the same ellipse turned a quarter cross at (94.868, 94.868, 0) first, then
-        /// at the three points mirrored from it. None when the two are the same ellipse.
+        /// at the three points mirrored from it. None when the two are the same ellipse: in one plane, their centres and radii
+        /// within the point tolerance and their axes along one line, or both round within it, whatever their axes, as an
+        /// ellipse 100.0004 by 99.9998 and one 100.0003 by 99.9999 turned a quarter about the same centre; or, one of them a
+        /// circle, its two radii one to within 1E-12 of the larger, the centres and both radii of the other within the
+        /// tolerance of the circle's, whichever way its axis points, as the ellipse 100.0007 by 99.9995 and the circle of
+        /// radius 100 about its centre read as an ellipse (<see cref="GeoEllipse3.FromCircle(GeoCircle3)"/>), which give
+        /// none asked as a circle too.
         /// </returns>
         /// <remarks>
         /// Not in one plane, the two give the same places to the last digit whichever is asked first, and rims that pass
@@ -414,6 +420,20 @@ namespace GeometryHelper.Core
         /// tolerance of each other in space, and the points come in the opposite order asked the other way: an ellipse
         /// 1.97 by 0.0023 lying within the planar tolerance of the plane of one 15 338 by 15 274, which leans 0.02 radians
         /// off its own, their rims 0.00016 apart, touch near (-5595.742, -6793.740, -12510.089) whichever is asked first.
+        /// Either way, where the ellipse not read is narrow, its rim no more than 32 tolerances from its major axis beside a
+        /// place found, it is searched too, across its inside from that place and beyond the stretch about it that runs
+        /// within the tolerance, so that a touch on its other side, which the one read passes between two of its readings, is
+        /// found as well: a rim 30 080 by 18 333 passing 0.000013 from either side of a needle 2.78 by 0.0028, leaning 0.56
+        /// radians off its plane, touches it at both sides, 0.0026 apart, and a rim 36.66 by 30.95 passing an ellipse 21.88
+        /// by 0.908 within 0.0020 either side of the end of its major axis, the two places 0.056 apart and the gap rising 4 %
+        /// above the tolerance between at a tolerance of 0.01, touches it at both. Wider than that beside the place, the
+        /// ellipse not read is not searched, and two touches the one read passes between two readings stay one; so do two
+        /// touches the reading of a narrow ellipse read first makes one: a needle 0.754 by 0.108 passing a rim 31 536 by
+        /// 14 839 at two places 0.0357 apart, the gap rising 15 % above the tolerance between at a tolerance of 0.01, is given
+        /// one place. Of 7 500 rims drawn across the end of an ellipse whose b² / a is 2 to 24 tolerances, at tolerances of
+        /// 0.001, 0.01 and 0.05, each passing it within the tolerance at two places with the gap rising up to 15 % above it
+        /// between, 27 are given one place: 22 read from the ellipse, and 5 read from the rim, the ellipse 14.9 to 21.9
+        /// tolerances wide beside the place and the gap rising under 0.7 % above the tolerance between.
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoEllipse3 ellipse, GeoEllipse3 other, Tolerance tolerance)
         {
@@ -423,7 +443,7 @@ namespace GeometryHelper.Core
                 GeoEllipse2 laidOut = LayOut(ellipse, other);
 
                 // The same ellipse crosses nowhere, as documented, though its rim runs within the tolerance of the other's.
-                if (Ellipse2.IsEqualTo(flat, laidOut, tolerance))
+                if (SameCurve(flat, laidOut, tolerance))
                 {
                     return new GeoPoint3[0];
                 }
@@ -434,6 +454,7 @@ namespace GeometryHelper.Core
 
                 Passing(kept, ellipse, target, tolerance);
                 NearPass3.Add(kept, AsRim(ellipse, tolerance), target, tolerance);
+                AlongOther(kept, ellipse, other, tolerance);
 
                 return InOrderOf(kept, ellipse, other, turned, tolerance);
             }
@@ -1083,6 +1104,7 @@ namespace GeometryHelper.Core
             }
 
             NearPass3.Add(found, AsRim(ellipse, tolerance), AsTarget(other, tolerance), tolerance);
+            AlongOther(found, ellipse, other, tolerance);
 
             return found;
         }
@@ -1109,6 +1131,206 @@ namespace GeometryHelper.Core
 
             found.Add(candidate);
         }
+
+        /// <summary>
+        /// How narrow the other ellipse may be across its inside, in point tolerances from its rim to its major axis, and still
+        /// hide a touch beside a place named: at four, an ellipse 21.25 by 0.93, b² / a 4.07 tolerances, missed one, and at
+        /// eight, one 23.46 by 1.379, 9.29 tolerances wide beside the touch; of 7 500 rims drawn across the end of an ellipse
+        /// whose b² / a is 2 to 24 tolerances, each passing it at two places, 5 read from the rim are given one at 32.
+        /// </summary>
+        private const double Narrow = 32.0;
+
+        /// <summary>
+        /// Adds the places a search along the other ellipse, against the one read, finds across its inside from the places
+        /// named, where it is narrow enough there to hide one, and that no place named stands for.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The rim is read at points no further apart along it than twice the tolerance, so where the gap between two places
+        /// the other passes within the tolerance rises above it over a stretch shorter than that, both can lie between two
+        /// readings within it and are one place: a rim 30 080 by 18 333 passing 0.000013 from either side of a needle 2.78 by
+        /// 0.0028, which leans 0.56 radians off its plane, was named at the one side only, the other 0.0026 along it. The
+        /// other comes back within the tolerance so soon only where its two sides lie close, its rim a few tolerances from its
+        /// major axis along the normal: b / a times its speed, nowhere less than b² / a. Where that is no more than 32
+        /// tolerances, the other side is at the opposite angle, mirrored across the major axis, and the other is searched
+        /// along a stretch of it 16 tolerances long about that angle; along the needle the two sides lie a radian apart, and
+        /// both are named. Searched only within four tolerances, an ellipse 21.25 by 0.93, b² / a 4.07 tolerances at a
+        /// tolerance of 0.01, passing a rim 5.26 by 3.59 within 0.0036 and 0.0072 at two places 0.058 apart, the gap rising
+        /// 4.4 % above the tolerance between, was given one place; searched only within eight, an ellipse 23.46 by 1.379,
+        /// its rim 9.29 tolerances from its major axis beside the touch, passing a rim 10 336.8 by 7 088.3 within 0.0030 and
+        /// 0.00036 at two places 0.0755 apart, the gap rising 4 % above the tolerance between, was given one too.
+        /// </para>
+        /// <para>
+        /// Near the end of the major axis the stretch reaches back over the place named, and the run of that place, the
+        /// stretch about its angle the one read holds, read at points as <see cref="Along"/> reads them, is left out of it:
+        /// begun inside that run, the search read it and a touch beyond it as one run across the rise between, and took the
+        /// touch for the place named. A rim 36.66 by 30.95 passing an ellipse 21.88 by 0.908, b² / a 3.77 tolerances at a
+        /// tolerance of 0.01, within 0.0020 at two places 0.056 apart either side of its end, the gap rising 4 % above the
+        /// tolerance between, was given one place.
+        /// </para>
+        /// <para>
+        /// A place found there is one already named where it stands within the tolerance of one, or where either curve runs
+        /// within the tolerance of the other all the way between the two, each read at points as <see cref="Along"/> reads
+        /// them: the end of a rim 100 000 by 1 lies within the tolerance of a copy 0.001 larger all round it, while from the
+        /// larger the gap rises a hair above it round the end, and each end is one place. Where the other is nowhere so
+        /// narrow, or nothing was named, it is not searched, and the answer is the rim's alone, as before.
+        /// </para>
+        /// <para>
+        /// Only the two sides of the ellipse not read are parted so. Two touches the reading of a narrow ellipse itself makes
+        /// one stay one: read first, a needle 0.754 by 0.108 passing a rim 31 536 by 14 839 at two places 0.0357 apart, the gap
+        /// rising 15 % above the tolerance between at a tolerance of 0.01, is given one place, its crossing of the rim's plane,
+        /// which stands within the tolerance of both.
+        /// </para>
+        /// </remarks>
+        private static void AlongOther(List<GeoPoint3> found, GeoEllipse3 ellipse, GeoEllipse3 other, Tolerance tolerance)
+        {
+            double a = other.MajorRadius;
+            double b = other.MinorRadius;
+            double narrow = Narrow * tolerance.EqualPoint;
+
+            if (!(b * b / a <= narrow))
+            {
+                return;
+            }
+
+            NearPass3.Target read = AsTarget(ellipse, tolerance);
+            NearPass3.Target back = null;
+            GeoEllipse2 flat = Flat(other);
+            int named = found.Count;
+
+            for (int i = 0; i < named; i++)
+            {
+                double angle = AngleOf(other, flat, found[i]);
+                double sin = Math.Sin(angle);
+                double cos = Math.Cos(angle);
+                double speed = Math.Sqrt(a * a * sin * sin + b * b * cos * cos);
+
+                if (!(b / a * speed <= narrow))
+                {
+                    continue;
+                }
+
+                double half = Math.Min(Math.PI, 8.0 * tolerance.EqualPoint / speed);
+                double from = -angle - half;
+                double to = from + 2.0 * half;
+
+                // The run of the place itself, the stretch about its angle the one read holds, is left out of the stretch
+                // searched, so that a search begun inside it does not read a touch beyond it as the same place.
+                double at = -angle + Math.IEEERemainder(2.0 * angle, 2.0 * Math.PI);
+                double low = at >= from ? Leave(other, at, from, read, tolerance) : at;
+                double high = at <= to ? Leave(other, at, to, read, tolerance) : at;
+                var more = new List<GeoPoint3>();
+
+                if (low > from)
+                {
+                    double end = Math.Min(low, to);
+
+                    NearPass3.Add(more, Window(other, from, end == to ? 2.0 * half : end - from, tolerance), read, tolerance);
+                }
+
+                if (high < to)
+                {
+                    double start = Math.Max(high, from);
+
+                    NearPass3.Add(more, Window(other, start, start == from ? 2.0 * half : to - start, tolerance), read, tolerance);
+                }
+
+                foreach (GeoPoint3 place in more)
+                {
+                    if (found.Exists(named => named.IsEqualTo(place, tolerance)) || Along(other, flat, found, place, read, tolerance))
+                    {
+                        continue;
+                    }
+
+                    back = back ?? AsTarget(other, tolerance);
+
+                    if (!Along(ellipse, Flat(ellipse), found, place, back, tolerance))
+                    {
+                        found.Add(place);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets the eccentric angle of the point of an ellipse's rim nearest a point.
+        /// </summary>
+        private static double AngleOf(GeoEllipse3 ellipse, GeoEllipse2 flat, GeoPoint3 point)
+        {
+            Frame(ellipse, point, out double along, out double across, out _);
+
+            GeoPoint2 nearest = Ellipse2.GetClosestPointOnBoundary(flat, new GeoPoint2(along, across));
+
+            return Math.Atan2(nearest.Y / ellipse.MinorRadius, nearest.X / ellipse.MajorRadius);
+        }
+
+        /// <summary>
+        /// Determines whether an ellipse runs within the point tolerance of a curve all the way from its point nearest one of
+        /// the places named to its point nearest another place, the short way round: read at points evenly between, at least
+        /// 16 and at most 256 of them, no further apart along it than the tolerance where 256 reach, as the search reads the
+        /// curve.
+        /// </summary>
+        private static bool Along(GeoEllipse3 ellipse, GeoEllipse2 flat, List<GeoPoint3> named, GeoPoint3 place, NearPass3.Target curve, Tolerance tolerance)
+        {
+            double to = AngleOf(ellipse, flat, place);
+
+            foreach (GeoPoint3 point in named)
+            {
+                double from = AngleOf(ellipse, flat, point);
+                double turned = Math.IEEERemainder(to - from, 2.0 * Math.PI);
+                int steps = (int)Math.Min(256.0, Math.Max(16.0, Math.Ceiling(Math.Abs(turned) * ellipse.MajorRadius / tolerance.EqualPoint)));
+                bool all = true;
+
+                for (int k = 1; k < steps && all; k++)
+                {
+                    all = curve.Holds(GetPointAtAngle(ellipse, from + turned * k / steps));
+                }
+
+                if (all)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Gets the first point of an ellipse's rim, walking from an angle towards another, that a curve does not hold within
+        /// the point tolerance, read as <see cref="Along"/> reads it; the angle walked to where the curve holds every point.
+        /// </summary>
+        private static double Leave(GeoEllipse3 ellipse, double from, double to, NearPass3.Target curve, Tolerance tolerance)
+        {
+            double turned = to - from;
+            int steps = (int)Math.Min(256.0, Math.Max(16.0, Math.Ceiling(Math.Abs(turned) * ellipse.MajorRadius / tolerance.EqualPoint)));
+
+            for (int k = 1; k < steps; k++)
+            {
+                double angle = from + turned * k / steps;
+
+                if (!curve.Holds(GetPointAtAngle(ellipse, angle)))
+                {
+                    return angle;
+                }
+            }
+
+            return to;
+        }
+
+        /// <summary>
+        /// Reads a stretch of the rim of an ellipse, from an angle through a sweep, to be searched along as an arc of it.
+        /// </summary>
+        private static NearPass3.Rim Window(GeoEllipse3 ellipse, double from, double sweep, Tolerance tolerance)
+            => new NearPass3.Rim(
+                ellipse.Center,
+                ellipse.MajorAxis,
+                ellipse.MinorAxis,
+                ellipse.MajorRadius,
+                ellipse.MinorRadius,
+                from,
+                sweep,
+                angle => GetPointAtAngle(ellipse, angle),
+                point => OnRim(ellipse, point, tolerance));
 
         /// <summary>
         /// Reads the rim of an ellipse to be searched along for where it passes another curve (<see cref="NearPass3"/>).
@@ -1652,6 +1874,41 @@ namespace GeometryHelper.Core
         /// within the tolerance of each other all the way round.
         /// </summary>
         private static bool OnOneCircle(GeoEllipse3 ellipse, GeoPoint3 center, double radius, Tolerance tolerance)
+            => ellipse.Center.IsEqualTo(center, tolerance)
+                && Math.Abs(ellipse.MajorRadius - radius) <= tolerance.EqualPoint
+                && Math.Abs(ellipse.MinorRadius - radius) <= tolerance.EqualPoint;
+
+        /// <summary>
+        /// Determines whether two ellipses of one plane, the other laid out in the first's frame, draw the same curve: the same
+        /// ellipse within the tolerance (<see cref="Ellipse2.IsEqualTo(GeoEllipse2, GeoEllipse2, Tolerance)"/>), or, where one
+        /// of them is a circle, its two radii one to within 1E-12 of the larger, as <see cref="Ellipse2"/> reads a circle, the
+        /// pair the circle's test calls one circle (<see cref="OnOneCircle(GeoEllipse3, GeoPoint3, double, Tolerance)"/>): the
+        /// centres within the point tolerance and both radii of the other within it of the circle's, whichever way the other's
+        /// axis points.
+        /// </summary>
+        /// <remarks>
+        /// Read by the axes alone, the ellipse 100.0007 by 99.9995 and the circle of radius 100 about the same centre drew one
+        /// curve asked as a circle, and crossed at four places asked as the circle read as an ellipse
+        /// (<see cref="GeoEllipse3.FromCircle(GeoCircle3)"/>). The axes are passed over only where one is a circle: two
+        /// ellipses 1.04978 by 1.04840 and 1.04936 by 1.04903, the second a circle within the tolerance but not drawn as one,
+        /// their centres 0.00032 apart and their axes turned, cross where their rims come within the tolerance of each other,
+        /// though each radius of the one lies within it of the other radius of the other. Told by radii exactly one, the
+        /// circle of radius 100 drawn as an ellipse 100 by 99.99999999999999 crossed that ellipse 100.0007 by 99.9995, its axis
+        /// turned a quarter, at four places.
+        /// </remarks>
+        private static bool SameCurve(GeoEllipse2 flat, GeoEllipse2 laidOut, Tolerance tolerance)
+            => Ellipse2.IsEqualTo(flat, laidOut, tolerance)
+                || (laidOut.MajorRadius - laidOut.MinorRadius <= 1E-12 * laidOut.MajorRadius
+                    && OnOneCircle(flat, laidOut.Center, laidOut.MajorRadius, tolerance))
+                || (flat.MajorRadius - flat.MinorRadius <= 1E-12 * flat.MajorRadius
+                    && OnOneCircle(laidOut, flat.Center, flat.MajorRadius, tolerance));
+
+        /// <summary>
+        /// Determines whether an ellipse and a circle of one plane, read in one frame, are one circle as
+        /// <see cref="OnOneCircle(GeoEllipse3, GeoPoint3, double, Tolerance)"/> reads them: the centres and both radii within
+        /// the point tolerance.
+        /// </summary>
+        private static bool OnOneCircle(GeoEllipse2 ellipse, GeoPoint2 center, double radius, Tolerance tolerance)
             => ellipse.Center.IsEqualTo(center, tolerance)
                 && Math.Abs(ellipse.MajorRadius - radius) <= tolerance.EqualPoint
                 && Math.Abs(ellipse.MinorRadius - radius) <= tolerance.EqualPoint;

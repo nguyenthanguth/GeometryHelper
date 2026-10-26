@@ -2015,6 +2015,31 @@ halving stops after 384 readings, which only rims running along each other withi
 reach, and what is left is brought down by Brent's method, the one part not proved. A pair not in one plane costs a few
 microseconds where the rims are far apart, and up to about a millisecond for long copies running along each other.
 
+The rim read is read at points no further apart than twice the tolerance along it, so two places the other ellipse
+passes within the tolerance, the gap rising above it between over a shorter stretch than that, can lie between two
+readings and be one; and where the other is narrow, its two sides a few tolerances apart, the rim read can pass both so:
+a rim 30 080 by 18 333 passing 0.000013 from either side of a needle 2.78 by 0.0028, leaning 0.56 radians off its plane,
+touched it at one side only. So where the other ellipse's rim lies no more than 32 tolerances from its major axis beside
+a place found, it is searched too, across its inside, where its other side is, beyond the stretch about the place that
+runs within the tolerance, and a place found there is given unless it stands within the tolerance of a place given
+already or either rim runs within the tolerance of the other all the way to one: the two touch at both sides now, 0.0026
+apart, whichever is asked first, and the end of a rim 100 000 by 1, which a copy 0.001 larger in its plane rings within
+the tolerance, is still one place at each end. Searched only within four tolerances, an ellipse 21.25 by 0.93, b² / a
+4.07 tolerances at a tolerance of 0.01, passing a rim 5.26 by 3.59 at two places 0.058 apart missed the second, and
+searched only within eight, an ellipse 23.46 by 1.379, its rim 9.29 tolerances from its major axis beside the touch,
+passing a rim 10 336.8 by 7 088.3 at two places 0.0755 apart, the gap rising 4 % above the tolerance between, did too;
+and searched from inside the stretch about the place found, near the end of the major axis, the search read a touch
+beyond it as the same place: a rim 36.66 by 30.95 passing an ellipse 21.88 by 0.908, b² / a 3.77 tolerances, within
+0.0020 either side of its end, the two places 0.056 apart and the gap rising 4 % above the tolerance of 0.01 between,
+touched it once, and touches it at both now. Read in one plane, the same holds. Only the sides of the ellipse not read,
+and only where it is so narrow, are parted so: two touches a narrow ellipse's own reading makes one stay one, as a
+needle 0.754 by 0.108 read first, passing a rim 31 536 by 14 839 at two places 0.0357 apart at a tolerance of 0.01, the
+gap rising 15 % above it between, is given one place. Of 7 500 rims drawn across the end of an ellipse whose b² / a is 2
+to 24 tolerances, at tolerances of 0.001, 0.01 and 0.05, each passing it within the tolerance at two places with the gap
+rising up to 15 % above it between, 27 are given one place, where 164 were before: 22 read from the ellipse, and 5 read
+from the rim, the ellipse 14.9 to 21.9 tolerances wide beside the place and the gap rising under 0.7 % above the
+tolerance between.
+
 Two ellipses that each lie within the planar tolerance of the other's plane are read from the
 one that comes first too, and give the same points to the last digit either way. A circle or an arc passing the rim
 within the point tolerance touches it in the same way: the circle of radius 50 leaning 0.01 radians, the end of its
@@ -2037,6 +2062,21 @@ of each other, as rims not in one plane are, a run within it one place; the same
 their centres and radii within the tolerance, still cross nowhere. That pair touches near (-5595.742, -6793.740,
 -12510.089) now whichever is asked first, and two ellipses read in one plane give their points in the opposite order
 asked the other way.
+
+Two ellipses draw the same curve where their centres and radii are within the point tolerance and their axes along one
+line, or both are round within it, their two radii no further apart than it, whatever their axes, as one 100.0004 by
+99.9998 and one 100.0003 by 99.9999 turned a quarter about the same centre; or where one is a circle, its two radii one
+to within 1E-12 of the larger, and the centres and both radii of the other are within the tolerance of the circle's,
+whichever way its axis points, as an ellipse and a circle do: the ellipse 100.0007 by 99.9995 and the circle of radius
+100 about its centre cross nowhere asked as a circle, as the circle read by `GeoEllipse3.FromCircle`, where the second
+gave four places, or as the circle drawn as an ellipse 100 by 99.99999999999999, its radii a rounding apart, which gave
+four too. Two ellipses neither of which is drawn as a circle, nor both round, are not one curve with their axes turned:
+one 1.04978 by 1.04840, its radii 0.00138 apart, and one 1.04936 by 1.04903, their centres 0.00032 apart, cross at four
+places. Curves drawing the same one touch where either holds where the other starts, or where their rims come within the
+point tolerance anywhere else, the rim searched for that, about half a millisecond to a millisecond and a half: an
+ellipse 100.0009 by 99.9995 about that circle's centre, its major axis towards where the circle starts and leaning 8E-6
+radians, stands 0.0012 off the circle at either start and comes within 0.00042 of it elsewhere, and touches it, the
+circle read as an ellipse, and an arc of it passing there.
 
 ```csharp
 ellipse.GetIntersections(new GeoPlane3(new GeoPoint3(150, 0, 0), GeoVector3.XAxis));
