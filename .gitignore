@@ -112,3 +112,5 @@ docfx/api/
 # Báo cáo của bộ benchmark (benchmarks/), viết lại mỗi lần chạy
 # ---------------------------------------------------------------------------
 artifacts/
+# Added by code-review-graph
+.code-review-graph/
