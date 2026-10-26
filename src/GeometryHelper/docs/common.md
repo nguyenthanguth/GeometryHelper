@@ -522,7 +522,8 @@ What is written is in the file's own style: its line end, its padding, the numbe
 in its encoding, a letter the page cannot hold, or whose bytes would read back as UTF-8, written as its escape (`\U+00E9`).
 A file that names no version is written as one of R12, or of R2000 where its records carry subclass markers. Held against
 ezdxf 1.4.5 on its drawings of R12, R2000, R2007 and R2018, recover and audit find nothing to fix in what the model writes,
-ezdxf reads each value as set, and every untouched record keeps its bytes (188, 308, 361 and 363 of them).
+ezdxf reads each value as set, and every untouched record keeps its bytes (186, 306, 359 and 361 of them; of the two
+more the header has, `$PEXTMIN` and `$PEXTMAX`, which ezdxf leaves empty, grow to hold what the edits draw in paper space).
 
 ### The drawing
 
@@ -584,13 +585,26 @@ value before it writes any; a record that names no text style leaves the text st
   refuse it; a whole number out of AutoCAD's range, a `Dimdec` of 9, and a size of the arrows, the text or the scale below
   nought are refused, as the header refuses them.
 
-`$EXTMIN` and `$EXTMAX` hold model space and paper space. They grow to hold what is written and are never shrunk: an entity
-whose own record is written whole, as a LINE moved or a POLYLINE given a new flag, grows them at once; a run of groups of
-its record written in place (a LWPOLYLINE's vertex, a SPLINE's knots) or a record that follows it (a VERTEX put in or set
-in a POLYLINE, a point of a mesh) grows them by the entity as it stands when the header is next read or the file saved,
-once however many vertices were written, so that a vertex moved out and back between two readings leaves no trace. An
-entity of a block appended, moved or changed leaves them as they are, as AutoCAD leaves them until the INSERTs of the block
-are regenerated.
+`$EXTMIN` and `$EXTMAX` hold model space and paper space. They grow to hold what is appended or moved, each axis on its
+own, and an erase does not shrink them: an entity whose own record is written whole, as a LINE moved or a POLYLINE given a
+new flag, grows them at once; a run of groups of its record written in place (a LWPOLYLINE's vertex, a SPLINE's knots) or
+a record that follows it (a VERTEX put in or set in a POLYLINE, a point of a mesh) grows them by the entity as it stands
+when the header is next read or the file saved, once however many vertices were written, so that a vertex moved out and
+back between two readings leaves no trace. An INSERT appended, moved or copied by `WblockCloneObjects` grows them by what it
+places, its `GeometricExtents`, each cell of a MINSERT's array among it, read in the same way when the header is next read
+or the file saved, so that its block is placed once and as the drawing then has it: block W of the line from (0, 0, 0) to
+(10, 0, 0) inserted at (5100, 0, 0) grows them to x 5110. An attribute of an INSERT written places its block anew in the
+same way. An INSERT that places nothing, its block not defined, an external reference or the block of a layout, or one
+that would place more than `MaxPlacedEntities`, leaves them as they are. The block is placed again at each reading of the
+header after the INSERT changed, and only where the header holds the extents: an INSERT placing 1 000 000 lines, moved and
+the header read, takes about 2 s each time, and none where the header has no `$EXTMIN` and `$EXTMAX`. An entity of a
+block appended, moved or changed leaves them as they are, as AutoCAD leaves them until the INSERTs of the block are regenerated. Extents the header leaves empty, the least
+corner above the most, as the 1E+20 and -1E+20 ezdxf writes for a drawing it has not measured, become the box of what is
+appended or moved, as AutoCAD grows them from empty: a line from (5000, -4000, 0) to (5100, -3900, 10) appended to such a
+drawing makes `Extmin` (5000, -4000, 0) and `Extmax` (5100, -3900, 10), before saving and after. What the drawing held
+already is not measured into them. An axis the wrong way round alone is made the box's along it and the others grown as
+ever: `$EXTMIN` (0, 0, 0) and `$EXTMAX` (100, -50, 0) with a circle of radius 5 about (200, 10) appended are (0, 0, 0) and
+(205, 15, 0).
 
 The drawing reads and sets the variables AutoCAD keeps out of the header, as DICTIONARYVAR objects of the dictionary
 AcDbVariableDictionary: `Cannoscale` (a scale of the drawing's list of scales), `Cetransparency` (a whole per cent, so the

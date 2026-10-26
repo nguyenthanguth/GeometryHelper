@@ -579,6 +579,27 @@ override, where the block came after W. Each names the copy of its block now, wh
 first in W, in a drawing of R12 by the block's name (1070 5, 1000 BOLT); and a table copied alone brings the block of its
 cell, as AutoCAD's deep clone follows the pointer, where it came only if the table's `*T` inserted it.
 
+**FIXED.** The extents of a drawing's header left empty, the least corner above the most as the 1E+20 and -1E+20 ezdxf
+writes for a drawing it has not measured, never grew: a line from (5000, -4000, 0) to (5100, -3900, 10) appended, or a
+vertex of a multileader moved to (5000, -4000, 0), left `$EXTMIN` and `$EXTMAX` empty, before saving and after. Each axis
+is now grown on its own, as AutoCAD grows them from empty: empty extents become the box of what is appended or moved,
+`Extmin` (5000, -4000, 0) and `Extmax` (5100, -3900, 10) for that line, and grow from there; `$PEXTMIN` and `$PEXTMAX`
+likewise for paper space; extents the wrong way round along one axis alone, `$EXTMIN` (0, 0, 0) and `$EXTMAX`
+(100, -50, 0), take a circle of radius 5 about (200, 10) to (0, 0, 0) and (205, 15, 0), no axis shrunk. What the drawing
+held already is not measured into them, and an erase does not shrink them. Extents set by `Extmin` and `Extmax` are grown
+from what they are set to, where what had been appended before was brought back into them. An INSERT appended, moved or
+copied by `WblockCloneObjects` left them as they were: it grows them by what it places now, each cell of a MINSERT's array,
+at the next reading of the header, so that block W of the line from (0, 0, 0) to (10, 0, 0) inserted at (5100, 0, 0) grows
+them to x 5110; an attribute of it written places the block anew in the same way, and an INSERT that places nothing (its
+block not defined, an external reference, the block of a layout, or past `MaxPlacedEntities`) leaves them as they are.
+Extents the header holds as a box are otherwise grown as they were: 271 drawings, opened and saved
+untouched or after a line appended to either space, an entity moved, an INSERT appended, a multileader's vertex or a
+lightweight polyline's vertex set, are written to the same bytes but for those variables, changed only where they were
+empty or an INSERT was appended or moved, and never shrunk on an axis. Growing by an INSERT places its block, at each
+reading of the header after the INSERT changed: one that places 1 000 000 lines, moved and the header read, takes about 2 s
+each time, 460 MB at its peak, where it took nothing and left the extents short; none where the header has no `$EXTMIN` and
+`$EXTMAX` (.NET 10).
+
 **NEW.** A text's and an MTEXT's text style is set by its name, `TextStyleName` (written as the drawing's table names it,
 letters of either case the same), or as its record, the new `TextStyle` (AutoCAD's `TextStyleId`): a style the drawing has not,
 or a record of another drawing, is refused, and the style the text has changes nothing; an attribute takes it as a text does.

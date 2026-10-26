@@ -317,8 +317,12 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets or sets the least corner of the box the drawing's model space fills (<c>$EXTMIN</c>), as AutoCAD's <c>Extmin</c>;
-        /// the origin where the header gives none. It grows to hold what is appended or moved, and is never shrunk, as AutoCAD
-        /// leaves it until it zooms to the extents.
+        /// the origin where the header gives none. It grows to hold what is appended or moved, each axis on its own, an INSERT
+        /// by what it places (one that places nothing, its block not defined, an external reference, a layout's block or past
+        /// <see cref="DxfReadOptions.MaxPlacedEntities"/>, leaving it as it is), and an erase does not shrink it, as AutoCAD
+        /// leaves it until it zooms to the extents. Extents left
+        /// empty, as the 1E+20 above -1E+20 of a drawing ezdxf has not measured, become the box of what is appended or moved: a
+        /// line from (5000, -4000, 0) to (5100, -3900, 10) makes this (5000, -4000, 0).
         /// </summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
         public GeoPoint3 Extmin

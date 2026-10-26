@@ -186,11 +186,17 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(was.Where(g => !geometry.Contains(g.TypeCode)).Select(g => g.ToString()), line.Groups.Where(g => !geometry.Contains(g.TypeCode)).Select(g => g.ToString()));
             Assert.Contains(line.Groups, g => g.TypeCode == 1001);
 
-            // One record differs, the line's, and the header is the same: no handle given, and ezdxf's extents are unset.
+            // One record differs besides the header, the line's; in the header, no handle given, ezdxf's extents, unset (1E+20
+            // above -1E+20), become the line's box and nothing else changes.
             string saved = Encoding.UTF8.GetString(Saved(file));
             Differ(text, saved, out List<string> gone, out List<string> come);
-            Assert.Equal("3E", HandleOf(Assert.Single(gone)));
-            Assert.Equal("3E", HandleOf(Assert.Single(come)));
+            Assert.Equal("3E", HandleOf(Assert.Single(gone, r => !r.Contains("\nHEADER\n"))));
+            Assert.Equal("3E", HandleOf(Assert.Single(come, r => !r.Contains("\nHEADER\n"))));
+            Func<string, string[]> others = t => DxfFile.Parse(t).Header.Where(v => v.Key != "$EXTMIN" && v.Key != "$EXTMAX")
+                .OrderBy(v => v.Key, StringComparer.Ordinal).Select(v => v.Key + " " + string.Join(" ", v.Value.Select(g => g.ToString()))).ToArray();
+            Assert.Equal(others(text), others(saved));
+            Assert.Equal(Bits(new GeoPoint3(1.25, -2.5, 0.3)), Bits(DxfDatabase.Parse(saved).Extmin));
+            Assert.Equal(Bits(new GeoPoint3(100.1, 0.2, 3.0000000000000004)), Bits(DxfDatabase.Parse(saved).Extmax));
 
             DxfDocument read = DxfReader.Parse(saved, new DxfReadOptions { Tolerance = Tol });
             GeoLine3 again = (GeoLine3)read.Shapes.Single(e => e.Handle == "3E").Shape;
@@ -561,11 +567,11 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(new[] { "0", "0", "0" }, file.Header["$EXTMIN"].Select(g => g.Value));
             Assert.Equal(new[] { "205", "50", "0" }, file.Header["$EXTMAX"].Select(g => g.Value));
 
-            // ezdxf's extents of a drawing it has not measured, 1E+20 and -1E+20, are left as they are.
+            // ezdxf's extents of a drawing it has not measured, 1E+20 and -1E+20, are empty: they become the circle's box.
             DxfFile ezdxf = DxfFile.Parse(DxfFileEzdxfDrawings.R2000);
-            string min = string.Join(",", ezdxf.Header["$EXTMIN"].Select(g => g.Value));
             ezdxf.ModelSpace.Add(new GeoCircle2(new GeoPoint2(200, 10), 5));
-            Assert.Equal(min, string.Join(",", ezdxf.Header["$EXTMIN"].Select(g => g.Value)));
+            Assert.Equal(new[] { "195", "5", "0" }, ezdxf.Header["$EXTMIN"].Select(g => g.Value));
+            Assert.Equal(new[] { "205", "15", "0" }, ezdxf.Header["$EXTMAX"].Select(g => g.Value));
         }
 
         #endregion

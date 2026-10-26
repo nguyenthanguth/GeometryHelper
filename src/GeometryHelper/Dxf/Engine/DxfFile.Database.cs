@@ -2446,10 +2446,30 @@ namespace GeometryHelper.Dxf
             return null;
         }
 
-        /// <summary>Grows the extents the header is to hold by those of an entity's shapes.</summary>
+        /// <summary>
+        /// Grows the extents the header is to hold by those of an entity's shapes. An INSERT is grown by what it places, its
+        /// GeometricExtents, at the next reading of the header: its block placed once then, however often it was written
+        /// before, and as the drawing then has it, a block copied after the INSERT that places it included. It is placed anew
+        /// at each reading of the header after the INSERT or one of its attributes was written, there being no reading of a
+        /// block kept from one change of the drawing to the next.
+        /// </summary>
         private void GrowBy(DxfItem item)
         {
             // A record that follows an entity is drawn as part of it.
+            item = item.Parent ?? item;
+
+            if (item.Type == "INSERT")
+            {
+                GrowLater(item);
+                return;
+            }
+
+            GrowNow(item);
+        }
+
+        /// <summary>Grows the extents by an entity's shapes as it stands: an INSERT's those it places, each cell of a MINSERT's array.</summary>
+        private void GrowNow(DxfItem item)
+        {
             item = item.Parent ?? item;
 
             if (_detached || item.Block != null)
@@ -2459,11 +2479,34 @@ namespace GeometryHelper.Dxf
 
             foreach (object shape in item.Shapes)
             {
-                if (DxfWriter.CanWrite(shape))
+                if (shape is DxfInsert insert)
                 {
-                    DxfWriter.RecordsOf(shape, 0, 0.0, true, true, out double[] extents);
-                    Grow(extents, item.IsPaper);
+                    // Placed only where the header holds the extents it would grow: a block of 1 000 000 lines takes over a
+                    // second to place.
+                    if (!(item.IsPaper ? HoldsExtents("$PEXTMIN", "$PEXTMAX") : HoldsExtents("$EXTMIN", "$EXTMAX")))
+                    {
+                        continue;
+                    }
+
+                    foreach (DxfShape placed in insert.GetPlacedEntities())
+                    {
+                        GrowByShape(placed.Shape, item.IsPaper);
+                    }
                 }
+                else
+                {
+                    GrowByShape(shape, item.IsPaper);
+                }
+            }
+        }
+
+        /// <summary>Grows the extents of model or paper space by a shape, as <see cref="DxfWriter"/> writes it; not by one it does not write.</summary>
+        private void GrowByShape(object shape, bool paper)
+        {
+            if (DxfWriter.CanWrite(shape))
+            {
+                DxfWriter.RecordsOf(shape, 0, 0.0, true, true, out double[] extents);
+                Grow(extents, paper);
             }
         }
 
@@ -2509,7 +2552,7 @@ namespace GeometryHelper.Dxf
             {
                 if (!item.IsRemoved)
                 {
-                    GrowBy(item);
+                    GrowNow(item);
                 }
             }
         }

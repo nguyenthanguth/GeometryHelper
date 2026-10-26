@@ -9,8 +9,9 @@ namespace GeometryHelper.UnitTest.Dxf
 {
     /// <summary>
     /// Vertices written one at a time: the extents of the drawing hold each of them when the header is read or the file saved,
-    /// the polyline being read once then rather than at each write; in a drawing whose header holds extents (ezdxf's write
-    /// 1E+20 the wrong way round, which are left as they are).
+    /// the polyline being read once then rather than at each write. The drawings whose extents are checked are those DxfWriter
+    /// writes (OneOfEach, or one line), whose header holds the box of what they draw, so that the vertices are seen to grow a
+    /// box already there; ezdxf's drawings, whose extents are empty, would take the box of the vertices alone.
     /// </summary>
     public class DxfFollowerWriteTests
     {

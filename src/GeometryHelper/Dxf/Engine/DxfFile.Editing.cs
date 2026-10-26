@@ -2211,7 +2211,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Sets the header to what the changes need, each value in place and every other byte of it as it was: <c>$HANDSEED</c>
         /// above every handle given, and <c>$EXTMIN</c> and <c>$EXTMAX</c> (<c>$PEXTMIN</c> and <c>$PEXTMAX</c> for paper
-        /// space) grown to hold the shapes written, never shrunk. A variable the header does not have is not added.
+        /// space) grown to hold the shapes written since it was last brought up to date, each axis on its own and never shrunk.
+        /// A variable the header does not have is not added.
         /// </summary>
         private void UpdateHeader()
         {
@@ -2222,16 +2223,23 @@ namespace GeometryHelper.Dxf
                 wanted["$HANDSEED"] = (code, text) => code == 5 && TryHex(text, out ulong seed) && seed < _nextHandle ? _nextHandle.ToString("X", CultureInfo.InvariantCulture) : null;
             }
 
-            if (_modelGrown != null && HoldsExtents("$EXTMIN", "$EXTMAX"))
+            // What was grown since the header was last brought up to date: taken here once, so that what is written after it
+            // grows the header as it then stands, extents set or erased since not brought back by what came before.
+            double[] model = _modelGrown;
+            double[] paper = _paperGrown;
+            _modelGrown = null;
+            _paperGrown = null;
+
+            if (model != null && HoldsExtents("$EXTMIN", "$EXTMAX"))
             {
-                wanted["$EXTMIN"] = Bound(_modelGrown, 0, true);
-                wanted["$EXTMAX"] = Bound(_modelGrown, 3, false);
+                wanted["$EXTMIN"] = Bound(model, 0, true);
+                wanted["$EXTMAX"] = Bound(model, 3, false);
             }
 
-            if (_paperGrown != null && HoldsExtents("$PEXTMIN", "$PEXTMAX"))
+            if (paper != null && HoldsExtents("$PEXTMIN", "$PEXTMAX"))
             {
-                wanted["$PEXTMIN"] = Bound(_paperGrown, 0, true);
-                wanted["$PEXTMAX"] = Bound(_paperGrown, 3, false);
+                wanted["$PEXTMIN"] = Bound(paper, 0, true);
+                wanted["$PEXTMAX"] = Bound(paper, 3, false);
             }
 
             if (wanted.Count == 0)
@@ -2332,9 +2340,9 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Whether the header holds extents to grow: both variables, each with its x, y and z, the least no greater than the
-        /// most along each axis. Extents the least of which is greater, such as the 1E+20 and -1E+20 ezdxf writes for a
-        /// drawing it has not measured, are none, and growing them to the shapes written would leave the rest out.
+        /// Whether the header holds extents to grow: both variables, each with its x, y and z. Each axis is grown on its own,
+        /// so that extents left empty, the least above the most as the 1E+20 and -1E+20 ezdxf writes for a drawing it has not
+        /// measured, become the box of the shapes written, as AutoCAD grows them from empty, and no axis is ever shrunk.
         /// </summary>
         private bool HoldsExtents(string least, string most)
         {
@@ -2358,7 +2366,7 @@ namespace GeometryHelper.Dxf
                     b = group.TypeCode == code && Numbers.TryRead(group.Value, out double read) ? read : b;
                 }
 
-                if (!(a <= b))
+                if (double.IsNaN(a) || double.IsNaN(b))
                 {
                     return false;
                 }
