@@ -784,6 +784,23 @@ still walks every edge. Of
 2 400 runs of every operation and fill rule over random, degenerate and zigzag sets none moves, and in a build that sorted anyway
 the sort found nothing to swap wherever it was left out.
 
+**CHANGED.** Offsetting a comb whose teeth point up, or growing one whose teeth point down, no longer slows with the square of its
+teeth, and Clipper2 unites shapes with their local minima at many heights faster. Uniting the raw outline of
+the offset, Clipper2 looked left along its list of edges from each tooth's tip for the nearest edge of an output path, past every
+tooth not yet reached: a comb of 5 000, 10 000, 20 000 and 40 000 teeth 2 wide and 100 long, 2 apart, pointing up and offset by
+-0.5, took 0.28, 0.93, 4.6 and 22 seconds on .NET 10, and pointing down and offset by 0.5 as long, 30 seconds at 40 000. A walk
+that passes many edges now keeps the stretch it walked, kept true as edges come to add to output paths, swap places and leave the
+list, and a later walk goes on past it: 0.09, 0.21, 0.36 and 0.65 seconds (0.07, 0.14, 0.37 and 0.83 on .NET Framework), as the
+comb pointing the other way takes. Each local minimum went into the list by a walk from the nearest one done before it on its
+line, past the whole list again for every doubling of those done; once the walks of a line have passed 16 edges for each of its
+minima, the edges of the list, where they stand in order of X, are kept, and each walk starts at the last of them below its
+minimum. A zigzag of 100 000, 200 000 and 400 000 vertices, its minima at 50 heights and its maxima at 30, took 1.3, 3.5 and 10.7
+seconds to unite and takes 0.89, 1.7 and 3.6, two thirds as long at 100 000 vertices and a half to a third beyond (1.4, 3.8 and
+10.4 and now 0.75, 1.8 and 3.9 on .NET Framework, the median of three runs each). In six runs of 10 000 sets of random paths,
+combs and zigzags, rows of rectangles, nested rings and offset combs, each united, cut, intersected and xored under every fill rule
+into paths and polytrees, or offset and combined by the library, the last on the code as it stands, none moves by a bit, nor with
+both new ways taken wherever they could be; and other work takes as long as it did.
+
 **FIXED.** A union of two bodies wound alike that comes out wound against itself is worked out again with each cell no
 thicker than the tolerance lying within the other body against its face left out, the side of the cell nearest a face
 of the other lying on it to the rounding and facing its way, and taken so where that closes wound alike and holds a

@@ -298,6 +298,17 @@ namespace GeometryHelper.Clipper
     /// earlier walk stopped, and its walk can start there and ends where the walk from the head would have, to the edge.
     /// The places a walk stopped are kept by X in as many buckets as the scanline has minima. A zigzag of 100 000
     /// vertices, its minima on one line, was united in 5.9 seconds and is now in 0.11, with the same paths to the point.
+    /// <para>
+    /// Once the walks of a line have passed 16 edges for each of its minima, the edges in the list then are kept too,
+    /// where they stand in order of X, and a walk may start, or the walk that passed that many go on, at the last of
+    /// them below the bound's X: every edge before it stands no further right, so the walk from the head passes it. Bounds going in keep every edge before a kept
+    /// one at an X no greater than the kept one's: a bound goes in after edges below its X, or just after the edge
+    /// joined to the last of them, which stands no further right than the kept edges after it; and its right bound
+    /// moves right only past edges at no greater X. Where the list is long beside the minima of a line, each walked
+    /// from the nearest minimum done before it, in the order they come, past the whole list again for every doubling
+    /// of those done: a zigzag of 400 000 vertices, its minima at 50 heights and its maxima at 30, spent 6.7 of its 9
+    /// seconds so.
+    /// </para>
     /// </remarks>
     internal sealed class WalkStarts
     {
@@ -308,6 +319,11 @@ namespace GeometryHelper.Clipper
         private int _count;
         private long _low;
         private long _width;
+        private Active[] _edges = new Active[0];
+        private long[] _edgeX = new long[0];
+        private int _edgeCount;
+        private long _walked;
+        private bool _edgesTried;
 
         /// <summary>
         /// Clears the places kept, and makes buckets for the minima at y from the given one on, where there are enough of
@@ -342,6 +358,54 @@ namespace GeometryHelper.Clipper
             _count = n;
             _low = low;
             _width = (high - low) / n + 1;
+            _walked = 0;
+            _edgesTried = false;
+        }
+
+        /// <summary>
+        /// How many edges a walk of this scanline may still pass before the edges of the list are kept: 16 for each of
+        /// its minima, less those its walks have passed; without end where they are kept already, or not wanted.
+        /// </summary>
+        internal long Allowance => _count == 0 || _edgesTried ? long.MaxValue : 16L * _count - _walked;
+
+        /// <summary>
+        /// Counts the edges a walk of this scanline passed.
+        /// </summary>
+        internal void Walked(int steps)
+        {
+            _walked += steps;
+        }
+
+        /// <summary>
+        /// Keeps the edges of the list from actives on, once for the scanline, where they stand in order of X, and
+        /// returns the last of them below x; null where none is, or they are not in order.
+        /// </summary>
+        internal Active KeepEdges(Active actives, long x)
+        {
+            _edgesTried = true;
+            int k = 0;
+
+            for (Active e = actives; e != null; e = e.nextInAEL, k++)
+            {
+                if (k > 0 && e.curX < _edgeX[k - 1])
+                {
+                    // not in order of X: none is kept
+                    Array.Clear(_edges, 0, k);
+                    return null;
+                }
+
+                if (k == _edges.Length)
+                {
+                    Array.Resize(ref _edges, Math.Max(64, 2 * k));
+                    Array.Resize(ref _edgeX, _edges.Length);
+                }
+
+                _edges[k] = e;
+                _edgeX[k] = e.curX;
+            }
+
+            _edgeCount = k;
+            return LastKeptBelow(x);
         }
 
         /// <summary>
@@ -351,12 +415,19 @@ namespace GeometryHelper.Clipper
         {
             Array.Clear(_stop, 0, _count);
             Array.Clear(_groupStop, 0, _count > 0 ? ((_count - 1) >> 6) + 1 : 0);
+            if (_edgeCount > 0)
+            {
+                Array.Clear(_edges, 0, _edgeCount);
+                _edgeCount = 0;
+            }
+
             _count = 0;
         }
 
         /// <summary>
         /// The place an earlier walk of this scanline stopped, for a bound at a greater X than its own, the nearest kept
-        /// below this X; null where none is, and the walk starts at the head.
+        /// below this X, or the last edge of the list kept that stands below this X, whichever stands at the greater X;
+        /// null where none is, and the walk starts at the head.
         /// </summary>
         internal Active Find(long x)
         {
@@ -365,6 +436,41 @@ namespace GeometryHelper.Clipper
                 return null;
             }
 
+            Active stop = FindStop(x);
+            Active kept = LastKeptBelow(x);
+            return kept != null && (stop == null || kept.curX > stop.curX) ? kept : stop;
+        }
+
+        /// <summary>
+        /// The last edge of the list kept that stands below x; null where none is.
+        /// </summary>
+        private Active LastKeptBelow(long x)
+        {
+            int lo = 0, hi = _edgeCount;
+
+            while (lo < hi)
+            {
+                int mid = (lo + hi) >> 1;
+
+                if (_edgeX[mid] < x)
+                {
+                    lo = mid + 1;
+                }
+                else
+                {
+                    hi = mid;
+                }
+            }
+
+            return lo > 0 ? _edges[lo - 1] : null;
+        }
+
+        /// <summary>
+        /// The place an earlier walk of this scanline stopped, for a bound at a greater X than its own, the nearest kept
+        /// below this X; null where none is.
+        /// </summary>
+        private Active FindStop(long x)
+        {
             int b = Bucket(x);
 
             // The buckets of its group of 64 first, then the groups below, each holding the walk of the greatest X in it.
@@ -602,6 +708,12 @@ namespace GeometryHelper.Clipper
         private readonly HorzJoinPoolList _horzJoinList;
         private readonly OutPtPoolList _outPtPool;
         private readonly WalkStarts _walkStarts = new WalkStarts();
+
+        // A stretch of the active edge list with no edge strictly inside it that adds to a closed output path: from
+        // _coldFrom, or from the head where that is null, to _coldTo, or no stretch where _coldTo is null. See
+        // GetPrevHotEdge; it is kept so as edges come to add to output paths (NoteHot), swap places and leave the list.
+        private Active _coldFrom;
+        private Active _coldTo;
         private int _currentLocMin;
         private long _currentBotY;
         private bool _isSortedMinimaList;
@@ -686,13 +798,77 @@ namespace GeometryHelper.Clipper
         /// <summary>
         /// The nearest edge to the left in the active edge list that adds to a closed output path, or null.
         /// </summary>
+        /// <remarks>
+        /// A walk that passes many edges keeps the stretch it walked, from the edge it found (or the head) to ae, as one
+        /// with no such edge inside, and a later walk that comes to the stretch's right end goes on from its left end. The
+        /// stretch is kept true as edges come to add to output paths, swap places and leave the list; an edge that comes
+        /// to add to one just inside it becomes its right end, so that the walk from that edge, which follows, starts at
+        /// the end. The tips of a comb pointing up, offset by -0.5, its horizontals done from the right, each walked past
+        /// every tooth not yet done to the head of the list, and those of a comb pointing down, offset by 0.5, to the left
+        /// side of its back: a comb of 20 000 teeth spent 3.8 of its 3.9 seconds so.
+        /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Active GetPrevHotEdge(Active ae)
+        private Active GetPrevHotEdge(Active ae)
         {
+            Active from = _coldFrom, to = _coldTo;
             Active prev = ae.prevInAEL;
+            int steps = 0;
+            if (ae == to)
+            {
+                prev = from;
+                to = null;
+            }
             while (prev != null && (IsOpen(prev) || !IsHotEdge(prev)))
+            {
+                if (prev == to)
+                {
+                    // nothing inside the stretch adds to a path
+                    prev = from;
+                    to = null;
+                    continue;
+                }
                 prev = prev.prevInAEL;
+                steps++;
+            }
+            if (steps >= LongWalk)
+            {
+                _coldFrom = prev;
+                _coldTo = ae;
+            }
             return prev;
+        }
+
+        /// <summary>
+        /// The number of edges a walk to the left passes from which the stretch it walked is kept; and how far either way
+        /// an edge that comes to add to an output path looks for the ends of that stretch.
+        /// </summary>
+        private const int LongWalk = 32;
+
+        /// <summary>
+        /// Keeps the stretch of edges with none inside that adds to a closed output path true once ae has come to add to
+        /// one: ae found within <see cref="LongWalk"/> places to the left of its right end, and not left of its left end,
+        /// becomes that end; found elsewhere it changes nothing; and found nowhere near, where its side is not known, the
+        /// stretch is let go.
+        /// </summary>
+        private void NoteHot(Active ae)
+        {
+            Active from = _coldFrom, to = _coldTo;
+            if (to == null || ae == to || ae == from || IsOpen(ae)) return;
+            Active right = ae.nextInAEL, left = ae.prevInAEL;
+            for (int i = 0; i < LongWalk && (right != null || left != null); i++)
+            {
+                if (right != null && right == from) return;
+                if (right == to)
+                {
+                    _coldTo = ae;
+                    return;
+                }
+                if (left == to) return;
+                right = right?.nextInAEL;
+                left = left?.prevInAEL;
+            }
+            _coldFrom = null;
+            _coldTo = null;
         }
 
         /// <summary>
@@ -960,10 +1136,10 @@ namespace GeometryHelper.Clipper
 
         /// <summary>
         /// Swaps the output paths of the two edges, with the sides they add to; when both add to the same path, swaps
-        /// its front and back edges.
+        /// its front and back edges. An edge that had none comes to add to a path here.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void SwapOutrecs(Active ae1, Active ae2)
+        private void SwapOutrecs(Active ae1, Active ae2)
         {
             OutRec or1 = ae1.outrec; // at least one edge has
             OutRec or2 = ae2.outrec; // an assigned outrec
@@ -993,6 +1169,11 @@ namespace GeometryHelper.Clipper
 
             ae1.outrec = or2;
             ae2.outrec = or1;
+            if (_coldTo != null)
+            {
+                if (or1 == null) NoteHot(ae1);
+                if (or2 == null) NoteHot(ae2);
+            }
         }
 
         /// <summary>
@@ -1165,6 +1346,8 @@ namespace GeometryHelper.Clipper
             _currentBotY = 0;
             _currentLocMin = 0;
             _actives = null;
+            _coldFrom = null;
+            _coldTo = null;
             _sel = null;
             _succeeded = true;
         }
@@ -1568,8 +1751,21 @@ namespace GeometryHelper.Clipper
             else
             {
                 Active ae2 = start ?? _actives;
+                long allowance = _walkStarts.Allowance;
+                int steps = 0;
                 while (ae2.nextInAEL != null && IsValidAelOrder(ae2.nextInAEL, ae))
+                {
                     ae2 = ae2.nextInAEL;
+                    if (++steps > allowance)
+                    {
+                        // the walks of this line have gone far: keep the edges of the list, and go on from the last
+                        // below ae where it stands further right; the walk from either ends where it would have
+                        Active kept = _walkStarts.KeepEdges(_actives, ae.curX);
+                        if (kept != null && kept.curX > ae2.curX) ae2 = kept;
+                        allowance = long.MaxValue;
+                    }
+                }
+                _walkStarts.Walked(steps);
                 _walkStarts.Keep(ae.curX, ae2);
                 //don't separate joined edges
                 if (ae2.joinWith == JoinWith.Right) ae2 = ae2.nextInAEL;
@@ -1753,8 +1949,14 @@ namespace GeometryHelper.Clipper
         private OutPt AddLocalMinPoly(Active ae1, Active ae2, Point64 pt, bool isNew = false)
         {
             OutRec outrec = NewOutRec();
+            bool wasHot1 = IsHotEdge(ae1), wasHot2 = IsHotEdge(ae2);
             ae1.outrec = outrec;
             ae2.outrec = outrec;
+            if (_coldTo != null)
+            {
+                if (!wasHot1) NoteHot(ae1);
+                if (!wasHot2) NoteHot(ae2);
+            }
 
             if (IsOpen(ae1))
             {
@@ -2274,6 +2476,14 @@ namespace GeometryHelper.Clipper
             else
                 _actives = next;
             if (next != null) next.prevInAEL = prev;
+            // the stretch with nothing hot inside keeps the same edges inside it, with an end moved past the one leaving
+            if (ae == _coldTo)
+            {
+                _coldTo = next;
+                if (next == null) _coldFrom = null;
+            }
+            else if (ae == _coldFrom)
+                _coldFrom = prev;
             // delete &ae;
             PoolDeletedActive(ae);
         }
@@ -2598,6 +2808,20 @@ namespace GeometryHelper.Clipper
             ae1.prevInAEL = ae2;
             ae1.nextInAEL = next;
             if (ae2.prevInAEL == null) _actives = ae2;
+            // an edge that comes into the stretch with nothing hot inside over one of its ends, and adds to a path,
+            // becomes that end
+            if (_coldTo == null) return;
+            if (ae1 == _coldTo)
+            {
+                if (!IsOpen(ae2) && IsHotEdge(ae2)) _coldTo = ae2;
+            }
+            else if (ae2 == _coldTo && ae1 == _coldFrom)
+            {
+                _coldFrom = null;
+                _coldTo = null;
+            }
+            else if (ae2 == _coldFrom && !IsOpen(ae1) && IsHotEdge(ae1))
+                _coldFrom = ae1;
         }
 
         /// <summary>

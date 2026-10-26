@@ -64,5 +64,75 @@ namespace GeometryHelper.UnitTest.Clipper
             Assert.Equal(Clipper2.Area(comb), Clipper2.Area(union[0]));
             Assert.True(watch.Elapsed.TotalSeconds < 3, watch.Elapsed.ToString());
         }
+
+        [Fact]
+        public void ACombOf40000TeethPointingUpShrunkBy1_IsOffsetInUnderThreeSeconds()
+        {
+            // The union of its raw outline does the horizontals at the tips from the right, and each output path started there
+            // looked left along the list of edges for the nearest that adds to another, past every tooth not yet done to the
+            // list's head: 18 to 24 seconds. The walk now goes on past the stretch a long walk before it found none in.
+            Path64 comb = Comb(40000, true);
+
+            var watch = Stopwatch.StartNew();
+            Paths64 offset = Clipper2.InflatePaths(new Paths64 { comb }, -1, JoinType.Miter, EndType.Polygon);
+            watch.Stop();
+
+            // 2 400 a tooth and 1 600 more, less the length round it, 416 a tooth and 808 more, and 4 back at the corners.
+            Assert.Single(offset);
+            Assert.Equal(1984.0 * 40000 + 796, Clipper2.Area(offset[0]));
+            Assert.True(watch.Elapsed.TotalSeconds < 3, watch.Elapsed.ToString());
+        }
+
+        [Fact]
+        public void ACombOf40000TeethPointingDownGrownBy1_IsOffsetInUnderThreeSeconds()
+        {
+            // Here the walk from each tooth's tip went past every tooth not yet done to the left side of the back, the nearest
+            // edge that adds to an output path: 19 to 26 seconds.
+            Path64 comb = Comb(40000, false);
+
+            var watch = Stopwatch.StartNew();
+            Paths64 offset = Clipper2.InflatePaths(new Paths64 { comb }, 1, JoinType.Miter, EndType.Polygon);
+            watch.Stop();
+
+            Assert.Single(offset);
+            Assert.Equal(2816.0 * 40000 + 2412, Clipper2.Area(offset[0]));
+            Assert.True(watch.Elapsed.TotalSeconds < 3, watch.Elapsed.ToString());
+        }
+
+        /// <summary>
+        /// A comb along X: teeth 4 wide and 200 long, 4 apart, on a back 200 deep, pointing down from it, or up when mirrored.
+        /// </summary>
+        private static Path64 Comb(int teeth, bool up)
+        {
+            var comb = new Path64 { new Point64(0, 0) };
+            long x = 0;
+
+            for (int i = 0; i < teeth; i++)
+            {
+                comb.Add(new Point64(x + 4, 0));
+                comb.Add(new Point64(x + 4, 200));
+                comb.Add(new Point64(x + 8, 200));
+                comb.Add(new Point64(x + 8, 0));
+                x += 8;
+            }
+
+            comb.Add(new Point64(x + 4, 0));
+            comb.Add(new Point64(x + 4, 400));
+            comb.Add(new Point64(0, 400));
+
+            if (up)
+            {
+                var mirrored = new Path64();
+
+                for (int i = comb.Count - 1; i >= 0; i--)
+                {
+                    mirrored.Add(new Point64(comb[i].X, -comb[i].Y));
+                }
+
+                comb = mirrored;
+            }
+
+            return comb;
+        }
     }
 }
