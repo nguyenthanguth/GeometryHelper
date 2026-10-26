@@ -924,6 +924,29 @@ took 0.115; a split that came out open takes 0.49 where it took 0.28. With no to
 split whose halves neither a finer cut nor a weld closes is refused, where its open halves were given before: of 4 000
 cuts near a face of boxes whose faces carry their own copies of the corners a hair apart, 12, their slabs 5 to 45 % off.
 
+**FIXED.** `GetVolume`, `TryGetVolume` and the other measures of a body with openings could keep an opening in the
+material, or take material out with it, and `TryGetVolume` trusted the volume. Cut in at once, the body is parted by the
+planes of its openings and each piece judged by one point of it; a plane that runs through a piece and will not cut it,
+the rim of that cut not closing, left the piece to be judged whole, part in the opening and part out. The halves
+`TrySplitBy` gives of a body cut near a face through an opening came out so: a hull of 14 points 20 across, far from the
+origin, cut within a hundredth by a plane 0.019 inside a face, a box 3.5 by 3.5 by 5 standing through the cut, left a
+half holding 1 465.33 cubic millimetres where the hull less the box holds 1 434.77 on that side, the box left in; at the
+default tolerance another held 854.10 where it holds 856.19, 2.09 of its material taken with its box. Where a piece a
+plane of an opening would not cut holds more than the tolerance times its area on each side of the plane, and the middle
+of the one part is in the opening and of the other out of it, or two such planes of one opening part it into four of
+which one is in the opening and another out, the cut at once is not believed and the openings are taken out one at a
+time by a difference: the two halves hold 1 434.58 and 856.19 now. Of 77 372 different halves, at the default tolerance
+and at 0.01, of plates with one to three box and prism holes, through and blind, flush with the faces and drawn past
+them, split across the holes at many places and angles, of hulls with turned boxes in them, and of hulls cut near a
+face through a box, 9 were trusted and off by more than the tolerance times their area, by up to 716 cubic millimetres,
+and none is now; 6 more within that bound came 0.6 to 7.4 nearer, and the rest are the same to the bit.
+`TryCutOpenings`, and the queries, the meshes and the writers that cut a body's openings, take them out one at a time
+too where they took the wrong material: 7 of 8 690 near-face halves, none now. Where the openings will not come out so
+either, they read the material cut in at once, as they did, with a warning. The booleans read such an operand as cut
+in at once, as they did, and note it in the debug log: a boolean of it can still be off by the piece judged whole.
+`GetVolume` takes as long as it did, within the noise of the machine: 3.2 to 3.8 milliseconds a plate on .NET 10, the
+least of seven runs, the check costing no more than 2.5 % of it.
+
 **FIXED.** A boolean, or the closing of a cut, given a tolerance of nought for points ran for ever where what it made
 came out open: welding within twice, then four times, nought never ended. Nought welds nothing now, and the body comes
 back as made: a difference of two boxes at no tolerance that ran for ever, 3 of 33 pairs, returns.

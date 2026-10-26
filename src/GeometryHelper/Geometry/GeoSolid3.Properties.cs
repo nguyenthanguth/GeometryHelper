@@ -30,7 +30,11 @@ namespace GeometryHelper.Geometry
         /// parts matched Tekla's VOLUME_NET to five parts in a million million. A body with openings has them cut out
         /// once for the tolerance, and the cut kept, so its volume, area and centroid are of one material and cost
         /// one cut. An opening that cannot be cut out is left in the material and the log warns of it;
-        /// <see cref="TryGetVolume(out double, Tolerance)"/> says so as well.
+        /// <see cref="TryGetVolume(out double, Tolerance)"/> says so as well. Cut in at once, the body is parted by the
+        /// planes of its openings and each piece judged by one point of it; where a plane runs through a piece and will not
+        /// cut it, leaving it part in an opening and part out, the openings are taken out one at a time by a difference
+        /// instead. A half of a hull cut near a face within a hundredth, a box 3.5 by 3.5 by 5 standing through the cut, held
+        /// 1 465.33 cubic millimetres so, the box left in, where it holds 1 434.77.
         /// </para>
         /// <para>
         /// Each face is taken as the fan of its boundary from its first corner, which is exact for a flat face and
@@ -214,12 +218,19 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
-        /// Cuts every opening out of the faces: all at once, which costs least, or where that cannot be worked out or
-        /// opens a body that closed, one at a time by a difference, leaving in any one that will not come out.
+        /// Cuts every opening out of the faces: all at once, which costs least, or where that cannot be worked out, opens a
+        /// body that closed or leaves a piece of it part in an opening and part out, one at a time by a difference, leaving
+        /// in any one that will not come out.
         /// </summary>
         private MaterialCut CutMaterial(Tolerance tolerance)
         {
-            if (Boolean3.TryCutOpeningsAtOnce(this, _openings, out GeoSolid3 material, tolerance, out Exception failure))
+            bool cut = Boolean3.TryCutOpeningsAtOnce(this, _openings, out GeoSolid3 material, tolerance, out Exception failure, out bool judgedWhole);
+
+            if (judgedWhole)
+            {
+                GeometryHelperLog.Debug("GeoSolid3: cutting the openings out at once left a piece of the body part in an opening and part out; they are taken out one at a time.");
+            }
+            else if (cut)
             {
                 // Faces that did not close leave no closed material to look for.
                 if (material.IsClosed(tolerance) || !IsClosed(tolerance))

@@ -626,7 +626,9 @@ namespace GeometryHelper.Geometry
         /// The answer is the body's material, closed as <see cref="Validate(Tolerance)"/> reads it where the body and its
         /// openings are: an opening drawn past a face, as a through hole usually is, takes off only what lies in the body.
         /// The openings are cut in at once; where that leaves the material open it is welded within the tolerance, or
-        /// failing that the openings are taken out one at a time, as <see cref="GetVolume(Tolerance)"/> takes them out. A
+        /// failing that the openings are taken out one at a time, as <see cref="GetVolume(Tolerance)"/> takes them out. They
+        /// are taken out so too where a plane of an opening runs through the body and will not cut it, leaving a piece part
+        /// in the opening and part out of it, which cut in at once would be kept or dropped whole. A
         /// welded cut can hold a little more or less than <see cref="GetVolume(Tolerance)"/> measures, no more than the
         /// tolerance times the area of the openings: a plate 300 by 200 by 12 with twelve blind holes ending 0.011 under
         /// its top, turned and far from the origin, cut within a hundredth, holds 0.028 cubic millimetres more.

@@ -202,7 +202,11 @@ reads is one, its cuts already in its faces — is measured by its faces at once
 openings has them cut out once for the tolerance, and the cut is kept, so the three, `GetMassProperties` and
 `Measure3` describe one material for the price of one cut. An opening that cannot be cut out is left in the material
 and the log warns of it; `TryGetVolume` says whether the volume can be trusted, every opening cut out and the
-material closed.
+material closed. Cut in at once, the body is parted by the planes of its openings and each piece is judged by one point
+of it, so a plane that runs through a piece and will not cut it, leaving it part in an opening and part out, has the
+openings taken out one at a time by a difference instead: a half of a hull cut near a face within a hundredth, a box
+3.5 by 3.5 by 5 standing through the cut, held 1 465.33 cubic millimetres with the box left in, and `TryGetVolume`
+trusted it; it holds 1 434.58 now, where the hull less the box holds 1 434.77 on that side of the plane.
 
 The volume is measured by the divergence theorem, so it does not depend on where the solid sits and is
 reported unsigned: faces wound inwards give the same answer as faces wound outwards, and `TurnOutwards()` turns
