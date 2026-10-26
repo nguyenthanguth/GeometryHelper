@@ -37,7 +37,7 @@ namespace GeometryHelper.Dxf
     /// point, where <see cref="Explode"/> starts its line at the back of the arrow, so that a splined line and the spline
     /// exploded part by up to about the arrow's size near the arrow. The line above is met by the line y = -3 from (780, -3, 0)
     /// to (795, -3, 0) at (788, -3, 0), on its way up to the dogleg. Its words or block, its arrowheads and the lines AutoCAD
-    /// draws under the words are not among them, and invisible leaders give none.
+    /// draws under the words are not among them, and invisible lines give none.
     /// </para>
     /// </remarks>
     public sealed partial class DxfMLeader : DxfEntity
@@ -777,8 +777,10 @@ namespace GeometryHelper.Dxf
         #region The arrows, landing and dogleg
 
         /// <summary>
-        /// Gets or sets the size of the arrows (group 42, and 140 of the context data, the same, as ezdxf writes and moves them),
-        /// as AutoCAD's <c>ArrowSize</c>; 4 where the record gives none.
+        /// Gets or sets the size of the arrows (group 42), as AutoCAD's <c>ArrowSize</c>; 4 where the record gives none. Set, the
+        /// size is written both in 42 and as the size the arrows are drawn with (140 of the context data); <see cref="Scale"/>
+        /// scales 140 alone (<see cref="DxfEntity.TransformBy"/> scales both), so that at a scale other than 1 the two differ, 42
+        /// unscaled, until the size is set again.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the size set is below nought or not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the MULTILEADER is erased.</exception>

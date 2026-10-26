@@ -291,6 +291,43 @@ alternate units. Every variable set on ezdxf's drawings of R12, R2000, R2007 and
 overrides of leaders, were read back by ezdxf 1.4.5, whose recover and audit found nothing to fix, and the files resave byte
 for byte where nothing is set.
 
+**NEW.** The members of AutoCAD's `DBObject`, `Leader` and `MLeader` for styles, planes and one leader line's look that the
+library did not have, 12 of them. `SetFromStyle()` takes away what an object holds of its own over its style and answers
+whether it has a style its drawing has: a dimension and a leader lose their overrides of the dimension style (the list DSTYLE
+of their extended data of ACAD), so that a dimension of arrows 4.5 of its own over a style of 3.5 reads 3.5 again; one of a
+style its drawing has not, or in no drawing, answers false and changes nothing. A multileader takes the values of its
+multileader style through its properties, its words 2.5 high of its own made the 4 of the style Standard, and its overrides
+(90) are set to nought, but for those it cannot take away: a linetype or a text style the style names none of, or one its
+drawing has not, a content it does not hold, an arrow or a block a copy in no drawing cannot be given, the attachments of the
+top and bottom in a file older than R2010, and the bits of no property the library writes (18 and 26); what it cannot take is
+judged before anything is written; one of no context data answers false. Its sizes, unscaled in the style, are scaled once:
+Standard scaled 2 gives words 8 high, a gap of 4, arrows drawn 8 and doglegs 16, the multileader's own dogleg (41) scaled with
+the leaders' and its own arrow size (42) the style's 4, unscaled. Every other object answers false and changes nothing, a
+table among them for now. `DxfMLeaderStyle` is AutoCAD's `MLeaderStyle`, an MLEADERSTYLE of ACAD_MLEADERSTYLE read as the file
+holds it (`TextHeight`, `ArrowSize`, `LandingGap`, `DoglegLength`, `LeaderLineType`, `LeaderLineLinetype`, `TextStyle`,
+`Block` and the rest of its look, 31 members), and the entries of that dictionary are such styles now, where they were objects
+of no class of their own. `GetOverridedMLeaderStyle(style)`, AutoCAD's `getOverridedMLeaderStyle` named as the library names
+its members, gives a style made by `new DxfMLeaderStyle()` the values a multileader is drawn with, its style's with its own in
+place of those it overrides, as ezdxf's `MLeaderStyleOverride` reads them, attribute for attribute the same as ezdxf's on six
+multileaders: the height of the words and the landing gap from the context data and the dogleg from the multileader's own 41,
+all three scaled, and the arrow size from its own 42, unscaled. One leader line of a multileader is given its own type,
+colour, lineweight and arrow size by `SetLeaderLineType`, `SetLeaderLineColor`, `SetLeaderLineWeight` and
+`SetArrowSize(leaderLineIndex, ...)`, from R2010, and read by their `Get`, the multileader's where the line has none: its
+groups 170, 92, 171 and 40 after its index (91), with the flags 93 of those it overrides (1, 2, 8 and 16), in the order of the
+DXF reference; AutoCAD's own files are yet to confirm the order. A line of no flags whose colour is not BYBLOCK, as ezdxf
+writes one, reads that colour, and keeps it when it is given another look of its own. `Explode` draws each line with the look
+of its own, BYBLOCK among them: a line splined of its own is a SPLINE among straight lines, one invisible of its own gives
+nothing, one of arrows 2 under arrows 4 starts 2 from its tip at scale 1 and 4 from it at scale 2, a size of its own being
+unscaled, as the multileader's own; a multileader whose lines have no look of their own explodes as before, part for part.
+`SetPlane(plane)` puts a leader in a plane, its normal the plane's and each vertex moved straight onto it, the direction of
+its hook laid in it: through (0, 0, 5), (10, 10, 5) and (20, 10, 8), put in the floor, it runs through (0, 0, 0), (10, 10, 0)
+and (20, 10, 0). On a multileader it makes the plane of the context data the one given (110, 111 and 112), every point moved
+onto it and every direction laid in it, the matrix of its block turned with it, the words of a mirrored multileader still read
+from behind its plane. A leader or a multileader put in its own plane changes nothing, a hook of length 2, a normal a hair off
+unit length and the leaning axes a shear leaves among them, 221 files of leaders and multileaders byte for byte; one set from
+a style it has the values of changes nothing either. Every file written was read by ezdxf 1.4.5, whose recover and audit found
+nothing to fix that they did not find in the file it was made from.
+
 **CHANGED.** A dimension reads the variables of its style many times faster, each to the same value: it reads its overrides
 and its style once and keeps them until its drawing next changes, and a dimension style reads its record so, where each
 variable read them anew. On the rotated dimension of ezdxf's drawing of R2018, which overrides variables of every kind,

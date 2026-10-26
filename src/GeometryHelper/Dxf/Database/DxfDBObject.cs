@@ -387,7 +387,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// The object of a record of the OBJECTS section, made once: a <see cref="DxfDBDictionary"/> for a DICTIONARY, a
         /// <see cref="DxfXrecord"/> for an XRECORD, a <see cref="DxfGroup"/> for a GROUP, a <see cref="DxfLayout"/> for a LAYOUT,
-        /// a <see cref="DxfPlotSettings"/> for a PLOTSETTINGS; else one of no class of its own.
+        /// a <see cref="DxfPlotSettings"/> for a PLOTSETTINGS, a <see cref="DxfMLeaderStyle"/> for an MLEADERSTYLE; else one of
+        /// no class of its own.
         /// </summary>
         internal static DxfDBObject OfObject(DxfItem item)
         {
@@ -415,6 +416,9 @@ namespace GeometryHelper.Dxf
                     break;
                 case "PLOTSETTINGS":
                     made = new DxfPlotSettings(item);
+                    break;
+                case "MLEADERSTYLE":
+                    made = new DxfMLeaderStyle(item);
                     break;
                 default:
                     made = new DxfUnknownObject(item);
@@ -557,6 +561,20 @@ namespace GeometryHelper.Dxf
         {
             throw new NotSupportedException("A " + GetType().Name + " is not erased yet: entities, layers, linetypes, blocks, XRECORDs and GROUPs are.");
         }
+
+        /// <summary>
+        /// Takes away what the object holds of its own over its style, as AutoCAD's <c>SetFromStyle</c>, so that it is drawn as
+        /// its style draws it: a dimension and a leader lose their overrides of the dimension style (the list DSTYLE of their
+        /// extended data of ACAD), a <see cref="DxfDimension"/> of <c>Dimasz</c> 4.5 of its own over a style of 3.5 reading
+        /// 3.5 again; a <see cref="DxfMLeader"/> takes the values of its multileader style, as its own
+        /// <see cref="DxfMLeader.SetFromStyle"/> says. An object of no style changes nothing, a table among them: what a table
+        /// holds of its own over its table style is not taken away yet.
+        /// </summary>
+        /// <returns>Whether the object has a style it is set from, as AutoCAD answers: true for a dimension, a leader and a
+        /// multileader of a style its drawing has (for a copy in no file, the drawing it was copied from); false, and nothing
+        /// changed, for one of a style its drawing has not, or in no drawing, and for every other object.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the object has overrides to take away and is erased.</exception>
+        public virtual bool SetFromStyle() => false;
 
         /// <summary>Whether two runs of extended data are the same, group for group, code and text.</summary>
         private static bool SameData(IReadOnlyList<DxfTypedValue> a, IReadOnlyList<DxfTypedValue> b)

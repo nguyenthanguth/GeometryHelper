@@ -106,6 +106,37 @@ namespace GeometryHelper.Dxf
             }
         }
 
+        /// <summary>
+        /// Takes away the leader's overrides of its dimension style, as AutoCAD's <c>SetFromStyle</c>: the list DSTYLE of its
+        /// extended data of ACAD, the rest of that data kept, and the data of ACAD with it where nothing else is left; each
+        /// variable then reads as its style has it, a leader of <c>Dimasz</c> 3.5 over the style Standard reading 2.5. A leader
+        /// of no overrides changes nothing; the colour it writes for DIMCLRD BYBLOCK (77) is its own, not an override, and stays.
+        /// </summary>
+        /// <returns>Whether the leader's drawing (for a copy in no file, the drawing it was copied from) has the dimension style
+        /// it names (<see cref="DimensionStyleName"/>); false, and nothing changed, where it has not, or the leader is in
+        /// none.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the leader has overrides and is erased.</exception>
+        public override bool SetFromStyle()
+        {
+            if (Style(DimensionStyleName) == null)
+            {
+                return false;
+            }
+
+            List<DxfTypedValue> data = Acad(out int open, out int close);
+
+            if (open >= 0)
+            {
+                // The 1000 DSTYLE before the opening brace, the brace and what it holds, and the closing brace where it has one.
+                data.RemoveRange(open - 1, Math.Min(close + 1, data.Count) - open + 1);
+                var groups = new List<DxfTypedValue> { new DxfTypedValue(1001, "ACAD") };
+                groups.AddRange(data);
+                XData = groups;
+            }
+
+            return true;
+        }
+
         /// <summary>The leader's overrides and dimension style, read once for every variable.</summary>
         private StyleReading ReadStyle()
         {

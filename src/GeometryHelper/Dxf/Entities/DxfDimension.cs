@@ -1067,6 +1067,39 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Takes away the dimension's overrides of its dimension style, as AutoCAD's <c>SetFromStyle</c>: the list DSTYLE of its
+        /// extended data of ACAD, the rest of that data kept, and the data of ACAD with it where nothing else is left; each
+        /// variable then reads as its style has it, a dimension of <c>Dimasz</c> 4.5 of its own over a style of 3.5 reading 3.5. A
+        /// dimension of no overrides changes nothing. The block AutoCAD drew the dimension with is not drawn anew.
+        /// </summary>
+        /// <returns>Whether the dimension's drawing (for a copy in no file, the drawing it was copied from) has the dimension
+        /// style it names (<see cref="DimensionStyleName"/>); false, and nothing changed, where it has not, or the dimension is
+        /// in none.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the dimension has overrides and is erased.</exception>
+        public override bool SetFromStyle()
+        {
+            DxfDatabase database = (IsResident || Item.File.IsDetached ? Item.File.NamingDrawing : null)?.Database;
+
+            if (database == null || !database.DimStyleTable.Has(DimensionStyleName))
+            {
+                return false;
+            }
+
+            List<DxfTypedValue> data = AcadData();
+
+            if (data != null && Bounds(data, out int open, out int close))
+            {
+                // The 1000 DSTYLE before the opening brace, the brace and what it holds, and the closing brace.
+                data.RemoveRange(open - 1, close - open + 2);
+                XData = data;
+            }
+
+            // The blocks, linetypes and text styles set while the dimension is in no drawing are overrides too.
+            _held = null;
+            return true;
+        }
+
+        /// <summary>
         /// Gets the text the dimension writes for a measurement, as AutoCAD's <c>FormatMeasurement</c>: the measurement in the
         /// units and to the places of the variables it reads, put into a text as its own text is. A length is multiplied by
         /// <see cref="Dimlfac"/> (a negative one taken as its size in paper space and as 1 elsewhere, as AutoCAD takes it),

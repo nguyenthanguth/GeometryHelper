@@ -503,6 +503,7 @@ Dxf in front and their members' names.
 | `Color`, `LineWeight`, `Transparency` | `DxfColor`, `DxfLineWeight`, `DxfTransparency` | `DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1)` and `FromRgb(255, 128, 0)`, as AutoCAD's. |
 | `db.Clayer = layerId`, `db.Insunits`, `Application.SetSystemVariable("LTSCALE", 2.0)` | `db.Clayer = "steel"`, `db.Insunits`, `db.Ltscale = 2` | Variables of the header and of the OBJECTS section as properties; any other by `GetHeader("$NAME")` and `SetHeader`. |
 | `db.Dimasz`, `db.Dimblk = blockId`, `db.GetDimstyleData()`, `leader.SetDimstyleData(style)` | `db.Dimasz`, `db.Dimblk = block`, `db.GetDimstyleData()`, `leader.SetDimstyleData(style)` | The `$DIM` variables of the header read as AutoCAD's metric drawing has them where the header gives none; a block, linetype or text style is the record itself. `dim.FormatMeasurement(value, "")` writes the measurement as AutoCAD does, stacked fractions in the codes of an MTEXT; tolerances, limits and the arc symbol are not part of it. |
+| `MLeaderStyle`, `mleader.getOverridedMLeaderStyle(style)` | `DxfMLeaderStyle`, `mleader.GetOverridedMLeaderStyle(new DxfMLeaderStyle())` | A multileader style is read, not written: the styles of `db.MLeaderStyleDictionary` as the file holds them, and one made in code given what a multileader is drawn with; `PostMLeaderStyleToDb` is not there. |
 | `Highlight`, `Draw`, grips, overrules, events, reactors of the runtime | none | They need AutoCAD running. |
 
 ### Opening and saving
@@ -909,7 +910,13 @@ spline, as `DxfReader` reads a LEADER, and `IntersectWith` meets the leader on i
 `GetDimstyleData()` gives every variable the leader is drawn with, its override else its style's, as a
 `DxfDimStyleTableRecord` in no table; `SetDimstyleData(style)` writes those that differ from what the leader reads as
 overrides, a block by its handle, so that `plain.SetDimstyleData(styled.GetDimstyleData())` gives one leader the arrow and
-gap of another, and a leader given its own data changes nothing.
+gap of another, and a leader given its own data changes nothing. `SetFromStyle()` takes the overrides away, the list DSTYLE of
+its extended data, so that a leader of `Dimasz` 3.5 over the style Standard reads Standard's 2.5 again, and answers true, as
+a dimension's does, where its drawing has the style it names; one of a style its drawing has not, and any other object,
+answers false and changes nothing. `SetPlane(plane)` gives the leader the plane's normal
+and moves each vertex straight onto the plane, the direction of its hook laid in it: the leader through (0, 0, 5),
+(10, 10, 5) and (20, 10, 8) put in the floor runs through (0, 0, 0), (10, 10, 0) and (20, 10, 0), and a leader put in its own
+plane changes nothing.
 
 A MULTILEADER is a `DxfMLeader`: its words (`MText`, `TextLocation`, `TextHeight`) or block (`BlockContent`,
 `BlockPosition`, `BlockScale`, `BlockRotation`, `SetBlockAttribute`), its look, and its leaders and their lines by AutoCAD's
@@ -926,6 +933,31 @@ arrow (0.585 on the multileader below, splined, its arrow 4 long). The line from
 dogleg from (790, -1.25, 0) to (798, -1.25, 0) is met by the line y = -3 at (790, -3, 0) and by the line x = 794 at
 (794, -1.25, 0). Its words or block, its arrowheads and invisible leaders are not met. An INSERT of a block holding a
 multileader is met on its lines too.
+
+The multileader style a multileader is drawn with is a `DxfMLeaderStyle`, as AutoCAD's `MLeaderStyle`: the styles of
+`db.MLeaderStyleDictionary` are read as the file holds them (`TextHeight`, `ArrowSize`, `LandingGap`, `DoglegLength`,
+`LeaderLineType`, `LeaderLineLinetype`, `TextStyle`, `Block` and the rest of its look), and
+`mleader.GetOverridedMLeaderStyle(style)`, AutoCAD's `getOverridedMLeaderStyle` named as the library names its members, gives
+a style made by `new DxfMLeaderStyle()` the style's values with the multileader's own in place of those it overrides (the
+bits of its 90), as ezdxf's `MLeaderStyleOverride` reads them: a multileader of Standard with words 2.5 high of its own gives
+`TextHeight` 2.5 and Standard's arrows, 4 long. The height of the words and the landing gap are read from the context data
+and the dogleg from the multileader's own 41, all scaled, the arrow size from its own 42, unscaled. `SetFromStyle()` goes
+the other way: the multileader takes its style's values, its words 4 high again, and its bits are set to nought, but for
+those of what it cannot take (a linetype or a text style the style names none of or its drawing has not, a content it does
+not hold, an arrow or a block a copy in no drawing cannot be given, the attachments of the top and bottom in a file older
+than R2010) and of the properties the library does not write (bits 18 and 26). Its sizes are the style's scaled once by the
+style's scale: Standard scaled 2 gives words 8 high, a gap of 4 and arrows and doglegs drawn 8 and 16 long. A dimension, a
+leader or a multileader of a style its drawing has not answers false and changes nothing. One leader line is given a look
+of its own by
+`SetLeaderLineType`, `SetLeaderLineColor`, `SetLeaderLineWeight` and `SetArrowSize(leaderLineIndex, value)`, from R2010:
+its groups 170, 92, 171 and 40 after its index and the flags 93 of those it overrides, in the order of the DXF reference;
+their `Get` give the line's own where it has one and the multileader's where it has not, and `Explode()` draws the line with
+its own type, colour, linetype, lineweight and arrow size: a line splined of its own is a SPLINE among straight lines, one
+invisible of its own gives nothing, and a size of its own, unscaled as `ArrowSize` is, is drawn times the `Scale`. `SetPlane(plane)` puts the multileader in a plane: the plane of its context data the
+one given, its x axis laid in it, every point moved straight onto it and every direction laid in it, the matrix of its block
+turned with it, the words of a mirrored multileader still read from behind the plane; its words at (800, 0, 0) put in the
+plane z = 5 are at (800, 0, 5), and a multileader put in its own plane changes nothing, the leaning axes a shear leaves
+among what it keeps.
 
 ### Dimensions
 

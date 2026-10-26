@@ -16,16 +16,21 @@ namespace GeometryHelper.Dxf
         /// them from its context data: its content first, an MTEXT of its words (<see cref="MText"/>, as wide as the context's
         /// scale makes it, in its text style and colour) or an INSERT of its block (<see cref="BlockContent"/> at
         /// <see cref="BlockPosition"/>, scaled, turned and coloured so, its attributes given the values the multileader holds);
-        /// then, leader by leader and line by line, unless its leaders are invisible, the arrowhead at the first vertex and the
+        /// then, leader by leader and line by line, unless the line is invisible, the arrowhead at the first vertex and the
         /// LINEs through the vertices, the last point of the leader and, for a leader on the left or right of the words, the
         /// end of its dogleg, the dogleg itself where the multileader has one; a splined leader is one SPLINE fitted through the
         /// same points, leaving along its first segment and reaching along its dogleg. The arrowhead is drawn where the first
         /// segment is more than twice as long as the arrow, as AutoCAD draws it: an INSERT of the line's or the multileader's
         /// arrow block, turned to point away from the line and scaled to the arrow's size, or AutoCAD's closed filled arrow as a
-        /// SOLID a third as wide as long; the line then starts at the back of the arrow. Each part is on the multileader's layer;
-        /// the lines and arrows have the colour of their line where it is not BYBLOCK, else that of the leader lines, and the
-        /// leader lines' linetype and lineweight. The words left on the left of two leaders 8 long, with a dogleg of 8, give an
-        /// MTEXT, two arrows and five LINEs. A multileader scaled to nothing gives nothing. The lines AutoCAD draws under or over
+        /// SOLID a third as wide as long; the line then starts at the back of the arrow. Each part is on the multileader's layer.
+        /// A line is drawn with the type, colour, linetype, lineweight and arrow size of its own where its flags (93) say it has
+        /// them, BYBLOCK among them, and its colour where it has no flags and its colour is not BYBLOCK, as ezdxf writes one;
+        /// else with the multileader's (<see cref="GetLeaderLineType"/>, <see cref="GetLeaderLineColor"/>,
+        /// <see cref="GetLeaderLineWeight"/>): a line splined of its own is one SPLINE among the straight lines of the others, one
+        /// invisible of its own gives nothing, and a line of arrows 2 of its own under arrows 4 starts 2 from its tip; a size of
+        /// its own is unscaled, as the multileader's own (42), and drawn times the scale of the context data, 4 at a scale of 2,
+        /// where a line of none is drawn with the size of the context data (140). The words left on the left of two leaders 8 long,
+        /// with a dogleg of 8, give an MTEXT, two arrows and five LINEs. A multileader scaled to nothing gives nothing. The lines AutoCAD draws under or over
         /// the words, as long as the words are wide, are AutoCAD's to work out, and are not among them. A copy in no file, made
         /// by <see cref="DxfEntity.Clone"/>, finds the blocks, the linetype and the text style its record names in the drawing it
         /// was copied from, as a dimension's copy finds its block, and gives what the original gives, the values of its attributes
@@ -54,16 +59,14 @@ namespace GeometryHelper.Dxf
             Content(rec, ctx, scale, layer, database, parts);
             DxfLeaderType type = LeaderLineType;
 
-            if (type == DxfLeaderType.InVisibleLeader)
+            if (type == DxfLeaderType.InVisibleLeader && !ctx.Leaders.Exists(l => l.Lines.Exists(line => LineType(line.Groups, type) != DxfLeaderType.InVisibleLeader)))
             {
                 return parts.AsReadOnly();
             }
 
-            string linetypeHandle = Text(rec.After, 341)?.Trim();
-            string linetype = linetypeHandle != null && database != null && database.TryGetObject(linetypeHandle, out DxfDBObject found) && found is DxfLinetypeTableRecord record ? record.Name : null;
+            string linetype = LinetypeName(database, Text(rec.After, 341));
             DxfLineWeight weight = LeaderLineWeight;
             string leaderColour = Text(rec.After, 91) ?? ByBlock;
-            bool dogleg = EnableDogleg && type != DxfLeaderType.SplineLeader;
             double size = Num(Text(ctx.Head, 140), ArrowSize);
             GeoVector3 normal = Normal;
             double tolerance = Tolerance.Default.EqualPoint;
@@ -71,26 +74,45 @@ namespace GeometryHelper.Dxf
             string arrowHandle = Text(rec.After, 342);
             DxfBlockTableRecord arrow = arrowHandle == null ? null : Block(database, arrowHandle, "its arrows");
 
-            void Give(DxfEntity part, string colour)
-            {
-                part.Layer = layer;
-                Colour(part, colour != null && colour.Trim() != ByBlock ? colour : leaderColour);
-
-                if (linetype != null)
-                {
-                    part.Linetype = linetype;
-                }
-
-                part.LineWeight = weight;
-                parts.Add(part);
-            }
-
             foreach (LeaderPart leader in ctx.Leaders)
             {
                 Landing(leader, out GeoPoint3 last, out bool horizontal, out GeoVector3 along);
 
                 foreach (LinePart line in leader.Lines)
                 {
+                    // The line's own look where its flags say it has one, else the multileader's.
+                    List<KeyValuePair<int, string>> own = line.Groups;
+                    DxfLeaderType lineType = LineType(own, type);
+
+                    if (lineType == DxfLeaderType.InVisibleLeader)
+                    {
+                        continue;
+                    }
+
+                    string ownWeight = Own(own, LineWeightFlag, 171);
+                    DxfLineWeight lineWeight = ownWeight == null ? weight : (DxfLineWeight)Whole(ownWeight, -2);
+                    string ownLinetype = Own(own, LinetypeFlag, 340);
+                    string lineLinetype = ownLinetype == null ? linetype : LinetypeName(database, ownLinetype) ?? linetype;
+                    // A line's own size is unscaled, as the multileader's own (42), and drawn times the scale.
+                    string ownSize = Own(own, ArrowSizeFlag, 40);
+                    double lineSize = ownSize == null ? size : Num(ownSize, 4.0) * scale;
+                    string colour = LineColour(own) ?? leaderColour;
+
+                    void Give(DxfEntity part)
+                    {
+                        part.Layer = layer;
+                        Colour(part, colour);
+
+                        if (lineLinetype != null)
+                        {
+                            part.Linetype = lineLinetype;
+                        }
+
+                        part.LineWeight = lineWeight;
+                        parts.Add(part);
+                    }
+
+                    bool dogleg = EnableDogleg && lineType != DxfLeaderType.SplineLeader;
                     List<GeoPoint3> vertices = Path(line, last, horizontal, dogleg, along);
 
                     if (vertices.Count < 2)
@@ -98,27 +120,26 @@ namespace GeometryHelper.Dxf
                         continue;
                     }
 
-                    string colour = Text(line.Groups, 92);
                     GeoVector3 first = vertices[0].GetVectorTo(vertices[1]);
                     double run = first.Length;
                     GeoVector3 direction = run > 0.0 ? first.Multiply(1.0 / run) : new GeoVector3(1.0, 0.0, 0.0);
 
-                    if (run * size > 0.0 && run > 2.0 * size)
+                    if (run * lineSize > 0.0 && run > 2.0 * lineSize)
                     {
                         DxfBlockTableRecord block = arrows.TryGetValue(Whole(Text(line.Groups, 91), 0), out string handle) ? Block(database, handle, "the arrow of a leader line") : arrow;
-                        Give(Arrowhead(vertices[0], direction, size, normal, block), colour);
+                        Give(Arrowhead(vertices[0], direction, lineSize, normal, block));
                         string name = block?.Name.TrimStart('_');
-                        vertices[0] = vertices[0].Add(direction.Multiply(name != null && NoLength.Contains(name) ? 0.0 : size));
+                        vertices[0] = vertices[0].Add(direction.Multiply(name != null && NoLength.Contains(name) ? 0.0 : lineSize));
                     }
 
-                    if (type == DxfLeaderType.SplineLeader)
+                    if (lineType == DxfLeaderType.SplineLeader)
                     {
                         GeoVector3 end = horizontal ? along : vertices[vertices.Count - 2].GetVectorTo(vertices[vertices.Count - 1]);
                         DxfSpline spline = DxfLeader.FittedSpline(vertices, tolerance, direction, end.Length > 0.0 ? end : (GeoVector3?)null);
 
                         if (spline != null)
                         {
-                            Give(spline, colour);
+                            Give(spline);
                         }
 
                         continue;
@@ -128,13 +149,27 @@ namespace GeometryHelper.Dxf
                     {
                         if (vertices[i].DistanceTo(vertices[i + 1]) > tolerance)
                         {
-                            Give(new DxfLine(vertices[i], vertices[i + 1]), colour);
+                            Give(new DxfLine(vertices[i], vertices[i + 1]));
                         }
                     }
                 }
             }
 
             return parts.AsReadOnly();
+        }
+
+        /// <summary>How a leader line is drawn: its own type (170) where its flags (93) say it has one, else the multileader's.</summary>
+        private static DxfLeaderType LineType(List<KeyValuePair<int, string>> line, DxfLeaderType type)
+        {
+            string own = Own(line, LineTypeFlag, 170);
+            return own == null ? type : (DxfLeaderType)Whole(own, 1);
+        }
+
+        /// <summary>The name of the linetype of a handle in the drawing given; null where it has none.</summary>
+        private static string LinetypeName(DxfDatabase database, string handle)
+        {
+            handle = handle?.Trim();
+            return handle != null && database != null && database.TryGetObject(handle, out DxfDBObject found) && found is DxfLinetypeTableRecord record ? record.Name : null;
         }
 
         /// <summary>
@@ -175,7 +210,8 @@ namespace GeometryHelper.Dxf
         /// points, the points it runs through or, splined, the curve fitted through them with the tangents <see cref="Explode"/>
         /// fits it with, leaving along its first segment and reaching along the dogleg or its last segment; from the arrow's
         /// point, where <see cref="Explode"/> starts at the back of the arrow, so that the two part by up to the arrow's size near
-        /// it. None for invisible leaders, a multileader scaled to nothing, or one with no context data.
+        /// it; each line of its own type where its flags (93) say it has one, as <see cref="Explode"/> draws it. None for an invisible
+        /// line, a multileader scaled to nothing, or one with no context data.
         /// </summary>
         /// <param name="groups">The groups of the record as the file holds them, its type left out.</param>
         /// <param name="tolerance">The point tolerance a vertex on the one before it is left out within, in the fitting.</param>
@@ -186,12 +222,12 @@ namespace GeometryHelper.Dxf
             Ctx ctx = rec.Context;
             var type = (DxfLeaderType)Whole(Text(rec.After, 170), 1);
 
-            if (ctx == null || !(Math.Abs(Num(Text(ctx.Head, 40), 1.0)) > 1E-9) || type == DxfLeaderType.InVisibleLeader)
+            if (ctx == null || !(Math.Abs(Num(Text(ctx.Head, 40), 1.0)) > 1E-9))
             {
                 return lines;
             }
 
-            bool dogleg = Whole(Text(rec.After, 291), 1) != 0 && type != DxfLeaderType.SplineLeader;
+            bool landed = Whole(Text(rec.After, 291), 1) != 0;
 
             foreach (LeaderPart leader in ctx.Leaders)
             {
@@ -199,14 +235,22 @@ namespace GeometryHelper.Dxf
 
                 foreach (LinePart line in leader.Lines)
                 {
-                    List<GeoPoint3> vertices = Path(line, last, horizontal, dogleg, along);
+                    // The line's own type where its flags say it has one, as Explode draws it.
+                    DxfLeaderType lineType = LineType(line.Groups, type);
+
+                    if (lineType == DxfLeaderType.InVisibleLeader)
+                    {
+                        continue;
+                    }
+
+                    List<GeoPoint3> vertices = Path(line, last, horizontal, landed && lineType != DxfLeaderType.SplineLeader, along);
 
                     if (vertices.Count < 2)
                     {
                         continue;
                     }
 
-                    if (type != DxfLeaderType.SplineLeader)
+                    if (lineType != DxfLeaderType.SplineLeader)
                     {
                         lines.Add(new LinePath(vertices, null));
                         continue;

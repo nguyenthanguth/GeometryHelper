@@ -105,6 +105,82 @@ namespace GeometryHelper.Dxf
         public override bool IsPlanar => PlaneOf(out _, out int off) && off < 0;
 
         /// <summary>
+        /// Puts the leader in a plane, as AutoCAD's <c>SetPlane</c>: its normal (210) the plane's, each vertex moved straight
+        /// onto the plane, and the direction of its hook line (211) laid in the plane, the x axis of the plane's own system
+        /// where it stood along the normal. The leader through (0, 0, 5), (10, 10, 5) and (20, 10, 8) put in the floor runs
+        /// through (0, 0, 0), (10, 10, 0) and (20, 10, 0), its normal (0, 0, 1). A vertex and a direction in the plane already
+        /// keep their numbers, a hook (2, 0, 0) as a scale of 2 leaves it among them, and a normal the plane's to 1E-12 keeps
+        /// its own, so that the leader put in its own plane changes nothing. The annotation is an entity of its own,
+        /// and stays where it is; the offsets of the last vertex from it (212 and 213) are kept.
+        /// </summary>
+        /// <param name="value">The plane.</param>
+        /// <exception cref="ArgumentException">Thrown when the plane is not valid: a point not finite, or a normal of no length.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the leader is erased.</exception>
+        public void SetPlane(GeoPlane3 value)
+        {
+            if (!value.IsValid)
+            {
+                throw new ArgumentException("A plane has a finite origin and a normal of unit length: " + value + " has not.", nameof(value));
+            }
+
+            // The normal as the record has it where it is the plane's to the rounding, so that its own plane writes nothing.
+            GeoVector3 normal = Kept(GetNormal(), value.Normal);
+            List<GeoPoint3> vertices = Vertices();
+
+            for (int i = 0; i < vertices.Count; i++)
+            {
+                vertices[i] = OntoPlane(vertices[i], value.Origin, normal);
+            }
+
+            var head = new List<KeyValuePair<int, string>>();
+            head.AddRange(NormalGroups(normal));
+            var hook = new GeoPoint3(1.0, 0.0, 0.0);
+            GeoVector3 laid = InPlane(GetPoint(211, hook).ToVector(), normal, new DxfOcsTransform.Axes(normal).X);
+            head.AddRange(PointGroups(211, new GeoPoint3(laid.X, laid.Y, laid.Z), hook));
+            WriteVertices(vertices, -1, head.ToArray());
+        }
+
+        /// <summary>
+        /// A point moved straight onto a plane: as it is, to the bit, where it lies in it to the rounding of the distance, 1E-12
+        /// of its distance from the plane's origin, so that a point moved onto the plane stays where it is moved again.
+        /// </summary>
+        internal static GeoPoint3 OntoPlane(GeoPoint3 point, GeoPoint3 origin, GeoVector3 normal)
+        {
+            GeoVector3 from = origin.GetVectorTo(point);
+            double off = normal.DotProduct(from);
+            return Math.Abs(off) <= 1E-12 * (1.0 + from.Length) ? point : new GeoPoint3(point.X - off * normal.X, point.Y - off * normal.Y, point.Z - off * normal.Z);
+        }
+
+        /// <summary>
+        /// A direction laid in a plane of a normal: as it is, to the bit and of the length it has, where it lies in the plane to
+        /// the rounding, 1E-12 of its length; else laid in the plane and made of unit length; the fallback where it stands
+        /// along the normal, to the vector tolerance of <see cref="Tolerance.Default"/>, or has no length.
+        /// </summary>
+        internal static GeoVector3 InPlane(GeoVector3 direction, GeoVector3 normal, GeoVector3 fallback)
+        {
+            double along = direction.DotProduct(normal);
+            double size = direction.Length;
+
+            if (size > 0.0 && Math.Abs(along) <= 1E-12 * size)
+            {
+                return direction;
+            }
+
+            var laid = new GeoVector3(direction.X - along * normal.X, direction.Y - along * normal.Y, direction.Z - along * normal.Z);
+            double length = laid.Length;
+
+            if (!(length > Tolerance.Default.EqualVector * size))
+            {
+                return fallback;
+            }
+
+            return Math.Abs(length - 1.0) <= 1E-12 ? laid : laid.Multiply(1.0 / length);
+        }
+
+        /// <summary>A direction as it was, to the bit, where it is the new one to 1E-12; else the new one.</summary>
+        internal static GeoVector3 Kept(GeoVector3 old, GeoVector3 now) => old.Subtract(now).Length <= 1E-12 ? old : now;
+
+        /// <summary>
         /// The plane of the normal through the first vertex, and the first vertex off it by more than the point tolerance, -1
         /// for none; false where the leader has no vertex.
         /// </summary>
