@@ -151,7 +151,8 @@ namespace GeometryHelper.UnitTest.Plane
         public void TwoHundredDiametersOffsetWithRoundJoins_TakeSecondsAndLittleMemory()
         {
             // The 19 900 crossings at the centre are one place. Every pair of them within the tolerance was kept, 2E8 pairs,
-            // and the offset ran out of memory.
+            // and the offset ran out of memory. It allocated 213 MB on a CI runner where it stays under 200 MB here, so the
+            // bound is 400 MB, which still fails the 2E8 pairs.
             GeoPolygonArc2 loop = TwoHundredDiameters();
             AppDomain.MonitoringIsEnabled = true;
             long before = AppDomain.CurrentDomain.MonitoringTotalAllocatedMemorySize;
@@ -162,7 +163,7 @@ namespace GeometryHelper.UnitTest.Plane
 
             long allocated = AppDomain.CurrentDomain.MonitoringTotalAllocatedMemorySize - before;
             Assert.True(watch.Elapsed < TimeSpan.FromSeconds(30), "offsetting 200 diameters took " + watch.ElapsedMilliseconds + " ms");
-            Assert.True(allocated < 200L * 1024 * 1024, "offsetting 200 diameters allocated " + allocated / (1024 * 1024) + " MB");
+            Assert.True(allocated < 400L * 1024 * 1024, "offsetting 200 diameters allocated " + allocated / (1024 * 1024) + " MB");
         }
 
         [Fact]
