@@ -651,6 +651,28 @@ of boxes, L-sections, combs and slotted plates, turned three ways, give their le
 helix are as slow as they were, 5.1 seconds for 50: their time is in measuring how deep the part reaches into them, a point at
 a time.
 
+**CHANGED.** A clash bar running at a slant past a large mesh, or passing the rim of its caps, no longer opens what only the
+box of a piece of its centre line comes near. Where the bar check asks the part's index for the triangles a piece comes
+within the tolerance of, and for how near a piece comes, a box of the index is passed over where the piece itself stands
+further off than that across a direction square to an axis and to the piece, and a triangle where it does across its normal,
+or across a direction square to a side and to the piece or to the normal, the reach read a rounding wide by the largest
+coordinate of the piece and of the box or the triangle, so that a triangle millions across beside a piece near the origin is
+not passed over by the rounding of where its corners stand. Of a cylinder of radius 500 and 10 000 sides, prepared
+beforehand, 50 bars of radius 40 running at a slant 20 to 30 clear of it take 6.8 ms on .NET 10 where they took 32 (8.4 and
+27 on .NET 8), measuring 13 952 triangles for their nearest approach where they measured 169 522; 50 of radius 10 take 7.7
+ms where they took 24 (9.3 and 20); 50 grazing a side 0.0005 off it, through the rim of both caps, are given 4 triangles each
+where they were given 2 500, of the slivers the caps are cut into, and take 41 ms where they took 152 (42 and 162), against 28
+(24) before a bar's run was counted by the triangles near it; and 50 touching it at a slant take 12 ms where they took 24 (16
+and 22). 4 000 random bars by prisms of up to 3 000 sides and by combs, turned and moved up to a million off, take 2.4 to 3.1
+seconds on .NET 10 where they took 4.2 to 7.2. Every answer is the same to the bit: those sets on both runtimes, 12 000
+random bars, and 48 000 nearest approaches of pieces by random meshes, slivers among them, at three tolerances. In 60 000
+askings by random meshes, 17 million triangles a piece is no longer given, of which 10 million were searched as the bar check
+searches and none comes within the reach, and those given keep their order; and of 80 000 pieces set at a known distance
+from a triangle up to 30 million across, worked out exactly, none is passed over. Asking for the triangles near a piece costs
+more in the index where it gives 7 times fewer: 16 000 askings by 40 random meshes take 0.55 to 0.73 seconds where they took
+0.36 to 0.46, at best of four, and 0.69 to 0.93 where they took 0.60 to 0.77 run once. The benchmark of bars beside parts
+of 12 triangles each runs about 5 per cent slower on .NET Framework 4.8, 4.3 to 5.1 ms where it ran in 4.2 to 5.0.
+
 **CHANGED.** `GeoObb3.Fit` is many times faster on a hull of thousands of faces. The box on each face of the hull was fitted
 round every copy of every corner of every face: 3 000 points on a sphere make 6 000 faces and 18 000 copies, sorted on each
 face, and took 7.7 seconds on .NET 10 and 15.2 on .NET Framework. Each corner is taken once now, and a face is passed over where no

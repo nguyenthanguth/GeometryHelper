@@ -534,14 +534,21 @@ namespace GeometryHelper.Spatial
         }
 
         /// <summary>
-        /// Gets the triangles whose boxes come within a reach of a segment, in the order the tree holds them.
+        /// Gets the triangles that may come within a reach of a segment, in the order the tree holds them: every one that
+        /// does, and of the others those no direction tried shows to stand further off.
         /// </summary>
         /// <remarks>
         /// A branch or a triangle is passed over where the segment itself misses its box grown by the reach, not only where the
         /// box of the segment stands further than the reach: a bar running at a slant past a cylinder of radius 500 and 10 000
-        /// sides has a box holding thousands of its triangles, of which a handful lie within the reach of its line. The reach is
-        /// read a rounding wide, a trillionth of the largest coordinate of the segment, so no triangle the segment comes within
-        /// the reach of is passed over.
+        /// sides has a box holding thousands of its triangles, of which a handful lie within the reach of its line. A box is
+        /// also passed over where the segment stands further than the reach from it across a direction square to an axis and
+        /// to the segment, and a triangle where it does across the triangle's normal, or across a direction square to the
+        /// segment or to the normal and to a side: a bar standing up half a thousandth outside a side of that cylinder, through
+        /// the rim of both caps, lies in the boxes of some 2 500 of the slivers the caps are cut into, and comes within a
+        /// thousandth of 4 triangles, which are what it is given. No point of the segment comes nearer a point of the box or
+        /// the triangle than the two stand apart across any direction, so the reach, read a rounding wide, a trillionth of the
+        /// largest coordinate of the segment and of the box or the triangle, passes over no triangle the segment comes within
+        /// the reach of.
         /// </remarks>
         internal List<GeoTriangle3> TrianglesNear(GeoPoint3 from, GeoPoint3 to, double reach)
         {
@@ -552,10 +559,8 @@ namespace GeometryHelper.Spatial
                 return near;
             }
 
-            double largest = Math.Max(
-                Math.Max(Math.Abs(from.X), Math.Max(Math.Abs(from.Y), Math.Abs(from.Z))),
-                Math.Max(Math.Abs(to.X), Math.Max(Math.Abs(to.Y), Math.Abs(to.Z))));
-            double within = reach + 1E-12 * (1.0 + largest);
+            double size = Math.Max(Largest(from), Largest(to));
+            double within = reach + 1E-12 * (1.0 + size);
             GeoVector3 step = from.GetVectorTo(to);
             Stack<int> pending = new Stack<int>();
             pending.Push(0);
@@ -564,7 +569,7 @@ namespace GeometryHelper.Spatial
             {
                 Node node = _nodes[pending.Pop()];
 
-                if (Apart(from, to, step, node.Bounds, reach, within))
+                if (Apart(from, to, step, node.Bounds, reach, within, size))
                 {
                     continue;
                 }
@@ -573,11 +578,12 @@ namespace GeometryHelper.Spatial
                 {
                     for (int i = node.Start; i < node.Start + node.Count; i++)
                     {
-                        GeoTriangle3 triangle = _triangles[_order[i]];
+                        int t = _order[i];
+                        GeoAabb3 bounds = _triangleBounds[t];
 
-                        if (!Apart(from, to, step, triangle.GetAabb(), reach, within))
+                        if (!Apart(from, to, step, bounds, reach, within, size) && !Apart(from, step, _triangles[t], Wider(reach, size, bounds)))
                         {
-                            near.Add(triangle);
+                            near.Add(_triangles[t]);
                         }
                     }
 
@@ -592,12 +598,106 @@ namespace GeometryHelper.Spatial
         }
 
         /// <summary>
+        /// Gets the largest coordinate of a point, read without its sign.
+        /// </summary>
+        private static double Largest(GeoPoint3 point) => Math.Max(Math.Abs(point.X), Math.Max(Math.Abs(point.Y), Math.Abs(point.Z)));
+
+        /// <summary>
+        /// Gets a reach read a rounding wide for a distance taken across a direction from a segment to a box, or to a triangle in
+        /// the box: a trillionth of the largest coordinate of either, since the rounding of where each stands across it grows
+        /// with how far out its corners lie. A segment near the origin and a triangle of a mesh a million across are read
+        /// a millionth wide, where the segment alone gave a trillionth.
+        /// </summary>
+        /// <param name="reach">The reach.</param>
+        /// <param name="size">The largest coordinate of the segment.</param>
+        /// <param name="box">The box, or the box of the triangle.</param>
+        private static double Wider(double reach, double size, GeoAabb3 box)
+            => reach + 1E-12 * (1.0 + Math.Max(size, Math.Max(Largest(box.Min), Largest(box.Max))));
+
+        /// <summary>
         /// Determines whether a segment stands further from a box than a reach: its own box further than the reach, as before,
         /// or the segment itself missing the box grown on every side by the reach read a rounding wide, which holds every point
-        /// within the reach of the box.
+        /// within the reach of the box, as before, or the two further apart than the reach read wider by the box's coordinates
+        /// across a direction square to an axis and the segment.
         /// </summary>
-        private static bool Apart(GeoPoint3 from, GeoPoint3 to, GeoVector3 step, GeoAabb3 box, double reach, double within)
-            => Gap3.BoxGap(from, to, box) > reach || !LineEntersBox(from, step, box, within, 0.0, 1.0);
+        private static bool Apart(GeoPoint3 from, GeoPoint3 to, GeoVector3 step, GeoAabb3 box, double reach, double within, double size)
+            => Gap3.BoxGap(from, to, box) > reach || !LineEntersBox(from, step, box, within, 0.0, 1.0) || ApartAcross(from, step, box, Wider(reach, size, box));
+
+        /// <summary>
+        /// Determines whether a segment and a box stand further apart than a distance across one of the three directions square
+        /// to an axis and to the segment.
+        /// </summary>
+        /// <remarks>
+        /// Across such a direction the segment is a single place and the box a stretch, so a segment passing a box at a slant,
+        /// beside one of its edges, is told by how far it passes the edge rather than by how far it passes the box grown into
+        /// a larger box: the segment from (0, -10, 0) to (10, 0, 0) passes 6.36 from the box 1 by 1 by 1 at the origin, and
+        /// through that box grown by 5.5 on every side.
+        /// </remarks>
+        private static bool ApartAcross(GeoPoint3 from, GeoVector3 step, GeoAabb3 box, double within)
+        {
+            double x = (box.Min.X + box.Max.X) * 0.5 - from.X;
+            double y = (box.Min.Y + box.Max.Y) * 0.5 - from.Y;
+            double z = (box.Min.Z + box.Max.Z) * 0.5 - from.Z;
+            double halfX = (box.Max.X - box.Min.X) * 0.5;
+            double halfY = (box.Max.Y - box.Min.Y) * 0.5;
+            double halfZ = (box.Max.Z - box.Min.Z) * 0.5;
+
+            // Square to X and to the segment is (0, -step.Z, step.Y), and so on round the axes.
+            return Beyond(z * step.Y - y * step.Z, halfY * Math.Abs(step.Z) + halfZ * Math.Abs(step.Y), step.Y * step.Y + step.Z * step.Z, within)
+                || Beyond(x * step.Z - z * step.X, halfZ * Math.Abs(step.X) + halfX * Math.Abs(step.Z), step.Z * step.Z + step.X * step.X, within)
+                || Beyond(y * step.X - x * step.Y, halfX * Math.Abs(step.Y) + halfY * Math.Abs(step.X), step.X * step.X + step.Y * step.Y, within);
+        }
+
+        /// <summary>
+        /// Determines whether a segment stands further from a triangle than a distance across the triangle's normal, or across
+        /// a direction square to one of its sides and to the segment or to the normal.
+        /// </summary>
+        private static bool Apart(GeoPoint3 from, GeoVector3 step, GeoTriangle3 triangle, double within)
+        {
+            GeoVector3 a = from.GetVectorTo(triangle.A);
+            GeoVector3 b = from.GetVectorTo(triangle.B);
+            GeoVector3 c = from.GetVectorTo(triangle.C);
+            GeoVector3 ab = triangle.A.GetVectorTo(triangle.B);
+            GeoVector3 bc = triangle.B.GetVectorTo(triangle.C);
+            GeoVector3 ca = triangle.C.GetVectorTo(triangle.A);
+            GeoVector3 normal = ab.CrossProduct(bc);
+
+            return Apart(normal, step, a, b, c, within)
+                || Apart(ab.CrossProduct(step), step, a, b, c, within)
+                || Apart(bc.CrossProduct(step), step, a, b, c, within)
+                || Apart(ca.CrossProduct(step), step, a, b, c, within)
+                || Apart(normal.CrossProduct(ab), step, a, b, c, within)
+                || Apart(normal.CrossProduct(bc), step, a, b, c, within)
+                || Apart(normal.CrossProduct(ca), step, a, b, c, within);
+        }
+
+        /// <summary>
+        /// Determines whether a segment from the origin along a step and a triangle, its corners given from the start of the
+        /// segment, stand further apart than a distance across a direction: any direction will do, of any length but nought.
+        /// </summary>
+        private static bool Apart(GeoVector3 across, GeoVector3 step, GeoVector3 a, GeoVector3 b, GeoVector3 c, double within)
+        {
+            double along = across.DotProduct(step);
+            double atA = across.DotProduct(a);
+            double atB = across.DotProduct(b);
+            double atC = across.DotProduct(c);
+            double low = Math.Min(atA, Math.Min(atB, atC));
+            double high = Math.Max(atA, Math.Max(atB, atC));
+            double gap = Math.Max(low - Math.Max(0.0, along), Math.Min(0.0, along) - high);
+
+            return gap > 0.0 && gap * gap > within * within * across.LengthSquared;
+        }
+
+        /// <summary>
+        /// Determines whether a gap across a direction is further than a distance, the gap and the direction's square length
+        /// taken as they stand rather than for a direction of length one.
+        /// </summary>
+        private static bool Beyond(double centre, double half, double lengthSquared, double within)
+        {
+            double gap = Math.Abs(centre) - half;
+
+            return gap > 0.0 && gap * gap > within * within * lengthSquared;
+        }
 
         /// <summary>
         /// Calculates the shortest distance from the mesh to a point, using the default tolerance.
@@ -689,9 +789,13 @@ namespace GeometryHelper.Spatial
         /// </param>
         /// <returns>false when the mesh is empty, or no triangle comes nearer the segment than the reach.</returns>
         /// <remarks>
-        /// The nearer child is opened first, as for a point. A box is judged by how far it is from the box of the
-        /// segment, which bounds how far it is from the segment itself, so a caller measuring a long run does better
-        /// to measure it in pieces a few times as long as they are thick.
+        /// The nearer child is opened first, as for a point, nearer by how far its box is from the box of the segment. A box
+        /// or a triangle is passed over where it stands no nearer the box of the segment than the nearest found so far, or
+        /// where the segment itself stands further off, as <see cref="TrianglesNear"/> reads it, than both that and twice
+        /// the larger of the point and planar tolerances, inside which a crossing may be found and measured as of no
+        /// length. What is passed over could not have come nearer, so the answer is the one measuring every triangle
+        /// gives: 50 bars of radius 40 running at a slant 20 to 30 clear of a cylinder of radius 500 and 10 000 sides, in
+        /// pieces 320 long, measure 13 952 triangles where they measured 169 522.
         /// </remarks>
         internal bool TryGetShortestLineTo(GeoLine3 segment, double reach, Tolerance tolerance, out GeoLine3 line)
         {
@@ -706,6 +810,13 @@ namespace GeometryHelper.Spatial
             double nearest = reach;
             bool found = false;
 
+            // A segment the crossing test lets through a triangle within the tolerance is measured as of no length, and it
+            // comes within the larger of the point and planar tolerances of the triangle; twice that is room to spare.
+            double crossing = 2.0 * Math.Max(tolerance.EqualPoint, tolerance.EqualPlanar);
+            double size = Math.Max(Largest(segment.StartPoint), Largest(segment.EndPoint));
+            GeoPoint3 from = segment.StartPoint;
+            GeoVector3 step = from.GetVectorTo(segment.EndPoint);
+
             Stack<int> pending = new Stack<int>();
             pending.Push(0);
 
@@ -718,13 +829,22 @@ namespace GeometryHelper.Spatial
                     continue;
                 }
 
+                // The segment itself further off than the nearest so far, and than a crossing can be found, holds nothing
+                // nearer: this passes over what the box of the segment cannot, the branches beside a long slanting run.
+                double within = Wider(Math.Max(nearest, crossing), size, node.Bounds);
+
+                if (!LineEntersBox(from, step, node.Bounds, within, 0.0, 1.0) || ApartAcross(from, step, node.Bounds, within))
+                {
+                    continue;
+                }
+
                 if (node.Left < 0)
                 {
                     for (int i = node.Start; i < node.Start + node.Count; i++)
                     {
                         int t = _order[i];
 
-                        if (!(_triangleBounds[t].DistanceTo(box) < nearest))
+                        if (!(_triangleBounds[t].DistanceTo(box) < nearest) || Apart(from, step, _triangles[t], Wider(Math.Max(nearest, crossing), size, _triangleBounds[t])))
                         {
                             continue;
                         }
