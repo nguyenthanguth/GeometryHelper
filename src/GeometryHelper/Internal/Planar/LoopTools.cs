@@ -84,15 +84,61 @@ namespace GeometryHelper.Internal.Planar
             // Removing a point can bring its neighbours into line, so the pass repeats until nothing changes.
             bool changed = true;
 
-            while (changed && points.Count >= 3)
+            if (points.Count < 64)
+            {
+                while (changed && points.Count >= 3)
+                {
+                    changed = false;
+
+                    for (int i = 0; i < points.Count && points.Count >= 3; i++)
+                    {
+                        GeoPoint2 previous = points[(i - 1 + points.Count) % points.Count];
+                        GeoPoint2 current = points[i];
+                        GeoPoint2 next = points[(i + 1) % points.Count];
+                        GeoVector2 chord = next - previous;
+                        double chordLength = chord.Length;
+
+                        bool drop = chordLength <= merge
+                            ? true
+                            : Math.Abs(chord.Cross(current - previous)) / chordLength <= straight;
+
+                        if (drop)
+                        {
+                            points.RemoveAt(i);
+                            changed = true;
+                            i--;
+                        }
+                    }
+                }
+
+                return points.Count >= 3 ? points : null;
+            }
+
+            // On a longer loop the points are linked both ways round, so that taking one out does not move the rest,
+            // and each pass goes from the first point left to the last, every point read against the neighbours left to
+            // it then, as above. Moving them took 10 of the 11 seconds a union of 40 000 squares in a row took, 80 000
+            // points along two lines, on .NET 10 and .NET Framework alike.
+            int count = points.Count;
+            int[] before = new int[count], after = new int[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                before[i] = i == 0 ? count - 1 : i - 1;
+                after[i] = i == count - 1 ? 0 : i + 1;
+            }
+
+            int first = 0;
+
+            while (changed && count >= 3)
             {
                 changed = false;
 
-                for (int i = 0; i < points.Count && points.Count >= 3; i++)
+                for (int i = first; count >= 3;)
                 {
-                    GeoPoint2 previous = points[(i - 1 + points.Count) % points.Count];
+                    bool last = after[i] == first;
+                    GeoPoint2 previous = points[before[i]];
                     GeoPoint2 current = points[i];
-                    GeoPoint2 next = points[(i + 1) % points.Count];
+                    GeoPoint2 next = points[after[i]];
                     GeoVector2 chord = next - previous;
                     double chordLength = chord.Length;
 
@@ -102,14 +148,44 @@ namespace GeometryHelper.Internal.Planar
 
                     if (drop)
                     {
-                        points.RemoveAt(i);
+                        after[before[i]] = after[i];
+                        before[after[i]] = before[i];
+                        count--;
                         changed = true;
-                        i--;
+
+                        if (i == first)
+                        {
+                            first = after[i];
+                        }
                     }
+
+                    if (last)
+                    {
+                        break;
+                    }
+
+                    i = after[i];
                 }
             }
 
-            return points.Count >= 3 ? points : null;
+            if (count < 3)
+            {
+                return null;
+            }
+
+            if (count == points.Count)
+            {
+                return points;
+            }
+
+            List<GeoPoint2> kept = new List<GeoPoint2>(count);
+
+            for (int i = first, k = 0; k < count; i = after[i], k++)
+            {
+                kept.Add(points[i]);
+            }
+
+            return kept;
         }
 
         /// <summary>

@@ -908,6 +908,19 @@ combs and zigzags, rows of rectangles, nested rings and offset combs, each unite
 into paths and polytrees, or offset and combined by the library, the last on the code as it stands, none moves by a bit, nor with
 both new ways taken wherever they could be; and other work takes as long as it did.
 
+**CHANGED.** Uniting shapes that stand side by side along a line, squares in a row or rows of them sharing their sides, no
+longer slows with the square of their number. Clipper2 stretched every horizontal segment over the whole run of points at its
+height, and the strip's top and bottom are one run, so every segment walked all of it to find its left end claimed already; it
+walked round the path once for each point it took off a spike doubling back along the shared sides; and the library's cleaning
+took each point left along a line out of a list, moving the rest. 5 000, 10 000 and 20 000 squares of side 10 in a row took
+1.3, 4.8 and 20 seconds to unite with `Boolean2.Union` on .NET 10, and 20 rows of 2 000 took 3.1. A long run's ends are filed under
+each of its points now, the walk round the path goes on past the points whose neighbours have not changed, and the cleaning
+links the points both ways round: 0.2, 0.22 and 0.5 seconds, and 0.95 (0.17, 0.13, 0.33 and 0.6 on .NET Framework). Of 10 000
+sets of random paths, combs, zigzags, rows of squares, lattices and strips, each united, cut, intersected and xored under every
+fill rule into paths and polytrees, or offset and combined by the library, none moves by a bit, nor with the new ways taken
+wherever they could be. The benchmarks time an offset comb, a row of squares and a zigzag now, `Plane.Offset.CombUp`,
+`Plane.Union.Squares` and `Plane.Union.Zigzag`, each signing as it did at 27340a1.
+
 **FIXED.** A union of two bodies wound alike that comes out wound against itself is worked out again with each cell no
 thicker than the tolerance lying within the other body against its face left out, the side of the cell nearest a face
 of the other lying on it to the rounding and facing its way, and taken so where that closes wound alike and holds a

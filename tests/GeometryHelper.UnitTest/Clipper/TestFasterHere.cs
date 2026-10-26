@@ -99,6 +99,52 @@ namespace GeometryHelper.UnitTest.Clipper
             Assert.True(watch.Elapsed.TotalSeconds < 3, watch.Elapsed.ToString());
         }
 
+        [Fact]
+        public void TwentyThousandSquaresSideBySide_AreUnitedInUnderThreeSeconds()
+        {
+            // Every horizontal segment along the strip's top and bottom walked the whole run of points there to stretch over
+            // it, only to find its left end claimed by the first: 17 seconds. The ends of a long run are filed now.
+            var squares = new Paths64();
+
+            for (int i = 0; i < 20000; i++)
+            {
+                squares.Add(new Path64 { new Point64(10 * i, 0), new Point64(10 * i + 10, 0), new Point64(10 * i + 10, 10), new Point64(10 * i, 10) });
+            }
+
+            var watch = Stopwatch.StartNew();
+            Paths64 union = Clipper2.Union(squares, FillRule.NonZero);
+            watch.Stop();
+
+            Assert.Single(union);
+            Assert.Equal(20000.0 * 100, Clipper2.Area(union[0]));
+            Assert.True(watch.Elapsed.TotalSeconds < 3, watch.Elapsed.ToString());
+        }
+
+        [Fact]
+        public void TwentyRowsOf8000SquaresSharingTheirSides_AreUnitedInUnderThreeSeconds()
+        {
+            // The path along the shared sides doubles back on itself, and the cleaning walked round it once for each point it
+            // took off the end of such a spike: 23 to 25 seconds on .NET Framework, against 0.8 now. It reads only the points
+            // whose neighbours have changed now.
+            var squares = new Paths64();
+
+            for (int j = 0; j < 20; j++)
+            {
+                for (int i = 0; i < 8000; i++)
+                {
+                    squares.Add(new Path64 { new Point64(10 * i, 10 * j), new Point64(10 * i + 10, 10 * j), new Point64(10 * i + 10, 10 * j + 10), new Point64(10 * i, 10 * j + 10) });
+                }
+            }
+
+            var watch = Stopwatch.StartNew();
+            Paths64 union = Clipper2.Union(squares, FillRule.NonZero);
+            watch.Stop();
+
+            Assert.Single(union);
+            Assert.Equal(160000.0 * 100, Clipper2.Area(union[0]));
+            Assert.True(watch.Elapsed.TotalSeconds < 3, watch.Elapsed.ToString());
+        }
+
         /// <summary>
         /// A comb along X: teeth 4 wide and 200 long, 4 apart, on a back 200 deep, pointing down from it, or up when mirrored.
         /// </summary>

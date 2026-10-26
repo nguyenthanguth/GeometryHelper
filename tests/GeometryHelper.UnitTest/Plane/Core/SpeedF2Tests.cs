@@ -87,5 +87,31 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.True(allocated < 1L << 30, allocated.ToString());
             Assert.True(watch.Elapsed.TotalSeconds < 10, watch.Elapsed.ToString());
         }
+
+        [Fact]
+        public void FortyThousandSquaresSideBySide_AreUnitedInUnderThreeSeconds()
+        {
+            // Clipper2 hands the strip back with a corner where every square met the next, 80 000 points along two lines,
+            // and the cleaning took each out of a list, moving the rest: 10 of the 11 seconds the union took, on .NET 10 and
+            // .NET Framework alike, and 103 to 113 in all before Clipper2 itself was made quick on such runs. The points are
+            // linked both ways round now.
+            var squares = new List<GeoPolygon2>();
+
+            for (int i = 0; i < 40000; i++)
+            {
+                double x = 10.0 * i;
+                squares.Add(new GeoPolygon2(new List<GeoPoint2> { new GeoPoint2(x, 0), new GeoPoint2(x + 10, 0), new GeoPoint2(x + 10, 10), new GeoPoint2(x, 10) }));
+            }
+
+            var watch = Stopwatch.StartNew();
+            GeoFace2[] union = Boolean2.Union(squares, Thousandth);
+            watch.Stop();
+
+            // One strip 400 000 by 10, its four corners left.
+            Assert.Single(union);
+            Assert.Equal(4, union[0].Boundary.Vertices.Count);
+            Assert.Equal(4.0E6, union[0].Area, 6);
+            Assert.True(watch.Elapsed.TotalSeconds < 3, watch.Elapsed.ToString());
+        }
     }
 }

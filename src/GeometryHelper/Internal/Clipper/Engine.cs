@@ -3291,30 +3291,84 @@ namespace GeometryHelper.Clipper
         }
 
         /// <summary>
+        /// The ends of a horizontal run of an output path, as <see cref="UpdateHorzSegment"/> walked them for the path
+        /// read as its real output path.
+        /// </summary>
+        private struct HorzRun
+        {
+            public OutRec outrec;
+            public OutPt first;
+            public OutPt last;
+        }
+
+        /// <summary>
         /// Stretches the horizontal segment over the whole horizontal run of its output path at its Y and claims its
         /// left point for it; false when the run has no length or its left point belongs to another segment already.
         /// </summary>
-        private static bool UpdateHorzSegment(HorzSegment hs)
+        /// <remarks>
+        /// Once one walk passes more than 64 points, or the walks between them more than the budget, the ends of each run
+        /// walked are filed under every point of it, and a segment on a run filed for the same output path takes them from
+        /// there, as the walk from any of its points finds the same two; a ring lying wholly at the Y and closed is never
+        /// filed, its ends hanging on where the walk began. Shapes standing side by side along a line make one long run
+        /// there, and every segment on it walked the whole of it, only to find its left end claimed: 10 000 squares of
+        /// side 10 in a row walked 600 million points, 3.8 of the 3.9 seconds Clipper2 took to unite them.
+        /// </remarks>
+        private static bool UpdateHorzSegment(HorzSegment hs, ref long budget, ref Dictionary<OutPt, HorzRun> runs)
         {
             OutPt op = hs.leftOp;
             OutRec outrec = GetRealOutRec(op.outrec);
             bool outrecHasEdges = outrec.frontEdge != null;
             long curr_y = op.pt.Y;
             OutPt opP = op, opN = op;
-            if (outrecHasEdges)
+            if (runs != null && runs.TryGetValue(op, out HorzRun run) && run.outrec == outrec)
             {
-                OutPt opA = outrec.pts, opZ = opA.next;
-                while (opP != opZ && opP.prev.pt.Y == curr_y)
-                    opP = opP.prev;
-                while (opN != opA && opN.next.pt.Y == curr_y)
-                    opN = opN.next;
+                opP = run.first;
+                opN = run.last;
             }
             else
             {
-                while (opP.prev != opN && opP.prev.pt.Y == curr_y)
-                    opP = opP.prev;
-                while (opN.next != opP && opN.next.pt.Y == curr_y)
-                    opN = opN.next;
+                long steps = 0;
+                if (outrecHasEdges)
+                {
+                    OutPt opA = outrec.pts, opZ = opA.next;
+                    while (opP != opZ && opP.prev.pt.Y == curr_y)
+                    {
+                        opP = opP.prev;
+                        steps++;
+                    }
+                    while (opN != opA && opN.next.pt.Y == curr_y)
+                    {
+                        opN = opN.next;
+                        steps++;
+                    }
+                }
+                else
+                {
+                    while (opP.prev != opN && opP.prev.pt.Y == curr_y)
+                    {
+                        opP = opP.prev;
+                        steps++;
+                    }
+                    while (opN.next != opP && opN.next.pt.Y == curr_y)
+                    {
+                        opN = opN.next;
+                        steps++;
+                    }
+                }
+
+                // a run round the whole of a closed ring has ends that hang on where the walk began: never filed; a ring
+                // still being built is open between its two ends, which bound every walk alike
+                if (runs != null && (outrecHasEdges || opP.prev != opN))
+                {
+                    var walked = new HorzRun { outrec = outrec, first = opP, last = opN };
+                    for (OutPt p = opP; ; p = p.next)
+                    {
+                        runs[p] = walked;
+                        if (p == opN) break;
+                    }
+                }
+                else if (runs == null && (steps > 64 || (budget -= steps) < 0))
+                    runs = new Dictionary<OutPt, HorzRun>();
             }
             bool result =
                 SetHorzSegHeadingForward(hs, opP, opN) &&
@@ -3373,8 +3427,10 @@ namespace GeometryHelper.Clipper
         private void ConvertHorzSegsToJoins()
         {
             int k = 0;
+            long budget = 64L * _horzSegList.Count;
+            Dictionary<OutPt, HorzRun> runs = null;
             foreach (HorzSegment hs in _horzSegList)
-                if (UpdateHorzSegment(hs)) k++;
+                if (UpdateHorzSegment(hs, ref budget, ref runs)) k++;
             if (k < 2) return;
             _horzSegList.Sort(HorzSegSort);
             long[] leftmost = LeftmostOfRuns(k);
@@ -3743,12 +3799,29 @@ namespace GeometryHelper.Clipper
 
             OutPt startOp = outrec.pts;
             OutPt op2 = startOp;
+            long steps = 0, allowed = 4L * Math.Max(64, outrec.outPtCount);
             for (; ; )
             {
-                // NB if preserveCollinear == true, then only remove 180 deg. spikes
-                if ((InternalClipper.IsCollinear(op2.prev.pt, op2.pt, op2.next.pt)) &&
-                    ((op2.pt == op2.prev.pt) || (op2.pt == op2.next.pt) || !PreserveCollinear ||
-                    (InternalClipper.DotProduct(op2.prev.pt, op2.pt, op2.next.pt) < 0)))
+                if (++steps > allowed)
+                {
+                    long around = 0;
+                    OutPt op = op2;
+                    do
+                    {
+                        around++;
+                        op = op.next;
+                    } while (op != op2);
+
+                    // gone round many times: on from here reading only the points whose neighbours have changed
+                    if (steps > 4L * around)
+                    {
+                        if (!CleanCollinearOnward(outrec, op2)) return;
+                        break;
+                    }
+
+                    allowed = steps + 4L * around;
+                }
+                if (IsCollinearToGo(op2))
                 {
                     if (op2 == outrec.pts)
                         outrec.pts = op2.prev;
@@ -3765,6 +3838,115 @@ namespace GeometryHelper.Clipper
                 if (op2 == startOp) break;
             }
             FixSelfIntersects(outrec);
+        }
+
+        /// <summary>
+        /// Whether CleanCollinear takes the point out: it repeats a neighbour or lies in line with both, and when
+        /// collinear points are kept, only where the path turns straight back there.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool IsCollinearToGo(OutPt op2)
+        {
+            // NB if preserveCollinear == true, then only remove 180 deg. spikes
+            return (InternalClipper.IsCollinear(op2.prev.pt, op2.pt, op2.next.pt)) &&
+                ((op2.pt == op2.prev.pt) || (op2.pt == op2.next.pt) || !PreserveCollinear ||
+                (InternalClipper.DotProduct(op2.prev.pt, op2.pt, op2.next.pt) < 0));
+        }
+
+        /// <summary>
+        /// Goes on with the walk of CleanCollinear from op2 as it would have gone, to the same points taken out in the same
+        /// order and the same start of the path; false where the path is emptied. Only a point whose neighbours have
+        /// changed since it was last read can be taken out, so only those are read, in the order the walk comes to them:
+        /// the points are numbered round the ring from op2, those still to read are marked by number, and the next read
+        /// is the first marked after the last, round the ring.
+        /// </summary>
+        /// <remarks>
+        /// The walk goes on round the ring until it has gone once round taking nothing out, so where taking a point out
+        /// leaves the one before it to go, as along a spike, that one waits for the next way round: the path round 20 rows
+        /// of 2 000 squares, united, doubled back along their shared sides and lost one point each time round, 0.8 of the
+        /// 1 second Clipper2 took on .NET Framework.
+        /// </remarks>
+        private bool CleanCollinearOnward(OutRec outrec, OutPt op2)
+        {
+            var ring = new List<OutPt>();
+            OutPt op = op2;
+            do
+            {
+                ring.Add(op);
+                op = op.next;
+            } while (op != op2);
+
+            // the ring by numbers, kept as the points are taken out, and the points still to read
+            int n = ring.Count;
+            int[] before = new int[n], after = new int[n];
+            ulong[] marked = new ulong[(n + 63) >> 6];
+            for (int i = 0; i < n; i++)
+            {
+                before[i] = i == 0 ? n - 1 : i - 1;
+                after[i] = i == n - 1 ? 0 : i + 1;
+                marked[i >> 6] |= 1UL << (i & 63);
+            }
+
+            int left = n, from = 0;
+            while (left > 0)
+            {
+                int read = NextMarked(marked, from);
+                marked[read >> 6] &= ~(1UL << (read & 63));
+                left--;
+                from = read + 1 == n ? 0 : read + 1;
+
+                OutPt p = ring[read];
+                if (!IsCollinearToGo(p)) continue;
+
+                if (p == outrec.pts)
+                    outrec.pts = p.prev;
+                if (!IsValidClosedPath(DisposeOutPt(p)))
+                {
+                    outrec.pts = null;
+                    return false;
+                }
+
+                int b = before[read], a = after[read];
+                after[b] = a;
+                before[a] = b;
+                left += Mark(marked, a) + Mark(marked, b);
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Marks the point of the number to be read; 1 where it was not marked, 0 where it was.
+        /// </summary>
+        private static int Mark(ulong[] marked, int number)
+        {
+            ulong bit = 1UL << (number & 63);
+            if ((marked[number >> 6] & bit) != 0) return 0;
+            marked[number >> 6] |= bit;
+            return 1;
+        }
+
+        /// <summary>
+        /// The number of the first point marked at or after from, round the ring; there is one.
+        /// </summary>
+        private static int NextMarked(ulong[] marked, int from)
+        {
+            int w = from >> 6;
+            ulong word = marked[w] & (ulong.MaxValue << (from & 63));
+            while (word == 0)
+            {
+                w = w + 1 == marked.Length ? 0 : w + 1;
+                word = marked[w];
+            }
+
+            int bit = 0;
+            while ((word & 1UL) == 0)
+            {
+                word >>= 1;
+                bit++;
+            }
+
+            return (w << 6) + bit;
         }
 
         /// <summary>
