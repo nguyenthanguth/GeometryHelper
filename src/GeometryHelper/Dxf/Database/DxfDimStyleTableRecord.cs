@@ -384,6 +384,13 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the style is erased.</exception>
         public double Dimtxt { get => (double)Get(V("Dimtxt")); set => Set(V("Dimtxt"), value); }
 
+        /// <summary>
+        /// Gets or sets whether the text of a dimension reads from right to left (group 294), as AutoCAD's
+        /// <c>Dimtxtdirection</c>: true for the scripts written that way, Arabic or Hebrew; false where the record gives none.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the style is erased, or its file is older than R2010.</exception>
+        public bool Dimtxtdirection { get => (bool)Get(V("Dimtxtdirection")); set => Set(V("Dimtxtdirection"), value); }
+
         /// <summary>Gets or sets which zeros of tolerances are left out (group 284), as AutoCAD's <c>Dimtzin</c>.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the style is erased, or its file is older than R2000.</exception>
         public int Dimtzin { get => (int)Get(V("Dimtzin")); set => Set(V("Dimtzin"), value); }

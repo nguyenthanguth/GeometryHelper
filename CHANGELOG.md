@@ -235,6 +235,29 @@ those AutoCAD keeps as DICTIONARYVAR objects rather than in the header (`Cannosc
 `MLeaderstyle`, `AnnoAllVisible`, `TstackSize` and the rest), adding the dictionary of variables where a drawing has none,
 reads its `ThumbnailBitmap`, and has five more variables of the header as properties, `Splinesegs`, `Splinetype`, `Surftype`, `Surfu` and `Surfv`. Every value set was read back by ezdxf 1.4.5, whose recover and audit found nothing to fix.
 
+**NEW.** The dimension variables of AutoCAD's `Database`, `Dimension` and `Leader` that the library did not have, 84 of
+them. `DxfDatabase` reads and sets the 77 `$DIM` variables of the header by their AutoCAD names (`Dimasz` is `$DIMASZ`,
+`Dimfxlen` `$DIMFXL`, `DimAssoc` `$DIMASSOC`), each read as AutoCAD's metric drawing has it where the header gives none
+(arrowheads and texts 2.5, two decimal places, a comma), the arrowheads, linetypes and text style the records the header
+names; a value AutoCAD refuses is refused, a `Dimdec` of 9, and a variable is refused in a file older than the version that
+brought it, reading there as a dimension style of that file reads it (DIMDEC 4 in R12), so that the header's data and a
+style's agree. `GetDimstyleData` gives them as a `DxfDimStyleTableRecord` in no table and `SetDimstyleData` takes a style's,
+writing only those that differ and passing over those the header of the file's version cannot hold. `DxfLeader.GetDimstyleData`
+gives the variables a leader is drawn with, its overrides over its style's, and `SetDimstyleData` writes those that differ as
+overrides of its extended data, as AutoCAD writes them. The `SetDimstyleData` of a leader and of a dimension refuse a whole
+number out of AutoCAD's range as the header does, and, with the header's, leave the text style as it is where the record
+names none, where a dimension's wrote the handle 0 before. `Dimtxtdirection`, DIMTXTDIRECTION, is read and set on a dimension
+style (group 294, after DIMFXLON's 290) and on a dimension (the override 1070 294), from R2010: a style made in code and added
+to a drawing of R2010 or later is now written with `294 0`, and a dimension or a leader copied into a drawing of R2007 or
+earlier leaves its override of DIMTXTDIRECTION out, as its other overrides of variables that drawing has not. `DxfDimension.FormatMeasurement` writes a measurement as AutoCAD writes a dimension's: a length scaled by DIMLFAC,
+rounded by DIMRND, in scientific, decimal, engineering, architectural, fractional or Windows desktop units, its zeros left
+out as DIMZIN says, with DIMDSEP, DIMPOST and the alternate units in brackets; an angle in decimal degrees, degrees, minutes
+and seconds, grads or radians; a `[]` in the text stands for the alternate measurement. 40 lengths and 30 angles are written as ezdxf 1.4.5 writes them, and the examples of AutoCAD's
+reference as it gives them, 15.5 as `1'-3 1/2"` in architectural units and 10 as `10"[254.00mm]` with millimetres as
+alternate units. Every variable set on ezdxf's drawings of R12, R2000, R2007 and R2018, 41, 66, 76 and 77 of them, and the
+overrides of leaders, were read back by ezdxf 1.4.5, whose recover and audit found nothing to fix, and the files resave byte
+for byte where nothing is set.
+
 **NEW.** The rest of the variables of the header AutoCAD's `Database` has as members, 141 of them, read and set by their
 AutoCAD names as `Ltscale` is: the settings of drafting (`Attmode`, `Celtscale`, `Chamfera` to `Chamferd`, `Filletrad`,
 `Elevation`, `Thickness`, `Plinewid`, `Tracewid`, `Cmljust`, `Cmlscale`, `Surftab1`, `Surftab2`, `Useri1` to `Useri5`,
@@ -293,7 +316,7 @@ ezdxf 1.4.5, and its recover and audit found nothing to fix in any file, R12 amo
 set in R12 were read back by the library.
 
 **NEW.** Dimensions, dimension styles and tables, with AutoCAD's names. `DxfDatabase.DimStyleTable` holds the
-`DxfDimStyleTableRecord`s, each with AutoCAD's 73 variables a DXF file holds, read and set in their groups (`Dimasz` 41,
+`DxfDimStyleTableRecord`s, each with AutoCAD's 74 variables a DXF file holds, read and set in their groups (`Dimasz` 41,
 `Dimdec` 271, `Dimjogang` 50 in radians, `Dimtfillclr` the second 70, the arrowheads as blocks by handle from R2000 and by
 name in R12, `Dimtxsty` and the linetypes as their records), AutoCAD's own value where a group is missing, `GetArrow`; a
 style is added whole, its handle as 105, renamed with the dimensions, leaders and tolerances drawn in it and `$DIMSTYLE`, and

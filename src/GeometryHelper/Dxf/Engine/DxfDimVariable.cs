@@ -69,7 +69,7 @@ namespace GeometryHelper.Dxf
         /// <summary>What it holds.</summary>
         internal DxfDimKind Kind { get; }
 
-        /// <summary>AutoCAD's number of the version that brought it: 1009 for R12, 1015 for R2000, 1021 for R2007.</summary>
+        /// <summary>AutoCAD's number of the version that brought it: 1009 for R12, 1015 for R2000, 1021 for R2007, 1024 for R2010.</summary>
         internal int Since { get; }
 
         /// <summary>AutoCAD's own value, as the file writes one, for a style that gives none: that of its drawing template acad.dwt.</summary>
@@ -85,7 +85,7 @@ namespace GeometryHelper.Dxf
         internal bool IsReference => Kind == DxfDimKind.Block || Kind == DxfDimKind.Linetype || Kind == DxfDimKind.TextStyle;
 
         /// <summary>
-        /// The variables, in the order AutoCAD writes them in a DIMSTYLE record: the 73 of AutoCAD's
+        /// The variables, in the order AutoCAD writes them in a DIMSTYLE record: the 74 of AutoCAD's
         /// <c>DimStyleTableRecord</c> that a DXF file holds.
         /// </summary>
         internal static IReadOnlyList<DxfDimVariable> All { get; } = Array.AsReadOnly(new[]
@@ -153,6 +153,7 @@ namespace GeometryHelper.Dxf
             Make("Dimupt", 288, DxfDimKind.Flag, 1015, "0"),
             Make("Dimatfit", 289, DxfDimKind.Whole, 1015, "3"),
             Make("DimfxlenOn", 290, DxfDimKind.Flag, 1021, "0"),
+            Make("Dimtxtdirection", 294, DxfDimKind.Flag, 1024, "0"),
             Make("Dimtxsty", 340, DxfDimKind.TextStyle, 1015, null),
             Make("Dimldrblk", 341, DxfDimKind.Block, 1015, null),
             Make("Dimblk", 342, DxfDimKind.Block, 1009, null, 5),
@@ -173,7 +174,7 @@ namespace GeometryHelper.Dxf
         {
             100, 2, 70, 3, 4, 5, 6, 7, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 140, 141, 142, 143, 144, 145, 146, 147, 148, 69,
             71, 72, 73, 74, 75, 76, 77, 78, 79, 90, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 271, 272, 273, 274, 275, 276,
-            277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 288, 289, 290, 340, 341, 342, 343, 344, 345, 346, 347, 371, 372,
+            277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 288, 289, 290, 294, 340, 341, 342, 343, 344, 345, 346, 347, 371, 372,
         });
 
         /// <summary>The variable of a name as AutoCAD's .NET gives it.</summary>
@@ -383,8 +384,8 @@ namespace GeometryHelper.Dxf
             return int.Parse(Fallback, CultureInfo.InvariantCulture);
         }
 
-        /// <summary>The version said in a message: R12, R2000 or R2007, with AutoCAD's number.</summary>
-        internal string SinceSaid => Since >= 1021 ? "R2007 (AC1021)" : Since >= 1015 ? "R2000 (AC1015)" : "R12 (AC1009)";
+        /// <summary>The version said in a message: R12, R2000, R2007 or R2010, with AutoCAD's number.</summary>
+        internal string SinceSaid => Since >= 1024 ? "R2010 (AC1024)" : Since >= 1021 ? "R2007 (AC1021)" : Since >= 1015 ? "R2000 (AC1015)" : "R12 (AC1009)";
 
         private static DxfDimVariable Make(string name, int code, DxfDimKind kind, int since, string fallback, int r12Code = 0)
         {

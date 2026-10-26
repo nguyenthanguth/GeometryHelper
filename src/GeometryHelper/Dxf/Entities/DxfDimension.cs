@@ -978,6 +978,10 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
         public double Dimtxt { get => (double)Get(V("Dimtxt")); set => Set(V("Dimtxt"), value); }
 
+        /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimtxtdirection"/>, as AutoCAD's <c>Dimtxtdirection</c>: its override (1070 294), else its style's.</summary>
+        /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2010.</exception>
+        public bool Dimtxtdirection { get => (bool)Get(V("Dimtxtdirection")); set => Set(V("Dimtxtdirection"), value); }
+
         /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimtzin"/>, as AutoCAD's <c>Dimtzin</c>: its override, else its style's.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2000.</exception>
         public int Dimtzin { get => (int)Get(V("Dimtzin")); set => Set(V("Dimtzin"), value); }
@@ -1011,10 +1015,14 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gives the dimension the variables of a record, as AutoCAD's <c>SetDimstyleData</c>: each that differs from what the
         /// dimension reads written as an override, as its setter writes one; those the dimension reads already change nothing.
-        /// A variable its file's version has not is passed over where the record holds AutoCAD's own value of it.
+        /// A variable its file's version has not is passed over where the record holds AutoCAD's own value of it, and refused
+        /// where it holds another; a record that names no text style leaves the dimension's as it is. A whole number is checked
+        /// against AutoCAD's range as <see cref="DxfDatabase.SetDimstyleData"/> checks it, a <c>Dimdec</c> of 9 refused, and a
+        /// size of the arrows, the text or the scale below nought. Every value is checked before any is written.
         /// </summary>
         /// <param name="style">The record: of a table, or made in code, as <see cref="GetDimstyleData"/> gives one.</param>
-        /// <exception cref="ArgumentNullException">Thrown when the record is null.</exception>
+        /// <exception cref="ArgumentNullException">Thrown when the record is null, or holds a null text or colour.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when a value of the record is one AutoCAD does not take.</exception>
         /// <exception cref="ArgumentException">Thrown when a block, linetype or text style of the record is of another drawing.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or the record holds a value other than
         /// AutoCAD's own of a variable the dimension's file is too old to hold.</exception>
@@ -1025,17 +1033,66 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(style));
             }
 
+            var changes = new List<KeyValuePair<DxfDimVariable, object>>();
+            DxfFile file = Item.File;
+
             foreach (DxfDimVariable variable in DxfDimVariable.All)
             {
                 object value = style.Get(variable);
 
-                if (IsResident && !Item.File.Supports(variable.Since) && (variable.IsReference ? value == null : variable.SameValue(value, variable.Read(null))))
+                if ((value == null && variable.Kind == DxfDimKind.TextStyle)
+                    || (IsResident && !file.Supports(variable.Since) && (variable.IsReference ? value == null : variable.SameValue(value, variable.Read(null))))
+                    || variable.SameValue(value, Get(variable)))
                 {
                     continue;
                 }
 
-                Set(variable, value);
+                variable.Check(value, nameof(style));
+                DxfDatabase.CheckDimRange(variable, value, nameof(style));
+                file.Requires(variable.Since, variable.Name.ToUpperInvariant(), variable.SinceSaid);
+
+                if (IsResident && variable.IsReference && value != null)
+                {
+                    DxfDimStyleTableRecord.Reference(file, variable, (DxfDBObject)value, !file.HasMarkers, nameof(style));
+                }
+
+                changes.Add(new KeyValuePair<DxfDimVariable, object>(variable, value));
             }
+
+            foreach (KeyValuePair<DxfDimVariable, object> change in changes)
+            {
+                Set(change.Key, change.Value);
+            }
+        }
+
+        /// <summary>
+        /// Gets the text the dimension writes for a measurement, as AutoCAD's <c>FormatMeasurement</c>: the measurement in the
+        /// units and to the places of the variables it reads, put into a text as its own text is. A length is multiplied by
+        /// <see cref="Dimlfac"/> (a negative one taken as its size in paper space and as 1 elsewhere, as AutoCAD takes it),
+        /// rounded by <see cref="Dimrnd"/> and written in <see cref="Dimlunit"/>: 1 scientific, 2 decimal, 3 engineering,
+        /// 4 architectural, 5 fractional, 6 as the Windows desktop writes it under the culture of the thread; to
+        /// <see cref="Dimdec"/> places, or in architectural and fractional units to a fraction of 2 to the power of them, stacked
+        /// as <see cref="Dimfrac"/> says in AutoCAD's codes of an MTEXT; its zeros left out as <see cref="Dimzin"/> says,
+        /// <see cref="Dimdsep"/> its decimal separator, <see cref="Dimpost"/> about it; and where <see cref="Dimalt"/> is on,
+        /// its alternate units after it in brackets, or in the place of a <c>[]</c> of the text. An angle, of a <see cref="DxfLineAngularDimension2"/> or a
+        /// <see cref="DxfPoint3AngularDimension"/>, is given in radians and written in <see cref="Dimaunit"/> (0 decimal
+        /// degrees, 1 degrees, minutes and seconds, 2 grads, 3 radians) to <see cref="Dimadec"/> places (those of
+        /// <see cref="Dimdec"/> at -1), its zeros left out as <see cref="Dimazin"/> says. In the style ISO-25, two places, a
+        /// comma and trailing zeros left out, 1234.5 is <c>1234,5</c> and 60 is <c>60</c>; in architectural units to a sixteenth,
+        /// not stacked, 15.5 is <c>1'-3 1/2"</c>; to two decimal places 2.675 is <c>2.68</c>, a number being rounded as its 15
+        /// significant figures (a .NET decimal), half away from nought; pi / 4 of an angular dimension is <c>45°</c>. Tolerances, limits,
+        /// the arc symbol and the R or diameter sign before a radius are not part of it.
+        /// </summary>
+        /// <param name="measurement">The measurement: a length in drawing units, or an angle in radians; <see cref="Measurement"/> for the one the dimension shows.</param>
+        /// <param name="dimensionText">The text to put it in, as <see cref="DimensionText"/>: empty or null for the measurement alone, <c>&lt;&gt; TYP</c> for it and TYP after it, <c>&lt;&gt; (=[])</c> with the alternate measurement in the brackets' place, a single space for no text.</param>
+        /// <returns>The text: <c>60</c>, or <c>60 TYP</c>.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the measurement is not a finite number.</exception>
+        public string FormatMeasurement(double measurement, string dimensionText)
+        {
+            Guard.Finite(measurement, nameof(measurement), "The measurement has to be a finite number.");
+            bool angular = this is DxfLineAngularDimension2 || this is DxfPoint3AngularDimension;
+            bool paperSpace = Owner is DxfBlockTableRecord owner && owner.IsLayout && !string.Equals(owner.Name, "*Model_Space", StringComparison.OrdinalIgnoreCase);
+            return DxfDimFormat.Text(dimensionText, measurement, angular, paperSpace, name => Get(V(name)));
         }
 
         #endregion

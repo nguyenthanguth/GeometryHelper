@@ -502,6 +502,7 @@ Dxf in front and their members' names.
 | `Extents3d`, `Plane`, `CoordinateSystem3d`, `Tolerance` | `GeoAabb3`, `GeoPlane3`, `GeoCoordinateSystem3`, `Tolerance` | |
 | `Color`, `LineWeight`, `Transparency` | `DxfColor`, `DxfLineWeight`, `DxfTransparency` | `DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1)` and `FromRgb(255, 128, 0)`, as AutoCAD's. |
 | `db.Clayer = layerId`, `db.Insunits`, `Application.SetSystemVariable("LTSCALE", 2.0)` | `db.Clayer = "steel"`, `db.Insunits`, `db.Ltscale = 2` | Variables of the header and of the OBJECTS section as properties; any other by `GetHeader("$NAME")` and `SetHeader`. |
+| `db.Dimasz`, `db.Dimblk = blockId`, `db.GetDimstyleData()`, `leader.SetDimstyleData(style)` | `db.Dimasz`, `db.Dimblk = block`, `db.GetDimstyleData()`, `leader.SetDimstyleData(style)` | The `$DIM` variables of the header read as AutoCAD's metric drawing has them where the header gives none; a block, linetype or text style is the record itself. `dim.FormatMeasurement(value, "")` writes the measurement as AutoCAD does, stacked fractions in the codes of an MTEXT; tolerances, limits and the arc symbol are not part of it. |
 | `Highlight`, `Draw`, grips, overrules, events, reactors of the runtime | none | They need AutoCAD running. |
 
 ### Opening and saving
@@ -556,6 +557,32 @@ A few read differently from the file:
 - the file: `Filename` is the full path the drawing was opened from or last saved to, `OriginalFileName` the one it was
   opened from; for a drawing parsed from text or opened from a stream the second is null, and the first until it is saved
   to a path.
+
+The dimension variables of the header, those new dimensions take, are properties too, by AutoCAD's names: `db.Dimasz`
+is `$DIMASZ`, `db.Dimfxlen` is `$DIMFXL`, 77 of them. Where the header gives none, a variable reads as AutoCAD's metric
+drawing (acadiso.dwt) has it, as a new drawing of ezdxf 1.4.5 does: arrowheads and texts 2.5, extension lines 1.25 past the
+dimension line and 0.625 off the points, two decimal places, a comma, trailing zeros left out, the text above the line;
+`Dimaltf` 1 / 25.4 and `Dimjogang` pi / 4, where ezdxf writes them to 11 and 12 places. The arrowheads (`Dimblk`,
+`Dimldrblk`), the linetypes (`Dimltype`) and the text style (`Dimtxsty`) are the records the header names, by name, null
+where the drawing has none of the name; `db.Dimblk = db.BlockTable["_ARCHTICK"]` writes `_ARCHTICK`. `Dimjogang` is in
+radians, as the header holds it. A value AutoCAD refuses is refused, a `Dimdec` of 9 or a `Dimlunit` of 7, and a variable a
+later version brought is refused in a file of an older one: `Dimdec` (R2000) in R12, `DimAssoc` (R2004) and `Dimjogang`
+(R2007) in R2000, `Dimtxtdirection` (R2010) in R2007. Such a variable reads as a dimension style of that file reads it,
+AutoCAD's own (acad.dwt's: `Dimdec` 4, `Dimdsep` '.', `Dimtxsty` null in R12), so that the header's data and a style's agree
+there, and set to that value it writes nothing. `db.GetDimstyleData()` gives them as a `DxfDimStyleTableRecord` in no table,
+named as `Dimstyle`.
+
+Three `SetDimstyleData` give a style's variables, each writing only those that differ from what it reads and checking every
+value before it writes any; a record that names no text style leaves the text style as it is in all three:
+
+- `db.SetDimstyleData(style)` makes them those new dimensions take, `Dimstyle` left as it is. A variable the header of the
+  file's version has not is passed over whatever the record holds, as AutoCAD's SAVEAS to that version leaves it out:
+  DIMARCSYM, which a style holds from R2000 and the header from R2007, in a drawing of R2000. A whole number out of AutoCAD's
+  range is refused, as the properties refuse it.
+- `dim.SetDimstyleData(style)` and `leader.SetDimstyleData(style)` write them as overrides. A variable the file's version has
+  not is passed over where the record holds AutoCAD's own value and refused where it holds another, as their properties
+  refuse it; a whole number out of AutoCAD's range, a `Dimdec` of 9, and a size of the arrows, the text or the scale below
+  nought are refused, as the header refuses them.
 
 `$EXTMIN` and `$EXTMAX` hold model space and paper space. They grow to hold what is written and are never shrunk: an entity
 whose own record is written whole, as a LINE moved or a POLYLINE given a new flag, grows them at once; a run of groups of
@@ -622,9 +649,9 @@ with is erased. A text style is added to the `TextStyleTable`,
 `new DxfTextStyleTableRecord { Name = "ROMANS", FileName = "romans.shx", TextSize = 2.5 }`, and its font, height, width,
 slant and TrueType `Font` (a `DxfFontDescriptor`, `1001 ACAD, 1000 Arial, 1071 34` as AutoCAD keeps it) are set.
 
-The dimension styles are the `DimStyleTable`, each a `DxfDimStyleTableRecord` with AutoCAD's 73 variables of a DXF file,
+The dimension styles are the `DimStyleTable`, each a `DxfDimStyleTableRecord` with AutoCAD's 74 variables of a DXF file,
 each read and set in its group: `Dimasz` 41, `Dimtxt` 140, `Dimdec` 271, `Dimjogang` 50 (radians; the file writes degrees),
-`Dimtfillclr` the record's second 70 (the first is its flags), the arrowheads `Dimblk`, `Dimblk1`, `Dimblk2` and `Dimldrblk`
+`Dimtfillclr` the record's second 70 (the first is its flags), `Dimtxtdirection` 294 (from R2010), the arrowheads `Dimblk`, `Dimblk1`, `Dimblk2` and `Dimldrblk`
 as the blocks they are drawn with (by handle, 342 to 344 and 341; by name, 5 to 7, in R12, ARCHTICK for the block
 _ARCHTICK; null for the closed filled one), `Dimtxsty` a `DxfTextStyleTableRecord` and `Dimltype`, `Dimltex1` and `Dimltex2`
 linetypes. A variable the record gives no group for reads as AutoCAD's own, that of acad.dwt: arrowheads 0.18 long, four
@@ -865,6 +892,10 @@ spline, as `DxfReader` reads a LEADER, and `IntersectWith` meets the leader on i
 (0, 0, 0) to (10, 5, 0) meets the line x = 5 at (5, 2.5, 0). An INSERT of a block holding a leader is met on it too, and its
 `GeometricExtents` hold it: the block holding that leader, inserted at (100, 0, 0) scaled 2, is met by the line x = 110 at
 (110, 5, 0). `IsPlanar` agrees with `GetPlane()`: false where a vertex lies off the plane of its normal.
+`GetDimstyleData()` gives every variable the leader is drawn with, its override else its style's, as a
+`DxfDimStyleTableRecord` in no table; `SetDimstyleData(style)` writes those that differ from what the leader reads as
+overrides, a block by its handle, so that `plain.SetDimstyleData(styled.GetDimstyleData())` gives one leader the arrow and
+gap of another, and a leader given its own data changes nothing.
 
 A MULTILEADER is a `DxfMLeader`: its words (`MText`, `TextLocation`, `TextHeight`) or block (`BlockContent`,
 `BlockPosition`, `BlockScale`, `BlockRotation`, `SetBlockAttribute`), its look, and its leaders and their lines by AutoCAD's
@@ -893,7 +924,23 @@ dimension of (0, 0, 0) and (100, 20, 0) along 30 degrees measures 96.60, the ang
 pi / 4. A variable of the style reads as the dimension draws with it, its override (the list DSTYLE of its extended data of
 ACAD) or its style's, and set is written as an override, the style kept: `dim.Dimasz = 4.5` writes `1070 41, 1040 4.5`.
 An ordinate measures along the user's axes its 51 gives (the negative of their angle from the x of the normal's system),
-which a move or a turn carries, so its measurement stays.
+which a move or a turn carries, so its measurement stays. `Dimtxtdirection` is DIMTXTDIRECTION, the override 1070 294 from
+R2010.
+
+`dim.FormatMeasurement(dim.Measurement, dim.DimensionText)` gives the text AutoCAD writes for a measurement, from the
+variables the dimension reads. A length is multiplied by `Dimlfac` (a negative one taken as its size in paper space and as 1
+elsewhere), rounded by `Dimrnd` and written in `Dimlunit`: scientific `1.55E+01`, decimal `15.50`, engineering `1'-3.50"`,
+architectural `1'-3 1/2"`, fractional `15 1/2` (15.5 to two places, or to a sixteenth, fractions not stacked), or as the
+Windows desktop writes it under the culture of the thread; `Dimzin` leaves zeros out (8 makes 12.50 12.5; the low two bits
+keep or leave nought feet and nought inches), `Dimdsep` is the decimal separator, `Dimpost` (`<> mm`, or `mm` alone as a
+suffix) goes about it, and where `Dimalt` is on its alternate units follow in brackets, `10"[254.00mm]`, or stand in the
+place of a `[]` of the text, `<> ([])` giving `10" (254.00mm)`. A fraction stacked by `Dimfrac` is written in the codes of an
+MTEXT, `{\H0.7x;\S1/2;}` across or `{\H0.7x;\S1#2;}` aslant, its height `Dimtfac`. Scientific units write the power of ten
+of two figures at least, `1.000E-20`, `1.500E+300`. An angle of an angular dimension, in radians, is written in `Dimaunit`
+to `Dimadec` places: `45°`, `45°30'15"`, `50g` or `0.7854r`. A number is rounded half away from nought as its 15 significant
+figures, a .NET decimal, so 2.675 to two places is 2.68 under .NET Framework and .NET alike, where the double nearest 2.675
+lies just below it and ezdxf's `format_text`, rounding that double, gives 2.67. Tolerances, limits, the arc symbol and the R
+or diameter sign before a radius are not part of the text.
 
 What draws a dimension is the block AutoCAD drew for it, `DimBlock` (`*D7`), placed at `DimBlockPosition`: the library
 writes a point, a text or a variable and leaves that block as it was, for AutoCAD to draw anew when it next draws the

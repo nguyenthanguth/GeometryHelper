@@ -1815,12 +1815,6 @@ namespace GeometryHelper.Dxf
                 return 0;
             }
 
-            // DIMTXTDIRECTION, which R2010 brought, of no variable of the library's.
-            if (code == 294)
-            {
-                return 1024;
-            }
-
             DxfDimVariable variable = DxfDimVariable.OfCode(code, false);
             int since = variable == null ? 0 : variable.Since;
             return code >= 340 && code <= 347 ? Math.Max(since, 1015) : since > 1009 ? since : 0;

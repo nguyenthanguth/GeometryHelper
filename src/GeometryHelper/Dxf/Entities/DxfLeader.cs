@@ -39,7 +39,7 @@ namespace GeometryHelper.Dxf
     /// <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/> refuses one there.
     /// </para>
     /// </remarks>
-    public sealed class DxfLeader : DxfCurve
+    public sealed partial class DxfLeader : DxfCurve
     {
         // The groups of AcDbLeader in the order AutoCAD writes them, a vertex being 10, 20 and 30.
         private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[]
