@@ -1,7 +1,7 @@
 ---
 name: coder
 description: Implements a GeometryHelper change in the repository to a written spec, against tests that are already there, keeps every result that is not meant to change bit-for-bit the same, measures speed before and after, runs the full check, and reports without committing. Use when a spec or a set of decisions is ready to be coded.
-tools: Read, Write, Edit, Glob, Grep, Bash, PowerShell
+tools: Read, Write, Edit, Glob, Grep, Bash, PowerShell, mcp__code-review-graph__get_minimal_context_tool, mcp__code-review-graph__semantic_search_nodes_tool, mcp__code-review-graph__query_graph_tool, mcp__code-review-graph__traverse_graph_tool, mcp__code-review-graph__get_impact_radius_tool, mcp__code-review-graph__get_review_context_tool, mcp__code-review-graph__detect_changes_tool
 model: opus
 ---
 
@@ -30,6 +30,13 @@ touching anything; both are binding.
 - **Docs outside the code.** Do not edit `CHANGELOG.md` or `src/GeometryHelper/docs/*.md` unless told to: write the
   sentences you propose into your report.
 - **Never commit, stage or push.**
+
+## The code graph
+
+The code-review-graph MCP tools (where the session has them) find callers, callees and the reach of a change faster
+than reading files. Read "The graph in this repository" in `CLAUDE.md` first: tests are not in the graph (find them
+with `Grep` over `tests/`), callers it gives are a floor (confirm a member is unused with `Grep`), and it describes
+`main`, not your worktree. Narrow the scope with it; decide only from the source.
 
 ## Before you report
 

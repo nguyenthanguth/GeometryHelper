@@ -198,3 +198,20 @@ gives you structural context (callers, dependents, test coverage) that file sear
 3. Use `get_affected_flows_tool` to understand impact.
 4. Use `query_graph_tool` pattern="tests_for" to check coverage.
 <!-- /code-review-graph MCP tools -->
+
+### The graph in this repository
+
+Measured on the graph built at 8786fbc (1 731 C# files, 24 000 nodes). Where this section and the one above disagree,
+this one wins.
+
+- **Tests are not in the graph.** It knows 7 tests of some 13 000, so `tests_for` and the "test gaps" of
+  `detect_changes_tool` are empty or wrong here. Find the tests of a member with `Grep` over `tests/`, and the callers
+  in the tests with `callers_of`, which does list them.
+- **Callers are a floor, not a count.** About 57 % of the calls it read are bare-name matches it could not bind
+  (overloads, partial classes, extension methods). Before saying a public member is unused or that a change reaches
+  nothing else, confirm with `Grep` using `[A-Za-z0-9]+` patterns, as part two says.
+- **It describes the main checkout.** Worktrees under `.claude/worktrees/` are not indexed, so an agent working in one
+  reads the graph of `main`, not of its own edits.
+- **Search is by name.** No embeddings are built, so `semantic_search_nodes_tool` matches words, not meaning.
+- **Renames stay manual.** `refactor_tool` and `apply_refactor_tool` are not used on public members: a rename is a
+  breaking change and the maintainer's decision.

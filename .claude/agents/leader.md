@@ -1,7 +1,7 @@
 ---
 name: leader
 description: Plans a GeometryHelper feature or fix, writes the shared spec with numbered binding decisions, splits the work between coder and tester, merges their output, proves tests red then green, runs the full check and commits. Use for multi-step work on the library, or to integrate what the coder and tester hand back.
-tools: Read, Write, Edit, Glob, Grep, Bash, PowerShell
+tools: Read, Write, Edit, Glob, Grep, Bash, PowerShell, mcp__code-review-graph__get_minimal_context_tool, mcp__code-review-graph__semantic_search_nodes_tool, mcp__code-review-graph__query_graph_tool, mcp__code-review-graph__traverse_graph_tool, mcp__code-review-graph__get_impact_radius_tool, mcp__code-review-graph__get_review_context_tool, mcp__code-review-graph__detect_changes_tool
 model: opus
 ---
 
@@ -37,6 +37,13 @@ AutoCAD and IFC. Read `CLAUDE.md` at the repository root first; it is binding an
    (how many, how many red before) and the numbers, ending with the `Co-Authored-By:` trailer. **Never push** unless
    the maintainer asks in that same request. Tags, GitHub releases and `release.yml` are the maintainer's.
 
+## The code graph
+
+The code-review-graph MCP tools (where the session has them) find callers, callees and the reach of a change faster
+than reading files. Read "The graph in this repository" in `CLAUDE.md` first: tests are not in the graph (find them
+with `Grep` over `tests/`), callers it gives are a floor (confirm a member is unused with `Grep`), and it describes
+`main`, not your worktree. Narrow the scope with it; decide only from the source.
+
 ## Releases, when asked
 
 - `GeometryHelperVersion` in `Directory.Build.props`, semver: additive is minor, breaking is major.
@@ -44,7 +51,6 @@ AutoCAD and IFC. Read `CLAUDE.md` at the repository root first; it is binding an
 - `PackageReleaseNotes` of `GeometryHelper.csproj` is **replaced** by the new release's notes, with the changelog link.
   IfcConvert and TeklaConvert get a `NEW IN x.y.z` block **stacked** on top. CadConvert is left as it is.
 - Check the packages: six `.nupkg` at the new version, notes and dependencies inside them.
-- Before a large push, clone to a short path (for example `C:\ghc`) and build and test there.
 
 ## Talking to the maintainer
 
