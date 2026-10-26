@@ -14,7 +14,7 @@ namespace GeometryHelper.Dxf
     /// group of its record kept as it was; its geometry is not changed, so <see cref="DxfEntity.TransformBy(GeoTransform3)"/> is refused.
     /// It is copied as it is by <see cref="DxfEntity.Clone"/>, and by <see cref="DxfEntity.GetTransformedCopy"/> with the
     /// identity. <see cref="DxfEntity.GetGeometry"/> gives what <see cref="DxfReader"/> reads of it, nothing for a type it
-    /// does not read. An MLINE is exploded into its lines and caps (<see cref="Explode"/>).
+    /// does not read. An MLINE is exploded into its lines and caps, and a MESH into the 3DFACEs of its faces (<see cref="Explode"/>).
     /// </remarks>
     public sealed class DxfUnknownEntity : DxfEntity
     {
@@ -47,13 +47,21 @@ namespace GeometryHelper.Dxf
         /// its true colour left off. An element broken along a segment (MLEDIT) gives a LINE for each piece left, and caps
         /// the MLINE leaves off (flags 4 and 8 of its group 71) are not drawn; a line of no length is left out, and the fill
         /// of a filled style too. The MLINE of the style Standard, two elements 0.5 either side, through four vertices gives
-        /// six LINEs. Any other type refuses: a REGION, a 3DSOLID, a BODY and a surface, which AutoCAD breaks with its solid
-        /// modeler, a MESH, which it breaks into the 3DFACEs of its faces, and every type AutoCAD does not break.
+        /// six LINEs. A MESH not smoothed (level 0) breaks into a 3DFACE for each face, in the order of its list of faces, each
+        /// with the MESH's look and every edge drawn, as AutoCAD's EXPLODE breaks one and ezdxf's <c>MeshBuilder</c> renders it:
+        /// a face of four corners a 3DFACE of them, of three one ending on its third; a cube 10 by 10 by 10 of eight vertices
+        /// and six faces gives six 3DFACEs. A MESH smoothed, one with a face of more than four corners, which a 3DFACE cannot
+        /// hold and whose breaking by AutoCAD is not known, and one that gives a face a colour, a material or a transparency of
+        /// its own is refused. Any other type refuses: a REGION, a 3DSOLID, a BODY and a surface, which AutoCAD breaks with its
+        /// solid modeler, and every type AutoCAD does not break.
         /// </summary>
         /// <returns>The entities, in no file, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
         /// <exception cref="InvalidOperationException">Thrown for an MLINE whose drawing has no MLINESTYLE of its handle or name,
-        /// or whose vertices hold another count of elements than its style.</exception>
-        /// <exception cref="NotSupportedException">Thrown for any other type.</exception>
+        /// or whose vertices hold another count of elements than its style; and for a MESH missing the count of its vertices,
+        /// faces, edges or creases, or holding fewer than it counts, as ezdxf refuses one, or with a face of fewer than three
+        /// corners, past the end of its list of faces or naming a vertex it has not.</exception>
+        /// <exception cref="NotSupportedException">Thrown for a MESH smoothed, with a face of more than four corners or overrides
+        /// of its faces' look, and for any other type.</exception>
         public override IReadOnlyList<DxfEntity> Explode()
         {
             switch (DxfName)
@@ -72,10 +80,151 @@ namespace GeometryHelper.Dxf
                 case "NURBSURFACE":
                     throw new NotSupportedException("A " + DxfName + " is broken by AutoCAD's solid modeler (ACIS), which the library has not: explode it in AutoCAD.");
                 case "MESH":
-                    throw new NotSupportedException("A MESH breaks into the 3DFACEs of its faces, smoothed as it is, which the library does not work out: explode it in AutoCAD.");
+                    return MeshParts().AsReadOnly();
                 default:
                     return base.Explode();
             }
+        }
+
+        /// <summary>
+        /// The faces of a MESH, as <see cref="Explode"/> sets them out, read in one pass over its record (AcDbSubDMesh) by its
+        /// counts, as AutoCAD writes them: its level of smoothing (91), its vertices (92 and a point 10 for each), its faces (93,
+        /// the count of the groups 90 after it, each face the count of its corners and their indices), its edges (94 and two
+        /// indices each) and creases (95 and a value each), then the count of its overrides (90).
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown where a count the record should hold is missing, below nought or
+        /// more than the groups after it, as ezdxf refuses such a MESH.</exception>
+        private List<DxfEntity> MeshParts()
+        {
+            IReadOnlyList<DxfTypedValue> groups = GetOwnGroups(0);
+            int n = groups.Count;
+            int i = 0;
+            int level = 0;
+            string handle = Handle ?? string.Empty;
+
+            while (i < n && !(groups[i].TypeCode == 100 && string.Equals(groups[i].Value?.Trim(), "AcDbSubDMesh", StringComparison.Ordinal)))
+            {
+                i++;
+            }
+
+            for (i++; i < n && groups[i].TypeCode != 92; i++)
+            {
+                level = groups[i].TypeCode == 91 ? DxfLeaderGroups.Whole(groups[i].Value, 0) : level;
+            }
+
+            if (level != 0)
+            {
+                throw new NotSupportedException("The MESH " + handle + " is smoothed to level " + level.ToString(CultureInfo.InvariantCulture) + ", and breaks into the faces its smoothing makes, which the library does not work out: explode it in AutoCAD, or take its smoothing off first.");
+            }
+
+            // A count of the record, and the groups it counts after it, checked to be there.
+            int Count(int code, string what, int each)
+            {
+                int count = i < n && groups[i].TypeCode == code ? DxfLeaderGroups.Whole(groups[i].Value, -1) : -1;
+
+                if (count < 0 || (long)count * each > n - i - 1)
+                {
+                    throw new InvalidOperationException("The MESH " + handle + (count < 0 ? " holds no count of its " + what + " (" + code.ToString(CultureInfo.InvariantCulture) + ") where its record should" : " counts more " + what + " than its record holds") + ", as ezdxf refuses one.");
+                }
+
+                i++;
+                return count;
+            }
+
+            void Expect(int code, string what)
+            {
+                if (i >= n || groups[i].TypeCode != code)
+                {
+                    throw new InvalidOperationException("The MESH " + handle + " holds fewer " + what + " than it counts, as ezdxf refuses one.");
+                }
+            }
+
+            int vertices = Count(92, "vertices", 1);
+            var points = new List<GeoPoint3>(vertices);
+
+            for (int k = 0; k < vertices; k++)
+            {
+                Expect(10, "vertices");
+                double[] point = { DxfLeaderGroups.Num(groups[i].Value, 0.0), 0.0, 0.0 };
+
+                for (i++; i < n && (groups[i].TypeCode == 20 || groups[i].TypeCode == 30); i++)
+                {
+                    point[groups[i].TypeCode / 10 - 1] = DxfLeaderGroups.Num(groups[i].Value, 0.0);
+                }
+
+                points.Add(new GeoPoint3(point[0], point[1], point[2]));
+            }
+
+            int size = Count(93, "groups of its list of faces", 1);
+            var list = new List<int>(size);
+
+            for (int k = 0; k < size; k++, i++)
+            {
+                Expect(90, "groups of its list of faces");
+                list.Add(DxfLeaderGroups.Whole(groups[i].Value, 0));
+            }
+
+            // The edges, two indices each, and their creases, which a face of level 0 does not need.
+            for (int k = 2 * Count(94, "edges", 2); k > 0; k--, i++)
+            {
+                Expect(90, "edges");
+            }
+
+            for (int k = Count(95, "creases", 1); k > 0; k--, i++)
+            {
+                Expect(140, "creases");
+            }
+
+            int overrides = i < n && groups[i].TypeCode == 90 ? DxfLeaderGroups.Whole(groups[i].Value, 0) : 0;
+
+            if (overrides > 0)
+            {
+                throw new NotSupportedException("The MESH " + handle + " gives " + overrides.ToString(CultureInfo.InvariantCulture) + " of its faces, edges or vertices a colour, a material or a transparency of their own, which AutoCAD keeps on the faces it breaks into and the library does not read: explode it in AutoCAD.");
+            }
+
+            var faces = new List<int[]>();
+
+            for (int at = 0; at < list.Count; at += list[at] + 1)
+            {
+                int count = list[at];
+                string face = "The face " + faces.Count.ToString(CultureInfo.InvariantCulture) + " of the MESH " + handle + " has " + count.ToString(CultureInfo.InvariantCulture) + " corners";
+
+                if (count < 3 || count > list.Count - at - 1)
+                {
+                    throw new InvalidOperationException(face + (count < 3 ? ", where a face has three at least." : ", and its list of faces ends before them."));
+                }
+
+                if (count > 4)
+                {
+                    throw new NotSupportedException(face + ": a 3DFACE holds four at most, and how AutoCAD breaks a face of more is not known to the library: explode it in AutoCAD.");
+                }
+
+                var corners = new int[count];
+
+                for (int k = 0; k < count; k++)
+                {
+                    corners[k] = list[at + 1 + k];
+
+                    if (corners[k] < 0 || corners[k] >= points.Count)
+                    {
+                        throw new InvalidOperationException(face + ", one of them the vertex " + corners[k].ToString(CultureInfo.InvariantCulture) + ", and the MESH has " + points.Count.ToString(CultureInfo.InvariantCulture) + " from nought.");
+                    }
+                }
+
+                faces.Add(corners);
+            }
+
+            var look = new Look(this);
+            var parts = new List<DxfEntity>(faces.Count);
+
+            foreach (int[] corners in faces)
+            {
+                var made = new DxfFace(points[corners[0]], points[corners[1]], points[corners[2]], points[corners[corners.Length - 1]], true, true, true, true);
+                look.GiveTo(made);
+                parts.Add(made);
+            }
+
+            return parts;
         }
 
         /// <summary>Refuses: the geometry of a type the library keeps as it is is not changed.</summary>

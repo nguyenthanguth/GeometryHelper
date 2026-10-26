@@ -25,10 +25,15 @@ namespace GeometryHelper.Dxf
         /// the lines and arrows have the colour of their line where it is not BYBLOCK, else that of the leader lines, and the
         /// leader lines' linetype and lineweight. The words left on the left of two leaders 8 long, with a dogleg of 8, give an
         /// MTEXT, two arrows and five LINEs. A multileader scaled to nothing gives nothing. The lines AutoCAD draws under or over
-        /// the words, as long as the words are wide, are AutoCAD's to work out, and are not among them.
+        /// the words, as long as the words are wide, are AutoCAD's to work out, and are not among them. A copy in no file, made
+        /// by <see cref="DxfEntity.Clone"/>, finds the blocks, the linetype and the text style its record names in the drawing it
+        /// was copied from, as a dimension's copy finds its block, and gives what the original gives, the values of its attributes
+        /// among it; where that drawing has erased a block it names since, it is refused, rather than drawn without it.
         /// </summary>
         /// <returns>The entities, in no file, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
-        /// <exception cref="InvalidOperationException">Thrown when the multileader has no context data, which AutoCAD draws it from.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the multileader has no context data, which AutoCAD draws it from;
+        /// or is a copy in no file whose content or arrows are a block the drawing it was copied from has erased since, the
+        /// handle of the block said.</exception>
         public override IReadOnlyList<DxfEntity> Explode()
         {
             Rec rec = Read();
@@ -42,7 +47,10 @@ namespace GeometryHelper.Dxf
             }
 
             string layer = Layer;
-            Content(rec, ctx, scale, layer, parts);
+
+            // A copy in no file reads what its record names in the drawing it was copied from.
+            DxfDatabase database = IsResident ? Database() : Item.File.IsDetached ? Item.File.NamingDrawing?.Database : null;
+            Content(rec, ctx, scale, layer, database, parts);
             DxfLeaderType type = LeaderLineType;
 
             if (type == DxfLeaderType.InVisibleLeader)
@@ -50,7 +58,6 @@ namespace GeometryHelper.Dxf
                 return parts.AsReadOnly();
             }
 
-            DxfDatabase database = Database();
             string linetypeHandle = Text(rec.After, 341)?.Trim();
             string linetype = linetypeHandle != null && database != null && database.TryGetObject(linetypeHandle, out DxfDBObject found) && found is DxfLinetypeTableRecord record ? record.Name : null;
             DxfLineWeight weight = LeaderLineWeight;
@@ -60,7 +67,8 @@ namespace GeometryHelper.Dxf
             GeoVector3 normal = Normal;
             double tolerance = Tolerance.Default.EqualPoint;
             var arrows = Arrows(rec.After);
-            DxfBlockTableRecord arrow = ArrowSymbol;
+            string arrowHandle = Text(rec.After, 342);
+            DxfBlockTableRecord arrow = arrowHandle == null ? null : Block(database, arrowHandle, "its arrows");
 
             void Give(DxfEntity part, string colour)
             {
@@ -107,7 +115,7 @@ namespace GeometryHelper.Dxf
 
                     if (run * size > 0.0 && run > 2.0 * size)
                     {
-                        DxfBlockTableRecord block = arrows.TryGetValue(Whole(Text(line.Groups, 91), 0), out string handle) ? BlockByHandle(handle) : arrow;
+                        DxfBlockTableRecord block = arrows.TryGetValue(Whole(Text(line.Groups, 91), 0), out string handle) ? Block(database, handle, "the arrow of a leader line") : arrow;
                         Give(Arrowhead(vertices[0], direction, size, normal, block), colour);
                         string name = block?.Name.TrimStart('_');
                         vertices[0] = vertices[0].Add(direction.Multiply(name != null && NoLength.Contains(name) ? 0.0 : size));
@@ -139,8 +147,11 @@ namespace GeometryHelper.Dxf
             return parts.AsReadOnly();
         }
 
-        /// <summary>The content of the multileader as <see cref="Explode"/> gives it: its MTEXT or its INSERT, on its layer; none where it has neither.</summary>
-        private void Content(Rec rec, Ctx ctx, double scale, string layer, List<DxfEntity> parts)
+        /// <summary>
+        /// The content of the multileader as <see cref="Explode"/> gives it: its MTEXT or its INSERT, on its layer; none where it
+        /// has neither. Its text style and block are read in the drawing given, the one a copy in no file was copied from.
+        /// </summary>
+        private void Content(Rec rec, Ctx ctx, double scale, string layer, DxfDatabase database, List<DxfEntity> parts)
         {
             if (HasSection(ctx, 290, MTextCodes))
             {
@@ -151,7 +162,6 @@ namespace GeometryHelper.Dxf
                 mtext.Layer = layer;
                 Colour(mtext, Text(m, 90) ?? ByBlock);
                 string style = Text(m, 340)?.Trim();
-                DxfDatabase database = Database();
 
                 if (style != null && database != null && database.TryGetObject(style, out DxfDBObject found) && found is DxfTextStyleTableRecord record)
                 {
@@ -162,7 +172,8 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            DxfBlockTableRecord block = HasSection(ctx, 296, BlockCodes) ? BlockContent : null;
+            string handle = HasSection(ctx, 296, BlockCodes) ? BlockText(rec, 341) ?? Text(rec.After, 344) : null;
+            DxfBlockTableRecord block = handle == null ? null : Block(database, handle, "its content");
 
             if (block == null)
             {
@@ -193,6 +204,26 @@ namespace GeometryHelper.Dxf
             }
 
             parts.Add(insert);
+        }
+
+        /// <summary>
+        /// The block of a handle the record names, in the drawing given: null where it has none, or the handle is nought, as for a
+        /// multileader of a drawing.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown, for a copy in no file, where the drawing it was copied from has
+        /// erased the block of the handle since: what it would be drawn with is gone.</exception>
+        private DxfBlockTableRecord Block(DxfDatabase database, string handle, string what)
+        {
+            string trimmed = handle.Trim();
+            DxfBlockTableRecord block = BlockByHandle(database, trimmed);
+
+            if (block == null && !IsResident && Item.File.IsDetached && Item.File.NamingDrawing is DxfFile origin && origin.WasRemoved(trimmed))
+            {
+                throw new InvalidOperationException("The MULTILEADER, a copy in no drawing, draws " + what + " with the block of handle " + trimmed
+                    + ", which the drawing it was copied from has erased since: append the copy to a drawing that has the block, or explode the original.");
+            }
+
+            return block;
         }
 
         /// <summary>The arrow blocks of the leader lines of their own (94 the index of a line, 345 the block), by the index.</summary>

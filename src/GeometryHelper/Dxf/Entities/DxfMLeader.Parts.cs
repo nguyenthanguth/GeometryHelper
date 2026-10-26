@@ -671,10 +671,11 @@ namespace GeometryHelper.Dxf
         private DxfDatabase Database() => IsResident ? Item.File.Database : null;
 
         /// <summary>The block of the handle of its BLOCK_RECORD; null where the drawing has none, or the handle is nought.</summary>
-        private DxfBlockTableRecord BlockByHandle(string handle)
-        {
-            DxfDatabase database = Database();
+        private DxfBlockTableRecord BlockByHandle(string handle) => BlockByHandle(Database(), handle);
 
+        /// <summary>The block of the handle of its BLOCK_RECORD in a drawing; null where it has none, or the handle is nought.</summary>
+        private static DxfBlockTableRecord BlockByHandle(DxfDatabase database, string handle)
+        {
             if (database == null || handle.Length == 0 || handle == "0")
             {
                 return null;

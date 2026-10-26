@@ -16,14 +16,17 @@ namespace GeometryHelper.Dxf
     /// <para>
     /// The leader through (0, 0, 0), (10, 10, 0) and (20, 10, 0) has three vertices, <see cref="FirstVertex"/> where its arrow
     /// is and <see cref="LastVertex"/> where its words are; as a curve its parameter is AutoCAD's, the index of a vertex plus
-    /// how far along the segment it leaves, so that 1.5 is (15, 10, 0), and its length is 24.14.
+    /// how far along the segment it leaves, so that 1.5 is (15, 10, 0), and its length is 24.14. Splined (<see cref="IsSplined"/>),
+    /// it is walked along the spline <see cref="Explode"/> fits through its vertices, its parameter from 0 to 1.
     /// </para>
     /// <para>
     /// The size of its arrow, the gap to its words and the other variables of its dimension style AutoCAD lets one leader have
     /// of its own are read from its overrides where it has them, the extended data of ACAD between <c>DSTYLE</c> and its
     /// braces, as AutoCAD and ezdxf write them, and from its dimension style where it has not: <see cref="Dimasz"/> 2.5 of the
     /// style Standard until it is set to 3.5, which writes the override <c>1070 41, 1040 3.5</c>. A variable a style gives no
-    /// value of is AutoCAD's own default, the one of its imperial drawing (DIMASZ 0.18).
+    /// value of is AutoCAD's own default, the one of its imperial drawing (DIMASZ 0.18). A copy in no file
+    /// (<see cref="DxfEntity.Clone"/>) reads the dimension style, the arrow block and the linetype of the drawing it was copied
+    /// from, as its original does.
     /// </para>
     /// <para>
     /// Each property is written into the LEADER's own groups, every other group keeping its text; a property given the value
@@ -77,16 +80,19 @@ namespace GeometryHelper.Dxf
         /// AutoCAD answers eNotPlanar.</exception>
         public override GeoPlane3 GetPlane()
         {
-            if (NumVertices == 0)
+            // The vertices read once: each read of one reads the record, every vertex of it.
+            List<GeoPoint3> vertices = Vertices();
+
+            if (vertices.Count == 0)
             {
                 throw new InvalidOperationException("The leader has no vertex: it has no plane.");
             }
 
-            var plane = new GeoPlane3(VertexAt(0), Normal);
+            var plane = new GeoPlane3(vertices[0], Normal);
 
-            for (int i = 1; i < NumVertices; i++)
+            for (int i = 1; i < vertices.Count; i++)
             {
-                if (Math.Abs(plane.SignedDistanceTo(VertexAt(i))) > Tolerance.Default.EqualPoint)
+                if (Math.Abs(plane.SignedDistanceTo(vertices[i])) > Tolerance.Default.EqualPoint)
                 {
                     throw new InvalidOperationException("The vertex " + i.ToString(CultureInfo.InvariantCulture) + " of the leader lies off the plane of its normal through its first, as AutoCAD answers eNotPlanar.");
                 }
@@ -96,26 +102,39 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Gets the box the leader's vertices fill, as AutoCAD's <c>GeometricExtents</c> of a straight leader, its arrowhead not
-        /// counted: a leader from (0, 0, 0) to (10, 5, 0) gives the box from the one to the other.
+        /// Gets the box the leader fills, as AutoCAD's <c>GeometricExtents</c>, its arrowhead not counted: of a straight leader
+        /// the box of its vertices, a leader from (0, 0, 0) to (10, 5, 0) giving the box from the one to the other; of a splined
+        /// one (<see cref="IsSplined"/>) the box of the spline <see cref="Explode"/> fits through its vertices, which bows past
+        /// them: through (0, 0, 0), (10, 10, 0) and (20, 10, 0) it rises to y = 10.43 between the second vertex and the last,
+        /// the box from (0, 0, 0) to (20, 10.43, 0).
         /// </summary>
-        /// <exception cref="InvalidOperationException">Thrown when the leader has no vertex, or is splined, whose curve AutoCAD works
-        /// out when it draws it and the library does not read.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the leader has no vertex, or is splined and its vertices are
+        /// all one point.</exception>
         public override GeoAabb3 GeometricExtents
         {
             get
             {
-                if (NumVertices == 0 || IsSplined)
+                DxfSpline spline = Splined();
+
+                if (spline != null)
                 {
-                    throw new InvalidOperationException(NumVertices == 0 ? "The leader has no vertex: it has no extents." : "The leader is splined: its curve is AutoCAD's to work out, and its extents with it.");
+                    return spline.GeometricExtents;
                 }
 
-                GeoPoint3 first = VertexAt(0);
+                // The vertices read once: each read of one reads the record, every vertex of it.
+                List<GeoPoint3> vertices = Vertices();
+
+                if (vertices.Count == 0)
+                {
+                    throw new InvalidOperationException("The leader has no vertex: it has no extents.");
+                }
+
+                GeoPoint3 first = vertices[0];
                 double[] box = { first.X, first.Y, first.Z, first.X, first.Y, first.Z };
 
-                for (int i = 1; i < NumVertices; i++)
+                for (int i = 1; i < vertices.Count; i++)
                 {
-                    GeoPoint3 p = VertexAt(i);
+                    GeoPoint3 p = vertices[i];
                     box[0] = Math.Min(box[0], p.X);
                     box[1] = Math.Min(box[1], p.Y);
                     box[2] = Math.Min(box[2], p.Z);
@@ -145,20 +164,33 @@ namespace GeometryHelper.Dxf
         /// ezdxf's <c>virtual_entities</c> draws it; then, where it has an arrow (<see cref="HasArrowHead"/>), its arrowhead at
         /// the first vertex pointing away from the second, <see cref="Dimasz"/> times <see cref="Dimscale"/> long (a scale of
         /// nought taken as 1): an INSERT of the block of <see cref="Dimldrblk"/> turned and scaled so, or, where it names none,
-        /// AutoCAD's closed filled arrow as a SOLID a third as wide as long. Each with the leader's look. The leader from (0, 0, 0)
-        /// through (10, 10, 0) to (20, 10, 0) with an arrow 2.5 long gives two lines and a SOLID from the origin back along the
-        /// first segment, splined a SPLINE through the three vertices and the SOLID. The hook line AutoCAD draws to the
-        /// annotation is AutoCAD's to work out, and is not among them.
+        /// AutoCAD's closed filled arrow as a SOLID a third as wide as long. Each has the leader's look, drawn as its dimension
+        /// style draws a leader, as ezdxf's <c>virtual_entities</c> gives it: the colour of <see cref="Dimclrd"/>, the linetype of
+        /// DIMLTYPE (345) and the lineweight of <see cref="Dimlwd"/>, each the override, else the style's, in place of the
+        /// leader's own, the colour's true colour taken off. One of them BYBLOCK, as the style Standard has them, keeps the
+        /// leader's own, but for a colour BYBLOCK where the leader writes the colour to use for it (77). The leader from
+        /// (0, 0, 0) through (10, 10, 0) to (20, 10, 0) with an arrow 2.5 long gives two lines and a SOLID from the origin back
+        /// along the first segment, splined a SPLINE through the three vertices and the SOLID; with DIMCLRD set to 1, all three
+        /// red. The hook line AutoCAD draws to the annotation is AutoCAD's to work out, and is not among them.
         /// </summary>
         /// <returns>The entities, in no file, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
         public override IReadOnlyList<DxfEntity> Explode()
         {
-            List<GeoPoint3> vertices = Vertices();
+            List<GeoPoint3> vertices = Vertices(out int blockColour);
             double tolerance = Tolerance.Default.EqualPoint;
             var parts = new List<DxfEntity>();
 
-            // The look read once: each read of it reads the record, every vertex of it.
+            // The look and the extended data read once: each read of them reads the record, every vertex of it.
             var look = new Look(this);
+            List<DxfTypedValue> data = Acad(out int open, out int close);
+
+            string Value(int code)
+            {
+                List<DxfTypedValue> pair = Override(data, open, close, code);
+                return pair != null ? pair[1].Value : StyleValue(code);
+            }
+
+            Action<DxfEntity> styled = StyledLook(Value, blockColour);
 
             if (IsSplined)
             {
@@ -167,6 +199,7 @@ namespace GeometryHelper.Dxf
                 if (spline != null)
                 {
                     look.GiveTo(spline);
+                    styled?.Invoke(spline);
                     parts.Add(spline);
                 }
             }
@@ -178,7 +211,9 @@ namespace GeometryHelper.Dxf
                 {
                     if (vertices[i].DistanceTo(vertices[i + 1]) > tolerance)
                     {
-                        parts.Add(PartOf(new GeoLine3(vertices[i], vertices[i + 1]), look, thickness));
+                        DxfEntity line = PartOf(new GeoLine3(vertices[i], vertices[i + 1]), look, thickness);
+                        styled?.Invoke(line);
+                        parts.Add(line);
                     }
                 }
             }
@@ -188,11 +223,13 @@ namespace GeometryHelper.Dxf
                 return parts.AsReadOnly();
             }
 
-            double scale = Dimscale;
-            double size = Dimasz * (scale > 0.0 ? scale : 1.0);
+            // Dimscale, Dimasz and Dimldrblk, as they read them.
+            double scale = Num(Value(40), 1.0);
+            double size = Num(Value(41), 0.18) * (scale > 0.0 ? scale : 1.0);
             GeoVector3 normal = Normal;
             GeoVector3 away = DxfOcsTransform.Normalized(vertices[1].GetVectorTo(vertices[0]));
-            DxfBlockTableRecord arrow = Dimldrblk;
+            string arrowHandle = Value(341);
+            DxfBlockTableRecord arrow = arrowHandle == null ? null : BlockByHandle(arrowHandle.Trim());
             DxfEntity head;
 
             if (arrow == null)
@@ -210,8 +247,57 @@ namespace GeometryHelper.Dxf
             }
 
             look.GiveTo(head);
+            styled?.Invoke(head);
             parts.Add(head);
             return parts.AsReadOnly();
+        }
+
+        /// <summary>
+        /// What the dimension style changes of the look of a part of the leader exploded, as <see cref="Explode"/> sets it out:
+        /// the colour of DIMCLRD, the linetype of DIMLTYPE and the lineweight of DIMLWD, each the override, else the style's, as
+        /// the value of a variable gives it; null where it changes nothing, each of them BYBLOCK or none, so that the parts keep
+        /// the leader's look as it gives it. The colour the leader writes for DIMCLRD BYBLOCK (77) is given, -1 for none.
+        /// </summary>
+        private Action<DxfEntity> StyledLook(Func<int, string> value, int blockColour)
+        {
+            int colour = Whole(value(176), 0);
+
+            // DIMCLRD BYBLOCK is the colour the leader writes for it (77), as ezdxf reads it; where it writes none, the leader's own.
+            int? index = colour > 0 && colour <= 256 ? colour : colour == 0 && blockColour >= 0 && blockColour <= 256 ? blockColour : (int?)null;
+            int weight = Whole(value(371), -2);
+            DxfLineWeight? lineWeight = weight != -2 && (weight == -1 || weight == -3 || (weight >= 0 && Enum.IsDefined(typeof(DxfLineWeight), weight))) ? (DxfLineWeight)weight : (DxfLineWeight?)null;
+            string handle = value(345)?.Trim();
+            string linetype = null;
+
+            if (!string.IsNullOrEmpty(handle) && NamingDrawing()?.Database is DxfDatabase database && database.TryGetObject(handle, out DxfDBObject found) && found is DxfLinetypeTableRecord record
+                && !string.Equals(record.Name, "BYBLOCK", StringComparison.OrdinalIgnoreCase))
+            {
+                linetype = record.Name;
+            }
+
+            if (index == null && lineWeight == null && linetype == null)
+            {
+                return null;
+            }
+
+            return part =>
+            {
+                if (index != null)
+                {
+                    part.TrueColor = null;
+                    part.ColorIndex = index.Value;
+                }
+
+                if (linetype != null)
+                {
+                    part.Linetype = linetype;
+                }
+
+                if (lineWeight != null)
+                {
+                    part.LineWeight = lineWeight.Value;
+                }
+            };
         }
 
         /// <summary>
@@ -653,8 +739,13 @@ namespace GeometryHelper.Dxf
 
         #region The curve
 
-        /// <summary>Gets the parameter at the last vertex: the count of the segments, as AutoCAD's.</summary>
-        public override double EndParam => Chain().EndParam;
+        /// <summary>
+        /// Gets the parameter at the last vertex, as AutoCAD's: the count of the segments of a straight leader; of a splined one
+        /// the end of the spline <see cref="Explode"/> fits through its vertices, 1, its knots running from 0 to 1.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the leader has no vertex, or is splined and its vertices are
+        /// all one point.</exception>
+        public override double EndParam => Splined()?.EndParam ?? Chain().EndParam;
 
         /// <summary>Gets the first vertex, as AutoCAD's <c>StartPoint</c> of a leader.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the leader has no vertex.</exception>
@@ -667,13 +758,23 @@ namespace GeometryHelper.Dxf
         /// <summary>Gets false: a leader does not close, as AutoCAD's does not.</summary>
         public override bool Closed => false;
 
-        /// <summary>Gets the point at a parameter, the index of a vertex plus how far along the segment it leaves, as AutoCAD's <c>GetPointAtParameter</c>.</summary>
+        /// <summary>
+        /// Gets the point at a parameter, as AutoCAD's <c>GetPointAtParameter</c>: of a straight leader the index of a vertex plus
+        /// how far along the segment it leaves; of a splined one the parameter of the spline <see cref="Explode"/> fits, from 0 to
+        /// 1, as each of these members of a splined leader walks that spline.
+        /// </summary>
         /// <param name="value">The parameter, from nought to <see cref="EndParam"/>.</param>
         /// <returns>The point, in the world.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the parameter is past either end.</exception>
-        /// <exception cref="NotSupportedException">Thrown for a leader drawn as a spline, which AutoCAD fits through the vertices by its own rule.</exception>
         public override GeoPoint3 GetPointAtParameter(double value)
         {
+            DxfSpline spline = Splined();
+
+            if (spline != null)
+            {
+                return spline.GetPointAtParameter(value);
+            }
+
             DxfBulgeChain chain = Chain();
             Within(value, chain.EndParam, nameof(value));
             return chain.PointAt(value);
@@ -683,16 +784,21 @@ namespace GeometryHelper.Dxf
         /// <param name="point">The point, within the point tolerance of the leader.</param>
         /// <returns>The parameter: the first segment's where two meet at the point.</returns>
         /// <exception cref="ArgumentException">Thrown when the point is not on the leader.</exception>
-        /// <exception cref="NotSupportedException">Thrown for a leader drawn as a spline.</exception>
-        public override double GetParameterAtPoint(GeoPoint3 point) => ParameterOn(Chain(), point);
+        public override double GetParameterAtPoint(GeoPoint3 point) => Splined()?.GetParameterAtPoint(point) ?? ParameterOn(Chain(), point);
 
         /// <summary>Gets the distance along the leader from its first vertex to a parameter, as AutoCAD's <c>GetDistanceAtParameter</c>.</summary>
         /// <param name="value">The parameter, from nought to <see cref="EndParam"/>.</param>
         /// <returns>The distance.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the parameter is past either end.</exception>
-        /// <exception cref="NotSupportedException">Thrown for a leader drawn as a spline.</exception>
         public override double GetDistanceAtParameter(double value)
         {
+            DxfSpline spline = Splined();
+
+            if (spline != null)
+            {
+                return spline.GetDistanceAtParameter(value);
+            }
+
             DxfBulgeChain chain = Chain();
             Within(value, chain.EndParam, nameof(value));
             return chain.DistanceAt(value);
@@ -702,9 +808,15 @@ namespace GeometryHelper.Dxf
         /// <param name="dist">The distance, from nought to the leader's length.</param>
         /// <returns>The parameter.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is past either end.</exception>
-        /// <exception cref="NotSupportedException">Thrown for a leader drawn as a spline.</exception>
         public override double GetParameterAtDistance(double dist)
         {
+            DxfSpline spline = Splined();
+
+            if (spline != null)
+            {
+                return spline.GetParameterAtDistance(dist);
+            }
+
             DxfBulgeChain chain = Chain();
             Within(dist, chain.Length, nameof(dist));
             return chain.ParameterAt(dist);
@@ -714,9 +826,15 @@ namespace GeometryHelper.Dxf
         /// <param name="point">The point, within the point tolerance of the leader.</param>
         /// <returns>The distance.</returns>
         /// <exception cref="ArgumentException">Thrown when the point is not on the leader.</exception>
-        /// <exception cref="NotSupportedException">Thrown for a leader drawn as a spline.</exception>
         public override double GetDistAtPoint(GeoPoint3 point)
         {
+            DxfSpline spline = Splined();
+
+            if (spline != null)
+            {
+                return spline.GetDistAtPoint(point);
+            }
+
             DxfBulgeChain chain = Chain();
             return chain.DistanceAt(ParameterOn(chain, point));
         }
@@ -725,9 +843,15 @@ namespace GeometryHelper.Dxf
         /// <param name="value">The distance, from nought to the leader's length.</param>
         /// <returns>The point, in the world.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is past either end.</exception>
-        /// <exception cref="NotSupportedException">Thrown for a leader drawn as a spline.</exception>
         public override GeoPoint3 GetPointAtDist(double value)
         {
+            DxfSpline spline = Splined();
+
+            if (spline != null)
+            {
+                return spline.GetPointAtDist(value);
+            }
+
             DxfBulgeChain chain = Chain();
             Within(value, chain.Length, nameof(value));
             return chain.PointAt(chain.ParameterAt(value));
@@ -738,48 +862,79 @@ namespace GeometryHelper.Dxf
         /// <param name="extend">Not read: the leader is taken as it is.</param>
         /// <returns>The nearest point, in the world.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the leader has no vertex.</exception>
-        /// <exception cref="NotSupportedException">Thrown for a leader drawn as a spline.</exception>
         public override GeoPoint3 GetClosestPointTo(GeoPoint3 givenPoint, bool extend)
         {
+            DxfSpline spline = Splined();
+
+            if (spline != null)
+            {
+                return spline.GetClosestPointTo(givenPoint, false);
+            }
+
             Chain().ClosestParameter(givenPoint, out GeoPoint3 closest);
             return closest;
         }
 
-        /// <summary>Gets the derivative of the point by the parameter, as AutoCAD's <c>GetFirstDerivative</c>: on a segment the vector from its start to its end.</summary>
+        /// <summary>
+        /// Gets the derivative of the point by the parameter, as AutoCAD's <c>GetFirstDerivative</c>: on a segment of a straight
+        /// leader the vector from its start to its end; of a splined one the spline's.
+        /// </summary>
         /// <param name="value">The parameter, from nought to <see cref="EndParam"/>.</param>
         /// <returns>The derivative, in the world.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the parameter is past either end.</exception>
-        /// <exception cref="NotSupportedException">Thrown for a leader drawn as a spline.</exception>
         public override GeoVector3 GetFirstDerivative(double value)
         {
+            DxfSpline spline = Splined();
+
+            if (spline != null)
+            {
+                return spline.GetFirstDerivative(value);
+            }
+
             DxfBulgeChain chain = Chain();
             Within(value, chain.EndParam, nameof(value));
             return chain.FirstDerivative(value);
         }
 
-        /// <summary>Gets the second derivative of the point by the parameter, as AutoCAD's <c>GetSecondDerivative</c>: nought on the segments.</summary>
+        /// <summary>
+        /// Gets the second derivative of the point by the parameter, as AutoCAD's <c>GetSecondDerivative</c>: nought on the
+        /// segments of a straight leader; of a splined one the spline's.
+        /// </summary>
         /// <param name="value">The parameter, from nought to <see cref="EndParam"/>.</param>
-        /// <returns>Nought.</returns>
+        /// <returns>The second derivative, in the world.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the parameter is past either end.</exception>
-        /// <exception cref="NotSupportedException">Thrown for a leader drawn as a spline.</exception>
         public override GeoVector3 GetSecondDerivative(double value)
         {
+            DxfSpline spline = Splined();
+
+            if (spline != null)
+            {
+                return spline.GetSecondDerivative(value);
+            }
+
             DxfBulgeChain chain = Chain();
             Within(value, chain.EndParam, nameof(value));
             return chain.SecondDerivative(value);
         }
 
         /// <summary>
-        /// Gets the spline that is exactly the leader, as AutoCAD's <c>Spline</c>: of degree 1 through its vertices, a knot at each
-        /// step of its parameter.
+        /// Gets the spline that is exactly the leader, as AutoCAD's <c>Spline</c>: of a straight leader, of degree 1 through its
+        /// vertices, a knot at each step of its parameter; of a splined one, the spline <see cref="Explode"/> fits through its
+        /// vertices, of degree 3, its knots from 0 to 1. A new <see cref="DxfSpline"/> in no file, on layer 0 with no look of its own.
         /// </summary>
-        /// <exception cref="InvalidOperationException">Thrown when the leader has fewer than two vertices.</exception>
-        /// <exception cref="NotSupportedException">Thrown for a leader drawn as a spline, which AutoCAD fits by its own rule.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the leader has fewer than two vertices, or is splined and its
+        /// vertices are all one point.</exception>
         public override DxfSpline Spline
         {
             get
             {
-                Straight();
+                DxfSpline spline = Splined();
+
+                if (spline != null)
+                {
+                    return spline;
+                }
+
                 List<GeoPoint3> vertices = Vertices();
 
                 if (vertices.Count < 2)
@@ -845,15 +1000,25 @@ namespace GeometryHelper.Dxf
         #region The record
 
         /// <summary>The vertices, in the world.</summary>
-        private List<GeoPoint3> Vertices()
+        private List<GeoPoint3> Vertices() => Vertices(out _);
+
+        /// <summary>The vertices, in the world, and in the same pass the colour for DIMCLRD BYBLOCK (77), -1 where there is none.</summary>
+        private List<GeoPoint3> Vertices(out int blockColour)
         {
             var vertices = new List<GeoPoint3>();
             double[] point = null;
+            blockColour = -1;
+            bool coloured = false;
 
             foreach (DxfTypedValue group in GetOwnGroups(0))
             {
                 switch (group.TypeCode)
                 {
+                    case 77:
+                        // The first, as GetInt reads it.
+                        blockColour = coloured ? blockColour : Whole(group.Value, -1);
+                        coloured = true;
+                        continue;
                     case 10:
                         point = new[] { Num(group.Value, 0.0), 0.0, 0.0 };
                         vertices.Add(default(GeoPoint3));
@@ -985,21 +1150,33 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        /// <summary>Refuses a leader drawn as a spline, whose curve AutoCAD fits by its own rule.</summary>
-        private void Straight()
+        /// <summary>
+        /// The spline a splined leader is, as <see cref="Explode"/> fits it (<see cref="FittedSpline"/>), which its curve's members
+        /// walk; null for a straight leader.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the leader is splined and has no vertex, or its vertices are
+        /// all one point.</exception>
+        private DxfSpline Splined()
         {
-            if (IsSplined)
+            if (!IsSplined)
             {
-                throw new NotSupportedException("A leader drawn as a spline is fitted through its vertices by AutoCAD's own rule, which the file does not hold.");
+                return null;
             }
+
+            List<GeoPoint3> vertices = Vertices();
+            DxfSpline spline = FittedSpline(vertices, Tolerance.Default.EqualPoint);
+
+            if (spline == null)
+            {
+                throw new InvalidOperationException(vertices.Count == 0 ? "The leader has no vertex: it is no curve to walk." : "The vertices of the splined leader are all one point: no spline runs through them.");
+            }
+
+            return spline;
         }
 
-        /// <summary>The chain of the vertices.</summary>
-        /// <exception cref="NotSupportedException">Thrown for a leader drawn as a spline.</exception>
+        /// <summary>The chain of the vertices of a straight leader.</summary>
         private DxfBulgeChain Chain()
         {
-            Straight();
-
             if (NumVertices == 0)
             {
                 throw new InvalidOperationException("The leader has no vertex: it is no curve to walk.");
@@ -1021,6 +1198,12 @@ namespace GeometryHelper.Dxf
         }
 
         private DxfDatabase Database() => IsResident ? Item.File.Database : null;
+
+        /// <summary>
+        /// The drawing the leader's dimension style, arrow block and linetype are read in: its own; for a copy in no file, the
+        /// drawing it was copied from, as a dimension's copy reads its block there; null for one erased, or made in no drawing.
+        /// </summary>
+        private DxfFile NamingDrawing() => IsResident || Item.File.IsDetached ? Item.File.NamingDrawing : null;
 
         /// <summary>The entity of a handle anywhere in the drawing; null where it has none.</summary>
         private DxfEntity EntityByHandle(string handle)
@@ -1048,7 +1231,7 @@ namespace GeometryHelper.Dxf
         /// <summary>The block of the handle of its BLOCK_RECORD; null where the drawing has none, or the handle is nought.</summary>
         private DxfBlockTableRecord BlockByHandle(string handle)
         {
-            DxfDatabase database = Database();
+            DxfDatabase database = NamingDrawing()?.Database;
 
             if (database == null || handle.Length == 0 || handle == "0")
             {
@@ -1066,15 +1249,20 @@ namespace GeometryHelper.Dxf
             return null;
         }
 
-        /// <summary>The DIMSTYLE of a name, letters of either case the same; null where the leader is in no drawing or it has none.</summary>
+        /// <summary>
+        /// The DIMSTYLE of a name, letters of either case the same, of the drawing the leader reads it in; null where there is
+        /// none, or it has none of the name.
+        /// </summary>
         private DxfItem Style(string name)
         {
-            if (!IsResident)
+            DxfFile file = NamingDrawing();
+
+            if (file == null)
             {
                 return null;
             }
 
-            foreach (DxfItem item in Item.File.TableItems("DIMSTYLE"))
+            foreach (DxfItem item in file.TableItems("DIMSTYLE"))
             {
                 if (!item.IsRemoved && string.Equals(DxfReader.NameOf(item.File.ValueOf(item, 2) ?? string.Empty), name, StringComparison.OrdinalIgnoreCase))
                 {
@@ -1096,7 +1284,12 @@ namespace GeometryHelper.Dxf
         private List<DxfTypedValue> Override(int code)
         {
             List<DxfTypedValue> data = Acad(out int open, out int close);
+            return Override(data, open, close, code);
+        }
 
+        /// <summary>The override of a variable in the extended data of ACAD read, as <see cref="Override(int)"/> gives it.</summary>
+        private static List<DxfTypedValue> Override(List<DxfTypedValue> data, int open, int close, int code)
+        {
             for (int i = open + 1; open >= 0 && i + 1 < close; i += 2)
             {
                 if (data[i].TypeCode == 1070 && Whole(data[i].Value, int.MinValue) == code)

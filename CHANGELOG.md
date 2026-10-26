@@ -445,6 +445,34 @@ each saying why. The time grows with the size of the entity: an MLINE of 40 000 
 1.0 s, a polyface strip of 16 000 faces on 32 002 points in 0.28 s, and a straight leader of 10 000 vertices now in 0.05 s,
 where it took 10.5 s, its look read once for all its parts (.NET 8).
 
+**NEW.** The DXF leftovers of the entry above. A splined `DxfLeader` is a curve as the straight one is: its `Spline`,
+`GeometricExtents`, `EndParam` and the members that walk it (`GetPointAtParameter`, `GetDistanceAtParameter`,
+`GetClosestPointTo`, the derivatives and the rest), which refused it, answer along the spline `Explode()` fits through its
+vertices, its parameter from 0 to 1; splined through (0, 0, 0), (10, 10, 0) and (20, 10, 0) its box reaches y = 10.43, as
+ezdxf's spline does, past its vertices. A leader exploded is drawn in the look its dimension style gives it, as ezdxf draws
+it: its lines, its spline and its arrowhead take the colour of DIMCLRD, the linetype of DIMLTYPE and the lineweight of
+DIMLWD, the override else the style's, the colour's true colour taken off; one of them BYBLOCK, as the style Standard has
+them, keeps the leader's own look as before, but for a colour BYBLOCK where the leader writes the colour to use for it (77).
+A MESH not smoothed, which the entry above refused, gives a 3DFACE for each face of three or four corners, with the MESH's
+look, as ezdxf's `MeshBuilder` renders them: a cube of six faces gives six. A MESH smoothed, one with a face of more than four
+corners (how AutoCAD breaks one is not known) and one whose faces have a look of their own still refuse, saying which. A
+MESH is read by its counts, as AutoCAD writes it, and one missing a count or holding fewer than it counts is refused, as
+ezdxf refuses it. A
+`DxfMLeader` copied into no drawing by `Clone()` exploded without its block content, its arrow blocks drawn as the closed
+filled arrow, with no word of it: it now finds its blocks, its linetype and its text style in the drawing it was copied
+from, as a dimension's copy finds its block, and gives what its original gives; where that drawing has erased a block it
+names since, `Explode()` refuses with `InvalidOperationException`, the handle of the block said. A `DxfLeader` copied so
+reads its dimension style, arrow block and linetype there too, where it read none: `Dimasz` 2.5 of Standard, not 0.18.
+
+**FIXED.** A `DxfMLeader` of a block copied by `Clone()` or `GetTransformedCopy` lost the values of its attributes, its copy
+exploding into the block with none and appended to a drawing writing none: the copy now keeps the handles of the attribute
+definitions its values are given for, as AutoCAD's copy keeps them, so that the multileader of GKTAG with NUM 42 copied, copied
+again or appended back gives NUM 42. Appended to another drawing, each value is given to the attribute definition of the
+same tag in the block of the same name there, and left out, with its definition, where there is none. A
+straight leader's `GeometricExtents` and `GetPlane` read all its vertices again for each vertex: 200 boxes and points of a
+leader of 1 000 vertices took 47.4 s and take 0.22 s, and the plane of one of 4 000 vertices took 5.6 s and takes 3 ms, the
+same answers to the bit (.NET 8).
+
 **NEW.** A text's and an MTEXT's text style is set by its name, `TextStyleName` (written as the drawing's table names it,
 letters of either case the same), or as its record, the new `TextStyle` (AutoCAD's `TextStyleId`): a style the drawing has not,
 or a record of another drawing, is refused, and the style the text has changes nothing; an attribute takes it as a text does.

@@ -106,7 +106,9 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// A copy of an entity, not in the file: every record of it with its groups as written, but its handle, its owner, the
-        /// groups of the applications (102: reactors and the extension dictionary), its space (67) and its layout (410).
+        /// groups of the applications (102: reactors and the extension dictionary), its space (67) and its layout (410). A
+        /// MULTILEADER keeps the handles of the attribute definitions its values are given for (its 330s after its own marker),
+        /// which name the definitions of the block it places, as AutoCAD's copy keeps them.
         /// </summary>
         internal DxfItem CopyOf(DxfItem item) => CopyOf(item, false);
 
@@ -125,7 +127,7 @@ namespace GeometryHelper.Dxf
                 List<Pair> pairs = PairsOf(record);
                 b.Raw(record, pairs[0]);
                 bool braced = false;
-                int body = keepLinks && record.Type == "HATCH" ? BodyAt(record, pairs, DataAt(record, pairs)) : -1;
+                int body = (keepLinks && record.Type == "HATCH") || record.Type == "MULTILEADER" ? BodyAt(record, pairs, DataAt(record, pairs)) : -1;
 
                 for (int i = 1; i < pairs.Count; i++)
                 {
@@ -1382,6 +1384,12 @@ namespace GeometryHelper.Dxf
         internal DxfFile Origin => _origin;
 
         /// <summary>
+        /// The drawing whose objects the handles of an entity of this file name: this one; for a copy in no file, the drawing it
+        /// was copied from; null for an entity made in code, whose file is no drawing's.
+        /// </summary>
+        internal DxfFile NamingDrawing => !_detached ? this : _origin != null && _origin != Template ? _origin : null;
+
+        /// <summary>
         /// The file whose block table holds the block an INSERT places: this one for an INSERT in it; for a copy in no file, the
         /// drawing it was copied from while the block it was copied with is still there (renamed or not); null where that block
         /// was erased, or the copy was made from none.
@@ -1403,13 +1411,16 @@ namespace GeometryHelper.Dxf
         /// made to agree. A LEADER whose annotation (340) is left out points to none (73 of 3). While blocks are being copied
         /// with an entity, a pointer to an entity of the drawing copied from, and a HATCH's handle of a boundary object (330),
         /// is held back, marked, to be taken to its copy once every entity is written (<see cref="TranslateDeferred"/>), and
-        /// <paramref name="deferred"/> says so. The record itself where nothing changes.
+        /// <paramref name="deferred"/> says so. A MULTILEADER's attribute definition (its 330 after its own marker) names the
+        /// copy of the definition, or the definition of the same tag in the block here of the name of its block, as the block it
+        /// places is the one of that name here; where there is none, the value given for it (its 177, 44 and 302) goes with it.
+        /// The record itself where nothing changes.
         /// </summary>
         private Rec Pointed(Rec record, DxfFile origin, DxfFile target, ref bool deferred)
         {
             List<Pair> pairs = PairsOf(record);
             int data = DataAt(record, pairs);
-            int body = record.Type == "HATCH" ? BodyAt(record, pairs, data) : -1;
+            int body = record.Type == "HATCH" || record.Type == "MULTILEADER" ? BodyAt(record, pairs, data) : -1;
             var b = new Builder(this);
             b.Raw(record, pairs[0]);
             bool changed = false;
@@ -1468,6 +1479,32 @@ namespace GeometryHelper.Dxf
                 {
                     string was = Text(record, pair);
                     changed = true;
+
+                    // A multileader's attribute definition: its copy, which waits while its block is being copied, or its namesake.
+                    if (code == 330 && record.Type == "MULTILEADER")
+                    {
+                        string attribute = target.CopyHandle(was);
+
+                        if (attribute == null && target._deferred != null && target.CopyingBlockOf(origin, was))
+                        {
+                            b.Group(code, DeferredMark + was.Trim());
+                            deferred = true;
+                            continue;
+                        }
+
+                        attribute = attribute ?? target.AttributeNamesake(origin, was);
+
+                        if (attribute != null)
+                        {
+                            b.Group(code, attribute);
+                        }
+                        else
+                        {
+                            i = AttributeEnd(pairs, i, data);
+                        }
+
+                        continue;
+                    }
 
                     // A pointer to an entity, while blocks are being copied, waits for the copy of that entity.
                     if (target._deferred != null && origin.IsEntity(was))
@@ -1847,6 +1884,68 @@ namespace GeometryHelper.Dxf
         private string CopyHandle(string pointer)
             => _entityCopies != null && TryHex(pointer.Trim(), out ulong handle) && _entityCopies.TryGetValue(handle, out string copy) ? copy : null;
 
+        /// <summary>
+        /// The index of the last group of a MULTILEADER's value of an attribute that begins at its definition (330): the index,
+        /// width and text after it (177, 44, 302), which go with the definition where it is left out.
+        /// </summary>
+        private static int AttributeEnd(List<Pair> pairs, int at, int data)
+        {
+            while (at + 1 < data && (pairs[at + 1].Code == 177 || pairs[at + 1].Code == 44 || pairs[at + 1].Code == 302))
+            {
+                at++;
+            }
+
+            return at;
+        }
+
+        /// <summary>The attribute definition of a handle of another drawing (<paramref name="origin"/>); null where it has none.</summary>
+        private static DxfItem Definition(DxfFile origin, string pointer)
+        {
+            DxfItem definition = origin.Database?.ItemByHandle(pointer.Trim());
+            return definition != null && !definition.IsRemoved && definition.Type == "ATTDEF" && definition.Block != null ? definition : null;
+        }
+
+        /// <summary>Whether the block of an attribute definition of another drawing is being copied into this one with the entity being added.</summary>
+        private bool CopyingBlockOf(DxfFile origin, string pointer)
+            => _blockCopies != null && Definition(origin, pointer) is DxfItem definition && origin.Blocks.TryGetValue(definition.Block, out DxfFileBlock block) && _blockCopies.ContainsKey(block);
+
+        /// <summary>
+        /// The handle here of the attribute definition of the same tag as one of another drawing, in the block here of the name
+        /// of its block (the name of the block's copy, where it was copied): what a multileader's value given for that definition
+        /// is given for here, as the block it places is the one of that name here. Null where there is none.
+        /// </summary>
+        private string AttributeNamesake(DxfFile origin, string pointer)
+        {
+            DxfItem definition = Definition(origin, pointer);
+            string tag = definition == null ? null : origin.ValueOf(definition, 2)?.Trim();
+            string name = definition?.Block;
+
+            if (tag == null || name == null)
+            {
+                return null;
+            }
+
+            if (_blockCopies != null && origin.Blocks.TryGetValue(name, out DxfFileBlock copied) && _blockCopies.TryGetValue(copied, out string given))
+            {
+                name = given;
+            }
+
+            if (!Blocks.TryGetValue(name, out DxfFileBlock block))
+            {
+                return null;
+            }
+
+            foreach (DxfItem item in block.Items.Snapshot())
+            {
+                if (!item.IsRemoved && item.Type == "ATTDEF" && string.Equals(ValueOf(item, 2)?.Trim(), tag, StringComparison.OrdinalIgnoreCase))
+                {
+                    return item.Handle;
+                }
+            }
+
+            return null;
+        }
+
         // What marks a pointer held back for the copy of the entity it names: no handle begins so.
         private const string DeferredMark = "?";
 
@@ -1918,6 +2017,10 @@ namespace GeometryHelper.Dxf
                     else if (code == 340 && record.Type == "LEADER")
                     {
                         unannotated = true;
+                    }
+                    else if (code == 330 && record.Type == "MULTILEADER")
+                    {
+                        i = AttributeEnd(pairs, i, data);
                     }
                 }
 

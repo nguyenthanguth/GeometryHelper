@@ -402,3 +402,24 @@ an error AUDIT reports or fixes in a file the library wrote is a change to make 
       or an INSERT of the arrow block, where the first segment is more than twice the arrow, and the LINEs from the back of the
       arrow to the end of the dogleg, or one SPLINE; no underline.
     - A change if: AutoCAD makes the closed filled arrow a block, starts the line at the tip, or draws an underline.
+
+62. **A leader exploded in the look of its dimension style.**
+    - Try: EXPLODE in AutoCAD a leader of colour 3 whose style has DIMCLRD BYBLOCK, one with DIMCLRD 1 and DIMLWD 0.35 as
+      overrides, and one of DIMCLRD BYBLOCK whose record writes a 77; compare with `Explode()`.
+    - Now: the overrides' colour and lineweight on the lines and the arrow, the true colour taken off; DIMCLRD BYBLOCK the
+      leader's own colour, or the colour of its 77 where it has one, as ezdxf reads it (ezdxf gives 7 where there is none).
+    - A change if: AutoCAD gives the parts of a BYBLOCK style BYBLOCK, or colour 7, or keeps the leader's true colour.
+
+63. **A splined leader as a curve.**
+    - Try: in AutoCAD's API, `GetPointAtParameter`, `EndParam`, `GetDistanceAtParameter(EndParam)` and `GeometricExtents` of a
+      splined leader through (0, 0, 0), (10, 10, 0) and (20, 10, 0); compare with the library's.
+    - Now: the spline ezdxf fits, its parameter from 0 to 1, its box (0, 0, 0) to (20, 10.43, 0), the arrowhead not counted.
+    - A change if: AutoCAD's parameter runs over the chord lengths, or its box takes in the arrowhead.
+
+64. **A MESH exploded.**
+    - Try: EXPLODE in AutoCAD a MESH of triangles and quads, one with a face of five corners (a mesh made by MESHSMOOTH of a
+      solid's flat face), and one with a face given a colour of its own; compare with `Explode()`.
+    - Now: a 3DFACE for each face of three or four corners, a triangle ending on its third, every edge drawn; the face of five
+      corners and the face of its own colour refused.
+    - A change if: AutoCAD hides the edges inside a face, or breaks a face of five corners in a way the library can follow
+      (a fan from its first corner), which would let it take one.

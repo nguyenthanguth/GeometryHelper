@@ -75,7 +75,7 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AStraightLeader_IsWalkedByVertexIndex_AndASplinedOneRefusesToBe()
+        public void AStraightLeader_IsWalkedByVertexIndex_AndASplinedOneAlongItsSpline()
         {
             // 89: (0, 0, 0), (10, 10, 0), (20, 10, 0): 10 root 2 and 10 long, 1.5 at (15, 10, 0).
             DxfDatabase db = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
@@ -92,8 +92,8 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfLeader splined = ByHandle<DxfLeader>(db, "B2");
             Assert.Equal(Bits(new GeoPoint3(600, 0, 0)), Bits(splined.StartPoint));
-            Assert.Throws<NotSupportedException>(() => splined.GetPointAtParameter(1.0));
-            Assert.Throws<NotSupportedException>(() => splined.Spline);
+            Assert.True(splined.GetPointAtParameter(1.0).IsEqualTo(splined.LastVertex, Tol));
+            Assert.Equal(3, splined.Spline.NurbsData.Degree);
         }
 
         #endregion
@@ -325,8 +325,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<InvalidOperationException>(() => ((DxfEntity)bent).GetPlane());
             Assert.Throws<InvalidOperationException>(() => ((DxfEntity)new DxfLeader()).GeometricExtents);
 
-            // B2 is splined: its curve, and so its box, is AutoCAD's to work out.
-            Assert.Throws<InvalidOperationException>(() => ((DxfEntity)ByHandle<DxfLeader>(DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018), "B2")).GeometricExtents);
+            // B2 is splined: its box is that of the spline it explodes into.
+            DxfLeader splined = ByHandle<DxfLeader>(DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018), "B2");
+            Assert.Equal(Bits(((DxfSpline)splined.Explode()[0]).GeometricExtents.Max), Bits(((DxfEntity)splined).GeometricExtents.Max));
         }
 
         [Fact]
