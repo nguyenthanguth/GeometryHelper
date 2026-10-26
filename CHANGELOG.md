@@ -715,6 +715,24 @@ than the tolerance from the first of the crossing's own, which cannot be joined 
 none is put in another place, and the 3 672 offsets of stars, 1 344 of random loops of 50 to 130 corners, 18 000 of small dense
 loops and 1 260 of stars of up to 61 points, at tolerances of 0.1 and 0.001 each, are the same to the bit.
 
+**CHANGED.** Finding the places a curved loop crosses itself at no longer slows with the square of its crossings where they lie
+in a long line along the sweep, or where one place is taken in again and again. Each crossing was tried against every place
+with a crossing in a strip as wide as the tolerance along the sweep, however far off across it; the places are filed in rows
+across the sweep now, a little wider than the tolerance, and only the three rows round the first crossing of the crossing's
+own place are read. And two places are made one without reading each crossing of the one taken in where the corners of the
+box round its crossings all lie within the tolerance of the other's first crossing. A loop of 80 000 teeth 0.5 apart crossing
+its edge along X and 80 000 more crossing its edge along Y, 160 173 crossings in a plus, took 9.4 seconds to find its places
+in on .NET 10 (27 on .NET 8) and takes 0.04 once the code is warm, 0.19 to 0.23 as the first call in a process; 24 000
+crossings, a tight bunch of 8 000 taken in by 8 000 more, each further left along X and later in a sweep along Y, and 8 000
+far off, 0.14 seconds and 0.017 (0.13 and 0.02). The diameters of a circle, the stars and loops of every day take the time
+they took, and 200 diameters grown by 0.3 allocate 163.1 MB where they allocated 159.9 at a tolerance of 0.001, and 92.6
+where 89.6 at 0.1. Of 19.9 million crossings in 400 000 clouds bunched at four tolerances, set against the way places were
+found a crossing at a time before the last round, none is put in another place, nor of 60 000 clouds of ten shapes, shifted
+by up to 50 000 and at tolerances of 0 to 0.3, nor of 120 000 clouds at scales of 1E-200 to 1.7E308 and tolerances up to
+the largest a double holds, some with infinite or missing coordinates; and 90 000 offsets of 5 000 random loops and chains,
+dense loops, stars, diameters and combs, both ways, with mitred, round and chamfered joins at tolerances of 0.001, 0.01 and
+0.1, are the same to the bit.
+
 **CHANGED.** Offsetting a curved loop whose edges run across the whole of it, as a star's do, no longer sorts the edges near
 each piece: the edges whose boxes overlap a piece's were put in order by sorting them, and in a star of 61 points every edge
 overlaps every other. Where they are many they are put in order by marking them: the stars of 21 to 61 points grown and shrunk

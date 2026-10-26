@@ -84,6 +84,33 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         /// <summary>
+        /// A loop from (40 001, 0) back to (-1, 0), along 80 000 teeth 0.5 apart and 3 either side of y = 0, which cross
+        /// its edge along y = 0, up to (20 000, 20 001), down to (20 000, -20 001) and along 80 000 more teeth 3 either side
+        /// of x = 20 000, which cross its edge along x = 20 000: 160 173 crossings in a plus.
+        /// </summary>
+        private static GeoPolygonArc2 PlusOfCrossings()
+        {
+            const int teeth = 80000;
+            double middle = teeth * 0.5 / 2;
+            var points = new List<GeoPoint2> { P(teeth * 0.5 + 1, 0), P(-1, 0) };
+
+            for (int k = 0; k <= teeth; k++)
+            {
+                points.Add(P(0.5 * k, k % 2 == 0 ? -3.0 : 3.0));
+            }
+
+            points.Add(P(middle, middle + 1));
+            points.Add(P(middle, -middle - 1));
+
+            for (int k = 0; k <= teeth; k++)
+            {
+                points.Add(P(k % 2 == 0 ? middle - 3.0 : middle + 3.0, -middle + 0.5 * k));
+            }
+
+            return new GeoPolygonArc2(points, new double[points.Count]);
+        }
+
+        /// <summary>
         /// A loop of eight corners 2.62 by 2.37 with its arcs, that crosses itself at three places, cut at all of
         /// them at a tolerance of 0.1.
         /// </summary>
@@ -164,6 +191,23 @@ namespace GeometryHelper.UnitTest.Plane
             long allocated = AppDomain.CurrentDomain.MonitoringTotalAllocatedMemorySize - before;
             Assert.True(watch.Elapsed < TimeSpan.FromSeconds(30), "offsetting 200 diameters took " + watch.ElapsedMilliseconds + " ms");
             Assert.True(allocated < 400L * 1024 * 1024, "offsetting 200 diameters allocated " + allocated / (1024 * 1024) + " MB");
+        }
+
+        [Fact]
+        public void APlusOf160173CrossingsCutAtATenth_TakesSeconds()
+        {
+            // Each crossing was tried against every place with a crossing in a strip a tenth wide along the sweep, however far
+            // off across it, and the 80 000 crossings of the row along the sweep were all in one strip: 9.4 seconds to find the
+            // places on .NET 10, and 25 to cut the loop on .NET Framework 4.8, where it takes 5 now.
+            GeoPolygonArc2 loop = PlusOfCrossings();
+            List<GeoEdge2> edges = ArcChain2.EdgesOf(loop);
+
+            var watch = Stopwatch.StartNew();
+            ArcOffset2.TrySplitAtCrossings(edges, Tenth, out _, out _, out int found);
+            watch.Stop();
+
+            Assert.Equal(160173, found);
+            Assert.True(watch.Elapsed < TimeSpan.FromSeconds(15), "cutting the plus took " + watch.ElapsedMilliseconds + " ms");
         }
 
         [Fact]

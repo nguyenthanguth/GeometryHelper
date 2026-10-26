@@ -711,21 +711,24 @@ namespace GeometryHelper.Core
             // crossing by crossing, each place keeping where its crossings lie in the sweep: the 79 003 crossings of 200
             // diameters of a circle lie in some 60 places within the reach of each, where a crossing at a time read tens of
             // thousands. A place whose first crossing lies further than the tolerance from the first of the crossing's own place
-            // cannot be joined to it, and is not tried.
+            // cannot be joined to it, and is not tried, and the places in the reach are filed in rows across the sweep by where
+            // their first crossings lie, so only those near it are looked at: a loop whose 160 173 crossings lie 0.5 apart in a
+            // row along X and a column along Y has a whole line of them in the reach of a sweep along either, and its places
+            // took 9.4 s where they take 0.04 once warm.
             double reach = tolerance.EqualPoint;
             bool alongX = CloseAlong(crossings, order, true, reach) <= CloseAlong(crossings, byY, false, reach);
             int[] sweep = alongX ? order : byY;
             var members = new List<int>[sweep.Length];
+            var boxes = new Box[sweep.Length];
             var inReach = new int[sweep.Length];
-            var slot = new int[sweep.Length];
             var near = new List<int>();
-            var places = new List<int>();
+            var places = new PlaceRows(crossings, alongX ? byY : order, rank, alongX, reach);
             int from = 0;
 
             for (int k = 0; k < sweep.Length; k++)
             {
                 members[rank[sweep[k]]] = new List<int> { k };
-                slot[k] = -1;
+                boxes[rank[sweep[k]]] = Box.Empty.With(crossings[sweep[k]].At);
             }
 
             for (int b = 0; b < sweep.Length; b++)
@@ -735,7 +738,7 @@ namespace GeometryHelper.Core
 
                 while ((alongX ? crossings[sweep[from]].At.X : crossings[sweep[from]].At.Y) < key - reach)
                 {
-                    Count(places, inReach, slot, FirstOf(first, rank[sweep[from]]), -1);
+                    Count(places, inReach, FirstOf(first, rank[sweep[from]]), -1);
                     from++;
                 }
 
@@ -748,15 +751,25 @@ namespace GeometryHelper.Core
 
                     near.Clear();
 
-                    foreach (int place in places)
+                    for (int row = 0; row < 3; row++)
                     {
-                        if (place != own && crossings[order[place]].At.IsEqualTo(ownAt, tolerance))
-                        {
-                            int latest = LatestWithin(crossings, sweep, members[place], from, before, at, tolerance);
+                        List<int> filed = places.Around(own, row);
 
-                            if (latest >= 0)
+                        if (filed == null)
+                        {
+                            continue;
+                        }
+
+                        foreach (int place in filed)
+                        {
+                            if (place != own && crossings[order[place]].At.IsEqualTo(ownAt, tolerance))
                             {
-                                near.Add(latest);
+                                int latest = LatestWithin(crossings, sweep, members[place], from, before, at, tolerance);
+
+                                if (latest >= 0)
+                                {
+                                    near.Add(latest);
+                                }
                             }
                         }
                     }
@@ -769,13 +782,13 @@ namespace GeometryHelper.Core
                     {
                         int place = FirstOf(first, rank[sweep[k]]);
 
-                        if (TryJoin(crossings, sweep, order, first, members, Math.Min(place, own), Math.Max(place, own), tolerance))
+                        if (TryJoin(crossings, sweep, order, first, members, boxes, Math.Min(place, own), Math.Max(place, own), tolerance))
                         {
                             int keep = Math.Min(place, own);
                             int gone = Math.Max(place, own);
 
-                            Count(places, inReach, slot, keep, inReach[gone]);
-                            Count(places, inReach, slot, gone, -inReach[gone]);
+                            Count(places, inReach, keep, inReach[gone]);
+                            Count(places, inReach, gone, -inReach[gone]);
                             own = keep;
                             joined = k;
                             break;
@@ -790,7 +803,7 @@ namespace GeometryHelper.Core
                     before = joined;
                 }
 
-                Count(places, inReach, slot, own, 1);
+                Count(places, inReach, own, 1);
             }
 
             var nodeAt = new int[order.Length];
@@ -836,25 +849,37 @@ namespace GeometryHelper.Core
         /// <param name="byX">Their numbers in order along X.</param>
         /// <param name="first">For each crossing, by its order along X, one before it of the same place, or itself.</param>
         /// <param name="members">For the first crossing of each place, where its crossings lie in the sweep, in order.</param>
+        /// <param name="boxes">For the first crossing of each place, the box its crossings lie in.</param>
         /// <param name="keep">The first crossing of the place that comes first along X.</param>
         /// <param name="join">The first crossing of the other place.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when the places were made one.</returns>
-        private static bool TryJoin(List<Crossing> crossings, int[] sweep, int[] byX, int[] first, List<int>[] members, int keep, int join, Tolerance tolerance)
+        private static bool TryJoin(List<Crossing> crossings, int[] sweep, int[] byX, int[] first, List<int>[] members, Box[] boxes, int keep, int join, Tolerance tolerance)
         {
             GeoPoint2 place = crossings[byX[keep]].At;
+            Box box = boxes[join];
 
-            foreach (int k in members[join])
+            // A crossing in the box lies no further from the place along either axis than one of its corners, so where the
+            // corners all lie within the tolerance of the place the crossings do, and are not read one by one: a stream of
+            // crossings each further left, each taking in a place of thousands, read all of them every time.
+            bool within = new GeoPoint2(box.MinX, box.MinY).IsEqualTo(place, tolerance) && new GeoPoint2(box.MinX, box.MaxY).IsEqualTo(place, tolerance)
+                && new GeoPoint2(box.MaxX, box.MinY).IsEqualTo(place, tolerance) && new GeoPoint2(box.MaxX, box.MaxY).IsEqualTo(place, tolerance);
+
+            if (!within)
             {
-                if (!crossings[sweep[k]].At.IsEqualTo(place, tolerance))
+                foreach (int k in members[join])
                 {
-                    return false;
+                    if (!crossings[sweep[k]].At.IsEqualTo(place, tolerance))
+                    {
+                        return false;
+                    }
                 }
             }
 
             first[join] = keep;
             members[keep] = Merged(members[keep], members[join]);
             members[join] = null;
+            boxes[keep] = boxes[keep].With(box);
             return true;
         }
 
@@ -914,25 +939,167 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Counts crossings of a place in or out of the reach of the sweep, and keeps the list of the places that have some.
+        /// Counts crossings of a place in or out of the reach of the sweep, and keeps the places that have some filed.
         /// </summary>
-        private static void Count(List<int> places, int[] inReach, int[] slot, int place, int change)
+        private static void Count(PlaceRows places, int[] inReach, int place, int change)
         {
             inReach[place] += change;
 
-            if (inReach[place] > 0 && slot[place] < 0)
+            if (inReach[place] > 0)
             {
-                slot[place] = places.Count;
-                places.Add(place);
+                places.File(place);
             }
-            else if (inReach[place] == 0 && slot[place] >= 0)
+            else if (inReach[place] == 0)
             {
-                int moved = places[places.Count - 1];
+                places.Unfile(place);
+            }
+        }
 
-                places[slot[place]] = moved;
-                slot[moved] = slot[place];
-                places.RemoveAt(places.Count - 1);
-                slot[place] = -1;
+        /// <summary>
+        /// The places crossings are made one at, filed by the row across the sweep their first crossings lie in, the rows a
+        /// little wider than the tolerance: a place whose first crossing lies within the tolerance of a point is filed in the
+        /// row of the point or in one of the two beside it.
+        /// </summary>
+        /// <remarks>
+        /// A place is numbered as its first crossing is in order along X, and keeps that number and that row while it lasts.
+        /// The places filed are those with crossings in the reach of the sweep, whose first crossings lie within the tolerance
+        /// of them, so the three rows round a point hold only the places near it. Only the rows some crossing lies in are kept,
+        /// numbered in order across the sweep.
+        /// </remarks>
+        private sealed class PlaceRows
+        {
+            private readonly int[] _rowOf;
+            private readonly int[] _slot;
+            private readonly int[] _across;
+            private readonly List<int>[] _filed;
+
+            /// <summary>
+            /// Initializes the rows of the crossings given, with no place filed.
+            /// </summary>
+            /// <param name="crossings">The crossings.</param>
+            /// <param name="across">Their numbers in order along the axis across the sweep.</param>
+            /// <param name="rank">For each crossing, where it lies in order along X.</param>
+            /// <param name="alongX">Whether the sweep goes along X, the rows running along it and lying one over another in Y.</param>
+            /// <param name="tolerance">The distance within which two crossings are at one place.</param>
+            internal PlaceRows(List<Crossing> crossings, int[] across, int[] rank, bool alongX, double tolerance)
+            {
+                int count = across.Length;
+                double origin = double.NaN;
+                double last = double.NaN;
+                double size = 0.0;
+
+                foreach (int i in across)
+                {
+                    double value = alongX ? crossings[i].At.Y : crossings[i].At.X;
+
+                    if (!double.IsNaN(value) && !double.IsInfinity(value))
+                    {
+                        origin = double.IsNaN(origin) ? value : origin;
+                        last = value;
+                        size = Math.Max(size, Math.Abs(value));
+                    }
+                }
+
+                // Wider than the tolerance by a millionth, so two points within it fall in rows side by side however the division
+                // rounds, and no narrower than a hundred-millionth of the coordinates, so the rounding stays well below that
+                // millionth: a point within the tolerance of another is never two rows off. Nor narrower than 1E-150, since below
+                // some 1.5E-154 the square of the tolerance comes to nothing and points 1.5E-162 apart are still within it. Where
+                // the square of the tolerance is too large to hold, every two points lie within it, and where the coordinates span
+                // more than a double holds they cannot be counted off in rows: in either case all lie in the one row, and with a
+                // square too large to hold an infinite coordinate lies within the tolerance of a finite one and is filed too.
+                double width = tolerance * (1.0 + 1E-6);
+
+                if (!(width >= size * 1E-8))
+                {
+                    width = size * 1E-8;
+                }
+
+                width = Math.Max(width, 1E-150);
+
+                bool oneRow = !(tolerance * tolerance < double.PositiveInfinity) || !(last - origin < double.PositiveInfinity);
+                _rowOf = new int[count];
+                _slot = new int[count];
+                _across = new int[count];
+
+                int rows = 0;
+
+                foreach (int i in across)
+                {
+                    double value = alongX ? crossings[i].At.Y : crossings[i].At.X;
+                    int row = -1;
+
+                    if (oneRow ? !double.IsNaN(value) : !double.IsInfinity(value) && !double.IsNaN(value))
+                    {
+                        int at = oneRow ? 0 : (int)Math.Floor((value - origin) / width);
+
+                        if (rows == 0 || _across[rows - 1] != at)
+                        {
+                            _across[rows++] = at;
+                        }
+
+                        row = rows - 1;
+                    }
+
+                    _rowOf[rank[i]] = row;
+                    _slot[rank[i]] = -1;
+                }
+
+                _filed = new List<int>[rows];
+            }
+
+            /// <summary>
+            /// Gets the places filed in the row of the first crossing of a place (1), in the row before it (0) or in the row
+            /// after it (2), or null where none ever was.
+            /// </summary>
+            internal List<int> Around(int place, int which)
+            {
+                int row = _rowOf[place];
+
+                if (row < 0)
+                {
+                    return null;
+                }
+
+                int beside = row + which - 1;
+
+                return beside >= 0 && beside < _filed.Length && _across[beside] == _across[row] + which - 1 ? _filed[beside] : null;
+            }
+
+            /// <summary>
+            /// Files a place, if it is not filed.
+            /// </summary>
+            internal void File(int place)
+            {
+                int row = _rowOf[place];
+
+                if (row < 0 || _slot[place] >= 0)
+                {
+                    return;
+                }
+
+                List<int> filed = _filed[row] ?? (_filed[row] = new List<int>());
+
+                _slot[place] = filed.Count;
+                filed.Add(place);
+            }
+
+            /// <summary>
+            /// Takes a place out of its row, if it is filed.
+            /// </summary>
+            internal void Unfile(int place)
+            {
+                if (_slot[place] < 0)
+                {
+                    return;
+                }
+
+                List<int> filed = _filed[_rowOf[place]];
+                int moved = filed[filed.Count - 1];
+
+                filed[_slot[place]] = moved;
+                _slot[moved] = _slot[place];
+                filed.RemoveAt(filed.Count - 1);
+                _slot[place] = -1;
             }
         }
 
