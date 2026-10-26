@@ -898,11 +898,14 @@ namespace GeometryHelper.Core
         /// what the line meets at its origin or ahead of it: the crossing, the point of a touch nearest the triangle, or none where the
         /// line lies level over the material within the planar tolerance of the triangle's plane. Where the line meets the triangle
         /// only behind the origin, or lies level over it only behind a ray running away from it, a ray whose origin touches it
-        /// is given its origin.
+        /// is given its origin. A point is given exactly where <see cref="Collision3.CollidesWith(GeoRay3, GeoTriangle3, Tolerance)"/>
+        /// says the two touch, but where the ray holds more than the point tolerance of a part of its line lying level over the
+        /// triangle.
         /// </returns>
         /// <remarks>
         /// A ray from (20, 20, 10) pointing straight down crosses the triangle with corners (0, 0, 0), (100, 0, 0) and
-        /// (0, 100, 0) at (20, 20, 0).
+        /// (0, 100, 0) at (20, 20, 0). The ray from (50, -0.0006, 0.0003) along (1, -0.01, 0), 0.00067 from the triangle and
+        /// running away from it, touches it at its origin, where it collided and was given nothing.
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoTriangle3 triangle, Tolerance tolerance) => Meeting(ray, triangle, tolerance);
 
@@ -928,11 +931,14 @@ namespace GeometryHelper.Core
         /// what the line meets at its origin or ahead of it: the crossing, the point of a touch nearest the polygon, or none where the
         /// line lies level over the material within the planar tolerance of the polygon's plane. Where the line meets the polygon
         /// only behind the origin, or lies level over it only behind a ray running away from it, a ray whose origin touches it
-        /// is given its origin.
+        /// is given its origin. A point is given exactly where <see cref="Collision3.CollidesWith(GeoRay3, GeoPolygon3, Tolerance)"/>
+        /// says the two touch, but where the ray holds more than the point tolerance of a part of its line lying level over the
+        /// polygon.
         /// </returns>
         /// <remarks>
         /// A ray from (20, 20, 10) pointing straight down crosses the square 100 by 100 in the floor with a corner at the
-        /// origin at (20, 20, 0).
+        /// origin at (20, 20, 0). The ray from (50, -0.0006, 0.0003) along (1, -0.01, 0), 0.00067 from the square and running
+        /// away from it, touches it at its origin, where it collided and was given nothing.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoPolygon3 polygon, Tolerance tolerance) => Meeting(ray, polygon, tolerance);
@@ -959,11 +965,15 @@ namespace GeometryHelper.Core
         /// what the line meets at its origin or ahead of it: the crossing, the point of a touch nearest the face, or none where the
         /// line lies level over the material within the planar tolerance of the face's plane. Where the line meets the face
         /// only behind the origin, or lies level over it only behind a ray running away from it, a ray whose origin touches it
-        /// is given its origin.
+        /// is given its origin. A point is given exactly where <see cref="Collision3.CollidesWith(GeoRay3, GeoFace3, Tolerance)"/>
+        /// says the two touch, but where the ray holds more than the point tolerance of a part of its line lying level over the
+        /// material.
         /// </returns>
         /// <remarks>
         /// A ray from (50, 50, 10) pointing straight down passes through the hole 40 by 40 in the middle of the square
-        /// 100 by 100 in the floor and crosses nothing; from (20, 20, 10) it crosses the material at (20, 20, 0).
+        /// 100 by 100 in the floor and crosses nothing; from (20, 20, 10) it crosses the material at (20, 20, 0). The ray from
+        /// (50, -0.0006, 0.0003) along (1, -0.01, 0), 0.00067 from the square and running away from it, touches it at its
+        /// origin, where it collided and was given nothing.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoFace3 face, Tolerance tolerance) => Meeting(ray, face, tolerance);

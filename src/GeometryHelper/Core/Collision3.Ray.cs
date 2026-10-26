@@ -35,7 +35,35 @@ namespace GeometryHelper.Core
             // The faces run straight across every opening; read the material the probe can reach instead.
             solid = Material3.Near(solid, ray, tolerance);
 
-            return Gap3.SurfaceRay(solid, ray, tolerance.EqualPoint) <= tolerance.EqualPoint || Gap3.Holds(solid, ray.Origin);
+            return RayTouches(solid, ray, tolerance);
         }
+
+        /// <summary>
+        /// Determines whether a ray comes within the point tolerance of the surface of a body or starts in it, to a billionth: the
+        /// one test the body is asked about a ray by, by <c>CollidesWith</c> and by the list of where they meet alike.
+        /// </summary>
+        /// <param name="material">The body, its openings already cut in where the ray can reach them.</param>
+        /// <param name="ray">The ray.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A face further from the ray than the reach of the tolerance cannot come within it and is passed over unweighed, and an
+        /// origin further than a millionth outside the box of the body is not held in it to a billionth, and is not asked.
+        /// </remarks>
+        internal static bool RayTouches(GeoSolid3 material, GeoRay3 ray, Tolerance tolerance)
+            => Gap3.SurfaceRayWithin(material, ray, tolerance.EqualPoint) || MayHold(material, ray.Origin);
+
+        /// <summary>
+        /// Determines whether a body holds a point to a billionth, asked only where the point stands within a millionth of the
+        /// body's box.
+        /// </summary>
+        private static bool MayHold(GeoSolid3 material, GeoPoint3 point)
+            => !(material.GetAabb().DistanceTo(point) > 1E-6) && Gap3.Holds(material, point);
+
+        /// <summary>
+        /// Determines whether the origin of a ray stands within the point tolerance of the surface of a body, where a meeting at
+        /// the origin is a meeting with the surface: one held deeper in the body meets no surface there.
+        /// </summary>
+        internal static bool StartTouches(GeoSolid3 material, GeoRay3 ray, Tolerance tolerance)
+            => !(Gap3.SurfacePoint(material, ray.Origin) > tolerance.EqualPoint);
     }
 }

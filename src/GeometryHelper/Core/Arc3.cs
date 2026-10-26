@@ -459,7 +459,12 @@ namespace GeometryHelper.Core
         /// the endless line carrying it and then keeps what lies between its ends. Where the two only touch, as
         /// <see cref="CollidesWith(GeoArc3, GeoLine3, Tolerance)"/> reads a touch, without a crossing, the point of the
         /// arc nearest the segment: the segment from (0, 50.0006, 1) to (0, 50.0006, -1), through the plane of the arc of
-        /// radius 50 about the origin 0.0006 beside its rim, touches it at (0, 50, 0).
+        /// radius 50 about the origin 0.0006 beside its rim, touches it at (0, 50, 0). A point of the circle on the segment's
+        /// line, held by the arc and by the segment each within the point tolerance, is given only where the segment, at its
+        /// point nearest it, comes within the point tolerance of the arc, each point on its own: the segment from
+        /// (0, 0, 0.0008) to (49.9992, 0, 0.0008) ends 0.00113 from that arc and is given nothing, where it was given
+        /// (50, 0, 0.0008) and collided with nothing, and the one from (-60, 0, 0.0006) to (49.9994, 0, 0.0006), ending
+        /// 0.000849 from it, touches it at both rims.
         /// </returns>
         public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoLine3 line, Tolerance tolerance) => GetIntersections(arc, line, tolerance, out _);
 
@@ -478,6 +483,23 @@ namespace GeometryHelper.Core
                 {
                     found.Add(candidate);
                 }
+            }
+
+            // A point of the circle on the line is held by the arc and by the segment each within the point tolerance, so up to
+            // twice that from the two together: each is given only where the segment, at its point nearest it, comes within the
+            // tolerance of the arc, and where that is the rounding of the numbers either way, only where they touch, as
+            // CollidesWith reads them. A segment no longer
+            // than the tolerance is read as its start, and gives none where it does not touch so.
+            if (found.Count > 0)
+            {
+                Gap3.Curve curve = Gap3.Curve.Of(arc);
+
+                if (!(line.Length > tolerance.EqualPoint) && !Touches(curve, line, tolerance))
+                {
+                    found.Clear();
+                }
+
+                KeepWithin(curve, arc.Radius, found, line.StartPoint, line.EndPoint, () => Touches(curve, line, tolerance), tolerance);
             }
 
             if (found.Count == 0 && MayTouch(arc, line.StartPoint, line.EndPoint, tolerance))
@@ -599,7 +621,8 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <returns>
         /// At most two points, and only ones ahead of where the ray starts; where the two only touch without a crossing, the
-        /// point of the arc nearest the ray, as for a segment.
+        /// point of the arc nearest the ray, as for a segment. A point of the circle on the ray's line is given only where the ray,
+        /// at its point nearest it, comes within the point tolerance of the arc, as for a segment.
         /// </returns>
         public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoRay3 ray, Tolerance tolerance) => GetIntersections(arc, ray, tolerance, out _);
 
@@ -621,8 +644,18 @@ namespace GeometryHelper.Core
             }
 
             // The ray goes no nearer the circle past its point as far from its origin as the circle's far side.
-            if (found.Count == 0
-                && MayTouch(arc, ray.Origin, Parametrization3.GetPointAtDistance(ray, ray.Origin.DistanceTo(arc.Center) + arc.Radius), tolerance))
+            GeoPoint3 far = Parametrization3.GetPointAtDistance(ray, ray.Origin.DistanceTo(arc.Center) + arc.Radius);
+
+            // Held by the arc and by the ray each within the point tolerance, as for a segment.
+            if (found.Count > 0)
+            {
+                Gap3.Curve curve = Gap3.Curve.Of(arc);
+
+                KeepWithin(
+                    curve, arc.Radius, found, ray.Origin, far, () => curve.GapToRay(ray, tolerance.EqualPoint) <= tolerance.EqualPoint, tolerance);
+            }
+
+            if (found.Count == 0 && MayTouch(arc, ray.Origin, far, tolerance))
             {
                 Gap3.Curve curve = Gap3.Curve.Of(arc);
 
@@ -634,6 +667,40 @@ namespace GeometryHelper.Core
             }
 
             return found.ToArray();
+        }
+
+        /// <summary>
+        /// Keeps the points where the straight piece comes within the point tolerance of the arc: each is read at the point of the
+        /// piece nearest it, itself where it lies on the piece, and left out where the arc stands further from that than the
+        /// tolerance by more than the rounding of its numbers and of the arc's size; one within that rounding of the tolerance
+        /// either way is kept only where the two touch, as CollidesWith reads them (asked once).
+        /// </summary>
+        private static void KeepWithin(
+            Gap3.Curve curve, double radius, List<GeoPoint3> points, GeoPoint3 from, GeoPoint3 to, Func<bool> touch, Tolerance tolerance)
+        {
+            bool? touching = null;
+            GeoVector3 along = from.GetVectorTo(to);
+            double squared = along.LengthSquared;
+
+            points.RemoveAll(point =>
+            {
+                double rounding = 1E-14 * (1.0 + radius + Math.Max(Math.Abs(point.X), Math.Max(Math.Abs(point.Y), Math.Abs(point.Z))));
+                double at = squared > 0.0 ? Math.Max(0.0, Math.Min(1.0, from.GetVectorTo(point).DotProduct(along) / squared)) : 0.0;
+                double off = curve.PointGap(from.Add(along.Multiply(at)));
+
+                if (double.IsNaN(off) || off + rounding <= tolerance.EqualPoint)
+                {
+                    return false;
+                }
+
+                if (off - rounding > tolerance.EqualPoint)
+                {
+                    return true;
+                }
+
+                touching = touching ?? touch();
+                return !touching.Value;
+            });
         }
 
         /// <summary>

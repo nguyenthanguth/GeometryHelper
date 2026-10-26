@@ -575,6 +575,41 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Determines whether a ray comes within a distance of the surface of a body, as <see cref="SurfaceRay(GeoSolid3, GeoRay3, double)"/>
+        /// reads the gap: the faces are weighed in their order, and one whose box, less the planar slack, or whose plane stands
+        /// further from the ray than the distance is passed over unweighed.
+        /// </summary>
+        internal static bool SurfaceRayWithin(GeoSolid3 material, GeoRay3 ray, double within)
+        {
+            GeoAabb3 box = material.GetAabb();
+            GeoPoint3 from = ray.Origin;
+            GeoPoint3 to = Parametrization3.GetPointAtDistance(ray, from.DistanceTo(box.Center) + 0.5 * box.Min.DistanceTo(box.Max));
+            IReadOnlyList<GeoFace3> faces = material.Faces;
+
+            for (int i = 0; i < faces.Count; i++)
+            {
+                if (BoxGap(from, to, faces[i].GetAabb()) - PlanarSlack > within)
+                {
+                    continue;
+                }
+
+                Region region = material.RegionOf(i);
+
+                if (region.HeightGap(from, to) > within)
+                {
+                    continue;
+                }
+
+                if (Segment(region, from, to, false, Exactly, within) <= within)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Gets the gap between a flat region and the surface of a body: the least over its faces.
         /// </summary>
         /// <param name="material">The body, its openings already cut in.</param>

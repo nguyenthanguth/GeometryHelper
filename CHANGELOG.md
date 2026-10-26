@@ -1457,6 +1457,65 @@ least of their distance, is as it was: a curve and its copy moved 0.0005 in its 
 copy moved 0.0005 give 14 (parked). The draw of a fuzz run that once found a spline on one line 5.8E-6 too far from an ellipse 709 across,
 fixed before, is a test of its own. 28 new tests.
 
+**FIXED.** A ray is given a point where it meets a triangle, a polygon, a face, a box, a body, a prepared body, an arc or a
+circle exactly where `CollidesWith` says the two touch, but where it lies along the shape and names no place, as before:
+the list and the collision read a ray starting at the shape apart. A ray starting within the tolerance of a region beside
+its rim and running away from it, its line lying level over the region only behind it, collided and was given nothing,
+its own part read along the side it leaves: the ray from 0.0006 beside the side of a square 100 by 100 and 0.0003 over
+it, running away from the side at a hundredth, 0.00067 from the square, touches it at its origin. So a ray whose line
+names only the nearer of two places it touches, behind the origin, is given its own: the ray from (42.126, 51.954), 0.00058
+under the hole 40 by 40 in the middle of a square 100 by 100, falling 7.8E-6 for each unit along it, passes 0.00076 under
+the rim of the hole at (34.488, 30) and touches it there, where it collided and was given nothing. A body read a ray
+starting within the planar tolerance of a face as touching it at its origin, and the collision reads the point
+tolerance: with a point tolerance of a hundredth and a planar one of five hundredths, the ray from 0.04 over the top of
+the box 100 by 100 by 50, rising a hundredth for each unit along it, was given its origin and collided with nothing, and
+is given nothing, while the one from 0.004 over it touches it at its origin as before. The meeting at the origin is given
+only where the origin stands within the point tolerance of the surface, whatever the ray meets further on and however
+deep in the body it starts: the ray from 0.04 off the inner wall of a U 100 by 100, its prongs and base 20 thick, along
+X across the gap, was given its origin besides the two walls of the far prong, and is given those two; the one from 0.04
+under the top of the box was given its origin besides where it leaves, and is given where it leaves; and the one from
+0.012 inside a box turned in space, under a face, is given where it leaves 59.252 along wherever the box stands, where a
+hundred million out it was given that and at the origin its origin besides. With the planar tolerance narrower than the
+point, a ray starting between the two off a face and leaving it collided and was given nothing, and is given its origin.
+A ray that collides with a body and crosses no face is given its point nearest the surface, where that stands within the
+point tolerance of the surface, to the rounding of numbers the size of the body's, or the body holds the origin: at a
+tolerance of nought, where the rounding of a body turned about in space refuses the crossing of every face, the ray from
+the middle of a turned box 100 by 80 by 50 is given where it leaves, to 1E-14 of where it leaves at a thousandth, where it
+was given nothing. An oriented box read the short cut of a ray running past its rim as lying along it by the planar
+tolerance: with a planar tolerance of five hundredths the ray from 0.0075 beside a side of the box 100 by 80 by 50, 0.005
+from its edge and running away from both, touches it at its origin, where it collided and was given nothing. A prepared
+body gives a ray starting within the point tolerance of where its material ends, and crossing no triangle, its origin. A
+point of a circle on the line of a segment or a ray, held by each within the point tolerance but not by the two together,
+is given no more: the segment from (0, 0, 0.0008) to (49.9992, 0, 0.0008), ending 0.00113 from the circle of radius 50
+about the origin, was given (50, 0, 0.0008) and collided with nothing. Each point is weighed on its own, by whether the
+segment or ray comes within the tolerance of the curve at its point nearest it: the same segment from (-60, 0, 0.0008),
+which passes 0.0008 over the far rim and so collides, was given both points and is given the far one only, while the one
+from (-60, 0, 0.0006) to (49.9994, 0, 0.0006), whose end stands 0.000849 from the near rim, touches both rims and is
+given both, as before; a ray where no point is left is given the point of the curve nearest it where they touch. At a
+tolerance of nought the ray starting 4E-12 over a square and rising from it, which touches nothing, is given nothing,
+where it was given the crossing of its line 4E-12 behind its origin. Of 120 000 rays drawn starting within the planar tolerance of a plane, a triangle, a square or
+an L, a face with a hole, an oriented and an axis-aligned box, a body and a prepared body, at the origin, near it and a
+million out, square to the axes and turned, at tolerances of a thousandth, a hundredth and five hundredths, of nought,
+and of a hundredth with planar ones of five hundredths and of a thousandth, 1 759 collided and were given no point and
+528 were given points and collided with nothing; 116 do now, all of them prepared bodies at a tolerance of nought, whose
+index crosses no face of a body turned about in space and holds the points it locates by those crossings (parked). Of
+200 000 rays and segments starting at or passing an arc or a circle within the tolerance of its plane and rim, 914 were
+given points and collided with nothing, and 916 points were given where the ray or segment comes no nearer the curve
+than the tolerance; none is now, and of the answers that collide 141 moved, each giving one point of the two it gave, the
+other standing further off. Of 50 000 more drawn through a circle or an arc of radius 0.001 to a million, up to a
+thousand million out, not one touch given before is lost. Of the 120 000 rays, 152 that collide with a body moved: the
+meeting at an origin within the planar tolerance of a face but further than the point tolerance from the surface, or a
+billionth inside it at a tolerance of nought, is given no more. Every other answer of the rays is the same to the bit. A
+ray lying in a plane to rounding touches it everywhere and names no place, and one holding a level part of its line over
+a region is given none, as before: 1 021 and 6 844 of the 120 000. A ray piercing a polygon or a face takes a fifth to a
+third longer to be given its crossing (1.52 microseconds on .NET Framework 4.8 for a square where it took 1.28, 0.64 on
+.NET 10 where it took 0.49), one starting on it up to an eighth longer, and one piercing or starting on an oriented box
+0.07 to 0.14 microseconds longer. A ray missing a body but passing inside its box, which is asked how near it comes,
+takes longer: down the gap of a U from outside its box 10.9 microseconds where it took 9.5, and past the corner of the
+box of a cylinder of 64 sides 89.2 where it took 80.5, on .NET 10 compiled in full, the best of three; with the runtime
+compiling in tiers the U took 14 to 26 where it took 11 to 16. A ray piercing or starting on a body takes up to 7 %
+longer, and a ray missing the flat shapes and the collisions as long, within 0.03 microseconds. 24 new tests.
+
 ## 12.3.0
 
 **NEW.** `DxfReader` reads a DXF file into the library's shapes: `Read(path)`, `Read(stream)` and `Parse(text)`, each with

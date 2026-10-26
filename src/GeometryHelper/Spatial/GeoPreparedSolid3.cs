@@ -214,7 +214,11 @@ namespace GeometryHelper.Spatial
         /// reports it. A ray starting within the planar tolerance of where the material ends is read as
         /// <see cref="Intersection3.GetIntersections(GeoRay3, GeoSolid3, Tolerance)"/> reads it: dipping in, it crosses
         /// where it reaches the surface, so the ray from (5, 5, 0.0004) along (1, 0, -0.01) enters the box whose top
-        /// lies in z = 0 at (5.04, 5, 0); rising, it touches at its origin.
+        /// lies in z = 0 at (5.04, 5, 0); rising, it touches at its origin. One starting where the material ends, within the
+        /// point tolerance of the surface, and crossing no triangle touches it at its origin, as
+        /// <see cref="CollidesWith(GeoRay3, Tolerance)"/> reads it: with a planar tolerance of 1E-4, the ray from 0.0007 over
+        /// the top of the box 100 by 100 by 50 and 0.0007 beyond its side, rising away from both, touches it at its origin, where
+        /// it collided and was given nothing.
         /// </remarks>
         public GeoPoint3[] GetIntersections(GeoRay3 ray, Tolerance tolerance)
         {
@@ -228,6 +232,14 @@ namespace GeometryHelper.Spatial
                 }
 
                 hits.Add(ray.GetPointAtDistance(reach));
+            }
+
+            // Starting where the material ends, as Locate reads it, within the point tolerance of the surface, and crossing no
+            // triangle, the ray touches the material at its origin, as CollidesWith reads it.
+            if (hits.Count == 0 && !(Box.DistanceTo(ray.Origin) > tolerance.EqualPoint)
+                && Index.DistanceTo(ray.Origin, tolerance) <= tolerance.EqualPoint)
+            {
+                hits.Add(ray.Origin);
             }
 
             return hits.ToArray();

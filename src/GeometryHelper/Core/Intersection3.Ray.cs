@@ -25,6 +25,17 @@ namespace GeometryHelper.Core
         /// The surface is walked as triangles, so a crossing that falls on the seam between two of them
         /// arrives twice and is reported once. A ray starting inside the body has an odd number of
         /// crossings, and one starting outside an even number, give or take a face it merely grazes.
+        /// The list is held to <see cref="Collision3.CollidesWith(GeoRay3, GeoSolid3, Tolerance)"/>, which reads the ray by the
+        /// point tolerance and the body to a billionth: a ray starting within the planar tolerance of a face meets it at its
+        /// origin only where the origin stands within the point tolerance of the surface, whatever it meets further on, and one
+        /// that collides and crosses no face is given its point nearest the surface, where that stands within the point tolerance
+        /// of it, to the rounding of numbers the size of the body's, or the body holds the origin. With a point tolerance of a
+        /// hundredth and a planar one of five hundredths, the ray from 0.04 over the top of the box 100 by 100 by 50, rising a
+        /// hundredth for each unit along it, is given nothing, where it was given its origin and collided with nothing; the one
+        /// from 0.04 off the inner wall of a U, across its gap, is given the walls of the far prong only, and the one from 0.04
+        /// under the top of the box only where it leaves, where each was given its origin besides; at a tolerance of nought,
+        /// where the rounding of a body turned about in space refuses the crossing of every face, the ray from the middle of a
+        /// box 100 by 80 by 50 is given where it leaves, where it collided and was given nothing.
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoSolid3 solid, Tolerance tolerance)
         {
@@ -48,6 +59,38 @@ namespace GeometryHelper.Core
 
             reaches.Sort();
 
+            // A ray starting within the planar tolerance of a face is met at its origin, which may stand further off than the point
+            // tolerance, or lie deeper in the body: the meeting is given only where the origin stands within the point tolerance of
+            // the surface, whatever the ray meets further on. A face is crossed only where it holds the crossing, which at a
+            // tolerance of nought the rounding of a body turned about in space can refuse: a ray that touches the body, as
+            // CollidesWith reads it, and crosses no face is given its point nearest the surface.
+            if (reaches.Count > 0 && !(reaches[0] > 0.0) && !Collision3.StartTouches(solid, ray, tolerance))
+            {
+                reaches.RemoveAll(reach => !(reach > 0.0));
+            }
+
+            if (reaches.Count == 0)
+            {
+                if (!NearBox(ray, solid, tolerance) || !Collision3.RayTouches(solid, ray, tolerance))
+                {
+                    return new GeoPoint3[0];
+                }
+
+                // The nearest point is given where it stands within the point tolerance of the surface, or twice a billionth, the
+                // most the reading to a billionth holds at the edge of two faces, and the rounding of numbers the size of the body's,
+                // or where the body holds the origin as Locate reads it: the reading to a billionth behind CollidesWith can take a
+                // point outside a body far out for one inside, and then the ray meets nothing to name.
+                GeoPoint3 nearest = NearestOnRay(solid, ray, out double gap);
+                GeoAabb3 box = solid.GetAabb();
+                double size = Math.Max(Math.Max(Math.Abs(box.Min.X), Math.Abs(box.Max.X)), Math.Max(
+                    Math.Max(Math.Abs(box.Min.Y), Math.Abs(box.Max.Y)), Math.Max(Math.Abs(box.Min.Z), Math.Abs(box.Max.Z))));
+
+                return !(gap > Math.Max(tolerance.EqualPoint, 2E-9) + 1E-14 * (1.0 + size))
+                    || Containment3.Locate(solid, ray.Origin, tolerance) != Enums.PointLocation.OutSide
+                    ? new[] { nearest }
+                    : new GeoPoint3[0];
+            }
+
             var hits = new List<GeoPoint3>();
 
             foreach (double reach in reaches)
@@ -61,6 +104,49 @@ namespace GeometryHelper.Core
             }
 
             return hits.ToArray();
+        }
+
+        /// <summary>
+        /// Determines whether a ray comes within the reach of the point tolerance, or a billionth, of the box of a body, as far as
+        /// the farthest corner of the box: further, it neither touches the body nor starts in it.
+        /// </summary>
+        private static bool NearBox(GeoRay3 ray, GeoSolid3 material, Tolerance tolerance)
+        {
+            GeoAabb3 box = material.GetAabb();
+            double reach = ray.Origin.DistanceTo(box.Center) + 0.5 * box.Min.DistanceTo(box.Max);
+
+            return !(Gap3.BoxGap(ray.Origin, ray.GetPointAtDistance(reach), box) > Collision3.Reach(tolerance) + 1E-9);
+        }
+
+        /// <summary>
+        /// Gets the point of a ray nearest the surface of a body, as far as the farthest corner of the body's box: of points as near,
+        /// the one nearest the origin, and its gap to the surface.
+        /// </summary>
+        private static GeoPoint3 NearestOnRay(GeoSolid3 material, GeoRay3 ray, out double nearestGap)
+        {
+            GeoAabb3 box = material.GetAabb();
+            GeoPoint3 end = ray.GetPointAtDistance(ray.Origin.DistanceTo(box.Center) + 0.5 * box.Min.DistanceTo(box.Max));
+            GeoPoint3 nearest = ray.Origin;
+            double best = double.MaxValue;
+            double bestAlong = double.MaxValue;
+
+            for (int i = 0; i < material.Faces.Count; i++)
+            {
+                Gap3.Region region = material.RegionOf(i);
+                GeoPoint3 point = region.Nearest(ray.Origin, end);
+                double gap = region.PointGap(point);
+                double along = ray.GetDistanceAtPoint(point);
+
+                if (gap < best || (gap == best && along < bestAlong))
+                {
+                    nearest = point;
+                    best = gap;
+                    bestAlong = along;
+                }
+            }
+
+            nearestGap = best;
+            return nearest;
         }
     }
 }

@@ -1234,7 +1234,13 @@ namespace GeometryHelper.Core
         /// A ray runs to infinity, so it is sampled as a segment long enough to reach past the far side of
         /// the box. Nothing beyond that point can be a crossing: past it the ray is only moving away. A ray starting within
         /// the point tolerance of the box and running away from it touches it at its origin: the ray from (5, 5, 10.0005) up
-        /// along Z meets the box 10 by 10 by 10 there, where it was given nothing and collided.
+        /// along Z meets the box 10 by 10 by 10 there, where it was given nothing and collided. The list is held to
+        /// <see cref="Collision3.CollidesWith(GeoRay3, GeoObb3, Tolerance)"/>: a ray touching the box that holds no part longer
+        /// than the point tolerance lying level over a face or along an edge is given its point nearest the box, though the
+        /// short cut of it stands within the planar tolerance of the face it starts beside: with a point tolerance of a hundredth
+        /// and a planar one of five hundredths, the ray from 0.0075 beside a side of the box 100 by 80 by 50, 0.005 from its edge
+        /// and running away from both, touches it at its origin, where it collided and was given nothing. At a tolerance below
+        /// the rounding of the numbers a crossing is given only where the ray collides with the box.
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoObb3 box, Tolerance tolerance)
         {
@@ -1252,7 +1258,77 @@ namespace GeometryHelper.Core
 
             // A ray running away from every corner can still start within the tolerance of the box, and then touches it at
             // its origin: it is cut a tolerance long rather than passed over.
-            return GetIntersections(ray.ToLine(Math.Max(reach, 0.0) + tolerance.EqualPoint), box, tolerance);
+            GeoLine3 line = ray.ToLine(Math.Max(reach, 0.0) + tolerance.EqualPoint);
+            GeoPoint3[] hits = GetIntersections(line, box, tolerance);
+
+            // Touching the box as CollidesWith reads it, and holding no part longer than the point tolerance lying level over a face
+            // or along an edge, as a ray is read against each face, the ray is given its point nearest the box: its cut, which
+            // stands within the planar tolerance of the face it starts over at both ends, was read as lying along it, though it
+            // runs past the rim within the point tolerance of its origin. A cut further from the centre than the corners and the
+            // reach of the tolerance is plainly clear of the box and is not asked.
+            double round = Math.Sqrt(box.ExtentX * box.ExtentX + box.ExtentY * box.ExtentY + box.ExtentZ * box.ExtentZ);
+
+            if (hits.Length == 0 && !(Gap3.PointToSegment(box.Center, line.StartPoint, line.EndPoint) > round + Collision3.Reach(tolerance))
+                && Collision3.CollidesWith(ray, box, tolerance) && !LiesAlong(ray, box, tolerance))
+            {
+                new Gap3.Block(box).TryTouchAlone(line.StartPoint, line.EndPoint, tolerance.EqualPlanar, out GeoPoint3 nearest);
+
+                return new[] { nearest };
+            }
+
+            // A crossing the slabs give at a tolerance below the rounding of the numbers, of a ray a hair off a face, is given only
+            // where the ray touches the box as CollidesWith reads it, asked where a crossing does not plainly stand within the
+            // point tolerance of both.
+            if (hits.Length > 0 && !PlainlyOn(ray, box, hits, tolerance) && !Collision3.CollidesWith(ray, box, tolerance))
+            {
+                return new GeoPoint3[0];
+            }
+
+            return hits;
+        }
+
+        /// <summary>
+        /// Determines whether every point stands within the point tolerance of both a ray and a box with the rounding of their
+        /// numbers to spare, so that the two plainly touch.
+        /// </summary>
+        private static bool PlainlyOn(GeoRay3 ray, GeoObb3 box, GeoPoint3[] points, Tolerance tolerance)
+        {
+            var block = new Gap3.Block(box);
+
+            foreach (GeoPoint3 point in points)
+            {
+                GeoVector3 offset = ray.Origin.GetVectorTo(point);
+                double along = offset.DotProduct(ray.Direction);
+                double off = along > 0.0 ? offset.Subtract(ray.Direction.Multiply(along)).Length : offset.Length;
+                double rounding = 1E-12 * (1.0 + Math.Max(Math.Abs(point.X), Math.Max(Math.Abs(point.Y), Math.Abs(point.Z))));
+
+                if (block.Distance(point) + off + rounding > tolerance.EqualPoint)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Determines whether a ray holds more than the point tolerance of a part of the line along it lying level over a face of
+        /// a box or along one of its edges, as a ray is read against each face as a flat region.
+        /// </summary>
+        private static bool LiesAlong(GeoRay3 ray, GeoObb3 box, Tolerance tolerance)
+        {
+            GeoSolid3 body = box.ToSolid();
+            GeoLine3 line = XLine3.CutPast(new GeoXLine3(ray.Origin, ray.Direction), box, tolerance);
+
+            for (int i = 0; i < body.Faces.Count; i++)
+            {
+                if (HoldsLevelPart(ray, line, body.RegionOf(i), true, tolerance))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>

@@ -1,4 +1,5 @@
 using System;
+using GeometryHelper.Core;
 using GeometryHelper.Geometry;
 using Xunit;
 
@@ -97,24 +98,27 @@ namespace GeometryHelper.UnitTest.Solid
                 var ray = new GeoRay3(origin, along);
                 var line = new GeoXLine3(origin, along);
 
-                AssertOnTheLine(ray, ray.GetIntersections(Triangle, Thousandth), line.GetIntersections(Triangle, Thousandth));
-                AssertOnTheLine(ray, ray.GetIntersections(Square, Thousandth), line.GetIntersections(Square, Thousandth));
-                AssertOnTheLine(ray, ray.GetIntersections(face, Thousandth), line.GetIntersections(face, Thousandth));
+                AssertOnTheLine(ray, ray.GetIntersections(Triangle, Thousandth), line.GetIntersections(Triangle, Thousandth), p => Distance3.DistanceTo(Triangle, p));
+                AssertOnTheLine(ray, ray.GetIntersections(Square, Thousandth), line.GetIntersections(Square, Thousandth), p => Distance3.DistanceTo(Square, p, Thousandth));
+                AssertOnTheLine(ray, ray.GetIntersections(face, Thousandth), line.GetIntersections(face, Thousandth), p => Distance3.DistanceTo(face, p, Thousandth));
             }
         }
 
         /// <summary>
         /// Each point of the ray is one of its line's, but for its origin where the line meets the shape only behind it, or
-        /// lies level over it only behind it.
+        /// lies level over it only behind it, and for a point the ray holds within the tolerance of the shape where the line names
+        /// a place too: the line names one place, the nearest, where it touches the shape at two, and the ray touching it at the
+        /// other is given that.
         /// </summary>
-        private static void AssertOnTheLine(GeoRay3 ray, GeoPoint3[] onRay, GeoPoint3[] onLine)
+        private static void AssertOnTheLine(GeoRay3 ray, GeoPoint3[] onRay, GeoPoint3[] onLine, Func<GeoPoint3, double> gapToShape)
         {
             foreach (GeoPoint3 point in onRay)
             {
                 bool atOrigin = !(point.DistanceTo(ray.Origin) > Thousandth.EqualPoint);
                 bool behind = Array.TrueForAll(onLine, p => ray.Origin.GetVectorTo(p).DotProduct(ray.Direction) < 0.0);
+                bool held = onLine.Length > 0 && ray.IsPointOn(point, Thousandth) && !(gapToShape(point) > Thousandth.EqualPoint);
 
-                Assert.True(Array.Exists(onLine, p => !(p.DistanceTo(point) > Thousandth.EqualPoint)) || (atOrigin && behind), $"{ray}: {point}");
+                Assert.True(Array.Exists(onLine, p => !(p.DistanceTo(point) > Thousandth.EqualPoint)) || (atOrigin && behind) || held, $"{ray}: {point}");
             }
         }
     }

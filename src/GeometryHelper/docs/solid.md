@@ -172,8 +172,12 @@ nothing, as before, and so does one lying along the box within the tolerance, wi
 of the face it stands over or the line of the edge it runs with all along, as the body of the box and an arc in the same
 place read it, a curve lying on a surface crossing it nowhere: the chain 0.0005 over the top face is given no point, and
 the segment 800 long from 0.0006 over the top face, tilted 9E-6 and so rising 0.0072, touches it at its low end. A ray starting within the
-tolerance of the box and running away from it touches it at its origin. Cutting a chain by a box cuts only where it
-crosses a face, since a touch cuts nothing.
+tolerance of the box and running away from it touches it at its origin, and so does one whose short cut stands within
+the planar tolerance of the face it starts beside, though no part of it longer than the point tolerance lies level over a
+face or along an edge: with a point tolerance of a hundredth and a planar one of five hundredths, the ray from 0.0075
+beside a side of the box 100 by 80 by 50, 0.005 from its edge and running away from both, touches it at its origin,
+where it collided and was given nothing. Cutting a chain by a box cuts only where it crosses a face, since a touch cuts
+nothing.
 
 ### Solids and openings
 
@@ -416,6 +420,22 @@ slab.DistanceTo(incoming);               // 0.0
 slab.DistanceTo(leaving);                // 200.0 — its nearest point is its own origin
 ```
 
+A ray is given a place where it meets a body exactly where `CollidesWith` says the two touch, which reads the ray by the
+point tolerance and the body to a billionth. One starting within the planar tolerance of a face and rising from it
+touches the face at its origin only where the origin stands within the point tolerance of the surface, whatever the ray
+meets further on and however deep in the body it starts: with a point tolerance of a hundredth and a planar one of five
+hundredths, the ray from 0.04 over the top of the box 100 by 100 by 50, rising a hundredth for each unit along it, is
+given nothing, where it was given its origin and collided with nothing, and the one from 0.004 over it touches it at its
+origin; the ray from 0.04 off the inner wall of a U, its prongs and base 20 thick, across the gap, is given the two walls
+of the far prong, and the one from 0.04 under the top of the box where it leaves, where each was given its origin
+besides. One that collides and crosses no face is given its point nearest the surface, where that stands within the
+point tolerance of it, to the rounding of numbers the size of the body's, or the body holds the origin: at a tolerance of
+nought,
+where the rounding of a body turned about in space refuses the crossing of every face, the ray from the middle of a box
+100 by 80 by 50 turned 0.7 of a radian is given where it leaves, to 1E-14 of where it leaves at a thousandth, where it
+collided and was given nothing. A prepared solid gives a ray that starts within the point tolerance of where its material
+ends and crosses no triangle its origin, as its `CollidesWith` reads it.
+
 A `GeoCircle3` is not on the list. The distance from a circle in space to a flat face has no closed form,
 and the library does not guess: turn it into a chain first, which says in the call how close an answer you
 are asking for.
@@ -498,7 +518,12 @@ and chains and loops of arcs against all of them. Measured at a thousandth:
   rim, is given the point of the curve nearest it: the segment from (0, 50.0006, 1) to (0, 50.0006, -1) touches the
   circle of radius 50 about the origin at (0, 50, 0), where it collided and was given nothing. Of 20 000 segments
   piercing the plane of an arc from 1E-7 to 0.002 beside its rim, asked of the arc, its circle and its edge, 4 676 times
-  one collided and was given no point; none does now. A chain names each place once: two points within the point
+  one collided and was given no point; none does now. A point of the circle on the line of a segment or a ray, held by
+  each within the point tolerance, is given only where the segment or ray, at its point nearest it, comes within the
+  point tolerance of the curve, each point on its own: the segment from (0, 0, 0.0008) to (49.9992, 0, 0.0008), ending
+  0.00113 from the circle of radius 50 about the origin, is given nothing, where it was given (50, 0, 0.0008) and collided
+  with nothing; the one from (-60, 0, 0.0008), passing 0.0008 over the far rim, is given that touch alone; and the one
+  from (-60, 0, 0.0006) to (49.9994, 0, 0.0006), ending 0.000849 from the near rim, both. A chain names each place once: two points within the point
   tolerance of each other are one place, and so are two that the edges either side of a corner give where both lie
   within the point tolerance of the corner, a crossing kept over the point of a touch and otherwise the first. Places
   further from a corner are kept however close the legs run: a segment crossing both legs of a hairpin 0.0009 across at
@@ -525,7 +550,12 @@ and chains and loops of arcs against all of them. Measured at a thousandth:
   nothing; the one from 0.0002 over it falling 4E-6 climbs 0.0004 and is given nothing, as its line is; and one a
   hundred-millionth or so off the plane and level to rounding is given nothing however near it starts. Where the line
   meets the region only behind the origin, or lies level over it only behind a ray running away from it, a ray whose
-  origin touches the region is given its origin. `TryIntersectWith` of a ray gives the first point of this list and is
+  origin touches the region is given its origin. A ray is given a point exactly where `CollidesWith` says it touches the
+  region, but where it holds more than the point tolerance of a part of its line lying level over it: the ray from 0.0006
+  beside the side of the square and 0.0003 over it, running away from the side at a hundredth, 0.00067 from the square,
+  touches it at its origin, where it collided and was given nothing, its own part read along the side; and at a
+  tolerance of nought a ray starting 4E-12 over the square and rising from it touches nothing and is given nothing, where
+  it was given the crossing of its line 4E-12 behind its origin. `TryIntersectWith` of a ray gives the first point of this list and is
   false where the list is empty, so the ray from 0.0002 over the square falling 4E-6 is refused there too, where it was
   given its crossing of the floor; that of a segment or a line without ends gives the crossing alone, and is false for a
   touch the list gives. Such a ray or line is read by the two ends of the part of it over the region, from where its shadow on the

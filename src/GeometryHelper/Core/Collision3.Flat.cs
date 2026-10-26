@@ -159,7 +159,7 @@ namespace GeometryHelper.Core
         /// its distance says.
         /// </remarks>
         public static bool CollidesWith(GeoRay3 ray, GeoTriangle3 triangle, Tolerance tolerance)
-            => Gap3.Ray(Gap3.Region.Of(triangle), ray, tolerance.EqualPoint) <= tolerance.EqualPoint;
+            => RayTouches(Gap3.Region.Of(triangle), ray, tolerance);
 
         /// <summary>
         /// Determines whether a ray runs into a polygon.
@@ -185,7 +185,7 @@ namespace GeometryHelper.Core
                 throw new System.ArgumentNullException(nameof(polygon));
             }
 
-            return Gap3.Ray(Gap3.Region.Of(polygon), ray, tolerance.EqualPoint) <= tolerance.EqualPoint;
+            return RayTouches(Gap3.Region.Of(polygon), ray, tolerance);
         }
 
         /// <summary>
@@ -212,8 +212,16 @@ namespace GeometryHelper.Core
                 throw new System.ArgumentNullException(nameof(face));
             }
 
-            return Gap3.Ray(Gap3.Region.Of(face), ray, tolerance.EqualPoint) <= tolerance.EqualPoint;
+            return RayTouches(Gap3.Region.Of(face), ray, tolerance);
         }
+
+        /// <summary>
+        /// Determines whether a ray comes within the point tolerance of a flat region (rule R): the one test a triangle, a polygon
+        /// and a face are asked about a ray by, by <c>CollidesWith</c> and by the list of where they meet alike, so that the two
+        /// cannot part.
+        /// </summary>
+        internal static bool RayTouches(Gap3.Region region, GeoRay3 ray, Tolerance tolerance)
+            => Gap3.Ray(region, ray, tolerance.EqualPoint) <= tolerance.EqualPoint;
 
         #endregion
 
