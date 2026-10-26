@@ -235,6 +235,39 @@ those AutoCAD keeps as DICTIONARYVAR objects rather than in the header (`Cannosc
 `MLeaderstyle`, `AnnoAllVisible`, `TstackSize` and the rest), adding the dictionary of variables where a drawing has none,
 reads its `ThumbnailBitmap`, and has five more variables of the header as properties, `Splinesegs`, `Splinetype`, `Surftype`, `Surfu` and `Surfv`. Every value set was read back by ezdxf 1.4.5, whose recover and audit found nothing to fix.
 
+**NEW.** The cells of a `DxfTable` as AutoCAD's `Table` has them, 36 members it did not have. A cell's value has its
+kind, `DataType` (the new `DxfDataType`, AutoCAD's numbers), `UnitType` (`DxfUnitType`) and `Format`, read from its
+`301 CELL_VALUE` from R2007 on, with `GetDataType` (`DxfDataTypeParameter`) and `GetDataFormat`;
+`SetValue(row, col, 12.5)` writes a number (90 of 2, 140 12.5, its text 12.5), `SetValue(row, col, 42)` a whole number
+of 32 bits and a string a text, the unit and the format kept, and `SetFormat`, `SetDataFormat`, `SetDataType` (the text
+12 turned into the whole number 12, the text Parts refused as a number, a unit of several flags as
+`Angle | AngleNotTransformed` written as it is) and `ResetValue` write the rest, none of them setting a flag of the
+cell's overrides; the library does not format a value, and a date or a point is refused, the library knowing no groups
+for one, as the DXF reference does not describe a cell's value. Before R2007 a cell holds its text alone: a value is
+written as its text, and a kind or a format is refused. The look of a cell is set as its own override with its flag in
+its 177 (91 from R2007 on), each group in the order of the DXF reference: `SetAlignment`, `SetTextHeight`,
+`SetTextStyle`, `SetContentColor`, `SetBackgroundColor`, `SetBackgroundColorNone`; a cell that gives no flags is given
+those of the overrides it holds, so that none is lost, and a colour is one of the index, a true colour refused.
+`TextRotation`, `SetTextRotation` (`DxfRotationAngle`) and `SetRotation` read and write a cell's turn, `IsAutoScale`,
+`SetAutoScale` and their forms by content a block cell's fitting, `SetScale` its scale, and `SetCellType` makes a block
+cell a text cell. `GetOverrides` gives what a cell holds of its own as AutoCAD's `CellProperties` (`DxfCellProperties`),
+`SetOverrides` keeps those given and takes the rest away, `RemoveAllOverrides` takes them all, both keeping the cell's
+own kind of value (its flag 0x40000), and `TableStyleOverrides` and `ClearTableStyleOverrides(options)` read and take
+away the table's own, in one pass over the table's groups: the cells of a table of 16 001 rows of 2 columns, half of
+them of three overrides, are cleared in 0.19 s. The cells are walked row by row, `table.Cells[1, 0]` is a `DxfCell` that
+reads and sets one, and `Rows` and `Columns` give `DxfRow` and `DxfColumn` with their `Height` and `Width`; the block of
+merged cells `GetMergeRange` gives reads its cells too. `HitTest` gives the cell a point hits (`DxfTableHitTestInfo`),
+carried along the direction it is seen in onto the table's plane, on a table turned or mirrored as on a flat one, and
+`AttachmentPoint` the point a cell's content is placed at: the header cell (1, 1) of a table at (300, -100, 0) of
+columns 40 and 30 wide and rows 10, 8 and 8 high is placed at (355, -114, 0), a cell of a merged block by the block's
+top left cell, and the top is the cell's top as it is seen where the rows flow up. None of them draws the table's block
+anew. Left out, as no file of these versions has a group for them that the DXF reference or ezdxf gives: a cell's state,
+tooltip, cell style, own margins, content layout, custom data and merging of all, a column's name, and the forms by row
+type. ezdxf 1.4.5, which has no model of ACAD_TABLE, read the edits of texts, values, looks, alignments and cell types on
+drawings of R2000, R2007 and R2018 with nothing for its recover and audit to fix, gave the cells' texts (their 302, or 1
+before R2007) as they were set, and found in each cell the groups written; every setter given what a cell has writes
+nothing.
+
 **NEW.** The dimension variables of AutoCAD's `Database`, `Dimension` and `Leader` that the library did not have, 84 of
 them. `DxfDatabase` reads and sets the 77 `$DIM` variables of the header by their AutoCAD names (`Dimasz` is `$DIMASZ`,
 `Dimfxlen` `$DIMFXL`, `DimAssoc` `$DIMASSOC`), each read as AutoCAD's metric drawing has it where the header gives none

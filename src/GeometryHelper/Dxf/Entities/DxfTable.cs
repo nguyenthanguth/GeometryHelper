@@ -26,8 +26,10 @@ namespace GeometryHelper.Dxf
     /// and the other reads of a cell's look give its own override, null where it has none.
     /// </para>
     /// <para>
-    /// <see cref="SetTextString(int, int, string)"/>, <see cref="SetRowHeight(int, double)"/> and
-    /// <see cref="SetColumnWidth(int, double)"/> write the table's data, every other group kept; the block AutoCAD drew the table
+    /// <see cref="SetTextString(int, int, string)"/>, <see cref="SetValue(int, int, object)"/>,
+    /// <see cref="SetRowHeight(int, double)"/>, <see cref="SetColumnWidth(int, double)"/>, the setters of a cell's look
+    /// (<see cref="SetAlignment(int, int, DxfCellAlignment)"/> and the others, each the cell's own override with its flag) and the
+    /// rest write the table's data, every other group kept; the block AutoCAD drew the table
     /// with is not drawn anew, as its <c>RecomputeTableBlock</c> would draw it: AutoCAD draws the table anew from its data when
     /// it next updates it, and until then shows the old picture. Moved, turned, mirrored or scaled alike in every direction by
     /// <see cref="DxfEntity.TransformBy(GeoTransform3)"/>, its sizes scaled with it, a table carries its block's entities with it
@@ -39,7 +41,7 @@ namespace GeometryHelper.Dxf
     /// value (300) and the cell's count (179) made to agree, as AutoCAD reads the pairs by that count.
     /// </para>
     /// </remarks>
-    public sealed class DxfTable : DxfEntity
+    public sealed partial class DxfTable : DxfEntity
     {
         // The groups of AcDbBlockReference and AcDbTable in the order AutoCAD writes them, the table's head.
         private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 2, 10, 20, 30, 100, 280, 342, 343, 11, 21, 31, 90, 91, 92, 93, 94, 95, 96, 141, 142 });
@@ -323,7 +325,7 @@ namespace GeometryHelper.Dxf
             return range.TopRow != range.BottomRow || range.LeftColumn != range.RightColumn;
         }
 
-        /// <summary>Gets the block of merged cells a cell is in, as AutoCAD's <c>GetMergeRange</c>: the title of two columns, (0, 0) to (0, 1); the cell alone where it is merged with none.</summary>
+        /// <summary>Gets the block of merged cells a cell is in, as AutoCAD's <c>GetMergeRange</c>: the title of two columns, (0, 0) to (0, 1), whose cell <c>range[0, 0]</c> is the table's; the cell alone where it is merged with none.</summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="column">The column, from nought.</param>
         /// <returns>The range.</returns>
@@ -349,12 +351,12 @@ namespace GeometryHelper.Dxf
 
                     if ((width > 1 || height > 1) && row < r + Math.Max(1, height) && column < c + Math.Max(1, width))
                     {
-                        return new DxfCellRange(r, c, r + Math.Max(1, height) - 1, c + Math.Max(1, width) - 1);
+                        return new DxfCellRange(this, r, c, r + Math.Max(1, height) - 1, c + Math.Max(1, width) - 1);
                     }
                 }
             }
 
-            return new DxfCellRange(row, column, row, column);
+            return new DxfCellRange(this, row, column, row, column);
         }
 
         /// <summary>Gets where a cell's content stands, as AutoCAD's <c>Alignment</c>: the cell's own (170); null where it has none, its table style's then.</summary>
@@ -1279,7 +1281,7 @@ namespace GeometryHelper.Dxf
             private static readonly HashSet<int> CellHead = new HashSet<int> { 172, 173, 174, 175, 176, 177, 91, 178, 145, 92, 344, 1, 2, 3, 340, 144, 179, 331, 300 };
 
             // The groups of a cell's own overrides, each with its flag in the cell's 177 or 91.
-            private static readonly Dictionary<int, int> CellOverrides = new Dictionary<int, int>
+            internal static readonly Dictionary<int, int> CellOverrides = new Dictionary<int, int>
             {
                 [170] = 0x01, [283] = 0x02, [63] = 0x04, [64] = 0x08, [7] = 0x10, [140] = 0x20,
                 [69] = 0x40, [65] = 0x80, [66] = 0x100, [68] = 0x200,
@@ -1378,6 +1380,13 @@ namespace GeometryHelper.Dxf
         /// <summary>A cell, as the groups from its 171 to the next cell's.</summary>
         private sealed class CellView
         {
+            // The groups of a cell's head in the order AutoCAD writes them: its flags in 177 before R2007 and in 91 from R2007
+            // on, in the one place; its text, before R2007, in 2 and 1.
+            private static readonly int[] HeadOrder = { 171, 172, 173, 174, 175, 176, 177, 91, 178, 145, 92, 344, 2, 1, 3, 340, 144, 179, 331, 300 };
+
+            // The groups of a cell's own overrides in the order of the DXF reference, after its head and its value.
+            private static readonly int[] OverrideOrder = { 7, 140, 170, 64, 63, 69, 65, 66, 68, 279, 275, 276, 278, 283, 289, 285, 286, 288 };
+
             internal CellView(DxfDimGroups groups, int from, int to)
             {
                 Groups = groups;
@@ -1533,36 +1542,7 @@ namespace GeometryHelper.Dxf
 
                 if (ValueFrom >= 0)
                 {
-                    int end = ValueTo >= 0 ? ValueTo : To - 1;
-                    var value = new List<KeyValuePair<int, string>> { Groups.List[ValueFrom] };
-                    string flags = null;
-                    string unit = null;
-                    string format = null;
-
-                    for (int i = ValueFrom + 1; i < end; i++)
-                    {
-                        int code = Groups.List[i].Key;
-                        flags = code == 93 && flags == null ? Groups.List[i].Value : flags;
-                        unit = code == 94 && unit == null ? Groups.List[i].Value : unit;
-                        format = code == 300 && format == null ? Groups.List[i].Value : format;
-                    }
-
-                    value.Add(new KeyValuePair<int, string>(93, flags ?? "6"));
-                    value.Add(new KeyValuePair<int, string>(90, "4"));
-                    value.AddRange(pieces);
-                    value.Add(new KeyValuePair<int, string>(94, unit ?? "0"));
-                    value.Add(new KeyValuePair<int, string>(300, format ?? string.Empty));
-                    value.Add(new KeyValuePair<int, string>(302, text));
-
-                    for (int i = end - 1; i >= ValueFrom; i--)
-                    {
-                        Groups.RemoveAt(i);
-                    }
-
-                    for (int k = 0; k < value.Count; k++)
-                    {
-                        Groups.Insert(ValueFrom + k, value[k]);
-                    }
+                    WriteValue("4", pieces, text, null, null);
                 }
                 else
                 {
@@ -1599,7 +1579,12 @@ namespace GeometryHelper.Dxf
                     }
                 }
 
-                // The cell's text is its own now, not a field's.
+                DropField();
+            }
+
+            /// <summary>Takes out the cell's pointer to a field (344): its text is its own now, not a field's.</summary>
+            internal void DropField()
+            {
                 for (int i = From; i < Groups.List.Count && (i == From || Groups.List[i].Key != 171); i++)
                 {
                     if (Groups.List[i].Key == 344)
@@ -1610,8 +1595,234 @@ namespace GeometryHelper.Dxf
                 }
             }
 
+            /// <summary>
+            /// Writes the cell's value of R2007 anew, from its 301 to its 304: its flags (93) kept, its kind (90), its data, its
+            /// unit (94) and format (300), each kept where null is given, and its text (302).
+            /// </summary>
+            internal void WriteValue(string kind, IEnumerable<KeyValuePair<int, string>> data, string text, string unit, string format)
+            {
+                int end = ValueTo >= 0 ? ValueTo : To - 1;
+                var value = new List<KeyValuePair<int, string>> { Groups.List[ValueFrom] };
+                string flags = null;
+                string unitNow = null;
+                string formatNow = null;
+
+                for (int i = ValueFrom + 1; i < end; i++)
+                {
+                    int code = Groups.List[i].Key;
+                    flags = code == 93 && flags == null ? Groups.List[i].Value : flags;
+                    unitNow = code == 94 && unitNow == null ? Groups.List[i].Value : unitNow;
+                    formatNow = code == 300 && formatNow == null ? Groups.List[i].Value : formatNow;
+                }
+
+                value.Add(new KeyValuePair<int, string>(93, flags ?? "6"));
+                value.Add(new KeyValuePair<int, string>(90, kind));
+                value.AddRange(data);
+                value.Add(new KeyValuePair<int, string>(94, unit ?? unitNow ?? "0"));
+                value.Add(new KeyValuePair<int, string>(300, format ?? formatNow ?? string.Empty));
+                value.Add(new KeyValuePair<int, string>(302, text));
+
+                for (int i = end - 1; i >= ValueFrom; i--)
+                {
+                    Groups.RemoveAt(i);
+                }
+
+                for (int k = 0; k < value.Count; k++)
+                {
+                    Groups.Insert(ValueFrom + k, value[k]);
+                }
+            }
+
+            /// <summary>The first group of a code within the cell's value of R2007; null where it has none, or no value.</summary>
+            internal string InValue(int code)
+            {
+                int end = ValueTo >= 0 ? ValueTo : To;
+
+                for (int i = ValueFrom + 1; ValueFrom >= 0 && i < end; i++)
+                {
+                    if (Groups.List[i].Key == code)
+                    {
+                        return Groups.List[i].Value;
+                    }
+                }
+
+                return null;
+            }
+
+            /// <summary>The groups of the cell's value of R2007 that carry its data: all but its flags, kind, unit, format and text.</summary>
+            internal List<KeyValuePair<int, string>> ValueData()
+            {
+                var data = new List<KeyValuePair<int, string>>();
+                int end = ValueTo >= 0 ? ValueTo : To - 1;
+
+                for (int i = ValueFrom + 1; i < end; i++)
+                {
+                    int code = Groups.List[i].Key;
+
+                    if (code != 93 && code != 90 && code != 94 && code != 300 && code != 302)
+                    {
+                        data.Add(Groups.List[i]);
+                    }
+                }
+
+                return data;
+            }
+
+            /// <summary>Where the cell's own overrides begin: after its value from R2007 on, else at the first of them, else at its end.</summary>
+            internal int OverridesFrom
+            {
+                get
+                {
+                    if (ValueFrom >= 0)
+                    {
+                        return ValueTo >= 0 ? ValueTo + 1 : To;
+                    }
+
+                    for (int i = From + 1; i < To; i++)
+                    {
+                        if (Layout.CellOverrides.ContainsKey(Groups.List[i].Key))
+                        {
+                            return i;
+                        }
+                    }
+
+                    return To;
+                }
+            }
+
+            /// <summary>
+            /// Gives a group of the cell's head a text: in place where it has one, else put in after the last group of the head
+            /// whose code comes before it in the order AutoCAD writes them.
+            /// </summary>
+            internal void SetHead(int code, string text)
+            {
+                int end = ValueFrom >= 0 ? ValueFrom : OverridesFrom;
+                int rank = Array.IndexOf(HeadOrder, code);
+                int after = From;
+
+                for (int i = From + 1; i < end; i++)
+                {
+                    int key = Groups.List[i].Key;
+
+                    if (key == code)
+                    {
+                        Groups.List[i] = new KeyValuePair<int, string>(code, text);
+                        return;
+                    }
+
+                    int their = Array.IndexOf(HeadOrder, key);
+                    after = their >= 0 && their < rank ? i : after;
+                }
+
+                Groups.Insert(after + 1, new KeyValuePair<int, string>(code, text));
+                To++;
+            }
+
+            /// <summary>
+            /// Gives the cell an override of its own: its group written in place, or put in among its overrides in the order of
+            /// the DXF reference, and its flag set; a cell of no flags given the flags of the overrides it holds, in a group of
+            /// the code given (91 from R2007 on, 177 before).
+            /// </summary>
+            internal void SetOverride(int code, string text, int flagsCode)
+            {
+                int? flags = Flags;
+                int now = flags ?? Held();
+                int bit = Layout.CellOverrides[code];
+                int start = OverridesFrom;
+                int rank = Array.IndexOf(OverrideOrder, code);
+                int at = -1;
+                int after = -1;
+
+                for (int i = start; i < To; i++)
+                {
+                    int key = Groups.List[i].Key;
+                    at = key == code && at < 0 ? i : at;
+                    int their = Array.IndexOf(OverrideOrder, key);
+                    after = their >= 0 && their < rank ? i : after;
+                }
+
+                if (at >= 0)
+                {
+                    Groups.List[at] = new KeyValuePair<int, string>(code, text);
+                }
+                else
+                {
+                    Groups.Insert(after >= 0 ? after + 1 : start, new KeyValuePair<int, string>(code, text));
+                    To++;
+                }
+
+                if (flags != (now | bit))
+                {
+                    SetFlags(now | bit, flagsCode);
+                }
+            }
+
+            /// <summary>Takes out the cell's own overrides whose flags are in a mask, their groups and their flags; the other flags kept.</summary>
+            internal void RemoveOverrides(int mask)
+            {
+                var marked = new bool[Groups.List.Count];
+                MarkOverrides(mask, marked);
+                To -= Groups.RemoveMarked(marked);
+            }
+
+            /// <summary>
+            /// Marks the cell's own overrides whose flags are in a mask to be taken out, and takes their flags away, the other
+            /// flags kept: every group stays where it stands until the groups marked of every cell are taken out together.
+            /// </summary>
+            internal void MarkOverrides(int mask, bool[] marked)
+            {
+                for (int i = OverridesFrom; i < To; i++)
+                {
+                    if (Layout.CellOverrides.TryGetValue(Groups.List[i].Key, out int bit) && (bit & mask) != 0)
+                    {
+                        marked[i] = true;
+                    }
+                }
+
+                int? flags = Flags;
+
+                if (flags.HasValue && (flags.Value & mask) != 0)
+                {
+                    SetFlags(flags.Value & ~mask, 177);
+                }
+            }
+
+            /// <summary>The flags of the overrides the cell holds among its own, for a cell that gives none.</summary>
+            internal int Held()
+            {
+                int held = 0;
+
+                for (int i = OverridesFrom; i < To; i++)
+                {
+                    held |= Layout.CellOverrides.TryGetValue(Groups.List[i].Key, out int bit) ? bit : 0;
+                }
+
+                return held;
+            }
+
+            /// <summary>Writes the flags of the cell's overrides: in its 91, else its 177, else in a new group of the code given.</summary>
+            private void SetFlags(int flags, int code)
+            {
+                string text = flags.ToString(CultureInfo.InvariantCulture);
+                int end = ValueFrom >= 0 ? ValueFrom : To;
+
+                foreach (int which in new[] { 91, 177 })
+                {
+                    for (int i = From + 1; i < end; i++)
+                    {
+                        if (Groups.List[i].Key == which)
+                        {
+                            Groups.List[i] = new KeyValuePair<int, string>(which, text);
+                            return;
+                        }
+                    }
+                }
+
+                SetHead(code, text);
+            }
+
             /// <summary>A text in pieces of 250 letters, as the DXF reference writes a long one: 2 for each but the last, 1 for that.</summary>
-            private static List<KeyValuePair<int, string>> Pieces(string text)
+            internal static List<KeyValuePair<int, string>> Pieces(string text)
             {
                 var pieces = new List<KeyValuePair<int, string>>();
                 int at = 0;

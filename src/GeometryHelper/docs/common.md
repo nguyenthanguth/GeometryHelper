@@ -482,7 +482,7 @@ Dxf in front and their members' names.
 | `BlockReference`, `MInsertBlock`, `AttributeReference`, `AttributeDefinition` | `DxfBlockReference`, `DxfMInsertBlock`, `DxfAttributeReference`, `DxfAttributeDefinition` | `new DxfBlockReference(position, block)` takes the block record, not its id; `AttributeCollection.AppendAttribute` takes the attribute itself. |
 | `Hatch`, `Leader`, `MLeader` | `DxfHatch`, `DxfLeader`, `DxfMLeader` | A loop is a `DxfHatchLoop` of the library's shapes; `EvaluateHatch` and `EvaluateLeader` are not there. |
 | `RotatedDimension`, `AlignedDimension`, `RadialDimension`, `DiametricDimension`, `LineAngularDimension2`, `Point3AngularDimension`, `ArcDimension`, `OrdinateDimension`, `RadialDimensionLarge` | the same with Dxf in front | `RecomputeDimensionBlock` is not there: the block that draws a dimension is left for AutoCAD to draw anew. |
-| `Table` | `DxfTable` | Cells read and set; its block is left for AutoCAD to draw anew (`RecomputeTableBlock` is not there); a shear or a scale unlike along its axes refused. |
+| `Table` | `DxfTable` | Cells read and set; its block is left for AutoCAD to draw anew (`RecomputeTableBlock` is not there); a shear or a scale unlike along its axes refused. `table.Cells[r, c]` is a `DxfCell`, `Rows` and `Columns` lists of `DxfRow` and `DxfColumn`; `SetTextStyle` takes the record, not its id. The forms by row type (`SetAlignment(align, rowTypes)` and the like) are not there. |
 | `Viewport`, `Layout`, `PlotSettings` | `DxfViewport`, `DxfLayout`, `DxfPlotSettings` | `db.Layouts` walks the layouts in the order of their tabs; plot settings are read only. |
 | `LayerTableRecord`, `LinetypeTableRecord`, `TextStyleTableRecord`, `DimStyleTableRecord` | `DxfLayerTableRecord`, `DxfLinetypeTableRecord`, `DxfTextStyleTableRecord`, `DxfDimStyleTableRecord` | Found by name, either case: `db.LayerTable["steel"]` is the layer Steel, and added by `Add`. A layer, a dimension style and a block are renamed by `Name` with every reference to them; a layer, a linetype, a dimension style and a block are erased by `Erase()` where nothing uses them. |
 | `lt.Has("steel")`, `lt["steel"]` giving an `ObjectId` | `db.LayerTable.Has("steel")`, `db.LayerTable["steel"]` giving the record | Null where the table has none. |
@@ -975,6 +975,41 @@ of 1 000 rows in milliseconds. Its cells are written in the form of R2000 (text 
 AutoCAD to draw anew. Scaled alike by `TransformBy`, a table scales the heights of its rows, the widths of its columns, its
 cell margins and the text heights and block scales it and its cells override: a table of rows 10, 8 and 8 high scaled by 2
 has rows 20, 16 and 16 high. Mirrored, its normal is turned round and its cells stand where the mirror puts them.
+
+A cell's value has its kind, `DataType` (`Long`, `Double` or `String`, the value's 90 from R2007 on), what its number
+measures, `UnitType`, and its format, `Format` (`%lu2%pr2`), each in the cell's `301 CELL_VALUE`.
+`SetValue(row, col, 12.5)` writes a number of the kind `Double`, its text 12.5, its unit and format kept, and
+`SetValue(row, col, 42)` a whole number; `SetFormat`, `SetDataType` (the text 12 turned into the whole number 12, the
+text Parts refused as a number, a unit of several flags as `Angle | AngleNotTransformed`, 65 538, written as it is) and
+`ResetValue` write the rest, in the cell's value: none of them sets a flag of the cell's overrides, so `GetOverrides`
+gives what it gave. The library does not format a value: AutoCAD writes its text by the format when it draws the table
+anew. A cell of a file before R2007 holds its text alone, so a value set there is written as its text and reads back as
+one, and a kind or a format other than a text and none is refused. A date or a point is refused as a value: the library
+knows no groups for one, as the DXF reference does not describe a cell's value. The look of a cell is set as its own
+override with its flag in the cell's 177 (91 from R2007 on), in the order the DXF reference lists them: `SetAlignment`,
+`SetTextHeight`, `SetTextStyle`, `SetContentColor`, `SetBackgroundColor` (a colour of the index, BYLAYER or BYBLOCK; a
+true colour refused) and `SetBackgroundColorNone`; `SetTextRotation` and `SetRotation` write a cell's turn (145),
+`SetAutoScale` a block cell's fitting (174), and `SetCellType` makes a block cell a text cell, its block and attribute
+values taken out. `GetOverrides` gives what a cell holds of its own as AutoCAD's `CellProperties`, `SetOverrides` keeps
+those given and takes the rest away, so that the cell takes them from its table style, `RemoveAllOverrides` takes them
+all, both keeping the cell's own kind of value (its flag 0x40000), for which the library knows no groups; and
+`TableStyleOverrides` and `ClearTableStyleOverrides` read and take away the table's own (its flags 93 to 96 and the
+groups after its last cell), in one pass over the table's groups: the cells of a table of 16 001 rows of 2 columns, half
+of them of three overrides, are cleared in 0.19 s, where taking each group out on its own took 6.6 s. The cells are
+walked row by row (`foreach (DxfCell cell in table)`), and `table.Cells[1, 0]` is a `DxfCell` that reads and sets one,
+`cell.TextString = "Count"`, `cell.Alignment = DxfCellAlignment.MiddleCenter`; `table.Rows[0].Height` and
+`table.Columns[1].Width` are read and set, and the block of merged cells `GetMergeRange(0, 1)` gives reads its cells,
+`range[0, 0].TextString`. `HitTest(point, viewVector)` gives the cell a point hits, carried along the direction it is
+seen in onto the table's plane, on a table turned or mirrored as on a flat one: on the table of columns 40 and 30 wide
+and rows 10, 8 and 8 high at (300, -100, 0), (350, -112, 5) seen from above hits the cell (1, 1). `AttachmentPoint` is
+where a cell's content is placed, in from its sides by the margins as its alignment says, AutoCAD's STANDARD style's
+alignment taken where the cell has none of its own: the header cell (1, 1) is placed at (355, -114, 0). A cell of a
+block of merged cells is placed by the block's top left cell, which holds its content, and the top is the cell's top as
+it is seen whichever way the rows flow: with the rows of that table flowing up, the cell (2, 0), from y -82 to -74, is
+placed at the top middle at (320, -74.06, 0). None of these draws the table's block anew. What a file of these versions
+has no group for is not there: a cell's state, tooltip, cell style, margins of its own, content layout, custom data and
+merging of all, and a column's name; nor are the forms by row type (`SetAlignment(align, rowTypes)` and the like), whose
+groups after the last cell the DXF reference lists without their order.
 
 ### Layouts and viewports
 

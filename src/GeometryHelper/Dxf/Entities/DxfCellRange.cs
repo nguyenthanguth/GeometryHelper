@@ -29,6 +29,13 @@ namespace GeometryHelper.Dxf
             RightColumn = rightColumn;
         }
 
+        /// <summary>A range of the cells of a table, as <see cref="DxfTable.Cells"/> gives it.</summary>
+        internal DxfCellRange(DxfTable table, int topRow, int leftColumn, int bottomRow, int rightColumn)
+            : this(topRow, leftColumn, bottomRow, rightColumn)
+        {
+            Table = table;
+        }
+
         /// <summary>Gets the top row, as AutoCAD's <c>TopRow</c>.</summary>
         public int TopRow { get; }
 
@@ -40,6 +47,36 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Gets the right column, as AutoCAD's <c>RightColumn</c>.</summary>
         public int RightColumn { get; }
+
+        /// <summary>
+        /// Gets a cell of the range, as AutoCAD's <c>CellRange</c> indexer: <c>table.Cells[1, 0]</c> is the cell of the second
+        /// row and the first column, its row and column counted in the table, from nought.
+        /// </summary>
+        /// <param name="row">The row, from nought, one of the range's.</param>
+        /// <param name="column">The column, from nought, one of the range's.</param>
+        /// <returns>The cell.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the range is one made in code, of no table.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the cell is not in the range.</exception>
+        public DxfCell this[int row, int column]
+        {
+            get
+            {
+                if (Table == null)
+                {
+                    throw new InvalidOperationException("The range " + ToString() + " is of no table: take a cell from a table's Cells.");
+                }
+
+                if (row < TopRow || row > BottomRow || column < LeftColumn || column > RightColumn)
+                {
+                    throw new ArgumentOutOfRangeException(row < TopRow || row > BottomRow ? nameof(row) : nameof(column), "The cell (" + row.ToString(CultureInfo.InvariantCulture) + ", " + column.ToString(CultureInfo.InvariantCulture) + ") is not in the range " + ToString() + ".");
+                }
+
+                return new DxfCell(Table, row, column);
+            }
+        }
+
+        /// <summary>The table the range is of; null for one made in code.</summary>
+        internal DxfTable Table { get; }
 
         /// <summary>Gets whether the range is of the same rows and columns as another.</summary>
         /// <param name="other">The other range.</param>

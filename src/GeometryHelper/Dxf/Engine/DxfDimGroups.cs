@@ -188,6 +188,33 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Takes out the groups marked, by their indices, in one pass, as <see cref="RemoveAt(int)"/> would one by one from
+        /// the last: the 48 000 overrides of a table of 32 000 cells in one copy of its list, not one each.
+        /// </summary>
+        /// <returns>How many were taken out.</returns>
+        internal int RemoveMarked(bool[] marked)
+        {
+            int kept = 0;
+            int before = 0;
+
+            for (int i = 0; i < List.Count; i++)
+            {
+                if (i < marked.Length && marked[i])
+                {
+                    before += Split > i ? 1 : 0;
+                    continue;
+                }
+
+                List[kept++] = List[i];
+            }
+
+            int removed = List.Count - kept;
+            List.RemoveRange(kept, removed);
+            Split -= before;
+            return removed;
+        }
+
+        /// <summary>
         /// Where a group of a code goes within a part: after the last group of the part whose code comes before it in the order,
         /// else at the start of the part, after its marker.
         /// </summary>
