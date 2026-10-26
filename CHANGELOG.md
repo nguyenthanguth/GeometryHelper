@@ -504,9 +504,22 @@ appended) and refused in a file of R12, and is moved by `TransformBy` as ezdxf's
 points and gradient and a leader's offsets past ezdxf; a hatch scaled unlike along its axes has its arcs made ellipse
 edges, as ezdxf makes them, and so has one sheared, which ezdxf leaves circles, and a multileader so scaled or sheared
 is refused, as AutoCAD refuses it. A leader of fewer than two vertices is refused by `AppendEntity`, as AutoCAD refuses
-one. What AutoCAD works out when it draws them, the lines of a pattern (`EvaluateHatch`), a leader anew
-(`EvaluateLeader`), where a multileader's leaders meet its words, is not worked out. Every edit was read back by ezdxf,
-whose recover and audit found nothing to fix.
+one. What AutoCAD works out when it draws them, a leader anew (`EvaluateLeader`) and where a multileader's leaders meet
+its words, is not worked out. Every edit was read back by ezdxf, whose recover and audit found nothing to fix.
+
+**NEW.** A `DxfHatch` gives the lines its pattern draws as data, as AutoCAD's `EvaluateHatch`, `NumberOfHatchLines`,
+`GetHatchLineDataAt` and `GetHatchLinesData` give them: each a `GeoLine2` in the plane's own system, from where it starts
+to where it ends, a dot from a point to itself, the very lines `Explode()` draws, to the bit and in its order, none for a
+solid fill or a gradient, and a pattern the HATCH holds no lines of refused as `Explode()` refuses it. A square 30 by 20
+filled with a pattern made by the user of lines at 45 degrees 3.175 apart, as ANSI31's, draws 11; round a circle of
+radius 5 about its middle, 14. They are worked out once and kept while the HATCH is not changed, 32 bytes a line, so that
+a million lines read one by one take 0.7 s, as long as reading them all at once. `Explode()` is as it was, part for part,
+on the 309 hatches of a pattern among 917 read from 425 drawings, the other 608 refused as before.
+`EvaluateGradientColorAt(value)` gives the colour of a gradient at a value along it, by the library's rules, which
+AutoCAD's documentation does not spell out and AutoCAD's output has not checked: the red, green and blue of its colours in
+proportion, rounded half away from nought, the end colours beyond them, so that AutoCAD's new gradient, blue (0, 0, 255)
+to a pale yellow (255, 255, 153), is (128, 128, 204) halfway; a gradient of one colour holding that colour alone runs to
+its shade or tint by `ShadeTintValue` at the other end, black at 0, the colour at 0.5 and white at 1.
 
 **CHANGED.** A HATCH, a LEADER and a MULTILEADER are a `DxfHatch`, a `DxfLeader` and a `DxfMLeader`, no longer a
 `DxfUnknownEntity`: `TransformBy` moves them where it refused, and `DxfBlockReference.Explode` gives them, placed as the

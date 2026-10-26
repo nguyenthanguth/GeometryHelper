@@ -480,7 +480,7 @@ Dxf in front and their members' names.
 | `Polyline`, `Polyline2d`, `Polyline3d`, `PolyFaceMesh`, `PolygonMesh`, `Spline`, `Ray`, `Xline`, `Face`, `Solid` | `DxfPolyline`, `DxfPolyline2d`, `DxfPolyline3d`, `DxfPolyFaceMesh`, `DxfPolygonMesh`, `DxfSpline`, `DxfRay`, `DxfXline`, `DxfFace`, `DxfSolid` | Their vertices are `DxfVertex2d`, `DxfPolylineVertex3d`, `DxfPolyFaceMeshVertex`, `DxfFaceRecord` and `DxfPolygonMeshVertex`. |
 | `DBText`, `MText` | `DxfDBText`, `DxfMText` | No fonts: a text's `GeometricExtents` is its insertion point, and `AdjustAlignment` is not there. `TextStyleId` is `TextStyle`, the record, beside `TextStyleName`. |
 | `BlockReference`, `MInsertBlock`, `AttributeReference`, `AttributeDefinition` | `DxfBlockReference`, `DxfMInsertBlock`, `DxfAttributeReference`, `DxfAttributeDefinition` | `new DxfBlockReference(position, block)` takes the block record, not its id; `AttributeCollection.AppendAttribute` takes the attribute itself. |
-| `Hatch`, `Leader`, `MLeader` | `DxfHatch`, `DxfLeader`, `DxfMLeader` | A loop is a `DxfHatchLoop` of the library's shapes; `EvaluateHatch` and `EvaluateLeader` are not there. |
+| `Hatch`, `Leader`, `MLeader` | `DxfHatch`, `DxfLeader`, `DxfMLeader` | A loop is a `DxfHatchLoop` of the library's shapes; a line of `GetHatchLinesData` is a `GeoLine2`; `EvaluateLeader` is not there. |
 | `RotatedDimension`, `AlignedDimension`, `RadialDimension`, `DiametricDimension`, `LineAngularDimension2`, `Point3AngularDimension`, `ArcDimension`, `OrdinateDimension`, `RadialDimensionLarge` | the same with Dxf in front | `RecomputeDimensionBlock` is not there: the block that draws a dimension is left for AutoCAD to draw anew. |
 | `Table` | `DxfTable` | Cells read and set; its block is left for AutoCAD to draw anew (`RecomputeTableBlock` is not there); a shear or a scale unlike along its axes refused. `table.Cells[r, c]` is a `DxfCell`, `Rows` and `Columns` lists of `DxfRow` and `DxfColumn`; `SetTextStyle` takes the record, not its id. The forms by row type (`SetAlignment(align, rowTypes)` and the like) are not there. |
 | `Viewport`, `Layout`, `PlotSettings` | `DxfViewport`, `DxfLayout`, `DxfPlotSettings` | `db.Layouts` walks the layouts in the order of their tabs; plot settings are read only. |
@@ -918,7 +918,12 @@ even-odd rule counts it, a square given twice filling nothing. `GetPlane()` is t
 `SetHatchPattern(DxfHatchPatternType.PreDefined, "SOLID")` fills it solid; `PatternScale` and `PatternAngle` scale and turn
 the lines of its pattern with them (`GetPatternDefinitionAt`), and a pattern made by the user (`_USER`, `PatternSpace`,
 `PatternDouble`) is given its lines as AutoCAD makes them. `SetGradient` fills it with one of AutoCAD's gradients from
-R2004, its colours `DxfGradientColor`s. A file older than R2000 has no HATCH and refuses one.
+R2004, its colours `DxfGradientColor`s, and `EvaluateGradientColorAt(0.5f)` is the colour halfway along it by the
+library's rules, red, green and blue mixed in proportion, not checked against AutoCAD: AutoCAD's new gradient, blue to a
+pale yellow, gives (128, 128, 204). `GetHatchLinesData()` gives the lines `Explode()` draws, to the bit, as `GeoLine2`s in
+the plane's own system, and `NumberOfHatchLines` and `GetHatchLineDataAt(i)` the same one by one, worked out once while
+the hatch is not changed: the square 30 by 20 of a pattern made by the user, lines at 45 degrees 3.175 apart, draws 11. A
+file older than R2000 has no HATCH and refuses one.
 
 ### Leaders and multileaders
 
@@ -1293,9 +1298,8 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
   AutoCAD's to work out, and so is where it wraps an MTEXT exploded or written into R12 as TEXTs.
 - It knows no pattern file. A pattern of AutoCAD's acad.pat the HATCH does not hold the lines of, ANSI31 given by
   `SetHatchPattern` among them, holds no lines (`NumberOfPatternDefinitions` 0), its name written for AutoCAD to take the
-  lines from its own file, and `Explode()` refuses it. The lines a pattern draws are given by `Explode()` alone, not by
-  `EvaluateHatch`; a leader drawn anew (`EvaluateLeader`), where a multileader's leaders meet its words, and the size of
-  those words in its `GeometricExtents` are not worked out.
+  lines from its own file, and `Explode()` and `GetHatchLinesData()` refuse it. A leader drawn anew (`EvaluateLeader`),
+  where a multileader's leaders meet its words, and the size of those words in its `GeometricExtents` are not worked out.
 - It gives no dynamic properties of a dynamic block: they are AutoCAD's engine's to work out.
 - It does not explode every entity AutoCAD explodes. `Explode()` refuses with `NotSupportedException` a HATCH filled solid
   or with a gradient, whose parts AutoCAD's EXPLODE makes and the library does not work out; a MESH smoothed, which AutoCAD

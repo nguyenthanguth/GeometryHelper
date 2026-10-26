@@ -24,7 +24,8 @@ namespace GeometryHelper.Dxf
     /// takes its association away with the handles of the objects it followed, as AutoCAD's does: its loops are its own from then
     /// on. A copy (<see cref="DxfEntity.Clone"/>) follows nothing; one copied with every object it follows by
     /// <see cref="DxfDatabase.WblockCloneObjects"/> follows their copies. The lines a pattern draws are worked out by AutoCAD from the pattern and the loops (<c>EvaluateHatch</c>), and are not
-    /// in the file; <see cref="Explode"/> works them out as ezdxf draws them. A pattern of AutoCAD's own pattern file the HATCH does not hold the lines of is not known to the library:
+    /// in the file; <see cref="Explode"/> works them out as ezdxf draws them, and <see cref="GetHatchLinesData"/> gives them as
+    /// lines in the plane. A pattern of AutoCAD's own pattern file the HATCH does not hold the lines of is not known to the library:
     /// <c>new DxfHatch()</c> given ANSI31 by <see cref="SetHatchPattern"/> holds no lines of it
     /// (<see cref="NumberOfPatternDefinitions"/> 0), its name and type written for AutoCAD to take the lines from its own file.
     /// </para>
@@ -626,6 +627,81 @@ namespace GeometryHelper.Dxf
         {
             GradientData gradient = Gradient(Record());
             return gradient == null ? new DxfGradientColor[0] : gradient.Colors().ToArray();
+        }
+
+        /// <summary>
+        /// Gets the colour of the gradient at a value along it, the library's reading of AutoCAD's <c>EvaluateGradientColorAt</c>,
+        /// whose documentation says only that the colour is interpolated at the value: the red, green and blue of its colours
+        /// (<see cref="GetGradientColors"/>) taken in proportion between the two whose values the value lies between, each
+        /// rounded to the nearest whole number, half away from nought; before the first colour the first, past the last the last.
+        /// Blue (0, 0, 255) at 0 to a pale yellow (255, 255, 153) at 1, AutoCAD's new gradient, is (128, 128, 204) at 0.5. A
+        /// gradient of one colour that holds only that colour (<see cref="GradientOneColorMode"/>) runs from it to its shade or
+        /// tint by the <see cref="ShadeTintValue"/>, placed at the end of the gradient away from the colour (at 1, or at 0 where
+        /// the colour stands past the middle): black at 0, the colour itself at 0.5 and white at 1, each channel mixed in
+        /// proportion between. A gradient that holds two colours runs between them in either mode, as AutoCAD's
+        /// <c>SetShadeTintValueAndColor2</c> holds the second colour of a gradient of one colour. These are the library's rules:
+        /// whether AutoCAD mixes in red, green and blue or another space, how it rounds, and how its shade and tint are made
+        /// (its variable GFCLRLUM may be a lightness of hue, lightness and saturation) are not checked against AutoCAD. The
+        /// colours are read from the HATCH each time and nothing is changed.
+        /// </summary>
+        /// <param name="value">Where along the gradient, from 0 at its start to 1 at its end.</param>
+        /// <returns>The colour, a true colour (<see cref="DxfColor.IsByColor"/>), a colour of the index given as its red, green and blue.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is not a finite number.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the HATCH has no gradient data or its gradient no colour, or it is erased.</exception>
+        public DxfColor EvaluateGradientColorAt(float value)
+        {
+            Guard.Finite(value, nameof(value), "A value along a gradient has to be a finite number.");
+            Parts record = Record();
+            GradientData gradient = Gradient(record) ?? throw NoGradient();
+            List<DxfGradientColor> colours = gradient.Colors();
+
+            if (colours.Count == 0)
+            {
+                throw new InvalidOperationException("The gradient of the HATCH has no colours: give it them with SetGradientColors.");
+            }
+
+            var values = new List<double>(colours.Count + 1);
+            var rgbs = new List<int>(colours.Count + 1);
+            var order = new List<int>(colours.Count + 1);
+
+            foreach (DxfGradientColor colour in colours)
+            {
+                order.Add(values.Count);
+                values.Add(colour.Value);
+                rgbs.Add(colour.Color.ColorValue & 0xFFFFFF);
+            }
+
+            if (colours.Count == 1 && Whole(gradient.Text(452), 0) != 0)
+            {
+                // The shade or tint at the end away from the colour.
+                order.Add(values.Count);
+                values.Add(values[0] > 0.5 ? 0.0 : 1.0);
+                rgbs.Add(Tinted(rgbs[0], Num(gradient.Text(462), 0.0)));
+            }
+
+            // By value, two of one value in the order the HATCH holds them.
+            order.Sort((a, b) => values[a] != values[b] ? values[a].CompareTo(values[b]) : a.CompareTo(b));
+
+            if (!(value > values[order[0]]))
+            {
+                return Rgb(rgbs[order[0]]);
+            }
+
+            for (int i = 0; i + 1 < order.Count; i++)
+            {
+                double low = values[order[i]];
+                double high = values[order[i + 1]];
+
+                if (value < high)
+                {
+                    double f = (value - low) / (high - low);
+                    int a = rgbs[order[i]];
+                    int b = rgbs[order[i + 1]];
+                    return Rgb((Mix(a >> 16, b >> 16, f) << 16) | (Mix(a >> 8, b >> 8, f) << 8) | Mix(a, b, f));
+                }
+            }
+
+            return Rgb(rgbs[order[order.Count - 1]]);
         }
 
         /// <summary>
@@ -1323,6 +1399,26 @@ namespace GeometryHelper.Dxf
 
         private static InvalidOperationException NoGradient()
             => new InvalidOperationException("The HATCH has no gradient data: give it a gradient with SetGradient first.");
+
+        /// <summary>A channel of red, green or blue (the low byte of each) taken in proportion from one to another, rounded half away from nought.</summary>
+        private static int Mix(int a, int b, double f)
+        {
+            a &= 0xFF;
+            b &= 0xFF;
+            return (int)Math.Round(a + (b - a) * f, MidpointRounding.AwayFromZero);
+        }
+
+        /// <summary>The shade or tint of 0xRRGGBB by a value from 0 to 1: black at 0, the colour at 0.5, white at 1, mixed in proportion between.</summary>
+        private static int Tinted(int rgb, double tint)
+        {
+            double t = Math.Max(0.0, Math.Min(1.0, tint));
+            int towards = t < 0.5 ? 0x000000 : 0xFFFFFF;
+            double f = t < 0.5 ? 1.0 - 2.0 * t : 2.0 * t - 1.0;
+            return (Mix(rgb >> 16, towards >> 16, f) << 16) | (Mix(rgb >> 8, towards >> 8, f) << 8) | Mix(rgb, towards, f);
+        }
+
+        /// <summary>The true colour of 0xRRGGBB.</summary>
+        private static DxfColor Rgb(int rgb) => DxfColor.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb);
 
         /// <summary>The record of a HATCH filled with a pattern, to set a part of the pattern of.</summary>
         /// <exception cref="InvalidOperationException">Thrown for a solid fill, which has no pattern.</exception>

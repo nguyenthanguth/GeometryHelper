@@ -440,7 +440,7 @@ namespace GeometryHelper.Dxf
         /// <summary>The loops of the HATCH as last read, with what is worked out of them, kept while its record is the one read.</summary>
         private Snapshot _snapshot;
 
-        /// <summary>What is read of the record once for many loops: the loops, the elevation, the normal, and the outlines and areas of the loops when asked for.</summary>
+        /// <summary>What is read of the record once for many loops: the loops, the elevation, the normal, and the outlines and areas of the loops and the lines of the pattern when asked for.</summary>
         private sealed class Snapshot
         {
             internal byte[] Bytes { get; set; }
@@ -467,6 +467,9 @@ namespace GeometryHelper.Dxf
             internal Outline[] Outlines { get; set; }
 
             internal double[] Areas { get; set; }
+
+            /// <summary>The lines the pattern draws in the plane, when asked for.</summary>
+            internal GeoLine2[] HatchLines { get; set; }
         }
 
         /// <summary>
@@ -589,6 +592,7 @@ namespace GeometryHelper.Dxf
             snapshot.CountTo = snapshot.CountFrom + length;
             snapshot.Outlines = null;
             snapshot.Areas = null;
+            snapshot.HatchLines = null;
 
             // A record that came out other than spliced is read again.
             DxfFile.Rec record = Item.File.RecordAt(Item, 0);

@@ -53,25 +53,7 @@ namespace GeometryHelper.Dxf
             }
 
             Snapshot snapshot = Snap();
-            List<List<PatternCurve>> loops = Cutting(snapshot);
-            int most = new DxfReadOptions().MaxPlacedEntities;
-            var sets = new List<Stretches>();
-            long count = 0;
-
-            foreach (double[] definition in definitions)
-            {
-                var stretches = new Stretches(definition);
-                stretches.Cut(loops, most - count);
-                count += stretches.Dashes();
-
-                if (count > most)
-                {
-                    throw new InvalidOperationException("The pattern of the HATCH " + (Handle ?? string.Empty) + " would give more than " + most.ToString(CultureInfo.InvariantCulture) + " entities, the bound of DxfReadOptions.MaxPlacedEntities.");
-                }
-
-                sets.Add(stretches);
-            }
-
+            List<Stretches> sets = Stretched(snapshot, definitions, out long count);
             var look = new Look(this);
             GeoVector3 normal = snapshot.Normal;
             double elevation = snapshot.Elevation;
@@ -88,6 +70,137 @@ namespace GeometryHelper.Dxf
             }
 
             return parts.AsReadOnly();
+        }
+
+        /// <summary>
+        /// Works out the lines of the pattern, as AutoCAD's <c>EvaluateHatch</c> works them out: those <see cref="Explode"/>
+        /// draws, as <see cref="GetHatchLinesData"/> gives them, kept for the queries of the lines while the HATCH is not changed.
+        /// A solid fill and a gradient have none. The library counts the lines it lays, so the estimate AutoCAD can be asked to
+        /// make of their number first, low or not, changes nothing here.
+        /// </summary>
+        /// <param name="underEstimateNumLines">Whether AutoCAD is to estimate the number of the lines low before it lays them; of
+        /// no effect in the library, which counts them exactly.</param>
+        /// <exception cref="NotSupportedException">Thrown for a pattern the HATCH holds no lines of, AutoCAD's own pattern file
+        /// being AutoCAD's.</exception>
+        /// <exception cref="InvalidOperationException">Thrown as <see cref="Explode"/> throws: when a loop has an edge that is no
+        /// shape, the lines would be more than the 2 000 000 of <see cref="DxfReadOptions.MaxPlacedEntities"/> or cross the loops
+        /// more than 32 000 000 times, or the loops lie more than 2^52 spacings or lengths of dashes from the pattern's base
+        /// point.</exception>
+        public void EvaluateHatch(bool underEstimateNumLines) => HatchLines();
+
+        /// <summary>
+        /// Gets how many lines the pattern draws, as AutoCAD's <c>NumberOfHatchLines</c>: each dash and dot of each pattern line
+        /// cut by the loops, as <see cref="Explode"/> draws them; nought for a solid fill and a gradient. A square 30 by 20
+        /// filled with a pattern made by the user of lines at 45 degrees 3.175 apart, as ANSI31's, draws 11; the same round a
+        /// circle of radius 5 about its middle in the normal style draws 14. They are worked out when first asked for and kept
+        /// while the HATCH is not changed, so that asking for them line by line takes no longer than asking for all of them;
+        /// kept, they take 32 bytes a line, 32 MB for a million, for as long as the HATCH's object is held.
+        /// </summary>
+        /// <exception cref="NotSupportedException">Thrown for a pattern the HATCH holds no lines of, as <see cref="EvaluateHatch"/> says.</exception>
+        /// <exception cref="InvalidOperationException">Thrown as <see cref="EvaluateHatch"/> says.</exception>
+        public int NumberOfHatchLines => HatchLines().Length;
+
+        /// <summary>
+        /// Gets a line the pattern draws, as AutoCAD's <c>GetHatchLineDataAt</c>: in the plane of the HATCH, in the system of its
+        /// normal as its loops are held, from where it starts to where it ends; a dot from a point to itself. It is the line of
+        /// the index <see cref="Explode"/> gives, in its plane, to the bit: pattern line by pattern line, then by the index of
+        /// the line from the base point, the least first, then along the line.
+        /// </summary>
+        /// <param name="index">The index of the line, from nought.</param>
+        /// <returns>The line.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the pattern draws no line of the index.</exception>
+        /// <exception cref="NotSupportedException">Thrown for a pattern the HATCH holds no lines of, as <see cref="EvaluateHatch"/> says.</exception>
+        /// <exception cref="InvalidOperationException">Thrown as <see cref="EvaluateHatch"/> says.</exception>
+        public GeoLine2 GetHatchLineDataAt(int index)
+        {
+            GeoLine2[] lines = HatchLines();
+
+            if (index < 0 || index >= lines.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(index), index, "The pattern draws " + lines.Length.ToString(CultureInfo.InvariantCulture) + " lines, from nought.");
+            }
+
+            return lines[index];
+        }
+
+        /// <summary>
+        /// Gets every line the pattern draws, as AutoCAD's <c>GetHatchLinesData</c>: in the plane of the HATCH, in the system of
+        /// its normal, in the order and to the bit of <see cref="GetHatchLineDataAt"/>; none for a solid fill and a gradient. A
+        /// square 30 by 20 filled with a pattern made by the user of lines at 45 degrees 3.175 apart gives 11 lines, each from
+        /// one side of the square to another.
+        /// </summary>
+        /// <returns>The lines, a list that cannot be changed.</returns>
+        /// <exception cref="NotSupportedException">Thrown for a pattern the HATCH holds no lines of, as <see cref="EvaluateHatch"/> says.</exception>
+        /// <exception cref="InvalidOperationException">Thrown as <see cref="EvaluateHatch"/> says.</exception>
+        public IReadOnlyList<GeoLine2> GetHatchLinesData() => Array.AsReadOnly(HatchLines());
+
+        /// <summary>
+        /// The lines the pattern draws in the plane of the HATCH, as <see cref="Explode"/> lays them, worked out once for the
+        /// record: none for a solid fill and a gradient.
+        /// </summary>
+        /// <exception cref="NotSupportedException">Thrown for a pattern the HATCH holds no lines of.</exception>
+        /// <exception cref="InvalidOperationException">Thrown as <see cref="Stretched"/> throws.</exception>
+        private GeoLine2[] HatchLines()
+        {
+            Snapshot snapshot = Snap();
+
+            if (snapshot.HatchLines != null)
+            {
+                return snapshot.HatchLines;
+            }
+
+            Parts record = Record();
+            var lines = new GeoLine2[0];
+
+            if (Gradient(record)?.Kind != 1 && Whole(record.Text(70), 1) != 1)
+            {
+                List<double[]> definitions = Lines(record);
+
+                if (definitions.Count == 0)
+                {
+                    throw new NotSupportedException("The pattern " + PatternName + " of the HATCH holds no lines: they are in AutoCAD's own pattern file, which the library does not have.");
+                }
+
+                List<Stretches> sets = Stretched(snapshot, definitions, out long count);
+                lines = new GeoLine2[count];
+                int at = 0;
+
+                foreach (Stretches stretches in sets)
+                {
+                    stretches.Lay((a, b) => lines[at++] = new GeoLine2(a, b));
+                }
+            }
+
+            snapshot.HatchLines = lines;
+            return lines;
+        }
+
+        /// <summary>The lines of each pattern line cut by the loops, and how many parts they give together.</summary>
+        /// <exception cref="InvalidOperationException">Thrown when a loop has an edge that is no shape; when the parts would be
+        /// more than <see cref="DxfReadOptions.MaxPlacedEntities"/>, or the crossings too many to hold; or when the loops lie
+        /// more than 2^52 spacings or lengths of dashes from the pattern's base point.</exception>
+        private List<Stretches> Stretched(Snapshot snapshot, List<double[]> definitions, out long count)
+        {
+            List<List<PatternCurve>> loops = Cutting(snapshot);
+            int most = new DxfReadOptions().MaxPlacedEntities;
+            var sets = new List<Stretches>();
+            count = 0;
+
+            foreach (double[] definition in definitions)
+            {
+                var stretches = new Stretches(definition);
+                stretches.Cut(loops, most - count);
+                count += stretches.Dashes();
+
+                if (count > most)
+                {
+                    throw new InvalidOperationException("The pattern of the HATCH " + (Handle ?? string.Empty) + " would give more than " + most.ToString(CultureInfo.InvariantCulture) + " entities, the bound of DxfReadOptions.MaxPlacedEntities.");
+                }
+
+                sets.Add(stretches);
+            }
+
+            return sets;
         }
 
         /// <summary>
