@@ -312,6 +312,50 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(Math.PI / 6.0, aligned.Oblique, 15);
         }
 
+        [Fact]
+        public void AVariableRead_FollowsEveryEditSinceTheLastRead()
+        {
+            // The overrides and the style a dimension reads are kept between readings: each edit of the drawing reads them
+            // anew, so that a reading never gives what a style, an override or the data held before the edit.
+            DxfDatabase db = DxfDatabase.Parse(DxfDimensionDrawings.R2018);
+            DxfRotatedDimension dim = Dim<DxfRotatedDimension>(db, "4D");
+            DxfDimStyleTableRecord style = db.DimStyleTable["GH_DIM"];
+            DxfDimStyleTableRecord standard = db.DimStyleTable["Standard"];
+            Assert.Equal(4.5, dim.Dimasz);
+            Assert.Equal(style.Dimexe, dim.Dimexe);
+
+            style.Dimexe = 7.25;
+            Assert.Equal(7.25, style.Dimexe);
+            Assert.Equal(7.25, dim.Dimexe);
+            Assert.Equal(7.25, dim.GetDimstyleData().Dimexe);
+
+            dim.Dimasz = 3.0;
+            Assert.Equal(3.0, dim.Dimasz);
+
+            style.Name = "GH_RENAMED";
+            Assert.Equal("GH_RENAMED", dim.DimensionStyleName);
+            Assert.Equal(7.25, dim.Dimexe);
+
+            dim.DimensionStyleName = "Standard";
+            Assert.Equal(standard.Dimexe, dim.Dimexe);
+            Assert.Equal(3.0, dim.Dimasz);
+
+            dim.TransformBy(GeoTransform3.Translation(new GeoVector3(10.0, 5.0, 0.0)));
+            Assert.Equal(3.0, dim.Dimasz);
+
+            var copy = (DxfRotatedDimension)dim.Clone();
+            copy.Dimasz = 8.0;
+            db.ModelSpace.AppendEntity(copy);
+            Assert.Equal(8.0, copy.Dimasz);
+            Assert.Equal(3.0, dim.Dimasz);
+
+            dim.XData = new[] { new DxfTypedValue(1001, "ACAD") };
+            Assert.Equal(standard.Dimasz, dim.Dimasz);
+
+            copy.Erase();
+            Assert.Equal(8.0, copy.Dimasz);
+        }
+
         #endregion
 
         #region Moving

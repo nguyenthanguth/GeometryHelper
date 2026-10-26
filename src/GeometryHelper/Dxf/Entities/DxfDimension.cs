@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Threading;
 using GeometryHelper.Export;
 using GeometryHelper.Geometry;
 
@@ -1629,12 +1630,14 @@ namespace GeometryHelper.Dxf
                 return held;
             }
 
-            if (Override(variable, out string text))
+            StyleReading read = ReadStyle();
+
+            if (read.Override(variable.CodeIn(!Item.File.HasMarkers), out string text))
             {
                 return variable.IsReference ? DxfDimStyleTableRecord.Resolve(Item.File, variable, text) : variable.Read(text);
             }
 
-            DxfDimStyleTableRecord style = DimensionStyle;
+            DxfDimStyleTableRecord style = read.Style;
 
             if (style != null)
             {
@@ -1697,30 +1700,68 @@ namespace GeometryHelper.Dxf
             WriteOverride(variable, text, r12);
         }
 
-        /// <summary>The text of the dimension's override of a variable (in the list DSTYLE of its data of ACAD); false where it overrides none.</summary>
-        private bool Override(DxfDimVariable variable, out string text)
-        {
-            text = null;
-            List<DxfTypedValue> data = AcadData();
-            bool r12 = !Item.File.HasMarkers;
+        // The overrides and the style as they were last read, kept until the records of the dimension's file next change, as a
+        // leader keeps its curve: each variable read the extended data, the style's name and the style table anew, 74 times for
+        // one GetDimstyleData.
+        private StyleReading _style;
 
-            if (data == null || !Bounds(data, out int open, out int close))
+        /// <summary>The dimension's overrides and style as its record has them now: those read last where its file has not changed since.</summary>
+        private StyleReading ReadStyle()
+        {
+            DxfItem item = Item;
+            int edits = item.File.EditCount;
+            StyleReading read = Volatile.Read(ref _style);
+
+            if (read != null && ReferenceEquals(read.Item, item) && read.Edits == edits)
             {
-                return false;
+                return read;
             }
 
-            int code = variable.CodeIn(r12);
+            // The text of each override (in the list DSTYLE of the data of ACAD) by the group it names, the first where two name one.
+            var overrides = new Dictionary<int, string>();
+            List<DxfTypedValue> data = AcadData();
 
-            for (int i = open + 1; i + 1 < close; i += 2)
+            if (data != null && Bounds(data, out int open, out int close))
             {
-                if (data[i].TypeCode == 1070 && int.TryParse(data[i].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int named) && named == code)
+                for (int i = open + 1; i + 1 < close; i += 2)
                 {
-                    text = data[i + 1].Value;
-                    return true;
+                    if (data[i].TypeCode == 1070 && int.TryParse(data[i].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int named) && !overrides.ContainsKey(named))
+                    {
+                        overrides.Add(named, data[i + 1].Value);
+                    }
                 }
             }
 
-            return false;
+            // The style is read when a variable the dimension does not override first asks for it, as it was before, so that an
+            // override set and read back reads no style.
+            read = new StyleReading(item, edits, overrides, new Lazy<DxfDimStyleTableRecord>(() => DimensionStyle, LazyThreadSafetyMode.PublicationOnly));
+            Volatile.Write(ref _style, read);
+            return read;
+        }
+
+        /// <summary>What <see cref="ReadStyle"/> keeps of the dimension: its overrides, its style, and the item and count of changes they were read at.</summary>
+        private sealed class StyleReading
+        {
+            private readonly Dictionary<int, string> _overrides;
+            private readonly Lazy<DxfDimStyleTableRecord> _style;
+
+            internal StyleReading(DxfItem item, int edits, Dictionary<int, string> overrides, Lazy<DxfDimStyleTableRecord> style)
+            {
+                Item = item;
+                Edits = edits;
+                _overrides = overrides;
+                _style = style;
+            }
+
+            internal DxfItem Item { get; }
+
+            internal int Edits { get; }
+
+            /// <summary>The style the dimension is drawn in, as <see cref="DimensionStyle"/> gives it.</summary>
+            internal DxfDimStyleTableRecord Style => _style.Value;
+
+            /// <summary>The text of the dimension's override of the variable of a group; false where it overrides none.</summary>
+            internal bool Override(int code, out string text) => _overrides.TryGetValue(code, out text);
         }
 
         /// <summary>

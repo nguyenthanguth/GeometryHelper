@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Threading;
 
 namespace GeometryHelper.Dxf
 {
@@ -590,7 +591,7 @@ namespace GeometryHelper.Dxf
                 return null;
             }
 
-            var groups = new DxfDimGroups(Item);
+            DxfDimGroups groups = Read();
 
             if (variable.Second)
             {
@@ -599,6 +600,43 @@ namespace GeometryHelper.Dxf
             }
 
             return groups.Text(variable.CodeIn(!Item.File.HasMarkers), groups.All);
+        }
+
+        // The record's groups as they were last read, kept until the records of its file next change, as a leader keeps its
+        // curve: each variable read the whole record anew, 74 times for one GetDimstyleData.
+        private Reading _read;
+
+        /// <summary>The record's own groups as the file has them now, to be read and not changed: those read last where the file has not changed since.</summary>
+        private DxfDimGroups Read()
+        {
+            DxfItem item = Item;
+            int edits = item.File.EditCount;
+            Reading read = Volatile.Read(ref _read);
+
+            if (read == null || !ReferenceEquals(read.Item, item) || read.Edits != edits)
+            {
+                read = new Reading(item, edits, new DxfDimGroups(item));
+                Volatile.Write(ref _read, read);
+            }
+
+            return read.Groups;
+        }
+
+        /// <summary>What <see cref="Read"/> keeps of the record: its groups, and the item and count of changes they were read at.</summary>
+        private sealed class Reading
+        {
+            internal Reading(DxfItem item, int edits, DxfDimGroups groups)
+            {
+                Item = item;
+                Edits = edits;
+                Groups = groups;
+            }
+
+            internal DxfItem Item { get; }
+
+            internal int Edits { get; }
+
+            internal DxfDimGroups Groups { get; }
         }
 
         /// <summary>

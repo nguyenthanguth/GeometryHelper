@@ -258,6 +258,18 @@ alternate units. Every variable set on ezdxf's drawings of R12, R2000, R2007 and
 overrides of leaders, were read back by ezdxf 1.4.5, whose recover and audit found nothing to fix, and the files resave byte
 for byte where nothing is set.
 
+**CHANGED.** A dimension reads the variables of its style many times faster, each to the same value: it reads its overrides
+and its style once and keeps them until its drawing next changes, and a dimension style reads its record so, where each
+variable read them anew. On the rotated dimension of ezdxf's drawing of R2018, which overrides variables of every kind,
+`FormatMeasurement` takes 7 microseconds where it took 0.23 ms, `GetDimstyleData` 0.05 ms where it took 1.0 and
+`SetDimstyleData` given its own 0.08 ms where it took 2.1, and the `GetDimstyleData` of 1 000 such dimensions takes 17 ms
+where it took 1.1 s (.NET 10; on .NET Framework 4.8 3 microseconds, 0.02, 0.03 and 19 ms where they took 0.53, 2.2, 4.5 and
+2 300 ms); a leader's `GetDimstyleData` takes 0.04 ms where it took 0.2, and a getter of a style, as `Dimasz`, 0.1
+microseconds where it took 3. `Explode` reads no variable and takes the time it took, 20 ms for 1 000 dimensions. Every
+getter, `GetDimstyleData`, `SetDimstyleData`, `FormatMeasurement` and `Explode` of the dimensions and leaders of ezdxf's
+drawings gives the same text to the byte as before, after each kind of edit: an override set, the style changed, renamed,
+added and erased, the dimension moved, turned, copied, erased and given another style.
+
 **NEW.** The rest of the variables of the header AutoCAD's `Database` has as members, 141 of them, read and set by their
 AutoCAD names as `Ltscale` is: the settings of drafting (`Attmode`, `Celtscale`, `Chamfera` to `Chamferd`, `Filletrad`,
 `Elevation`, `Thickness`, `Plinewid`, `Tracewid`, `Cmljust`, `Cmlscale`, `Surftab1`, `Surftab2`, `Useri1` to `Useri5`,
