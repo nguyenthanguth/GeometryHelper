@@ -204,8 +204,10 @@ namespace GeometryHelper.Arranging
             double width = alongMax - alongMin;
             double height = acrossMax - acrossMin;
 
-            // Verify size after projection to ensure it does not degenerate to zero
-            if (width < options.MinimumBoxSize || height < options.MinimumBoxSize)
+            // Verify size after projection to ensure it does not degenerate to zero. Within the point tolerance: a box
+            // as small as the minimum measures a hair under it once its corners are rounded where the scene lies, and
+            // a label 20 by 10, the default minimum 10, was arranged at one place and not at another.
+            if (width + options.Tolerance.EqualPoint < options.MinimumBoxSize || height + options.Tolerance.EqualPoint < options.MinimumBoxSize)
             {
                 return false;
             }

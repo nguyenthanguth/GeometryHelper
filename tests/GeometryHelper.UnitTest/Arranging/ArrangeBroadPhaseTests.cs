@@ -80,12 +80,12 @@ namespace GeometryHelper.UnitTest.Arranging
         }
 
         /// <summary>
-        /// Two labels 20 by 10, one kept above its leader and one below its own, ending up 0.0005 apart, half the
-        /// tolerance: the boxes around them stand apart, so they are not judged against each other, and both are placed,
-        /// though the rectangles themselves, judged within the tolerance, would collide.
+        /// Two labels 20 by 10, one kept above its leader and one below its own, whose first places stand 0.0005 apart,
+        /// half the tolerance: though the boxes around them stand apart, the two collide within the tolerance, as a label
+        /// and a block do, so the one placed second slides 26 back along its leader, and both are placed.
         /// </summary>
         [Fact]
-        public void TwoLabelsLessThanTheToleranceApart_AreBothPlaced()
+        public void TwoLabelsLessThanTheToleranceApart_AreBothPlacedApart()
         {
             var lower = new GeoLine2(0, 0, 100, 0);
             var upper = new GeoLine2(0, 30.0005, 100, 30.0005);
@@ -100,8 +100,9 @@ namespace GeometryHelper.UnitTest.Arranging
             Assert.True(results[0].Placed);
             Assert.True(results[1].Placed);
             Assert.Equal(new GeoVector2(0.0, 10.0), results[0].Translation);
+            Assert.Equal(-26.0, results[1].Translation.X, 9);
             Assert.Equal(-10.0, results[1].Translation.Y, 9);
-            Assert.True(MovedBox(items[0], results[0].Translation).CollidesWith(MovedBox(items[1], results[1].Translation), Tol));
+            Assert.False(MovedBox(items[0], results[0].Translation).CollidesWith(MovedBox(items[1], results[1].Translation), Tol));
         }
 
         /// <summary>

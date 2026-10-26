@@ -128,16 +128,16 @@ namespace GeometryHelper.Arranging
         /// <returns>True if a collision is detected; otherwise, false.</returns>
         internal static bool AnyCollides(List<Obstacle> obstacles, GeoRectangle2 moved, Tolerance tolerance)
         {
-            // The box of the place, and that box grown by the point tolerance: a block standing off it by less than the
-            // tolerance collides with it, and must reach the detailed check below. A label already placed, the only
-            // rectangle here, is judged on the box as it is, as Arranger judges two labels.
-            var movedBox = Bounds.Of(moved);
-            var grownBox = movedBox.Expand(tolerance.EqualPoint);
+            // The box of the place grown by the point tolerance: whatever stands off it by less than the tolerance, a block
+            // or a label already placed, collides with it, and must reach the detailed check below. A label was judged
+            // on the box as it is, so that two labels touching collided or not as the rounding of where the scene lay
+            // left their boxes overlapping or a hair apart.
+            var grownBox = Bounds.Of(moved).Expand(tolerance.EqualPoint);
 
             foreach (Obstacle obstacle in obstacles)
             {
                 // Rough filtering using bounding box (AABB) first to improve collision check performance
-                if (!(obstacle.Type == ObstacleType.Rectangle ? movedBox : grownBox).Overlaps(obstacle.Box))
+                if (!grownBox.Overlaps(obstacle.Box))
                 {
                     continue;
                 }

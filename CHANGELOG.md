@@ -1332,10 +1332,49 @@ up, and `Arrange.StaticBlocks` two labels, each to a place at the full reach tha
 tolerance of 2 counts as 2 in choosing between steps of a twentieth of it and steps of the label's height: a label 1 by
 0.4 on a leader 2.5 long, turned to it, reaches 2 each way and had 246 places at the origin and 66 moved by (196 017.7,
 18 214.2), the reach a hair under 2 there; it has 246 at both. Moved by 900, 100 000 or a million along X or both ways,
-the golden scenes place every label alike, where 10 of their 41 runs placed up to six labels differently. Which of two
-places nearly as open a label takes can still follow the rounding of where the scene lies: of the 400 labels of the
-benchmark `Arrange.Dense`, one goes to candidate 57 at the origin and to candidate 61 moved 900 along X, as before. As
-fast as before, within the noise of the benchmarks.
+the golden scenes place every label alike, where 10 of their 41 runs placed up to six labels differently. As fast as
+before, within the noise of the benchmarks.
+
+**FIXED.** `Arranger.Run` and `ArrangeItem.GetPlacePoints` arrange a scene moved elsewhere as they arrange it where it
+was, moved, also where it stands on an edge the last digits of its coordinates settled. Of 25 678 labels in 374 runs,
+the scenes of the tests and the benchmarks and sheets built to stand on such edges, each run moved 1 000, 100 000, a
+million and ten million along X, along Y, both ways and by an uneven step, 863 to 977 of the 102 712 placings a
+magnitude came out differently, 670 to 741 of them with a different count of places; none do now. Three edges were
+left:
+
+- A label as large as `ArrangeOptions.MinimumBoxSize`, measured along its leader and across it from its rounded
+  corners, came to a hair less at some places and was left where it stood, with no places at all. Of 200 000 labels 20,
+  25 or 30 by 10 at the default 10, on leaders 20 to 119 long at a random angle a third of the time and along an axis
+  otherwise, half of them turned to their leader and half not, 6 606 had none near the origin, and 8 181 of as many
+  drawn alike up to ten million off it; none have now. It counts as large enough to within the point tolerance.
+- Two labels that touch. A place was judged against a label already placed, and the final layout judged two labels,
+  only where the boxes around them overlapped, so that two labels touching collided or not as the rounding of where the
+  scene lay left their boxes overlapping or a hair apart. They collide wherever the scene lies now, as the next entry
+  says. Of the 400 labels of the benchmark `Arrange.Dense`, the one that took candidate 57 of its list, (23.1, -8), at
+  the origin, touching a label placed before it 2.8E-14 away, and candidate 61 moved 1 000 along X, takes 61,
+  (24.75, -8), at both; no other label of the benchmarks moved, and its signature was approved again.
+- Two labels as far from the centre of them all, or as far along with `PlaceMostConstrainedFirst` and
+  `PlaceFromInsideOut` off, went in an order the last digits of the centre or of their coordinates decided: of two
+  labels on leaders 10.6 apart, kept to the sides facing each other, whose first places are one and the same, centred
+  at (15, 5.3), the second went first at a third of 100 places they were moved to. Where a label stands is read from
+  the first label now, and counted, as how far it stands from the centre, in whole steps of the point tolerance; labels
+  on the same step keep the order they were given in.
+
+What falls within rounding of an edge drawn exactly can still go either way: two lengths within rounding of half a step,
+and a block within rounding of the edge of a label's reach. A label 20 by 10 on a leader from (0, 0) to (100, 0), 5 off
+it, with a block line from (185, -5) to (185, 5), goes to (-3.25, 10) at the origin and to (0, 10) at 2 of 20 000 places
+a thousand to ten million off it, where 15 went elsewhere before. The golden hashes of the tests did not move. As fast
+as before: in 16 runs of each, taken in turn on .NET Framework 4.8, `Arrange.Dense` took 220.6 ms at the median and
+takes 221.8.
+
+**CHANGED.** `Arranger.Run` judges two labels as it judges a label and a block, within the point tolerance of the
+options: a place that comes closer than the tolerance to a label already placed collides with it, and the final layout
+reports two labels that close not `Placed`. Two labels were judged on their boxes as they stood, and two standing less
+than the tolerance apart were both placed. A row of 12 labels 24 by 10 kept above leaders laid end to end, each leader
+24.0005 long, `LookAheadCandidates` 1, at the default thousandth: the labels 0.0005 apart all took their first places,
+and one does now, the others sliding on. With leaders as long as the labels, the labels touching, one or two did, as
+the scene lay: for labels 24.3, 17.7 and 33.1 wide, 12 of 16 moves of a thousand to ten million placed them
+differently, and one does now, wherever the scene lies. With leaders 0.002 longer than the labels, all 12 still do.
 
 **FIXED.** `Offset2.Offset` of a `GeoPolygonArc2` drops a spike the loop runs out to and straight back from, between two
 straight edges whose far ends lie within the point tolerance of each other, as the straight path drops it, the two ends

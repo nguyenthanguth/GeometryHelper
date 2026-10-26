@@ -28,6 +28,13 @@ namespace GeometryHelper.Arranging
                 return indices;
             }
 
+            // Where each label stands is read from the first of them, not from the origin, and counted, as how far it
+            // stands from the middle, in whole steps of the point tolerance, so that two labels as far along, or as far
+            // from the middle, but for the last digits keep the order they were given in. Labels tied at the origin, as a
+            // drawing drawn symmetrically has them, were told apart far off it by the last digits of their coordinates,
+            // and placed the other way round.
+            GeoPoint2 reference = items[indices[0]].Box.Center;
+            double grain = options.Tolerance.EqualPoint;
             double centroidX = 0;
             double centroidY = 0;
 
@@ -38,8 +45,8 @@ namespace GeometryHelper.Arranging
                 double sumY = 0;
                 foreach (int index in indices)
                 {
-                    sumX += items[index].Box.Center.X;
-                    sumY += items[index].Box.Center.Y;
+                    sumX += items[index].Box.Center.X - reference.X;
+                    sumY += items[index].Box.Center.Y - reference.Y;
                 }
                 centroidX = sumX / indices.Length;
                 centroidY = sumY / indices.Length;
@@ -50,16 +57,16 @@ namespace GeometryHelper.Arranging
             {
                 if (options.PlaceFromInsideOut)
                 {
-                    // Sort in ascending order of squared distance to centroid (from core to outer edge)
+                    // Sort in ascending order of distance to centroid (from core to outer edge)
                     return indices
-                        .OrderBy(index => GetSquaredDistanceToCentroid(items[index], centroidX, centroidY))
+                        .OrderBy(index => GetDistanceToCentroid(items[index], reference, centroidX, centroidY, grain))
                         .ToArray();
                 }
 
                 // Default sorting: left to right, bottom to top
                 return indices
-                    .OrderBy(index => items[index].Box.Center.X)
-                    .ThenBy(index => items[index].Box.Center.Y)
+                    .OrderBy(index => Level(items[index].Box.Center.X - reference.X, grain))
+                    .ThenBy(index => Level(items[index].Box.Center.Y - reference.Y, grain))
                     .ToArray();
             }
 
@@ -82,7 +89,7 @@ namespace GeometryHelper.Arranging
                 // Prioritize the most constrained label first. If tie in freedom, prioritize the one closer to the centroid.
                 return indices
                     .OrderBy(index => freedom[index])
-                    .ThenBy(index => GetSquaredDistanceToCentroid(items[index], centroidX, centroidY))
+                    .ThenBy(index => GetDistanceToCentroid(items[index], reference, centroidX, centroidY, grain))
                     .ToArray();
             }
 
@@ -99,14 +106,21 @@ namespace GeometryHelper.Arranging
         }
 
         /// <summary>
-        /// Calculates the squared distance from the label center to the area centroid.
+        /// Calculates the distance from the label center to the area centroid, both read from the reference, in steps of
+        /// the grain.
         /// </summary>
-        private static double GetSquaredDistanceToCentroid(ArrangeItem item, double centroidX, double centroidY)
+        private static double GetDistanceToCentroid(ArrangeItem item, GeoPoint2 reference, double centroidX, double centroidY, double grain)
         {
-            double dx = item.Box.Center.X - centroidX;
-            double dy = item.Box.Center.Y - centroidY;
-            return dx * dx + dy * dy;
+            double dx = item.Box.Center.X - reference.X - centroidX;
+            double dy = item.Box.Center.Y - reference.Y - centroidY;
+            return Level(Math.Sqrt(dx * dx + dy * dy), grain);
         }
+
+        /// <summary>
+        /// Rounds a length to a whole number of grains, so that two lengths within rounding of each other sort as one;
+        /// the length as it is for a grain of nought.
+        /// </summary>
+        private static double Level(double length, double grain) => grain > 0.0 ? Math.Round(length / grain) : length;
 
         /// <summary>
         /// Counts the actual number of free positions within the first sample candidate group.

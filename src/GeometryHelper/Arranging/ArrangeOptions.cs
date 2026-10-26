@@ -38,6 +38,12 @@ namespace GeometryHelper.Arranging
         /// <summary>
         /// Labels smaller than this size will be considered invalid/erroneous and ignored.
         /// </summary>
+        /// <remarks>
+        /// A label whose box is as wide and as high as this is arranged. Measured along its leader and across it from its
+        /// corners, as they round where the scene lies, it may come to a hair less, and counts as large enough to within
+        /// the point tolerance of <see cref="Tolerance"/>: a label 20 by 10 turned along its leader, at the default 10, is
+        /// arranged wherever it lies.
+        /// </remarks>
         public double MinimumBoxSize { get; set; } = 10.0;
 
         /// <summary>
@@ -88,9 +94,19 @@ namespace GeometryHelper.Arranging
         /// as it stands when the options are made, unless set.
         /// </summary>
         /// <remarks>
-        /// A place that comes within the point tolerance of a region or a line kept clear of collides with it, though
+        /// A place that comes within the point tolerance of a region, a line or another label collides with it, though
         /// their boxes do not overlap: at a tolerance of a thousandth, a label whose place ends half a thousandth below a
-        /// line is not put there. Two labels are judged on their boxes as they stand.
+        /// line, or below another label, is not put there, and two labels that touch collide wherever the scene lies.
+        /// <para>
+        /// How far a label stands from the centre of them all, or how far along, is counted in whole steps of the point
+        /// tolerance, and labels on the same step are placed in the order they were given; a label as large as
+        /// <see cref="MinimumBoxSize"/> is arranged however its corners round. So a scene moved elsewhere is arranged as
+        /// it was, moved, but where something falls within rounding of an edge drawn exactly: two lengths within rounding
+        /// of half a step can round to different steps, and a block within rounding of the edge of a label's reach is
+        /// weighed or not as its coordinates round. A label 20 by 10 on a leader from (0, 0) to (100, 0), 5 off it, with
+        /// a block line from (185, -5) to (185, 5), goes to (-3.25, 10) at the origin and to (0, 10) at 2 of 20 000
+        /// places a thousand to ten million off it.
+        /// </para>
         /// <para>
         /// Of the free places a label is weighed at, the most open wins, and clearances up to the point tolerance count as
         /// nought, so two places 0.0004 and 0.0007 off what they keep clear of are as open at a tolerance of a thousandth,

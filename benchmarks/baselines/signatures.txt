@@ -1,7 +1,7 @@
 # The result signatures approved for the benchmark cases: a name, a space, the SHA-256 of its result.
 # Written by --approve. What each case signs: benchmarks/GeometryHelper.Benchmarks/Scenarios.
-# Last approved on b7f643722ab8e186444677897a8e821e50872bc5 with changes, .NET Framework 4.8.9310.0, X64.
-Arrange.Dense a8147571a6388bce56e951dd0dc2cb7760c13da51760eff53c9ff3ed8f0ad953
+# Last approved on 19eff2e8342ff3ac4082bd9e69ac3b95d84c6865 with changes, .NET Framework 4.8.9310.0, X64.
+Arrange.Dense d13685e1d068f86f7f97b2d23a4bbb41aa5ed3fcb95312e9334ae944972cdc39
 Arrange.Sparse.100 f5369fa2a0cb3d90f98d5a033d850e2af6f25d3f081316401938cba195334bc7
 Arrange.Sparse.1000 c33f5f8ba1fb0b52632bbf0e1af020e8c75953e56c3d056e5fe0f934ac32b0f2
 Arrange.Sparse.500 a95b0e8c7361bc44fa17c405f7d462615766ebba9e207a878a201839e946ce0d

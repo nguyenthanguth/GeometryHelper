@@ -156,10 +156,14 @@ tolerance past the reach. The steps are counted, not added up one after another,
 the same places, moved, to within the rounding of where it lies: a label on a leader 60 long had 234 places at the
 origin and 246 900 along X, its last slide coming and going with the rounding of the sum, and has 246 at both. A reach
 falling within rounding of the switch itself still goes either way: one of 1.999, the switch less the point tolerance,
-gives 246 places at the origin and 54 or 66 half a million out. Which of
-those places a label takes can still follow that rounding where two of them are nearly as open: the scenes the tests
-run, moved by up to a million, place every label alike, but of 400 labels crowded a step apart, one goes to candidate
-57 of its list at the origin and to candidate 61 when the scene is moved 900 along X.
+gives 246 places at the origin and 54 or 66 half a million out. So does a block standing within rounding of the edge of
+a label's reach: a label 20 by 10 on a leader from (0, 0) to (100, 0), 5 off it, with a block line from (185, -5) to
+(185, 5), goes to (-3.25, 10) at the origin and to (0, 10) at 2 of 20 000 places a thousand to ten million off it. A
+label as large as `MinimumBoxSize` has its places however its corners round: measured along its leader and across it, it
+counts as large enough to within the point tolerance. Of 200 000 labels 20, 25 or 30 by 10 at the default 10, on leaders
+20 to 119 long at a random angle a third of the time and along an axis otherwise, half of them turned to their leader
+and half not, 6 606 had no places at all near the origin, measured as their corners rounded, and 8 181 of as many drawn
+alike up to ten million off it.
 
 A label 600 by 250 on a leader 2 000 long, 50 off above and 150 below, with the default options, has 246 candidates:
 six rows of 41, a step of 72.5 apart. The first row above lies 175 off the leader and the first below 275, and as the
@@ -186,19 +190,29 @@ overlaps the next and the beam; after `Arranger.Run` all nine are `Placed`, each
   Of two as free, with `PlaceFromInsideOut`, also the default, the one nearer the centre of all the labels goes first,
   and without it the one with fewer candidates in all. With `PlaceMostConstrainedFirst` off, the labels go from the
   centre outwards, or, with `PlaceFromInsideOut` off too, from left to right and then bottom to top. Labels that tie
-  keep the order they were given in.
+  keep the order they were given in. How far a label stands from the centre, or how far along, is counted in whole
+  steps of the point tolerance, so that two as far but for the last digits tie wherever the scene lies: of two labels
+  on leaders 10.6 apart, kept to the sides facing each other, whose first places are one and the same, centred at
+  (15, 5.3), the first given goes first and the second slides, at the origin as a million off it, where the last
+  digits of the centre put the second first in a third of the places tried. Two lengths within rounding of half a step
+  can still round to different steps.
 - **Look-ahead** — a label is tried at its candidates in turn until `LookAheadCandidates` of them, 3 unless set, are
   found clear, and takes the one that stands furthest from everything near it; of two as open, the one found first.
   Clearances up to the point tolerance of the options count as nought: at a tolerance of a thousandth, places 0.0004
   and 0.0007 clear are as open, and at a ten-thousandth the second is the more open. Clearances that differ by no more
   than a thousandth of the tolerance are as open too, so which of two places as open a label takes does not follow
   where the scene lies: at a thousandth, places 0.5 and 0.50000001 clear go to the one tried first, at the origin as a
-  million off it. The candidates themselves are worked out from the coordinates as they stand, and a scene moved far
-  off can give a label a candidate more or fewer.
+  million off it.
   The gap one side asks for beyond the gap of the other is not counted as room: a label 20 off above its leader and
   300 below it, keeping clear of its own leader, stands 20 clear of it in the first row above and 300 in the first
   row below, and counted as measured, the side below, the one it is to keep further off, would win whenever places
   on both sides were weighed.
+- **Touching** — a place collides with a label already placed as it does with a block, when it comes within the point
+  tolerance of it, and the final layout judges two labels the same way: two labels that touch collide wherever the
+  scene lies. Judged on their boxes as they stood, they collided or not as the rounding of where the scene lay left the
+  boxes overlapping or a hair apart: of the 400 labels of the benchmark `Arrange.Dense`, crowded a step apart, one went
+  to candidate 57 of its list at the origin, touching a label already placed, and to candidate 61 moved 1 000 along X. It
+  goes to 61 at both.
 - **No clear place** — a label with none of its candidates clear is left on the first of them, overlapping, for the
   second pass to try again. Looking for the place with the least overlap instead was measured worse: on 80 crowded
   labels over 16 seeds it brought the share of clean labels down from 32.3 % to 22.9 %, as stuck labels wandered

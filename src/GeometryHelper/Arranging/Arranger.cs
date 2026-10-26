@@ -234,12 +234,14 @@ namespace GeometryHelper.Arranging
 
                 // AnyCollides passes over every block whose box does not overlap that of the label grown by the point
                 // tolerance, so the blocks the index finds for that grown box are all it would look at, in the same order.
-                bool clear = !Obstacle.AnyCollides(blocks.Overlapping(bounds[i].Expand(options.Tolerance.EqualPoint)), boxes[i], options.Tolerance);
+                Bounds grown = bounds[i].Expand(options.Tolerance.EqualPoint);
+                bool clear = !Obstacle.AnyCollides(blocks.Overlapping(grown), boxes[i], options.Tolerance);
 
-                // Only the labels whose boxes overlap, bounds[i].Overlaps(bounds[j]), are judged against this one, in
-                // the order of the items. Two boxes standing apart by less than the tolerance are not judged, as before:
-                // CollidesWith, within the tolerance, would call them a collision.
-                labels.Query(bounds[i], near);
+                // The labels whose boxes come within the point tolerance of this one are judged against it, in the order
+                // of the items, as a block is: CollidesWith, within the tolerance, calls two labels that touch a
+                // collision. Only those whose boxes overlapped were judged, so that two labels touching collided or not
+                // as the rounding of where the scene lay left their boxes overlapping or a hair apart.
+                labels.Query(grown, near);
                 for (int k = 0; k < near.Count && clear; k++)
                 {
                     int j = itemOf[near[k]];
