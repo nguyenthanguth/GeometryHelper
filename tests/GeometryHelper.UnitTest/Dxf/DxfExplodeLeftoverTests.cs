@@ -280,10 +280,11 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AMultileaderCopiedIntoAnotherDrawing_GivesItsValueToTheAttributeOfTheSameTagThere_OrLeavesItOut()
+        public void AMultileaderCopiedIntoAnotherDrawing_GivesItsValueToTheAttributeOfTheSameTagThere_OrBringsItsBlock()
         {
             // Another drawing with a block GKTAG of its own, its attribute NUM of another handle: the value given to it. One with
-            // no block GKTAG: the block and the value left out, as the block's pointer is.
+            // no block GKTAG: the block copied with the multileader, as AutoCAD's deep clone follows its pointer, and the value
+            // given to the copy of NUM.
             DxfMLeader original = ByHandle<DxfMLeader>(DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018), "BA");
             DxfDatabase other = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
             var gktag = new DxfBlockTableRecord { Name = "GKTAG" };
@@ -300,8 +301,9 @@ namespace GeometryHelper.UnitTest.Dxf
             var lost = (DxfMLeader)original.Clone();
             bare.ModelSpace.AppendEntity(lost);
 
-            Assert.Null(lost.BlockContent);
-            Assert.DoesNotContain("302\n42\n", bare.ToText(), StringComparison.Ordinal);
+            Assert.Same(bare.BlockTable["GKTAG"], lost.BlockContent);
+            Assert.Equal(new[] { "NUM=42" }, Values(lost));
+            Assert.Equal(new[] { "NUM=42" }, Values(ByHandle<DxfMLeader>(DxfDatabase.Parse(bare.ToText()), lost.Handle)));
         }
 
         [Fact]

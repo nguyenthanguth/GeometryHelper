@@ -400,8 +400,8 @@ The library has three ways into a DXF file, each for its own job:
 way to take geometry out of a drawing to work on. `DxfDatabase` reads what it is asked for when it is asked: 100 000 lines of
 10.5 MB are opened and saved in 36 ms and walked as `DxfLine` objects in 21 ms, and what is not changed is written back as
 it was read. `DxfWriter` makes a file from nothing. The three meet: an entity of the editing model gives the shapes
-`DxfReader` would read for it by `GetGeometry()`, and a drawing begins as the text `DxfWriter` writes (see [The
-model](#the-model)).
+`DxfReader` would read for it by `GetGeometry()` (a LEADER, which the reader does not read, its curve), and a drawing begins
+as the text `DxfWriter` writes (see [The model](#the-model)).
 
 ## Editing a DXF file
 
@@ -495,7 +495,7 @@ Dxf in front and their members' names.
 | `entity.IntersectWith(other, Intersect.ExtendThis, points, IntPtr.Zero, IntPtr.Zero)` | `entity.IntersectWith(other, DxfIntersect.ExtendThis)` giving `IReadOnlyList<GeoPoint3>` | Worked out on the library's shapes; a pair it cannot cross, a text among them, throws `NotSupportedException`. |
 | `GeometricExtents` giving `Extents3d` | `GeometricExtents` giving `GeoAabb3` | Of the shapes `GetGeometry()` gives; a text has no fonts to give it a box. |
 | `Curve.GetPointAtParameter`, `GetDistAtPoint`, `GetOffsetCurves`, `GetSplitCurves`, `Extend` | the same on `DxfCurve` | Offsets go to the right of the curve's way, as below. |
-| `Curve.GetGeCurve()` giving a `Curve3d` | `GetGeCurve()` giving the library's shape (`GeoLine3`, `GeoArc3`, ...) as an `object` | `GetGeometry()` gives the same as `DxfReader` reads it. |
+| `Curve.GetGeCurve()` giving a `Curve3d` | `GetGeCurve()` giving the library's shape (`GeoLine3`, `GeoArc3`, ...) as an `object` | `GetGeometry()` gives the same as `DxfReader` reads it; a LEADER, which the reader does not read, its curve, a `GeoPolyline3` or, splined, a `GeoSpline3`. |
 | `Clone()`, `db.WblockCloneObjects(ids, ownerId, map, DuplicateRecordCloning.Ignore, false)` | `entity.Clone()` then `other.ModelSpace.AppendEntity(copy)`; `db.WblockCloneObjects(entities, other.ModelSpace)` giving the copies | Records of the tables and the blocks a copy draws by come with it where the other drawing has none of their names, its own used where it has (see [Editing rules](#editing-rules)). No `IdMapping`: the copies are given back in the order of the entities. |
 | `Point3d`, `Vector3d`, `Point2d`, `Vector2d` | `GeoPoint3`, `GeoVector3`, `GeoPoint2`, `GeoVector2` | CadConvert turns one into the other: `point.ToGeoPoint3()`, `point.ToAcadPoint3()`. |
 | `Matrix3d.Displacement(v)`, `Rotation(angle, axis, centre)`, `Scaling(factor, centre)`, `Mirroring(plane)` | `GeoTransform3.Translation(v)`, `RotationAxis(centre, axis, angle)`, `Scaling(centre, factor)`, `Mirror(plane)` | `a * b` applies `b` first, as `Matrix3d`'s product does. `Matrix3d.AlignCoordinateSystem` from one system to another is `FromCoordinateSystem(to) * ToCoordinateSystem(from)`. |
@@ -654,7 +654,8 @@ last member erased, `Clear`, `RemoveAt`, or never given one. A group the file wa
 
 Every entity has AutoCAD's `Layer`, `Color`, `ColorIndex`, `TrueColor`, `Linetype`, `LinetypeScale`, `LineWeight`,
 `Visible` and `Transparency`, its `Handle`, `OwnerHandle`, `XData`, `Hyperlinks` and `ExtensionDictionary`, its `Owner` and
-`BlockName`, and `GetGeometry()`, the library's shapes for it as `DxfReader` reads it. A true colour's `Color` carries the
+`BlockName`, and `GetGeometry()`, the library's shapes for it as `DxfReader` reads it, or for a LEADER, which the reader does
+not read, its curve, the polyline of its vertices or the spline it is fitted to. A true colour's `Color` carries the
 index nearest it, orange (0xFF8000) the index 30, and is written with it. `Transparency`, group 440, is a `DxfTransparency`:
 BYLAYER where the record gives none, BYBLOCK, or an alpha from 0, clear, to 255, solid, `new DxfTransparency(127)` the 50 per
 cent of AutoCAD's dialog, written 33 554 559 (0x0200007F); a file older than R2004 has none and refuses one. Its
@@ -833,7 +834,11 @@ and the other overrides read the extended data of ACAD (`DSTYLE`) where the lead
 has not, and are written there as AutoCAD writes them: `leader.Dimasz = 3.5` writes `1070 41, 1040 3.5`. A straight leader
 is walked as a curve by the index of its vertices, 1.5 halfway along its second segment; a splined one (`IsSplined`) along the
 spline `Explode()` fits through its vertices, its parameter from 0 to 1, and its `Spline` and `GeometricExtents` are that
-spline's: through (0, 0, 0), (10, 10, 0) and (20, 10, 0) it rises to y = 10.43, past its vertices, and its box with it.
+spline's: through (0, 0, 0), (10, 10, 0) and (20, 10, 0) it rises to y = 10.43, past its vertices, and its box with it. The
+spline is fitted once and kept until the drawing is next changed, so that a hundred points along a leader of 4 000 vertices
+take a fraction of a millisecond, not 1.6 s. `GetGeometry()` gives the leader's curve, the polyline of its vertices or that
+spline, and `IntersectWith` meets the leader on it, as AutoCAD's does: the leader from (0, 0, 0) to (10, 5, 0) meets the line
+x = 5 at (5, 2.5, 0). `IsPlanar` agrees with `GetPlane()`: false where a vertex lies off the plane of its normal.
 
 A MULTILEADER is a `DxfMLeader`: its words (`MText`, `TextLocation`, `TextHeight`) or block (`BlockContent`,
 `BlockPosition`, `BlockScale`, `BlockRotation`, `SetBlockAttribute`), its look, and its leaders and their lines by AutoCAD's
@@ -1000,7 +1005,9 @@ its attributes, and `GetTransformedCopy` copies and moves one; a copy is of the 
 no file until it is appended. An erased entity refuses to be copied. A copy appended to the drawing it came from points at what
 its original points at, and shares the block that draws it, a dimension's `*D`, a table's `*T`, an INSERT's `*U`. A copy of a
 multileader keeps the attribute definitions its values are given for, and appended to another drawing gives each value to
-the definition of the same tag in the block of the same name there, leaving it out where there is none.
+the definition of the same tag in the block of the same name there, leaving it out where there is none; appended back to its
+own drawing, it leaves out the value of a definition erased since, as ezdxf would otherwise find the definition missing. The
+original keeps its handle of the erased definition, as AutoCAD leaves it.
 
 Appended to another drawing, a copy's pointers are taken to the objects of the same name there, as AutoCAD's deep clone
 between drawings maps them: a material (347), a plot style (390) or a visual style (348) by the names of its dictionary and its
@@ -1016,11 +1023,16 @@ material. A copy brings what it names that the drawing has not, and uses what th
   that it inserts;
 - an INSERT's named block, under its name, with the blocks it inserts that the drawing has not and its description, units,
   explodability and scaling, as AutoCAD's `WblockCloneObjects` brings it; where the drawing has a block of the name, the
-  copy places the drawing's own.
+  copy places the drawing's own;
+- a MULTILEADER's block and arrow blocks so too, as AutoCAD's deep clone follows its pointers to them: the multileader of
+  GKTAG copied alone into a drawing with no GKTAG brings GKTAG, and gives NUM 42 to the copy of its attribute.
 
 What the entities of a block copied point to among themselves, a LEADER to its MTEXT or a HATCH to its boundary, is kept
 between their copies whichever comes first in the block, each listed among the reactors of what it points to, as AutoCAD
-translates its map of ids once every object is copied. A copy of an INSERT places its block as the drawing it was copied from
+translates its map of ids once every object is copied. A MULTILEADER of a block copied places the copy of its block, and draws
+its arrows by the copies of theirs, where those blocks are copied with it, though after it: a block W holding a multileader
+of the block GKTAG and an INSERT of GKTAG, copied into another drawing, brings GKTAG, and W's multileader places that GKTAG
+with the value of its attribute. A copy of an INSERT places its block as the drawing it was copied from
 has it now, edits and all, keeps to it when it is renamed there, and places nothing once it is erased.
 
 `db.WblockCloneObjects(entities, owner)` copies entities of a drawing together into a block of another drawing, or of its

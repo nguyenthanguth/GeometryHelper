@@ -832,6 +832,28 @@ namespace GeometryHelper.Dxf
         private static bool IsWhole(int code)
             => (code >= 60 && code <= 99) || (code >= 170 && code <= 179) || (code >= 270 && code <= 289) || (code >= 370 && code <= 379) || (code >= 420 && code <= 429);
 
+        /// <summary>Whether a name of a layer is one <see cref="CheckName"/> takes.</summary>
+        internal static bool IsLayerName(string name)
+        {
+            if (name.Length == 0 || name.Trim().Length != name.Length)
+            {
+                return false;
+            }
+
+            foreach (char c in name)
+            {
+                if (c < ' ' || NotInNames.IndexOf(c) >= 0)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        // The characters AutoCAD takes in no name of a layer, past the control characters.
+        private const string NotInNames = "<>/\":;?*|=`";
+
         /// <summary>A name of a layer AutoCAD takes: not empty, no space at either end, no control character and none of &lt;&gt;/":;?*|=`.</summary>
         private static void CheckName(string name, string parameter)
         {
@@ -842,7 +864,7 @@ namespace GeometryHelper.Dxf
 
             foreach (char c in name)
             {
-                if (c < ' ' || "<>/\":;?*|=`".IndexOf(c) >= 0)
+                if (c < ' ' || NotInNames.IndexOf(c) >= 0)
                 {
                     throw new ArgumentException("The name of a layer cannot have a control character or any of < > / \" : ; ? * | = ` in it, as AutoCAD does not take them: '" + name + "' has one.", parameter);
                 }

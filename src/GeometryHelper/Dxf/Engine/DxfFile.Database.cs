@@ -85,6 +85,16 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// A shape written as an entity of its own, as <see cref="Detached(object)"/> writes it, with a look written in the same
+        /// writing, as AutoCAD writes it: its layer, its linetype, colour, lineweight and true colour where given.
+        /// </summary>
+        internal static DxfItem Detached(object shape, string layer, int? colour, int? trueColour, string linetype, int? lineweight)
+        {
+            DxfFile file = Template.Holder();
+            return file.Add(file.ModelSpace, shape, layer, colour, trueColour, linetype, lineweight, 0.0, 0);
+        }
+
+        /// <summary>
         /// An entity of its own written from its groups: its type, the marker AcDbEntity, layer 0, then the groups given, which
         /// begin with its subclass marker.
         /// </summary>
@@ -308,6 +318,7 @@ namespace GeometryHelper.Dxf
                         _entityCopies = null;
                         _copiedItems = null;
                         _deferred = null;
+                        _blocksToCome = null;
                     }
                 }
             }
@@ -468,6 +479,10 @@ namespace GeometryHelper.Dxf
                     records[r] = source.Pointed(records[r], origin, this, ref deferred);
                 }
             }
+            else if (type == "MULTILEADER" && source.Origin == this)
+            {
+                records[0] = source.WithoutLostAttributes(records[0], this);
+            }
 
             Rec head = records[0];
             bool paper = space.Kind == DxfSpaceKind.Paper;
@@ -541,6 +556,7 @@ namespace GeometryHelper.Dxf
         {
             var order = new List<DxfFileBlock>();
             Collect(origin, records[0], order);
+            CollectPlaced(origin, records[0], order, needs);
             NeedsOf(origin, records, needs, order);
 
             for (int k = 0; k < order.Count; k++)
@@ -568,6 +584,7 @@ namespace GeometryHelper.Dxf
                     }
 
                     Collect(origin, own[0], order);
+                    CollectPlaced(origin, own[0], order, needs);
                     NeedsOf(origin, own, needs, order);
                 }
             }
@@ -576,10 +593,54 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Adds to the blocks to copy the one a record of the origin draws by, where it is to be copied, as <see cref="BlocksToCopy"/> says.</summary>
-        private void Collect(DxfFile origin, Rec record, List<DxfFileBlock> order)
-        {
-            DxfFileBlock block = origin.BlockDrawnBy(record);
+        private void Collect(DxfFile origin, Rec record, List<DxfFileBlock> order) => Collect(origin.BlockDrawnBy(record), order);
 
+        /// <summary>
+        /// Adds to the blocks to copy those a MULTILEADER of the origin places and draws its arrows by, as an INSERT's block is
+        /// added (<see cref="Collect(DxfFile, Rec, List{DxfFileBlock})"/>), as AutoCAD's deep clone follows its pointers: each
+        /// pointer of its own groups to a BLOCK_RECORD of the origin, its content (341 of its context data, 344) and its arrows
+        /// (342, 345). So that a multileader copied alone, or before an INSERT of its block, brings that block with it.
+        /// </summary>
+        private void CollectPlaced(DxfFile origin, Rec record, List<DxfFileBlock> order, RecordsToCopy needs)
+        {
+            if (record.Type != "MULTILEADER")
+            {
+                return;
+            }
+
+            List<Pair> pairs = PairsOf(record);
+            int data = DataAt(record, pairs);
+            bool braced = false;
+
+            for (int i = 1; i < data; i++)
+            {
+                int code = pairs[i].Code;
+
+                if (code == 102)
+                {
+                    braced = origin.Text(record, pairs[i]).Trim().StartsWith("{", StringComparison.Ordinal);
+                    continue;
+                }
+
+                if (braced || (code != 341 && code != 342 && code != 344 && code != 345) || !TryHex(origin.Text(record, pairs[i]).Trim(), out ulong handle))
+                {
+                    continue;
+                }
+
+                needs.Objects = needs.Objects ?? origin.Objects();
+
+                if (needs.Objects.TryGetValue(handle, out KeyValuePair<Rec, bool> pointed) && pointed.Value && pointed.Key.Type == "BLOCK_RECORD"
+                    && origin.Blocks.TryGetValue(DxfReader.NameOf(origin.Record(pointed.Key).Text(2) ?? string.Empty), out DxfFileBlock block)
+                    && !DxfBlockTableRecord.IsModelName(block.Name) && !block.Name.StartsWith(DxfBlockTableRecord.PaperSpace, StringComparison.OrdinalIgnoreCase))
+                {
+                    Collect(block, order);
+                }
+            }
+        }
+
+        /// <summary>Adds a block of the origin to the blocks to copy, where it is to be copied, as <see cref="BlocksToCopy"/> says.</summary>
+        private void Collect(DxfFileBlock block, List<DxfFileBlock> order)
+        {
             if (block == null || order.Contains(block) || (_blockCopies != null && _blockCopies.ContainsKey(block)))
             {
                 return;
@@ -1414,6 +1475,8 @@ namespace GeometryHelper.Dxf
         /// <paramref name="deferred"/> says so. A MULTILEADER's attribute definition (its 330 after its own marker) names the
         /// copy of the definition, or the definition of the same tag in the block here of the name of its block, as the block it
         /// places is the one of that name here; where there is none, the value given for it (its 177, 44 and 302) goes with it.
+        /// A MULTILEADER's pointer to a block being copied with it whose record is not written yet (its content block, 341 of
+        /// the context and 344; its arrow blocks, 342 and 345) is held back so too, to name the copy (<see cref="BlockToCome"/>).
         /// The record itself where nothing changes.
         /// </summary>
         private Rec Pointed(Rec record, DxfFile origin, DxfFile target, ref bool deferred)
@@ -1525,6 +1588,12 @@ namespace GeometryHelper.Dxf
                     if (now != null)
                     {
                         b.Group(code, now);
+                    }
+                    else if (record.Type == "MULTILEADER" && target.BlockToCome(origin, was))
+                    {
+                        // A multileader's block (its content, its arrows) copied with it but not yet written here waits for it.
+                        b.Group(code, DeferredMark + was.Trim());
+                        deferred = true;
                     }
                     else if (code == 331 && record.Type == "ACAD_TABLE")
                     {
@@ -1898,6 +1967,41 @@ namespace GeometryHelper.Dxf
             return at;
         }
 
+        /// <summary>
+        /// A MULTILEADER's record copied back into its own drawing (<paramref name="drawing"/>) without the value it gives to an
+        /// attribute definition the drawing no longer has, erased since: the definition's handle (its 330 after its own marker)
+        /// with the index, width and text after it (177, 44, 302), as <see cref="Pointed"/> leaves out one another drawing has
+        /// no definition for. The record itself where every one is there, or the drawing is no database's.
+        /// </summary>
+        private Rec WithoutLostAttributes(Rec record, DxfFile drawing)
+        {
+            if (drawing.Database == null)
+            {
+                return record;
+            }
+
+            List<Pair> pairs = PairsOf(record);
+            int data = DataAt(record, pairs);
+            int body = BodyAt(record, pairs, data);
+            var b = new Builder(this);
+            b.Raw(record, pairs[0]);
+            bool changed = false;
+
+            for (int i = 1; i < pairs.Count; i++)
+            {
+                if (body >= 0 && i > body && i < data && pairs[i].Code == 330 && Definition(drawing, Text(record, pairs[i])) == null)
+                {
+                    i = AttributeEnd(pairs, i, data);
+                    changed = true;
+                    continue;
+                }
+
+                b.Raw(record, pairs[i]);
+            }
+
+            return changed ? b.Done(record.Type) : record;
+        }
+
         /// <summary>The attribute definition of a handle of another drawing (<paramref name="origin"/>); null where it has none.</summary>
         private static DxfItem Definition(DxfFile origin, string pointer)
         {
@@ -1908,6 +2012,32 @@ namespace GeometryHelper.Dxf
         /// <summary>Whether the block of an attribute definition of another drawing is being copied into this one with the entity being added.</summary>
         private bool CopyingBlockOf(DxfFile origin, string pointer)
             => _blockCopies != null && Definition(origin, pointer) is DxfItem definition && origin.Blocks.TryGetValue(definition.Block, out DxfFileBlock block) && _blockCopies.ContainsKey(block);
+
+        // The blocks of the drawing copied from that a pointer held back names, by the handle of their BLOCK_RECORD there, each
+        // with the name of its copy here: what the pointer is taken to once every block is written.
+        private Dictionary<ulong, string> _blocksToCome;
+
+        /// <summary>
+        /// Whether a handle of another drawing names the BLOCK_RECORD of a block being copied into this one with the entity being
+        /// added, which a pointer is to wait for (<see cref="TranslateDeferred"/>): a block copied after the one that holds the
+        /// pointer, as GKTAG after the block W whose multileader places it. The name of its copy is kept for the pointer.
+        /// </summary>
+        private bool BlockToCome(DxfFile origin, string pointer)
+        {
+            if (_deferred == null || _blockCopies == null || !TryHex(pointer.Trim(), out ulong handle) || !origin.Objects().TryGetValue(handle, out KeyValuePair<Rec, bool> found)
+                || !found.Value || found.Key.Type != "BLOCK_RECORD" || !origin.Blocks.TryGetValue(DxfReader.NameOf(origin.Record(found.Key).Text(2) ?? string.Empty), out DxfFileBlock block)
+                || !_blockCopies.TryGetValue(block, out string name))
+            {
+                return false;
+            }
+
+            (_blocksToCome = _blocksToCome ?? new Dictionary<ulong, string>())[handle] = name;
+            return true;
+        }
+
+        /// <summary>The handle here of the BLOCK_RECORD of the copy of a block a pointer held back names (<see cref="BlockToCome"/>); null where there is none.</summary>
+        private string BlockCopyHandle(string pointer)
+            => _blocksToCome != null && TryHex(pointer.Trim(), out ulong handle) && _blocksToCome.TryGetValue(handle, out string name) ? BlockRecordHandle(name) : null;
 
         /// <summary>
         /// The handle here of the attribute definition of the same tag as one of another drawing, in the block here of the name
@@ -1960,8 +2090,9 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Takes each pointer held back while blocks were copied (<see cref="Pointed"/>) to the copy of the entity it names, as
         /// AutoCAD's deep clone translates its map of ids once every object is copied, so that a LEADER written before its MTEXT
-        /// still points to its copy: a pointer whose entity was not copied is left out, as one left out at once is (a table cell's
-        /// with its value and count, a LEADER's annotation with its kind, a HATCH's boundary with its count and association).
+        /// still points to its copy, and a MULTILEADER written before the block it places to the copy of that block: a pointer
+        /// whose entity was not copied is left out, as one left out at once is (a table cell's with its value and count, a
+        /// LEADER's annotation with its kind, a HATCH's boundary with its count and association).
         /// The HATCH or LEADER whose pointer is kept is put among the reactors of the copy it points to, as AutoCAD keeps it.
         /// </summary>
         private void TranslateDeferred()
@@ -1998,7 +2129,7 @@ namespace GeometryHelper.Dxf
                         continue;
                     }
 
-                    string copy = CopyHandle(text.Substring(DeferredMark.Length));
+                    string copy = CopyHandle(text.Substring(DeferredMark.Length)) ?? BlockCopyHandle(text.Substring(DeferredMark.Length));
 
                     if (copy != null)
                     {

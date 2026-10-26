@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Threading;
 using GeometryHelper.Geometry;
 using GeometryHelper.Internal.Nurbs;
 using static GeometryHelper.Dxf.DxfLeaderGroups;
@@ -17,7 +18,10 @@ namespace GeometryHelper.Dxf
     /// The leader through (0, 0, 0), (10, 10, 0) and (20, 10, 0) has three vertices, <see cref="FirstVertex"/> where its arrow
     /// is and <see cref="LastVertex"/> where its words are; as a curve its parameter is AutoCAD's, the index of a vertex plus
     /// how far along the segment it leaves, so that 1.5 is (15, 10, 0), and its length is 24.14. Splined (<see cref="IsSplined"/>),
-    /// it is walked along the spline <see cref="Explode"/> fits through its vertices, its parameter from 0 to 1.
+    /// it is walked along the spline <see cref="Explode"/> fits through its vertices, its parameter from 0 to 1, the spline fitted
+    /// once and kept until the drawing is next changed. <see cref="DxfEntity.GetGeometry"/> gives that curve, the polyline of its
+    /// vertices or the spline, so that <see cref="DxfEntity.IntersectWith"/> meets the leader on it, as AutoCAD's does: the
+    /// leader from (0, 0, 0) to (10, 5, 0) meets the line x = 5 at (5, 2.5, 0).
     /// </para>
     /// <para>
     /// The size of its arrow, the gap to its words and the other variables of its dimension style AutoCAD lets one leader have
@@ -80,25 +84,54 @@ namespace GeometryHelper.Dxf
         /// AutoCAD answers eNotPlanar.</exception>
         public override GeoPlane3 GetPlane()
         {
-            // The vertices read once: each read of one reads the record, every vertex of it.
-            List<GeoPoint3> vertices = Vertices();
-
-            if (vertices.Count == 0)
+            if (!PlaneOf(out GeoPlane3 plane, out int off))
             {
                 throw new InvalidOperationException("The leader has no vertex: it has no plane.");
             }
 
-            var plane = new GeoPlane3(vertices[0], Normal);
+            if (off >= 0)
+            {
+                throw new InvalidOperationException("The vertex " + off.ToString(CultureInfo.InvariantCulture) + " of the leader lies off the plane of its normal through its first, as AutoCAD answers eNotPlanar.");
+            }
+
+            return plane;
+        }
+
+        /// <summary>
+        /// Gets whether the leader lies in one plane, as AutoCAD's <c>IsPlanar</c>: whether <see cref="GetPlane"/> finds one, every
+        /// vertex in the plane of its <see cref="Normal"/> through its first to <see cref="Tolerance.Default"/>. The leader
+        /// through (0, 0, 0), (10, 10, 0) and (20, 10, 0) lies in one; its last vertex lifted to (20, 10, 0.5), it does not.
+        /// </summary>
+        public override bool IsPlanar => PlaneOf(out _, out int off) && off < 0;
+
+        /// <summary>
+        /// The plane of the normal through the first vertex, and the first vertex off it by more than the point tolerance, -1
+        /// for none; false where the leader has no vertex.
+        /// </summary>
+        private bool PlaneOf(out GeoPlane3 plane, out int off)
+        {
+            // The vertices read once: each read of one reads the record, every vertex of it.
+            List<GeoPoint3> vertices = Vertices();
+            plane = default(GeoPlane3);
+            off = -1;
+
+            if (vertices.Count == 0)
+            {
+                return false;
+            }
+
+            plane = new GeoPlane3(vertices[0], Normal);
 
             for (int i = 1; i < vertices.Count; i++)
             {
                 if (Math.Abs(plane.SignedDistanceTo(vertices[i])) > Tolerance.Default.EqualPoint)
                 {
-                    throw new InvalidOperationException("The vertex " + i.ToString(CultureInfo.InvariantCulture) + " of the leader lies off the plane of its normal through its first, as AutoCAD answers eNotPlanar.");
+                    off = i;
+                    break;
                 }
             }
 
-            return plane;
+            return true;
         }
 
         /// <summary>
@@ -180,8 +213,8 @@ namespace GeometryHelper.Dxf
             double tolerance = Tolerance.Default.EqualPoint;
             var parts = new List<DxfEntity>();
 
-            // The look and the extended data read once: each read of them reads the record, every vertex of it.
-            var look = new Look(this);
+            // The extended data read once, and the look with it: each read of them reads the record, every vertex of it. The
+            // look is given to each part once, as its dimension style draws it.
             List<DxfTypedValue> data = Acad(out int open, out int close);
 
             string Value(int code)
@@ -190,7 +223,7 @@ namespace GeometryHelper.Dxf
                 return pair != null ? pair[1].Value : StyleValue(code);
             }
 
-            Action<DxfEntity> styled = StyledLook(Value, blockColour);
+            Look look = StyledLook(new Look(this), Value, blockColour);
 
             if (IsSplined)
             {
@@ -199,7 +232,6 @@ namespace GeometryHelper.Dxf
                 if (spline != null)
                 {
                     look.GiveTo(spline);
-                    styled?.Invoke(spline);
                     parts.Add(spline);
                 }
             }
@@ -211,9 +243,7 @@ namespace GeometryHelper.Dxf
                 {
                     if (vertices[i].DistanceTo(vertices[i + 1]) > tolerance)
                     {
-                        DxfEntity line = PartOf(new GeoLine3(vertices[i], vertices[i + 1]), look, thickness);
-                        styled?.Invoke(line);
-                        parts.Add(line);
+                        parts.Add(PartOf(new GeoLine3(vertices[i], vertices[i + 1]), look, thickness));
                     }
                 }
             }
@@ -247,18 +277,17 @@ namespace GeometryHelper.Dxf
             }
 
             look.GiveTo(head);
-            styled?.Invoke(head);
             parts.Add(head);
             return parts.AsReadOnly();
         }
 
         /// <summary>
-        /// What the dimension style changes of the look of a part of the leader exploded, as <see cref="Explode"/> sets it out:
-        /// the colour of DIMCLRD, the linetype of DIMLTYPE and the lineweight of DIMLWD, each the override, else the style's, as
-        /// the value of a variable gives it; null where it changes nothing, each of them BYBLOCK or none, so that the parts keep
-        /// the leader's look as it gives it. The colour the leader writes for DIMCLRD BYBLOCK (77) is given, -1 for none.
+        /// The look of a part of the leader exploded, as <see cref="Explode"/> sets it out: the leader's own, with the colour of
+        /// DIMCLRD, the linetype of DIMLTYPE and the lineweight of DIMLWD in place of its own, each the override, else the
+        /// style's, as the value of a variable gives it; the leader's own where each of them is BYBLOCK or none. The colour the
+        /// leader writes for DIMCLRD BYBLOCK (77) is given, -1 for none.
         /// </summary>
-        private Action<DxfEntity> StyledLook(Func<int, string> value, int blockColour)
+        private Look StyledLook(Look own, Func<int, string> value, int blockColour)
         {
             int colour = Whole(value(176), 0);
 
@@ -275,29 +304,7 @@ namespace GeometryHelper.Dxf
                 linetype = record.Name;
             }
 
-            if (index == null && lineWeight == null && linetype == null)
-            {
-                return null;
-            }
-
-            return part =>
-            {
-                if (index != null)
-                {
-                    part.TrueColor = null;
-                    part.ColorIndex = index.Value;
-                }
-
-                if (linetype != null)
-                {
-                    part.Linetype = linetype;
-                }
-
-                if (lineWeight != null)
-                {
-                    part.LineWeight = lineWeight.Value;
-                }
-            };
+            return index == null && lineWeight == null && linetype == null ? own : own.With(index, linetype, lineWeight);
         }
 
         /// <summary>
@@ -928,14 +935,13 @@ namespace GeometryHelper.Dxf
         {
             get
             {
-                DxfSpline spline = Splined();
-
-                if (spline != null)
-                {
-                    return spline;
-                }
-
                 List<GeoPoint3> vertices = Vertices();
+
+                // A new one, as it was: the spline kept for the curve's members is not handed out.
+                if (Splined() != null)
+                {
+                    return FittedSpline(vertices, Tolerance.Default.EqualPoint);
+                }
 
                 if (vertices.Count < 2)
                 {
@@ -1152,26 +1158,103 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// The spline a splined leader is, as <see cref="Explode"/> fits it (<see cref="FittedSpline"/>), which its curve's members
-        /// walk; null for a straight leader.
+        /// walk; null for a straight leader. Kept between questions (<see cref="Read"/>), so not to be changed or handed out.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the leader is splined and has no vertex, or its vertices are
         /// all one point.</exception>
         private DxfSpline Splined()
         {
-            if (!IsSplined)
+            Reading read = Read();
+
+            if (!read.IsSplined)
             {
                 return null;
             }
 
-            List<GeoPoint3> vertices = Vertices();
-            DxfSpline spline = FittedSpline(vertices, Tolerance.Default.EqualPoint);
-
-            if (spline == null)
+            if (read.Spline == null)
             {
-                throw new InvalidOperationException(vertices.Count == 0 ? "The leader has no vertex: it is no curve to walk." : "The vertices of the splined leader are all one point: no spline runs through them.");
+                throw new InvalidOperationException(read.Count == 0 ? "The leader has no vertex: it is no curve to walk." : "The vertices of the splined leader are all one point: no spline runs through them.");
             }
 
-            return spline;
+            return read.Spline;
+        }
+
+        /// <summary>
+        /// The library's shapes of the leader, as <see cref="DxfEntity.GetGeometry"/> gives them: the polyline of its vertices, a
+        /// vertex on the one before it left out, or, splined, the shape of the spline <see cref="Explode"/> fits through them;
+        /// none where fewer than two vertices are apart.
+        /// </summary>
+        internal IReadOnlyList<object> Shapes() => Read().Shapes;
+
+        // The leader as it was last read for its curve, kept until the records of its file next change, as the index of
+        // DxfDatabase.GetObject is kept: a splined leader of 4 000 vertices was fitted anew at each point asked for.
+        private Reading _read;
+
+        /// <summary>The leader's curve as its record has it now: the one read last where its file has not changed since.</summary>
+        private Reading Read()
+        {
+            DxfItem item = Item;
+            int edits = item.File.EditCount;
+            Reading read = Volatile.Read(ref _read);
+
+            if (read != null && ReferenceEquals(read.Item, item) && read.Edits == edits)
+            {
+                return read;
+            }
+
+            List<GeoPoint3> vertices = Vertices();
+            double tolerance = Tolerance.Default.EqualPoint;
+            bool splined = IsSplined;
+            DxfSpline spline = splined ? FittedSpline(vertices, tolerance) : null;
+            IReadOnlyList<object> shapes = spline?.GetGeometry();
+
+            // The spline is in the file of the entities in no file, which every entity made anywhere changes: kept for good.
+            spline?.KeepUnchanged();
+
+            if (!splined)
+            {
+                var kept = new List<GeoPoint3>(vertices.Count);
+
+                foreach (GeoPoint3 vertex in vertices)
+                {
+                    if (kept.Count == 0 || kept[kept.Count - 1].DistanceTo(vertex) > tolerance)
+                    {
+                        kept.Add(vertex);
+                    }
+                }
+
+                shapes = kept.Count < 2 ? null : new List<object> { new GeoPolyline3(kept.ToArray(), true) }.AsReadOnly();
+            }
+
+            read = new Reading(item, edits, splined, vertices.Count, spline, shapes ?? new List<object>().AsReadOnly());
+            Volatile.Write(ref _read, read);
+            return read;
+        }
+
+        /// <summary>What <see cref="Read"/> keeps of the leader: whether it is splined, how many vertices it has, its spline and its shapes.</summary>
+        private sealed class Reading
+        {
+            internal Reading(DxfItem item, int edits, bool splined, int count, DxfSpline spline, IReadOnlyList<object> shapes)
+            {
+                Item = item;
+                Edits = edits;
+                IsSplined = splined;
+                Count = count;
+                Spline = spline;
+                Shapes = shapes;
+            }
+
+            internal DxfItem Item { get; }
+
+            internal int Edits { get; }
+
+            internal bool IsSplined { get; }
+
+            internal int Count { get; }
+
+            internal DxfSpline Spline { get; }
+
+            internal IReadOnlyList<object> Shapes { get; }
         }
 
         /// <summary>The chain of the vertices of a straight leader.</summary>

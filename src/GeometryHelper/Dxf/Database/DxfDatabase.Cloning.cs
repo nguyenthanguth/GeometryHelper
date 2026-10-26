@@ -17,7 +17,9 @@ namespace GeometryHelper.Dxf
         /// <remarks>
         /// <para>
         /// A HATCH copied with every object its loops follow follows their copies, and is associative, as the HATCH is; with
-        /// some of them left behind it follows none, as a HATCH copied alone. A LEADER copied with the MTEXT, TOLERANCE or INSERT
+        /// some of them left behind it follows none, as a HATCH copied alone. A MULTILEADER of a block copied with an INSERT places
+        /// the copy of its block and draws its arrows by the copies of theirs, where those blocks come along, as a block W holding
+        /// a multileader of the block GKTAG and an INSERT of GKTAG brings GKTAG. A LEADER copied with the MTEXT, TOLERANCE or INSERT
         /// it points to points to its copy; without it, it points to none (<see cref="DxfLeader.AnnoType"/>
         /// <see cref="DxfAnnotationType.NoAnnotation"/>). A GROUP of this drawing every entity of which is copied into model space
         /// or a layout of paper space is copied too (a group holds no entity of a block, as ezdxf's recover drops one that does),

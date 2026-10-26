@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Threading;
 using GeometryHelper.Export;
 using GeometryHelper.Geometry;
 
@@ -921,8 +922,46 @@ namespace GeometryHelper.Dxf
         /// <inheritdoc/>
         private protected override IReadOnlyList<int> GroupOrder => Order;
 
-        /// <summary>The spline to walk: of the record's control points, or where it has none, the one the reader passes through its fit points.</summary>
+        // The spline to walk as last read, kept until the records of its file next change, as the index of DxfDatabase.GetObject
+        // is kept: each question read every control point of the record again.
+        private Tuple<DxfItem, int, DxfNurbs> _nurbs;
+
+        // The spline to walk of a spline no one changes, kept for good (KeepUnchanged).
+        private DxfNurbs _unchanged;
+
+        /// <summary>
+        /// Keeps the spline to walk for good, for a spline no one changes or is given: the one a splined leader is fitted to and
+        /// keeps for itself, in the file that holds every entity in no file, which any entity made anywhere changes.
+        /// </summary>
+        internal void KeepUnchanged() => _unchanged = ReadNurbs();
+
+        /// <summary>
+        /// The spline to walk, as <see cref="ReadNurbs"/> reads it: the one read last where the spline's file has not changed
+        /// since, or the one kept for good (<see cref="KeepUnchanged"/>).
+        /// </summary>
         private DxfNurbs Nurbs()
+        {
+            if (_unchanged != null)
+            {
+                return _unchanged;
+            }
+
+            DxfItem item = Item;
+            int edits = item.File.EditCount;
+            Tuple<DxfItem, int, DxfNurbs> kept = Volatile.Read(ref _nurbs);
+
+            if (kept != null && ReferenceEquals(kept.Item1, item) && kept.Item2 == edits)
+            {
+                return kept.Item3;
+            }
+
+            DxfNurbs nurbs = ReadNurbs();
+            Volatile.Write(ref _nurbs, Tuple.Create(item, edits, nurbs));
+            return nurbs;
+        }
+
+        /// <summary>The spline to walk: of the record's control points, or where it has none, the one the reader passes through its fit points.</summary>
+        private DxfNurbs ReadNurbs()
         {
             IReadOnlyList<GeoPoint3> points = ControlPoints;
 

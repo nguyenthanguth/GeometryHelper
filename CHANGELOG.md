@@ -473,6 +473,24 @@ straight leader's `GeometricExtents` and `GetPlane` read all its vertices again 
 leader of 1 000 vertices took 47.4 s and take 0.22 s, and the plane of one of 4 000 vertices took 5.6 s and takes 3 ms, the
 same answers to the bit (.NET 8).
 
+**FIXED.** The DXF follow-ups of the entries above. A `DxfLeader` had no shapes in `GetGeometry()`, so `IntersectWith` met
+nothing on it: its geometry is now its curve, the polyline of its vertices or, splined, the spline `Explode()` fits, and the
+leader from (0, 0, 0) to (10, 5, 0) meets the line x = 5 at (5, 2.5, 0), as AutoCAD's `IntersectWith` meets a leader;
+`IsPlanar`, which read those shapes, agrees with `GetPlane()`. A copy of a `DxfMLeader` appended back to its own drawing
+after the attribute definition it gives a value to was erased kept the handle of that definition, which ezdxf reports
+missing; the value is left out with it now, as a copy into another drawing leaves it out, and the original keeps its handle,
+as AutoCAD leaves it. A MULTILEADER in a block copied by `WblockCloneObjects` lost its block and its arrow blocks where they
+were copied after it, and exploded without its INSERT: block W holding a multileader of GKTAG and an INSERT of GKTAG, copied
+into another drawing, now places the copy of GKTAG with NUM 42; and a multileader copied alone into a drawing with no block
+of its name, or by `WblockCloneObjects` before an INSERT of that block, lost its block, the INSERT alone bringing it: it
+brings its block and arrow blocks now, as AutoCAD's deep clone follows its pointers, whatever the order. Speed, with the
+same results to the byte, and the same refusals: a splined leader is fitted once and kept until its drawing changes, the
+spline it is fitted to kept however many entities are made elsewhere meanwhile, and a SPLINE reads its control points once
+so, so that 100 points along a splined leader of 4 000 vertices take 0.1 ms, where they took 1.6 s, and along a SPLINE of 4
+000 control points 0.1 ms, where they took 0.22 s; the parts of a leader and of a polyline exploded are written with their
+look in one writing, so that a leader of 10 000 vertices drawn in the colour and lineweight of its dimension style explodes
+in 31 ms, where it took 57 ms, and a polyline of 10 000 vertices in 48 ms, where it took 58 ms (.NET 8).
+
 **NEW.** A text's and an MTEXT's text style is set by its name, `TextStyleName` (written as the drawing's table names it,
 letters of either case the same), or as its record, the new `TextStyle` (AutoCAD's `TextStyleId`): a style the drawing has not,
 or a record of another drawing, is refused, and the style the text has changes nothing; an attribute takes it as a text does.
