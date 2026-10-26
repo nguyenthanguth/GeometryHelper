@@ -21,7 +21,7 @@ namespace GeometryHelper.Dxf
     /// handle and no owner then, and is given both when it is added.
     /// </para>
     /// </remarks>
-    public abstract class DxfDBObject
+    public abstract partial class DxfDBObject
     {
         private DxfItem _item;
         private List<DxfTypedValue> _pendingXData;
@@ -387,8 +387,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// The object of a record of the OBJECTS section, made once: a <see cref="DxfDBDictionary"/> for a DICTIONARY, a
         /// <see cref="DxfXrecord"/> for an XRECORD, a <see cref="DxfGroup"/> for a GROUP, a <see cref="DxfLayout"/> for a LAYOUT,
-        /// a <see cref="DxfPlotSettings"/> for a PLOTSETTINGS, a <see cref="DxfMLeaderStyle"/> for an MLEADERSTYLE; else one of
-        /// no class of its own.
+        /// a <see cref="DxfPlotSettings"/> for a PLOTSETTINGS, a <see cref="DxfMLeaderStyle"/> for an MLEADERSTYLE, a
+        /// <see cref="DxfField"/> for a FIELD; else one of no class of its own.
         /// </summary>
         internal static DxfDBObject OfObject(DxfItem item)
         {
@@ -419,6 +419,9 @@ namespace GeometryHelper.Dxf
                     break;
                 case "MLEADERSTYLE":
                     made = new DxfMLeaderStyle(item);
+                    break;
+                case "FIELD":
+                    made = new DxfField(item);
                     break;
                 default:
                     made = new DxfUnknownObject(item);

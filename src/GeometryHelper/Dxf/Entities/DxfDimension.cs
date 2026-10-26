@@ -136,6 +136,74 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Gives the dimension's text the field of an MTEXT, as AutoCAD's <c>FieldFromMText</c>: a copy of the MTEXT's field of its
+        /// words (<see cref="DxfDBObject.GetField()"/>) and its children, every group of them kept, given to the dimension's words
+        /// as <see cref="DxfDBObject.SetField(DxfField)"/> gives one, in the place of the field it had; where the MTEXT has none,
+        /// the dimension's is taken out, so that the two agree. The text the dimension writes (1) is not changed.
+        /// </summary>
+        /// <param name="dimMText">The MTEXT, of the dimension's drawing.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the MTEXT is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the MTEXT is not of the dimension's drawing, or is erased.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the dimension is in no file, or is erased.</exception>
+        public void FieldFromMText(DxfMText dimMText)
+        {
+            SameDrawing(dimMText);
+            CopyField(dimMText, this);
+        }
+
+        /// <summary>
+        /// Gives an MTEXT the field of the dimension's text, as AutoCAD's <c>FieldToMText</c>: a copy of the dimension's field of
+        /// its words and its children, every group of them kept, given to the MTEXT's words in the place of the field it had;
+        /// where the dimension has none, the MTEXT's is taken out. The MTEXT's <see cref="DxfMText.Contents"/> are not changed.
+        /// </summary>
+        /// <param name="dimMText">The MTEXT, of the dimension's drawing.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the MTEXT is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the MTEXT is not of the dimension's drawing, or is erased.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the dimension is in no file, or is erased.</exception>
+        public void FieldToMText(DxfMText dimMText)
+        {
+            SameDrawing(dimMText);
+            CopyField(this, dimMText);
+        }
+
+        /// <summary>
+        /// Takes out the field of the dimension's text, as AutoCAD's <c>RemoveTextField</c>: as <see cref="DxfDBObject.RemoveField()"/>
+        /// takes it out, with its children, the text the dimension writes (1) kept. Nothing where it has none.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
+        public void RemoveTextField() => RemoveField();
+
+        /// <summary>Refuses an MTEXT that is not of the dimension's drawing, or is erased, and a dimension in no drawing.</summary>
+        private void SameDrawing(DxfMText dimMText)
+        {
+            if (dimMText == null)
+            {
+                throw new ArgumentNullException(nameof(dimMText));
+            }
+
+            DxfFile file = InFile("share a field");
+
+            if (!dimMText.IsResident || dimMText.IsErased || !ReferenceEquals(dimMText.Item.File, file))
+            {
+                throw new ArgumentException("The MTEXT is not of the dimension's drawing, or is erased: a field is copied between the dimension and an MTEXT of its own drawing.", nameof(dimMText));
+            }
+        }
+
+        /// <summary>The field of one object's words copied to another's, in the place of its own; the other's taken out where the one has none.</summary>
+        private static void CopyField(DxfDBObject from, DxfDBObject to)
+        {
+            DxfField field = from.GetField();
+
+            if (field == null)
+            {
+                to.RemoveField();
+                return;
+            }
+
+            DxfField.WriteCopy(to.FieldDictionary(true), "TEXT", field);
+        }
+
+        /// <summary>
         /// Gets or sets the middle of the text (group 11, written in the system of the normal), as AutoCAD's <c>TextPosition</c>:
         /// in world coordinates; the origin where the record gives none.
         /// </summary>

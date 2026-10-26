@@ -235,6 +235,31 @@ those AutoCAD keeps as DICTIONARYVAR objects rather than in the header (`Cannosc
 `MLeaderstyle`, `AnnoAllVisible`, `TstackSize` and the rest), adding the dictionary of variables where a drawing has none,
 reads its `ThumbnailBitmap`, and has five more variables of the header as properties, `Splinesegs`, `Splinetype`, `Surftype`, `Surfu` and `Surfv`. Every value set was read back by ezdxf 1.4.5, whose recover and audit found nothing to fix.
 
+**NEW.** Fields, the codes of an MTEXT and its words as RTF, 31 members of AutoCAD's `DBObject`, `DBText`, `MText` and
+`Dimension`. `DxfField` is AutoCAD's `Field`, a FIELD of the OBJECTS section (`EvaluatorId`, `IsTextField`, `GetFieldCode`,
+`GetChildren`, `GetStringValue`), made in code of one field, `new DxfField("%<\AcVar Login>%")`, or of a text with fields in
+it, `new DxfField("Drawn %<\AcVar Date>%", true)`, the text field of the code `Drawn %<\_FldIdx 0>%` with the date its child.
+Every object has `GetField`, `SetField` and `RemoveField`, of the words (the property TEXT) or of a property named: the field
+and its children written under ACAD_FIELD of the extension dictionary, from R2004 on, in the groups the DXF reference gives a FIELD,
+marked not evaluated (a layout not yet read by AutoCAD itself: its state 94 of 0, the empty value's flag 93 of 1, the format
+group 4 of R2004 left out, and the groups `GetStringValue` reads, are to be checked on a drawing AutoCAD saved), a field one
+of whose fields belongs to an object already refused, the class FIELD added to the CLASSES section where it is not listed, the field the property had erased with
+its children, ACAD_FIELD taken out once it is empty; the library does not evaluate a field. `DxfDBText.GetTextWithFieldCodes`
+and `DxfMText.GetMTextWithFieldCodes` (AutoCAD's `getTextWithFieldCodes` and `getMTextWithFieldCodes`) give the words with
+the codes of their fields in their places, `Drawn %<\AcVar Date \f "dd/MM/yyyy">%`, at every depth, and `ConvertFieldToText`
+makes the fields words, keeping what AutoCAD last showed. `DxfDimension.FieldFromMText` and `FieldToMText` copy the field of
+the dimension's text from and to an MTEXT of its drawing, every group kept and a field two others name copied once, and
+`RemoveTextField` takes it out; `GetChildren` gives null in the place of a handle that names no FIELD. `DxfMText`
+names AutoCAD's 19 codes of an MTEXT, `ParagraphBreak` `\P`, `UnderlineOn` `\L`, `HeightChange` `\H` and the rest;
+`ContentsRTF` gives its words as RTF and `SetContentsRtf` reads RTF into them, paragraphs, columns, groups, fonts with bold
+and italic, colours of the index, the lines under and through, tabs and letters carried over, the sizes, slants, tracking,
+alignments, paragraph settings and the line over the letters left out: `B-12\P{\C1;\LM16\l}` is
+`{\rtf1\ansi\deff0{\fonttbl{\f0{\*\ghfontfile}txt;}}{\colortbl ;\red255\green0\blue0;}B-12\par {\cf1 \ul M16\ulnone }\par}`, a font's
+file marked by an ignored group and the last paragraph closed, which comes back as `B-12\P\C1;\LM16`, and `abc\P` and
+`\Fromans;abc` as themselves; the RTF of 1 280 000 letters is written in 5 ms on .NET 8. Fields set on TEXTs, MTEXTs and dimensions of R2004, R2007 and R2018 were read back by ezdxf 1.4.5, each
+owned by what names it, its recover and audit finding nothing to fix; a FIELD read is a `DxfField` where it was an object of no
+class of its own, and a file with fields resaves byte for byte.
+
 **NEW.** The cells of a `DxfTable` as AutoCAD's `Table` has them, 36 members it did not have. A cell's value has its
 kind, `DataType` (the new `DxfDataType`, AutoCAD's numbers), `UnitType` (`DxfUnitType`) and `Format`, read from its
 `301 CELL_VALUE` from R2007 on, with `GetDataType` (`DxfDataTypeParameter`) and `GetDataFormat`;

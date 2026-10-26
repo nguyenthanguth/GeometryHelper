@@ -113,6 +113,27 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Gets the words of the text with the codes of its fields in their places, as AutoCAD's <c>getTextWithFieldCodes</c>:
+        /// the code of its field (<see cref="DxfDBObject.GetField()"/>), each field it holds standing as its code in its markers,
+        /// at every depth. The TEXT that reads Drawn 27/10/2026, the date a field, gives
+        /// <c>Drawn %&lt;\AcVar Date \f "dd/MM/yyyy"&gt;%</c>; one with no field gives its <see cref="TextString"/>.
+        /// </summary>
+        /// <returns>The words with the codes of their fields.</returns>
+        public string GetTextWithFieldCodes()
+        {
+            DxfField field = GetField();
+            return field == null ? TextString : DxfField.WithCodes(field);
+        }
+
+        /// <summary>
+        /// Makes the text's fields words, as AutoCAD's <c>ConvertFieldToText</c>: the field of its words taken out with its
+        /// children, as <see cref="DxfDBObject.RemoveField()"/> takes it out, and its words (1) kept as they are, the values AutoCAD
+        /// last gave the fields among them. Nothing where it has no field.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the text is erased.</exception>
+        public void ConvertFieldToText() => RemoveField();
+
+        /// <summary>
         /// Gets or sets where the text stands (groups 10, 20, 30), as AutoCAD's <c>Position</c>: in world coordinates, the file's
         /// point taken from the system of the <see cref="Normal"/>'s plane; the origin where the record gives none.
         /// </summary>

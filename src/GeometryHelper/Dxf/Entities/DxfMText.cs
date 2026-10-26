@@ -39,7 +39,7 @@ namespace GeometryHelper.Dxf
     /// two MTEXTs claim the same columns: three static columns one, two and three come out as <c>one\Ntwo\Nthree</c>.
     /// </para>
     /// </remarks>
-    public sealed class DxfMText : DxfEntity
+    public sealed partial class DxfMText : DxfEntity
     {
         // The groups of AcDbMText in the order AutoCAD writes them.
         private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 10, 20, 30, 40, 41, 46, 71, 72, 3, 1, 7, 210, 220, 230, 11, 21, 31, 42, 43, 50, 73, 44, 90, 63, 421, 431, 45, 441 });
@@ -193,6 +193,28 @@ namespace GeometryHelper.Dxf
                 return string.Empty;
             }
         }
+
+        /// <summary>
+        /// Gets the words of the MTEXT with the codes of its fields in their places, as AutoCAD's <c>getMTextWithFieldCodes</c>:
+        /// the code of its field (<see cref="DxfDBObject.GetField()"/>), its formatting codes with it, each field it holds standing
+        /// as its code in its markers, at every depth. The MTEXT <c>{\H1.5x;Length} 2400 mm</c>, the length a field, gives
+        /// <c>{\H1.5x;Length} %&lt;\AcObjProp Object(%&lt;\_ObjIdx 0&gt;%).Length \f "%lu2"&gt;% mm</c>, the object named by its index
+        /// among the field's objects (331) as the file holds it; one with no field gives its <see cref="Contents"/>.
+        /// </summary>
+        /// <returns>The words with their formatting and the codes of their fields.</returns>
+        public string GetMTextWithFieldCodes()
+        {
+            DxfField field = GetField();
+            return field == null ? Contents : DxfField.WithCodes(field);
+        }
+
+        /// <summary>
+        /// Makes the MTEXT's fields words, as AutoCAD's <c>ConvertFieldToText</c>: the field of its words taken out with its
+        /// children, as <see cref="DxfDBObject.RemoveField()"/> takes it out, and its <see cref="Contents"/> (3 and 1) kept as they
+        /// are, the values AutoCAD last gave the fields among them. Nothing where it has no field.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the MTEXT is erased.</exception>
+        public void ConvertFieldToText() => RemoveField();
 
         /// <summary>
         /// Gets or sets where the MTEXT is held (groups 10, 20, 30), as AutoCAD's <c>Location</c>: in world coordinates, as the

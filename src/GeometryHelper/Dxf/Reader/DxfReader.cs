@@ -466,7 +466,7 @@ namespace GeometryHelper.Dxf
         };
 
         /// <summary>The text of Windows-1252 bytes, from their Latin-1 reading, in which every other byte is already its letter.</summary>
-        private static string Windows1252(string latin)
+        internal static string Windows1252(string latin)
         {
             var text = new StringBuilder(latin.Length);
 

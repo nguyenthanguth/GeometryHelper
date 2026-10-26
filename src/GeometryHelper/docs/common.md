@@ -848,6 +848,35 @@ own handle among its columns is walked still. A copy of the first holds the word
 MTEXTs claim the same columns; and `Height`, before R2007, is the height of the columns in the extended data of ACAD, 30 for
 ezdxf's three static columns 30 high.
 
+The words of a text can hold fields, kept as AutoCAD keeps them: a `DxfField`, AutoCAD's `Field`, is a FIELD the object's
+extension dictionary names in its dictionary ACAD_FIELD under the property TEXT. `GetField()` gives the field of an object's
+words, `GetField(propertyName)` that of another property, and `SetField(new DxfField("Drawn %<\AcVar Date>%", true))` gives
+a TEXT, an MTEXT, an attribute or a dimension one, from R2004 on, written in the groups the DXF reference gives a FIELD: the
+text field (`_text`) of the code `Drawn %<\_FldIdx 0>%` and its child of AcVar, each owned by what names it, marked not
+evaluated, and the class FIELD listed. That layout has not yet been read by AutoCAD itself: its state (94 of 0), the empty
+value's flag (93 of 1) and the format of R2004 (group 4, which libredwg reads and the library does not write) are to be
+checked on a drawing AutoCAD saved, and so is which group `GetStringValue()` reads the value AutoCAD kept from (302, else 1;
+the 301 after it is not read). A field made of an object's property, `%<\AcObjProp Object(%<\_ObjId 2130>%).Area>%`, names no
+object here and cannot be evaluated. A field or one it holds already given to an object is refused. The words of the text are not changed; the library does not evaluate a field, and AutoCAD writes its value into
+them when it next evaluates its fields. `RemoveField()` takes a field out with its children, and ACAD_FIELD with it once it is
+empty. `GetTextWithFieldCodes()` of a TEXT and `GetMTextWithFieldCodes()` of an MTEXT give the words with the codes of their
+fields in their places, `Drawn %<\AcVar Date \f "dd/MM/yyyy">%`, and `ConvertFieldToText()` makes the fields words, keeping
+what AutoCAD last showed. A dimension's `FieldFromMText` and `FieldToMText` copy the field of its text from and to an MTEXT of
+its own drawing, every group of it kept and a field two others name copied once, and `RemoveTextField` takes it out. A field's
+`GetChildren()` gives its children in the order of its 360s, null in the place of a handle that names no FIELD, so that each
+keeps the index of its placeholder `%<\_FldIdx n>%`.
+
+`DxfMText` names the codes of an MTEXT as AutoCAD's `MText` does: `ParagraphBreak` and `LineBreak` are `\P`, `UnderlineOn` is
+`\L`, `HeightChange` `\H`, `BlockBegin` `{`, and so the 19 of them. `ContentsRTF` gives its words as RTF, the style's font
+first in the font table, and `SetContentsRtf` reads RTF into them: paragraphs, columns, groups, fonts with bold and italic,
+colours of AutoCAD's index, the lines under and through, tabs, spaces that do not break and letters are carried over; the
+heights, widths, slants, tracking and alignments of the letters, the paragraph's settings and the line over them are left
+out, and a stack is its two parts with a slash between. `B-12\P{\C1;\LM16\l}` in the style Standard of the font txt is
+`{\rtf1\ansi\deff0{\fonttbl{\f0{\*\ghfontfile}txt;}}{\colortbl ;\red255\green0\blue0;}B-12\par {\cf1 \ul M16\ulnone }\par}`,
+a font's file marked by the group `{\*\ghfontfile}` other readers pass over and the last paragraph closed by a mark, which
+`SetContentsRtf` leaves out; that RTF comes back as `B-12\P\C1;\LM16`, the same words in the same look, `abc\P` as `abc\P`
+and `\Fromans;abc` as `\Fromans;abc`.
+
 ### Blocks and attributes
 
 An INSERT is a `DxfBlockReference`. The INSERT of BOLT at (50, 60, 0) turned by 45 degrees and scaled by (1.5, -1.5, 2) has
