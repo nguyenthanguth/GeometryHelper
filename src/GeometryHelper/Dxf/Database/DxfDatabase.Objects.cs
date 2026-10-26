@@ -244,6 +244,38 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Gets how many objects the drawing holds, as AutoCAD's <c>ApproxNumObjects</c>: those <see cref="GetObject"/> finds by
+        /// handle, the entities of every space and block with their vertices and attributes, the objects of the OBJECTS section,
+        /// and the five tables it reads with their records; those erased left out. AutoCAD counts the records of the tables the
+        /// library has no class for as well (APPID, VPORT, VIEW, UCS) and the BLOCK and ENDBLK of each block, so its number is
+        /// somewhat higher. A drawing of R12 that writes no handles counts none. The drawing is walked once for each question.
+        /// </summary>
+        public int ApproxNumObjects
+        {
+            get
+            {
+                IndexEntities();
+
+                if (_others == null || _othersAt != File.EditCount)
+                {
+                    IndexOthers();
+                }
+
+                int count = _others.Count + (File.HoldsObjects ? File.ObjectCount() : 0);
+
+                foreach (DxfItem entity in _entities.Values)
+                {
+                    if (!entity.IsRemoved)
+                    {
+                        count++;
+                    }
+                }
+
+                return count;
+            }
+        }
+
+        /// <summary>
         /// A record of a table of the drawing, or the table, or a record that follows an entity (a VERTEX or an ATTRIB), of a
         /// handle; null where there is none. They are found by handle in one walk, made again once the records change.
         /// </summary>

@@ -533,6 +533,30 @@ through AutoCAD's properties: `Clayer`, `Insunits`, `Extmin`, `Extmax`, `Handsee
 brought, `$INSUNITS`, `$CELWEIGHT`, `$LWDISPLAY` and `$PROXYGRAPHICS` among them, is refused in a file of R12, as AutoCAD
 writes none there. Setting `Clayer` to a layer the table does not list adds it, as an entity's `Layer` does.
 
+Every other variable of the header AutoCAD's `Database` has as a member is read and set by its AutoCAD name in the same
+way: `db.Chamfera = 10`, `db.Filletrad`, `db.TileMode`, `db.Plimmax`, `db.Useri1`, `db.Latitude`, `db.LoftAng1` and the rest,
+as the API reference of `DxfDatabase` lists them, each giving its variable (`$CHAMFERA`) and its default. Where the header
+gives none, a variable reads as a new drawing of ezdxf 1.4.5 has it, but for `MaintenanceReleaseVersion` (nought),
+`Pextmin` and `Pextmax` (the origin, as `Extmin`), the variables that name an object (null), and `PsolHeight` and
+`PsolWidth` (80 and 5, as AutoCAD's metric drawing has them, where ezdxf writes 0.08 and 0.005 in metres). R2004 and R2007
+brought some, which are refused in a file of an older version as those of R2000 are. A text (`HyperlinkBase`,
+`ProjectName`) is read as written, its spaces kept, and a GUID set is written in braces and capitals, as AutoCAD writes it.
+A few read differently from the file:
+
+- the UCS: `Ucsorg`, `Ucsxdir` and `Ucsydir` read the header, and `db.Ucs = new GeoCoordinateSystem3(origin, xAxis, yAxis)`
+  writes all three, as AutoCAD's `Ucs` does, its axes made of unit length and square; `Ucsname`, `UcsBase` and those of
+  paper space are the name of a record of the UCS table, null for none; `WorldUcsBaseOrigin(DxfOrthographicView.TopView)`
+  reads `$UCSORGTOP`.
+- the times: `Tdcreate` and the other dates are a `DateTime` read from the Julian day the file writes (2451545.75 is
+  1 January 2000 at 18:00), `Tdindwg` and `Tdusrtimer` a `TimeSpan`; `ResetTimes()` makes the drawing new now; `TimeZone` is
+  one of AutoCAD's zones in `DxfTimeZone`, and `SetTimeZoneAsUtcOffset(-7)` picks `Mountain`, the first of three.
+- the objects: `Cmaterial`, `dragvs`, `Interfereobjvs`, `Interferevpvs` and `CmlstyleID` give the MATERIAL, VISUALSTYLE or
+  MLINESTYLE of the drawing's dictionary that the header names, null where it has none of that name, and take one of that
+  dictionary; `ApproxNumObjects` counts the objects `GetObject` finds.
+- the file: `Filename` is the full path the drawing was opened from or last saved to, `OriginalFileName` the one it was
+  opened from; for a drawing parsed from text or opened from a stream the second is null, and the first until it is saved
+  to a path.
+
 `$EXTMIN` and `$EXTMAX` hold model space and paper space. They grow to hold what is written and are never shrunk: an entity
 whose own record is written whole, as a LINE moved or a POLYLINE given a new flag, grows them at once; a run of groups of
 its record written in place (a LWPOLYLINE's vertex, a SPLINE's knots) or a record that follows it (a VERTEX put in or set

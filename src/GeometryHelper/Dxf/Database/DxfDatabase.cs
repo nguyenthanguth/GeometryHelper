@@ -71,7 +71,12 @@ namespace GeometryHelper.Dxf
         /// the line; or when its header names a code page that does not read each byte of ASCII as itself; as
         /// <see cref="DxfReader"/> refuses it.</exception>
         /// <exception cref="IOException">Thrown when the file cannot be read.</exception>
-        public static DxfDatabase Open(string path) => new DxfDatabase(DxfFile.Open(path));
+        public static DxfDatabase Open(string path)
+        {
+            var database = new DxfDatabase(DxfFile.Open(path));
+            database._filename = database._originalFileName = Path.GetFullPath(path);
+            return database;
+        }
 
         /// <summary>
         /// Opens a DXF file from a stream, from where the stream stands to its end.
@@ -97,12 +102,17 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Saves the drawing to a path, replacing whatever is there: the bytes read where nothing was changed, and each record
-        /// not changed, added or erased with its own bytes where something was.
+        /// not changed, added or erased with its own bytes where something was. <see cref="Filename"/> is the path from then on,
+        /// as AutoCAD's <c>SaveAs</c> makes it.
         /// </summary>
         /// <param name="path">The path of the file.</param>
         /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
         /// <exception cref="IOException">Thrown when the file cannot be written.</exception>
-        public void Save(string path) => File.Save(path);
+        public void Save(string path)
+        {
+            File.Save(path);
+            _filename = Path.GetFullPath(path);
+        }
 
         /// <summary>
         /// Saves the drawing to a stream, where it stands, as <see cref="Save(string)"/> saves it.

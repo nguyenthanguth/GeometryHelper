@@ -30,6 +30,22 @@ namespace GeometryHelper.Dxf
             return RecordsOf(item).Count == 0 ? null : item;
         }
 
+        /// <summary>How many objects of the OBJECTS section there are, as <see cref="ObjectItem"/> finds them: those removed, or taken out on saving, left out.</summary>
+        internal int ObjectCount()
+        {
+            int count = 0;
+
+            foreach (DxfItem item in ObjectIndex().Values)
+            {
+                if (!item.IsRemoved && RecordsOf(item).Count > 0)
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
         /// <summary>The items of the objects by handle, those of the file as read made once, those added put in as they are added.</summary>
         private Dictionary<ulong, DxfItem> ObjectIndex()
         {

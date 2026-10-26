@@ -235,6 +235,35 @@ those AutoCAD keeps as DICTIONARYVAR objects rather than in the header (`Cannosc
 `MLeaderstyle`, `AnnoAllVisible`, `TstackSize` and the rest), adding the dictionary of variables where a drawing has none,
 reads its `ThumbnailBitmap`, and has five more variables of the header as properties, `Splinesegs`, `Splinetype`, `Surftype`, `Surfu` and `Surfv`. Every value set was read back by ezdxf 1.4.5, whose recover and audit found nothing to fix.
 
+**NEW.** The rest of the variables of the header AutoCAD's `Database` has as members, 141 of them, read and set by their
+AutoCAD names as `Ltscale` is: the settings of drafting (`Attmode`, `Celtscale`, `Chamfera` to `Chamferd`, `Filletrad`,
+`Elevation`, `Thickness`, `Plinewid`, `Tracewid`, `Cmljust`, `Cmlscale`, `Surftab1`, `Surftab2`, `Useri1` to `Useri5`,
+`Userr1` to `Userr5`, `Measurement`, `EndCaps`, `JoinStyle` and the modes, `Limcheck`, `Qtextmode`, `Regenmode`, `TileMode`
+and `Psltscale` among them), the limits and extents of paper space (`Plimmin`, `Plimmax`, `Pextmin`, `Pextmax`, `Pinsbase`,
+`Pelevation`), the display and modelling of 3D (`Shadedge`, `HideText`, `ObscuredColor`, `IntersectColor`, `LensLength`,
+`StepSize`, `LoftAng1`, `LoftParam`, `Latitude`, `Longitude`, `Cshadow` and the rest), the UCS (`Ucsorg`, `Ucsxdir` and
+`Ucsydir`, written together by `db.Ucs = new GeoCoordinateSystem3(...)`; `Ucsname` and `UcsBase` by the name of a record of
+the UCS table; the origins of the six orthographic systems by `WorldUcsBaseOrigin` and `SetWorldUcsBaseOrigin`; and the
+same of paper space), the times (`Tdcreate`, `Tducreate`, `Tdupdate` and `Tduupdate` as a `DateTime` read from the Julian
+day the file writes, so that 2451545.75 is 1 January 2000 at 18:00; `Tdindwg` and `Tdusrtimer` as a `TimeSpan`;
+`ResetTimes`; and `TimeZone`, AutoCAD's 76 zones in the new `DxfTimeZone`, with `TimeZoneOffset`, `TimeZoneDescription` and
+`SetTimeZoneAsUtcOffset`, -7 giving `Mountain`), the variables that name an object (`Cmaterial`, `dragvs`, `Interfereobjvs`,
+`Interferevpvs` and `CmlstyleID` give the MATERIAL, VISUALSTYLE or MLINESTYLE of the drawing's dictionary, and take one of
+it), and what the drawing says of itself (`FingerprintGuid`, `VersionGuid`, `HyperlinkBase`, `ProjectName`, `StyleSheet`,
+`Menu`, `PlotStyleMode`, `MaintenanceReleaseVersion`, `ApproxNumObjects`, the objects `GetObject` finds). A text is read as
+the header writes it, its spaces kept, as ezdxf reads it, and a GUID set in any form is written in braces and capitals, as
+AutoCAD writes it. `GetVisualStyleList`, `GetNearestLineWeight` (24 gives 0.25 mm) and
+`IsValidLineWeight` answer as AutoCAD's do; `Filename` is the full path the drawing was opened from or last saved to, and
+`OriginalFileName` the one it was opened from. The new enums `DxfEndCap`, `DxfJoinStyle` and `DxfMeasurementValue` are
+AutoCAD's. Where the header gives none, a variable reads as a new drawing of ezdxf 1.4.5 has it, but for
+`MaintenanceReleaseVersion` (nought), `Pextmin` and `Pextmax` (the origin, as `Extmin`), the variables that name an object
+(null), and `PsolHeight` and `PsolWidth` (80 and 5, as AutoCAD's metric drawing has them, where ezdxf writes metres, 0.08
+and 0.005); set to the value it has, it writes nothing; a value AutoCAD refuses is refused (a `Shadedif` or `HaloGap` of
+101, a `LoftAng1` of two pi, a `LoftMag1` above 10, a `Latitude` of 90.5), and a variable R2000, R2004
+or R2007 brought is refused in a file of an older version. Every value set on ezdxf's drawings of R12, R2000, R2007 and
+R2018, 52, 76, 116 and 116 variables, was read back by ezdxf 1.4.5, whose recover and audit found nothing to fix, and the
+files resave byte for byte where nothing is set.
+
 **NEW.** The objects of a drawing with AutoCAD's names. `DxfXrecord`, AutoCAD's `Xrecord`: its `Data` the groups after its
 cloning flag, the groups 102 of a list among them, set, `Append`ed and enumerated, made in code and added by
 `DxfDBDictionary.SetAt`. `DxfDBDictionary.SetAt` takes a `DxfXrecord`, a `DxfGroup` or a `DxfDBDictionary` made in code (a
