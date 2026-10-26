@@ -316,6 +316,29 @@ namespace GeometryHelper.Dxf
         /// </summary>
         internal static DxfSpline FittedSpline(List<GeoPoint3> vertices, double tolerance, GeoVector3? leaving = null, GeoVector3? reaching = null)
         {
+            NurbsCurve curve = FittedCurve(vertices, tolerance, leaving, reaching);
+
+            if (curve == null)
+            {
+                return null;
+            }
+
+            var control = new List<GeoPoint3>(curve.Count);
+
+            for (int i = 0; i < curve.Count; i++)
+            {
+                control.Add(new GeoPoint3(curve.Points[3 * i], curve.Points[3 * i + 1], curve.Points[3 * i + 2]));
+            }
+
+            return new DxfSpline(3, false, false, false, control, curve.Knots, null, 1E-10, 1E-10);
+        }
+
+        /// <summary>
+        /// The curve of the spline <see cref="FittedSpline"/> makes, its control points and knots, for <see cref="DxfReader"/>,
+        /// which reads a LEADER as it; null where the vertices are all one point.
+        /// </summary>
+        internal static NurbsCurve FittedCurve(List<GeoPoint3> vertices, double tolerance, GeoVector3? leaving = null, GeoVector3? reaching = null)
+        {
             var through = new List<GeoPoint3>(vertices.Count);
 
             foreach (GeoPoint3 vertex in vertices)
@@ -342,15 +365,7 @@ namespace GeometryHelper.Dxf
 
             GeoVector3 start = DxfOcsTransform.Normalized(leaving ?? through[0].GetVectorTo(through[1]));
             GeoVector3 end = DxfOcsTransform.Normalized(reaching ?? through[through.Count - 2].GetVectorTo(through[through.Count - 1]));
-            NurbsCurve curve = NurbsCurve.Interpolate(3, fit, 3, new[] { start.X, start.Y, start.Z }, new[] { end.X, end.Y, end.Z }, true);
-            var control = new List<GeoPoint3>(curve.Count);
-
-            for (int i = 0; i < curve.Count; i++)
-            {
-                control.Add(new GeoPoint3(curve.Points[3 * i], curve.Points[3 * i + 1], curve.Points[3 * i + 2]));
-            }
-
-            return new DxfSpline(3, false, false, false, control, curve.Knots, null, 1E-10, 1E-10);
+            return NurbsCurve.Interpolate(3, fit, 3, new[] { start.X, start.Y, start.Z }, new[] { end.X, end.Y, end.Z }, true);
         }
 
         #region The vertices
@@ -1179,13 +1194,6 @@ namespace GeometryHelper.Dxf
             return read.Spline;
         }
 
-        /// <summary>
-        /// The library's shapes of the leader, as <see cref="DxfEntity.GetGeometry"/> gives them: the polyline of its vertices, a
-        /// vertex on the one before it left out, or, splined, the shape of the spline <see cref="Explode"/> fits through them;
-        /// none where fewer than two vertices are apart.
-        /// </summary>
-        internal IReadOnlyList<object> Shapes() => Read().Shapes;
-
         // The leader as it was last read for its curve, kept until the records of its file next change, as the index of
         // DxfDatabase.GetObject is kept: a splined leader of 4 000 vertices was fitted anew at each point asked for.
         private Reading _read;
@@ -1203,45 +1211,27 @@ namespace GeometryHelper.Dxf
             }
 
             List<GeoPoint3> vertices = Vertices();
-            double tolerance = Tolerance.Default.EqualPoint;
             bool splined = IsSplined;
-            DxfSpline spline = splined ? FittedSpline(vertices, tolerance) : null;
-            IReadOnlyList<object> shapes = spline?.GetGeometry();
+            DxfSpline spline = splined ? FittedSpline(vertices, Tolerance.Default.EqualPoint) : null;
 
             // The spline is in the file of the entities in no file, which every entity made anywhere changes: kept for good.
             spline?.KeepUnchanged();
 
-            if (!splined)
-            {
-                var kept = new List<GeoPoint3>(vertices.Count);
-
-                foreach (GeoPoint3 vertex in vertices)
-                {
-                    if (kept.Count == 0 || kept[kept.Count - 1].DistanceTo(vertex) > tolerance)
-                    {
-                        kept.Add(vertex);
-                    }
-                }
-
-                shapes = kept.Count < 2 ? null : new List<object> { new GeoPolyline3(kept.ToArray(), true) }.AsReadOnly();
-            }
-
-            read = new Reading(item, edits, splined, vertices.Count, spline, shapes ?? new List<object>().AsReadOnly());
+            read = new Reading(item, edits, splined, vertices.Count, spline);
             Volatile.Write(ref _read, read);
             return read;
         }
 
-        /// <summary>What <see cref="Read"/> keeps of the leader: whether it is splined, how many vertices it has, its spline and its shapes.</summary>
+        /// <summary>What <see cref="Read"/> keeps of the leader: whether it is splined, how many vertices it has, and its spline.</summary>
         private sealed class Reading
         {
-            internal Reading(DxfItem item, int edits, bool splined, int count, DxfSpline spline, IReadOnlyList<object> shapes)
+            internal Reading(DxfItem item, int edits, bool splined, int count, DxfSpline spline)
             {
                 Item = item;
                 Edits = edits;
                 IsSplined = splined;
                 Count = count;
                 Spline = spline;
-                Shapes = shapes;
             }
 
             internal DxfItem Item { get; }
@@ -1253,8 +1243,6 @@ namespace GeometryHelper.Dxf
             internal int Count { get; }
 
             internal DxfSpline Spline { get; }
-
-            internal IReadOnlyList<object> Shapes { get; }
         }
 
         /// <summary>The chain of the vertices of a straight leader.</summary>

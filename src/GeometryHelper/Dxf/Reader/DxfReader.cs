@@ -18,8 +18,10 @@ namespace GeometryHelper.Dxf
     /// POINT, LINE, RAY and XLINE as the point, segment, ray and line without ends they are; a LWPOLYLINE and a POLYLINE of
     /// the plane as a chain or a polygon, with arcs where an edge has a bulge; a 3D POLYLINE as a chain or a polygon in
     /// space; a polyface or polygon mesh as a body of its faces; a CIRCLE, ARC and whole ELLIPSE as themselves; a part of an
-    /// ELLIPSE and a SPLINE as a spline, exactly; a 3DFACE as a triangle or a face, a SOLID or TRACE as a polygon, and a
-    /// TEXT and an MTEXT as a <see cref="DxfText"/>. Entities of space are read as shapes of space unless
+    /// ELLIPSE and a SPLINE as a spline, exactly; a 3DFACE as a triangle or a face, a SOLID or TRACE as a polygon; a TEXT and
+    /// an MTEXT as a <see cref="DxfText"/>; a LEADER as its curve, the chain of its vertices or, splined, the spline
+    /// <see cref="DxfLeader.Explode"/> fits through them; and a MULTILEADER as the lines of its leaders, as
+    /// <see cref="DxfMLeader"/> sets them out. Entities of space are read as shapes of space unless
     /// <see cref="DxfReadOptions.PlanAs2D"/> asks for those lying on the floor as shapes of the plane. An INSERT is read as
     /// the entities of its block, each placed where the INSERT puts it, with the look it takes from the INSERT and the names
     /// of the blocks it was placed through (<see cref="DxfReadOptions.ExpandBlocks"/>); the blocks themselves are in

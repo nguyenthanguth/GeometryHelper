@@ -1179,6 +1179,13 @@ namespace GeometryHelper.Dxf
                     }
                 }
 
+                // A MULTILEADER that cannot hold the placing is left out, as it was before the reader read it, not drawn as the
+                // lines the reader reads of it.
+                if (entity is DxfMLeader)
+                {
+                    continue;
+                }
+
                 if (entity is DxfBlockReference nested)
                 {
                     // Its own parts, in this block's coordinates, placed in turn: the INSERT that cannot hold the placing is

@@ -121,9 +121,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.IsType<DxfHatch>(first.Single(e => e.Handle == "74"));
             Assert.Equal("IMAGE", Assert.IsType<DxfUnknownEntity>(first.Single(e => e.Handle == "8E")).DxfName);
             Assert.All(first, e => Assert.Same(db.ModelSpace, e.Owner));
-
-            // A LEADER, which the reader does not read, gives its curve (A8).
-            Assert.Equal(read.Shapes.Count(s => s.Type != "INSERT"), first.Where(e => e.Item.Type != "INSERT" && e.Item.Type != "LEADER").Sum(e => e.GetGeometry().Count));
+            Assert.Equal(read.Shapes.Count(s => s.Type != "INSERT"), first.Where(e => e.Item.Type != "INSERT").Sum(e => e.GetGeometry().Count));
         }
 
         [Fact]

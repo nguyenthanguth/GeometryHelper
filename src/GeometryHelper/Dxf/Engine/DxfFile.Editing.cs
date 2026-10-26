@@ -889,8 +889,9 @@ namespace GeometryHelper.Dxf
         {
             if (shape == null && given == null)
             {
-                // No shape where the entity has none is the value its getter gives, and changes nothing.
-                if (item.Shape == null)
+                // No shape where the entity has none is the value its getter gives, and changes nothing; so too for a LEADER or a
+                // MULTILEADER, read as its lines since but given none, as before.
+                if (item.Shape == null || item.Type == "LEADER" || item.Type == "MULTILEADER")
                 {
                     return;
                 }
@@ -909,7 +910,7 @@ namespace GeometryHelper.Dxf
 
             if (given == null && !Shaped.Contains(item.Type))
             {
-                throw new InvalidOperationException("A " + item.Type + " has no shape of the library's to set: those the reader reads do, " + string.Join(", ", new SortedSet<string>(Shaped, StringComparer.Ordinal)) + "; an INSERT is placed as it stands.");
+                throw new InvalidOperationException("A " + item.Type + " has no shape of the library's to set: those of the types a shape is written as do, " + string.Join(", ", new SortedSet<string>(Shaped, StringComparer.Ordinal)) + "; an INSERT is placed as it stands, and a LEADER and a MULTILEADER are read as their lines but not written from a shape.");
             }
 
             List<Rec> records = RecordsOf(item);

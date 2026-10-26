@@ -833,11 +833,16 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfFile file = Opened(Ezdxf(DxfFileEzdxfDrawings.R2018, new UTF8Encoding(false)));
             string[] types = file.ModelSpace.Select(i => i.Type).ToArray();
 
-            foreach (string type in new[] { "HATCH", "DIMENSION", "LEADER", "MULTILEADER", "IMAGE", "MESH" })
+            foreach (string type in new[] { "HATCH", "DIMENSION", "IMAGE", "MESH" })
             {
                 Assert.Contains(type, types);
                 Assert.Null(file.ModelSpace.First(i => i.Type == type).Shape);
             }
+
+            // A LEADER is read as its curve, a MULTILEADER as the lines of its leaders.
+            Assert.IsType<GeoPolyline3>(file.ModelSpace.First(i => i.Type == "LEADER").Shape);
+            Assert.All(file.ModelSpace.First(i => i.Type == "MULTILEADER").Shapes, s => Assert.IsType<GeoPolyline3>(s));
+            Assert.NotEmpty(file.ModelSpace.First(i => i.Type == "MULTILEADER").Shapes);
 
             Assert.Equal("Bold\nline two é", Assert.IsType<DxfText>(file.ModelSpace.First(i => i.Type == "MTEXT").Shape).Value);
             Assert.Contains(file.LayerTable, l => l.Name == "Wand€Außen");

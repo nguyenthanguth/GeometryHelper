@@ -520,6 +520,42 @@ so, so that 100 points along a splined leader of 4 000 vertices take 0.1 ms, whe
 look in one writing, so that a leader of 10 000 vertices drawn in the colour and lineweight of its dimension style explodes
 in 31 ms, where it took 57 ms, and a polyline of 10 000 vertices in 48 ms, where it took 58 ms (.NET 8).
 
+**CHANGED.** `DxfReader` reads a LEADER as its curve and a MULTILEADER as the lines of its leaders, where it left them out
+and counted them in `Skipped`. A LEADER is a `GeoPolyline3` through its vertices, a vertex on the one before it left out,
+or, splined, the `GeoSpline3` `DxfLeader.Explode()` fits through them; a MULTILEADER a `GeoPolyline3` for each leader line,
+from where its arrow points through its vertices and the last point of its leader to the end of its dogleg, or, splined, a
+`GeoSpline3` fitted through those points; `GeoPolyline2` and `GeoSpline2` on the floor with `PlanAs2D`. Arrowheads, hook
+lines and a multileader's words or block are not read, and a leader of fewer than two vertices apart is skipped as a
+polyline is. In a block a spline is fitted where the block has the points and then placed, as AutoCAD draws it, so that
+under an INSERT scaled unlike along its axes it differs from the one `Explode()` of the INSERT gives, refitted where it is
+placed: by 2.21 for the leader through (0, 0, 0), (10, 10, 0) and (20, 10, 0) scaled 3 along y. So an INSERT of a block
+holding a leader or a multileader is met on it by `IntersectWith`, and its `GeometricExtents` hold it, where it was missing
+from both: the block holding the leader from (0, 0, 0) to (10, 5, 0), inserted at (100, 0, 0) scaled 2, is met by the line
+x = 110 at (110, 5, 0); and a leader or multileader appended to a drawing, or edited, grows the extents of its header as a
+line does, where it left them as they were. Leaders and multileaders now count against `DxfReadOptions.MaxPlacedEntities`,
+a leader one and a multileader one for each leader line, none where its leaders are invisible, so an INSERT placed within
+the bound before can be refused now.
+A `DxfLeader`'s `GetGeometry()` is the shape the reader reads, to the bit what it gave before. Every other shape the reader
+reads is the same, to the bit and in the same order, but where the bound now stops it, and but for the spelling of a
+layer: the reader names a layer as it first meets it, so where there is no LAYER table a LEADER on WALL read before a LINE on
+Wall now names the layer of both WALL.
+
+**NEW.** A `DxfMLeader` gives the lines of its leaders in `GetGeometry()`, as the reader reads it, where it gave none, so
+`IntersectWith` meets a multileader on them, as AutoCAD's meets it, and its `IsPlanar` is true where they lie in one plane:
+each leader line a `GeoPolyline3` from where its arrow points, through its vertices and the last point of its leader to the
+end of the dogleg, or, splined, a `GeoSpline3` fitted through those points with the tangents `Explode()` fits with. Both
+start at the arrow's point, where `Explode()` starts at the back of the arrow, so a splined line and the spline exploded
+part by up to about the arrow's size near it, 0.585 on a multileader whose arrow is 4 long. The line from (780, -10, 0)
+through (790, -5, 0) to its dogleg from (790, -1.25, 0) to (798, -1.25, 0) is met by the line y = -3 at (790, -3, 0). Its
+words or block, its arrowheads and invisible leaders are not met.
+
+**FIXED.** A pointer to a block copied by `WblockCloneObjects` after the entity that holds it was left out but for a
+MULTILEADER's: an ACAD_TABLE in a block W lost its `*T` (343) and the block of its cell (340), and a LEADER or a
+dimension in W whose dimension style is overridden with an arrow block (DIMLDRBLK, DIMBLK, DIMBLK1, DIMBLK2) lost the
+override, where the block came after W. Each names the copy of its block now, whichever of the block and its INSERT comes
+first in W, in a drawing of R12 by the block's name (1070 5, 1000 BOLT); and a table copied alone brings the block of its
+cell, as AutoCAD's deep clone follows the pointer, where it came only if the table's `*T` inserted it.
+
 **NEW.** A text's and an MTEXT's text style is set by its name, `TextStyleName` (written as the drawing's table names it,
 letters of either case the same), or as its record, the new `TextStyle` (AutoCAD's `TextStyleId`): a style the drawing has not,
 or a record of another drawing, is refused, and the style the text has changes nothing; an attribute takes it as a text does.

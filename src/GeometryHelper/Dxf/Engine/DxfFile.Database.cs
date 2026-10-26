@@ -596,14 +596,17 @@ namespace GeometryHelper.Dxf
         private void Collect(DxfFile origin, Rec record, List<DxfFileBlock> order) => Collect(origin.BlockDrawnBy(record), order);
 
         /// <summary>
-        /// Adds to the blocks to copy those a MULTILEADER of the origin places and draws its arrows by, as an INSERT's block is
-        /// added (<see cref="Collect(DxfFile, Rec, List{DxfFileBlock})"/>), as AutoCAD's deep clone follows its pointers: each
-        /// pointer of its own groups to a BLOCK_RECORD of the origin, its content (341 of its context data, 344) and its arrows
-        /// (342, 345). So that a multileader copied alone, or before an INSERT of its block, brings that block with it.
+        /// Adds to the blocks to copy those a record of the origin points to by a hard pointer of its own groups (340 to 349, 360
+        /// to 369) to a BLOCK_RECORD of the origin, as an INSERT's block is added
+        /// (<see cref="Collect(DxfFile, Rec, List{DxfFileBlock})"/>), as AutoCAD's deep clone follows hard pointers: a
+        /// MULTILEADER's content (341 of its context data, 344) and arrows (342, 345), an ACAD_TABLE's picture (343) and the
+        /// block of a cell (340). So that an entity copied alone, or before an INSERT of its block, brings that block with it.
+        /// The entities of the other types are not read for it: they name their blocks (an INSERT's or a dimension's group 2).
         /// </summary>
         private void CollectPlaced(DxfFile origin, Rec record, List<DxfFileBlock> order, RecordsToCopy needs)
         {
-            if (record.Type != "MULTILEADER")
+            // The other types point to no block by handle: reading each of them cost 4 % of a copy of 22 000 lines (.NET Framework).
+            if (record.Type != "MULTILEADER" && record.Type != "ACAD_TABLE")
             {
                 return;
             }
@@ -622,7 +625,7 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                if (braced || (code != 341 && code != 342 && code != 344 && code != 345) || !TryHex(origin.Text(record, pairs[i]).Trim(), out ulong handle))
+                if (braced || !IsHardPointer(code) || !TryHex(origin.Text(record, pairs[i]).Trim(), out ulong handle))
                 {
                     continue;
                 }
@@ -1475,9 +1478,10 @@ namespace GeometryHelper.Dxf
         /// <paramref name="deferred"/> says so. A MULTILEADER's attribute definition (its 330 after its own marker) names the
         /// copy of the definition, or the definition of the same tag in the block here of the name of its block, as the block it
         /// places is the one of that name here; where there is none, the value given for it (its 177, 44 and 302) goes with it.
-        /// A MULTILEADER's pointer to a block being copied with it whose record is not written yet (its content block, 341 of
-        /// the context and 344; its arrow blocks, 342 and 345) is held back so too, to name the copy (<see cref="BlockToCome"/>).
-        /// The record itself where nothing changes.
+        /// A pointer to a block being copied with it whose record is not written yet is held back so too, to name the copy
+        /// (<see cref="BlockToCome"/>): a MULTILEADER's content block (341 of the context, 344) and arrow blocks (342, 345), an
+        /// ACAD_TABLE's picture (343) and the block of a cell (340), and the arrow block an override of a dimension style names
+        /// (DIMBLK, DIMBLK1, DIMBLK2, DIMLDRBLK), whose 1070 waits with it. The record itself where nothing changes.
         /// </summary>
         private Rec Pointed(Rec record, DxfFile origin, DxfFile target, ref bool deferred)
         {
@@ -1519,6 +1523,13 @@ namespace GeometryHelper.Dxf
                         // An arrow block in a drawing of R12 is named, by the variable's group of R12 (5, 6, 7), as R12 writes it.
                         b.Group(1070, r12Code.ToString(CultureInfo.InvariantCulture));
                         b.Group(1000, arrow);
+                    }
+                    else if (target.BlockToCome(origin, Text(record, pairs[i + 1])))
+                    {
+                        // An arrow block copied with it but not yet written here waits for it.
+                        b.Raw(record, pair);
+                        b.Group(1005, DeferredMark + Text(record, pairs[i + 1]).Trim());
+                        deferred = true;
                     }
                     else
                     {
@@ -1589,9 +1600,10 @@ namespace GeometryHelper.Dxf
                     {
                         b.Group(code, now);
                     }
-                    else if (record.Type == "MULTILEADER" && target.BlockToCome(origin, was))
+                    else if (target.BlockToCome(origin, was))
                     {
-                        // A multileader's block (its content, its arrows) copied with it but not yet written here waits for it.
+                        // A block copied with it but not yet written here (a multileader's content or arrows, a table's picture
+                        // or a cell's block) waits for it.
                         b.Group(code, DeferredMark + was.Trim());
                         deferred = true;
                     }
@@ -1644,13 +1656,17 @@ namespace GeometryHelper.Dxf
 
             name = DxfReader.NameOf(origin.Record(found.Key).Text(2) ?? string.Empty);
 
+            // A block being copied with the entity is named so though it is written after it.
+            bool coming = false;
+
             if (_blockCopies != null && origin.Blocks.TryGetValue(name, out DxfFileBlock copied) && _blockCopies.TryGetValue(copied, out string given))
             {
                 name = given;
+                coming = true;
             }
 
             r12Code = known.R12Code;
-            return name.Length > 0 && Blocks.ContainsKey(name);
+            return name.Length > 0 && (coming || Blocks.ContainsKey(name));
         }
 
         /// <summary>
@@ -1946,6 +1962,9 @@ namespace GeometryHelper.Dxf
 
         private static bool IsPointer(int code) => (code >= 320 && code <= 369) || (code >= 390 && code <= 399) || code == 480 || code == 481;
 
+        /// <summary>Whether a group is a hard pointer or a hard owner (340 to 349, 360 to 369), which AutoCAD's deep clone follows.</summary>
+        private static bool IsHardPointer(int code) => (code >= 340 && code <= 349) || (code >= 360 && code <= 369);
+
         /// <summary>
         /// The handle in this file of the copy of an entity of another drawing copied with the entity being added, as an attribute
         /// definition of a block copied with a table; null where it was not copied.
@@ -2020,7 +2039,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Whether a handle of another drawing names the BLOCK_RECORD of a block being copied into this one with the entity being
         /// added, which a pointer is to wait for (<see cref="TranslateDeferred"/>): a block copied after the one that holds the
-        /// pointer, as GKTAG after the block W whose multileader places it. The name of its copy is kept for the pointer.
+        /// pointer, as GKTAG after the block W whose multileader places it, or whose leader's override DIMLDRBLK names it. The
+        /// name of its copy is kept for the pointer.
         /// </summary>
         private bool BlockToCome(DxfFile origin, string pointer)
         {
@@ -2090,9 +2110,10 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Takes each pointer held back while blocks were copied (<see cref="Pointed"/>) to the copy of the entity it names, as
         /// AutoCAD's deep clone translates its map of ids once every object is copied, so that a LEADER written before its MTEXT
-        /// still points to its copy, and a MULTILEADER written before the block it places to the copy of that block: a pointer
-        /// whose entity was not copied is left out, as one left out at once is (a table cell's with its value and count, a
-        /// LEADER's annotation with its kind, a HATCH's boundary with its count and association).
+        /// still points to its copy, and an entity written before a block it points to (a MULTILEADER's block, a table's picture,
+        /// the arrow block of a leader's override) to the copy of that block: a pointer whose entity was not copied is left out,
+        /// as one left out at once is (a table cell's with its value and count, a LEADER's annotation with its kind, a HATCH's
+        /// boundary with its count and association, an override of a dimension style with the 1070 naming its variable).
         /// The HATCH or LEADER whose pointer is kept is put among the reactors of the copy it points to, as AutoCAD keeps it.
         /// </summary>
         private void TranslateDeferred()
@@ -2122,6 +2143,21 @@ namespace GeometryHelper.Dxf
                 {
                     string text = i > 0 && i < data ? Text(record, pairs[i]).Trim() : null;
                     int code = pairs[i].Code;
+
+                    // An override of a dimension style naming an arrow block held back: the block's copy, or the two left out.
+                    if (i >= data && code == 1070 && i + 1 < pairs.Count && pairs[i + 1].Code == 1005 && Text(record, pairs[i + 1]).Trim().StartsWith(DeferredMark, StringComparison.Ordinal))
+                    {
+                        string arrow = BlockCopyHandle(Text(record, pairs[i + 1]).Trim().Substring(DeferredMark.Length));
+
+                        if (arrow != null)
+                        {
+                            b.Raw(record, pairs[i]);
+                            b.Group(1005, arrow);
+                        }
+
+                        i++;
+                        continue;
+                    }
 
                     if (text == null || !text.StartsWith(DeferredMark, StringComparison.Ordinal) || !(IsPointer(code) || code == 330))
                     {
@@ -2987,6 +3023,12 @@ namespace GeometryHelper.Dxf
             if (geometry && item.Parent != null)
             {
                 GrowLater(item.Parent);
+            }
+            else if (geometry && (item.Type == "LEADER" || item.Type == "MULTILEADER"))
+            {
+                // Read as their curves, which a splined one is fitted anew for: once at the next reading of the header, not at
+                // each edit, 3 000 vertices appended one by one to a splined leader taking 15.4 s where they took 6.3 s.
+                GrowLater(item);
             }
             else if (geometry)
             {

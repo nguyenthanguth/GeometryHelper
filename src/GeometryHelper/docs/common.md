@@ -400,8 +400,8 @@ The library has three ways into a DXF file, each for its own job:
 way to take geometry out of a drawing to work on. `DxfDatabase` reads what it is asked for when it is asked: 100 000 lines of
 10.5 MB are opened and saved in 36 ms and walked as `DxfLine` objects in 21 ms, and what is not changed is written back as
 it was read. `DxfWriter` makes a file from nothing. The three meet: an entity of the editing model gives the shapes
-`DxfReader` would read for it by `GetGeometry()` (a LEADER, which the reader does not read, its curve), and a drawing begins
-as the text `DxfWriter` writes (see [The model](#the-model)).
+`DxfReader` would read for it by `GetGeometry()`, and a drawing begins as the text `DxfWriter` writes (see
+[The model](#the-model)).
 
 ## Editing a DXF file
 
@@ -495,7 +495,7 @@ Dxf in front and their members' names.
 | `entity.IntersectWith(other, Intersect.ExtendThis, points, IntPtr.Zero, IntPtr.Zero)` | `entity.IntersectWith(other, DxfIntersect.ExtendThis)` giving `IReadOnlyList<GeoPoint3>` | Worked out on the library's shapes; a pair it cannot cross, a text among them, throws `NotSupportedException`. |
 | `GeometricExtents` giving `Extents3d` | `GeometricExtents` giving `GeoAabb3` | Of the shapes `GetGeometry()` gives; a text has no fonts to give it a box. |
 | `Curve.GetPointAtParameter`, `GetDistAtPoint`, `GetOffsetCurves`, `GetSplitCurves`, `Extend` | the same on `DxfCurve` | Offsets go to the right of the curve's way, as below. |
-| `Curve.GetGeCurve()` giving a `Curve3d` | `GetGeCurve()` giving the library's shape (`GeoLine3`, `GeoArc3`, ...) as an `object` | `GetGeometry()` gives the same as `DxfReader` reads it; a LEADER, which the reader does not read, its curve, a `GeoPolyline3` or, splined, a `GeoSpline3`. |
+| `Curve.GetGeCurve()` giving a `Curve3d` | `GetGeCurve()` giving the library's shape (`GeoLine3`, `GeoArc3`, ...) as an `object` | `GetGeometry()` gives the same as `DxfReader` reads it, a LEADER its curve, a `GeoPolyline3` or, splined, a `GeoSpline3`, and a MULTILEADER the lines of its leaders. |
 | `Clone()`, `db.WblockCloneObjects(ids, ownerId, map, DuplicateRecordCloning.Ignore, false)` | `entity.Clone()` then `other.ModelSpace.AppendEntity(copy)`; `db.WblockCloneObjects(entities, other.ModelSpace)` giving the copies | Records of the tables and the blocks a copy draws by come with it where the other drawing has none of their names, its own used where it has (see [Editing rules](#editing-rules)). No `IdMapping`: the copies are given back in the order of the entities. |
 | `Point3d`, `Vector3d`, `Point2d`, `Vector2d` | `GeoPoint3`, `GeoVector3`, `GeoPoint2`, `GeoVector2` | CadConvert turns one into the other: `point.ToGeoPoint3()`, `point.ToAcadPoint3()`. |
 | `Matrix3d.Displacement(v)`, `Rotation(angle, axis, centre)`, `Scaling(factor, centre)`, `Mirroring(plane)` | `GeoTransform3.Translation(v)`, `RotationAxis(centre, axis, angle)`, `Scaling(centre, factor)`, `Mirror(plane)` | `a * b` applies `b` first, as `Matrix3d`'s product does. `Matrix3d.AlignCoordinateSystem` from one system to another is `FromCoordinateSystem(to) * ToCoordinateSystem(from)`. |
@@ -678,8 +678,8 @@ last member erased, `Clear`, `RemoveAt`, or never given one. A group the file wa
 
 Every entity has AutoCAD's `Layer`, `Color`, `ColorIndex`, `TrueColor`, `Linetype`, `LinetypeScale`, `LineWeight`,
 `Visible` and `Transparency`, its `Handle`, `OwnerHandle`, `XData`, `Hyperlinks` and `ExtensionDictionary`, its `Owner` and
-`BlockName`, and `GetGeometry()`, the library's shapes for it as `DxfReader` reads it, or for a LEADER, which the reader does
-not read, its curve, the polyline of its vertices or the spline it is fitted to. A true colour's `Color` carries the
+`BlockName`, and `GetGeometry()`, the library's shapes for it as `DxfReader` reads it, a LEADER its curve and a
+MULTILEADER the lines of its leaders. A true colour's `Color` carries the
 index nearest it, orange (0xFF8000) the index 30, and is written with it. `Transparency`, group 440, is a `DxfTransparency`:
 BYLAYER where the record gives none, BYBLOCK, or an alpha from 0, clear, to 255, solid, `new DxfTransparency(127)` the 50 per
 cent of AutoCAD's dialog, written 33 554 559 (0x0200007F); a file older than R2004 has none and refuses one. Its
@@ -861,8 +861,10 @@ spline `Explode()` fits through its vertices, its parameter from 0 to 1, and its
 spline's: through (0, 0, 0), (10, 10, 0) and (20, 10, 0) it rises to y = 10.43, past its vertices, and its box with it. The
 spline is fitted once and kept until the drawing is next changed, so that a hundred points along a leader of 4 000 vertices
 take a fraction of a millisecond, not 1.6 s. `GetGeometry()` gives the leader's curve, the polyline of its vertices or that
-spline, and `IntersectWith` meets the leader on it, as AutoCAD's does: the leader from (0, 0, 0) to (10, 5, 0) meets the line
-x = 5 at (5, 2.5, 0). `IsPlanar` agrees with `GetPlane()`: false where a vertex lies off the plane of its normal.
+spline, as `DxfReader` reads a LEADER, and `IntersectWith` meets the leader on it, as AutoCAD's does: the leader from
+(0, 0, 0) to (10, 5, 0) meets the line x = 5 at (5, 2.5, 0). An INSERT of a block holding a leader is met on it too, and its
+`GeometricExtents` hold it: the block holding that leader, inserted at (100, 0, 0) scaled 2, is met by the line x = 110 at
+(110, 5, 0). `IsPlanar` agrees with `GetPlane()`: false where a vertex lies off the plane of its normal.
 
 A MULTILEADER is a `DxfMLeader`: its words (`MText`, `TextLocation`, `TextHeight`) or block (`BlockContent`,
 `BlockPosition`, `BlockScale`, `BlockRotation`, `SetBlockAttribute`), its look, and its leaders and their lines by AutoCAD's
@@ -870,6 +872,15 @@ indices (`AddLeader`, `AddLeaderLine`, `GetVertex`, `SetVertex`). A line's last 
 starts at, which every line of the leader ends at: `mleader.GetLastVertex(0)` is that point, and `SetLastVertex` moves it
 for them all. A property set is written in the MULTILEADER and in its context data, where AutoCAD keeps both, and sets its bit
 of the overrides of the multileader style. `new DxfMLeader()` takes the drawing's multileader style when it is appended.
+`GetGeometry()` gives the lines of its leaders, as `DxfReader` reads a MULTILEADER, and `IntersectWith` meets the
+multileader on them: each leader line a `GeoPolyline3` from its first vertex, where its arrow points, through its vertices
+and the last point of its leader to the end of the dogleg, the path `Explode()` draws; splined, a `GeoSpline3` fitted
+through those points with the tangents `Explode()` fits with. Both start at the arrow's point, where `Explode()` starts the
+line at the back of the arrow, so that a splined line and the spline exploded part by up to about the arrow's size near the
+arrow (0.585 on the multileader below, splined, its arrow 4 long). The line from (780, -10, 0) through (790, -5, 0) to its
+dogleg from (790, -1.25, 0) to (798, -1.25, 0) is met by the line y = -3 at (790, -3, 0) and by the line x = 794 at
+(794, -1.25, 0). Its words or block, its arrowheads and invisible leaders are not met. An INSERT of a block holding a
+multileader is met on its lines too.
 
 ### Dimensions
 
@@ -1048,15 +1059,20 @@ material. A copy brings what it names that the drawing has not, and uses what th
 - an INSERT's named block, under its name, with the blocks it inserts that the drawing has not and its description, units,
   explodability and scaling, as AutoCAD's `WblockCloneObjects` brings it; where the drawing has a block of the name, the
   copy places the drawing's own;
-- a MULTILEADER's block and arrow blocks so too, as AutoCAD's deep clone follows its pointers to them: the multileader of
-  GKTAG copied alone into a drawing with no GKTAG brings GKTAG, and gives NUM 42 to the copy of its attribute.
+- every block it points to by a hard pointer so too, as AutoCAD's deep clone follows its pointers to them: a MULTILEADER's
+  block and arrow blocks, the multileader of GKTAG copied alone into a drawing with no GKTAG bringing GKTAG and giving NUM 42
+  to the copy of its attribute; and the block of an ACAD_TABLE's cell, which the table copied alone brings though its `*T`
+  does not insert it.
 
 What the entities of a block copied point to among themselves, a LEADER to its MTEXT or a HATCH to its boundary, is kept
 between their copies whichever comes first in the block, each listed among the reactors of what it points to, as AutoCAD
 translates its map of ids once every object is copied. A MULTILEADER of a block copied places the copy of its block, and draws
 its arrows by the copies of theirs, where those blocks are copied with it, though after it: a block W holding a multileader
 of the block GKTAG and an INSERT of GKTAG, copied into another drawing, brings GKTAG, and W's multileader places that GKTAG
-with the value of its attribute. A copy of an INSERT places its block as the drawing it was copied from
+with the value of its attribute. So does every other pointer to a block copied after the entity that holds it, whichever
+of the two comes first in the block: an ACAD_TABLE points to the copies of its `*T` (343) and of the blocks of its cells
+(340), and a LEADER or a dimension whose style is overridden with an arrow block (DIMLDRBLK, DIMBLK, DIMBLK1, DIMBLK2) names
+the copy of that block, by its handle, or by its name in a drawing of R12 (1070 5, 1000 BOLT). A copy of an INSERT places its block as the drawing it was copied from
 has it now, edits and all, keeps to it when it is renamed there, and places nothing once it is erased.
 
 `db.WblockCloneObjects(entities, owner)` copies entities of a drawing together into a block of another drawing, or of its
@@ -1193,6 +1209,19 @@ extrusion is (0, 0, 1) or (0, 0, -1) exactly, or not given, and every height nou
 | 3DFACE | `GeoTriangle3` of three corners; `GeoFace3` of four in one plane within the planar tolerance; two `GeoTriangle3` cut along the shorter diagonal where they are not | the same |
 | SOLID, TRACE | `GeoPolygon3` of its corners in DXF's order 1, 2, 4, 3 | `GeoPolygon2` |
 | TEXT, MTEXT | `DxfText`: where it stands, its normal, height, rotation and words | the same |
+| LEADER | `GeoPolyline3` through its vertices; splined, the `GeoSpline3` `DxfLeader.Explode()` fits through them; its arrowhead and hook line not read | `GeoPolyline2`, `GeoSpline2` |
+| MULTILEADER | a `GeoPolyline3` for each leader line, from where its arrow points to the end of its dogleg; splined, a `GeoSpline3` fitted through the same points; its words or block and arrowheads not read | `GeoPolyline2`, `GeoSpline2` |
+
+A LEADER is read as its curve, as AutoCAD's `IntersectWith` meets a leader: its vertices are in world coordinates, a
+vertex within the point tolerance of the one kept before it is left out, and a leader of fewer than two vertices apart has
+no shape. Splined, it is the cubic through its vertices that leaves along its first segment and reaches along its last,
+its parameter from 0 to 1, as ezdxf's `fit_points_to_cad_cv` fits it: through (0, 0, 0), (10, 10, 0) and (20, 10, 0) it
+rises to y = 10.43. In a block, the spline is fitted through the vertices where the block has them and then placed, as
+AutoCAD draws the leader in its block: an INSERT scaled 2 along x places the control points scaled so, not a spline
+fitted through the scaled vertices. `Explode()` of such an INSERT gives the leader with its vertices placed, which is fitted
+anew where it is drawn, so under a scale unlike along its axes the two splines part: by 2.21 for the leader through
+(0, 0, 0), (10, 10, 0) and (20, 10, 0) under an INSERT scaled 3 along y. A MULTILEADER is read so, each leader line as the chain or the spline `DxfMLeader` sets
+out (see [Leaders and multileaders](#leaders-and-multileaders)).
 
 The coordinates of a CIRCLE, ARC, LWPOLYLINE, 2D POLYLINE, SOLID and TRACE are in the system of their extrusion's plane
 and are taken to the world by the arbitrary axis algorithm, as `DxfWriter` writes them: the CIRCLE at (10, 20, 5) on
@@ -1223,9 +1252,9 @@ A chain or loop with arcs that lies flat at one height can carry a normal a hair
 fits its plane; the writer writes that extrusion, and such a chain comes back to the rounding of that plane, within
 1E-12 of its largest coordinate.
 
-DIMENSION, HATCH, LEADER, MLEADER, IMAGE, MESH, REGION, 3DSOLID, BODY, ATTDEF, ATTRIB, VIEWPORT and any other type are
+DIMENSION, HATCH, IMAGE, MESH, MLINE, REGION, 3DSOLID, BODY, ATTDEF, ATTRIB, VIEWPORT and any other type are
 not read and are counted in `Skipped`. So is an entity with no shape to it, the reason said once for each type in a Debug
-line of `GeometryHelperLog`: a LINE no longer than the point tolerance, a polyline of fewer than two distinct vertices, a
+line of `GeometryHelperLog`: a LINE no longer than the point tolerance, a polyline or LEADER of fewer than two distinct vertices, a MULTILEADER with no leader line of two, a
 CIRCLE or ARC of no radius, an ELLIPSE of no axis, a TEXT or MTEXT of no height, or with none given, a number that is not
 a finite number, a SPLINE the library does not take (a periodic one among them whose knots cannot be clamped, which a
 warning names too), a 3DFACE of fewer than three distinct corners. `DxfReadOptions.Tolerance` (the default tolerance unless set; the global

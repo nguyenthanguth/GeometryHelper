@@ -161,6 +161,8 @@ namespace GeometryHelper.Dxf
                     case "TRACE":
                     case "TEXT":
                     case "MTEXT":
+                    case "LEADER":
+                    case "MULTILEADER":
                         break;
 
                     default:
@@ -190,6 +192,8 @@ namespace GeometryHelper.Dxf
                         case "3DFACE": ReadFace(r); break;
                         case "TEXT":
                         case "MTEXT": ReadText(r); break;
+                        case "LEADER": ReadLeader(r); break;
+                        case "MULTILEADER": ReadMLeader(r); break;
                         default: ReadSolid(r); break;
                     }
                 });
@@ -1615,6 +1619,146 @@ namespace GeometryHelper.Dxf
                 _openedLoops++;
                 kept.Add(kept[0]);
                 keptBulges.Add(0.0);
+            }
+
+            #endregion
+
+            #region Leaders
+
+            /// <summary>
+            /// Reads a LEADER as its curve, as AutoCAD's <c>IntersectWith</c> meets it: the chain of its vertices (each 10, 20,
+            /// 30) in world coordinates, a vertex within the point tolerance of the one kept before it left out; splined (72 of 1),
+            /// the spline <see cref="DxfLeader.Explode"/> fits through them, of degree 3, leaving along its first segment and
+            /// reaching along its last, its parameter from 0 to 1. Inside a block the spline is fitted through the vertices where
+            /// the block has them, and then placed. The arrowhead and the hook line to the annotation, which AutoCAD works out when
+            /// it draws them, are not read.
+            /// </summary>
+            private void ReadLeader(Record r)
+            {
+                var vertices = new List<GeoPoint3>();
+                double[] point = null;
+
+                for (int i = 0; i < r.Count; i++)
+                {
+                    int code = r.CodeAt(i);
+
+                    if (code == 10)
+                    {
+                        point = new[] { Scaled(r.NumberAt(i)), 0.0, 0.0 };
+                        vertices.Add(default(GeoPoint3));
+                    }
+                    else if ((code == 20 || code == 30) && point != null)
+                    {
+                        point[code / 10 - 1] = Scaled(r.NumberAt(i));
+                    }
+                    else
+                    {
+                        continue;
+                    }
+
+                    vertices[vertices.Count - 1] = new GeoPoint3(point[0], point[1], point[2]);
+                }
+
+                double tolerance = _tolerance.EqualPoint;
+                string why = null;
+
+                if (r.Int(72, 0) != 0 ? !AddFitted(r, DxfLeader.FittedCurve(vertices, tolerance), p => p, out why) : !AddChain(r, vertices, p => p))
+                {
+                    Skip(r.Type, why ?? "with fewer than two distinct vertices");
+                }
+            }
+
+            /// <summary>
+            /// Reads a MULTILEADER as the lines of its leaders, as AutoCAD's <c>IntersectWith</c> meets it: each leader line the
+            /// chain from its first vertex, where its arrow points, through its vertices and the last point of its leader to the end
+            /// of its dogleg, as <see cref="DxfMLeader.Explode"/> draws it, or, splined, the spline fitted through those points, as
+            /// <see cref="DxfLeader"/>'s is (<see cref="DxfMLeader"/>). Its words or block and its arrowheads are not read.
+            /// </summary>
+            private void ReadMLeader(Record r)
+            {
+                var groups = new List<KeyValuePair<int, string>>(r.Count);
+
+                for (int i = 0; i < r.Count; i++)
+                {
+                    groups.Add(new KeyValuePair<int, string>(r.CodeAt(i), r.ValueAt(i)));
+                }
+
+                GeoPoint3 Scale(GeoPoint3 p) => _scale == 1.0 ? p : new GeoPoint3(Scaled(p.X), Scaled(p.Y), Scaled(p.Z));
+                bool any = false;
+                string why = null;
+
+                foreach (DxfMLeader.LinePath line in DxfMLeader.LinesOf(groups, _tolerance.EqualPoint / _scale))
+                {
+                    any |= line.Curve != null ? AddFitted(r, line.Curve, Scale, out why) : AddChain(r, line.Points, Scale);
+                }
+
+                if (!any)
+                {
+                    Skip(r.Type, why ?? "with no leader line of two distinct points");
+                }
+            }
+
+            /// <summary>
+            /// Adds a chain of points of the world, each taken to millimetres where asked by the map given and placed, a point within
+            /// the point tolerance of the one kept before it left out: of the plane where it lies on the floor and that is asked for.
+            /// False where fewer than two points are left.
+            /// </summary>
+            private bool AddChain(Record r, List<GeoPoint3> points, Func<GeoPoint3, GeoPoint3> scale)
+            {
+                var kept = new List<GeoPoint3>(points.Count);
+
+                foreach (GeoPoint3 point in points)
+                {
+                    GeoPoint3 placed = Place(scale(point));
+
+                    if (kept.Count == 0 || kept[kept.Count - 1].DistanceTo(placed) > _tolerance.EqualPoint)
+                    {
+                        kept.Add(placed);
+                    }
+                }
+
+                if (kept.Count < 2)
+                {
+                    return false;
+                }
+
+                Add(r, FlatInWorld(kept) ? (object)new GeoPolyline2(kept.ConvertAll(Plan).ToArray(), kept.Count) : new GeoPolyline3(kept.ToArray(), true));
+                return true;
+            }
+
+            /// <summary>
+            /// Adds a spline fitted through points of the world, its control points taken to millimetres where asked by the map given
+            /// and placed, as a placing carries a spline: of the plane where it lies on the floor and that is asked for. False, with
+            /// the reason, where there is no curve (its points all one) or the library does not take the spline placed.
+            /// </summary>
+            private bool AddFitted(Record r, NurbsCurve curve, Func<GeoPoint3, GeoPoint3> scale, out string why)
+            {
+                why = null;
+
+                if (curve == null)
+                {
+                    return false;
+                }
+
+                var control = new List<GeoPoint3>(curve.Count);
+
+                for (int i = 0; i < curve.Count; i++)
+                {
+                    control.Add(Place(scale(new GeoPoint3(curve.Points[3 * i], curve.Points[3 * i + 1], curve.Points[3 * i + 2]))));
+                }
+
+                try
+                {
+                    Add(r, FlatInWorld(control)
+                        ? (object)new GeoSpline2(curve.Degree, control.ConvertAll(Plan), curve.Knots, null)
+                        : new GeoSpline3(curve.Degree, control, curve.Knots, null));
+                    return true;
+                }
+                catch (ArgumentException)
+                {
+                    why = _place != null ? Flattened : "whose vertices the library cannot pass a spline through";
+                    return false;
+                }
             }
 
             #endregion

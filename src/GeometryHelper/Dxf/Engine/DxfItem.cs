@@ -274,7 +274,9 @@ namespace GeometryHelper.Dxf
         /// a tolerance, is written as more than one entity (a face with holes, a body, a box), or as a type the file's version
         /// cannot hold and has no exact form of its own for: a SPLINE, ELLIPSE, MTEXT, RAY or XLINE in a file of R12.</exception>
         /// <exception cref="System.InvalidOperationException">Thrown when the entity is of a type that has no shape of the
-        /// library's to set (HATCH, DIMENSION, INSERT and the other types the reader does not read), of a block, or removed.</exception>
+        /// library's to set (HATCH, DIMENSION, INSERT and the other types the reader does not read, and a LEADER or a
+        /// MULTILEADER, which it reads as its lines), of a block, or removed. A LEADER or a MULTILEADER given null changes
+        /// nothing, as before the reader read them.</exception>
         public object Shape
         {
             get

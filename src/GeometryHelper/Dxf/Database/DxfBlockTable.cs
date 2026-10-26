@@ -1071,11 +1071,13 @@ namespace GeometryHelper.Dxf
         /// drawing has not (its layers, linetypes, text styles and dimension styles, and their arrow blocks) are copied with it by
         /// name, and a block AutoCAD names itself it draws by (a dimension's <c>*D</c>, an INSERT's <c>*U</c>) under a name of its
         /// own, as AutoCAD's deep clone does; an INSERT's named block where this drawing has none of its name, under that name, with
-        /// the blocks it inserts, as AutoCAD's <c>WblockCloneObjects</c> brings it, and a MULTILEADER's block and arrow blocks so
-        /// too, as AutoCAD's deep clone follows its pointers to them. What the entities of the blocks copied point
+        /// the blocks it inserts, as AutoCAD's <c>WblockCloneObjects</c> brings it, and every block a copy points to by a hard
+        /// pointer so too (a MULTILEADER's block and arrow blocks, the block of an ACAD_TABLE's cell), as AutoCAD's deep clone
+        /// follows its pointers to them. What the entities of the blocks copied point
         /// to among themselves (a LEADER to its MTEXT, a HATCH to its boundary) is kept between their copies, whichever comes first
-        /// in its block, as AutoCAD's deep clone translates its map of ids once every object is copied, and so is a MULTILEADER's
-        /// block and arrow blocks copied with it after its own. A copy appended to its own drawing keeps its pointers, but for the
+        /// in its block, as AutoCAD's deep clone translates its map of ids once every object is copied, and so is every pointer to
+        /// a block copied with it after its own (a MULTILEADER's block and arrow blocks, an ACAD_TABLE's picture and the blocks of
+        /// its cells, the arrow block an override of a dimension style names). A copy appended to its own drawing keeps its pointers, but for the
         /// value a MULTILEADER gives an attribute definition erased since, which is left out with the definition's handle. The
         /// extents of the header are not grown by what is appended to a block.
         /// </para>

@@ -19,7 +19,10 @@ namespace GeometryHelper.Dxf
         /// A HATCH copied with every object its loops follow follows their copies, and is associative, as the HATCH is; with
         /// some of them left behind it follows none, as a HATCH copied alone. A MULTILEADER of a block copied with an INSERT places
         /// the copy of its block and draws its arrows by the copies of theirs, where those blocks come along, as a block W holding
-        /// a multileader of the block GKTAG and an INSERT of GKTAG brings GKTAG. A LEADER copied with the MTEXT, TOLERANCE or INSERT
+        /// a multileader of the block GKTAG and an INSERT of GKTAG brings GKTAG; so too an ACAD_TABLE points to the copies of its
+        /// picture and of the blocks of its cells, and a LEADER or a dimension whose dimension style is overridden with an arrow
+        /// block (DIMLDRBLK, DIMBLK, DIMBLK1, DIMBLK2) names the copy of that block, whichever of the two is copied first: a
+        /// block W holding the leader with DIMLDRBLK GKTAG brings GKTAG after W, and the copy of the leader names it. A LEADER copied with the MTEXT, TOLERANCE or INSERT
         /// it points to points to its copy; without it, it points to none (<see cref="DxfLeader.AnnoType"/>
         /// <see cref="DxfAnnotationType.NoAnnotation"/>). A GROUP of this drawing every entity of which is copied into model space
         /// or a layout of paper space is copied too (a group holds no entity of a block, as ezdxf's recover drops one that does),

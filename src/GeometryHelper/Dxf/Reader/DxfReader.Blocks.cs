@@ -766,10 +766,46 @@ namespace GeometryHelper.Dxf
                     case "TRACE":
                     case "TEXT":
                     case "MTEXT":
+                    case "LEADER":
                         return 1;
 
                     case "3DFACE":
                         return 2;
+
+                    case "MULTILEADER":
+                        // A shape for each leader line of its context data at most; none where its leaders are invisible, the
+                        // type of its lines after the context data (170) 0, as DxfMLeader reads it.
+                        int lines = 0;
+                        int context = 0;
+
+                        for (int i = 0; i < r.Count; i++)
+                        {
+                            int code = r.CodeAt(i);
+
+                            if (context == 0 && code == 300)
+                            {
+                                context = 1;
+                            }
+                            else if (context == 1 && code == 301)
+                            {
+                                context = 2;
+                            }
+                            else if (context == 1 && code == 304 && r.ValueAt(i).Trim() == "LEADER_LINE{")
+                            {
+                                lines++;
+                            }
+                            else if (context == 2 && code == 170)
+                            {
+                                if (int.TryParse(r.ValueAt(i).Trim(), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int kind) && kind == 0)
+                                {
+                                    return 0;
+                                }
+
+                                break;
+                            }
+                        }
+
+                        return Math.Max(1, lines);
 
                     case "LWPOLYLINE":
                         int vertices = 0;

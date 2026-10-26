@@ -575,21 +575,15 @@ namespace GeometryHelper.Dxf
         /// Gets the library's shapes for the entity, as <see cref="DxfReader"/> reads it with its default options: a
         /// <see cref="GeoLine3"/> for a LINE, two <see cref="GeoTriangle3"/> for a 3DFACE whose corners are not in one plane,
         /// the shapes of its block placed for an INSERT; none for a type the reader does not read, as a HATCH, or an entity with
-        /// no shape to it, as a LINE of no length. A LEADER, which the reader does not read, gives its curve, as AutoCAD
-        /// intersects a leader on it: a <see cref="GeoPolyline3"/> through its vertices, a vertex on the one before it left out,
-        /// so that the leader from (0, 0, 0) to (10, 5, 0) meets the line x = 5 at (5, 2.5, 0); splined, the
-        /// <see cref="GeoSpline3"/> of the spline <see cref="DxfLeader.Explode"/> fits through them; none where fewer than two
-        /// of its vertices are apart.
+        /// no shape to it, as a LINE of no length. A LEADER gives its curve, as the reader reads it and AutoCAD intersects a
+        /// leader on it: a <see cref="GeoPolyline3"/> through its vertices, a vertex on the one before it left out, so that the
+        /// leader from (0, 0, 0) to (10, 5, 0) meets the line x = 5 at (5, 2.5, 0); splined, the <see cref="GeoSpline3"/> of the
+        /// spline <see cref="DxfLeader.Explode"/> fits through them; none where fewer than two of its vertices are apart. A
+        /// MULTILEADER gives the lines of its leaders, as <see cref="DxfMLeader"/> says, and not its words or block.
         /// </summary>
-        /// <returns>The shapes, in the coordinates of the file, the same list until the entity is changed; for a LEADER, until
-        /// its drawing is changed.</returns>
+        /// <returns>The shapes, in the coordinates of the file, the same list until the entity is changed.</returns>
         public IReadOnlyList<object> GetGeometry()
         {
-            if (this is DxfLeader leader)
-            {
-                return leader.Shapes();
-            }
-
             if (Item.Type != "INSERT")
             {
                 return Item.Shapes;

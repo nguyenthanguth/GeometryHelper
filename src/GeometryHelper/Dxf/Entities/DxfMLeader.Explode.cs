@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper.Geometry;
+using GeometryHelper.Internal.Nurbs;
 using static GeometryHelper.Dxf.DxfLeaderGroups;
 
 namespace GeometryHelper.Dxf
@@ -86,22 +87,11 @@ namespace GeometryHelper.Dxf
 
             foreach (LeaderPart leader in ctx.Leaders)
             {
-                GeoPoint3 last = PointOf(leader.Head, 10, new GeoPoint3(0.0, 0.0, 0.0));
-                bool horizontal = Whole(Text(leader.Head, 271) ?? Text(leader.Tail, 271), 0) == 0;
-                double length = Num(Text(leader.Head, 40), 1.0);
-                GeoVector3 along = Whole(Text(leader.Head, 291), 0) != 0 ? PointOf(leader.Head, 11, new GeoPoint3(1.0, 0.0, 0.0)).ToVector() : new GeoVector3(1.0, 0.0, 0.0);
-                along = along.Length > 0.0 ? DxfOcsTransform.Normalized(along).Multiply(length) : new GeoVector3(length, 0.0, 0.0);
+                Landing(leader, out GeoPoint3 last, out bool horizontal, out GeoVector3 along);
 
                 foreach (LinePart line in leader.Lines)
                 {
-                    List<GeoPoint3> vertices = line.Vertices();
-
-                    if (horizontal && dogleg)
-                    {
-                        vertices.Add(last);
-                    }
-
-                    vertices.Add(horizontal ? last.Add(along) : last);
+                    List<GeoPoint3> vertices = Path(line, last, horizontal, dogleg, along);
 
                     if (vertices.Count < 2)
                     {
@@ -145,6 +135,155 @@ namespace GeometryHelper.Dxf
             }
 
             return parts.AsReadOnly();
+        }
+
+        /// <summary>
+        /// Where the lines of a leader end, as <see cref="Explode"/> draws them: the last point of the leader (10), whether its
+        /// dogleg runs left or right of the content (271 of 0), and the dogleg, along the leader's direction (11, where 291 gives
+        /// one), else x, its length (40) long.
+        /// </summary>
+        private static void Landing(LeaderPart leader, out GeoPoint3 last, out bool horizontal, out GeoVector3 along)
+        {
+            last = PointOf(leader.Head, 10, new GeoPoint3(0.0, 0.0, 0.0));
+            horizontal = Whole(Text(leader.Head, 271) ?? Text(leader.Tail, 271), 0) == 0;
+            double length = Num(Text(leader.Head, 40), 1.0);
+            along = Whole(Text(leader.Head, 291), 0) != 0 ? PointOf(leader.Head, 11, new GeoPoint3(1.0, 0.0, 0.0)).ToVector() : new GeoVector3(1.0, 0.0, 0.0);
+            along = along.Length > 0.0 ? DxfOcsTransform.Normalized(along).Multiply(length) : new GeoVector3(length, 0.0, 0.0);
+        }
+
+        /// <summary>
+        /// The points a leader line runs through, as <see cref="Explode"/> draws it before it steps back for its arrow: its
+        /// vertices, the last point of its leader where the dogleg runs left or right and is drawn, and the end of the dogleg
+        /// there, else the last point.
+        /// </summary>
+        private static List<GeoPoint3> Path(LinePart line, GeoPoint3 last, bool horizontal, bool dogleg, GeoVector3 along)
+        {
+            List<GeoPoint3> vertices = line.Vertices();
+
+            if (horizontal && dogleg)
+            {
+                vertices.Add(last);
+            }
+
+            vertices.Add(horizontal ? last.Add(along) : last);
+            return vertices;
+        }
+
+        /// <summary>
+        /// The lines of the leaders of a MULTILEADER's record, for <see cref="DxfReader"/>, which reads a MULTILEADER as them: for
+        /// each leader line, along the path <see cref="Explode"/> draws (<see cref="Path"/>) from its first vertex, where its arrow
+        /// points, the points it runs through or, splined, the curve fitted through them with the tangents <see cref="Explode"/>
+        /// fits it with, leaving along its first segment and reaching along the dogleg or its last segment; from the arrow's
+        /// point, where <see cref="Explode"/> starts at the back of the arrow, so that the two part by up to the arrow's size near
+        /// it. None for invisible leaders, a multileader scaled to nothing, or one with no context data.
+        /// </summary>
+        /// <param name="groups">The groups of the record as the file holds them, its type left out.</param>
+        /// <param name="tolerance">The point tolerance a vertex on the one before it is left out within, in the fitting.</param>
+        internal static List<LinePath> LinesOf(IReadOnlyList<KeyValuePair<int, string>> groups, double tolerance)
+        {
+            var lines = new List<LinePath>();
+            Rec rec = Rec.Read(OwnRun(groups));
+            Ctx ctx = rec.Context;
+            var type = (DxfLeaderType)Whole(Text(rec.After, 170), 1);
+
+            if (ctx == null || !(Math.Abs(Num(Text(ctx.Head, 40), 1.0)) > 1E-9) || type == DxfLeaderType.InVisibleLeader)
+            {
+                return lines;
+            }
+
+            bool dogleg = Whole(Text(rec.After, 291), 1) != 0 && type != DxfLeaderType.SplineLeader;
+
+            foreach (LeaderPart leader in ctx.Leaders)
+            {
+                Landing(leader, out GeoPoint3 last, out bool horizontal, out GeoVector3 along);
+
+                foreach (LinePart line in leader.Lines)
+                {
+                    List<GeoPoint3> vertices = Path(line, last, horizontal, dogleg, along);
+
+                    if (vertices.Count < 2)
+                    {
+                        continue;
+                    }
+
+                    if (type != DxfLeaderType.SplineLeader)
+                    {
+                        lines.Add(new LinePath(vertices, null));
+                        continue;
+                    }
+
+                    GeoVector3 first = vertices[0].GetVectorTo(vertices[1]);
+                    double run = first.Length;
+                    GeoVector3 direction = run > 0.0 ? first.Multiply(1.0 / run) : new GeoVector3(1.0, 0.0, 0.0);
+                    GeoVector3 end = horizontal ? along : vertices[vertices.Count - 2].GetVectorTo(vertices[vertices.Count - 1]);
+                    lines.Add(new LinePath(vertices, DxfLeader.FittedCurve(vertices, tolerance, direction, end.Length > 0.0 ? end : (GeoVector3?)null)));
+                }
+            }
+
+            return lines;
+        }
+
+        /// <summary>
+        /// The own groups of a record, as <see cref="Read"/> reads them: from its first subclass marker past AcDbEntity, that
+        /// marker left out, or from its first group where it has no such marker, as a record written without them, to its
+        /// extended data, the groups of the applications and the comments left out.
+        /// </summary>
+        private static List<KeyValuePair<int, string>> OwnRun(IReadOnlyList<KeyValuePair<int, string>> groups)
+        {
+            int data = groups.Count;
+            int body = -1;
+            bool braced = false;
+
+            for (int i = 0; i < groups.Count; i++)
+            {
+                if (groups[i].Key == 1001)
+                {
+                    data = i;
+                    break;
+                }
+
+                if (groups[i].Key == 102)
+                {
+                    braced = groups[i].Value.Trim().StartsWith("{", StringComparison.Ordinal);
+                }
+                else if (body < 0 && !braced && groups[i].Key == 100 && groups[i].Value.Trim() != "AcDbEntity")
+                {
+                    body = i;
+                }
+            }
+
+            var run = new List<KeyValuePair<int, string>>(data);
+            braced = false;
+
+            for (int i = body + 1; i < data; i++)
+            {
+                if (groups[i].Key == 102)
+                {
+                    braced = groups[i].Value.Trim().StartsWith("{", StringComparison.Ordinal);
+                }
+                else if (!braced && groups[i].Key != 999)
+                {
+                    run.Add(groups[i]);
+                }
+            }
+
+            return run;
+        }
+
+        /// <summary>A leader line as <see cref="LinesOf"/> gives it: the points it runs through, and the curve fitted through them where it is splined.</summary>
+        internal sealed class LinePath
+        {
+            internal LinePath(List<GeoPoint3> points, NurbsCurve curve)
+            {
+                Points = points;
+                Curve = curve;
+            }
+
+            /// <summary>The points of the line, its first where the arrow points.</summary>
+            internal List<GeoPoint3> Points { get; }
+
+            /// <summary>The curve of a splined line; null for a straight one, or a splined one whose points are all one.</summary>
+            internal NurbsCurve Curve { get; }
         }
 
         /// <summary>
