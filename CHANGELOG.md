@@ -1274,6 +1274,28 @@ in at once, as they did, and note it in the debug log: a boolean of it can still
 `GetVolume` takes as long as it did, within the noise of the machine: 3.2 to 3.8 milliseconds a plate on .NET 10, the
 least of seven runs, the check costing no more than 2.5 % of it.
 
+**FIXED.** `GetVolume` and `TryGetVolume` could still keep the corner of an opening in the material where three of its
+planes, meeting at that corner, ran through a piece of the body and none would cut it: each plane alone, and each two,
+part the piece so that the middle of every part is out of the opening or on its skin, and the piece was judged whole by
+one point. A cube 10 across whose top, bottom and one side are each two faces meeting along an edge 0.02 off square, the
+two copies of the edge 0.0001 apart at one end, is closed within the default tolerance, but x = 5, y = 5 and z = 5 each
+cross the crack between the copies at a slant and will not cut it; with the corner of a box, x, y and z from 5 to 12,
+standing in it, it held 1 000 cubic millimetres, the box left in, and `TryGetVolume` trusted it. The eight parts three
+such planes make are read now as the four of two are, and where one is in the opening and another out the openings are
+taken out one at a time by a difference: the cube holds 875.00, the cube less the corner. Of 6 000 such cubes, the
+opening a box, upright, tilted, skewed or sheared far out of square, a tetrahedron, a pyramid, a tapered prism, two boxes
+sharing the corner, or three tilted planes meeting near the middle, placed upright, turned and far from the origin, at
+tolerances of nought, 0.001, 0.01 and 0.05, 86 were trusted and off by more than the tolerance times their area; 49 are
+right now, and every other volume is the same to the bit. The 37 left are all at the default tolerance, 0.001, and are
+other faults: 32 are taken out by a difference as they should be, but the difference, cutting the cube by the same
+planes, leaves the opening in as well; 5 are boxes sheared until the normals of their faces lie a hair off one plane, and
+are read as before. The threes are read only where they meet within the opening's box, and only of the first 16 planes
+of an opening to cross a piece: a cone of 128 facets has 341 376 threes, all meeting at its tip. `GetVolume` of the
+cracked cube with the corner of the box in it takes 1.9 milliseconds on .NET Framework 4.8 and 5.5 on .NET 10, where it
+took 0.35 and 1.0 to leave the box in, the least of seven runs; a cube 10 across with three box openings at its corners
+takes as long as it did, 3.7 and 11.4 milliseconds, and the cracked cube with a cone of 128 facets standing on it 43
+seconds and 12, as it did within the noise of the machine.
+
 **FIXED.** A boolean, or the closing of a cut, given a tolerance of nought for points ran for ever where what it made
 came out open: welding within twice, then four times, nought never ended. Nought welds nothing now, and the body comes
 back as made: a difference of two boxes at no tolerance that ran for ever, 3 of 33 pairs, returns.

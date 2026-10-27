@@ -177,6 +177,92 @@ namespace GeometryHelper.UnitTest.Solid.Core
         }
 
         [Fact]
+        public void APieceThreePlanesOfABoxRunThroughUncutAtItsCorner_IsReadAsPartInTheBox()
+        {
+            // A cube 10 across with the corner of a box, x, y and z from 5 to 12, standing in it: none of x = 5, y = 5 and
+            // z = 5 cuts the cube. Each alone, or any two, leave the middles of all their parts out of the box, on its skin
+            // at best; of the eight the three make, one, 5 by 5 by 5, is in it.
+            Tolerance tolerance = Tolerance.Default;
+            GeoSolid3 cube = new GeoAabb3(P(0, 0, 0), P(10, 10, 10)).ToObb().ToSolid().TurnOutwards();
+            GeoSolid3 box = new GeoAabb3(P(5, 5, 5), P(12, 12, 12)).ToObb().ToSolid().TurnOutwards();
+            var wall = new GeoPlane3(P(5, 0, 0), new GeoVector3(1, 0, 0));
+            var side = new GeoPlane3(P(0, 5, 0), new GeoVector3(0, 1, 0));
+            var floor = new GeoPlane3(P(0, 0, 5), new GeoVector3(0, 0, 1));
+            var pieces = new List<GeoSolid3> { cube };
+
+            Assert.False(Boolean3.JudgedWhole(pieces, new List<(GeoPlane3, GeoSolid3)> { (wall, box), (side, box) }, tolerance));
+            Assert.False(Boolean3.JudgedWhole(pieces, new List<(GeoPlane3, GeoSolid3)> { (side, box), (floor, box) }, tolerance));
+            Assert.False(Boolean3.JudgedWhole(pieces, new List<(GeoPlane3, GeoSolid3)> { (wall, box), (floor, box) }, tolerance));
+            Assert.True(Boolean3.JudgedWhole(pieces, new List<(GeoPlane3, GeoSolid3)> { (wall, box), (side, box), (floor, box) }, tolerance));
+        }
+
+        /// <summary>
+        /// A cube 10 across whose top, bottom and side at x = 0 are each two faces meeting along an edge that crosses the
+        /// middle of the face 0.02 off square, one copy of the edge 0.0001 from the other at an end: closed within the
+        /// tolerance, but a plane crossing the crack between the copies at a slant, as x = 5, y = 5 and z = 5 do, will not
+        /// cut it.
+        /// </summary>
+        private static GeoSolid3 CrackedCube()
+        {
+            GeoPoint3 a = P(4.99, 0, 10), a2 = P(4.9901, 0, 10), b = P(5.01, 10, 10);
+            GeoPoint3 c = P(0, 4.99, 0), c2 = P(0, 4.9901, 0), d = P(10, 5.01, 0);
+            GeoPoint3 e = P(0, 0, 4.99), e2 = P(0, 0, 4.9901), f = P(0, 10, 5.01);
+            return new GeoSolid3(
+                new GeoFace3(new GeoPolygon3(P(0, 0, 10), a, b, P(0, 10, 10))),
+                new GeoFace3(new GeoPolygon3(a2, P(10, 0, 10), P(10, 10, 10), b)),
+                new GeoFace3(new GeoPolygon3(P(0, 0, 0), c, d, P(10, 0, 0))),
+                new GeoFace3(new GeoPolygon3(c2, P(0, 10, 0), P(10, 10, 0), d)),
+                new GeoFace3(new GeoPolygon3(e, f, P(0, 10, 0), c2, c, P(0, 0, 0))),
+                new GeoFace3(new GeoPolygon3(P(0, 0, 10), P(0, 10, 10), f, e2)),
+                new GeoFace3(new GeoPolygon3(P(10, 0, 0), d, P(10, 10, 0), P(10, 10, 10), P(10, 0, 10))),
+                new GeoFace3(new GeoPolygon3(P(0, 0, 0), P(10, 0, 0), P(10, 0, 10), a2, a, P(0, 0, 10), e2, e)),
+                new GeoFace3(new GeoPolygon3(f, P(0, 10, 10), b, P(10, 10, 10), P(10, 10, 0), P(0, 10, 0))));
+        }
+
+        [Fact]
+        public void ACubeNoneOfThreePlanesOfACornerBoxWillCut_LosesTheCorner()
+        {
+            // The cracked cube, the corner of a box, x, y and z from 5 to 12, standing in it: none of x = 5, y = 5 and z = 5
+            // cuts the cube. Judged whole by one point, the cube held 1 000 with the box left in; it holds the cube less the
+            // corner, 1 000 - 125.
+            Tolerance tolerance = Tolerance.Default;
+            GeoSolid3 box = new GeoAabb3(P(5, 5, 5), P(12, 12, 12)).ToObb().ToSolid();
+
+            AssertHolds(CrackedCube().WithOpenings(new[] { box }), 875, tolerance);
+        }
+
+        [Fact]
+        public void ACubeNoneOfThreeTiltedPlanesMeetingAtACornerWillCut_LosesTheCorner()
+        {
+            // The cracked cube, a corner that is no box's standing in it: 6x + z = 40, 4y + z = 20 and x + 6z = 30 meet at
+            // (6, 4, 4), each crosses a crack at a slant, and none cuts the cube. The opening is the box they make, sheared,
+            // on the side of the first away from the origin and of the others towards it, its far faces clear of the cube.
+            // Judged whole by one point, the cube held 1 000; the corner the planes cut off it holds 1 630 / 27, worked out
+            // from them, and the cube holds the rest.
+            Tolerance tolerance = Tolerance.Default;
+            var edges = new[] { new GeoVector3(12, 0.5, -2), new GeoVector3(0, -6, 0), new GeoVector3(1, 1.5, -6) };
+            var corners = new List<GeoPoint3>();
+
+            for (int i = 0; i < 8; i++)
+            {
+                GeoPoint3 corner = P(6, 4, 4);
+
+                for (int k = 0; k < 3; k++)
+                {
+                    if ((i & (1 << k)) != 0)
+                    {
+                        corner = corner.Add(edges[k]);
+                    }
+                }
+
+                corners.Add(corner);
+            }
+
+            Assert.True(ConvexHull3.TryOf(corners, out GeoSolid3 sheared, tolerance));
+            AssertHolds(CrackedCube().WithOpenings(new[] { sheared }), 1000 - 1630.0 / 27, tolerance);
+        }
+
+        [Fact]
         public void AHalfTheBoxRunsInto_KeepsTheMaterialBesideTheBox()
         {
             // A hull of 14 points, far from the origin, cut by a plane 0.0016 inside a face and tilted 1.5E-6 off it; an

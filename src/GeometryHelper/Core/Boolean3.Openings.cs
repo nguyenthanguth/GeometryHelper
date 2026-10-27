@@ -376,6 +376,14 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// The most planes of one opening running through a piece uncut whose eighths are read, the first to come: the threes
+        /// of them grow as the cube of their number, and an opening crossing a piece with many more planes than a box has is a
+        /// round cut into facets, a cone, a countersink or a ball, not the corner of a box the eighths are read for: the 128
+        /// facets of a cone make 341 376 threes, every one meeting at its tip.
+        /// </summary>
+        private const int MostPlanesForEighths = 16;
+
+        /// <summary>
         /// Whether a piece of the body, a plane of an opening running through it uncut, lies part in that opening and part
         /// out of it, which judged whole by one point puts the one part on the side of the other.
         /// </summary>
@@ -391,17 +399,22 @@ namespace GeometryHelper.Core
         /// said to be cut out. A piece is read so where the middle of its part on one side of the plane is in the opening and
         /// of the other out of it, and, where two planes of one opening run through it uncut, the middle of one of the four
         /// parts they make is in it and of another out: a cube 10 across under the corner of a box 4 by 4 lying along an
-        /// edge of it, both planes uncut, holds 40 of the box, and each plane alone leaves both its parts out of the box. A
-        /// piece the plane runs through clear of the opening, or only grazes or takes a sliver off (see
-        /// <see cref="Straddles"/>), is judged as before.
+        /// edge of it, both planes uncut, holds 40 of the box, and each plane alone leaves both its parts out of the box. Where
+        /// three that meet at a point run through it uncut, the eight parts they make are read so too: a cube 10 across with
+        /// the corner of a box 7 across standing in it, x, y and z = 5 uncut, holds 125 of the box, and each plane alone or
+        /// any two leave the middles of all their parts out of it; the threes are read of the first planes of an opening only
+        /// (see <see cref="MostPlanesForEighths"/>). A piece the plane runs through clear of the opening, or only grazes or
+        /// takes a sliver off (see <see cref="Straddles"/>), is judged as before.
         /// </remarks>
         internal static bool JudgedWhole(List<GeoSolid3> pieces, List<(GeoPlane3 Plane, GeoSolid3 Opening)> uncut, Tolerance tolerance)
         {
             var crossing = new List<(GeoPlane3 Plane, GeoSolid3 Opening)>();
+            var corners = new List<(GeoPlane3 Plane, GeoSolid3 Opening)>();
 
             foreach (GeoSolid3 piece in pieces)
             {
                 crossing.Clear();
+                corners.Clear();
 
                 foreach ((GeoPlane3 plane, GeoSolid3 opening) in uncut)
                 {
@@ -422,6 +435,41 @@ namespace GeometryHelper.Core
                         {
                             return true;
                         }
+                    }
+
+                    // The eighths of the first planes of an opening only, each once, though a plane comes once for every
+                    // cell it would not cut; see MostPlanesForEighths.
+                    int earlier = 0;
+                    bool again = false;
+
+                    foreach ((GeoPlane3 other, GeoSolid3 of) in corners)
+                    {
+                        if (ReferenceEquals(of, opening))
+                        {
+                            earlier++;
+                            again |= other.Equals(plane);
+                        }
+                    }
+
+                    if (!again && earlier < MostPlanesForEighths)
+                    {
+                        for (int i = 0; i < corners.Count; i++)
+                        {
+                            if (!ReferenceEquals(corners[i].Opening, opening))
+                            {
+                                continue;
+                            }
+
+                            for (int j = i + 1; j < corners.Count; j++)
+                            {
+                                if (ReferenceEquals(corners[j].Opening, opening) && EighthsPart(piece, corners[i].Plane, corners[j].Plane, plane, opening, tolerance))
+                                {
+                                    return true;
+                                }
+                            }
+                        }
+
+                        corners.Add((plane, opening));
                     }
 
                     crossing.Add((plane, opening));
@@ -473,6 +521,73 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Whether, of the eight parts three planes meeting at a point make of a body, one holding more than the tolerance
+        /// times the body's area has its middle in an opening and another its middle out of it.
+        /// </summary>
+        /// <remarks>
+        /// The parts are read as cones from the point the planes meet at, so that none of the sections closing a part adds to
+        /// it. Planes two of which are parallel, or which meet along a line, meet at no one point, and are left to the quarters
+        /// of each two. Nor are planes read that meet out of the opening's box, grown by the tolerance: what they leave is a
+        /// corner the opening does not have.
+        /// </remarks>
+        private static bool EighthsPart(GeoSolid3 body, GeoPlane3 first, GeoPlane3 second, GeoPlane3 third, GeoSolid3 opening, Tolerance tolerance)
+        {
+            GeoVector3 normal = first.Normal;
+            GeoVector3 secondNormal = second.Normal;
+            GeoVector3 thirdNormal = third.Normal;
+            double corner = normal.DotProduct(secondNormal.CrossProduct(thirdNormal));
+
+            if (corner * corner <= 1E-12)
+            {
+                return false;
+            }
+
+            // The point on all three, from a point on the first: nought along its normal, and along each other normal the
+            // height of that plane.
+            GeoPoint3 origin = first.Origin;
+            double secondHeight = secondNormal.DotProduct(origin.GetVectorTo(second.Origin));
+            double thirdHeight = thirdNormal.DotProduct(origin.GetVectorTo(third.Origin));
+            GeoPoint3 apex = origin.Add(thirdNormal.CrossProduct(normal).Multiply(secondHeight / corner)
+                .Add(normal.CrossProduct(secondNormal).Multiply(thirdHeight / corner)));
+
+            if (!opening.GetAabb().Contains(apex, tolerance))
+            {
+                return false;
+            }
+
+            double least = tolerance.EqualPoint * body.GrossSurfaceArea;
+            bool someIn = false;
+            bool someOut = false;
+
+            foreach (double firstSide in new[] { 1.0, -1.0 })
+            {
+                foreach (double secondSide in new[] { 1.0, -1.0 })
+                {
+                    foreach (double thirdSide in new[] { 1.0, -1.0 })
+                    {
+                        double volume = Part(body, apex, origin, normal, firstSide, secondNormal, secondSide, thirdNormal, thirdSide, out GeoVector3 moment);
+
+                        if (Math.Abs(volume) <= least)
+                        {
+                            continue;
+                        }
+
+                        if (IsIn(opening, origin.Add(moment.Multiply(1.0 / volume)), tolerance))
+                        {
+                            someIn = true;
+                        }
+                        else
+                        {
+                            someOut = true;
+                        }
+                    }
+                }
+            }
+
+            return someIn && someOut;
+        }
+
+        /// <summary>
         /// Gets the volume of the part of a body on one side of each of two planes, and its centroid.
         /// </summary>
         /// <remarks>
@@ -492,7 +607,7 @@ namespace GeometryHelper.Core
             if (meeting > 1E-12)
             {
                 GeoPoint3 apex = origin.Add(along.CrossProduct(normal).Multiply(second.Normal.DotProduct(origin.GetVectorTo(second.Origin)) / meeting));
-                volume = Part(body, apex, origin, normal, firstSide, second.Normal, secondSide, out moment);
+                volume = Part(body, apex, origin, normal, firstSide, second.Normal, secondSide, default, 0.0, out moment);
             }
             else
             {
@@ -532,7 +647,7 @@ namespace GeometryHelper.Core
 
                 if (!double.IsInfinity(lowest))
                 {
-                    volume += Part(body, origin.Add(normal.Multiply(lowest)), origin, normal, 1.0, none, 0.0, out GeoVector3 beyond);
+                    volume += Part(body, origin.Add(normal.Multiply(lowest)), origin, normal, 1.0, none, 0.0, none, 0.0, out GeoVector3 beyond);
                     moment = moment.Add(beyond);
                 }
 
@@ -540,7 +655,7 @@ namespace GeometryHelper.Core
                 {
                     // Under the highest where nothing is under the lowest; otherwise the part over it taken away.
                     double side = double.IsInfinity(lowest) ? -1.0 : 1.0;
-                    double part = Part(body, origin.Add(normal.Multiply(highest)), origin, normal, side, none, 0.0, out GeoVector3 over);
+                    double part = Part(body, origin.Add(normal.Multiply(highest)), origin, normal, side, none, 0.0, none, 0.0, out GeoVector3 over);
                     volume += side < 0.0 ? part : -part;
                     moment = side < 0.0 ? moment.Add(over) : moment.Subtract(over);
                 }
@@ -594,8 +709,8 @@ namespace GeometryHelper.Core
             // Each part is the faces clipped to its side, read as cones from a point in the plane: the section closing each
             // part lies in the plane and adds nothing, so neither needs it.
             var none = new GeoVector3(0.0, 0.0, 0.0);
-            double above = Part(body, apex, apex, normal, 1.0, none, 0.0, out GeoVector3 aboveMoment);
-            double below = Part(body, apex, apex, normal, -1.0, none, 0.0, out GeoVector3 belowMoment);
+            double above = Part(body, apex, apex, normal, 1.0, none, 0.0, none, 0.0, out GeoVector3 aboveMoment);
+            double below = Part(body, apex, apex, normal, -1.0, none, 0.0, none, 0.0, out GeoVector3 belowMoment);
 
             aboveMiddle = above != 0.0 ? apex.Add(aboveMoment.Multiply(1.0 / above)) : apex;
             belowMiddle = below != 0.0 ? apex.Add(belowMoment.Multiply(1.0 / below)) : apex;
@@ -605,8 +720,8 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Gets the signed volume of the part of a body on one side of a plane, and of a second where one is given, read as
-        /// cones from a point on every plane given, and its moment about a point.
+        /// Gets the signed volume of the part of a body on one side of a plane, and of a second and a third where they are
+        /// given, read as cones from a point on every plane given, and its moment about a point.
         /// </summary>
         /// <param name="body">The body.</param>
         /// <param name="apex">A point on each plane, the tip of the cones.</param>
@@ -615,8 +730,10 @@ namespace GeometryHelper.Core
         /// <param name="side">1 for the side the normal points to, -1 for the other.</param>
         /// <param name="second">The normal of the second plane; ignored where its side is nought.</param>
         /// <param name="secondSide">1 or -1 for a side of the second plane; nought for no second plane.</param>
+        /// <param name="third">The normal of the third plane; ignored where its side is nought.</param>
+        /// <param name="thirdSide">1 or -1 for a side of the third plane; nought for no third plane.</param>
         /// <param name="moment">The integral of the place less the reference point over the part.</param>
-        private static double Part(GeoSolid3 body, GeoPoint3 apex, GeoPoint3 reference, GeoVector3 normal, double side, GeoVector3 second, double secondSide, out GeoVector3 moment)
+        private static double Part(GeoSolid3 body, GeoPoint3 apex, GeoPoint3 reference, GeoVector3 normal, double side, GeoVector3 second, double secondSide, GeoVector3 third, double thirdSide, out GeoVector3 moment)
         {
             GeoVector3 offset = reference.GetVectorTo(apex).Multiply(4.0);
             double volume = 0.0;
@@ -624,12 +741,12 @@ namespace GeometryHelper.Core
 
             foreach (GeoFace3 face in body.Faces)
             {
-                volume += ConeOfClipped(face.Boundary.Vertices, apex, offset, normal, side, second, secondSide, ref moment, 1.0);
+                volume += ConeOfClipped(face.Boundary.Vertices, apex, offset, normal, side, second, secondSide, third, thirdSide, ref moment, 1.0);
 
                 // A hole is wound the way its boundary is, so its cone is taken away.
                 foreach (GeoPolygon3 hole in face.Holes)
                 {
-                    volume += ConeOfClipped(hole.Vertices, apex, offset, normal, side, second, secondSide, ref moment, -1.0);
+                    volume += ConeOfClipped(hole.Vertices, apex, offset, normal, side, second, secondSide, third, thirdSide, ref moment, -1.0);
                 }
             }
 
@@ -640,7 +757,7 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Gets six times the signed volume of the cone from a point to the part of a flat ring on one side of a plane through
-        /// that point, and of a second where one is given, and adds to a moment that of the cone, times 24.
+        /// that point, and of a second and a third where they are given, and adds to a moment that of the cone, times 24.
         /// </summary>
         /// <param name="ring">The corners of the ring.</param>
         /// <param name="apex">A point in each plane, the tip of the cone.</param>
@@ -649,9 +766,11 @@ namespace GeometryHelper.Core
         /// <param name="side">1 for the side the normal points to, -1 for the other.</param>
         /// <param name="second">The normal of the second plane.</param>
         /// <param name="secondSide">1 or -1 for a side of the second plane; nought for none.</param>
+        /// <param name="third">The normal of the third plane.</param>
+        /// <param name="thirdSide">1 or -1 for a side of the third plane; nought for none.</param>
         /// <param name="moment">The moment, added to.</param>
         /// <param name="sign">1 to add the cone, -1 to take it away.</param>
-        private static double ConeOfClipped(IReadOnlyList<GeoPoint3> ring, GeoPoint3 apex, GeoVector3 offset, GeoVector3 normal, double side, GeoVector3 second, double secondSide, ref GeoVector3 moment, double sign)
+        private static double ConeOfClipped(IReadOnlyList<GeoPoint3> ring, GeoPoint3 apex, GeoVector3 offset, GeoVector3 normal, double side, GeoVector3 second, double secondSide, GeoVector3 third, double thirdSide, ref GeoVector3 moment, double sign)
         {
             var corners = new List<GeoVector3>(ring.Count);
 
@@ -665,6 +784,11 @@ namespace GeometryHelper.Core
             if (secondSide != 0.0)
             {
                 kept = ClipTo(kept, second, secondSide);
+            }
+
+            if (thirdSide != 0.0)
+            {
+                kept = ClipTo(kept, third, thirdSide);
             }
 
             double volume = 0.0;
