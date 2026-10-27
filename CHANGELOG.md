@@ -2172,6 +2172,41 @@ box of a cylinder of 64 sides 89.2 where it took 80.5, on .NET 10 compiled in fu
 compiling in tiers the U took 14 to 26 where it took 11 to 16. A ray piercing or starting on a body takes up to 7 %
 longer, and a ray missing the flat shapes and the collisions as long, within 0.03 microseconds. 24 new tests.
 
+**FIXED.** A body far from the origin holds a point as one at the origin does. Whether a point is in a body was asked to
+within a billionth, and 5E7 out a billionth is less than the rounding of the coordinates: the crossings of the rays counted
+from the point stood 1.9E-9 off the planes of the faces they crossed, were refused, and the count came out wrong. The ray
+from 0.0516 inside the gap of a U 100 by 100 turned about in space 5E7 out collided with it at a tolerance of five
+hundredths; rays along a cylinder of radius 30 turned from a rectangle there, 0.05 off 5 of its 18 side facets, collided
+with it at a tolerance of a hundredth; and points 10 inside it under 9 of those facets were 10 from it. None collides now,
+and the points are nought from it. Further out than a million a point is held to 1E-15 of the largest coordinate of the
+body and the point, a few times the most the rounding leaves there (3E-16 of it, over some 160 000 points up to 1E9
+out); nearer, to a billionth as before, and so is a point at infinity or not a number. The list of where a ray meets a
+body reads the body's box as far as the body holds a point, where it read a billionth past it: 5E7 out at a tolerance of
+nought, the ray from 2.2E-8 over the top of a box 100 by 80 by 50, pointing away, collides with it and is given a point.
+The collision of a ray asks the body of its origin wherever the origin stands, where it asked only within a millionth of
+the body's box: 2E9 out the ray from 1.4E-6 over the top of the box, pointing away, collides with it as it is nought from
+it, and the one from three times as far as the body holds a point does not. The reading is behind `CollidesWith` of a
+body with a ray, a line, a segment, a chain, a triangle, a polygon, a face, a ball, an arc, a circle, a curved edge
+(`GeoEdge3`) and a chain or loop of arcs (`GeoPolylineArc3`, `GeoPolygonArc3`); `GetIntersections` and
+`TryIntersectWith` of a ray with a body; `DistanceTo` between a body and a point, a line, a segment, a ray, a chain, a
+triangle, a polygon, a face and a ball; a spline against a body; and `GetShortestLineTo` from a ball to a body. `Locate`
+and `Contains` of a body, which read the tolerance given, are as they were. Of 600 000 rays drawn
+against boxes, U bodies, cylinders, cones and rings, turned about in space or square to the axes, placed up to 1E9 out, at
+tolerances of nought, a thousandth and a hundredth, missing by half, one, one and a half, three and a hundred times the
+tolerance (a thousandth at nought), hitting, or starting inside, 10 124 of the 239 525 placed 1E7 to 1E9 out collided
+where they missed, 35 197 origins were not nought from a body they were in or were nought from one they were outside, and
+30 086 segments a thousandth long from them collided or missed wrongly; none does now. Of the collisions 11 083 changed,
+10 124 to the right answer and 959 of rays missing by exactly the tolerance, none to a wrong one. Of the 360 475 placed a
+million out or nearer every answer is the same to the bit: the collision, the points given, the distances of the ray, of
+a segment 300 long and of its origin, and where the body holds the origin. Of 25 000 rays and segments drawn about
+prisms of an L, a star, a box with openings through it and plates with holes, placed up to 4E9 out, 4 083 points of the
+17 400 placed 1E7 to 4E9 out were not nought from a body they were in or were nought from one they were outside, and the
+collision of 61 rays disagreed with their distance; none does now, and of the 7 600 placed a million out or nearer every answer is the same to the bit. A point near the origin is
+held as fast as before; far out it is held as fast as near the origin, where it was held faster and wrongly (the ray out
+of the gap of the U 5E7 out 4.02 microseconds on .NET Framework 4.8 where it took 2.97, as at the origin 4.03). A ray
+far from a body's box, which is no longer passed by the box before the body is asked of its origin, takes 0.02 to 0.05
+microseconds longer: 0.37 where it took 0.32 on .NET Framework 4.8 for a U 200 over its box. 13 new tests.
+
 ## 12.3.0
 
 **NEW.** `DxfReader` reads a DXF file into the library's shapes: `Read(path)`, `Read(stream)` and `Parse(text)`, each with

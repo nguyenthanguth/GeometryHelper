@@ -26,7 +26,8 @@ namespace GeometryHelper.Core
         /// arrives twice and is reported once. A ray starting inside the body has an odd number of
         /// crossings, and one starting outside an even number, give or take a face it merely grazes.
         /// The list is held to <see cref="Collision3.CollidesWith(GeoRay3, GeoSolid3, Tolerance)"/>, which reads the ray by the
-        /// point tolerance and the body to a billionth: a ray starting within the planar tolerance of a face meets it at its
+        /// point tolerance and the body to a billionth (further out than a million, to 1E-15 of the largest coordinate): a ray
+        /// starting within the planar tolerance of a face meets it at its
         /// origin only where the origin stands within the point tolerance of the surface, whatever it meets further on, and one
         /// that collides and crosses no face is given its point nearest the surface, where that stands within the point tolerance
         /// of it, to the rounding of numbers the size of the body's, or the body holds the origin. With a point tolerance of a
@@ -77,9 +78,9 @@ namespace GeometryHelper.Core
                 }
 
                 // The nearest point is given where it stands within the point tolerance of the surface, or twice a billionth, the
-                // most the reading to a billionth holds at the edge of two faces, and the rounding of numbers the size of the body's,
-                // or where the body holds the origin as Locate reads it: the reading to a billionth behind CollidesWith can take a
-                // point outside a body far out for one inside, and then the ray meets nothing to name.
+                // most the reading behind CollidesWith holds at the edge of two faces near the origin, and the rounding of numbers
+                // the size of the body's, ten times the 1E-15 of them that reading holds further out than a million; or where the
+                // body holds the origin as Locate reads it at the tolerance given.
                 GeoPoint3 nearest = NearestOnRay(solid, ray, out double gap);
                 GeoAabb3 box = solid.GetAabb();
                 double size = Math.Max(Math.Max(Math.Abs(box.Min.X), Math.Abs(box.Max.X)), Math.Max(
@@ -107,15 +108,20 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Determines whether a ray comes within the reach of the point tolerance, or a billionth, of the box of a body, as far as
-        /// the farthest corner of the box: further, it neither touches the body nor starts in it.
+        /// Determines whether a ray comes within the reach of the point tolerance, and as far again as the body holds a point
+        /// outside it (a billionth, or further out than a million 1E-15 of the largest coordinate), of the box of a body, as far
+        /// as the farthest corner of the box: further, it neither touches the body nor starts in it.
         /// </summary>
+        /// <remarks>
+        /// A fixed billionth gave nothing 5E7 out at a tolerance of nought for the ray from 2.2E-8 over the top of a box, pointing
+        /// away, which the body holds and so collides with.
+        /// </remarks>
         private static bool NearBox(GeoRay3 ray, GeoSolid3 material, Tolerance tolerance)
         {
             GeoAabb3 box = material.GetAabb();
             double reach = ray.Origin.DistanceTo(box.Center) + 0.5 * box.Min.DistanceTo(box.Max);
 
-            return !(Gap3.BoxGap(ray.Origin, ray.GetPointAtDistance(reach), box) > Collision3.Reach(tolerance) + 1E-9);
+            return !(Gap3.BoxGap(ray.Origin, ray.GetPointAtDistance(reach), box) > Collision3.Reach(tolerance) + Gap3.Fine(material, ray.Origin));
         }
 
         /// <summary>

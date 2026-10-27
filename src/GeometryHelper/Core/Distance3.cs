@@ -288,7 +288,8 @@ namespace GeometryHelper.Core
         /// measured exactly: a point 0.0005 outside the box 100 by 100 by 50, in the plane of its top, is 0.0005 from it.
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
-        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
+        /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
         public static double DistanceTo(GeoSolid3 solid, GeoPoint3 point, Tolerance tolerance)
         {
@@ -461,7 +462,8 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
-        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
+        /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
         public static double DistanceTo(GeoLine3 line, GeoSolid3 solid, Tolerance tolerance)
         {
@@ -501,7 +503,8 @@ namespace GeometryHelper.Core
         /// cuts, which are at no distance from it.
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
-        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
+        /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
         public static double DistanceTo(GeoSolid3 solid, GeoTriangle3 triangle, Tolerance tolerance)
         {
@@ -536,7 +539,8 @@ namespace GeometryHelper.Core
         /// not convex is handled like any other.
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
-        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
+        /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
         public static double DistanceTo(GeoSolid3 solid, GeoPolygon3 polygon, Tolerance tolerance)
         {
@@ -582,7 +586,8 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
-        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
+        /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
         public static double DistanceTo(GeoSolid3 solid, GeoPolyline3 polyline, Tolerance tolerance)
         {

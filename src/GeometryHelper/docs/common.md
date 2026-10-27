@@ -54,9 +54,9 @@ it has collapsed to, touching as its distance says. Seven things are read otherw
 and [space](solid.md#how-near-is-touching-in-space) gives each with its numbers: `DistanceTo` between two bodies, or an oriented box and an oriented or axis-aligned box, reads
 nought within `EqualPoint` (only `GeoAabb3` against `GeoAabb3` is exact); a plane reads a ray, a chain, a region, a box or a
 body within `EqualPoint` of it as on it, so the plane z = 0 is nought from a square 0.0004 above it; a shape a billionth of a
-millimetre outside a body reads as in it; a segment you give, no longer than `EqualPoint`, is read as its start; a circle
-collides as its rim and a loop of arcs as its outline; `GetShortestLineTo` and `GetIntersections` keep their readings; and
-two partial arcs lying nearly on one axis are searched and not proved.
+millimetre outside a body (further out than a million, 1E-15 of the largest coordinate) reads as in it; a segment you
+give, no longer than `EqualPoint`, is read as its start; a circle collides as its rim and a loop of arcs as its outline;
+`GetShortestLineTo` and `GetIntersections` keep their readings; and two partial arcs lying nearly on one axis are searched and not proved.
 Pass a coarser tolerance only to the call that needs it. Within one, what touches within it is taken for touching:
 net volumes to match the ones Tekla Structures reports come from booleans within 0.05. Geometry in metres wants
 the point and planar thresholds a thousand times smaller, set once for the program:

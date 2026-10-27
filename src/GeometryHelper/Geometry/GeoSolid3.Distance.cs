@@ -21,7 +21,8 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
-        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
+        /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
         public double DistanceTo(GeoPoint3 point) => Distance3.DistanceTo(this, point);
 
@@ -52,7 +53,8 @@ namespace GeometryHelper.Geometry
         /// A point inside the body is at distance zero.
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
-        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
+        /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
         public double DistanceTo(GeoPoint3 point, Tolerance tolerance) => Distance3.DistanceTo(this, point, tolerance);
 
@@ -68,7 +70,8 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
-        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
+        /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
         public double DistanceTo(GeoLine3 line) => Distance3.DistanceTo(line, this);
 
@@ -85,7 +88,8 @@ namespace GeometryHelper.Geometry
         /// A segment reaching into the body is at distance zero.
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
-        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
+        /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
         public double DistanceTo(GeoLine3 line, Tolerance tolerance) => Distance3.DistanceTo(line, this, tolerance);
 
@@ -115,7 +119,8 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
-        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
+        /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
         public double DistanceTo(GeoTriangle3 triangle) => Distance3.DistanceTo(this, triangle);
 
@@ -129,7 +134,8 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
-        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
+        /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
         public double DistanceTo(GeoTriangle3 triangle, Tolerance tolerance) => Distance3.DistanceTo(this, triangle, tolerance);
 
@@ -143,7 +149,8 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
-        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
+        /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
         public double DistanceTo(GeoPolygon3 polygon) => Distance3.DistanceTo(this, polygon);
 
@@ -157,7 +164,8 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
-        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
+        /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
         public double DistanceTo(GeoPolygon3 polygon, Tolerance tolerance) => Distance3.DistanceTo(this, polygon, tolerance);
 
@@ -171,7 +179,8 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
-        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
+        /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
         public double DistanceTo(GeoPolyline3 polyline) => Distance3.DistanceTo(this, polyline);
 
@@ -185,7 +194,8 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
-        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
+        /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
         public double DistanceTo(GeoPolyline3 polyline, Tolerance tolerance) => Distance3.DistanceTo(this, polyline, tolerance);
 
@@ -244,7 +254,8 @@ namespace GeometryHelper.Geometry
         /// A ray starting inside the body, or running into it, is at distance zero.
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
-        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
+        /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
         public double DistanceTo(GeoRay3 ray) => Distance3.DistanceTo(ray, this);
 
@@ -258,7 +269,8 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
-        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
+        /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
         public double DistanceTo(GeoRay3 ray, Tolerance tolerance) => Distance3.DistanceTo(ray, this, tolerance);
 
@@ -276,7 +288,8 @@ namespace GeometryHelper.Geometry
         /// 150 in its middle and is 25 from its rim; the same square without its hole cuts the box and is nought from it.
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
-        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
+        /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public double DistanceTo(GeoFace3 face) => Distance3.DistanceTo(this, face);
@@ -295,7 +308,8 @@ namespace GeometryHelper.Geometry
         /// 150 in its middle and is 25 from its rim; the same square without its hole cuts the box and is nought from it.
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
-        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
+        /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public double DistanceTo(GeoFace3 face, Tolerance tolerance) => Distance3.DistanceTo(this, face, tolerance);

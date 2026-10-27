@@ -520,7 +520,8 @@ namespace GeometryHelper.Core
         /// same square without its hole cuts the box and is nought away.
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
-        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
+        /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the solid or the face is null.</exception>
         public static double DistanceTo(GeoSolid3 solid, GeoFace3 face, Tolerance tolerance)

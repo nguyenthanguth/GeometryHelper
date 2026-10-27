@@ -427,7 +427,8 @@ slab.DistanceTo(leaving);                // 200.0 — its nearest point is its o
 ```
 
 A ray is given a place where it meets a body exactly where `CollidesWith` says the two touch, which reads the ray by the
-point tolerance and the body to a billionth. One starting within the planar tolerance of a face and rising from it
+point tolerance and the body to a billionth, or further out than a million to 1E-15 of its largest coordinate. One
+starting within the planar tolerance of a face and rising from it
 touches the face at its origin only where the origin stands within the point tolerance of the surface, whatever the ray
 meets further on and however deep in the body it starts: with a point tolerance of a hundredth and a planar one of five
 hundredths, the ray from 0.04 over the top of the box 100 by 100 by 50, rising a hundredth for each unit along it, is
@@ -600,7 +601,8 @@ Seven things are read otherwise, on purpose:
 * **A billionth of a millimetre outside a body** reads as in it, so that rounding in a body turned about in space cannot lose
   a crossing: a point, a segment, a ray or a region 5E-10 above the top of a solid box is nought away, and so is a triangle,
   a polygon or a face that close to an oriented or axis-aligned box, though a point or a segment 5E-10 from the box itself is
-  5E-10 away.
+  5E-10 away. Further out than a million the billionth grows with the coordinates, to 1E-15 of the largest of the body
+  and the point, past their rounding: a point 0.052 outside a U 5E7 out is outside it.
 * **A segment you give, no longer than the point tolerance, is read as its start** where it does not truly meet the other
   shape, as it is in the plane.
 * **A circle collides as its rim and a loop of arcs as its outline**, so a circle or a loop round a shape touches nothing:

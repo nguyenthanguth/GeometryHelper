@@ -98,7 +98,8 @@ namespace GeometryHelper.Core
         /// They touch where the exact gap between the arc and the surface of the body is no more than the point tolerance,
         /// or where the body holds an end of the arc: an arc inside the body crosses its surface nowhere and is in it all
         /// the same. The same question keeps an arc inside an opening out: an opening is not material. A body is held to
-        /// within a billionth of a millimetre, so that rounding in a turned body cannot lose an arc lying on a face.
+        /// within a billionth of a millimetre, so that rounding in a turned body cannot lose an arc lying on a face, and
+        /// further out than a million to 1E-15 of the largest coordinate of the body and the point, past the rounding there.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the solid is null.</exception>
         public static bool CollidesWith(GeoArc3 arc, GeoSolid3 solid, Tolerance tolerance)

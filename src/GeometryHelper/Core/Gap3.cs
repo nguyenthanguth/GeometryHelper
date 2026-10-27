@@ -777,15 +777,39 @@ namespace GeometryHelper.Core
         /// The point is located under a tolerance of a billionth of a millimetre, not of nought: a face holds a crossing
         /// of a ray only within the planar tolerance of its plane, and a crossing that rounding leaves a trillionth off the
         /// plane, as it does in a body turned about in space, would be refused by one of nought and the count of the
-        /// crossings would come out wrong.
+        /// crossings would come out wrong. Further out than a million the rounding of the coordinates is more than a
+        /// billionth, and the tolerance is 1E-15 of the largest coordinate of the body and the point instead: a U turned
+        /// about in space 5E7 out left the crossings of a ray 1.9E-9 off the planes of its faces, refused them, and held a
+        /// point 0.052 outside it. The tolerance of the vectors stays a billionth, since a direction has no size.
         /// </remarks>
         internal static bool Holds(GeoSolid3 solid, GeoPoint3 point)
-            => Containment3.Locate(solid, point, Fine) != Enums.PointLocation.OutSide;
+        {
+            double fine = Fine(solid, point);
+
+            return Containment3.Locate(solid, point, new Tolerance(fine, 1E-9, Tolerance.DefaultEqualAngleRad, fine))
+                != Enums.PointLocation.OutSide;
+        }
 
         /// <summary>
-        /// A tolerance a billionth of a millimetre wide, which no model comes near and rounding stays well inside.
+        /// Gets how far outside a body a point is held in it by <see cref="Holds"/>: a billionth of a millimetre, which no model
+        /// comes near and rounding stays well inside, or, where the body or the point stands further out than a million, 1E-15
+        /// of the largest coordinate of the two, a few times the most the rounding needs there. Of some 160 000 points located
+        /// in and beside bodies up to 1E9 out, 1E-16 of it got 300 wrong and 3E-16 none.
         /// </summary>
-        private static Tolerance Fine => new Tolerance(1E-9, 1E-9, Tolerance.DefaultEqualAngleRad, 1E-9);
+        /// <remarks>
+        /// A coordinate that is infinite or not a number has no rounding to scale by, and the point is held to a billionth, as
+        /// it always was.
+        /// </remarks>
+        internal static double Fine(GeoSolid3 solid, GeoPoint3 point)
+        {
+            GeoAabb3 box = solid.GetAabb();
+            double size = Math.Max(
+                Math.Max(Math.Max(Math.Abs(point.X), Math.Abs(point.Y)), Math.Abs(point.Z)),
+                Math.Max(Math.Max(Math.Max(Math.Abs(box.Min.X), Math.Abs(box.Max.X)), Math.Max(Math.Abs(box.Min.Y), Math.Abs(box.Max.Y))),
+                    Math.Max(Math.Abs(box.Min.Z), Math.Abs(box.Max.Z))));
+
+            return size < double.PositiveInfinity ? Math.Max(1E-9, 1E-15 * size) : 1E-9;
+        }
 
         /// <summary>
         /// How far a corner may stand off the plane of its region and be taken for on it: a billionth of a millimetre, which

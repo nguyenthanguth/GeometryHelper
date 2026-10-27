@@ -536,7 +536,8 @@ namespace GeometryHelper.Core
         /// corner, 0.00085 off in each direction, does not.
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
-        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
+        /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
         public static bool CollidesWith(GeoLine3 line, GeoSolid3 solid, Tolerance tolerance)
         {
@@ -570,7 +571,8 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
-        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
+        /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
         public static bool CollidesWith(GeoPolyline3 polyline, GeoSolid3 solid, Tolerance tolerance)
         {
@@ -610,7 +612,8 @@ namespace GeometryHelper.Core
         /// of the opening's walls, touches nothing.
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
-        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
+        /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
         public static bool CollidesWith(GeoPolygon3 polygon, GeoSolid3 solid, Tolerance tolerance)
         {
@@ -670,7 +673,8 @@ namespace GeometryHelper.Core
         /// origin touches it whatever holes it has above.
         /// Whether a point is in the body is asked to within rounding, a billionth of a millimetre (1E-9, not nought),
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
-        /// body reads as in it, and a point 5E-10 outside a box is nought away from it.
+        /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
+        /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
         /// </remarks>
         public static bool CollidesWith(GeoFace3 face, GeoSolid3 solid, Tolerance tolerance)
         {
