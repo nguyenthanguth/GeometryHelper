@@ -24,6 +24,11 @@ namespace GeometryHelper.Dxf
         {
         }
 
+        /// <summary>Settings made in code, those of a layout made in code, given their record when it is added to a drawing.</summary>
+        private protected DxfPlotSettings()
+        {
+        }
+
         /// <summary>Gets the name of the page setup (group 1), as AutoCAD's <c>PlotSettingsName</c>; empty where it has none.</summary>
         public string PlotSettingsName => Text(Marker, 1);
 
@@ -121,10 +126,15 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// The index of the first group of a code in the part of a subclass of the record, among the groups as
         /// <see cref="DxfItem.Groups"/> counts them: after the subclass's marker and before the next marker or the extended data,
-        /// outside the groups of the applications; -1 where the part has none.
+        /// outside the groups of the applications; -1 where the part has none, or the settings are made in code and in no file.
         /// </summary>
         private protected int PartIndex(string marker, int code)
         {
+            if (Item == null)
+            {
+                return -1;
+            }
+
             IReadOnlyList<DxfTypedValue> groups = Item.File.GroupsOf(Item);
             bool braced = false;
             bool inside = false;

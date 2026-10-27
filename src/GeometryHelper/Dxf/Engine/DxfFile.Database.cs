@@ -486,14 +486,15 @@ namespace GeometryHelper.Dxf
 
             Rec head = records[0];
             bool paper = space.Kind == DxfSpaceKind.Paper;
+            bool sheet = InPaperSpace(space);
             string handle = UsesHandles() ? NewHandle() : null;
             string owner = style.Markers ? OwnerOf(space) : null;
-            var written = new List<Rec> { Written(source, head, handle, owner, paper, marking, unmarking, records.Count > 1 && records[1].Type != "SEQEND") };
+            var written = new List<Rec> { Written(source, head, handle, owner, sheet, marking, unmarking, records.Count > 1 && records[1].Type != "SEQEND") };
 
             for (int r = 1; r < records.Count; r++)
             {
                 string own = UsesHandles() ? NewHandle() : null;
-                written.Add(Written(source, records[r], own, style.Markers ? handle : null, paper, marking, unmarking, false));
+                written.Add(Written(source, records[r], own, style.Markers ? handle : null, sheet, marking, unmarking, false));
             }
 
             var piece = new Piece(written);
@@ -514,6 +515,14 @@ namespace GeometryHelper.Dxf
             Edited();
             return item;
         }
+
+        /// <summary>
+        /// Whether the entities of a space are in paper space, written with their group 67 of 1: those of paper space, and those
+        /// of the block of another layout of it, <c>*Paper_Space0</c> and on, as AutoCAD and ezdxf write them.
+        /// </summary>
+        private static bool InPaperSpace(DxfSpace space)
+            => space.Kind == DxfSpaceKind.Paper
+            || (space.Kind == DxfSpaceKind.Block && space.Block?.Name != null && space.Block.Name.StartsWith("*Paper_Space", StringComparison.OrdinalIgnoreCase));
 
         // The blocks of another drawing being copied into this one by the entity being added, each with the name it is given here.
         private Dictionary<DxfFileBlock, string> _blockCopies;

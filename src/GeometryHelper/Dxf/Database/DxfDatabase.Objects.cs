@@ -107,6 +107,38 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Gets the viewports of the layout the drawing shows, as AutoCAD's <c>GetViewports</c> gives their ids: where it shows
+        /// paper space (<see cref="TileMode"/> false), the VIEWPORTs of <see cref="PaperSpace"/> in the order of the file, the one
+        /// of <see cref="DxfViewport.Number"/> 1 that shows the sheet itself among them, as its layout's
+        /// <see cref="DxfLayout.GetViewports"/> gives them. A drawing ezdxf made, shown in paper space with a viewport 1 and one
+        /// 200 by 150 on its sheet, gives the two.
+        /// </summary>
+        /// <remarks>
+        /// Where the drawing shows model space, or the viewports of paper space are not asked for, none: the viewports AutoCAD gives
+        /// then are the records of the VPORT table that tile model space, which the library has no class for.
+        /// </remarks>
+        /// <param name="getPaperspaceVports">Whether the viewports of paper space are asked for, as AutoCAD's
+        /// <c>bGetPaperspaceVports</c>.</param>
+        /// <returns>The viewports, a new list.</returns>
+        public IReadOnlyList<DxfViewport> GetViewports(bool getPaperspaceVports)
+        {
+            var viewports = new List<DxfViewport>();
+
+            if (getPaperspaceVports && !TileMode)
+            {
+                foreach (DxfEntity entity in PaperSpace)
+                {
+                    if (entity is DxfViewport viewport)
+                    {
+                        viewports.Add(viewport);
+                    }
+                }
+            }
+
+            return viewports.AsReadOnly();
+        }
+
+        /// <summary>
         /// Gets or sets the properties of the drawing, as AutoCAD's <c>SummaryInfo</c>: those of its DWGPROPS, the XRECORD of
         /// the named object dictionary AutoCAD keeps them in, its title (group 2), subject (3), author (4), comments (6),
         /// keywords (7), who saved it last (8), its revision (9), the base of its hyperlinks (the group 1 after its dates) and its

@@ -9,11 +9,12 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Lists a class of objects in the CLASSES section, last, where the section lists none of its DXF name, as AutoCAD lists
-        /// the class of an object not built in: its DXF name (1), its C++ name (2), its application, ObjectDBX Classes (3), its
-        /// proxy flags (90), from R2004 on how many objects of it there are (91), written 0, which AutoCAD counts anew when it
-        /// saves, and that it was no proxy (280) and is no entity (281). Nothing where the file has no CLASSES section.
+        /// the class of an object not built in: its DXF name (1), its C++ name (2), its application (3), ObjectDBX Classes where
+        /// none is given, SCENEOE for a SUN, its proxy flags (90), from R2004 on how many objects of it there are (91), written 0,
+        /// which AutoCAD counts anew when it saves, and that it was no proxy (280) and is no entity (281). Nothing where the file
+        /// has no CLASSES section.
         /// </summary>
-        internal void AddClass(string dxfName, string cppName, int proxyFlags)
+        internal void AddClass(string dxfName, string cppName, int proxyFlags, string application = "ObjectDBX Classes")
         {
             if (HasClass(dxfName))
             {
@@ -39,7 +40,7 @@ namespace GeometryHelper.Dxf
             b.Group(0, "CLASS");
             b.Group(1, dxfName);
             b.Group(2, cppName);
-            b.Group(3, "ObjectDBX Classes");
+            b.Group(3, application);
             b.Group(90, proxyFlags.ToString(CultureInfo.InvariantCulture));
 
             if (Supports(1018))

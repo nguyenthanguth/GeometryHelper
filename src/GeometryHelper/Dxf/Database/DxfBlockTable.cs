@@ -659,7 +659,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Moves entities of the drawing into the block, as AutoCAD's <c>AssumeOwnershipOf</c>: each taken out of the block it is
         /// in and written at the end of this one, before its ENDBLK, or at the end of the ENTITIES section for model and paper
-        /// space, its handle kept, this block as its owner and its group 67 as the space has it; the same object stands for it.
+        /// space, its handle kept, this block as its owner and its group 67, and that of each record that follows it (a VERTEX,
+        /// an ATTRIB, its SEQEND), as the space has it; the same object stands for it.
         /// </summary>
         /// <param name="entitiesToMove">The entities, of this block's drawing; one this block holds already stays where it is.</param>
         /// <exception cref="ArgumentNullException">Thrown when the entities, or one of them, are null.</exception>
@@ -1130,7 +1131,8 @@ namespace GeometryHelper.Dxf
         /// <remarks>
         /// <para>
         /// Its handle is the next above every handle of the file and above <c>$HANDSEED</c> less one, <c>$HANDSEED</c> set above
-        /// it, and its owner the block's BLOCK_RECORD from R13 on; an entity of paper space is written with its group 67 of 1. A
+        /// it, and its owner the block's BLOCK_RECORD from R13 on; an entity of paper space, or of the block of another layout of
+        /// it (<c>*Paper_Space0</c> and on), is written with its group 67 of 1, as AutoCAD and ezdxf write it. A
         /// file whose records have no handles, as many writers leave them, gives it none. Its layer is added to the layer table
         /// where the table does not list it, and the applications of its extended data to the table of applications. The
         /// extents of the header grow to hold an entity of model or paper space.

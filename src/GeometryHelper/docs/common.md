@@ -483,7 +483,7 @@ Dxf in front and their members' names.
 | `Hatch`, `Leader`, `MLeader` | `DxfHatch`, `DxfLeader`, `DxfMLeader` | A loop is a `DxfHatchLoop` of the library's shapes; a line of `GetHatchLinesData` is a `GeoLine2`; `EvaluateLeader` is not there. |
 | `RotatedDimension`, `AlignedDimension`, `RadialDimension`, `DiametricDimension`, `LineAngularDimension2`, `Point3AngularDimension`, `ArcDimension`, `OrdinateDimension`, `RadialDimensionLarge` | the same with Dxf in front | `RecomputeDimensionBlock` is not there: the block that draws a dimension is left for AutoCAD to draw anew. |
 | `Table` | `DxfTable` | Cells read and set; its block is left for AutoCAD to draw anew (`RecomputeTableBlock` is not there); a shear or a scale unlike along its axes refused. `table.Cells[r, c]` is a `DxfCell`, `Rows` and `Columns` lists of `DxfRow` and `DxfColumn`; `SetTextStyle` takes the record, not its id. The forms by row type (`SetAlignment(align, rowTypes)` and the like) are not there. |
-| `Viewport`, `Layout`, `PlotSettings` | `DxfViewport`, `DxfLayout`, `DxfPlotSettings` | `db.Layouts` walks the layouts in the order of their tabs; plot settings are read only. |
+| `Viewport`, `Layout`, `PlotSettings` | `DxfViewport`, `DxfLayout`, `DxfPlotSettings` | `db.Layouts` walks the layouts in the order of their tabs; plot settings are read only. `new DxfLayout { LayoutName = "Plan" }` is added by `AddToLayoutDictionary(db, null)`, its block made, and `Initialize()` gives it its viewport 1. `SetSun` takes the `DxfSun` itself and gives it back. |
 | `LayerTableRecord`, `LinetypeTableRecord`, `TextStyleTableRecord`, `DimStyleTableRecord` | `DxfLayerTableRecord`, `DxfLinetypeTableRecord`, `DxfTextStyleTableRecord`, `DxfDimStyleTableRecord` | Found by name, either case: `db.LayerTable["steel"]` is the layer Steel, and added by `Add`. A layer, a dimension style and a block are renamed by `Name` with every reference to them; a layer, a linetype, a dimension style and a block are erased by `Erase()` where nothing uses them. |
 | `lt.Has("steel")`, `lt["steel"]` giving an `ObjectId` | `db.LayerTable.Has("steel")`, `db.LayerTable["steel"]` giving the record | Null where the table has none. |
 | `layer.LinetypeObjectId = ltId` | `layer.LinetypeName = "DASHED"` | Records point at records by name where AutoCAD's point by id, and at the record itself where AutoCAD's property is the record (`Dimtxsty`, `Dimblk`). |
@@ -1174,6 +1174,28 @@ reads as AutoCAD's default and is refused when set. A viewport made in code goes
 not erased, as AutoCAD keeps it; erasing another takes the overrides the layers keep for it out of their extension
 dictionaries, and a layout whose last active viewport (331) it was no longer names it.
 
+A layout is made as AutoCAD makes one, `var plan = new DxfLayout { LayoutName = "Plan 1-50" }`, then
+`plan.AddToLayoutDictionary(db, null)`: a LAYOUT in the layout dictionary on the tab after the last, with the plot
+settings of a sheet of A3 on its side and no plotter (`none_device`, `ISO_A3_(420.00_x_297.00_MM)`, margins 7.5 at the
+sides and 20 above and below, 1:1), its limits the sheet about its plotted area, (-7.5, -20) to (412.5, 277), and the block
+`*Paper_Space1`, the first of `*Paper_Space0`, `*Paper_Space1` and on the drawing has not, whose BLOCK_RECORD names the
+layout; a block of that name no layout has is taken where it is given. `plan.Initialize()` gives it the viewport 1 that
+shows its sheet, about the middle of its limits, (202.5, 128.5), 1.1 times their size, 462 by 326.7, at 1:1, as ezdxf
+makes a layout's main viewport, ahead of the viewports the layout has, those stacked on (68 of 1 or more) moved up one and
+one that is off left so, AutoCAD and BricsCAD
+taking the first VIEWPORT for the sheet; a layout that has its viewport 1 is given that one. `db.GetViewports(true)` gives the
+viewports of the layout the drawing shows where it shows paper space (`TileMode` false), and none in model space, whose
+tiled viewports are records of the VPORT table. `PlotWireframe` and `PlotAsRaster` say how a viewport is plotted, by its
+`ShadePlot`, the visual style it names (333) or is shown in (348) and its render mode (281): one shaded wireframe or shown
+in 2D is plotted as wires, one rendered or shown Realistic as a raster image, one shaded hidden as neither. A viewport of
+R2007 or later is lit by a sun, `viewport.SetSun(new DxfSun { DateTime = new DateTime(2026, 6, 21, 15, 0, 0) })`: a
+SUN owned by the viewport (361), the one it had erased where the viewport owned it, the class SUN listed where the
+drawing lists none, `viewport.Sun` read back, its `IsOn`, `SunColor`, `Intensity`, `DateTime` (the Julian day 2461213
+and 54 000 seconds past midnight), `IsDaylightSavingsOn`, `ShadowsOn`, `ShadowType`, `ShadowMapSize` and
+`ShadowMapSoftness` read and set, a new sun's ezdxf's (AutoCAD's own not confirmed). Where the sun stands in the sky is AutoCAD's to work out from the
+drawing's location, and a viewport's `ToneOperatorParameters` and `Transparent` are not there: neither the DXF reference
+nor ezdxf gives where a file keeps them.
+
 ### Editing rules
 
 **A property given the value it has writes nothing.** Every setter of an entity, a table record, the header and the
@@ -1183,7 +1205,8 @@ spline or a loop of a hatch, the run of groups it is about, and every other reco
 
 **Appending.** `AppendEntity` writes an entity made in code at the end of the ENTITIES section, or before the ENDBLK of a
 block, with a handle above every handle of the file and every handle something points at, `$HANDSEED` set above it, the
-block's BLOCK_RECORD as its owner from R13 on and group 67 in paper space. Its layer is added to the layer table where it is
+block's BLOCK_RECORD as its owner from R13 on and group 67 in paper space, the blocks of its other layouts
+(`*Paper_Space0` and on) among it. Its layer is added to the layer table where it is
 not listed, in the colour 7 with CONTINUOUS, and the applications of its extended data to the table of applications. A file
 of R12 takes no subclass markers and has no SPLINE, ELLIPSE, RAY, XLINE, LWPOLYLINE, HATCH, LEADER or MULTILEADER, nor
 lineweights, true colours, or a linetype scale or visibility of an entity's own: those are refused, by `AppendEntity` and by

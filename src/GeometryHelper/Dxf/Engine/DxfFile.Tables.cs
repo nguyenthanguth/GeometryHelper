@@ -479,6 +479,7 @@ namespace GeometryHelper.Dxf
             Editable(item);
             List<Rec> records = RecordsOf(item);
             bool paper = space.Kind == DxfSpaceKind.Paper;
+            bool sheet = InPaperSpace(space);
             string owner = Style.Markers ? OwnerOf(space) : null;
             string left = owner == null ? null : OwnerOf(item);
             string handle = item.Handle;
@@ -493,10 +494,11 @@ namespace GeometryHelper.Dxf
                     record = owned;
                 }
 
-                // A record that follows names paper space as its entity does, or not at all.
-                bool named = r == 0 || PairsOf(record).Exists(p => p.Code == 67);
+                // A record that follows is in paper space as its entity is, as an appended one is written: given its 67 there,
+                // and one it has taken out elsewhere.
+                bool named = r == 0 || sheet || PairsOf(record).Exists(p => p.Code == 67);
 
-                if (named && WithGroup(record, 67, paper ? "1" : null, r == 0, out Rec spaced))
+                if (named && WithGroup(record, 67, sheet ? "1" : null, true, out Rec spaced))
                 {
                     record = spaced;
                 }
@@ -525,7 +527,9 @@ namespace GeometryHelper.Dxf
             TakeFollowers(item, to);
             space.Append(to);
 
-            if (owner != null)
+            // Moved within its block, as a layout's viewports behind the viewport 1 put ahead of them, it keeps its place in the
+            // block's sort table.
+            if (owner != null && !string.Equals(left, owner, StringComparison.OrdinalIgnoreCase))
             {
                 Resorted(handle, left, owner);
             }

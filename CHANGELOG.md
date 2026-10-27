@@ -326,6 +326,37 @@ it draws, no longer tied to the dynamic block. ezdxf 1.4.5 read back every drawi
 R2000 and R2018, its recover and audit finding nothing to fix, and a drawing in which nothing is found to count, purge or
 erase resaves byte for byte.
 
+**NEW.** Layouts made in code, and the sun and the plotting of a viewport, as AutoCAD's `Layout`, `Viewport` and
+`Database` have them, six members the library did not have. `new DxfLayout { LayoutName = "Plan 1-50" }` is added to a
+drawing of R2000 or later by `AddToLayoutDictionary(db, null)`: a LAYOUT in the layout dictionary on the tab after the
+last, with the plot settings of a sheet of A3 on its side and no plotter (`none_device`, `ISO_A3_(420.00_x_297.00_MM)`,
+margins 7.5 and 20, 1:1) and its limits (-7.5, -20) to (412.5, 277), and the block `*Paper_Space1`, the first of
+`*Paper_Space0` and on the drawing has not, whose BLOCK_RECORD names it; a block of that name no layout has is taken
+where it is given. `Initialize()` gives a layout of paper space the viewport 1 that shows its sheet, about the middle of
+its limits and 1.1 times their size, 462 by 326.7 at 1:1, as its last active viewport, and gives a layout that has its
+viewport 1 that one; a layout that has viewports and none of id 1 is given it ahead of them, each stacked on moved up one,
+as AutoCAD and BricsCAD take the first VIEWPORT for the sheet. Adding 200 layouts with their viewports to one drawing takes
+0.14 to 0.25 s once the code is compiled, 0.35 to 0.56 s as the first work of a process (AutoCAD allows 255). `DxfDatabase.GetViewports(true)` gives the viewports of the layout shown where the drawing shows
+paper space, and none where it shows model space, whose tiled viewports are records of the VPORT table.
+`DxfViewport.PlotWireframe` and `PlotAsRaster` say how a viewport is plotted, by its shading of the plot (170), the
+visual style it names (333) or is shown in (348) and its render mode (281); one shaded hidden is neither.
+`DxfViewport.SetSun` lights a viewport of R2007 or later by a sun, the new `DxfSun`, AutoCAD's `Sun`: a SUN owned by
+the viewport (361), the one it had erased where the viewport owned it, the class SUN listed where the drawing lists
+none, read back by `Sun`; its `IsOn`, `SunColor`, `Intensity`, `DateTime` (21
+June 2026 at 15:00 written as the Julian day 2461213 and 54 000 seconds past midnight), `IsDaylightSavingsOn`,
+`ShadowsOn`, `ShadowType` (the new `DxfShadowType`), `ShadowMapSize` and `ShadowMapSoftness` read and set, and a SUN of
+a file reads as one. Left out: a viewport's `ToneOperatorParameters`, whose place in a file neither the DXF reference nor
+ezdxf gives, and `Transparent`, not among the flags of its group 90 the DXF reference lists. ezdxf 1.4.5 read the new
+layout with its viewports 1 and 2 and the sun with every value set, on drawings of R2000 and R2018, its recover and
+audit finding nothing the drawings did not have before.
+
+**FIXED.** An entity appended to the block of a layout of paper space other than the one last shown, `*Paper_Space0` and
+on, or moved into one by `AssumeOwnershipOf`, is written in paper space, its group 67 of 1, as AutoCAD and ezdxf write
+the entities of those blocks; it was written with none, as an entity of a block is, and one moved there lost its 67. An
+entity moved into paper space or such a block by `AssumeOwnershipOf` has each record that follows it in paper space too,
+the VERTEXes and SEQEND of a POLYLINE, the ATTRIBs and SEQEND of an INSERT, as an appended one has them; only its own
+record was. An entity appended to paper space, model space or any other block is written as before, byte for byte.
+
 **NEW.** The dimension variables of AutoCAD's `Database`, `Dimension` and `Leader` that the library did not have, 84 of
 them. `DxfDatabase` reads and sets the 77 `$DIM` variables of the header by their AutoCAD names (`Dimasz` is `$DIMASZ`,
 `Dimfxlen` `$DIMFXL`, `DimAssoc` `$DIMASSOC`), each read as AutoCAD's metric drawing has it where the header gives none

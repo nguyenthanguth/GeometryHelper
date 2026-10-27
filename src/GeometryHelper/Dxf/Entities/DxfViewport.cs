@@ -1196,6 +1196,29 @@ namespace GeometryHelper.Dxf
             SetGroups(new KeyValuePair<int, string>(170, ((int)type).ToString(CultureInfo.InvariantCulture)), new KeyValuePair<int, string>(333, handle));
         }
 
+        /// <summary>
+        /// Gets whether the viewport is plotted as wires, as AutoCAD's <c>PlotWireframe</c>: its <see cref="ShadePlot"/>
+        /// wireframe, or a visual style of the drawing it names (group 333) of 2D or 3D wireframe; or, plotted as displayed, so
+        /// shown: by the visual style it is shown in (348), else by its render mode (281) of 2D optimized or wireframe. A viewport
+        /// of ezdxf's, plotted as displayed and shown in 2D, is plotted as wires.
+        /// </summary>
+        /// <remarks>
+        /// A viewport plotted with the lines behind hidden, by the shading hidden, a hidden visual style, a render mode hidden or,
+        /// where it gives no group 170, as a viewport of R2000 gives none, by its flag 0x800 (<see cref="HiddenLinesRemoved"/>),
+        /// is plotted neither as wires nor as a raster image, as AutoCAD plots it in lines; every other shading, a rendered one
+        /// among them, as a raster image.
+        /// </remarks>
+        public bool PlotWireframe => PlotOutput() == PlottedAsWires;
+
+        /// <summary>
+        /// Gets whether the viewport is plotted as a raster image, as AutoCAD's <c>PlotAsRaster</c>: its <see cref="ShadePlot"/>
+        /// rendered or a preset of rendering, or a visual style of any type but 2D wireframe, wireframe and hidden (4, 5 and 6),
+        /// as Realistic or Conceptual; or, plotted as displayed, so shown, by the visual style it is shown in (348), else by its
+        /// render mode (281) of flat or Gouraud shading. Neither this nor <see cref="PlotWireframe"/> holds for a viewport
+        /// plotted with the lines behind hidden.
+        /// </summary>
+        public bool PlotAsRaster => PlotOutput() == PlottedAsRaster;
+
         /// <summary>Gets or sets whether the viewport is lit by the default light (group 292, from R2007), as AutoCAD's <c>DefaultLightingOn</c>; true where the record gives none.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the viewport is erased, or set in a file older than R2007.</exception>
         public bool DefaultLightingOn
@@ -1310,6 +1333,70 @@ namespace GeometryHelper.Dxf
             }
         }
 
+        /// <summary>
+        /// Gets the sun the viewport is lit by (group 361, from R2007), as AutoCAD's <c>SunId</c> gives its id: the SUN it names;
+        /// null where it names none, or one the file has not.
+        /// </summary>
+        public DxfSun Sun
+        {
+            get
+            {
+                DxfItem sun = Item.File.ObjectItem(GetString(361));
+                return sun == null ? null : OfObject(sun) as DxfSun;
+            }
+        }
+
+        /// <summary>
+        /// Lights the viewport by a sun, as AutoCAD's <c>SetSun</c>: the sun made in code written at the end of the OBJECTS
+        /// section, owned by the viewport, which names it (group 361), and the class SUN listed in the CLASSES section where it
+        /// is not; the sun it had erased where the viewport owned it, as AutoCAD erases the old sun, and kept where another owns
+        /// it. <c>viewport.SetSun(new DxfSun { Intensity = 1.5 })</c> gives a viewport AutoCAD's sun half as
+        /// bright again.
+        /// </summary>
+        /// <param name="sun">The sun, made in code and in no file yet.</param>
+        /// <returns>The sun, in the viewport's drawing from then on, as AutoCAD gives its id.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the sun is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the sun is in a file already.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the viewport is in no file, is erased, or is of a file older
+        /// than R2007, which has no SUN.</exception>
+        public DxfSun SetSun(DxfSun sun)
+        {
+            if (sun == null)
+            {
+                throw new ArgumentNullException(nameof(sun));
+            }
+
+            if (sun.Item != null)
+            {
+                throw new ArgumentException("A viewport is given a sun made in code and in no file yet: the " + sun + " is in one.", nameof(sun));
+            }
+
+            DxfFile file = InFile("be given a sun");
+            file.Requires(1021, "SUN", "R2007 (AC1021)");
+            DxfItem old = file.ObjectItem(GetString(361));
+            DxfItem made = file.AddObject("SUN", Handle, b =>
+            {
+                b.Group(100, "AcDbSun");
+
+                foreach (KeyValuePair<int, string> group in sun.MadeGroups)
+                {
+                    b.Group(group.Key, group.Value);
+                }
+            });
+
+            // A drawing that lists no class SUN is given it, as AutoCAD lists it: its application SCENEOE, its flags 1153.
+            file.AddClass("SUN", "AcDbSun", 1153, "SCENEOE");
+            sun.Bind(made);
+            SetString(361, made.Handle);
+
+            if (old != null && old.Type == "SUN" && string.Equals(file.OwnerOf(old), Handle, StringComparison.OrdinalIgnoreCase))
+            {
+                file.RemoveRecord(old);
+            }
+
+            return sun;
+        }
+
         #endregion
 
         /// <summary>
@@ -1420,6 +1507,91 @@ namespace GeometryHelper.Dxf
             {
                 SetString(68, NextStatus(owner).ToString(CultureInfo.InvariantCulture));
             }
+        }
+
+        /// <summary>
+        /// Makes a viewport just appended to a layout the one that shows the sheet itself, as AutoCAD's <c>Initialize</c> of a
+        /// layout makes it: its id 1, its status 1 and AutoCAD's flags of it, 557 088 (0x80000 adaptive grid, 0x8000 always
+        /// enabled, 0x20 the icon of the user coordinate system shown), as ezdxf writes them.
+        /// </summary>
+        internal void MakeSheetViewport()
+            => SetGroups(new KeyValuePair<int, string>(68, "1"), new KeyValuePair<int, string>(69, "1"), new KeyValuePair<int, string>(90, "557088"));
+
+        /// <summary>Moves a viewport stacked on (status 1 or more, group 68) up one, for a viewport 1 put first; one off or off screen stays.</summary>
+        internal void MoveUpInStack()
+        {
+            int status = GetInt(68, 0);
+
+            if (status >= 1)
+            {
+                SetString(68, (status + 1).ToString(CultureInfo.InvariantCulture));
+            }
+        }
+
+        // How a viewport is plotted, as PlotOutput says it.
+        private const int PlottedAsWires = 0;
+        private const int PlottedHidden = 1;
+        private const int PlottedAsRaster = 2;
+
+        /// <summary>
+        /// How the viewport is plotted: as wires, with the lines behind hidden, or as a raster image; by its shading of the plot
+        /// (170), and where that is as displayed, or a visual style the drawing has not, by how it is shown.
+        /// </summary>
+        private int PlotOutput()
+        {
+            switch (ShadePlot)
+            {
+                case DxfShadePlotType.Wireframe:
+                    return PlottedAsWires;
+                case DxfShadePlotType.Hidden:
+                    return PlottedHidden;
+                case DxfShadePlotType.Rendered:
+                case DxfShadePlotType.RenderPreset:
+                    return PlottedAsRaster;
+                case DxfShadePlotType.VisualStyle:
+                    int named = StyleOutput(GetString(333));
+
+                    if (named >= 0)
+                    {
+                        return named;
+                    }
+
+                    break;
+            }
+
+            // A viewport of R2000 says the lines behind are hidden in the plot by the flag 0x800 alone: it has no 170.
+            if (GetString(170) == null && Bit(0x800))
+            {
+                return PlottedHidden;
+            }
+
+            int shown = StyleOutput(GetString(348));
+
+            if (shown >= 0)
+            {
+                return shown;
+            }
+
+            // The render mode: 0 2D optimized and 1 wireframe, 2 hidden, 3 to 6 flat or Gouraud shaded, with wires or not.
+            int mode = GetInt(281, 0);
+            return mode <= 1 ? PlottedAsWires : mode == 2 ? PlottedHidden : PlottedAsRaster;
+        }
+
+        /// <summary>
+        /// How a viewport shown or plotted in a visual style is plotted, by the style's type (group 70 of its VISUALSTYLE): 4 2D
+        /// wireframe and 5 wireframe as wires, 6 hidden with the lines behind hidden, every other type as a raster image; -1 where
+        /// the drawing has no visual style of the handle, or it gives no type.
+        /// </summary>
+        private int StyleOutput(string handle)
+        {
+            DxfItem style = Item.File.ObjectItem(handle);
+
+            if (style == null || style.Type != "VISUALSTYLE" || !int.TryParse(Item.File.ValueOf(style, 70)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int type))
+            {
+                return -1;
+            }
+
+            return type == 4 || type == 5 ? PlottedAsWires : type == 6 ? PlottedHidden : PlottedAsRaster;
         }
 
         /// <summary>The standard scales of a ratio, in the order of the type.</summary>
