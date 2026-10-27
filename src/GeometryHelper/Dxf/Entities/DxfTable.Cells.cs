@@ -316,7 +316,8 @@ namespace GeometryHelper.Dxf
         /// (302) the number as the invariant culture writes it, 12.5, its unit (94) and format (300) kept: the library does not
         /// format a value, AutoCAD does when it draws the table anew. Before R2007 a cell holds a text alone, and the value is
         /// written as its text, as <see cref="SetTextString(int, int, string)"/> writes one. A pointer to a field (344) is taken
-        /// out. The block AutoCAD drew the table with is not drawn anew.
+        /// out, its field erased where the table owns it and nothing else of the file points at it. The block AutoCAD drew the table with
+        /// is not drawn anew.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="col">The column, from nought.</param>
@@ -339,8 +340,10 @@ namespace GeometryHelper.Dxf
                 }
 
                 CheckEditable();
+                string dropped = cell.Head(344);
                 cell.SetText(written.Text);
                 cell.Groups.Write(Order);
+                EraseFields(new[] { dropped });
                 return;
             }
 
@@ -350,9 +353,11 @@ namespace GeometryHelper.Dxf
             }
 
             CheckEditable();
+            string field = cell.Head(344);
             cell.WriteValue(((int)written.Kind).ToString(CultureInfo.InvariantCulture), written.Data, written.Text, null, null);
             cell.DropField();
             cell.Groups.Write(Order);
+            EraseFields(new[] { field });
         }
 
         /// <summary>Sets the value of a content of a cell, as AutoCAD's <c>SetValue(row, column, contentIndex, value)</c>: of its one content, nought, as <see cref="SetValue(int, int, object)"/>.</summary>
@@ -390,8 +395,10 @@ namespace GeometryHelper.Dxf
             }
 
             CheckEditable();
+            string field = cell.Head(344);
             cell.SetText(string.Empty);
             cell.Groups.Write(Order);
+            EraseFields(new[] { field });
         }
 
         /// <summary>
@@ -851,8 +858,10 @@ namespace GeometryHelper.Dxf
 
             cell.Groups.List[cell.From] = new KeyValuePair<int, string>(171, "1");
             var text = new CellView(cell.Groups, cell.From, cell.To - taken);
+            string field = text.Head(344);
             text.SetText(string.Empty);
             text.Groups.Write(Order);
+            EraseFields(new[] { field });
         }
 
         /// <summary>

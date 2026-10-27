@@ -63,5 +63,17 @@ namespace GeometryHelper
                 throw new ArgumentOutOfRangeException(name, value, message);
             }
         }
+
+        /// <summary>
+        /// Refuses a count above a most, worked out in 64 bits so that a product of two counts cannot wrap round past it.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the count is above the most.</exception>
+        internal static void AtMost(long value, long most, string name, string message)
+        {
+            if (value > most)
+            {
+                throw new ArgumentOutOfRangeException(name, value, message);
+            }
+        }
     }
 }

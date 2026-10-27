@@ -2299,6 +2299,8 @@ namespace GeometryHelper.Dxf
         /// <summary>The first DICTIONARY of the OBJECTS section, the named object dictionary; null where there is none.</summary>
         private Rec? RootDictionary()
         {
+            WholeReadings++;
+
             foreach (Section section in _sections)
             {
                 if (section.Name != "OBJECTS")

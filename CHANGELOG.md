@@ -357,6 +357,29 @@ entity moved into paper space or such a block by `AssumeOwnershipOf` has each re
 the VERTEXes and SEQEND of a POLYLINE, the ATTRIBs and SEQEND of an INSERT, as an appended one has them; only its own
 record was. An entity appended to paper space, model space or any other block is written as before, byte for byte.
 
+**NEW.** The structure of a `DxfTable` as AutoCAD's `Table` changes it, 30 members it did not have. `InsertRows`,
+`InsertColumns`, `InsertRowsAndInherit`, `InsertColumnsAndInherit`, `DeleteRows`, `DeleteColumns` and `SetSize` put in
+and take out rows and columns, their counts, heights and widths written with them and every cell written anew in one
+writing of the record, a block of merged cells grown or shrunk with them: the table of rows 10, 8 and 8 given two rows 6
+high before its row 2 has rows 10, 8, 6, 6 and 8, and 16 000 rows go in or out in about 0.3 s; `CanInsertRow`,
+`CanInsertColumn`, `CanDeleteRows` and `CanDeleteColumns` say whether they can. `MergeCells` and `UnmergeCells` write a
+cell's merging (173, and the block's width and height, 175 and 176, on its top left cell). The lines of the grid are the
+cells' own overrides of their edges (`GetGridColor`, `GetGridLineWeight`, `GetGridVisibility`, `GetGridProperty`,
+`GridColor`, `GridLineWeight`, `GridVisibility` and their setters, with the new `DxfGridLineType`, `DxfCellEdgeMasks`,
+`DxfGridProperties` and `DxfGridPropertyParameter`), and the table's own lines by kind of row with their flags in 94 to
+96. `SetFormula` adds a FIELD of AutoCAD's expressions (AcExpr) the cell points at, `GetFormula` and `HasFormula` read
+one; the formula is not worked out. `CopyFrom` copies cells of a table of the same drawing (`DxfTableCopyOptions`),
+`Fill` fills cells from others, copied or as a series of numbers (`DxfTableFillOptions`), each number rounded to the
+places of the source and the step, 0.1 and 0.2 filled to 0.3 and 1, 2 and 4 to 5.5, and with `Reverse` the other way, 10
+and 20 filled down to 10, 0, -10; a block of merged cells that loses its top row or first column keeps its content in
+the first cell of it left; a formula, from R2004 on, is a FIELD written as `DxfField` writes one, the class FIELD
+listed, and a field a cell lets go of is erased where the table owns it and nothing else of the file holds it, a copy of
+the table among them; and `SetFromStyle` takes the table's overrides away. The block AutoCAD drew the table with is not
+drawn anew by any of them. Left out, as no file of these versions has a group for them that the DXF reference or ezdxf
+gives: several contents in a cell, and a grid line's style, linetype and double-line spacing; dates in a series. ezdxf
+1.4.5 read every change on drawings of R2000, R2007 and R2018 with nothing for its recover and audit to fix, and gave
+the cells' texts as the library reads them.
+
 **NEW.** The dimension variables of AutoCAD's `Database`, `Dimension` and `Leader` that the library did not have, 84 of
 them. `DxfDatabase` reads and sets the 77 `$DIM` variables of the header by their AutoCAD names (`Dimasz` is `$DIMASZ`,
 `Dimfxlen` `$DIMFXL`, `DimAssoc` `$DIMASSOC`), each read as AutoCAD's metric drawing has it where the header gives none

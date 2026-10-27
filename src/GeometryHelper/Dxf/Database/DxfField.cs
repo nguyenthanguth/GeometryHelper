@@ -366,6 +366,16 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Writes a field made in code at the end of the OBJECTS section, owned by an object that points at it itself, as a table
+        /// points at the field of a cell (344), with its children, in the layout of <see cref="Made"/>; the class FIELD listed.
+        /// </summary>
+        internal static DxfItem WriteOwned(DxfFile file, string owner, DxfField made)
+        {
+            file.AddClass("FIELD", "AcDbField", 1152);
+            return WriteTree(file, Made(made, file.Supports(1021)), groups => file.AddObject("FIELD", owner, groups));
+        }
+
+        /// <summary>
         /// Writes a copy of a field of the file into a dictionary of fields under a name, with its children, as AutoCAD copies
         /// one: every group of its own part kept, its children copied after it and named by the copies' handles. The FIELD of
         /// the name, where there is one, is erased with its children first.
@@ -382,11 +392,19 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Erases the fields a field owns, at every depth, from the deepest up, as AutoCAD erases a field's children with it:
-        /// each a FIELD its groups 360 name whose owner (330) it is, each taken once.
+        /// each a FIELD its groups 360 name whose owner (330) it is, each taken once; and takes them and the field, which its
+        /// caller erases next, out of the drawing's list of fields (ACAD_FIELDLIST) where it has one. The fields are read, not
+        /// the rest of the file, so that the fields of 6 000 texts are taken out in time linear in them.
         /// </summary>
-        internal static void EraseChildren(DxfField field) => EraseChildren(field.Item.File, field.Item, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { field.Handle });
+        internal static void EraseChildren(DxfField field)
+        {
+            var erased = new List<string>();
+            EraseChildren(field.Item.File, field.Item, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { field.Handle }, erased);
+            erased.Add(field.Handle);
+            Unlist(field.Item.File, erased);
+        }
 
-        private static void EraseChildren(DxfFile file, DxfItem item, HashSet<string> reached)
+        private static void EraseChildren(DxfFile file, DxfItem item, HashSet<string> reached, List<string> erased)
         {
             foreach (DxfTypedValue group in file.ObjectGroupsOf(item))
             {
@@ -399,10 +417,213 @@ namespace GeometryHelper.Dxf
 
                 if (child != null && child.Type == "FIELD" && string.Equals(file.OwnerOf(child), item.Handle, StringComparison.OrdinalIgnoreCase) && reached.Add(child.Handle))
                 {
-                    EraseChildren(file, child, reached);
+                    EraseChildren(file, child, reached, erased);
                     file.RemoveRecord(child);
+                    erased.Add(child.Handle);
                 }
             }
+        }
+
+        /// <summary>
+        /// Erases fields a table's cells let go of with the fields they own, at every depth, from the deepest up, each taken
+        /// once: a field of them that anything else of the file points at (a cell of this or another table, as a copy of a
+        /// table holds its original's, an XRECORD, a field outside them), the fields themselves and the drawing's list of
+        /// fields (ACAD_FIELDLIST) aside, is left with the fields it owns, the file read once for them all. A field kept whose
+        /// owner goes is given another: a field outside them that names it by 360, where one does and does not stand below it,
+        /// else the owner of the field it was erased under, the table. The handles of those erased are taken out of the
+        /// drawing's list of fields where it has one.
+        /// </summary>
+        internal static void Erase(DxfFile file, IReadOnlyList<DxfItem> fields)
+        {
+            IReadOnlyList<DxfItem> roots = fields;
+            // The fields owned, each after those it owns, with the field that owns it; the roots last, where they go too.
+            var tree = new List<DxfItem>();
+            var parents = new Dictionary<DxfItem, DxfItem>();
+            var reached = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (DxfItem root in roots)
+            {
+                reached.Add(root.Handle);
+            }
+
+            foreach (DxfItem root in roots)
+            {
+                Walk(file, root, tree, parents, reached);
+                tree.Add(root);
+            }
+
+            if (tree.Count == 0)
+            {
+                return;
+            }
+
+            var aside = new List<string>();
+            aside.AddRange(reached);
+            var handles = new List<string>(tree.Count);
+
+            foreach (DxfItem item in tree)
+            {
+                handles.Add(item.Handle);
+            }
+
+            Dictionary<string, string> held = file.PointedAmong(handles, aside, new[] { "FIELDLIST" }, out Dictionary<string, string> named);
+            var erased = new List<string>();
+
+            foreach (DxfItem item in tree)
+            {
+                if (!Kept(item, held, parents))
+                {
+                    erased.Add(item.Handle);
+                    file.RemoveRecord(item);
+                }
+                else if (held.ContainsKey(item.Handle) && parents.TryGetValue(item, out DxfItem parent) && !Kept(parent, held, parents))
+                {
+                    // Kept by another while the field that owns it goes: given an owner, so that it does not go with its old
+                    // owner when the file is saved, nor stand in a circle of owners none of the drawing reaches.
+                    named.TryGetValue(item.Handle, out string holder);
+                    Reown(file, item, parent.Handle, holder != null && !Below(file, holder, item.Handle) ? holder : TopOwner(file, parent, parents));
+                }
+            }
+
+            Unlist(file, erased);
+        }
+
+        /// <summary>The fields a field owns, at every depth, each after those it owns, in the order of their 360s.</summary>
+        private static void Walk(DxfFile file, DxfItem item, List<DxfItem> tree, Dictionary<DxfItem, DxfItem> parents, HashSet<string> reached)
+        {
+            foreach (DxfTypedValue group in file.ObjectGroupsOf(item))
+            {
+                if (group.TypeCode != 360)
+                {
+                    continue;
+                }
+
+                DxfItem child = file.ObjectItem(group.Value);
+
+                if (child != null && !child.IsRemoved && child.Type == "FIELD" && string.Equals(file.OwnerOf(child), item.Handle, StringComparison.OrdinalIgnoreCase) && reached.Add(child.Handle))
+                {
+                    parents[child] = item;
+                    Walk(file, child, tree, parents, reached);
+                    tree.Add(child);
+                }
+            }
+        }
+
+        /// <summary>Whether a record stands below a field among the owners (330) of owners: the field one of them, at any height.</summary>
+        private static bool Below(DxfFile file, string handle, string field)
+        {
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            for (string at = handle; at != null && seen.Add(at); at = file.ObjectItem(at) is DxfItem item ? file.OwnerOf(item) : null)
+            {
+                if (string.Equals(at, field, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>The owner of the field at the top of those a field was erased under: the table whose cell let it go.</summary>
+        private static string TopOwner(DxfFile file, DxfItem field, Dictionary<DxfItem, DxfItem> parents)
+        {
+            DxfItem top = field;
+
+            while (parents.TryGetValue(top, out DxfItem parent))
+            {
+                top = parent;
+            }
+
+            return file.OwnerOf(top);
+        }
+
+        /// <summary>Gives a field another owner: its owner (the first 330) and its reactor of the old owner made the new one.</summary>
+        private static void Reown(DxfFile file, DxfItem item, string oldOwner, string newOwner)
+        {
+            IReadOnlyList<DxfTypedValue> groups = file.GroupsOf(item);
+            bool braced = false;
+            bool owner = false;
+
+            for (int i = 0; i < groups.Count; i++)
+            {
+                int code = groups[i].TypeCode;
+
+                if (code == 102)
+                {
+                    braced = groups[i].Value.Trim().StartsWith("{", StringComparison.Ordinal);
+                    continue;
+                }
+
+                if (code == 330 && (braced ? string.Equals(groups[i].Value.Trim(), oldOwner, StringComparison.OrdinalIgnoreCase) : !owner))
+                {
+                    owner |= !braced;
+                    file.SetValueAt(item, i, newOwner);
+                }
+            }
+        }
+
+        /// <summary>Whether a field is kept: something else holds it, or a field that owns it, at any height.</summary>
+        private static bool Kept(DxfItem item, Dictionary<string, string> held, Dictionary<DxfItem, DxfItem> parents)
+        {
+            for (DxfItem at = item; at != null; at = parents.TryGetValue(at, out DxfItem parent) ? parent : null)
+            {
+                if (held.ContainsKey(at.Handle))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Takes the handles of fields erased out of the drawing's list of fields, the FIELDLIST of the entry ACAD_FIELDLIST of
+        /// its root dictionary, where it has one: each 330 of them taken out, and the count (90) made that of the 330s left.
+        /// </summary>
+        private static void Unlist(DxfFile file, List<string> erased)
+        {
+            string root = erased.Count == 0 ? null : file.KeptRootDictionaryHandle();
+            DxfItem rootItem = root == null ? null : file.ObjectItem(root);
+
+            if (rootItem == null || !(OfObject(rootItem) is DxfDBDictionary dictionary) || !dictionary.Contains("ACAD_FIELDLIST"))
+            {
+                return;
+            }
+
+            DxfDBObject list = dictionary.GetAt("ACAD_FIELDLIST");
+
+            if (list?.Item == null || list.Item.IsRemoved || list.Item.Type != "FIELDLIST")
+            {
+                return;
+            }
+
+            var gone = new HashSet<string>(erased, StringComparer.OrdinalIgnoreCase);
+            var g = new DxfDimGroups(list.Item);
+            int taken = 0;
+
+            for (int i = g.List.Count - 1; i >= 0; i--)
+            {
+                if (g.List[i].Key == 330 && gone.Contains(g.List[i].Value.Trim()))
+                {
+                    g.RemoveAt(i);
+                    taken++;
+                }
+            }
+
+            int count = g.Find(90, g.All);
+
+            if (taken == 0)
+            {
+                return;
+            }
+
+            if (count >= 0)
+            {
+                g.List[count] = new KeyValuePair<int, string>(90, g.List.FindAll(group => group.Key == 330).Count.ToString(CultureInfo.InvariantCulture));
+            }
+
+            g.Write(new[] { 100, 90, 330 });
         }
 
         /// <summary>Erases the children of the FIELD of a name of a dictionary of fields, where it has one, before the entry is given another.</summary>

@@ -38,7 +38,9 @@ namespace GeometryHelper.Dxf
     /// values its block cells give their blocks' attributes where the block comes with it, as it does to a drawing that has no
     /// block of its name: each pointer to an attribute definition (331) names the copy of that definition, as AutoCAD's deep
     /// clone maps it. Where the drawing has a block of the name, which the cell then shows, a pointer is left out with its
-    /// value (300) and the cell's count (179) made to agree, as AutoCAD reads the pairs by that count.
+    /// value (300) and the cell's count (179) made to agree, as AutoCAD reads the pairs by that count. A copy in the table's own
+    /// drawing shares the original's fields (344): a field one lets go of is kept while the other holds it, but erasing the
+    /// original table leaves the copy's 344s naming nothing, a limit listed for later.
     /// </para>
     /// </remarks>
     public sealed partial class DxfTable : DxfEntity
@@ -747,7 +749,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Sets the text of a cell, as AutoCAD's <c>SetTextString</c>: before R2007 its groups 2 and 1 written anew, the text in
         /// pieces of 250 letters, the last in 1; from R2007 on its value written as a text (90 of 4) in 1 and 302. A pointer to a
-        /// field (344) is taken out, the text being the cell's own now. The block AutoCAD drew the table with is not drawn anew.
+        /// field (344) is taken out, the text being the cell's own now, and the field erased with its children where the table
+        /// owns it and nothing else of the file points at it, a copy of the table among them. The block AutoCAD drew the table with is not drawn anew.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="col">The column, from nought.</param>
@@ -781,8 +784,10 @@ namespace GeometryHelper.Dxf
             }
 
             CheckEditable();
+            string field = cell.Head(344);
             cell.SetText(value);
             cell.Groups.Write(Order);
+            EraseFields(new[] { field });
         }
 
         /// <summary>Sets the text of a content of a cell, as AutoCAD's <c>SetTextString(row, column, contentIndex, text)</c>: of its one content, nought, as <see cref="SetTextString(int, int, string)"/>.</summary>

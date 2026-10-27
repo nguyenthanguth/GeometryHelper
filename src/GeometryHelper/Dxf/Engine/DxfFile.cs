@@ -687,6 +687,12 @@ namespace GeometryHelper.Dxf
         /// <summary>How many times what pointed at what was erased was seen to, for the tests of the cost of reading after erasing.</summary>
         internal int Cleanings { get; private set; }
 
+        /// <summary>
+        /// How many times the records of a section were read whole, for what points at a handle or for the root dictionary,
+        /// for the tests of the cost of erasing fields.
+        /// </summary>
+        internal int WholeReadings { get; private set; }
+
         private List<DxfReader.Record> LayerRecords()
         {
             var layers = new List<DxfReader.Record>();

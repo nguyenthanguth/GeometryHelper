@@ -46,6 +46,17 @@ namespace GeometryHelper.Dxf
             }
         }
 
+        /// <summary>
+        /// Groups held apart, of no record, to be changed and put back by the caller: the groups of one cell of a table edited
+        /// on their own, so that editing every cell of a table of 16 000 rows costs one copy of its list, not one each.
+        /// </summary>
+        internal DxfDimGroups(IEnumerable<KeyValuePair<int, string>> groups)
+        {
+            List.AddRange(groups);
+            _was.AddRange(List);
+            Split = -1;
+        }
+
         /// <summary>The groups, to be changed in place.</summary>
         internal List<KeyValuePair<int, string>> List { get; } = new List<KeyValuePair<int, string>>();
 

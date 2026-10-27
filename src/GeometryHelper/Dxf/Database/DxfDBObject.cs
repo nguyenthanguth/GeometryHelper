@@ -577,12 +577,12 @@ namespace GeometryHelper.Dxf
         /// its style draws it: a dimension and a leader lose their overrides of the dimension style (the list DSTYLE of their
         /// extended data of ACAD), a <see cref="DxfDimension"/> of <c>Dimasz</c> 4.5 of its own over a style of 3.5 reading
         /// 3.5 again; a <see cref="DxfMLeader"/> takes the values of its multileader style, as its own
-        /// <see cref="DxfMLeader.SetFromStyle"/> says. An object of no style changes nothing, a table among them: what a table
-        /// holds of its own over its table style is not taken away yet.
+        /// <see cref="DxfMLeader.SetFromStyle"/> says; a <see cref="DxfTable"/> loses its own overrides and its cells', as its own
+        /// <see cref="DxfTable.SetFromStyle"/> says. An object of no style changes nothing.
         /// </summary>
-        /// <returns>Whether the object has a style it is set from, as AutoCAD answers: true for a dimension, a leader and a
-        /// multileader of a style its drawing has (for a copy in no file, the drawing it was copied from); false, and nothing
-        /// changed, for one of a style its drawing has not, or in no drawing, and for every other object.</returns>
+        /// <returns>Whether the object has a style it is set from, as AutoCAD answers: true for a table, and for a dimension, a
+        /// leader and a multileader of a style its drawing has (for a copy in no file, the drawing it was copied from); false,
+        /// and nothing changed, for one of a style its drawing has not, or in no drawing, and for every other object.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the object has overrides to take away and is erased.</exception>
         public virtual bool SetFromStyle() => false;
 

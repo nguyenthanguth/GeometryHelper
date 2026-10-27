@@ -336,6 +336,109 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Which of the handles given a record of the file points at, by a pointer as <see cref="PointedAt"/> finds one, its owner
+        /// and its reactors aside, and which a FIELD names as one of its own (360, in <paramref name="named"/>); the records of
+        /// the handles to leave aside, and those of the types to leave aside, not read.
+        /// One reading of the file for them all, so that the fields of a table of 16 000 cells are judged in one pass.
+        /// </summary>
+        /// <returns>The handles pointed at, of those given, as they were given, each with the handle of the first record of the
+        /// file that points at it (empty for one of no handle).</returns>
+        internal Dictionary<string, string> PointedAmong(IEnumerable<string> handles, IEnumerable<string> recordsAside, ICollection<string> typesAside, out Dictionary<string, string> named)
+        {
+            named = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var wanted = new Dictionary<ulong, string>();
+            var leftAside = new HashSet<ulong>();
+            var found = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (string handle in handles)
+            {
+                if (handle != null && TryHex(handle.Trim(), out ulong key) && key != 0 && !wanted.ContainsKey(key))
+                {
+                    wanted.Add(key, handle);
+                }
+            }
+
+            foreach (string handle in recordsAside)
+            {
+                if (handle != null && TryHex(handle.Trim(), out ulong key))
+                {
+                    leftAside.Add(key);
+                }
+            }
+
+            if (wanted.Count == 0)
+            {
+                return found;
+            }
+
+            WholeReadings++;
+
+            foreach (Section section in _sections)
+            {
+                if (section.Name == "HEADER")
+                {
+                    continue;
+                }
+
+                foreach (Rec record in Inside(section))
+                {
+                    if (typesAside.Contains(record.Type))
+                    {
+                        continue;
+                    }
+
+                    List<Pair> pairs = PairsOf(record);
+                    bool handled = pairs.Count > 1 && pairs[1].Code == 5;
+
+                    if (handled && TryHex(record.Bytes, pairs[1].ValueStart, pairs[1].ValueEnd, out ulong own) && leftAside.Contains(own))
+                    {
+                        continue;
+                    }
+
+                    bool braced = false;
+                    bool owner = false;
+
+                    for (int i = 1; i < pairs.Count; i++)
+                    {
+                        Pair pair = pairs[i];
+
+                        if (pair.Code == 102)
+                        {
+                            braced = Text(record, pair).Trim().StartsWith("{", StringComparison.Ordinal);
+                            continue;
+                        }
+
+                        if (braced)
+                        {
+                            continue;
+                        }
+
+                        if (pair.Code == 330 && !owner)
+                        {
+                            owner = true;
+                            continue;
+                        }
+
+                        bool pointer = (pair.Code >= 320 && pair.Code <= 369) || (pair.Code >= 390 && pair.Code <= 399) || pair.Code == 480 || pair.Code == 481 || pair.Code == 1005;
+
+                        if (pointer && TryHex(record.Bytes, pair.ValueStart, pair.ValueEnd, out ulong value) && wanted.TryGetValue(value, out string given) && !found.ContainsKey(given))
+                        {
+                            found.Add(given, handled ? Text(record, pairs[1]).Trim() : string.Empty);
+                        }
+
+                        // The first FIELD that names it as one of its own fields (360), which can own it.
+                        if (pointer && pair.Code == 360 && handled && record.Type == "FIELD" && TryHex(record.Bytes, pair.ValueStart, pair.ValueEnd, out ulong child) && wanted.TryGetValue(child, out string owned) && !named.ContainsKey(owned))
+                        {
+                            named.Add(owned, Text(record, pairs[1]).Trim());
+                        }
+                    }
+                }
+            }
+
+            return found;
+        }
+
+        /// <summary>
         /// What is read of the entities, their look and their shapes, read again from their records: after a change written into
         /// many records at once, as a layer renamed. Those of model space, paper space and every block, each block's own record
         /// among them, as far as they were read.
@@ -660,6 +763,23 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The handle of the named object dictionary, the first DICTIONARY of the OBJECTS section; null where there is none.</summary>
+        /// <summary>
+        /// The handle of the root dictionary as <see cref="RootDictionaryHandle"/> finds it, kept while its record stands, so
+        /// that a lookup through it, as the fields of 6 000 texts taken out each look for the drawing's list of fields, reads
+        /// no section: the root is the first DICTIONARY of the OBJECTS section, and the library puts new objects after it.
+        /// </summary>
+        internal string KeptRootDictionaryHandle()
+        {
+            if (_keptRoot == null || !(ObjectItem(_keptRoot) is DxfItem item) || item.IsRemoved || item.Type != "DICTIONARY")
+            {
+                _keptRoot = RootDictionaryHandle();
+            }
+
+            return _keptRoot;
+        }
+
+        private string _keptRoot;
+
         internal string RootDictionaryHandle()
         {
             Rec? root = RootDictionary();

@@ -935,8 +935,9 @@ value's flag (93 of 1) and the format of R2004 (group 4, which libredwg reads an
 checked on a drawing AutoCAD saved, and so is which group `GetStringValue()` reads the value AutoCAD kept from (302, else 1;
 the 301 after it is not read). A field made of an object's property, `%<\AcObjProp Object(%<\_ObjId 2130>%).Area>%`, names no
 object here and cannot be evaluated. A field or one it holds already given to an object is refused. The words of the text are not changed; the library does not evaluate a field, and AutoCAD writes its value into
-them when it next evaluates its fields. `RemoveField()` takes a field out with its children, and ACAD_FIELD with it once it is
-empty. `GetTextWithFieldCodes()` of a TEXT and `GetMTextWithFieldCodes()` of an MTEXT give the words with the codes of their
+them when it next evaluates its fields. `RemoveField()` takes a field out with its children, out of the drawing's
+ACAD_FIELDLIST too where it has one, and ACAD_FIELD with it once it is empty. `GetTextWithFieldCodes()` of a TEXT and
+`GetMTextWithFieldCodes()` of an MTEXT give the words with the codes of their
 fields in their places, `Drawn %<\AcVar Date \f "dd/MM/yyyy">%`, and `ConvertFieldToText()` makes the fields words, keeping
 what AutoCAD last showed. A dimension's `FieldFromMText` and `FieldToMText` copy the field of its text from and to an MTEXT of
 its own drawing, every group of it kept and a field two others name copied once, and `RemoveTextField` takes it out. A field's
@@ -1157,6 +1158,48 @@ placed at the top middle at (320, -74.06, 0). None of these draws the table's bl
 has no group for is not there: a cell's state, tooltip, cell style, margins of its own, content layout, custom data and
 merging of all, and a column's name; nor are the forms by row type (`SetAlignment(align, rowTypes)` and the like), whose
 groups after the last cell the DXF reference lists without their order.
+
+A table's structure changes as AutoCAD's does, each change written in one writing of its record, its block left for
+AutoCAD to draw anew. `InsertRows(row, height, rows)` and `InsertColumns(col, width, columns)` put in rows and columns
+of empty text cells, written in the form of the file (text in 1 before R2007, in a `301 CELL_VALUE` from R2007 on), with
+their counts (91, 92) and heights and widths (141, 142): the table of rows 10, 8 and 8 given two rows 6 high before its
+row 2 has rows 10, 8, 6, 6 and 8, and a column 25 wide put in before its column 1 grows the title merged across it to
+three columns. `InsertRowsAndInherit` and `InsertColumnsAndInherit` give the new cells the look of a row or column (the
+overrides with their flags, the turn, and from R2007 on the unit and format of the value), not its content. `DeleteRows`
+and `DeleteColumns` take them out, a block of merged cells shrunk to what is left of it and unmerged where one cell is
+left, its top left cell's content and look moved to the first cell of it left where its top row or first column goes,
+and `SetSize(numRows, numCols)` cuts or carries on the table from its bottom and right, the new rows as high as the
+last; `CanInsertRow`, `CanInsertColumn`, `CanDeleteRows` and `CanDeleteColumns` say whether they can, one row and one
+column at least kept. 16 000 rows go in or out in about 0.3 s on .NET 10, as one setter of a cell takes.
+`MergeCells(range)` marks each cell of the range merged (173 of 1) and gives its top left cell the width and height of
+the block (175, 176), a block within the range taken into it and one across its edge refused, and `UnmergeCells` takes
+back each block the range meets. The edges of a cell are its own overrides: `SetGridColor(row, column, gridLineType,
+color)`, `SetGridLineWeight`, `SetGridVisibility` and `SetGridProperty` write its top, right, bottom and left colours
+(69, 65, 66, 68), lineweights (279, 275, 276, 278) and showing (289, 285, 286, 288) with their flags, and
+`SetGridProperty(range, ...)` the lines of a block, those inside on the cells either side of each line; the cell beside
+one is left as it is. `GetGridColor`, `GetGridLineWeight`, `GetGridVisibility`, `GetGridProperty` and `GridColor(row,
+col, edge)` read a cell's own, null where it has none. `GridColor(gridlineType, rowType)` and its setter
+`SetGridColor(color, borders, rows)`, with the lineweights and showing alike, read and write the table's own lines of
+the title, the header or the data after its last cell, with their flags in 94, 95 and 96, the groups of a code in the
+order of their flags and after the table's colours of its rows. `SetFormula(row, column, 0, "=A2+B2")`, from R2004 on,
+adds a FIELD of AutoCAD's expressions (AcExpr, field code `\AcExpr (A2+B2)`) owned by the table, written as `DxfField`
+writes one with the class FIELD listed, and points the cell's 344 at it, its value left for AutoCAD to work out; a field
+a cell lets go of, by a text, a value or a formula set, by its row or column taken out or by a copy or a fill over it,
+is erased with its children where the table owns it and nothing else of the file points at it (a copy of the table,
+which holds its original's fields, an XRECORD, another field), and taken out of the drawing's ACAD_FIELDLIST; a field
+kept whose owner goes is given to a field that names it, else to the table. A copy of a table in its own drawing shares
+the original's fields: erasing the original table leaves the copy's 344s naming nothing, a limit listed for later;
+`GetFormula` and `HasFormula` read one back, or one AutoCAD wrote as a field of text holding it. `CopyFrom(source,
+options, sourceRange, targetRange)` copies cells of a table of the same drawing, content, look and merges, growing the
+table with `ExpandOrContractTable`, which never shrinks it (a copy past the last row of the header and data rows makes
+the table of 3 rows one of 5), the content alone with `SkipFormat`, the look alone with `SkipContent`; a cell's field is
+not copied, and the other options are refused. `Fill(fillRange, sourceRange, options)` fills down (or along with `Row`)
+from the source, copying it, or with `GenerateSeries` carrying its numbers on, 10 and 20 to 30 and 40, each rounded to
+the places of the source and the step, to 15 figures (0.1 and 0.2 to 0.3; 1, 2 and 4 to 5.5 and 7), and with `Reverse`
+the other way, 10 and 20 to 10, 0 and -10; a text is a number only before R2007, and dates are not carried on.
+`SetFromStyle()` takes the table's and its cells' overrides away, as `ClearTableStyleOverrides(0)` does. What a file of
+these versions has no group for is not there: several contents in one cell, and a line's style, linetype and the spacing
+of a double line.
 
 ### Layouts and viewports
 

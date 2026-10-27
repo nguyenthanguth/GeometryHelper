@@ -99,8 +99,9 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Takes out the field of a property of the object, as AutoCAD's <c>RemoveField(propertyName)</c>: its entry of the
-        /// dictionary ACAD_FIELD taken out, the field erased with its children, and the dictionary ACAD_FIELD taken out of the
-        /// extension dictionary once it is empty. The object's words are kept as they are, the field's last value among them.
+        /// dictionary ACAD_FIELD taken out, the field erased with its children, they and it taken out of the drawing's list of
+        /// fields (ACAD_FIELDLIST) where it has one, and the dictionary ACAD_FIELD taken out of the extension dictionary once it
+        /// is empty. The object's words are kept as they are, the field's last value among them.
         /// </summary>
         /// <param name="propertyName">The name of the property, letters of either case the same.</param>
         /// <returns>The field, erased; null where the object had none of the property.</returns>
