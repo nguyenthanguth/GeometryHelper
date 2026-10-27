@@ -812,7 +812,7 @@ namespace GeometryHelper.Dxf
 
         /// <summary>The spline's data made clamped over its domain, its control points in homogeneous form.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the spline has no data that make a spline.</exception>
-        private void Clamped(out int p, out List<double> u, out List<double[]> pw)
+        internal void Clamped(out int p, out List<double> u, out List<double[]> pw)
         {
             DxfNurbsData data = NurbsData;
 
@@ -839,6 +839,32 @@ namespace GeometryHelper.Dxf
             bool rational = weights.Exists(w => w != 1.0);
             bool closed = Closed && points[0].IsEqualTo(points[points.Count - 1], Tolerance.Default);
             SetNurbsData(p, rational, closed, false, points, u, rational ? weights : null);
+        }
+
+        /// <summary>
+        /// Writes clamped data in homogeneous form as the spline's, as <see cref="WriteClamped"/> writes it, closed or not as
+        /// given; a spline the record says is planar (flag 8 of group 70) and is no longer has that flag and its normal taken out,
+        /// and one it says is linear (flag 16) and is no longer, that flag.
+        /// </summary>
+        internal void TakeJoined(int p, List<double> u, List<double[]> pw, bool closed, bool planar, bool linear)
+        {
+            DxfNurbsEdit.Split(pw, out List<GeoPoint3> points, out List<double> weights);
+            bool rational = weights.Exists(w => w != 1.0);
+            SetNurbsData(p, rational, closed, false, points, u, rational ? weights : null);
+            int flags = GetInt(70, 0);
+            int kept = flags & ~(planar ? 0 : 8) & ~(linear ? 0 : 16);
+
+            if (kept != flags)
+            {
+                var groups = new List<KeyValuePair<int, string>> { new KeyValuePair<int, string>(70, kept.ToString(CultureInfo.InvariantCulture)) };
+
+                if ((kept & 8) == 0 && (flags & 8) != 0)
+                {
+                    groups.AddRange(new[] { new KeyValuePair<int, string>(210, null), new KeyValuePair<int, string>(220, null), new KeyValuePair<int, string>(230, null) });
+                }
+
+                SetGroups(groups.ToArray());
+            }
         }
 
         /// <summary>The fit points, refused where the spline has none.</summary>

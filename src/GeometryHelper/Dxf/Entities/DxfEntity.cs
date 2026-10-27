@@ -736,6 +736,97 @@ namespace GeometryHelper.Dxf
             => throw new NotSupportedException("A " + GetType().Name + " does not break into other entities: AutoCAD answers eNotApplicable.");
 
         /// <summary>
+        /// Joins another curve into the entity, as AutoCAD's <c>JoinEntity</c> does by the rules of its JOIN: the entity's record
+        /// is written anew to run over both, its look and every group the joining is not about kept, and the other is left as it
+        /// is, for the caller to erase. Ends meet within the point tolerance of <see cref="Tolerance.Default"/>, 0.001, measured
+        /// in space.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// What joins into what, as AutoCAD's JOIN says. A <see cref="DxfLine"/> takes lines along its line, overlapping or with
+        /// gaps between them, and runs from the lowest of all their ends to the highest in its own direction: the line from
+        /// (0, 0, 0) to (10, 0, 0) joined to the one from (25, 0, 0) to (15, 0, 0) runs to (25, 0, 0). A <see cref="DxfArc"/>
+        /// takes arcs of its circle, gaps and all, counter-clockwise from its start: the quarter from 0 to pi / 2 joined to the
+        /// arc from pi to 3 pi / 2 runs from 0 to 3 pi / 2, and to one that reaches back over its start, from that one's start; a
+        /// <see cref="DxfEllipse"/> takes elliptical arcs of its ellipse alike, by its parameter. An arc whose normal is the other
+        /// way is the same arc run the other way. One that would make the whole circle or ellipse is refused, as AutoCAD's JOIN
+        /// makes a CIRCLE of it, which an ARC is not. Where either end moves both are written, the start within a turn: an
+        /// ellipse whose file gives the parameters -3 and -2 joined to its arc from 2 pi - 2 to 2 pi - 1.5 runs from 2 pi - 3
+        /// to 2 pi - 1.5. The gaps follow the JOIN command; that AutoCAD's <c>JoinEntity</c> fills them too is not confirmed.
+        /// </para>
+        /// <para>
+        /// A <see cref="DxfPolyline"/> or a <see cref="DxfPolyline2d"/> takes lines, arcs and polylines of the plane of its normal
+        /// at its elevation, the whole of each arc within the tolerance of that plane, end to end at either of its ends, each
+        /// turned to run on along it: an arc as a segment of its bulge,
+        /// turned over where its normal is the other way, a polyline with its bulges and widths, a line or an arc of no width;
+        /// the polyline (0, 0), (10, 0) joined to the arc of radius 5 about (10, 5) from -pi / 2 to pi / 2 is (0, 0), (10, 0),
+        /// (10, 10) with a bulge of 1 on its second vertex. A <see cref="DxfPolyline3d"/> takes lines, 3D polylines and polylines
+        /// of the plane with no arc, in any plane; a curved one is refused, as AutoCAD's JOIN makes a spline of a 3D polyline
+        /// joined to a curve, which a POLYLINE does not become in place. A <see cref="DxfSpline"/> takes lines, arcs, elliptical
+        /// arcs, polylines and splines, each as the spline that is exactly it (<see cref="DxfCurve.Spline"/>), all raised to the
+        /// highest degree among them and joined with their knots run on one from the other, the spline's own kept; it is given
+        /// by its control points from then on.
+        /// Where the joined ends come back together the polyline or spline is closed, its last vertex the first: the polyline of
+        /// one side of a square 10 by 10 joined to lines of the other three is closed, of area 100.
+        /// </para>
+        /// <para>
+        /// A closed curve is not joined, nor is a fitted polyline or a polyline of no vertices, and a piece of no length at an end
+        /// is joined and adds nothing. A piece that would run back over the one at the end it meets, to that one's far end
+        /// through its middle, is not joined, as a line drawn twice is not: the line from (10, 0) back to (0, 0) is not joined to
+        /// the polyline (0, 0), (10, 0), which it would close into a loop of no area. A spline's flags that it is planar and
+        /// linear (8 and 16 of group 70) are taken off where it no longer is.
+        /// The vertices of a POLYLINE are written anew, each with a handle of its own, the POLYLINE and its SEQEND keeping theirs;
+        /// a LWPOLYLINE keeps the groups of its own vertices.
+        /// </para>
+        /// </remarks>
+        /// <param name="secondaryEntity">The curve to join, in this entity's drawing, another or none.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the curve is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the curve is this entity or erased, or is not joined: of a kind this
+        /// one does not take, closed, out of its plane, not along its line or of its circle, meeting neither end within the
+        /// tolerance, running back over the piece at that end, having no vertices, or making an arc whole. Nothing is written
+        /// then.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the entity is erased, or has no ends to join at: a closed
+        /// polyline or spline, a whole ellipse, a fitted polyline, a line of no length, a polyline of no vertices.</exception>
+        /// <exception cref="NotSupportedException">Thrown for a class AutoCAD's JOIN joins nothing into, as a CIRCLE or a TEXT.</exception>
+        public void JoinEntity(DxfEntity secondaryEntity)
+        {
+            if (secondaryEntity == null)
+            {
+                throw new ArgumentNullException(nameof(secondaryEntity));
+            }
+
+            DxfJoin.Join(this, new[] { secondaryEntity }, true);
+        }
+
+        /// <summary>
+        /// Joins other curves into the entity, as AutoCAD's <c>JoinEntities</c> does, by the rules <see cref="JoinEntity"/> says:
+        /// those that join, in one writing of the entity, and the others left out, each left as it is for the caller to erase.
+        /// Pieces joined end to end are chained on from the entity's end, then back from its start, each time the one of lowest
+        /// index of those that meet the end reached, so that the lines of a square given in any order close a polyline of one of
+        /// them; 10 000 lines in any order are chained in time along their count. Lines join whatever their order. Arcs and
+        /// elliptical arcs are taken in the order of their starts counter-clockwise from the entity's end, the lower index first
+        /// at one angle, each run on from the entity as it stands then, so that their order does not change what they make: the
+        /// quarter from 0 to pi / 2 given the arcs from 3 pi / 2 to 7 pi / 4 and from 7 pi / 4 round to pi / 8, in either order,
+        /// runs to 7 pi / 4 and leaves out the second, which would make it whole.
+        /// </summary>
+        /// <param name="otherEntities">The curves to join; one given twice is joined once.</param>
+        /// <returns>The indices of the curves joined, in increasing order; none where none joins, and nothing is written then.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the list is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when a curve is null, erased or this entity.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the entity is erased, or has no ends to join at, as
+        /// <see cref="JoinEntity"/> says.</exception>
+        /// <exception cref="NotSupportedException">Thrown for a class AutoCAD's JOIN joins nothing into, as a CIRCLE or a TEXT.</exception>
+        public IReadOnlyList<int> JoinEntities(IReadOnlyList<DxfEntity> otherEntities)
+        {
+            if (otherEntities == null)
+            {
+                throw new ArgumentNullException(nameof(otherEntities));
+            }
+
+            return DxfJoin.Join(this, otherEntities, false).AsReadOnly();
+        }
+
+        /// <summary>
         /// Gets the system of the entity's own coordinates, as AutoCAD's <c>Ecs</c>: the one the arbitrary axis algorithm of the
         /// DXF reference makes of its extrusion (group 210), taking a point of it to the world; the world's own where the
         /// extrusion is (0, 0, 1) or the record gives none.

@@ -608,6 +608,27 @@ proportion, rounded half away from nought, the end colours beyond them, so that 
 to a pale yellow (255, 255, 153), is (128, 128, 204) halfway; a gradient of one colour holding that colour alone runs to
 its shade or tint by `ShadeTintValue` at the other end, black at 0, the colour at 0.5 and white at 1.
 
+**NEW.** `DxfEntity.JoinEntity(other)` and `JoinEntities(others)` join curves into a curve as AutoCAD's `JoinEntity` and
+`JoinEntities` do, by the rules of its JOIN: the entity's record written anew to run over them, its look kept, and the
+others left as they are for the caller to erase. A LINE takes lines along its line, gaps and overlaps and all, and runs from
+the lowest of their ends to the highest; an ARC takes arcs of its circle and an ELLIPSE elliptical arcs of its ellipse,
+counter-clockwise from its start, gaps filled, the quarter from 0 to pi / 2 joined to the arc from pi to 3 pi / 2 running
+to 3 pi / 2, and one that would make the whole circle refused, as AutoCAD makes a CIRCLE of it; several are taken in the
+order of their starts from the source's end on, so that their order does not change what they make. The gaps follow the
+JOIN command: that AutoCAD's `JoinEntity` fills them too is not confirmed. A LWPOLYLINE and a POLYLINE of the plane take
+lines, arcs and polylines of their plane, the whole of each arc within the tolerance of it, end to end at either end, an
+arc as a bulge, turned over where its normal is the other way, a polyline with its bulges and widths; a 3D POLYLINE takes
+lines and polylines with no arc in any plane; a SPLINE takes lines, arcs, elliptical arcs, polylines and splines, each as
+the spline that is exactly it, all raised to the highest degree among them, its flags of planar and linear taken off where
+they no longer hold. Ends meet within 0.001 in space, the point tolerance of `Tolerance.Default`, and where they come back
+together the polyline or spline is closed: the four sides of a square 10 by 10 given in any order close a polyline of one
+of them, of area 100. A piece that would run back over the one at the end it meets is left out, as a line drawn twice is.
+`JoinEntities` gives the indices of those joined, and chains 10 000 segments in any order in 0.23 s into a LWPOLYLINE and
+0.19 s into a SPLINE on .NET 10, 0.09 s and 0.13 s on .NET Framework 4.8, 40 000 in 0.47 s and 0.44 s, the time growing
+with their count. A closed curve, a fitted polyline and a polyline of no vertices are not joined; a POLYLINE's vertices
+are written anew, each with a handle of its own. Every joined drawing of R12, R2000 and R2018 was read back by ezdxf,
+whose recover and audit found nothing to fix.
+
 **CHANGED.** A HATCH, a LEADER and a MULTILEADER are a `DxfHatch`, a `DxfLeader` and a `DxfMLeader`, no longer a
 `DxfUnknownEntity`: `TransformBy` moves them where it refused, and `DxfBlockReference.Explode` gives them, placed as the
 rest of the block are, where it left them out; a MULTILEADER under an INSERT that scales it unlike along its axes, or

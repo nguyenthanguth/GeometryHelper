@@ -1047,6 +1047,16 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// The groups of each vertex as the record has them, a copy to change, for <see cref="WriteModel"/> to keep; and the
+        /// constant width (group 43) a vertex with no widths of its own takes.
+        /// </summary>
+        internal List<List<KeyValuePair<int, string>>> VertexGroups(out double constantWidth)
+        {
+            constantWidth = GetDouble(43, 0.0);
+            return Vertices();
+        }
+
+        /// <summary>
         /// Writes the vertices of the editing's model, the groups of a vertex as they were (<paramref name="was"/>, by index)
         /// where a number is the same to the bit, and the polyline closed or not, in one writing of the record and its count.
         /// </summary>

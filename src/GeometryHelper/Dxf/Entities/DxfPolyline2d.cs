@@ -1027,6 +1027,9 @@ namespace GeometryHelper.Dxf
             return copy;
         }
 
+        /// <summary>Gives the polyline vertices of the editing's model, each at the height it has: its vertex records written anew, every group of its own kept.</summary>
+        internal void TakeVertices(List<DxfPolyVertex> model) => SetFollowers(Records(model));
+
         /// <summary>The VERTEX records of vertices of the editing's model, each at the polyline's elevation.</summary>
         internal static List<KeyValuePair<string, KeyValuePair<int, string>[]>> Records(List<DxfPolyVertex> model)
         {

@@ -679,6 +679,13 @@ namespace GeometryHelper.Dxf
         {
             var copy = (DxfPolyline3d)Copy();
             copy.SetGroups(new KeyValuePair<int, string>(70, ((GetInt(70, 0) & ~5) | (closed ? 1 : 0)).ToString(CultureInfo.InvariantCulture)), new KeyValuePair<int, string>(75, null));
+            copy.TakeVertices(model);
+            return copy;
+        }
+
+        /// <summary>Gives the polyline vertices of the editing's model, in the world: its vertex records written anew, every group of its own kept.</summary>
+        internal void TakeVertices(List<DxfPolyVertex> model)
+        {
             var records = new List<KeyValuePair<string, KeyValuePair<int, string>[]>>(model.Count);
 
             foreach (DxfPolyVertex q in model)
@@ -694,8 +701,7 @@ namespace GeometryHelper.Dxf
                 }));
             }
 
-            copy.SetFollowers(records);
-            return copy;
+            SetFollowers(records);
         }
 
         /// <summary>Writes one end vertex of the editing's model into its record.</summary>

@@ -889,12 +889,35 @@ at precision 0 and a tenth of that for each 10 more, never finer than a milliont
 (10, 10), (20, 10) and (30, 0) made lines gives 65 vertices at precision 10 and 513 from precision 30 up, the floor
 reached, so that a precision above about 30 gives the same polyline.
 
+Curves are joined as AutoCAD's JOIN joins them, by `JoinEntity(other)` and `JoinEntities(others)` of the entity they join
+into: its record is written anew to run over them, and the others are left as they are, for the caller to erase. A
+`DxfLine` takes lines along its line, gaps and overlaps and all, and runs from the lowest of their ends to the highest: the
+line from (0, 0, 0) to (10, 0, 0) joined to the one from (25, 0, 0) to (15, 0, 0) runs to (25, 0, 0). A `DxfArc` takes arcs
+of its circle, and a `DxfEllipse` elliptical arcs of its ellipse, counter-clockwise from its start, the gaps filled: the
+quarter from 0 to pi / 2 joined to the arc from pi to 3 pi / 2 runs to 3 pi / 2; one that would make it whole is refused,
+as AutoCAD makes a CIRCLE of it. Several arcs are taken in the order of their starts counter-clockwise from the source's
+end, so that the order they are given in changes nothing. The gaps follow the JOIN command: that AutoCAD's `JoinEntity`
+fills them too is not confirmed. A `DxfPolyline` or `DxfPolyline2d` takes lines, arcs and polylines of its plane, the whole
+of each arc within the tolerance of it, end to end at either end, each turned to run on along it, an arc as a bulge, a
+polyline with its bulges and widths: the polyline (0, 0), (10, 0) joined to the half circle of radius 5 about (10, 5) from
+(10, 0) is (0, 0), (10, 0), (10, 10) with a bulge of 1 on its second vertex. A `DxfPolyline3d` takes lines and polylines
+with no arc, in any plane, as AutoCAD's JOIN makes a spline of one joined to a curve; a `DxfSpline` takes lines, arcs,
+elliptical arcs, polylines and splines, as their `Spline`, all raised to the highest degree among them and given by their
+control points. Ends meet within 0.001 in space, the point tolerance of `Tolerance.Default`, and where they come back
+together the polyline or spline is closed. `JoinEntities` chains its pieces on from the entity's end, then back from its
+start, the one of lowest index each time, and gives the indices of those joined: the four sides of a square given in any
+order close a polyline of one of them. A piece that would run back over the one at the end it meets is left out, as a line
+drawn twice is: the line from (10, 0) back to (0, 0) does not close the polyline (0, 0), (10, 0) into a loop of no area. A
+closed curve, a fitted polyline and a polyline of no vertices are not joined, and a POLYLINE's vertices are written anew,
+each with a handle of its own.
+
 What it costs: a vertex of a POLYLINE appended or set one at a time costs about the same however many the polyline has, 20 000
 appended one by one in a fifth of a second and 10 000 points of a polyface mesh in a twentieth; a LWPOLYLINE's vertex put in,
 set or taken out rewrites only that vertex's groups and the count, 10 000 put in one by one in 0.8 s and set one by one in
 1.2 s; moving a polyline of 2 000 vertices writes them in one pass, 50 milliseconds; straightening a fitted polyline or
 desmoothing a mesh takes the made vertices out in one writing, 90 000 in 0.6 s; a spline of 200 spans made a polyline of 100
-vertices takes 0.04 s, and one of 1 000 spans is rebuilt of 5 000 control points in 0.05 s, all on .NET 10.
+vertices takes 0.04 s, and one of 1 000 spans is rebuilt of 5 000 control points in 0.05 s; 10 000 lines in any order are
+joined into a LWPOLYLINE in 0.23 s and into a SPLINE in 0.19 s, all on .NET 10.
 
 ### Text
 
