@@ -647,9 +647,12 @@ by its own `AppendEntity`. A block has its
 `PreviewIcon` (the bytes of its 310), `IsDynamicBlock` and `Hyperlinks`. `GetBlockReferences(true)` gives its INSERTs, as
 AutoCAD's `GetBlockReferenceIds` gives their ids, and `GetBlockReferences(false)` those of the blocks that hold one of it too
 (all of 2 000 nested blocks in 0.02 seconds); `GetAnonymousBlocks()` gives the blocks AutoCAD made of a dynamic block.
-Setting its `Name` renames it with every INSERT of it; `Erase()` takes it out, BLOCK, entities, ENDBLK and BLOCK_RECORD,
-where nothing inserts it; and `AssumeOwnershipOf(entities)` moves entities of the drawing into it, each keeping its handle,
-out of the draw order (SORTENTSTABLE) of the block it leaves and onto the end of that of the block it enters.
+Setting its `Name` renames it with every INSERT of it, and the arrows the overrides of a dimension of R12 name by name
+(`1070 5`, `6` or `7`, then `1000` the name), as a drawing of R2000 or later names them by handle, which needs no renaming;
+`Erase()` takes it out, BLOCK, entities, ENDBLK and BLOCK_RECORD, where nothing inserts it, and an INSERT made of it before
+is refused from then on, as one of a block the drawing has not; and `AssumeOwnershipOf(entities)` moves entities of the
+drawing into it, each keeping its handle, out of the draw order (SORTENTSTABLE) of the block it leaves and onto the end of
+that of the block it enters.
 
 The `LayerTable` holds a `DxfLayerTableRecord` for each layer, found by its name in either case: its `Color`, `ColorIndex`,
 `TrueColor`, `LinetypeName`, `LineWeight`, `IsOff`, `IsFrozen`, `IsLocked` and `IsPlottable`; its `Description` and
@@ -767,7 +770,9 @@ space moved by anything but the identity, as its geometry is not moved (`NotSupp
 entities where they were moved to, and the other drawing is left as it is, whatever `preserveSourceDatabase` says. Its paper
 space is not inserted, nor its external references but one an INSERT of its model space places, which comes with the INSERT
 an external reference still, its BLOCK flagged 4 (12 overlaid) and naming its drawing as before. A dynamic block comes as a
-static one: its copy draws what it drew, without the data that makes it dynamic, which AutoCAD's own insert keeps.
+static one: its copy draws what it drew, without the data that makes it dynamic, which AutoCAD's own insert keeps. A
+drawing of 3 000 blocks nested one inside the next is inserted in about a second; the walks down nested blocks keep no
+limit of depth, but exploding and the reader's placing stop at 64 deep, as they did.
 
 `db.AttachXref("column.dwg", "COLUMN")` attaches a drawing as an external reference: a block whose BLOCK is flagged 4 (12
 for `OverlayXref`) and names the path in its group 1, with no entities, which AutoCAD fills when it opens the drawing; an

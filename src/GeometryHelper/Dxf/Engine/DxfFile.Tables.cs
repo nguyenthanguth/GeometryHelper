@@ -173,10 +173,12 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Writes a new name into every group that names something by its old name, letters of either case the same: in the
         /// records of the sections given, each group outside the groups of the applications and before the extended data that
-        /// the test says names it, and each group of extended data of a code given (1003 for a layer); every record not about
-        /// it keeping its bytes. What is read of the entities is read again. The number of records written anew.
+        /// the test says names it, and each group of extended data of a code given (1003 for a layer); and, asked for a block, the
+        /// name of an arrow an override of a dimension gives by name, as one of R12 gives it (<c>1070 5</c>, <c>6</c> or
+        /// <c>7</c>, then <c>1000</c> the name, in ACAD's DSTYLE); every record not about it keeping its bytes. What is read of
+        /// the entities is read again. The number of records written anew.
         /// </summary>
-        internal int Rename(ICollection<string> sections, Func<string, int, bool> names, int dataCode, string from, string to)
+        internal int Rename(ICollection<string> sections, Func<string, int, bool> names, int dataCode, string from, string to, bool arrows = false)
         {
             int written = 0;
 
@@ -187,6 +189,9 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
+                // The overrides of the dimensions of model space, paper space and the blocks, as NamesArrowInOverrides reads them.
+                bool dimensions = arrows && (section.Name == "ENTITIES" || section.Name == "BLOCKS");
+
                 VisitInside(section, (Rec record, out Rec? now) =>
                 {
                     now = null;
@@ -194,18 +199,21 @@ namespace GeometryHelper.Dxf
                     int data = DataAt(record, pairs);
                     bool braced = false;
                     bool changed = false;
+                    bool overrides = false;
                     var b = new Builder(this);
 
                     for (int i = 0; i < pairs.Count; i++)
                     {
                         Pair pair = pairs[i];
+                        overrides = dimensions && i >= data && DimensionOverrides(record, pairs, i, overrides);
 
                         if (i > 0 && pair.Code == 102)
                         {
                             braced = Text(record, pair).Trim().StartsWith("{", StringComparison.Ordinal);
                         }
-                        else if (i > 0 && ((i < data && !braced && names(record.Type, pair.Code)) || (i >= data && pair.Code == dataCode))
+                        else if ((i > 0 && ((i < data && !braced && names(record.Type, pair.Code)) || (i >= data && pair.Code == dataCode))
                             && string.Equals(DxfReader.NameOf(Text(record, pair)), from, StringComparison.OrdinalIgnoreCase))
+                            || (overrides && string.Equals(OverrideArrow(record, pairs, i), from, StringComparison.OrdinalIgnoreCase)))
                         {
                             b.Raw(record, pair.Start, pair.ValueStart);
                             b.Value(to);

@@ -94,8 +94,8 @@ namespace GeometryHelper.Dxf
         /// </summary>
         /// <value>Set, a block of the same drawing, written as its name; the attributes are kept as they are.</value>
         /// <exception cref="ArgumentNullException">Thrown when the block set is null.</exception>
-        /// <exception cref="ArgumentException">Thrown when the block set is in no file or another, is a layout, or would make the
-        /// block the INSERT is in insert itself.</exception>
+        /// <exception cref="ArgumentException">Thrown when the block set is in no file or another, is a layout, is erased, or would
+        /// make the block the INSERT is in insert itself.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the INSERT is erased.</exception>
         public DxfBlockTableRecord BlockTableRecord
         {
@@ -137,7 +137,7 @@ namespace GeometryHelper.Dxf
 
                     DxfBlockTableRecord owner = Owner as DxfBlockTableRecord;
 
-                    if (owner != null && !owner.IsLayout && Inserts(value, owner, new HashSet<string>(StringComparer.OrdinalIgnoreCase)))
+                    if (owner != null && !owner.IsLayout && Inserts(value, owner, null))
                     {
                         throw new ArgumentException("The block " + value.Name + " would make the block " + owner.Name + " insert itself.", nameof(value));
                     }
@@ -758,7 +758,7 @@ namespace GeometryHelper.Dxf
             || (int.TryParse(item.File.ValueOf(item, 71)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int rows) && rows > 1);
 
         /// <summary>
-        /// Refuses a block of no drawing or another, a layout, or one that would make the block it is added to insert itself;
+        /// Refuses a block of no drawing or another, a layout, one erased, or one that would make the block it is added to insert itself;
         /// and an ATTRIB of a text style the drawing has not, as a <see cref="DxfDBText"/> refuses one.
         /// </summary>
         internal override void Appending(DxfBlockTableRecord owner)
@@ -803,7 +803,7 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentException("The block " + block.Name + " is of another drawing than the block the INSERT is added to.", "entity");
             }
 
-            if (!owner.IsLayout && Inserts(block, owner, new HashSet<string>(StringComparer.OrdinalIgnoreCase)))
+            if (!owner.IsLayout && Inserts(block, owner, owner.File.Roundless))
             {
                 throw new ArgumentException("The INSERT of " + block.Name + " would make the block " + owner.Name + " insert itself.", "entity");
             }
@@ -870,15 +870,35 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Grows a box by what an INSERT explodes into, each entity moved by a transformation, an INSERT among them measured in
-        /// its turn; one of a block already being measured further out refused, as the block would insert itself.
+        /// its turn; one of a block already being measured further out refused, as the block would insert itself. The INSERTs
+        /// being measured are held on a stack of their own rather than the thread's, each with the name of its block, so that
+        /// 3 000 blocks nested one inside the next are measured as one is.
         /// </summary>
         private static void Measure(DxfBlockReference insert, GeoTransform3 transform, Walk walk, ref double[] box)
         {
-            IReadOnlyList<DxfEntity> parts = insert.Explode();
-            walk.Spend(parts.Count);
+            IReadOnlyList<DxfEntity> first = insert.Explode();
+            walk.Spend(first.Count);
+            var nesting = new Stack<KeyValuePair<IEnumerator<DxfEntity>, string>>();
+            nesting.Push(new KeyValuePair<IEnumerator<DxfEntity>, string>(first.GetEnumerator(), null));
 
-            foreach (DxfEntity part in parts)
+            while (nesting.Count > 0)
             {
+                KeyValuePair<IEnumerator<DxfEntity>, string> measuring = nesting.Peek();
+
+                if (!measuring.Key.MoveNext())
+                {
+                    nesting.Pop();
+
+                    if (measuring.Value != null)
+                    {
+                        walk.Path.Remove(measuring.Value);
+                    }
+
+                    continue;
+                }
+
+                DxfEntity part = measuring.Key.Current;
+
                 if (part is DxfBlockReference nested)
                 {
                     string name = nested.BlockToExplode(nested.Item.File).Name;
@@ -888,8 +908,9 @@ namespace GeometryHelper.Dxf
                         throw new ArgumentException("The INSERT of " + name + " would make the block " + name + " insert itself.");
                     }
 
-                    Measure(nested, transform, walk, ref box);
-                    walk.Path.Remove(name);
+                    IReadOnlyList<DxfEntity> parts = nested.Explode();
+                    walk.Spend(parts.Count);
+                    nesting.Push(new KeyValuePair<IEnumerator<DxfEntity>, string>(parts.GetEnumerator(), name));
                     continue;
                 }
 
@@ -1068,28 +1089,103 @@ namespace GeometryHelper.Dxf
             return record?.Wrapper as DxfBlockTableRecord ?? new DxfBlockTableRecord(file, record, block);
         }
 
-        /// <summary>Whether a block, or a block it inserts at any depth, is a given one.</summary>
-        private static bool Inserts(DxfBlockTableRecord block, DxfBlockTableRecord owner, HashSet<string> seen)
+        /// <summary>
+        /// Whether a block, or a block it inserts at any depth, is a given one: each block walked once, depth first in the order
+        /// of its entities, on a stack of its own rather than the thread's, so that 3 000 blocks nested one inside the next are
+        /// walked as one is. Given the blocks found before to insert none merged (<see cref="DxfFile.Roundless"/>, while
+        /// another drawing's blocks are merged into this one, the owner one of them), those are passed over, and each block
+        /// walked whole that inserts none of the owner's name joins them, where no INSERT of it or of a block it inserts names
+        /// a block the drawing has not, nor one erased, which a block merged later could stand for.
+        /// </summary>
+        private static bool Inserts(DxfBlockTableRecord block, DxfBlockTableRecord owner, HashSet<DxfBlockTableRecord> roundless)
         {
-            if (string.Equals(block.Name, owner.Name, StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
+            string wanted = owner.Name;
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var path = new Stack<Walking>();
+            DxfBlockTableRecord next = block;
 
-            if (!seen.Add(block.Name))
+            try
             {
-                return false;
-            }
-
-            foreach (DxfEntity entity in block)
-            {
-                if (entity is DxfBlockReference reference && reference.BlockTableRecord is DxfBlockTableRecord inner && Inserts(inner, owner, seen))
+                while (true)
                 {
-                    return true;
+                    if (next != null)
+                    {
+                        string name = next.Name;
+
+                        if (string.Equals(name, wanted, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return true;
+                        }
+
+                        if (roundless == null || !roundless.Contains(next))
+                        {
+                            if (seen.Add(name))
+                            {
+                                path.Push(new Walking(next));
+                            }
+                            else if (path.Count > 0)
+                            {
+                                // Met before on this walk: still being walked, a round of this drawing, or walked not whole.
+                                path.Peek().Whole = false;
+                            }
+                        }
+
+                        next = null;
+                    }
+
+                    if (path.Count == 0)
+                    {
+                        return false;
+                    }
+
+                    Walking top = path.Peek();
+
+                    if (!top.Entities.MoveNext())
+                    {
+                        path.Pop().Entities.Dispose();
+
+                        if (roundless != null && top.Whole && !top.Block.Gone)
+                        {
+                            roundless.Add(top.Block);
+                        }
+                        else if (path.Count > 0)
+                        {
+                            path.Peek().Whole = false;
+                        }
+
+                        continue;
+                    }
+
+                    if (top.Entities.Current is DxfBlockReference reference)
+                    {
+                        next = reference.BlockTableRecord;
+                        top.Whole &= next != null;
+                    }
                 }
             }
+            finally
+            {
+                while (path.Count > 0)
+                {
+                    path.Pop().Entities.Dispose();
+                }
+            }
+        }
 
-            return false;
+        /// <summary>A block on the path of <see cref="Inserts"/>: its entities as far as walked, and whether all it inserts was found to insert none merged.</summary>
+        private sealed class Walking
+        {
+            internal Walking(DxfBlockTableRecord block)
+            {
+                Block = block;
+                Entities = block.GetEnumerator();
+            }
+
+            internal DxfBlockTableRecord Block { get; }
+
+            internal IEnumerator<DxfEntity> Entities { get; }
+
+            internal bool Whole { get; set; } = true;
         }
 
         private static void CheckBlock(DxfBlockTableRecord block, string parameter)
@@ -1102,6 +1198,12 @@ namespace GeometryHelper.Dxf
             if (block.IsLayout)
             {
                 throw new ArgumentException("The block " + block.Name + " is a layout, which an INSERT does not place.", parameter);
+            }
+
+            // An erased block is no longer of the drawing, as one of a name it has not.
+            if (block.Gone)
+            {
+                throw new ArgumentException("The drawing has no block " + block.Name + " for the INSERT to place: it was erased.", parameter);
             }
         }
 

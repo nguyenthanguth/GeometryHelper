@@ -715,42 +715,130 @@ namespace GeometryHelper.Dxf
                 return size;
             }
 
+            /// <summary>
+            /// The size of a block as <see cref="RootSizeOf"/> says, and whether a block inside itself was met on the way: the
+            /// blocks being worked out, each with the INSERT of the next, held on a stack of their own rather than the thread's,
+            /// so that 3 000 blocks nested one inside the next are worked out as one is.
+            /// </summary>
             private long SizeOf(Block block, out bool met)
             {
+                var path = new Stack<Counting>();
+
+                if (!BeginSizing(block, path, out long size, out met))
+                {
+                    return size;
+                }
+
+                while (true)
+                {
+                    Counting top = path.Peek();
+
+                    // The block of the INSERT worked out: its size counted once for each of the INSERT's cells.
+                    if (top.Insert != null)
+                    {
+                        top.Met |= met;
+                        top.Size = Plus(top.Size, Times(CellCount(top.Insert), size));
+                        top.Insert = null;
+                    }
+
+                    if (top.Next < top.Block.Items.Count)
+                    {
+                        Record item = top.Block.Items[top.Next++];
+                        Block nested = item.Type == "INSERT" ? SizedBlock(item) : null;
+
+                        if (nested == null)
+                        {
+                            top.Size = Plus(top.Size, ItemSize(item));
+                            continue;
+                        }
+
+                        top.Insert = item;
+                        BeginSizing(nested, path, out size, out met);
+                        continue;
+                    }
+
+                    path.Pop();
+                    top.Block.Size = top.Met ? -1 : top.Size;
+                    size = top.Size;
+                    met = top.Met;
+
+                    if (path.Count == 0)
+                    {
+                        return size;
+                    }
+                }
+            }
+
+            /// <summary>
+            /// Begins to work out the size of a block: false, with its size and whether it was met inside itself, where that is
+            /// known at once, worked out before, being worked out further out, or past the blocks the reading works out; else
+            /// true, the block put on the path to have its entities counted.
+            /// </summary>
+            private bool BeginSizing(Block block, Stack<Counting> path, out long size, out bool met)
+            {
                 met = false;
+                size = 0;
 
                 if (block.Size >= 0)
                 {
-                    return block.Size;
+                    size = block.Size;
+                    return false;
                 }
 
                 if (block.Size == -2)
                 {
                     met = true;
-                    return 0;
+                    return false;
                 }
 
                 if (_sizing.Worked >= _sizing.Most)
                 {
                     _stopped = true;
                     met = true;
-                    return long.MaxValue;
+                    size = long.MaxValue;
+                    return false;
                 }
 
                 _sizing.Worked++;
                 block.Size = -2;
-                long size = 0;
-
-                foreach (Record item in block.Items)
-                {
-                    size = Plus(size, ItemSize(item, ref met));
-                }
-
-                block.Size = met ? -1 : size;
-                return size;
+                path.Push(new Counting(block));
+                return true;
             }
 
-            private long ItemSize(Record r, ref bool met)
+            /// <summary>The block an INSERT places, as its size is worked out: null for one not placed, of no block, a layout or an external reference.</summary>
+            private Block SizedBlock(Record insert)
+            {
+                string name = Decode((insert.Text(2) ?? string.Empty).Trim());
+
+                if (!_expandBlocks || insert.Unreadable() != null || name.Length == 0 || !_blockNames.TryGetValue(name, out Block block) || block.IsLayout || block.IsExternal)
+                {
+                    return null;
+                }
+
+                return block;
+            }
+
+            /// <summary>A block whose size is being worked out: the entity of it to count next, the sum so far, whether a block inside itself was met, and the INSERT whose block is being worked out.</summary>
+            private sealed class Counting
+            {
+                internal Counting(Block block)
+                {
+                    Block = block;
+                }
+
+                internal Block Block { get; }
+
+                internal int Next { get; set; }
+
+                internal long Size { get; set; }
+
+                internal bool Met { get; set; }
+
+                internal Record Insert { get; set; }
+            }
+
+            /// <summary>At most how many entities an entity of a block places that is not an INSERT the block places, as <see cref="RootSizeOf"/> says.</summary>
+            private static long ItemSize(Record r)
             {
                 switch (r.Type)
                 {
@@ -819,18 +907,6 @@ namespace GeometryHelper.Dxf
 
                     case "POLYLINE":
                         return Math.Max(1, r.Following.Count);
-
-                    case "INSERT":
-                        string name = Decode((r.Text(2) ?? string.Empty).Trim());
-
-                        if (!_expandBlocks || r.Unreadable() != null || name.Length == 0 || !_blockNames.TryGetValue(name, out Block block) || block.IsLayout || block.IsExternal)
-                        {
-                            return 0;
-                        }
-
-                        long size = SizeOf(block, out bool through);
-                        met |= through;
-                        return Times(CellCount(r), size);
 
                     default:
                         return 0;

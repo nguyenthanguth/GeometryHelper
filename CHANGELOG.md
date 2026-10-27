@@ -326,6 +326,42 @@ it draws, no longer tied to the dynamic block. ezdxf 1.4.5 read back every drawi
 R2000 and R2018, its recover and audit finding nothing to fix, and a drawing in which nothing is found to count, purge or
 erase resaves byte for byte.
 
+**FIXED.** The walks of the DXF model down blocks nested one inside the next overflowed the thread's stack, which ends the
+process and cannot be caught. On .NET 10, 3 000 blocks each holding an INSERT of the one before overflowed it (on .NET
+Framework 4.8, a thread of 1 MB from 4 500) when they were filled from the bottom up by `AppendEntity`, when their drawing
+was inserted into another by either `DxfDatabase.Insert`, and when the INSERT of the last was measured by
+`GeometryExtentsBestFit` under a transformation; 6 000 of them overflowed it when the drawing was saved, as the size of what
+that INSERT places was worked out for the extents of the header; and 30 000 when an INSERT was moved into a block by
+`AssumeOwnershipOf`, given another block by `BlockTableRecord`, or appended. Each of these walks keeps the blocks it is in
+on a stack of its own now, visiting them in the same order, so that 30 000 nested blocks are walked in 40 ms and every
+answer is the one it was: 253 drawings of the corpus and the tests resave byte for byte, and the 1 526 drawings `Insert`,
+`WblockCloneObjects`, `ExplodeToOwnerSpace` and renaming write of them are the same, byte for byte, as before. A block that
+inserts itself, at once or through others, ends each walk as it did: an INSERT that would make one is refused, a box of one
+is refused, and the size of one counts nought; exploding and the reader's placing stop at 64 deep, as they did.
+
+**FIXED.** `DxfDatabase.Insert` of a drawing of 3 000 blocks nested one inside the next took 48 s on .NET Framework 4.8 and
+19 s on .NET 10, timed on a thread of a large stack, the main thread's overflowing: each INSERT copied was walked down every
+block below it twice to find whether it made a round, the check before anything is written walked them again for each block
+above, and each block was found by its name by reading the names of the whole block table. Each block of the other drawing
+is checked once now, a block is found by its name at once, and a block a walk finds to insert none merged, with every
+INSERT under it placing a block of the drawing that is not erased, is not walked again while the merge lasts: 1.0 s on
+.NET Framework and 0.9 s on .NET 10, the drawing written the same, byte for byte, and `WblockCloneObjects` of its INSERT
+3.8 s and 1.6 s before, 0.59 s and 0.31 s now. Inserting 20 small drawings into one of 2 000 blocks and 6 000 INSERTs
+takes no longer than it did (1 061 ms before and 926 ms now on .NET Framework). A block of the other drawing that would
+come to insert itself through an INSERT of this drawing that names a block it has not is refused as before; 6 000 drawings of
+a few blocks, with rounds and INSERTs of no block among them, inserted four ways, then edited, renamed and looked up, give
+the same as before, each line.
+
+**FIXED.** An INSERT made in code of a block erased since was appended, or given that block by `BlockTableRecord`, as if
+the block were there: an INSERT of M appended to P after M was erased placed a block the drawing no longer had, and kept
+M's record. Such an INSERT is refused now with an `ArgumentException`, as one of a block the drawing has not.
+
+**FIXED.** A block renamed in a drawing of R12 left the arrows the overrides of a dimension name by name under the old
+name: DIMBLK, DIMBLK1 and DIMBLK2, each a `1070` of 5, 6 or 7 and then a `1000` of the block's name in ACAD's DSTYLE, so
+that the dimension lost its arrows and the block could be erased from under it. They are renamed with the block now, the
+dimension's record and the block's alone written anew: the arrow GH_DOT renamed GH_DOT_R12 is `1070 5`, `1000 GH_DOT_R12`.
+A drawing of R2000 or later names them by handle (`1005`), which renaming leaves as it is; R12 has no DIMLDRBLK.
+
 **NEW.** Annotative scaling as a DXF holds it, 5 members of AutoCAD's `Database` and `DBObject`. `DxfDatabase.ObjectContextManager`
 gives the drawing's list of scales as AutoCAD's `ObjectContextManager` does, `GetContextCollection("ACDB_ANNOTATIONSCALES")`,
 the new `DxfObjectContextCollection` of `DxfAnnotationScale`s (AutoCAD's `ObjectContextCollection` and `AnnotationScale`, of

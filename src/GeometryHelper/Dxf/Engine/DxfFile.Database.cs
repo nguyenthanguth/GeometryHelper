@@ -327,10 +327,12 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Checks that an entity not yet in a file can be added to this one, as <see cref="Adopt"/> checks it before it writes
         /// anything, the blocks it brings with it among what is checked: so that several entities are checked before any of them
-        /// is written.
+        /// is written. Given the blocks of the other drawing checked so far, by the checks of entities before it while nothing
+        /// was written, those are not checked again, nor the blocks they insert, which were checked with them: so that the
+        /// 3 000 blocks of a drawing nested one inside the next are checked once each, not once for each block above them.
         /// </summary>
         /// <exception cref="ArgumentException">Thrown where <see cref="Adopt"/> would refuse the entity.</exception>
-        internal void CheckAdopt(DxfItem from)
+        internal void CheckAdopt(DxfItem from, HashSet<DxfFileBlock> checkedBlocks = null)
         {
             DxfFile source = from.File;
             List<Rec> records = source.RecordsOf(from);
@@ -340,7 +342,7 @@ namespace GeometryHelper.Dxf
 
             if (foreign)
             {
-                BlocksToCopy(origin, records, new RecordsToCopy());
+                BlocksToCopy(origin, records, new RecordsToCopy(), checkedBlocks);
             }
         }
 
@@ -527,6 +529,13 @@ namespace GeometryHelper.Dxf
         // The blocks of another drawing being copied into this one by the entity being added, each with the name it is given here.
         private Dictionary<DxfFileBlock, string> _blockCopies;
 
+        /// <summary>
+        /// While <c>DxfDatabase.Insert</c> merges the named blocks of another drawing into this one, the blocks found, by the walk
+        /// of an INSERT appended to a block merged, to insert none merged at any depth and to change no more while the merge
+        /// lasts, which the next walks pass over; null at any other time.
+        /// </summary>
+        internal HashSet<DxfBlockTableRecord> Roundless { get; set; }
+
         // The entities of those blocks copied so far, by their handles there, each with the handle of its copy here: what a
         // pointer of the entity being added to one of them is taken to, as a table's cell to an attribute definition (331).
         private Dictionary<ulong, string> _entityCopies;
@@ -557,11 +566,12 @@ namespace GeometryHelper.Dxf
         /// within each block copied, every block an entity of it draws by that is so; each once, those copied already by the entity being added left out. Every
         /// entity of them is checked to be one this file can hold, before anything is written, and the records of the tables they
         /// and the entity name that this drawing has not are noted in <paramref name="needs"/>, an arrow block of a dimension style
-        /// among the blocks.
+        /// among the blocks. A block among <paramref name="checkedBlocks"/>, checked whole with the blocks it brings by a check
+        /// before, is passed over, as <see cref="CheckAdopt"/> says, and each block checked here is added to them.
         /// </summary>
         /// <exception cref="ArgumentException">Thrown where an entity of a block to be copied cannot be added to this file, as
         /// <see cref="Adopt"/> says.</exception>
-        private List<DxfFileBlock> BlocksToCopy(DxfFile origin, List<Rec> records, RecordsToCopy needs)
+        private List<DxfFileBlock> BlocksToCopy(DxfFile origin, List<Rec> records, RecordsToCopy needs, HashSet<DxfFileBlock> checkedBlocks = null)
         {
             var order = new List<DxfFileBlock>();
             Collect(origin, records[0], order);
@@ -570,6 +580,11 @@ namespace GeometryHelper.Dxf
 
             for (int k = 0; k < order.Count; k++)
             {
+                if (checkedBlocks != null && !checkedBlocks.Add(order[k]))
+                {
+                    continue;
+                }
+
                 foreach (DxfItem item in order[k].Items.Snapshot())
                 {
                     if (item.IsRemoved)

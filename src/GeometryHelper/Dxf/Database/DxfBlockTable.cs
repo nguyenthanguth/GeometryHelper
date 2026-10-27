@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Threading;
 using GeometryHelper.Export;
 using GeometryHelper.Geometry;
 
@@ -20,6 +21,10 @@ namespace GeometryHelper.Dxf
     {
         private readonly DxfDatabase _database;
         private List<DxfBlockTableRecord> _records;
+
+        // The first block of each name in the order of the table, letters of either case the same: made when a block is first
+        // looked up by name, and again after one is erased or renamed, so that a lookup does not read every name of the table.
+        private Dictionary<string, DxfBlockTableRecord> _named;
 
         internal DxfBlockTable(DxfDatabase database, DxfItem item)
             : base(item)
@@ -59,7 +64,44 @@ namespace GeometryHelper.Dxf
                 return _database.ModelSpace;
             }
 
-            return DxfBlockTableRecord.IsPaperName(key.Trim()) ? _database.PaperSpace : base.Find(key);
+            if (DxfBlockTableRecord.IsPaperName(key.Trim()))
+            {
+                return _database.PaperSpace;
+            }
+
+            return Named().TryGetValue(key.Trim(), out DxfBlockTableRecord block) ? block : null;
+        }
+
+        /// <summary>The first block of each name in the order of the table, as the table's own <c>Find</c> finds one by reading them in turn.</summary>
+        private Dictionary<string, DxfBlockTableRecord> Named()
+        {
+            Dictionary<string, DxfBlockTableRecord> named = Volatile.Read(ref _named);
+
+            if (named == null)
+            {
+                // Filled whole before it is kept, so that a lookup of another thread never meets it half filled.
+                named = new Dictionary<string, DxfBlockTableRecord>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (DxfBlockTableRecord record in Read())
+                {
+                    Index(named, record);
+                }
+
+                Volatile.Write(ref _named, named);
+            }
+
+            return named;
+        }
+
+        /// <summary>Takes a block last in the order of the table into the blocks by name, where none before it has its name.</summary>
+        private static void Index(Dictionary<string, DxfBlockTableRecord> named, DxfBlockTableRecord record)
+        {
+            string name = record.Name;
+
+            if (named != null && name != null && !named.ContainsKey(name))
+            {
+                named.Add(name, record);
+            }
         }
 
         private protected override void AddRecord(DxfSymbolTableRecord record)
@@ -72,6 +114,7 @@ namespace GeometryHelper.Dxf
             List<DxfBlockTableRecord> records = Read();
             block.AddTo(_database.File);
             records.Add(block);
+            Index(_named, block);
         }
 
         /// <summary>Reads the table as the drawing is opened, so that model space and paper space stand for their records from the first.</summary>
@@ -86,11 +129,20 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            _records.Add(new DxfBlockTableRecord(_database.File, record, block));
+            var adopted = new DxfBlockTableRecord(_database.File, record, block);
+            _records.Add(adopted);
+            Index(_named, adopted);
         }
 
         /// <summary>A block erased, no longer of the table.</summary>
-        internal void Forget(DxfBlockTableRecord block) => Read().Remove(block);
+        internal void Forget(DxfBlockTableRecord block)
+        {
+            Read().Remove(block);
+            _named = null;
+        }
+
+        /// <summary>A block renamed: the blocks by name are made again when next looked up.</summary>
+        internal void Renamed() => _named = null;
 
         /// <summary>Adds a block made in code under a name AutoCAD gives itself, as <c>*U4</c>, which <see cref="DxfSymbolTable.Add"/> refuses.</summary>
         internal void AddAnonymous(DxfBlockTableRecord block) => AddRecord(block);
@@ -282,8 +334,10 @@ namespace GeometryHelper.Dxf
         /// Set on a block made in code, before it is added; on a block of a file, as AutoCAD renames one: its BLOCK_RECORD's 2,
         /// its BLOCK's 2 and 3, the 2 of every INSERT of it, in model space, paper space and the blocks, and of a dimension or a
         /// table drawn by it, the arrows of the dimension styles and of the header (<c>$DIMBLK</c>, <c>$DIMBLK1</c>,
-        /// <c>$DIMBLK2</c>, <c>$DIMLDRBLK</c>) that name it; every other record keeping its bytes. The name it has changes
-        /// nothing.
+        /// <c>$DIMBLK2</c>, <c>$DIMLDRBLK</c>) that name it, and the arrows the overrides of a dimension of R12 name by name
+        /// (DIMBLK, DIMBLK1 and DIMBLK2, <c>1070 5</c>, <c>6</c> or <c>7</c> then <c>1000</c> the name, in ACAD's DSTYLE);
+        /// every other record keeping its bytes. A drawing of R2000 or later names an override's arrow by its handle
+        /// (<c>1005</c>), which renaming leaves as it is. The name it has changes nothing.
         /// </value>
         /// <exception cref="ArgumentNullException">Thrown when the name set is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the name set is one AutoCAD does not take, begins with *, or is that of
@@ -706,7 +760,7 @@ namespace GeometryHelper.Dxf
                 }
 
                 if (entity is DxfBlockReference reference && !IsLayout && reference.BlockTableRecord is DxfBlockTableRecord inserted
-                    && (string.Equals(inserted.Name, Name, StringComparison.OrdinalIgnoreCase) || Holds(inserted, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { Name }, new HashSet<string>(StringComparer.OrdinalIgnoreCase))))
+                    && (string.Equals(inserted.Name, Name, StringComparison.OrdinalIgnoreCase) || Holds(inserted, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { Name })))
                 {
                     throw new ArgumentException("The INSERT of " + inserted.Name + " would make the block " + Name + " insert itself.", nameof(entitiesToMove));
                 }
@@ -813,7 +867,7 @@ namespace GeometryHelper.Dxf
             }
 
             _file.Rename(Naming, (type, code) => (code == 2 && (type == "INSERT" || type == "DIMENSION" || type == "ACAD_TABLE" || type == "BLOCK" || type == "BLOCK_RECORD"))
-                || (code == 3 && type == "BLOCK") || (type == "DIMSTYLE" && code >= 5 && code <= 7), 0, old, name);
+                || (code == 3 && type == "BLOCK") || (type == "DIMSTYLE" && code >= 5 && code <= 7), 0, old, name, true);
 
             foreach (string variable in new[] { "$DIMBLK", "$DIMBLK1", "$DIMBLK2", "$DIMLDRBLK" })
             {
@@ -826,6 +880,7 @@ namespace GeometryHelper.Dxf
             }
 
             _file.Renamed(_block, name);
+            database?.BlockTable.Renamed();
             GeometryHelperLog.Info("DxfDatabase: the block " + old + " was renamed " + name + ", with every INSERT of it.");
         }
 
@@ -845,33 +900,59 @@ namespace GeometryHelper.Dxf
             return _file.Names(Naming, (type, code) => type == "DIMSTYLE" && code >= 5 && code <= 7, name) || _file.NamesArrowInOverrides(name);
         }
 
-        /// <summary>Whether a block holds an INSERT of a block of the names given, at any depth.</summary>
-        private static bool Holds(DxfBlockTableRecord block, HashSet<string> named, HashSet<string> seen = null)
+        /// <summary>
+        /// Whether a block holds an INSERT of a block of the names given, at any depth: each block walked once, depth first in the
+        /// order of its entities, on a stack of its own rather than the thread's, so that 3 000 blocks nested one inside the next
+        /// are walked as one is.
+        /// </summary>
+        private static bool Holds(DxfBlockTableRecord block, HashSet<string> named)
         {
-            seen = seen ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var path = new Stack<IEnumerator<DxfEntity>>();
+            DxfBlockTableRecord next = block;
 
-            if (!seen.Add(block.Name))
+            try
             {
-                return false;
-            }
-
-            foreach (DxfEntity entity in block)
-            {
-                if (entity is DxfBlockReference reference)
+                while (true)
                 {
-                    if (named.Contains(reference.Name))
+                    if (next != null && seen.Add(next.Name))
                     {
-                        return true;
+                        path.Push(next.GetEnumerator());
                     }
 
-                    if (reference.BlockTableRecord is DxfBlockTableRecord inner && Holds(inner, named, seen))
+                    next = null;
+
+                    if (path.Count == 0)
                     {
-                        return true;
+                        return false;
+                    }
+
+                    IEnumerator<DxfEntity> entities = path.Peek();
+
+                    if (!entities.MoveNext())
+                    {
+                        path.Pop().Dispose();
+                        continue;
+                    }
+
+                    if (entities.Current is DxfBlockReference reference)
+                    {
+                        if (named.Contains(reference.Name))
+                        {
+                            return true;
+                        }
+
+                        next = reference.BlockTableRecord;
                     }
                 }
             }
-
-            return false;
+            finally
+            {
+                while (path.Count > 0)
+                {
+                    path.Pop().Dispose();
+                }
+            }
         }
 
         /// <summary>Whether the block is an anonymous one AutoCAD made of a dynamic block of a handle, as <see cref="GetAnonymousBlocks"/> finds them.</summary>

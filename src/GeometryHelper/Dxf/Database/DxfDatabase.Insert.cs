@@ -200,6 +200,10 @@ namespace GeometryHelper.Dxf
                 all.AddRange(block);
             }
 
+            // A block of the other drawing an INSERT brings is checked once, with the blocks it inserts, however many INSERTs
+            // above it bring it again: nothing is written between the checks.
+            var checkedBlocks = new HashSet<DxfFileBlock>();
+
             foreach (DxfEntity entity in all)
             {
                 DxfEntity copy = entity.Clone();
@@ -209,12 +213,12 @@ namespace GeometryHelper.Dxf
                 {
                     foreach (DxfEntity text in mtext.R12Texts(File))
                     {
-                        File.CheckAdopt(text.Item);
+                        File.CheckAdopt(text.Item, checkedBlocks);
                     }
                 }
                 else
                 {
-                    File.CheckAdopt(copy.Item);
+                    File.CheckAdopt(copy.Item, checkedBlocks);
                 }
             }
         }
@@ -230,30 +234,41 @@ namespace GeometryHelper.Dxf
             File.CopyTableRecords(source.File, "LTYPE", Missing(source.LinetypeTable, LinetypeTable));
             File.CopyTableRecords(source.File, "LAYER", Missing(source.LayerTable, LayerTable));
 
-            foreach (DxfBlockTableRecord block in BlocksToMerge(source))
+            // The blocks found to reach none merged, kept for the rest of the merge, so that 3 000 nested blocks are each walked
+            // once to find a round, not once for each block merged above them.
+            File.Roundless = new HashSet<DxfBlockTableRecord>();
+
+            try
             {
-                // A block the copy of one before it brought, as a block its INSERT places, is here already.
-                if (BlockTable.Has(block.Name))
+                foreach (DxfBlockTableRecord block in BlocksToMerge(source))
                 {
-                    continue;
+                    // A block the copy of one before it brought, as a block its INSERT places, is here already.
+                    if (BlockTable.Has(block.Name))
+                    {
+                        continue;
+                    }
+
+                    var made = new DxfBlockTableRecord { Name = block.Name, Origin = block.Origin, MadeFlags = block.HasAttributeDefinitions ? 2 : 0 };
+
+                    if (File.Supports(1015))
+                    {
+                        made.Comments = block.Comments;
+                    }
+
+                    if (File.Supports(1021))
+                    {
+                        made.Units = block.Units;
+                        made.Explodable = block.Explodable;
+                        made.BlockScaling = block.BlockScaling;
+                    }
+
+                    BlockTable.Add(made);
+                    source.WblockCloneObjects(new List<DxfEntity>(block), made);
                 }
-
-                var made = new DxfBlockTableRecord { Name = block.Name, Origin = block.Origin, MadeFlags = block.HasAttributeDefinitions ? 2 : 0 };
-
-                if (File.Supports(1015))
-                {
-                    made.Comments = block.Comments;
-                }
-
-                if (File.Supports(1021))
-                {
-                    made.Units = block.Units;
-                    made.Explodable = block.Explodable;
-                    made.BlockScaling = block.BlockScaling;
-                }
-
-                BlockTable.Add(made);
-                source.WblockCloneObjects(new List<DxfEntity>(block), made);
+            }
+            finally
+            {
+                File.Roundless = null;
             }
 
             File.CopyTableRecords(source.File, "DIMSTYLE", Missing(source.DimStyleTable, DimStyleTable));
