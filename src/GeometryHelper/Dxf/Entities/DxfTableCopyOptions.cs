@@ -6,9 +6,9 @@ namespace GeometryHelper.Dxf
     /// How cells are copied from one table into another, as AutoCAD's <c>TableCopyOptions</c> flags them;
     /// <see cref="DxfTable.CopyFrom(DxfTable, DxfTableCopyOptions, DxfCellRange, DxfCellRange)"/> takes <see cref="None"/>,
     /// <see cref="ExpandOrContractTable"/>, <see cref="SkipContent"/>, <see cref="SkipFormat"/>, <see cref="SkipMerges"/>,
-    /// <see cref="SkipField"/>, <see cref="SkipFormula"/>, <see cref="TableCopyRowHeight"/> and <see cref="TableCopyColumnWidth"/>,
-    /// and refuses the others, which ask for what a
-    /// file of these versions has no groups for (cell styles, cell states, data links) or for rules of AutoCAD's own.
+    /// <see cref="SkipField"/>, <see cref="SkipFormula"/>, <see cref="SkipDataLink"/>, <see cref="TableCopyRowHeight"/> and
+    /// <see cref="TableCopyColumnWidth"/>, and refuses the others, which ask for what a
+    /// file of these versions has no groups for (cell styles, cell states) or for rules of AutoCAD's own.
     /// </summary>
     [Flags]
     public enum DxfTableCopyOptions

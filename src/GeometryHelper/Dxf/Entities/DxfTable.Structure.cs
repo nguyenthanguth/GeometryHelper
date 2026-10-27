@@ -16,8 +16,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gets whether rows can be put in before a row, as AutoCAD's <c>CanInsertRow</c>: before any of them or after the last
         /// (<see cref="NumRows"/>), where the table's record holds its cells, one height for each row and one width for each
-        /// column. A row put in within a block of merged cells grows the block, so no merge stops it; the library reads no data
-        /// links.
+        /// column. A row put in within a block of merged cells, or a range of cells linked to data, grows it, so neither stops
+        /// it.
         /// </summary>
         /// <param name="index">The row the new ones go before, from nought; <see cref="NumRows"/> for after the last.</param>
         /// <returns>Whether they can.</returns>
@@ -79,9 +79,10 @@ namespace GeometryHelper.Dxf
         /// Puts rows in, as AutoCAD's <c>InsertRows</c>: as many rows as asked, of the height given, before a row (after the
         /// last for <see cref="NumRows"/>), each of empty text cells that take their look from the table style; the count of rows
         /// (91) and their heights (141) are written with them. A block of merged cells the rows go into grows by them, one they
-        /// go above moves down with its rows. The record is written once, its cells anew, so that 16 000 rows go in in time
-        /// linear in its groups; the block AutoCAD drew the table with is not drawn anew. The table of rows 10, 8 and 8 given two
-        /// rows 6 high before its row 2 has rows 10, 8, 6, 6 and 8, its cell B-12 now in row 4.
+        /// go above moves down with its rows, and so does a range of cells linked to data. The record is written once, its
+        /// cells anew, so that 16 000 rows go in in time linear in its groups; the block AutoCAD drew the table with is not drawn
+        /// anew. The table of rows 10, 8 and 8 given two rows 6 high before its row 2 has rows 10, 8, 6, 6 and 8, its cell B-12
+        /// now in row 4.
         /// </summary>
         /// <param name="row">The row the new ones go before, from nought; <see cref="NumRows"/> for after the last.</param>
         /// <param name="height">The height of each, a finite number above nought.</param>
@@ -123,8 +124,11 @@ namespace GeometryHelper.Dxf
         /// Takes rows out, as AutoCAD's <c>DeleteRows</c>: their cells, their heights (141) and their count (91). A block of
         /// merged cells shrinks to the rows of it left, and is unmerged where one cell of it is left; where its top row goes,
         /// the content and look of its top left cell go to the first cell of it left, as AutoCAD keeps a merged cell's text. A
-        /// block below the rows moves up. The record is written once, its cells anew; the block AutoCAD drew the table with is
-        /// not drawn anew. The table of rows 10, 8 and 8 that loses its row 1 has rows 10 and 8, its cell B-12 now in row 1.
+        /// block below the rows moves up. A range of cells linked to data shrinks and moves alike, its link named by its new top
+        /// left cell, and goes where none of it is left, its DATALINK erased as <see cref="RemoveDataLink()"/> erases one: where it
+        /// is anonymous and nothing else of the file points at it. The record is written once, its cells anew; the block AutoCAD
+        /// drew the table with is not drawn anew. The table of rows 10, 8 and 8 that loses its row 1 has rows 10 and 8, its cell
+        /// B-12 now in row 1.
         /// </summary>
         /// <param name="row">The first row taken out, from nought.</param>
         /// <param name="rows">How many, one or more, one row at least left.</param>
@@ -196,8 +200,9 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gives the table a number of rows and of columns, as AutoCAD's <c>SetSize</c>: rows and columns taken out from the
         /// bottom and the right, or put in there, each new row as high as the last row and each new column as wide as the last
-        /// column, of empty text cells; blocks of merged cells cut where they reach past the new size. Nothing is written where
-        /// the table is of that size. The table of 3 rows and 2 columns given 5 and 2 has two more rows 8 high.
+        /// column, of empty text cells; blocks of merged cells and ranges linked to data cut where they reach past the new size.
+        /// Nothing is written where the table is of that size. The table of 3 rows and 2 columns given 5 and 2 has two more rows
+        /// 8 high.
         /// </summary>
         /// <param name="numRows">The number of rows, one or more.</param>
         /// <param name="numCols">The number of columns, one or more.</param>
@@ -240,7 +245,7 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            Rebuild(layout, numRows, numCols, heights, widths, cells, blocks);
+            Rebuild(layout, numRows, numCols, heights, widths, cells, blocks, LinksCut(layout, numRows, numCols));
         }
 
         /// <summary>Puts rows (or columns) in at a place, new or taking the look of a row (or column), and writes the record anew.</summary>
@@ -304,7 +309,7 @@ namespace GeometryHelper.Dxf
                 AddBlock(blocks, rowsOf ? newFirst : b.TopRow, rowsOf ? b.LeftColumn : newFirst, rowsOf ? newLast : b.BottomRow, rowsOf ? b.RightColumn : newLast);
             }
 
-            Rebuild(layout, newRows, newColumns, heights, widths, cells, blocks);
+            Rebuild(layout, newRows, newColumns, heights, widths, cells, blocks, LinksInserted(layout, rowsOf, at, count));
         }
 
         /// <summary>Takes rows (or columns) out from a place, and writes the record anew.</summary>
@@ -373,7 +378,7 @@ namespace GeometryHelper.Dxf
                 AddBlock(blocks, rowsOf ? newFirst : b.TopRow, rowsOf ? b.LeftColumn : newFirst, rowsOf ? newLast : b.BottomRow, rowsOf ? b.RightColumn : newLast);
             }
 
-            Rebuild(layout, newRows, newColumns, heights, widths, cells, blocks);
+            Rebuild(layout, newRows, newColumns, heights, widths, cells, blocks, LinksDeleted(layout, rowsOf, at, count));
         }
 
         #endregion
@@ -427,7 +432,7 @@ namespace GeometryHelper.Dxf
 
             if (changed)
             {
-                Rebuild(layout, layout.Rows, layout.Columns, null, null, AllSlices(layout), blocks);
+                Rebuild(layout, layout.Rows, layout.Columns, null, null, AllSlices(layout), blocks, Links(layout));
             }
         }
 
@@ -461,7 +466,7 @@ namespace GeometryHelper.Dxf
 
             if (changed)
             {
-                Rebuild(layout, layout.Rows, layout.Columns, null, null, AllSlices(layout), blocks);
+                Rebuild(layout, layout.Rows, layout.Columns, null, null, AllSlices(layout), blocks, Links(layout));
             }
         }
 
@@ -472,7 +477,7 @@ namespace GeometryHelper.Dxf
         // The options of CopyFrom the library carries out.
         private const DxfTableCopyOptions CopyOptions = DxfTableCopyOptions.ExpandOrContractTable | DxfTableCopyOptions.SkipContent
             | DxfTableCopyOptions.SkipFormat | DxfTableCopyOptions.SkipMerges | DxfTableCopyOptions.TableCopyRowHeight | DxfTableCopyOptions.TableCopyColumnWidth
-            | DxfTableCopyOptions.SkipField | DxfTableCopyOptions.SkipFormula;
+            | DxfTableCopyOptions.SkipField | DxfTableCopyOptions.SkipFormula | DxfTableCopyOptions.SkipDataLink;
 
         /// <summary>
         /// Copies cells of another table of the drawing, or of this one, into this table, as AutoCAD's <c>CopyFrom(source,
@@ -480,9 +485,11 @@ namespace GeometryHelper.Dxf
         /// target range on, each with its content (its kind, text or value, block and attribute values) and its look (its
         /// overrides and their flags); the blocks of merged cells wholly within the source range merged alike, those of this
         /// table the copy meets unmerged. A field (344) a cell points at is the source cell's own, and is not copied: the copy
-        /// holds the text the cell shows, so SkipField and SkipFormula are taken and change nothing. Cells past this table's
-        /// last row or column are left out, unless <see cref="DxfTableCopyOptions.ExpandOrContractTable"/> grows the table to
-        /// hold them, its new rows and columns as high and wide as the source's; the library only grows a table with it, never
+        /// holds the text the cell shows, so SkipField and SkipFormula are taken and change nothing. The ranges of cells linked to
+        /// data wholly within the source range are linked alike, to the same DATALINKs, and those of this table the copy meets
+        /// taken out, as merges are. Cells past this table's last row or column are left out, unless
+        /// <see cref="DxfTableCopyOptions.ExpandOrContractTable"/> grows the table to hold them, its new rows and columns as high
+        /// and wide as the source's; the library only grows a table with it, never
         /// shrinks one. The record is written once; the block AutoCAD drew the table with is not drawn anew. The
         /// header and data rows of the table of 3 rows, (1, 0) to (2, 1), copied to (3, 0) with ExpandOrContractTable make it a
         /// table of 5 rows, Mark and Qty in row 3 and B-12 in row 4.
@@ -492,6 +499,7 @@ namespace GeometryHelper.Dxf
         /// <see cref="DxfTableCopyOptions.SkipContent"/> (the look alone copied), <see cref="DxfTableCopyOptions.SkipFormat"/> (the
         /// content alone), <see cref="DxfTableCopyOptions.SkipMerges"/> (the merges of this table kept, none copied),
         /// <see cref="DxfTableCopyOptions.SkipField"/> and <see cref="DxfTableCopyOptions.SkipFormula"/> (no field is copied in any case),
+        /// <see cref="DxfTableCopyOptions.SkipDataLink"/> (the data links of this table kept, none copied),
         /// <see cref="DxfTableCopyOptions.TableCopyRowHeight"/> and <see cref="DxfTableCopyOptions.TableCopyColumnWidth"/> (the
         /// heights and widths of the source's rows and columns given to those copied to).</param>
         /// <param name="sourceRange">The cells copied, within the source; null for every cell of it.</param>
@@ -511,7 +519,7 @@ namespace GeometryHelper.Dxf
 
             if ((options & ~CopyOptions) != 0)
             {
-                throw new ArgumentException("The library copies a table's cells with ExpandOrContractTable, SkipContent, SkipFormat, SkipMerges, SkipField, SkipFormula, TableCopyRowHeight and TableCopyColumnWidth: " + (options & ~CopyOptions) + " asks for what a file of these versions has no groups for, or for rules of AutoCAD's own.", nameof(options));
+                throw new ArgumentException("The library copies a table's cells with ExpandOrContractTable, SkipContent, SkipFormat, SkipMerges, SkipField, SkipFormula, SkipDataLink, TableCopyRowHeight and TableCopyColumnWidth: " + (options & ~CopyOptions) + " asks for what a file of these versions has no groups for, or for rules of AutoCAD's own.", nameof(options));
             }
 
             if (!IsResident || !source.IsResident || !ReferenceEquals(source.Item.File, Item.File))
@@ -599,7 +607,27 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            Rebuild(layout, rows, columns, heights, widths, cells, blocks);
+            // The links alike: this table's the copy meets go, the source's wholly within its range come, unless they are skipped.
+            var links = new List<LinkedRange>();
+            bool linksToo = (options & DxfTableCopyOptions.SkipDataLink) == 0;
+
+            foreach (LinkedRange l in Links(layout))
+            {
+                if (!linksToo || !Meets(l.Range, copied))
+                {
+                    links.Add(l);
+                }
+            }
+
+            foreach (LinkedRange l in linksToo ? Links(from) : new List<LinkedRange>())
+            {
+                if (Within(l.Range, taken) && l.BottomRow - taken.TopRow < high && l.RightColumn - taken.LeftColumn < wide)
+                {
+                    links.Add(l.With(top + l.TopRow - taken.TopRow, left + l.LeftColumn - taken.LeftColumn, top + l.BottomRow - taken.TopRow, left + l.RightColumn - taken.LeftColumn));
+                }
+            }
+
+            Rebuild(layout, rows, columns, heights, widths, cells, blocks, links);
             return copied;
         }
 
@@ -735,7 +763,7 @@ namespace GeometryHelper.Dxf
 
             if (changed)
             {
-                Rebuild(layout, layout.Rows, layout.Columns, null, null, cells, Blocks(layout));
+                Rebuild(layout, layout.Rows, layout.Columns, null, null, cells, Blocks(layout), Links(layout));
             }
         }
 
@@ -1072,14 +1100,17 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Writes the record anew in one writing: its counts of rows and columns (91, 92), the heights and widths given (141, 142,
         /// where given) in the place of those it had, its cells, row by row, each of the groups given, and the merging (173, 175,
-        /// 176) of each cell made to agree with the blocks given where it does not already; the groups before its cells and after
-        /// its last kept as they are. Nothing is written where the record comes out the same.
+        /// 176) of each cell made to agree with the blocks given where it does not already, and the links to data of each made
+        /// to agree with the links given, named by their top left cells alone; the groups before its cells and after its last
+        /// kept as they are. Nothing is written where the record comes out the same.
         /// </summary>
-        private void Rebuild(Layout layout, int rows, int columns, IList<string> heights, IList<string> widths, IList<List<KeyValuePair<int, string>>> cells, IList<DxfCellRange> blocks)
+        private void Rebuild(Layout layout, int rows, int columns, IList<string> heights, IList<string> widths, IList<List<KeyValuePair<int, string>>> cells, IList<DxfCellRange> blocks, IList<LinkedRange> links)
         {
             DxfDimGroups g = layout.Groups;
             int first = layout.CellStart[0];
             List<string> held = CellFields(layout);
+            List<string> linked = LinkHandles(layout);
+            LinkedRange[] anchored = Anchors(cells.Count, columns, links);
             var list = new List<KeyValuePair<int, string>>(g.List.Count + cells.Count);
             bool rowsSet = false;
             bool columnsSet = false;
@@ -1134,7 +1165,8 @@ namespace GeometryHelper.Dxf
                     cell = corner ? Merged(cell, 1, block.RightColumn - block.LeftColumn + 1, block.BottomRow - block.TopRow + 1) : Merged(cell, 1, 0, 0);
                 }
 
-                list.AddRange(cell);
+                // A link is named by a text cell alone: a block cell keeps its 340, its block, and a link it is the top left cell of goes.
+                list.AddRange(IsTextCell(cell, 0) ? Linked(cell, anchored[k]) : cell);
             }
 
             for (int i = layout.CellsEnd; i < g.List.Count; i++)
@@ -1150,6 +1182,7 @@ namespace GeometryHelper.Dxf
                 CheckEditable();
                 g.Write(Order);
                 EraseFields(held);
+                EraseLinks(linked);
             }
         }
 

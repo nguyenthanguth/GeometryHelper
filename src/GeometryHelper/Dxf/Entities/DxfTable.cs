@@ -1296,7 +1296,8 @@ namespace GeometryHelper.Dxf
 
             /// <summary>
             /// Where the last cell ends and the table's own part begins: after its head, its value (301 to 304) and the overrides
-            /// its flags give it, each once; the first group of no cell, or an override its flags do not give, is the table's.
+            /// its flags give it, each once; the first group of no cell, or an override its flags do not give, is the table's. The
+            /// link to data of a text cell, straight after its odd 92 (340, 93, 94, 96), is the cell's; a 93 anywhere else is not.
             /// </summary>
             private int EndOfLast(int from, int to)
             {
@@ -1326,7 +1327,7 @@ namespace GeometryHelper.Dxf
                             flags = read;
                         }
 
-                        i++;
+                        i += code == 92 && IsTextCell(Groups.List, from) ? 1 + LinkRun(Groups.List, i, to) : 1;
                         continue;
                     }
 
@@ -1717,6 +1718,12 @@ namespace GeometryHelper.Dxf
 
                     int their = Array.IndexOf(HeadOrder, key);
                     after = their >= 0 && their < rank ? i : after;
+                }
+
+                // A text cell's link to data stays straight after its 92: what goes after the 92 goes after the link.
+                if (Groups.List[after].Key == 92 && IsTextCell(Groups.List, From))
+                {
+                    after += LinkRun(Groups.List, after, end);
                 }
 
                 Groups.Insert(after + 1, new KeyValuePair<int, string>(code, text));

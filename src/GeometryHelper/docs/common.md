@@ -1267,6 +1267,31 @@ the other way, 10 and 20 to 10, 0 and -10; a text is a number only before R2007,
 these versions has no group for is not there: several contents in one cell, and a line's style, linetype and the spacing
 of a double line.
 
+A range of a table's cells is linked to data as AutoCAD links one to a spreadsheet, from R2007 on; the library reads
+such links and takes them away, and writes no new one yet. A `DxfDataLink` is a DATALINK of the drawing's
+`DataLinkDictionary` (ACAD_DATALINK), read with its `DataAdapterId` (`AcExcel`), `ConnectionString`
+(`parts.xlsx!Sheet1!A1:B2`), `Description`, `ToolTip`, `DataLinkOption`, `UpdateOption`, `IsValid` and
+`GetUpdateStatus`; its `Name` set renames its entry. A range's top left cell names its link after its 92, made odd: the
+DATALINK's handle (340), the range's rows (93) and columns (94) and a 96 of nought. `GetDataLink`, `GetDataLinkRange`
+and `IsLinked` read it from every cell of the range: the table linked over (1, 0) to (2, 1) gives that range from its
+cell (2, 1), and `link.GetTargets()` gives the table. Only a text cell names a link: a block cell's 340 names its block,
+whatever its 92. Rows and columns put in and taken out, `SetSize` and `CopyFrom` move, grow and shrink a linked range as
+they do a block of merged cells, `CopyFrom` bringing the links wholly within its source unless `SkipDataLink` is given,
+and a cell filled from a linked one is not linked. `RemoveDataLink` takes the links away; a DATALINK the cells let go of
+is erased, with what it owns, only where its `DataLinkOption` is `Anonymous` and nothing else of the file points at it
+(another table, a copy of this one), the dictionary that holds it aside: a named link stays, as AutoCAD's Data Link
+Manager keeps it. The library reads no spreadsheet: the cells keep what they hold, and `UpdateDataLink` is not there.
+
+Writing a link is held for the checks in AutoCAD ([Checking against AutoCAD](dxf-autocad-checks.md), points 73 to 78):
+`SetDataLink` is not there, and a `DxfDataLink` is neither made in code nor has its groups set. The DXF reference
+describes no DATALINK and ezdxf keeps one as it reads it; the groups read are those LibreDWG gives, which have no 70 and
+put the link's custom data between `305 CUSTOMDATA`, `1 DATAMAP_BEGIN` and `309 DATAMAP_END`. The run 340, 93, 94, 96 is
+the one LibreDWG gives a cell of a TABLECONTENT, whose 92 says it has linked data; that a cell of an ACAD_TABLE names
+its link so, after the 92 of R2007, is the library's guess. An `UpdateOption` of 1 179 649, as LibreDWG's example gives
+it, is SkipFormat (0x20000) and AllowSourceUpdate (0x100000), which make 1 179 648, and a 0x1 no flag of AutoCAD's
+`UpdateOption` explains. The breaking of a table into parts (`BreakEnabled` and the rest) is not there either: its
+groups are in no reference.
+
 ### Layouts and viewports
 
 The layouts are `db.Layouts`, `DxfLayout` objects in the order of their tabs: `LayoutName` (set, the layout dictionary's

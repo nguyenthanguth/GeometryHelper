@@ -429,6 +429,25 @@ from which axis and which way it is measured not confirmed. ezdxf 1.4.5 read eve
 replaced and erased, on drawings of R2010 and R2018, with the values set and nothing for its recover and audit to fix; 253
 drawings read and saved again, 244 of the reader's corpus and the 9 the tests hold, give the bytes they gave before.
 
+**NEW.** The data links of a `DxfTable` as AutoCAD's `Table` keeps them, read and taken away: `GetDataLink` (of a cell,
+of the table, of a range), `GetDataLinkRange`, `IsLinked` and `RemoveDataLink` (of the table, of a cell), with the new
+`DxfDataLink`, a DATALINK of the drawing's ACAD_DATALINK (its data adapter, connection string, description, tooltip,
+options, update options, `IsValid`, `GetUpdateStatus`, and `GetTargets`, the tables it fills; its `Name` set renames its
+entry), `DxfDataLinkOption` and `DxfUpdateDirection`. A range's top left cell names its link after its 92, made odd: the
+DATALINK's handle (340), the range's rows (93) and columns (94) and a 96; the table linked over (1, 0) to (2, 1) gives
+that range from its cell (2, 1). Only a text cell names a link: a block cell keeps its block whatever its 92. Rows and
+columns put in and taken out, `SetSize`, `CopyFrom`, which now takes `SkipDataLink`, and `Fill` keep the links with
+their cells as they keep merges. A DATALINK the cells let go of, by `RemoveDataLink` or by its rows taken out, is erased
+with what it owns only where it is anonymous and nothing else of the file points at it, a copy of the table among them;
+a named one stays, as AutoCAD's Data Link Manager keeps it. Writing a link, `SetDataLink` and a `DxfDataLink` made or
+changed in code, is held for the checks in AutoCAD: the DXF reference describes no DATALINK, and the groups read are
+those LibreDWG gives, which have no 70 and put the link's custom data between `305 CUSTOMDATA`, `1 DATAMAP_BEGIN` and
+`309 DATAMAP_END`; the run 340, 93, 94, 96 is the one LibreDWG gives a cell of a TABLECONTENT, and its place after the
+92 of an ACAD_TABLE's cell is the library's guess. The library reads no spreadsheet. ezdxf 1.4.5 read every change on
+drawings of R2007 and R2018 with nothing for its recover and audit to fix, the cells' texts as before, and no pointer of
+them names a handle the file has not; a table of 16 001 rows has its rows put in, taken out, merged, copied and filled
+in the time it took before. The breaking of a table into parts is left out, its groups being in no reference.
+
 **NEW.** The dimension variables of AutoCAD's `Database`, `Dimension` and `Leader` that the library did not have, 84 of
 them. `DxfDatabase` reads and sets the 77 `$DIM` variables of the header by their AutoCAD names (`Dimasz` is `$DIMASZ`,
 `Dimfxlen` `$DIMFXL`, `DimAssoc` `$DIMASSOC`), each read as AutoCAD's metric drawing has it where the header gives none

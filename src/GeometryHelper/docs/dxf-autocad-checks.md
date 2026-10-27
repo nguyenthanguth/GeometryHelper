@@ -485,3 +485,50 @@ an error AUDIT reports or fixes in a file the library wrote is a change to make 
     - Now: `NorthDirection` is not given; `NorthDirectionVector` is read and set as groups 12 and 22.
     - A change if: the three angles show from which axis and which way AutoCAD measures it; the library can then give
       `NorthDirection` from the vector.
+
+## Data links of tables
+
+The library reads the data links of a table and takes them away, and writes no new one until the points below are settled.
+
+73. **Where a table's cell names its data link.**
+    - Try: link the cells (1, 0) to (2, 1) of a table to a spreadsheet with DATALINK, save as DXF of R2007 and of R2018, and
+      read the cells of the ACAD_TABLE.
+    - Now: the range's top left cell is read as naming its link after its 92, made odd: `92 1`, `340` the DATALINK's handle,
+      `93 2`, `94 2`, `96 0`, before `301 CELL_VALUE`; a block cell names none, its 340 being its block. That run is the one
+      LibreDWG gives a cell of a TABLECONTENT, whose 92 says it has linked data; on a cell of an ACAD_TABLE it is a guess, and
+      what the other bits of that 92 mean is not known.
+    - A change if: AutoCAD names the link elsewhere (in a TABLECONTENT, in the table's own part, in other groups) or gives the
+      92 other bits; the reading then follows AutoCAD, and the writing is made on it.
+
+74. **The groups of a DATALINK.**
+    - Try: read the DATALINK of the drawing of point 73; then open in AutoCAD, with AUDIT, a drawing whose DATALINK has no 70
+      and a count of nought, `94 0`, followed by `305 CUSTOMDATA`, `1 DATAMAP_BEGIN` and `309 DATAMAP_END`.
+    - Now: read as LibreDWG gives AcDbDataLink: 1, 300, 301, 302, 90, 91, 92, 170 to 176, 177, 93, 304, then the count 94
+      of custom data, its pairs of a 330 and a 304 between the markers, and the 360; LibreDWG gives no 70.
+    - A change if: AutoCAD writes a 70 or another group, the pairs after the 94 are not a 330 of an object the link owns and
+      a 304, or AUDIT fixes a link of `94 0`.
+
+75. **The class of a DATALINK.**
+    - Try: read the CLASS of DATALINK in the CLASSES section of the drawing of point 73.
+    - Now: links are read whatever the CLASSES section lists, and no class is added, as no link is written; the writing held
+      back listed DATALINK, AcDbDataLink, ObjectDBX Classes, of the flags 1153.
+    - A change if: AutoCAD's flags or names differ; the writing takes AutoCAD's.
+
+76. **What a linked table keeps of its link.**
+    - Try: in the drawing of point 73, look in the ACAD_TABLE for a reactor or a pointer to the DATALINK other than the
+      cell's 340, and in the DATALINK for the table's handle.
+    - Now: the cell's 340 alone is read and taken away; the DATALINK is counted as let go of when no record of the file points
+      at it, its dictionary aside.
+    - A change if: AutoCAD keeps a reactor or a pointer either way; taking a link away then takes it out too.
+
+77. **A link detached.**
+    - Try: detach the link of a table in AutoCAD, once for a link named in the Data Link Manager and once for one whose
+      `DataLinkOption` is Anonymous, and save.
+    - Now: the cell's groups of the link taken out and its 92 made even; the DATALINK erased, with what it owns, only where it
+      is anonymous and nothing else of the file points at it; a named one kept in ACAD_DATALINK.
+    - A change if: AutoCAD erases a named link too, or keeps an anonymous one no table names.
+
+78. **A formula in a linked cell.**
+    - Try: give the top left cell of a linked range a formula in AutoCAD, save, and read the cell's groups.
+    - Now: `SetFormula` writes the cell's 344 after the link's run: `92 1`, `340`, `93`, `94`, `96 0`, then `344`.
+    - A change if: AutoCAD writes the 344 before the 340, or keeps no formula in a linked cell.

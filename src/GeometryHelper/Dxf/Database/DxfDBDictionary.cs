@@ -50,8 +50,8 @@ namespace GeometryHelper.Dxf
     /// </para>
     /// <para>
     /// A dictionary holds objects of the library's classes as they come: a <see cref="DxfDBDictionary"/>, a
-    /// <see cref="DxfXrecord"/>, a <see cref="DxfGroup"/>, a <see cref="DxfLayout"/>, a <see cref="DxfPlotSettings"/> or a
-    /// <see cref="DxfField"/>, which <see cref="DxfDBObject.SetField(DxfField)"/> adds; the
+    /// <see cref="DxfXrecord"/>, a <see cref="DxfGroup"/>, a <see cref="DxfLayout"/>, a <see cref="DxfPlotSettings"/>, a
+    /// <see cref="DxfField"/>, which <see cref="DxfDBObject.SetField(DxfField)"/> adds, or a <see cref="DxfDataLink"/>, read only; the
     /// other objects of the OBJECTS section, as a MATERIAL, are read as they are. The drawing's own dictionaries are reached
     /// from <see cref="DxfDatabase.NamedObjectsDictionary"/>, <see cref="DxfDatabase.GroupDictionary"/>,
     /// <see cref="DxfDatabase.LayoutDictionary"/> and the others of the database.
