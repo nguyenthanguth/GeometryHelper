@@ -1539,6 +1539,58 @@ written at 4.999999999999999. `GeoArc2.FromBulge`, and what it builds, still tak
 A turn takes 0.124 microseconds on .NET 10 rather than 0.120, and 0.51 on .NET Framework 4.8 as it did; an edge read as
 an arc 0.083 rather than 0.080, and 0.33 as it did; an arc built from two angles as long as it did.
 
+**FIXED.** The distance from a curved edge in space, a curved chain and a curved loop to a point is the exact one for a
+point near the centre of a bend too, as the distance from an arc in space now is. A point whose foot in the plane of a
+bend fell within the point tolerance of its centre was carried to the bend's start first, which on a bend as small as
+the tolerance is several times the distance: the edge from (0.001, 0, 0) to (-0.001, 0, 0) with a bulge of 1 about Z,
+the half circle of radius 0.001 through (0, 0.001, 0), was 0.00122 from (0, 0.0007, 0) at a tolerance of a thousandth,
+and so was the chain (0.01, 0, 0), (0.001, 0, 0), (-0.001, 0, 0), (-0.01, 0, 0) with that bend in the middle, and the
+point off them, where it is 0.0003 and on them; a point of the edge moved 0.00029 straight in read as much as 0.00171.
+Of 300 000 random points about edges, chains and loops whose bend has a radius of 1E-4 to 1E7 and sweeps up to a hair
+short of a whole turn, at tolerances of nought, 0.001 and 0.01, the 46 282 whose foot lies within the tolerance of a
+bend's centre could read a new distance, and 23 338 do, each one nearer the exact one than it was, but for 5 that moved
+within the rounding of a centre 1E5 out; 564 of them were off the shape and are on it, none the other way, and no point
+further out reads a bit differently. The distances more than a thousand-millionth of the size of their coordinates off
+the exact one went from 7 073 to none on edges, and from 8 497 to 2 313 on chains and loops, every one of those 2 313
+nearest a straight edge shorter than the tolerance, which is read as its start point as before; the 69 points that broke
+the triangle inequality break it no more. `IsPointOn` and `Locate` of an edge and a chain read the same; a loop's
+`Locate` of a point in its plane reads the loop laid flat, as it did, and its `IsPointOn` now agrees with it, where 85
+of 59 874 points laid in the plane read on the outline by one and off it by the other. So does everything that asks them
+or the distance: the point's `DistanceTo` of them, the loop's `SignedDistanceTo` of a point off its plane, and a ball's
+`DistanceTo`, `CollidesWith` and `GetShortestLineTo` to them and theirs to it, whose line follows the distance and lands
+at the true contact: the ball of radius 49.99 about (0, -0.0009, 0) is 0.0091 from the edge from (-50, 0, 0) to
+(50, 0, 0) with a bulge of 1 about Z, through (0, -50, 0), and from a chain or a loop it bends in, and its line lands on
+(0, -50, 0), where it was 0.01 away with a line to (-50, 0, 0). Of 20 000 random bends of radius 0.2 to 2.2 times the
+tolerance, at 0.001 and 0.01, asked one question each, 773 points read nearer their distance and 175 of them are on the
+edge or chain where they were off, and 624 balls read nearer theirs, 69 touching where they did not; no crossing with a
+segment, an arc, a circle or the surface of a ball changed, since those read each bend as its arc already. The
+projections `GetClosestPointOnBoundary` and `GetShortestLineTo` to a point keep carrying a point near the centre to the
+start, so their line can be longer than the distance, by at most twice the foot's offset from the centre; on a chain or
+a loop the start is one candidate, and another edge can still be nearer. The distance takes 0.33 microseconds a call to
+an edge and 0.44 to a chain or a loop on .NET 10, and 0.73, 1.02 and 1.04 on .NET Framework 4.8; a ball's line 0.60,
+0.80 and 0.81, and 1.38, 1.91 and 1.98; each within 3.1 % of what it did, the least of twenty runs. For a point near a
+centre, which is no longer cut short, it takes up to 9 % more.
+
+**FIXED.** A cut or a trim by a point on a curve lands where the distance to the point is measured to, so a point near
+the centre of a small bend, which is on it, cuts the bend where it is nearest the point, and a small arc in space is cut
+there too. At a tolerance of a thousandth, the chain (0.01, 0, 0), (0.001, 0, 0), (-0.001, 0, 0), (-0.01, 0, 0) with a
+bulge of 1 about Z on its middle edge, cut or trimmed by (0, 0.0007, 0), comes apart at (0, 0.001, 0), where it was
+refused; the loop (0.01, -0.01, 0), (0.001, 0, 0), (-0.001, 0, 0), (-0.01, -0.01, 0) with that bend second is opened
+there, where it was refused; and the half circle itself is cut there, where it was left whole.
+`GeoPolylineArc3.TrySplitBy` and `TryTrimTo` and `GeoPolygonArc3.TrySplitBy` of a point read the bend's parameter at no
+tolerance, and so does `GeoArc3.TrySplitAt` of a point on the arc; so do the cuts of a chain or a loop by a plane, a
+face, a box or a body where they cross a bend near its centre. A point off an arc whose foot falls within the tolerance
+of its centre is read as at the centre, which has no direction, and leaves the arc whole, as it did: the half circle of
+radius 50 from (50, 0, 0) through (0, 50, 0) to (-50, 0, 0) is not cut by (0.0005, 0.0003, 0), some 50 from it; and a
+point exactly at a centre leaves a bend whole. Of the 300 000 points above, 180 cut an arc they lie on where they left it
+whole, each at the arc's point nearest them; 154 cut a chain and 154 trim it where they were refused, and 8 cut it and 1
+trims it elsewhere; 79 open a loop where they were refused; 43 cuts by a plane through the point changed, each where the
+plane crosses a bend within the tolerance of its centre; and no cut, trim or split by a point or a plane further out
+changes by a bit. Of the 20 000 random small bends, 147 arcs, 78 chains and 110 loops are cut where they were not, 39
+chains are trimmed where they were not, and 72 cuts and trims land elsewhere; 402 of those 446 land at the point of the
+shape nearest the point, and the other 44 at a corner or on another edge within the tolerance of it, as a cut within the
+tolerance does; 33 of 1 754 cuts of a chain by a plane changed, and none of 1 493 of a loop.
+
 **FIXED.** A segment, a ray or a line without ends that pierces the plane of an arc, a circle, a curved edge or a curved
 chain within the point tolerance of the rim without crossing it is given the point of the curve nearest it, as a straight
 edge and a triangle give the point of a touch: the segment from (0, 50.0006, 1) to (0, 50.0006, -1) collided with the

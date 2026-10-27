@@ -80,9 +80,18 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// A point off the arc is answered by the place of the arc nearest it, the same way the plane answers,
         /// and a point off the plane by what stands under it: only the direction from the centre decides.
+        /// <para>
+        /// A point on the arc, within the tolerance of it, cuts it where its distance to the arc is measured to, found at no
+        /// tolerance, so a point on a small arc near its centre is not carried to the start, which left the arc whole: at a
+        /// tolerance of a thousandth, the half circle of radius 0.001 about the origin in the plan, from (0.001, 0, 0) through
+        /// (0, 0.001, 0) to (-0.001, 0, 0), is cut by (0, 0.0007, 0) at (0, 0.001, 0). A point off the arc whose foot falls
+        /// within the tolerance of the centre is read as at the centre, which has no direction, and leaves the arc whole, as
+        /// it did: the half circle of radius 50 from (50, 0, 0) through (0, 50, 0) to (-50, 0, 0) is not cut by
+        /// (0.0005, 0.0003, 0), 50 from it, whose direction from the centre is no surer than the tolerance.
+        /// </para>
         /// </remarks>
         public static bool TrySplitAt(GeoArc3 arc, GeoPoint3 point, out GeoArc3[] pieces, Tolerance tolerance)
-            => TrySplitAt(arc, arc.GetParameterAtPoint(point, tolerance), out pieces, tolerance);
+            => TrySplitAt(arc, arc.GetParameterAtPoint(point, arc.IsPointOn(point, tolerance) ? default(Tolerance) : tolerance), out pieces, tolerance);
 
         /// <summary>
         /// Cuts an arc at an arc length measured from its start.

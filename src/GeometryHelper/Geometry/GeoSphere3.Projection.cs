@@ -137,9 +137,14 @@ namespace GeometryHelper.Geometry
         /// Gets the shortest segment leaving this ball and landing on an edge, within a tolerance.
         /// </summary>
         /// <returns>A segment from the surface of the ball to the point of the shape nearest its centre, as long as the distance between them; of no length where they meet.</returns>
+        /// <remarks>
+        /// The point of a bend is found at no tolerance, as the distance is, so a centre near the centre of its arc is not carried to the bend's start: at
+        /// a tolerance of a thousandth, the ball of radius 49.99 about (0, -0.0009, 0) and the edge from (-50, 0, 0) to (50, 0, 0) bulging by 1 about Z,
+        /// through (0, -50, 0), are joined by the segment 0.0091 long that lands on (0, -50, 0).
+        /// </remarks>
         public GeoLine3 GetShortestLineTo(GeoEdge3 edge, Tolerance tolerance)
         {
-            return Sphere3.Join(this, edge.GetClosestPointOnBoundary(Center, tolerance), DistanceTo(edge, tolerance));
+            return Sphere3.Join(this, edge.GetMeasuredPoint(Center, tolerance), DistanceTo(edge, tolerance));
         }
 
         /// <summary>
@@ -197,6 +202,10 @@ namespace GeometryHelper.Geometry
         /// Gets the shortest segment leaving this ball and landing on a curved chain, within a tolerance.
         /// </summary>
         /// <returns>A segment from the surface of the ball to the point of the shape nearest its centre, as long as the distance between them; of no length where they meet.</returns>
+        /// <remarks>
+        /// The point of a bend is found at no tolerance, as the distance is, so a centre near the centre of its arc is not carried to the bend's start, as
+        /// <see cref="GetShortestLineTo(GeoEdge3, Tolerance)"/> says.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the curved chain is null.</exception>
         public GeoLine3 GetShortestLineTo(GeoPolylineArc3 chain, Tolerance tolerance)
         {
@@ -205,7 +214,7 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentNullException(nameof(chain));
             }
 
-            return Sphere3.Join(this, chain.GetClosestPointOnBoundary(Center, tolerance), DistanceTo(chain, tolerance));
+            return Sphere3.Join(this, chain.GetMeasuredPoint(Center, tolerance), DistanceTo(chain, tolerance));
         }
 
         /// <summary>
@@ -218,6 +227,10 @@ namespace GeometryHelper.Geometry
         /// Gets the shortest segment leaving this ball and landing on a curved loop, within a tolerance.
         /// </summary>
         /// <returns>A segment from the surface of the ball to the point of the shape nearest its centre, as long as the distance between them; of no length where they meet.</returns>
+        /// <remarks>
+        /// The point of a bend is found at no tolerance, as the distance is, so a centre near the centre of its arc is not carried to the bend's start, as
+        /// <see cref="GetShortestLineTo(GeoEdge3, Tolerance)"/> says.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the curved loop is null.</exception>
         public GeoLine3 GetShortestLineTo(GeoPolygonArc3 loop, Tolerance tolerance)
         {
@@ -226,7 +239,7 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentNullException(nameof(loop));
             }
 
-            return Sphere3.Join(this, loop.GetClosestPointOnBoundary(Center, tolerance), DistanceTo(loop, tolerance));
+            return Sphere3.Join(this, loop.GetMeasuredPoint(Center, tolerance), DistanceTo(loop, tolerance));
         }
 
         /// <summary>

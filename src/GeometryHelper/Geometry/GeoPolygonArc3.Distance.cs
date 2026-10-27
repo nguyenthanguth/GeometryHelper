@@ -24,7 +24,19 @@ namespace GeometryHelper.Geometry
         /// Gets the distance from the outline of the loop to a point, within a tolerance.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoPoint3 point, Tolerance tolerance) => point.DistanceTo(GetClosestPointOnBoundary(point, tolerance));
+        /// <remarks>
+        /// Each edge is measured as <see cref="GeoEdge3.DistanceTo(GeoPoint3, Tolerance)"/> measures it, so the tolerance
+        /// changes nothing in the distance to a bend: a point near the centre of its arc is not carried to the bend's start,
+        /// and the line <see cref="GetShortestLineTo(GeoPoint3, Tolerance)"/> gives can be longer than the distance there.
+        /// </remarks>
+        public double DistanceTo(GeoPoint3 point, Tolerance tolerance) => ArcChain3.DistanceTo(Edges(), point, tolerance);
+
+        /// <summary>
+        /// Gets the point of the outline its distance to a point is measured to, a point near the centre of a bend not
+        /// carried to the bend's start (see <see cref="GeoEdge3.GetMeasuredPoint(GeoPoint3, Tolerance)"/>).
+        /// </summary>
+        internal GeoPoint3 GetMeasuredPoint(GeoPoint3 point, Tolerance tolerance) => ArcChain3.MeasuredPoint(Edges(), point, tolerance);
+
         /// <summary>
         /// Gets how far a point is from the boundary of the loop, negative inside it.
         /// </summary>

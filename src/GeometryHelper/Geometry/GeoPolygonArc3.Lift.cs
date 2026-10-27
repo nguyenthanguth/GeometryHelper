@@ -380,6 +380,12 @@ namespace GeometryHelper.Geometry
         /// <param name="pieces">The open chains the loop came apart into.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when the cut was made; otherwise, false.</returns>
+        /// <remarks>
+        /// The loop is cut where its distance to the point is measured to, so a point near the centre of a bend, which is on
+        /// it, cuts the bend where it is nearest the point: at a tolerance of a thousandth, the loop (0.01, -0.01, 0),
+        /// (0.001, 0, 0), (-0.001, 0, 0), (-0.01, -0.01, 0) with a bulge of 1 on its second edge about Z is opened at
+        /// (0, 0.001, 0) when cut by (0, 0.0007, 0).
+        /// </remarks>
         public bool TrySplitBy(GeoPoint3 point, out GeoPolylineArc3[] pieces, Tolerance tolerance)
             => ArcChain3.TrySplitBy(this, point, out pieces, tolerance);
 

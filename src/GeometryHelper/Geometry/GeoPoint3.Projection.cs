@@ -155,8 +155,10 @@ namespace GeometryHelper.Geometry
         /// turned round, so that it leaves this point and lands on the edge.
         /// </summary>
         /// <remarks>
-        /// The segment leaves this point and lands on the edge, as long as
-        /// <see cref="DistanceTo(GeoEdge3, Tolerance)"/>.
+        /// The segment leaves this point and lands on the edge, as long as <see cref="DistanceTo(GeoEdge3)"/> for a point
+        /// away from the centre of a bend. A point whose foot in the plane of a bend falls within the tolerance of the centre
+        /// of its arc gets the segment to the bend's start, which can be longer than the distance, by at most twice the
+        /// foot's offset from the centre.
         /// </remarks>
         public GeoLine3 GetShortestLineTo(GeoEdge3 edge) => edge.GetShortestLineTo(this).Reverse();
 
@@ -166,8 +168,12 @@ namespace GeometryHelper.Geometry
         /// and lands on the edge.
         /// </summary>
         /// <remarks>
-        /// The segment leaves this point and lands on the edge, as long as
-        /// <see cref="DistanceTo(GeoEdge3, Tolerance)"/>.
+        /// The segment leaves this point and lands on the edge, as long as <see cref="DistanceTo(GeoEdge3, Tolerance)"/> for
+        /// a point away from the centre of a bend. A point whose foot in the plane of a bend falls within the tolerance of the
+        /// centre of its arc gets the segment to the bend's start, which can be longer than the distance, by at most twice
+        /// the foot's offset from the centre: at a tolerance of a thousandth, the point (0, -0.0009, 0) and the edge from
+        /// (-50, 0, 0) to (50, 0, 0) bulging by 1 about Z, through (0, -50, 0), are joined by a segment 50.00000001 long to
+        /// (-50, 0, 0), where the distance is 49.9991.
         /// </remarks>
         public GeoLine3 GetShortestLineTo(GeoEdge3 edge, Tolerance tolerance)
             => edge.GetShortestLineTo(this, tolerance).Reverse();
@@ -306,7 +312,9 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <remarks>
         /// The segment leaves this point and lands on the chain, measured on the arcs, as long as
-        /// <see cref="DistanceTo(GeoPolylineArc3, Tolerance)"/>.
+        /// <see cref="DistanceTo(GeoPolylineArc3)"/> for a point away from the centre of a bend. Near the centre it can be
+        /// longer, by at most twice the foot's offset from the centre, as
+        /// <see cref="GeoPolylineArc3.GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/> says.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public GeoLine3 GetShortestLineTo(GeoPolylineArc3 chain)
@@ -319,7 +327,9 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <remarks>
         /// The segment leaves this point and lands on the chain, measured on the arcs, as long as
-        /// <see cref="DistanceTo(GeoPolylineArc3, Tolerance)"/>.
+        /// <see cref="DistanceTo(GeoPolylineArc3, Tolerance)"/> for a point away from the centre of a bend. Near the centre it
+        /// can be longer, by at most twice the foot's offset from the centre, as
+        /// <see cref="GeoPolylineArc3.GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/> says.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public GeoLine3 GetShortestLineTo(GeoPolylineArc3 chain, Tolerance tolerance)

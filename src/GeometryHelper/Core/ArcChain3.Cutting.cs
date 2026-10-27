@@ -55,7 +55,10 @@ namespace GeometryHelper.Core
                         continue;
                     }
 
-                    double parameter = edge.GetParameterAtPoint(cut, tolerance);
+                    // The cut lands where the edge is measured to be on it: a point near the centre of a small bend is on it,
+                    // and its parameter read at the tolerance was the start's, which left the bend whole and the loop cut
+                    // nowhere.
+                    double parameter = edge.GetMeasuredParameter(cut, tolerance);
 
                     // Nought and one are the ends of the edge, and those break between edges instead.
                     if (parameter > 0.0 && parameter < 1.0)

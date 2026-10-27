@@ -1063,6 +1063,14 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Cuts the arc at the point of it nearest a point, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// A point on the arc, within the tolerance of it, cuts it where its distance is measured to, found at no tolerance, so
+        /// a point on a small arc near its centre cuts the arc where the arc is nearest it: at a tolerance of a thousandth, the
+        /// half circle of radius 0.001 about the origin in the plan, from (0.001, 0, 0) through (0, 0.001, 0) to
+        /// (-0.001, 0, 0), is cut by (0, 0.0007, 0) at (0, 0.001, 0). A point off the arc whose foot falls within the
+        /// tolerance of the centre is read as at the centre, which has no direction, and leaves the arc whole: the half
+        /// circle of radius 50 from (50, 0, 0) through (0, 50, 0) to (-50, 0, 0) is not cut by (0.0005, 0.0003, 0).
+        /// </remarks>
         public bool TrySplitAt(GeoPoint3 point, out GeoArc3[] pieces, Tolerance tolerance)
             => Arc3.TrySplitAt(this, point, out pieces, tolerance);
 

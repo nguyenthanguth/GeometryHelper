@@ -36,6 +36,13 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the point of the outline nearest another point, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// A point whose foot in the plane falls within the tolerance of the centre of a bend is read as at the centre, which
+        /// has no direction, and that bend offers its start, as
+        /// <see cref="GeoEdge3.GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/> does; the start is one candidate among the
+        /// edges' points, and another edge can still be nearer. The distance to the point is the exact one, so the line can be
+        /// longer than it, by at most twice the foot's offset from the centre.
+        /// </remarks>
         public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point, Tolerance tolerance)
             => ArcChain3.ClosestPoint(Edges(), point, tolerance);
 
@@ -55,6 +62,9 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// A point off the plane stands at the same height above every point of the boundary, so the nearest
         /// place to it is the nearest place to its shadow. That makes this exact without any coplanarity.
+        /// The line leaves the point <see cref="GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/> gives, so near the centre
+        /// of a bend it can be longer than <see cref="DistanceTo(GeoPoint3, Tolerance)"/>, by at most twice the foot's offset
+        /// from the centre.
         /// </remarks>
         public GeoLine3 GetShortestLineTo(GeoPoint3 point, Tolerance tolerance)
             => new GeoLine3(GetClosestPointOnBoundary(point, tolerance), point);

@@ -103,6 +103,31 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Gets the point of a run of edges its distance to another point is measured to: the nearest of the points
+        /// <see cref="GeoEdge3.GetMeasuredPoint(GeoPoint3, Tolerance)"/> gives, so a point near the centre of a bend is not
+        /// carried to the bend's start.
+        /// </summary>
+        internal static GeoPoint3 MeasuredPoint(List<GeoEdge3> edges, GeoPoint3 point, Tolerance tolerance)
+        {
+            GeoPoint3 best = edges[0].GetMeasuredPoint(point, tolerance);
+            double reach = point.DistanceTo(best);
+
+            for (int i = 1; i < edges.Count; i++)
+            {
+                GeoPoint3 candidate = edges[i].GetMeasuredPoint(point, tolerance);
+                double distance = point.DistanceTo(candidate);
+
+                if (distance < reach)
+                {
+                    reach = distance;
+                    best = candidate;
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
         /// Gets how far along a run of edges the point nearest another one sits.
         /// </summary>
         internal static double DistanceAtPoint(List<GeoEdge3> edges, GeoPoint3 point, Tolerance tolerance)
@@ -129,11 +154,12 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Gets the distance from a run of edges to a point.
+        /// Gets the distance from a run of edges to a point, exactly at every bend: a point at the centre of one is as far
+        /// from it as any other, and a point near the centre is not carried to its start.
         /// </summary>
         internal static double DistanceTo(List<GeoEdge3> edges, GeoPoint3 point, Tolerance tolerance)
         {
-            return point.DistanceTo(ClosestPoint(edges, point, tolerance));
+            return point.DistanceTo(MeasuredPoint(edges, point, tolerance));
         }
     }
 }

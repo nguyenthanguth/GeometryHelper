@@ -839,6 +839,9 @@ long as the gap; where the shape reaches into the ball it has no length and lies
 Near the centre of a small arc, where the tolerance would read the centre as a point with no direction, the line still lands
 where the ball is nearest the arc: the ball of radius 49.99 about (0.0009, 0, 0) is joined to the lower half of the circle of radius 50
 about the origin by a line 0.0091 long that lands on (50, 0, 0).
+A bend of a curved edge, chain or loop is read the same way: the ball of radius 49.99 about (0, -0.0009, 0) is joined
+to the edge from (-50, 0, 0) to (50, 0, 0) with a bulge of 1, through (0, -50, 0), by a line 0.0091 long that lands on
+(0, -50, 0).
 Two balls that meet have one of no length at the middle of the stretch of the line between their centres that both hold.
 
 **Where the surface is crossed** is asked with `GetIntersections` and `TryIntersectWith`, of a segment, a ray, a line, an arc, a circle,
@@ -1798,6 +1801,13 @@ bar.DistanceTo(p);
 Each bend is rounded in the plane of its own two legs, so the bends need not share a plane, and each arc
 carries that plane away with it. A bar is shorter than its set-out by `2r - πr/2` at every bend, which is
 the number a bar schedule has to carry.
+
+`DistanceTo` measures each bend exactly, for a point near its centre too: at a tolerance of a thousandth, the chain
+(0.01, 0, 0), (0.001, 0, 0), (-0.001, 0, 0), (-0.01, 0, 0) with a bulge of 1 on its middle edge, the half circle of
+radius 0.001 through (0, 0.001, 0), is 0.0003 from (0, 0.0007, 0), and the point is on it; cut or trimmed by that
+point, the chain comes apart at (0, 0.001, 0). `GetClosestPointOnBoundary` carries a point whose foot falls within the
+tolerance of a bend's centre to the bend's start, so its line can be longer than the distance there, by at most twice
+the foot's offset. A straight leg no longer than the tolerance is read as its start point.
 
 A radius per corner works too, read the way the bulges are read: the entry at an index belongs to the vertex
 at that index, and nought leaves that corner square. `TryFilletAt` rounds one named corner. A bend with too

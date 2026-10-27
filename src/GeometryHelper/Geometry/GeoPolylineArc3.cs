@@ -846,6 +846,12 @@ namespace GeometryHelper.Geometry
         /// <param name="pieces">The pieces, in order along the chain, when the cut was made.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when the chain came apart; otherwise, false, and it is handed back whole.</returns>
+        /// <remarks>
+        /// The chain is cut where its distance to the point is measured to, so a point near the centre of a bend, which is on
+        /// it, cuts the bend where it is nearest the point: at a tolerance of a thousandth, the chain (0.01, 0, 0),
+        /// (0.001, 0, 0), (-0.001, 0, 0), (-0.01, 0, 0) with a bulge of 1 on its middle edge about Z comes apart at
+        /// (0, 0.001, 0) when cut by (0, 0.0007, 0).
+        /// </remarks>
         public bool TrySplitBy(GeoPoint3 point, out GeoPolylineArc3[] pieces, Tolerance tolerance)
             => Core.ArcChain3.TrySplitBy(this, point, out pieces, tolerance);
 
@@ -1119,6 +1125,10 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Shortens the chain at one end back to a point on it, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// The chain is cut where <see cref="TrySplitBy(GeoPoint3, out GeoPolylineArc3[], Tolerance)"/> cuts it, so a point
+        /// near the centre of a bend trims it to where the bend is nearest the point.
+        /// </remarks>
         public bool TryTrimTo(GeoPoint3 point, LineEnd end, out GeoPolylineArc3 result, Tolerance tolerance)
             => Lengthen3.TryTrimTo(this, point, end, out result, tolerance);
 

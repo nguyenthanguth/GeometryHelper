@@ -22,6 +22,13 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// Measured on the arcs, so a point sitting over the middle of a bulge is answered with a point on
         /// the bulge and not with one on the chord across it.
+        /// <para>
+        /// A point whose foot in the plane of a bend falls within the tolerance of the centre of its arc is read as at the
+        /// centre, which has no direction, and that bend offers its start, as
+        /// <see cref="GeoEdge3.GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/> does; the start is one candidate among the
+        /// edges' points, and another edge can still be nearer. The distance to the point is the exact one, so the line can be
+        /// longer than it, by at most twice the foot's offset from the centre.
+        /// </para>
         /// </remarks>
         public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point, Tolerance tolerance)
             => ArcChain3.ClosestPoint(ArcChain3.EdgesOf(this), point, tolerance);
@@ -51,9 +58,10 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <remarks>
         /// The segment leaves the point <see cref="GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/> gives, measured
-        /// on the arcs, so it is as long as <see cref="DistanceTo(GeoPoint3, Tolerance)"/>: from the chain (0, 0, 0),
-        /// (100, 0, 0), (100, 100, 0) with both legs straight, the point (50, 30, 40) gets the one from (50, 0, 0), 50
-        /// long.
+        /// on the arcs, so for a point away from the centre of a bend it is as long as
+        /// <see cref="DistanceTo(GeoPoint3, Tolerance)"/>: from the chain (0, 0, 0), (100, 0, 0), (100, 100, 0) with both
+        /// legs straight, the point (50, 30, 40) gets the one from (50, 0, 0), 50 long. Near the centre of a bend it can be
+        /// longer, as <see cref="GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/> says.
         /// </remarks>
         public GeoLine3 GetShortestLineTo(GeoPoint3 point) => GetShortestLineTo(point, Tolerance.Global);
 
@@ -62,9 +70,11 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <remarks>
         /// The segment leaves the point <see cref="GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/> gives, measured
-        /// on the arcs, so it is as long as <see cref="DistanceTo(GeoPoint3, Tolerance)"/>: from the chain (0, 0, 0),
-        /// (100, 0, 0), (100, 100, 0) with both legs straight, the point (50, 30, 40) gets the one from (50, 0, 0), 50
-        /// long.
+        /// on the arcs, so for a point away from the centre of a bend it is as long as
+        /// <see cref="DistanceTo(GeoPoint3, Tolerance)"/>: from the chain (0, 0, 0), (100, 0, 0), (100, 100, 0) with both
+        /// legs straight, the point (50, 30, 40) gets the one from (50, 0, 0), 50 long. Near the centre of a bend it can be
+        /// longer, by at most twice the foot's offset from the centre, as
+        /// <see cref="GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/> says.
         /// </remarks>
         public GeoLine3 GetShortestLineTo(GeoPoint3 point, Tolerance tolerance)
             => new GeoLine3(GetClosestPointOnBoundary(point, tolerance), point);
