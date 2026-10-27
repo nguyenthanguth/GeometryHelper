@@ -2296,7 +2296,11 @@ namespace GeometryHelper.Dxf
             return objects;
         }
 
-        /// <summary>The first DICTIONARY of the OBJECTS section, the named object dictionary; null where there is none.</summary>
+        /// <summary>
+        /// The first DICTIONARY of the OBJECTS section, the named object dictionary; null where there is none. Walked record by
+        /// record from the section's start, as <see cref="Inside"/> lists them, and left at the first, so that an edited file is
+        /// not copied whole to find it; counted among <see cref="WholeReadings"/> as before.
+        /// </summary>
         private Rec? RootDictionary()
         {
             WholeReadings++;
@@ -2308,7 +2312,48 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                foreach (Rec record in Inside(section))
+                for (int i = section.First + 1; i < section.Last; i++)
+                {
+                    List<Piece> slot = _slots?[i];
+
+                    if (slot == null)
+                    {
+                        Rec record = Original(i);
+
+                        if (record.Type == "DICTIONARY")
+                        {
+                            return record;
+                        }
+
+                        continue;
+                    }
+
+                    Rec? found = FirstDictionary(slot, slot.Count);
+
+                    if (found != null)
+                    {
+                        return found;
+                    }
+                }
+
+                List<Piece> last = _slots?[section.Last];
+                Rec? added = last == null ? null : FirstDictionary(last, last.Count - 1);
+
+                if (added != null)
+                {
+                    return added;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>The first DICTIONARY among the records of the first pieces of a slot; null where there is none.</summary>
+        private static Rec? FirstDictionary(List<Piece> slot, int pieces)
+        {
+            for (int p = 0; p < pieces; p++)
+            {
+                foreach (Rec record in slot[p].Records)
                 {
                     if (record.Type == "DICTIONARY")
                     {

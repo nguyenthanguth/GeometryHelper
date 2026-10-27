@@ -326,6 +326,27 @@ it draws, no longer tied to the dynamic block. ezdxf 1.4.5 read back every drawi
 R2000 and R2018, its recover and audit finding nothing to fix, and a drawing in which nothing is found to count, purge or
 erase resaves byte for byte.
 
+**NEW.** Annotative scaling as a DXF holds it, 5 members of AutoCAD's `Database` and `DBObject`. `DxfDatabase.ObjectContextManager`
+gives the drawing's list of scales as AutoCAD's `ObjectContextManager` does, `GetContextCollection("ACDB_ANNOTATIONSCALES")`,
+the new `DxfObjectContextCollection` of `DxfAnnotationScale`s (AutoCAD's `ObjectContextCollection` and `AnnotationScale`, of
+the new `DxfObjectContext`): the SCALE objects of ACAD_SCALELIST with their `Name`, `PaperUnits`, `DrawingUnits` and
+`Scale`, so that 1:50 is 1 to 50 and 0.02, `GetContext`, `HasContext`, `CurrentContext` (the one CANNOSCALE names),
+`AddContext`, which writes a SCALE under the first entry name A0, A1 and on the list has not, a 1:1 the unit scale where the
+list has none, and makes the list in a drawing of R2007 or later that has none, and `RemoveContext`, refused for the unit
+scale, the current scale and a scale an object points at; a scale renamed is renamed in CANNOSCALE too, refused before
+anything is written where the drawing cannot write that variable. Every object has `Annotative` (the new
+`DxfAnnotativeStates`), read from the extended data AcadAnnotative of a TEXT, an MTEXT, an attribute, a dimension, a leader,
+a multileader (or its own 293), a tolerance, a hatch, a style or a block, an INSERT reading its block's, a multileader style
+its 296, and `NotApplicable` for a line; set true, a text or dimension style is given that data, and an entity is refused,
+its context record of the OBJECTS section waiting for a check on a drawing AutoCAD saved; set false, any annotative entity
+loses the data and every context. `HasContext` reads the contexts of an object of any kind by the SCALE each points at, and
+`RemoveContext` erases one, the default and the last kept. `PaperOrientation` (the new `DxfPaperOrientationStates`) reads
+the extended data AcadAnnoPO, a reading of AutoCAD's not yet checked either. The named object dictionary is found without
+copying the OBJECTS section: reading it, the dictionary of groups and CANNOSCALE after each of 2 000 edits of a drawing given
+2 000 objects takes 141 ms on .NET 8 where it took 633 ms. Of the 1 705 drawings of the corpus, 1 697 open and resave byte for byte after
+`Annotative`, `PaperOrientation` and `HasContext` of every scale are read on every entity of model space, paper space and the
+blocks and on every block, text style, dimension style and layer, the 8 others failing to open as before.
+
 **NEW.** Layouts made in code, and the sun and the plotting of a viewport, as AutoCAD's `Layout`, `Viewport` and
 `Database` have them, six members the library did not have. `new DxfLayout { LayoutName = "Plan 1-50" }` is added to a
 drawing of R2000 or later by `AddToLayoutDictionary(db, null)`: a LAYOUT in the layout dictionary on the tab after the

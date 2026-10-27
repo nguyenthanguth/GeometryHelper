@@ -967,6 +967,24 @@ its own drawing, every group of it kept and a field two others name copied once,
 `GetChildren()` gives its children in the order of its 360s, null in the place of a handle that names no FIELD, so that each
 keeps the index of its placeholder `%<\_FldIdx n>%`.
 
+An object can be annotative, which AutoCAD draws at the size its scale gives it on the sheet. The drawing's list of scales
+is `db.ObjectContextManager.GetContextCollection("ACDB_ANNOTATIONSCALES")`, AutoCAD's `ObjectContextCollection`: each a
+`DxfAnnotationScale`, a SCALE of ACAD_SCALELIST with its `Name`, `PaperUnits` and `DrawingUnits`, so that 1:50 is 1 to 50 and
+its `Scale` 0.02, in the order of the dictionary; `CurrentContext` is the one `Cannoscale` names, and renaming it renames
+CANNOSCALE, refused before anything is written where the drawing cannot write that variable.
+`AddContext(new DxfAnnotationScale { Name = "1:100", PaperUnits = 1, DrawingUnits = 100 })` adds a scale under the first entry
+name A0, A1 and on the list has not, the list made where a drawing of R2007 or later has none, and a scale of as many units of
+the paper as of the drawing made the unit scale where the list has none; `RemoveContext("1:100")` takes it out, refused for
+the unit scale, the current scale and a scale an object points at. `Annotative` reads the extended data AcadAnnotative of a
+TEXT, an MTEXT, an attribute, a dimension, a leader, a multileader (or its own 293), a tolerance, a hatch, a style or a block,
+an INSERT reading its block's, and gives `NotApplicable` for a line. Set true, it makes a text style or a dimension style
+annotative by that data alone; an entity is refused, since AutoCAD shows an annotative entity at a scale by a context record
+of the OBJECTS section that the library does not write until that record is checked on a drawing AutoCAD saved. `HasContext`
+reads an object's contexts, of any kind, under ACDB_ANNOTATIONSCALES of AcDbContextDataManager of its extension dictionary, by
+the scale each points at (its 340); `RemoveContext` erases one, the default and the last refused, and `Annotative =
+DxfAnnotativeStates.False` erases them all with the data. `PaperOrientation` reads whether an annotative object keeps the way
+up of the sheet from the extended data AcadAnnoPO, a reading of AutoCAD's that is not yet checked either.
+
 `DxfMText` names the codes of an MTEXT as AutoCAD's `MText` does: `ParagraphBreak` and `LineBreak` are `\P`, `UnderlineOn` is
 `\L`, `HeightChange` `\H`, `BlockBegin` `{`, and so the 19 of them. `ContentsRTF` gives its words as RTF, the style's font
 first in the font table, and `SetContentsRtf` reads RTF into them: paragraphs, columns, groups, fonts with bold and italic,
