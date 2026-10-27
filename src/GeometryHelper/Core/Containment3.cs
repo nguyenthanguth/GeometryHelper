@@ -408,6 +408,16 @@ namespace GeometryHelper.Core
         /// and empty space is the answer. The wall of an opening drawn overshooting a face, as a through-hole
         /// usually is, is boundary only where it runs through the body.
         /// </para>
+        /// <para>
+        /// However small the tolerance, a face holds a crossing to the rounding of the body's coordinates, 1E-15 of the
+        /// largest, on its plane and past its rim, and below that rounding a crossing within twice it of a rim sends the ray
+        /// off in another direction; whether a face lies ahead of the point or behind it is read by the tolerance given. At a
+        /// tolerance of nought a point on the axis of a cylinder is inside it, though the first ray cast runs through the seam
+        /// of two of its sides, and so are the 1 000 points tried inside a cylinder 40 across and 50 tall and a cone, their
+        /// axes leaning in space, where the rounding refused the crossing of nearly every face and read most of them outside.
+        /// The planes of fan triangles far out can be rounded by more, and a point on the axis of a cylinder of 1 080 sides
+        /// 1E7 out may still be read outside.
+        /// </para>
         /// </remarks>
         public static PointLocation Locate(GeoSolid3 solid, GeoPoint3 point, Tolerance tolerance)
         {
@@ -507,8 +517,12 @@ namespace GeometryHelper.Core
             // holds a point up to the point tolerance beyond its rim, so a crossing that near an edge can be
             // counted by the face beyond it as well. Twice the tolerance catches that. A band much wider refuses
             // ordinary crossings of narrow faces instead: at a hundred times a tolerance of a hundredth, every
-            // crossing of the millimetre-wide faces round a bolt landed in it, and every ray came back refused.
-            double grazeBand = tolerance.EqualPoint * 2.0;
+            // crossing of the millimetre-wide faces round a bolt landed in it, and every ray came back refused. Never less than
+            // the rounding of numbers the size of the body's: at a tolerance of nought a face holds a crossing that rounding past
+            // its rim, and one on the seam of two faces, held by both, sends the ray off again.
+            double rounding = Intersection3.Rounding(solid.GetAabb(), point);
+            double grazeBand = Math.Max(tolerance.EqualPoint, rounding) * 2.0;
+            Tolerance holding = Intersection3.Holding(rounding, tolerance);
 
             foreach (GeoVector3 direction in directions)
             {
@@ -518,7 +532,7 @@ namespace GeometryHelper.Core
 
                 foreach (GeoFace3 face in solid.Faces)
                 {
-                    if (!Intersection3.TryCrossFace(ray, face, out GeoPoint3 hit, tolerance, true))
+                    if (!Intersection3.TryCrossFace(ray, face, out GeoPoint3 hit, tolerance, holding, true))
                     {
                         continue;
                     }

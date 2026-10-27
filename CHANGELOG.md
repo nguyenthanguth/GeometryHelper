@@ -2295,6 +2295,56 @@ of the gap of the U 5E7 out 4.02 microseconds on .NET Framework 4.8 where it too
 far from a body's box, which is no longer passed by the box before the body is asked of its origin, takes 0.02 to 0.05
 microseconds longer: 0.37 where it took 0.32 on .NET Framework 4.8 for a U 200 over its box. 13 new tests.
 
+**FIXED.** At a tolerance of nought a ray cast at a body finds the crossing of each face it passes through, and
+the body and its prepared form read the points inside the turned cylinders and cones tried as inside. The crossing
+a ray finds on a plane stands off it by the rounding of numbers the size of the coordinates, and the triangle or
+face read that against the planar tolerance of nought and refused it on nearly every face of a body turned about in
+space or made by `Revolve`: of 1 000 rays from inside a cylinder 40 across and 50 tall, its axis leaning in space,
+874 crossed nothing, the prepared body read 111 of 1 000 points inside it as inside and the body 125, and a point
+1.6 outside its side was read inside by both. A crossing on the seam of two triangles, rounded a hair outside both,
+was held by neither, so a point on the axis of a cylinder whose first ray ran through a seam was read outside:
+48 of 49 such points of a cylinder at the origin by its prepared form, 35 by the body. A triangle or face now
+holds a crossing to the rounding of the coordinates, 1E-15 of the largest of the body's and the ray's origin, as a
+body far out holds a point, on its plane and past its rim; whether the crossing lies ahead of the ray's origin or
+behind it is read by the tolerance given, so the point 3.03E-13 over the floor of a box 100 by 80 by 50 is inside
+it. Below the rounding, and only there, a crossing within twice it of a rim sends the ray off in another direction,
+two crossings of a seam within eight times it of each other along the ray are one, as each is worked out from its
+own side (the ray from 60 out towards the axis of a cylinder of 1 080 sides crossed its far seam twice, 5.2E-14
+apart where the rounding is 4.9E-14), and a ray from further off than the body is large is read from a diagonal
+short of the body, along its own line, so that its crossings are worked out from numbers the size of the body's and
+the rounding stays the body's: the ray along the seam of two sides of a cylinder of radius 20, through its axis,
+is given its two crossings from 60 out and from a hundred million out, where the prepared body gave none and the
+body one or none, and the ray from a thousand million under a box, 5E-6 beside its side, is given nothing, as
+`CollidesWith` says. The openings of a body asked at a tolerance below the rounding are chosen and cut within
+the rounding: a point 0.0005 under a plate turned about in space, with an opening through it, is 0.0005 from
+it at a tolerance of nought, where it was 3.0005. Where it reaches, at a tolerance below the rounding only:
+`GeoPreparedSolid3.Locate`, `Contains`, `DistanceTo`, `SignedDistanceTo`, `GetIntersections` and `CollidesWith`
+of a ray, `GeoBvh3.GetIntersections` of a ray, `GeoSolid3.Locate` and `Contains`, `GeoRay3.GetIntersections` and
+`CollidesWith` of a body, the depth under a triangle the booleans read, and every query of a body with openings
+that reads its material. At every tolerance at or above the rounding every answer is the same to the bit, far
+out included: of 1 327 104 answers drawn at 1E-6, 1E-3 and 1E-2 for boxes, prisms, cylinders, cones and rings at
+the origin and out to 4E9 (points stepped off a facet by multiples of the tolerance and by 3 and 30 times the fine
+tolerance a body far out holds a point within, with their distances, and rays from inside, through and away), 33 138
+answers of prisms with and without openings out to 4E9 and 133 392 rays and points about boxes, U's, cylinders,
+cones and rings out to 1E9, none changed, nor did any boolean of the G2b corpora at a tolerance of a thousandth,
+a hundredth or five hundredths. At a tolerance of nought, of 442 368 answers 173 857 were wrong and 1 047 are:
+997 rays and 50 points of bodies a million to 4E9 out that start or stand within the fine tolerance of a face,
+or between a face and the facets it is meshed into, where either answer holds. Of 16 862 answers of the prisms at
+a tolerance of nought, 1 226 points measured more than a millionth off their distance and 531 rays and 546 segments
+read as colliding where they missed or the other way round; 3, none and none are now. A ray whose collision disagreed
+with its distance did so 141 times and does 10, all of them new: plates with openings a million to 4E9 out, the ray
+starting 0.3 or 3 times the fine tolerance outside, where the cut material holds the origin and the body does not
+(parked). The planes of fan triangles far out can be rounded by more than 1E-15 of the coordinates: a point on
+the axis of a cylinder of 1 080 sides 1E7 out is still read outside in 10 of 120 readings (parked). The time at
+a tolerance of a thousandth is as it was, within 3 %: on .NET 10 compiled in full a point located in the prepared
+cylinder of 300 faces takes 9.02 microseconds where it took 8.97, in the body itself 16.9 where it took 16.9, and a
+ray crossing the prepared body 6.38 where it took 6.32; on .NET Framework 4.8 25.3, 52.5 and 20.5 where they took
+24.7, 51.9 and 20.4. At a tolerance of nought they take about as long as at a thousandth: a point located in the
+body 15.9 microseconds on .NET 10 and 50.0 on .NET Framework 4.8, where it took 8.2 and 23.3 and was read wrong,
+and in the prepared body 8.94 and 25.3 where it took 7.90 and 19.2. A boolean at a tolerance of nought still fails
+or comes out open, 107 of 108 unions, differences and intersections of a cylinder, a cone, a ring or a box with
+a box where all 108 did, and 1E-15 of the coordinates does not close them either (parked). 15 new tests.
+
 ## 12.3.0
 
 **NEW.** `DxfReader` reads a DXF file into the library's shapes: `Read(path)`, `Read(stream)` and `Parse(text)`, each with

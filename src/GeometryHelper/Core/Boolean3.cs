@@ -2438,11 +2438,12 @@ namespace GeometryHelper.Core
             double start = 1E-9 * (1.0 + solid.GetAabb().Diagonal.Length);
             GeoVector3 inward = area.Multiply(-1.0 / area.Length);
             var ray = new GeoRay3(triangle.Centroid, inward);
+            Tolerance holding = Intersection3.Holding(Intersection3.Rounding(solid.GetAabb(), ray.Origin), tolerance);
             double depth = double.MaxValue;
 
             foreach (GeoFace3 face in solid.Faces)
             {
-                if (Intersection3.TryCrossFace(ray, face, out GeoPoint3 hit, tolerance, true))
+                if (Intersection3.TryCrossFace(ray, face, out GeoPoint3 hit, tolerance, holding, true))
                 {
                     double along = triangle.Centroid.GetVectorTo(hit).DotProduct(inward);
 

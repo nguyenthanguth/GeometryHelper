@@ -23,7 +23,13 @@ namespace GeometryHelper.Core
         /// <returns>The crossings in the order the ray meets them, with repeats left out.</returns>
         /// <remarks>
         /// The surface is walked as triangles, so a crossing that falls on the seam between two of them
-        /// arrives twice and is reported once. A ray starting inside the body has an odd number of
+        /// arrives twice and is reported once, the two within the point tolerance of each other. However small the tolerance,
+        /// a triangle holds a crossing to the rounding of the coordinates, 1E-15 of the largest of the body's and the ray's
+        /// origin, on its plane and past its rim; below that rounding, and only there, the two crossings of a seam within eight
+        /// times it of each other are one, and a ray from further off than the body is large is read from a diagonal short of
+        /// it, along its line, so that the rounding stays the body's. At a tolerance of nought the ray along the seam of two
+        /// sides of a cylinder of radius 20, through its axis, is given its two crossings from 60 out and from a hundred
+        /// million out, where it was given one or none. A ray starting inside the body has an odd number of
         /// crossings, and one starting outside an even number, give or take a face it merely grazes.
         /// The list is held to <see cref="Collision3.CollidesWith(GeoRay3, GeoSolid3, Tolerance)"/>, which reads the ray by the
         /// point tolerance and the body to a billionth (further out than a million, to 1E-15 of the largest coordinate): a ray
@@ -34,9 +40,9 @@ namespace GeometryHelper.Core
         /// hundredth and a planar one of five hundredths, the ray from 0.04 over the top of the box 100 by 100 by 50, rising a
         /// hundredth for each unit along it, is given nothing, where it was given its origin and collided with nothing; the one
         /// from 0.04 off the inner wall of a U, across its gap, is given the walls of the far prong only, and the one from 0.04
-        /// under the top of the box only where it leaves, where each was given its origin besides; at a tolerance of nought,
-        /// where the rounding of a body turned about in space refuses the crossing of every face, the ray from the middle of a
-        /// box 100 by 80 by 50 is given where it leaves, where it collided and was given nothing.
+        /// under the top of the box only where it leaves, where each was given its origin besides; at a tolerance of nought the
+        /// ray from the middle of a box 100 by 80 by 50 turned about in space is given where it leaves, where the rounding
+        /// refused the crossing of every face and it collided and was given nothing.
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoSolid3 solid, Tolerance tolerance)
         {
@@ -50,11 +56,18 @@ namespace GeometryHelper.Core
 
             var reaches = new List<double>();
 
+            // Below the rounding of the coordinates a face holds a crossing within it, and a ray from far off is read from near
+            // the body, along its line, so that what the face holds is worked out from numbers the body's size.
+            GeoRay3 near = CastNear(ray, solid.GetAabb());
+            double rounding = Rounding(solid.GetAabb(), near.Origin);
+            Tolerance holding = Holding(rounding, tolerance);
+            GeoRay3 cast = holding.Equals(tolerance) ? ray : near;
+
             foreach (GeoTriangle3 face in solid.TriangulateQuietly(tolerance))
             {
-                if (TryCrossTriangle(ray, face, out GeoPoint3 meeting, tolerance, false))
+                if (TryCrossTriangle(cast, face, out GeoPoint3 meeting, tolerance, holding, false))
                 {
-                    reaches.Add(ray.GetDistanceAtPoint(meeting));
+                    reaches.Add(cast.GetDistanceAtPoint(meeting));
                 }
             }
 
@@ -94,14 +107,18 @@ namespace GeometryHelper.Core
 
             var hits = new List<GeoPoint3>();
 
+            // Below the rounding a seam is one crossing to eight times it, which at a tolerance of nought is what its two triangles
+            // differ by along the ray.
+            double once = SeamWidth(rounding, tolerance);
+
             foreach (double reach in reaches)
             {
-                if (hits.Count > 0 && reach - ray.GetDistanceAtPoint(hits[hits.Count - 1]) <= tolerance.EqualPoint)
+                if (hits.Count > 0 && reach - cast.GetDistanceAtPoint(hits[hits.Count - 1]) <= once)
                 {
                     continue;
                 }
 
-                hits.Add(ray.GetPointAtDistance(reach));
+                hits.Add(cast.GetPointAtDistance(reach));
             }
 
             return hits.ToArray();

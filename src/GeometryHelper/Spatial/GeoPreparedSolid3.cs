@@ -115,6 +115,13 @@ namespace GeometryHelper.Spatial
         /// face. A crossing landing near the rim of its triangle may be a seam of the mesh — an edge or a corner the
         /// index names once per triangle — or the face beyond an edge the ray leaves past at a shallow angle, and the
         /// ray is cast again in another direction; should every direction land so, the body's own test decides.
+        /// <para>
+        /// However small the tolerance, a triangle holds a crossing to the rounding of the body's coordinates, 1E-15 of the
+        /// largest, on its plane and past its rim, and the rim is read as wide as twice that at least. At a tolerance of
+        /// nought the prepared cylinder 40 across and 50 tall, its axis leaning in space, reads every one of 1 000 points
+        /// inside it as inside and one 1.6 outside its side as outside, where the rounding refused the crossing of nearly every
+        /// face and it read 111 of those points inside and the one outside inside.
+        /// </para>
         /// </remarks>
         public PointLocation Locate(GeoPoint3 point, Tolerance tolerance)
         {
@@ -130,8 +137,11 @@ namespace GeometryHelper.Spatial
 
             // A crossing near the rim of its triangle may be counted twice, or once too often; see TryCountCrossings.
             // Twice the point tolerance catches every such crossing, since a triangle holds a point no further than
-            // the tolerance beyond its rim, and still leaves most of any triangle clear.
-            double rim = tolerance.EqualPoint * 2.0;
+            // the tolerance beyond its rim, and still leaves most of any triangle clear. Never less than the rounding of numbers
+            // the size of the body's: at a tolerance of nought a triangle holds a crossing that rounding beyond its rim, and a
+            // ray through a seam, held by both triangles, is cast again; the ray from a point on the axis of a cylinder through
+            // the seam of two of its sides was counted crossing none, and the point read outside.
+            double rim = Math.Max(tolerance.EqualPoint, Intersection3.Rounding(Box, point)) * 2.0;
 
             foreach (GeoVector3 direction in RayDirections)
             {
@@ -224,14 +234,21 @@ namespace GeometryHelper.Spatial
         {
             var hits = new List<GeoPoint3>();
 
-            foreach (double reach in Reaches(ray, tolerance))
+            // Below the rounding a seam is one crossing to eight times it, which at a tolerance of nought is what its two triangles
+            // differ by along the ray, and a ray from far off is read from near the body, as the index reads it.
+            GeoRay3 near = Intersection3.CastNear(ray, Box);
+            double rounding = Intersection3.Rounding(Box, near.Origin);
+            double once = Intersection3.SeamWidth(rounding, tolerance);
+            GeoRay3 cast = Intersection3.Holding(rounding, tolerance).Equals(tolerance) ? ray : near;
+
+            foreach (double reach in Reaches(cast, tolerance))
             {
-                if (hits.Count > 0 && reach - ray.GetDistanceAtPoint(hits[hits.Count - 1]) <= tolerance.EqualPoint)
+                if (hits.Count > 0 && reach - cast.GetDistanceAtPoint(hits[hits.Count - 1]) <= once)
                 {
                     continue;
                 }
 
-                hits.Add(ray.GetPointAtDistance(reach));
+                hits.Add(cast.GetPointAtDistance(reach));
             }
 
             // Starting where the material ends, as Locate reads it, within the point tolerance of the surface, and crossing no

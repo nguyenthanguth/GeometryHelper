@@ -485,6 +485,20 @@ namespace GeometryHelper.Core
         /// <see cref="TryCrossPlane(GeoRay3, GeoPlane3, out GeoPoint3, Tolerance, bool)"/> reads it.
         /// </summary>
         internal static bool TryCrossTriangle(GeoRay3 ray, GeoTriangle3 triangle, out GeoPoint3 intersection, Tolerance tolerance, bool countingCrossings)
+            => TryCrossTriangle(ray, triangle, out intersection, tolerance, tolerance, countingCrossings);
+
+        /// <summary>
+        /// Tries to find the point where a ray crosses a triangle, as
+        /// <see cref="TryCrossTriangle(GeoRay3, GeoTriangle3, out GeoPoint3, Tolerance, bool)"/> does, the crossing held by the
+        /// triangle within a tolerance of its own.
+        /// </summary>
+        /// <param name="ray">The ray.</param>
+        /// <param name="triangle">The triangle.</param>
+        /// <param name="intersection">The crossing when the method returns true.</param>
+        /// <param name="tolerance">The tolerance the plane is crossed within, ahead of the origin or behind it.</param>
+        /// <param name="holding">The tolerance the triangle holds the crossing within; see <see cref="Holding"/>.</param>
+        /// <param name="countingCrossings">Whether the plane is read as the rays that count crossings read it.</param>
+        internal static bool TryCrossTriangle(GeoRay3 ray, GeoTriangle3 triangle, out GeoPoint3 intersection, Tolerance tolerance, Tolerance holding, bool countingCrossings)
         {
             intersection = GeoPoint3.Origin;
 
@@ -510,7 +524,7 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            if (!Containment3.Contains(triangle, candidate, tolerance))
+            if (!Containment3.Contains(triangle, candidate, holding))
             {
                 return false;
             }
@@ -518,6 +532,93 @@ namespace GeometryHelper.Core
             intersection = candidate;
             return true;
         }
+
+        /// <summary>
+        /// Gets the tolerance a triangle or face holds the crossing of a ray within, off its plane and past its rim: the one
+        /// given, with the planar and point tolerances raised to a rounding where they are below it. Whether the crossing lies
+        /// ahead of the ray's origin or behind it is read by the tolerance given.
+        /// </summary>
+        /// <param name="rounding">What <see cref="Rounding(GeoAabb3, GeoPoint3)"/> gives for the body and the ray's origin.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A crossing is found on the plane, but stands off it by the rounding of numbers the size of the coordinates, and the
+        /// triangle reads that distance against the planar tolerance: at a tolerance of nought a body turned about in space, or
+        /// a cylinder made by <c>Revolve</c>, had the crossing of nearly every face refused, so that 874 of 1 000 rays from
+        /// inside a cylinder 40 across and 50 tall, its axis leaning in space, crossed nothing, and the prepared body read 111
+        /// of 1 000 points inside it as inside, the body 125. Past its rim the same: a crossing on the seam of two triangles,
+        /// rounded a hair outside both, was held by neither, and the ray from a point on the axis of a cylinder through the
+        /// seam of two of its sides crossed nothing. At every tolerance at or above the rounding nothing changes, bit for bit.
+        /// </remarks>
+        internal static Tolerance Holding(double rounding, Tolerance tolerance)
+            => tolerance.EqualPlanar >= rounding && tolerance.EqualPoint >= rounding
+                ? tolerance
+                : new Tolerance(Math.Max(tolerance.EqualPoint, rounding), tolerance.EqualVector, tolerance.EqualAngleRad, Math.Max(tolerance.EqualPlanar, rounding));
+
+        /// <summary>
+        /// Gets a ray cast from far off at the triangles or faces in a box, moved along its line to stand a diagonal of the box
+        /// short of its middle, so that its crossings are worked out from numbers the size of the box's and held to their
+        /// rounding; the ray itself where it starts nearer, or runs away.
+        /// </summary>
+        /// <remarks>
+        /// A crossing worked out from an origin far off is rounded as far off its plane and along it as the origin is large: a
+        /// ray along the seam of two sides of a cylinder of radius 20, starting 10 000 out, was rounded off the planes of both
+        /// sides by some 1E-12, and at a tolerance of nought crossed neither. Moved, the ray keeps its line to the rounding of
+        /// where it started, and every crossing still lies ahead of where it did.
+        /// </remarks>
+        internal static GeoRay3 CastNear(GeoRay3 ray, GeoAabb3 box)
+        {
+            double diagonal = box.Min.DistanceTo(box.Max);
+            double ahead = ray.Origin.GetVectorTo(box.Center).DotProduct(ray.Direction) - diagonal;
+
+            return ahead > diagonal ? new GeoRay3(Parametrization3.GetPointAtDistance(ray, ahead), ray.Direction, true) : ray;
+        }
+
+        /// <summary>
+        /// Gets the rounding the crossings of a ray cast at a body are held within: 1E-15 of the largest coordinate of the
+        /// body's box and the ray's origin, read without its sign, as <c>Gap3.Fine</c> reads a point and a body far out; nought
+        /// where one is infinite or not a number.
+        /// </summary>
+        /// <param name="box">The box of the body, or of the triangles of its mesh.</param>
+        /// <param name="origin">
+        /// The ray's origin, standing in the box or, moved by <see cref="CastNear"/>, no further than two of its diagonals from
+        /// its middle, so that the rounding is never more than a few times the body's own.
+        /// </param>
+        /// <remarks>
+        /// The share held is <c>Gap3.Fine</c>'s, so a ray is not held where the body would not hold its origin, and a ray from
+        /// far off is held no further past a rim than one starting by the body. A smaller share refused what rounding left: at
+        /// 3E-16 of the coordinates, a ray through the seam of a cylinder of 192 faces from 10 000 out was given one of its
+        /// two; read off the box alone, the ray from 61 out beside a prism 35 across found the far side's crossing 3.69E-14 off
+        /// its plane, more than the box's 3.5E-14, and was given one crossing where it passes two. It does not hold every
+        /// crossing the rounding moves: the planes of fan triangles far out can be rounded by more, and their crossings are
+        /// refused as before.
+        /// </remarks>
+        internal static double Rounding(GeoAabb3 box, GeoPoint3 origin)
+        {
+            double size = Math.Max(Largest(origin), Math.Max(Largest(box.Min), Largest(box.Max)));
+
+            return size < double.PositiveInfinity ? 1E-15 * size : 0.0;
+        }
+
+        /// <summary>
+        /// Gets how near each other along a ray two crossings of a seam are taken for one: the point tolerance, or, where the
+        /// point or planar tolerance is below the rounding the crossings are held within, eight times that rounding.
+        /// </summary>
+        /// <param name="rounding">What <see cref="Rounding(GeoAabb3, GeoPoint3)"/> gives for the body and the ray's origin.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// Each triangle works its crossing out from its own plane, so the two crossings of a seam differ along the ray by more
+        /// than they stand off their planes: at a tolerance of nought the ray from 60 out towards the axis of a cylinder of
+        /// radius 20 and 1 080 faces, through a seam of two sides, crossed the far seam twice, 5.2E-14 apart where the rounding
+        /// is 4.9E-14, and at 7E-16 of the coordinates 20 of 49 such rays were. At every tolerance at or above the rounding it
+        /// is the point tolerance, bit for bit.
+        /// </remarks>
+        internal static double SeamWidth(double rounding, Tolerance tolerance)
+            => Holding(rounding, tolerance).Equals(tolerance) ? tolerance.EqualPoint : Math.Max(tolerance.EqualPoint, 8.0 * rounding);
+
+        /// <summary>
+        /// Gets the largest coordinate of a point, read without its sign.
+        /// </summary>
+        private static double Largest(GeoPoint3 point) => Math.Max(Math.Abs(point.X), Math.Max(Math.Abs(point.Y), Math.Abs(point.Z)));
 
         /// <summary>
         /// Gets the sides of a triangle with no area, the longest first and then the others in their order round it: the
@@ -1116,6 +1217,20 @@ namespace GeometryHelper.Core
         /// <see cref="TryCrossPlane(GeoRay3, GeoPlane3, out GeoPoint3, Tolerance, bool)"/> reads it.
         /// </summary>
         internal static bool TryCrossFace(GeoRay3 ray, GeoFace3 face, out GeoPoint3 intersection, Tolerance tolerance, bool countingCrossings)
+            => TryCrossFace(ray, face, out intersection, tolerance, tolerance, countingCrossings);
+
+        /// <summary>
+        /// Tries to find the point where a ray crosses the material of a face, as
+        /// <see cref="TryCrossFace(GeoRay3, GeoFace3, out GeoPoint3, Tolerance, bool)"/> does, the crossing held by the face
+        /// within a tolerance of its own.
+        /// </summary>
+        /// <param name="ray">The ray.</param>
+        /// <param name="face">The face.</param>
+        /// <param name="intersection">The crossing when the method returns true.</param>
+        /// <param name="tolerance">The tolerance the plane is crossed within, ahead of the origin or behind it.</param>
+        /// <param name="holding">The tolerance the face holds the crossing within; see <see cref="Holding"/>.</param>
+        /// <param name="countingCrossings">Whether the plane is read as the rays that count crossings read it.</param>
+        internal static bool TryCrossFace(GeoRay3 ray, GeoFace3 face, out GeoPoint3 intersection, Tolerance tolerance, Tolerance holding, bool countingCrossings)
         {
             intersection = GeoPoint3.Origin;
 
@@ -1129,7 +1244,7 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            if (!face.Contains(candidate, tolerance))
+            if (!face.Contains(candidate, holding))
             {
                 return false;
             }

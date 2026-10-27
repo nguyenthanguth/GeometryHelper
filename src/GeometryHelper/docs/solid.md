@@ -437,11 +437,27 @@ origin; the ray from 0.04 off the inner wall of a U, its prongs and base 20 thic
 of the far prong, and the one from 0.04 under the top of the box where it leaves, where each was given its origin
 besides. One that collides and crosses no face is given its point nearest the surface, where that stands within the
 point tolerance of it, to the rounding of numbers the size of the body's, or the body holds the origin: at a tolerance of
-nought,
-where the rounding of a body turned about in space refuses the crossing of every face, the ray from the middle of a box
-100 by 80 by 50 turned 0.7 of a radian is given where it leaves, to 1E-14 of where it leaves at a thousandth, where it
-collided and was given nothing. A prepared solid gives a ray that starts within the point tolerance of where its material
-ends and crosses no triangle its origin, as its `CollidesWith` reads it.
+nought the ray from the middle of a box 100 by 80 by 50 turned 0.7 of a radian is given where it leaves, where the
+rounding refused the crossing of every face and it collided and was given nothing. A prepared solid gives a ray that
+starts within the point tolerance of where its material ends and crosses no triangle its origin, as its `CollidesWith`
+reads it.
+
+However small the tolerance, a triangle or face holds the crossing of a ray to the rounding of the coordinates,
+1E-15 of the largest of the body's and the ray's origin, as a body far out holds a point (see above), on its plane
+and past its rim; whether the crossing lies ahead of the ray's origin is read by the tolerance given. Below the
+rounding, and only there, a crossing within twice it of a rim sends the ray off in another direction, two crossings
+of a seam within eight times it of each other along the ray are one, as each is worked out from its own side,
+and a ray from further off than the body is large is read from a diagonal short of the body, along its own line,
+so that its crossings are worked out from numbers the size of the body's and the rounding stays the body's. At
+a tolerance of nought the cylinder 40 across and 50 tall, its axis leaning in space, holds the 1 000 points tried
+inside it, where its prepared form read 111 inside and the body 125, and so does the cone tried; a point on the axis
+of a cylinder is inside it though its first ray runs through the seam of two sides; and the ray along that seam,
+through the axis, is given its two crossings once each from 60 out or from a hundred million out, where it was
+given none or one. The planes of fan triangles far out can be rounded by more than this, and a point on the axis of
+a cylinder of 1 080 sides 1E7 out may still be read outside. The openings of a body asked at a tolerance below the
+rounding are cut within the rounding: a point 0.0005 under a plate turned about in space, with an opening through
+it, is 0.0005 from it at a tolerance of nought, where it was 3.0005. At every tolerance at or above the rounding
+nothing changes. Segments and lines without ends at a tolerance of nought are not covered yet, nor are the booleans.
 
 A `GeoCircle3` is not on the list. The distance from a circle in space to a flat face has no closed form,
 and the library does not guess: turn it into a chain first, which says in the call how close an answer you

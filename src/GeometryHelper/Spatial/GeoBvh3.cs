@@ -303,6 +303,9 @@ namespace GeometryHelper.Spatial
             // A crossing is named within the point tolerance of its triangle across it and the planar tolerance off its
             // plane, so a branch whose box, grown by the larger of the two, the ray never enters holds none.
             double grow = Math.Max(tolerance.EqualPoint, tolerance.EqualPlanar);
+            GeoRay3 near = Intersection3.CastNear(ray, Bounds);
+            Tolerance holding = Intersection3.Holding(Intersection3.Rounding(Bounds, near.Origin), tolerance);
+            GeoRay3 cast = holding.Equals(tolerance) ? ray : near;
             Stack<int> pending = new Stack<int>();
             pending.Push(0);
 
@@ -319,7 +322,7 @@ namespace GeometryHelper.Spatial
                 {
                     for (int i = node.Start; i < node.Start + node.Count; i++)
                     {
-                        if (Intersection3.TryCrossTriangle(ray, _triangles[_order[i]], out GeoPoint3 hit, tolerance, false))
+                        if (Intersection3.TryCrossTriangle(cast, _triangles[_order[i]], out GeoPoint3 hit, tolerance, holding, false))
                         {
                             hits.Add(hit);
                         }
@@ -421,6 +424,7 @@ namespace GeometryHelper.Spatial
                 return true;
             }
 
+            Tolerance holding = Intersection3.Holding(Intersection3.Rounding(Bounds, ray.Origin), tolerance);
             Stack<int> pending = new Stack<int>();
             pending.Push(0);
 
@@ -439,7 +443,7 @@ namespace GeometryHelper.Spatial
                     {
                         GeoTriangle3 triangle = _triangles[_order[i]];
 
-                        if (!Intersection3.TryCrossTriangle(ray, triangle, out GeoPoint3 hit, tolerance, true))
+                        if (!Intersection3.TryCrossTriangle(ray, triangle, out GeoPoint3 hit, tolerance, holding, true))
                         {
                             continue;
                         }
