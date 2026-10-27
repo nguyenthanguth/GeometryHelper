@@ -971,6 +971,14 @@ bend.TrySplitAt(bend.GetPointAtParameter(0.5), out _);           // at a point, 
 bend.TrySplitAtDistance(50.0, out _);                            // at a length along the curve
 ```
 
+A cut within the tolerance of an end leaves the arc whole. At a tolerance of nought that means a cut within a
+rounding of the end: the arc of radius 100 sweeping 1 radian from 0.063, cut at 0.9999999999999999, stays whole
+rather than coming apart into itself and a whole turn. Three points have no arc through them where the middle one lies
+within the point tolerance of the line through the other two, or the triangle they make has twice an area of no more
+than the square of the point tolerance, as in the plane: (0, 0, 0), (100, 0.01, 0) and (200, 0, 0) give the arc of
+radius 500 000 at a thousandth and are refused at 0.05. An arc that would miss one of its three points by more than the
+tolerance is refused too. An arc in space starts at an angle from nought up to a full turn, however it was made.
+
 A cutter does not have to be a plane. Cutting by a **closed body** sorts the pieces into those inside it
 and those outside, because a body has no side the way a plane does:
 

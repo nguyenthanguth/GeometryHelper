@@ -128,11 +128,13 @@ namespace GeometryHelper.UnitTest.Solid
         {
             // The distance from the centre less the radius rounds by a few thousandths at that size, and read without that
             // rounding the segment was taken to stand clear of the circle and given nothing, though it collides.
-            GeoArc3 arc = GeoArc3.FromThreePoints(
-                new GeoPoint3(1113557.2177864336, -792087.8076833521, 542349.5851905062),
-                new GeoPoint3(1115188.3471700898, -792820.278604614, 542222.7485826516),
-                new GeoPoint3(1116819.47655371, -793552.7495259601, 542095.9119748235),
-                new Tolerance(0, 0, 0, 0));
+            // The arc is built from its edge, its ends and a bow of 4.9E-8 off the chord: through its three points it is
+            // refused, since an arc so large misses them by up to 0.028 (G1k).
+            var start = new GeoPoint3(1113557.2177864336, -792087.8076833521, 542349.5851905062);
+            var middle = new GeoPoint3(1115188.3471700898, -792820.278604614, 542222.7485826516);
+            var end = new GeoPoint3(1116819.47655371, -793552.7495259601, 542095.9119748235);
+            GeoVector3 normal = start.GetVectorTo(middle).CrossProduct(start.GetVectorTo(end)).Normalize();
+            GeoArc3 arc = new GeoEdge3(start, end, 2 * 4.9E-8 / start.DistanceTo(end), normal).ToArc();
             var segment = new GeoLine3(
                 new GeoPoint3(1116327.3417597327, -793332.7394228477, 542133.0571931278),
                 new GeoPoint3(1116329.091936263, -793330.8561671121, 542135.9621686899));

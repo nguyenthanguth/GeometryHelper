@@ -25,14 +25,16 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // The hash of the file of one shape of each overload, as the writer wrote it before Add(DxfShape) and the
             // linetypes of read entities were added: the digits of a number can differ between the runtimes, so each has its own.
+            // The hashes moved once since, when an arc in space came to keep its start angle from nought up to a full turn and
+            // the chords of its curved edges moved in their last digits (G1l).
             string text = DxfReaderRoundTripTests.OneOfEach().ToString();
             bool framework = RuntimeInformation.FrameworkDescription.StartsWith(".NET Framework", StringComparison.Ordinal);
 
             using (var sha = SHA256.Create())
             {
                 string hash = string.Concat(sha.ComputeHash(Encoding.UTF8.GetBytes(text)).Select(b => b.ToString("x2", CultureInfo.InvariantCulture)));
-                Assert.Equal(framework ? "c236b7ceb81ca7e58dbf6bdccb813b9c851ff8a654be24ed3ba1ec6b2f4de983" : "0d617de3e27ca0697a66874130cc53440e40c84a100edea0b9aaaca0b3650c13", hash);
-                Assert.Equal(framework ? 39287 : 39255, text.Length);
+                Assert.Equal(framework ? "adaa5b63954b8510b1942a63751652f190a3fe29558c705b3ab5b8850e0cfa35" : "06bed5164309fd6a00688f1873206d6b8dead496afa36584ab81745be3859b56", hash);
+                Assert.Equal(framework ? 39284 : 39253, text.Length);
             }
         }
 

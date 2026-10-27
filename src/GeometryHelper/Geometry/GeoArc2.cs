@@ -119,8 +119,16 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// Which way the arc turns follows the middle point: it sweeps the way that passes through it, so
         /// swapping the start and the end reverses the arc rather than giving the other part of the circle.
+        /// <para>
+        /// The points share a line, and have no arc through them, where the middle one lies within the point tolerance of
+        /// the line through the other two, or the triangle they make has twice an area of no more than the square of the
+        /// point tolerance: (0, 0), (100, 0.01) and (200, 0) have the arc of radius 500 000 through them at a tolerance of a
+        /// thousandth, and share a line at 0.05. Read by the area alone, (0, 7), (5000, 7 + 1.2E-10) and (10000, 7) gave an
+        /// arc of radius 1E17 that missed its own start by 12.5. An arc that would miss one of its three points by more than
+        /// the tolerance, its radius past the reach of the digits, is refused too.
+        /// </para>
         /// </remarks>
-        /// <exception cref="InvalidOperationException">Thrown when the three points share a line, so no circle passes through them.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the three points share a line, so no circle passes through them, or so nearly that the arc through them would miss them.</exception>
         public static GeoArc2 FromThreePoints(GeoPoint2 start, GeoPoint2 middle, GeoPoint2 end, Tolerance tolerance)
         {
             GeoVector2 toMiddle = start.GetVectorTo(middle);
@@ -128,7 +136,7 @@ namespace GeometryHelper.Geometry
 
             double twiceArea = toMiddle.CrossProduct(toEnd);
 
-            if (Math.Abs(twiceArea) <= tolerance.EqualPoint * tolerance.EqualPoint)
+            if (OnOneLine(Math.Abs(twiceArea), toEnd.Length, tolerance))
             {
                 throw new InvalidOperationException("Three points on one line have no arc through them.");
             }
@@ -149,8 +157,49 @@ namespace GeometryHelper.Geometry
             // The arc turns the way that carries it through the middle point, which is the way the three
             // points wind.
             bool clockwise = twiceArea < 0.0;
+            var arc = new GeoArc2(center, radius, AngleOf(center, start), AngleOf(center, end), clockwise);
 
-            return new GeoArc2(center, radius, AngleOf(center, start), AngleOf(center, end), clockwise);
+            // A circle of a radius past the reach of the digits misses the points it was solved through.
+            double size = Math.Abs(start.X) + Math.Abs(start.Y) + toMiddle.Length + toEnd.Length;
+
+            if (!PassesThrough(arc.StartPoint.DistanceTo(start), arc.EndPoint.DistanceTo(end), arc.DistanceTo(middle), size, tolerance))
+            {
+                throw new InvalidOperationException("Three points so nearly on one line have no arc through them that the digits can hold.");
+            }
+
+            return arc;
+        }
+
+        /// <summary>
+        /// Determines whether three points share a line within a tolerance: where the middle one stands within the point
+        /// tolerance of the line through the other two, or the triangle they make has twice an area of no more than the
+        /// square of the point tolerance.
+        /// </summary>
+        /// <param name="twiceArea">Twice the area of the triangle, the length of the cross product of the chords from the start.</param>
+        /// <param name="chord">The length of the chord from the start to the end.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// The middle stands twice the area over the chord off the line, a distance, which grows with the chord as the area
+        /// does not: read by the area alone, the middle 1.2E-10 off the chord of 10 000 gave the arc of radius 1E17, which
+        /// missed its own start by 8.8.
+        /// </remarks>
+        internal static bool OnOneLine(double twiceArea, double chord, Tolerance tolerance)
+        {
+            double point = tolerance.EqualPoint;
+
+            return !(twiceArea > point * point) || !(twiceArea > point * chord);
+        }
+
+        /// <summary>
+        /// Determines whether an arc solved through three points passes through them: its start and its end within the point
+        /// tolerance of the first and the last, and the middle within it of the arc, with a thousand-millionth of the
+        /// points' size besides for the rounding of the solve.
+        /// </summary>
+        internal static bool PassesThrough(double offStart, double offEnd, double offMiddle, double size, Tolerance tolerance)
+        {
+            double within = tolerance.EqualPoint + 1E-9 * size;
+
+            return offStart <= within && offEnd <= within && offMiddle <= within;
         }
 
         /// <summary>
@@ -897,11 +946,23 @@ namespace GeometryHelper.Geometry
             return Math.Atan2(fromCenter.Y, fromCenter.X);
         }
 
+        /// <summary>
+        /// Wraps an angle into the range from nought up to a full turn.
+        /// </summary>
+        /// <remarks>
+        /// A turn added to an angle within a rounding below nought comes to a whole turn, which is nought: -1E-17 wrapped to
+        /// a full turn, so an arc built from it started at a full turn.
+        /// </remarks>
         private static double Wrap(double angle)
         {
             double wrapped = angle % FullTurn;
 
-            return wrapped < 0.0 ? wrapped + FullTurn : wrapped;
+            if (wrapped < 0.0)
+            {
+                wrapped += FullTurn;
+            }
+
+            return wrapped < FullTurn ? wrapped : 0.0;
         }
 
         private static void RequirePositive(double value, string name)

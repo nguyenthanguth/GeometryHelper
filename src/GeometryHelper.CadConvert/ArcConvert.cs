@@ -20,6 +20,12 @@ namespace GeometryHelper.CadConvert
     public static class ArcConvert
     {
         /// <summary>
+        /// The tolerance of nought an AutoCAD arc is read through its three points at: AutoCAD has drawn it as an arc, so
+        /// one bowing less than the point tolerance off its chord is kept, which the global tolerance would read as a line.
+        /// </summary>
+        private static Tolerance Exactly => default(Tolerance);
+
+        /// <summary>
         /// Gets the point halfway along an AutoCAD arc, in world coordinates.
         /// </summary>
         private static GeoPoint3 GetMiddlePoint(Arc arc)
@@ -52,6 +58,8 @@ namespace GeometryHelper.CadConvert
         /// <remarks>
         /// The arc has to lie in a plane parallel to XY, because a tilted one is an ellipse in plan and this
         /// gives an arc rather than an approximation of one. <see cref="ToGeoArc3(Arc)"/> reads any arc.
+        /// The arc is read through its points at a tolerance of nought, as AutoCAD drew it: the arc of radius 1 000 sweeping
+        /// 0.002 radians, whose middle lies 0.0005 off its chord of 2, is kept.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="arc"/> is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the arc is tilted out of the XY plane, or sweeps a whole turn.</exception>
@@ -73,7 +81,8 @@ namespace GeometryHelper.CadConvert
             return GeoArc2.FromThreePoints(
                 arc.StartPoint.ToGeoPoint2(),
                 new GeoPoint2(middle.X, middle.Y),
-                arc.EndPoint.ToGeoPoint2());
+                arc.EndPoint.ToGeoPoint2(),
+                Exactly);
         }
 
         /// <summary>
@@ -112,6 +121,10 @@ namespace GeometryHelper.CadConvert
         /// </summary>
         /// <param name="arc">The AutoCAD Arc to convert.</param>
         /// <returns>The converted <see cref="GeoArc3"/>, running the way the arc is drawn.</returns>
+        /// <remarks>
+        /// The arc is read through its points at a tolerance of nought, as AutoCAD drew it: the arc of radius 1 000 sweeping
+        /// 0.002 radians, whose middle lies 0.0005 off its chord of 2, is kept.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="arc"/> is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the arc sweeps nothing or a whole turn.</exception>
         public static GeoArc3 ToGeoArc3(this Arc arc)
@@ -123,7 +136,8 @@ namespace GeometryHelper.CadConvert
             return GeoArc3.FromThreePoints(
                 arc.StartPoint.ToGeoPoint3(),
                 GetMiddlePoint(arc),
-                arc.EndPoint.ToGeoPoint3());
+                arc.EndPoint.ToGeoPoint3(),
+                Exactly);
         }
 
         /// <summary>

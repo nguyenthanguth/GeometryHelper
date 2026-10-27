@@ -1382,6 +1382,90 @@ and moved as far, every clockwise one, 200 036, moved to another curve and none 
 counter-clockwise moved to another curve, and none does now; 4 405 of 159 998 counter-clockwise part turns moved a last
 digit off, their normal normalized again, and none does now.
 
+**FIXED.** Where a curve in space passes within the tolerance of a small arc or circle without crossing it, the touch is
+given at the middle of the shortest line between them at any tolerance. The point of the small one at the end of that
+line was found at the global point tolerance, whatever tolerance was asked, so a point whose foot fell within a
+thousandth of its centre was carried to its start. At a tolerance of a millionth, the ellipse 2 by 1 whose rim passes
+4E-7 under the middle (0.0005, 0, 0) of the quarter of the circle of radius 0.0005 about the origin in the plan, from
+(0.00035, -0.00035, 0) to (0.00035, 0.00035, 0), touched it at (0.00043, -0.00018, -2E-7), 0.000038 off the arc and
+0.000073 off the rim, and touches it at (0.0005, 0, -2E-7); the whole circle was touched 0.00025 off the rim. Of 20 000
+random arcs of radius 0.1 to 3 times the global point tolerance, each passed within twice the tolerance by an ellipse, a
+circle and a larger arc, at tolerances of 1E-6 to 0.01, 1 993 of 100 000 crossings asked gave a point further than the
+tolerance from one of the two curves, all at tolerances under the global one, and none does now. 1 129 more changed, every
+point of them within the tolerance of both: 76 give one place more or fewer, the rest the same places moved, 482 of them
+at a thousandth and a hundredth. Whether the two collide is the same in all 20 000. What changes is the crossings of an
+ellipse with an arc or a circle, of two arcs, an arc and a circle and two circles in space, and with them those of the
+surface of a ball with an arc, a circle or an ellipse, where one of the two is no larger than about the global point
+tolerance. An ellipse's crossings with such an arc take as long as they did, 7.0 to 7.9 microseconds on .NET 10 and
+19.7 to 21.0 on .NET Framework 4.8, the least of fifteen runs.
+
+**FIXED.** An arc cut within a rounding of one of its ends at a tolerance of nought is left whole, as a cut at an end is,
+in space and in the plane. The cut was worked out as an angle and each piece built from two angles; one rounding short of
+the end the cut landed on the end's own angle, and the piece between them, built from two equal angles, came out a whole
+turn. The arc of radius 100 sweeping 1 radian from 0.063, cut at 0.9999999999999999, came apart into the arc and a whole
+turn, and the whole turn from 0.238 into two whole turns: of 898 starts seven thousandths of a radian apart, 821 did so
+counter-clockwise and 625 clockwise, in space and in the plane alike. A cut a rounding after the start of a whole turn
+gave the whole turn first and a piece of 9E-16 radians after it. Of 400 000 random cuts of arcs in space and in the plane
+of radius 0.001 to 1E7, part turns, whole turns and turns within 1E-9 of whole, either way round, at parameters within a
+few roundings of either end and at random, at tolerances of nought, 0.001 and 0.01, 19 846 came apart into pieces that
+did not sweep the arc between them in their shares, all at nought; they are left whole, and every other answer is the
+same to the bit. `TrySplitAt` at a parameter, at a point and `TrySplitAtDistance` of `GeoArc3`, and `TrySplitAt` of
+`GeoArc2`, follow; nothing inside the library cuts a lone arc so. A cut takes as long as it did, 0.02 to 0.065
+microseconds on .NET 10 and 0.05 to 0.09 on .NET Framework 4.8.
+
+**FIXED.** `GeoArc3.FromThreePoints` and `GeoArc2.FromThreePoints` read three points as on one line by the tolerance
+they are given, and give no arc that misses them. The points share a line where the middle one lies within the point
+tolerance of the line through the other two, a distance, which grows with the chord, or where the triangle they make has
+twice an area of no more than the square of the point tolerance. The arc in space read only the cross product, against
+the global vector tolerance whatever tolerance was asked, and the arc in the plane only the area, which does not grow
+with the chord: at the default tolerance, (0, 7), (5000, 7 + 1.2E-10) and (10 000, 7) were given in the plane the
+arc of radius 1E17 that missed its start by 12.5, and (0, 7), (500, 7 + 1.2E-9) and (1000, 7) the arc of radius 1E14 that
+missed it by 0.01; both share a line now. (0, 0, 0), (100, 0.01, 0) and (200, 0, 0), the middle 0.01 off the
+chord, have the arc of radius 500 000 at a thousandth and share a line at 0.05, in space and in the plane alike; the
+chord of 10 000 with the middle 1 off it still has its arc of radius 12 500 000.5 through all three. An arc solved
+through three points that would still miss one of them by more than the tolerance and a thousand-millionth of their
+size, its radius past the reach of the digits, is refused too. Of 300 000 random triples nearly on one line, twice the
+area 1E-12 to 0.1, the chord 0.01 to 1E5, up to 1E5 out, at tolerances of nought, 0.001 and 0.01: at 0.001, 35 100 of
+the 45 415 arcs given in the plane and 26 071 of the 36 386 in space are refused now, 10 516 and 7 688 of which missed
+one of their points by more than the tolerance; at 0.01, 21 452 of 27 351 in either, 3 600 and 3 679 of which missed; at
+nought, where only the rounding can tell, 49 713 in the plane and 13 451 in space that missed by more than a
+thousand-millionth of their size, up to 3E7, and in space 15 194 that the global vector tolerance refused are given. No
+arc given at 0.001 or 0.01 misses a point by more than the tolerance, where 14 116 in the plane and 11 367 in space did,
+and every arc given both before and now is the same to the bit but for its start angle, as the next entry says. Of
+100 000 triples whose chord is 10 to 20 000 and twice the area 1E-6 to 1E-4, at the default tolerance, the plane gave
+99 983 arcs and space 50 053, missing a point by up to 706 and 67, and both refuse all of them now, the middle within
+1E-5 of the chord. Shallow arcs a caller asks for so still come through: `GeoArc3.ProjectToArc2` lays an arc in the
+frame's plane whose middle lies within the tolerance of its chord out from its ends and its sweep, as it did one under
+the old area. `ToGeoArc2` and `ToGeoArc3` of an AutoCAD arc, which read its ends and its middle, read them at a tolerance
+of nought, as AutoCAD drew the arc, and keep it: the arc of radius 1 000 sweeping 0.002 radians, its middle 0.0005 off
+its chord of 2, which the global tolerance would read as a line, comes through as it did. Three points take 0.33
+microseconds in space on .NET 10 rather than 0.12 and 1.33 on .NET Framework 4.8 rather than 0.51, and 0.11 in the
+plane rather than 0.07 and 0.44 rather than 0.23, the arc's points read back against the three; the least of fifteen
+runs.
+
+**FIXED.** An arc in space starts at an angle from nought up to a full turn, as its `StartAngle` says, however it was
+made, and so does an arc in the plane but for one made from a bulge. An arc moved by `TransformBy`, one through three
+points and one built on a circle already known took the angle of its start as it came, which on the lower half of the
+circle is below nought: the whole turn of radius 100 from 1 radian, turned 2.5 radians about Z, started at -2.78, and
+starts at 3.5; the half circle from (100, 0, 0) through (0, 100, 0) to (-100, 0, 0) started at -1.57, and starts at
+4.71. And an angle a rounding below nought, wrapped, came to a whole turn: the arc built from -1E-17 to 1 started at a
+whole turn, in space and in the plane, and so did the second piece of the arc from nought clockwise to -1 cut 1E-17 of
+the way along; they start at nought now. Of 300 000 random arcs of radius 0.001 to 1E7, centred up to 1E6 out, turned,
+mirrored, moved and scaled, through three of their points and from curved edges, 150 265 started below nought, and none
+does now; their points moved by no more than 2.2E-15 of their size, the centre's distance from the origin and the radius
+together, a rounding, and every other arc is the same to the bit. Of 200 364 arcs in space and in the plane built from
+starts a rounding below a whole number of turns, 45 706 started at a whole turn and 36 228 pieces cut from them did, and
+none does now; of 199 636 built from random angles none did, and what moved of them is only about an angle a rounding
+before the start: 4 557 arcs in space reach such an angle now, 1 252 in the plane read the distance along to it as
+nought rather than the whole length, and 445 whole turns in either read the parameter of their own start point as nought
+rather than one. What follows is everything that reads an arc made so: `GeoArc3.TransformBy`, `GeoArc3.FromThreePoints`,
+`GeoEdge3.ToArc` and so every curved edge and chain in space read as arcs, `PlanarMap.ToArc3`, and the arcs the DXF
+reader makes of arcs and hatch edges in space; the DXF writer's chords of a curved chain in space move in their last
+digits: on the edge of bulge 0.5 from (10, 0, 0) to (10, 10, 0), the vertex written at a Y of 5.0000000000000036 is
+written at 4.999999999999999. `GeoArc2.FromBulge`, and what it builds, still takes the angle of its start as it comes.
+A turn takes 0.124 microseconds on .NET 10 rather than 0.120, and 0.51 on .NET Framework 4.8 as it did; an edge read as
+an arc 0.083 rather than 0.080, and 0.33 as it did; an arc built from two angles as long as it did.
+
 **FIXED.** A segment, a ray or a line without ends that pierces the plane of an arc, a circle, a curved edge or a curved
 chain within the point tolerance of the rim without crossing it is given the point of the curve nearest it, as a straight
 edge and a triangle give the point of a touch: the segment from (0, 50.0006, 1) to (0, 50.0006, -1) collided with the

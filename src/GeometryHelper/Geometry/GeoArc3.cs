@@ -140,16 +140,22 @@ namespace GeometryHelper.Geometry
         /// <returns>The arc from the start through the middle to the end, in the plane the three points share.</returns>
         /// <remarks>
         /// Three points that do not share a line settle the plane as well as the arc, so nothing else has
-        /// to be given. The work is done in that plane by <see cref="GeoArc2.FromThreePoints(GeoPoint2, GeoPoint2, GeoPoint2, Tolerance)"/>.
+        /// to be given. The work is done in that plane by <see cref="GeoArc2.FromThreePoints(GeoPoint2, GeoPoint2, GeoPoint2, Tolerance)"/>,
+        /// and the points share a line by the same rule: where the middle one lies within the point tolerance of the line
+        /// through the other two, or the triangle they make has twice an area of no more than the square of the point
+        /// tolerance. The points (0, 0, 0), (100, 0.01, 0) and (200, 0, 0), the middle 0.01 off the chord, have the arc of
+        /// radius 500 000 through them at a tolerance of a thousandth, and share a line at 0.05. An arc that would miss
+        /// one of its three points by more than the tolerance, its radius past the reach of the digits, is refused too.
         /// </remarks>
-        /// <exception cref="InvalidOperationException">Thrown when the three points share a line, so no circle passes through them.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the three points share a line, so no circle passes through them, or so nearly that the arc through them would miss them.</exception>
         public static GeoArc3 FromThreePoints(GeoPoint3 start, GeoPoint3 middle, GeoPoint3 end, Tolerance tolerance)
         {
             GeoVector3 toMiddle = start.GetVectorTo(middle);
             GeoVector3 toEnd = start.GetVectorTo(end);
             GeoVector3 normal = toMiddle.CrossProduct(toEnd);
 
-            if (!normal.TryGetNormal(out GeoVector3 unit))
+            // The cross product is as long as twice the area of the triangle the points make, read as the flat solve reads it.
+            if (GeoArc2.OnOneLine(normal.Length, toEnd.Length, tolerance) || !normal.TryGetNormal(out GeoVector3 unit, default(Tolerance)))
             {
                 throw new InvalidOperationException("Three points on one line have no arc through them.");
             }
@@ -165,7 +171,7 @@ namespace GeometryHelper.Geometry
             // are measured from, which need not be the frame used for the flat solve.
             GeoPoint3 startOnArc = frame.ToGlobal(new GeoPoint3(flat.StartPoint.X, flat.StartPoint.Y, 0.0));
 
-            return new GeoArc3(
+            var arc = new GeoArc3(
                 center,
                 unit,
                 flat.Radius,
@@ -173,6 +179,16 @@ namespace GeometryHelper.Geometry
                 flat.SweptAngle,
                 flat.IsClockwise,
                 true);
+
+            // Lifted back, a circle of a radius past the reach of the digits misses the points it was solved through.
+            double size = Math.Abs(start.X) + Math.Abs(start.Y) + Math.Abs(start.Z) + toMiddle.Length + toEnd.Length;
+
+            if (!GeoArc2.PassesThrough(arc.StartPoint.DistanceTo(start), arc.EndPoint.DistanceTo(end), arc.DistanceTo(middle, tolerance), size, tolerance))
+            {
+                throw new InvalidOperationException("Three points so nearly on one line have no arc through them that the digits can hold.");
+            }
+
+            return arc;
         }
 
         /// <summary>
@@ -731,9 +747,9 @@ namespace GeometryHelper.Geometry
             // refused; lying in it, it only bows less than the tolerance, an arc 0.01 long bowing a thousandth of its
             // chord, and is laid out from its two ends and its sweep, which nothing about its bow can upset.
             double twiceArea = start.GetVectorTo(middle).CrossProduct(start.GetVectorTo(end));
-            double point = Tolerance.Global.EqualPoint;
+            bool bows = !GeoArc2.OnOneLine(Math.Abs(twiceArea), start.DistanceTo(end), Tolerance.Global);
 
-            if (Math.Abs(twiceArea) > point * point || !Normal.IsParallelTo(frame.ZAxis))
+            if (bows || !Normal.IsParallelTo(frame.ZAxis))
             {
                 return GeoArc2.FromThreePoints(start, middle, end);
             }
@@ -967,11 +983,19 @@ namespace GeometryHelper.Geometry
             return new GeoArc2(GeoPoint2.Origin, Radius, StartAngle, Math.Abs(end - StartAngle) > FullTurn ? StartAngle : end, IsClockwise);
         }
 
+        /// <summary>
+        /// Gets the angle of a point of a circle, wrapped into the range from nought up to a full turn, as
+        /// <see cref="StartAngle"/> holds it.
+        /// </summary>
+        /// <remarks>
+        /// The lower half of the circle reads below nought, and was kept so: the whole turn from 1 radian turned 2.5 about Z
+        /// started at -2.78.
+        /// </remarks>
         private static double AngleOf(GeoPoint3 center, GeoVector3 unitNormal, GeoPoint3 pointOnCircle)
         {
             GeoPoint2 flat = ToLocal(new GeoCoordinateSystem3(new GeoPlane3(center, unitNormal)), pointOnCircle);
 
-            return Math.Atan2(flat.Y, flat.X);
+            return Wrap(Math.Atan2(flat.Y, flat.X));
         }
 
         /// <summary>
@@ -994,11 +1018,23 @@ namespace GeometryHelper.Geometry
             return new GeoPoint2(local.X, local.Y);
         }
 
+        /// <summary>
+        /// Wraps an angle into the range from nought up to a full turn.
+        /// </summary>
+        /// <remarks>
+        /// A turn added to an angle within a rounding below nought comes to a whole turn, which is nought: -1E-17 wrapped to
+        /// a full turn, so an arc built from it started at a full turn.
+        /// </remarks>
         private static double Wrap(double angle)
         {
             double wrapped = angle % FullTurn;
 
-            return wrapped < 0.0 ? wrapped + FullTurn : wrapped;
+            if (wrapped < 0.0)
+            {
+                wrapped += FullTurn;
+            }
+
+            return wrapped < FullTurn ? wrapped : 0.0;
         }
 
         #endregion

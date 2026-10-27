@@ -208,6 +208,11 @@ namespace GeometryHelper.Core
             /// <summary>
             /// Reads an arc, or a circle as the arc of a whole turn, by its exact gap (<see cref="Gap3.Curve.PointGap(GeoPoint3)"/>).
             /// </summary>
+            /// <remarks>
+            /// Its point nearest a point is found at no tolerance, as the gap is: found at the global one, a point whose foot fell
+            /// within a thousandth of the centre was carried to the arc's start, and an ellipse passing 4E-7 under the quarter
+            /// of the circle of radius 0.0005 was given its touch 0.00004 off the arc at a tolerance of a millionth.
+            /// </remarks>
             internal static Target Of(GeoArc3 arc, Tolerance tolerance)
             {
                 Gap3.Curve curve = Gap3.Curve.Of(arc);
@@ -221,7 +226,7 @@ namespace GeometryHelper.Core
                     radius,
                     curve.PointGap,
                     curve.PointGap,
-                    arc.GetClosestPointOnBoundary,
+                    point => arc.GetClosestPointOnBoundary(point, default(Tolerance)),
                     point => arc.IsPointOn(point, tolerance),
                     u,
                     v,
