@@ -435,7 +435,11 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="vector">How far to move it, and which way.</param>
         /// <returns>The arc in its new place.</returns>
-        public GeoArc3 Translate(GeoVector3 vector) => new GeoArc3(Center.Add(vector), Normal, Radius, StartAngle, StartAngle + SweptAngle);
+        /// <remarks>
+        /// Only the centre moves: the normal, the radius, the start and the sweep are kept as they are, so a clockwise arc
+        /// stays clockwise and a whole turn stays a whole turn.
+        /// </remarks>
+        public GeoArc3 Translate(GeoVector3 vector) => new GeoArc3(Center.Add(vector), Normal, Radius, StartAngle, SweptAngle, IsClockwise, true);
 
         /// <summary>
         /// Applies a transformation to this arc.
@@ -951,7 +955,17 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets this arc as it stands in the plane of its own frame.
         /// </summary>
-        private GeoArc2 ToFlat() => new GeoArc2(GeoPoint2.Origin, Radius, StartAngle, StartAngle + SweptAngle, IsClockwise);
+        /// <remarks>
+        /// The flat arc is built from two angles, and for a whole turn the start and the start plus a turn can come back a
+        /// hair more than a turn apart, which the flat arc would wrap to a sweep of nothing: the whole turn of radius 100 from
+        /// 1.8 radians read the point half a turn round 200 from it. Past a turn it is given equal angles, its whole turn.
+        /// </remarks>
+        private GeoArc2 ToFlat()
+        {
+            double end = StartAngle + SweptAngle;
+
+            return new GeoArc2(GeoPoint2.Origin, Radius, StartAngle, Math.Abs(end - StartAngle) > FullTurn ? StartAngle : end, IsClockwise);
+        }
 
         private static double AngleOf(GeoPoint3 center, GeoVector3 unitNormal, GeoPoint3 pointOnCircle)
         {

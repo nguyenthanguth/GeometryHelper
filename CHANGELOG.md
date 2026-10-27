@@ -1326,6 +1326,38 @@ microseconds a call on .NET 10 and 0.32 on .NET Framework 4.8, within 4 % of wha
 ball's line takes as long as it did for a centre away from the centre of the arc, and 0.26 microseconds on .NET 10
 rather than 0.17 for one near it, which is no longer cut short.
 
+**FIXED.** A whole turn in space keeps every point of its circle, whatever angle it starts at. Where a point falls along
+an arc in space is read off the arc laid flat, which was built from the start angle and the start angle plus the sweep;
+for a whole turn the two could come back a hair more than a turn apart, and the flat arc wrapped that to a sweep of
+nothing, so every point was carried to the start. The whole turn of radius 100 starting at 1.8 radians read the point
+half a turn round 200 from it, and off it, at any tolerance, nought too. 875 of the 6 284 starts a thousandth of a
+radian apart did so, and 13 721 of 100 000 random ones. The flat arc of a whole turn is a whole turn now. That changes
+what leans on where a point falls along an arc in space for a whole turn only: `DistanceTo` a point both ways,
+`IsPointOn`, `Locate`, `GetParameterAtPoint`, `GetDistanceAtPoint`, `GetClosestPointOnBoundary`, `GetShortestLineTo` a
+point and `TrySplitAt` a point, which left the arc whole, and everything that asks them of a whole turn: its crossings
+with a segment, a ray, a line without ends and a plane, with a ball and with a box or a flat region, its collisions and
+crossings with an ellipse, a ball's distance, collision and shortest line to it, and the DXF `GetDistAtPoint` and
+`GetClosestPointTo` of one. Of the 6 284 counter-clockwise whole turns of radius 100 about (1000, -2000, 500) a
+thousandth of a radian apart, at a tolerance of 0.001, 875 crossed a segment through the centre and a plane through it
+at one point where they cross at two, read a distance other than nought to a ball of radius 5 on the circle half a turn
+round, gave the point 50 above the circle a shortest line longer than 50 and the quarter point a distance along other
+than 50π, and none does now; the clash and the near pass read a circle from the angle nought and were right before. Of
+800 000 random points about arcs of radius 0.001 to 1E7, centred up to 1E8 out, at tolerances of nought, 0.001 and 0.01,
+whole turns, turns within 1E-12 of whole and part turns, 17 897 distances to a whole turn were off by up to twice the
+radius, and none is now; 17 900 answers changed, all of them about a whole turn, and every other answer is the same to
+the bit. `DistanceTo` takes 0.08 microseconds a call on .NET 10 and 0.30 on .NET Framework 4.8, as it did, the least of
+fifteen runs.
+
+**FIXED.** `GeoArc3.Translate` moves the arc it is given. It built the arc again from its start angle and its start angle
+plus its sweep, counter-clockwise, as it has since it came in (a64b753, 2026-09-26), so a clockwise arc came back as the
+rest of its circle: the arc of radius 100 from 0.5 radians clockwise to -0.5, sweeping 57.3 degrees, moved as the 302.7
+degrees from 0.5 counter-clockwise round to -0.5. A whole turn counter-clockwise could wrap to a sweep of nothing, as the
+flat arc of one did, and a whole turn clockwise came back counter-clockwise. Only the centre moves now; the normal, the
+radius, the start and the sweep are kept to the bit. Of 400 000 random arcs of radius 0.001 to 1E7, centred up to 1E8 out
+and moved as far, every clockwise one, 200 036, moved to another curve and none does now; 4 443 of 39 966 whole turns
+counter-clockwise moved to another curve, and none does now; 4 405 of 159 998 counter-clockwise part turns moved a last
+digit off, their normal normalized again, and none does now.
+
 **FIXED.** A segment, a ray or a line without ends that pierces the plane of an arc, a circle, a curved edge or a curved
 chain within the point tolerance of the rim without crossing it is given the point of the curve nearest it, as a straight
 edge and a triangle give the point of a touch: the segment from (0, 50.0006, 1) to (0, 50.0006, -1) collided with the
