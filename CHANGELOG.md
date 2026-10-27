@@ -1231,6 +1231,32 @@ least of seven runs, the check costing no more than 2.5 % of it.
 came out open: welding within twice, then four times, nought never ended. Nought welds nothing now, and the body comes
 back as made: a difference of two boxes at no tolerance that ran for ever, 3 of 33 pairs, returns.
 
+**FIXED.** The distance from an arc in space to a point is the exact one for a point near the centre of the arc too, as
+in the plane. A point whose foot in the arc's plane fell within the point tolerance of the centre was carried to the
+arc's start first, which on an arc as small as the tolerance is several times the distance: the half circle of radius
+0.001 about the origin in the plan, from (0.001, 0, 0) through (0, 0.001, 0) to (-0.001, 0, 0), was 0.00122 from (0,
+0.0007, 0) at a tolerance of a thousandth, and the point off it, where it is 0.0003 and on it; a point of it moved
+0.00029 straight in read as much as 0.00171. Of 900 000 random points about arcs of radius 1E-4 to 1E7 sweeping up to a
+whole turn, at tolerances of nought, 0.001 and 0.01, the 115 687 whose foot lies within the tolerance of the centre read
+a new distance, each one nearer the exact one than it was, but for 108 that moved within the rounding of a centre 1E5
+out; 2 789 of them were off the arc and are on it, none the other way, and no point further out reads a bit differently.
+`IsPointOn` and `Locate` read the same, and so does everything that asks them, which changes answers about an arc whose
+radius is no more than about twice the point tolerance: its crossings with a segment, a ray, a line without ends,
+another arc, a circle, an ellipse and the surface of a ball, whether it touches a ball, and `TryTrimTo`. A ball's
+distance to such an arc is the exact one, and its shortest line, and the arc's to it, follow the distance and land at
+the true contact: the ball of radius 49.99 about (0.0009, 0, 0) is 0.0091 from the lower half of the circle of radius 50
+about the origin, from (-50, 0, 0) through (0, -50, 0) to (50, 0, 0), and its line lands on (50, 0, 0), where it was
+0.0109 away with a line to (-50, 0, 0). Of 4 000 random arcs of radius 0.2 to 2.2 times the tolerance, at 0.001 and
+0.01, asked one question each, 623 answers changed: 60 of 94 segments cross at a second point, the other 34 at another
+point, 28 of 43 arcs and 38 of 61 circles at a second point, 1 of each at one where it was two, 37 of 331 balls touch
+where they did not and 99 cross at a point where they crossed at none, and 94 trims are made where they were refused;
+every point given lies within the tolerance of the arc, read off 20 000 points along it. The projections
+`GetClosestPointOnBoundary` and `GetShortestLineTo` to a point keep carrying a point near the centre to the start, so
+their line can be longer than the distance, by at most twice the foot's offset from the centre. The distance takes 0.11
+microseconds a call on .NET 10 and 0.32 on .NET Framework 4.8, within 4 % of what it did, the least of fifteen runs; a
+ball's line takes as long as it did for a centre away from the centre of the arc, and 0.26 microseconds on .NET 10
+rather than 0.17 for one near it, which is no longer cut short.
+
 **FIXED.** A segment, a ray or a line without ends that pierces the plane of an arc, a circle, a curved edge or a curved
 chain within the point tolerance of the rim without crossing it is given the point of the curve nearest it, as a straight
 edge and a triangle give the point of a touch: the segment from (0, 50.0006, 1) to (0, 50.0006, -1) collided with the

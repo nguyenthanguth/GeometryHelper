@@ -102,7 +102,10 @@ namespace GeometryHelper.Geometry
         /// turned round, so that it leaves this point and lands on the arc.
         /// </summary>
         /// <remarks>
-        /// The segment leaves this point and lands on the arc, as long as <see cref="DistanceTo(GeoArc3)"/>.
+        /// The segment leaves this point and lands on the arc, as long as <see cref="DistanceTo(GeoArc3)"/> for a point away
+        /// from the centre of the arc. A point whose foot in the arc's plane falls within the tolerance of the centre gets
+        /// the segment to the arc's start, which can be longer than the distance, by at most twice the foot's offset from
+        /// the centre.
         /// </remarks>
         public GeoLine3 GetShortestLineTo(GeoArc3 arc) => arc.GetShortestLineTo(this).Reverse();
 
@@ -112,7 +115,12 @@ namespace GeometryHelper.Geometry
         /// lands on the arc.
         /// </summary>
         /// <remarks>
-        /// The segment leaves this point and lands on the arc, as long as <see cref="DistanceTo(GeoArc3)"/>.
+        /// The segment leaves this point and lands on the arc, as long as <see cref="DistanceTo(GeoArc3, Tolerance)"/> for a
+        /// point away from the centre of the arc. A point whose foot in the arc's plane falls within the tolerance of the
+        /// centre gets the segment to the arc's start, which can be longer than the distance, by at most twice the foot's
+        /// offset from the centre: at a tolerance of a thousandth, the point (0.0009, 0, 0) and the lower half of the circle
+        /// of radius 50 about the origin, from (-50, 0, 0) through (0, -50, 0) to (50, 0, 0), are joined by a segment 50.0009
+        /// long, where the distance is 49.9991.
         /// </remarks>
         public GeoLine3 GetShortestLineTo(GeoArc3 arc, Tolerance tolerance)
             => arc.GetShortestLineTo(this, tolerance).Reverse();

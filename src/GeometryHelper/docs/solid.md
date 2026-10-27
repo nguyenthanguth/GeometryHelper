@@ -828,6 +828,9 @@ either kind, a body and a ball. A point answers with `Contains` and `IsPointOn` 
 `CollidesWith` is the gap being no more than the point tolerance: the plane 50.0005 above the ball of radius 50 about the origin touches it
 and the plane 50.002 above does not. The shortest line leaves the surface of the ball for the point of the shape nearest its centre and is as
 long as the gap; where the shape reaches into the ball it has no length and lies at that point, the centre itself where a body holds it.
+Near the centre of a small arc, where the tolerance would read the centre as a point with no direction, the line still lands
+where the ball is nearest the arc: the ball of radius 49.99 about (0.0009, 0, 0) is joined to the lower half of the circle of radius 50
+about the origin by a line 0.0091 long that lands on (50, 0, 0).
 Two balls that meet have one of no length at the middle of the stretch of the line between their centres that both hold.
 
 **Where the surface is crossed** is asked with `GetIntersections` and `TryIntersectWith`, of a segment, a ray, a line, an arc, a circle,

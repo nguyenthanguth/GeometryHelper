@@ -90,9 +90,14 @@ namespace GeometryHelper.Geometry
         /// Gets the shortest segment leaving this ball and landing on an arc, within a tolerance.
         /// </summary>
         /// <returns>A segment from the surface of the ball to the point of the shape nearest its centre, as long as the distance between them; of no length where they meet.</returns>
+        /// <remarks>
+        /// The point of the arc is found at no tolerance, as the distance is, so a centre near the centre of the arc is not carried to the arc's start: at a
+        /// tolerance of a thousandth, the ball of radius 49.99 about (0.0009, 0, 0) and the lower half of the circle of radius 50 about the origin, from
+        /// (-50, 0, 0) through (0, -50, 0) to (50, 0, 0), are joined by the segment 0.0091 long that lands on (50, 0, 0).
+        /// </remarks>
         public GeoLine3 GetShortestLineTo(GeoArc3 arc, Tolerance tolerance)
         {
-            return Sphere3.Join(this, arc.GetClosestPointOnBoundary(Center, tolerance), DistanceTo(arc, tolerance));
+            return Sphere3.Join(this, arc.GetClosestPointOnBoundary(Center, default(Tolerance)), DistanceTo(arc, tolerance));
         }
 
         /// <summary>
