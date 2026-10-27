@@ -504,6 +504,8 @@ Dxf in front and their members' names.
 | `db.Clayer = layerId`, `db.Insunits`, `Application.SetSystemVariable("LTSCALE", 2.0)` | `db.Clayer = "steel"`, `db.Insunits`, `db.Ltscale = 2` | Variables of the header and of the OBJECTS section as properties; any other by `GetHeader("$NAME")` and `SetHeader`. |
 | `db.Dimasz`, `db.Dimblk = blockId`, `db.GetDimstyleData()`, `leader.SetDimstyleData(style)` | `db.Dimasz`, `db.Dimblk = block`, `db.GetDimstyleData()`, `leader.SetDimstyleData(style)` | The `$DIM` variables of the header read as AutoCAD's metric drawing has them where the header gives none; a block, linetype or text style is the record itself. `dim.FormatMeasurement(value, "")` writes the measurement as AutoCAD does, stacked fractions in the codes of an MTEXT; tolerances, limits and the arc symbol are not part of it. |
 | `MLeaderStyle`, `mleader.getOverridedMLeaderStyle(style)` | `DxfMLeaderStyle`, `mleader.GetOverridedMLeaderStyle(new DxfMLeaderStyle())` | A multileader style is read, not written: the styles of `db.MLeaderStyleDictionary` as the file holds them, and one made in code given what a multileader is drawn with; `PostMLeaderStyleToDb` is not there. |
+| `db.Insert(Matrix3d, other, true)`, `db.Insert("PLATE", other, true)` | `db.Insert(GeoTransform3, other, true)`, `db.Insert("PLATE", other, true)` giving the block | The other drawing's model space, its tables and named blocks merged by name; the other drawing is never changed. |
+| `db.Purge(ids)` leaving in `ids` what may be erased; `db.CountHardReferences(ids, counts)` | `db.Purge(objects)` giving those back as a list; `db.CountHardReferences(objects, counts)` | The references a DXF writes by name (a layer, a linetype, a style, a block) counted with the hard pointers. |
 | `Highlight`, `Draw`, grips, overrules, events, reactors of the runtime | none | They need AutoCAD running. |
 
 ### Opening and saving
@@ -606,6 +608,14 @@ drawing makes `Extmin` (5000, -4000, 0) and `Extmax` (5100, -3900, 10), before s
 already is not measured into them. An axis the wrong way round alone is made the box's along it and the others grown as
 ever: `$EXTMIN` (0, 0, 0) and `$EXTMAX` (100, -50, 0) with a circle of radius 5 about (200, 10) appended are (0, 0, 0) and
 (205, 15, 0).
+
+`db.UpdateExt(true)` works the extents out anew, as AutoCAD's `UpdateExt` does: `$EXTMIN` and `$EXTMAX` the box of the
+`GeometricExtents` of what model space holds, `$PEXTMIN` and `$PEXTMAX` that of paper space, so that they shrink as well as
+grow. An entity with no extents is passed over, a text counts as the point it stands at, and a space with nothing of extents
+in it is given AutoCAD's empty extents, 1E+20 for the least corner and -1E+20 for the most; a value the header has already,
+to the bit, is not written. A header that still reaches (5110, 300, 0) for a line drawn and erased since, with a circle of
+radius 5 about (100, 50) left in model space, is given (95, 45, 0) to (105, 55, 0). The library takes an INSERT's placed
+shapes either way, so `doBestFit` changes nothing.
 
 The drawing reads and sets the variables AutoCAD keeps out of the header, as DICTIONARYVAR objects of the dictionary
 AcDbVariableDictionary: `Cannoscale` (a scale of the drawing's list of scales), `Cetransparency` (a whole per cent, so the
@@ -716,6 +726,70 @@ seconds. A group added under `*` is anonymous, `*A1` the first name its dictiona
 groups at once, and a group left empty is dropped when the drawing is saved, as AutoCAD drops it, whatever emptied it: its
 last member erased, `Clear`, `RemoveAt`, or never given one. A group the file was read with empty is kept as it was.
 
+### Other drawings, external references and tidying up
+
+`db.Insert(transform, other, true)` inserts another drawing into model space, as AutoCAD's `Database.Insert` does: every
+entity of its model space copied, as `WblockCloneObjects` copies entities together, and moved by the transformation, and the
+records of its tables and its named blocks merged by name, this drawing's own kept where it has one of the name. A drawing
+of a line from (0, 0, 0) to (10, 0, 0) on the layer steel, inserted by `GeoTransform3.Translation(new GeoVector3(100, 0, 0))`,
+gives this one the line from (100, 0, 0) to (110, 0, 0) and the layer steel where it had none. `db.Insert("PLATE", other,
+true)` makes the other drawing's model space the block PLATE instead, drawn about its base point (`$INSBASE`), and adds
+nothing to model space; a name the other drawing has a block of is refused, as its block would come under the same name.
+Every entity is checked before anything is written, so that a SPLINE into a drawing of R12, or an INSERT the transformation
+would shear, refuses the whole; so does a block that inserts itself, X holding an INSERT of X or Y and Z inserting each
+other, which AutoCAD's AUDIT takes out, and an entity of a type the library has no class for, a SHAPE or an IMAGE, in a model
+space moved by anything but the identity, as its geometry is not moved (`NotSupportedException`). The extents grow by the
+entities where they were moved to, and the other drawing is left as it is, whatever `preserveSourceDatabase` says. Its paper
+space is not inserted, nor its external references but one an INSERT of its model space places, which comes with the INSERT
+an external reference still, its BLOCK flagged 4 (12 overlaid) and naming its drawing as before. A dynamic block comes as a
+static one: its copy draws what it drew, without the data that makes it dynamic, which AutoCAD's own insert keeps.
+
+`db.AttachXref("column.dwg", "COLUMN")` attaches a drawing as an external reference: a block whose BLOCK is flagged 4 (12
+for `OverlayXref`) and names the path in its group 1, with no entities, which AutoCAD fills when it opens the drawing; an
+INSERT of the block places it. `XrefStatus`, of the new `DxfXrefStatus`, says where one stands, from its flags, its INSERTs
+and its path: `Unreferenced` while no INSERT places it, `FileNotFound` where the path names no file, as written or from the
+folder of the drawing's `Filename`, `Resolved` where AutoCAD saved it resolved (70 of 36), else `Unresolved`; no DXF says one
+is unloaded. `db.DetachXref(block)` erases its INSERTs, the records it brought, those named `COLUMN|...` in the layer,
+linetype, text style, dimension style and block tables, and its block.
+
+`db.LoadLineTypeFile("GAS_LINE", "acad.lin")` adds a linetype of a file of linetypes as AutoCAD loads one: its description and
+dashes, a dash's text in the text style the file names, and a shape found by its name in the compiled file of shapes beside
+the .lin (`ltypeshp.shx`), drawn in the drawing's style of that file, one with no name (70 of 1) added where it has none, as
+AutoCAD adds it. AutoCAD's gas line, `A,.5,-.2,["GAS",STANDARD,S=.1,U=0.0,X=-0.1,Y=-.05],-.25`, comes out three dashes 0.95
+long, the text written `49 -0.2, 74 2, 75 0, 340` Standard's handle `, 46 0.1, 50 0, 44 -0.1, 45 -0.05, 9 GAS`. A name of
+wildcards, `*` or `DASH?`, loads each linetype that matches and passes over those the drawing has or cannot take; a name of
+none is loaded or refused, a linetype of its name already there as AutoCAD's eDuplicateRecordName. A drawing of R12 takes the
+simple linetypes alone. `db.LoadMlineStyleFile("STANDARD", "acad.mln")` adds a multiline style of a .mln to the dictionary of
+multiline styles, made where the drawing has none, each of its elements drawn with a linetype the drawing has. A style of
+that dictionary is a `DxfMlineStyle`, read as AutoCAD's `MlineStyle`: its `Elements` (each a `DxfMlineStyleElement` of
+`Offset`, `Color` and `Linetype`), `Filled`, `FillColor`, the caps and the angles of its ends.
+
+`db.CountEmptyObjects((int)DxfEraseFlags.ZeroLengthCurve)` and `EraseEmptyObjects` count and erase the empty objects of every
+space and block by AutoCAD's flags: the curves of no length and the texts of no words, a TEXT of spaces and an MTEXT of
+formatting alone. A curve is of no length where no coordinate of its points is apart by more than 4 eps times the larger
+magnitude of their coordinates (eps the machine epsilon, 2.2E-16, so 4 to 8 units of the last place), not to a tolerance: a
+block may be drawn at any scale, and a line from (1000, 0, 0) to (1000.0008, 0, 0) in a block an INSERT draws at a scale of
+10 000 is 8 long there, so it is kept, while one whose ends are 1.1E-13 apart at x 1000, one unit of the last place, is
+empty. A LINE, a CIRCLE, an ARC or a polyline with a thickness is never empty, as it draws a segment of that height: a LINE
+from (5, 5, 0) to (5, 5, 0) of thickness 100 is kept. `db.CountHardReferences(objects, counts)` adds to each count, in one
+walk, the hard pointers that name the object (340 to 349, 360 to 369, 390 to 399, 480 and 481), the handles of extended data
+of any application (1005, as a dimension's overrides name its arrow blocks and text style), the layers a viewport freezes
+(331), and the names a DXF writes where AutoCAD's database holds a hard pointer: the layer and linetype of each entity, the
+style of a text, of a cell of a table and of a table style, the dimension style of a dimension, the block of an INSERT, the
+arrows of a dimension style (its 5, 6 and 7, in any version) and of a dimension's override in a drawing of R12 (`1070 5`
+then `1000` the block's name), a layer's linetype, a layer a viewport of a drawing before R2000 freezes by name, and the
+header's `$CLAYER`, `$CELTYPE`, `$TEXTSTYLE`, `$DIMSTYLE` and their kin; an entity counts its block besides.
+`db.Purge(objects)` gives back those of them nothing refers to and AutoCAD does not keep itself: layer 0 and Defpoints, the
+linetypes ByBlock, ByLayer and Continuous, the Standard styles (text, dimension, multiline, multileader and table), every text
+style of a file of shapes, the materials Global, ByLayer and ByBlock, the plot style Normal, every visual style, the
+DICTIONARYVAR variables and those of images and of wipeouts, the blocks of the layouts, the external references and what they
+brought. A layer, a linetype or a block any pointer names, a soft one too, is kept, as its `Erase` refuses it: of the layers
+0, steel with a line on it, one a viewport freezes and an empty one, the empty one. A layer, a linetype, a dimension style, a
+block, an XRECORD and a GROUP given back are erased by their own `Erase`, which refuses none of them; a text style, an
+MLINESTYLE, a MATERIAL, a DICTIONARYVAR and the other objects of the OBJECTS section are not erased by the library yet, and
+their `Erase` throws `NotSupportedException`. A linetype only a layer of the list draws with is kept until that layer is
+erased and the purge run again, as AutoCAD's is.
+
 ### What every entity has
 
 Every entity has AutoCAD's `Layer`, `Color`, `ColorIndex`, `TrueColor`, `Linetype`, `LinetypeScale`, `LineWeight`,
@@ -728,7 +802,10 @@ cent of AutoCAD's dialog, written 33 554 559 (0x0200007F); a file older than R20
 `Hyperlinks` are those of its extended data of PE_URL, written as AutoCAD writes them:
 `line.Hyperlinks.Add(new DxfHyperLink { Name = "https://example.com/B-12.pdf", Description = "Plate B-12" })`.
 `SetPropertiesFrom` takes the look of another entity, checked whole before anything is written, and `SetDatabaseDefaults`
-that of a drawing's current variables.
+that of a drawing's current variables. `line.HandOverTo(circle, true, true)` puts an entity made in code in the line's place,
+as AutoCAD's `HandOverTo` hands the id over: the circle is written where the line stood in its block, under its handle, owner
+and reactors, so that a group that held the line holds the circle, with the line's extended data and extension dictionary
+where the flags keep them, else its own and none; the line is in no file from then on, a copy of what it was.
 
 `GeometricExtents` is the box of its shapes, a `GeoAabb3`; an entity with none, an IMAGE or a LINE of no length, throws, as
 AutoCAD throws for an entity with no extents. A text has no fonts here, so its box is the point it stands at. `GetPlane()`
@@ -899,7 +976,11 @@ where either gives none. `GeometryExtentsBestFit()` is the box of the shapes pla
 `GeometryExtentsBestFit(parentTransform)` the same after an outer INSERT's `BlockTransform`. A dynamic block is found as
 ezdxf finds it, by the extended data `AcDbDynamicBlockGUID` of its BLOCK_RECORD, or `AcDbBlockRepBTag` of the anonymous
 block that stands for it (`IsDynamicBlock`, `DynamicBlockTableRecord`, `AnonymousBlockTableRecord`); its dynamic properties
-are AutoCAD's engine's to work out, and are not given. Exploding an INSERT is set out under [Editing rules](#editing-rules).
+are AutoCAD's engine's to work out, and are not given. `insert.ConvertToStaticBlock("BOLT_500")` makes the INSERT place a
+new block BOLT_500 holding copies of what it draws, the anonymous block's entities (or the dynamic block's, where it places
+that), its tie to the dynamic block (the entry AcDbBlockRepresentation of its extension dictionary) taken out;
+`ConvertToStaticBlock()` names the copy as AutoCAD names an anonymous block, `*U1` the first the drawing has not. Exploding an
+INSERT is set out under [Editing rules](#editing-rules).
 
 ### Hatches
 
@@ -1300,7 +1381,11 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
   `SetHatchPattern` among them, holds no lines (`NumberOfPatternDefinitions` 0), its name written for AutoCAD to take the
   lines from its own file, and `Explode()` and `GetHatchLinesData()` refuse it. A leader drawn anew (`EvaluateLeader`),
   where a multileader's leaders meet its words, and the size of those words in its `GeometricExtents` are not worked out.
-- It gives no dynamic properties of a dynamic block: they are AutoCAD's engine's to work out.
+- It gives no dynamic properties of a dynamic block: they are AutoCAD's engine's to work out. `ConvertToStaticBlock` copies
+  what the INSERT draws as it stands; `ResetBlock` is not there. `db.Insert` of another drawing brings a dynamic block of it
+  as a static one, without the data that makes it dynamic, which AutoCAD's own insert keeps.
+- It resolves no external reference: `AttachXref` writes the block that names the drawing, and reading that drawing into it
+  is AutoCAD's work when it opens this one, so an INSERT of it places nothing here and `XrefStatus` is never `Unloaded`.
 - It does not explode every entity AutoCAD explodes. `Explode()` refuses with `NotSupportedException` a HATCH filled solid
   or with a gradient, whose parts AutoCAD's EXPLODE makes and the library does not work out; a MESH smoothed, which AutoCAD
   breaks into the 3DFACEs of the faces its smoothing makes, one with a face of more than four corners, and one whose faces

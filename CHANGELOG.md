@@ -293,6 +293,39 @@ drawings of R2000, R2007 and R2018 with nothing for its recover and audit to fix
 before R2007) as they were set, and found in each cell the groups written; every setter given what a cell has writes
 nothing.
 
+**NEW.** The blocks, external references, linetypes and tidying of AutoCAD's `Database` that the library did not have, 14
+members. `DxfDatabase.Insert(transform, other, preserveSourceDatabase)` inserts another drawing's model space into this
+one's, moved, and `Insert(blockName, other, preserveSourceDatabase)` makes it a block drawn about the other's `$INSBASE`, the
+records of the other's tables and its named blocks merged by name, this drawing's own kept, and every entity checked before
+anything is written: a line from (0, 0, 0) to (10, 0, 0) on steel inserted 100 along x is the line from (100, 0, 0) to (110,
+0, 0) and brings steel. `AttachXref` and `OverlayXref` attach a drawing as an external reference, a block flagged 4 or 12
+that names its path, in a file of R12 too; `DetachXref` erases one with its INSERTs and the records it brought (those named
+`COLUMN|...`); and `DxfBlockTableRecord.XrefStatus`, of the new `DxfXrefStatus`, says where one stands from its flags, its
+INSERTs and whether its path names a file. `LoadLineTypeFile` adds linetypes of a .lin, AutoCAD's gas line written `49 -0.2,
+74 2, 75 0, 340` Standard`, 46 0.1, 50 0, 44 -0.1, 45 -0.05, 9 GAS`, a shape found by its name in the compiled .shx beside
+the .lin and drawn in a style of that file with no name, `*` loading every linetype the drawing can take and a name already
+there refused as AutoCAD's eDuplicateRecordName; `LoadMlineStyleFile` adds a style of a .mln to the dictionary of multiline
+styles, made where the drawing has none. An MLINESTYLE is read as the new `DxfMlineStyle` (`Elements` of the new
+`DxfMlineStyleElement`, `Filled`, `FillColor`, the caps and the angles of its ends), where it was an object of no class of
+its own. `CountEmptyObjects` and `EraseEmptyObjects` count and erase the curves of no length and the texts of no words by
+AutoCAD's `EraseFlags` (the new `DxfEraseFlags`), a curve of no length being one whose points are the same to the rounding of
+their coordinates, so that a line from (1000, 0, 0) to (1000.0008, 0, 0), 8 long in a block drawn at a scale of 10 000, is
+kept, and a LINE of thickness 100 is never empty; `CountHardReferences` counts the hard pointers to objects, the handles of
+extended data (a dimension's overrides, by handle, or by name in a drawing of R12) and the arrows a dimension style names in
+any version, the layers a viewport freezes and the names a DXF writes in their place (a layer, a linetype, a style, a block,
+the header's `$CLAYER` and its kin), and `Purge` gives back those of the objects nothing refers to that AutoCAD does not keep
+itself (the Standard styles, the styles of shape files, the materials Global, ByLayer and ByBlock, the plot style Normal,
+every visual style, the DICTIONARYVAR variables), never a layer, linetype or block any pointer names, so that each object
+given back of a kind the library erases is erased without a refusal; an external reference an INSERT places stays one when
+`Insert` or `WblockCloneObjects` copies it, and a drawing with a block that inserts itself, at any depth, is refused before
+anything is written, where it was copied cyclic or left the target half-written; `UpdateExt` works `$EXTMIN`, `$EXTMAX`,
+`$PEXTMIN` and `$PEXTMAX` out anew from what the spaces hold, shrinking them too. `DxfDBObject.HandOverTo` puts an entity
+made in code in another's place, under its handle, owner and reactors, with its extended data and extension dictionary where
+asked; `DxfBlockReference.ConvertToStaticBlock` makes the INSERT of a dynamic block place a named or anonymous copy of what
+it draws, no longer tied to the dynamic block. ezdxf 1.4.5 read back every drawing the probe wrote of its drawings of R12,
+R2000 and R2018, its recover and audit finding nothing to fix, and a drawing in which nothing is found to count, purge or
+erase resaves byte for byte.
+
 **NEW.** The dimension variables of AutoCAD's `Database`, `Dimension` and `Leader` that the library did not have, 84 of
 them. `DxfDatabase` reads and sets the 77 `$DIM` variables of the header by their AutoCAD names (`Dimasz` is `$DIMASZ`,
 `Dimfxlen` `$DIMFXL`, `DimAssoc` `$DIMASSOC`), each read as AutoCAD's metric drawing has it where the header gives none

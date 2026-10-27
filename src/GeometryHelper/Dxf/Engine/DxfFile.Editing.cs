@@ -1682,6 +1682,9 @@ namespace GeometryHelper.Dxf
             return Style.Markers ? _mostHandle > 0 || _seed > 0 : HeaderWhole("$HANDLING") == 1;
         }
 
+        /// <summary>Whether a record added to the file is given a handle, as <see cref="UsesHandles"/> says.</summary>
+        internal bool WritesHandles => UsesHandles();
+
         /// <summary>The greatest handle of the file as it was read, the header's left out, and its <c>$HANDSEED</c>: read once.</summary>
         private void KnowHandles()
         {

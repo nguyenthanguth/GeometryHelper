@@ -679,12 +679,16 @@ namespace GeometryHelper.Dxf
 
             foreach (DxfFileBlock block in blocks)
             {
-                // A named block keeps what its record says of it; one AutoCAD names itself is written as before.
+                // A named block keeps what its record says of it; one AutoCAD names itself is written as before. An external
+                // reference stays one, flagged and naming its drawing as it was (4, 8 and its 1).
                 DxfBlockTableRecord own = IsAnonymous(block.Name) || origin.Database == null || !origin.Database.BlockTable.Has(block.Name) ? null : origin.Database.BlockTable[block.Name];
+                bool xref = (block.Flags & 4) != 0 && block.Head != null;
+                int flags = block.Flags & (xref ? 15 : 3);
+                string path = xref ? origin.ValueOf(block.Head, 1) ?? string.Empty : null;
                 DxfItem record;
                 DxfFileBlock made = own == null
-                    ? AddBlock(_blockCopies[block], block.BasePoint, 0, true, false, string.Empty, out record, block.Flags & 3)
-                    : AddBlock(_blockCopies[block], block.BasePoint, (int)own.Units, own.Explodable, own.BlockScaling == DxfBlockScaling.Uniform, own.Comments ?? string.Empty, out record, block.Flags & 3);
+                    ? AddBlock(_blockCopies[block], block.BasePoint, 0, true, false, string.Empty, out record, flags, path)
+                    : AddBlock(_blockCopies[block], block.BasePoint, (int)own.Units, own.Explodable, own.BlockScaling == DxfBlockScaling.Uniform, own.Comments ?? string.Empty, out record, flags, path);
                 Database?.BlockTable.Adopted(made, record);
 
                 foreach (DxfItem item in block.Items.Snapshot())
@@ -4068,9 +4072,10 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Adds a block made in code, as AutoCAD writes one: from R13 on its BLOCK_RECORD in the block table, then its BLOCK and
         /// ENDBLK at the end of the BLOCKS section, owned by that record, on layer 0, with handles where the file uses them; its
-        /// BLOCK's flags (70) those given, 1 for a block AutoCAD names itself, as a dimension's <c>*D1</c>.
+        /// BLOCK's flags (70) those given, 1 for a block AutoCAD names itself, as a dimension's <c>*D1</c>, and its path (1)
+        /// that given for an external reference, in a file of R12 too.
         /// </summary>
-        internal DxfFileBlock AddBlock(string name, Geometry.GeoPoint3 origin, int units, bool explodable, bool uniform, string comments, out DxfItem record, int flags = 0)
+        internal DxfFileBlock AddBlock(string name, Geometry.GeoPoint3 origin, int units, bool explodable, bool uniform, string comments, out DxfItem record, int flags = 0, string path = null)
         {
             int end = -1;
 
@@ -4139,9 +4144,9 @@ namespace GeometryHelper.Dxf
             head.Group(30, Numbers.Exact(origin.Z + 0.0));
             head.Group(3, name);
 
-            if (style.Markers)
+            if (path != null || style.Markers)
             {
-                head.Group(1, string.Empty);
+                head.Group(1, path ?? string.Empty);
             }
 
             if (comments.Length > 0)

@@ -92,6 +92,23 @@ namespace GeometryHelper.Dxf
         /// <summary>A block erased, no longer of the table.</summary>
         internal void Forget(DxfBlockTableRecord block) => Read().Remove(block);
 
+        /// <summary>Adds a block made in code under a name AutoCAD gives itself, as <c>*U4</c>, which <see cref="DxfSymbolTable.Add"/> refuses.</summary>
+        internal void AddAnonymous(DxfBlockTableRecord block) => AddRecord(block);
+
+        /// <summary>The first name of a letter of AutoCAD's anonymous blocks and a number, from 1 up, the table has no block of: <c>*U1</c>, <c>*U2</c> and on.</summary>
+        internal string FreeAnonymousName(string prefix)
+        {
+            for (int n = 1; ; n++)
+            {
+                string name = prefix + n.ToString(CultureInfo.InvariantCulture);
+
+                if (!Has(name))
+                {
+                    return name;
+                }
+            }
+        }
+
         /// <summary>
         /// The blocks, read once: the BLOCK_RECORDs in their order, each with its block of the BLOCKS section, then the blocks
         /// no BLOCK_RECORD names; model space and paper space first where neither names them.
@@ -711,8 +728,8 @@ namespace GeometryHelper.Dxf
         /// what they owned removed with them when the file is saved.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the block is in no file or is erased already; when it is the
-        /// block of a layout; when an INSERT, a dimension or a table of the drawing is drawn by it, or a dimension style or the
-        /// header names it as an arrow; or when an object of the file points at it.</exception>
+        /// block of a layout; when an INSERT, a dimension or a table of the drawing is drawn by it, or a dimension style, the
+        /// override of a dimension of R12 or the header names it as an arrow; or when an object of the file points at it.</exception>
         public override void Erase()
         {
             if (_file == null || _block == null)
@@ -742,6 +759,12 @@ namespace GeometryHelper.Dxf
                 throw new InvalidOperationException("The block " + name + " is pointed at by an object of the file, as a dimension style's arrow, and is not erased.");
             }
 
+            Remove();
+        }
+
+        /// <summary>Takes the block out of its drawing, BLOCK, entities, ENDBLK and BLOCK_RECORD, as <see cref="Erase"/> does once nothing uses it.</summary>
+        internal void Remove()
+        {
             _file.RemoveBlock(_block);
 
             if (Item != null && Item.Type == "BLOCK_RECORD")
@@ -805,7 +828,7 @@ namespace GeometryHelper.Dxf
             GeometryHelperLog.Info("DxfDatabase: the block " + old + " was renamed " + name + ", with every INSERT of it.");
         }
 
-        /// <summary>Whether a dimension style of R12 or the header names a block as an arrow: <c>$DIMBLK</c> and its kin, DIMSTYLE's 5, 6 and 7.</summary>
+        /// <summary>Whether a dimension style, the override of a dimension of R12 or the header names a block as an arrow: <c>$DIMBLK</c> and its kin, DIMSTYLE's 5, 6 and 7, and an override's 1070 5, 6 or 7 with the name in its 1000.</summary>
         private bool NamedAsArrow(string name)
         {
             foreach (string variable in new[] { "$DIMBLK", "$DIMBLK1", "$DIMBLK2", "$DIMLDRBLK" })
@@ -818,7 +841,7 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            return _file.Names(Naming, (type, code) => type == "DIMSTYLE" && code >= 5 && code <= 7, name);
+            return _file.Names(Naming, (type, code) => type == "DIMSTYLE" && code >= 5 && code <= 7, name) || _file.NamesArrowInOverrides(name);
         }
 
         /// <summary>Whether a block holds an INSERT of a block of the names given, at any depth.</summary>
@@ -991,6 +1014,72 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Gets the path of the drawing an external reference comes from (group 1 of its BLOCK), as AutoCAD's <c>PathName</c>; empty for a block that is none.</summary>
         public string PathName => _block?.Head == null || _file == null ? string.Empty : _file.ValueOf(_block.Head, 1) ?? string.Empty;
+
+        /// <summary>
+        /// Gets where the external reference stands, as AutoCAD's <c>XrefStatus</c>, from its BLOCK's flags and its path:
+        /// <see cref="DxfXrefStatus.NotAnXref"/> for a block that is none (flag 4 clear); <see cref="DxfXrefStatus.Unreferenced"/>
+        /// where no INSERT places it; <see cref="DxfXrefStatus.FileNotFound"/> where its <see cref="PathName"/> is no file, as
+        /// written or from the folder of the drawing's <see cref="DxfDatabase.Filename"/>; <see cref="DxfXrefStatus.Resolved"/>
+        /// where AutoCAD saved it resolved (flag 32); <see cref="DxfXrefStatus.Unresolved"/> otherwise, as one attached here
+        /// stands until AutoCAD opens the drawing and resolves it. <see cref="DxfXrefStatus.Unloaded"/> is never given: no group
+        /// of a DXF file says an external reference is unloaded.
+        /// </summary>
+        /// <remarks>
+        /// The external reference <c>column.dxf</c> attached by <see cref="DxfDatabase.AttachXref"/> to a drawing saved in the
+        /// folder that holds column.dxf is Unreferenced, then Unresolved once an INSERT places it, and FileNotFound once
+        /// column.dxf is taken away.
+        /// </remarks>
+        public DxfXrefStatus XrefStatus
+        {
+            get
+            {
+                if (!IsFromExternalReference)
+                {
+                    return DxfXrefStatus.NotAnXref;
+                }
+
+                if (GetBlockReferences(true).Count == 0)
+                {
+                    return DxfXrefStatus.Unreferenced;
+                }
+
+                if (!PathFound(PathName, _file?.Database?.Filename))
+                {
+                    return DxfXrefStatus.FileNotFound;
+                }
+
+                return (Flags & 32) != 0 ? DxfXrefStatus.Resolved : DxfXrefStatus.Unresolved;
+            }
+        }
+
+        /// <summary>Whether a path names a file: as written, or from the folder of a drawing where it is not rooted.</summary>
+        private static bool PathFound(string path, string drawing)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return false;
+            }
+
+            try
+            {
+                if (System.IO.File.Exists(path))
+                {
+                    return true;
+                }
+
+                string folder = drawing == null ? null : System.IO.Path.GetDirectoryName(drawing);
+                return !System.IO.Path.IsPathRooted(path) && folder != null && System.IO.File.Exists(System.IO.Path.Combine(folder, path));
+            }
+            catch (ArgumentException)
+            {
+                // A path with a character no path may hold names no file.
+                return false;
+            }
+            catch (System.IO.PathTooLongException)
+            {
+                return false;
+            }
+        }
 
         /// <summary>The file the block is of; null for a block made in code and not yet added.</summary>
         internal DxfFile File => _file;
@@ -1282,6 +1371,12 @@ namespace GeometryHelper.Dxf
             return this;
         }
 
+        /// <summary>The flags of the BLOCK of a block made in code (group 70): 1 for one AutoCAD names itself, 2 with attribute definitions, 4 an external reference, 8 one overlaid.</summary>
+        internal int MadeFlags { get; set; }
+
+        /// <summary>The path of the drawing an external reference made in code comes from (group 1 of its BLOCK); null for any other block.</summary>
+        internal string MadePath { get; set; }
+
         /// <summary>Writes the block made in code into a file, and stands for its records from then on.</summary>
         internal void AddTo(DxfFile file)
         {
@@ -1295,7 +1390,7 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentException("A DXF of version " + (file.Version ?? "R12") + " has no descriptions of blocks, which came with R2000 (AC1015).", "value");
             }
 
-            DxfFileBlock block = file.AddBlock(Name, _origin, (int)_units, _explodable, _scaling == DxfBlockScaling.Uniform, _comments, out DxfItem record);
+            DxfFileBlock block = file.AddBlock(Name, _origin, (int)_units, _explodable, _scaling == DxfBlockScaling.Uniform, _comments, out DxfItem record, MadeFlags, MadePath);
             _file = file;
             _block = block;
             _space = block.Items;

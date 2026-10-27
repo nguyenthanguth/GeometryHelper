@@ -388,7 +388,8 @@ namespace GeometryHelper.Dxf
         /// The object of a record of the OBJECTS section, made once: a <see cref="DxfDBDictionary"/> for a DICTIONARY, a
         /// <see cref="DxfXrecord"/> for an XRECORD, a <see cref="DxfGroup"/> for a GROUP, a <see cref="DxfLayout"/> for a LAYOUT,
         /// a <see cref="DxfPlotSettings"/> for a PLOTSETTINGS, a <see cref="DxfMLeaderStyle"/> for an MLEADERSTYLE, a
-        /// <see cref="DxfField"/> for a FIELD; else one of no class of its own.
+        /// <see cref="DxfField"/> for a FIELD, a <see cref="DxfMlineStyle"/> for an MLINESTYLE; else one of no class of its
+        /// own.
         /// </summary>
         internal static DxfDBObject OfObject(DxfItem item)
         {
@@ -422,6 +423,9 @@ namespace GeometryHelper.Dxf
                     break;
                 case "FIELD":
                     made = new DxfField(item);
+                    break;
+                case "MLINESTYLE":
+                    made = new DxfMlineStyle(item);
                     break;
                 default:
                     made = new DxfUnknownObject(item);
@@ -578,6 +582,76 @@ namespace GeometryHelper.Dxf
         /// changed, for one of a style its drawing has not, or in no drawing, and for every other object.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the object has overrides to take away and is erased.</exception>
         public virtual bool SetFromStyle() => false;
+
+        /// <summary>
+        /// Puts an object made in code in this one's place in the drawing, as AutoCAD's <c>HandOverTo</c> hands an object's id
+        /// over: the new object's records written where this one's stand, in its block and at its place among the block's
+        /// entities, with this one's handle, owner and reactors, so that what pointed at this one points at the new one; this
+        /// one is in no file from then on, a copy of what it was with no handle and no owner, to be appended again or let go.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A LINE handed over to a <c>new DxfCircle(centre, normal, 5)</c> on the layer holes is that circle under the LINE's
+        /// handle: a GROUP that held the line holds the circle, and the circle is on holes in its own colour, as made. The new
+        /// object is written as <see cref="DxfBlockTableRecord.AppendEntity"/> writes one, its layer added to the table where
+        /// the table has none of it and what it brings from another drawing copied with it; a record that follows it, as a
+        /// VERTEX, is given a handle of its own and owned by the handle it takes. The records that followed this one, as the
+        /// vertices of a POLYLINE, go, their handles not given again.
+        /// </para>
+        /// <para>
+        /// Entities alone hand their place over: a record of a table, a dictionary and the other objects of the OBJECTS section
+        /// are refused, as is a VERTEX or an ATTRIB, which belongs to the entity it follows.
+        /// </para>
+        /// </remarks>
+        /// <param name="newPointer">The object to take the place: an entity made in code, or copied, and in no file.</param>
+        /// <param name="keepXData">Whether the new object takes this one's extended data, which then replaces its own; false
+        /// keeps the new object's own.</param>
+        /// <param name="keepExtensionDictionary">Whether the new object takes this one's extension dictionary; false takes the
+        /// dictionary out of the drawing, with what it holds.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the new object is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the new object is this one, is in a file already or erased, or is one
+        /// this drawing's version cannot hold, as <see cref="DxfBlockTableRecord.AppendEntity"/> refuses it; nothing is
+        /// written then.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when this object is in no file, or is erased.</exception>
+        /// <exception cref="NotSupportedException">Thrown when either object is not an entity, or this one follows another.</exception>
+        public void HandOverTo(DxfDBObject newPointer, bool keepXData, bool keepExtensionDictionary)
+        {
+            if (newPointer == null)
+            {
+                throw new ArgumentNullException(nameof(newPointer));
+            }
+
+            if (ReferenceEquals(newPointer, this))
+            {
+                throw new ArgumentException("An object hands its place over to another, not to itself.", nameof(newPointer));
+            }
+
+            DxfFile file = InFile("hand its place over");
+
+            if (!(this is DxfEntity entity) || !(newPointer is DxfEntity made))
+            {
+                throw new NotSupportedException("An entity hands its place over to another entity; a " + GetType().Name + " and a " + newPointer.GetType().Name + " are not handed over yet.");
+            }
+
+            if (_item.Parent != null)
+            {
+                throw new NotSupportedException("A " + _item.Type + " belongs to the entity it follows, and does not hand its place over.");
+            }
+
+            if (newPointer.IsResident || newPointer.IsErased)
+            {
+                throw new ArgumentException("The object to take the place is to be in no file: the " + newPointer + " is in one, or erased.", nameof(newPointer));
+            }
+
+            made.Appending(entity.Owner as DxfBlockTableRecord);
+            DxfItem item = _item;
+            DxfItem snapshot = file.CopyOf(item);
+            file.HandOver(item, made.Item, keepXData, keepExtensionDictionary);
+            item.ReplaceWrapper(made);
+            made.Bind(item);
+            Bind(snapshot);
+            GeometryHelperLog.Info("DxfDatabase: the " + item.Type + " " + (item.Handle ?? string.Empty) + " took the place of a " + snapshot.Type + ".");
+        }
 
         /// <summary>Whether two runs of extended data are the same, group for group, code and text.</summary>
         private static bool SameData(IReadOnlyList<DxfTypedValue> a, IReadOnlyList<DxfTypedValue> b)

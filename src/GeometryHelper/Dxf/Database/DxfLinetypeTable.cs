@@ -408,6 +408,9 @@ namespace GeometryHelper.Dxf
             Change(index, d => d.Rotation = rotation * 180.0 / Math.PI);
         }
 
+        /// <summary>Sets the rotation of a dash's shape or text in degrees, as a file of linetypes gives it, written as given.</summary>
+        internal void SetShapeRotationDegreesAt(int index, double degrees) => Change(index, d => d.Rotation = degrees);
+
         /// <summary>Gets the scale of a dash's shape or text (group 46), as AutoCAD's <c>ShapeScaleAt</c>; nought where the dash gives none, as one of no shape or text.</summary>
         /// <param name="index">The dash, from nought.</param>
         /// <returns>The scale.</returns>
@@ -508,7 +511,8 @@ namespace GeometryHelper.Dxf
                 named |= groups != null && groups.Count > 0 && string.Equals(DxfReader.NameOf(groups[0].Value), name, StringComparison.OrdinalIgnoreCase);
             }
 
-            if (named || file.Names(Naming, (type, code) => code == 6 && type != "XRECORD" && type != "LTYPE", name))
+            // The 6 of a dimension style names its first arrow, a block, not a linetype.
+            if (named || file.Names(Naming, (type, code) => code == 6 && type != "XRECORD" && type != "LTYPE" && type != "DIMSTYLE", name))
             {
                 throw new InvalidOperationException("The linetype " + name + " is drawn with, by an entity, a layer or the header, and is not erased, as AutoCAD erases a linetype only when nothing uses it.");
             }

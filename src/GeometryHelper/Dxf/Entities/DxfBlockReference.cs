@@ -431,9 +431,10 @@ namespace GeometryHelper.Dxf
         /// them and ezdxf reads them. An anonymous block whose tag names no block of the drawing is not.
         /// </summary>
         /// <remarks>
-        /// The dynamic properties themselves, AutoCAD's <c>DynamicBlockReferencePropertyCollection</c>, <c>ResetBlock</c> and
-        /// <c>ConvertToStaticBlock</c>, are not given: they are worked out by AutoCAD's engine of dynamic blocks from the
-        /// evaluation graph of the block's extension dictionary, which a file holds but does not evaluate.
+        /// The dynamic properties themselves, AutoCAD's <c>DynamicBlockReferencePropertyCollection</c> and <c>ResetBlock</c>,
+        /// are not given: they are worked out by AutoCAD's engine of dynamic blocks from the evaluation graph of the block's
+        /// extension dictionary, which a file holds but does not evaluate. <see cref="ConvertToStaticBlock(string)"/> makes the
+        /// INSERT place a plain copy of what it draws.
         /// </remarks>
         public bool IsDynamicBlock => Dynamic(out _) != null;
 
@@ -564,6 +565,104 @@ namespace GeometryHelper.Dxf
 
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Makes the INSERT of a dynamic block place a block of its own name that draws what it draws now, as AutoCAD's
+        /// <c>ConvertToStaticBlock(newBlockName)</c>: a new block of that name, its origin and units those of the block it
+        /// places, the anonymous copy AutoCAD made for it (<see cref="AnonymousBlockTableRecord"/>) or the dynamic block itself,
+        /// holding copies of that block's entities, as <see cref="DxfDatabase.WblockCloneObjects"/> copies them; the INSERT's
+        /// 2 named it, and the entry <c>AcDbBlockRepresentation</c> of its extension dictionary, which ties it to the dynamic
+        /// block, taken out. The INSERT is then no dynamic block's, its attributes kept as they are; the anonymous block stays
+        /// for the other INSERTs that place it.
+        /// </summary>
+        /// <param name="newBlockName">The name of the new block.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the name is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the name is one AutoCAD does not take, or that of a block of the
+        /// drawing already, letters of either case the same.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the INSERT is in no drawing, is erased, or places no dynamic
+        /// block, as AutoCAD refuses a reference that is not dynamic.</exception>
+        public void ConvertToStaticBlock(string newBlockName)
+        {
+            if (newBlockName == null)
+            {
+                throw new ArgumentNullException(nameof(newBlockName));
+            }
+
+            DxfSymbolTable.CheckName(newBlockName, nameof(newBlockName));
+            DxfBlockTableRecord source = StaticSource(out DxfDatabase database);
+
+            if (database.BlockTable.Has(newBlockName))
+            {
+                throw new ArgumentException("The drawing has a block named " + newBlockName + " already, letters of either case the same.", nameof(newBlockName));
+            }
+
+            MakeStatic(database, source, new DxfBlockTableRecord { Name = newBlockName }, false);
+        }
+
+        /// <summary>
+        /// Makes the INSERT of a dynamic block place an anonymous block that draws what it draws now, as AutoCAD's
+        /// <c>ConvertToStaticBlock()</c>: as <see cref="ConvertToStaticBlock(string)"/> does, the new block named as AutoCAD
+        /// names one itself, the first of <c>*U1</c>, <c>*U2</c> and on the drawing has not, and flagged anonymous (70 of 1).
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the INSERT is in no drawing, is erased, or places no dynamic
+        /// block.</exception>
+        public void ConvertToStaticBlock()
+        {
+            DxfBlockTableRecord source = StaticSource(out DxfDatabase database);
+            MakeStatic(database, source, new DxfBlockTableRecord { Name = database.BlockTable.FreeAnonymousName("*U"), MadeFlags = 1 }, true);
+        }
+
+        /// <summary>The block a dynamic INSERT draws, its anonymous copy or the dynamic block itself, and its drawing; refused for an INSERT that places none.</summary>
+        private DxfBlockTableRecord StaticSource(out DxfDatabase database)
+        {
+            database = IsResident ? Item.File.Database : null;
+
+            if (database == null || IsErased)
+            {
+                throw new InvalidOperationException("The INSERT of " + Name + " is in no drawing, or is erased, and is not made static.");
+            }
+
+            DxfBlockTableRecord dynamic = Dynamic(out DxfBlockTableRecord anonymous);
+
+            if (dynamic == null)
+            {
+                throw new InvalidOperationException("The INSERT of " + Name + " places no dynamic block to make static.");
+            }
+
+            return anonymous ?? dynamic;
+        }
+
+        /// <summary>Fills a new block with copies of a block's entities and makes the INSERT place it, as <see cref="ConvertToStaticBlock(string)"/> says.</summary>
+        private void MakeStatic(DxfDatabase database, DxfBlockTableRecord source, DxfBlockTableRecord made, bool anonymous)
+        {
+            made.Origin = source.Origin;
+            made.MadeFlags |= source.HasAttributeDefinitions ? 2 : 0;
+
+            if (Item.File.Supports(1021))
+            {
+                made.Units = source.Units;
+            }
+
+            if (anonymous)
+            {
+                database.BlockTable.AddAnonymous(made);
+            }
+            else
+            {
+                database.BlockTable.Add(made);
+            }
+
+            database.WblockCloneObjects(new List<DxfEntity>(source), made);
+            BlockTableRecord = made;
+            DxfDBDictionary extension = ExtensionDictionary;
+
+            if (extension != null && extension.Contains("AcDbBlockRepresentation"))
+            {
+                extension.Remove("AcDbBlockRepresentation");
+            }
+
+            GeometryHelperLog.Info("DxfDatabase: the INSERT " + (Handle ?? string.Empty) + " of the dynamic block " + source.Name + " places the static block " + made.Name + ".");
         }
 
         /// <summary>
