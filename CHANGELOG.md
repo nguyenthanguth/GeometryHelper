@@ -1320,6 +1320,43 @@ took 0.35 and 1.0 to leave the box in, the least of seven runs; a cube 10 across
 takes as long as it did, 3.7 and 11.4 milliseconds, and the cracked cube with a cone of 128 facets standing on it 43
 seconds and 12, as it did within the noise of the machine.
 
+**FIXED.** A boolean of two closed bodies could keep or drop whole a cell of one that the other takes an edge or a corner
+of, and `TrySubtract`, `TryIntersect`, `GetVolume` and `TryGetVolume` trusted what it gave. A plane of one body that runs
+through a cell of the other and will not cut it leaves the cell to be judged whole by one point, and a cell to be kept on
+one side of such a plane and not on the other was looked for by one point either side of each plane alone, which for an
+edge or a corner of the other body all lie beyond it. The cracked cube of the entry above less a box x from -4.1 to
+4.993, y from -3.04 to 5.008 and z from 4.9986 to 11.03, its three planes crossing the cracks at a slant and leaving the
+rims of their cuts open by 0.043, 0.0057 and 0.029, beyond the four tolerances a rim is closed across, was cut by every
+plane of both into one cell, the cube, taken whole and welded: the difference held 1 000 cubic millimetres where it holds
+874.94, and so did the cube with the box as its opening, taken out by that difference. A cell of a body that closes,
+cut by the planes of another that closes, is read now as a piece of a body cut for its openings is: by the middles of
+its parts either side of each such plane, of the four two planes make and of the eight three make that meet within the
+other body's box, each read only where it lies in the material of the cell, out of its openings, since a part of a cell
+that is not convex can have its middle outside it; where one is to be kept and another not, the boolean is worked out
+another way, and the difference, cutting the box, holds 874.94. A common part whose cells are judged so and glue into
+nothing is reported as not worked out, not as nothing in common: a cracked U and a cracked box standing in its notch,
+which share 38.14, gave nothing. The parts of a piece, here and where a body's openings are cut in at once, are read
+from the point of each plane nearest the piece rather than from the plane's own origin: read from the origins of a
+prism's planes up to 8.4 km off, the middle of a quarter of a cube 10 across lay 2.7 km away along the prism. Of the 6 000
+cubes of the entry above, the 32 the difference left the opening in and the 5 sheared boxes hold within 0.0033 of what
+they should now; 16 right in the sheared family move within the tolerance times their area, 11 nearer and 5 farther by
+no more than 0.0021, and every other volume is the same to the bit, on .NET 10 and on .NET Framework 4.8. Of 18 000
+differences, common parts and unions of the same cubes and openings, 45 trusted and wrong are right now, 32 differences
+and 13 common parts, and 30 common parts at a tolerance of nought given as nothing where they hold more are reported as
+not worked out; 13 unions with a prism 17 km long come 117 to 234 cubic millimetres nearer, within the bound before and
+after, and the rest are the same to the bit. Of 18 000 more cubes with cracks 0.001 to 0.005 wide, 121 trusted and wrong
+are right now and 3 refused are right; 28 right move within the bound, 23 of them nearer, and the rest are the same to
+the bit. Of 54 000 differences, common parts and unions of cracked U's and boxes in and about their notches, 1 140
+common parts given as nothing where they hold more are reported as not worked out, 2 differences trusted and wrong are
+right and 2 common parts trusted and wrong are not worked out; 80 wrong before are wrong by another amount, and the rest
+are the same to the bit. None right before is wrong or refused now, and none that holds more is newly given as nothing. A part of a concave
+cell whose middle lies outside its material is not read, so a U less a box dipping into its notch is still trusted
+and wrong where it was. A
+boolean read anew so takes longer: the cracked cube less the box takes 2.7 milliseconds on .NET Framework 4.8 where it
+took 2.2, the least of seven runs, and the cube less the prism 2.1 where it took 1.2; one with no cell to read anew, a
+box 100 by 60 by 40 less a cube 30 over its corner, takes 0.55 as it did, a plate 1 000 by 500 with 200 holes less a
+cope 4.8 seconds where it took 4.7, and a beam less 50 notches in turn 1.0 as it did.
+
 **FIXED.** A boolean, or the closing of a cut, given a tolerance of nought for points ran for ever where what it made
 came out open: welding within twice, then four times, nought never ended. Nought welds nothing now, and the body comes
 back as made: a difference of two boxes at no tolerance that ran for ever, 3 of 33 pairs, returns.

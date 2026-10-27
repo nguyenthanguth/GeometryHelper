@@ -210,7 +210,13 @@ material closed. Cut in at once, the body is parted by the planes of its opening
 of it, so a plane that runs through a piece and will not cut it, leaving it part in an opening and part out, has the
 openings taken out one at a time by a difference instead: a half of a hull cut near a face within a hundredth, a box
 3.5 by 3.5 by 5 standing through the cut, held 1 465.33 cubic millimetres with the box left in, and `TryGetVolume`
-trusted it; it holds 1 434.58 now, where the hull less the box holds 1 434.77 on that side of the plane.
+trusted it; it holds 1 434.58 now, where the hull less the box holds 1 434.77 on that side of the plane. A union, a
+common part or a difference reads a cell the same way where a plane of the other body, or of either body where both are
+cut by every plane of both, runs through it and will not cut it: where both bodies close, by the middles of its parts
+either side of each such plane, of the four two make and of the eight three make, each read where it lies in the cell's
+material; where one is to be kept and another not, the boolean is worked out another way or reported as not worked out.
+A cube 10 across whose faces carry cracks 0.0001 wide, less the corner of a box none of whose three planes will cut it,
+held 1 000 cubic millimetres with the box left in, and holds 874.94 now.
 
 The volume is measured by the divergence theorem, so it does not depend on where the solid sits and is
 reported unsigned: faces wound inwards give the same answer as faces wound outwards, and `TurnOutwards()` turns

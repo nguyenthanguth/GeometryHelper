@@ -483,10 +483,21 @@ namespace GeometryHelper.Core
                     kept = otherWay;
                     owners = otherOwners;
                 }
+
+                misjudged = !otherClean && (misjudged || otherMisjudged);
             }
 
             if (!TryGlue(kept, owners, tolerance, out result))
             {
+                // Nothing glued where a cell was judged apart across a plane, whichever way was kept, is no answer, not nothing
+                // in common: a cracked U and a box standing in its notch, each misjudged cut by the other's planes, share 38.14
+                // and gave nothing; another, the box's cut misjudged and the U's taken instead, shared 26.95 and the U's cut
+                // kept nothing.
+                if (misjudged)
+                {
+                    unworkable = "a cell a plane could not cut is judged apart across it, and what is kept glues into nothing";
+                }
+
                 return false;
             }
 
@@ -1803,6 +1814,22 @@ namespace GeometryHelper.Core
         /// another was cut by the other's planes into a cell holding the tip of the wedge the two share and the part of the
         /// slab beyond the other's end, joined at the corner, where the other's end could not cut it; judged by a point
         /// beyond the end, the cell was outside the other, and the common part lost 6.4 m of the wedge.
+        /// <para>
+        /// A point either side of each plane alone misses a cell the other body takes an edge or a corner of, every such
+        /// point lying beyond it. A cell of a body that closes is read too as <see cref="JudgedWhole"/> reads a piece of a
+        /// body cut for its openings: by the middles of its parts either side of each plane, of the four two planes make,
+        /// and of the eight three make that meet within the other body's box. A cube 10 across whose top, bottom and one
+        /// side are each two faces meeting along a crack 0.0001 wide, less a box x from -4.1 to 4.993, y from -3.04 to
+        /// 5.008 and z from 4.9986 to 11.03, none of whose planes would cut it, was one cell read beyond the box by every
+        /// such point: taken whole, the difference held 1 000 cubic millimetres where it holds 874.94.
+        /// </para>
+        /// <para>
+        /// The middle of a part is read only where it lies in the material of the cell, out of the body's openings: a part
+        /// of a cell that is not convex can have its middle outside it. A U 30 across with a notch 10 wide, none of the
+        /// planes of a box standing in the notch cutting it, had the middle of its part above the box's floor, its two arms,
+        /// in the notch at (15, 5, 7.25), read as in the box, and was taken for misjudged where the box touches none of its
+        /// material. Nor is a cell read where the other body does not close, having no inside to be part in.
+        /// </para>
         /// </remarks>
         internal static bool Misjudged(List<GeoSolid3> cells, List<GeoPlane3> stuck, GeoSolid3 owner, GeoSolid3 against, bool wantInside, Tolerance tolerance)
         {
@@ -1822,6 +1849,55 @@ namespace GeometryHelper.Core
                     {
                         return true;
                     }
+                }
+            }
+
+            // Then by the middles of its parts, as a piece cut for openings is read, each where it lies in the material of the
+            // cell; the cells of a body that does not close hold no volume to weigh, nor a body that does not close an inside.
+            if (!Shells3.Closes(owner, tolerance) || !Shells3.Closes(against, tolerance))
+            {
+                return false;
+            }
+
+            bool InMaterial(GeoSolid3 cell, GeoPoint3 middle)
+            {
+                if (Containment3.Locate(cell, middle, tolerance) != PointLocation.Inside)
+                {
+                    return false;
+                }
+
+                foreach (GeoSolid3 opening in owner.Openings)
+                {
+                    if (Containment3.Locate(opening, middle, tolerance) == PointLocation.Inside)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            var crossing = new List<(GeoPlane3 Plane, GeoSolid3 Opening)>();
+            var one = new List<GeoSolid3>(1);
+
+            foreach (GeoSolid3 cell in cells)
+            {
+                crossing.Clear();
+
+                foreach (GeoPlane3 plane in stuck)
+                {
+                    if (Crosses(cell, plane, tolerance))
+                    {
+                        crossing.Add((plane, against));
+                    }
+                }
+
+                one.Clear();
+                one.Add(cell);
+
+                if (crossing.Count > 0 && JudgedWhole(one, crossing, tolerance, InMaterial))
+                {
+                    return true;
                 }
             }
 

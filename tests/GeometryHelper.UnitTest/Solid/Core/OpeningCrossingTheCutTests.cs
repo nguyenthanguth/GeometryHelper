@@ -262,6 +262,93 @@ namespace GeometryHelper.UnitTest.Solid.Core
             AssertHolds(CrackedCube().WithOpenings(new[] { sheared }), 1000 - 1630.0 / 27, tolerance);
         }
 
+        /// <summary>
+        /// A body of faces, each given by its corners.
+        /// </summary>
+        private static GeoSolid3 Solid(params GeoPoint3[][] faces)
+        {
+            var built = new List<GeoFace3>(faces.Length);
+
+            foreach (GeoPoint3[] corners in faces)
+            {
+                built.Add(new GeoFace3(new GeoPolygon3(corners)));
+            }
+
+            return new GeoSolid3(built);
+        }
+
+        /// <summary>
+        /// A box x from -4.1 to 4.993, y from -3.04 to 5.008 and z from 4.9986 to 11.03, the corner of it standing in the
+        /// cracked cube: x = 4.993 crosses the crack of its top, y = 5.008 of its bottom and z = 4.9986 of its side at a
+        /// slant, and none of the three cuts it. The cube less the box holds 1 000 - 4.993 x 5.008 x 5.0014.
+        /// </summary>
+        private static GeoSolid3 UprightCornerBox(out double expected)
+        {
+            expected = 1000 - 4.993 * 5.008 * (10 - 4.9986);
+            return new GeoAabb3(P(-4.1, -3.04, 4.9986), P(4.993, 5.008, 11.03)).ToObb().ToSolid();
+        }
+
+        [Fact]
+        public void ACubeNoneOfThreePlanesOfAnUprightCornerBoxWillCut_LosesTheCorner()
+        {
+            // Judged whole by one point, cut in at once, the cube kept the box; taken out by a difference it kept it too, and
+            // held 1 000.
+            Tolerance tolerance = Tolerance.Default;
+            GeoSolid3 box = UprightCornerBox(out double expected);
+
+            AssertHolds(CrackedCube().WithOpenings(new[] { box }), expected, tolerance);
+        }
+
+        [Fact]
+        public void TheDifferenceOfACubeAndAnUprightCornerBoxNoneOfWhosePlanesWillCut_LosesTheCorner()
+        {
+            // Cut by the box's planes, none of which will cut it, the cube was one cell, and a point either side of each
+            // plane read it out of the box: taken whole as beyond the box and welded, it held 1 000.
+            Tolerance tolerance = Tolerance.Default;
+            GeoSolid3 box = UprightCornerBox(out double expected);
+
+            Assert.True(Boolean3.TrySubtract(CrackedCube(), box, out GeoSolid3 left, tolerance));
+            double bound = tolerance.EqualPoint * left.GetSurfaceArea(tolerance);
+            Assert.InRange(left.GetVolume(tolerance), expected - bound, expected + bound);
+        }
+
+        [Fact]
+        public void ACubeNoneOfThreeTiltedPlanesOfAWideOpeningWillCut_LosesWhatTheyEnclose()
+        {
+            // The cracked cube and an opening running 20 beyond it every way but three: x - 0.011z = 4.89, y - 0.078z = 5 and
+            // z - 0.311x = 5, each through the middle of a crack and across it at a slant, none cutting the cube. Judged whole,
+            // the cube held 1 000; the planes enclose 76.03 of it, worked out from them, and it holds the rest.
+            Tolerance tolerance = Tolerance.Default;
+            GeoSolid3 opening = Solid(
+                new[] { P(5.223244916751629, 7.348443246608806, 30), P(4.961422280584731, 5.512266755896753, 6.5439106093341755), P(4.96142228058473, -19.999999999999996, 6.543910609334174), P(5.2232449167516295, -20, 30.000000000000004) },
+                new[] { P(29.999999999999996, 7.348443246608807, 29.999999999999996), P(30, 6.122202983416406, 14.335492054622383), P(4.961422280584731, 5.512266755896753, 6.5439106093341755), P(5.223244916751629, 7.348443246608806, 30) },
+                new[] { P(29.999999999999996, -20, 14.335492054622383), P(4.96142228058473, -19.999999999999996, 6.543910609334174), P(4.961422280584731, 5.512266755896753, 6.5439106093341755), P(30, 6.122202983416406, 14.335492054622383) },
+                new[] { P(30, -20, 30), P(29.999999999999996, -20, 14.335492054622383), P(30, 6.122202983416406, 14.335492054622383), P(29.999999999999996, 7.348443246608807, 29.999999999999996) },
+                new[] { P(5.2232449167516295, -20, 30.000000000000004), P(4.96142228058473, -19.999999999999996, 6.543910609334174), P(29.999999999999996, -20, 14.335492054622383), P(30, -20, 30) },
+                new[] { P(30, -20, 30), P(29.999999999999996, 7.348443246608807, 29.999999999999996), P(5.223244916751629, 7.348443246608806, 30), P(5.2232449167516295, -20, 30.000000000000004) });
+
+            AssertHolds(CrackedCube().WithOpenings(new[] { opening }), 923.9697947765919, tolerance);
+        }
+
+        [Fact]
+        public void ACubeTwoPlanesOfAPrismStandingWithinAMillionthOfUprightWillNotCut_KeepsTheMaterialBesideIt()
+        {
+            // The cracked cube and a box sheared until it stands within 1.1E-6 of upright and runs 8 km up and down: x from
+            // -0.355 to 5.0037 and y from -4.117 to 4.9934 through the cube, its sixth face meeting the corner of those two at
+            // z = 4.998. Neither x = 5.0037 nor y = 4.9934 cuts the cube, and a cell beside the prism, judged by one point in
+            // it, went with it: the cube held 500.19. The prism takes 249.85 of it, worked out from its planes.
+            Tolerance tolerance = Tolerance.Default;
+            GeoSolid3 prism = Solid(
+                new[] { P(5.00366874482281, -4.116535963272926, -5135739.9229360875), P(5.00366874482281, 4.9933863145193955, 4.997994216209682), P(5.00366874482281, 4.9933863145193955, 8377003.229312839), P(5.00366874482281, -4.116535963272926, 3241258.308382536) },
+                new[] { P(-0.35545798104417425, 4.9933863145193955, 4790080.749772317), P(-0.35545798104417425, 4.9933863145193955, -3586917.481546306), P(-0.35545798104417425, -4.116535963272926, -8722662.402476609), P(-0.35545798104417425, -4.116535963272926, -345664.1711579871) },
+                new[] { P(5.00366874482281, 4.9933863145193955, 8377003.229312839), P(5.00366874482281, 4.9933863145193955, 4.997994216209682), P(-0.35545798104417425, 4.9933863145193955, -3586917.481546306), P(-0.35545798104417425, 4.9933863145193955, 4790080.749772317) },
+                new[] { P(-0.35545798104417425, -4.116535963272926, -345664.1711579871), P(-0.35545798104417425, -4.116535963272926, -8722662.402476609), P(5.00366874482281, -4.116535963272926, -5135739.9229360875), P(5.00366874482281, -4.116535963272926, 3241258.308382536) },
+                new[] { P(-0.35545798104417425, -4.116535963272926, -8722662.402476609), P(-0.35545798104417425, 4.9933863145193955, -3586917.481546306), P(5.00366874482281, 4.9933863145193955, 4.997994216209682), P(5.00366874482281, -4.116535963272926, -5135739.9229360875) },
+                new[] { P(-0.35545798104417425, -4.116535963272926, -345664.1711579871), P(5.00366874482281, -4.116535963272926, 3241258.308382536), P(5.00366874482281, 4.9933863145193955, 8377003.229312839), P(-0.35545798104417425, 4.9933863145193955, 4790080.749772317) });
+
+            AssertHolds(CrackedCube().WithOpenings(new[] { prism }), 750.1474896721886, tolerance);
+        }
+
         [Fact]
         public void AHalfTheBoxRunsInto_KeepsTheMaterialBesideTheBox()
         {

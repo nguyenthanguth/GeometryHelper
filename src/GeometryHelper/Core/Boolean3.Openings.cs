@@ -390,6 +390,10 @@ namespace GeometryHelper.Core
         /// <param name="pieces">The pieces of the body, each in one piece.</param>
         /// <param name="uncut">The planes that ran through a cell and would not cut it, each with the opening it is of.</param>
         /// <param name="tolerance">The tolerance.</param>
+        /// <param name="read">
+        /// Whether the middle of a part of a piece is read, given the piece and the middle; every one is where null. The middle
+        /// of a part of a piece that is not convex can lie outside it; see <see cref="Misjudged"/>.
+        /// </param>
         /// <remarks>
         /// A plane can run through a cell and the cut still be refused, where the rim it leaves does not close: a half of a
         /// body, cut near a face, is often closed only within the tolerance, and one crossed by the floor of a box opening
@@ -406,7 +410,7 @@ namespace GeometryHelper.Core
         /// (see <see cref="MostPlanesForEighths"/>). A piece the plane runs through clear of the opening, or only grazes or
         /// takes a sliver off (see <see cref="Straddles"/>), is judged as before.
         /// </remarks>
-        internal static bool JudgedWhole(List<GeoSolid3> pieces, List<(GeoPlane3 Plane, GeoSolid3 Opening)> uncut, Tolerance tolerance)
+        internal static bool JudgedWhole(List<GeoSolid3> pieces, List<(GeoPlane3 Plane, GeoSolid3 Opening)> uncut, Tolerance tolerance, Func<GeoSolid3, GeoPoint3, bool> read = null)
         {
             var crossing = new List<(GeoPlane3 Plane, GeoSolid3 Opening)>();
             var corners = new List<(GeoPlane3 Plane, GeoSolid3 Opening)>();
@@ -424,14 +428,15 @@ namespace GeometryHelper.Core
                         continue;
                     }
 
-                    if (IsIn(opening, aboveMiddle, tolerance) != IsIn(opening, belowMiddle, tolerance))
+                    if (IsIn(opening, aboveMiddle, tolerance) != IsIn(opening, belowMiddle, tolerance)
+                        && (read == null || read(piece, aboveMiddle) && read(piece, belowMiddle)))
                     {
                         return true;
                     }
 
                     foreach ((GeoPlane3 other, GeoSolid3 of) in crossing)
                     {
-                        if (ReferenceEquals(of, opening) && QuartersPart(piece, other, plane, opening, tolerance))
+                        if (ReferenceEquals(of, opening) && QuartersPart(piece, other, plane, opening, tolerance, read))
                         {
                             return true;
                         }
@@ -462,7 +467,7 @@ namespace GeometryHelper.Core
 
                             for (int j = i + 1; j < corners.Count; j++)
                             {
-                                if (ReferenceEquals(corners[j].Opening, opening) && EighthsPart(piece, corners[i].Plane, corners[j].Plane, plane, opening, tolerance))
+                                if (ReferenceEquals(corners[j].Opening, opening) && EighthsPart(piece, corners[i].Plane, corners[j].Plane, plane, opening, tolerance, read))
                                 {
                                     return true;
                                 }
@@ -489,7 +494,7 @@ namespace GeometryHelper.Core
         /// Whether, of the four parts two planes make of a body, one holding more than the tolerance times the body's area has
         /// its middle in an opening and another its middle out of it.
         /// </summary>
-        private static bool QuartersPart(GeoSolid3 body, GeoPlane3 first, GeoPlane3 second, GeoSolid3 opening, Tolerance tolerance)
+        private static bool QuartersPart(GeoSolid3 body, GeoPlane3 first, GeoPlane3 second, GeoSolid3 opening, Tolerance tolerance, Func<GeoSolid3, GeoPoint3, bool> read)
         {
             double least = tolerance.EqualPoint * body.GrossSurfaceArea;
             bool someIn = false;
@@ -506,14 +511,17 @@ namespace GeometryHelper.Core
                         continue;
                     }
 
-                    if (IsIn(opening, middle, tolerance))
+                    // A middle is read only where it would tell something not known yet: the reading costs a search of the
+                    // body.
+                    bool isIn = IsIn(opening, middle, tolerance);
+
+                    if ((isIn ? someIn : someOut) || read != null && !read(body, middle))
                     {
-                        someIn = true;
+                        continue;
                     }
-                    else
-                    {
-                        someOut = true;
-                    }
+
+                    someIn |= isIn;
+                    someOut |= !isIn;
                 }
             }
 
@@ -530,7 +538,7 @@ namespace GeometryHelper.Core
         /// of each two. Nor are planes read that meet out of the opening's box, grown by the tolerance: what they leave is a
         /// corner the opening does not have.
         /// </remarks>
-        private static bool EighthsPart(GeoSolid3 body, GeoPlane3 first, GeoPlane3 second, GeoPlane3 third, GeoSolid3 opening, Tolerance tolerance)
+        private static bool EighthsPart(GeoSolid3 body, GeoPlane3 first, GeoPlane3 second, GeoPlane3 third, GeoSolid3 opening, Tolerance tolerance, Func<GeoSolid3, GeoPoint3, bool> read)
         {
             GeoVector3 normal = first.Normal;
             GeoVector3 secondNormal = second.Normal;
@@ -544,7 +552,7 @@ namespace GeometryHelper.Core
 
             // The point on all three, from a point on the first: nought along its normal, and along each other normal the
             // height of that plane.
-            GeoPoint3 origin = first.Origin;
+            GeoPoint3 origin = NearestTo(first, body);
             double secondHeight = secondNormal.DotProduct(origin.GetVectorTo(second.Origin));
             double thirdHeight = thirdNormal.DotProduct(origin.GetVectorTo(third.Origin));
             GeoPoint3 apex = origin.Add(thirdNormal.CrossProduct(normal).Multiply(secondHeight / corner)
@@ -572,14 +580,16 @@ namespace GeometryHelper.Core
                             continue;
                         }
 
-                        if (IsIn(opening, origin.Add(moment.Multiply(1.0 / volume)), tolerance))
+                        GeoPoint3 middle = origin.Add(moment.Multiply(1.0 / volume));
+                        bool isIn = IsIn(opening, middle, tolerance);
+
+                        if ((isIn ? someIn : someOut) || read != null && !read(body, middle))
                         {
-                            someIn = true;
+                            continue;
                         }
-                        else
-                        {
-                            someOut = true;
-                        }
+
+                        someIn |= isIn;
+                        someOut |= !isIn;
                     }
                 }
             }
@@ -600,7 +610,7 @@ namespace GeometryHelper.Core
             GeoVector3 normal = first.Normal;
             GeoVector3 along = normal.CrossProduct(second.Normal);
             double meeting = along.DotProduct(along);
-            GeoPoint3 origin = first.Origin;
+            GeoPoint3 origin = NearestTo(first, body);
             double volume;
             GeoVector3 moment;
 
@@ -666,6 +676,20 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Gets the point of a plane nearest the middle of a body's box, the point the parts of the body are read from.
+        /// </summary>
+        /// <remarks>
+        /// The cones the parts are read as are summed from that point, and from a point far off they are large and cancel to
+        /// a part of the size of the body, their rounding left behind: a prism 17 km long, the origins of its planes at its
+        /// far corners up to 8.4 km off, put the middle of a quarter of a cube 10 across it ran through 2.7 km off along the prism.
+        /// </remarks>
+        private static GeoPoint3 NearestTo(GeoPlane3 plane, GeoSolid3 body)
+        {
+            GeoPoint3 middle = body.GetAabb().Center;
+            return middle.Add(plane.Normal.Multiply(-plane.SignedDistanceTo(middle)));
+        }
+
+        /// <summary>
         /// Whether a body holds more on each side of a plane than the tolerance times its area, and where the middle of each
         /// part is.
         /// </summary>
@@ -682,7 +706,7 @@ namespace GeometryHelper.Core
         /// </remarks>
         private static bool Straddles(GeoSolid3 body, GeoPlane3 plane, Tolerance tolerance, out GeoPoint3 aboveMiddle, out GeoPoint3 belowMiddle)
         {
-            GeoPoint3 apex = plane.Origin;
+            GeoPoint3 apex = NearestTo(plane, body);
             GeoVector3 normal = plane.Normal;
             aboveMiddle = apex;
             belowMiddle = apex;
