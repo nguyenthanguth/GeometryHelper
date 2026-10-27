@@ -1017,6 +1017,30 @@ the largest a double holds, some with infinite or missing coordinates; and 90 00
 dense loops, stars, diameters and combs, both ways, with mitred, round and chamfered joins at tolerances of 0.001, 0.01 and
 0.1, are the same to the bit.
 
+**CHANGED.** Finding where a curved loop crosses itself no longer slows with the square of its edges where many of them lie
+side by side across the sweep. The boxes of the edges were swept along one axis, each tried against every box that reaches
+it along the sweep however far off across it, and the plus of 80 000 teeth 0.5 apart across each arm was tried in
+3 201 720 029 pairs, of which 480 224 have boxes that overlap and are read for crossings at tolerances of 0.001 and 0.1.
+Once the boxes tried have missed more than eight for each edge, the rest are filed in rows across the sweep, as wide as the
+boxes are on average across it, and each is read against those in its own rows and the few that lie across many, in the
+order the sweep read them; a box that reaches no more than 64 along the sweep, or few more than that, is still read the old
+way, and so is every box of a loop wider or higher than a double holds, as one with corners at 1E308 and -1E308 is. Once
+warm, the plus finds its 160 173 crossings at a tenth in 0.035 seconds where it took 5.1 on .NET 10, 0.052 where 7.4 on
+.NET 8 and 0.083 where 4.9 on .NET Framework 4.8. Its crossings at a tenth lie too close along its edges to cut it there,
+and taking them and leaving it uncut takes 0.14 to 0.44 seconds where it took 5.0 to 5.5 on .NET 10, and 0.29 to 0.33 where
+4.9 on .NET Framework 4.8; at 0.001 it is cut, which still takes some four minutes on .NET 10, 230 seconds where 256 in one
+run of each, of which finding its 160 181 crossings is 0.18 as the first call in a process. Stars, gears, diameters and the
+loops of every day are swept as they were, and finding their crossings alone takes the time it took within the noise but for
+gears: one of 200 arcs takes 0.089 ms where 0.077 on .NET 10, 15 % more, and one of 1 000 arcs 2.28 where 2.16; on .NET 8
+they take 4 to 7 % more, and a star of 49 points 0.059 ms where 0.056; on .NET Framework 4.8 they take 4 to 6 % more. A
+whole offset of them takes the time it took, within the noise. Of 599 million crossings of 20 000 loops at six tolerances
+from 0 to 1, among them combs and pluses of up to 3 000 teeth turned at any angle, gears, random walks, lattices with ties
+and edges of no length, and arcs past a half turn, none is found otherwise, nor in another order, nor when every box is read
+in rows from the first on, nor of 235 million more of 3 000 loops at six tolerances, among them pluses scaled by up to 1E299
+and loops with infinite or missing corners; and 18 000 offsets of 1 000 random loops and chains, dense loops, stars,
+diameters and combs, both ways, with mitred, round and chamfered joins at tolerances of 0.001, 0.01 and 0.1, are the same to
+the bit.
+
 **CHANGED.** Offsetting a curved loop whose edges run across the whole of it, as a star's do, no longer sorts the edges near
 each piece: the edges whose boxes overlap a piece's were put in order by sorting them, and in a star of 61 points every edge
 overlaps every other. Where they are many they are put in order by marking them: the stars of 21 to 61 points grown and shrunk

@@ -111,6 +111,38 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         /// <summary>
+        /// The plus of <see cref="PlusOfCrossings"/> with 200 teeth to each arm, run on from its last corner, (47, 50), up to
+        /// (47, 1E308), across to (48, 1E308), down to (48, -1E308) and across to (49, -1E308) before it closes: every corner
+        /// is finite, and the loop is 2E308 high, more than a double holds.
+        /// </summary>
+        private static GeoPolygonArc2 PlusOfCrossingsRunOutTo1E308()
+        {
+            const int teeth = 200;
+            double middle = teeth * 0.5 / 2;
+            var points = new List<GeoPoint2> { P(teeth * 0.5 + 1, 0), P(-1, 0) };
+
+            for (int k = 0; k <= teeth; k++)
+            {
+                points.Add(P(0.5 * k, k % 2 == 0 ? -3.0 : 3.0));
+            }
+
+            points.Add(P(middle, middle + 1));
+            points.Add(P(middle, -middle - 1));
+
+            for (int k = 0; k <= teeth; k++)
+            {
+                points.Add(P(k % 2 == 0 ? middle - 3.0 : middle + 3.0, -middle + 0.5 * k));
+            }
+
+            double last = middle - 3.0;
+            points.Add(P(last, 1E308));
+            points.Add(P(last + 1, 1E308));
+            points.Add(P(last + 1, -1E308));
+            points.Add(P(last + 2, -1E308));
+            return new GeoPolygonArc2(points, new double[points.Count]);
+        }
+
+        /// <summary>
         /// A loop of eight corners 2.62 by 2.37 with its arcs, that crosses itself at three places, cut at all of
         /// them at a tolerance of 0.1.
         /// </summary>
@@ -198,7 +230,8 @@ namespace GeometryHelper.UnitTest.Plane
         {
             // Each crossing was tried against every place with a crossing in a strip a tenth wide along the sweep, however far
             // off across it, and the 80 000 crossings of the row along the sweep were all in one strip: 9.4 seconds to find the
-            // places on .NET 10, and 25 to cut the loop on .NET Framework 4.8, where it takes 5 now.
+            // places on .NET 10, and 25 to cut the loop on .NET Framework 4.8, where it takes 0.3 now, the boxes read in rows
+            // across the sweep.
             GeoPolygonArc2 loop = PlusOfCrossings();
             List<GeoEdge2> edges = ArcChain2.EdgesOf(loop);
 
@@ -208,6 +241,20 @@ namespace GeometryHelper.UnitTest.Plane
 
             Assert.Equal(160173, found);
             Assert.True(watch.Elapsed < TimeSpan.FromSeconds(15), "cutting the plus took " + watch.ElapsedMilliseconds + " ms");
+        }
+
+        [Fact]
+        public void APlusOf564CrossingsRunOutTo1E308_GivesThemAll()
+        {
+            // The plus's teeth lie side by side across the sweep, so they were read in rows across it, counted from how high
+            // the loop is: 2E308, infinite as a double, which made the count no number, and the sweep threw. Read along the
+            // sweep, as a loop not of a finite size is, it gives its 564 crossings, as it did before the rows.
+            GeoPolygonArc2 loop = PlusOfCrossingsRunOutTo1E308();
+            List<GeoEdge2> edges = ArcChain2.EdgesOf(loop);
+
+            ArcOffset2.TrySplitAtCrossings(edges, Thousandth, out _, out _, out int found);
+
+            Assert.Equal(564, found);
         }
 
         [Fact]

@@ -406,8 +406,22 @@ namespace GeometryHelper.Core
                 return byStart != 0 ? byStart : one.CompareTo(other);
             });
 
+            // Where many of the boxes a box reaches along the sweep lie off it across the sweep, the rest of the boxes are
+            // tried row by row across it, in the same order: the 80 000 teeth of a comb lying across the sweep all reach one
+            // another along it, and the plus of two such combs was tried pair by pair, 3.2 billion pairs for the 480 224 whose
+            // boxes overlap. A star, whose edges all overlap, is swept as it is, and so are boxes that do not span a finite
+            // width and height.
+            long missed = 0;
+            long enough = Enough(all, count);
+
             for (int a = 0; a < count; a++)
             {
+                if (missed > enough)
+                {
+                    TryInRows(a, order, boxes, alongX, edges, carriers, tolerance, found);
+                    break;
+                }
+
                 int one = order[a];
                 double reach = alongX ? boxes[one].MaxX : boxes[one].MaxY;
 
@@ -422,6 +436,7 @@ namespace GeometryHelper.Core
 
                     if (!boxes[one].Overlaps(boxes[other]))
                     {
+                        missed++;
                         continue;
                     }
 
@@ -430,6 +445,355 @@ namespace GeometryHelper.Core
             }
 
             return found;
+        }
+
+        /// <summary>
+        /// Gets how many pairs of boxes the sweep may try and find apart before it reads the rest in rows, or the largest long
+        /// where the boxes do not span a finite width and height, as those with corners at 1E308 and -1E308 do: the rows are
+        /// counted off the span, and would be of no number.
+        /// </summary>
+        /// <remarks>Kept out of the sweep, whose loop .NET 8's profile-guided compiler makes slower with it inside.</remarks>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static long Enough(Box all, int count)
+            => Guard.IsFinite(all.MaxX - all.MinX) && Guard.IsFinite(all.MaxY - all.MinY) ? 8L * count + 1024L : long.MaxValue;
+
+        /// <summary>
+        /// Tries a box against those after it in the order of the sweep that start before it ends, and notes where the edges
+        /// of those it overlaps cross.
+        /// </summary>
+        private static void TryAlong(int a, int[] order, Box[] boxes, bool alongX, List<GeoEdge2> edges, Carrier[] carriers, Tolerance tolerance, List<Crossing> found)
+        {
+            int one = order[a];
+            double reach = alongX ? boxes[one].MaxX : boxes[one].MaxY;
+
+            for (int b = a + 1; b < order.Length; b++)
+            {
+                int other = order[b];
+
+                if ((alongX ? boxes[other].MinX : boxes[other].MinY) > reach)
+                {
+                    break;
+                }
+
+                if (!boxes[one].Overlaps(boxes[other]))
+                {
+                    continue;
+                }
+
+                CrossingsOf(Math.Min(one, other), Math.Max(one, other), edges, carriers, boxes, tolerance, found);
+            }
+        }
+
+        /// <summary>
+        /// Tries each box from a place in the order of the sweep on against those after it, as the sweep does and in the same
+        /// order, reading only those in the rows across the sweep it lies in and those that lie across many.
+        /// </summary>
+        private static void TryInRows(int from, int[] order, Box[] boxes, bool alongX, List<GeoEdge2> edges, Carrier[] carriers, Tolerance tolerance, List<Crossing> found)
+        {
+            var rows = new BoxRows(boxes, order, alongX);
+            var near = new List<int>();
+
+            for (int a = from; a < order.Length; a++)
+            {
+                if (!rows.After(a, near))
+                {
+                    TryAlong(a, order, boxes, alongX, edges, carriers, tolerance, found);
+                    continue;
+                }
+
+                int one = order[a];
+                int last = -1;
+
+                foreach (int b in near)
+                {
+                    if (b == last)
+                    {
+                        continue;
+                    }
+
+                    last = b;
+
+                    int other = order[b];
+
+                    if (!boxes[one].Overlaps(boxes[other]))
+                    {
+                        continue;
+                    }
+
+                    CrossingsOf(Math.Min(one, other), Math.Max(one, other), edges, carriers, boxes, tolerance, found);
+                }
+            }
+        }
+
+        /// <summary>
+        /// The boxes of a loop's edges filed by the rows across the sweep they lie in, the rows as wide as the boxes are on
+        /// average across it, so that a box is read against those near it across the sweep only. A box that lies across
+        /// more than a few rows is kept apart and read against every box it reaches along the sweep.
+        /// </summary>
+        /// <remarks>
+        /// Two boxes that overlap across the sweep share a row, or one of them is kept apart. The rows hold the boxes by
+        /// their places in the order of the sweep, in order.
+        /// </remarks>
+        private sealed class BoxRows
+        {
+            private const int MostRows = 16;
+
+            private readonly double[] _starts;
+            private readonly double[] _reaches;
+            private readonly int[] _firstRow;
+            private readonly int[] _lastRow;
+            private readonly List<int>[] _rows;
+            private readonly List<int> _apart = new List<int>();
+            private readonly List<int>[] _runs = new List<int>[MostRows + 1];
+            private readonly int[] _lows = new int[MostRows + 1];
+            private readonly int[] _highs = new int[MostRows + 1];
+
+            /// <summary>
+            /// Initializes the rows of boxes that are each empty or finite, at least one of them not empty.
+            /// </summary>
+            /// <param name="boxes">The boxes.</param>
+            /// <param name="order">Their numbers in the order of the sweep.</param>
+            /// <param name="alongX">Whether the sweep goes along X, the rows running along it and lying one over another in Y.</param>
+            internal BoxRows(Box[] boxes, int[] order, bool alongX)
+            {
+                int count = order.Length;
+                double low = double.PositiveInfinity;
+                double high = double.NegativeInfinity;
+                double widths = 0.0;
+                int some = 0;
+
+                _starts = new double[count];
+                _reaches = new double[count];
+                _firstRow = new int[count];
+                _lastRow = new int[count];
+
+                foreach (Box box in boxes)
+                {
+                    if (box.MaxX < box.MinX || box.MaxY < box.MinY)
+                    {
+                        continue;
+                    }
+
+                    low = Math.Min(low, alongX ? box.MinY : box.MinX);
+                    high = Math.Max(high, alongX ? box.MaxY : box.MaxX);
+                    widths += alongX ? box.MaxY - box.MinY : box.MaxX - box.MinX;
+                    some++;
+                }
+
+                // No more rows than four for each box, and one where the boxes have no width across the sweep or all lie at
+                // one place across it.
+                double span = high - low;
+                double width = widths / some;
+                int rows = 1;
+
+                if (span > 0.0)
+                {
+                    if (!(width > 0.0) || !(span / width < 4.0 * count))
+                    {
+                        width = span / (4.0 * count);
+                    }
+
+                    rows = (int)Math.Min(Math.Floor(span / width) + 1.0, 4.0 * count);
+                }
+                else
+                {
+                    width = 1.0;
+                }
+
+                _rows = new List<int>[rows];
+
+                for (int k = 0; k < count; k++)
+                {
+                    Box box = boxes[order[k]];
+
+                    _starts[k] = alongX ? box.MinX : box.MinY;
+                    _reaches[k] = alongX ? box.MaxX : box.MaxY;
+                    _firstRow[k] = -1;
+
+                    if (box.MaxX < box.MinX || box.MaxY < box.MinY)
+                    {
+                        _apart.Add(k);
+                        continue;
+                    }
+
+                    int first = RowOf(alongX ? box.MinY : box.MinX, low, width, rows);
+                    int last = RowOf(alongX ? box.MaxY : box.MaxX, low, width, rows);
+
+                    if (last - first >= MostRows)
+                    {
+                        _apart.Add(k);
+                        continue;
+                    }
+
+                    _firstRow[k] = first;
+                    _lastRow[k] = last;
+
+                    for (int row = first; row <= last; row++)
+                    {
+                        (_rows[row] ?? (_rows[row] = new List<int>())).Add(k);
+                    }
+                }
+            }
+
+            /// <summary>
+            /// Gets the places after a box's in the order of the sweep of the boxes that start before it ends along the sweep
+            /// and share a row with it or are kept apart, in order, one place more than once where the box shares more than one
+            /// row with it.
+            /// </summary>
+            /// <returns>false when the box is kept apart itself, or when the boxes it reaches along the sweep are few, or not many
+            /// more than those, and it is to be read against every box it reaches.</returns>
+            internal bool After(int place, List<int> into)
+            {
+                into.Clear();
+
+                if (_firstRow[place] < 0)
+                {
+                    return false;
+                }
+
+                double reach = _reaches[place];
+                int reached = End(_starts, place + 1, reach) - place - 1;
+
+                // A box that reaches few others along the sweep is read against them all, without looking in the rows.
+                if (reached <= 64)
+                {
+                    return false;
+                }
+
+                int runs = 0;
+                int taken = 0;
+                int giving = 0;
+
+                for (int row = _firstRow[place]; row <= _lastRow[place]; row++)
+                {
+                    if (_rows[row] != null)
+                    {
+                        _runs[runs] = _rows[row];
+                        taken += Run(runs++, place, reach, ref giving);
+                    }
+                }
+
+                _runs[runs] = _apart;
+                taken += Run(runs++, place, reach, ref giving);
+
+                // Reading a few more boxes along the sweep costs less than putting those of the rows in order.
+                if (reached <= 4 * taken)
+                {
+                    return false;
+                }
+
+                for (int run = 0; run < runs; run++)
+                {
+                    for (int k = _lows[run]; k < _highs[run]; k++)
+                    {
+                        into.Add(_runs[run][k]);
+                    }
+                }
+
+                // The places of one row, or of the boxes kept apart, are in order already.
+                if (giving > 1)
+                {
+                    into.Sort();
+                }
+
+                return true;
+            }
+
+            /// <summary>
+            /// Gets the row a place across the sweep lies in, the first or the last for a place beyond them.
+            /// </summary>
+            private static int RowOf(double value, double low, double width, int rows)
+            {
+                double row = Math.Floor((value - low) / width);
+
+                return row <= 0.0 ? 0 : row >= rows - 1 ? rows - 1 : (int)row;
+            }
+
+            /// <summary>
+            /// Finds where in a run of places in order lie those after a place of boxes that start before a reach along the
+            /// sweep, and counts the runs that hold some.
+            /// </summary>
+            /// <returns>How many there are.</returns>
+            private int Run(int run, int place, double reach, ref int giving)
+            {
+                List<int> places = _runs[run];
+                int low = 0;
+                int high = places.Count;
+
+                // The first of them after the place.
+                while (low < high)
+                {
+                    int middle = low + (high - low) / 2;
+
+                    if (places[middle] <= place)
+                    {
+                        low = middle + 1;
+                    }
+                    else
+                    {
+                        high = middle;
+                    }
+                }
+
+                _lows[run] = low;
+                _highs[run] = Beyond(places, low, reach);
+
+                if (_highs[run] > low)
+                {
+                    giving++;
+                }
+
+                return _highs[run] - low;
+            }
+
+            /// <summary>
+            /// Gets the first, of a run of places in order from a given one on, of a box that starts beyond a reach along the
+            /// sweep.
+            /// </summary>
+            private int Beyond(List<int> places, int low, double reach)
+            {
+                int high = places.Count;
+
+                while (low < high)
+                {
+                    int middle = low + (high - low) / 2;
+
+                    if (_starts[places[middle]] > reach)
+                    {
+                        high = middle;
+                    }
+                    else
+                    {
+                        low = middle + 1;
+                    }
+                }
+
+                return low;
+            }
+
+            /// <summary>
+            /// Gets the first place in the order of the sweep, from a given one on, of a box that starts beyond a reach.
+            /// </summary>
+            private static int End(double[] starts, int low, double reach)
+            {
+                int high = starts.Length;
+
+                while (low < high)
+                {
+                    int middle = low + (high - low) / 2;
+
+                    if (starts[middle] > reach)
+                    {
+                        high = middle;
+                    }
+                    else
+                    {
+                        low = middle + 1;
+                    }
+                }
+
+                return low;
+            }
         }
 
         /// <summary>
