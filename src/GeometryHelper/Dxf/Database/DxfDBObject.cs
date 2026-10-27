@@ -388,8 +388,8 @@ namespace GeometryHelper.Dxf
         /// The object of a record of the OBJECTS section, made once: a <see cref="DxfDBDictionary"/> for a DICTIONARY, a
         /// <see cref="DxfXrecord"/> for an XRECORD, a <see cref="DxfGroup"/> for a GROUP, a <see cref="DxfLayout"/> for a LAYOUT,
         /// a <see cref="DxfPlotSettings"/> for a PLOTSETTINGS, a <see cref="DxfMLeaderStyle"/> for an MLEADERSTYLE, a
-        /// <see cref="DxfField"/> for a FIELD, a <see cref="DxfMlineStyle"/> for an MLINESTYLE, a <see cref="DxfSun"/> for a SUN;
-        /// else one of no class of its own.
+        /// <see cref="DxfField"/> for a FIELD, a <see cref="DxfMlineStyle"/> for an MLINESTYLE, a <see cref="DxfSun"/> for a SUN,
+        /// a <see cref="DxfGeoData"/> for a GEODATA; else one of no class of its own.
         /// </summary>
         internal static DxfDBObject OfObject(DxfItem item)
         {
@@ -429,6 +429,9 @@ namespace GeometryHelper.Dxf
                     break;
                 case "SUN":
                     made = new DxfSun(item);
+                    break;
+                case "GEODATA":
+                    made = new DxfGeoData(item);
                     break;
                 default:
                     made = new DxfUnknownObject(item);
@@ -561,8 +564,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Erases the object from its file, as AutoCAD's <c>Erase</c> does: an entity is taken out of its block with every
         /// record of it, as <see cref="DxfEntity.Erase"/> says; a layer, a linetype or a block nothing uses out of its table, as
-        /// their own <c>Erase</c> says; an XRECORD (<see cref="DxfXrecord"/>) and a GROUP (<see cref="DxfGroup"/>) with the entry
-        /// of the dictionary that names it.
+        /// their own <c>Erase</c> says; an XRECORD (<see cref="DxfXrecord"/>), a GROUP (<see cref="DxfGroup"/>) and a GEODATA
+        /// (<see cref="DxfGeoData"/>) with the entry of the dictionary that names it.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the object is in no file, or is erased.</exception>
         /// <exception cref="NotSupportedException">Thrown for an object not erased yet: a table, a text style, a dictionary, a

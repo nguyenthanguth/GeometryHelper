@@ -506,6 +506,9 @@ Dxf in front and their members' names.
 | `MLeaderStyle`, `mleader.getOverridedMLeaderStyle(style)` | `DxfMLeaderStyle`, `mleader.GetOverridedMLeaderStyle(new DxfMLeaderStyle())` | A multileader style is read, not written: the styles of `db.MLeaderStyleDictionary` as the file holds them, and one made in code given what a multileader is drawn with; `PostMLeaderStyleToDb` is not there. |
 | `db.Insert(Matrix3d, other, true)`, `db.Insert("PLATE", other, true)` | `db.Insert(GeoTransform3, other, true)`, `db.Insert("PLATE", other, true)` giving the block | The other drawing's model space, its tables and named blocks merged by name; the other drawing is never changed. |
 | `db.Purge(ids)` leaving in `ids` what may be erased; `db.CountHardReferences(ids, counts)` | `db.Purge(objects)` giving those back as a list; `db.CountHardReferences(objects, counts)` | The references a DXF writes by name (a layer, a linetype, a style, a block) counted with the hard pointers. |
+| `db.GeoDataObject` giving an `ObjectId`, `GeoLocationData`, `geo.PostToDb()` | `db.GeoDataObject` giving the `DxfGeoData`, `geo.PostToDb()` | `BlockTableRecordId` is `BlockTableRecord`, the record; `PostToDb` gives nothing back, the GEODATA itself now in the file. `EraseFromDb` is `Erase()`. `NorthDirection`, `TransformToLonLatAlt`, `TransformFromLonLatAlt` and `UpdateTransformationMatrix` are not there. The members of `DxfTypeOfCoordinates` and `DxfScaleEstimationMethod` drop AutoCAD's prefixes: `CoordinateTypeLocal` is `Local`, `ScaleEstMethodUnity` is `Unity`. A `DxfMeshPointMap` is read only, where AutoCAD's `MeshPointMap` sets its two points. |
+| `db.LayerStateManager.GetLayerStateNames(false, false)`, `LayerStatesDictionaryId(false)` | `db.LayerStateManager.GetLayerStateNames()`, `LayerStatesDictionary` | `GetLayerStateNames` takes no flags for hidden states and states of an xref, since where a state keeps them is not known, and gives every state; `LayerStatesDictionary` is read only and makes no dictionary. Saving, restoring, renaming, deleting, importing and exporting a state are not there. |
+| `db.LayerFilters` giving a `LayerFilterTree` | `db.LayerFilters` giving a `DxfLayerFilterTree` | Read only: no `Current`, and a tree is not set back. A `DxfLayerFilter`'s `Name` has no setter; `FilterExpression`, `Filter(layer)` and the filters of AutoCAD 2005 and later (AcLyDictionary) are not there. |
 | `Highlight`, `Draw`, grips, overrules, events, reactors of the runtime | none | They need AutoCAD running. |
 
 ### Opening and saving
@@ -664,6 +667,28 @@ A layer's look in a viewport is `layer.GetViewportOverrides(viewport)`, a `DxfLa
 linetype, lineweight and transparency there, each the override AutoCAD keeps in the layer's extension dictionary
 (ADSK_XREC_LAYER_COLOR_OVR and the three others) else the layer's own; `RemoveAllOverrides()` takes them out, and erasing a
 viewport takes its overrides out of the layers.
+
+The layer states and layer filters a drawing keeps in the layer table's extension dictionary are read and listed:
+`db.LayerStateManager.GetLayerStateNames()` gives the entries of ACAD_LAYERSTATES, Plan and Sections for a drawing with the
+two, `HasLayerState("plan")` finds one in either case and `LayerStatesDictionary` is the dictionary, each state an XRECORD
+of it; `db.LayerFilters.Root` is All, the names of the entries of ACAD_LAYERFILTERS nested in it. That dictionary holds the
+filters of AutoCAD 2004 and earlier; the property and group filters of AutoCAD 2005 and later, which it keeps in a
+dictionary of its own, AcLyDictionary, are not read, so a drawing saved by AutoCAD 2005 or later most likely gives All and
+no filter nested in it. What a state's or a filter's record holds (its layers, its mask, its expression) is in neither the
+DXF reference nor ezdxf, so a state is not saved, restored, renamed or deleted, and a filter not changed. A drawing's place
+on the earth, AutoCAD's `GeoLocationData`, is a `DxfGeoData`, `db.GeoDataObject` the GEODATA model space's extension
+dictionary names ACAD_GEOGRAPHICDATA, null where the drawing holds none:
+`new DxfGeoData { BlockTableRecord = db.ModelSpace, TypeOfCoordinates = DxfTypeOfCoordinates.Local, ReferencePoint = new GeoPoint3(500000, 4100000, 0), HorizontalUnits = DxfUnits.Millimeters, HorizontalUnitsScale = 0.001 }.PostToDb()`
+puts a drawing of R2010 or later in millimetres on a local grid at 500 000 east and 4 100 000 north, the GEODATA it had
+erased and the class GEODATA listed where the drawing lists none; a drawing older than R2010 is refused. The class is
+listed in the CLASSES section, so a file of R2010 or later written with none is given the GEODATA and no class for it. Its
+design and reference points, units and their scales, up and north directions, how the scale is judged, the correction to
+the sea's level, the coordinate system's XML (in pieces of 255 characters, `^J` a line feed, as ezdxf writes it, a piece
+never ending between the two halves of a letter of two units of UTF-16), the tags and the points of the mesh
+(`GetMeshPointMaps`, `SetMeshPointMaps`, `AddMeshPointMap`, `ResetMeshPointMaps`) are read and set. One of version 1 (R2009)
+has its points of the mesh read from its groups 12 and 13, as a comment of ezdxf maps them, though ezdxf 1.4.5 itself reads
+no points from it; it is not given a north direction or points of its mesh. Taking a point to latitude and longitude needs
+the coordinate system's projection and is not there.
 
 The `LinetypeTable` holds a `DxfLinetypeTableRecord` for each linetype: its `AsciiDescription`, `PatternLength`,
 `NumDashes` and `DashLengthAt`, a new one of simple dashes added by `Add`. A linetype's dashes carry their shapes and texts:

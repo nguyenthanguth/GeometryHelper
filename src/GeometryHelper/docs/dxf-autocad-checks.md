@@ -423,3 +423,65 @@ an error AUDIT reports or fixes in a file the library wrote is a change to make 
       corners and the face of its own colour refused.
     - A change if: AutoCAD hides the edges inside a face, or breaks a face of five corners in a way the library can follow
       (a fan from its first corner), which would let it take one.
+
+## Geographic location, layer filters and layer states
+
+65. **The GEODATA AutoCAD writes.**
+    - Try: in AutoCAD 2018 or later, GEOGRAPHICLOCATION on a drawing in millimetres, with three points of the mesh, saved as
+      DXF of R2018; read the GEODATA record.
+    - Now: the library writes a GEODATA of version 2 (group 90), as ezdxf's new one, its groups in the order 90, 330, 70, 10
+      to 31, 40, 91, 41, 92, 210 to 230, 12, 22, 95, 141, 294, 142, 143, 303, 301, 302, 305 to 307, 93, then each point of
+      the mesh with the point it is taken to, interleaved (13, 23, 14, 24 for each), then the faces (96 to 99).
+    - A change if: AutoCAD writes version 3, another order, or every point of the drawing before every point taken to; the
+      library should then write so, and read a version 3 by what it holds.
+
+66. **The class GEODATA.**
+    - Try: in the same file, read the CLASS whose DXF name is GEODATA.
+    - Now: the library lists it, where the file lists none, as ezdxf does: ObjectDBX Classes, proxy flags (90) 4095, the
+      count of objects (91) 0, not a proxy and not an entity.
+    - A change if: AutoCAD writes other proxy flags, or AUDIT reports a count of 0 with a GEODATA in the file.
+
+67. **The entry ACAD_GEOGRAPHICDATA and the host of the GEODATA.**
+    - Try: in the same file, read model space's extension dictionary and the GEODATA's group 330 after its version.
+    - Now: the library names the GEODATA by a 360, an owning pointer, and writes model space's BLOCK_RECORD handle as its
+      host; ezdxf writes a 350 and a host of 0, and the library reads both.
+    - A change if: AutoCAD writes a 350, or a host other than model space's handle; the library should then write it so.
+
+68. **A new GeoLocationData, and one in paper space.**
+    - Try: in AutoCAD's API, read every property of `new GeoLocationData()`; then set its `BlockTableRecordId` to paper
+      space's, `PostToDb()`, save and open the file.
+    - Now: a `DxfGeoData` made in code is ezdxf's new one: geographic, its two points at the origin, inches of scale 1, up
+      along Z, north along Y, no scale estimated, no coordinate system and no mesh. `PostToDb` takes any block, paper space
+      among them; `db.GeoDataObject` reads model space's only.
+    - A change if: AutoCAD's new one differs, which the library's should then follow; or AutoCAD refuses a GEODATA in paper
+      space, or drops it on opening, when `PostToDb` should refuse every block but model space.
+
+69. **Where AutoCAD 2018 keeps layer filters.**
+    - Try: in AutoCAD 2018 or later, make a property filter and a group filter, save as DXF of R2018, and read the layer
+      table's extension dictionary; in AutoCAD's API, list `db.LayerFilters.Root.NestedFilters`.
+    - Now: the library reads the names of the entries of ACAD_LAYERFILTERS, the dictionary of AutoCAD 2004 and earlier, and
+      nests them in All; AcLyDictionary is not read, and no "All Used Layers" is made.
+    - A change if: the two filters are only in AcLyDictionary, which the library should then read; or `NestedFilters` holds
+      "All Used Layers", which it should then give, made by AutoCAD like All.
+
+70. **The record of a layer state, and its hidden and xref states.**
+    - Try: save a layer state, one marked hidden, and one of an attached xref; save as DXF of R2018 and read the XRECORDs of
+      ACAD_LAYERSTATES; in AutoCAD's API compare `GetLayerStateNames(false, false)` with `GetLayerStateNames(true, true)`.
+    - Now: the library lists every entry of ACAD_LAYERSTATES; `GetLayerStateNames()` takes no flags, since where a state
+      keeps whether it is hidden or of an xref is not known.
+    - A change if: the two lists differ, as they should; the groups that mark a state hidden or of an xref then let the
+      library take the flags, and the layout of the record its layers, mask and description.
+
+71. **A GEODATA with no class.**
+    - Try: open in AutoCAD a DXF of R2010 or later with no CLASSES section, written by a program that leaves it out, given a
+      GEODATA by `PostToDb()`.
+    - Now: the GEODATA is written and no class for it, since there is no CLASSES section to list it in.
+    - A change if: AutoCAD refuses the file, drops the GEODATA, or AUDIT reports it; `PostToDb` should then write a CLASSES
+      section, or refuse such a file.
+
+72. **The angle of the north direction.**
+    - Try: in AutoCAD's API, read `NorthDirection` of a GeoLocationData whose `NorthDirectionVector` is (0, 1), (1, 0) and
+      (-1, 0) by turns.
+    - Now: `NorthDirection` is not given; `NorthDirectionVector` is read and set as groups 12 and 22.
+    - A change if: the three angles show from which axis and which way AutoCAD measures it; the library can then give
+      `NorthDirection` from the vector.

@@ -401,6 +401,34 @@ gives: several contents in a cell, and a grid line's style, linetype and double-
 1.4.5 read every change on drawings of R2000, R2007 and R2018 with nothing for its recover and audit to fix, and gave
 the cells' texts as the library reads them.
 
+**NEW.** A drawing's place on the earth, its layer states and its layer filters, as AutoCAD's `Database` gives them, three
+members the library did not have. `DxfDatabase.GeoDataObject` is the GEODATA model space's extension dictionary names
+ACAD_GEOGRAPHICDATA, read as the new `DxfGeoData`, AutoCAD's `GeoLocationData`, where it was an object of no class of its
+own: `new DxfGeoData { BlockTableRecord = db.ModelSpace, TypeOfCoordinates = DxfTypeOfCoordinates.Local, ReferencePoint = new GeoPoint3(500000, 4100000, 0), HorizontalUnits = DxfUnits.Millimeters, HorizontalUnitsScale = 0.001 }.PostToDb()`
+puts a drawing of R2010 or later in millimetres on a local grid at 500 000 east and 4 100 000 north, the extension
+dictionary made where model space has none, the GEODATA it had erased, as ezdxf replaces it, and the class GEODATA listed
+in the CLASSES section where it lists none; a file of R2010 or later written with no CLASSES section is given no class for
+it. Its `DesignPoint`, `ReferencePoint`, `HorizontalUnits` and `VerticalUnits` with their scales, `UpDirection`,
+`NorthDirectionVector`, `ScaleEstimationMethod` (the new `DxfScaleEstimationMethod`) and `ScaleFactor`,
+`TypeOfCoordinates` (the new `DxfTypeOfCoordinates`), `DoSeaLevelCorrection`, `SeaLevelElevation`,
+`CoordinateProjectionRadius`, `CoordinateSystem` (its XML in pieces of 255 characters, a line feed written `^J`, as ezdxf
+writes it, no piece ending between the two halves of a letter of two units of UTF-16), `GeoRSSTag` and the three tags of
+observation are read and set, and the points of its mesh (the new `DxfMeshPointMap`) by `GetMeshPointMaps`,
+`SetMeshPointMaps`, `AddMeshPointMap` and `ResetMeshPointMaps`, its faces kept as they are. One of version 1 (R2009) has
+the points of its mesh read from its groups 12 and 13, as a comment of ezdxf maps them, though ezdxf 1.4.5 itself reads no
+points from it; it is not given a north direction or points of its mesh. `DxfDatabase.LayerStateManager`, the new
+`DxfLayerStateManager`, lists the layer states of the dictionary ACAD_LAYERSTATES of the layer table's extension
+dictionary (`GetLayerStateNames`, `HasLayerState`, `LayerStatesDictionary`), and `DxfDatabase.LayerFilters`, the new
+`DxfLayerFilterTree` and `DxfLayerFilter`, gives All with the names of the entries of ACAD_LAYERFILTERS nested in it.
+That is the dictionary of the filters of AutoCAD 2004 and earlier: the property and group filters of AutoCAD 2005 and
+later, kept in AcLyDictionary, are not read, so a drawing saved by AutoCAD 2005 or later most likely lists no filter but
+All. Left out: saving, restoring, renaming and deleting a layer state, what a state or a filter holds, groups of layers
+and the current filter, whose records' groups neither the DXF reference nor ezdxf gives and no drawing at hand shows; a
+point taken to latitude and longitude, which needs the coordinate system's projection; and the angle `NorthDirection`,
+from which axis and which way it is measured not confirmed. ezdxf 1.4.5 read every GEODATA the probe wrote, set, changed,
+replaced and erased, on drawings of R2010 and R2018, with the values set and nothing for its recover and audit to fix; 253
+drawings read and saved again, 244 of the reader's corpus and the 9 the tests hold, give the bytes they gave before.
+
 **NEW.** The dimension variables of AutoCAD's `Database`, `Dimension` and `Leader` that the library did not have, 84 of
 them. `DxfDatabase` reads and sets the 77 `$DIM` variables of the header by their AutoCAD names (`Dimasz` is `$DIMASZ`,
 `Dimfxlen` `$DIMFXL`, `DimAssoc` `$DIMASSOC`), each read as AutoCAD's metric drawing has it where the header gives none
