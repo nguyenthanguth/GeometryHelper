@@ -139,8 +139,11 @@ done
 
 ### Git and releases
 
-- Commit once the full verify is green, then stop. Never push unless asked to in that same request.
-- Tags, GitHub releases and the `release.yml` workflow are the maintainer's to run.
+- Commit only once the full verify is green. The lead agent decides when to commit, push, tag and release, unless the
+  maintainer says otherwise.
+- A release is a version bump commit (full verify, benchmarks, docfx with 0 warnings), then `git tag vX.Y.Z`, the tag
+  pushed, and `gh release create`. Publishing the release runs `release.yml`, which pushes the packages to NuGet and
+  cannot be taken back, so watch that run until it is green and report the outcome.
 - Commit messages: a summary line in plain words, then a body saying what changed and why, with the tests and numbers
   behind it, ending with the `Co-Authored-By:` trailer.
 - Entries go under `## Unreleased` in `CHANGELOG.md`, marked **NEW.**, **FIXED.**, **CHANGED.** or **BREAKING.**
