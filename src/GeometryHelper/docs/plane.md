@@ -780,7 +780,19 @@ teeth is such a loop, its two arcs at each inner vertex crossing again 0.0079 aw
 that is 4E-7 wide; grown by 0.5 it is one loop of 31 667.81, the slits lost in the valleys, and shrunk by 0.5 one of
 28 106.67 (the straight path's 28 106.72), every slit holding a disc of 0.5 out of the roots. The five-pointed star drawn
 in one stroke, its middle a hole, grown by 0.3 is its outline and a smaller hole, and shrunk by 0.2 five tips. The loops
-come back wound as the signed area of the loop says it runs, the outer ones that way and the holes the other. A loop
+come back wound as the signed area of the loop says it runs, the outer ones that way and the holes the other. Grown with
+miters or chamfers, each tip of the region where two lobes of it cross is a corner of its own, and is mitered or cut as
+any corner is: the bow tie from (-10, 2) to (1, -0.2), (1, 0.2) and (-10, -2), its back an arc of bulge -0.25, grown by 1
+keeps the miter of its long lobe out to (5.099, 0), past the small lobe, and encloses 54.460, and the loop of four corners
+whose first and last edges cross 1.3 degrees apart at (5.723, 5.984), grown by 3 with chamfers, is cut square at both tips
+of that crossing and encloses 212.058. Two quarters of the region at a crossing are two lobes when they lie in two pieces
+of it once it is cut at every crossing, as the straight path reads them. Where they are one piece running round a hole
+they are no tips: the square 10 by 10 whose bottom edge curls up into a loop from (6, 2) to (4, 2), crossing itself at
+(5, 1.667), grown by 3 with miters, is 253.263, as the straight path gives it. Where more than two edges cross at one
+place, crossings within the tolerance of each other made one, where a corner of the loop lies within the tolerance of the
+crossing, or a piece through it ends at a corner within it, or where a lobe beside it is a sliver within the tolerance,
+the region is joined there round the space between, as when it is rounded or shrunk; a vertex the loop runs straight on
+through is no corner. The DXF polylines' `GetOffsetCurves`, whose miter has no limit, join every crossing so. A loop
 that does not cross itself is offset as it always was. A vertex that lies on another edge is a crossing when the edge
 before it comes from one side of that edge and the edge after it leaves to the other: the loop from the origin to
 (10, 0), up to (10, 10) by an arc of bulge 0.2, back to (5, 0) and on to (3, -6) by an arc of bulge -0.2 crosses itself

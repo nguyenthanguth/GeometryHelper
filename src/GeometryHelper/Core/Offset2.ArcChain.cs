@@ -94,8 +94,15 @@ namespace GeometryHelper.Core
         /// on the loop cut within 1E-5, 5.9555 and 14.5114); it was none. A gear of 642 teeth, whose arcs at each inner vertex
         /// cross again 0.0079 away and make a slit there, grown by 0.5 is one loop of 31 667.81, and shrunk by 0.5 one of
         /// 28 106.67, each slit holding its disc of 0.5 out of it. The loops come back wound as the signed area of the loop
-        /// says it runs, outer ones that way and holes the other. A loop that does not cross itself is offset as it always
-        /// was. A vertex that lies on another edge is a crossing when the edge before it comes from one side of that edge and
+        /// says it runs, outer ones that way and holes the other. Grown with miters or chamfers, each tip of the region where two
+        /// lobes of it cross is a corner of its own and is mitered or cut as any corner is: the bow tie from (-10, 2) to
+        /// (1, -0.2), (1, 0.2) and (-10, -2), its back an arc of bulge -0.25, grown by 1, keeps the miter of its long lobe out
+        /// to (5.099, 0), past the small lobe, and encloses 54.460; the miter was cut off at x = 2, 52.539. A loop of four
+        /// corners whose first and last edges cross 1.3 degrees apart, grown by 3 with chamfers, encloses 212.058, where it lost
+        /// 0.83 beside the crossing. Where the two quarters of the region at a crossing are one lobe running round a hole, as
+        /// the straight path reads them, they are no tips: the square 10 by 10 whose bottom edge curls up into a loop from
+        /// (6, 2) to (4, 2), grown by 3, is 253.263. A loop that does not cross itself is offset as it always was. A vertex
+        /// that lies on another edge is a crossing when the edge before it comes from one side of that edge and
         /// the edge after it leaves to the other: the loop from the origin to (10, 0), up to (10, 10) by an arc of bulge 0.2,
         /// back to (5, 0) and on to (3, -6) by an arc of bulge -0.2 crosses itself at (5, 0), and grown by 0.5 with round
         /// joins is one loop of 74.484 (the straight path 74.483), shrunk by 0.5 two of 21.342 and 10.017. A vertex that
@@ -140,6 +147,29 @@ namespace GeometryHelper.Core
             if (loop == null) throw new ArgumentNullException(nameof(loop));
             if (options == null) throw new ArgumentNullException(nameof(options));
 
+            // Grown with miters or chamfers, each tip of the region where two lobes of it cross is a corner of its own, which
+            // its miter or its chamfer fills.
+            return Offset(loop, distance, options, tolerance, distance > 0.0 && options.Join != OffsetJoin.Round);
+        }
+
+        /// <summary>
+        /// Offsets a loop that may curve, saying whether the tips of its region where two lobes of it cross are corners.
+        /// </summary>
+        /// <param name="loop">The loop.</param>
+        /// <param name="distance">How far to move it, outward when positive.</param>
+        /// <param name="options">How to fill a corner that opens up, and how far a miter may run.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="tipsApart">
+        /// true to join such a tip as a corner of its own, as a region grown with miters or chamfers is; false to join the
+        /// loops round the space between there, as the offset of a DXF polyline does, whose unlimited miter would run a tip
+        /// on as far as its sides take it.
+        /// </param>
+        /// <returns>The offset loops.</returns>
+        internal static GeoPolygonArc2[] Offset(GeoPolygonArc2 loop, double distance, OffsetOptions options, Tolerance tolerance, bool tipsApart)
+        {
+            if (loop == null) throw new ArgumentNullException(nameof(loop));
+            if (options == null) throw new ArgumentNullException(nameof(options));
+
             if (Math.Abs(distance) <= tolerance.EqualPoint)
             {
                 return new[] { loop.Clone() };
@@ -156,7 +186,7 @@ namespace GeometryHelper.Core
             // A loop that crosses itself is read even-odd, as the straight offsets read one: cut at its crossings into the
             // simple loops they make, each running with the region on its left, which is then moved to its right whatever
             // way the loop ran, and the loops that come of it wound the way the loop ran.
-            bool crossing = ArcOffset2.TrySplitAtCrossings(edges, tolerance, out List<List<GeoEdge2>> region, out List<List<GeoEdge2>> bounds, out int crossings);
+            bool crossing = ArcOffset2.TrySplitAtCrossings(edges, tolerance, out List<List<GeoEdge2>> region, out List<List<GeoEdge2>> bounds, out int crossings, tipsApart);
 
             // The tolerance, a hundredth of it and a ten-thousandth of it: a loop it reads in finer steps where the tolerance is
             // coarse beside the shape. One crossing itself at more than 2 000 places is read within the tolerance only, since the
@@ -172,7 +202,7 @@ namespace GeometryHelper.Core
             while (!crossing && crossings > 0 && finely && used + 1 < ladder.Length)
             {
                 used++;
-                crossing = ArcOffset2.TrySplitAtCrossings(edges, ladder[used], out region, out bounds, out crossings);
+                crossing = ArcOffset2.TrySplitAtCrossings(edges, ladder[used], out region, out bounds, out crossings, tipsApart);
                 finely = crossings <= ArcOffset2.MostCrossingsRetried;
                 crossing = crossing && finely;
             }
@@ -194,7 +224,7 @@ namespace GeometryHelper.Core
             // where it leaves fewer runs open and no fewer loops, a loop of it finer than the tolerance and all.
             for (int step = used + 1; open > 0 && finely && step < ladder.Length; step++)
             {
-                bool cut = ArcOffset2.TrySplitAtCrossings(edges, ladder[step], out List<List<GeoEdge2>> fineRegion, out List<List<GeoEdge2>> fineBounds, out int fineCrossings)
+                bool cut = ArcOffset2.TrySplitAtCrossings(edges, ladder[step], out List<List<GeoEdge2>> fineRegion, out List<List<GeoEdge2>> fineBounds, out int fineCrossings, tipsApart)
                     && fineCrossings <= ArcOffset2.MostCrossingsRetried;
 
                 if (!cut && fineCrossings > 0)

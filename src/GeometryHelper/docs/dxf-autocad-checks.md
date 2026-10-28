@@ -532,3 +532,17 @@ The library reads the data links of a table and takes them away, and writes no n
     - Try: give the top left cell of a linked range a formula in AutoCAD, save, and read the cell's groups.
     - Now: `SetFormula` writes the cell's 344 after the link's run: `92 1`, `340`, `93`, `94`, `96 0`, then `344`.
     - A change if: AutoCAD writes the 344 before the 340, or keeps no formula in a linked cell.
+
+## Offsets of polylines that cross themselves
+
+79. **The corner at a crossing of a closed polyline offset.**
+    - Try: `GetOffsetCurves(1)` in AutoCAD's API of the closed polyline (-10, 1), (10, -1), (10, 1), (-10, -1), a bow tie
+      crossing itself at the origin, of the same bow tie 0.02 high at its ends, and of the square (0, 0), (6, 0.06),
+      (4, 0.06), (10, 0), (10, 10), (0, 10), whose bottom curls into a loop; note the vertices beside each crossing.
+    - Now: the crossing is no corner. The two lobes' offsets are joined where they cross, the bow tie's at (0, ±1.004988),
+      and the thin one's at (0, ±1); its tips are not run on, which with the unlimited miter `GetOffsetCurves` uses
+      would reach x = ±1 000. The square grows to the square from (-1, -1.01005) to (11, 11), its bottom rising from
+      -1.01005 at the corners to (5, -0.95005). `Offset2.Offset` of a `GeoPolygonArc2` grown with miters or chamfers miters or cuts each tip of two
+      lobes as a corner, as the straight path does.
+    - A change if: AutoCAD runs the two tips at a bow tie's waist on as corners; the DXF offset then joins them as
+      `Offset2.Offset` does, with AutoCAD's limit, if it has one.

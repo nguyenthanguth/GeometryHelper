@@ -222,6 +222,11 @@ namespace GeometryHelper.Core
         /// <param name="region">The simple loops the crossings cut it into, which say what lies in the region: inside an odd number of them.</param>
         /// <param name="bounds">The loops that bound the region, each running with it on its left.</param>
         /// <param name="found">How many places two edges were found to cross each other at, whether or not the loop could be cut there.</param>
+        /// <param name="tipsApart">
+        /// true to join the chains at a crossing of two lobes round the quarters of the region, so that each tip of the region
+        /// there is a corner of its own: the corners a region grown with miters or chamfers fills. false to join them round the
+        /// quarters of the space that is not the region.
+        /// </param>
         /// <returns>true when two edges cross each other, other than at a vertex, and the loop was cut.</returns>
         /// <remarks>
         /// A crossing is a place two edges cross each other, away from the ends of both: edges that meet at a vertex, or
@@ -236,8 +241,23 @@ namespace GeometryHelper.Core
         /// as the corner of a polygon is. The corner of the offset there is the corner of the region, a quarter of space
         /// narrower than the offset being filled up to where its sides meet.
         /// </para>
+        /// <para>
+        /// A region grown with miters or chamfers is joined the other way, each piece arriving to the piece leaving next round
+        /// clockwise, round a quarter of the region: each tip of the region at the crossing is then a corner that opens, and its
+        /// miter runs the two pieces on past the crossing round their own circles, or its chamfer cuts it square, as at any
+        /// corner. Joined round the space between, the tip was no corner, and where the quarter across the crossing was too
+        /// small to hold the join, it was left out: a loop of ten corners crossing itself at nine places, grown by 0.3 with
+        /// miters, lost 1.89 near (0, -4.4).
+        /// Only a crossing of two lobes is so joined, its two quarters of the region in two lobes once the region is cut at
+        /// every crossing; one whose quarters are one lobe running round a hole is joined round the space between, as the
+        /// straight path reads it. So is a place where more than two pieces cross, crossings within the tolerance of each other
+        /// made one: there the quarters are not the region's own, and joined round them, a loop at a tolerance of 0.01 whose
+        /// edge crosses a spike's two sides 0.0085 apart, grown by 0.3, kept 1.0 that is not the offset. So is a crossing a
+        /// corner of the loop lies within the tolerance of, or a piece through it ends at a corner within it, a vertex the loop
+        /// runs straight on through being no corner, and one beside a lobe that is a sliver within the tolerance.
+        /// </para>
         /// </remarks>
-        internal static bool TrySplitAtCrossings(List<GeoEdge2> edges, Tolerance tolerance, out List<List<GeoEdge2>> region, out List<List<GeoEdge2>> bounds, out int found)
+        internal static bool TrySplitAtCrossings(List<GeoEdge2> edges, Tolerance tolerance, out List<List<GeoEdge2>> region, out List<List<GeoEdge2>> bounds, out int found, bool tipsApart = false)
         {
             region = null;
             bounds = null;
@@ -274,7 +294,7 @@ namespace GeometryHelper.Core
             }
 
             TurnWithTheRegionOnTheLeft(chains, loops);
-            List<List<GeoEdge2>> joined = JoinAcrossTheSpaceBetween(chains);
+            List<List<GeoEdge2>> joined = JoinAcrossTheSpaceBetween(chains, tipsApart, tipsApart ? CornersAlongX(edges, tolerance) : null, tolerance);
 
             if (joined == null)
             {
@@ -1850,8 +1870,22 @@ namespace GeometryHelper.Core
         /// leaving next round from it, counter-clockwise, which bounds a quarter of the space that is not the region.
         /// </summary>
         /// <param name="chains">The chains, each running with the region on its left.</param>
+        /// <param name="tipsApart">
+        /// true to follow each chain at a crossing of two lobes of the region by the one leaving next round clockwise instead,
+        /// which bounds a quarter of the region.
+        /// </param>
+        /// <param name="corners">The corners of the loop in order along X, which a crossing within the tolerance of is no tip; null where the tips are not apart.</param>
+        /// <param name="tolerance">The tolerance, within which a lobe whose two sides hug each other is a sliver and no tip.</param>
         /// <returns>The loops of the region's boundary, or null where the chains do not pair up.</returns>
-        private static List<List<GeoEdge2>> JoinAcrossTheSpaceBetween(List<Chain> chains)
+        /// <remarks>
+        /// A crossing is of two lobes where, the region cut into its lobes at every crossing, its two quarters of the region
+        /// are in two lobes: the two halves of a bow tie, or a lens and the rest of the region either side of its tips, as the
+        /// straight path reads them. Where a loop round the lobes passes through the crossing twice, its two quarters are one
+        /// lobe running round a hole, and are no tips: the square 10 by 10 whose bottom edge curls up into a loop from (6, 2)
+        /// to (4, 2), crossing itself at (5, 1.667), grown by 3 with miters, is 253.263, as the straight path gives it, where
+        /// with its quarters mitered as tips it grew horns out to (-4.487, 1.667) and (14.487, 1.667).
+        /// </remarks>
+        private static List<List<GeoEdge2>> JoinAcrossTheSpaceBetween(List<Chain> chains, bool tipsApart, GeoPoint2[] corners, Tolerance tolerance)
         {
             // At each crossing, the chains arriving and leaving.
             var arriving = new SortedDictionary<int, List<int>>();
@@ -1876,51 +1910,73 @@ namespace GeometryHelper.Core
 
             foreach (KeyValuePair<int, List<int>> pair in arriving)
             {
-                if (!leaving.TryGetValue(pair.Key, out List<int> onward) || onward.Count != pair.Value.Count)
+                if (!leaving.TryGetValue(pair.Key, out List<int> onward) || onward.Count != pair.Value.Count || !TryPair(chains, pair.Value, onward, false))
+                {
+                    return null;
+                }
+            }
+
+            // Every crossing of two pieces is joined again round the quarters of the region, which cuts the region into its
+            // lobes at all of them. Where one loop then passes through a crossing twice, its two quarters are one lobe, which
+            // runs round from the one to the other, round a hole or the rest of the region, and are no tips: that crossing is
+            // joined as before. A lobe whose two sides run from the crossing to a place made of crossings within the tolerance
+            // of each other, and lie within the tolerance of each other all the way, is a sliver the tolerance does not tell
+            // from a line, and has no tip either.
+            if (tipsApart)
+            {
+                var before = new int[chains.Count];
+                var apart = new List<int>();
+
+                for (int c = 0; c < chains.Count; c++)
+                {
+                    before[c] = chains[c].Next;
+                }
+
+                foreach (KeyValuePair<int, List<int>> pair in arriving)
+                {
+                    if (pair.Value.Count != 2)
+                    {
+                        continue;
+                    }
+
+                    if (TryPair(chains, pair.Value, leaving[pair.Key], true))
+                    {
+                        apart.Add(pair.Key);
+                    }
+                    else
+                    {
+                        chains[pair.Value[0]].Next = before[pair.Value[0]];
+                        chains[pair.Value[1]].Next = before[pair.Value[1]];
+                    }
+                }
+
+                int[] loopOf = LoopsOf(chains);
+
+                if (loopOf == null)
                 {
                     return null;
                 }
 
-                var used = new HashSet<int>();
+                var together = new List<int>();
 
-                foreach (int c in pair.Value)
+                foreach (int place in apart)
                 {
-                    GeoEdge2 last = chains[c].Edges[chains[c].Edges.Count - 1];
-                    GeoVector2 back = Heading(last, last.EndPoint) * -1.0;
-                    int best = -1;
-                    double bestAngle = double.MaxValue;
+                    List<int> pair = arriving[place];
 
-                    foreach (int o in onward)
+                    if (loopOf[pair[0]] == loopOf[pair[1]]
+                        || EndsBeside(chains, pair, leaving[place], corners, tolerance)
+                        || IsSliver(chains[pair[0]], chains[chains[pair[0]].Next], arriving, tolerance)
+                        || IsSliver(chains[pair[1]], chains[chains[pair[1]].Next], arriving, tolerance))
                     {
-                        if (used.Contains(o))
-                        {
-                            continue;
-                        }
-
-                        GeoEdge2 first = chains[o].Edges[0];
-                        GeoVector2 ahead = Heading(first, first.StartPoint);
-                        double angle = Math.Atan2(back.CrossProduct(ahead), back.DotProduct(ahead));
-
-                        // Counter-clockwise from the way back, a whole turn at most.
-                        if (angle <= 0.0)
-                        {
-                            angle += 2.0 * Math.PI;
-                        }
-
-                        if (angle < bestAngle || (angle == bestAngle && o < best))
-                        {
-                            bestAngle = angle;
-                            best = o;
-                        }
+                        together.Add(place);
                     }
+                }
 
-                    if (best < 0)
-                    {
-                        return null;
-                    }
-
-                    used.Add(best);
-                    chains[c].Next = best;
+                foreach (int place in together)
+                {
+                    List<int> pair = arriving[place];
+                    chains[pair[0]].Next = before[pair[0]];
+                    chains[pair[1]].Next = before[pair[1]];
                 }
             }
 
@@ -1956,7 +2012,351 @@ namespace GeometryHelper.Core
                 bounds.Add(loop);
             }
 
-            return bounds;
+            // With the tips apart, which loop comes first and where each starts is read off the geometry, not off the chains'
+            // numbers, which follow where the loop was drawn from: the loop of eight straight corners of seed 1024 grown by 1
+            // at 1E-3 was 110.1120 from five of its starts and 110.1090 from three.
+            return tipsApart ? InOrder(bounds) : bounds;
+        }
+
+        /// <summary>
+        /// Starts each loop at its edge that comes first, and puts the loops in that order: by where an edge starts along X,
+        /// then Y, then where it ends, then the order they came in.
+        /// </summary>
+        private static List<List<GeoEdge2>> InOrder(List<List<GeoEdge2>> loops)
+        {
+            var turned = new List<List<GeoEdge2>>(loops.Count);
+
+            foreach (List<GeoEdge2> loop in loops)
+            {
+                int first = 0;
+
+                for (int i = 1; i < loop.Count; i++)
+                {
+                    if (CompareEdges(loop[i], loop[first]) < 0)
+                    {
+                        first = i;
+                    }
+                }
+
+                var one = new List<GeoEdge2>(loop.Count);
+                one.AddRange(loop.GetRange(first, loop.Count - first));
+                one.AddRange(loop.GetRange(0, first));
+                turned.Add(one);
+            }
+
+            var order = new int[turned.Count];
+
+            for (int l = 0; l < order.Length; l++)
+            {
+                order[l] = l;
+            }
+
+            Array.Sort(order, (one, other) =>
+            {
+                int byEdge = CompareEdges(turned[one][0], turned[other][0]);
+
+                return byEdge != 0 ? byEdge : one.CompareTo(other);
+            });
+
+            var ordered = new List<List<GeoEdge2>>(turned.Count);
+
+            foreach (int l in order)
+            {
+                ordered.Add(turned[l]);
+            }
+
+            return ordered;
+        }
+
+        private static int CompareEdges(GeoEdge2 one, GeoEdge2 other)
+        {
+            int byX = one.StartPoint.X.CompareTo(other.StartPoint.X);
+
+            if (byX != 0)
+            {
+                return byX;
+            }
+
+            int byY = one.StartPoint.Y.CompareTo(other.StartPoint.Y);
+
+            if (byY != 0)
+            {
+                return byY;
+            }
+
+            int byEndX = one.EndPoint.X.CompareTo(other.EndPoint.X);
+
+            return byEndX != 0 ? byEndX : one.EndPoint.Y.CompareTo(other.EndPoint.Y);
+        }
+
+        /// <summary>
+        /// Follows each chain arriving at a crossing by the one leaving next round from it, counter-clockwise from the way
+        /// back along it, or clockwise.
+        /// </summary>
+        /// <returns>false where a chain arriving finds none left to follow it.</returns>
+        private static bool TryPair(List<Chain> chains, List<int> into, List<int> onward, bool clockwise)
+        {
+            var used = new HashSet<int>();
+
+            foreach (int c in into)
+            {
+                GeoEdge2 last = chains[c].Edges[chains[c].Edges.Count - 1];
+                GeoVector2 back = Heading(last, last.EndPoint) * -1.0;
+                int best = -1;
+                double bestAngle = double.MaxValue;
+
+                foreach (int o in onward)
+                {
+                    if (used.Contains(o))
+                    {
+                        continue;
+                    }
+
+                    GeoEdge2 first = chains[o].Edges[0];
+                    GeoVector2 ahead = Heading(first, first.StartPoint);
+                    double angle = Math.Atan2(back.CrossProduct(ahead), back.DotProduct(ahead));
+
+                    // Counter-clockwise from the way back, a whole turn at most; clockwise, the other way round.
+                    if (clockwise)
+                    {
+                        angle = -angle;
+                    }
+
+                    if (angle <= 0.0)
+                    {
+                        angle += 2.0 * Math.PI;
+                    }
+
+                    if (angle < bestAngle || (angle == bestAngle && o < best))
+                    {
+                        bestAngle = angle;
+                        best = o;
+                    }
+                }
+
+                if (best < 0)
+                {
+                    return false;
+                }
+
+                used.Add(best);
+                chains[c].Next = best;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Gets the number of the loop each chain is in, following each to the next: null where a chain leads nowhere or into
+        /// a loop it is not part of.
+        /// </summary>
+        private static int[] LoopsOf(List<Chain> chains)
+        {
+            var loopOf = new int[chains.Count];
+
+            for (int c = 0; c < chains.Count; c++)
+            {
+                loopOf[c] = -1;
+            }
+
+            int loops = 0;
+
+            for (int c = 0; c < chains.Count; c++)
+            {
+                if (loopOf[c] >= 0)
+                {
+                    continue;
+                }
+
+                int at = c;
+
+                while (loopOf[at] < 0)
+                {
+                    loopOf[at] = loops;
+                    at = chains[at].Next;
+
+                    if (at < 0)
+                    {
+                        return null;
+                    }
+                }
+
+                if (at != c)
+                {
+                    return null;
+                }
+
+                loops++;
+            }
+
+            return loopOf;
+        }
+
+        /// <summary>
+        /// Gets the corners of a loop in order along X, and along Y where X is the same: its vertices where it turns, the ones
+        /// it runs straight on through, within the vector tolerance, left out.
+        /// </summary>
+        private static GeoPoint2[] CornersAlongX(List<GeoEdge2> edges, Tolerance tolerance)
+        {
+            var corners = new List<GeoPoint2>(edges.Count);
+
+            for (int i = 0; i < edges.Count; i++)
+            {
+                GeoPoint2 at = edges[i].StartPoint;
+                GeoVector2 arriving = Heading(edges[i == 0 ? edges.Count - 1 : i - 1], at);
+                GeoVector2 leaving = Heading(edges[i], at);
+                double lengths = arriving.Length * leaving.Length;
+
+                if (lengths > 0.0 && arriving.DotProduct(leaving) > 0.0 && Math.Abs(arriving.CrossProduct(leaving)) <= tolerance.EqualVector * lengths)
+                {
+                    continue;
+                }
+
+                corners.Add(at);
+            }
+
+            corners.Sort((one, other) =>
+            {
+                int byX = one.X.CompareTo(other.X);
+
+                return byX != 0 ? byX : one.Y.CompareTo(other.Y);
+            });
+
+            return corners.ToArray();
+        }
+
+        /// <summary>
+        /// Determines whether a corner of the loop lies within the tolerance of a crossing, or a piece through the crossing ends
+        /// at a corner within the tolerance of it, where the tolerance does not tell the crossing from the corner beside it.
+        /// </summary>
+        /// <param name="chains">The chains.</param>
+        /// <param name="into">The chains arriving at the crossing.</param>
+        /// <param name="onward">The chains leaving it.</param>
+        /// <param name="corners">The corners of the loop, in order along X.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// A corner of a loop of ten straight corners lies 0.0044 off an edge and 0.0057 from where that edge crosses another;
+        /// at a tolerance of 0.01 the crossing and the corner are one, and joined as tips the region grown by 3 with miters
+        /// grew a horn of 19.7 that within 1E-3 it has not. A vertex the loop runs straight on through is no corner: the bow
+        /// tie of 30 degrees from (-10, 2.679) to (0.2, -0.054), (0.2, 0.054) and (-10, -2.679), with a vertex on its edge
+        /// 0.005 from the crossing, grown by 1 at a tolerance of 0.01, is mitered at its tips, 59.970, as without the vertex.
+        /// </remarks>
+        private static bool EndsBeside(List<Chain> chains, List<int> into, List<int> onward, GeoPoint2[] corners, Tolerance tolerance)
+        {
+            GeoPoint2 at = chains[into[0]].Edges[chains[into[0]].Edges.Count - 1].EndPoint;
+
+            if (NearACorner(at, corners, tolerance))
+            {
+                return true;
+            }
+
+            foreach (int c in into)
+            {
+                GeoEdge2 last = chains[c].Edges[chains[c].Edges.Count - 1];
+
+                if (last.StartPoint.IsEqualTo(last.EndPoint, tolerance) && NearACorner(last.StartPoint, corners, tolerance))
+                {
+                    return true;
+                }
+            }
+
+            foreach (int c in onward)
+            {
+                GeoEdge2 first = chains[c].Edges[0];
+
+                if (first.EndPoint.IsEqualTo(first.StartPoint, tolerance) && NearACorner(first.EndPoint, corners, tolerance))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Determines whether a corner, of corners in order along X, lies within the tolerance of a point.
+        /// </summary>
+        private static bool NearACorner(GeoPoint2 at, GeoPoint2[] corners, Tolerance tolerance)
+        {
+            int low = 0;
+            int high = corners.Length;
+
+            while (low < high)
+            {
+                int middle = low + (high - low) / 2;
+
+                if (corners[middle].X < at.X - tolerance.EqualPoint)
+                {
+                    low = middle + 1;
+                }
+                else
+                {
+                    high = middle;
+                }
+            }
+
+            for (int k = low; k < corners.Length && corners[k].X <= at.X + tolerance.EqualPoint; k++)
+            {
+                if (corners[k].IsEqualTo(at, tolerance))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Determines whether the lobe a chain arriving at a crossing and the chain after it bound is a sliver made where
+        /// crossings within the tolerance were made one: they are two chains that run to the same place, one where more than
+        /// two pieces cross, each within the tolerance of the other all along.
+        /// </summary>
+        /// <remarks>
+        /// Two edges crossing at 4.8 degrees and both crossed by a third 0.06 from there, its two crossings 0.006 apart and made
+        /// one place at a tolerance of 0.01, bound such a lobe; joined as a tip and grown by 3 with chamfers, it kept 0.136
+        /// that is not the offset, where within 1E-3 the lobe is a triangle and its tip is cut as it should be. A lens between
+        /// two crossings of its own is a lobe however thin: the lens 0.7 long and 0.04 wide that an arc dipping through an
+        /// edge cuts is mitered at its tips at a tolerance of 0.1 as within 1E-3.
+        /// </remarks>
+        private static bool IsSliver(Chain arriving, Chain after, SortedDictionary<int, List<int>> places, Tolerance tolerance)
+        {
+            if (ReferenceEquals(arriving, after) || arriving.From != after.To || places[arriving.From].Count <= 2)
+            {
+                return false;
+            }
+
+            return Hugs(arriving.Edges, after.Edges, tolerance) && Hugs(after.Edges, arriving.Edges, tolerance);
+        }
+
+        /// <summary>
+        /// Determines whether every edge of one run, at its quarters and its middle, lies within the tolerance of another run.
+        /// </summary>
+        private static bool Hugs(List<GeoEdge2> run, List<GeoEdge2> other, Tolerance tolerance)
+        {
+            foreach (GeoEdge2 edge in run)
+            {
+                foreach (double at in new[] { 0.25, 0.5, 0.75 })
+                {
+                    GeoPoint2 point = edge.GetPointAtParameter(at);
+                    bool near = false;
+
+                    foreach (GeoEdge2 side in other)
+                    {
+                        if (point.IsEqualTo(new Carrier(side).Closest(point, tolerance), tolerance))
+                        {
+                            near = true;
+                            break;
+                        }
+                    }
+
+                    if (!near)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
         }
 
         /// <summary>

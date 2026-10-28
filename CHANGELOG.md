@@ -2472,6 +2472,60 @@ and in the prepared body 8.94 and 25.3 where it took 7.90 and 19.2. A boolean at
 or comes out open, 107 of 108 unions, differences and intersections of a cylinder, a cone, a ring or a box with
 a box where all 108 did, and 1E-15 of the coordinates does not close them either (parked). 15 new tests.
 
+**FIXED.** `Offset2.Offset` of a `GeoPolygonArc2` that crosses itself, grown with miters or chamfers, keeps the miter or
+the chamfer at each tip of its region where two lobes of it cross; so does `GeoPolygonArc3.Offset`, which miters. The
+region read even-odd lies in two opposite quarters of such a crossing, and the loops that bound it were joined round the
+two quarters between, so a tip of the region was no corner of them and its join was never built: where the quarter
+across the crossing was too small to hold it, as a lens or a small lobe is, the join was left out. Grown with miters or
+chamfers, the loops are now joined round the quarters of the region where they are two lobes, as the straight path
+reads them: in two pieces of the region once it is cut at every crossing. Each tip is then mitered or cut as any corner
+is, a miter running its two pieces on round their own circles past the crossing. A crossing whose two quarters are one
+lobe running round a hole, a place where more than two edges cross, crossings within the tolerance of each other made
+one, a crossing a corner of the loop lies within the tolerance of, or a piece through it ends at a corner within it, and
+one beside a lobe that is a sliver within the tolerance, are joined as before; a vertex the loop runs straight on
+through, within the vector tolerance, is no corner, but one that bends it by half a degree or more still is, so such a
+vertex within the tolerance of a crossing still joins the crossing as before, though it moves the loop less than the
+tolerance. So is every crossing of a DXF polyline's `GetOffsetCurves`, whose
+miter has no limit, as AutoCAD is not known to read a crossing as a corner (to be tried, point 79 of the AutoCAD checks).
+The loops of the region's boundary are put in order by where they lie, so the answer does not hang on where the loop was
+drawn from. The bow tie from (-10, 2) to (1, -0.2), (1, 0.2) and (-10, -2), its back an arc of bulge -0.25, grown by 1
+with miters is mitered out to (5.099, 0) past its small lobe and encloses 54.460, where the miter was cut off at x = 2
+and it was 52.539, and with a vertex on its edge 0.005 from the crossing, at a tolerance of 0.01, as without it; a loop
+of ten corners crossing itself at nine places, grown by 0.3 with miters, is 92.909 where it was 90.994; a loop of eight
+corners whose arc dips 0.04 through an edge, cutting a lens with tips of 2.3 degrees, grown by 3 with miters at a
+tolerance of 0.1 is 530.519 where it was 399.260; and a loop of four corners whose first and last edges cross 1.3 degrees
+apart, grown by 3 with chamfers, is 212.058 where it was 211.229. The square 10 by 10 whose bottom edge curls up into a
+loop, grown by 3 with miters, stays 253.263, as the straight path gives it.
+
+Read against an oracle built apart from the code: the region of a polygon of the loop within 1E-5 grown by the straight
+path with round joins, with the miter or chamfer of every corner that opens added, the tips of two lobes at a crossing
+among them, a lobe told by the region's pieces with a square 0.002 across cut out about the crossing. An offset is
+counted wrong where it and the oracle differ by more than 0.001 in area once each piece of their difference is shrunk by
+twice the tolerance. The fuzz offsets 300 random curved loops, 37 random loops of straight edges and 37 curved loops that
+do not cross themselves, by four distances each way, with each join and at tolerances of 1E-3 and 1E-2: of each set of a
+join, a tolerance and a way, grown or shrunk, 1 488 offsets are judged, 1 192, 148 and 148 of them, and 8, 32 at each join,
+whose crossing lies at a vertex or touches, are left out. Grown with miters, 252 of the 1 488 were wrong at 1E-3 and none
+is, and 238 at 1E-2 and 7 are; grown with chamfers, 72 at 1E-3 and 1 is, and 52 at 1E-2 and 4 are; each left is as it was
+or nearer, one of them a loop that does not cross itself. Of the fuzz's 21 504 offsets, rounded, shrunk and chains among
+them, 603 came nearer, by 3 976 in all, and none went further. Read against the straight path on the same vertices or on a
+polygon of the loop within 1E-6, none of 5 400 offsets of straight loops, 720 of irregular stars and 1 200 of curved loops
+grown with chamfers went further either, and 628 came nearer; nor, against the oracle, did any of 150 of curved loops
+grown with miters, 34 of which came nearer. Offsets that were right change too, though not to the bit: their loops are put
+together from other pieces. In the fuzz 1 940 mitered offsets that were right moved by 0.097 in area at most and 2 292
+chamfered ones by 0.058 at most, within the tolerance, and 8 and 3 of them have a sliver loop finer than the tolerance
+more or fewer. Measured by the two-sided distance between boundaries against the straight path, of the 3 671 such
+offsets of straight loops, stars and curved loops whose distance could be measured (248 of the curved ones could not), 3
+stand further off than the tolerance, and further than they did, by at most 1.9 times the tolerance: crossings where the
+pieces of two lobes and a third meet within a few tolerances of each other; 4 more leave out a hole or a loop finer than
+the tolerance, as the straight path within the tolerance does. Round offsets, loops shrunk, loops that do not cross
+themselves, chains and the straight path are the same to the bit.
+
+Grown with miters or chamfers, a loop that crosses itself takes 1.6 to 3.2 times as long, its tips joined and its runs
+put together at each crossing by their ends: the 1 200 mitered offsets of 300 random loops grown at 1E-3 take 0.32 s on
+.NET 10 where they took 0.20, the chamfered ones 0.35 s where they took 0.20; a star {61/30} of radius 10 grown by 0.3
+with miters takes 1.6 s where it took 0.76, a loop of 80 random corners grown by 1 0.11 to 0.12 s where it took 0.037, and
+a gear of 642 teeth as long as before. Every other offset takes as long as before within the noise. 11 new tests.
+
 ## 12.3.0
 
 **NEW.** `DxfReader` reads a DXF file into the library's shapes: `Read(path)`, `Read(stream)` and `Parse(text)`, each with

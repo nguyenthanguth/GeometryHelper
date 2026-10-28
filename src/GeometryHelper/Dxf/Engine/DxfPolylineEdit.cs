@@ -290,7 +290,7 @@ namespace GeometryHelper.Dxf
                 var polygon = new GeoPolygonArc2(Points(loop), Bulges(loop));
                 double sideways = polygon.IsClockwise ? -distance : distance;
 
-                foreach (GeoPolygonArc2 one in Offset2.Offset(polygon, sideways, options, Tolerance.Default))
+                foreach (GeoPolygonArc2 one in Offset2.Offset(polygon, sideways, options, Tolerance.Default, false))
                 {
                     results.Add(new KeyValuePair<List<DxfPolyVertex>, bool>(Vertices(one.Vertices, one.Bulges, z), true));
                 }
