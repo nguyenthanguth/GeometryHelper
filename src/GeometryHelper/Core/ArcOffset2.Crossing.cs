@@ -1779,7 +1779,9 @@ namespace GeometryHelper.Core
         /// It is in the region when it is inside an even number of the other loops, since the region is what lies inside an odd
         /// number of all. The other loops are read at the middle of the chain's longest piece, where they do not touch it.
         /// Loops cut off a crossing cross each other at others, so one loop's chains may lie on both sides of another, and this
-        /// is told chain by chain and not loop by loop.
+        /// is told chain by chain and not loop by loop. Where the loops are many only those whose boxes hold the point are
+        /// read, found in a tree of the boxes: the 320 358 chains of a plus of 80 000 teeth to each arm were each read against
+        /// all its 160 002 loops, and cutting it took over four minutes on .NET 10, where it takes about a second.
         /// </remarks>
         private static void TurnWithTheRegionOnTheLeft(List<Chain> chains, List<List<GeoEdge2>> loops)
         {
@@ -1792,6 +1794,11 @@ namespace GeometryHelper.Core
                 indexes[i] = new LoopIndex(loops[i]);
                 counterClockwise[i] = SignedArea(loops[i]) > 0.0;
             }
+
+            // A few loops are each read, as they were: the boxes of most of them hold most points, as the 24 loops of a star of
+            // 49 points do.
+            LoopBoxes boxes = count > 64 ? new LoopBoxes(indexes) : null;
+            var holding = new List<int>();
 
             foreach (Chain chain in chains)
             {
@@ -1808,11 +1815,26 @@ namespace GeometryHelper.Core
                 GeoPoint2 probe = longest.MidPoint;
                 bool left = counterClockwise[chain.Loop];
 
-                for (int j = 0; j < count; j++)
+                if (boxes == null)
                 {
-                    if (j != chain.Loop && indexes[j].Encloses(probe))
+                    for (int j = 0; j < count; j++)
                     {
-                        left = !left;
+                        if (j != chain.Loop && indexes[j].Encloses(probe))
+                        {
+                            left = !left;
+                        }
+                    }
+                }
+                else
+                {
+                    boxes.Holding(probe, holding);
+
+                    foreach (int j in holding)
+                    {
+                        if (j != chain.Loop && indexes[j].Encloses(probe))
+                        {
+                            left = !left;
+                        }
                     }
                 }
 
@@ -1993,6 +2015,11 @@ namespace GeometryHelper.Core
             }
 
             /// <summary>
+            /// Gets the box that holds the loop, outside which it encloses nothing.
+            /// </summary>
+            internal Box Bounds => _box;
+
+            /// <summary>
             /// Determines whether the loop encloses a point, as <see cref="ArcChain2.Encloses(List{GeoEdge2}, GeoPoint2)"/>
             /// does, reading an arc only where the point lies in the box that holds it.
             /// </summary>
@@ -2082,6 +2109,167 @@ namespace GeometryHelper.Core
                 {
                     (bands[band] ?? (bands[band] = new List<int>())).Add(side);
                 }
+            }
+        }
+
+        /// <summary>
+        /// The boxes of loops in a tree, each part of it holding the box round the boxes in it, so that a point is read
+        /// against the loops whose boxes hold it and not against every loop.
+        /// </summary>
+        /// <remarks>
+        /// A plus of 80 000 teeth to each arm is cut into 160 002 loops, and each of its 320 358 chains was read against all
+        /// of them, where the boxes of a few hold the point it is read at. The tree halves the boxes by where their middles
+        /// lie, along the axis the middles spread further on, down to a few in each part. A box that holds no point, being
+        /// empty or of no number, is left out.
+        /// </remarks>
+        private sealed class LoopBoxes
+        {
+            private const int Few = 8;
+
+            private readonly Box[] _boxes;
+            private readonly int[] _order;
+            private readonly List<Box> _bounds = new List<Box>();
+            private readonly List<int> _from = new List<int>();
+            private readonly List<int> _to = new List<int>();
+            private readonly List<int> _second = new List<int>();
+
+            internal LoopBoxes(LoopIndex[] loops)
+            {
+                _boxes = new Box[loops.Length];
+
+                var kept = new List<int>(loops.Length);
+
+                for (int i = 0; i < loops.Length; i++)
+                {
+                    _boxes[i] = loops[i].Bounds;
+
+                    if (_boxes[i].MinX <= _boxes[i].MaxX && _boxes[i].MinY <= _boxes[i].MaxY)
+                    {
+                        kept.Add(i);
+                    }
+                }
+
+                // In order of their middles along X, and along Y, both kept as the boxes are halved.
+                _order = kept.ToArray();
+
+                int[] byY = kept.ToArray();
+
+                Array.Sort(_order, (one, other) => ByMiddle(one, other, true));
+                Array.Sort(byY, (one, other) => ByMiddle(one, other, false));
+
+                if (_order.Length > 0)
+                {
+                    Build(0, _order.Length, byY, new bool[loops.Length], new int[_order.Length]);
+                }
+            }
+
+            /// <summary>
+            /// Gets the numbers of the loops whose boxes hold a point, in no order.
+            /// </summary>
+            internal void Holding(GeoPoint2 point, List<int> into)
+            {
+                into.Clear();
+
+                if (_bounds.Count > 0)
+                {
+                    Holding(0, point, into);
+                }
+            }
+
+            private void Holding(int part, GeoPoint2 point, List<int> into)
+            {
+                if (!_bounds[part].Holds(point))
+                {
+                    return;
+                }
+
+                if (_second[part] < 0)
+                {
+                    for (int k = _from[part]; k < _to[part]; k++)
+                    {
+                        if (_boxes[_order[k]].Holds(point))
+                        {
+                            into.Add(_order[k]);
+                        }
+                    }
+
+                    return;
+                }
+
+                Holding(part + 1, point, into);
+                Holding(_second[part], point, into);
+            }
+
+            /// <summary>
+            /// Makes a part of the tree of the boxes from one place to another in both orders, and the parts below it.
+            /// </summary>
+            /// <returns>The number of the part, the first below it being the next.</returns>
+            private int Build(int from, int to, int[] byY, bool[] first, int[] spare)
+            {
+                int part = _bounds.Count;
+                Box bounds = Box.Empty;
+
+                for (int k = from; k < to; k++)
+                {
+                    bounds = bounds.With(_boxes[_order[k]]);
+                }
+
+                _bounds.Add(bounds);
+                _from.Add(from);
+                _to.Add(to);
+                _second.Add(-1);
+
+                if (to - from <= Few)
+                {
+                    return part;
+                }
+
+                // The first half along the axis, which keeps its order; the other order is parted into the boxes of that half
+                // and the rest, each in the order it had.
+                int middle = from + (to - from) / 2;
+                bool alongX = !(Middle(byY[to - 1], false) - Middle(byY[from], false) > Middle(_order[to - 1], true) - Middle(_order[from], true));
+                int[] halved = alongX ? _order : byY;
+                int[] parted = alongX ? byY : _order;
+                int kept = from;
+                int put = 0;
+
+                for (int k = from; k < middle; k++)
+                {
+                    first[halved[k]] = true;
+                }
+
+                for (int k = from; k < to; k++)
+                {
+                    if (first[parted[k]])
+                    {
+                        parted[kept++] = parted[k];
+                    }
+                    else
+                    {
+                        spare[put++] = parted[k];
+                    }
+                }
+
+                Array.Copy(spare, 0, parted, kept, put);
+
+                for (int k = from; k < middle; k++)
+                {
+                    first[halved[k]] = false;
+                }
+
+                Build(from, middle, byY, first, spare);
+                _second[part] = Build(middle, to, byY, first, spare);
+                return part;
+            }
+
+            private double Middle(int loop, bool alongX)
+                => alongX ? _boxes[loop].MinX * 0.5 + _boxes[loop].MaxX * 0.5 : _boxes[loop].MinY * 0.5 + _boxes[loop].MaxY * 0.5;
+
+            private int ByMiddle(int one, int other, bool alongX)
+            {
+                int byMiddle = Middle(one, alongX).CompareTo(Middle(other, alongX));
+
+                return byMiddle != 0 ? byMiddle : one.CompareTo(other);
             }
         }
     }

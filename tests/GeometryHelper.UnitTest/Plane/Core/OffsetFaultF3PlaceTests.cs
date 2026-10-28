@@ -244,6 +244,27 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         [Fact]
+        public void APlusOf160181CrossingsCutAtAThousandth_TakesSeconds()
+        {
+            // Within a thousandth the plus is cut into 160 002 loops, and each of the 320 358 chains between its crossings was
+            // read against every one of them to tell which side of it the region lies on, where the boxes of a few hold the
+            // point it is read at: 51 billion boxes, over four minutes on .NET 10 and over ten on .NET Framework 4.8. Read
+            // against those few, found in a tree of the boxes, it takes 1.3 seconds on .NET Framework 4.8.
+            GeoPolygonArc2 loop = PlusOfCrossings();
+            List<GeoEdge2> edges = ArcChain2.EdgesOf(loop);
+
+            var watch = Stopwatch.StartNew();
+            bool cut = ArcOffset2.TrySplitAtCrossings(edges, Thousandth, out List<List<GeoEdge2>> region, out List<List<GeoEdge2>> bounds, out int found);
+            watch.Stop();
+
+            Assert.True(cut);
+            Assert.Equal(160181, found);
+            Assert.Equal(160002, region.Count);
+            Assert.Equal(109, bounds.Count);
+            Assert.True(watch.Elapsed < TimeSpan.FromSeconds(30), "cutting the plus took " + watch.ElapsedMilliseconds + " ms");
+        }
+
+        [Fact]
         public void APlusOf564CrossingsRunOutTo1E308_GivesThemAll()
         {
             // The plus's teeth lie side by side across the sweep, so they were read in rows across it, counted from how high

@@ -1125,6 +1125,25 @@ and loops with infinite or missing corners; and 18 000 offsets of 1 000 random l
 diameters and combs, both ways, with mitred, round and chamfered joins at tolerances of 0.001, 0.01 and 0.1, are the same to
 the bit.
 
+**CHANGED.** Cutting a curved loop at its crossings no longer slows with the square of them where they cut it into thousands
+of loops. Which side of each run between two crossings the region lies on was told by reading the middle of its longest piece
+against every loop the crossings cut the loop into, and the plus of 80 000 teeth 0.5 apart across each arm, cut at a
+tolerance of 0.001 into 160 002 loops and 320 358 runs, read 51 billion boxes where those of one or two hold each point. The
+boxes of the loops are kept in a tree now, halved by where their middles lie, and a point is read against the loops whose
+boxes hold it; 64 loops or fewer are each read, as before. The plus is cut in 0.75 to 1.6 seconds where it took 257 to 299 on
+.NET 10, in 0.77 to 1.8 where it took more than 600 on .NET 8, and in 1.2 to 1.3 where more than 600 on .NET Framework 4.8;
+one of 40 000 teeth to each arm in 0.43 to 0.86 seconds where 37 (.NET 10), 0.43 to 0.87 where 120 (.NET 8) and 0.57 to
+0.71 where 285 (.NET Framework 4.8). At a tenth, where the plus is not cut, it takes the time it took. A zigzag of 500 teeth
+is cut in 0.57 ms where 0.95 on .NET 10 and in 1.2 where 6.1 on .NET Framework 4.8, and a star of 49 points, gears and random
+loops are cut and offset in the time they took, within the noise; a star of 131 to 301 points, its 65 to 150 loops' boxes each
+holding most points, is cut up to 9 % slower on .NET Framework 4.8 and 0.6 % on .NET 10. Of 120 000 cuts of 20 000 loops at six tolerances from 0 to 1, among
+them combs and pluses turned at any angle, gears, random walks, lattices with ties, arcs past a half turn, and loops moved
+ten million off, scaled by 1E-4 or 1E4 or run out to 1E308, 37 738 cut into 20.8 million loops, none gives another loop,
+edge or bulge, to the bit; nor are the 599 million crossings of those loops found otherwise, and 18 000 offsets of 1 000
+random loops and chains, dense loops, stars, diameters and combs, both ways, with mitred, round and chamfered joins at
+tolerances of 0.001, 0.01 and 0.1, are the same to the bit. A whole offset of the plus is still slow: grown by 0.3 at 0.001,
+one of 8 000 teeth to each arm takes 20 seconds, four times what one of 4 000 takes.
+
 **CHANGED.** Offsetting a curved loop whose edges run across the whole of it, as a star's do, no longer sorts the edges near
 each piece: the edges whose boxes overlap a piece's were put in order by sorting them, and in a star of 61 points every edge
 overlaps every other. Where they are many they are put in order by marking them: the stars of 21 to 61 points grown and shrunk
