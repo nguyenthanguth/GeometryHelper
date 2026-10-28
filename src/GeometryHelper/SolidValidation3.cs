@@ -16,10 +16,12 @@ namespace GeometryHelper
     /// <para>
     /// <see cref="GeoSolid3.IsClosed(Tolerance)"/> says whether the faces close; this says where they do not, and what
     /// else it finds on the way. The edges are matched as it matches them, by overlap along a line within the point
-    /// tolerance, so the two agree on whether the body is closed: <see cref="IsClosed"/> is its answer, with every stretch
-    /// it left open in <see cref="Issues"/>. It also reads which way the faces meeting on a stretch run it, which
-    /// <c>IsClosed</c> does not: a face wound the wrong way round closes the body for it, and is a
-    /// <see cref="SolidIssueKind.SameWayEdge"/> on each of its edges here.
+    /// tolerance, twin edges by their ends, and within the rounding of the coordinates where the tolerance is below it, so
+    /// the two agree on whether the body is closed: <see cref="IsClosed"/> is its answer, with every stretch it left open in
+    /// <see cref="Issues"/>. A speck, a body with no edge longer than the tolerance, is the one exception: no stretch of it
+    /// is open, and it is closed here and not valid, enclosing nothing, where <c>IsClosed</c> says it does not close. It
+    /// also reads which way the faces meeting on a stretch run it, which <c>IsClosed</c> does not: a face wound the wrong
+    /// way round closes the body for it, and is a <see cref="SolidIssueKind.SameWayEdge"/> on each of its edges here.
     /// </para>
     /// <para>
     /// The faces are read, the openings not: each opening is a body of its own, and is checked by asking it.
@@ -46,7 +48,8 @@ namespace GeometryHelper
 
         /// <summary>
         /// Gets whether the faces close: no <see cref="SolidIssueKind.OpenEdge"/>, as
-        /// <see cref="GeoSolid3.IsClosed(Tolerance)"/> answers.
+        /// <see cref="GeoSolid3.IsClosed(Tolerance)"/> answers, but for a speck with no edge longer than the tolerance, which
+        /// is closed here and not there.
         /// </summary>
         public bool IsClosed { get; }
 
@@ -71,12 +74,22 @@ namespace GeometryHelper
         /// <summary>
         /// Checks the faces of a body.
         /// </summary>
-        internal static SolidValidation3 Of(GeoSolid3 solid, Tolerance tolerance)
+        /// <param name="solid">The body.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="asRead">
+        /// Whether the edges are matched as <see cref="GeoSolid3.IsClosed(Tolerance)"/> matches them
+        /// (<see cref="Shells3.StretchesAsRead"/>), as <see cref="GeoSolid3.Validate(Tolerance)"/> reads a body; or as the booleans,
+        /// the closing and the takeoff read what they work on (<see cref="Shells3.UnevenStretches"/>), so that they are worked
+        /// out as they were.
+        /// </param>
+        internal static SolidValidation3 Of(GeoSolid3 solid, Tolerance tolerance, bool asRead)
         {
             IReadOnlyList<GeoFace3> faces = solid.Faces;
             var issues = new List<SolidIssue3>();
 
-            foreach (Shells3.Stretch stretch in Shells3.UnevenStretches(faces, tolerance))
+            List<Shells3.Stretch> stretches = asRead ? Shells3.StretchesAsRead(solid, tolerance) : Shells3.UnevenStretches(faces, tolerance);
+
+            foreach (Shells3.Stretch stretch in stretches)
             {
                 int count = stretch.Forward + stretch.Backward;
                 SolidIssueKind kind = count % 2 != 0 ? SolidIssueKind.OpenEdge

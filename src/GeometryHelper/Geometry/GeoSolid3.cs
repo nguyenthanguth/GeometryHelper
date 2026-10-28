@@ -657,14 +657,56 @@ namespace GeometryHelper.Geometry
         /// lining the cavity behind them.
         /// </para>
         /// <para>
-        /// Edges are first matched by their end points, through a spatial grid, which settles the usual body
-        /// in time linear in its vertices. Only where that leaves an edge not used exactly twice are the edges
-        /// matched by overlap along a line, stretch by stretch: a long edge beside two short ones — which
-        /// merging coplanar faces and the booleans both leave behind — has no partner by its end points, and
-        /// was called open, as was a body meeting itself along an edge.
+        /// The edges are matched as <see cref="Validate(Tolerance)"/> matches them, so the two agree on every body but a
+        /// speck: by overlap along a line within the tolerance, stretch by stretch, so that a long edge beside two short ones,
+        /// which merging coplanar faces and the booleans both leave behind, is matched stretch by stretch; two copies of an
+        /// edge whose ends lie within the tolerance of each other are matched however little of them lies along the other, the
+        /// one no longer than the tolerance kept with the other where its own loop has an edge longer than the tolerance, and
+        /// left out, as every edge that short is otherwise, where it is a speck's; and a body whose edges pair to a
+        /// sixty-fourth of the tolerance is settled on a grid, in time linear in its corners. A
+        /// body with no edge longer than the tolerance, a speck, is not closed here, where <c>Validate</c>, finding no
+        /// stretch open, calls it closed and not valid, enclosing nothing.
+        /// </para>
+        /// <para>
+        /// A gap no wider than the point tolerance mostly reads closed and a wider one open: a cube of 100 whose top stands
+        /// 0.0005 over the tops of its sides is closed within a thousandth, placed anywhere, and one whose top stands 0.0015
+        /// over them is open. A gap of a thousandth is so to a few bits either way, 100.001 less 100 being
+        /// 0.001 000 000 000 004 8, and reads as the rounding has it. Edges matched along one line are matched one after
+        /// another, so a gap wider than the tolerance is closed where other edges lie in it within the tolerance of either
+        /// side: that cube with a box of 1 standing against each of its sides half way up the gap reads closed, and valid,
+        /// though its top stands 0.0015 clear of its sides. So too a short copy of a side of a hole, kept with it, cuts the
+        /// open side into stretches no longer than the tolerance: a speck in each side of a hole 0.0019 across keeps none of
+        /// its edges and leaves the hole open, but a sliver face with an edge longer than the tolerance lying across such a side
+        /// can still hide it. Below the rounding of the coordinates, a quadrillionth of the
+        /// largest of the whole body's, not of each part, the edges are matched within that rounding, so that at a tolerance
+        /// of nought a cube turned in space, and the union of two such boxes made within a thousandth, are closed.
+        /// </para>
+        /// <para>
+        /// The booleans, the weld, the cutting and <see cref="TryGetVolume(out double, Tolerance)"/> read the bodies they work
+        /// on otherwise, the ends of the edges matched first and within the tolerance given, as this did: two corners 0.0015
+        /// apart were one where a corner lay between them, and with a speck of a face at each corner of that top half way up
+        /// the cube read closed, and open with the specks given last. What a boolean makes is taken as closed where the
+        /// tolerance given, unraised, reads it closed along lines, so that the two differ on a body closed only to the
+        /// rounding or by twin edges no longer than about the tolerance. <see cref="Meshing.Mesh3"/> cuts into cells only a body
+        /// closed both ways.
         /// </para>
         /// </remarks>
-        public bool IsClosed(Tolerance tolerance)
+        public bool IsClosed(Tolerance tolerance) => Shells3.HasEdges(_faces, tolerance) && Shells3.ClosesAsRead(this, tolerance);
+
+        /// <summary>
+        /// Checks whether the boundary closes, the ends of the edges matched first, each to the first corner seen within the
+        /// tolerance of it, as <see cref="IsClosed(Tolerance)"/> read it before: the reading the booleans, the cutting and
+        /// the contact take of the bodies they work on to choose their way, the weld to decide what it hands back, and
+        /// <see cref="TryGetVolume(out double, Tolerance)"/> and the material cut for the measures to decide what they trust.
+        /// </summary>
+        /// <remarks>
+        /// Matched so, two corners a tolerance and a half apart are one where a corner lies between them, and the body is
+        /// called closed where <see cref="Validate(Tolerance)"/> reads it open; and a body closed only to the rounding of
+        /// its coordinates, at a tolerance below it, is open here where <c>IsClosed</c> calls it closed. What a boolean
+        /// makes is taken as closed only where <see cref="Shells3.Closes"/> reads it so. Where an edge is not used exactly
+        /// twice, the edges are matched by overlap along a line, stretch by stretch.
+        /// </remarks>
+        internal bool ClosesByCorners(Tolerance tolerance)
         {
             VertexWelder welder = new VertexWelder(tolerance);
             Dictionary<long, int> edgeCounts = new Dictionary<long, int>(PackedKeys.Instance);
@@ -728,7 +770,24 @@ namespace GeometryHelper.Geometry
         /// }
         /// </code>
         /// </remarks>
-        public SolidValidation3 Validate(Tolerance tolerance) => SolidValidation3.Of(this, tolerance);
+        public SolidValidation3 Validate(Tolerance tolerance) => SolidValidation3.Of(this, tolerance, true);
+
+        /// <summary>
+        /// Checks the faces of the solid as <see cref="Validate(Tolerance)"/> does, the edges matched within the tolerance
+        /// given and by overlap only, as the booleans, the closing and the takeoff read what they work on; see
+        /// <see cref="Shells3.Closes"/>.
+        /// </summary>
+        internal SolidValidation3 ValidateForWork(Tolerance tolerance) => SolidValidation3.Of(this, tolerance, false);
+
+        /// <summary>
+        /// Checks whether the boundary closes both as <see cref="IsClosed(Tolerance)"/> reads it and by its corners, as the
+        /// bodies a boolean works on are read (<see cref="ClosesByCorners"/>): what the cells of a mesh are cut from.
+        /// </summary>
+        /// <remarks>
+        /// Closed only to the rounding of its coordinates, at a tolerance of nought, the union of two turned boxes was cut
+        /// into no cell at all, 1 835 000 cubic millimetres lost; it is refused, as it was.
+        /// </remarks>
+        internal bool ClosesBothWays(Tolerance tolerance) => IsClosed(tolerance) && ClosesByCorners(tolerance);
 
         /// <summary>
         /// Tallies how many times each edge of one ring is used, matching vertices within a tolerance.

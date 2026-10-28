@@ -123,21 +123,31 @@ namespace GeometryHelper.Core
         /// <param name="faces">The faces.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="tried">How many pairs a sweep along the axis the segments are sorted by tries.</param>
-        private static List<Segment> CollectSegments(IReadOnlyList<GeoFace3> faces, Tolerance tolerance, out long tried)
+        /// <param name="twins">
+        /// Whether an edge no longer than the tolerance is kept where it is a copy of an edge longer than it (see
+        /// <see cref="Twins"/>), as <see cref="StretchesAsRead"/> reads the faces; every such edge is left out otherwise.
+        /// </param>
+        private static List<Segment> CollectSegments(IReadOnlyList<GeoFace3> faces, Tolerance tolerance, out long tried, bool twins = false)
         {
             var segments = new List<Segment>();
+            List<Segment> shorts = twins ? new List<Segment>() : null;
 
             for (int f = 0; f < faces.Count; f++)
             {
                 GeoFace3 face = faces[f];
                 GeoVector3 normal = face.Boundary.Normal;
 
-                AddLoop(segments, face.Boundary, f, normal, false, tolerance);
+                AddLoop(segments, face.Boundary, f, normal, false, tolerance, shorts);
 
                 foreach (GeoPolygon3 hole in face.Holes)
                 {
-                    AddLoop(segments, hole, f, normal, true, tolerance);
+                    AddLoop(segments, hole, f, normal, true, tolerance, shorts);
                 }
+            }
+
+            if (shorts != null && shorts.Count > 0)
+            {
+                KeepShortTwins(segments, shorts, tolerance);
             }
 
             // Swept along the axis that leaves the fewest pairs to try. Along an axis the edges hardly spread along, as
@@ -225,9 +235,140 @@ namespace GeometryHelper.Core
             return reached - count * (count + 1) / 2;
         }
 
-        private static void AddLoop(List<Segment> segments, GeoPolygon3 loop, int face, GeoVector3 normal, bool isHole, Tolerance tolerance)
+        /// <summary>
+        /// Adds to the segments each edge no longer than the tolerance that is a copy of one of them longer than it (see
+        /// <see cref="Twins"/>), so that the two are kept together; the rest are left out, as every such edge is otherwise.
+        /// </summary>
+        /// <remarks>
+        /// A slab 100 by 100 and 0.0015 thick whose side at one end ran from 0.0003 to 0.0012 up had each upright edge of
+        /// that side 0.0009 long, left out as no edge, beside its copy 0.0015 long on the face next to it, which then read open
+        /// with nothing along it, its corners within 0.0003 of the side's. The copies longer than the tolerance are found by
+        /// their ends, on a grid of cells twice the tolerance across.
+        /// </remarks>
+        private static void KeepShortTwins(List<Segment> segments, List<Segment> shorts, Tolerance tolerance)
+        {
+            double cell = 2.0 * tolerance.EqualPoint;
+
+            if (!(cell > 0.0))
+            {
+                return;
+            }
+
+            int kept = segments.Count;
+
+            // A few short edges against a few long ones are tried pair by pair, which costs less than filing the long ones.
+            if ((long)shorts.Count * kept <= 16384)
+            {
+                foreach (Segment s in shorts)
+                {
+                    for (int i = 0; i < kept; i++)
+                    {
+                        if (Twins(s, segments[i], tolerance))
+                        {
+                            segments.Add(s);
+                            break;
+                        }
+                    }
+                }
+
+                return;
+            }
+
+            var byCell = new Dictionary<(long, long, long), List<int>>();
+
+            for (int i = 0; i < segments.Count; i++)
+            {
+                foreach (GeoPoint3 end in new[] { segments[i].Start, segments[i].End })
+                {
+                    if (!TryCellOf(end, cell, out (long, long, long) key))
+                    {
+                        continue;
+                    }
+
+                    if (!byCell.TryGetValue(key, out List<int> here))
+                    {
+                        here = new List<int>();
+                        byCell.Add(key, here);
+                    }
+
+                    here.Add(i);
+                }
+            }
+
+            foreach (Segment s in shorts)
+            {
+                if (TryCellOf(s.Start, cell, out (long X, long Y, long Z) key) && HasTwin(s, key, byCell, segments, kept, tolerance))
+                {
+                    segments.Add(s);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Whether one of the first so many segments, an end of it filed in a cell beside the one given, is a copy of the
+        /// segment given.
+        /// </summary>
+        private static bool HasTwin(Segment s, (long X, long Y, long Z) key, Dictionary<(long, long, long), List<int>> byCell, List<Segment> segments, int kept, Tolerance tolerance)
+        {
+            for (long dx = -1; dx <= 1; dx++)
+            {
+                for (long dy = -1; dy <= 1; dy++)
+                {
+                    for (long dz = -1; dz <= 1; dz++)
+                    {
+                        if (!byCell.TryGetValue((key.X + dx, key.Y + dy, key.Z + dz), out List<int> here))
+                        {
+                            continue;
+                        }
+
+                        foreach (int i in here)
+                        {
+                            if (i < kept && Twins(s, segments[i], tolerance))
+                            {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>The cell of a grid of the size given a point falls in; false where it is too far out to be a whole number.</summary>
+        private static bool TryCellOf(GeoPoint3 point, double cell, out (long, long, long) key)
+        {
+            const double Reach = 4503599627370496.0;
+            double x = Math.Floor(point.X / cell), y = Math.Floor(point.Y / cell), z = Math.Floor(point.Z / cell);
+
+            if (!(Math.Abs(x) < Reach && Math.Abs(y) < Reach && Math.Abs(z) < Reach))
+            {
+                key = default;
+                return false;
+            }
+
+            key = ((long)x, (long)y, (long)z);
+            return true;
+        }
+
+        /// <summary>
+        /// Adds the edges of one loop longer than the tolerance, and puts those no longer than it, but of some length, aside
+        /// where asked and the loop has an edge longer than the tolerance: a loop with none is a speck, and stays one.
+        /// </summary>
+        /// <remarks>
+        /// A speck's edges twin the side of a hole by their ends as well as an edge does: a cube of 100 whose top had a
+        /// square hole 0.0019 across, a sliver triangle in each side of it, its edge of 0.00095 starting and ending 0.000475
+        /// in from the side's ends, read closed with the specks' edges kept, their stops cutting each open side into
+        /// stretches no longer than the tolerance.
+        /// </remarks>
+        private static void AddLoop(List<Segment> segments, GeoPolygon3 loop, int face, GeoVector3 normal, bool isHole, Tolerance tolerance, List<Segment> shorts = null)
         {
             int count = loop.VertexCount;
+
+            if (shorts != null && !HasEdges(loop, tolerance))
+            {
+                shorts = null;
+            }
 
             for (int i = 0; i < count; i++)
             {
@@ -236,7 +377,7 @@ namespace GeometryHelper.Core
                 GeoVector3 along = start.GetVectorTo(end);
                 double length = along.Length;
 
-                if (length <= tolerance.EqualPoint)
+                if (length <= tolerance.EqualPoint && (shorts == null || !(length > 0.0)))
                 {
                     continue;
                 }
@@ -246,7 +387,7 @@ namespace GeometryHelper.Core
                 GeoVector3 left = normal.CrossProduct(along.Divide(length));
                 GeoVector3 inward = isHole ? left.Negate() : left;
 
-                segments.Add(new Segment
+                (length <= tolerance.EqualPoint ? shorts : segments).Add(new Segment
                 {
                     Start = start,
                     End = end,
@@ -279,6 +420,7 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="otherFacesOnly">Whether two segments of one face are left alone.</param>
         /// <param name="tried">How many pairs the sweep would try, as <see cref="CollectSegments"/> counted them.</param>
+        /// <param name="twins">Whether two segments whose ends lie within the tolerance of each other are joined as well, however little they overlap; see <see cref="Twins"/>.</param>
         /// <remarks>
         /// <para>
         /// The sweep tries every pair its axis cannot tell apart, and where the edges of a body meet at a point it cannot
@@ -292,7 +434,7 @@ namespace GeometryHelper.Core
         /// every pair it joins is tried, and the lines come out the same.
         /// </para>
         /// </remarks>
-        private static void JoinOverlapping(List<Segment> segments, int[] line, Tolerance tolerance, bool otherFacesOnly, long tried)
+        private static void JoinOverlapping(List<Segment> segments, int[] line, Tolerance tolerance, bool otherFacesOnly, long tried, bool twins = false)
         {
             if (!ShouldMatchByPoints(segments, tried))
             {
@@ -306,7 +448,7 @@ namespace GeometryHelper.Core
                     {
                         Segment b = segments[j];
 
-                        if ((!otherFacesOnly || a.Face != b.Face) && Overlap(a, b, tolerance))
+                        if ((!otherFacesOnly || a.Face != b.Face) && (Overlap(a, b, tolerance) || twins && Twins(a, b, tolerance)))
                         {
                             Union(line, i, j);
                         }
@@ -458,7 +600,7 @@ namespace GeometryHelper.Core
                         int low = Math.Min(i, j), high = Math.Max(i, j);
                         Segment a = segments[low], b = segments[high];
 
-                        if (b.Low <= a.High && (!otherFacesOnly || a.Face != b.Face) && Find(line, low) != Find(line, high) && Overlap(a, b, tolerance))
+                        if (b.Low <= a.High && (!otherFacesOnly || a.Face != b.Face) && Find(line, low) != Find(line, high) && (Overlap(a, b, tolerance) || twins && Twins(a, b, tolerance)))
                         {
                             Union(line, low, high);
                         }
@@ -541,14 +683,15 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Determines whether a body closes as <see cref="GeoSolid3.Validate(Tolerance)"/> reads it: no stretch of edge, its
-        /// edges matched by overlap along a line, covered by an odd number of them (<see cref="UnevenStretches"/>).
+        /// Determines whether a body closes as the booleans, the weld and the cutting read what they make and work on: no
+        /// stretch of edge, its edges matched by overlap along a line within the tolerance given, covered by an odd number of
+        /// them (<see cref="UnevenStretches"/>).
         /// </summary>
         /// <remarks>
-        /// <see cref="GeoSolid3.IsClosed(Tolerance)"/> matches the ends of the edges first, made one within the tolerance, and
-        /// calls two copies of an edge about the tolerance apart one edge, which matched along a line are two, each open: a box
-        /// less a cube a hair the tolerance off two of its faces came out of the difference so, closed to <c>IsClosed</c> and
-        /// open by two stretches to <c>Validate</c>.
+        /// <see cref="GeoSolid3.IsClosed(Tolerance)"/> and <see cref="GeoSolid3.Validate(Tolerance)"/> read a body as
+        /// <see cref="ClosesAsRead"/> does, which matches more: twin edges no longer than about the tolerance, and every edge
+        /// within the rounding of the coordinates where the tolerance is below it. The booleans read with the tolerance they
+        /// are given, and are worked out as they were at every tolerance.
         /// </remarks>
         internal static bool Closes(GeoSolid3 solid, Tolerance tolerance)
         {
@@ -571,6 +714,102 @@ namespace GeometryHelper.Core
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Determines whether a body closes as <see cref="GeoSolid3.IsClosed(Tolerance)"/> and
+        /// <see cref="GeoSolid3.Validate(Tolerance)"/> read it: no stretch of edge covered by an odd number of edges, the edges
+        /// matched as <see cref="StretchesAsRead"/> matches them.
+        /// </summary>
+        internal static bool ClosesAsRead(GeoSolid3 solid, Tolerance tolerance)
+        {
+            if (solid.Faces.Count == 0)
+            {
+                return false;
+            }
+
+            Tolerance matching = Matching(solid, tolerance);
+
+            if (PairsUp(solid.Faces, matching))
+            {
+                return true;
+            }
+
+            foreach (Stretch stretch in Stretches(solid.Faces, matching, true))
+            {
+                if ((stretch.Forward + stretch.Backward) % 2 != 0)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Gets the tolerance the edges of faces are matched within as <see cref="GeoSolid3.IsClosed(Tolerance)"/> and
+        /// <see cref="GeoSolid3.Validate(Tolerance)"/> match them: the one given, raised to the rounding of the coordinates of
+        /// the faces where it is below it, as a ray's crossing of a face is held (<see cref="Intersection3.Holding"/>). The
+        /// rounding is a quadrillionth of the largest coordinate of all the faces, the whole body's, not of each part of it.
+        /// </summary>
+        /// <remarks>
+        /// An edge and its twin, run back along it by the face beside, have the same corners to the bit, but the twin's far
+        /// corner, measured off the line of the edge, stands off it by the rounding of that reckoning: at a tolerance of nought
+        /// a cube of 100 turned in space, and a cylinder of 24 sides standing at the origin, read open along nearly every
+        /// edge. At every tolerance at or above the rounding nothing changes, bit for bit. The largest coordinate is the
+        /// whole body's: a cube of 1 at the origin and a box a million out, one body, are matched within a billionth, so a
+        /// gap of a hundred-billionth in the small cube reads closed with the box and open without it.
+        /// </remarks>
+        private static Tolerance Matching(GeoSolid3 solid, Tolerance tolerance)
+        {
+            // The box of the faces holds their largest coordinate at one of its two corners.
+            GeoAabb3 box = solid.GetAabb();
+            double largest = Math.Max(Largest(box.Min), Largest(box.Max));
+
+            return largest < double.PositiveInfinity ? Intersection3.Holding(1E-15 * largest, tolerance) : tolerance;
+        }
+
+        /// <summary>The largest coordinate of a point, either way from nought.</summary>
+        private static double Largest(GeoPoint3 point) => Math.Max(Math.Max(Math.Abs(point.X), Math.Abs(point.Y)), Math.Abs(point.Z));
+
+        /// <summary>
+        /// Determines whether any edge of the faces is longer than the point tolerance; a body with none is a speck, which
+        /// <see cref="GeoSolid3.IsClosed(Tolerance)"/> does not call closed.
+        /// </summary>
+        internal static bool HasEdges(IReadOnlyList<GeoFace3> faces, Tolerance tolerance)
+        {
+            foreach (GeoFace3 face in faces)
+            {
+                if (HasEdges(face.Boundary, tolerance))
+                {
+                    return true;
+                }
+
+                foreach (GeoPolygon3 hole in face.Holes)
+                {
+                    if (HasEdges(hole, tolerance))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static bool HasEdges(GeoPolygon3 ring, Tolerance tolerance)
+        {
+            int count = ring.VertexCount;
+
+            for (int i = 0; i < count; i++)
+            {
+                if (ring[i].GetVectorTo(ring[(i + 1) % count]).Length > tolerance.EqualPoint)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -886,6 +1125,15 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Determines whether two segments are copies of one edge: each end of the one within the tolerance of an end of the
+        /// other, either way round. Two copies no longer than about the tolerance share no more than it along their line, and
+        /// <see cref="Overlap"/> leaves them apart.
+        /// </summary>
+        private static bool Twins(Segment a, Segment b, Tolerance tolerance)
+            => a.Start.IsEqualTo(b.End, tolerance) && a.End.IsEqualTo(b.Start, tolerance)
+                || a.Start.IsEqualTo(b.Start, tolerance) && a.End.IsEqualTo(b.End, tolerance);
+
+        /// <summary>
         /// A stretch of one line edges of the faces lie along, and how they cover it.
         /// </summary>
         internal struct Stretch
@@ -943,8 +1191,31 @@ namespace GeometryHelper.Core
         /// wound alike run it once each way. Neighbouring stretches covered alike, by the same faces, are one.
         /// </remarks>
         internal static List<Stretch> UnevenStretches(IReadOnlyList<GeoFace3> faces, Tolerance tolerance)
+            => Stretches(faces, tolerance, false);
+
+        /// <summary>
+        /// Every stretch of edge the faces do not close up along, as <see cref="GeoSolid3.IsClosed(Tolerance)"/> and
+        /// <see cref="GeoSolid3.Validate(Tolerance)"/> read them: as <see cref="UnevenStretches"/> finds them, with two edges
+        /// whose ends lie within the tolerance of each other matched however little of them lies along the other, the one no
+        /// longer than the tolerance kept with the other (<see cref="KeepShortTwins"/>), and the edges matched within the
+        /// rounding of the coordinates where the tolerance is below it (<see cref="Matching"/>).
+        /// </summary>
+        /// <remarks>
+        /// Matched by overlap only, two edges share a line where they share more than the tolerance of it: a slab 100 by 100
+        /// and 0.0012 thick whose side at one end was slid up 0.0002 had each upright edge of that side, 0.0012 long, beside
+        /// the 0.0012 of the face next to it slid by 0.0002 along it, sharing 0.001, and read open along all four, where its
+        /// corners lie within the tolerance of each other.
+        /// </remarks>
+        internal static List<Stretch> StretchesAsRead(GeoSolid3 solid, Tolerance tolerance)
+            => Stretches(solid.Faces, Matching(solid, tolerance), true);
+
+        /// <summary>
+        /// Every stretch of edge the faces do not close up along, the edges matched within the tolerance given, and twin edges
+        /// matched by their ends where asked.
+        /// </summary>
+        private static List<Stretch> Stretches(IReadOnlyList<GeoFace3> faces, Tolerance tolerance, bool twins)
         {
-            List<Segment> segments = CollectSegments(faces, tolerance, out long tried);
+            List<Segment> segments = CollectSegments(faces, tolerance, out long tried, twins);
             int[] line = new int[segments.Count];
 
             for (int i = 0; i < line.Length; i++)
@@ -952,7 +1223,7 @@ namespace GeometryHelper.Core
                 line[i] = i;
             }
 
-            JoinOverlapping(segments, line, tolerance, false, tried);
+            JoinOverlapping(segments, line, tolerance, false, tried, twins);
 
             // Taken in the order the sweep met them, so the same faces give the same stretches in the same order.
             var groups = new Dictionary<int, List<int>>();

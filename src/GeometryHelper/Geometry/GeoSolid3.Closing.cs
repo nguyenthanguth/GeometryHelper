@@ -12,12 +12,15 @@ namespace GeometryHelper.Geometry
         /// Closes this body where it is open, with the least change that does it, and says what was changed; see
         /// <see cref="SolidClosingOptions"/>.
         /// </summary>
-        /// <param name="closed">The body closed: this body itself where it was valid already; null when the method returns false.</param>
+        /// <param name="closed">
+        /// The body closed: this body itself where it was valid already as the closing reads it (see the remarks); null when
+        /// the method returns false.
+        /// </param>
         /// <param name="options">How far apart corners may stand and still be made one, and which holes may be filled.</param>
         /// <param name="report">Each change made, in the order it was made, or why the body could not be closed and where.</param>
         /// <returns>
-        /// true when the body comes out valid within the options' tolerance, as <see cref="Validate(Tolerance)"/> reads it:
-        /// closed, wound alike and outwards, and enclosing a volume; otherwise false.
+        /// true when the body comes out valid within the options' tolerance, as the booleans read what they make: closed,
+        /// wound alike and outwards, and enclosing a volume; otherwise false.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the options are null.</exception>
         /// <remarks>
@@ -42,6 +45,16 @@ namespace GeometryHelper.Geometry
         /// than the options allow or a hole can be filled more than one way, the method returns false and the report says
         /// why and where. The body is not changed: its openings are carried over as they are, and a shell of it closed
         /// already is left as it was.
+        /// </para>
+        /// <para>
+        /// The closing reads the body as the booleans read what they make, and as
+        /// <see cref="TrySubtractAll(System.Collections.Generic.IEnumerable{GeoSolid3}, out GeoSolid3, SolidBooleanOptions, SolidClosingOptions, out SubtractReport)"/>
+        /// closes the cuts it would skip: within the options' tolerance as it is given, the edges paired by overlap along a
+        /// line only, not as <see cref="Validate(Tolerance)"/> and <see cref="IsClosed(Tolerance)"/> read it, which pair two
+        /// copies of an edge by their ends as well and match the edges within the rounding of the coordinates below it. So a
+        /// body <c>Validate</c> calls valid can still be closed here, or refused: a slab 100 by 100 and 0.0012 thick whose side
+        /// at one end is slid up 0.0002, valid to <c>Validate</c>, is refused within a thousandth, the gap too wide, and one
+        /// 0.0014 thick slid by 0.0005 is welded closed, its volume moved from 14 to 11.67 cubic millimetres.
         /// </para>
         /// <code>
         /// var options = new SolidClosingOptions(Tolerance.Default, 0.01, maxHoleArea: 50000.0);

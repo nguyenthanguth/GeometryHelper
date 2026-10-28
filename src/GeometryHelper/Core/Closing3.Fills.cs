@@ -206,7 +206,7 @@ namespace GeometryHelper.Core
             report = null;
             Tolerance tolerance = work.Tolerance;
             var body = new GeoSolid3(all, work.Solid.Openings);
-            SolidValidation3 check = body.Validate(tolerance);
+            SolidValidation3 check = body.ValidateForWork(tolerance);
             work.Current = body;
             work.CurrentCheck = check;
 
@@ -1199,7 +1199,7 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            SolidValidation3 check = new GeoSolid3(all).Validate(tolerance);
+            SolidValidation3 check = new GeoSolid3(all).ValidateForWork(tolerance);
 
             if (!check.IsClosed || !check.IsWoundAlike)
             {

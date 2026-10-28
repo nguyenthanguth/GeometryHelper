@@ -277,7 +277,7 @@ namespace GeometryHelper.Core
             {
                 GeoSolid3 candidate = candidates[k];
 
-                if (candidate == null || !candidate.TryClose(out GeoSolid3 body, closing, out SolidClosing3 report) || !body.Validate(options.Tolerance).IsValid)
+                if (candidate == null || !candidate.TryClose(out GeoSolid3 body, closing, out SolidClosing3 report) || !body.ValidateForWork(options.Tolerance).IsValid)
                 {
                     continue;
                 }
@@ -388,7 +388,7 @@ namespace GeometryHelper.Core
         /// what it came to.
         /// </summary>
         private static bool Valid(bool made, GeoSolid3 result, BooleanOutcome outcome, Tolerance tolerance)
-            => made ? result != null && result.Validate(tolerance).IsValid : outcome == BooleanOutcome.Empty;
+            => made ? result != null && result.ValidateForWork(tolerance).IsValid : outcome == BooleanOutcome.Empty;
 
         #endregion
     }

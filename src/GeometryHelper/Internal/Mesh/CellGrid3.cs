@@ -958,7 +958,7 @@ namespace GeometryHelper.Core
                 return null;
             }
 
-            if (failure == null && material.IsClosed(tolerance))
+            if (failure == null && material.ClosesBothWays(tolerance))
             {
                 return material;
             }

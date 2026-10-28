@@ -180,7 +180,7 @@ namespace GeometryHelper.Core
 
             // A face no wider than the contact put onto one plane at both its sides has no area left, and its neighbours may
             // no longer meet across it: such a body is no better a tool than the one given.
-            return put.IsClosed(tolerance) || !second.IsClosed(tolerance) ? put : second;
+            return put.ClosesByCorners(tolerance) || !second.ClosesByCorners(tolerance) ? put : second;
         }
 
         private static GeoPoint3 At(Dictionary<GeoPoint3, GeoPoint3> moved, GeoPoint3 corner)

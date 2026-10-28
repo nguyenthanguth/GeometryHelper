@@ -340,8 +340,8 @@ body that only looks right measures wrong later and says nothing about why.
 - A face out of flat, and a face with a hole off its plane, come as triangles on the corners Tekla gave
   (`FaceConvert.TryReadFaces`, built on `GeoFace3.FromLoops`). The triangles keep every edge the face
   shares with its neighbours, so a solid Tekla holds closed comes out closed, whatever the tolerance.
-- A face with no area is skipped rather than thrown on, which leaves the body no longer closed — so ask
-  `IsClosed()` before trusting a volume.
+- A face with no area is skipped rather than thrown on, which leaves the body no longer closed — so take a
+  volume from `TryGetVolume`, and trust it where that returns true.
 
 Tekla models in millimetres with coordinates that can run to hundreds of thousands, and its own cuts leave
 faces a little out of flat: the top face of a notched beam came 0.04 mm out at one corner. The default

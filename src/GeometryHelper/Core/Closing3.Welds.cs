@@ -127,7 +127,7 @@ namespace GeometryHelper.Core
                 TurnAgain(work, best.Again);
                 work.Repairs.AddRange(best.Repairs);
                 work.Current = best.Body;
-                work.CurrentCheck = best.Body.Validate(work.Tolerance);
+                work.CurrentCheck = best.Body.ValidateForWork(work.Tolerance);
                 faces = best.Faces;
                 origins = best.Origins;
                 rims = best.Rims;
@@ -471,7 +471,7 @@ namespace GeometryHelper.Core
 
             // Nothing left open: the body is checked whole, the volume and all, and taken where it is valid with no ring
             // doubling back.
-            bool valid = left.Count == 0 && body.Validate(tolerance).IsValid;
+            bool valid = left.Count == 0 && body.ValidateForWork(tolerance).IsValid;
 
             if (valid && NeedleAt(built, tolerance.EqualPoint, out _))
             {

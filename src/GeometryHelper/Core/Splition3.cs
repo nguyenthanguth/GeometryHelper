@@ -1535,7 +1535,7 @@ namespace GeometryHelper.Core
             var all = new List<GeoFace3>(halfFaces);
             all.AddRange(caps);
 
-            if (all.Count < 4 || new GeoSolid3(all).IsClosed(tolerance)
+            if (all.Count < 4 || new GeoSolid3(all).ClosesByCorners(tolerance)
                 || !LoopAssembly.TryCloseSlivers(all, tolerance, pieces, out List<GeoFace3> slivers) || slivers.Count == 0)
             {
                 return;
@@ -1543,7 +1543,7 @@ namespace GeometryHelper.Core
 
             all.AddRange(slivers);
 
-            if (new GeoSolid3(all).IsClosed(tolerance))
+            if (new GeoSolid3(all).ClosesByCorners(tolerance))
             {
                 halfFaces.AddRange(slivers);
             }

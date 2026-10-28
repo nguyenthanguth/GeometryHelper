@@ -48,7 +48,7 @@ namespace GeometryHelper.Core
     /// </para>
     /// <para>
     /// A result of two closed bodies is closed as <see cref="GeoSolid3.Validate(Tolerance)"/> reads it, or not made: one
-    /// <see cref="GeoSolid3.IsClosed(Tolerance)"/> calls closed on two copies of an edge about the tolerance apart, which
+    /// whose corners close it, two copies of an edge about the tolerance apart taken for one, which
     /// <c>Validate</c> reads as open, is welded, or worked out another way, and where it stays open the operation reports
     /// <c>false</c>, logged, as one it could not work out.
     /// </para>
@@ -503,9 +503,9 @@ namespace GeometryHelper.Core
 
             // Cut cleanly and still open, two closed bodies can close cut the other way round, as a difference can;
             // see CombineCuttingOne.
-            if (clean && otherWayAffordable && !result.IsClosed(tolerance) && first.IsClosed(tolerance) && second.IsClosed(tolerance)
+            if (clean && otherWayAffordable && !result.ClosesByCorners(tolerance) && first.ClosesByCorners(tolerance) && second.ClosesByCorners(tolerance)
                 && TryGlue(CellsInside(other, cut, otherKnives, tolerance, out bool closedClean, out _, out List<int> closedOwners, flush), closedOwners, tolerance, out GeoSolid3 otherResult)
-                && closedClean && otherResult.IsClosed(tolerance))
+                && closedClean && otherResult.ClosesByCorners(tolerance))
             {
                 result = otherResult;
             }
@@ -810,7 +810,7 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            foreach (SolidIssue3 issue in result.Validate(tolerance).Issues)
+            foreach (SolidIssue3 issue in result.ValidateForWork(tolerance).Issues)
             {
                 if (issue.Kind != SolidIssueKind.NoVolume && issue.Kind != SolidIssueKind.SliverFace
                     && issue.Kind != SolidIssueKind.ShortEdge && issue.Kind != SolidIssueKind.NonManifoldEdge)
@@ -841,7 +841,7 @@ namespace GeometryHelper.Core
         /// <param name="path">Marked where what they gave did not close as it was, with how far the weld may have moved it.</param>
         /// <returns>false where the two close and what they gave does not, for the boolean to try another way or say so.</returns>
         /// <remarks>
-        /// <see cref="GeoSolid3.IsClosed(Tolerance)"/> matches the ends of the edges first and calls two copies of an edge about
+        /// <see cref="GeoSolid3.ClosesByCorners(Tolerance)"/> matches the ends of the edges first and calls two copies of an edge about
         /// the tolerance apart one edge, which <c>Validate</c>, matching them along a line, reads as two, each open: a box 100 by
         /// 60 by 40 less a cube 1.3 across a hair the tolerance off three of its faces, turned and far from the origin, came out
         /// of the difference so, closed to the one and open by two stretches to the other, and the boolean never tried another
@@ -1127,7 +1127,7 @@ namespace GeometryHelper.Core
                 // volume.
                 GeoSolid3 sealedCut = Weld3.Sealed(openCut, tolerance);
 
-                if (sealedCut.IsClosed(tolerance))
+                if (sealedCut.ClosesByCorners(tolerance))
                 {
                     GeometryHelperLog.Debug("Boolean3: cut by every plane of both, a cell a plane could not cut is judged apart across it; the open result of cutting one body, welded closed, is taken.");
                     result = sealedCut;
@@ -1135,7 +1135,7 @@ namespace GeometryHelper.Core
                 }
             }
 
-            if (TryGlue(kept, owners, tolerance, out result) && (openCut == null || result.IsClosed(tolerance)))
+            if (TryGlue(kept, owners, tolerance, out result) && (openCut == null || result.ClosesByCorners(tolerance)))
             {
                 // Misjudged, the cells glued closed are taken where they hold what the open result does, within the
                 // tolerance times its area: a cell can be judged apart across a plane by a hair of it beyond the plane.
@@ -1412,9 +1412,9 @@ namespace GeometryHelper.Core
             // Cut cleanly and still open, two closed bodies can close cut the other way round, or both cut: a beam
             // turned a hundredth of a degree off the axes, less an opening, came out open with the beam cut and
             // closed with the opening cut. The open one is kept in case nothing does better.
-            if (!result.IsClosed(tolerance))
+            if (!result.ClosesByCorners(tolerance))
             {
-                if (!a.IsClosed(tolerance) || !b.IsClosed(tolerance))
+                if (!a.ClosesByCorners(tolerance) || !b.ClosesByCorners(tolerance))
                 {
                     return true;
                 }
@@ -2525,7 +2525,7 @@ namespace GeometryHelper.Core
 
             result = Merge3.CoplanarFaces(new GeoSolid3(skin), tolerance);
 
-            if (result.IsClosed(tolerance))
+            if (result.ClosesByCorners(tolerance))
             {
                 return true;
             }
@@ -2542,7 +2542,7 @@ namespace GeometryHelper.Core
 
             var glued = new GeoSolid3(skin);
 
-            if (glued.IsClosed(tolerance))
+            if (glued.ClosesByCorners(tolerance))
             {
                 result = glued;
                 return true;
@@ -2552,7 +2552,7 @@ namespace GeometryHelper.Core
             if (!ReferenceEquals(skin, paired) && TryCloseBackToBackGaps(skin, paired, tolerance, out GeoSolid3 healed))
             {
                 GeoSolid3 merged = Merge3.CoplanarFaces(healed, tolerance);
-                result = merged.IsClosed(tolerance) ? merged : healed;
+                result = merged.ClosesByCorners(tolerance) ? merged : healed;
             }
 
             return true;
@@ -2574,7 +2574,7 @@ namespace GeometryHelper.Core
         {
             closed = null;
 
-            if (!new GeoSolid3(before).IsClosed(tolerance)
+            if (!new GeoSolid3(before).ClosesByCorners(tolerance)
                 || !LoopAssembly.TryCloseSlivers(skin, tolerance, LoopAssembly.ForPieces(tolerance), out List<GeoFace3> slivers)
                 || slivers.Count == 0)
             {
@@ -2585,7 +2585,7 @@ namespace GeometryHelper.Core
             faces.AddRange(slivers);
             closed = new GeoSolid3(faces);
 
-            return closed.IsClosed(tolerance);
+            return closed.ClosesByCorners(tolerance);
         }
 
         /// <summary>

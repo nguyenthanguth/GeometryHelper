@@ -4,6 +4,71 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 release only, and a link here for the rest. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
+## Unreleased
+
+**CHANGED.** `IsClosed` reads a body as `Validate` reads it, the edges matched along a line within the point tolerance,
+so that the two agree on every body but a speck. `IsClosed` matched the ends of the edges first, each to the first
+corner seen within the tolerance of it, and made one of two corners 0.0015 apart where a corner lay between them: a
+cube of 100 whose top stood 0.0015 over the tops of its sides, with a speck of a face at each corner of its top half
+way up, was closed to it within a thousandth and open to `Validate` along every edge of the top, and open to both with
+the specks given last. Of 432 readings of cubes whose tops stand over their sides, with those specks given first or
+last or without them, slide along them, bulge out past one or run out at a corner, by half, one, one and a half and
+nearly two tolerances, at the origin, turned and far off, within a thousandth, a hundredth and 2^-10, the two disagreed
+on 46 and agree on all; a gap of 0.0005 is closed to both wherever it lies and one of 0.0015 open. A gap of exactly
+the tolerance is so to a few bits either way, 100.001 less 100 being 0.001 000 000 000 004 8, and reads as the rounding
+has it.
+
+Both read two more things as closed than `Validate` did. Two copies of an edge whose ends lie within the tolerance
+of each other are matched however little of them lies along the other: a slab 100 by 100 and 0.0012 thick whose side
+at one end is slid up 0.0002, each upright edge of the side sharing 0.001 of its line with its twin, read open along
+four edges, as did slabs 0.0014 and 0.0016 thick slid by 0.0005 and 0.0009, and is closed and valid. Every edge no
+longer than the tolerance is left out, as before, but for one that is a copy of an edge longer than it and belongs
+to a loop that has an edge longer than the tolerance itself, which is kept with its copy: a slab 0.0015 thick whose
+side at one end runs from 0.0003 to 0.0012 up, its upright edges 0.0009 long beside copies 0.0015 long, is closed, and
+`Mesh3.ToCells` cuts it into its cells, as it did. A speck, a loop with no edge longer than the tolerance, keeps none:
+a cube of 100 whose top has a square hole 0.0019 across, a sliver triangle in each side of it whose edge of 0.00095
+stands 0.000475 in from the side's ends, reads open. And below the rounding of the coordinates, a quadrillionth of the
+largest coordinate of the whole body, not of each part, the edges are matched within that rounding: at a tolerance of
+nought `Validate` read a cube turned in space, a cylinder of 24 sides at the origin and the union of two turned boxes
+made within a thousandth open along nearly every edge, and reads them closed. At every tolerance at or above that
+rounding the rounding changes nothing, bit for bit.
+
+The reading has its limits. Edges matched along one line are matched one after another, so a gap wider than the
+tolerance reads closed where other edges lie in it within the tolerance of either side: that cube whose top stands
+0.0015 over its sides, with a box of 1 standing against each side half way up the gap, reads closed and valid, as it
+did. A short copy kept with a side of a hole cuts the open side into stretches no longer than the tolerance in the
+same way: a sliver face with an edge longer than the tolerance, lying in a side of a hole wider than the tolerance, can
+still read the hole closed. A speck, a body with no edge longer than the tolerance, is not closed to `IsClosed` and is
+closed to `Validate`, which calls it not valid, enclosing nothing, as before.
+
+The bodies that read otherwise now are these: a body whose copies of an edge are taken for one only through a
+corner between them, which reads open; one closed by twin edges no longer than about the tolerance, which `IsClosed`
+read closed and `Validate` open, and both read closed; and one closed only to the rounding of its coordinates, at
+a tolerance below that rounding, which both read closed. `Mesh3.ToCells` and the IFC readers, which ask `IsClosed`,
+follow it: `ToCells` refuses the cube with the specks given first, which it cut into 8 cells, and refuses as before
+a body closed only to the rounding, the union at nought, which read closed it would have cut into no cell at all;
+`MeshConvert`, `ProductConvert`, `SolidConvert` and `FlatGaps` read a solid as `IsClosed` reads it. The booleans, the
+weld, the cutting of openings, the closing, the takeoff and `TryGetVolume` read the bodies they work on as they did,
+the ends of the edges matched first and within the tolerance given and no wider, and every result of them is the same
+to the bit, at every tolerance: 41 452 volumes and booleans of cracked cubes with openings within nought, a thousandth,
+a hundredth and five hundredths, and 41 452 more within nought and 1E-12; 54 000 booleans of U bodies, and 54 000 more
+within nought and 1E-12, of whose results `Validate` reads 1 523 valid it read not valid; 32 400 booleans of a cube
+and boxes half a tolerance to two tolerances into, onto or beside it; 12 800 joins and cuts of a column and a beam;
+600 plates with blind holes cut and 400 bands; and a cube less a box through it, far off and turned, within nought,
+not worked out, with a warning, as before. `TryGetVolume` can so trust a body `IsClosed` reads open, the cube with
+the specks given first, 1 000 005, and refuse one it reads closed, the union at nought; its own answer says whether
+its volume can be trusted. `TryClose`, and the closing of the cuts `TrySubtractAll` would skip, read a body as the
+booleans do, so that one `Validate` now calls valid can still be closed or refused: the slab 0.0012 thick slid by
+0.0002 is refused, the gap too wide, and the one 0.0014 thick slid by 0.0005 welded, its 14 cubic millimetres moved
+to 11.67. Some results of the booleans that `Validate` called not valid at a tolerance of nought, closed only to the
+rounding of their coordinates, now read valid, those 1 523 of the U bodies among them, so a `TrySubtract` checked by
+`Validate().IsValid` after it takes them; `TrySubtractAll` checks each cut as the booleans read it, and takes them as
+it did. `IsClosed` reads a plate of 3 206 faces with 200 holes in 1.9 milliseconds where it took 9.7 on .NET 10, and
+in 4.3 where it took 13 on .NET Framework 4.8, and a cube in 7 microseconds where it took 5 on .NET 10 and in 3 where
+it took 5 on .NET Framework; `Validate` takes 2 to 10 % longer on .NET 10 for matching twin edges by their ends, and 4
+microseconds more on a body of ten faces with edges no longer than the tolerance; `TryGetVolume`, `GetVolume` and the
+booleans run as they ran.
+
 ## 13.0.0
 
 **BREAKING.** The DXF types move from the namespace `GeometryHelper.Export` to `GeometryHelper.Dxf`: a

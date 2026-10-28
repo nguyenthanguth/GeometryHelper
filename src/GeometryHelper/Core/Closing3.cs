@@ -105,7 +105,7 @@ namespace GeometryHelper.Core
         /// <returns>true when what comes out is valid within the options' tolerance.</returns>
         private static bool Close(GeoSolid3 solid, SolidClosingOptions options, out GeoSolid3 closed, out SolidClosing3 report)
         {
-            SolidValidation3 check = solid.Validate(options.Tolerance);
+            SolidValidation3 check = solid.ValidateForWork(options.Tolerance);
 
             if (check.IsValid)
             {
@@ -194,7 +194,7 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            SolidValidation3 check = body.Validate(work.Tolerance);
+            SolidValidation3 check = body.ValidateForWork(work.Tolerance);
             work.Current = body;
             work.CurrentCheck = check;
 

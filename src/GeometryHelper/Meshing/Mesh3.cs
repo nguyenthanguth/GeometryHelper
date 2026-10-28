@@ -422,8 +422,8 @@ namespace GeometryHelper.Meshing
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the body, the options or the placement are null.</exception>
         /// <exception cref="ArgumentException">
-        /// Thrown when the body is not closed, a cell is no larger than the point tolerance along an axis it divides, or the grid
-        /// would lay more cells through the body than a grid may have.
+        /// Thrown when the body is not closed, or closed along its edges but not by its corners, a cell is no larger than the
+        /// point tolerance along an axis it divides, or the grid would lay more cells through the body than a grid may have.
         /// </exception>
         /// <remarks>
         /// <para>
@@ -435,7 +435,14 @@ namespace GeometryHelper.Meshing
         /// </para>
         /// <para>
         /// A cell the body holds in several pieces, as across the notch of a U, gives a cell for each. A body that is not
-        /// closed holds no volume to cut, and is refused rather than cut into cells that would not hold it either. A body
+        /// closed holds no volume to cut, and is refused rather than cut into cells that would not hold it either: one
+        /// <see cref="GeoSolid3.IsClosed(Tolerance)"/> reads open, as a cube whose top stands 0.0015 over its sides with a
+        /// speck of a face at each corner of the top half way up, cut into 8 cells before, and one it reads closed that the
+        /// ends of its edges, each matched to the first corner seen within the tolerance of it, do not close, as the booleans
+        /// the cells are cut with read it. Such is a body closed only to the rounding of its coordinates, at a tolerance below
+        /// that rounding: the union of two turned boxes would be cut into no cell at all at a tolerance of nought. That
+        /// reading of the corners hangs on the order the faces come in, and a slab 100 by 100 and 0.0012 thick, its side at
+        /// one end slid up 0.0002, is refused with its faces in one order and cut with them in another, as it was. A body
         /// wound inwards, as a mirror leaves one, and an opening wound so, are read the right way out, and the cells are
         /// wound outwards. Openings that cannot be cut into the whole body, or leave it open, are cut into each cell they
         /// meet; a cell they cannot be cut into either keeps their material, and says so in the log.
@@ -455,6 +462,11 @@ namespace GeometryHelper.Meshing
                 throw new ArgumentException("The body is not closed, so it holds no volume to cut into cells; mend it first, as GeoSolid3.IsClosed says.", nameof(solid));
             }
 
+            if (!solid.ClosesByCorners(tolerance))
+            {
+                throw new ArgumentException("The body is closed along its edges, as GeoSolid3.IsClosed reads it, but not by its corners within the tolerance its cells are cut within, as a body closed only to the rounding of its coordinates is; give a larger tolerance, or mend the body.", nameof(solid));
+            }
+
             solid = solid.TurnOutwards();
             GeoSolid3 material = solid;
             IReadOnlyList<GeoSolid3> left = new GeoSolid3[0];
@@ -463,7 +475,7 @@ namespace GeometryHelper.Meshing
             {
                 bool cut = Boolean3.TryCutOpenings(solid, solid.Openings, out material, tolerance, out Exception failure);
 
-                if (failure != null || (cut && !material.IsClosed(tolerance)))
+                if (failure != null || (cut && !material.ClosesBothWays(tolerance)))
                 {
                     // The openings could not be cut into the whole body, or left it open: the body is cut into its cells as
                     // it is, and each cell has the openings it meets cut into it.

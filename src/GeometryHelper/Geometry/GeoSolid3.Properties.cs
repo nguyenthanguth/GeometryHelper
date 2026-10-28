@@ -66,12 +66,23 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// The area and the centroid are of the same material, so the answer holds for them too. A body without
         /// openings costs one check that its faces close, and nothing is cut.
+        /// <para>
+        /// The material is judged closed with the ends of its edges matched first, each to the first corner seen within the
+        /// tolerance, as the booleans judge the bodies they work on, and not as <see cref="IsClosed(Tolerance)"/> reads it,
+        /// which the two can part on either way; this answer, not <c>IsClosed</c>, says whether the volume can be trusted. A
+        /// cube of 100 whose top stands 0.0015 over its sides, a speck of a face at each corner of its top half way up given
+        /// before the cube's faces, is trusted, 1 000 005, where <c>IsClosed</c> reads it open; the union of two turned boxes
+        /// made within a thousandth is refused at a tolerance of nought, where <c>IsClosed</c> reads it closed to the
+        /// rounding of its coordinates. A cube cracked across three faces 0.001 wide less a skewed box, at a tolerance of a
+        /// thousandth, read open by <c>IsClosed</c> by a hair of rounding, keeps its volume, 860.046 where the cube less the
+        /// box holds 860.047.
+        /// </para>
         /// </remarks>
         public bool TryGetVolume(out double volume, Tolerance tolerance)
         {
             GeoSolid3 material = GetMaterial(tolerance, out bool whole);
 
-            if (!whole || !(material ?? this).IsClosed(tolerance))
+            if (!whole || !(material ?? this).ClosesByCorners(tolerance))
             {
                 volume = 0.0;
                 return false;
@@ -233,7 +244,7 @@ namespace GeometryHelper.Geometry
             else if (cut)
             {
                 // Faces that did not close leave no closed material to look for.
-                if (material.IsClosed(tolerance) || !IsClosed(tolerance))
+                if (material.ClosesByCorners(tolerance) || !ClosesByCorners(tolerance))
                 {
                     return new MaterialCut(tolerance, material, true);
                 }

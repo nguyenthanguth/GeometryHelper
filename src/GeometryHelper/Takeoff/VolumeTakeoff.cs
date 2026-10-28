@@ -553,7 +553,7 @@ namespace GeometryHelper.Takeoff
                     return;
                 }
 
-                if (made && piece.Validate(tolerance).IsValid)
+                if (made && piece.ValidateForWork(tolerance).IsValid)
                 {
                     double volume = piece.GetVolume(tolerance);
 

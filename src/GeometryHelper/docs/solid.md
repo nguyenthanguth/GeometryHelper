@@ -1302,33 +1302,62 @@ their planes would move the volume further than tilting them, and where the tilt
 than a hundredth of the tolerance, or the tilt moving the volume by no more than a tenth of the tolerance times the
 area of the faces it tilts.
 
-**Closed as `Validate` reads it, or not made.** `IsClosed()` matches the ends of the edges first, made one within the
-tolerance, and calls two copies of an edge about the tolerance apart one edge, where `Validate()`, matching them along a
-line, reads two, each open. A boolean of two closed bodies takes what it makes as closed only where `Validate` reads it
-so: one open to it is welded as above, within the tolerance the boolean was given, kept where it closes and the weld
-moves the volume no further than moving each corner it moves by the point tolerance can, and otherwise worked out by
-cutting both bodies by every plane of both, or for a common part the other body; where it stays open the boolean says it
-could not be worked out, `false`, logged, rather than handing it back, and `TrySubtractAll` asked to close the cuts it
-skips is handed what it gave. A corner moved by a distance sweeps, on each face it is a corner of, no more than the
-distance times a third of the triangle it makes with its two neighbours. A result that came out open on the way is taken
-only where its volume adds up: a union holds the two less their common part, a difference the first less the common
-part, a common part the two less their union, the other worked out by the same boolean at the same tolerance, within the
-tolerance times the area of the common part's skin and what the weld moved. The union of a box 100 by 60 by 40 and a
-cube 1.25 across standing out through three of its faces a hair more than the tolerance came out open and, closed, held
-240 001.2065, the cube counted whole, where the two less their common part hold 240 000.0032, and is not worked out. A
-union of two bodies lying face to face within the tolerance of each other and apart, welded closed, is taken where it
-holds the two and the gap filled over where their faces lie against each other. Two cubes of 100 side by side 0.01
-apart, turned, closed across the gap at a tolerance of a hundredth into a body of 2 000 000, the two, 1 999 900, and
-the gap, 0.01 by 10 000 square millimetres. What two bodies exactly the tolerance apart join into still depends on where
-they lie: turned another way, the two cubes hold 1 999 933.3, part of the gap. What a weld closes
-from a body that adds up is taken, and can hold a volume between the readings of a feature exactly the tolerance thick:
-the union of a cube of 100 and a block 120 by 120 by 50 running 0.001 into its top holds 1 720 012.73, the two with
-nothing in common at the tolerance being 1 720 014.4 and the cube and the block beyond it 1 720 004.4. A result that
-closes as it comes is taken unchecked. Of 8 000 boxes 100 by 60 by 40 less a cube 0.1 to 1.9 across a hair either side
-of the tolerance off one to three of their faces, turned or not, far from the origin or not, 17 came out closed to
-`IsClosed` and open by two stretches to `Validate`, and 2 open to both: 13 close now, each holding a volume between the
-cube cut and the cube taken with the outside, and 6 are reported as not worked out. No result closed to both moved, by a
-bit, across 40 000 differences, unions, common parts and cuttings of openings of those boxes.
+**How closed is read.** `IsClosed()` and `Validate()` read a body alike, the edges matched along a line within the
+point tolerance, stretch by stretch, and two copies of an edge whose ends lie within the tolerance of each other
+matched however little of them lies along the other: a cube of 100 whose top stands 0.0005 over the tops of its sides
+is closed within a thousandth wherever it lies, one whose top stands 0.0015 over them is open, and a slab 100 by 100
+and 0.0012 thick whose side at one end is slid up 0.0002 is closed, where `Validate` read the side's four upright edges
+open, each sharing only 0.001 of its line with its twin. An edge no longer than the tolerance is left out unless it is
+such a copy of a longer one and its own loop has an edge longer than the tolerance. A gap of exactly the tolerance is
+so to a few bits either way, 100.001 less 100 being 0.001 000 000 000 004 8, and reads as the rounding has it. Below
+the rounding of the coordinates, a quadrillionth of the largest coordinate of the whole body, not of each part of it,
+the edges are matched within that rounding: at a tolerance of nought `Validate` read a cube turned in space, and the
+union of two such boxes made within a thousandth, open along nearly every edge, and reads them closed. `IsClosed`
+matched the ends of the edges first, each to the first corner seen within the tolerance of it, and called two corners
+0.0015 apart one where a corner lay between them: that cube, with a speck of a face at each corner of its top half way
+up, was closed to it and open to `Validate`, and open to both with the specks given last.
+
+The reading has its limits, and they are worth knowing. Edges matched along one line are matched one after another,
+so a gap wider than the tolerance reads closed where other edges lie in it within the tolerance of either side: the
+cube whose top stands 0.0015 over its sides, with a box of 1 standing against each side half way up the gap, reads
+closed and valid; and a sliver face with an edge longer than the tolerance, lying in a side of a hole wider than the
+tolerance, can read the hole closed the same way, its short copy of the side kept. A speck, a body with no edge longer
+than the tolerance, is not closed to `IsClosed`, and is closed to `Validate`, which finds no stretch of it open and
+calls it not valid, enclosing nothing. And the booleans, the weld, the cutting and `TryGetVolume` read the bodies they
+work on as `IsClosed` did, the ends of the edges matched first, within the tolerance given and no wider: what a boolean
+makes is taken as closed where the edges matched along lines within that tolerance close it, so that at a tolerance
+of nought a boolean is worked out as it was, and `TryGetVolume` trusts a material by its corners. It can trust one
+`IsClosed` reads open, as the cube with the specks given first, 1 000 005, and refuse one `IsClosed` reads closed, as
+that union at nought; its own answer says whether its volume can be trusted. `Mesh3.ToCells` cuts a body into cells
+only where it is closed both ways: it refuses the cube with the specks, which it cut into 8 cells before, and still
+refuses that union at nought, which read closed it would cut into no cell at all. The IFC readers follow `IsClosed`.
+
+**Closed as `Validate` reads it, or not made.** A boolean of two closed bodies takes what it makes as closed only where
+its edges, matched along lines within the tolerance the boolean was given, close it, as `Validate` reads all but the
+bodies above: one open so is welded as above, kept where it closes and the weld moves the volume no further than moving
+each corner it moves by the point tolerance can, and otherwise worked out by cutting both bodies by every plane of
+both, or for a common part the other body; where it stays open the boolean says it could not be worked out, `false`,
+logged, rather than handing it back, and `TrySubtractAll` asked to close the cuts it skips is handed what it gave. A
+corner moved by a distance sweeps, on each face it is a corner of, no more than the distance times a third of the
+triangle it makes with its two neighbours. A result that came out open on the way is taken only where its volume adds
+up: a union holds the two less their common part, a difference the first less the common part, a common part the two
+less their union, the other worked out by the same boolean at the same tolerance, within the tolerance times the area
+of the common part's skin and what the weld moved. The union of a box 100 by 60 by 40 and a cube 1.25 across standing
+out through three of its faces a hair more than the tolerance came out open and, closed, held 240 001.2065, the cube
+counted whole, where the two less their common part hold 240 000.0032, and is not worked out. A union of two bodies
+lying face to face within the tolerance of each other and apart, welded closed, is taken where it holds the two and
+the gap filled over where their faces lie against each other. Two cubes of 100 side by side 0.01 apart, turned, closed
+across the gap at a tolerance of a hundredth into a body of 2 000 000, the two, 1 999 900, and the gap, 0.01 by
+10 000 square millimetres. What two bodies exactly the tolerance apart join into still depends on where they lie: turned
+another way, the two cubes hold 1 999 933.3, part of the gap. What a weld closes from a body that adds up is taken, and
+can hold a volume between the readings of a feature exactly the tolerance thick: the union of a cube of 100 and a block
+120 by 120 by 50 running 0.001 into its top holds 1 720 012.73, the two with nothing in common at the tolerance being
+1 720 014.4 and the cube and the block beyond it 1 720 004.4. A result that closes as it comes is taken unchecked. Of
+8 000 boxes 100 by 60 by 40 less a cube 0.1 to 1.9 across a hair either side of the tolerance off one to three of their
+faces, turned or not, far from the origin or not, 17 came out closed by their corners, as `IsClosed` read them then,
+and open by two stretches to `Validate`, and 2 open to both: 13 close now, each holding a volume between the cube cut
+and the cube taken with the outside, and 6 are reported as not worked out. No result closed to both moved, by a bit,
+across 40 000 differences, unions, common parts and cuttings of openings of those boxes.
 
 Where both bodies would be cut by every plane of both, and that costs far more than cutting one of them did, which gave
 a result that came out open, that result is sealed first and taken where it closes and adds up. A beam 2 000 by 200 by
@@ -1374,10 +1403,14 @@ var options = new SolidBooleanOptions(Tolerance.Default, contact: 0.01);
 part.TrySubtract(cutter, out GeoSolid3 left, options, out BooleanOutcome outcome);
 ```
 
-A net body, a part less every part it meets, is `TrySubtractAll`: each cut checked by `Validate`, one whose result
+A net body, a part less every part it meets, is `TrySubtractAll`: each cut checked as `Validate` checks a body, but
+reading it as the booleans do, within the tolerance as given and the edges paired by overlap only; one whose result
 is not valid worked out again within the `fallback` tolerance where one is given, and one that is still not valid
 skipped, the part kept as it was before it, with the report saying which. A body closed with two faces lying one on
-the other the same way round holds the wrong volume, which is why each is checked.
+the other the same way round holds the wrong volume, which is why each is checked. Checked by hand after a
+`TrySubtract`, `Validate().IsValid` reads a few more results valid than this check does: at a tolerance of nought,
+those closed only to the rounding of their coordinates, 1 523 of 54 000 booleans of U bodies within nought and 1E-12
+that it read not valid before.
 
 ```csharp
 var options = new SolidBooleanOptions(Tolerance.Default, contact: 0.01,
@@ -1454,7 +1487,11 @@ A body read out of a model can come in open: two faces meeting on copies of an e
 corner standing off the edge of the face beside it, a face left out. `Validate()` says where. `TryClose` closes it with
 the least change that does it, and says in a `SolidClosing3` what it changed; where the change is not certain it
 changes nothing, returns `false`, and says why and where. The body given is not changed, and one valid already comes
-back as the very instance, nothing done.
+back as the very instance, nothing done. Valid here is as the booleans read a body, within the tolerance as given and
+the edges paired by overlap along a line only, not as `Validate()` reads it, which pairs two copies of an edge by
+their ends as well: a slab 100 by 100 and 0.0012 thick whose side at one end is slid up 0.0002, valid to `Validate`,
+is refused within a thousandth, the gap too wide, and one 0.0014 thick slid by 0.0005 is welded closed, 14 cubic
+millimetres moved to 11.67.
 
 ```csharp
 var options = new SolidClosingOptions(Tolerance.Default, maxGap: 0.01, maxHoleArea: 50000.0);
@@ -2742,7 +2779,7 @@ quite square to its X axis is squared up. Each face is turned to agree with the 
 the finished body is turned the right way out, as `TurnOutwards()` turns one, if the whole surface arrived reversed —
 without that, volume still measures the same but every containment query answers backwards. And a face
 that cannot be made sense of is skipped rather than thrown on, which leaves the body no longer closed, so
-ask `IsClosed()` before trusting a volume.
+take a volume from `TryGetVolume`, and trust it where that returns true.
 
 Tekla models in millimetres with coordinates that can run to hundreds of thousands, and a face of a twelve
 metre member is rarely flat to the last decimal. The default `EqualPlanar` is often too tight for that, so

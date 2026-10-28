@@ -65,7 +65,7 @@ namespace GeometryHelper.Core
             Tolerance check = work.EqualPoint < Tolerance.Global.EqualPoint ? work : Tolerance.Global;
 
             // What a boolean gives mostly closes, and is asked once.
-            if (solid == null || solid.IsClosed(check))
+            if (solid == null || solid.ClosesByCorners(check))
             {
                 return solid;
             }
@@ -98,7 +98,7 @@ namespace GeometryHelper.Core
         /// Gets a body a boolean made sealed as <see cref="Sealed"/> seals it, within the tolerance the boolean was given and
         /// no other, taken as closed only where <see cref="GeoSolid3.Validate(Tolerance)"/> reads it so as well
         /// (<see cref="Shells3.Closes"/>), and only where the weld moves the volume no further than moving each corner it moves
-        /// by the point tolerance can: one that <see cref="GeoSolid3.IsClosed(Tolerance)"/> calls closed on two copies of an edge
+        /// by the point tolerance can: one that <see cref="GeoSolid3.ClosesByCorners(Tolerance)"/> calls closed on two copies of an edge
         /// about the tolerance apart is welded too.
         /// </summary>
         /// <remarks>
@@ -309,7 +309,7 @@ namespace GeometryHelper.Core
 
             if (asValidated
                 ? !Shells3.Closes(candidate, fine) || !Shells3.Closes(candidate, work)
-                : !candidate.IsClosed(fine) || !candidate.IsClosed(work))
+                : !candidate.ClosesByCorners(fine) || !candidate.ClosesByCorners(work))
             {
                 return false;
             }

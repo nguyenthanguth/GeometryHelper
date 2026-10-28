@@ -182,11 +182,12 @@ namespace GeometryHelper.UnitTest.Solid
         [InlineData(1E-9)]
         [InlineData(1E-8)]
         [InlineData(1E-7)]
-        public void TwoCopiesOfAnEdgeEitherSideOfTheTolerance_ReadOpenAsValidateReadsThem(double extra)
+        public void TwoCopiesOfAnEdgeEitherSideOfTheTolerance_ReadClosedAsValidateReadsThem_AndOpenAsTheBooleansDo(double extra)
         {
             // A prism 10 high on a plan with one side the tolerance long: the top's copy of that edge a hair longer than the
-            // tolerance, the side face's a hair shorter. Validate leaves the shorter out and reads the longer open; paired on
-            // the grid, the two were read closed.
+            // tolerance, the side face's a hair shorter. Validate keeps the shorter with its twin, their ends within the
+            // tolerance, and reads the prism closed; the booleans' reading leaves the shorter out and reads the longer open, and
+            // paired on the grid, the two were read closed.
             var tolerance = new Tolerance(0.01, 1E-5, 1E-5, 0.01);
             var u = new GeoVector2(0.6, 0.8);
             var p4 = new GeoPoint2(0, 49.9);
@@ -215,7 +216,7 @@ namespace GeometryHelper.UnitTest.Solid
 
             var prism = new GeoSolid3(faces);
 
-            Assert.False(prism.Validate(tolerance).IsClosed);
+            Assert.True(prism.Validate(tolerance).IsClosed);
             Assert.False(Shells3.PairsUp(prism.Faces, tolerance));
             Assert.False(Shells3.Closes(prism, tolerance));
         }

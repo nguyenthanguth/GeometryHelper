@@ -192,7 +192,7 @@ namespace GeometryHelper.Core
 
             // Only a clean body is an answer: a face lost to the polygon's own tolerance leaves the surface open and
             // the volume short, and then the general boolean decides.
-            if (!region.IsClosed(tolerance))
+            if (!region.ClosesByCorners(tolerance))
             {
                 return false;
             }
