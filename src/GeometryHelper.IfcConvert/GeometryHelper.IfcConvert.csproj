@@ -19,6 +19,12 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 13.0.0
+      - GeometryHelper.IfcConvert is released at 13.0.0 with GeometryHelper, which moves its DXF types to
+        GeometryHelper.Dxf and renames a few of them (a breaking change outside IfcConvert), adds DxfDatabase to edit
+        DXF drawings as AutoCAD's Database edits them, and fixes booleans, openings, arcs and ellipses in space, rays
+        and curved offsets; nothing in IfcConvert changes.
+
       NEW IN 12.3.0
       - IfcStoreCache.GetSpheres and GetSplines read the balls and the spline curves of a product as GeoSphere3
         and GeoSpline3. GeometryHelper.IfcConvert is released at 12.3.0 with GeometryHelper, which adds DxfReader,

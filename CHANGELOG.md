@@ -4,7 +4,7 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 release only, and a link here for the rest. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
-## Unreleased
+## 13.0.0
 
 **BREAKING.** The DXF types move from the namespace `GeometryHelper.Export` to `GeometryHelper.Dxf`: a
 `using GeometryHelper.Dxf;` replaces `using GeometryHelper.Export;` for `DxfReader`, `DxfWriter`, `DxfDatabase` and every
@@ -16,7 +16,7 @@ other `Dxf` type, or joins it where the code writes OBJ, SVG or WKT as well, and
 new editing model, as AutoCAD names its own: `DxfDocument.Entities` is `DxfDocument.Shapes`, `DxfBlock.Entities` is
 `DxfBlock.Shapes`, `DxfWriter.Add(DxfEntity)` is `DxfWriter.Add(DxfShape)`, and `new DxfEntity(shape, ...)` is
 `new DxfShape(shape, ...)`; `OnLayer` and `OfType<T>` give and walk shapes as they did. Nothing else of the reader changes:
-338 files of the earlier rounds, in 4 forms each (as written, with a mark of UTF-8, with CRLF, in the code page 932) under
+338 test files, in 4 forms each (as written, with a mark of UTF-8, with CRLF, in the code page 932) under
 4 sets of options, read to the same groups, looks and shapes, bit for bit, 5 208 readings; and every shape written back
 by `DxfWriter.Add(DxfShape)` gives the same bytes, 676 files. The release that ships this is 13.0.0.
 
@@ -331,7 +331,7 @@ anything is written, where it was copied cyclic or left the target half-written;
 `$PEXTMIN` and `$PEXTMAX` out anew from what the spaces hold, shrinking them too. `DxfDBObject.HandOverTo` puts an entity
 made in code in another's place, under its handle, owner and reactors, with its extended data and extension dictionary where
 asked; `DxfBlockReference.ConvertToStaticBlock` makes the INSERT of a dynamic block place a named or anonymous copy of what
-it draws, no longer tied to the dynamic block. ezdxf 1.4.5 read back every drawing the probe wrote of its drawings of R12,
+it draws, no longer tied to the dynamic block. ezdxf 1.4.5 read back every drawing a test wrote of its drawings of R12,
 R2000 and R2018, its recover and audit finding nothing to fix, and a drawing in which nothing is found to count, purge or
 erase resaves byte for byte.
 
@@ -518,7 +518,7 @@ later, kept in AcLyDictionary, are not read, so a drawing saved by AutoCAD 2005 
 All. Left out: saving, restoring, renaming and deleting a layer state, what a state or a filter holds, groups of layers
 and the current filter, whose records' groups neither the DXF reference nor ezdxf gives and no drawing at hand shows; a
 point taken to latitude and longitude, which needs the coordinate system's projection; and the angle `NorthDirection`,
-from which axis and which way it is measured not confirmed. ezdxf 1.4.5 read every GEODATA the probe wrote, set, changed,
+from which axis and which way it is measured not confirmed. ezdxf 1.4.5 read every GEODATA a test wrote, set, changed,
 replaced and erased, on drawings of R2010 and R2018, with the values set and nothing for its recover and audit to fix; 253
 drawings read and saved again, 244 of the reader's corpus and the 9 the tests hold, give the bytes they gave before.
 
@@ -1069,7 +1069,7 @@ each a root of its own cost a million blocks for every root: a ring of 1 000 blo
 of 174 KB, took 47 s on .NET 10 and takes 0.19 s, and one of 200 9.5 s and 0.18 s. Once the bound is spent, an INSERT
 whose size would need another block worked out is refused with a warning of its own, where it was counted with those past
 `MaxPlacedEntities`; a size worked out before still places its INSERTs. A reading that works out fewer blocks is as it was
-to the bit: 29 files of the earlier rounds under 8 sets of options, the 5 with texts but for their texts, and 15 000
+to the bit: 29 test files under 8 sets of options, the 5 with texts but for their texts, and 15 000
 random block graphs. Of the 4 that reach the bound, the two size bombs differ in the new warning alone; in the file where
 a second INSERT of a block was placed, by working it out again, after the first had been refused, both are refused now;
 and in one whose walks each stayed under the bound, 47 INSERTs of the blocks read for `Blocks` are refused.
@@ -1169,7 +1169,7 @@ edges that cancel are taken out in one pass. The three plates take 0.91 seconds 
 a column of 12 002 faces united with a beam, 5.3 and 4.7 seconds either way round, takes 2.1 and 1.3 (much the same on .NET
 8). Of 18 600 unions, differences and common parts of boxes, columns, beams, cylinders and plates meeting within a few
 tolerances, turned and moved off the origin at three tolerances, 600 plates cut at once and 72 000 booleans in the plane none
-moves by a bit, nor do the earlier rounds' sets of exact-tolerance, band and bent-bar booleans, and a build that worked
+moves by a bit, nor do the earlier sets of exact-tolerance, band and bent-bar booleans, and a build that worked
 out every pair said to lie apart found no area shared by any.
 
 **CHANGED.** A clash bar grazing the faces of a part no longer searches along itself for each triangle near it that it never
@@ -2194,7 +2194,7 @@ out, 54.770 as at 1E-4, where the piece before it, cut to 1.94E-4 and turned bac
 chain offset at a tolerance of 0.1 now miters such a corner as it does within 1E-3. A piece turned backwards that ends a
 hair past the meeting runs back to it, and not on round nearly a whole turn of its circle.
 
-Of 139 404 curved offsets of the fuzz corpus of item 6 at tolerances of 0.1, 1E-3 and 1E-4, the fixes move 2 381, most
+Of 139 404 curved offsets of a fuzz corpus at tolerances of 0.1, 1E-3 and 1E-4, the fixes move 2 381, most
 of them at 0.1, and the rest are the same to the bit; 261 come back that were empty, and none is empty that was not.
 Read against the distance from the source and the miter wedges built from the source alone, a point counted wrong only
 outside a band twice the tolerance wide about the answer, of the 2 238 fuzz loops among them 425 come nearer the exact
@@ -2230,7 +2230,7 @@ to the digits is kept whatever lies beside it, so crossings a few snaps deep are
 0.47, are crossed twice, as they were (shallower chords far out still give one or three, the rounding's places, as before); and the spline
 of the arc of radius 100 about (1 000 000, 1 000 000) turning 0.1 against its own `Flatten(1E-7)`, 2 049 corners, gives 4 097 places, as
 it did, and turning 2 against `Flatten(2E-8)`, 65 537 corners, 131 073 in 0.95 s on .NET 10, as it did in 0.89. Ten million out the points beside the touch are 4E-9 off, under what the numbers are evaluated
-to, and are still given (parked), as are the five places of a line tangent to a circle spline of radius 1 000 a million out cut into
+to, and are still given (not fixed yet), as are the five places of a line tangent to a circle spline of radius 1 000 a million out cut into
 10 000 segments, and the four of two circle splines crossing at the joins of their spans.
 
 **FIXED.** A spline of a flat arc and an arc of nearly its circle lie along each other where they are one circle to the rule however
@@ -2238,7 +2238,7 @@ far the reading of the spline's circle may be off: their centres and radii withi
 reading counted twice. The spline of an arc of radius 849 821 and the arc of that circle moved 0.00011 and 0.0002 smaller were given
 the two ends of their overlap as places, where the arcs give none. Of 1 200 random pairs of arcs of radius 100 to 100 000 000 moved and
 grown less than the tolerance, 517 answered otherwise as splines than as arcs and 307 do, and with their centres within 100 000 of the
-origin 603 and 384; those left are splines whose circle the digits of their control points do not hold to the tolerance (parked).
+origin 603 and 384; those left are splines whose circle the digits of their control points do not hold to the tolerance (not fixed yet).
 
 **FIXED.** Two splines that lie along each other give the same places whichever is asked and however they are turned. The stretch
 along them now runs past the end of either, within the tolerance of it, as an arc runs along an arc of its circle, where a copy that
@@ -2269,13 +2269,13 @@ moved 0.0001 to 0.0021, asked three ways (either first, and turned) at two toler
 crossing, a point of both curves to 1E-14; 24 ends and near touches that were no least of the distance are given no more; and 7
 crossings are given no more: a pair 0.011 of the curve apart whose offset swings less than a hundredth of the tolerance between them,
 asked three ways, as the rule for a stretch along has it, and one where the copy meets the curve's other branch beside a crossing of the
-curve with itself, inside a stretch along, which the other two ways missed before as well (parked).
+curve with itself, inside a stretch along, which the other two ways missed before as well (not fixed yet).
 
 What moved: of 60 480 answers of random splines against every shape of the plane and 37 440 against every shape of space, at two
 or three tolerances (the draws of the symmetry fuzz tests, eight times over), none, to the bit. The touches far out, the spline arcs that are one circle with
 an arc, and splines with their near copies, as above. The space reading of a curve and a copy moved out of every plane, a place at each
 least of their distance, is as it was: a curve and its copy moved 0.0005 in its plane give no place, and a curve that is not flat and its
-copy moved 0.0005 give 14 (parked). The draw of a fuzz run that once found a spline on one line 5.8E-6 too far from an ellipse 709 across,
+copy moved 0.0005 give 14 (not fixed yet). The draw of a fuzz run that once found a spline on one line 5.8E-6 too far from an ellipse 709 across,
 fixed before, is a test of its own. 28 new tests.
 
 **FIXED.** Two splines that lie on each other exactly for a stretch between two lobes of their offset cross once, where they come on
@@ -2334,7 +2334,7 @@ parallel to the degree, and takes four to six times as long: 20 random splines a
 the arc of radius 100 a million out turning 2 radians against its 65 536 chords as a spline 0.55 to 0.57 s where 0.09 to 0.11 (the
 `GeoPolyline2` of them, which is no spline, takes 1.0 s as before). On .NET Framework 4.8: 1.84 and 1.86 s where 1.52 and 1.69 (10 to
 21 % longer), 1.38 and 1.44 where 1.18 and 1.31, 18 ms where 22 and 29, 0.60 and 0.66 s where 0.13 and 0.12, and 0.90 to 0.92 s where
-0.12 to 0.17. 9 new tests, 36 cases; three tests of earlier rounds count the crossings at the spline's own crossing now, which
+0.12 to 0.17. 9 new tests, 36 cases; three earlier tests count the crossings at the spline's own crossing now, which
 they left out: a near copy of a degree-two spline that crosses itself twice gives 7 places where 3, as the exact curves cross, and a
 copy that overhangs the spline's end 3 where 2, in the plane and in a tilted plane of space.
 
@@ -2379,8 +2379,8 @@ an L, a face with a hole, an oriented and an axis-aligned box, a body and a prep
 million out, square to the axes and turned, at tolerances of a thousandth, a hundredth and five hundredths, of nought,
 and of a hundredth with planar ones of five hundredths and of a thousandth, 1 759 collided and were given no point and
 528 were given points and collided with nothing; 116 do now, all of them prepared bodies at a tolerance of nought, whose
-index crosses no face of a body turned about in space and holds the points it locates by those crossings (parked). Of
-200 000 rays and segments starting at or passing an arc or a circle within the tolerance of its plane and rim, 914 were
+index crosses no face of a body turned about in space and holds the points it locates by those crossings (not fixed yet).
+Of 200 000 rays and segments starting at or passing an arc or a circle within the tolerance of its plane and rim, 914 were
 given points and collided with nothing, and 916 points were given where the ray or segment comes no nearer the curve
 than the tolerance; none is now, and of the answers that collide 141 moved, each giving one point of the two it gave, the
 other standing further off. Of 50 000 more drawn through a circle or an arc of radius 0.001 to a million, up to a
@@ -2463,7 +2463,7 @@ out included: of 1 327 104 answers drawn at 1E-6, 1E-3 and 1E-2 for boxes, prism
 the origin and out to 4E9 (points stepped off a facet by multiples of the tolerance and by 3 and 30 times the fine
 tolerance a body far out holds a point within, with their distances, and rays from inside, through and away), 33 138
 answers of prisms with and without openings out to 4E9 and 133 392 rays and points about boxes, U's, cylinders,
-cones and rings out to 1E9, none changed, nor did any boolean of the G2b corpora at a tolerance of a thousandth,
+cones and rings out to 1E9, none changed, nor did any boolean of the near-face fuzz runs at a tolerance of a thousandth,
 a hundredth or five hundredths. At a tolerance of nought, of 442 368 answers 173 857 were wrong and 1 047 are:
 997 rays and 50 points of bodies a million to 4E9 out that start or stand within the fine tolerance of a face,
 or between a face and the facets it is meshed into, where either answer holds. Of 16 862 answers of the prisms at
@@ -2471,8 +2471,8 @@ a tolerance of nought, 1 226 points measured more than a millionth off their dis
 read as colliding where they missed or the other way round; 3, none and none are now. A ray whose collision disagreed
 with its distance did so 141 times and does 10, all of them new: plates with openings a million to 4E9 out, the ray
 starting 0.3 or 3 times the fine tolerance outside, where the cut material holds the origin and the body does not
-(parked). The planes of fan triangles far out can be rounded by more than 1E-15 of the coordinates: a point on
-the axis of a cylinder of 1 080 sides 1E7 out is still read outside in 10 of 120 readings (parked). The time at
+(not fixed yet). The planes of fan triangles far out can be rounded by more than 1E-15 of the coordinates: a point on
+the axis of a cylinder of 1 080 sides 1E7 out is still read outside in 10 of 120 readings (not fixed yet). The time at
 a tolerance of a thousandth is as it was, within 3 %: on .NET 10 compiled in full a point located in the prepared
 cylinder of 300 faces takes 9.02 microseconds where it took 8.97, in the body itself 16.9 where it took 16.9, and a
 ray crossing the prepared body 6.38 where it took 6.32; on .NET Framework 4.8 25.3, 52.5 and 20.5 where they took
@@ -2480,7 +2480,7 @@ ray crossing the prepared body 6.38 where it took 6.32; on .NET Framework 4.8 25
 body 15.9 microseconds on .NET 10 and 50.0 on .NET Framework 4.8, where it took 8.2 and 23.3 and was read wrong,
 and in the prepared body 8.94 and 25.3 where it took 7.90 and 19.2. A boolean at a tolerance of nought still fails
 or comes out open, 107 of 108 unions, differences and intersections of a cylinder, a cone, a ring or a box with
-a box where all 108 did, and 1E-15 of the coordinates does not close them either (parked). 15 new tests.
+a box where all 108 did, and 1E-15 of the coordinates does not close them either (not fixed yet). 15 new tests.
 
 **FIXED.** `Offset2.Offset` of a `GeoPolygonArc2` that crosses itself, grown with miters or chamfers, keeps the miter or
 the chamfer at each tip of its region where two lobes of it cross; so does `GeoPolygonArc3.Offset`, which miters. The

@@ -22,6 +22,12 @@
       and Line entities, polylines and polygons with the arcs their bulges draw, arcs, circles,
       ellipses, rays, xlines, splines, and Extents2d/Extents3d as rectangles.
 
+      ARCS READ AS DRAWN (13.0.0)
+      - ToGeoArc2 and ToGeoArc3 read an Arc through its ends and its middle at a tolerance of nought, as AutoCAD drew
+        it. GeometryHelper 13.0.0 reads three points within the tolerance of one line as a line, so the arc of radius
+        1 000 sweeping 0.002 radians, its middle 0.0005 off its chord of 2, would have been refused at the global
+        tolerance; it comes through as it did.
+
       RAYS, LINES AND SPLINES (12.3.0)
       - RayConvert and XlineConvert read the Ray and Xline entities as GeoRay3 and GeoXLine3 and write them
         back; SplineConvert reads a Spline as GeoSpline3, or as GeoSpline2 where it lies in plan
