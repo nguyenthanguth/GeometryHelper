@@ -100,6 +100,8 @@ namespace GeometryHelper.Core
         private sealed class Region
         {
             private readonly LoopIndex[] _loops;
+            private readonly LoopBoxes _boxes;
+            private readonly List<int> _holding = new List<int>();
 
             internal Region(List<List<GeoEdge2>> loops, bool wantInside)
             {
@@ -110,6 +112,10 @@ namespace GeometryHelper.Core
                 {
                     _loops[i] = new LoopIndex(loops[i]);
                 }
+
+                // Many loops, as the 160 002 a plus of 80 000 teeth to each arm is cut into, are read at a point only where their
+                // boxes hold it, found in a tree of the boxes; a few are each read, as the 24 loops of a star of 49 points are.
+                _boxes = loops.Count > 64 ? new LoopBoxes(_loops) : null;
             }
 
             /// <summary>
@@ -120,9 +126,28 @@ namespace GeometryHelper.Core
             /// <summary>
             /// Determines whether a point lies in the region: inside an odd number of the loops.
             /// </summary>
+            /// <remarks>
+            /// A loop encloses nothing outside its box, and each loop that encloses the point only turns the answer over, so
+            /// reading only the loops whose boxes hold it, in any order, gives what reading every loop gives.
+            /// </remarks>
             internal bool Holds(GeoPoint2 point)
             {
                 bool inside = false;
+
+                if (_boxes != null)
+                {
+                    _boxes.Holding(point, _holding);
+
+                    foreach (int i in _holding)
+                    {
+                        if (_loops[i].Encloses(point))
+                        {
+                            inside = !inside;
+                        }
+                    }
+
+                    return inside;
+                }
 
                 foreach (LoopIndex loop in _loops)
                 {
@@ -2520,7 +2545,8 @@ namespace GeometryHelper.Core
         /// A plus of 80 000 teeth to each arm is cut into 160 002 loops, and each of its 320 358 chains was read against all
         /// of them, where the boxes of a few hold the point it is read at. The tree halves the boxes by where their middles
         /// lie, along the axis the middles spread further on, down to a few in each part. A box that holds no point, being
-        /// empty or of no number, is left out.
+        /// empty or of no number, is left out. The boxes of the edges and pieces of an offset are kept in one too, where many
+        /// of them lie along the axis they are put in order on.
         /// </remarks>
         private sealed class LoopBoxes
         {
@@ -2533,16 +2559,25 @@ namespace GeometryHelper.Core
             private readonly List<int> _to = new List<int>();
             private readonly List<int> _second = new List<int>();
 
+            /// <summary>
+            /// Puts the boxes of loops in a tree, each numbered by its place in the array.
+            /// </summary>
             internal LoopBoxes(LoopIndex[] loops)
+                : this(Array.ConvertAll(loops, loop => loop.Bounds))
             {
-                _boxes = new Box[loops.Length];
+            }
 
-                var kept = new List<int>(loops.Length);
+            /// <summary>
+            /// Puts boxes in a tree, each numbered by its place in the array, which is kept and not changed.
+            /// </summary>
+            internal LoopBoxes(Box[] boxes)
+            {
+                _boxes = boxes;
 
-                for (int i = 0; i < loops.Length; i++)
+                var kept = new List<int>(boxes.Length);
+
+                for (int i = 0; i < boxes.Length; i++)
                 {
-                    _boxes[i] = loops[i].Bounds;
-
                     if (_boxes[i].MinX <= _boxes[i].MaxX && _boxes[i].MinY <= _boxes[i].MaxY)
                     {
                         kept.Add(i);
@@ -2559,7 +2594,7 @@ namespace GeometryHelper.Core
 
                 if (_order.Length > 0)
                 {
-                    Build(0, _order.Length, byY, new bool[loops.Length], new int[_order.Length]);
+                    Build(0, _order.Length, byY, new bool[boxes.Length], new int[_order.Length]);
                 }
             }
 
@@ -2598,6 +2633,43 @@ namespace GeometryHelper.Core
 
                 Holding(part + 1, point, into);
                 Holding(_second[part], point, into);
+            }
+
+            /// <summary>
+            /// Gets the numbers of the boxes that overlap a box, in no order.
+            /// </summary>
+            internal void Overlapping(Box box, List<int> into)
+            {
+                into.Clear();
+
+                if (_bounds.Count > 0)
+                {
+                    Overlapping(0, box, into);
+                }
+            }
+
+            private void Overlapping(int part, Box box, List<int> into)
+            {
+                if (!_bounds[part].Overlaps(box))
+                {
+                    return;
+                }
+
+                if (_second[part] < 0)
+                {
+                    for (int k = _from[part]; k < _to[part]; k++)
+                    {
+                        if (_boxes[_order[k]].Overlaps(box))
+                        {
+                            into.Add(_order[k]);
+                        }
+                    }
+
+                    return;
+                }
+
+                Overlapping(part + 1, box, into);
+                Overlapping(_second[part], box, into);
             }
 
             /// <summary>

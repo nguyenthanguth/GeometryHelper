@@ -69,6 +69,32 @@ it took 5 on .NET Framework; `Validate` takes 2 to 10 % longer on .NET 10 for ma
 microseconds more on a body of ten faces with edges no longer than the tolerance; `TryGetVolume`, `GetVolume` and the
 booleans run as they ran.
 
+**CHANGED.** Offsetting a curved loop cut at its crossings into many loops no longer slows with the square of them. Each
+piece of the offset, and each point the offset is read at, was read against every box along the one axis the edges and
+pieces are put in order on, and against every loop the crossings cut the loop into for which side of the region the point
+lies on. The long edges along the arms of a plus reach every box along either axis, and the plus of 8 000 teeth 0.5 apart
+across each arm, cut at a tolerance of 0.001 into 16 002 loops and grown by 0.3, read 992 million boxes to find where its
+pieces cross, for the 189 152 pairs whose crossings are read. Where more than 64 boxes reach a box or a point along the axis,
+those that overlap or hold it are found in a tree of the boxes, once the boxes read along the axis pass what making the tree
+costs, and are read in the order the axis gives them; the tree is given up where it finds more than a fourth of the boxes,
+or, for points, more than a sixteenth of the boxes along the axis, as along the chords of a star, and boxes that run out to infinity or are of no
+number are read along the axis only. A region of more than 64 loops is read at a point against the loops whose boxes hold
+it. Grown by 0.3 with round joins, the plus of 8 000 teeth to each arm takes 1.3 seconds where it took 20 to 28 on .NET 10, 1.5
+where 39 on .NET 8 and 1.1 where 50 to 113 on .NET Framework 4.8; one of 4 000 teeth 0.85 where 5.0, 0.93 where 6.5 and 0.60 where
+13; and one of 80 000 teeth to each arm, 160 002 loops, 7.1 seconds on .NET 10, 8.2 on .NET 8 and 13 on .NET Framework 4.8,
+where by the square it would take most of an hour. With miters, the plus of 8 000 teeth takes 1.9 seconds where it took 26
+on .NET 10 and 1.6 where 58 on .NET Framework 4.8. Loops of every day are offset in the time they took or less: grown by
+0.3 at 0.001, a star of 49 points in 44 ms where 70 on .NET 10 and 79 where 119 on .NET Framework 4.8, 100 random corners in
+33 ms where 67 and 53 where 140, a zigzag of 500 teeth in 5.3 to 6.4 ms where 7.4 to 7.8 and 13 to 23 where 64, a gear of
+1 000 arcs in 51 to 55 ms where 63 to 67, a gear of 200 arcs in the 1.9 ms it took on .NET 10 and the 4.0 to 4.3 on .NET
+Framework 4.8; the stars of 21 to 61 points grown and shrunk by 0.3 and 1 at a tenth in the time they took or up to 8 % less on .NET 10,
+and in the time they took on .NET Framework 4.8, within the noise. Of 18 000 offsets of 1 000 random loops and chains,
+dense loops, stars, diameters and combs, both ways, with mitred, round and chamfered joins at tolerances of 0.001, 0.01 and
+0.1, and 1 440 of 720 pluses turned at any angle, with arcs and without, zigzags, gears of up to 2 400 arcs, random walks
+and lattices, none gives another loop, edge or bulge, to the bit, nor do 9 000 of the first and all 1 440 of the second with
+the trees read for every box and point; nor does any of 120 000 cuts of 20 000 loops at six tolerances, which make 20.8
+million loops, nor are the 599 million crossings of those loops found otherwise.
+
 ## 13.0.0
 
 **BREAKING.** The DXF types move from the namespace `GeometryHelper.Export` to `GeometryHelper.Dxf`: a

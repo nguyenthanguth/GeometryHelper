@@ -86,11 +86,11 @@ namespace GeometryHelper.UnitTest.Plane
         /// <summary>
         /// A loop from (40 001, 0) back to (-1, 0), along 80 000 teeth 0.5 apart and 3 either side of y = 0, which cross
         /// its edge along y = 0, up to (20 000, 20 001), down to (20 000, -20 001) and along 80 000 more teeth 3 either side
-        /// of x = 20 000, which cross its edge along x = 20 000: 160 173 crossings in a plus.
+        /// of x = 20 000, which cross its edge along x = 20 000: 160 173 crossings in a plus. Of fewer teeth to each arm, the
+        /// plus is as much smaller.
         /// </summary>
-        private static GeoPolygonArc2 PlusOfCrossings()
+        private static GeoPolygonArc2 PlusOfCrossings(int teeth = 80000)
         {
-            const int teeth = 80000;
             double middle = teeth * 0.5 / 2;
             var points = new List<GeoPoint2> { P(teeth * 0.5 + 1, 0), P(-1, 0) };
 
@@ -262,6 +262,24 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Equal(160002, region.Count);
             Assert.Equal(109, bounds.Count);
             Assert.True(watch.Elapsed < TimeSpan.FromSeconds(30), "cutting the plus took " + watch.ElapsedMilliseconds + " ms");
+        }
+
+        [Fact]
+        public void APlusOf8000TeethToEachArmGrownAtAThousandth_TakesSeconds()
+        {
+            // Cut at a thousandth into 16 002 loops, the plus grown by 0.3 read each of its pieces, and each point it read them
+            // at, against every box along the axis its edges and pieces are put in order on, which the long edges along the
+            // arms make every box along either axis, and against every loop for which side of the region a point lies on: 992
+            // million boxes to find where its pieces cross, 50 to 113 seconds on .NET Framework 4.8 and 20 to 28 on .NET 10. Read
+            // against the boxes and loops that overlap or hold what is asked, found in trees of them, it takes about a second.
+            GeoPolygonArc2 loop = PlusOfCrossings(8000);
+
+            var watch = Stopwatch.StartNew();
+            GeoPolygonArc2[] grown = Offset2.Offset(loop, 0.3, Round, Thousandth);
+            watch.Stop();
+
+            Assert.Equal(34, grown.Length);
+            Assert.True(watch.Elapsed < TimeSpan.FromSeconds(15), "growing the plus took " + watch.ElapsedMilliseconds + " ms");
         }
 
         [Fact]

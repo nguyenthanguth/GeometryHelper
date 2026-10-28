@@ -53,6 +53,7 @@ namespace GeometryHelper.Core
             private BoxOrder _vertexOrder;
             private BoxOrder _mitreOrder;
             private readonly List<int> _near = new List<int>();
+            private readonly List<int> _holding = new List<int>();
             private readonly Tolerance _inside;
             private readonly bool _closed;
             private readonly Spans _spans;
@@ -190,8 +191,22 @@ namespace GeometryHelper.Core
                 // Only an edge whose box, grown by the distance, holds the point can come nearer to it than that.
                 BoxOrder order = EdgeOrder();
 
-                for (int k = order.CountUpTo(point) - 1; k >= 0 && order.Reaches(k, point); k--)
+                for (int k = order.CountUpTo(point) - 1, read = 0; k >= 0 && order.Reaches(k, point); k--, read++)
                 {
+                    // Past the first few along the axis, the rest that hold the point are found in a tree, where they are many.
+                    if (read == BoxOrder.Many && order.TryHolding(point, k + 1, _holding))
+                    {
+                        foreach (int i in _holding)
+                        {
+                            if (NearerThan(i, point, limit))
+                            {
+                                return true;
+                            }
+                        }
+
+                        return false;
+                    }
+
                     if (NearerThan(order[k], point, limit))
                     {
                         return true;
@@ -331,34 +346,45 @@ namespace GeometryHelper.Core
 
                 _mitreOrder = _mitreOrder ?? new BoxOrder(boxes);
 
-                for (int k = _mitreOrder.CountUpTo(point) - 1; k >= 0 && _mitreOrder.Reaches(k, point); k--)
+                for (int k = _mitreOrder.CountUpTo(point) - 1, read = 0; k >= 0 && _mitreOrder.Reaches(k, point); k--, read++)
                 {
-                    int i = _mitreOrder[k];
-
-                    if (!boxes[i].Holds(point))
+                    if (read == BoxOrder.Many && _mitreOrder.TryHolding(point, k + 1, _holding))
                     {
-                        continue;
-                    }
-
-                    GeoPolygonArc2 loop = MitreLoop(i);
-
-                    if (_mitreCorners[i] != null)
-                    {
-                        if (InsideStraight(_mitreCorners[i], _mitreTurns[i], point))
+                        foreach (int held in _holding)
                         {
-                            return true;
+                            if (InMitre(held, point))
+                            {
+                                return true;
+                            }
                         }
 
-                        continue;
+                        return false;
                     }
 
-                    if (loop != null && loop.Locate(point, _inside) == PointLocation.Inside)
+                    int i = _mitreOrder[k];
+
+                    if (boxes[i].Holds(point) && InMitre(i, point))
                     {
                         return true;
                     }
                 }
 
                 return false;
+            }
+
+            /// <summary>
+            /// Determines whether a point, which the box of the point of a miter holds, lies inside that point by more than the depth.
+            /// </summary>
+            private bool InMitre(int index, GeoPoint2 point)
+            {
+                GeoPolygonArc2 loop = MitreLoop(index);
+
+                if (_mitreCorners[index] != null)
+                {
+                    return InsideStraight(_mitreCorners[index], _mitreTurns[index], point);
+                }
+
+                return loop != null && loop.Locate(point, _inside) == PointLocation.Inside;
             }
 
             /// <summary>
@@ -681,6 +707,14 @@ namespace GeometryHelper.Core
         /// The axis is read off the boxes, as a sweep's is: on a shape long in x every box spans little of x, and a
         /// point lies within few of them along it. Ties are broken by the order the boxes came in, so the order never
         /// depends on the sort.
+        /// <para>
+        /// No axis serves a shape long in both, as a plus of two combs is, whose long edges along the arms reach every box
+        /// along either axis: each piece of the plus of 8 000 teeth to each arm, grown at a thousandth, was read against the
+        /// boxes of the pieces along the axis, 992 million of them for the 189 152 pairs read for crossings. Where more than
+        /// 64 boxes reach a box or a point along the axis, those that overlap or hold it are found in a tree of the boxes, and
+        /// given in the order a reading along the axis gives them; boxes of no number or that run out to infinity are read
+        /// along the axis only, as they always were.
+        /// </para>
         /// </remarks>
         private sealed class BoxOrder
         {
@@ -689,14 +723,35 @@ namespace GeometryHelper.Core
             /// </summary>
             private const int Few = 32;
 
+            /// <summary>
+            /// Past this many boxes reaching a box or a point along the axis, those that hold it are found in the tree.
+            /// </summary>
+            internal const int Many = 64;
+
+            /// <summary>
+            /// What the tree is asked for, counted apart: the boxes that overlap a box, or those that hold a point.
+            /// </summary>
+            private const int Boxes = 0;
+
+            private const int Points = 1;
+
+            private readonly IList<Box> _boxes;
             private readonly int[] _order;
             private readonly double[] _starts;
             private readonly double[] _reaches;
             private readonly bool _alongX;
+            private readonly bool _finite;
             private bool[] _marks;
+            private LoopBoxes _tree;
+            private int[] _places;
+            private long _waited;
+            private readonly long[] _alongAxis = new long[2];
+            private readonly long[] _inTree = new long[2];
+            private readonly bool[] _treeless = new bool[2];
 
             internal BoxOrder(IList<Box> boxes)
             {
+                _boxes = boxes;
                 _order = new int[boxes.Count];
 
                 for (int i = 0; i < _order.Length; i++)
@@ -751,6 +806,20 @@ namespace GeometryHelper.Core
                     reach = Math.Max(reach, alongX ? box.MaxX : box.MaxY);
                     _reaches[k] = reach;
                 }
+
+                // Boxes each finite or empty reach only further along the order, and can be put in the tree, which leaves the
+                // empty ones out. It would leave out a box whose sides lie the wrong way round too, though such a box may overlap
+                // another, so boxes like that, which none is built as, are read along the axis.
+                _finite = true;
+
+                foreach (Box box in boxes)
+                {
+                    if (!(box.IsFinite && box.MinX <= box.MaxX && box.MinY <= box.MaxY) && !box.IsEmpty)
+                    {
+                        _finite = false;
+                        break;
+                    }
+                }
             }
 
             /// <summary>
@@ -764,7 +833,8 @@ namespace GeometryHelper.Core
             internal int CountUpTo(GeoPoint2 point) => _starts == null ? _order.Length : CountUpTo(_alongX ? point.X : point.Y);
 
             /// <summary>
-            /// Gets the indices of the boxes that overlap a box along the axis, smallest first: the order they came in.
+            /// Gets the indices of the boxes that overlap a box along the axis, or only those of them that overlap it where they
+            /// are found in the tree, smallest first: the order they came in.
             /// </summary>
             internal void Overlapping(Box box, List<int> into)
             {
@@ -778,17 +848,45 @@ namespace GeometryHelper.Core
 
                 double low = _alongX ? box.MinX : box.MinY;
                 int end = CountUpTo(_alongX ? box.MaxX : box.MaxY);
-                int start = end;
+                int start = _finite ? FirstReaching(low, end) : end;
 
                 while (start > 0 && _reaches[start - 1] >= low)
                 {
                     start--;
                 }
 
-                // Many of them, as the long chords of a star across the whole of it are, are put in order by marking them
-                // and reading the marks, which costs no more than there are boxes; a few are sorted.
+                // Many of them are found in the tree, which reads the boxes across the axis too, and are put in order as those
+                // along it are. Only a box that overlaps another is given either way, and the boxes along the axis that do not are
+                // what the callers pass over.
                 int count = end - start;
 
+                if (box.IsFinite && ReadInTree(count, Boxes))
+                {
+                    Tree().Overlapping(box, into);
+                    Tally(count, into.Count, Boxes);
+
+                    count = into.Count;
+
+                    if (count > 64 && count * Math.Log(count, 2.0) > _order.Length)
+                    {
+                        _marks = _marks ?? new bool[_order.Length];
+
+                        foreach (int i in into)
+                        {
+                            _marks[i] = true;
+                        }
+
+                        into.Clear();
+                        ReadMarks(into);
+                        return;
+                    }
+
+                    into.Sort();
+                    return;
+                }
+
+                // Many of them, as the long chords of a star across the whole of it are, are put in order by marking them
+                // and reading the marks, which costs no more than there are boxes; a few are sorted.
                 if (count > 64 && count * Math.Log(count, 2.0) > _order.Length)
                 {
                     _marks = _marks ?? new bool[_order.Length];
@@ -798,15 +896,7 @@ namespace GeometryHelper.Core
                         _marks[_order[k]] = true;
                     }
 
-                    for (int i = 0; i < _marks.Length; i++)
-                    {
-                        if (_marks[i])
-                        {
-                            into.Add(i);
-                            _marks[i] = false;
-                        }
-                    }
-
+                    ReadMarks(into);
                     return;
                 }
 
@@ -816,6 +906,174 @@ namespace GeometryHelper.Core
                 }
 
                 into.Sort();
+            }
+
+            /// <summary>
+            /// Gets the boxes before a place in the order that hold a point, where more than a few reach it along the axis there,
+            /// found in the tree, in the order the axis reads them: from the last before that place back to the first.
+            /// </summary>
+            /// <returns>false where the boxes are few, or of no number or infinite, or the point is, and are read along the axis.</returns>
+            /// <remarks>
+            /// A box along the axis that does not hold the point is passed over by a reading along it, so the boxes that hold
+            /// it, read in this order, are read as the axis reads them. A reading along the axis that stops at the first box it
+            /// wants, as one for an edge nearer than the distance does, reads the first few along it and the rest from here.
+            /// </remarks>
+            internal bool TryHolding(GeoPoint2 point, int before, List<int> into)
+            {
+                into.Clear();
+
+                if (_starts == null || !_finite || !Guard.IsFinite(point.X) || !Guard.IsFinite(point.Y))
+                {
+                    return false;
+                }
+
+                int count = before - FirstReaching(_alongX ? point.X : point.Y, before);
+
+                if (!ReadInTree(count, Points))
+                {
+                    return false;
+                }
+
+                Tree().Holding(point, into);
+
+                // Their places in the order, the last first.
+                int kept = 0;
+
+                for (int i = 0; i < into.Count; i++)
+                {
+                    if (_places[into[i]] < before)
+                    {
+                        into[kept++] = _places[into[i]];
+                    }
+                }
+
+                into.RemoveRange(kept, into.Count - kept);
+                Tally(count, kept, Points);
+                into.Sort();
+                into.Reverse();
+
+                for (int i = 0; i < into.Count; i++)
+                {
+                    into[i] = _order[into[i]];
+                }
+
+                return true;
+            }
+
+            /// <summary>
+            /// Gets the tree of the boxes, and the place of each in the order, made the first time they are asked for.
+            /// </summary>
+            private LoopBoxes Tree()
+            {
+                if (_tree == null)
+                {
+                    var boxes = new Box[_boxes.Count];
+
+                    _boxes.CopyTo(boxes, 0);
+                    _places = new int[_order.Length];
+
+                    for (int k = 0; k < _order.Length; k++)
+                    {
+                        _places[_order[k]] = k;
+                    }
+
+                    _tree = new LoopBoxes(boxes);
+                }
+
+                return _tree;
+            }
+
+            /// <summary>
+            /// Determines whether the boxes about a box or a point, which so many reach along the axis, are found in the tree.
+            /// </summary>
+            /// <remarks>
+            /// Where more than a few reach it, the tree is made once the boxes they come to along the axis pass four for each box
+            /// for each time the boxes can be halved, about what making it costs, and is read from then on. The 143 pieces of a
+            /// gear of 200 arcs that reach more than a few reach 72 each, and the gear grown by 0.3 took 6 % longer where the
+            /// tree was made for them at once; they are read along the axis, as are all the boxes once the tree is given up.
+            /// </remarks>
+            private bool ReadInTree(int count, int kind)
+            {
+                if (count <= Many || !_finite || _treeless[kind])
+                {
+                    return false;
+                }
+
+                if (_tree == null)
+                {
+                    _waited += count;
+
+                    if (_waited <= 4.0 * _order.Length * Math.Log(_order.Length, 2.0))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            /// <summary>
+            /// Counts what the tree found against what the axis gave, for boxes or for points, and gives the tree up for them
+            /// where it finds more than a fourth of the boxes, or a sixteenth of those that hold the points.
+            /// </summary>
+            /// <remarks>
+            /// Where many of the boxes along the axis hold what is asked for, as the chords of a star across the whole of it
+            /// do, the tree finds them all where a reading along the axis stops at the first edge nearer than the distance: the
+            /// stars of 21 to 61 points grown and shrunk at a tenth took four times as long with the tree kept for points, and
+            /// diameters of a circle grown or shrunk took a third longer to read for edges nearer than the distance where the
+            /// tree found a ninth of the edges along the axis. It is given up once those counted along the axis pass sixteen
+            /// for each box and 1 024.
+            /// </remarks>
+            private void Tally(int count, int found, int kind)
+            {
+                _alongAxis[kind] += count;
+                _inTree[kind] += found;
+
+                if (_alongAxis[kind] > 16L * _order.Length + 1024L && _inTree[kind] * (kind == Points ? 16L : 4L) > _alongAxis[kind])
+                {
+                    _treeless[kind] = true;
+                }
+            }
+
+            /// <summary>
+            /// Adds the boxes marked, smallest first, and clears their marks.
+            /// </summary>
+            private void ReadMarks(List<int> into)
+            {
+                for (int i = 0; i < _marks.Length; i++)
+                {
+                    if (_marks[i])
+                    {
+                        into.Add(i);
+                        _marks[i] = false;
+                    }
+                }
+            }
+
+            /// <summary>
+            /// Gets the first place before another at which the boxes reach as far as a value along the axis, or that other
+            /// where none does: boxes each finite or empty reach only further along the order, so it is found by halving.
+            /// </summary>
+            private int FirstReaching(double at, int end)
+            {
+                int low = 0;
+                int high = end;
+
+                while (low < high)
+                {
+                    int middle = low + (high - low) / 2;
+
+                    if (_reaches[middle] >= at)
+                    {
+                        high = middle;
+                    }
+                    else
+                    {
+                        low = middle + 1;
+                    }
+                }
+
+                return low;
             }
 
             private int CountUpTo(double at)
@@ -868,6 +1126,16 @@ namespace GeometryHelper.Core
             internal double MaxX { get; }
 
             internal double MaxY { get; }
+
+            /// <summary>
+            /// Gets a value indicating whether every side of the box lies at a finite place.
+            /// </summary>
+            internal bool IsFinite => Guard.IsFinite(MinX) && Guard.IsFinite(MinY) && Guard.IsFinite(MaxX) && Guard.IsFinite(MaxY);
+
+            /// <summary>
+            /// Gets a value indicating whether the box is <see cref="Empty"/>, or that grown or shrunk by a finite amount.
+            /// </summary>
+            internal bool IsEmpty => double.IsPositiveInfinity(MinX) && double.IsPositiveInfinity(MinY) && double.IsNegativeInfinity(MaxX) && double.IsNegativeInfinity(MaxY);
 
             /// <summary>
             /// Gets a box holding an edge: its chord grown by how far an arc of at most a half turn bulges off it,
