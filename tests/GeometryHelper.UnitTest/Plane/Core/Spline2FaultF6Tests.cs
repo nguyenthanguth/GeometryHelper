@@ -354,14 +354,16 @@ namespace GeometryHelper.UnitTest.Plane
         public void ACopyThatOverhangsTheEndOfASpline_GivesTheSamePlacesWhicheverIsAsked()
         {
             // The copy ends 0.0007 past the spline's end; asked from the copy the stretch along them ended short of it, and the end of
-            // the spline, 1.5E-5 from the copy, was given as a place.
+            // the spline, 1.5E-5 from the copy, was given as a place. The third place is where the spline crosses itself, square on, at
+            // (-9.126, -1.245): its other branch crosses the copy there twice, 0.00072 apart, which is one place (G6). The count of two
+            // left it out, the parts inside the stretch the two lie along never being cut against the copy's other branch.
             GeoSpline2 spline = GeoSpline2.FromControlPoints(2, new[]
             {
                 P(11.145065157276147, -23.358664202205215), P(-25.06507479355907, 10.221748678116942), P(14.831623567655509, 12.513038191251942),
                 P(-21.560436120052096, -7.946054617849204), P(-28.635031403338086, -22.31766032628606),
             });
 
-            AssertTheSameWhicheverWay(spline, new GeoVector2(-0.00031086647951441887, -0.0006647301861314643), 2);
+            AssertTheSameWhicheverWay(spline, new GeoVector2(-0.00031086647951441887, -0.0006647301861314643), 3);
         }
 
         [Fact]

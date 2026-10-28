@@ -82,6 +82,94 @@ namespace GeometryHelper.Internal.Nurbs
 
             /// <summary>The knot values the stretch runs between.</summary>
             internal double From, To;
+
+            /// <summary>
+            /// The knot values of the curve the stretch was looked at, in order, and of the partner's nearest point to each: the branch
+            /// of the partner the stretch runs along.
+            /// </summary>
+            internal double[] Knots, Others;
+
+            /// <summary>The span of the partner's knot values where it is closed, which its seam goes round by; nought where it is open.</summary>
+            internal double Period;
+        }
+
+        /// <summary>
+        /// Says whether a place on the curve, inside a stretch along a partner, is on another branch of the partner than the one the
+        /// stretch runs along: its point of the partner lies further along the partner from where the two looks either side of it have
+        /// their nearest points than those two are from each other. A place no look stands either side of is on the branch.
+        /// </summary>
+        /// <remarks>
+        /// On a closed partner the knot values are read round its seam, a whole period being nothing: the circle spline against the
+        /// polygon inscribed in it with a corner on the seam at (5, 0) gave that corner as a place, its partner's knot read at the start
+        /// and the looks either side at the end. The looks are a sixteenth of a stretch along apart, so a loop of the partner shorter
+        /// than about three of them, which comes back within that of where it left, is not told from the branch the stretch runs along.
+        /// </remarks>
+        /// <param name="part">The partner's position.</param>
+        /// <param name="knot">The knot value of the place on the curve.</param>
+        /// <param name="other">The partner's knot value at the place.</param>
+        /// <param name="near">How far either side of the place, in the curve's knot values, a look may have its nearest point on the other
+        /// branch rather than the one the stretch runs along, and is passed over: the polyline that comes back square across a line at
+        /// 50, looked at at 50 itself, has its nearest point there on the square edge, and that look said the edge was the stretch's branch.</param>
+        internal bool OnAnotherBranch(int part, double knot, double other, double near)
+        {
+            for (int i = 0; i < Runs.Count; i++)
+            {
+                AlongRun run = Runs[i];
+
+                if (run.Part != part || !(knot >= run.From && knot <= run.To) || run.Knots == null)
+                {
+                    continue;
+                }
+
+                int before = Array.BinarySearch(run.Knots, knot - near);
+                before = before >= 0 ? before - 1 : ~before - 1;
+                int after = Array.BinarySearch(run.Knots, knot + near);
+                after = after >= 0 ? after + 1 : ~after;
+
+                if (before < 0 || after >= run.Knots.Length)
+                {
+                    return false;
+                }
+
+                double first = run.Others[before];
+                double second = run.Others[after];
+                double period = run.Period;
+
+                // Round the seam of a closed partner, the second look and the place are read in the period nearest the first look.
+                if (period > 0.0)
+                {
+                    second -= period * Math.Round((second - first) / period);
+                    other -= period * Math.Round((other - 0.5 * (first + second)) / period);
+                }
+
+                double low = Math.Min(first, second);
+                double high = Math.Max(first, second);
+                double room = high - low;
+
+                return other < low - room || other > high + room;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// When every place is wanted: the stretches inside those along a partner where the curve lies on it exactly, to the digits,
+        /// between two lobes of the offset that go further than a hundredth of the reach (<see cref="SplinePartner"/>). Each is one place
+        /// at most, its end next to the earlier lobe where the lobes lie to either side, and no other place is given in it.
+        /// </summary>
+        internal readonly List<Overlap> Overlaps = new List<Overlap>();
+
+        /// <summary>One stretch of the curve that lies on a partner to the digits, between two lobes of the offset.</summary>
+        internal struct Overlap
+        {
+            /// <summary>The partner's position, as <see cref="Contact.Part"/>.</summary>
+            internal int Part;
+
+            /// <summary>The knot value of the end next to the earlier lobe, and of the other end.</summary>
+            internal double From, To;
+
+            /// <summary>Whether the lobes lie to either side, so that the curves cross there, at the end next to the earlier lobe.</summary>
+            internal bool Crossed;
         }
 
         /// <summary>

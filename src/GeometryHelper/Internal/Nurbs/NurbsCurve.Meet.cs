@@ -853,7 +853,9 @@ namespace GeometryHelper.Internal.Nurbs
         /// within the reach of a meeting is left out, so that it does not join two (<see cref="DropBesideMeetings"/>). A place made of
         /// several contacts is a crossing, or a near crossing, if any of them is. Where the curve runs along a partner for a stretch, to
         /// rounding, or along another curve within the reach and level for a quarter of the size of the smaller (<see cref="DropAlong"/>),
-        /// it is not crossing it there, and nothing is given along the stretch.
+        /// it is not crossing it there, and nothing is given along the stretch but a crossing and a meeting far from parallel; where it
+        /// lies on another curve to the digits between two lobes of the offset, nothing is given in that overlap or within the reach of
+        /// its ends but the crossing at its end next to the earlier lobe (<see cref="InOverlap"/>).
         /// </remarks>
         internal List<Contact> GetMeetings(IList<Partner> partners, double reach)
         {
@@ -867,12 +869,16 @@ namespace GeometryHelper.Internal.Nurbs
             var kept = new List<Contact>();
             var pending = new List<Contact>();
             var loose = new List<Contact>();
+            double[] ends = hunt.Overlaps.Count > 0 ? OverlapEnds(hunt) : null;
 
             for (int i = 0; i < hunt.Found.Count; i++)
             {
                 Contact contact = hunt.Found[i];
 
-                if (contact.Overlap)
+                // A meeting where the curve runs on along the partner to rounding is no place, unless it is with another branch of it, far
+                // from parallel: the polyline that lies on a line and comes back square across it there.
+                if ((contact.Overlap && !(hunt.Runs.Count > 0 && Elsewhere(contact, hunt)))
+                    || (ends != null && InOverlap(contact, hunt, ends)))
                 {
                     continue;
                 }
@@ -968,6 +974,44 @@ namespace GeometryHelper.Internal.Nurbs
                 }
             }
 
+            // Two crossings of another branch inside a stretch along, as a loop's copy makes at the loop's own crossing, both meetings to
+            // the digits, are one place when within the reach of each other, and which is nearer by its rounding changes as the pair is
+            // turned: the one first along the two curves together stands for them (OtherBranchShare, FirstAlong), the same asked either
+            // way and turned.
+            // A crossing of the two branches just past the end of the stretch, outside it, is such a crossing as well.
+            if (hunt.Runs.Count > 0)
+            {
+                var share = new double[kept.Count];
+                var count = new int[kept.Count];
+                var first = new int[kept.Count];
+                var elsewhere = new bool[kept.Count];
+
+                for (int i = 0; i < kept.Count; i++)
+                {
+                    share[i] = OtherBranchShare(kept[i], hunt, out bool inside);
+
+                    if (!double.IsNaN(share[i]))
+                    {
+                        int root = Root(parent, i);
+                        count[root]++;
+                        elsewhere[root] |= inside;
+
+                        if (count[root] == 1 || FirstAlong(kept[i], share[i], kept[first[root]], share[first[root]]))
+                        {
+                            first[root] = i;
+                        }
+                    }
+                }
+
+                for (int i = 0; i < kept.Count; i++)
+                {
+                    if (best[i] >= 0 && count[i] >= 2 && elsewhere[i])
+                    {
+                        best[i] = first[i];
+                    }
+                }
+            }
+
             // A run that holds a crossing is a crossing, or in space a near crossing, whichever of its contacts is nearest: a crossing that
             // the offset found inside a stretch along is not lost to a meeting Newton's method settled on a few units of rounding nearer.
             var crossing = new bool[kept.Count];
@@ -1008,7 +1052,7 @@ namespace GeometryHelper.Internal.Nurbs
         /// Gets how near nought a distance can be told from nought by evaluating the curves: sixteen units in the last place of the size of
         /// the numbers, a sixth of a hundredth of the snap.
         /// </summary>
-        private static double Evaluated(Hunt hunt) => 16.0 * 2.220446049250313E-16 * hunt.Scale;
+        internal static double Evaluated(Hunt hunt) => 16.0 * 2.220446049250313E-16 * hunt.Scale;
 
         /// <summary>
         /// Gives the meetings that are meetings only to the snap, but for one that lies within ten times the reach of a meeting to the digits
@@ -1136,9 +1180,10 @@ namespace GeometryHelper.Internal.Nurbs
         /// finds them): the places a curve as good as the same as another has are where the rounding of the numbers has the two touch or
         /// cross, which is no place. A crossing found there by the offset of the one from the other changing sign by more than a hundredth
         /// of the reach each way stays: the curves cross at a shallow angle; and so does, for two curves in space that share no plane, a
-        /// least of the distance where the two would cross if brought into one plane (<see cref="Contact.Dip"/>).
+        /// least of the distance where the two would cross if brought into one plane (<see cref="Contact.Dip"/>), and a meeting far from
+        /// parallel, which is with another branch of the partner (<see cref="Steep"/>).
         /// </summary>
-        private static List<Contact> DropAlong(List<Contact> places, Hunt hunt)
+        private List<Contact> DropAlong(List<Contact> places, Hunt hunt)
         {
             if (hunt.Runs.Count == 0)
             {
@@ -1149,13 +1194,192 @@ namespace GeometryHelper.Internal.Nurbs
 
             foreach (Contact place in places)
             {
-                if (place.Crossing || place.Dip || !hunt.IsAlong(place.Part, place.Knot, place.Knot))
+                if (place.Crossing || place.Dip || !hunt.IsAlong(place.Part, place.Knot, place.Knot) || Elsewhere(place, hunt))
                 {
                     kept.Add(place);
                 }
             }
 
             return kept;
+        }
+
+        /// <summary>
+        /// Says whether a place is a meeting of the curve and the partner at an angle further from parallel than a degree, the default
+        /// angle tolerance (<see cref="SteepSin"/>): a meeting of two curves that lie along each other within the reach is where the
+        /// rounding has them touch or cross, all but parallel, while two that cross at a degree are within a reach of 0.001 of each
+        /// other for 0.11 either side of it, where a stretch along is level for a quarter of the smaller curve. So it is a crossing of
+        /// another branch of the partner than the one the stretch runs along, as the copy of a loop moved a few ten-thousandths
+        /// crosses the loop at its own crossing, at the angle of the loop.
+        /// </summary>
+        private bool Steep(Contact place) => MeetingSine(place, out _) > SteepSin;
+
+        /// <summary>
+        /// Gets the sine of the angle the curve and the partner meet at, at a meeting, with the speed of the curve there; nought for a
+        /// contact that is no meeting or a partner that cannot give its direction.
+        /// </summary>
+        private double MeetingSine(Contact place, out double speed)
+        {
+            speed = 0.0;
+
+            if (!place.Verified || !place.From.TryGetFrame(place.Qx, place.Qy, place.Qz, place.Other, out double rx, out double ry, out double rz, out _, out _, out _))
+            {
+                return 0.0;
+            }
+
+            double[][] here = Derivatives(place.Knot, 1);
+            double tx = here[1][0];
+            double ty = here[1][1];
+            double tz = Z(here[1]);
+            double cx = ty * rz - tz * ry;
+            double cy = tz * rx - tx * rz;
+            double cz = tx * ry - ty * rx;
+            double lengths = Math.Sqrt((tx * tx + ty * ty + tz * tz) * (rx * rx + ry * ry + rz * rz));
+            speed = Math.Sqrt(tx * tx + ty * ty + tz * tz);
+
+            return lengths > 0.0 ? Math.Sqrt(cx * cx + cy * cy + cz * cz) / lengths : 0.0;
+        }
+
+        /// <summary>
+        /// Says whether a place inside a stretch along is a meeting far from parallel (<see cref="Steep"/>) with another branch of the
+        /// partner than the one the stretch runs along (<see cref="Hunt.OnAnotherBranch"/>). The looks of the stretch within twice the
+        /// reach over the sine of the angle of the place, along the curve, are passed over: so near it the other branch can be nearer
+        /// than the one the stretch runs along.
+        /// </summary>
+        private bool Elsewhere(Contact place, Hunt hunt)
+        {
+            double sine = MeetingSine(place, out double speed);
+
+            if (!(sine > SteepSin) || !(speed > 0.0))
+            {
+                return false;
+            }
+
+            return hunt.OnAnotherBranch(place.Part, place.Knot, place.Other, 2.0 * hunt.Reach / (sine * speed));
+        }
+
+        /// <summary>
+        /// Gets, for a meeting inside a stretch along with another branch of a partner curve at an angle (<see cref="Steep"/>,
+        /// <see cref="Hunt.OnAnotherBranch"/>), how far along the two curves it lies together: the share of the way along this curve and
+        /// the share of the way along the partner, added, which is the same whichever of the two is asked first and however the pair is
+        /// turned; or not a number for any other contact. A meeting far from parallel outside any stretch along counts as one, so that the
+        /// two crossings a loop's copy makes at the loop's own crossing, one of them just past the end of a stretch, are told apart the
+        /// same way.
+        /// </summary>
+        /// <param name="contact">The contact.</param>
+        /// <param name="hunt">The hunt.</param>
+        /// <param name="inside">Whether it lies inside a stretch along.</param>
+        private double OtherBranchShare(Contact contact, Hunt hunt, out bool inside)
+        {
+            inside = hunt.IsAlong(contact.Part, contact.Knot, contact.Knot);
+
+            if (!(contact.From is SplinePartner partner) || !contact.Verified || !(inside ? Elsewhere(contact, hunt) : Steep(contact)))
+            {
+                return double.NaN;
+            }
+
+            NurbsCurve other = partner.Curve;
+
+            return (contact.Knot - Start) / (End - Start) + (contact.Other - other.Start) / (other.End - other.Start);
+        }
+
+        /// <summary>
+        /// Says whether a crossing of another branch comes before another along the two curves together (<see cref="OtherBranchShare"/>),
+        /// and where the two shares are the same to a billionth, as for the two crossings a copy of a loop moved along the bisector of
+        /// the loop's tangents makes, the one first being the nearer the point half way between the starts of the two curves: as the two
+        /// shares, the same whichever curve is asked first and however the pair is turned.
+        /// </summary>
+        private bool FirstAlong(Contact contact, double share, Contact than, double thanShare)
+        {
+            if (Math.Abs(share - thanShare) > 1E-9)
+            {
+                return share < thanShare;
+            }
+
+            var mine = new double[Dim];
+            var theirs = new double[Dim];
+            PointAt(Start, mine);
+            NurbsCurve other = ((SplinePartner)contact.From).Curve;
+            other.PointAt(other.Start, theirs);
+            double mx = 0.5 * (mine[0] + theirs[0]);
+            double my = 0.5 * (mine[1] + theirs[1]);
+            double mz = Dim == 3 ? 0.5 * (mine[2] + theirs[2]) : 0.0;
+            double near = (contact.Px - mx) * (contact.Px - mx) + (contact.Py - my) * (contact.Py - my) + (contact.Pz - mz) * (contact.Pz - mz);
+            double far = (than.Px - mx) * (than.Px - mx) + (than.Py - my) * (than.Py - my) + (than.Pz - mz) * (than.Pz - mz);
+
+            return near < far;
+        }
+
+        /// <summary>
+        /// The sine of the angle two curves meet at past which a meeting inside a stretch along is kept (<see cref="Steep"/>): that of
+        /// the default angle tolerance, a degree (<see cref="Tolerance.DefaultEqualAngleRad"/>), written out so that every runtime
+        /// reads the same bits.
+        /// </summary>
+        private const double SteepSin = 0.017452406437283512;
+
+        /// <summary>
+        /// Says whether a contact lies in a stretch where the curve lies on a partner to the digits (<see cref="Hunt.Overlaps"/>), or
+        /// within the reach of one of its ends, and is not the crossing given at its end next to the earlier lobe, nor a meeting far from
+        /// parallel with another branch of the partner (<see cref="Steep"/>, <see cref="Hunt.OnAnotherBranch"/>): the polyline that lies on
+        /// a line from 20 to 50 and comes back square across it at 35 crosses it there, inside the overlap, where that crossing was taken
+        /// out with the rest of the overlap's places.
+        /// </summary>
+        private bool InOverlap(Contact contact, Hunt hunt, double[] ends)
+        {
+            for (int i = 0; i < hunt.Overlaps.Count; i++)
+            {
+                Hunt.Overlap overlap = hunt.Overlaps[i];
+
+                if (overlap.Part != contact.Part)
+                {
+                    continue;
+                }
+
+                if (overlap.Crossed && contact.Crossing && contact.Knot == overlap.From)
+                {
+                    return false;
+                }
+
+                bool inside = contact.Knot >= overlap.From && contact.Knot <= overlap.To;
+
+                for (int end = 0; end < 2 && !inside; end++)
+                {
+                    int at = 6 * i + 3 * end;
+                    double dx = contact.Px - ends[at];
+                    double dy = contact.Py - ends[at + 1];
+                    double dz = contact.Pz - ends[at + 2];
+                    inside = dx * dx + dy * dy + dz * dz <= hunt.Reach * hunt.Reach;
+                }
+
+                if (inside)
+                {
+                    return !Elsewhere(contact, hunt);
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Gets the points of the curve at the two ends of each stretch it lies on a partner to the digits, three numbers each, the third
+        /// nought in the plane.
+        /// </summary>
+        private double[] OverlapEnds(Hunt hunt)
+        {
+            var ends = new double[6 * hunt.Overlaps.Count];
+            var point = new double[Dim];
+
+            for (int i = 0; i < hunt.Overlaps.Count; i++)
+            {
+                for (int end = 0; end < 2; end++)
+                {
+                    PointAt(end == 0 ? hunt.Overlaps[i].From : hunt.Overlaps[i].To, point);
+                    ends[6 * i + 3 * end] = point[0];
+                    ends[6 * i + 3 * end + 1] = point[1];
+                    ends[6 * i + 3 * end + 2] = Dim == 3 ? point[2] : 0.0;
+                }
+            }
+
+            return ends;
         }
 
 

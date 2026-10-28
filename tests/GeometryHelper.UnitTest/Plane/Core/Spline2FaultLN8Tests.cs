@@ -207,12 +207,15 @@ namespace GeometryHelper.UnitTest.Plane
             GeoTransform2 turn = GeoTransform2.Rotation(P(0, 0), 0.7);
             GeoTransform2 back = GeoTransform2.Rotation(P(0, 0), -0.7);
 
-            // The copy crosses where the spline's tangent runs along the move: three times.
+            // The copy crosses where the spline's tangent runs along the move, three times, and at each of the two places the spline
+            // crosses itself, at 67 and 17 degrees, twice, its other branch crossing the copy 0.0011 and 0.0034 apart: seven, as the
+            // exact curves cross (G6). The count of three left out the four, the parts inside the stretch the two lie along never
+            // being cut against the copy's other branch.
             GeoPoint2[] places = spline.GetIntersections(copy, Thousandth);
             GeoPoint2[] turned = spline.TransformBy(turn).GetIntersections(copy.TransformBy(turn), Thousandth).Select(p => p.TransformBy(back)).ToArray();
 
-            Assert.Equal(3, places.Length);
-            Assert.Equal(3, turned.Length);
+            Assert.Equal(7, places.Length);
+            Assert.Equal(7, turned.Length);
 
             foreach (GeoPoint2 place in turned)
             {

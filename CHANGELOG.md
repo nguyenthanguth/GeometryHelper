@@ -2249,6 +2249,66 @@ least of their distance, is as it was: a curve and its copy moved 0.0005 in its 
 copy moved 0.0005 give 14 (parked). The draw of a fuzz run that once found a spline on one line 5.8E-6 too far from an ellipse 709 across,
 fixed before, is a test of its own. 28 new tests.
 
+**FIXED.** Two splines that lie on each other exactly for a stretch between two lobes of their offset cross once, where they come on
+each other, however the pair is turned. A polyline over a line by 0.0003 to 10, on it from 10 to 50 and under it after, was given its
+crossing wherever the bisection of a change of sign or Newton's method settled in the rounding of the overlap: at 10 as it lay, at 34.95
+turned by 0.3 of a radian, at 30.18 turned by 0.7 with the polyline reversed; and a part of the curve cut across the stretch could give
+the other end of the overlap, at 50, besides. It is given at 10, the end of the overlap next to the earlier lobe along the spline the work
+is done from, asked either way and turned, 0.000012 short of it a hundred thousand out, where the lobe comes on the line to the digits.
+That end is the crossing where the curve comes on the other from the earlier lobe's side and leaves it to the later lobe's; where it
+comes on from the side it leaves to, the change of side is before the overlap or after it and is looked for there: the polyline over
+the line to 10, 0.000005 under it to 30, on it to 50 and under it after crosses it at 10, and one on it from 10 to 30, 0.000005 over
+it to 40 and under it after, at 40. Between two lobes to one side the two do not cross, and the ends of the overlap, given before, are
+no places; a crossing of another branch of the curve far from parallel, in the overlap or at its ends, is one: the polyline that lies on
+the line from 20 to 50 and comes back square across it at 35, at 20 or at 19.5 crosses it there, once. Of 300 random polylines
+over a line, on it exactly between their lobes, asked either way, turned and far out, 112 of 728 answers judged at 1E-3 were wrong and
+4 are, and at 1E-2 77 and 2: an overlap that a stretch along begins at, its earlier lobe in another, and one 220 000 out whose lobe is
+so flat that it is on the line to the digits 0.0013 before its corner.
+
+**FIXED.** A copy of a spline that crosses itself crosses it at that crossing, inside the stretch the two lie along each other. The
+cubic through the control points (0, 0), (150, 100), (-50, 100), (100, 0) crosses itself at (50, 42.857) at 74 degrees, and its copy
+moved 0.0005 lies along it within the tolerance all the way; the copy's other branch crosses the cubic there, but a part inside a
+stretch along was never cut, and the crossing was never looked for, asked either way, turned, or in a tilted plane of space with the
+copy in the loop's plane (a copy lifted out of it by 1E-9 to 0.0004 still misses it, as before: in space a stretch along is read by the
+leasts of the distance). A part
+inside a stretch along is now cut against a part of the other curve it may meet at more than a degree from parallel, the default
+angle tolerance, and such a meeting is kept where it lies on another branch of the other curve than the one the stretch runs along:
+further along it than the looks either side of the meeting have their nearest points, those within twice the tolerance over the sine of
+the angle passed over, and round the seam of a closed one. A copy of a polyline still crosses it at a corner
+only as its lobes have it, as before. Of 200 such loops and their copies moved 0.0001 to 0.01, asked either way, turned and far
+out, their 397 crossings at more than 0.02 of a radian were missed in 934 of the 1 588 answers at a tolerance of 1E-3, and in 1 487
+at 1E-2, and are in none; 185 of the 200 give as many places as the exact curves have crossings, those within the tolerance of each
+other taken as one, where 76 did, and 178 at 1E-2 where 10 did. Of 300 random splines and their copies moved 0.0001 to 0.021, the
+1 184 such crossings were missed in 1 027 of 4 736 answers and are in 8, and in 3 354 and 20; 204 give the exact count where 166
+did, and 221 where 109 did. Of 300 each of hairpins, figure-eights and splines with cusps and their copies, asked three ways, the
+crossings at more than 0.02 of a radian were missed 2 925, 11 873 and 1 471 times at 1E-3 and are 25, 93 and 65 times, and at 1E-2
+2 749, 11 102 and 1 016 times and 78, 118 and 130; of tight waves at 1E-2, 5 046 and 112. Two crossings within the tolerance of each other are one place, as before, and
+where both are such crossings of another branch, the one first along the two curves together, the shares of the way along each
+added, stands for it, not the one nearer the other curve by its rounding, and where the two shares are the same to a billionth, as
+for a copy moved along either bisector of the loop's two tangents, the one nearer the point half way between the two curves' starts:
+the place is the same asked either way and turned eight ways, for each of 30 such moves of the loop above.
+
+What moved: of 3 600 answers of random pairs of splines, 3 600 of splines with lobes about a line, 2 100 of splines sitting on circles
+and circle splines and 2 766 of splines against segments, circles, arcs, ellipses, polylines and arc splines, at tolerances of 0, 1E-3
+and 1E-2, none, to the bit, nor any answer at a tolerance of 0. The overlaps (1 413 of 3 600 answers), the loops (1 308 of 2 400) and
+the copies (1 069 of 3 600) above, and 417 of 2 400 answers of splines against their own flattening as splines and against copies of
+them bent a hair, every one a place gained or moved within the tolerance to another crossing of the pair, but for 14 places of the
+copies and three of one loop, where crossings found now join places further apart than the tolerance into one, or another crossing of
+such a run stands for it; and the figure-eights give 18 places more in their 1 800 answers, each a real crossing of the exact
+curves, steep, of another branch, at a corner of a polyline that runs over itself, which no sample of them had found. A shallow
+crossing of another branch next to the end of a stretch along can still be missed at a hundredth.
+
+The cutting costs time where a curve lies along another. Timed twice each, in turn, on .NET 10: 40 random splines and their copies
+take 1.16 and 1.15 s where they took 1.02 and 1.01 (13 % longer), 20 loops and their copies 0.82 and 0.81 s where 0.78 and 0.77, 40
+overlaps turned 10 ms where 13; but a spline against its own flattening into a spline of degree one is cut until the two are
+parallel to the degree, and takes four to six times as long: 20 random splines against theirs 0.37 and 0.36 s where 0.08 and 0.09, and
+the arc of radius 100 a million out turning 2 radians against its 65 536 chords as a spline 0.55 to 0.57 s where 0.09 to 0.11 (the
+`GeoPolyline2` of them, which is no spline, takes 1.0 s as before). On .NET Framework 4.8: 1.84 and 1.86 s where 1.52 and 1.69 (10 to
+21 % longer), 1.38 and 1.44 where 1.18 and 1.31, 18 ms where 22 and 29, 0.60 and 0.66 s where 0.13 and 0.12, and 0.90 to 0.92 s where
+0.12 to 0.17. 9 new tests, 36 cases; three tests of earlier rounds count the crossings at the spline's own crossing now, which
+they left out: a near copy of a degree-two spline that crosses itself twice gives 7 places where 3, as the exact curves cross, and a
+copy that overhangs the spline's end 3 where 2, in the plane and in a tilted plane of space.
+
 **FIXED.** A ray is given a point where it meets a triangle, a polygon, a face, a box, a body, a prepared body, an arc or a
 circle exactly where `CollidesWith` says the two touch, but where it lies along the shape and names no place, as before:
 the list and the collision read a ray starting at the shape apart. A ray starting within the tolerance of a region beside

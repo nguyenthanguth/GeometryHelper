@@ -1477,7 +1477,23 @@ back and their copies moved 2.6E-5, 216 are given the exact count of crossings a
 on itself pays for the rule where its first or last lobe goes no further than the hundredth: the first edge of one 26.8 long lies 7.07E-6
 off its copy, and the corner after it, which the exact polylines cross at, is no crossing; of 400 such polylines at the origin and their
 copies moved 2.6E-5, 46 are given the exact count and 285 its parity, where 51 and 293 were, and none of them answers otherwise asked the
-other way or turned, where 36 did. A
+other way or turned, where 36 did. Where the two lie on each other exactly, to the digits, between two lobes that go further than the
+hundredth, the place is fixed by that overlap and not by where a bisection or Newton's method settles in its rounding: a polyline over
+a line by 0.0003 to 10, on it from 10 to 50 and under it after, crosses it once, at 10, the end of the overlap next to the earlier lobe
+along the spline the work is done from, however the pair is turned (it was given at 34.95 turned by 0.3 of a radian, and the other end
+of the overlap could be given as well). That end is the crossing where the curve comes on the other from the earlier lobe's side and
+leaves it to the later lobe's; coming on from the side it leaves to, it changes side before the overlap or after it, and crosses there:
+over the line to 10, 0.000005 under it to 30 and on it to 50, it crosses at 10. Between two lobes to one side it is no crossing, and
+nothing of the overlap is given there. A meeting inside a stretch along at more than a degree from parallel, the default angle
+tolerance, with another branch of the other curve than the one the stretch runs along, is given, inside an overlap or at its ends as
+well: a cubic that crosses itself at 74 degrees and its copy moved 0.0005 lie along each other all the way, and the copy crosses the
+loop at the loop's own crossing, twice, 0.0005 apart, which was missed asked either way, turned and in a tilted plane of space with the
+copy in that plane (lifted out of it the copy is measured in space and still misses it); a polyline that lies on a line from 20 to 50
+and comes back square across it at 35 crosses it there. The two crossings at the loop are one place, and the one first along the two
+curves together stands for it, or where that is the same to a billionth the one nearer the point half way between the curves' starts,
+the same asked either way and turned. A copy of a polyline still crosses it at a corner only as its lobes have it, and a branch of the
+other curve that comes back within about three sixty-fourths of a stretch along of where it left is not told from the branch the
+stretch runs along. A
 sine of 21 fit points and a copy moved 0.0005 up are along each other and cross nowhere, where 15 101 places came before, after 22 seconds,
 and none comes now in a few milliseconds. The fit through 37 points of a quarter circle against `GeoArc2` of the same arc, which is
 solved exactly, gives its true crossings, 72 of them, the fit being the arc to rounding only in the places it was made to pass through,

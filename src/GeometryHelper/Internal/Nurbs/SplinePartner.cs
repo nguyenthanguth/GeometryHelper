@@ -331,6 +331,10 @@ namespace GeometryHelper.Internal.Nurbs
             // cross if brought into one plane (WouldCross), which a level distance is not needed to tell.
             double level = _inSpace ? hunt.Reach : 0.5 * hunt.Reach;
             var raw = new List<double[]>();
+            // The looks of each run, and where the second curve is nearest each: which branch of it the run follows.
+            var rawLooks = new List<double[][]>();
+            var looks = new List<double>();
+            var nearest = new List<double>();
             var point = new double[a.Dim];
             var query = new double[a.Dim];
             int previous = -2;
@@ -360,6 +364,7 @@ namespace GeometryHelper.Internal.Nurbs
                     if (inRun && length >= stretch)
                     {
                         raw.Add(new[] { runFrom, runTo });
+                        rawLooks.Add(new[] { looks.ToArray(), nearest.ToArray() });
                     }
 
                     inRun = false;
@@ -407,12 +412,15 @@ namespace GeometryHelper.Internal.Nurbs
                         }
 
                         runTo = knot;
+                        looks.Add(knot);
+                        nearest.Add(other);
                     }
                     else
                     {
                         if (inRun && length >= stretch)
                         {
                             raw.Add(new[] { runFrom, runTo });
+                            rawLooks.Add(new[] { looks.ToArray(), nearest.ToArray() });
                         }
 
                         // A point near but not level with the run so far starts the next.
@@ -422,6 +430,10 @@ namespace GeometryHelper.Internal.Nurbs
                         length = 0.0;
                         low = pastEnd ? double.PositiveInfinity : distance;
                         high = pastEnd ? double.NegativeInfinity : distance;
+                        looks.Clear();
+                        nearest.Clear();
+                        looks.Add(knot);
+                        nearest.Add(other);
                     }
 
                     lastX = point[0];
@@ -430,13 +442,15 @@ namespace GeometryHelper.Internal.Nurbs
                 }
             }
 
-            foreach (double[] run in raw)
+            for (int r = 0; r < raw.Count; r++)
             {
+                double[] run = raw[r];
+
                 foreach (double[] part in ConfirmFromSecond(a, b, run[0], run[1], step, hunt))
                 {
                     if (ArcLength(a, part[0], part[1]) >= stretch)
                     {
-                        hunt.Runs.Add(new Hunt.AlongRun { Part = Position, From = part[0], To = part[1] });
+                        hunt.Runs.Add(new Hunt.AlongRun { Part = Position, From = part[0], To = part[1], Knots = rawLooks[r][0], Others = rawLooks[r][1], Period = b.IsClosed ? b.End - b.Start : 0.0 });
 
                         // The crossings inside a stretch are found by the offset of the one curve from the other changing sign, which two
                         // curves in a plane have; two in space have a distance that falls to nought where they cross and does not change sign,
@@ -588,6 +602,8 @@ namespace GeometryHelper.Internal.Nurbs
         /// crosses a line at 20, 40 and 60 with lobes of 7E-6 between goes from 1.1E-4 under it to 4.4E-4 over it, and crosses it once.
         /// Between two lobes that go further to either side a crossing is given wherever the bisection of a change finds a meeting, so the
         /// count of crossings between the stretch's first and last large lobe is odd where they lie to either side and even where not.
+        /// Where the two lie on each other to the digits between two such lobes, the place is fixed by that overlap (<see cref="Overlap"/>):
+        /// its end next to the earlier lobe where the lobes lie to either side, and nothing where they lie to one side.
         /// </summary>
         private void CrossingsIn(NurbsCurve a, NurbsCurve b, double from, double to, double step, Hunt hunt)
         {
@@ -608,7 +624,8 @@ namespace GeometryHelper.Internal.Nurbs
 
             double flank = 1E-2 * hunt.Reach;
 
-            if (!(most > flank && -least > flank))
+            // Lobes to one side only cross nowhere, but may have an overlap between them, which gives nothing in its place.
+            if (!(most > flank) && !(-least > flank))
             {
                 return;
             }
@@ -625,9 +642,22 @@ namespace GeometryHelper.Internal.Nurbs
             var lasts = new List<int>();
             var sides = new List<int>();
             var peaks = new List<double>();
+            var peakAt = new List<int>();
+
+            // Two samples running on the other curve to the digits are an overlap (Overlap), which ends a lobe even where the next
+            // lies to the same side.
+            double digits = NurbsCurve.Evaluated(hunt);
+            bool split = false;
 
             for (int i = 0; i <= intervals; i++)
             {
+                bool on = Math.Abs(offsets[i]) <= digits;
+
+                if (!split && on && i > 0 && Math.Abs(offsets[i - 1]) <= digits && OnBetween(a, knots[i - 1], knots[i], digits))
+                {
+                    split = true;
+                }
+
                 if (offsets[i] == 0.0)
                 {
                     continue;
@@ -636,17 +666,24 @@ namespace GeometryHelper.Internal.Nurbs
                 int side = offsets[i] < 0.0 ? -1 : 1;
                 int count = sides.Count;
 
-                if (count == 0 || sides[count - 1] != side)
+                if (count == 0 || sides[count - 1] != side || (split && !on))
                 {
+                    split = false;
                     firsts.Add(i);
                     lasts.Add(i);
                     sides.Add(side);
                     peaks.Add(Math.Abs(offsets[i]));
+                    peakAt.Add(i);
                 }
                 else
                 {
                     lasts[count - 1] = i;
-                    peaks[count - 1] = Math.Max(peaks[count - 1], Math.Abs(offsets[i]));
+
+                    if (Math.Abs(offsets[i]) > peaks[count - 1])
+                    {
+                        peaks[count - 1] = Math.Abs(offsets[i]);
+                        peakAt[count - 1] = i;
+                    }
                 }
             }
 
@@ -660,16 +697,33 @@ namespace GeometryHelper.Internal.Nurbs
                     continue;
                 }
 
+                // Where the curves lie on each other to the digits between the two lobes, the place is fixed by the overlap, not by where a
+                // bisection or Newton's method happens to settle in it, which turning the pair changes; where the curve comes on the
+                // other from the side it leaves it to, the change of side lies before the overlap or after it, and is looked for there.
+                double searchFrom = double.NegativeInfinity;
+                double searchTo = double.PositiveInfinity;
+                int overlap = lastLarge >= 0 ? Overlap(a, b, knots, offsets, others, peakAt[lastLarge], peakAt[lobe], sides[lobe] != sides[lastLarge], hunt, out searchFrom, out searchTo) : 0;
+
+                if (overlap == 1)
+                {
+                    lastLarge = lobe;
+                    continue;
+                }
+
                 if (lastLarge >= 0 && sides[lobe] != sides[lastLarge])
                 {
                     // The changes between the two lobes, the one after each lobe from the earlier up to the one before this, nearest the
-                    // middle of the stretch between them first, then the earlier.
+                    // middle of the stretch between them first, then the earlier; beside an overlap, those on its side that holds the change.
                     double middle = 0.5 * (knots[lasts[lastLarge]] + knots[firsts[lobe]]);
                     order.Clear();
 
+                    // A change with a sample inside the overlap is the rounding of the overlap's end, no change of side.
                     for (int c = lastLarge; c < lobe; c++)
                     {
-                        order.Add(c);
+                        if (knots[lasts[c]] >= searchFrom && knots[firsts[c + 1]] <= searchTo)
+                        {
+                            order.Add(c);
+                        }
                     }
 
                     order.Sort((x, y) =>
@@ -733,6 +787,152 @@ namespace GeometryHelper.Internal.Nurbs
 
                 lastLarge = lobe;
             }
+        }
+
+        /// <summary>
+        /// Looks for a stretch between the peaks of two lobes of the offset where the first curve lies on the second to the digits: two
+        /// samples running, and the point half way between them, whose offset is no further from nought than the numbers are evaluated
+        /// to (<see cref="NurbsCurve.Evaluated"/>). Its ends are bisected to where the offset leaves that, and it is noted
+        /// (<see cref="Hunt.Overlaps"/>); where the lobes lie to either side, the crossing is offered at the end next to the earlier lobe.
+        /// </summary>
+        /// <remarks>
+        /// A polyline over a line from 0 to 10, on it from 10 to 50 and under it after crosses it once, and the bisection of a change
+        /// of sign or Newton's method put the place wherever the rounding of the overlap had the offset change sign: at 10 as it lay, at
+        /// 34.95 turned by 0.3 of a radian and 30.18 by 0.7 reversed. It is at 10 however turned. The exit at 50, which a part of the
+        /// curve cut across the stretch could give as well, is no place. Two corners of a polyline cut from the other curve, sampled on
+        /// it, are no overlap: the chord between them is off it half way.
+        /// <para>
+        /// The end next to the earlier lobe is the crossing only where the curve comes on the other from that lobe's side and leaves it
+        /// to the later lobe's: a polyline over the line to 10, a hair under it from 10 to 30, on it to 50 and under it after crosses it
+        /// at 10 and touches it from under at 30; one that lies on the line from 10 to 30, a hair over it to 40 and under it after
+        /// crosses it at 40. There the change of side is looked for among the changes before the overlap, or after it, as without one.
+        /// </para>
+        /// </remarks>
+        /// <param name="a">The first curve.</param>
+        /// <param name="b">The second curve.</param>
+        /// <param name="knots">The knot values of the first curve the offset was sampled at.</param>
+        /// <param name="offsets">The offset of the first curve from the second at each.</param>
+        /// <param name="others">The knot value of the second curve's nearest point to each.</param>
+        /// <param name="earlier">The sample of the earlier lobe's peak.</param>
+        /// <param name="later">The sample of the later lobe's peak.</param>
+        /// <param name="crossed">Whether the two lobes lie to either side.</param>
+        /// <param name="hunt">The hunt.</param>
+        /// <param name="searchFrom">Where the change of side is to be looked for from, when it is to be looked for.</param>
+        /// <param name="searchTo">Where the change of side is to be looked for to.</param>
+        /// <returns>Nought where there is no such stretch; one where there is and nothing more is to be done; two where the change of side
+        /// is to be looked for between <paramref name="searchFrom"/> and <paramref name="searchTo"/>.</returns>
+        private int Overlap(NurbsCurve a, NurbsCurve b, double[] knots, double[] offsets, double[] others, int earlier, int later, bool crossed, Hunt hunt, out double searchFrom, out double searchTo)
+        {
+            double digits = NurbsCurve.Evaluated(hunt);
+            int first = -1;
+            int last = -1;
+            searchFrom = double.NegativeInfinity;
+            searchTo = double.PositiveInfinity;
+
+            for (int i = earlier + 1; i + 1 < later; i++)
+            {
+                if (Math.Abs(offsets[i]) <= digits && Math.Abs(offsets[i + 1]) <= digits && OnBetween(a, knots[i], knots[i + 1], digits))
+                {
+                    first = i;
+                    break;
+                }
+            }
+
+            if (first < 0)
+            {
+                return 0;
+            }
+
+            for (int i = later - 1; i - 1 > earlier; i--)
+            {
+                if (Math.Abs(offsets[i]) <= digits && Math.Abs(offsets[i - 1]) <= digits && OnBetween(a, knots[i - 1], knots[i], digits))
+                {
+                    last = i;
+                    break;
+                }
+            }
+
+            double entry = Edge(a, knots[first - 1], knots[first], others[first], digits, out double entryOther);
+            double exit = Edge(a, knots[last + 1], knots[last], others[last], digits, out _);
+
+            // The nearest samples either side of the overlap that are off the other curve by more than the digits say which side the curve
+            // comes from and goes to.
+            int before = first - 1;
+            int after = last + 1;
+
+            while (before > earlier && !(Math.Abs(offsets[before]) > digits))
+            {
+                before--;
+            }
+
+            while (after < later && !(Math.Abs(offsets[after]) > digits))
+            {
+                after++;
+            }
+
+            bool fromEarlier = (offsets[before] < 0.0) == (offsets[earlier] < 0.0);
+            bool toLater = (offsets[after] < 0.0) == (offsets[later] < 0.0);
+            bool atEntry = crossed && fromEarlier && toLater;
+            hunt.Overlaps.Add(new Hunt.Overlap { Part = Position, From = entry, To = exit, Crossed = atEntry });
+
+            if (atEntry)
+            {
+                Pair(a, b, entry, entryOther, hunt, true, true);
+            }
+
+            if (!crossed || atEntry)
+            {
+                return 1;
+            }
+
+            if (!fromEarlier)
+            {
+                searchTo = entry;
+            }
+            else
+            {
+                searchFrom = exit;
+            }
+
+            return 2;
+        }
+
+        /// <summary>
+        /// Says whether the first curve lies on the second to the digits half way between two knot values, as it does at both: two
+        /// corners of a polyline that lie on the curve it was cut from are on it, and the chord between them is not.
+        /// </summary>
+        private bool OnBetween(NurbsCurve a, double from, double to, double digits) => Math.Abs(Offset(a, 0.5 * (from + to), out _)) <= digits;
+
+        /// <summary>
+        /// Bisects the end of a stretch where the first curve lies on the second to the digits, between a knot value off it and one on it.
+        /// </summary>
+        /// <returns>The knot value on it, nearest the one off it.</returns>
+        private double Edge(NurbsCurve a, double off, double on, double onOther, double digits, out double other)
+        {
+            for (int step = 0; step < 100; step++)
+            {
+                double middle = 0.5 * (off + on);
+
+                if (middle == off || middle == on)
+                {
+                    break;
+                }
+
+                double value = Offset(a, middle, out double middleOther);
+
+                if (Math.Abs(value) <= digits)
+                {
+                    on = middle;
+                    onOther = middleOther;
+                }
+                else
+                {
+                    off = middle;
+                }
+            }
+
+            other = onOther;
+            return on;
         }
 
         /// <summary>
@@ -1174,8 +1374,9 @@ namespace GeometryHelper.Internal.Nurbs
                 Sub x = task.First;
                 Sub y = task.Second;
                 // A part inside a stretch that lies along the other curve is not cut: it has no place to give, or in space the leasts of
-                // the distance the stretch was looked at for (CrossingsInSpace).
-                if (hunt.Runs.Count > 0 && hunt.IsAlong(Position, x.From, x.To))
+                // the distance the stretch was looked at for (CrossingsInSpace); but against a part of the other curve it may meet far
+                // from parallel it is, since that is another branch of the other curve than the one the stretch runs along.
+                if (hunt.Runs.Count > 0 && hunt.IsAlong(Position, x.From, x.To) && !MayCrossSteeply(x, y, task.Bound, hunt))
                 {
                     continue;
                 }
@@ -1269,6 +1470,28 @@ namespace GeometryHelper.Internal.Nurbs
             }
         }
         /// <summary>
+        /// Says whether two parts, the first inside a stretch along the second curve, may meet at an angle further from parallel than
+        /// a degree, the default angle tolerance: their hulls meet, and their tangents are not held within that of each other.
+        /// </summary>
+        /// <remarks>
+        /// A stretch along is not cut, its places being the rounding of two curves that lie on each other, but a curve that comes back
+        /// across itself has another branch there: a loop and its copy moved a few ten-thousandths lie along each other all the way,
+        /// and the copy's other branch crosses the loop at the loop's own crossing, at the loop's angle, which was never looked for.
+        /// Two parts that lie along each other are cut until their tangents are held within the degree, or their hulls part, and put
+        /// aside then; two that meet at an angle are cut as any other pair, and their meeting is kept where it is on another branch of
+        /// the second curve than the one the stretch runs along (<see cref="NurbsCurve.Steep"/>, <see cref="Hunt.OnAnotherBranch"/>), and not
+        /// at a corner of a polyline and its copy, which crosses it as its lobes have it. A curve against its own flattening into a
+        /// spline of degree one pays for the cutting: the arc of radius 100 a million out turning 2 radians against 65 536 chords took
+        /// 0.12 s and takes 0.65 on .NET 10. Putting a pair aside as soon as its bound is under the reach and its cones overlap takes
+        /// 0.11 s again, but loses the crossing of the loop above, whose parts are whole pieces, their cones wide, when first paired.
+        /// </remarks>
+        /// <param name="x">The part of the first curve.</param>
+        /// <param name="y">The part of the second.</param>
+        /// <param name="bound">A bound the distance between the two cannot be less than.</param>
+        /// <param name="hunt">The hunt.</param>
+        private static bool MayCrossSteeply(Sub x, Sub y, double bound, Hunt hunt) => bound <= hunt.Snap && !x.Parallel(y, Tolerance.DefaultEqualAngleRad);
+
+        /// <summary>
         /// Gets a bound the distance between two parts that are straight to their reach cannot be less than: the distance between their
         /// chords less the two reaches.
         /// </summary>
@@ -1336,8 +1559,10 @@ namespace GeometryHelper.Internal.Nurbs
             Settle(a, b, ref knotA, ref knotB, hunt);
             Pair(a, b, knotA, knotB, hunt);
 
-            // Two parts whose hulls meet may hold crossings the nearest points settled on do not show.
-            if (x.Gap(y) <= hunt.Snap)
+            // Two parts whose hulls meet may hold crossings the nearest points settled on do not show; inside a stretch along, where a
+            // part is measured only against a part it may meet far from parallel (MayCrossSteeply), the meeting is what is wanted, and the
+            // shallow crossings are the stretch's own (CrossingsIn, CrossingsInSpace).
+            if (x.Gap(y) <= hunt.Snap && !(hunt.Runs.Count > 0 && hunt.IsAlong(Position, x.From, x.To)))
             {
                 if (a.Dim == 2)
                 {
@@ -2348,6 +2573,36 @@ namespace GeometryHelper.Internal.Nurbs
                     _cone = _ax == 0.0 && _ay == 0.0 && _az == 0.0 ? 1.5 : cone;
                     return _cone;
                 }
+            }
+
+            /// <summary>
+            /// Says whether the tangents of two parts are held within an angle of each other, as lines: the angle between their chords
+            /// and the two cones together are no more than it.
+            /// </summary>
+            internal bool Parallel(Sub other, double angle)
+            {
+                double sum = Cone + other.Cone;
+
+                if (sum >= angle)
+                {
+                    return false;
+                }
+
+                double between;
+
+                if (_dim == 3)
+                {
+                    double cx = _ay * other._az - _az * other._ay;
+                    double cy = _az * other._ax - _ax * other._az;
+                    double cz = _ax * other._ay - _ay * other._ax;
+                    between = Math.Atan2(Math.Sqrt(cx * cx + cy * cy + cz * cz), Math.Abs(_ax * other._ax + _ay * other._ay + _az * other._az));
+                }
+                else
+                {
+                    between = Math.Atan2(Math.Abs(_ax * other._ay - _ay * other._ax), Math.Abs(_ax * other._ax + _ay * other._ay));
+                }
+
+                return between + sum <= angle;
             }
 
             /// <summary>

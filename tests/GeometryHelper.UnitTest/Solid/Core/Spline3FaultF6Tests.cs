@@ -64,8 +64,10 @@ namespace GeometryHelper.UnitTest.Solid
 
             GeoPoint3[] places = spline.GetIntersections(copy, Thousandth);
 
+            // The two shallow crossings, and a third where the spline crosses itself, square on, which its other branch crosses the copy
+            // at twice, 0.00072 apart, one place (G6); the count of two left it out, as in the plane.
             Assert.Equal(flat.GetIntersections(flatCopy, Thousandth).Length, places.Length);
-            Assert.Equal(2, places.Length);
+            Assert.Equal(3, places.Length);
             Assert.Equal(places.Length, copy.GetIntersections(spline, Thousandth).Length);
             Assert.All(places, p => Assert.InRange(copy.DistanceTo(p), 0.0, 1E-9));
         }
