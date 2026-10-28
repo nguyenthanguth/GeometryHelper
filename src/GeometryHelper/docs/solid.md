@@ -457,7 +457,23 @@ given none or one. The planes of fan triangles far out can be rounded by more th
 a cylinder of 1 080 sides 1E7 out may still be read outside. The openings of a body asked at a tolerance below the
 rounding are cut within the rounding: a point 0.0005 under a plate turned about in space, with an opening through
 it, is 0.0005 from it at a tolerance of nought, where it was 3.0005. At every tolerance at or above the rounding
-nothing changes. Segments and lines without ends at a tolerance of nought are not covered yet, nor are the booleans.
+nothing changes.
+
+A segment or a line without ends is held so too: a triangle or face holds its crossing to the rounding of the
+coordinates, 1E-15 of the largest of its own, the body's and the segment's, on its plane and past its rim, and a
+segment reaching from further off than the body is large is read from a diagonal short of it. Below the rounding, two
+crossings of a seam within eight times it are one, and an end within the rounding of a face meets the surface there
+where the segment touches the face, or the body, as `CollidesWith` reads it. At a tolerance of nought the segment
+through the cylinder 40 across and 50 tall, its axis leaning in space, is given its two crossings, and so is the line
+without ends along it, by the body and its prepared form, where nearly all were given one or none. The segment from
+10 off the side of a box turned about in space to a point on it is given that point, where 831 of 1 000 were given
+nothing. On a single triangle or face an end so near is crossed only where `CollidesWith` of the two finds them
+touching, which at a tolerance of nought it does for about half the points on a face it was tried at. `CollidesWith`
+of a segment and a body asks the boxes first as far apart as the body holds a point, a billionth, or 1E-15 of the
+largest coordinate further out than a million; that reaches every point tolerance below it, not only those below the
+rounding, so the segment from 5E-10 over the top of a box touches it at a tolerance of nought, 1E-12, 1E-10 or 3E-10,
+as it is nought from it at each. A segment with a coordinate that is not a number touches nothing, as before. The
+booleans at a tolerance of nought are not covered yet.
 
 A `GeoCircle3` is not on the list. The distance from a circle in space to a flat face has no closed form,
 and the library does not guess: turn it into a chain first, which says in the call how close an answer you

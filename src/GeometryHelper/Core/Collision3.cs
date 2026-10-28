@@ -538,6 +538,11 @@ namespace GeometryHelper.Core
         /// so that rounding in a body turned about in space cannot lose a crossing: a point within 1E-9 outside the
         /// body reads as in it, and a point 5E-10 outside a box is nought away from it. Further out than a million the
         /// billionth is 1E-15 of the largest coordinate of the body and the point, past the rounding of numbers that size.
+        /// The boxes are asked first as far apart as that too, which reaches every point tolerance below that billionth, or
+        /// below 1E-15 of the largest coordinate further out than a million: at a tolerance of nought, and of 1E-12, 1E-10 or
+        /// 3E-10, the segment standing up from 5E-10 over the top of the box 100 by 80 by 50 touches it, as it is nought from it,
+        /// and so does the one from 1E-7 over the top of that box a thousand million out at nought, where the boxes were asked at
+        /// the tolerance given and they touched nothing.
         /// </remarks>
         public static bool CollidesWith(GeoLine3 line, GeoSolid3 solid, Tolerance tolerance)
         {
@@ -548,7 +553,11 @@ namespace GeometryHelper.Core
 
             GeoAabb3 reach = line.GetAabb();
 
-            if (!solid.GetAabb().CollidesWith(reach, tolerance))
+            // An end the body holds, to a billionth or 1E-15 of the coordinates, can stand that far outside its box; a segment
+            // with a coordinate that is not a number is as clear of it as the boxes say.
+            if (!solid.GetAabb().CollidesWith(reach, tolerance)
+                && !(Gap3.BoxGap(line.StartPoint, line.EndPoint, solid.GetAabb())
+                    <= Math.Max(Gap3.Fine(solid, line.StartPoint), Gap3.Fine(solid, line.EndPoint))))
             {
                 return false;
             }

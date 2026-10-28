@@ -95,6 +95,71 @@ and lattices, none gives another loop, edge or bulge, to the bit, nor do 9 000 o
 the trees read for every box and point; nor does any of 120 000 cuts of 20 000 loops at six tolerances, which make 20.8
 million loops, nor are the 599 million crossings of those loops found otherwise.
 
+**FIXED.** At a tolerance of nought a segment or a line without ends finds its crossing of a triangle or a face turned
+about in space, and of every face of a body it passes through. The crossing a segment finds on a plane stands off it
+by the rounding of numbers the size of the coordinates, and the triangle or face read that against the planar
+tolerance of nought and refused it, as it refused a ray's before 13.0.0: of 1 000 segments from 30 under
+the middle of a triangle turned about in space to 30 over it, 920 crossed nothing, and 928 of the same faces; of the
+lines without ends along them 889 and 905; of 1 000 lines through a cylinder of radius 20 and height 50, its axis
+leaning in space, 996 were given one crossing or none, 950 by its prepared form, and so were 981 of the 986 segments
+that reach through it. A triangle or face now holds the crossing of a segment as it holds a ray's, to 1E-15 of the
+largest coordinate of its own and the segment's, on its plane and past its rim, and a segment reaching from further
+off than the triangle, the face or the body is large is read from a diagonal short of it, along its line; whether the
+crossing lies between the segment's ends is read by the tolerance given. A line without ends is cut past what it is
+asked of, as before, and read as that segment; the prepared body holds the crossings of its mesh to the rounding of the
+whole mesh, as for a ray. Below the rounding, and only there, two crossings of a seam within eight times it of each
+other are one, the segment along the seam of two sides of a cylinder of radius 20, through its axis, from 60, a million
+or a hundred million out to as far beyond, being given its two crossings where it was given none; and a segment with an
+end within the rounding of a triangle or face, its other end off the plane, meets it at that end where it touches it
+as `CollidesWith` reads it, and nowhere else, so the crossing of the plane, worked out to the rounding, no longer falls
+either side of the end: of 1 000 segments from 10 off the side of a box turned about in space to a point on it, the
+crossing of the triangle under the point and the touch `CollidesWith` reads differed 512 times and differ none, and
+the body, which `CollidesWith` and `DistanceTo` read as touched every time, gave 831 of them nothing and gives each
+its point. In a body the end is read as the body reads it: met where the segment touches the face, or where the body
+holds the end as `CollidesWith` holds it. On a single triangle or face an end so near is crossed only where
+`CollidesWith` of the two finds them touching, and at a tolerance of nought it refuses about half of them: of 1 000
+segments ending on points of the sides of turned boxes, 617 cross the triangle under their end, and of another 1 000,
+some of them far out, 480 the triangle and 535 the face. `CollidesWith` of a segment and a body asks the boxes first as
+far apart as the body holds a point, a billionth, or 1E-15 of the largest coordinate of the body and the end further
+out than a million, and that reaches every point tolerance below it, not only those below the rounding: the segment
+standing up from 5E-10 over the top of a box 100 by 80 by 50, which is nought from it, touched nothing and touches it
+at a tolerance of nought, of 1E-12, of 1E-10 and of 3E-10, as does the one from 1E-7 over that box a thousand million
+out at nought; of 25 000 prisms' answers its collision disagreed with its distance 69 times and does 4. A segment with a
+coordinate that is not a number touches no body, as before. Where it reaches, at a tolerance below the rounding only,
+but for that box: `TryIntersectWith` of a segment and a triangle or face and the lists of where they meet, the same of a
+line without ends, `GetIntersections` of a segment or a line without ends and a body,
+`GeoPreparedSolid3.GetIntersections` and `CollidesWith` of a line without ends, `GeoBvh3.GetIntersections` of one,
+`CollidesWith` of a line without ends and a body, and what reads an edge's crossing of a triangle or face: whether two
+triangles touch, the crossings of two regions, and the cutting of segments, chains and arc chains by faces and bodies.
+At every tolerance at or above the rounding every answer is the same to the bit, but for the collisions that box lets
+through: of 518 400 answers drawn at 1E-6, 1E-3 and 1E-2 for boxes, prisms, cylinders, cones and rings turned about in
+space, at the origin and out to 1E9 (segments and lines without ends through them, into them, wholly inside, ending or
+starting on a face, missing a face by half, three and a hundred times the tolerance, or a hair off it), none changed,
+nor did any of 120 000 answers of rays and segments about boxes, U's, cylinders, cones and rings out to 1E9, nor any
+boolean of the G2b corpora, at nought included; of the 138 840 answers at or above the rounding drawn at 1E-12 and
+1E-10, 1 626 changed, each a segment missing a face by up to 1E-8 that was nought from the body and touched nothing,
+and touches it now. At a tolerance of nought, of 172 800 such answers 53 260 were wrong and 131 are: 79 segments ending
+or starting on a side of a cylinder or a cone made by `Revolve`, 76 of them a million and more out, where the side
+stands off its own plane by billionths and the body does not hold the end either (parked); 48 lines without ends a hair,
+1E-11, beside the long thin faces of a cone at the origin to a thousand out, held by a triangle of the prepared body
+whose plane stands off its corners by more than the rounding, where 14 were before (parked); and 4 such ends on a single
+face of a cone 100 out. Lines a hair off a cone are held so more often in a sample drawn for them: of 2 400 lines a hair
+off any face of a cone turned about in space, at the origin to a thousand out, the prepared body read 282 as touching
+where it read 96, and of 2 400 a hair under the disk of its base 594 where it read 206, a quarter of them. At 1E-12 and
+1E-10, of 345 600 answers 77 347 were wrong and 32 412 are, nearly all of them segments and lines missing a face by
+less than the body holds a point within, a billionth, or than the rounding of the coordinates far out; one count rose:
+at 1E-12, segments missing a single face by up to a hundred times the tolerance read as crossing it 151 times where 4
+did, each a miss smaller than the rounding of its coordinates, as at 1E-12 any coordinate past 1 000 is. A single
+segment's crossing of a triangle or a face now asks first whether the coordinates reach the rounding: at a tolerance of a
+thousandth, of 64 triangles turned about in space some 2 000 out, it takes 68 nanoseconds on .NET 10 where it took 65,
+and 68 where it took 65 for a face, and on .NET Framework 4.8 394 where it took 382 and 407 where it took 391. A
+segment through a cylinder of 300 faces turned about in space takes 23.9 microseconds where it took 23.1 on .NET 10 and
+70 where it took 75 on .NET Framework 4.8, a line without ends through the prepared cylinder 6.0 where it took 6.2 and
+27.8 where it took 27.4, and through a box 0.84 where it took 0.80 and 3.86 where it took 3.66. At a tolerance of
+nought they take longer than they did, for now doing the work they skipped, and about as long as at a thousandth: the
+line through the prepared cylinder 7.0 microseconds on .NET 10 where it took 4.7, and the segment through the body 23
+where it took 3.3. 16 new tests.
+
 ## 13.0.0
 
 **BREAKING.** The DXF types move from the namespace `GeometryHelper.Export` to `GeometryHelper.Dxf`: a

@@ -355,7 +355,10 @@ namespace GeometryHelper.Spatial
         /// crosses it, so the answer is the plain scan's over every triangle, without looking at the branches whose box,
         /// grown by the larger of the point and planar tolerances, the line never enters. The line through (3, 6, 4)
         /// along Z crosses a mesh of the box 10 by 10 by 10 from the origin at (3, 6, 0) and (3, 6, 10), the ray from the
-        /// same point only at the second.
+        /// same point only at the second. Below the rounding of the coordinates, 1E-15 of the largest of the mesh's and of
+        /// where the line is read from, and only there, a triangle holds a crossing to that rounding, as it holds a ray's
+        /// (<see cref="GetIntersections(GeoRay3, Tolerance)"/>), rather than to the rounding of its own coordinates, and a
+        /// line whose origin stands further off than the mesh is large is read from a diagonal short of it.
         /// </remarks>
         public GeoPoint3[] GetIntersections(GeoXLine3 xline, Tolerance tolerance)
         {
@@ -367,6 +370,14 @@ namespace GeometryHelper.Spatial
             }
 
             double grow = Math.Max(tolerance.EqualPoint, tolerance.EqualPlanar);
+
+            // Below the rounding of the coordinates a triangle holds a crossing within it, as it holds a ray's, and a line whose
+            // origin stands further off than the mesh is large is cut past each triangle from a diagonal short of the mesh.
+            GeoPoint3 near = Intersection3.CastNear(new GeoRay3(xline.Origin, xline.Direction.Negate(), true), Bounds).Origin;
+            near = Intersection3.CastNear(new GeoRay3(near, xline.Direction, true), Bounds).Origin;
+            Tolerance holding = Intersection3.Holding(Intersection3.Rounding(Bounds, near), tolerance);
+            bool below = !holding.Equals(tolerance);
+            GeoXLine3 cast = below ? new GeoXLine3(near, xline.Direction, true) : xline;
             Stack<int> pending = new Stack<int>();
             pending.Push(0);
 
@@ -383,7 +394,9 @@ namespace GeometryHelper.Spatial
                 {
                     for (int i = node.Start; i < node.Start + node.Count; i++)
                     {
-                        if (Intersection3.TryIntersectWith(xline, _triangles[_order[i]], out GeoPoint3 hit, tolerance))
+                        GeoTriangle3 triangle = _triangles[_order[i]];
+
+                        if (Intersection3.TryIntersectWith(XLine3.CutPast(cast, triangle, tolerance), triangle, out GeoPoint3 hit, tolerance, holding, below))
                         {
                             hits.Add(hit);
                         }
