@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Threading;
 using GeometryHelper.Export;
 using GeometryHelper.Geometry;
 
@@ -46,6 +47,10 @@ namespace GeometryHelper.Dxf
         private int _countFrom;
         private int _countTo;
         private int _count;
+
+        // The normal and the elevation last read for a vertex in the world, with the record they were read from: one object,
+        // made whole before it is kept, so that a thread reading the polyline meets the three of one reading.
+        private Placed _placed;
 
         /// <summary>
         /// Initializes a polyline of no vertices, as AutoCAD's <c>new Polyline()</c>, on layer 0 in no file; give it its vertices
@@ -102,7 +107,40 @@ namespace GeometryHelper.Dxf
         public GeoPoint3 GetPoint3dAt(int index)
         {
             GeoPoint2 point = GetPoint2dAt(index);
-            return OcsToWorld(Normal, new GeoPoint3(point.X, point.Y, Elevation));
+            DxfFile.Rec record = Item.File.RecordAt(Item, 0);
+            Placed placed = Volatile.Read(ref _placed);
+
+            // The normal and the elevation are read once for the record as it stands, not again for each vertex asked for.
+            if (placed == null || !ReferenceEquals(record.Bytes, placed.Bytes) || record.Start != placed.Start || record.End != placed.End)
+            {
+                placed = new Placed(Normal, Elevation, record);
+                Volatile.Write(ref _placed, placed);
+            }
+
+            return OcsToWorld(placed.Normal, new GeoPoint3(point.X, point.Y, placed.Elevation));
+        }
+
+        /// <summary>The normal and the elevation of a polyline, and where the record they were read from stands.</summary>
+        private sealed class Placed
+        {
+            internal Placed(GeoVector3 normal, double elevation, DxfFile.Rec record)
+            {
+                Normal = normal;
+                Elevation = elevation;
+                Bytes = record.Bytes;
+                Start = record.Start;
+                End = record.End;
+            }
+
+            internal GeoVector3 Normal { get; }
+
+            internal double Elevation { get; }
+
+            internal byte[] Bytes { get; }
+
+            internal int Start { get; }
+
+            internal int End { get; }
         }
 
         /// <summary>Moves a vertex, given in the system of the polyline's normal, as AutoCAD's <c>SetPointAt</c>.</summary>

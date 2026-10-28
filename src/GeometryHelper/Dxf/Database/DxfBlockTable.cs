@@ -23,8 +23,13 @@ namespace GeometryHelper.Dxf
         private List<DxfBlockTableRecord> _records;
 
         // The first block of each name in the order of the table, letters of either case the same: made when a block is first
-        // looked up by name, and again after one is erased or renamed, so that a lookup does not read every name of the table.
+        // looked up by name, and again after one is renamed, or erased where another has its name, so that a lookup does not
+        // read every name of the table.
         private Dictionary<string, DxfBlockTableRecord> _named;
+
+        // The names more than one block of the table has, letters of either case the same, found with the blocks by name: so that
+        // a block erased that alone had its name is taken out of them, not all of them made again.
+        private HashSet<string> _twice;
 
         internal DxfBlockTable(DxfDatabase database, DxfItem item)
             : base(item)
@@ -81,26 +86,32 @@ namespace GeometryHelper.Dxf
             {
                 // Filled whole before it is kept, so that a lookup of another thread never meets it half filled.
                 named = new Dictionary<string, DxfBlockTableRecord>(StringComparer.OrdinalIgnoreCase);
+                var twice = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
                 foreach (DxfBlockTableRecord record in Read())
                 {
-                    Index(named, record);
+                    Index(named, twice, record);
                 }
 
+                Volatile.Write(ref _twice, twice);
                 Volatile.Write(ref _named, named);
             }
 
             return named;
         }
 
-        /// <summary>Takes a block last in the order of the table into the blocks by name, where none before it has its name.</summary>
-        private static void Index(Dictionary<string, DxfBlockTableRecord> named, DxfBlockTableRecord record)
+        /// <summary>Takes a block last in the order of the table into the blocks by name, where none before it has its name; its name among those of more than one where one has.</summary>
+        private static void Index(Dictionary<string, DxfBlockTableRecord> named, HashSet<string> twice, DxfBlockTableRecord record)
         {
             string name = record.Name;
 
             if (named != null && name != null && !named.ContainsKey(name))
             {
                 named.Add(name, record);
+            }
+            else if (named != null && name != null)
+            {
+                twice.Add(name);
             }
         }
 
@@ -114,7 +125,7 @@ namespace GeometryHelper.Dxf
             List<DxfBlockTableRecord> records = Read();
             block.AddTo(_database.File);
             records.Add(block);
-            Index(_named, block);
+            Index(_named, _twice, block);
         }
 
         /// <summary>Reads the table as the drawing is opened, so that model space and paper space stand for their records from the first.</summary>
@@ -131,14 +142,27 @@ namespace GeometryHelper.Dxf
 
             var adopted = new DxfBlockTableRecord(_database.File, record, block);
             _records.Add(adopted);
-            Index(_named, adopted);
+            Index(_named, _twice, adopted);
         }
 
         /// <summary>A block erased, no longer of the table.</summary>
         internal void Forget(DxfBlockTableRecord block)
         {
             Read().Remove(block);
-            _named = null;
+            Dictionary<string, DxfBlockTableRecord> named = _named;
+            HashSet<string> twice = _twice;
+            string name = block.Name;
+
+            // A block that alone had its name goes out of the blocks by name, as they would be made again without it; where
+            // another has its name too, they are made again when next looked up.
+            if (named != null && twice != null && name != null && !twice.Contains(name) && named.TryGetValue(name, out DxfBlockTableRecord first) && ReferenceEquals(first, block))
+            {
+                named.Remove(name);
+            }
+            else
+            {
+                _named = null;
+            }
         }
 
         /// <summary>A block renamed: the blocks by name are made again when next looked up.</summary>
@@ -804,12 +828,16 @@ namespace GeometryHelper.Dxf
                 throw new InvalidOperationException("The block " + name + " is the block of a layout, and goes with its layout.");
             }
 
-            if (_file.Names(Naming, (type, code) => code == 2 && (type == "INSERT" || type == "DIMENSION" || type == "ACAD_TABLE"), name) || NamedAsArrow(name))
+            // What the records use, counted, says at once that nothing uses a block erased after the blocks that did, one by one:
+            // where a record may use it, the records are read for it, as before.
+            DxfFile.Usage usage = _file.UsageOfRecords();
+
+            if ((usage.MayDraw(name) && _file.Names(Naming, (type, code) => code == 2 && (type == "INSERT" || type == "DIMENSION" || type == "ACAD_TABLE"), name)) || NamedAsArrow(name, usage))
             {
                 throw new InvalidOperationException("The block " + name + " is drawn by an INSERT, a dimension or a table, or named as an arrow, and is not erased, as AutoCAD erases a block only when nothing uses it.");
             }
 
-            if (Handle != null && _file.PointedAt(Handle))
+            if (Handle != null && usage.MayPointAt(Handle) && _file.PointedAt(Handle))
             {
                 throw new InvalidOperationException("The block " + name + " is pointed at by an object of the file, as a dimension style's arrow, and is not erased.");
             }
@@ -884,8 +912,12 @@ namespace GeometryHelper.Dxf
             GeometryHelperLog.Info("DxfDatabase: the block " + old + " was renamed " + name + ", with every INSERT of it.");
         }
 
-        /// <summary>Whether a dimension style, the override of a dimension of R12 or the header names a block as an arrow: <c>$DIMBLK</c> and its kin, DIMSTYLE's 5, 6 and 7, and an override's 1070 5, 6 or 7 with the name in its 1000.</summary>
-        private bool NamedAsArrow(string name)
+        /// <summary>
+        /// Whether a dimension style, the override of a dimension of R12 or the header names a block as an arrow: <c>$DIMBLK</c>
+        /// and its kin, DIMSTYLE's 5, 6 and 7, and an override's 1070 5, 6 or 7 with the name in its 1000; the records read
+        /// only where what they use, counted, may give the name.
+        /// </summary>
+        private bool NamedAsArrow(string name, DxfFile.Usage usage)
         {
             foreach (string variable in new[] { "$DIMBLK", "$DIMBLK1", "$DIMBLK2", "$DIMLDRBLK" })
             {
@@ -897,7 +929,7 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            return _file.Names(Naming, (type, code) => type == "DIMSTYLE" && code >= 5 && code <= 7, name) || _file.NamesArrowInOverrides(name);
+            return usage.MayBeArrow(name) && (_file.Names(Naming, (type, code) => type == "DIMSTYLE" && code >= 5 && code <= 7, name) || _file.NamesArrowInOverrides(name));
         }
 
         /// <summary>

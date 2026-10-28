@@ -137,7 +137,7 @@ namespace GeometryHelper.Dxf
 
                     DxfBlockTableRecord owner = Owner as DxfBlockTableRecord;
 
-                    if (owner != null && !owner.IsLayout && Inserts(value, owner, null))
+                    if (owner != null && !owner.IsLayout && Inserts(value, owner, null, out _))
                     {
                         throw new ArgumentException("The block " + value.Name + " would make the block " + owner.Name + " insert itself.", nameof(value));
                     }
@@ -803,9 +803,22 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentException("The block " + block.Name + " is of another drawing than the block the INSERT is added to.", "entity");
             }
 
-            if (!owner.IsLayout && Inserts(block, owner, owner.File.Roundless))
+            // A block no INSERT of the drawing names is held by no block, so that the block it is to insert cannot reach it: the
+            // walk down the blocks that one inserts is not needed, as each INSERT of a block built from the bottom up finds once
+            // the names the INSERTs give are kept, from the first walk of more than LongWalk blocks on.
+            if (!owner.IsLayout && (string.Equals(block.Name, owner.Name, StringComparison.OrdinalIgnoreCase) || !owner.File.InsertsNone(owner.Name)))
             {
-                throw new ArgumentException("The INSERT of " + block.Name + " would make the block " + owner.Name + " insert itself.", "entity");
+                bool round = Inserts(block, owner, owner.File.Roundless, out int walked);
+
+                if (walked > LongWalk)
+                {
+                    owner.File.KeepInsertNames();
+                }
+
+                if (round)
+                {
+                    throw new ArgumentException("The INSERT of " + block.Name + " would make the block " + owner.Name + " insert itself.", "entity");
+                }
             }
 
             _record = block;
@@ -1097,8 +1110,9 @@ namespace GeometryHelper.Dxf
         /// walked whole that inserts none of the owner's name joins them, where no INSERT of it or of a block it inserts names
         /// a block the drawing has not, nor one erased, which a block merged later could stand for.
         /// </summary>
-        private static bool Inserts(DxfBlockTableRecord block, DxfBlockTableRecord owner, HashSet<DxfBlockTableRecord> roundless)
+        private static bool Inserts(DxfBlockTableRecord block, DxfBlockTableRecord owner, HashSet<DxfBlockTableRecord> roundless, out int walked)
         {
+            walked = 0;
             string wanted = owner.Name;
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var path = new Stack<Walking>();
@@ -1122,6 +1136,7 @@ namespace GeometryHelper.Dxf
                             if (seen.Add(name))
                             {
                                 path.Push(new Walking(next));
+                                walked++;
                             }
                             else if (path.Count > 0)
                             {
@@ -1171,6 +1186,10 @@ namespace GeometryHelper.Dxf
                 }
             }
         }
+
+        // How many blocks a walk for a round goes down before the names the INSERTs of the drawing give are kept, which a drawing
+        // reads whole: a few dozen blocks walked cost less than one reading of a drawing of 20 000 INSERTs.
+        private const int LongWalk = 64;
 
         /// <summary>A block on the path of <see cref="Inserts"/>: its entities as far as walked, and whether all it inserts was found to insert none merged.</summary>
         private sealed class Walking

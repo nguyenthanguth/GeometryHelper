@@ -91,6 +91,31 @@ namespace GeometryHelper.Dxf
                         continue;
                     }
 
+                    if (_tableNames != null && section.Name == "TABLES")
+                    {
+                        TableWritten(piece.Records[k], now);
+                    }
+
+                    if (section.Name == "TABLES" || section.Name == "OBJECTS")
+                    {
+                        _objects = null;
+                    }
+
+                    if (_insertNames != null && now.HasValue)
+                    {
+                        InsertsWritten(now.Value);
+                    }
+
+                    if (_usage != null)
+                    {
+                        CountUsage(_usage, piece.Records[k], -1);
+
+                        if (now.HasValue)
+                        {
+                            CountUsage(_usage, now.Value, 1);
+                        }
+                    }
+
                     if (now.HasValue)
                     {
                         piece.Records[k] = now.Value;
@@ -247,6 +272,167 @@ namespace GeometryHelper.Dxf
             _layerNames = null;
             _linetypes = null;
             return written;
+        }
+
+        // What the records of the file use, counted, as the erasing of a block asks of every record: read in one walk of the file
+        // when a block is first erased, and kept from then on, each record put into the file counted on and each taken out
+        // counted off; null again once a record is rewritten in its place, or the code page changes, to be read again.
+        private Usage _usage;
+
+        /// <summary>
+        /// What the records of a file use, as <see cref="Names"/>, <see cref="NamesArrowInOverrides"/> and <see cref="PointedAt"/>
+        /// read them, counted over every section: the names INSERTs, dimensions and tables draw by (2), the names dimension
+        /// styles (5 to 7) and the overrides of dimensions give as arrows, and the handles pointers point at. A name or a handle
+        /// not among them is used by no record, as each of them would find; one among them may be.
+        /// </summary>
+        internal sealed class Usage
+        {
+            /// <summary>The names an INSERT, a dimension or a table draws by, letters of either case the same.</summary>
+            internal Dictionary<string, int> Drawn { get; } = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+            /// <summary>The names a dimension style or the override of a dimension gives as an arrow, letters of either case the same.</summary>
+            internal Dictionary<string, int> Arrows { get; } = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+            /// <summary>The handles pointed at.</summary>
+            internal Dictionary<ulong, int> Pointed { get; } = new Dictionary<ulong, int>();
+
+            /// <summary>Whether a record may draw by a block of the name, as <see cref="Names"/> finds one for a block's erasing; false where none does.</summary>
+            internal bool MayDraw(string name) => Drawn.ContainsKey(name);
+
+            /// <summary>Whether a record may give a block of the name as an arrow, as a dimension style's 5 to 7 or an override does; false where none does.</summary>
+            internal bool MayBeArrow(string name) => Arrows.ContainsKey(name);
+
+            /// <summary>Whether a record may point at a handle, as <see cref="PointedAt"/> finds one; false where none does.</summary>
+            internal bool MayPointAt(string handle) => !TryHex(handle.Trim(), out ulong wanted) || Pointed.ContainsKey(wanted);
+
+            /// <summary>Counts a use on, or off.</summary>
+            internal static void Count<T>(Dictionary<T, int> uses, T key, int by)
+            {
+                uses.TryGetValue(key, out int count);
+                count += by;
+
+                if (count > 0)
+                {
+                    uses[key] = count;
+                }
+                else
+                {
+                    uses.Remove(key);
+                }
+            }
+        }
+
+        /// <summary>What the records of the file use, as <see cref="Usage"/> says: read in one walk of the file where it is not known.</summary>
+        internal Usage UsageOfRecords()
+        {
+            if (_usage == null)
+            {
+                var usage = new Usage();
+
+                foreach (Rec record in Current(0, _starts.Length))
+                {
+                    CountUsage(usage, record, 1);
+                }
+
+                _usage = usage;
+            }
+
+            return _usage;
+        }
+
+        /// <summary>Counts what records put into the file use, where what is used is known.</summary>
+        private void UsagePut(List<Rec> records)
+        {
+            foreach (Rec record in records)
+            {
+                CountUsage(_usage, record, 1);
+            }
+        }
+
+        /// <summary>Counts off what records taken out of the file used, where what is used is known.</summary>
+        private void UsageGone(List<Rec> records)
+        {
+            foreach (Rec record in records)
+            {
+                CountUsage(_usage, record, -1);
+            }
+        }
+
+        /// <summary>Forgets what the records use, a record being rewritten in its place, to be read again when next asked for.</summary>
+        private void UsageChanged() => _usage = null;
+
+        /// <summary>
+        /// Counts what a record uses on or off, as <see cref="Names"/> reads it for the erasing of a block (the own groups before
+        /// the extended data, outside the groups of the applications: an INSERT's, a dimension's or a table's 2, a dimension
+        /// style's 5 to 7), as <see cref="NamesArrowInOverrides"/> reads its extended data and as <see cref="PointedAt"/> reads
+        /// its pointers.
+        /// </summary>
+        private void CountUsage(Usage usage, Rec record, int by)
+        {
+            List<Pair> pairs = PairsOf(record);
+            int data = DataAt(record, pairs);
+            bool drawing = record.Type == "INSERT" || record.Type == "DIMENSION" || record.Type == "ACAD_TABLE";
+            bool styled = record.Type == "DIMSTYLE";
+            bool braced = false;
+
+            for (int i = 1; (drawing || styled) && i < data; i++)
+            {
+                int code = pairs[i].Code;
+
+                if (code == 102)
+                {
+                    braced = Text(record, pairs[i]).Trim().StartsWith("{", StringComparison.Ordinal);
+                }
+                else if (!braced && ((drawing && code == 2) || (styled && code >= 5 && code <= 7)))
+                {
+                    Usage.Count(drawing ? usage.Drawn : usage.Arrows, DxfReader.NameOf(Text(record, pairs[i])), by);
+                }
+            }
+
+            bool overrides = false;
+
+            for (int i = data; i < pairs.Count; i++)
+            {
+                overrides = DimensionOverrides(record, pairs, i, overrides);
+                string arrow = overrides ? OverrideArrow(record, pairs, i) : null;
+
+                if (arrow != null)
+                {
+                    Usage.Count(usage.Arrows, arrow, by);
+                }
+            }
+
+            braced = false;
+            bool owner = false;
+
+            for (int i = 1; i < pairs.Count; i++)
+            {
+                Pair pair = pairs[i];
+
+                if (pair.Code == 102)
+                {
+                    braced = Text(record, pair).Trim().StartsWith("{", StringComparison.Ordinal);
+                    continue;
+                }
+
+                if (braced)
+                {
+                    continue;
+                }
+
+                if (pair.Code == 330 && !owner)
+                {
+                    owner = true;
+                    continue;
+                }
+
+                bool pointer = (pair.Code >= 320 && pair.Code <= 369) || (pair.Code >= 390 && pair.Code <= 399) || pair.Code == 480 || pair.Code == 481 || pair.Code == 1005;
+
+                if (pointer && TryHex(record.Bytes, pair.ValueStart, pair.ValueEnd, out ulong value))
+                {
+                    Usage.Count(usage.Pointed, value, by);
+                }
+            }
         }
 
         /// <summary>
@@ -493,6 +679,7 @@ namespace GeometryHelper.Dxf
                 _blockIndex[name] = block;
             }
 
+            _anonymousFrom?.Clear();
             block.Name = name;
 
             foreach (DxfItem item in block.Items.Snapshot())
@@ -530,6 +717,11 @@ namespace GeometryHelper.Dxf
                         Retire(record);
                     }
 
+                    if (_usage != null)
+                    {
+                        UsageGone(block.Home[i].Records);
+                    }
+
                     block.Home.RemoveAt(i);
                 }
             }
@@ -560,6 +752,12 @@ namespace GeometryHelper.Dxf
                     for (int i = last.Count - 2; i >= 0; i--)
                     {
                         last[i].Records.ForEach(Retire);
+
+                        if (_usage != null)
+                        {
+                            UsageGone(last[i].Records);
+                        }
+
                         last.RemoveAt(i);
                     }
                 }
@@ -576,6 +774,7 @@ namespace GeometryHelper.Dxf
                 _blockIndex.Remove(block.Name);
             }
 
+            _anonymousFrom?.Clear();
             Edited();
         }
 
@@ -619,7 +818,10 @@ namespace GeometryHelper.Dxf
 
             if (item.First < 0)
             {
-                item.Home.Remove(item.Piece);
+                if (item.Home.Remove(item.Piece) && _usage != null)
+                {
+                    UsageGone(item.Piece.Records);
+                }
             }
             else
             {

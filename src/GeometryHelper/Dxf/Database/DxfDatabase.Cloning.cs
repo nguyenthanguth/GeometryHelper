@@ -92,33 +92,42 @@ namespace GeometryHelper.Dxf
 
             // Every copy is checked before any is added: a copy refused changes nothing.
             var copies = new List<DxfEntity>(entities.Count);
-
-            foreach (DxfEntity entity in entities)
-            {
-                DxfEntity copy = entity.Clone();
-                copy.Appending(owner);
-
-                if (copy is DxfMText mtext && !target.HasMarkers)
-                {
-                    foreach (DxfEntity text in mtext.R12Texts(target))
-                    {
-                        target.CheckAdopt(text.Item);
-                    }
-                }
-                else
-                {
-                    target.CheckAdopt(copy.Item);
-                }
-
-                copies.Add(copy);
-            }
-
             var copyOf = new Dictionary<DxfItem, DxfEntity>();
+            // The records of the tables of the drawing copied into are kept by name for the copy, and what is read of this one
+            // with them: this drawing is only read, as several threads may copy from it at once.
+            target.HoldTableNames();
 
-            for (int i = 0; i < entities.Count; i++)
+            try
             {
-                owner.AppendEntity(copies[i]);
-                copyOf.Add(entities[i].Item, copies[i]);
+                foreach (DxfEntity entity in entities)
+                {
+                    DxfEntity copy = entity.Clone();
+                    copy.Appending(owner);
+
+                    if (copy is DxfMText mtext && !target.HasMarkers)
+                    {
+                        foreach (DxfEntity text in mtext.R12Texts(target))
+                        {
+                            target.CheckAdopt(text.Item);
+                        }
+                    }
+                    else
+                    {
+                        target.CheckAdopt(copy.Item);
+                    }
+
+                    copies.Add(copy);
+                }
+
+                for (int i = 0; i < entities.Count; i++)
+                {
+                    owner.AppendEntity(copies[i]);
+                    copyOf.Add(entities[i].Item, copies[i]);
+                }
+            }
+            finally
+            {
+                target.ReleaseTableNames();
             }
 
             for (int i = 0; i < entities.Count; i++)

@@ -65,12 +65,24 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            CheckCopies(dataBase, entities);
-            MergeTables(dataBase);
-            IReadOnlyList<DxfTypedValue> least = File.HeaderOf("$EXTMIN");
-            IReadOnlyList<DxfTypedValue> most = File.HeaderOf("$EXTMAX");
-            var before = new HashSet<DxfEntity>(ModelSpace);
-            dataBase.WblockCloneObjects(entities, ModelSpace);
+            IReadOnlyList<DxfTypedValue> least;
+            IReadOnlyList<DxfTypedValue> most;
+            HashSet<DxfEntity> before;
+            File.HoldTableNames();
+
+            try
+            {
+                CheckCopies(dataBase, entities);
+                MergeTables(dataBase);
+                least = File.HeaderOf("$EXTMIN");
+                most = File.HeaderOf("$EXTMAX");
+                before = new HashSet<DxfEntity>(ModelSpace);
+                dataBase.WblockCloneObjects(entities, ModelSpace);
+            }
+            finally
+            {
+                File.ReleaseTableNames();
+            }
 
             if (moved)
             {
@@ -151,17 +163,28 @@ namespace GeometryHelper.Dxf
             }
 
             var entities = new List<DxfEntity>(dataBase.ModelSpace);
-            CheckCopies(dataBase, entities);
-            MergeTables(dataBase);
-            var block = new DxfBlockTableRecord { Name = blockName, Origin = dataBase.Insbase };
+            DxfBlockTableRecord block;
+            File.HoldTableNames();
 
-            if (File.Supports(1021))
+            try
             {
-                block.Units = dataBase.Insunits;
+                CheckCopies(dataBase, entities);
+                MergeTables(dataBase);
+                block = new DxfBlockTableRecord { Name = blockName, Origin = dataBase.Insbase };
+
+                if (File.Supports(1021))
+                {
+                    block.Units = dataBase.Insunits;
+                }
+
+                BlockTable.Add(block);
+                dataBase.WblockCloneObjects(entities, block);
+            }
+            finally
+            {
+                File.ReleaseTableNames();
             }
 
-            BlockTable.Add(block);
-            dataBase.WblockCloneObjects(entities, block);
             GeometryHelperLog.Info("DxfDatabase: a drawing of " + entities.Count.ToString(CultureInfo.InvariantCulture) + " entities was made the block " + blockName + ".");
             return block;
         }

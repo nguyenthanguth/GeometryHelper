@@ -409,7 +409,12 @@ namespace GeometryHelper.Dxf
 
             // The new entity's own handle goes with the record it was written as; its followers keep theirs.
             Retire(head);
-            written.Home.Remove(written.Piece);
+
+            if (written.Home.Remove(written.Piece) && _usage != null)
+            {
+                UsageGone(written.Piece.Records);
+            }
+
             written.Piece = new Piece(made);
             written.IsRemoved = true;
             space.Removed();

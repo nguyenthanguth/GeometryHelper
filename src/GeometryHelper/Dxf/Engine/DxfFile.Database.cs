@@ -654,7 +654,7 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                needs.Objects = needs.Objects ?? origin.Objects();
+                needs.Objects = needs.Objects ?? ObjectsOf(origin);
 
                 if (needs.Objects.TryGetValue(handle, out KeyValuePair<Rec, bool> pointed) && pointed.Value && pointed.Key.Type == "BLOCK_RECORD"
                     && origin.Blocks.TryGetValue(DxfReader.NameOf(origin.Record(pointed.Key).Text(2) ?? string.Empty), out DxfFileBlock block)
@@ -894,7 +894,7 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            needs.Objects = needs.Objects ?? origin.Objects();
+            needs.Objects = needs.Objects ?? ObjectsOf(origin);
 
             if (!needs.Objects.TryGetValue(handle, out KeyValuePair<Rec, bool> pointed) || !pointed.Value)
             {
@@ -922,17 +922,71 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The record of a table of a file by its name, letters of either case the same; null where the table has none.</summary>
-        private static Rec? FindRecord(DxfFile file, string table, string name)
+        private Rec? FindRecord(DxfFile file, string table, string name)
         {
-            foreach (Rec record in file.TableRecords(table))
+            if (file == this || _tableNames == null)
             {
-                if (string.Equals(DxfReader.NameOf(file.Record(record).Text(2) ?? string.Empty).Trim(), name, StringComparison.OrdinalIgnoreCase))
-                {
-                    return record;
-                }
+                return file.TableRecord(table, name, true);
             }
 
-            return null;
+            // A drawing copied from is read, never written: what is read of it is kept here, for this call.
+            CopiedDrawing copied = CopiedFrom(file);
+
+            if (!copied.Names.TryGetValue(table, out TableNames names))
+            {
+                names = file.ReadTableNames(table);
+                copied.Names.Add(table, names);
+            }
+
+            return name != null && names.Trimmed.TryGetValue(name, out Rec found) ? found : (Rec?)null;
+        }
+
+        /// <summary>
+        /// The records of the TABLES and OBJECTS sections of a file by handle, as <see cref="Objects"/> reads them: this file's
+        /// own, or another's, a drawing copied from, kept here while a call holds the records of the tables by name, that
+        /// drawing only read, so that several threads may copy from it at once.
+        /// </summary>
+        private Dictionary<ulong, KeyValuePair<Rec, bool>> ObjectsOf(DxfFile file)
+        {
+            if (file == this || _tableNames == null)
+            {
+                return file.Objects();
+            }
+
+            CopiedDrawing copied = CopiedFrom(file);
+            return copied.Objects ?? (copied.Objects = file.ReadObjects());
+        }
+
+        /// <summary>What is kept of a drawing copied from while a call holds the records of the tables by name: read again where it was written since.</summary>
+        private CopiedDrawing CopiedFrom(DxfFile file)
+        {
+            int at = Volatile.Read(ref file._editCount);
+
+            if (!_copiedFrom.TryGetValue(file, out CopiedDrawing copied) || copied.At != at)
+            {
+                copied = new CopiedDrawing(at);
+                _copiedFrom[file] = copied;
+            }
+
+            return copied;
+        }
+
+        /// <summary>The records of the tables by name and the objects by handle of a drawing copied from, as it stood when they were read.</summary>
+        private sealed class CopiedDrawing
+        {
+            internal CopiedDrawing(int at)
+            {
+                At = at;
+            }
+
+            /// <summary>How many changes that drawing had had.</summary>
+            internal int At { get; }
+
+            /// <summary>Its records of the tables by name, type by type.</summary>
+            internal Dictionary<string, TableNames> Names { get; } = new Dictionary<string, TableNames>(StringComparer.Ordinal);
+
+            /// <summary>Its objects by handle; null until read.</summary>
+            internal Dictionary<ulong, KeyValuePair<Rec, bool>> Objects { get; set; }
         }
 
         /// <summary>
@@ -1111,7 +1165,11 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        /// <summary>The first name of an anonymous block's letter and a number, from 1 up, that this file has no block of and no block being copied is given.</summary>
+        /// <summary>
+        /// The first name of an anonymous block's letter and a number, from 1 up, that this file has no block of and no block
+        /// being copied is given: sought from the number last given, while a call holds the records of the tables by name, as
+        /// names are only taken then.
+        /// </summary>
         private string FreeAnonymousName(string name)
         {
             int digits = 1;
@@ -1122,13 +1180,19 @@ namespace GeometryHelper.Dxf
             }
 
             string prefix = name.Substring(0, digits);
+            int from = _anonymousFrom != null && _anonymousFrom.TryGetValue(prefix, out int taken) ? taken : 1;
 
-            for (int n = 1; ; n++)
+            for (int n = from; ; n++)
             {
                 string candidate = prefix + n.ToString(CultureInfo.InvariantCulture);
 
                 if (!Blocks.ContainsKey(candidate) && !_blockCopies.Values.Any(v => string.Equals(v, candidate, StringComparison.OrdinalIgnoreCase)))
                 {
+                    if (_anonymousFrom != null)
+                    {
+                        _anonymousFrom[prefix] = n;
+                    }
+
                     return candidate;
                 }
             }
@@ -1676,7 +1740,7 @@ namespace GeometryHelper.Dxf
 
             if (Style.Markers || !origin.Style.Markers || !int.TryParse(variable.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int code)
                 || !(DxfDimVariable.OfCode(code, false) is DxfDimVariable known) || known.Kind != DxfDimKind.Block || known.R12Code == 0
-                || !TryHex(pointer.Trim(), out ulong handle) || !origin.Objects().TryGetValue(handle, out KeyValuePair<Rec, bool> found)
+                || !TryHex(pointer.Trim(), out ulong handle) || !ObjectsOf(origin).TryGetValue(handle, out KeyValuePair<Rec, bool> found)
                 || !found.Value || found.Key.Type != "BLOCK_RECORD")
             {
                 return false;
@@ -2066,7 +2130,7 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private bool BlockToCome(DxfFile origin, string pointer)
         {
-            if (_deferred == null || _blockCopies == null || !TryHex(pointer.Trim(), out ulong handle) || !origin.Objects().TryGetValue(handle, out KeyValuePair<Rec, bool> found)
+            if (_deferred == null || _blockCopies == null || !TryHex(pointer.Trim(), out ulong handle) || !ObjectsOf(origin).TryGetValue(handle, out KeyValuePair<Rec, bool> found)
                 || !found.Value || found.Key.Type != "BLOCK_RECORD" || !origin.Blocks.TryGetValue(DxfReader.NameOf(origin.Record(found.Key).Text(2) ?? string.Empty), out DxfFileBlock block)
                 || !_blockCopies.TryGetValue(block, out string name))
             {
@@ -2240,7 +2304,7 @@ namespace GeometryHelper.Dxf
                 return null;
             }
 
-            Dictionary<ulong, KeyValuePair<Rec, bool>> theirs = origin.Objects();
+            Dictionary<ulong, KeyValuePair<Rec, bool>> theirs = ObjectsOf(origin);
 
             if (!theirs.TryGetValue(handle, out KeyValuePair<Rec, bool> found))
             {
@@ -2260,15 +2324,8 @@ namespace GeometryHelper.Dxf
                     name = copiedName;
                 }
 
-                foreach (Rec mine in TableRecords(record.Type))
-                {
-                    if (string.Equals(DxfReader.NameOf(Record(mine).Text(2) ?? string.Empty), name, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return HandleOf(mine, out ulong own) ? own.ToString("X", CultureInfo.InvariantCulture) : null;
-                    }
-                }
-
-                return null;
+                Rec? mine = TableRecord(record.Type, name, false);
+                return mine != null && HandleOf(mine.Value, out ulong own) ? own.ToString("X", CultureInfo.InvariantCulture) : null;
             }
 
             if (!origin.NamedPath(handle, out string dictionary, out string entry))
@@ -2287,8 +2344,29 @@ namespace GeometryHelper.Dxf
             return Entry(dictionaryRecord.Key, entry);
         }
 
-        /// <summary>The records of the TABLES and OBJECTS sections as they stand, by handle, each with whether it is a table's.</summary>
+        /// <summary>
+        /// The records of the TABLES and OBJECTS sections as they stand, by handle, each with whether it is a table's: kept while
+        /// a call holds the records of the tables by name, until a record of those sections is written.
+        /// </summary>
         private Dictionary<ulong, KeyValuePair<Rec, bool>> Objects()
+        {
+            if (_objects != null)
+            {
+                return _objects;
+            }
+
+            Dictionary<ulong, KeyValuePair<Rec, bool>> objects = ReadObjects();
+
+            if (_tableNames != null)
+            {
+                _objects = objects;
+            }
+
+            return objects;
+        }
+
+        /// <summary>The records of the TABLES and OBJECTS sections as they stand, by handle, each with whether it is a table's: read, nothing of the file written.</summary>
+        private Dictionary<ulong, KeyValuePair<Rec, bool>> ReadObjects()
         {
             var objects = new Dictionary<ulong, KeyValuePair<Rec, bool>>();
 
@@ -2487,11 +2565,45 @@ namespace GeometryHelper.Dxf
 
             if (block.Home != null)
             {
-                block.Home.Insert(block.Home.IndexOf(block.EndPiece), piece);
+                block.Home.Insert(IndexOfPiece(block.Home, block.EndPiece), piece);
+
+                if (_insertNames != null)
+                {
+                    InsertsWritten(piece.Records);
+                }
+
+                if (_usage != null)
+                {
+                    UsagePut(piece.Records);
+                }
+
                 return block.Home;
             }
 
             return PutBefore(block.End, piece);
+        }
+
+        /// <summary>
+        /// Where a piece stands in a list it is in once, as <see cref="List{T}.IndexOf(T)"/> finds it; -1 where it is in none:
+        /// sought from both ends at once, as the blocks added in code share one list, so that appending to the first of 10 000
+        /// or to the last reads few pieces.
+        /// </summary>
+        private static int IndexOfPiece(List<Piece> pieces, Piece piece)
+        {
+            for (int first = 0, last = pieces.Count - 1; first <= last; first++, last--)
+            {
+                if (ReferenceEquals(pieces[first], piece))
+                {
+                    return first;
+                }
+
+                if (ReferenceEquals(pieces[last], piece))
+                {
+                    return last;
+                }
+            }
+
+            return -1;
         }
 
         /// <summary>The handle of what owns the entities of a space: the BLOCK_RECORD of model space, of paper space, or of the block.</summary>
@@ -2508,17 +2620,8 @@ namespace GeometryHelper.Dxf
         /// <summary>The handle of the BLOCK_RECORD of a name, letters of either case the same; null where there is none.</summary>
         private string BlockRecordHandle(string name)
         {
-            foreach (Rec record in TableRecords("BLOCK_RECORD"))
-            {
-                DxfReader.Record read = Record(record);
-
-                if (string.Equals(DxfReader.NameOf(read.Text(2) ?? string.Empty), name, StringComparison.OrdinalIgnoreCase))
-                {
-                    return read.Text(5)?.Trim();
-                }
-            }
-
-            return null;
+            Rec? record = TableRecord("BLOCK_RECORD", name, false);
+            return record == null ? null : Record(record.Value).Text(5)?.Trim();
         }
 
         /// <summary>
@@ -3768,12 +3871,9 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            foreach (Rec record in TableRecords("APPID"))
+            if (TableRecord("APPID", name, false) != null)
             {
-                if (string.Equals(DxfReader.NameOf(Record(record).Text(2) ?? string.Empty), name, StringComparison.OrdinalIgnoreCase))
-                {
-                    return;
-                }
+                return;
             }
 
             if (AddTableRecord("APPID", "AcDbRegAppTableRecord", b =>
@@ -3856,49 +3956,54 @@ namespace GeometryHelper.Dxf
         }
 
         private Dictionary<string, List<DxfItem>> _tableItems;
+        private readonly object _tableItemsMade = new object();
 
         /// <summary>
         /// The records of a table, in the order of the file, those added after them: each the same object every time, so that
-        /// the editing model has one object for each.
+        /// the editing model has one object for each. Made under a lock, as several threads may read a drawing at once, each
+        /// copying it into one of its own, so that two of them never make a list each.
         /// </summary>
         internal List<DxfItem> TableItems(string table)
         {
-            if (_tableItems == null)
+            lock (_tableItemsMade)
             {
-                _tableItems = new Dictionary<string, List<DxfItem>>(StringComparer.Ordinal);
-            }
-
-            if (_tableItems.TryGetValue(table, out List<DxfItem> items))
-            {
-                return items;
-            }
-
-            items = new List<DxfItem>();
-
-            foreach (Section section in _sections)
-            {
-                if (section.Name != "TABLES")
+                if (_tableItems == null)
                 {
-                    continue;
+                    _tableItems = new Dictionary<string, List<DxfItem>>(StringComparer.Ordinal);
                 }
 
-                for (int i = section.First + 1; i < section.Last; i++)
+                if (_tableItems.TryGetValue(table, out List<DxfItem> items))
                 {
-                    if (_types[i] == table)
+                    return items;
+                }
+
+                items = new List<DxfItem>();
+
+                foreach (Section section in _sections)
+                {
+                    if (section.Name != "TABLES")
                     {
-                        items.Add(new DxfItem(this, i, 1, table, null));
+                        continue;
+                    }
+
+                    for (int i = section.First + 1; i < section.Last; i++)
+                    {
+                        if (_types[i] == table)
+                        {
+                            items.Add(new DxfItem(this, i, 1, table, null));
+                        }
                     }
                 }
-            }
 
-            // Those added before the list was first asked for, by an entity set on a layer not listed.
-            if (_added != null && _added.TryGetValue(table, out List<DxfItem> added))
-            {
-                items.AddRange(added);
-            }
+                // Those added before the list was first asked for, by an entity set on a layer not listed.
+                if (_added != null && _added.TryGetValue(table, out List<DxfItem> added))
+                {
+                    items.AddRange(added);
+                }
 
-            _tableItems.Add(table, items);
-            return items;
+                _tableItems.Add(table, items);
+                return items;
+            }
         }
 
         private Dictionary<string, List<DxfItem>> _added;

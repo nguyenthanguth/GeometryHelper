@@ -227,6 +227,10 @@ namespace GeometryHelper.Dxf
                     if (c >= 0x80)
                     {
                         _decoding = _decoding.WithLetters(Version, _namedPage) ?? _decoding;
+                        _tableNames?.Clear();
+                        _objects = null;
+                        _insertNames = null;
+                        _usage = null;
                         break;
                     }
                 }
@@ -343,6 +347,28 @@ namespace GeometryHelper.Dxf
                 _slots = new List<Piece>[_starts.Length];
             }
 
+            if (_tableNames != null && InTables(record))
+            {
+                TablesWritten(Current(record, record + 1));
+                pieces.ForEach(piece => TablesWritten(piece.Records));
+            }
+
+            if (_objects != null && InObjectsOrTables(record))
+            {
+                _objects = null;
+            }
+
+            if (_insertNames != null)
+            {
+                pieces.ForEach(piece => InsertsWritten(piece.Records));
+            }
+
+            if (_usage != null)
+            {
+                UsageGone(Current(record, record + 1));
+                pieces.ForEach(piece => UsagePut(piece.Records));
+            }
+
             _slots[record] = pieces;
             _editCount++;
         }
@@ -360,12 +386,54 @@ namespace GeometryHelper.Dxf
 
             slot.Insert(slot.Count - 1, piece);
             _editCount++;
+
+            if (_tableNames != null && InTables(record))
+            {
+                TablesAdded(record, slot, piece);
+            }
+
+            if (_objects != null && InObjectsOrTables(record))
+            {
+                _objects = null;
+            }
+
+            if (_insertNames != null)
+            {
+                InsertsWritten(piece.Records);
+            }
+
+            if (_usage != null)
+            {
+                UsagePut(piece.Records);
+            }
+
             return slot;
         }
 
         /// <summary>The records of an entity written anew: in the place of its first record, its others put out.</summary>
         private void SetRecords(DxfItem item, List<Rec> records)
         {
+            // A record of no space, as one of a table or an object, may be one of the tables read by name, or of the objects.
+            if (_tableNames != null && item.Parent == null && item.Space == null)
+            {
+                TablesWritten(RecordsOf(item));
+                TablesWritten(records);
+                _objects = null;
+            }
+
+            // An INSERT is the first record of its entity: the records that follow one (an ATTRIB, a VERTEX, a SEQEND) are not
+            // read, as 20 000 vertices set one at a time would read them all each time.
+            if (_insertNames != null && item.Parent == null)
+            {
+                InsertsWritten(records[0]);
+            }
+
+            // Records written anew in their place may have been changed in it already, so that what they used is not known.
+            if (item.Parent == null && item.Piece != null)
+            {
+                UsageChanged();
+            }
+
             TakePendingData(item, records);
             _editCount++;
 
@@ -1550,7 +1618,10 @@ namespace GeometryHelper.Dxf
 
             if (item.First < 0)
             {
-                item.Home.Remove(item.Piece);
+                if (item.Home.Remove(item.Piece) && _usage != null)
+                {
+                    UsageGone(item.Piece.Records);
+                }
             }
             else
             {
@@ -1774,6 +1845,294 @@ namespace GeometryHelper.Dxf
             return records;
         }
 
+        // While DxfDatabase.Insert or WblockCloneObjects lasts (how many calls hold them), the records of each type of the TABLES
+        // sections by name, read once rather than for each entity copied: a record added after every one of its type, as at the
+        // end of its table, is taken in, and a type is taken out by any other write into TABLES that adds, rewrites or takes out
+        // a record of it, to be read again when next asked for. Null at any other time.
+        private Dictionary<string, TableNames> _tableNames;
+        private int _tableNamesHeld;
+
+        // While a call holds the records of the tables by name, the records of the TABLES and OBJECTS sections by handle, as
+        // Objects reads them, read once rather than for each pointer copied: null again after any write into those sections.
+        private Dictionary<ulong, KeyValuePair<Rec, bool>> _objects;
+
+        // While a call holds the records of the tables by name, the number after each first name AutoCAD gives a block itself
+        // (*D, *U ...) up to which every name is taken: names are only taken while the call lasts, so that the next free one
+        // is sought from there. Cleared where a block is renamed or erased.
+        private Dictionary<string, int> _anonymousFrom;
+
+        // While a call holds the records of the tables by name, what is read of each drawing copied from, kept here rather than
+        // in that drawing, which is only read.
+        private Dictionary<DxfFile, CopiedDrawing> _copiedFrom;
+
+        /// <summary>The records of a type of the TABLES sections by name: the first of each, in their order, letters of either case the same.</summary>
+        private sealed class TableNames
+        {
+            /// <summary>By the name as written, its escapes read.</summary>
+            internal Dictionary<string, Rec> Named { get; } = new Dictionary<string, Rec>(StringComparer.OrdinalIgnoreCase);
+
+            /// <summary>By that name with the spaces around it taken off.</summary>
+            internal Dictionary<string, Rec> Trimmed { get; } = new Dictionary<string, Rec>(StringComparer.OrdinalIgnoreCase);
+
+            /// <summary>The last record of the file, as read, in whose place a record of the type stands; -1 where none does.</summary>
+            internal int Last { get; set; } = -1;
+
+            /// <summary>Takes a record of the type, after every one taken before it, among the records by name.</summary>
+            internal void Take(Rec record, string own, int at)
+            {
+                string plain = own.Trim();
+
+                if (!Named.ContainsKey(own))
+                {
+                    Named.Add(own, record);
+                }
+
+                if (!Trimmed.ContainsKey(plain))
+                {
+                    Trimmed.Add(plain, record);
+                }
+
+                Last = Math.Max(Last, at);
+            }
+        }
+
+        /// <summary>
+        /// Keeps the records of the tables by name, the objects by handle and where the names AutoCAD gives blocks itself are
+        /// free from, until <see cref="ReleaseTableNames"/>, as <c>DxfDatabase.Insert</c> and <c>WblockCloneObjects</c> keep them
+        /// for the length of one call: so that the layer of each of 10 000 entities copied is found without reading every record
+        /// of the tables, 10 000 BLOCK_RECORDs among them, each time, nor the objects read again for each pointer.
+        /// </summary>
+        internal void HoldTableNames()
+        {
+            if (_tableNamesHeld++ == 0)
+            {
+                _tableNames = new Dictionary<string, TableNames>(StringComparer.Ordinal);
+                _anonymousFrom = new Dictionary<string, int>(StringComparer.Ordinal);
+                _copiedFrom = new Dictionary<DxfFile, CopiedDrawing>();
+            }
+        }
+
+        /// <summary>Lets go of what <see cref="HoldTableNames"/> keeps, once every call that holds it has ended.</summary>
+        internal void ReleaseTableNames()
+        {
+            if (--_tableNamesHeld == 0)
+            {
+                _tableNames = null;
+                _objects = null;
+                _anonymousFrom = null;
+                _copiedFrom = null;
+            }
+        }
+
+        /// <summary>
+        /// The first record of a type of the TABLES sections, in their order, whose name (2), its escapes read, is the one given,
+        /// letters of either case the same, and the spaces around it taken off too where asked; null where none is. Read from
+        /// the records by name while a call holds them, else from the records as they stand.
+        /// </summary>
+        private Rec? TableRecord(string type, string name, bool trimmed)
+        {
+            if (_tableNames == null)
+            {
+                foreach (Rec record in TableRecords(type))
+                {
+                    string own = DxfReader.NameOf(Record(record).Text(2) ?? string.Empty);
+
+                    if (string.Equals(trimmed ? own.Trim() : own, name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return record;
+                    }
+                }
+
+                return null;
+            }
+
+            if (!_tableNames.TryGetValue(type, out TableNames names))
+            {
+                names = ReadTableNames(type);
+                _tableNames.Add(type, names);
+            }
+
+            return name != null && (trimmed ? names.Trimmed : names.Named).TryGetValue(name, out Rec found) ? found : (Rec?)null;
+        }
+
+        /// <summary>The records of a type of the TABLES sections by name, as <see cref="TableRecords"/> gives them: read, nothing of the file written.</summary>
+        private TableNames ReadTableNames(string type)
+        {
+            var names = new TableNames();
+
+            // The records in the place of each record of the file as read.
+            foreach (Section section in _sections)
+            {
+                if (section.Name != "TABLES")
+                {
+                    continue;
+                }
+
+                for (int i = section.First + 1; i <= section.Last; i++)
+                {
+                    List<Piece> slot = _slots?[i];
+
+                    if (slot == null)
+                    {
+                        if (i < section.Last && _types[i] == type)
+                        {
+                            Rec record = Original(i);
+                            names.Take(record, DxfReader.NameOf(Record(record).Text(2) ?? string.Empty), i);
+                        }
+
+                        continue;
+                    }
+
+                    for (int p = 0; p < (i < section.Last ? slot.Count : slot.Count - 1); p++)
+                    {
+                        foreach (Rec record in slot[p].Records)
+                        {
+                            if (record.Type == type)
+                            {
+                                names.Take(record, DxfReader.NameOf(Record(record).Text(2) ?? string.Empty), i);
+                            }
+                        }
+                    }
+                }
+            }
+
+            return names;
+        }
+
+        /// <summary>Whether a record of the file, as read, is of a TABLES section: its SECTION, its ENDSEC or one between.</summary>
+        private bool InTables(int record)
+        {
+            foreach (Section section in _sections)
+            {
+                if (section.Name == "TABLES" && record >= section.First && record <= section.Last)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Whether a record of the file, as read, is of a TABLES or an OBJECTS section, whose records <see cref="Objects"/> reads.</summary>
+        private bool InObjectsOrTables(int record)
+        {
+            foreach (Section section in _sections)
+            {
+                if ((section.Name == "TABLES" || section.Name == "OBJECTS") && record >= section.First && record <= section.Last)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Takes records put into a TABLES section, before a record of the file, into the records by name: each that comes after
+        /// every record of its type, as one added at the end of its table does, kept with them; its type read again otherwise.
+        /// </summary>
+        private void TablesAdded(int record, List<Piece> slot, Piece piece)
+        {
+            foreach (Rec added in piece.Records)
+            {
+                if (added.Type == null || !_tableNames.TryGetValue(added.Type, out TableNames names))
+                {
+                    continue;
+                }
+
+                // In the place of a later record of the file than any of its type, or of the same one, before the last piece
+                // there, which holds none of its type.
+                if (record > names.Last || (record == names.Last && !slot[slot.Count - 1].Records.Exists(r => r.Type == added.Type)))
+                {
+                    names.Take(added, DxfReader.NameOf(Record(added).Text(2) ?? string.Empty), record);
+                }
+                else
+                {
+                    _tableNames.Remove(added.Type);
+                }
+            }
+        }
+
+        /// <summary>Takes the types of records written into the TABLES sections, or out of them, out of the records by name, to be read again.</summary>
+        private void TablesWritten(List<Rec> records)
+        {
+            foreach (Rec record in records)
+            {
+                TableWritten(record, null);
+            }
+        }
+
+        /// <summary>Takes the type of a record of the TABLES sections rewritten or taken out, and of what it became, out of the records by name.</summary>
+        private void TableWritten(Rec record, Rec? now)
+        {
+            if (record.Type != null)
+            {
+                _tableNames.Remove(record.Type);
+            }
+
+            if (now?.Type != null)
+            {
+                _tableNames.Remove(now.Value.Type);
+            }
+        }
+
+        // The names the INSERTs of the file give, letters of either case the same: read in one walk of the file once a walk for a
+        // round has gone down many blocks, and those of every INSERT written since added, so that it holds every name an INSERT
+        // of the drawing gives, and the name of one rewritten or taken out too. Null until then, and again once the code page
+        // changes.
+        private HashSet<string> _insertNames;
+
+        /// <summary>
+        /// Whether no INSERT of the file, in model space, paper space or a block, names a block, letters of either case the same,
+        /// as the names the INSERTs give, where they are kept, say: so that a block nothing inserts is known at once to be
+        /// inserted by no block it inserts, at any depth, as a block is built from the bottom up. False where they are not kept.
+        /// </summary>
+        internal bool InsertsNone(string name) => _insertNames != null && !_insertNames.Contains(name);
+
+        /// <summary>Keeps the names the INSERTs of the file give from now on, read in one walk of the file where they are not kept.</summary>
+        internal void KeepInsertNames()
+        {
+            if (_insertNames == null)
+            {
+                _insertNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                InsertsWritten(Current(0, _starts.Length));
+            }
+        }
+
+        /// <summary>Adds the names of the INSERTs among records written into the file to the names the INSERTs give: each group 2 of each, read as an INSERT's name is read, or none.</summary>
+        private void InsertsWritten(List<Rec> records)
+        {
+            foreach (Rec record in records)
+            {
+                InsertsWritten(record);
+            }
+        }
+
+        /// <summary>Adds the names of a record written into the file, an INSERT, to the names the INSERTs give, as <see cref="InsertsWritten(List{Rec})"/> adds them.</summary>
+        private void InsertsWritten(Rec record)
+        {
+            if (record.Type != "INSERT")
+            {
+                return;
+            }
+
+            bool named = false;
+
+            foreach (Pair pair in PairsOf(record))
+            {
+                if (pair.Code == 2)
+                {
+                    _insertNames.Add(DxfReader.NameOf(Text(record, pair)));
+                    named = true;
+                }
+            }
+
+            if (!named)
+            {
+                _insertNames.Add(string.Empty);
+            }
+        }
+
         /// <summary>The names of the linetype table, as written, the spaces around them taken off.</summary>
         private List<string> Linetypes()
         {
@@ -1936,6 +2295,31 @@ namespace GeometryHelper.Dxf
                         if (!rewrite(piece.Records[k], out Rec? now))
                         {
                             continue;
+                        }
+
+                        if (_tableNames != null && InTables(i))
+                        {
+                            TableWritten(piece.Records[k], now);
+                        }
+
+                        if (_objects != null && InObjectsOrTables(i))
+                        {
+                            _objects = null;
+                        }
+
+                        if (_insertNames != null && now.HasValue)
+                        {
+                            InsertsWritten(now.Value);
+                        }
+
+                        if (_usage != null)
+                        {
+                            CountUsage(_usage, piece.Records[k], -1);
+
+                            if (now.HasValue)
+                            {
+                                CountUsage(_usage, now.Value, 1);
+                            }
                         }
 
                         if (now.HasValue)

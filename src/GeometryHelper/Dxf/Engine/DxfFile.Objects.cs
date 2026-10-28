@@ -158,9 +158,18 @@ namespace GeometryHelper.Dxf
                 Retire(record);
             }
 
+            if (_tableNames != null)
+            {
+                TablesWritten(records);
+                _objects = null;
+            }
+
             if (item.First < 0)
             {
-                item.Home.Remove(item.Piece);
+                if (item.Home.Remove(item.Piece) && _usage != null)
+                {
+                    UsageGone(item.Piece.Records);
+                }
             }
             else
             {

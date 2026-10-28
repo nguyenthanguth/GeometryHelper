@@ -362,6 +362,54 @@ that the dimension lost its arrows and the block could be erased from under it. 
 dimension's record and the block's alone written anew: the arrow GH_DOT renamed GH_DOT_R12 is `1070 5`, `1000 GH_DOT_R12`.
 A drawing of R2000 or later names them by handle (`1005`), which renaming leaves as it is; R12 has no DIMLDRBLK.
 
+**CHANGED.** `DxfDatabase.Insert` and `WblockCloneObjects` take time linear in the blocks of the drawings. Each entity copied
+found its layer, linetype, text style and dimension style, and the application of its extended data, by reading every
+record of the tables of both drawings, a BLOCK_RECORD for each block among them; each entity copied into a block added in
+code sought that block's ENDBLK through the blocks added before it; and each dimension copied read the objects of the other
+drawing again for each pointer of its overrides, and sought a free name `*D1`, `*D2` and on from `*D1`. For the length of
+each call the drawing copied into keeps the records of its tables by name now, a record added at the end of its table taken
+in with them and any other write to the tables reading that table again, and its objects by handle until a table or an
+object is written; it keeps what it reads of the drawing copied from too, which is only read; the ENDBLK is sought from both
+ends of the blocks added; and a free name from the last one given. A drawing of
+10 000 blocks nested one inside the next took 11.5 s to insert on .NET Framework 4.8 and 6.3 s on .NET 10, and takes 1.1 s
+and 1.0 s; `WblockCloneObjects` of its INSERT 6.5 s and 3.7 s before, 0.8 s now; 3 000 dimensions, each drawn by a block of
+its own and overriding DIMBLK with one arrow block, copied in 8.6 s and 5.4 s, and inserted in 9.4 s and 6.5 s, and take
+0.3 s and 0.4 s, and 0.5 s and 0.7 s.
+
+**CHANGED.** `AppendEntity` of an INSERT to a block no INSERT of the drawing names no longer walks down the blocks the
+inserted block holds to find whether it would make a round: a block nothing inserts cannot come to insert itself. The names
+the INSERTs of the drawing give are read once a walk for a round has gone down more than 64 blocks, and kept from then on,
+each INSERT written adding its own, so that each INSERT of a nest built from the bottom up is appended at once, and the
+first INSERT appended to a drawing as opened costs what it did: 3 000 blocks, each added and given an INSERT of the one before, took 6.1 s on
+.NET Framework 4.8 and 2.7 s on .NET 10, and take 0.14 s and 0.16 s. A round is refused as before, with the same message.
+
+**CHANGED.** `DxfBlockTableRecord.Erase` no longer reads every record of the drawing for an INSERT, a dimension or a table
+drawn by the block, an arrow named by it and a pointer to it, three times over: what the records use is read once, when a
+block is first erased, and kept, each record put into the drawing counted on and each taken out counted off, so that the
+records are read again only for a block one of them may use; and the block table keeps its blocks by name through an
+erasing, where none other has the name. 3 000 blocks erased one by one, each looked up by name, took 25.9 s on .NET
+Framework 4.8 and 13.8 s on .NET 10, and take 0.15 s and 0.20 s; a block in use is kept as before, with the same message.
+
+**FIXED.** Several threads copying from one drawing at once, each into a drawing of its own by `Insert`, `Insert(name)`
+or `WblockCloneObjects`, now and then threw an `ArgumentException` ("An item with the same key has already been added"):
+the lists of the records of the other drawing's tables were made as they were first read, by each thread at once. They
+are made under a lock now, and nothing else of the drawing copied from is written: eight threads copying one drawing of
+60 layers, 40 nested blocks and 200 entities, 60 times over, each give the drawing it gives alone; 6 to 10 of 600 rounds
+of four threads threw before, none now.
+
+**CHANGED.** `DxfPolyline.GetPoint3dAt` reads the polyline's normal and elevation once for the record as it stands, not
+again for each vertex: every vertex of a polyline of 10 000 read in the world took 36 s on .NET Framework 4.8 and 12 s on
+.NET 10, and takes 13 ms and 16 ms, each point the same to the bit.
+
+The four changes above give what they gave before, byte for byte: 253 drawings of the corpus and the tests resave byte
+for byte, and the 1 907 drawings `Insert` (into a drawing of their own version, of R12 and of R2018),
+`WblockCloneObjects`, `ExplodeToOwnerSpace` and renaming write of them, the drawings the walks of 3 000 nested blocks
+write, and every point `GetPoint3dAt` gives of their polylines are the same; 6 000 drawings of rounds, merged, renamed
+and erased, 6 000 cases of appending, moving and giving INSERTs another block, 60 000 merges, 3 000 runs of blocks
+added, filled, erased, renamed and merged, and 16 000 steps of blocks added, renamed, erased and looked up, each step
+with its answer, refusals among them, give the same, each line; ezdxf 1.4.5 finds nothing in any drawing written whose
+source it reads with nothing found.
+
 **NEW.** Annotative scaling as a DXF holds it, 5 members of AutoCAD's `Database` and `DBObject`. `DxfDatabase.ObjectContextManager`
 gives the drawing's list of scales as AutoCAD's `ObjectContextManager` does, `GetContextCollection("ACDB_ANNOTATIONSCALES")`,
 the new `DxfObjectContextCollection` of `DxfAnnotationScale`s (AutoCAD's `ObjectContextCollection` and `AnnotationScale`, of
