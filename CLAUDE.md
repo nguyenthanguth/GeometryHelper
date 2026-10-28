@@ -18,9 +18,8 @@ Don't assume, don't hide confusion, and say what the trade-offs are.
   welding a crack or filling a hole, and the two change the volume very differently.
 - If there is a simpler way, say so, and push back where it is warranted.
 - When something is unclear, stop, name what is unclear, and ask.
-- For a feature you have not built before, don't start from nothing. First look for open-source projects on GitHub
-  that solve the same problem, and compare their ideas before writing code. Take ideas, not code, unless the licence
-  allows it and the notice goes into `THIRD-PARTY-NOTICES.md`, as Clipper2's does.
+- For a feature you are not familiar with, don't write it from nothing: search GitHub for open-source projects and
+  compare their ideas before you start.
 
 ### 2. Simplicity first
 
