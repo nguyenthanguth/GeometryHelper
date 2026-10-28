@@ -34,6 +34,15 @@ theirs, and every number is as it was. `DxfReadOptions.ToMillimetres` is `ToMill
 spelled as AutoCAD spells it: `DxfShape.Colour`, `TrueColour` and `Lineweight` are `Color`, `TrueColor` and `LineWeight`,
 and so are the arguments of `new DxfShape(shape, layer, color, trueColor, linetype, lineWeight, thickness)`.
 
+**BREAKING.** `GeoArc2.FromThreePoints` and `GeoArc3.FromThreePoints` throw `InvalidOperationException` for many nearly
+collinear points that gave an arc before: those whose middle lies within the point tolerance of the line through the
+other two, and those whose arc would miss one of its own points by more than the tolerance. Of 300 000 random triples
+nearly on one line, at a thousandth, 35 100 of the 45 415 arcs given in the plane and 26 071 of the 36 386 in space are
+refused now; the **FIXED.** entry on the two says why. Code that may meet such points catches the refusal and takes them
+as a line, or passes a tolerance of nought, `default(Tolerance)`, as `ToGeoArc2` and `ToGeoArc3` of CadConvert now do
+for an AutoCAD arc, which refuses only points on one line to the digit and an arc that would miss them by more than a
+thousand-millionth of their size.
+
 **NEW.** `DxfDatabase` opens a DXF file to edit it as AutoCAD's `Database` edits a drawing, and saves it with nothing lost:
 `DxfDatabase.Open(path)`, `Open(stream)` and `Parse(text)`, then `Save(path)`, `Save(stream)` or `ToText()`. Opened and
 saved with nothing changed, a file is written back byte for byte: its version from R12 to R2018, its line ends, padding,
