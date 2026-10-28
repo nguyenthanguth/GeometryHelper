@@ -1804,6 +1804,7 @@ huge ellipse and a small one, where it took 64, 153 (51) where the huge one is a
 tolerance of 0.05, 69 (15) for thin ellipses and circles, 66 (44) with arcs, and 65 (12) for a circle hugging an
 ellipse; .NET 8 alike. The slowest, thin ellipses running along each other, take 14 milliseconds, as before.
 
+**FIXED.** Two ellipses in space nearly in one plane are read the same whichever is asked first. Read in one plane only
 where the first lay within the planar tolerance of the second's, the ellipse 192 by 32 in the plan and one 496 by 46
 tilted 3E-6 radians, their rims 0.00027 apart at four places, collided at four places asked one way round and not at
 all the other. They are read in one plane now where either lies within the tolerance of the other's: of 4 000 such pairs
