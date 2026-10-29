@@ -6,6 +6,24 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `TryCutOpenings` and the measures of a body with openings no longer keep a skin the tolerance thin over an
+opening that cut in alone would lose it. Cut in together, a plane of one opening cuts every cell that reaches the
+opening's box, and a plate's first cells reach all of its openings: twelve boxes hidden 0.01 inside the faces of a plate
+300 by 200 by 12, cut within a hundredth, the first 1.7E-7 deeper than the tolerance, had a skin cut off the whole plate
+by the plane of that box's floor, and the fourth, 5.7E-6 nearer the faces than the tolerance, kept it over and under
+it: the plate came back valid and 9.68 cubic millimetres over the most its skins can leave, and `GetVolume` read the
+same. A cell thicker than the tolerance and thinner than twice it, on the body's skin, that across its thickness lies
+in an opening all but the tolerance from that skin, read within the rounding of the coordinates, goes with the opening
+now, as it would cut in alone; a wall thicker than the tolerance between two parts of an opening stays. Of 600 plates
+with twelve openings through, flush with the faces, blind, near an edge, or boxes hidden inside, cut at 1E-3 and 1E-2,
+6 that came back valid and as much as 25.08 off hold what their skins can leave, and 2 that were 63.80 and 44.43 over
+are 0.003 over, their boxes' floors on the plane of another box's floor a few millionths off; 19 that were right are
+cut otherwise and stay right, and no other moves. Measured by `GetVolume`, the same 8 move the same way. Every union,
+difference and common part of the corpora is the same to the bit, and so are `GetVolume`, `TryGetVolume` and
+`GetSurfaceArea` of 24 000 cracked cubes with openings, and `TryCutOpenings` of 24 000 of them and of 4 800 less two
+boxes set off from each other. The 600 plates take 62 seconds where they took 61; one of them, its cut at once now left
+open, has its holes taken out one at a time, in 0.52 seconds where 0.25. 5 new tests.
+
 **FIXED.** `TryUnion` no longer refuses the union of two bodies lying exactly the tolerance into each other where it came
 out wound against itself every way it was worked out, nor hands it back wound so where it held the two. A column 300 by
 300 by 1 000 and a beam 386.7 wide and 364.8 high running exactly 0.001 into its side, turned and moved, joined within a

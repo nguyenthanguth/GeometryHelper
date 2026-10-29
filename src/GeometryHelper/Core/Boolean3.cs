@@ -2429,14 +2429,18 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="owners">Where given, receives for each face collected the place of its cell, plus <paramref name="offset"/>; see <see cref="TryGlue(List{GeoFace3}, List{int}, Tolerance, out GeoSolid3)"/>.</param>
         /// <param name="offset">What the places of the cells start from.</param>
-        private static List<GeoFace3> FacesOfCells(List<GeoSolid3> cells, GeoSolid3 owner, Tolerance tolerance, List<int> owners = null, int offset = 0)
+        /// <param name="alongOpenings">
+        /// Whether a thin cell holding no more than the tolerance of material beside an opening is left out with the opening;
+        /// see <see cref="IsMaterial"/>. Only the cut of openings reads a cell so.
+        /// </param>
+        private static List<GeoFace3> FacesOfCells(List<GeoSolid3> cells, GeoSolid3 owner, Tolerance tolerance, List<int> owners = null, int offset = 0, bool alongOpenings = false)
         {
             List<GeoFace3> faces = new List<GeoFace3>();
             double rounding = Splition3.Rounding(owner);
 
             for (int c = 0; c < cells.Count; c++)
             {
-                if (IsMaterial(cells[c], owner, tolerance, rounding, out _, out _))
+                if (IsMaterial(cells[c], owner, tolerance, rounding, out _, out _, alongOpenings))
                 {
                     faces.AddRange(cells[c].Faces);
                     Own(owners, offset + c, cells[c].Faces.Count);
@@ -2642,9 +2646,15 @@ namespace GeometryHelper.Core
         /// The tolerance the sample is read within where the tolerance given reads it on the skin of another body; null where
         /// that reading stands. See <see cref="LocateSample"/>.
         /// </param>
-        private static bool IsMaterial(GeoSolid3 cell, GeoSolid3 owner, Tolerance tolerance, double rounding, out GeoPoint3 sample, out Tolerance? fine)
+        /// <param name="alongOpenings">
+        /// Whether a cell thicker than the tolerance and thinner than twice it is left out where, across its thickness, all of
+        /// it but the tolerance from one side lies in an opening; see <see cref="IsAlongOpening"/>.
+        /// </param>
+        private static bool IsMaterial(GeoSolid3 cell, GeoSolid3 owner, Tolerance tolerance, double rounding, out GeoPoint3 sample, out Tolerance? fine, bool alongOpenings = false)
         {
             fine = null;
+            GeoPoint3 skin = GeoPoint3.Origin;
+            double thickness = 0.0;
 
             // A cell thinner than twice the point tolerance has no point further than that from its own skin, so the
             // search finds none in it; it is material all the same, and the middle of its thickness places it. Taken
@@ -2671,7 +2681,7 @@ namespace GeometryHelper.Core
             }
             else
             {
-                if (!TryGetMidpointOfThinBody(cell, tolerance, out sample, out double depth))
+                if (!TryGetMidpointOfThinBody(cell, tolerance, out sample, out double depth, out GeoPoint3 from))
                 {
                     return false;
                 }
@@ -2680,6 +2690,8 @@ namespace GeometryHelper.Core
                 {
                     double quarter = depth / 4.0;
                     fine = new Tolerance(quarter, Math.Min(tolerance.EqualVector, quarter), tolerance.EqualAngleRad, quarter);
+                    skin = from;
+                    thickness = depth;
                 }
             }
 
@@ -2694,7 +2706,8 @@ namespace GeometryHelper.Core
             // within the tolerance of a face and reads as on it rather than in it.
             foreach (GeoSolid3 opening in owner.Openings)
             {
-                if (LocateSample(opening, sample, tolerance, fine) == PointLocation.Inside)
+                if (LocateSample(opening, sample, tolerance, fine) == PointLocation.Inside
+                    || alongOpenings && thickness > 0.0 && IsAlongOpening(owner, opening, skin, sample, thickness, tolerance, rounding))
                 {
                     return false;
                 }
@@ -2711,6 +2724,69 @@ namespace GeometryHelper.Core
         {
             PointLocation location = Containment3.Locate(body, sample, tolerance);
             return location == PointLocation.OnSide && fine.HasValue ? Containment3.Locate(body, sample, fine.Value) : location;
+        }
+
+        /// <summary>
+        /// Whether a cell thicker than the tolerance and thinner than twice it, its middle on the skin of an opening, lies in
+        /// the opening across its thickness all but the tolerance from one side, read within the rounding of the coordinates.
+        /// </summary>
+        /// <param name="body">The body the cell was cut from.</param>
+        /// <param name="opening">The opening.</param>
+        /// <param name="skin">Where the cell's thickness starts, on its skin.</param>
+        /// <param name="middle">The middle of the thickness.</param>
+        /// <param name="thickness">The thickness.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="rounding">What rounding the coordinates can add to the tolerance; see <see cref="Splition3.Rounding"/>.</param>
+        /// <remarks>
+        /// A plane of an opening cuts every cell that reaches the opening's box, and cut in at once a plate's first cells
+        /// reach all of its openings. Twelve boxes hidden 0.01 inside the faces of a plate 300 by 200 by 12, cut within a
+        /// hundredth, the first 1.7E-7 deeper than the tolerance, had a skin cut off the whole plate by the plane of that
+        /// box's floor, and the fourth, 5.7E-6 nearer the faces than the tolerance, kept that skin over and under it: the plate
+        /// came out valid and held 9.68 cubic millimetres more than the most its skins can leave. Cut in alone, the plane of
+        /// the fourth's own floor lies within the tolerance of the face and cuts nothing, and the skin goes with the box. A
+        /// cell so cut holds no more than the tolerance of material beside the opening where, across its thickness, all of it
+        /// but the tolerance from the side on the body's own skin lies in the opening, read within the rounding, and it is
+        /// left out as the opening alone leaves it. A wall thicker than the tolerance between two parts of an opening is not:
+        /// across it, the tolerance in from either side is still out of the opening. Nor is a cell whose side out of the
+        /// opening is not the body's skin: read from either side, of 4 800 cracked cubes less two boxes set as much as a
+        /// whole millimetre apart or into each other, six came out otherwise, two of them further from what they hold, one by
+        /// 0.06 cubic millimetres.
+        /// </remarks>
+        private static bool IsAlongOpening(GeoSolid3 body, GeoSolid3 opening, GeoPoint3 skin, GeoPoint3 middle, double thickness, Tolerance tolerance, double rounding)
+        {
+            if (Containment3.Locate(opening, middle, tolerance) != PointLocation.OnSide)
+            {
+                return false;
+            }
+
+            var exact = new Tolerance(rounding, Math.Min(tolerance.EqualVector, rounding), tolerance.EqualAngleRad, rounding);
+            GeoVector3 across = skin.GetVectorTo(middle).Multiply(2.0 / thickness);
+            GeoPoint3 other = skin.Add(across.Multiply(thickness));
+
+            // From the side on the body's own skin, the tolerance in and all the way to the other side.
+            return IsOnFaces(body, skin, exact)
+                    && Containment3.Locate(opening, skin.Add(across.Multiply(tolerance.EqualPoint)), exact) == PointLocation.Inside
+                    && Containment3.Locate(opening, other, exact) != PointLocation.OutSide
+                || IsOnFaces(body, other, exact)
+                    && Containment3.Locate(opening, other.Add(across.Multiply(-tolerance.EqualPoint)), exact) == PointLocation.Inside
+                    && Containment3.Locate(opening, skin, exact) != PointLocation.OutSide;
+        }
+
+        /// <summary>
+        /// Whether a point lies on a face of a body, its openings not read.
+        /// </summary>
+        private static bool IsOnFaces(GeoSolid3 body, GeoPoint3 point, Tolerance tolerance)
+        {
+            foreach (GeoFace3 face in body.Faces)
+            {
+                if (face.GetAabb().DistanceTo(point) <= tolerance.EqualPoint
+                    && Distance3.DistanceTo(Projection3.ProjectToFace(face, point, tolerance), point) <= tolerance.EqualPoint)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -2776,18 +2852,20 @@ namespace GeometryHelper.Core
         /// A ray from inside a triangle of a closed skin, run along the inward normal, is in the body from the triangle to
         /// where it next meets the skin, so halfway there it is as deep in the body as that ray goes. The point is checked
         /// all the same, within a tolerance a quarter of that depth: a skin wound the wrong way somewhere sends the ray out
-        /// of the body instead. The depth is handed back with the point.
+        /// of the body instead. The depth is handed back with the point, and where the thickness starts on the skin.
         /// </remarks>
-        internal static bool TryGetMidpointOfThinBody(GeoSolid3 solid, Tolerance tolerance, out GeoPoint3 point, out double depth)
+        internal static bool TryGetMidpointOfThinBody(GeoSolid3 solid, Tolerance tolerance, out GeoPoint3 point, out double depth, out GeoPoint3 skin)
         {
             point = GeoPoint3.Origin;
             depth = 0.0;
+            skin = GeoPoint3.Origin;
             int tried = 0;
 
             foreach (GeoTriangle3 triangle in LargestFirst(solid.TriangulateQuietly(tolerance)))
             {
                 if (TryGetMidpointUnder(solid, triangle, tolerance, out point, out depth))
                 {
+                    skin = triangle.Centroid;
                     return true;
                 }
 

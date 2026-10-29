@@ -628,7 +628,12 @@ namespace GeometryHelper.Geometry
         /// The openings are cut in at once; where that leaves the material open it is welded within the tolerance, or
         /// failing that the openings are taken out one at a time by a difference. They are taken out so too where a plane of
         /// an opening runs through the body and will not cut it, leaving a piece part in the opening and part out of it,
-        /// which cut in at once would be kept or dropped whole. What the differences leave is refused where it is not valid,
+        /// which cut in at once would be kept or dropped whole. Cut in together, each opening keeps or loses a skin the
+        /// tolerance thin as it would cut in alone: twelve boxes hidden 0.01 inside the faces of a plate 300 by 200 by 12, one
+        /// 1.7E-7 deeper than the tolerance and another 5.7E-6 nearer the faces, cut within a hundredth, came back valid and
+        /// holding 9.68 cubic millimetres more than the most its skins can leave, the plane of the deeper box's floor having cut
+        /// a skin off the whole plate that the nearer kept over and under it; it loses its skins now, as it does measured by
+        /// <see cref="GetVolume(Tolerance)"/>. What the differences leave is refused where it is not valid,
         /// and each reads a corner as on a plane within the planar tolerance and the rounding of the coordinates, a
         /// trillionth of their size, as cutting in at once does: a plate 300 by 200 by 12 with twelve blind holes ending the
         /// tolerance under its top, to a few bits, turned and far from the origin, came back wound two ways at its top within

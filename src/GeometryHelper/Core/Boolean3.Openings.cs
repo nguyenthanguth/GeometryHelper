@@ -69,7 +69,11 @@ namespace GeometryHelper.Core
         /// opening and part out of it, which cut in at once would be kept or dropped whole. A plate 300 by 200 by 12 with two
         /// blind holes ending 0.015 under its top, turned and far from the origin, came out of the cut within a hundredth open
         /// by four edges 0.015 long; the holes are taken out one at a time, and it closes, holding 711 120.61 as
-        /// <see cref="GeoSolid3.GetVolume(Tolerance)"/> measures it. Where the point tolerance is below the rounding of the
+        /// <see cref="GeoSolid3.GetVolume(Tolerance)"/> measures it. Cut in together, each opening keeps or loses a skin the
+        /// tolerance thin as it would cut in alone: a plate with twelve holes ending 0.01 under its top to within a
+        /// millionth, one 2.0E-6 nearer the top, cut within a hundredth, kept a skin over that one that the plane of another
+        /// hole's floor cut off the whole plate, and came out valid and 3.71 cubic millimetres over the most its skins can
+        /// leave; it holds what they can leave now. Where the point tolerance is below the rounding of the
         /// coordinates, a quadrillionth of the largest of them, the openings are cut within that rounding, as the queries read
         /// them; a planar tolerance below it alone changes nothing. Where cutting them in together leaves the material open they
         /// are cut in at once one at a time, each kept only where it closes, not taken out by a difference, which within the
@@ -388,8 +392,10 @@ namespace GeometryHelper.Core
             List<GeoSolid3> pieces = OnePieceEach(cells, tolerance);
             judgedWhole = uncut != null && JudgedWhole(pieces, uncut, tolerance);
 
+            // A skin a plane of another opening cut off, thinner than the tolerance over this one, goes with it, as it would
+            // were this one cut in alone; see IsAlongOpening.
             var owners = new List<int>();
-            List<GeoFace3> faces = FacesOfCells(pieces, owner, tolerance, owners);
+            List<GeoFace3> faces = FacesOfCells(pieces, owner, tolerance, owners, 0, true);
             return TryGlue(faces, owners, tolerance, out material);
         }
 

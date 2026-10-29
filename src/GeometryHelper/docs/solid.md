@@ -288,7 +288,11 @@ ways at its top and was handed back as its material; it holds 666 657.36 now, el
 skin 0.0010002 thick. Of 600 such plates, their holes through, flush with the faces, blind, near an edge, or boxes
 hidden inside, cut at 1E-3 and 1E-2, 17 came back valid and as much as 157 cubic millimetres off and 16 were refused;
 every one of them now holds what its skins can leave. A difference read so that will not come out is worked out
-within the tolerance alone, as before. `Triangulate` still
+within the tolerance alone, as before. Cut in together, each opening keeps or loses a skin the tolerance thin as it
+would cut in alone: twelve boxes hidden 0.01 inside the faces of a plate, one 1.7E-7 deeper than the tolerance and
+another 5.7E-6 nearer the faces, came back valid and 9.68 cubic millimetres over the most its skins can leave, the
+plane of the deeper box's floor having cut a skin off the whole plate that the nearer kept; it loses its skins now, and
+`GetVolume` reads it so too. `Triangulate` still
 meshes the faces as they are; `TriangulateSurface` is the mesh to read as the boundary.
 
 A triangle of the surface mesh is left out only when its corners lie on a line within a millionth of the point
