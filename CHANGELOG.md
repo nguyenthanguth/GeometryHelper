@@ -186,6 +186,40 @@ short is read as its start, as a straight `GeoEdge2` or a segment you give is. I
 there. The distance from a chain of 100 edges takes 8.5 microseconds on .NET 10 where it took 9.6, and 28.5 to 29.1 on
 .NET Framework 4.8 where it took 29.1 to 29.2. 7 new tests.
 
+**FIXED.** `TryCutOpenings` at a point tolerance below the rounding of the coordinates, a quadrillionth of the largest of
+them, nought among them, no longer returns true with a body left open or wrong. The queries have cut the openings within
+that rounding since they were held to it; the cut itself did not, and at nought a plate 200 by 100 by 3 turned about in
+space, with a hole 20 by 20 through it, came back as a shell of 7 faces, its bottom lost, and the cut said it had worked.
+The openings are cut within the rounding now, and where cutting them in together leaves the material open they are cut
+in one at a time, each kept only where it closes, not taken out by a difference, which within the rounding came back
+closed and wrong: the plate a million out with two holes 1 and 1.5 deep from under it, the first taken out by a
+difference, lost nothing to it and held 57 600 where it holds 56 100. The corners the cut leaves a rounding apart are
+then made one, by the weld within the rounding, where that closes the material within the tolerance given, so that
+`TryGetVolume` of what comes back trusts it at that tolerance; of the 8 385 cuts below it in the run below, it refused
+3 322 without the weld and refuses 155, whose corners stand further apart than the rounding. The plate with the hole comes
+back closed, holding 58 800. A planar tolerance below the rounding with a point tolerance that is not cuts as it did:
+raised, the point tolerance a thousandth and the planar nought, a plate with a hole flush with each face came back in 35
+faces where it comes in 124, and one with two holes overlapping was refused. Of 5 000 plates, boxes and prisms shaped as
+an L or a star, with one to three openings through them or blind from either face, turned about in space or not and 0 to
+1E9 out, cut at nought, 3 451 came back open, 83 closed and wrong and 422 refused; none comes back open or wrong now, and
+29 are refused. Of the 3 417 of them cut at 1E-12 where that is below the rounding, 901 came back wrong, 898 of them with
+no opening cut, and 1 507 were refused; none comes back wrong now, and 3 are refused, one of them cut right before. Every
+one that comes back is valid at the default tolerance. Openings that touch or overlap each other or lie flush with a
+face are refused more often than the rest: of 120 plates turned about in space, 0 to 1E8 out, with a hole flush with
+each face, 34 are refused at nought where 20 were and 95 came back wrong or open; of 120 with a hole from over and one
+from under overlapping, 37 where 26 were and 89 came back wrong or open. What comes back can be valid at the default
+tolerance and not at the rounding, for slivers a rounding thin: 2 of those 120 with the overlapping holes. The 16 583
+cuts at 1E-12 where that is at or above the rounding, and at 1E-6, 1E-3 and 1E-2, are the same to the bit, as are the
+1 440 at a point tolerance of a thousandth and a planar of nought and 1 440 at the default of the 12 shapes the plates
+were drawn from, and the 145 000 answers of the queries tried on prisms with openings and on bodies turned about in space
+far out. `GetVolume`, `TryGetVolume`, `GetSurfaceArea` and `GetCentroid` of a body with openings do not cut them so: at
+nought that plate measures 60 000, its hole not taken out, and `TryGetVolume` says it can be trusted. At a thousandth the
+cut takes the time it took, within the noise: a plate 400 by 200 by 10, turned about in space, with one hole through it
+1.7 milliseconds at the origin and 0.31 a million out on .NET 10 and 0.66 on .NET Framework 4.8, with twenty 4.6 to 4.9
+and 9.3 to 9.5. At nought, where it gave a body open or wrong, it takes 2.5 where 1.8 and 1.25 where 0.66 at the origin,
+0.37 where 0.81 and 0.83 where 1.9 a million out; with twenty holes 7.5 where 4.6 and 16.7 where 9.2 at the origin, and 7.8
+where 11.3 and 18.2 where 28.2 a million out, the weld most of what it adds.
+
 ## 13.0.0
 
 **BREAKING.** The DXF types move from the namespace `GeometryHelper.Export` to `GeometryHelper.Dxf`: a

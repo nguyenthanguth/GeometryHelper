@@ -456,8 +456,15 @@ through the axis, is given its two crossings once each from 60 out or from a hun
 given none or one. The planes of fan triangles far out can be rounded by more than this, and a point on the axis of
 a cylinder of 1 080 sides 1E7 out may still be read outside. The openings of a body asked at a tolerance below the
 rounding are cut within the rounding: a point 0.0005 under a plate turned about in space, with an opening through
-it, is 0.0005 from it at a tolerance of nought, where it was 3.0005. At every tolerance at or above the rounding
-nothing changes.
+it, is 0.0005 from it at a tolerance of nought, where it was 3.0005. `TryCutOpenings` cuts them so too where its
+point tolerance is below the rounding, and where cutting them in together leaves the material open it cuts them in one
+at a time, each kept only where it closes, rather than taking them out by a difference, which within the rounding came
+back closed and wrong; corners the cut leaves a rounding apart are made one where that closes the material within the
+tolerance given. That plate, 200 by 100 by 3 with a hole 20 by 20 through it, cut at nought, comes back closed and
+holding 58 800, where it came back as a shell of 7 faces, its bottom lost, and the cut said it had worked. Openings
+that touch or overlap each other or lie flush with a face are refused more often than they were cut wrong, and the
+material can be valid at the default tolerance and not at the rounding, for slivers a rounding thin. At every
+tolerance at or above the rounding nothing changes.
 
 A segment or a line without ends is held so too: a triangle or face holds its crossing to the rounding of the
 coordinates, 1E-15 of the largest of its own, the body's and the segment's, on its plane and past its rim, and a
@@ -473,7 +480,9 @@ of a segment and a body asks the boxes first as far apart as the body holds a po
 largest coordinate further out than a million; that reaches every point tolerance below it, not only those below the
 rounding, so the segment from 5E-10 over the top of a box touches it at a tolerance of nought, 1E-12, 1E-10 or 3E-10,
 as it is nought from it at each. A segment with a coordinate that is not a number touches nothing, as before. The
-booleans at a tolerance of nought are not covered yet.
+booleans at a tolerance of nought are not covered yet, nor are `GetVolume`, `TryGetVolume`, `GetSurfaceArea` and
+`GetCentroid` of a body with openings: at nought the plate with the hole through it measures 60 000, the hole not taken
+out, and `TryGetVolume` says that can be trusted. Measure what `TryCutOpenings` gives instead.
 
 A `GeoCircle3` is not on the list. The distance from a circle in space to a flat face has no closed form,
 and the library does not guess: turn it into a chain first, which says in the call how close an answer you
@@ -1342,8 +1351,10 @@ than the tolerance, is not closed to `IsClosed`, and is closed to `Validate`, wh
 calls it not valid, enclosing nothing. And the booleans, the weld, the cutting and `TryGetVolume` read the bodies they
 work on as `IsClosed` did, the ends of the edges matched first, within the tolerance given and no wider: what a boolean
 makes is taken as closed where the edges matched along lines within that tolerance close it, so that at a tolerance
-of nought a boolean is worked out as it was, and `TryGetVolume` trusts a material by its corners. It can trust one
-`IsClosed` reads open, as the cube with the specks given first, 1 000 005, and refuse one `IsClosed` reads closed, as
+of nought a boolean is worked out as it was, and `TryGetVolume` trusts a material by its corners. One cut is the
+exception: `TryCutOpenings`, asked at a point tolerance below the rounding of the coordinates, cuts and closes the
+material within that rounding, and makes its corners a rounding apart one where that closes it within the tolerance
+given. `TryGetVolume` can trust one `IsClosed` reads open, as the cube with the specks given first, 1 000 005, and refuse one `IsClosed` reads closed, as
 that union at nought; its own answer says whether its volume can be trusted. `Mesh3.ToCells` cuts a body into cells
 only where it is closed both ways: it refuses the cube with the specks, which it cut into 8 cells before, and still
 refuses that union at nought, which read closed it would cut into no cell at all. The IFC readers follow `IsClosed`.

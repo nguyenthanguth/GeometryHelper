@@ -626,12 +626,30 @@ namespace GeometryHelper.Geometry
         /// The answer is the body's material, closed as <see cref="Validate(Tolerance)"/> reads it where the body and its
         /// openings are: an opening drawn past a face, as a through hole usually is, takes off only what lies in the body.
         /// The openings are cut in at once; where that leaves the material open it is welded within the tolerance, or
-        /// failing that the openings are taken out one at a time, as <see cref="GetVolume(Tolerance)"/> takes them out. They
-        /// are taken out so too where a plane of an opening runs through the body and will not cut it, leaving a piece part
-        /// in the opening and part out of it, which cut in at once would be kept or dropped whole. A
+        /// failing that the openings are taken out one at a time by a difference. They are taken out so too where a plane of
+        /// an opening runs through the body and will not cut it, leaving a piece part in the opening and part out of it,
+        /// which cut in at once would be kept or dropped whole. At a tolerance at or above the rounding of the coordinates, a
         /// welded cut can hold a little more or less than <see cref="GetVolume(Tolerance)"/> measures, no more than the
         /// tolerance times the area of the openings: a plate 300 by 200 by 12 with twelve blind holes ending 0.011 under
         /// its top, turned and far from the origin, cut within a hundredth, holds 0.028 cubic millimetres more.
+        /// </para>
+        /// <para>
+        /// Where the point tolerance is below the rounding of the coordinates, a quadrillionth of the largest of them, nought
+        /// among them, the openings are cut within that rounding, as the queries read them; a planar tolerance below it with a
+        /// point tolerance that is not cuts as it did. Where cutting them in together leaves the material open they are cut in
+        /// one at a time, each kept only where it closes, not taken out by a difference, which within the rounding came back
+        /// closed and wrong, and corners the cut leaves a rounding apart are made one where that closes the material within
+        /// the tolerance given. Cut at nought, a plate 200 by 100 by 3 turned about in space, with a hole 20 by 20 through
+        /// it, came back as a shell of 7 faces, its bottom lost, and was said to be cut; it comes back closed, holding
+        /// 58 800. Openings that touch or overlap each other or lie flush with a face are refused more often at nought than
+        /// they were cut wrong: of 120 plates with a hole flush with each face, 34 are refused. What comes back can be valid
+        /// at the default tolerance and not at the rounding, for slivers a rounding thin, and
+        /// <see cref="TryGetVolume(out double, Tolerance)"/> at nought can still refuse it where corners stand further
+        /// apart than the rounding. The measures of a body with openings, <see cref="GetVolume(Tolerance)"/>,
+        /// <see cref="TryGetVolume(out double, Tolerance)"/>, <see cref="GetSurfaceArea(Tolerance)"/> and
+        /// <see cref="GetCentroid(Tolerance)"/>, do not cut them so: at nought that plate measures 60 000, its hole not
+        /// taken out, and <c>TryGetVolume</c> says the volume can be trusted. Measure the material this method gives, or
+        /// ask at a tolerance at or above the rounding.
         /// </para>
         /// </remarks>
         public bool TryCutOpenings(out GeoSolid3 material, Tolerance tolerance) => Boolean3.TryCutOpenings(this, out material, tolerance);

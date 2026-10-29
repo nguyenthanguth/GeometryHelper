@@ -66,8 +66,11 @@ namespace GeometryHelper.Core
             => Near(solid, opening => true, ToRounding(solid, tolerance));
 
         /// <summary>
-        /// Gets the tolerance the openings of a body are chosen and cut within: the one given, or, where its point or planar
-        /// tolerance is below the rounding of the body's coordinates, that rounding, as a crossing is held within it.
+        /// Gets the tolerance the openings of a body are chosen and cut within, here and by
+        /// <see cref="Boolean3.TryCutOpenings(GeoSolid3, out GeoSolid3, Tolerance)"/>: the one given, or, where its point or
+        /// planar tolerance is below the rounding of the body's coordinates, that rounding, as a crossing is held within it.
+        /// <see cref="Boolean3.TryCutOpenings(GeoSolid3, out GeoSolid3, Tolerance)"/> takes it only where the point tolerance
+        /// is below the rounding; a planar tolerance below it alone is raised for the queries only.
         /// </summary>
         /// <remarks>
         /// Cut at a tolerance of nought, the openings of a plate turned about in space came out as a shell left open, and a
@@ -78,7 +81,7 @@ namespace GeometryHelper.Core
         /// starting within three times the fine tolerance outside, where the cut material holds the origin and the body does
         /// not. Above the rounding nothing changes, bit for bit.
         /// </remarks>
-        private static Tolerance ToRounding(GeoSolid3 solid, Tolerance tolerance)
+        internal static Tolerance ToRounding(GeoSolid3 solid, Tolerance tolerance)
         {
             if (solid.Openings.Count == 0)
             {
