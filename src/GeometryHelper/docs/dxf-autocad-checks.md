@@ -305,6 +305,11 @@ background on without its colour and scale (63 and 45); both are now written.
     - Found making the files: a multileader made in code starts its leader's dogleg at the base point of its content, which
       is the words' own point, and at the origin for the block placed after its leader line was added. Where AutoCAD lands
       it, and whether it lands it anew on opening, is to be seen in this point's answer.
+    - Still open: no file AutoCAD saved holds a MULTILEADER yet, so the landing is left as it is. ezdxf 1.4.5's builder
+      (`render/mleader.py`, `_build_leader`) lands a leader at the connection point of the side of the content it comes to,
+      the landing gap within it, less the dogleg: `connection_point - dogleg_direction * dogleg_length`, the dogleg pointing
+      at the content. To settle it, save from AutoCAD a multileader it made and this point's file opened and moved, and read
+      each leader's 10 against the content's.
 
 ## Dimensions and tables
 
@@ -551,6 +556,13 @@ The library reads the data links of a table and takes them away, and writes no n
       what the other bits of that 92 mean is not known.
     - A change if: AutoCAD names the link elsewhere (in a TABLECONTENT, in the table's own part, in other groups) or gives the
       92 other bits; the reading then follows AutoCAD, and the writing is made on it.
+    - AutoCAD 2021 (its own links of point 77, made through the API over (1, 0) to (2, 1), which it read back as (1, 0) alone):
+      the ACAD_TABLE's cells name no link, `92 0` in every one. The link is named in the TABLECONTENT (149) the table's
+      extension dictionary holds, under ACAD_XREC_ROUNDTRIP, by an XRECORD whose 102 is ACAD_ROUNDTRIP_2008_TABLE_ENTITY: its
+      cell (1, 0) holds `92 1`, `340 142`, `93 1`, `94 1`, `96 1` after its custom data. AutoCAD reads no link from the
+      library's cells. So the guess is wrong, and the writing held back, which writes the guess, is not taken: writing a link
+      AutoCAD reads means writing the table's TABLECONTENT, which AutoCAD builds anew on a detach (every cell's format written
+      out, new handles), and keeping it with the table's edits.
 
 74. **The groups of a DATALINK.**
     - Try: read the DATALINK of the drawing of point 73; then open in AutoCAD, with AUDIT, a drawing whose DATALINK has no 70
@@ -559,12 +571,18 @@ The library reads the data links of a table and takes them away, and writes no n
       of custom data, its pairs of a 330 and a 304 between the markers, and the 360; LibreDWG gives no 70.
     - A change if: AutoCAD writes a 70 or another group, the pairs after the 94 are not a 330 of an object the link owns and
       a 304, or AUDIT fixes a link of `94 0`.
+    - AutoCAD 2021: no 70; 1, 300, 301, 302, 90, 91, 92, 170 to 176, 177, 93 and 304 as LibreDWG gives them; then the 94
+      counts the objects the link is tied to, each a 330 (`94 2`, `330 F6` the table, `330 149` its TABLECONTENT), then the
+      360 (`360 0` where it owns nothing), then `305 CUSTOMDATA`, `1 DATAMAP_BEGIN`, `90 0`, `309 DATAMAP_END`. The library
+      reads the groups it gives as before, and takes a table out of that list when its link is taken away (point 77).
 
 75. **The class of a DATALINK.**
     - Try: read the CLASS of DATALINK in the CLASSES section of the drawing of point 73.
     - Now: links are read whatever the CLASSES section lists, and no class is added, as no link is written; the writing held
       back listed DATALINK, AcDbDataLink, ObjectDBX Classes, of the flags 1153.
     - A change if: AutoCAD's flags or names differ; the writing takes AutoCAD's.
+    - AutoCAD 2021: `DATALINK`, `AcDbDataLink`, `ObjectDBX Classes`, flags 1152 (not 1153), 91 1, 280 0, 281 0; and
+      `TABLECONTENT`, `AcDbTableContent`, of the same flags.
 
 76. **What a linked table keeps of its link.**
     - Try: in the drawing of point 73, look in the ACAD_TABLE for a reactor or a pointer to the DATALINK other than the
@@ -572,6 +590,8 @@ The library reads the data links of a table and takes them away, and writes no n
     - Now: the cell's 340 alone is read and taken away; the DATALINK is counted as let go of when no record of the file points
       at it, its dictionary aside.
     - A change if: AutoCAD keeps a reactor or a pointer either way; taking a link away then takes it out too.
+    - AutoCAD 2021: the ACAD_TABLE holds no pointer to the link; its TABLECONTENT names it (340, point 73), and the DATALINK
+      lists the table and the TABLECONTENT among the objects it is tied to (`330 F6`, `330 149` after its 94).
 
 77. **A link detached.**
     - Try: detach the link of a table in AutoCAD, once for a link named in the Data Link Manager and once for one whose
@@ -579,8 +599,10 @@ The library reads the data links of a table and takes them away, and writes no n
     - AutoCAD 2021: its `RemoveDataLink()` keeps the DATALINK in ACAD_DATALINK, named or anonymous, after it is saved and
       opened again; the link's count of the objects it is tied to (94) goes from 2 to nought. It reads no link from the
       library's cells of point 73 (to be settled there).
-    - Now: the cell's groups of the link taken out and its 92 made even; the DATALINK kept, named or anonymous. Its 94 is left
-      as it was until point 76 says what its 330s are.
+    - Now: the cell's groups of the link taken out and its 92 made even; the DATALINK kept, named or anonymous, and the table
+      and what it owns, through its extension dictionary at any depth, taken out of the objects the link lists itself tied to:
+      a link of the table F6 alone, `94 2`, `330 F6`, `330 149`, comes out `94 0`, its 360 and custom data as they were. A
+      link AutoCAD made is still not read (point 73), so it is not taken away either.
 
 78. **A formula in a linked cell.**
     - Try: give the top left cell of a linked range a formula in AutoCAD, save, and read the cell's groups.

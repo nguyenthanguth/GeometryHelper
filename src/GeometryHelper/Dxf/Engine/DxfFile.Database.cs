@@ -329,6 +329,12 @@ namespace GeometryHelper.Dxf
                         _copiedItems = null;
                         _deferred = null;
                         _blocksToCome = null;
+
+                        // An entity added alone says what it copied as it ends; a call that copies several, as the call ends.
+                        if (_tableNamesHeld == 0)
+                        {
+                            SayDangling();
+                        }
                     }
                 }
             }
@@ -713,8 +719,10 @@ namespace GeometryHelper.Dxf
 
             foreach (DxfFileBlock block in blocks)
             {
-                _blockCopies[block] = IsAnonymous(block.Name) ? FreeAnonymousName(block.Name, kept = kept ?? AnonymousNamesKept(origin, blocks), ref now) : block.Name;
+                _blockCopies[block] = IsAnonymous(block.Name) ? FreeAnonymousName(block.Name, kept = kept ?? AnonymousNamesKept(origin, blocks, AnonymousKept), ref now) : block.Name;
             }
+
+            NoteDangling(origin, blocks);
 
             foreach (DxfFileBlock block in blocks)
             {
@@ -771,7 +779,8 @@ namespace GeometryHelper.Dxf
         /// that M, without end, which no reader can place. The blocks are walked as the INSERTs placing them will be, each once
         /// (Tarjan's strongly connected components), on a stack of their own; a round among this drawing's blocks alone is
         /// left as it is. A block brought that AutoCAD names itself is reached only by the copied INSERTs that place it, as
-        /// its copy takes no name an INSERT gives (<see cref="FreeAnonymousName"/>). With no block brought, a block not yet
+        /// its copy takes no name an INSERT gives (<see cref="FreeAnonymousName"/>), here or in a block the call brings by
+        /// another of its entities (<see cref="AnonymousKept"/>). With no block brought, a block not yet
         /// made (<paramref name="owner"/>, none of its name in the drawing) is walked so with the INSERTs it is to hold, as
         /// <see cref="DxfBlockReference.ConvertToStaticBlock(string)"/> walks it before it adds it.
         /// </summary>
@@ -955,12 +964,13 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// The names AutoCAD gives blocks itself (<c>*U1</c>) that the INSERTs of blocks of the origin to be copied give as they
-        /// are written: of a block the origin has not, as an INSERT of a block among them is written naming its copy.
+        /// are written: of a block the origin has not, as an INSERT of a block among them is written naming its copy; and those
+        /// kept for the whole call (<paramref name="also"/>, where given).
         /// </summary>
-        private static HashSet<string> AnonymousNamesKept(DxfFile origin, List<DxfFileBlock> blocks)
+        private static HashSet<string> AnonymousNamesKept(DxfFile origin, List<DxfFileBlock> blocks, HashSet<string> also = null)
         {
             var copied = new HashSet<DxfFileBlock>(blocks);
-            var kept = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var kept = also == null ? new HashSet<string>(StringComparer.OrdinalIgnoreCase) : new HashSet<string>(also, StringComparer.OrdinalIgnoreCase);
 
             foreach (DxfFileBlock block in blocks)
             {
@@ -979,6 +989,94 @@ namespace GeometryHelper.Dxf
             }
 
             return kept;
+        }
+
+        /// <summary>
+        /// While a call copies several entities of another drawing, or a whole drawing, into this one, the names AutoCAD gives
+        /// blocks itself that the INSERTs of all the blocks it brings give of blocks that drawing has not, which no block copied
+        /// by any of its entities is named: so that a *U1 brought by the first entity does not come as the *U3 an INSERT in the
+        /// block the second brings names, which would then place it, where it placed nothing; null at any other time.
+        /// </summary>
+        internal HashSet<string> AnonymousKept { get; private set; }
+
+        /// <summary>
+        /// Keeps, for the call, the names <see cref="AnonymousKept"/> says of the blocks of another drawing a call is to bring,
+        /// where no call keeps them already; whether it did.
+        /// </summary>
+        internal bool KeepAnonymousNames(DxfFile origin, List<DxfFileBlock> brought)
+        {
+            if (AnonymousKept != null || brought.Count == 0)
+            {
+                return false;
+            }
+
+            AnonymousKept = AnonymousNamesKept(origin, new List<DxfFileBlock>(new HashSet<DxfFileBlock>(brought)));
+            return true;
+        }
+
+        /// <summary>Lets go of the names <see cref="KeepAnonymousNames"/> kept.</summary>
+        internal void ReleaseAnonymousNames() => AnonymousKept = null;
+
+        // The names of the INSERTs in the blocks copied by the call under way that name a block their drawing has not, said in
+        // one line once the call ends (SayDangling).
+        private List<string> _danglingCopied;
+
+        /// <summary>
+        /// Notes the INSERTs of blocks of another drawing being copied in that name a block that drawing has not, as a drawing
+        /// read from a file may hold: they are copied as they are, naming it, for <see cref="SayDangling"/> to say.
+        /// </summary>
+        private void NoteDangling(DxfFile origin, List<DxfFileBlock> blocks)
+        {
+            foreach (DxfFileBlock block in blocks)
+            {
+                foreach (DxfItem item in block.Items.Snapshot())
+                {
+                    if (!item.IsRemoved && item.Type == "INSERT")
+                    {
+                        string name = DxfReader.NameOf(origin.ValueOf(item, 2) ?? string.Empty);
+
+                        if (!origin.Blocks.ContainsKey(name))
+                        {
+                            (_danglingCopied = _danglingCopied ?? new List<string>()).Add(name);
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Says in one Debug line the INSERTs <see cref="NoteDangling"/> noted for the call that ends: how many, the names they
+        /// give (ten at most), and how many of them place a block this drawing has of their name, the rest placing nothing.
+        /// </summary>
+        private void SayDangling()
+        {
+            List<string> names = _danglingCopied;
+            _danglingCopied = null;
+
+            if (names == null)
+            {
+                return;
+            }
+
+            var distinct = new List<string>(new HashSet<string>(names, StringComparer.OrdinalIgnoreCase));
+            distinct.Sort((a, b) =>
+            {
+                int order = StringComparer.OrdinalIgnoreCase.Compare(a, b);
+                return order != 0 ? order : string.CompareOrdinal(a, b);
+            });
+
+            int placing = 0;
+
+            foreach (string name in names)
+            {
+                placing += Blocks.ContainsKey(name) ? 1 : 0;
+            }
+
+            string listed = string.Join(", ", distinct.GetRange(0, Math.Min(10, distinct.Count)))
+                + (distinct.Count > 10 ? " and " + (distinct.Count - 10).ToString(CultureInfo.InvariantCulture) + " more" : string.Empty);
+            GeometryHelperLog.Debug("DxfDatabase: " + names.Count.ToString(CultureInfo.InvariantCulture) + (names.Count == 1 ? " INSERT" : " INSERTs")
+                + " of the blocks copied in name a block their drawing has not (" + listed + ") and were copied as they are, naming it: "
+                + (placing == 0 ? "none" : placing.ToString(CultureInfo.InvariantCulture)) + " of them places a block this drawing has of its name, the rest nothing.");
         }
 
         /// <summary>Whether a block's name is that of a layout: model space, or paper space and its other layouts (<c>*Paper_Space0</c> and on).</summary>
@@ -1525,9 +1623,10 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// The first name of an anonymous block's letter and a number, from 1 up, that this file has no block of and no block
         /// being copied is given: sought from the number last given, while a call holds the records of the tables by name, as
-        /// names are only taken then. Nor is it a name an INSERT of this file gives, or one of the blocks being copied gives
-        /// as it is written (<paramref name="kept"/>), of a block neither drawing has: such an INSERT would come to place the
-        /// copy, which may insert that INSERT's block, a *U1 copied as *U1 placing itself.
+        /// names are only taken then. Nor is it a name an INSERT of this file gives, or a dimension or a table of it is drawn
+        /// by, or one of the blocks being copied by the call gives as it is written (<paramref name="kept"/>), of a block
+        /// neither drawing has: such an INSERT would come to place the copy, which may insert that INSERT's block, a *U1
+        /// copied as *U1 placing itself, and such a dimension would draw by it.
         /// The names this file's INSERTs give are read once into <paramref name="now"/> for all the blocks being named.
         /// </summary>
         private string FreeAnonymousName(string name, HashSet<string> kept, ref HashSet<string> now)

@@ -2016,6 +2016,7 @@ namespace GeometryHelper.Dxf
                 _objects = null;
                 _anonymousFrom = null;
                 _copiedFrom = null;
+                SayDangling();
             }
         }
 
@@ -2171,24 +2172,28 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        // The names the INSERTs of the file give, letters of either case the same: read in one walk of the file once a walk for a
-        // round has gone down many blocks, or the first time a name is asked of InsertNames (an anonymous block named, or a block
-        // made static under a name), and those of every INSERT written since added, so that it holds every name an INSERT of the
-        // drawing gives, and the name of one rewritten or taken out too. Null until then, and again once the code page changes.
+        // The names the INSERTs of the file give, letters of either case the same, and the dimensions and tables that draw by a
+        // block of their own (NamesABlock): read in one walk of the file once a walk for a round has gone down many blocks, or the
+        // first time a name is asked of InsertNames (an anonymous block named, or a block made static under a name), and those of
+        // every such record written since added, so that it holds every name one of them gives, and the name of one rewritten or
+        // taken out too. Null until then, and again once the code page changes.
         private HashSet<string> _insertNames;
 
         /// <summary>
         /// Whether no INSERT of the file, in model space, paper space or a block, names a block, letters of either case the same,
         /// as the names the INSERTs give, where they are kept, say: so that a block nothing inserts is known at once to be
-        /// inserted by no block it inserts, at any depth, as a block is built from the bottom up. False where they are not kept.
+        /// inserted by no block it inserts, at any depth, as a block is built from the bottom up. False where they are not kept,
+        /// and where a dimension or a table names it, whose names are kept with them.
         /// </summary>
         internal bool InsertsNone(string name) => _insertNames != null && !_insertNames.Contains(name);
 
         /// <summary>
         /// Whether an INSERT of the file, in model space, paper space or a block, names a block now, letters of either case the
-        /// same: none where the names the INSERTs give, kept from now on, say so; else the names the INSERTs give now, read in
-        /// one walk of the file into <paramref name="now"/> where it holds none yet, as the names kept keep the name of an
-        /// INSERT rewritten or taken out too. Several names are tested against one reading, while nothing is written between.
+        /// same, or a dimension or a table drawn by it (<see cref="NamesABlock"/>): none where the names they give, kept from now
+        /// on, say so; else the names they give now, read in one walk of the file into <paramref name="now"/> where it holds none
+        /// yet, as the names kept keep the name of a record rewritten or taken out too. Several names are tested against one
+        /// reading, while nothing is written between. So that a block AutoCAD names itself is not given a name a DIMENSION gives
+        /// of a block the drawing has not, which that dimension would then draw by: <c>*D1</c> named so comes as <c>*D2</c>.
         /// </summary>
         internal bool InsertNames(string name, ref HashSet<string> now)
         {
@@ -2205,7 +2210,7 @@ namespace GeometryHelper.Dxf
 
                 foreach (Rec record in Current(0, _starts.Length))
                 {
-                    if (record.Type != "INSERT")
+                    if (!NamesABlock(record.Type))
                     {
                         continue;
                     }
@@ -2233,7 +2238,14 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        /// <summary>Adds the names of the INSERTs among records written into the file to the names the INSERTs give: each group 2 of each, read as an INSERT's name is read, or none.</summary>
+        /// <summary>
+        /// Whether records of a type name the block they place or are drawn by in their group 2: an INSERT, and a dimension or an
+        /// ACAD_TABLE, drawn by a block AutoCAD names itself, as <c>BlockDrawnBy</c> reads them.
+        /// </summary>
+        private static bool NamesABlock(string type)
+            => type == "INSERT" || type == "DIMENSION" || type == "ARC_DIMENSION" || type == "LARGE_RADIAL_DIMENSION" || type == "ACAD_TABLE";
+
+        /// <summary>Adds the names of the INSERTs, dimensions and tables among records written into the file to the names the INSERTs give: each group 2 of each, read as an INSERT's name is read, or none.</summary>
         private void InsertsWritten(List<Rec> records)
         {
             foreach (Rec record in records)
@@ -2242,10 +2254,10 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        /// <summary>Adds the names of a record written into the file, an INSERT, to the names the INSERTs give, as <see cref="InsertsWritten(List{Rec})"/> adds them.</summary>
+        /// <summary>Adds the names of a record written into the file, an INSERT, a dimension or a table, to the names the INSERTs give, as <see cref="InsertsWritten(List{Rec})"/> adds them.</summary>
         private void InsertsWritten(Rec record)
         {
-            if (record.Type != "INSERT")
+            if (!NamesABlock(record.Type))
             {
                 return;
             }

@@ -126,6 +126,43 @@ mask has the flag 0x8000, as AutoCAD 2021 saves one, and of an xref where it nam
 **CHANGED.** `DxfTable.RemoveDataLink` leaves the DATALINK it lets go of in the drawing, anonymous or named, as AutoCAD
 2021's `RemoveDataLink` leaves it; it erased an anonymous one. 1 test changed.
 
+**FIXED.** `DxfDatabase.Insert` of another drawing no longer leaves the drawing changed when it refuses a block that would
+come to insert itself through an INSERT of this drawing of a block it has not. It refused that block as the merge came
+to it, the blocks merged before it left written, and the block refused too, empty: this drawing's P holding an INSERT of
+M, and the other's A a line and M an INSERT of P, the merge left A and an empty M. The blocks to be merged are walked with
+those the copies bring before anything is written now, and neither comes. So too `Insert(blockName, ...)`, which left
+its new block written, empty: this drawing's P holding an INSERT of NEWB and the other's model space one of P, NEWB is
+not made. Of 60 000 drawings of R12 inserted three ways, 23 097 refusals had left the drawing changed, and none does; of
+20 000 pairs copied six ways, 532 refusals had, and none does. The 110 325 inserts that went through are written byte for
+byte as before. An Insert of 10 000 blocks nested one inside the next takes 954 to 1 043 milliseconds where it took 897 to
+913 on .NET 10, and 1 044 to 1 048 where 984 to 1 009 on .NET Framework 4.8, for the walk; 3 000 nested blocks 1 to 11 %
+longer. 2 new tests, 1 changed.
+
+**FIXED.** `DxfDatabase.WblockCloneObjects` of several entities, and `Insert`, no longer name a block AutoCAD names
+itself, brought by one entity, as an INSERT in a block another brings names a block neither drawing has. This drawing
+having *U1 and *U2, and P an INSERT of Q, which it has not, and the other's *U1 an INSERT of P and its Q one of *U3,
+which it has not, an INSERT of *U1 copied with one of Q brought *U1 as *U3, which Q's INSERT then placed: P, Q, *U3 and P
+without end, found only once *U3 was written, so that the set was refused half written. *U1 comes as *U4 now, and the
+set is copied, Q's INSERT of *U3 placing nothing, as where it came from. Where no round closes, the INSERT came to place
+a block it did not place: of 20 000 pairs copied six ways, 3 such copies come out with another name. 2 new tests.
+
+**FIXED.** A block AutoCAD names itself, copied into a drawing with a dimension or a table that names a block it has not,
+no longer takes that name, which the dimension then drew by: the drawing of R12 of nine dimensions without its block *D1,
+as a file may come, took the copy of another drawing's *D1 as *D1, and its first dimension drew the other's. The copy
+comes as *D10 now, and that dimension draws by nothing still. 1 new test.
+
+**CHANGED.** An INSERT in a block that a copy brings from another drawing, by `WblockCloneObjects`, by `AppendEntity` of
+a copy or by `Insert`, that names a block that drawing has not is copied as before, naming it, and is now said: one Debug
+line of `GeometryHelperLog` for the call, with how many there were, the names they give (ten at most) and how many of
+them place a block this drawing has of the name. The other drawing's M holding INSERTs of Z and K, which it has not, and
+N one of Z, the INSERTs of M and N copied together say three INSERTs, of K and Z, none placing a block. 1 new test.
+
+**CHANGED.** `DxfTable.RemoveDataLink` takes the table, and what it owns through its extension dictionary, out of the
+objects the DATALINK it lets go of lists itself tied to (its 94 and the 330s after it), as AutoCAD 2021's `RemoveDataLink`
+takes them out: a link of the table F6 alone, `94 2`, `330 F6`, `330 149` (the table's TABLECONTENT), comes out `94 0`,
+its 360 and custom data as they were. AutoCAD 2021 names a table's link in that TABLECONTENT, not in the cells of the
+ACAD_TABLE the library reads, so a link AutoCAD made is still not read, and the library still writes none. 1 new test.
+
 **FIXED.** `TryCutOpenings` no longer hands back a plate whose openings end the tolerance inside a face, to a few
 bits, valid and hundreds of cubic millimetres short. Where cutting the openings in together leaves the material open
 and a weld does not close it, they are taken out one at a time by differences, and a difference read a corner as on a

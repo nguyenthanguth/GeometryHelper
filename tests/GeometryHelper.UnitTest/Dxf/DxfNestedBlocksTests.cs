@@ -165,11 +165,13 @@ namespace GeometryHelper.UnitTest.Dxf
             string source = Drawing(Block("P", Line) + Block("X", Insert("P")), Insert("X"));
 
             DxfDatabase db = DxfDatabase.Parse(Drawing(Block("P", Line + Insert("X")), string.Empty));
+            string before = db.ToText();
             ArgumentException refused = Assert.Throws<ArgumentException>(() => db.Insert(GeoTransform3.Identity, DxfDatabase.Parse(source), true));
-            Assert.Contains("would make the block X insert itself", refused.Message, StringComparison.Ordinal);
+            Assert.Contains("The block X the copies bring would insert itself", refused.Message, StringComparison.Ordinal);
 
-            // X came before it was refused, and the round is refused still: the merge leaves the walk to the next INSERT.
-            Assert.Throws<ArgumentException>(() => db.BlockTable["X"].AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), db.BlockTable["P"])));
+            // Refused before anything is written: X does not come, empty, as it came before it was refused.
+            Assert.False(db.BlockTable.Has("X"));
+            Assert.Equal(before, db.ToText());
 
             // Without the INSERT of X, the same drawing comes whole.
             DxfDatabase clean = DxfDatabase.Parse(Drawing(Block("P", Line + Line), string.Empty));

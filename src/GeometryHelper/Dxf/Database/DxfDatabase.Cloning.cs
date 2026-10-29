@@ -37,7 +37,12 @@ namespace GeometryHelper.Dxf
         /// itself once written, by its own INSERTs or theirs, through the blocks of the drawing copied into: that drawing's P
         /// holding an INSERT of M, a block it has not (as a drawing read from a file may), and this drawing's M an INSERT of P,
         /// an INSERT of M copied would bring an M that places P, which places that M, without end. A set whose INSERTs would
-        /// bring blocks that come back to the block they are added to is refused too. An MTEXT added to a drawing of R12 is written as TEXTs,
+        /// bring blocks that come back to the block they are added to is refused too. A block AutoCAD names itself that one
+        /// entity of the set brings takes no name an INSERT in a block another brings gives of a block neither drawing has, as
+        /// a block one entity brings takes none of its own: this drawing having *U1 and *U2, and the other's Q an INSERT of
+        /// *U3, which it has not, an INSERT of its *U1 copied with one of Q brings *U1 as *U4, and Q's INSERT of *U3 places
+        /// nothing, as where it came from. INSERTs of blocks their drawing has not, in the blocks the set brings, are copied as
+        /// they are and said in one Debug line for the set. An MTEXT added to a drawing of R12 is written as TEXTs,
         /// as <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/> writes it, and its place in the list given back is the
         /// MTEXT itself, in no file.
         /// </para>
@@ -125,6 +130,7 @@ namespace GeometryHelper.Dxf
             // The records of the tables of the drawing copied into are kept by name for the copy, and what is read of this one
             // with them: this drawing is only read, as several threads may copy from it at once.
             target.HoldTableNames();
+            bool keeping = false;
 
             try
             {
@@ -157,6 +163,9 @@ namespace GeometryHelper.Dxf
                 if (entities.Count > 1 && brought.Count > 0)
                 {
                     target.CheckRounds(File, brought, owner.IsLayout ? null : owner.Name, placed, nameof(source));
+
+                    // No block one copy brings takes a name an INSERT in a block another brings gives, as the walk takes it.
+                    keeping = target.KeepAnonymousNames(File, brought);
                 }
 
                 for (int i = 0; i < entities.Count; i++)
@@ -167,6 +176,11 @@ namespace GeometryHelper.Dxf
             }
             finally
             {
+                if (keeping)
+                {
+                    target.ReleaseAnonymousNames();
+                }
+
                 target.ReleaseTableNames();
             }
 

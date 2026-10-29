@@ -20,10 +20,12 @@ namespace GeometryHelper.Dxf
     /// gives AcDbDataLink: the data adapter (1), the description (300), the tooltip (301), the connection string (302), the
     /// options (90) and the update options (91); a 92 LibreDWG names no further, read here as which way the link was last
     /// updated; when (170 to 176: year, month, day, hour, minute, second, millisecond); a 177 LibreDWG calls the option of the
-    /// paths; a 93 it names no further, read here as how the update went; and its status (304). Then come a count (94) of
-    /// custom data, written between <c>305 CUSTOMDATA</c>, <c>1 DATAMAP_BEGIN</c> and <c>309 DATAMAP_END</c> as pairs of an
-    /// object the link owns (330) and a text (304, such as <c>ACEXCEL_UPDATEOPTIONS</c>), and what the link owns (360).
-    /// LibreDWG gives no 70.
+    /// paths; a 93 it names no further, read here as how the update went; and its status (304). AutoCAD 2021 writes them so,
+    /// with no 70, and then the count (94) of the objects the link is tied to, each a 330: the table it fills and that table's
+    /// TABLECONTENT, <c>94 2</c>, <c>330 F6</c>, <c>330 149</c>; then what the link owns (360, 0 for nothing), and its custom
+    /// data between <c>305 CUSTOMDATA</c>, <c>1 DATAMAP_BEGIN</c>, a count (90) and <c>309 DATAMAP_END</c>. A table's link
+    /// taken away (<see cref="DxfTable.RemoveDataLink()"/>) takes the table and what it owns out of that list, as AutoCAD's
+    /// <c>RemoveDataLink</c> does.
     /// </para>
     /// <para>
     /// The library does not read the source: updating a link, its source files and their paths, AutoCAD's <c>Update</c>,

@@ -1280,7 +1280,9 @@ namespace GeometryHelper.Dxf
         /// style name (ACAD DSTYLE), which name those of the same name here. The records of the tables a copy names that this
         /// drawing has not (its layers, linetypes, text styles and dimension styles, and their arrow blocks) are copied with it by
         /// name, and a block AutoCAD names itself it draws by (a dimension's <c>*D</c>, an INSERT's <c>*U</c>) under a name of its
-        /// own, as AutoCAD's deep clone does; an INSERT's named block where this drawing has none of its name, under that name, with
+        /// own, as AutoCAD's deep clone does: one no INSERT, dimension or table of this drawing gives of a block it has not, so
+        /// that a DIMENSION here naming a <c>*D1</c> the drawing has not does not come to draw by the copy, which comes as
+        /// <c>*D2</c>; an INSERT's named block where this drawing has none of its name, under that name, with
         /// the blocks it inserts, as AutoCAD's <c>WblockCloneObjects</c> brings it, and every block a copy points to by a hard
         /// pointer so too (a MULTILEADER's block and arrow blocks, the block of an ACAD_TABLE's cell), as AutoCAD's deep clone
         /// follows its pointers to them. What the entities of the blocks copied point
@@ -1297,7 +1299,10 @@ namespace GeometryHelper.Dxf
         /// R2007 on a dimension added to a drawing of R2000, and so are the groups the version has not of the records of the
         /// tables copied by name with it, as a DIMSTYLE's DIMFXLEN (49) and a LAYER's material (347). A table's block cell keeps
         /// the values it gives the attributes of a block that comes with it, its pointers (331) naming the copies of their
-        /// definitions; a LEADER whose annotation does not come with it points to none.
+        /// definitions; a LEADER whose annotation does not come with it points to none. An INSERT in a block brought that names
+        /// a block its drawing has not, as a drawing read from a file may hold, is copied as it is, naming it, and said in one
+        /// Debug line of <see cref="GeometryHelperLog"/>: the other drawing's M holding INSERTs of Z and K, which it has not,
+        /// an INSERT of M copied in says that two INSERTs name a block their drawing has not, K and Z.
         /// <see cref="DxfDatabase.WblockCloneObjects"/> copies entities together, what points from one to another kept.
         /// </para>
         /// </remarks>

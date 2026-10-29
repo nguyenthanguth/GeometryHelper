@@ -774,10 +774,10 @@ Every entity is checked before anything is written, so that a SPLINE into a draw
 would shear, refuses the whole; so does a block that inserts itself, X holding an INSERT of X or Y and Z inserting each
 other, which AutoCAD's AUDIT takes out, and an entity of a type the library has no class for, a SHAPE or an IMAGE, in a model
 space moved by anything but the identity, as its geometry is not moved (`NotSupportedException`). A block of it that would
-come to insert itself only through an INSERT of this drawing of a block it has not is refused as the merge comes to it, not
-before: the blocks merged before it stay, and so does that block, empty, which this drawing's INSERT of its name then
-places. This drawing's P holding an INSERT of M, the other's A a line and M an INSERT of P, the merge is refused at M and
-leaves A and an empty M. The extents grow by the
+come to insert itself only through an INSERT of this drawing of a block it has not is refused before anything is written
+too, the blocks to be merged walked with those the copies bring: this drawing's P holding an INSERT of M, the other's A a
+line and M an INSERT of P, neither A nor M comes. So is `db.Insert("NEWB", other, true)` where this drawing's P holds an
+INSERT of NEWB and the other's model space one of P, which NEWB would hold. The extents grow by the
 entities where they were moved to, and the other drawing is left as it is, whatever `preserveSourceDatabase` says. Its paper
 space is not inserted, nor its external references but one an INSERT of its model space places, which comes with the INSERT
 an external reference still, its BLOCK flagged 4 (12 overlaid) and naming its drawing as before. A dynamic block comes as a
@@ -1533,7 +1533,12 @@ R12, changes nothing. A set whose blocks would come to insert themselves once wr
 `ArgumentException`: a drawing whose block P holds an INSERT of M, a block it has not, as a drawing read from a file may,
 refuses an INSERT of another drawing's M that inserts P, which would bring an M placing P and a P placing that M without
 end. So are blocks of the other drawing that insert one another, and blocks brought that would come back to the block the
-copies are added to; and a copy appended alone by `AppendEntity` is refused alike. A rectangle of four LINEs with a HATCH that follows them, copied together into another drawing, comes
+copies are added to; and a copy appended alone by `AppendEntity` is refused alike. A block AutoCAD names itself that a copy
+brings takes no name an INSERT, a dimension or a table of this drawing gives of a block it has not, nor one an INSERT in a
+block the set brings gives of a block neither drawing has: a DIMENSION here naming a `*D1` the drawing has not leaves the
+copy of another's `*D1` to come as `*D2`, rather than drawing by it. An INSERT in a block brought that names a block its
+drawing has not is copied as it is, naming it, and the set says how many there were, and their names, in one Debug line of
+`GeometryHelperLog`. A rectangle of four LINEs with a HATCH that follows them, copied together into another drawing, comes
 out as four LINEs and a HATCH that follows those four, each LINE listing the HATCH among its reactors.
 
 What a copy by `Clone()` and `AppendEntity` leaves behind: a copy of an associative HATCH, in its own drawing or another,

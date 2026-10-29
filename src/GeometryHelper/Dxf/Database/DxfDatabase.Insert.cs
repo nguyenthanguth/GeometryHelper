@@ -46,9 +46,9 @@ namespace GeometryHelper.Dxf
         /// an entity of it refuses the transformation, or a block of it inserts itself, at any depth (X holding an INSERT of X,
         /// or Y one of Z and Z one of Y), which AutoCAD's AUDIT takes out; nothing is written then. A block of it that would
         /// come to insert itself through an INSERT of this drawing of a block it has not is refused too, as
-        /// <see cref="WblockCloneObjects"/> refuses it, but as the merge comes to it: the blocks merged before it stay, and so
-        /// does the block refused, empty, which this drawing's INSERT of its name then places. This drawing's P holding an
-        /// INSERT of M, the other's A a line and M an INSERT of P, the merge is refused at M and leaves A and an empty M.</exception>
+        /// <see cref="WblockCloneObjects"/> refuses it, the blocks to be merged and those the copies bring walked together
+        /// before anything is written: this drawing's P holding an INSERT of M, the other's A a line and M an INSERT of P,
+        /// neither A nor M is merged.</exception>
         /// <exception cref="NotSupportedException">Thrown when the transformation is not the identity and model space holds an
         /// entity of a type the library has no class for; nothing is written then.</exception>
         public void Insert(GeoTransform3 transform, DxfDatabase dataBase, bool preserveSourceDatabase)
@@ -74,10 +74,11 @@ namespace GeometryHelper.Dxf
             IReadOnlyList<DxfTypedValue> most;
             HashSet<DxfEntity> before;
             File.HoldTableNames();
+            bool keeping = false;
 
             try
             {
-                CheckCopies(dataBase, entities);
+                keeping = File.KeepAnonymousNames(dataBase.File, CheckCopies(dataBase, entities, null));
                 MergeTables(dataBase);
                 least = File.HeaderOf("$EXTMIN");
                 most = File.HeaderOf("$EXTMAX");
@@ -86,6 +87,11 @@ namespace GeometryHelper.Dxf
             }
             finally
             {
+                if (keeping)
+                {
+                    File.ReleaseAnonymousNames();
+                }
+
                 File.ReleaseTableNames();
             }
 
@@ -146,9 +152,9 @@ namespace GeometryHelper.Dxf
         /// drawing already, or of one of the other drawing (an OUTER of its own would come under the name of the new block), the
         /// drawing is this one, this drawing cannot hold an entity of it, or a block of it inserts itself, at any depth; nothing
         /// is written then. A block of it that would come to insert itself through an INSERT of this drawing of a block it has
-        /// not is refused too, as the other <c>Insert</c> refuses it, the blocks merged before it and the block refused, empty,
-        /// left written; and so is the new block where an INSERT of this drawing gives its name and it would come to insert itself
-        /// through that INSERT, the new block left written, empty.</exception>
+        /// not is refused too, as the other <c>Insert</c> refuses it, before anything is written; and so is the new block where
+        /// an INSERT of this drawing gives its name and it would come to insert itself through that INSERT: this drawing's P
+        /// holding an INSERT of NEWB and the other's model space an INSERT of P, NEWB is not made.</exception>
         public DxfBlockTableRecord Insert(string blockName, DxfDatabase dataBase, bool preserveSourceDatabase)
         {
             if (blockName == null)
@@ -173,10 +179,11 @@ namespace GeometryHelper.Dxf
             var entities = new List<DxfEntity>(dataBase.ModelSpace);
             DxfBlockTableRecord block;
             File.HoldTableNames();
+            bool keeping = false;
 
             try
             {
-                CheckCopies(dataBase, entities);
+                keeping = File.KeepAnonymousNames(dataBase.File, CheckCopies(dataBase, entities, blockName));
                 MergeTables(dataBase);
                 block = new DxfBlockTableRecord { Name = blockName, Origin = dataBase.Insbase };
 
@@ -190,6 +197,11 @@ namespace GeometryHelper.Dxf
             }
             finally
             {
+                if (keeping)
+                {
+                    File.ReleaseAnonymousNames();
+                }
+
                 File.ReleaseTableNames();
             }
 
@@ -213,9 +225,12 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Checks that this drawing can hold a copy of each entity of the other's model space and of its named blocks to be
-        /// merged, as <see cref="WblockCloneObjects"/> checks its copies, before anything is written.
+        /// merged, as <see cref="WblockCloneObjects"/> checks its copies, before anything is written; and that no block merged
+        /// or brought by a copy would come to insert itself once all are written, nor the new block of a name given
+        /// (<paramref name="made"/>) through the INSERTs of model space it is to hold, as <see cref="DxfFile.CheckRounds"/>
+        /// walks them. Gives the blocks of the other drawing to be merged and brought.
         /// </summary>
-        private void CheckCopies(DxfDatabase source, List<DxfEntity> entities)
+        private List<DxfFileBlock> CheckCopies(DxfDatabase source, List<DxfEntity> entities, string made)
         {
             string looped = SelfInserted(source);
 
@@ -226,18 +241,28 @@ namespace GeometryHelper.Dxf
 
             var all = new List<DxfEntity>(entities);
 
+            // The blocks merged, under their own names, and those the copies bring, walked together for a round: the merge is
+            // refused before the first of them is written, not as it comes to the block that would insert itself.
+            var brought = new List<DxfFileBlock>();
+
             foreach (DxfBlockTableRecord block in BlocksToMerge(source))
             {
                 all.AddRange(block);
+
+                if (source.File.Blocks.TryGetValue(block.Name, out DxfFileBlock merged))
+                {
+                    brought.Add(merged);
+                }
             }
 
             // A block of the other drawing an INSERT brings is checked once, with the blocks it inserts, however many INSERTs
             // above it bring it again: nothing is written between the checks.
             var checkedBlocks = new HashSet<DxfFileBlock>();
+            var placed = new List<string>();
 
-            foreach (DxfEntity entity in all)
+            for (int i = 0; i < all.Count; i++)
             {
-                DxfEntity copy = entity.Clone();
+                DxfEntity copy = all[i].Clone();
                 copy.Appending(ModelSpace);
 
                 if (copy is DxfMText mtext && !File.HasMarkers)
@@ -249,9 +274,17 @@ namespace GeometryHelper.Dxf
                 }
                 else
                 {
-                    File.CheckAdopt(copy.Item, checkedBlocks);
+                    File.CheckAdopt(copy.Item, checkedBlocks, brought);
+                }
+
+                if (i < entities.Count && copy is DxfBlockReference reference)
+                {
+                    placed.Add(reference.Name);
                 }
             }
+
+            File.CheckRounds(source.File, brought, made, placed, "dataBase");
+            return brought;
         }
 
         /// <summary>

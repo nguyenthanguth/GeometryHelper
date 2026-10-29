@@ -14,8 +14,11 @@ namespace GeometryHelper.Dxf
     /// columns (94), and a 96 of nought, before the cell's value (<c>301 CELL_VALUE</c>). The cell (1, 0) of a table linked
     /// over (1, 0) to (2, 1) holds <c>92 1</c>, <c>340 2F</c>, <c>93 2</c>, <c>94 2</c>, <c>96 0</c>; its other cells hold
     /// nothing of it. That run is the one LibreDWG gives a cell of a TABLECONTENT, whose 92 says it has linked data; that a cell
-    /// of an ACAD_TABLE names its link so, after the 92 of R2007, is the library's guess, which no file of AutoCAD has yet
-    /// borne out. A link the drawing has no DATALINK of is read as none.
+    /// of an ACAD_TABLE names its link so, after the 92 of R2007, is the library's guess, which AutoCAD 2021 does not bear out:
+    /// it names the link in the cell of the TABLECONTENT that the table's extension dictionary holds (ACAD_XREC_ROUNDTRIP,
+    /// an XRECORD of ACAD_ROUNDTRIP_2008_TABLE_ENTITY), by that same run, and reads no link from the ACAD_TABLE's cells. So
+    /// a link AutoCAD made is not read here, and one of the layout guessed is not read by AutoCAD. A link the drawing has no
+    /// DATALINK of is read as none.
     /// </para>
     /// <para>
     /// Only a text cell (171 of 1) names a link: a block cell's 340 names its block, whatever its 92, and a range whose top
@@ -92,7 +95,9 @@ namespace GeometryHelper.Dxf
         /// Takes every data link of the table away, as AutoCAD's <c>RemoveDataLink()</c>: each top left cell's link groups
         /// taken out, its 92 made even, in one writing of the record. The DATALINK let go of stays in the drawing, in the
         /// dictionary of data links, named or anonymous (<see cref="DxfDataLinkOption.Anonymous"/>), as AutoCAD 2021's
-        /// <c>RemoveDataLink</c> keeps it. The cells keep what they hold. Nothing where the table has none.
+        /// <c>RemoveDataLink</c> keeps it, the table and what it owns taken out of the objects it lists itself tied to (its
+        /// 94 and their 330s): AutoCAD's link of the table F6 alone, <c>94 2</c>, <c>330 F6</c>, <c>330 149</c>, comes out
+        /// <c>94 0</c>. The cells keep what they hold. Nothing where the table has none.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the table has links and is erased.</exception>
         public void RemoveDataLink() => WriteLinks(ReadToWrite(), new List<LinkedRange>());
@@ -210,6 +215,7 @@ namespace GeometryHelper.Dxf
         private void WriteLinks(Layout layout, IList<LinkedRange> links)
         {
             DxfDimGroups g = layout.Groups;
+            List<string> before = LinkHandles(layout);
             LinkedRange[] anchored = Anchors(layout.CellStart.Count, layout.Columns, links);
             int first = layout.CellStart.Count > 0 ? layout.CellStart[0] : layout.CellsEnd;
             var list = new List<KeyValuePair<int, string>>(g.List.Count + 5 * links.Count);
@@ -239,7 +245,126 @@ namespace GeometryHelper.Dxf
             {
                 CheckEditable();
                 g.Write(Order);
+                LetGo(before);
             }
+        }
+
+        /// <summary>
+        /// Takes the table out of the list of the objects each DATALINK the cells let go of is tied to, as AutoCAD 2021's
+        /// <c>RemoveDataLink</c> takes it out: the count (94) after the link's status and the handles (330) that follow it, the
+        /// table's own and those of what it owns, through its extension dictionary, at any depth (AutoCAD's TABLECONTENT of the
+        /// table), left out, every other kept, the count made to agree. A link this table still names is left as it is, and so
+        /// is the rest of the link, its 360 and its custom data. AutoCAD's link tied to the table F6 alone, <c>94 2</c>,
+        /// <c>330 F6</c>, <c>330 149</c>, comes out <c>94 0</c>.
+        /// </summary>
+        private void LetGo(List<string> dropped)
+        {
+            if (!IsResident || dropped.Count == 0)
+            {
+                return;
+            }
+
+            DxfFile file = Item.File;
+            var held = new HashSet<string>(LinkHandles(Read()), StringComparer.OrdinalIgnoreCase);
+
+            foreach (string handle in dropped)
+            {
+                DxfItem item = held.Contains(handle) ? null : file.ObjectItem(handle);
+
+                if (item == null || item.IsRemoved || item.Type != "DATALINK")
+                {
+                    continue;
+                }
+
+                IReadOnlyList<DxfTypedValue> groups = file.GroupsOf(item);
+                int count = TargetsAt(groups);
+
+                if (count < 0)
+                {
+                    continue;
+                }
+
+                List<DxfTypedValue> tail = file.TailOf(item, count);
+                var kept = new List<KeyValuePair<int, string>>();
+                int next = 1;
+
+                while (next < tail.Count && tail[next].TypeCode == 330)
+                {
+                    if (!OwnedByThis(file, tail[next].Value))
+                    {
+                        kept.Add(new KeyValuePair<int, string>(330, tail[next].Value));
+                    }
+
+                    next++;
+                }
+
+                if (kept.Count == next - 1)
+                {
+                    continue;
+                }
+
+                kept.Insert(0, new KeyValuePair<int, string>(94, kept.Count.ToString(CultureInfo.InvariantCulture)));
+
+                for (int k = next; k < tail.Count; k++)
+                {
+                    kept.Add(new KeyValuePair<int, string>(tail[k].TypeCode, tail[k].Value));
+                }
+
+                file.ReplaceTail(item, count, kept);
+            }
+        }
+
+        /// <summary>
+        /// Where the count of the objects a DATALINK is tied to stands among its groups: the first 94 of AcDbDataLink, after its
+        /// status (304); -1 where it has none.
+        /// </summary>
+        private static int TargetsAt(IReadOnlyList<DxfTypedValue> groups)
+        {
+            bool braced = false;
+            bool own = false;
+
+            for (int i = 0; i < groups.Count; i++)
+            {
+                int code = groups[i].TypeCode;
+
+                if (code == 102)
+                {
+                    braced = groups[i].Value.Trim().StartsWith("{", StringComparison.Ordinal);
+                }
+                else if (!braced && code == 100)
+                {
+                    own = groups[i].Value.Trim() == "AcDbDataLink";
+                }
+                else if (own && code == 94)
+                {
+                    return i;
+                }
+                else if (code >= 1000)
+                {
+                    break;
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>Whether a handle is the table's, or that of an object it owns at any depth, its owners followed up (330), sixteen deep at most.</summary>
+        private bool OwnedByThis(DxfFile file, string handle)
+        {
+            string at = handle?.Trim();
+
+            for (int depth = 0; depth < 16 && !string.IsNullOrEmpty(at); depth++)
+            {
+                if (string.Equals(at, Handle, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                DxfItem owner = file.ObjectItem(at);
+                at = owner == null || owner.IsRemoved ? null : file.OwnerOf(owner)?.Trim();
+            }
+
+            return false;
         }
 
         /// <summary>
