@@ -4,6 +4,56 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 release only, and a link here for the rest. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
+## Unreleased
+
+**FIXED.** `Offset2.Offset` of a `GeoPolygonArc2` that crosses itself, grown or shrunk with miters or chamfers, reads a
+crossing the tolerance does not tell from what lies beside it within a finer step; so does `GeoPolygonArc3.Offset`,
+which miters. A corner of the loop within the tolerance of a crossing turns the tip of the region there by its own
+turn, and such a crossing was joined round the space between, as when rounded, its miter or chamfer left out, though
+the corner bent the loop by a degree; and two crossings within the tolerance of each other are one place, which turns
+the blunt end of the sliver between them into a point, whose miter ran on, or was squared off at its limit, past where
+the loop's own corners take it. Where the tolerance is so coarse at a crossing, the loop is now cut again within a
+hundredth of the tolerance, and then a ten-thousandth: a step it cannot be cut at is passed over, one is taken where it
+is coarse at fewer places than the step before, until none is left, and the loop is offset within the last step taken.
+A step coarse at as many places as the one before, as where three edges cross at one point, ends it, and where no step
+is taken the loop is offset as before. A loop of the answer that is a point within the tolerance asked for, its corners
+all within it of each other, is left out, so the answer is still within that tolerance. The bow tie from (-10, 2) to
+(1, -0.2), (1, 0.2) and (-10, -2), its back an arc of bulge -0.25, with a corner on its first edge 0.005 past the
+crossing where it turns by 1 degree, grown by 1 with miters at a tolerance of 0.01, keeps the miter of its long lobe
+and encloses 54.419, where it was 52.501; the bow tie of 30 degrees with such a corner turning it by 2 degrees, grown
+by 3 with chamfers, is 137.974 where it was 137.199. A loop of ten corners, two of whose edges cross 1.7 degrees apart
+and are crossed by a third 0.0078 from there at points 0.00027 apart, shrunk by 0.3 with miters at 1E-3, is four loops
+of 24.284 where 0.063 more was cut out beside the point, and shrunk by 1 one of 2.857 where it was 3.358; a loop of
+four corners whose spike 2.4 degrees wide is crossed by an edge where it is 0.0057 wide, grown by 3 with miters at
+0.01, is 386.351, as within 1E-4, where it was 387.385. A loop of ten corners in a box 0.95 by 0.86, shrunk by 0.1 with
+miters at 0.01, is the one loop of 0.022622 it was: the triangle 0.0013 by 0.0014 its finer step leaves beside a
+crossing is left out. Round joins, and the DXF polylines' `GetOffsetCurves`, read every crossing within the tolerance,
+as before.
+
+Read against the exact-wedge oracle of the entry for the tips of 13.0.0, over the same 21 504 offsets: grown with
+miters at 1E-2, 7 were wrong and 3 are, grown with chamfers at 1E-2, 3 and 2, and shrunk with miters 2 at 1E-3 and 1 at
+1E-2, and none is; 8 came nearer and none went further. The 5 left at 1E-2 are one loop, a corner of which pokes 0.0075
+across an edge, which so crosses both its sides within the tolerance of it; and the loop that does not cross itself,
+wrong grown by 3 with chamfers, is as it was. 82 offsets changed, all of loops that cross themselves, offset with
+miters or chamfers; of the 74 that were right, 3 moved away from the oracle's area by 0.0002 at most and the rest
+towards it, a loop of ten straight corners grown by 3 at 1E-2 by 0.255, to the oracle's 525.435. Every round offset,
+every chain, every loop that does not cross itself and every offset of the straight path is the same to the bit, and so
+is the `GetOffsetCurves` of 2 720 DXF polylines. Of 1 728 bow ties with a corner within the tolerance of their
+crossing, before or past it, turning the loop by half a degree to 135 degrees, at 1E-2 and 1E-3, grown by 0.3, 1 and 3
+with miters or chamfers, 1 162 were wrong and 235 are, 927 nearer and none further; those left turn the loop by 45
+degrees or more, where the corner and two crossings make a lobe of their own finer than the tolerance, and were wrong
+as they are. Of 28 800 offsets of 900 random loops at a twentieth of their size, with miters or chamfers at 1E-2 and
+1E-3, 20 have more or fewer loops than they had: 18 as many as within 1E-6 where they had not, and 2 one fewer, a loop
+of 0.00001 that is a point within 1E-2, which they kept and the reading within 1E-6 has. A loop cut again within a
+finer step takes up to twice as long, and is cut at most twice more: the loop of four corners grown by 3 at 0.01 takes
+0.65 milliseconds where it took 0.35 on .NET 10, and 0.28 where 0.16 on .NET Framework 4.8; the bow tie 0.055 where
+0.027, and 0.082 where 0.049; and the loop of ten corners shrunk by 0.3 takes 1.22 where it took 1.11, and 2.04 where
+1.90. A place where three edges cross at one point is coarse at every step, and ends the steps: 30 diameters of a
+circle, crossing at its centre, grown by 0.3 with miters at 1E-3 take 163 milliseconds where they took 150 on .NET 10,
+and 329 where 317 on .NET Framework 4.8, and shrunk by 0.05 at 1E-2 57 where 51, and 110 where 101. The 1 200 offsets
+of 300 random loops, and the 600 of 150 loops of straight edges, at each join, tolerance and way, take as long as they
+took within 3 % on both. 8 new tests.
+
 ## 13.1.0
 
 **FIXED.** The booleans of two curved bodies faceted at different stations, and `VolumeTakeoff` of them, no longer

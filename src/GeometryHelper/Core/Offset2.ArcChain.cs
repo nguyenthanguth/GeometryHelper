@@ -140,6 +140,18 @@ namespace GeometryHelper.Core
         /// crossings, cut within 1E-5 took 21 s. The star {71/35} of radius 10, 2 414 crossings, grown by 0.3 at a tolerance
         /// of 0.1 is so the one loop of 302.631 round it.
         /// </para>
+        /// <para>
+        /// Grown or shrunk with miters or chamfers, a loop is cut again within a hundredth of the tolerance, and then a
+        /// ten-thousandth, where the tolerance does not tell a crossing from what lies beside it: within it two crossings made
+        /// one place turn the blunt end of the sliver between them into a point, and a corner of the loop beside a crossing
+        /// turns the tip there by its own turn, and a miter runs the error on. A step the loop cannot be cut at is passed
+        /// over; one is taken where it is coarse at fewer places than the step before, until none is left, and the loop is
+        /// offset within the last taken. A step coarse at as many places, as where three edges cross at one point, ends it,
+        /// so a loop is cut at most twice more. A loop of the answer that is a point within the tolerance asked for is left
+        /// out. The bow tie above with a corner on its first edge 0.005 past the crossing, where it turns by 1 degree, grown
+        /// by 1 at a tolerance of 0.01, keeps the miter of its long lobe and encloses 54.419; the miter was left out, 52.501. A loop of four corners whose spike 2.4 degrees wide is crossed by
+        /// an edge where it is 0.0057 wide, grown by 3 with miters at 0.01, is 386.351, as within 1E-4; it was 387.385.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop or the options are null.</exception>
         public static GeoPolygonArc2[] Offset(GeoPolygonArc2 loop, double distance, OffsetOptions options, Tolerance tolerance)
@@ -147,28 +159,33 @@ namespace GeometryHelper.Core
             if (loop == null) throw new ArgumentNullException(nameof(loop));
             if (options == null) throw new ArgumentNullException(nameof(options));
 
-            // Grown with miters or chamfers, each tip of the region where two lobes of it cross is a corner of its own, which
-            // its miter or its chamfer fills.
-            return Offset(loop, distance, options, tolerance, distance > 0.0 && options.Join != OffsetJoin.Round);
+            return Offset(loop, distance, options, tolerance, true);
         }
 
         /// <summary>
-        /// Offsets a loop that may curve, saying whether the tips of its region where two lobes of it cross are corners.
+        /// Offsets a loop that may curve, saying whether the corners of its region a miter or a chamfer fills are read as the
+        /// region has them where it crosses itself.
         /// </summary>
         /// <param name="loop">The loop.</param>
         /// <param name="distance">How far to move it, outward when positive.</param>
         /// <param name="options">How to fill a corner that opens up, and how far a miter may run.</param>
         /// <param name="tolerance">The tolerance.</param>
-        /// <param name="tipsApart">
-        /// true to join such a tip as a corner of its own, as a region grown with miters or chamfers is; false to join the
-        /// loops round the space between there, as the offset of a DXF polyline does, whose unlimited miter would run a tip
-        /// on as far as its sides take it.
+        /// <param name="asTheRegion">
+        /// true to read them as the region has them: grown, each tip where two lobes of it cross is a corner of its own, and
+        /// a crossing the tolerance does not tell from a corner of the loop or another crossing beside it is read within a
+        /// finer step. false to join the loops round the space between at every crossing, read within the tolerance, as the
+        /// offset of a DXF polyline does, whose unlimited miter would run a tip on as far as its sides take it.
         /// </param>
         /// <returns>The offset loops.</returns>
-        internal static GeoPolygonArc2[] Offset(GeoPolygonArc2 loop, double distance, OffsetOptions options, Tolerance tolerance, bool tipsApart)
+        internal static GeoPolygonArc2[] Offset(GeoPolygonArc2 loop, double distance, OffsetOptions options, Tolerance tolerance, bool asTheRegion)
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
             if (options == null) throw new ArgumentNullException(nameof(options));
+
+            // Corners filled with miters or chamfers are read as the region has them: grown, each tip of the region where two
+            // lobes of it cross is a corner of its own, which its miter or its chamfer fills.
+            bool filled = asTheRegion && options.Join != OffsetJoin.Round;
+            bool tipsApart = filled && distance > 0.0;
 
             if (Math.Abs(distance) <= tolerance.EqualPoint)
             {
@@ -186,7 +203,7 @@ namespace GeometryHelper.Core
             // A loop that crosses itself is read even-odd, as the straight offsets read one: cut at its crossings into the
             // simple loops they make, each running with the region on its left, which is then moved to its right whatever
             // way the loop ran, and the loops that come of it wound the way the loop ran.
-            bool crossing = ArcOffset2.TrySplitAtCrossings(edges, tolerance, out List<List<GeoEdge2>> region, out List<List<GeoEdge2>> bounds, out int crossings, tipsApart);
+            bool crossing = ArcOffset2.TrySplitAtCrossings(edges, tolerance, out List<List<GeoEdge2>> region, out List<List<GeoEdge2>> bounds, out int crossings, tipsApart, out int coarse);
 
             // The tolerance, a hundredth of it and a ten-thousandth of it: a loop it reads in finer steps where the tolerance is
             // coarse beside the shape. One crossing itself at more than 2 000 places is read within the tolerance only, since the
@@ -202,9 +219,37 @@ namespace GeometryHelper.Core
             while (!crossing && crossings > 0 && finely && used + 1 < ladder.Length)
             {
                 used++;
-                crossing = ArcOffset2.TrySplitAtCrossings(edges, ladder[used], out region, out bounds, out crossings, tipsApart);
+                crossing = ArcOffset2.TrySplitAtCrossings(edges, ladder[used], out region, out bounds, out crossings, tipsApart, out coarse);
                 finely = crossings <= ArcOffset2.MostCrossingsRetried;
                 crossing = crossing && finely;
+            }
+
+            // A corner a miter or a chamfer fills is misread where the tolerance does not tell a crossing from what lies beside
+            // it: two crossings made one place turn the blunt end of the sliver between them into a point, and a corner of the
+            // loop beside a crossing turns the tip there by its own turn, and a miter runs the error on. The loop is cut again
+            // at the next steps down, a step it cannot be cut at passed over, as long as each step taken is coarse at fewer
+            // places than the one before and some place is still coarse, and offset within the last step taken; a step coarse
+            // at as many places as the one before, as where three edges cross at one point, ends it.
+            bool finer = false;
+
+            for (int step = used + 1; crossing && coarse > 0 && filled && finely && step < ladder.Length; step++)
+            {
+                if (!ArcOffset2.TrySplitAtCrossings(edges, ladder[step], out List<List<GeoEdge2>> fineRegion, out List<List<GeoEdge2>> fineBounds, out int fineCrossings, tipsApart, out int fineCoarse)
+                    || fineCrossings > ArcOffset2.MostCrossingsRetried)
+                {
+                    continue;
+                }
+
+                if (fineCoarse >= coarse)
+                {
+                    break;
+                }
+
+                used = step;
+                region = fineRegion;
+                bounds = fineBounds;
+                coarse = fineCoarse;
+                finer = true;
             }
 
             if (!crossing)
@@ -251,6 +296,13 @@ namespace GeometryHelper.Core
 
             foreach (List<GeoEdge2> run in runs)
             {
+                // Read within a finer step, the answer still goes back within the tolerance asked for: a loop that is a point
+                // within it, a speck the finer step leaves beside a crossing, is none.
+                if (finer && IsAPoint(run, tolerance))
+                {
+                    continue;
+                }
+
                 if (TryLoop(run, clockwise, tolerance, out GeoPolygonArc2 one, out bool turned))
                 {
                     built.Add(one);
@@ -455,6 +507,38 @@ namespace GeometryHelper.Core
             }
 
             turned = loop.IsClockwise != clockwise;
+            return true;
+        }
+
+        /// <summary>
+        /// Determines whether every corner of a run, and the middle of each of its arcs, lies within the tolerance of every
+        /// other: a loop that is a point within it.
+        /// </summary>
+        private static bool IsAPoint(List<GeoEdge2> run, Tolerance tolerance)
+        {
+            var points = new List<GeoPoint2>(run.Count * 2);
+
+            foreach (GeoEdge2 edge in run)
+            {
+                points.Add(edge.StartPoint);
+
+                if (edge.IsArc)
+                {
+                    points.Add(edge.GetPointAtParameter(0.5));
+                }
+            }
+
+            for (int i = 0; i < points.Count; i++)
+            {
+                for (int j = i + 1; j < points.Count; j++)
+                {
+                    if (!points[i].IsEqualTo(points[j], tolerance))
+                    {
+                        return false;
+                    }
+                }
+            }
+
             return true;
         }
 

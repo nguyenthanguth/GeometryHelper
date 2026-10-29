@@ -148,12 +148,13 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         [Fact]
-        public void ALobeNoWiderThanTheToleranceAtACrossing_IsNoTipToCut()
+        public void ALobeNoWiderThanTheToleranceAtACrossing_IsReadWithinAFinerStepAndCutAsTheOracleCutsIt()
         {
             // The loop of seed 5161 of the reviewer's curved fuzz: two edges crossing at 4.8 degrees near (2.80, -2.90) are both crossed
             // by a third 0.06 from there, 0.006 apart, which at a tolerance of 0.01 is one place, so that the lobe between is
-            // a sliver. Grown by 3 with chamfers it is 301.4067, the oracle's 301.4205 within the tolerance; cut as a tip, the
-            // sliver kept 0.136 more, 301.5953.
+            // a sliver. That place is read within a hundredth of the tolerance, where the lobe is a triangle and its tip is cut
+            // square: grown by 3 with chamfers it is 301.4205, the oracle's. Joined round the space between at 0.01 it was
+            // 301.4067, within the tolerance; cut as a tip there, the sliver kept 0.136 more, 301.5953.
             var loop = new GeoPolygonArc2(
                 new[]
                 {
@@ -200,11 +201,13 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         [Fact]
-        public void ACrossingWithinTheToleranceOfACorner_IsNoTip()
+        public void ACrossingWithinTheToleranceOfACorner_IsReadWithinAFinerStepAndGrowsNoHorn()
         {
             // The loop of seed 1036 of the reviewer's straight fuzz: a corner lies 0.0044 off an edge and 0.0057 from where
-            // that edge crosses another, which at a tolerance of 0.01 is one place. Grown by 3 with miters it is 484.48, the
-            // straight path's 484.4865 within the tolerance; joined as tips there, it grew a horn to 504.98.
+            // that edge crosses another, which at a tolerance of 0.01 is one place. The crossing is read within a hundredth of
+            // the tolerance, where the corner and the crossing lie apart: grown by 3 with miters it is 484.4865, the straight
+            // path's and the oracle's. Joined round the space between at 0.01 it was 484.4827; joined as tips there, the
+            // corner's turn read as the tip's, it grew a horn to 504.98.
             var loop = new GeoPolygonArc2(
                 new[]
                 {

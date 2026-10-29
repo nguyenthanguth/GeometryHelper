@@ -284,8 +284,31 @@ namespace GeometryHelper.Core
         /// </remarks>
         internal static bool TrySplitAtCrossings(List<GeoEdge2> edges, Tolerance tolerance, out List<List<GeoEdge2>> region, out List<List<GeoEdge2>> bounds, out int found, bool tipsApart = false)
         {
+            return TrySplitAtCrossings(edges, tolerance, out region, out bounds, out found, tipsApart, out _);
+        }
+
+        /// <summary>
+        /// Cuts a loop that crosses itself where it crosses itself, and puts it back together as the loops that bound the
+        /// region it encloses, read even-odd, saying at how many of its crossings the tolerance may read the loop coarsely.
+        /// </summary>
+        /// <param name="edges">The edges of the loop, each starting where the one before ended, the last coming back to the first.</param>
+        /// <param name="tolerance">The tolerance, which says how near a crossing may lie to an end of an edge and still be at it.</param>
+        /// <param name="region">The simple loops the crossings cut it into, which say what lies in the region: inside an odd number of them.</param>
+        /// <param name="bounds">The loops that bound the region, each running with it on its left.</param>
+        /// <param name="found">How many places two edges were found to cross each other at, whether or not the loop could be cut there.</param>
+        /// <param name="tipsApart">true to join the chains at a crossing of two lobes round the quarters of the region.</param>
+        /// <param name="coarse">
+        /// How many places more than two pieces of the cut loop cross at, and, with the tips apart, how many crossings of two
+        /// lobes are joined round the space between for a corner of the loop within the tolerance of them, together. Each is
+        /// a place the tolerance may read coarsely: more than two pieces cross where crossings within the tolerance of each
+        /// other were made one, and where the loop runs through one point more than twice.
+        /// </param>
+        /// <returns>true when two edges cross each other, other than at a vertex, and the loop was cut.</returns>
+        internal static bool TrySplitAtCrossings(List<GeoEdge2> edges, Tolerance tolerance, out List<List<GeoEdge2>> region, out List<List<GeoEdge2>> bounds, out int found, bool tipsApart, out int coarse)
+        {
             region = null;
             bounds = null;
+            coarse = 0;
 
             List<Crossing> crossings = FindCrossings(edges, tolerance);
             found = crossings.Count;
@@ -319,7 +342,7 @@ namespace GeometryHelper.Core
             }
 
             TurnWithTheRegionOnTheLeft(chains, loops);
-            List<List<GeoEdge2>> joined = JoinAcrossTheSpaceBetween(chains, tipsApart, tipsApart ? CornersAlongX(edges, tolerance) : null, tolerance);
+            List<List<GeoEdge2>> joined = JoinAcrossTheSpaceBetween(chains, tipsApart, tipsApart ? CornersAlongX(edges, tolerance) : null, tolerance, out coarse);
 
             if (joined == null)
             {
@@ -1901,6 +1924,10 @@ namespace GeometryHelper.Core
         /// </param>
         /// <param name="corners">The corners of the loop in order along X, which a crossing within the tolerance of is no tip; null where the tips are not apart.</param>
         /// <param name="tolerance">The tolerance, within which a lobe whose two sides hug each other is a sliver and no tip.</param>
+        /// <param name="coarse">
+        /// How many places there are where more than two pieces cross, and crossings of two lobes joined round the space
+        /// between for a corner of the loop within the tolerance of them, together.
+        /// </param>
         /// <returns>The loops of the region's boundary, or null where the chains do not pair up.</returns>
         /// <remarks>
         /// A crossing is of two lobes where, the region cut into its lobes at every crossing, its two quarters of the region
@@ -1910,8 +1937,10 @@ namespace GeometryHelper.Core
         /// to (4, 2), crossing itself at (5, 1.667), grown by 3 with miters, is 253.263, as the straight path gives it, where
         /// with its quarters mitered as tips it grew horns out to (-4.487, 1.667) and (14.487, 1.667).
         /// </remarks>
-        private static List<List<GeoEdge2>> JoinAcrossTheSpaceBetween(List<Chain> chains, bool tipsApart, GeoPoint2[] corners, Tolerance tolerance)
+        private static List<List<GeoEdge2>> JoinAcrossTheSpaceBetween(List<Chain> chains, bool tipsApart, GeoPoint2[] corners, Tolerance tolerance, out int coarse)
         {
+            coarse = 0;
+
             // At each crossing, the chains arriving and leaving.
             var arriving = new SortedDictionary<int, List<int>>();
             var leaving = new Dictionary<int, List<int>>();
@@ -1938,6 +1967,11 @@ namespace GeometryHelper.Core
                 if (!leaving.TryGetValue(pair.Key, out List<int> onward) || onward.Count != pair.Value.Count || !TryPair(chains, pair.Value, onward, false))
                 {
                     return null;
+                }
+
+                if (pair.Value.Count > 2)
+                {
+                    coarse++;
                 }
             }
 
@@ -1988,9 +2022,16 @@ namespace GeometryHelper.Core
                 {
                     List<int> pair = arriving[place];
 
-                    if (loopOf[pair[0]] == loopOf[pair[1]]
-                        || EndsBeside(chains, pair, leaving[place], corners, tolerance)
-                        || IsSliver(chains[pair[0]], chains[chains[pair[0]].Next], arriving, tolerance)
+                    if (loopOf[pair[0]] == loopOf[pair[1]])
+                    {
+                        together.Add(place);
+                    }
+                    else if (EndsBeside(chains, pair, leaving[place], corners, tolerance))
+                    {
+                        together.Add(place);
+                        coarse++;
+                    }
+                    else if (IsSliver(chains[pair[0]], chains[chains[pair[0]].Next], arriving, tolerance)
                         || IsSliver(chains[pair[1]], chains[chains[pair[1]].Next], arriving, tolerance))
                     {
                         together.Add(place);

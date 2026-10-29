@@ -789,10 +789,11 @@ of that crossing and encloses 212.058. Two quarters of the region at a crossing 
 of it once it is cut at every crossing, as the straight path reads them. Where they are one piece running round a hole
 they are no tips: the square 10 by 10 whose bottom edge curls up into a loop from (6, 2) to (4, 2), crossing itself at
 (5, 1.667), grown by 3 with miters, is 253.263, as the straight path gives it. Where more than two edges cross at one
-place, crossings within the tolerance of each other made one, where a corner of the loop lies within the tolerance of the
-crossing, or a piece through it ends at a corner within it, or where a lobe beside it is a sliver within the tolerance,
-the region is joined there round the space between, as when it is rounded or shrunk; a vertex the loop runs straight on
-through is no corner. The DXF polylines' `GetOffsetCurves`, whose miter has no limit, join every crossing so. A loop
+place, crossings within the tolerance of each other made one, or where a corner of the loop lies within the tolerance of
+the crossing, or a piece through it ends at a corner within it, the loop is read within a finer step of the tolerance
+where one tells them apart (below); where none does, or where a lobe beside the crossing is a sliver within the
+tolerance, the region is joined there round the space between, as when it is rounded; a vertex the loop runs straight
+on through is no corner. The DXF polylines' `GetOffsetCurves`, whose miter has no limit, join every crossing so. A loop
 that does not cross itself is offset as it always was. A vertex that lies on another edge is a crossing when the edge
 before it comes from one side of that edge and the edge after it leaves to the other: the loop from the origin to
 (10, 0), up to (10, 10) by an arc of bulge 0.2, back to (5, 0) and on to (3, -6) by an arc of bulge -0.2 crosses itself
@@ -843,6 +844,25 @@ more than 2 000 places within the tolerance is read within the tolerance only, c
 as a simple loop: where its crossings bunch, the work of a loop cut at them grows faster than their square, and 60
 diameters of a circle, 6 903 crossings, cut within 1E-5 took 21 s and 1.2 GB. The star {71/35} of radius 10, 2 414
 crossings, grown by 0.3 at a tolerance of 0.1 is so the one loop of 302.631 round it.
+
+Grown or shrunk with miters or chamfers, a loop is cut again within a hundredth of the tolerance, and then a
+ten-thousandth, where the tolerance does not tell a crossing from what lies beside it. A step the loop cannot be cut at
+is passed over; one is taken where it is coarse at fewer places than the step before, until none is left, and the loop
+is offset within the last step taken. A step coarse at as many places as the one before, as where three edges cross at
+one point, ends it, so the loop is cut at most twice more. A loop of the answer that is a point within the tolerance
+asked for, its corners all within the tolerance of each other, is left out: the answer is still within that tolerance.
+Within the tolerance two crossings made one place turn the blunt end of the sliver between them into a point, and a
+corner of the loop beside a crossing turns the tip there by its own turn, and a miter runs the error on, or squares it
+off at its limit. The bow tie from (-10, 2) to (1, -0.2), (1, 0.2)
+and (-10, -2), its back an arc of bulge -0.25, with a corner on its first edge 0.005 past the crossing where it turns by
+1 degree, grown by 1 with miters at a tolerance of 0.01, keeps the miter of its long lobe and encloses 54.419, where the
+miter was left out, 52.501. A loop of ten corners, two of whose edges cross 1.7 degrees apart and are crossed by a third
+0.0078 from there, 0.00027 apart, shrunk by 0.3 with miters at 1E-3 is four loops of 24.284, where the corner beside the
+point was squared off and cut 0.063 more out; and a loop of four corners whose spike 2.4 degrees wide is crossed by an
+edge where it is 0.0057 wide, grown by 3 with miters at 0.01, is 386.351, as within 1E-4, where it was 387.385. A loop
+of ten corners in a box 0.95 by 0.86, shrunk by 0.1 with miters at 0.01 and read within a hundredth of it, is the one
+loop of 0.022622: the triangle 0.0013 by 0.0014 the finer step leaves beside a crossing is a point within 0.01. Round
+joins, and the DXF polylines' `GetOffsetCurves`, read every crossing within the tolerance, as before.
 
 A piece cut back by the corner
 before it to no longer than the tolerance is mitered along the edge it was moved from: the tip of 22.6 degrees at
