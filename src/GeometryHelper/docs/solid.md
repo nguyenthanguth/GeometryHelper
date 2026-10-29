@@ -1332,7 +1332,12 @@ where their own planes put it. Where a plane of one body passes within the toler
 two copies stand a few hundredths apart: closed within the tolerance the boolean was given, open read within a
 finer one. A result open within the default, or within its own tolerance where that is the finer, has its corners
 within its tolerance of each other made one, each group at the corner of it that moves the volume least, and each
-corner within the tolerance of another face's edge put on that edge. What comes of it is kept where it closes within the
+corner within the tolerance of another face's edge put on that edge. A corner is weighed by the triangle it makes with
+the corners its faces turn at either side, past any their edges run straight on through: a column 300 by 300 whose
+faces came in 200 to 1 000 strips, joined within a hundredth to a beam framing 0.002 into its flange, had a corner of
+the flange taken off the flange's plane to the beam's, weighed by the sliver it made with the corners a strip apart,
+and held the two less 25.72 to 374.81 cubic millimetres, closed and valid, where their overlap is 17.04; it holds the
+two less 18.96 now, as with the column in one piece. What comes of it is kept where it closes within the
 default and within its own tolerance, and holds its volume within the tolerance times its area. Of 10 314 cuts within
 0.05 of the parts of a Tekla model by the parts they meet, 14 came out open within 0.01 that way; they close now. A
 result open within its own tolerance is welded too, where that closes it, and one closed within the default is left

@@ -116,6 +116,37 @@ openings and 54 000 booleans of U bodies, 285 and 849 results moved, none from r
 corner 1 080 001.33 to 1 080 001.07 where 1 080 001.2 is the block snapped to the top. 400 bands, 160 envelopes and
 columns of 2 402 to 12 002 faces joined to a beam are the same to the bit, and the booleans timed take what they took.
 
+**FIXED.** A boolean whose result is welded closed no longer loses volume with the number of corners along the edges of
+its faces. Corners within the tolerance of each other are made one at the corner of them that moves the volume least,
+each weighed by the triangle it makes with its neighbours on each face; a face cut into strips keeps a corner on its
+edges where each strip ended, and a corner beside them made a triangle a strip wide with them, however far the face
+reached, so the weld took the face's own corner off its plane, where the face's fan from its first corner made it cost
+the most. A column 300 by 300, web 11, flanges 19, 4 000 long, every edge of its profile cut into 200, 400 or 1 000
+pieces, 2 402 to 12 002 faces, joined within 0.01 to a beam 500 by 180 whose end runs 0.002 into the column's flange and
+whose flanges run 60 past its edge, the two turned, came out closed and valid holding the two less 25.72, 99.39 and
+374.81 cubic millimetres, where their overlap is 17.04; it holds the two less 18.96 now, as the column in one piece
+does, the beam's end tilted where it meets the column's edge. A corner is weighed by the corner each face turns at
+either side of it now, past any corner its edges run straight on through within the tolerance; and where the corners
+left open are welded within twice the tolerance and more, a corner welded to already is weighed by every face of each
+copy welded to it, not by its own faces only: a column 300 by 300 by 1 000 joined to a beam whose end runs exactly 0.001
+into it, at a tolerance of 0.001, had its corner taken off its face to the beam's, weighed by a sliver beside it, when
+the first change was tried, and the union came out 7.6 short of the least it can hold.
+
+Of 1 600 columns joined to beams their end the tolerance into or clear of them, at 1E-3 and at 1E-2, 70 bent bars cut
+from a beam, and the 16 200 booleans of a cube and a box within 1.25 to 2 times the tolerance of it, none moved. Of the
+16 200 within half to once the tolerance, 118 moved, 10 nearer the exact volume and 12 further, and one union of a block
+exactly 0.001 into the top of a cube came out 1 059 998.61 where it held 1 059 999.61 and the exact is 1 060 000, 0.19
+under the two less twice the slab: both corners it chose between lie on a straight edge of the top, and weigh nothing
+either way, before as now. Of 600 plates with twelve openings cut in at once, 61 moved: one closed and valid within the
+least it can hold is 1.35 under it, and one refused is cut, 9.9 under it, each the last of twelve cuts whose first came
+out as before within 5E-10 and whose later ones parted from there; one wrong is refused and one right is refused, 40 right moved
+within what they can hold, and of 16 wrong that moved 8 are nearer and 4 further. Of 400 bands 2 unions are nearer and the rest the same to the bit; of 41 452
+volumes and booleans of cracked cubes with openings and 54 000 booleans of U bodies, 689 and 828 moved, none from right,
+refused or wrong to another. The union of the column in 400 pieces and the beam takes 800 milliseconds where it took
+729 on .NET 10, and 836 where 789 on .NET Framework 4.8, and in 1 000 pieces 2 284 where 2 062, and 2 298 where 2 178:
+its weld tilts the beam's end now, and tries keeping the faces on their planes first, as it did for the column in 100
+pieces or fewer, which takes what it took.
+
 ## 13.1.0
 
 **FIXED.** The booleans of two curved bodies faceted at different stations, and `VolumeTakeoff` of them, no longer

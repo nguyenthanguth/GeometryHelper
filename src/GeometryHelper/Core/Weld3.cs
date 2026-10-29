@@ -21,10 +21,11 @@ namespace GeometryHelper.Core
     /// <para>
     /// The corners within the tolerance of each other are taken together as one, however they chain, and each group is
     /// moved to the corner of it that moves the volume least: a corner moved along the faces it is a corner of moves
-    /// nothing, and one moved off them sweeps the triangle it makes with its neighbours on each. A slab's top ran out to a
-    /// point 0.0095 off the corner of the wall beside it, the end of a sliver along the wall's top edge; moved to the top's
-    /// point, as the corner with the most face round it, the wall's corner tilted the wall, 21.8 metres long, and the slab
-    /// came out 41 925 cubic millimetres short, where the point moved to the wall's corner along the top moves nothing. A
+    /// nothing, and one moved off them sweeps the triangle it makes with its neighbours on each, a neighbour the face's edge
+    /// runs straight on past taken for the corner the face turns at further along. A slab's top ran out to a point 0.0095
+    /// off the corner of the wall beside it, the end of a sliver along the wall's top edge; moved to the top's point, as the
+    /// corner with the most face round it, the wall's corner tilted the wall, 21.8 metres long, and the slab came out
+    /// 41 925 cubic millimetres short, where the point moved to the wall's corner along the top moves nothing. A
     /// corner standing within the tolerance of another face's edge, between its ends, is put on that edge, as the corner
     /// where a long edge meets two short ones. What comes of it is kept only where it closes within the default tolerance
     /// and within its own, and holds the volume it held within the tolerance times its area: a corner moved is moved no
@@ -189,7 +190,9 @@ namespace GeometryHelper.Core
                 given[f] = new List<List<int>>(rings[f]);
             }
 
-            int[] to = Representatives(points, corners, reach);
+            // Where each group goes is weighed by the corners each point turns; see Turns.
+            Func<int, List<GeoVector3>> turns = Turns(rings, points, reach);
+            int[] to = Representatives(points, turns, reach);
             int[] wider = null;
 
             // Each ring on the corners it is welded to, a corner repeated in a row once.
@@ -207,7 +210,36 @@ namespace GeometryHelper.Core
 
             if (wide > reach)
             {
-                wider = Representatives(points, corners, wide, Loose(rings));
+                // A point welded to stands for every copy welded to it, and is weighed by the corners all of them turn: a
+                // column's corner made one with its copy on a sliver beside it a few bits away, and weighed by the sliver's
+                // corners only, was taken 0.001 off the column's face, 300 by 1 000, to a beam's corner, and the union of the
+                // two, the beam's end exactly the tolerance into the column, came out 7.6 cubic millimetres short of the least
+                // it can hold.
+                var standsFor = new List<int>[points.Count];
+
+                for (int i = 0; i < points.Count; i++)
+                {
+                    if (standsFor[to[i]] == null)
+                    {
+                        standsFor[to[i]] = new List<int>(2);
+                    }
+
+                    standsFor[to[i]].Add(i);
+                }
+
+                List<GeoVector3> TurnsOfAll(int id)
+                {
+                    var all = new List<GeoVector3>();
+
+                    foreach (int copy in standsFor[id])
+                    {
+                        all.AddRange(turns(copy));
+                    }
+
+                    return all;
+                }
+
+                wider = Representatives(points, TurnsOfAll, wide, Loose(rings));
 
                 foreach (List<List<int>> faceRings in rings)
                 {
@@ -270,10 +302,10 @@ namespace GeometryHelper.Core
             // taken first where it closes wound alike and moves the volume less. Only where the tilt is worth it: faces tilted
             // by more than a hundredth of the tolerance, and the weld moving the volume by more than a tenth of the tolerance
             // times their area. The flange of a column 4 000 long, tilted at a corner where a beam met it, moved a union by 4
-            // to 370 cubic millimetres, a thirtieth of that or less, and is welded as before; kept on its plane, the flange of
-            // one with a beam framing a fifth of the tolerance into it moved the volume by 14.2 where tilting it moved it by
-            // 3.7. The strips of a beam's end, 30 000 square millimetres, moved a union by 707, and a box's side, 4 000, a
-            // difference by 6.5.
+            // to 370 cubic millimetres, a thirtieth of that or less, and was welded as before, where the beam's end is tilted
+            // now (see Turns); kept on its plane, the flange of one with a beam framing a fifth of the tolerance into it moved
+            // the volume by 14.2 where tilting it moved it by 3.7. The strips of a beam's end, 30 000 square millimetres, moved
+            // a union by 707, and a box's side, 4 000, a difference by 6.5.
             double tilted = TiltedArea(faces, rings, points, Math.Max(rounding, 0.01 * reach));
             double tilting = tilted > 0.0 ? Math.Abs(new GeoSolid3(built).GetSignedVolume() - solid.GetSignedVolume()) : 0.0;
 
@@ -420,7 +452,7 @@ namespace GeometryHelper.Core
 
             // Corners within rounding of each other are one corner: two faces meeting at a corner each hold their own copy
             // of it, a few bits apart.
-            int[] same = Representatives(points, corners, rounding);
+            int[] same = Representatives(points, i => corners[i], rounding);
             var held = new List<List<int>>[count];
 
             for (int f = 0; f < count; f++)
@@ -1189,19 +1221,108 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// The corner each point turns on each ring it is a corner of, as an area vector, worked out the first time it is asked
+        /// for: half the cross of the edges to the nearest corners either side that the ring does not run straight on to, a
+        /// corner standing within the reach of the line from the point to the corner after it, between the two, passed over.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A face cut into strips keeps a corner on its edges where each strip ended, and a corner beside them makes a sliver
+        /// of a triangle with its neighbours, a strip wide, however far the face reaches. Weighed by that triangle, the weld
+        /// closing the step of a beam's end 0.002 into a column's flange of 300 strips took the column face's corner to the
+        /// beam's, off the face's plane, where it moved the face's fan from its first corner, and the union came out 98.92
+        /// cubic millimetres short of the two where their overlap is 17.04; weighed by the corner the face turns, its edges 750
+        /// and 120 long, the beam's end is tilted instead, as with the column in one piece, the two less 18.96.
+        /// </para>
+        /// <para>
+        /// Only the points of a group are weighed, so only theirs are worked out: walking every corner of a face of 1 000
+        /// strips to the end of its edge took a quarter of a second.
+        /// </para>
+        /// </remarks>
+        private static Func<int, List<GeoVector3>> Turns(List<List<int>>[] rings, List<GeoPoint3> points, double reach)
+        {
+            // Where each point stands on the rings, as they are now: a weld builds new rings and leaves these as they were.
+            var standing = new List<(List<int> Ring, int At)>[points.Count];
+
+            foreach (List<List<int>> faceRings in rings)
+            {
+                foreach (List<int> ring in faceRings)
+                {
+                    for (int i = 0; i < ring.Count; i++)
+                    {
+                        if (standing[ring[i]] == null)
+                        {
+                            standing[ring[i]] = new List<(List<int>, int)>(3);
+                        }
+
+                        standing[ring[i]].Add((ring, i));
+                    }
+                }
+            }
+
+            var turns = new List<GeoVector3>[points.Count];
+
+            return id =>
+            {
+                if (turns[id] == null)
+                {
+                    turns[id] = new List<GeoVector3>(3);
+                    GeoPoint3 corner = points[id];
+
+                    foreach ((List<int> ring, int at) in standing[id])
+                    {
+                        GeoVector3 back = corner.GetVectorTo(Turning(ring, at, -1, points, reach));
+                        GeoVector3 ahead = corner.GetVectorTo(Turning(ring, at, 1, points, reach));
+                        turns[id].Add(back.CrossProduct(ahead).Multiply(0.5));
+                    }
+                }
+
+                return turns[id];
+            };
+        }
+
+        /// <summary>
+        /// The nearest corner of a ring from the one at a position, stepping one way, past every corner that stands within the
+        /// reach of the line from that position's corner to the corner after it, between the two.
+        /// </summary>
+        private static GeoPoint3 Turning(List<int> ring, int at, int step, List<GeoPoint3> points, double reach)
+        {
+            int count = ring.Count;
+            GeoPoint3 corner = points[ring[at]];
+            int near = (at + step + count) % count;
+
+            for (int next = (near + step + count) % count; next != at; next = (next + step + count) % count)
+            {
+                GeoPoint3 passed = points[ring[near]];
+                GeoVector3 line = corner.GetVectorTo(points[ring[next]]);
+                double length = line.DotProduct(line);
+                double along = line.DotProduct(corner.GetVectorTo(passed));
+
+                if (!(along > 0.0 && along < length) || corner.Add(line.Multiply(along / length)).DistanceTo(passed) > reach)
+                {
+                    break;
+                }
+
+                near = next;
+            }
+
+            return points[ring[near]];
+        }
+
+        /// <summary>
         /// The position each point is welded to: the points within the tolerance of each other, however they chain, are
         /// one group, and each goes to the point of it that takes the most of the group within the tolerance of it and of
         /// those moves the volume least, the first met of those; the rest of the group is settled the same way among
         /// themselves.
         /// </summary>
-        private static int[] Representatives(List<GeoPoint3> points, List<List<GeoVector3>> corners, double reach)
+        private static int[] Representatives(List<GeoPoint3> points, Func<int, List<GeoVector3>> corners, double reach)
             => Representatives(points, corners, reach, null);
 
         /// <summary>
         /// The position each point is welded to, as the overload without marks gives it, of the points marked only where
         /// marks are given: every other point stays where it is.
         /// </summary>
-        internal static int[] Representatives(List<GeoPoint3> points, List<List<GeoVector3>> corners, double reach, bool[] only)
+        internal static int[] Representatives(List<GeoPoint3> points, Func<int, List<GeoVector3>> corners, double reach, bool[] only)
         {
             int count = points.Count;
             int[] parent = new int[count];
@@ -1339,7 +1460,7 @@ namespace GeometryHelper.Core
         /// How many points of a group stand within the tolerance of one of them, and how far moving those to it moves the
         /// volume, to the first order: each corner a point makes, its triangle's area times how far it moves off it.
         /// </summary>
-        private static void Weigh(int candidate, List<int> group, List<GeoPoint3> points, List<List<GeoVector3>> corners, double reachSquared, out int taken, out double moved)
+        private static void Weigh(int candidate, List<int> group, List<GeoPoint3> points, Func<int, List<GeoVector3>> corners, double reachSquared, out int taken, out double moved)
         {
             taken = 0;
             moved = 0.0;
@@ -1361,7 +1482,7 @@ namespace GeometryHelper.Core
 
                 GeoVector3 shift = points[m].GetVectorTo(target);
 
-                foreach (GeoVector3 corner in corners[m])
+                foreach (GeoVector3 corner in corners(m))
                 {
                     moved += Math.Abs(shift.DotProduct(corner));
                 }
