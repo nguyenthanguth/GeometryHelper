@@ -4,7 +4,7 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 release only, and a link here for the rest. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
-## Unreleased
+## 13.1.0
 
 **FIXED.** The booleans of two curved bodies faceted at different stations, and `VolumeTakeoff` of them, no longer
 run for minutes. A body was cut into cells by each plane of the other wherever the plane ran, and every plane of a

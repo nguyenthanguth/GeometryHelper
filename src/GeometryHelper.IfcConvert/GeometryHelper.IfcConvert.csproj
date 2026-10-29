@@ -19,6 +19,11 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 13.1.0
+      - GeometryHelper.IfcConvert is released at 13.1.0 with GeometryHelper, which no longer takes minutes over the
+        booleans and take-offs of curved bodies faceted at different stations, and fixes booleans, openings,
+        crossings at a tolerance of nought and DXF block copies; nothing in IfcConvert changes.
+
       NEW IN 13.0.0
       - GeometryHelper.IfcConvert is released at 13.0.0 with GeometryHelper, which moves its DXF types to
         GeometryHelper.Dxf and renames a few of them (a breaking change outside IfcConvert), adds DxfDatabase to edit
