@@ -85,7 +85,12 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Gets the point of a run of edges nearest another point.
+        /// Gets the point of a run of edges nearest another point, each edge offering the point
+        /// <see cref="GeoEdge3.GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/> gives at the tolerance, so the snap is kept:
+        /// a point whose foot falls within the tolerance of the centre of a bend is carried to the bend's start, and a
+        /// straight edge no longer than the tolerance offers its start, so the point can be further than
+        /// <see cref="DistanceTo(List{GeoEdge3}, GeoPoint3)"/>, by at most twice the foot's offset from the centre or the
+        /// edge's length.
         /// </summary>
         internal static GeoPoint3 ClosestPoint(List<GeoEdge3> edges, GeoPoint3 point, Tolerance tolerance)
         {

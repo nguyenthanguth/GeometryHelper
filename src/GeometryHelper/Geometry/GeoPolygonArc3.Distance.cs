@@ -54,6 +54,12 @@ namespace GeometryHelper.Geometry
         /// tied to <see cref="Locate(GeoPoint3, Tolerance)"/>, so a point off the loop's plane is positive: the
         /// loop calls it OutSide, because a flat region encloses nothing above itself.
         /// </returns>
+        /// <remarks>
+        /// In the plane every side counts as it is, however short, as <see cref="Locate(GeoPoint3, Tolerance)"/> reads it: at
+        /// a tolerance of a ten-thousandth, the loop (0, 0, 0), (10, 0, 0), (10, 0.0006, 0), (0, 10, 0), built within a
+        /// billionth, is -0.0002 from (9.9998, 0.0003, 0), inside it beside its side 0.0006 long, and 0.0025 from
+        /// (10.0025, 0.0006, 0), out beyond that side's top.
+        /// </remarks>
         public double SignedDistanceTo(GeoPoint3 point, Tolerance tolerance)
         {
             GeoCoordinateSystem3 frame = GetFrame();
@@ -63,7 +69,7 @@ namespace GeometryHelper.Geometry
                 return DistanceTo(point, tolerance);
             }
 
-            return ProjectToPolygonArc2(frame).SignedDistanceTo(PlanarMap.ProjectToPoint2(frame, point), tolerance);
+            return Flat(frame).SignedDistanceTo(PlanarMap.ProjectToPoint2(frame, point), tolerance);
         }
 
     }

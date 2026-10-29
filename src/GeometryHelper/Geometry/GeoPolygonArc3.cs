@@ -262,7 +262,8 @@ namespace GeometryHelper.Geometry
         /// Lays the loop out in its own frame.
         /// </summary>
         /// <remarks>
-        /// This is where every answer about area, about what is inside, and about offsetting comes from. The
+        /// This is where every answer about area and about offsetting comes from; what is inside is worked out in the
+        /// same frame on every side the loop has (see <see cref="ProjectToPolygonArc2(GeoCoordinateSystem3)"/>). The
         /// frame turns with the loop, so a plate gives the same local coordinates whichever way it is
         /// oriented in the model.
         /// </remarks>
@@ -272,7 +273,21 @@ namespace GeometryHelper.Geometry
         /// Lays the loop out in a given frame.
         /// </summary>
         /// <param name="frame">The frame; hold on to it, because putting an answer back needs the same one.</param>
-        public GeoPolygonArc2 ProjectToPolygonArc2(GeoCoordinateSystem3 frame)
+        /// <remarks>
+        /// The loop in the plane is built as a <see cref="GeoPolygonArc2"/> is, so a side shorter than the global point
+        /// tolerance goes, though a loop built within a finer tolerance keeps it: the loop (0, 0, 0), (10, 0, 0),
+        /// (10, 0.0006, 0), (0, 10, 0), built within a billionth, has four sides and is laid out as the triangle without
+        /// its side 0.0006 long. What the loop says about a point or a shape in its plane, as
+        /// <see cref="Locate(GeoPoint3, Tolerance)"/>, <see cref="SignedDistanceTo(GeoPoint3, Tolerance)"/>,
+        /// <see cref="GetClosestEdge(GeoPoint3, Tolerance)"/> and the shortest lines to shapes in its plane do, is worked
+        /// out on every side it has.
+        /// </remarks>
+        public GeoPolygonArc2 ProjectToPolygonArc2(GeoCoordinateSystem3 frame) => LayOut(frame, Tolerance.Global);
+
+        /// <summary>
+        /// Lays the loop out in a given frame, an edge going only where its ends land within a tolerance of each other.
+        /// </summary>
+        private GeoPolygonArc2 LayOut(GeoCoordinateSystem3 frame, Tolerance tolerance)
         {
             var vertices = new List<GeoPoint2>(EdgeCount);
             var bulges = new List<double>(EdgeCount);
@@ -290,7 +305,7 @@ namespace GeometryHelper.Geometry
                 bulges.Add(facingAway ? -edge.Bulge : edge.Bulge);
             }
 
-            return GeoPolygonArc2.FromEdges(vertices, bulges);
+            return GeoPolygonArc2.FromEdges(vertices, bulges, tolerance);
         }
 
         /// <summary>
@@ -360,6 +375,12 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// A point off the plane of the loop is outside it, whatever it is over: a flat loop encloses a
         /// region of its own plane and nothing above or below it.
+        /// <para>
+        /// Every side is read as it is, however short, as <see cref="IsPointOn(GeoPoint3, Tolerance)"/> reads it, so the two
+        /// agree on what is on the outline: at a tolerance of a ten-thousandth, the loop (0, 0, 0), (10, 0, 0),
+        /// (10, 0.0006, 0), (0, 10, 0), built within a billionth, has (10.00005, 0.0003, 0) on its side 0.0006 long, and
+        /// (9.9998, 0.0003, 0) inside it, 0.0002 in from that side.
+        /// </para>
         /// </remarks>
         public PointLocation Locate(GeoPoint3 point, Tolerance tolerance)
         {
@@ -370,7 +391,7 @@ namespace GeometryHelper.Geometry
                 return PointLocation.OutSide;
             }
 
-            return ProjectToPolygonArc2(frame).Locate(PlanarMap.ProjectToPoint2(frame, point), tolerance);
+            return Flat(frame).Locate(PlanarMap.ProjectToPoint2(frame, point), tolerance);
         }
 
         /// <summary>

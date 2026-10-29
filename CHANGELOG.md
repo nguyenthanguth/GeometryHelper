@@ -51,6 +51,25 @@ booleans, 6 common parts given as nothing are right; none moves otherwise. Not f
 slab 0.0166 thin, 1.66 tolerances, turned, is cut cleanly into 0.66 of its 1.17, within the tolerance times its area of
 either, and read as enclosing nothing.
 
+**FIXED.** What a `GeoPolygonArc3` says in its plane, `Locate`, `Contains`, `SignedDistanceTo`, `GetClosestEdge` and the
+shortest line to a shape in its plane, no longer loses a side shorter than the global tolerance. They lay the loop out in
+its plane, and the layout cleaned it again within `Tolerance.Global`, whatever tolerance the loop was built within and
+the caller passed, so they could disagree with `IsPointOn` and `DistanceTo`, which measure every side. At a tolerance of
+a ten-thousandth, the loop (0, 0, 0), (10, 0, 0), (10, 0.0006, 0), (0, 10, 0), built within a billionth, has
+(10.00005, 0.0003, 0) on it, 0.00005 out from its side 0.0006 long, where `Locate` read it outside, 0.00025 from the
+triangle left without the side; (9.9998, 0.0003, 0) is inside, 0.0002 deep, where it was read on the outline and nought
+from it; and the edge nearest the first point is that side, where it was the side from (10, 0, 0) to (0, 10, 0), which
+the loop does not have. The layout for these keeps every side now, dropping one only where its ends land on the very
+same point; `ToPolygonArc2`, `ProjectToPolygonArc2`, the area, the centroid, `IsSimple`, offsets, fillets, chamfers and
+the booleans still read the loop as a `GeoPolygonArc2` is built. Of 300 000 chains and loops at tolerances of a
+thousandth and a hundredth, the 494 points in a loop's plane where `Locate` and `IsPointOn` disagreed are none, and of
+300 000 more at a ten-thousandth, 798; signed distances off the exact ones go from 4 814 and 7 904 to none, nearest edges
+the loop does not have from 28 200 and 56 110 to none, and shortest lines to a segment off the exact length from 733 and
+1 102 to 29 and 21: 37 of those are the lines they were, and 13 are beside a side shorter than the tolerance, which
+offers its start as it does on its own, and still off. Every answer for chains, and for loops the global tolerance drops
+no side of, is the same to the bit, and `Locate` on a loop of 100 sides takes the 18 microseconds it took on .NET
+Framework 4.8. 6 new tests.
+
 **FIXED.** `TryCutOpenings` and the measures of a body with openings no longer keep a skin the tolerance thin over an
 opening that cut in alone would lose it. Cut in together, a plane of one opening cuts every cell that reaches the
 opening's box, and a plate's first cells reach all of its openings: twelve boxes hidden 0.01 inside the faces of a plate

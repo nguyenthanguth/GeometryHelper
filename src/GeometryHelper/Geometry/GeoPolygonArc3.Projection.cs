@@ -371,9 +371,11 @@ namespace GeometryHelper.Geometry
         #region Laying the probe out in the loop's plane
 
         /// <summary>
-        /// This loop laid out in its own frame.
+        /// This loop laid out in a frame edge for edge, for answering in its plane: no edge goes unless its ends land on the
+        /// very same point, so a side shorter than the global tolerance, which the loop keeps when built within a finer one,
+        /// is there for <see cref="Locate(GeoPoint3, Tolerance)"/> as it is for <see cref="IsPointOn(GeoPoint3, Tolerance)"/>.
         /// </summary>
-        private GeoPolygonArc2 Flat(GeoCoordinateSystem3 frame) => ProjectToPolygonArc2(frame);
+        private GeoPolygonArc2 Flat(GeoCoordinateSystem3 frame) => LayOut(frame, default(Tolerance));
 
         /// <summary>
         /// The loop's frame, after checking that every point given lies in its plane.

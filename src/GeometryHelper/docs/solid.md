@@ -2022,6 +2022,13 @@ tie.Offset(25.0);          // moved in the plane of the tie, arcs kept as arcs
 tie.ToPolygonArc2();       // laid out in its own frame
 ```
 
+What is on the loop, inside it or nearest it in its plane, `Locate`, `Contains`, `SignedDistanceTo`, `GetClosestEdge`
+and the shortest line to a shape in its plane, is worked out on every side the loop has, as `IsPointOn` and
+`DistanceTo` measure them. A loop built within a finer tolerance than the global one keeps a side shorter than that,
+and `ToPolygonArc2`, built as a `GeoPolygonArc2` is, drops it, as the area and the shaping do. At a ten-thousandth, the
+loop (0, 0, 0), (10, 0, 0), (10, 0.0006, 0), (0, 10, 0), built within a billionth, has (10.00005, 0.0003, 0) on its
+side 0.0006 long and (9.9998, 0.0003, 0) inside it, 0.0002 deep, and that side is the edge nearest the first.
+
 A loop in space cannot report its winding through `IsClockwise`, because it is laid out in a frame that turns
 with it. What reversing turns over is the plane the loop names.
 

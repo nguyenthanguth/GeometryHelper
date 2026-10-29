@@ -59,18 +59,19 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the vertices are null.</exception>
         /// <exception cref="ArgumentException">Thrown when fewer than three distinct vertices are given.</exception>
         public GeoPolygonArc2(IEnumerable<GeoPoint2> vertices, IEnumerable<double> bulges)
-            : this(vertices, bulges, true)
+            : this(vertices, bulges, true, Tolerance.Global)
         {
         }
 
         /// <summary>
         /// Initializes a loop whose edges may be arcs, saying what a last vertex repeating the first does to the
-        /// closing edge.
+        /// closing edge, and how near two vertices are to be the same.
         /// </summary>
         /// <param name="vertices">The vertices, in order; at least three distinct ones.</param>
         /// <param name="bulges">The bulge of the edge leaving each vertex; null or short means the rest are straight.</param>
         /// <param name="repeatBendsClosingEdge">true to give a straight closing edge the bulge on the repeated vertex, as the public constructor does; false to let it keep its own.</param>
-        private GeoPolygonArc2(IEnumerable<GeoPoint2> vertices, IEnumerable<double> bulges, bool repeatBendsClosingEdge)
+        /// <param name="tolerance">The tolerance whose point threshold says when a vertex is in the same place as the one before it.</param>
+        private GeoPolygonArc2(IEnumerable<GeoPoint2> vertices, IEnumerable<double> bulges, bool repeatBendsClosingEdge, Tolerance tolerance)
         {
             if (vertices == null) throw new ArgumentNullException(nameof(vertices));
 
@@ -87,7 +88,7 @@ namespace GeometryHelper.Geometry
 
                 // The edge between two vertices in the same place has no length and goes with the later vertex;
                 // the vertex kept takes the bulge of the edge running on from the one dropped.
-                if (kept.Count > 0 && kept[kept.Count - 1].IsEqualTo(vertex))
+                if (kept.Count > 0 && kept[kept.Count - 1].IsEqualTo(vertex, tolerance))
                 {
                     keptBulges[keptBulges.Count - 1] = bulge;
                     continue;
@@ -99,7 +100,7 @@ namespace GeometryHelper.Geometry
 
             // A loop closes itself, so a repeated first vertex at the end says nothing the loop does not
             // already say. Its bulge, though, belongs to the closing edge.
-            while (kept.Count > 1 && kept[kept.Count - 1].IsEqualTo(kept[0]))
+            while (kept.Count > 1 && kept[kept.Count - 1].IsEqualTo(kept[0], tolerance))
             {
                 if (repeatBendsClosingEdge)
                 {
@@ -134,7 +135,25 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         /// <exception cref="ArgumentException">Thrown when fewer than three distinct starts are given.</exception>
         internal static GeoPolygonArc2 FromEdges(IEnumerable<GeoPoint2> starts, IEnumerable<double> bulges)
-            => new GeoPolygonArc2(starts, bulges, false);
+            => FromEdges(starts, bulges, Tolerance.Global);
+
+        /// <summary>
+        /// Builds a loop from the start and bulge of each of its edges, as
+        /// <see cref="FromEdges(IEnumerable{GeoPoint2}, IEnumerable{double})"/> does, an edge going only where it starts
+        /// within a given tolerance of the start kept before it.
+        /// </summary>
+        /// <param name="starts">Where each edge starts.</param>
+        /// <param name="bulges">The bulge of each edge.</param>
+        /// <param name="tolerance">The tolerance whose point threshold says when an edge is too short to keep.</param>
+        /// <returns>The loop.</returns>
+        /// <remarks>
+        /// For edges already kept within a tolerance of their own, as a loop in space laying itself out in its plane: at a
+        /// tolerance of nought, only an edge whose ends land on the very same point goes, so the side 0.0006 long of the loop
+        /// (0, 0), (10, 0), (10, 0.0006), (0, 10) stays, where the global tolerance of a thousandth would drop it.
+        /// </remarks>
+        /// <exception cref="ArgumentException">Thrown when fewer than three distinct starts are given.</exception>
+        internal static GeoPolygonArc2 FromEdges(IEnumerable<GeoPoint2> starts, IEnumerable<double> bulges, Tolerance tolerance)
+            => new GeoPolygonArc2(starts, bulges, false, tolerance);
 
         /// <summary>
         /// Gives a loop of vertices already apart, three or more, and the bulge of each edge, checking nothing.
@@ -152,8 +171,9 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
-        /// Builds a loop from the start and bulge of each of its edges, as <see cref="FromEdges"/> does, unless
-        /// fewer than three of the starts would be left once those the constructor drops are gone.
+        /// Builds a loop from the start and bulge of each of its edges, as
+        /// <see cref="FromEdges(IEnumerable{GeoPoint2}, IEnumerable{double})"/> does, unless fewer than three of the starts
+        /// would be left once those the constructor drops are gone.
         /// </summary>
         /// <param name="starts">Where each edge starts.</param>
         /// <param name="bulges">The bulge of each edge.</param>
