@@ -6,6 +6,28 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `TryUnion` no longer refuses the union of two bodies lying exactly the tolerance into each other where it came
+out wound against itself every way it was worked out, nor hands it back wound so where it held the two. A column 300 by
+300 by 1 000 and a beam 386.7 wide and 364.8 high running exactly 0.001 into its side, turned and moved, joined within a
+thousandth, kept the slab of the beam's end beside the column whole, held the two and 63.5, and was not made; worked out
+again with the cells no thicker than the tolerance left out, it came out the same. It is worked out once more now with a
+corner read as on a plane within what rounding adds to the tolerance, a trillionth of the size of the coordinates, as the
+cut of openings reads it, and taken where that closes wound alike and holds no less than the two with the faces of one
+lying face to face on the other's moved onto them whole: it holds the two less 125.26, the slab where they overlap being
+109.45 and the beam's whole end 141.07. Another, made holding the two though `Validate` read it as not valid, is valid
+now and holds the two less 40.83. One that holds less than that any way is still not worked out: a beam 377.4 wide and
+107.5 high running exactly 0.01 into the column held 573.26 less than the two worked out once more, where its whole end
+is 405.6. The rule for two bodies exactly the tolerance into or apart is written down in the guide: they are read as
+touching, their common part is nothing, each difference leaves its body whole, and their union holds the two less the
+overlap or the two and the gap within the tolerance times the area where they lie face to face. Of 1 600 such columns
+and beams running 0.8 to 2 tolerances into or clear of each other, turned at random and as far as 700 metres from the
+origin, 6 unions refused at 1E-3 and 4 at 0.05 are made, and 2 made not valid at 1E-3 are valid, each within that band;
+of 5 400 booleans of turned cubes and blocks exactly the tolerance into, onto or beside each other, 8 unions refused are
+made, from the two less the block's foot to the two. No other result moves, by a bit: the rest of those, the same
+bodies half the tolerance to twice it apart, 600 plates cut by twelve openings, 400 slabs in bands, 70 bent bars,
+columns in 200 to 1 000 strips, 41 452 fuzzed booleans, 54 000 of cracked shapes, and 28 800 cuts of openings. 1 new
+test, 5 cases.
+
 **FIXED.** `TryCutOpenings` no longer hands back a plate whose openings end the tolerance inside a face, to a few
 bits, valid and hundreds of cubic millimetres short. Where cutting the openings in together leaves the material open
 and a weld does not close it, they are taken out one at a time by differences, and a difference read a corner as on a

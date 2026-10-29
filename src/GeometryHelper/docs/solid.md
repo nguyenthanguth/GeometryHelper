@@ -1451,10 +1451,19 @@ way. A union that comes out wound against itself, two bodies wound alike, is wor
 than the tolerance lying within the other body against its face left out, and taken so where that closes wound alike and
 holds a volume a union can: no less than the larger, no more than the two, and the two less their common part within
 the tolerance times the area of that part's skin. A turned cube of 100 joined to a slab 40 by 30 and 0.001 thick inside
-its top came out wound against itself round the slab's sides, 1 000 000.4, and is the cube now. One wound against itself
-that holds no such volume either way is not worked out: the same cube and a block 40 by 40 by 50 running exactly 0.001
-into its top at the corner held 1 080 003.21, more than the two. A difference or a common part of two closed bodies that
-makes a closed body enclosing no more than a slab the tolerance thick, as `Validate` reads it (`SolidIssueKind.NoVolume`),
+its top came out wound against itself round the slab's sides, 1 000 000.4, and is the cube now. One that comes out
+wound against itself that way too is worked out once more with a corner read as on a plane within what rounding adds to
+the tolerance, a trillionth of the size of the coordinates, as the cut of openings reads it, and taken where that closes
+wound alike and holds a volume a union can: where the two share nothing, no less than the two with the faces of one
+lying face to face on the other's moved onto them, whole, by the tolerance. A column 300 by 300 by 1 000 and a beam
+386.7 wide and 364.8 high running exactly 0.001 into its side, turned and moved, came out wound against itself every
+way, the slab of the beam's end kept beside the column whole, and was not worked out; it holds the two less 125.26 now,
+the slab where they overlap being 109.45 and the beam's whole end 141.07. The same cube joined to a block 40 by 40 by 50
+running exactly 0.001 into its top at the corner, which came out so holding 1 080 003.21, more than the two, holds
+1 080 000.8, the block's foot being 1.6. One wound against itself that holds no such volume any way is not worked out:
+a beam 377.4 wide and 107.5 high running exactly 0.01 into the column, joined within a hundredth, came out so, and
+worked out once more held 573.26 less than the two, less than the column and the beam beyond its face, 405.6 less.
+A difference or a common part of two closed bodies that makes a closed body enclosing no more than a slab the tolerance thick, as `Validate` reads it (`SolidIssueKind.NoVolume`),
 and nothing else wrong with it than such a slab has, leaves nothing, and says so, `false` with `BooleanOutcome.Empty`: the
 common part of that cube and such a slab inside it was the slab, 1.2 cubic millimetres enclosing nothing, and a plate 10
 by 10 and 0.0018 thick less a box over all but 0.0018 of its width left a rod 0.0018 square. Two bodies apart, a body
@@ -1463,6 +1472,23 @@ cube's top less the cube is the slab as it came. An opening whose face stands th
 tolerance off the body's, to the last bit, is read as touching it, as one a hair nearer is: a box 100 by 60 by 40
 with an opening 0.1 across 0.001 off three of its faces comes out closed, the opening taken with the outside,
 239 999.998 97, where it came out open 7.66 short.
+
+**Exactly the tolerance into or apart counts as touching.** Two bodies whose faces lie the tolerance into or clear of
+each other, or nearer, lie so to a few bits either way once turned, and a boolean reads them as touching there, closed
+across the gap or the slab: their common part is empty, each difference leaves its body whole, and their union holds
+what the touching skins allow, the two less the overlap or the two and the gap filled, within the tolerance times the
+area where they lie face to face either way, since each face of it is within the tolerance of where it belongs; where
+in that band it falls is left to the rounding. Further into each other than the tolerance, the two are cut as they
+are, within the same band. Of 1 600 columns 300 by 300 by 1 000 joined by beams 100 to 400 wide and high running 0.8
+to 2 tolerances into or clear of their sides, turned at random and as far as 700 metres from the origin, every union,
+difference and common part at tolerances of 0.001 and 0.05 holds so, 24 and 138 of the 8 000 of each within the band
+rather than the exact reading, and at 0.01 all but five. The union of the beam 377.4 wide running exactly 0.01 into
+the column, either way round, is not worked out, as above. A beam 160.1 wide and 160.8 high standing exactly 0.01 clear
+of the column holds 661 more than the two and the gap, 2.6 times the tolerance times the area where they face each
+other, and one 129.2 wide and 366.7 high running exactly 0.01 into it, joined beam first, 605 less than the two less
+the slab, 1.3 times. A weld closed each of the three at the default tolerance, a tenth as fine, by tilting a face, as
+it may: a body a boolean gives at a tolerance coarser than the default is welded to close at the default too where
+that can be done, and a weld moves no corner further than the tolerance.
 
 **Parts drawn against each other.** The tolerance says how exact a boolean is; how near two faces of two parts
 have to be to touch is a question of the model. Tekla Structures draws parts against each other a few thousandths

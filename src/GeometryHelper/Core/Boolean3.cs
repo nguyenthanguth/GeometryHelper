@@ -66,6 +66,17 @@ namespace GeometryHelper.Core
     /// 2 000 000. What two bodies exactly the tolerance apart join into still depends on where they lie: turned another way
     /// the two cubes hold 1 999 933.3, part of the gap.
     /// </para>
+    /// <para>
+    /// Two bodies exactly the tolerance into or apart, or nearer, are read as touching, closed across the slab or the gap:
+    /// the part they share is nothing, each difference leaves its body whole, and the union holds the two less the overlap
+    /// or the two and the gap filled, within the tolerance times the area where they lie face to face either way, each face
+    /// within the tolerance of where it belongs. A column 300 by 300 by 1 000 and a beam 386.7 wide and 364.8 high running
+    /// exactly 0.001 into its side, turned, joined within a thousandth, hold the two less 125.26, the overlap being 109.45 and
+    /// the beam's whole end 141.07.
+    /// A weld that closes a union at a tolerance coarser than the default can move it further, as far as tilting a face by
+    /// the tolerance does: a beam 160.1 by 160.8 standing exactly 0.01 clear of such a column, joined within a hundredth, holds
+    /// 661 more than the two and the gap, 257 being the tolerance times the area where they face each other.
+    /// </para>
     /// </summary>
     public static partial class Boolean3
     {
@@ -130,19 +141,30 @@ namespace GeometryHelper.Core
                     // thicker than the tolerance lying within the other body against its face left out, and taken so where that
                     // closes wound alike and holds a volume a union of the two can; see FacesOfCells and HoldsTheTwo. A beam whose
                     // end ran exactly a thousandth into a column held the slab of its end within the column, the column whole
-                    // beside it, 100.96 cubic millimetres over their exact union and 66.35 over the two. Where it does not,
-                    // the union as it came is kept only where it holds such a volume itself, as before such a result was
-                    // turned down; see CombineCuttingOne. Otherwise it is not worked out: a turned cube of 100 and a block
-                    // 40 by 40 by 50 running exactly 0.001 into its top at the corner came out so, 1 080 003.21, more than the
-                    // two, 1 080 001.6.
+                    // beside it, 100.96 cubic millimetres over their exact union and 66.35 over the two. Where it does not, it
+                    // is worked out once more with a corner read as on a plane within what rounding adds to the tolerance, as
+                    // the cut of openings reads it (see Splition3.OnPlaneWithinRounding), and taken so where that closes wound
+                    // alike and holds such a volume, sharing nothing at the tolerance no less than the two with the faces of
+                    // one lying on the other's moved onto them whole: a column 300 by 300 by 1 000 and a beam 386.7 wide and
+                    // 364.8 high running exactly 0.001 into its side, turned, came out wound against itself either way, and
+                    // holds the two less 125.26 now, the slab where they overlap being 109.45 and the beam's whole end 141.07.
+                    // Where that does not either, the union as it came is kept only where it holds such a volume itself, as
+                    // before such a result was turned down; see CombineCuttingOne. Otherwise it is not worked out: such a
+                    // column and a beam 377.4 wide and 107.5 high running exactly 0.01 into it, joined within a hundredth, came
+                    // out so, and worked out once more held 573.26 less than the two, where the beam's whole end is 405.6.
                     if (!Shells3.ClosesAlike(result.Faces, tolerance) && Shells3.ClosesAlike(first.Faces, tolerance) && Shells3.ClosesAlike(second.Faces, tolerance))
                     {
                         if (Unite(first, second, out GeoSolid3 flush, tolerance, out _, out _, null, true)
-                            && Shells3.Closes(flush, tolerance) && Shells3.ClosesAlike(flush.Faces, tolerance) && HoldsTheTwo(flush, first, second, tolerance, true))
+                            && Shells3.Closes(flush, tolerance) && Shells3.ClosesAlike(flush.Faces, tolerance) && HoldsTheTwo(flush, first, second, tolerance, 1))
                         {
                             result = flush;
                         }
-                        else if (!HoldsTheTwo(result, first, second, tolerance, false))
+                        else if (Unite(first, second, out GeoSolid3 near, tolerance, out _, out _, null, false, true)
+                            && Shells3.Closes(near, tolerance) && Shells3.ClosesAlike(near.Faces, tolerance) && HoldsTheTwo(near, first, second, tolerance, 2))
+                        {
+                            result = near;
+                        }
+                        else if (!HoldsTheTwo(result, first, second, tolerance, 0))
                         {
                             GeometryHelperLog.Warn("A solid union could not be worked out: it came out wound against itself, holding a volume no union of the two can; it is reported as not made.");
                             result = null;
@@ -171,22 +193,25 @@ namespace GeometryHelper.Core
         /// Whether a union, worked out again or wound against itself, holds a volume a union of the two can: no less than the
         /// larger, no more than both, and the two less their common part within the tolerance times the area of that part's skin, as
         /// <see cref="AddsUp"/> reads it, or, sharing nothing at the tolerance, the two less no more than the tolerance times
-        /// the area where they lie face to face, where it was worked out again; and a hair for the rounding.
+        /// the area where they lie face to face, or times the faces lying so, whole, where it was worked out again; and a hair
+        /// for the rounding.
         /// </summary>
         /// <param name="union">The union.</param>
         /// <param name="first">The first body.</param>
         /// <param name="second">The second body.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="again">
-        /// Whether the union was worked out again with the cells no thicker than the tolerance left out, where sharing nothing
-        /// it can hold the two less such a slab; one as it came, wound against itself, holds the two then.
+        /// How the union was worked out again, where sharing nothing it can hold less than the two: 1 with the cells no thicker
+        /// than the tolerance left out, the two less the slab where they overlap; 2 with a corner read as on a plane within the
+        /// rounding, the two less the tolerance times the faces lying face to face, whole (<see cref="FacesFaceToFace"/>); 0
+        /// for one as it came, wound against itself, which holds the two then.
         /// </param>
         /// <remarks>
         /// Taken unchecked, the union of a turned cube of 100 and a block 40 by 40 by 50 running 0.001 into its top at the
         /// corner held 1 080 002.0, more than the two, 1 080 001.6, where their union holds 1 080 001.2: a cell standing beside
         /// the block's slab along the cube's edge, not on its face, was left out with it.
         /// </remarks>
-        private static bool HoldsTheTwo(GeoSolid3 union, GeoSolid3 first, GeoSolid3 second, Tolerance tolerance, bool again)
+        private static bool HoldsTheTwo(GeoSolid3 union, GeoSolid3 first, GeoSolid3 second, Tolerance tolerance, int again)
         {
             double v = VolumeOf(union, tolerance);
             double v1 = VolumeOf(first, tolerance);
@@ -205,13 +230,14 @@ namespace GeometryHelper.Core
                 // Nothing in common at the tolerance: an overlap exactly the tolerance deep reads so, and the union holds anything
                 // from the two less that slab to the two, the slab no more than the tolerance times where the two lie face to
                 // face. Two cubes of 100 overlapping by a hundredth, turned, joined within a hundredth into 1 999 950.
-                if (why != null || !again)
+                if (why != null || again == 0)
                 {
                     return why == null && Math.Abs(v - (v1 + v2)) <= rounding;
                 }
 
                 // A slab exactly the tolerance thick is that thick to a few bits either way; see Bridged.
-                return v >= v1 + v2 - tolerance.EqualPoint * ContactArea(first, second, tolerance) - rounding;
+                double area = again == 1 ? ContactArea(first, second, tolerance) : FacesFaceToFace(first, second, tolerance);
+                return v >= v1 + v2 - tolerance.EqualPoint * area - rounding;
             }
 
             return Math.Abs(v - (v1 + v2 - VolumeOf(common, tolerance))) <= tolerance.EqualPoint * common.GrossSurfaceArea + rounding;
@@ -220,7 +246,7 @@ namespace GeometryHelper.Core
         private static bool Unite(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out string unworkable)
             => Unite(first, second, out result, tolerance, out unworkable, out _);
 
-        private static bool Unite(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out string unworkable, out GeoSolid3 open, OpenPath path = null, bool flush = false)
+        private static bool Unite(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out string unworkable, out GeoSolid3 open, OpenPath path = null, bool flush = false, bool onPlaneWithinRounding = false)
         {
             result = null;
             unworkable = null;
@@ -246,6 +272,14 @@ namespace GeometryHelper.Core
             }
 
             tolerance = ForWork(tolerance);
+
+            // Worked out once more where it came out wound against itself, a corner is read as on a plane within what the
+            // rounding of either body adds, all through the union; see Union.
+            if (onPlaneWithinRounding)
+            {
+                tolerance = Splition3.OnPlaneWithinRounding(first, Splition3.OnPlaneWithinRounding(second, tolerance));
+            }
+
             first = FlatForWork(first, tolerance);
             second = FlatForWork(second, tolerance);
 
@@ -1089,6 +1123,60 @@ namespace GeometryHelper.Core
             }
 
             return contact;
+        }
+
+        /// <summary>
+        /// Gets the area of the faces of one body lying face to face on faces of the other, an overlap or a gap exactly the
+        /// tolerance read as within it to a few bits either way, each whole, of the body whose come to less: the faces a union
+        /// reading the slab between the two as nothing can move onto the other's.
+        /// </summary>
+        /// <remarks>
+        /// A beam 377.4 wide and 107.5 high running exactly 0.01 into the side of a column 300 wide lies face to face on it over
+        /// 32 239 square millimetres, its end over 40 560: a union moving the end onto the column's face holds the column and
+        /// the beam beyond its face, 405.6 less than the two, and one worked out again that held 573.3 less held less than any
+        /// reading of the slab.
+        /// </remarks>
+        private static double FacesFaceToFace(GeoSolid3 first, GeoSolid3 second, Tolerance tolerance)
+        {
+            Tolerance flush = Splition3.OnPlaneWithinRounding(first, Splition3.OnPlaneWithinRounding(second, tolerance));
+
+            return Math.Min(FacesLyingOn(first, second, tolerance, flush), FacesLyingOn(second, first, tolerance, flush));
+        }
+
+        /// <summary>
+        /// Gets the area of the faces of one body lying face to face, within the tolerance given, on a face of another over a
+        /// patch wider than the point tolerance; see <see cref="FacesFaceToFace"/>.
+        /// </summary>
+        private static double FacesLyingOn(GeoSolid3 body, GeoSolid3 other, Tolerance tolerance, Tolerance flush)
+        {
+            double area = 0.0;
+            GeoAabb3 otherBox = other.GetAabb();
+
+            foreach (GeoFace3 face in body.Faces)
+            {
+                GeoAabb3 faceBox = face.GetAabb();
+
+                if (!faceBox.CollidesWith(otherBox, tolerance))
+                {
+                    continue;
+                }
+
+                GeoVector3 normal = face.Boundary.Normal;
+
+                foreach (GeoFace3 against in other.Faces)
+                {
+                    if (normal.DotProduct(against.Boundary.Normal) >= 0.0 || !faceBox.CollidesWith(against.GetAabb(), tolerance)
+                        || !LiesIn(against.GetPlane(), face, flush) || !Array.Exists(Intersect(against, face, flush), patch => IsWide(patch, tolerance)))
+                    {
+                        continue;
+                    }
+
+                    area += face.Area;
+                    break;
+                }
+            }
+
+            return area;
         }
 
         /// <summary>
