@@ -171,14 +171,20 @@ namespace GeometryHelper.Dxf
         /// <summary>Adds a block made in code under a name AutoCAD gives itself, as <c>*U4</c>, which <see cref="DxfSymbolTable.Add"/> refuses.</summary>
         internal void AddAnonymous(DxfBlockTableRecord block) => AddRecord(block);
 
-        /// <summary>The first name of a letter of AutoCAD's anonymous blocks and a number, from 1 up, the table has no block of: <c>*U1</c>, <c>*U2</c> and on.</summary>
+        /// <summary>
+        /// The first name of a letter of AutoCAD's anonymous blocks and a number, from 1 up, the table has no block of and no
+        /// INSERT of the drawing gives: <c>*U1</c>, <c>*U2</c> and on. An INSERT of *U1, a block the drawing has not, would place
+        /// a new *U1, which may insert that INSERT's block.
+        /// </summary>
         internal string FreeAnonymousName(string prefix)
         {
+            HashSet<string> now = null;
+
             for (int n = 1; ; n++)
             {
                 string name = prefix + n.ToString(CultureInfo.InvariantCulture);
 
-                if (!Has(name))
+                if (!Has(name) && !_database.File.InsertNames(name, ref now))
                 {
                     return name;
                 }
@@ -1297,7 +1303,10 @@ namespace GeometryHelper.Dxf
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the entity is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the file's version cannot hold the entity's type or look, or its
-        /// linetype is not in the file's linetype table.</exception>
+        /// linetype is not in the file's linetype table; or when it is an INSERT that would make this block insert itself at
+        /// any depth; or when it is a copy of another drawing's entity whose blocks would, once brought, insert themselves or
+        /// this block, an INSERT here of a block this drawing has not placing the one brought of that name: an INSERT, or a
+        /// dimension whose <c>*D</c> holds an INSERT that closes such a round. Nothing is written then.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the entity is in a file already, or this block is not.</exception>
         public void AppendEntity(DxfEntity entity)
         {

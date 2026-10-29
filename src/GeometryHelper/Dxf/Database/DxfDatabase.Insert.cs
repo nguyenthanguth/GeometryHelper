@@ -43,7 +43,11 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentNullException">Thrown when the transformation or the drawing is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the drawing is this one, or this drawing cannot hold an entity of it, or
         /// an entity of it refuses the transformation, or a block of it inserts itself, at any depth (X holding an INSERT of X,
-        /// or Y one of Z and Z one of Y), which AutoCAD's AUDIT takes out; nothing is written then.</exception>
+        /// or Y one of Z and Z one of Y), which AutoCAD's AUDIT takes out; nothing is written then. A block of it that would
+        /// come to insert itself through an INSERT of this drawing of a block it has not is refused too, as
+        /// <see cref="WblockCloneObjects"/> refuses it, but as the merge comes to it: the blocks merged before it stay, and so
+        /// does the block refused, empty, which this drawing's INSERT of its name then places. This drawing's P holding an
+        /// INSERT of M, the other's A a line and M an INSERT of P, the merge is refused at M and leaves A and an empty M.</exception>
         /// <exception cref="NotSupportedException">Thrown when the transformation is not the identity and model space holds an
         /// entity of a type the library has no class for; nothing is written then.</exception>
         public void Insert(GeoTransform3 transform, DxfDatabase dataBase, bool preserveSourceDatabase)
@@ -140,7 +144,10 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown when the name is one AutoCAD does not take or that of a block of this
         /// drawing already, or of one of the other drawing (an OUTER of its own would come under the name of the new block), the
         /// drawing is this one, this drawing cannot hold an entity of it, or a block of it inserts itself, at any depth; nothing
-        /// is written then.</exception>
+        /// is written then. A block of it that would come to insert itself through an INSERT of this drawing of a block it has
+        /// not is refused too, as the other <c>Insert</c> refuses it, the blocks merged before it and the block refused, empty,
+        /// left written; and so is the new block where an INSERT of this drawing gives its name and it would come to insert itself
+        /// through that INSERT, the new block left written, empty.</exception>
         public DxfBlockTableRecord Insert(string blockName, DxfDatabase dataBase, bool preserveSourceDatabase)
         {
             if (blockName == null)

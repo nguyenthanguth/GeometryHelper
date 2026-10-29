@@ -259,6 +259,44 @@ box takes 3.3 milliseconds on .NET Framework 4.8 where it took 1.8, the least of
 both; a comb of 100 notches less one box dipping into a tooth by its middle notch takes 47 where it took 45, a comb of 10
 5.1 as it did, and the comb of 100 less 100 boxes 16.9 seconds where it took 16.5.
 
+**FIXED.** `DxfDatabase.WblockCloneObjects`, and an INSERT of another drawing copied alone and added by `AppendEntity`,
+wrote blocks that insert themselves where the drawing copied into holds an INSERT of a block it has not, as a drawing
+read from a file may. This drawing's P holding an INSERT of M, and the other drawing's M an INSERT of P, an INSERT of M
+copied brought an M that places P, which then placed that M: P, M, P without end, which a reader places 64 deep at most
+and AutoCAD's AUDIT takes out. Such a copy is refused now with an `ArgumentException`, and nothing is written; so is one
+whose blocks insert one another in the other drawing (M inserting N and N inserting M), and one whose blocks would come
+back to the block the copies are added to (an INSERT of Q copied into W, the other drawing's Q inserting W). The blocks a
+copy brings are walked once each, with this drawing's blocks of the names they give, before anything is written.
+`DxfDatabase.Insert` of the other drawing refused some of these rounds and wrote the rest; it refuses them all now, but as
+the merge comes to the block refused, as when it refused before: the blocks merged before it stay written, and so does
+that block, empty, which this drawing's INSERT of its name then places. This drawing's P holding an INSERT of M, and the
+other drawing's A a line and M an INSERT of P, the merge is refused at M and leaves A and an empty M. A block AutoCAD
+names itself is no longer copied under a name an INSERT of either drawing gives of a block neither has: this drawing's P
+holding an INSERT of *U1, which it has not, the other drawing's *U1, inserting P, came as *U1, placed by that INSERT, so
+that P and *U1 placed each other; it comes as *U2 now, and P's INSERT of *U1 places nothing, as before. Nor does
+`DxfBlockReference.ConvertToStaticBlock()` name its new block so: PPP holding an INSERT of *U1, a block the drawing has
+not, the static block came as *U1 and PPP placed it; it comes as *U2. `ConvertToStaticBlock(name)` refuses, with an
+`ArgumentException` and before anything is written, a name an INSERT of the drawing gives where the new block would come
+to insert itself through that INSERT: PPP holding an INSERT of MM, and the block made static an INSERT of PPP, MM is
+refused, where the copy into it was refused before and an empty MM left behind. Of 20 000 pairs of drawings of R12 of a
+few blocks, with rounds and INSERTs of no block among them, copied six ways (120 000 answers), 2 825 wrote a round: 2 554
+are refused now and 271 come under another name with none. 1 064 more differ only by the name an anonymous block is
+copied under, where an INSERT of a block neither drawing has gave the name: 20 of them through an INSERT in a block
+defined twice, whose second definition the reader passes over, and 2 of them refusals of `Insert` in both, whose blocks
+merged before the refusal differ by that name. The rest are the same, bit for bit. Of D7's 6 000 drawings of a few blocks
+inserted four ways and edited, 9 wrote a round and are refused. The rest are the same, bit for bit: the 1 907 drawings
+and 3 550 answers of the members run over the drawings of the corpus and the fixtures, their 261 resaves, and the
+607 940 lines of D8's runs of edits, merges and copies.
+`WblockCloneObjects` of an INSERT of 3 000 blocks nested one inside the next takes 133 to 139 milliseconds on .NET
+Framework 4.8 where it took 119 to 139, and of 10 000 635 to 675 where 615 to 636, 21 more in the middle of the runs; on
+.NET 10, where the runs spread wider, 133 to 203 where 108 to 193, and 302 to 463 where 311 to 387, the middle of the runs
+the same. The first anonymous block copied into a drawing reads the names its INSERTs give, once: a dimension copied into
+a drawing of 20 000 INSERTs takes 62 milliseconds where it took 46 on .NET 10, and 82 where 69 on .NET Framework; those
+copied after it take what they took. Each anonymous block copied into a drawing whose INSERTs name many blocks it has not
+reads their names once: 20 INSERTs of *U1 appended one by one to a drawing of 2 000 INSERTs of missing *U blocks take 72
+to 74 milliseconds where they took 24, and come as *U2001 to *U2020 where they came as *U1 to *U20, each placed by an
+INSERT of a block that was missing.
+
 ## 13.0.0
 
 **BREAKING.** The DXF types move from the namespace `GeometryHelper.Export` to `GeometryHelper.Dxf`: a

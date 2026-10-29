@@ -2077,9 +2077,9 @@ namespace GeometryHelper.Dxf
         }
 
         // The names the INSERTs of the file give, letters of either case the same: read in one walk of the file once a walk for a
-        // round has gone down many blocks, and those of every INSERT written since added, so that it holds every name an INSERT
-        // of the drawing gives, and the name of one rewritten or taken out too. Null until then, and again once the code page
-        // changes.
+        // round has gone down many blocks, or the first time a name is asked of InsertNames (an anonymous block named, or a block
+        // made static under a name), and those of every INSERT written since added, so that it holds every name an INSERT of the
+        // drawing gives, and the name of one rewritten or taken out too. Null until then, and again once the code page changes.
         private HashSet<string> _insertNames;
 
         /// <summary>
@@ -2088,6 +2088,45 @@ namespace GeometryHelper.Dxf
         /// inserted by no block it inserts, at any depth, as a block is built from the bottom up. False where they are not kept.
         /// </summary>
         internal bool InsertsNone(string name) => _insertNames != null && !_insertNames.Contains(name);
+
+        /// <summary>
+        /// Whether an INSERT of the file, in model space, paper space or a block, names a block now, letters of either case the
+        /// same: none where the names the INSERTs give, kept from now on, say so; else the names the INSERTs give now, read in
+        /// one walk of the file into <paramref name="now"/> where it holds none yet, as the names kept keep the name of an
+        /// INSERT rewritten or taken out too. Several names are tested against one reading, while nothing is written between.
+        /// </summary>
+        internal bool InsertNames(string name, ref HashSet<string> now)
+        {
+            KeepInsertNames();
+
+            if (InsertsNone(name))
+            {
+                return false;
+            }
+
+            if (now == null)
+            {
+                now = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (Rec record in Current(0, _starts.Length))
+                {
+                    if (record.Type != "INSERT")
+                    {
+                        continue;
+                    }
+
+                    foreach (Pair pair in PairsOf(record))
+                    {
+                        if (pair.Code == 2)
+                        {
+                            now.Add(DxfReader.NameOf(Text(record, pair)));
+                        }
+                    }
+                }
+            }
+
+            return now.Contains(name);
+        }
 
         /// <summary>Keeps the names the INSERTs of the file give from now on, read in one walk of the file where they are not kept.</summary>
         internal void KeepInsertNames()

@@ -33,7 +33,11 @@ namespace GeometryHelper.Dxf
         /// </para>
         /// <para>
         /// Every copy is checked to be one the block's drawing can hold before any is added, so that a copy refused changes
-        /// nothing: a SPLINE into a drawing of R12 refuses the whole set. An MTEXT added to a drawing of R12 is written as TEXTs,
+        /// nothing: a SPLINE into a drawing of R12 refuses the whole set, and so does a block the copies bring that would insert
+        /// itself once written, by its own INSERTs or theirs, through the blocks of the drawing copied into: that drawing's P
+        /// holding an INSERT of M, a block it has not (as a drawing read from a file may), and this drawing's M an INSERT of P,
+        /// an INSERT of M copied would bring an M that places P, which places that M, without end. A set whose INSERTs would
+        /// bring blocks that come back to the block they are added to is refused too. An MTEXT added to a drawing of R12 is written as TEXTs,
         /// as <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/> writes it, and its place in the list given back is the
         /// MTEXT itself, in no file.
         /// </para>
@@ -48,7 +52,8 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentNullException">Thrown when the entities or the block are null.</exception>
         /// <exception cref="ArgumentException">Thrown when an entity is null, given twice, erased, of another drawing, or a record
         /// that follows another (a VERTEX or an ATTRIB); or when the block's drawing cannot hold a copy, as
-        /// <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/> says. Nothing is added then.</exception>
+        /// <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/> says; or when a block the copies bring would insert itself,
+        /// or make the block insert itself, at any depth, which AutoCAD's AUDIT takes out. Nothing is added then.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the block is in no drawing.</exception>
         public IReadOnlyList<DxfEntity> WblockCloneObjects(IEnumerable<DxfEntity> source, DxfBlockTableRecord owner)
         {
@@ -93,6 +98,10 @@ namespace GeometryHelper.Dxf
             // Every copy is checked before any is added: a copy refused changes nothing.
             var copies = new List<DxfEntity>(entities.Count);
             var copyOf = new Dictionary<DxfItem, DxfEntity>();
+
+            // The blocks the copies bring, and the blocks their INSERTs place, walked together for a round before any is added.
+            var brought = new List<DxfFileBlock>();
+            var placed = new List<string>();
             // The records of the tables of the drawing copied into are kept by name for the copy, and what is read of this one
             // with them: this drawing is only read, as several threads may copy from it at once.
             target.HoldTableNames();
@@ -113,10 +122,21 @@ namespace GeometryHelper.Dxf
                     }
                     else
                     {
-                        target.CheckAdopt(copy.Item);
+                        target.CheckAdopt(copy.Item, null, brought);
+                    }
+
+                    if (copy is DxfBlockReference reference)
+                    {
+                        placed.Add(reference.Name);
                     }
 
                     copies.Add(copy);
+                }
+
+                // One copy alone is walked so as it is added, before anything of it is written.
+                if (entities.Count > 1 && brought.Count > 0)
+                {
+                    target.CheckRounds(File, brought, owner.IsLayout ? null : owner.Name, placed, nameof(source));
                 }
 
                 for (int i = 0; i < entities.Count; i++)

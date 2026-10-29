@@ -261,6 +261,16 @@ namespace GeometryHelper.Dxf
 
             if (outer)
             {
+                // Blocks that would come to insert themselves once written are refused before anything is.
+                string owner = space.Kind == DxfSpaceKind.Block && space.Block != null && !IsLayoutName(space.Block.Name) ? space.Block.Name : null;
+                var placed = new List<string>();
+
+                if (type == "INSERT")
+                {
+                    placed.Add(DxfReader.NameOf(source.ValueOf(from, 2) ?? string.Empty));
+                }
+
+                CheckRounds(origin, blocks, owner, placed, "entity");
                 _blockCopies = new Dictionary<DxfFileBlock, string>();
                 _entityCopies = new Dictionary<ulong, string>();
                 _copiedItems = new Dictionary<string, DxfItem>(StringComparer.OrdinalIgnoreCase);
@@ -329,10 +339,11 @@ namespace GeometryHelper.Dxf
         /// anything, the blocks it brings with it among what is checked: so that several entities are checked before any of them
         /// is written. Given the blocks of the other drawing checked so far, by the checks of entities before it while nothing
         /// was written, those are not checked again, nor the blocks they insert, which were checked with them: so that the
-        /// 3 000 blocks of a drawing nested one inside the next are checked once each, not once for each block above them.
+        /// 3 000 blocks of a drawing nested one inside the next are checked once each, not once for each block above them. The
+        /// blocks it would bring are added to <paramref name="brought"/>, where given, for <see cref="CheckRounds"/>.
         /// </summary>
         /// <exception cref="ArgumentException">Thrown where <see cref="Adopt"/> would refuse the entity.</exception>
-        internal void CheckAdopt(DxfItem from, HashSet<DxfFileBlock> checkedBlocks = null)
+        internal void CheckAdopt(DxfItem from, HashSet<DxfFileBlock> checkedBlocks = null, List<DxfFileBlock> brought = null)
         {
             DxfFile source = from.File;
             List<Rec> records = source.RecordsOf(from);
@@ -342,7 +353,8 @@ namespace GeometryHelper.Dxf
 
             if (foreign)
             {
-                BlocksToCopy(origin, records, new RecordsToCopy(), checkedBlocks);
+                List<DxfFileBlock> blocks = BlocksToCopy(origin, records, new RecordsToCopy(), checkedBlocks);
+                brought?.AddRange(blocks);
             }
         }
 
@@ -696,9 +708,12 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private void CopyBlocks(DxfFile origin, List<DxfFileBlock> blocks)
         {
+            HashSet<string> kept = null;
+            HashSet<string> now = null;
+
             foreach (DxfFileBlock block in blocks)
             {
-                _blockCopies[block] = IsAnonymous(block.Name) ? FreeAnonymousName(block.Name) : block.Name;
+                _blockCopies[block] = IsAnonymous(block.Name) ? FreeAnonymousName(block.Name, kept = kept ?? AnonymousNamesKept(origin, blocks), ref now) : block.Name;
             }
 
             foreach (DxfFileBlock block in blocks)
@@ -744,6 +759,252 @@ namespace GeometryHelper.Dxf
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Refuses blocks of another drawing (<paramref name="origin"/>) to be copied into this one where one of them, once
+        /// written, would insert itself, by its own INSERTs or theirs: the INSERTs of the blocks brought placing one another and
+        /// this drawing's blocks of the names they give, and an INSERT of this drawing that names a block it has not placing the
+        /// one brought of that name; or where an INSERT added to a block that is no layout (<paramref name="owner"/>, of the
+        /// names <paramref name="placed"/> gives, as the origin names them) would come back to that block through them. This
+        /// drawing's P holding an INSERT of M, which it has not, and the other's M one of P, the M brought would place P and P
+        /// that M, without end, which no reader can place. The blocks are walked as the INSERTs placing them will be, each once
+        /// (Tarjan's strongly connected components), on a stack of their own; a round among this drawing's blocks alone is
+        /// left as it is. A block brought that AutoCAD names itself is reached only by the copied INSERTs that place it, as
+        /// its copy takes no name an INSERT gives (<see cref="FreeAnonymousName"/>). With no block brought, a block not yet
+        /// made (<paramref name="owner"/>, none of its name in the drawing) is walked so with the INSERTs it is to hold, as
+        /// <see cref="DxfBlockReference.ConvertToStaticBlock(string)"/> walks it before it adds it.
+        /// </summary>
+        /// <exception cref="ArgumentException">Thrown where a block brought, or the block added to, would insert itself.</exception>
+        internal void CheckRounds(DxfFile origin, List<DxfFileBlock> brought, string owner, List<string> placed, string parameter)
+        {
+            var nodes = new List<RoundNode>();
+            var byBlock = new Dictionary<DxfFileBlock, int>();
+            var byName = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (DxfFileBlock block in brought)
+            {
+                if (!byBlock.ContainsKey(block))
+                {
+                    byBlock.Add(block, nodes.Count);
+
+                    // A named block comes under its own name, which this drawing's INSERTs of it then place.
+                    if (!IsAnonymous(block.Name))
+                    {
+                        byName[block.Name] = nodes.Count;
+                    }
+
+                    nodes.Add(new RoundNode(block.Name, block));
+                }
+            }
+
+            int broughtCount = nodes.Count;
+            int ownerAt = owner == null ? -1 : Named(owner);
+
+            if (broughtCount == 0 && ownerAt < 0)
+            {
+                return;
+            }
+
+            var ownerNext = new List<int>();
+
+            foreach (string name in placed)
+            {
+                ownerNext.Add(OfOrigin(name));
+            }
+
+            int counter = 0;
+            var component = new Stack<int>();
+            var path = new Stack<KeyValuePair<int, int>>();
+
+            for (int root = 0; root <= broughtCount; root++)
+            {
+                int start = root < broughtCount ? root : ownerAt;
+
+                if (start < 0 || nodes[start].Index >= 0)
+                {
+                    continue;
+                }
+
+                Visit(start);
+
+                while (path.Count > 0)
+                {
+                    KeyValuePair<int, int> top = path.Pop();
+                    RoundNode node = nodes[top.Key];
+
+                    if (top.Value < node.Next.Count)
+                    {
+                        path.Push(new KeyValuePair<int, int>(top.Key, top.Value + 1));
+                        int next = node.Next[top.Value];
+
+                        if (nodes[next].Index < 0)
+                        {
+                            Visit(next);
+                        }
+                        else if (nodes[next].OnStack)
+                        {
+                            node.Low = Math.Min(node.Low, nodes[next].Index);
+                        }
+
+                        continue;
+                    }
+
+                    if (path.Count > 0)
+                    {
+                        RoundNode above = nodes[path.Peek().Key];
+                        above.Low = Math.Min(above.Low, node.Low);
+                    }
+
+                    if (node.Low != node.Index)
+                    {
+                        continue;
+                    }
+
+                    // The blocks that reach one another: a round where there are two or more, or one that inserts itself.
+                    var members = new List<int>();
+                    int member;
+
+                    do
+                    {
+                        member = component.Pop();
+                        nodes[member].OnStack = false;
+                        members.Add(member);
+                    }
+                    while (member != top.Key);
+
+                    if (members.Count == 1 && !node.Next.Contains(top.Key))
+                    {
+                        continue;
+                    }
+
+                    members.Sort();
+
+                    if (members[0] < broughtCount)
+                    {
+                        throw new ArgumentException("The block " + nodes[members[0]].Name + " the copies bring would insert itself, by its own INSERTs or theirs, through the blocks of this drawing of the names they give: AutoCAD's AUDIT takes such an INSERT out, and nothing is copied.", parameter);
+                    }
+
+                    if (ownerAt >= 0 && members.BinarySearch(ownerAt) >= 0 && ownerNext.Exists(n => members.BinarySearch(n) >= 0))
+                    {
+                        throw new ArgumentException("The block " + owner + " would insert itself, by the INSERTs added to it or the blocks they bring: AutoCAD's AUDIT takes such an INSERT out, and nothing is copied.", parameter);
+                    }
+                }
+            }
+
+            // The node of a block of a name in this drawing once the blocks are brought: the one brought of the name, or this
+            // drawing's, or none, an INSERT of which places nothing.
+            int Named(string name)
+            {
+                if (!byName.TryGetValue(name, out int at))
+                {
+                    at = nodes.Count;
+                    byName.Add(name, at);
+                    nodes.Add(new RoundNode(name, null));
+                }
+
+                return at;
+            }
+
+            // The node of the block an INSERT of the origin names: its copy, where it is brought, else the block of the name here.
+            int OfOrigin(string name)
+                => origin.Blocks.TryGetValue(name, out DxfFileBlock block) && byBlock.TryGetValue(block, out int at) ? at : Named(name);
+
+            void Visit(int at)
+            {
+                RoundNode node = nodes[at];
+                node.Index = counter;
+                node.Low = counter;
+                counter++;
+                component.Push(at);
+                node.OnStack = true;
+                node.Next = new List<int>();
+
+                if (node.Brought != null)
+                {
+                    foreach (DxfItem item in node.Brought.Items.Snapshot())
+                    {
+                        if (!item.IsRemoved && item.Type == "INSERT")
+                        {
+                            node.Next.Add(OfOrigin(DxfReader.NameOf(origin.ValueOf(item, 2) ?? string.Empty)));
+                        }
+                    }
+                }
+                else
+                {
+                    if (Blocks.TryGetValue(node.Name, out DxfFileBlock block) && (block.Head == null || !block.Head.IsRemoved))
+                    {
+                        foreach (DxfItem item in block.Items.Snapshot())
+                        {
+                            if (!item.IsRemoved && item.Type == "INSERT")
+                            {
+                                node.Next.Add(Named(DxfReader.NameOf(ValueOf(item, 2) ?? string.Empty)));
+                            }
+                        }
+                    }
+
+                    if (at == ownerAt)
+                    {
+                        node.Next.AddRange(ownerNext);
+                    }
+                }
+
+                path.Push(new KeyValuePair<int, int>(at, 0));
+            }
+        }
+
+        /// <summary>
+        /// The names AutoCAD gives blocks itself (<c>*U1</c>) that the INSERTs of blocks of the origin to be copied give as they
+        /// are written: of a block the origin has not, as an INSERT of a block among them is written naming its copy.
+        /// </summary>
+        private static HashSet<string> AnonymousNamesKept(DxfFile origin, List<DxfFileBlock> blocks)
+        {
+            var copied = new HashSet<DxfFileBlock>(blocks);
+            var kept = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (DxfFileBlock block in blocks)
+            {
+                foreach (DxfItem item in block.Items.Snapshot())
+                {
+                    if (!item.IsRemoved && item.Type == "INSERT")
+                    {
+                        string name = DxfReader.NameOf(origin.ValueOf(item, 2) ?? string.Empty);
+
+                        if (IsAnonymous(name) && !(origin.Blocks.TryGetValue(name, out DxfFileBlock named) && copied.Contains(named)))
+                        {
+                            kept.Add(name);
+                        }
+                    }
+                }
+            }
+
+            return kept;
+        }
+
+        /// <summary>Whether a block's name is that of a layout: model space, or paper space and its other layouts (<c>*Paper_Space0</c> and on).</summary>
+        private static bool IsLayoutName(string name)
+            => DxfBlockTableRecord.IsModelName(name) || name.StartsWith(DxfBlockTableRecord.PaperSpace, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>A block on the walk of <see cref="CheckRounds"/>: its name here, the block of the origin it is a copy of where it is brought, the blocks its INSERTs place, and where the walk found it.</summary>
+        private sealed class RoundNode
+        {
+            internal RoundNode(string name, DxfFileBlock brought)
+            {
+                Name = name;
+                Brought = brought;
+            }
+
+            internal string Name { get; }
+
+            internal DxfFileBlock Brought { get; }
+
+            internal List<int> Next { get; set; }
+
+            internal int Index { get; set; } = -1;
+
+            internal int Low { get; set; }
+
+            internal bool OnStack { get; set; }
         }
 
         /// <summary>
@@ -1168,9 +1429,12 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// The first name of an anonymous block's letter and a number, from 1 up, that this file has no block of and no block
         /// being copied is given: sought from the number last given, while a call holds the records of the tables by name, as
-        /// names are only taken then.
+        /// names are only taken then. Nor is it a name an INSERT of this file gives, or one of the blocks being copied gives
+        /// as it is written (<paramref name="kept"/>), of a block neither drawing has: such an INSERT would come to place the
+        /// copy, which may insert that INSERT's block, a *U1 copied as *U1 placing itself.
+        /// The names this file's INSERTs give are read once into <paramref name="now"/> for all the blocks being named.
         /// </summary>
-        private string FreeAnonymousName(string name)
+        private string FreeAnonymousName(string name, HashSet<string> kept, ref HashSet<string> now)
         {
             int digits = 1;
 
@@ -1186,7 +1450,8 @@ namespace GeometryHelper.Dxf
             {
                 string candidate = prefix + n.ToString(CultureInfo.InvariantCulture);
 
-                if (!Blocks.ContainsKey(candidate) && !_blockCopies.Values.Any(v => string.Equals(v, candidate, StringComparison.OrdinalIgnoreCase)))
+                if (!Blocks.ContainsKey(candidate) && !_blockCopies.Values.Any(v => string.Equals(v, candidate, StringComparison.OrdinalIgnoreCase))
+                    && !kept.Contains(candidate) && !InsertNames(candidate, ref now))
                 {
                     if (_anonymousFrom != null)
                     {

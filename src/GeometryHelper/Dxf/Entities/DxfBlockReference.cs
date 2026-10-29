@@ -579,7 +579,9 @@ namespace GeometryHelper.Dxf
         /// <param name="newBlockName">The name of the new block.</param>
         /// <exception cref="ArgumentNullException">Thrown when the name is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the name is one AutoCAD does not take, or that of a block of the
-        /// drawing already, letters of either case the same.</exception>
+        /// drawing already, letters of either case the same; or when an INSERT of the drawing names a block of that name, which
+        /// it has not, and the new block would come to insert itself through it: P holding an INSERT of MM, a block the drawing
+        /// has not, and the dynamic block's copy an INSERT of P, MM would place P and P that MM. Nothing is written then.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the INSERT is in no drawing, is erased, or places no dynamic
         /// block, as AutoCAD refuses a reference that is not dynamic.</exception>
         public void ConvertToStaticBlock(string newBlockName)
@@ -603,7 +605,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Makes the INSERT of a dynamic block place an anonymous block that draws what it draws now, as AutoCAD's
         /// <c>ConvertToStaticBlock()</c>: as <see cref="ConvertToStaticBlock(string)"/> does, the new block named as AutoCAD
-        /// names one itself, the first of <c>*U1</c>, <c>*U2</c> and on the drawing has not, and flagged anonymous (70 of 1).
+        /// names one itself, the first of <c>*U1</c>, <c>*U2</c> and on the drawing has no block of and no INSERT of it names,
+        /// and flagged anonymous (70 of 1).
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the INSERT is in no drawing, is erased, or places no dynamic
         /// block.</exception>
@@ -642,6 +645,25 @@ namespace GeometryHelper.Dxf
             if (Item.File.Supports(1021))
             {
                 made.Units = source.Units;
+            }
+
+            // A block of a name an INSERT of the drawing gives is placed by that INSERT once made: refused, before anything is
+            // written, where a block it is to insert comes back so to it. An anonymous name is one no INSERT gives.
+            HashSet<string> now = null;
+
+            if (!anonymous && Item.File.InsertNames(made.Name, ref now))
+            {
+                var placed = new List<string>();
+
+                foreach (DxfEntity entity in source)
+                {
+                    if (entity is DxfBlockReference reference)
+                    {
+                        placed.Add(reference.Name);
+                    }
+                }
+
+                Item.File.CheckRounds(Item.File, new List<DxfFileBlock>(), made.Name, placed, "newBlockName");
             }
 
             if (anonymous)

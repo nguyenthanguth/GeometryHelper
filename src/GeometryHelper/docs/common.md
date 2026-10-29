@@ -767,7 +767,11 @@ nothing to model space; a name the other drawing has a block of is refused, as i
 Every entity is checked before anything is written, so that a SPLINE into a drawing of R12, or an INSERT the transformation
 would shear, refuses the whole; so does a block that inserts itself, X holding an INSERT of X or Y and Z inserting each
 other, which AutoCAD's AUDIT takes out, and an entity of a type the library has no class for, a SHAPE or an IMAGE, in a model
-space moved by anything but the identity, as its geometry is not moved (`NotSupportedException`). The extents grow by the
+space moved by anything but the identity, as its geometry is not moved (`NotSupportedException`). A block of it that would
+come to insert itself only through an INSERT of this drawing of a block it has not is refused as the merge comes to it, not
+before: the blocks merged before it stay, and so does that block, empty, which this drawing's INSERT of its name then
+places. This drawing's P holding an INSERT of M, the other's A a line and M an INSERT of P, the merge is refused at M and
+leaves A and an empty M. The extents grow by the
 entities where they were moved to, and the other drawing is left as it is, whatever `preserveSourceDatabase` says. Its paper
 space is not inserted, nor its external references but one an INSERT of its model space places, which comes with the INSERT
 an external reference still, its BLOCK flagged 4 (12 overlaid) and naming its drawing as before. A dynamic block comes as a
@@ -1054,7 +1058,10 @@ block that stands for it (`IsDynamicBlock`, `DynamicBlockTableRecord`, `Anonymou
 are AutoCAD's engine's to work out, and are not given. `insert.ConvertToStaticBlock("BOLT_500")` makes the INSERT place a
 new block BOLT_500 holding copies of what it draws, the anonymous block's entities (or the dynamic block's, where it places
 that), its tie to the dynamic block (the entry AcDbBlockRepresentation of its extension dictionary) taken out;
-`ConvertToStaticBlock()` names the copy as AutoCAD names an anonymous block, `*U1` the first the drawing has not. Exploding an
+`ConvertToStaticBlock()` names the copy as AutoCAD names an anonymous block, `*U1` the first the drawing has not, and no
+INSERT of it names: a drawing whose PPP holds an INSERT of `*U1`, a block it has not, gets `*U2`. A name given that an
+INSERT of the drawing names, which would then place the new block, is refused where that block would come to insert itself
+through it, PPP holding an INSERT of MM and the block made static an INSERT of PPP; nothing is written then. Exploding an
 INSERT is set out under [Editing rules](#editing-rules).
 
 ### Hatches
@@ -1494,7 +1501,11 @@ copied without every object it follows follows none. A GROUP every entity of whi
 into the group dictionary there, its order, description and selectability kept, under its own name, or that name and `_1`,
 `_2` and on where the dictionary has it, an anonymous one as the next `*A1`; a group holds no entity of a block, so none is
 copied into one. Every copy is checked before any is added, so that a set the drawing cannot hold, a SPLINE for a drawing of
-R12, changes nothing. A rectangle of four LINEs with a HATCH that follows them, copied together into another drawing, comes
+R12, changes nothing. A set whose blocks would come to insert themselves once written is refused whole too, with an
+`ArgumentException`: a drawing whose block P holds an INSERT of M, a block it has not, as a drawing read from a file may,
+refuses an INSERT of another drawing's M that inserts P, which would bring an M placing P and a P placing that M without
+end. So are blocks of the other drawing that insert one another, and blocks brought that would come back to the block the
+copies are added to; and a copy appended alone by `AppendEntity` is refused alike. A rectangle of four LINEs with a HATCH that follows them, copied together into another drawing, comes
 out as four LINEs and a HATCH that follows those four, each LINE listing the HATCH among its reactors.
 
 What a copy by `Clone()` and `AppendEntity` leaves behind: a copy of an associative HATCH, in its own drawing or another,
