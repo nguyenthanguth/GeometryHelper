@@ -1402,7 +1402,14 @@ lying face to face within the tolerance of each other and apart, welded closed, 
 the gap filled over where their faces lie against each other. Two cubes of 100 side by side 0.01 apart, turned, closed
 across the gap at a tolerance of a hundredth into a body of 2 000 000, the two, 1 999 900, and the gap, 0.01 by
 10 000 square millimetres. What two bodies exactly the tolerance apart join into still depends on where they lie: turned
-another way, the two cubes hold 1 999 933.3, part of the gap. What a weld closes from a body that adds up is taken, and
+another way, the two cubes hold 1 999 933.3, part of the gap. Two bodies that share nothing at the tolerance, a gap or
+an overlap no deeper than it between them, are taken joined into anything from the two less twice the tolerance times
+the area where they lie face to face, the overlap and the faces where they meet the tolerance further in, to the two and
+the gap, and no more. A column 300 by 300 by 1 000 and a beam 239.2 wide and 344.9 high running exactly 0.001 into its
+side, turned, came out open and, closed, held the two less 13.75, the slab where they overlap being 82.5, and was not
+worked out, held to the two exactly; it is taken now, as are two cubes of 100 turned exactly a thousandth apart that hold
+the two and half the gap, and a block whose foot runs exactly 0.001 into a turned cube's top at its corner that holds the
+two less 0.67 where the slab is 0.4. What a weld closes from a body that adds up is taken, and
 can hold a volume between the readings of a feature exactly the tolerance thick: the union of a cube of 100 and a block
 120 by 120 by 50 running 0.001 into its top holds 1 720 012.73, the two with nothing in common at the tolerance being
 1 720 014.4 and the cube and the block beyond it 1 720 004.4. A result that closes as it comes is taken unchecked. Of

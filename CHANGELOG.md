@@ -54,6 +54,29 @@ and 329 where 317 on .NET Framework 4.8, and shrunk by 0.05 at 1E-2 57 where 51,
 of 300 random loops, and the 600 of 150 loops of straight edges, at each join, tolerance and way, take as long as they
 took within 3 % on both. 8 new tests.
 
+**FIXED.** A union of two closed bodies that share nothing at the tolerance, one standing exactly the tolerance into the
+other or clear of it, was reported as not worked out where what it gave holds a volume such a union can. A union that
+came out open on the way and was closed has its volume checked against the two less their common part, and with nothing
+in common at the tolerance it was held to the two, within a hair for the rounding: a column 300 by 300 by 1 000 and a
+beam 239.2 wide and 344.9 high running exactly 0.001 into its side, turned, came out open and, closed, held the two less
+13.75, where the slab they overlap by is 82.5, and was not made; so were a turned cube of 100 and a block 40 by 40 by 50
+whose foot runs exactly 0.001 into the cube's top at its corner, holding the two less 0.67 where the slab is 0.4, and two
+turned cubes of 100 a thousandth apart, holding the two and half the gap. Such a union is taken now where it holds
+anything from the two less twice the tolerance times the area where they lie face to face, the overlap and the faces
+where they meet the tolerance further in, to the two and the gap, and no more; a union worked out again round a slab the
+tolerance thick is read alike, but no lower than the two less the slab once. Of 6 400 unions and differences of a column and a beam whose end stands 0.8 to 2 tolerances into or clear of it
+within a thousandth, at the origin, turned and up to 700 000 out, 4 unions not worked out are made, each between the two
+less the slab and the two, and of 5 400 booleans of a turned cube of 100 and a box exactly a thousandth or a hundredth
+into, onto, beside or clear of it, 6 unions, 5 between the two less the slab and the two and the gap and the corner
+block 0.27 under the two less the slab. Every other result is the same to the bit: the column and the beam within a
+hundredth, 6 400, and 8 000 within each of a thousandth, a hundredth and five hundredths with the common part; the
+cube and the box at 0.5, 0.8, 1.25, 1.5 and 2 tolerances, 27 000; 41 452 volumes and booleans of cracked cubes with
+openings within nought, a thousandth, a hundredth and five hundredths, and 41 452 more within nought and 1E-12; 54 000
+booleans of U bodies, and 54 000 more within nought and 1E-12; 600 plates with blind holes cut, 400 bands, 70 bent bars
+and columns of 2 402 to 12 002 faces joined to a beam. The union that came out open and is taken now takes what it took
+to be refused, within the noise: the column and the beam 4.97 milliseconds where 4.91 on .NET 10, and 1.73 where 1.64 on
+.NET Framework 4.8; the rest of the booleans timed take what they took.
+
 ## 13.1.0
 
 **FIXED.** The booleans of two curved bodies faceted at different stations, and `VolumeTakeoff` of them, no longer

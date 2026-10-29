@@ -211,18 +211,7 @@ namespace GeometryHelper.Core
                 }
 
                 // A slab exactly the tolerance thick is that thick to a few bits either way; see Bridged.
-                double contact = 0.0;
-                Tolerance flush = Splition3.OnPlaneWithinRounding(first, Splition3.OnPlaneWithinRounding(second, tolerance));
-
-                if (TryGetContact(first, second, out GeoFace3[] patches, flush))
-                {
-                    foreach (GeoFace3 patch in patches)
-                    {
-                        contact += patch.Area;
-                    }
-                }
-
-                return v >= v1 + v2 - tolerance.EqualPoint * contact - rounding;
+                return v >= v1 + v2 - tolerance.EqualPoint * ContactArea(first, second, tolerance) - rounding;
             }
 
             return Math.Abs(v - (v1 + v2 - VolumeOf(common, tolerance))) <= tolerance.EqualPoint * common.GrossSurfaceArea + rounding;
@@ -988,6 +977,15 @@ namespace GeometryHelper.Core
         /// counted whole, where the two less their common part hold 240 000.0032 within 0.028.
         /// </para>
         /// <para>
+        /// A union of two bodies that share nothing at the tolerance holds the two and the gap between them filled, or part of
+        /// it, or the two less an overlap no deeper than the tolerance, or part of it: anything from the two less twice the
+        /// tolerance times the area where they lie face to face to the two and the gap, no more. Like
+        /// <see cref="HoldsTheTwo"/>, it takes nothing over the two, the gap aside, and reads the area alike; where that takes
+        /// the two less once the slab at the least, this takes the faces where the two meet the tolerance further in as well,
+        /// as a block whose foot runs exactly a thousandth into a turned cube's top at its corner, closed into the two less
+        /// 1.67 times the slab, needs.
+        /// </para>
+        /// <para>
         /// The common part, or the union for a common part, is worked out by the same boolean at the same tolerance; where
         /// that one comes out open on the way too, or cannot be worked out, the result is not taken either. A result that
         /// closes as it was is taken as it is, unchecked, at no cost.
@@ -1034,6 +1032,22 @@ namespace GeometryHelper.Core
                     return true;
                 }
 
+                // Sharing nothing at the tolerance, the two lie face to face an overlap or a gap no deeper than the tolerance
+                // apart, to a few bits either way, and the union holds anything from the two less such a slab, and the faces
+                // where they meet the tolerance further in, to the two and the gap, no more. A column 300 by 300 by 1 000 and a
+                // beam 239.2 wide and 344.9 high running exactly 0.001 into its side, joined within a thousandth, came out open,
+                // closed into the two less 13.75, and was not made, held to the two, where the two less the slab hold 82.5 less
+                // than the two.
+                if (operation == "union" && !made)
+                {
+                    double slab = tolerance.EqualPoint * ContactArea(first, second, tolerance);
+
+                    if (v >= expected - 2.0 * slab - bound && v <= expected + bridged + bound)
+                    {
+                        return true;
+                    }
+                }
+
                 path.Refused = true;
 
                 unworkable = $"it came out open on the way, and holds {v:R} where the two less their {against} hold {expected:R}, within {bound:R}";
@@ -1047,6 +1061,26 @@ namespace GeometryHelper.Core
             open = open ?? result;
             result = null;
             return false;
+        }
+
+        /// <summary>
+        /// Gets the area where two bodies lie face to face, an overlap or a gap exactly the tolerance read as within it to a
+        /// few bits either way; see <see cref="TryGetContact(GeoSolid3, GeoSolid3, out GeoFace3[], Tolerance)"/>.
+        /// </summary>
+        private static double ContactArea(GeoSolid3 first, GeoSolid3 second, Tolerance tolerance)
+        {
+            double contact = 0.0;
+            Tolerance flush = Splition3.OnPlaneWithinRounding(first, Splition3.OnPlaneWithinRounding(second, tolerance));
+
+            if (TryGetContact(first, second, out GeoFace3[] patches, flush))
+            {
+                foreach (GeoFace3 patch in patches)
+                {
+                    contact += patch.Area;
+                }
+            }
+
+            return contact;
         }
 
         /// <summary>
