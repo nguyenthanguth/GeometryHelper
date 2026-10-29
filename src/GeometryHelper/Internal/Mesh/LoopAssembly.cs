@@ -1220,5 +1220,81 @@ namespace GeometryHelper.Core
 
             edges.RemoveRange(kept, edges.Count - kept);
         }
+
+        /// <summary>
+        /// Removes pairs of edges that run the same stretch in opposite directions, as
+        /// <see cref="CancelOpposedEdges(List{GeoLine3}, Tolerance)"/> does, the pairs nearest each other first: an edge
+        /// within the tolerance of two others cancels the one that leaves the least area between them.
+        /// </summary>
+        /// <param name="edges">The edges, changed in place.</param>
+        /// <param name="tolerance">The tolerance the ends of two edges that cancel meet within.</param>
+        /// <remarks>
+        /// Taken in the order the edges come, an edge cancelled the first later one within the tolerance, which need not be
+        /// the edge it shares. A beam 2 000 by 200 by 300, turned, cut by a plane through one end of its floor and 0.001 over
+        /// it at the other, left each side a triangle 2 000 long and up to 0.001 high below the plane, a square millimetre,
+        /// and the pieces of the side above it. Where the triangle was thinner than the tolerance, the pieces of its bottom,
+        /// the rim of the side, cancelled the pieces of its top, which the pieces above share with it, and the side merged
+        /// 0.72 square millimetres short, the beam less a bent bar 33 cubic millimetres. The pieces above leave nothing
+        /// between them and the triangle's top, and cancel first; the triangle's bottom is left as the rim. Where each edge
+        /// has one edge to cancel, or none, the same pairs cancel as in the order the edges come.
+        /// </remarks>
+        internal static void CancelNearestOpposedEdges(List<GeoLine3> edges, Tolerance tolerance)
+        {
+            SplitAtEdgeEnds(edges, tolerance);
+
+            PointGrid starts = new PointGrid(tolerance);
+
+            for (int j = 0; j < edges.Count; j++)
+            {
+                starts.Add(edges[j].StartPoint, j);
+            }
+
+            // Every pair that can cancel, with the area of the figure the two run round, half the cross of its diagonals.
+            var pairs = new List<(double Between, int First, int Second)>();
+            List<int> near = new List<int>();
+
+            for (int i = 0; i < edges.Count; i++)
+            {
+                starts.Near(edges[i].EndPoint, near);
+
+                foreach (int j in near)
+                {
+                    if (j > i &&
+                        edges[i].StartPoint.IsEqualTo(edges[j].EndPoint, tolerance) &&
+                        edges[i].EndPoint.IsEqualTo(edges[j].StartPoint, tolerance))
+                    {
+                        GeoVector3 across = edges[i].StartPoint.GetVectorTo(edges[j].StartPoint);
+                        GeoVector3 back = edges[i].EndPoint.GetVectorTo(edges[j].EndPoint);
+                        pairs.Add((0.5 * across.CrossProduct(back).Length, i, j));
+                    }
+                }
+            }
+
+            pairs.Sort((a, b) => a.Between != b.Between ? a.Between.CompareTo(b.Between)
+                : a.First != b.First ? a.First.CompareTo(b.First) : a.Second.CompareTo(b.Second));
+
+            bool[] dropped = new bool[edges.Count];
+
+            foreach ((double _, int first, int second) in pairs)
+            {
+                if (!dropped[first] && !dropped[second])
+                {
+                    dropped[first] = true;
+                    dropped[second] = true;
+                }
+            }
+
+            int kept = 0;
+
+            for (int i = 0; i < edges.Count; i++)
+            {
+                if (!dropped[i])
+                {
+                    edges[kept++] = edges[i];
+                }
+            }
+
+            edges.RemoveRange(kept, edges.Count - kept);
+        }
     }
 }

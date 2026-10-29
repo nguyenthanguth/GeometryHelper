@@ -77,6 +77,31 @@ and columns of 2 402 to 12 002 faces joined to a beam. The union that came out o
 to be refused, within the noise: the column and the beam 4.97 milliseconds where 4.91 on .NET 10, and 1.73 where 1.64 on
 .NET Framework 4.8; the rest of the booleans timed take what they took.
 
+**FIXED.** `Merge3.CoplanarFaces`, which every boolean runs on the faces it glues, takes an edge within the tolerance of
+two others for the edge it shares with the nearer, the pair that leaves the least area between them; it took the first
+in the order the edges came. The two long sides of a face thinner than the tolerance are within it of each other, and
+cancelled each other: a beam 2 000 by 200 by 300, turned, less a bar 16 across bent through a right angle, its straight
+leg ending the tolerance over the beam's floor, was cut by the plane of the bar's end, which meets the floor within the
+tolerance and left on each side of the beam a sliver 2 000 long and up to 0.001 high below it. The sliver's bottom, the
+rim of the side, cancelled its top, which the pieces of the side above share with it; the sides merged 0.72 and 0.49
+square millimetres short, and the difference came out closed and valid and 32.9 cubic millimetres short of the beam
+less the common part, 119 941 187.15 where 119 941 220.02. Of 70 such bars turned at random, 14 came out 32.9, 35.1 or
+54.8 short, and are 0.11 or 0.02 short now, as the other 56 were short by up to 0.2, the bar's end standing the
+tolerance over the floor. A side 2 000 by 300 cut by a line from one bottom corner to 0.0011 over the other, and
+across by four more, merges into the one face of 600 000 square millimetres it was, where it was 0.53 short. Where
+each edge has one edge to cancel, or none, the same pairs cancel as before.
+
+Of 600 plates 300 by 200 by 12 with twelve openings the tolerance inside their faces, their openings cut in at once, 13
+that came out closed and valid holding a volume no such plate can, up to 523 cubic millimetres short, hold one it can
+now, 2 not cut are cut, and one cut wrong is not cut; one not cut, of boxes 22 by 22 standing 0.01 inside its top, its
+floor and its end at a tolerance of 0.01, is cut, closed and valid, 177 short of the least it can hold, where its
+`GetVolume` was 28 908 over and is that 177 short. 104 more are a hair different: of the plates with holes through, 79
+are nearer the exact volume and 9 further, by 0.017 at most. Of 41 452 volumes and booleans of cracked cubes with
+openings and 54 000 booleans of U bodies, 285 and 849 results moved, none from right, refused or wrong to another; of
+32 400 booleans of a cube and a box the tolerance into, onto, beside or clear of it, 6 unions moved, of a block over a
+corner 1 080 001.33 to 1 080 001.07 where 1 080 001.2 is the block snapped to the top. 400 bands, 160 envelopes and
+columns of 2 402 to 12 002 faces joined to a beam are the same to the bit, and the booleans timed take what they took.
+
 ## 13.1.0
 
 **FIXED.** The booleans of two curved bodies faceted at different stations, and `VolumeTakeoff` of them, no longer

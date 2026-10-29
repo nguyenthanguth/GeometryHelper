@@ -1852,6 +1852,11 @@ Faces are grouped by the oriented plane they lie on, so a face and one facing th
 merged — they are different surfaces that happen to be flat in the same place. Merging a ring of faces
 keeps the hole in the middle as a hole. Two faces count as touching only where they share a whole edge, so
 a T-junction stops that one join rather than the whole group; merging under-joins rather than guessing.
+An edge within the tolerance of two others is taken for the edge it shares with the nearer, so a face
+thinner than the tolerance keeps its area: its two long sides are within the tolerance of each other, but the
+face beside it shares one of them exactly. A side 2 000 by 300 cut by a line from one bottom corner to 0.0011
+over the other, and across by four more, merges back into the one face of 600 000 square millimetres it was,
+where it came out 0.53 short.
 
 ## Arcs in space
 

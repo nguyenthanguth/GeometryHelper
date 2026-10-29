@@ -402,6 +402,17 @@ namespace GeometryHelper.Core
         /// wherever one of them still has the vertex, and a surface with a T-junction no longer reports
         /// itself closed.
         /// </para>
+        /// <para>
+        /// An edge within the tolerance of two others is taken for the edge it shares with the nearer, the
+        /// one that leaves the least area between them. The two long sides of a face thinner than the
+        /// tolerance are within it of each other, and the edge of the face beside that one side shares is
+        /// nearer. A beam 2 000 by 200 by 300, turned and cut by a plane meeting its floor within the
+        /// tolerance, left on each side a sliver 2 000 long and up to 0.001 high below the plane, a square
+        /// millimetre. Its sides cancelled each other, the beam's sides merged 0.72 and 0.49 square
+        /// millimetres short, and the beam less a bent bar ending the tolerance over its floor came out 32.9
+        /// cubic millimetres short; the sliver's top cancels the pieces above it now, and the side merges
+        /// whole.
+        /// </para>
         /// </remarks>
         public static GeoFace3[] CoplanarFaces(IEnumerable<GeoFace3> faces, Tolerance tolerance)
         {
@@ -478,10 +489,11 @@ namespace GeometryHelper.Core
         /// The union of a set of coplanar faces is bounded by exactly those edges that belong to one face
         /// only: an edge two of them share is interior to the union, and it appears twice among the
         /// collected edges running in opposite directions, so cancelling opposed pairs leaves precisely the
-        /// outline. If what is left does not close into loops the group was not a well formed surface, and
-        /// the faces are handed back untouched rather than replaced by a guess. So are faces that each lie in
-        /// the plane within the tolerance but whose outline does not: a face turned a hair against the others
-        /// leaves a hole standing further than the tolerance off the plane of the loop round it.
+        /// outline. Where an edge is within the tolerance of two that run the other way, the pair nearest each
+        /// other cancels first. If what is left does not close into loops the group was not a well formed
+        /// surface, and the faces are handed back untouched rather than replaced by a guess. So are faces that
+        /// each lie in the plane within the tolerance but whose outline does not: a face turned a hair against
+        /// the others leaves a hole standing further than the tolerance off the plane of the loop round it.
         /// </remarks>
         private static IEnumerable<GeoFace3> MergeGroup(List<GeoFace3> group, GeoPlane3 plane, Tolerance tolerance)
         {
@@ -498,7 +510,7 @@ namespace GeometryHelper.Core
                 }
             }
 
-            LoopAssembly.CancelOpposedEdges(edges, tolerance);
+            LoopAssembly.CancelNearestOpposedEdges(edges, tolerance);
 
             if (edges.Count < 3)
             {
