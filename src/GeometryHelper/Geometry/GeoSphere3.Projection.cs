@@ -204,7 +204,7 @@ namespace GeometryHelper.Geometry
         /// <returns>A segment from the surface of the ball to the point of the shape nearest its centre, as long as the distance between them; of no length where they meet.</returns>
         /// <remarks>
         /// The point of a bend is found at no tolerance, as the distance is, so a centre near the centre of its arc is not carried to the bend's start, as
-        /// <see cref="GetShortestLineTo(GeoEdge3, Tolerance)"/> says.
+        /// <see cref="GetShortestLineTo(GeoEdge3, Tolerance)"/> says; so is the point of a straight edge, which is the edge it is however short.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the curved chain is null.</exception>
         public GeoLine3 GetShortestLineTo(GeoPolylineArc3 chain, Tolerance tolerance)
@@ -214,7 +214,7 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentNullException(nameof(chain));
             }
 
-            return Sphere3.Join(this, chain.GetMeasuredPoint(Center, tolerance), DistanceTo(chain, tolerance));
+            return Sphere3.Join(this, chain.GetMeasuredPoint(Center), DistanceTo(chain, tolerance));
         }
 
         /// <summary>
@@ -229,7 +229,7 @@ namespace GeometryHelper.Geometry
         /// <returns>A segment from the surface of the ball to the point of the shape nearest its centre, as long as the distance between them; of no length where they meet.</returns>
         /// <remarks>
         /// The point of a bend is found at no tolerance, as the distance is, so a centre near the centre of its arc is not carried to the bend's start, as
-        /// <see cref="GetShortestLineTo(GeoEdge3, Tolerance)"/> says.
+        /// <see cref="GetShortestLineTo(GeoEdge3, Tolerance)"/> says; so is the point of a straight side, which is the side it is however short.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the curved loop is null.</exception>
         public GeoLine3 GetShortestLineTo(GeoPolygonArc3 loop, Tolerance tolerance)
@@ -239,7 +239,7 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentNullException(nameof(loop));
             }
 
-            return Sphere3.Join(this, loop.GetMeasuredPoint(Center, tolerance), DistanceTo(loop, tolerance));
+            return Sphere3.Join(this, loop.GetMeasuredPoint(Center), DistanceTo(loop, tolerance));
         }
 
         /// <summary>

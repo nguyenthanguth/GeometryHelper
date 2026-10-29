@@ -160,6 +160,32 @@ nought they take longer than they did, for now doing the work they skipped, and 
 line through the prepared cylinder 7.0 microseconds on .NET 10 where it took 4.7, and the segment through the body 23
 where it took 3.3. 16 new tests.
 
+**FIXED.** The distance from a curved chain or a curved loop in space to a point is measured to each straight edge as it
+is, however short, as it is in the plane. A straight edge no longer than the point tolerance was read as its start
+point, so a point beside its far end stood as far from the chain as from that start: at a tolerance of a thousandth,
+the chain built of the straight edges from (0, 0, 0) to (10, 0, 0) and on to (10, 0.0006, 0) was 0.00108 from
+(10.0009, 0.0006, 0), and the point off it, where it is 0.0009 and on it. `IsPointOn` and `Locate` of a chain and
+`IsPointOn` of a loop follow, and so does everything that asks them or the distance: the point's `DistanceTo` of them,
+a loop's `SignedDistanceTo` of a point off its plane, a ball's `DistanceTo`, `CollidesWith` and `GetShortestLineTo` to
+them and theirs to it, whose line lands on the short edge where it landed on its start. Of 300 000 random chains and
+loops of straight edges and arcs from a twentieth of the tolerance to 100 long, many of them no longer than the
+tolerance, at tolerances of 0.001 and 0.01, at the origin and out to a million, 63 760 distances were more than a
+ten-thousand-millionth of the size of their coordinates off the exact one, 376 points read off the shape that were on
+it, and 8 028 balls read the wrong distance and 126 the wrong touch; none does now. Of the 300 000 points about edges,
+chains and loops drawn for the bends of 13.0.0, the 2 313 distances off the exact one on chains and loops, each nearest
+such an edge, and the 68 wrong answers of `IsPointOn` are gone. A cut of a chain or a loop at a point is made where it
+was: a point now on the shape only beside a straight edge no longer than the tolerance, further than the tolerance from
+both its ends, cuts nothing and is refused, the chain handed back whole and the loop opened at its start, as before; the
+loop (0, 0, 0), (10, 0, 0), (10, 0.0006, 0), (0, 10, 0), built within a ten-thousandth, holds (10.00098, 0.0003, 0) at
+a thousandth and is not cut there; of the 300 000 random shapes, every cut at the point is the same to the bit. Every
+answer about a chain or a loop with no straight edge as short as the tolerance is the same to the bit, and so is `GetClosestPointOnBoundary` of every one, which, as in the plane, still
+carries a point to the start of a straight edge no longer than the tolerance, so that the shortest line from the chain
+to (10.0009, 0.0006, 0) is 0.00108 long, from (10, 0, 0), where the distance is 0.0009. A straight edge on its own that
+short is read as its start, as a straight `GeoEdge2` or a segment you give is. In the loop's plane, `Locate` and
+`SignedDistanceTo` still read a side shorter than `Tolerance.Global` as gone, so they can disagree with `IsPointOn`
+there. The distance from a chain of 100 edges takes 8.5 microseconds on .NET 10 where it took 9.6, and 28.5 to 29.1 on
+.NET Framework 4.8 where it took 29.1 to 29.2. 7 new tests.
+
 ## 13.0.0
 
 **BREAKING.** The DXF types move from the namespace `GeometryHelper.Export` to `GeometryHelper.Dxf`: a

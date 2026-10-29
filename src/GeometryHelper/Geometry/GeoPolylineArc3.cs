@@ -851,6 +851,12 @@ namespace GeometryHelper.Geometry
         /// it, cuts the bend where it is nearest the point: at a tolerance of a thousandth, the chain (0.01, 0, 0),
         /// (0.001, 0, 0), (-0.001, 0, 0), (-0.01, 0, 0) with a bulge of 1 on its middle edge about Z comes apart at
         /// (0, 0.001, 0) when cut by (0, 0.0007, 0).
+        /// <para>
+        /// A point on the chain only beside a straight edge no longer than the tolerance, further than the tolerance from both
+        /// its ends, cuts nothing and is refused, the chain handed back whole: at a tolerance of a thousandth, the hairpin built
+        /// of the straight edges from (0, 0, 0) to (10, 0, 0), on to (10, 0.0006, 0) and back to (0, 0.0006, 0) holds
+        /// (10.00098, 0.0003, 0), 0.00098 from it, and is not cut there.
+        /// </para>
         /// </remarks>
         public bool TrySplitBy(GeoPoint3 point, out GeoPolylineArc3[] pieces, Tolerance tolerance)
             => Core.ArcChain3.TrySplitBy(this, point, out pieces, tolerance);

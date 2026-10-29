@@ -385,6 +385,12 @@ namespace GeometryHelper.Geometry
         /// it, cuts the bend where it is nearest the point: at a tolerance of a thousandth, the loop (0.01, -0.01, 0),
         /// (0.001, 0, 0), (-0.001, 0, 0), (-0.01, -0.01, 0) with a bulge of 1 on its second edge about Z is opened at
         /// (0, 0.001, 0) when cut by (0, 0.0007, 0).
+        /// <para>
+        /// A point on the loop only beside a straight side no longer than the tolerance, further than the tolerance from both
+        /// its corners, cuts nothing and is refused, the loop handed back opened at its start: at a tolerance of a thousandth,
+        /// the loop (0, 0, 0), (10, 0, 0), (10, 0.0006, 0), (0, 10, 0), built within a ten-thousandth, holds
+        /// (10.00098, 0.0003, 0), 0.00098 from it, and is not cut there.
+        /// </para>
         /// </remarks>
         public bool TrySplitBy(GeoPoint3 point, out GeoPolylineArc3[] pieces, Tolerance tolerance)
             => ArcChain3.TrySplitBy(this, point, out pieces, tolerance);

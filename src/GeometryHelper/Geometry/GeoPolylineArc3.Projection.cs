@@ -29,6 +29,12 @@ namespace GeometryHelper.Geometry
         /// edges' points, and another edge can still be nearer. The distance to the point is the exact one, so the line can be
         /// longer than it, by at most twice the foot's offset from the centre.
         /// </para>
+        /// <para>
+        /// A straight edge no longer than the tolerance offers its start, as it does on its own, though the distance measures
+        /// it as it is, so beside it the line can be longer than the distance by up to the edge's length: at a tolerance of a
+        /// thousandth, the chain built of the straight edges from (0, 0, 0) to (10, 0, 0) and on to (10, 0.0006, 0) is 0.0009
+        /// from (10.0009, 0.0006, 0), and the closest point is (10, 0, 0), 0.00108 away.
+        /// </para>
         /// </remarks>
         public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point, Tolerance tolerance)
             => ArcChain3.ClosestPoint(ArcChain3.EdgesOf(this), point, tolerance);
@@ -61,7 +67,8 @@ namespace GeometryHelper.Geometry
         /// on the arcs, so for a point away from the centre of a bend it is as long as
         /// <see cref="DistanceTo(GeoPoint3, Tolerance)"/>: from the chain (0, 0, 0), (100, 0, 0), (100, 100, 0) with both
         /// legs straight, the point (50, 30, 40) gets the one from (50, 0, 0), 50 long. Near the centre of a bend it can be
-        /// longer, as <see cref="GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/> says.
+        /// longer, and beside a straight edge no longer than the tolerance, by up to that edge's length, as
+        /// <see cref="GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/> says.
         /// </remarks>
         public GeoLine3 GetShortestLineTo(GeoPoint3 point) => GetShortestLineTo(point, Tolerance.Global);
 
@@ -74,7 +81,10 @@ namespace GeometryHelper.Geometry
         /// <see cref="DistanceTo(GeoPoint3, Tolerance)"/>: from the chain (0, 0, 0), (100, 0, 0), (100, 100, 0) with both
         /// legs straight, the point (50, 30, 40) gets the one from (50, 0, 0), 50 long. Near the centre of a bend it can be
         /// longer, by at most twice the foot's offset from the centre, as
-        /// <see cref="GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/> says.
+        /// <see cref="GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/> says. Beside a straight edge no longer than the
+        /// tolerance it can be longer by up to that edge's length: at a tolerance of a thousandth, the chain built of the
+        /// straight edges from (0, 0, 0) to (10, 0, 0) and on to (10, 0.0006, 0) is 0.0009 from (10.0009, 0.0006, 0), and the
+        /// line runs from (10, 0, 0), 0.00108 long.
         /// </remarks>
         public GeoLine3 GetShortestLineTo(GeoPoint3 point, Tolerance tolerance)
             => new GeoLine3(GetClosestPointOnBoundary(point, tolerance), point);

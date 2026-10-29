@@ -17,6 +17,11 @@ namespace GeometryHelper.Core
     internal static partial class ArcChain3
     {
         /// <summary>
+        /// A tolerance of nought, for measuring with no slack.
+        /// </summary>
+        private static Tolerance Exactly => default(Tolerance);
+
+        /// <summary>
         /// Gets the edges of a chain that may curve.
         /// </summary>
         internal static List<GeoEdge3> EdgesOf(GeoPolylineArc3 chain)
@@ -104,17 +109,18 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Gets the point of a run of edges its distance to another point is measured to: the nearest of the points
-        /// <see cref="GeoEdge3.GetMeasuredPoint(GeoPoint3, Tolerance)"/> gives, so a point near the centre of a bend is not
-        /// carried to the bend's start.
+        /// <see cref="GeoEdge3.GetMeasuredPoint(GeoPoint3, Tolerance)"/> gives at a tolerance of nought, so a point near the
+        /// centre of a bend is not carried to the bend's start, and a straight edge however short is the edge it is, as
+        /// <see cref="ArcChain2"/> measures one in the plane.
         /// </summary>
-        internal static GeoPoint3 MeasuredPoint(List<GeoEdge3> edges, GeoPoint3 point, Tolerance tolerance)
+        internal static GeoPoint3 MeasuredPoint(List<GeoEdge3> edges, GeoPoint3 point)
         {
-            GeoPoint3 best = edges[0].GetMeasuredPoint(point, tolerance);
+            GeoPoint3 best = edges[0].GetMeasuredPoint(point, Exactly);
             double reach = point.DistanceTo(best);
 
             for (int i = 1; i < edges.Count; i++)
             {
-                GeoPoint3 candidate = edges[i].GetMeasuredPoint(point, tolerance);
+                GeoPoint3 candidate = edges[i].GetMeasuredPoint(point, Exactly);
                 double distance = point.DistanceTo(candidate);
 
                 if (distance < reach)
@@ -154,12 +160,13 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Gets the distance from a run of edges to a point, exactly at every bend: a point at the centre of one is as far
-        /// from it as any other, and a point near the centre is not carried to its start.
+        /// Gets the distance from a run of edges to a point, exactly: a point at the centre of a bend is as far from it as any
+        /// other, a point near the centre is not carried to its start, and a straight edge shorter than the point tolerance
+        /// is not read as its start.
         /// </summary>
-        internal static double DistanceTo(List<GeoEdge3> edges, GeoPoint3 point, Tolerance tolerance)
+        internal static double DistanceTo(List<GeoEdge3> edges, GeoPoint3 point)
         {
-            return point.DistanceTo(MeasuredPoint(edges, point, tolerance));
+            return point.DistanceTo(MeasuredPoint(edges, point));
         }
     }
 }

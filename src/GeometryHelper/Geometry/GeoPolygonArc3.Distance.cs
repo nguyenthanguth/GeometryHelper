@@ -25,17 +25,19 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
-        /// Each edge is measured as <see cref="GeoEdge3.DistanceTo(GeoPoint3, Tolerance)"/> measures it, so the tolerance
-        /// changes nothing in the distance to a bend: a point near the centre of its arc is not carried to the bend's start,
-        /// and the line <see cref="GetShortestLineTo(GeoPoint3, Tolerance)"/> gives can be longer than the distance there.
+        /// The tolerance changes nothing in the distance: a point near the centre of a bend's arc is not carried to the bend's
+        /// start, as <see cref="GeoEdge3.DistanceTo(GeoPoint3, Tolerance)"/> measures a bend, and a straight side shorter than
+        /// the tolerance is the side it is, not read as its start. The line
+        /// <see cref="GetShortestLineTo(GeoPoint3, Tolerance)"/> gives can be longer than the distance there.
         /// </remarks>
-        public double DistanceTo(GeoPoint3 point, Tolerance tolerance) => ArcChain3.DistanceTo(Edges(), point, tolerance);
+        public double DistanceTo(GeoPoint3 point, Tolerance tolerance) => ArcChain3.DistanceTo(Edges(), point);
 
         /// <summary>
         /// Gets the point of the outline its distance to a point is measured to, a point near the centre of a bend not
-        /// carried to the bend's start (see <see cref="GeoEdge3.GetMeasuredPoint(GeoPoint3, Tolerance)"/>).
+        /// carried to the bend's start and a straight side shorter than the tolerance not read as its start (see
+        /// <see cref="ArcChain3.MeasuredPoint(List{GeoEdge3}, GeoPoint3)"/>).
         /// </summary>
-        internal GeoPoint3 GetMeasuredPoint(GeoPoint3 point, Tolerance tolerance) => ArcChain3.MeasuredPoint(Edges(), point, tolerance);
+        internal GeoPoint3 GetMeasuredPoint(GeoPoint3 point) => ArcChain3.MeasuredPoint(Edges(), point);
 
         /// <summary>
         /// Gets how far a point is from the boundary of the loop, negative inside it.

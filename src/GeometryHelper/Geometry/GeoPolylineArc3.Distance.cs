@@ -25,20 +25,22 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
         /// <remarks>
-        /// Each edge is measured as <see cref="GeoEdge3.DistanceTo(GeoPoint3, Tolerance)"/> measures it, so the tolerance
-        /// changes nothing in the distance to a bend: a point near the centre of its arc is not carried to the bend's start.
-        /// At a tolerance of a thousandth, the chain from (0.01, 0, 0) to (0.001, 0, 0), round the half circle of radius
-        /// 0.001 about the origin through (0, 0.001, 0) to (-0.001, 0, 0), and on to (-0.01, 0, 0), is 0.0003 from
-        /// (0, 0.0007, 0), and the point is on it; the projection <see cref="GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/>
-        /// keeps carrying it to the bend's start, 0.00122 away.
+        /// The tolerance changes nothing in the distance: a point near the centre of a bend's arc is not carried to the bend's
+        /// start, as <see cref="GeoEdge3.DistanceTo(GeoPoint3, Tolerance)"/> measures a bend. At a tolerance of a thousandth,
+        /// the chain from (0.01, 0, 0) to (0.001, 0, 0), round the half circle of radius 0.001 about the origin through
+        /// (0, 0.001, 0) to (-0.001, 0, 0), and on to (-0.01, 0, 0), is 0.0003 from (0, 0.0007, 0), and the point is on it;
+        /// the projection <see cref="GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/> keeps carrying it to the bend's start,
+        /// 0.00122 away. A straight edge shorter than the tolerance is the edge it is, where an edge on its own is read as its
+        /// start: the chain built of the straight edges from (0, 0, 0) to (10, 0, 0) and on to (10, 0.0006, 0) is 0.0009 from
+        /// (10.0009, 0.0006, 0), and the point is on it, where the start of that last edge is 0.00108 away.
         /// </remarks>
-        public double DistanceTo(GeoPoint3 point, Tolerance tolerance) => ArcChain3.DistanceTo(ArcChain3.EdgesOf(this), point, tolerance);
+        public double DistanceTo(GeoPoint3 point, Tolerance tolerance) => ArcChain3.DistanceTo(ArcChain3.EdgesOf(this), point);
 
         /// <summary>
         /// Gets the point of the chain its distance to a point is measured to, a point near the centre of a bend not carried
-        /// to the bend's start (see <see cref="GeoEdge3.GetMeasuredPoint(GeoPoint3, Tolerance)"/>).
+        /// to the bend's start and a straight edge shorter than the tolerance not read as its start (see
+        /// <see cref="ArcChain3.MeasuredPoint(List{GeoEdge3}, GeoPoint3)"/>).
         /// </summary>
-        internal GeoPoint3 GetMeasuredPoint(GeoPoint3 point, Tolerance tolerance)
-            => ArcChain3.MeasuredPoint(ArcChain3.EdgesOf(this), point, tolerance);
+        internal GeoPoint3 GetMeasuredPoint(GeoPoint3 point) => ArcChain3.MeasuredPoint(ArcChain3.EdgesOf(this), point);
     }
 }

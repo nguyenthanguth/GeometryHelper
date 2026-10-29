@@ -414,7 +414,18 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            return TryCutLoop(loop, new[] { point }, tolerance, out pieces);
+            // A point on the loop only beside a straight side no longer than the tolerance, further than the tolerance from
+            // both its corners, is on no edge as an edge reads it, and breaks nothing; a point at the first vertex breaks the
+            // loop there and leaves one run.
+            var at = new[] { point };
+
+            if (CutRuns(loop.GetEdges(), at, tolerance).Count < 2 && !point.IsEqualTo(loop[0], tolerance))
+            {
+                pieces = new[] { loop.ToPolylineArc3() };
+                return false;
+            }
+
+            return TryCutLoop(loop, at, tolerance, out pieces);
         }
 
         /// <summary>

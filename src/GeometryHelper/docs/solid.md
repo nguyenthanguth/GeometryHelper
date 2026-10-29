@@ -1876,7 +1876,10 @@ the number a bar schedule has to carry.
 radius 0.001 through (0, 0.001, 0), is 0.0003 from (0, 0.0007, 0), and the point is on it; cut or trimmed by that
 point, the chain comes apart at (0, 0.001, 0). `GetClosestPointOnBoundary` carries a point whose foot falls within the
 tolerance of a bend's centre to the bend's start, so its line can be longer than the distance there, by at most twice
-the foot's offset. A straight leg no longer than the tolerance is read as its start point.
+the foot's offset. A straight leg is measured as it is however short, as in the plane: the chain built of the straight
+edges from (0, 0, 0) to (10, 0, 0) and on to (10, 0.0006, 0) is 0.0009 from (10.0009, 0.0006, 0) at a thousandth, and
+the point is on it. `GetClosestPointOnBoundary` still carries a point to the start of a leg no longer than the
+tolerance, (10, 0, 0) here, 0.00108 away; a straight `GeoEdge3` on its own that short is read as its start.
 
 A radius per corner works too, read the way the bulges are read: the entry at an index belongs to the vertex
 at that index, and nought leaves that corner square. `TryFilletAt` rounds one named corner. A bend with too
