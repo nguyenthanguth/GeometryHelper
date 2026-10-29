@@ -519,37 +519,75 @@ namespace GeometryHelper.Core
         /// its middle in an opening and another its middle out of it.
         /// </summary>
         private static bool QuartersPart(GeoSolid3 body, GeoPlane3 first, GeoPlane3 second, GeoSolid3 opening, Tolerance tolerance, Func<GeoSolid3, GeoPoint3, bool> read)
+            => PartsApart(Quarters(body, first, second), body, opening, tolerance, read);
+
+        /// <summary>
+        /// Whether, of the parts of a body given, one holding more than the tolerance times the body's area has its middle in
+        /// an opening and another its middle out of it, each middle read only where <paramref name="read"/> takes it.
+        /// </summary>
+        private static bool PartsApart(List<(double Volume, GeoPoint3 Middle)> parts, GeoSolid3 body, GeoSolid3 opening, Tolerance tolerance, Func<GeoSolid3, GeoPoint3, bool> read)
         {
             double least = tolerance.EqualPoint * body.GrossSurfaceArea;
             bool someIn = false;
             bool someOut = false;
+
+            foreach ((double volume, GeoPoint3 middle) in parts)
+            {
+                if (Math.Abs(volume) <= least)
+                {
+                    continue;
+                }
+
+                // A middle is read only where it would tell something not known yet: the reading costs a search of the body.
+                bool isIn = IsIn(opening, middle, tolerance);
+
+                if ((isIn ? someIn : someOut) || read != null && !read(body, middle))
+                {
+                    continue;
+                }
+
+                someIn |= isIn;
+                someOut |= !isIn;
+            }
+
+            return someIn && someOut;
+        }
+
+        /// <summary>
+        /// The two parts a plane makes of a body, the side its normal points to first, each with its volume and its middle.
+        /// </summary>
+        private static List<(double Volume, GeoPoint3 Middle)> Halves(GeoSolid3 body, GeoPlane3 plane)
+        {
+            GeoPoint3 apex = NearestTo(plane, body);
+            var none = new GeoVector3(0.0, 0.0, 0.0);
+            var parts = new List<(double Volume, GeoPoint3 Middle)>(2);
+
+            foreach (double side in new[] { 1.0, -1.0 })
+            {
+                double volume = Part(body, apex, apex, plane.Normal, side, none, 0.0, none, 0.0, out GeoVector3 moment);
+                parts.Add((volume, volume != 0.0 ? apex.Add(moment.Multiply(1.0 / volume)) : apex));
+            }
+
+            return parts;
+        }
+
+        /// <summary>
+        /// The four parts two planes make of a body, each with its volume and its middle; see <see cref="Quarter"/>.
+        /// </summary>
+        private static List<(double Volume, GeoPoint3 Middle)> Quarters(GeoSolid3 body, GeoPlane3 first, GeoPlane3 second)
+        {
+            var parts = new List<(double Volume, GeoPoint3 Middle)>(4);
 
             foreach (double firstSide in new[] { 1.0, -1.0 })
             {
                 foreach (double secondSide in new[] { 1.0, -1.0 })
                 {
                     double volume = Quarter(body, first, firstSide, second, secondSide, out GeoPoint3 middle);
-
-                    if (Math.Abs(volume) <= least)
-                    {
-                        continue;
-                    }
-
-                    // A middle is read only where it would tell something not known yet: the reading costs a search of the
-                    // body.
-                    bool isIn = IsIn(opening, middle, tolerance);
-
-                    if ((isIn ? someIn : someOut) || read != null && !read(body, middle))
-                    {
-                        continue;
-                    }
-
-                    someIn |= isIn;
-                    someOut |= !isIn;
+                    parts.Add((volume, middle));
                 }
             }
 
-            return someIn && someOut;
+            return parts;
         }
 
         /// <summary>
@@ -563,11 +601,21 @@ namespace GeometryHelper.Core
         /// corner the opening does not have.
         /// </remarks>
         private static bool EighthsPart(GeoSolid3 body, GeoPlane3 first, GeoPlane3 second, GeoPlane3 third, GeoSolid3 opening, Tolerance tolerance, Func<GeoSolid3, GeoPoint3, bool> read)
+            => Meet(body, first, second, third, out GeoPoint3 apex, out GeoPoint3 origin) && opening.GetAabb().Contains(apex, tolerance)
+                && PartsApart(Eighths(body, apex, origin, first, second, third), body, opening, tolerance, read);
+
+        /// <summary>
+        /// Finds the point three planes meet at, and the point of the first nearest the middle of a body's box, the parts of
+        /// the body are read from; false where two are parallel or the three meet along a line.
+        /// </summary>
+        private static bool Meet(GeoSolid3 body, GeoPlane3 first, GeoPlane3 second, GeoPlane3 third, out GeoPoint3 apex, out GeoPoint3 origin)
         {
             GeoVector3 normal = first.Normal;
             GeoVector3 secondNormal = second.Normal;
             GeoVector3 thirdNormal = third.Normal;
             double corner = normal.DotProduct(secondNormal.CrossProduct(thirdNormal));
+            apex = GeoPoint3.Origin;
+            origin = GeoPoint3.Origin;
 
             if (corner * corner <= 1E-12)
             {
@@ -576,20 +624,21 @@ namespace GeometryHelper.Core
 
             // The point on all three, from a point on the first: nought along its normal, and along each other normal the
             // height of that plane.
-            GeoPoint3 origin = NearestTo(first, body);
+            origin = NearestTo(first, body);
             double secondHeight = secondNormal.DotProduct(origin.GetVectorTo(second.Origin));
             double thirdHeight = thirdNormal.DotProduct(origin.GetVectorTo(third.Origin));
-            GeoPoint3 apex = origin.Add(thirdNormal.CrossProduct(normal).Multiply(secondHeight / corner)
+            apex = origin.Add(thirdNormal.CrossProduct(normal).Multiply(secondHeight / corner)
                 .Add(normal.CrossProduct(secondNormal).Multiply(thirdHeight / corner)));
+            return true;
+        }
 
-            if (!opening.GetAabb().Contains(apex, tolerance))
-            {
-                return false;
-            }
-
-            double least = tolerance.EqualPoint * body.GrossSurfaceArea;
-            bool someIn = false;
-            bool someOut = false;
+        /// <summary>
+        /// The eight parts three planes meeting at a point make of a body, each with its volume and its middle, read as cones
+        /// from that point; see <see cref="Meet"/>.
+        /// </summary>
+        private static List<(double Volume, GeoPoint3 Middle)> Eighths(GeoSolid3 body, GeoPoint3 apex, GeoPoint3 origin, GeoPlane3 first, GeoPlane3 second, GeoPlane3 third)
+        {
+            var parts = new List<(double Volume, GeoPoint3 Middle)>(8);
 
             foreach (double firstSide in new[] { 1.0, -1.0 })
             {
@@ -597,28 +646,13 @@ namespace GeometryHelper.Core
                 {
                     foreach (double thirdSide in new[] { 1.0, -1.0 })
                     {
-                        double volume = Part(body, apex, origin, normal, firstSide, secondNormal, secondSide, thirdNormal, thirdSide, out GeoVector3 moment);
-
-                        if (Math.Abs(volume) <= least)
-                        {
-                            continue;
-                        }
-
-                        GeoPoint3 middle = origin.Add(moment.Multiply(1.0 / volume));
-                        bool isIn = IsIn(opening, middle, tolerance);
-
-                        if ((isIn ? someIn : someOut) || read != null && !read(body, middle))
-                        {
-                            continue;
-                        }
-
-                        someIn |= isIn;
-                        someOut |= !isIn;
+                        double volume = Part(body, apex, origin, first.Normal, firstSide, second.Normal, secondSide, third.Normal, thirdSide, out GeoVector3 moment);
+                        parts.Add((volume, origin.Add(moment.Multiply(1.0 / volume))));
                     }
                 }
             }
 
-            return someIn && someOut;
+            return parts;
         }
 
         /// <summary>
@@ -634,6 +668,14 @@ namespace GeometryHelper.Core
         /// part from the rest.
         /// </remarks>
         private static bool SlabsPart(GeoSolid3 body, GeoPlane3 a, GeoPlane3 b, GeoPlane3 c, GeoSolid3 opening, Tolerance tolerance, Func<GeoSolid3, GeoPoint3, bool> read)
+            => Slabs(body, a, b, c) is List<(double Volume, GeoPoint3 Middle)> parts && PartsApart(parts, body, opening, tolerance, read);
+
+        /// <summary>
+        /// The six parts three planes two of which are parallel make of a body, each with its volume and its middle, on the
+        /// side of the third its normal points to first, short of both parallel planes, between them and beyond both; null
+        /// where no two are parallel, or the third is parallel to them too. See <see cref="SlabsPart"/>.
+        /// </summary>
+        private static List<(double Volume, GeoPoint3 Middle)> Slabs(GeoSolid3 body, GeoPlane3 a, GeoPlane3 b, GeoPlane3 c)
         {
             bool Parallel(GeoPlane3 one, GeoPlane3 another)
             {
@@ -656,7 +698,7 @@ namespace GeometryHelper.Core
             }
             else if (!Parallel(a, b))
             {
-                return false;
+                return null;
             }
 
             GeoVector3 normal = first.Normal;
@@ -665,7 +707,7 @@ namespace GeometryHelper.Core
 
             if (meeting <= 1E-12)
             {
-                return false;
+                return null;
             }
 
             // Heights along the first normal from a point on the first: nought for it, and the height of the second.
@@ -673,9 +715,7 @@ namespace GeometryHelper.Core
             double height = normal.DotProduct(origin.GetVectorTo(second.Origin));
             double low = Math.Min(0.0, height);
             double high = Math.Max(0.0, height);
-            double least = tolerance.EqualPoint * body.GrossSurfaceArea;
-            bool someIn = false;
-            bool someOut = false;
+            var parts = new List<(double Volume, GeoPoint3 Middle)>(6);
 
             // The part beyond a height along the first normal, or short of it, on one side of the third, read as cones from
             // the point of the third at that height nearest the origin.
@@ -691,34 +731,214 @@ namespace GeometryHelper.Core
                 double shortOfLow = Beyond(low, -1.0, thirdSide, out GeoVector3 shortOfLowMoment);
                 double beyondLow = Beyond(low, 1.0, thirdSide, out GeoVector3 beyondLowMoment);
                 double beyondHigh = Beyond(high, 1.0, thirdSide, out GeoVector3 beyondHighMoment);
-                var parts = new[]
-                {
-                    (Volume: shortOfLow, Moment: shortOfLowMoment),
-                    (Volume: beyondLow - beyondHigh, Moment: beyondLowMoment.Subtract(beyondHighMoment)),
-                    (Volume: beyondHigh, Moment: beyondHighMoment),
-                };
-
-                foreach ((double volume, GeoVector3 moment) in parts)
-                {
-                    if (Math.Abs(volume) <= least)
-                    {
-                        continue;
-                    }
-
-                    GeoPoint3 middle = origin.Add(moment.Multiply(1.0 / volume));
-                    bool isIn = IsIn(opening, middle, tolerance);
-
-                    if ((isIn ? someIn : someOut) || read != null && !read(body, middle))
-                    {
-                        continue;
-                    }
-
-                    someIn |= isIn;
-                    someOut |= !isIn;
-                }
+                double between = beyondLow - beyondHigh;
+                parts.Add((shortOfLow, origin.Add(shortOfLowMoment.Multiply(1.0 / shortOfLow))));
+                parts.Add((between, origin.Add(beyondLowMoment.Subtract(beyondHighMoment).Multiply(1.0 / between))));
+                parts.Add((beyondHigh, origin.Add(beyondHighMoment.Multiply(1.0 / beyondHigh))));
             }
 
-            return someIn && someOut;
+            return parts;
+        }
+
+        /// <summary>
+        /// The most parts the planes crossing a cell are read as making by <see cref="Grid"/>: eight of each of three families,
+        /// the planes of a box crossing a cell seven times each way.
+        /// </summary>
+        private const int MostGridParts = 512;
+
+        /// <summary>
+        /// The parts planes make of a body where they fall into no more than three families of parallel planes, whose ways
+        /// meet at a point where there are three, each part with its volume and its middle; null for more families, three
+        /// meeting along a line, or more parts than <see cref="MostGridParts"/>.
+        /// </summary>
+        /// <param name="body">The body.</param>
+        /// <param name="planes">The planes.</param>
+        /// <remarks>
+        /// Each part lies between two planes of each family, or beyond the last, and is read, as <see cref="Quarter"/> reads
+        /// two parallel planes, from the parts beyond one plane of each of some of the families: a slab is what lies beyond its
+        /// nearer plane less what lies beyond its further one, and each part beyond is read as cones from the point where its
+        /// planes meet nearest the middle of the body's box, so that none of the sections closing it adds to it. Planes within
+        /// the rounding of the coordinates of each other along their way are read as one. A comb 50 by 10 by 10 with two
+        /// notches 10 wide, its bottom cracked under the sides of two boxes dipping 0.088 into the tooth beside each notch, is
+        /// one cell crossed by the four sides and the floor the boxes share, ten parts.
+        /// </remarks>
+        private static List<(double Volume, GeoPoint3 Middle)> Grid(GeoSolid3 body, List<GeoPlane3> planes)
+        {
+            GeoPoint3 origin = body.GetAabb().Center;
+            var normals = new List<GeoVector3>(3);
+            var heights = new List<List<double>>(3);
+
+            foreach (GeoPlane3 plane in planes)
+            {
+                int family = -1;
+
+                for (int f = 0; f < normals.Count && family < 0; f++)
+                {
+                    GeoVector3 across = normals[f].CrossProduct(plane.Normal);
+                    family = across.DotProduct(across) <= 1E-12 ? f : -1;
+                }
+
+                if (family < 0)
+                {
+                    if (normals.Count == 3)
+                    {
+                        return null;
+                    }
+
+                    normals.Add(plane.Normal);
+                    heights.Add(new List<double>());
+                    family = normals.Count - 1;
+                }
+
+                heights[family].Add(normals[family].DotProduct(origin.GetVectorTo(plane.Origin)));
+            }
+
+            double corner = normals.Count == 3 ? normals[0].DotProduct(normals[1].CrossProduct(normals[2])) : 1.0;
+
+            if (corner * corner <= 1E-12)
+            {
+                return null;
+            }
+
+            // Each family's heights in order, those within the rounding of the one before read as it.
+            double rounding = Splition3.Rounding(body);
+            int count = 1;
+
+            foreach (List<double> family in heights)
+            {
+                family.Sort();
+
+                for (int i = family.Count - 1; i > 0; i--)
+                {
+                    if (family[i] - family[i - 1] <= rounding)
+                    {
+                        family.RemoveAt(i);
+                    }
+                }
+
+                count *= family.Count + 1;
+            }
+
+            if (count > MostGridParts)
+            {
+                return null;
+            }
+
+            // The part beyond plane chosen[f] of each family f, none where it is -1, its volume and moment about the origin.
+            var none = new GeoVector3(0.0, 0.0, 0.0);
+            var beyond = new Dictionary<int, (double Volume, GeoVector3 Moment)>();
+
+            (double Volume, GeoVector3 Moment) Beyond(int[] chosen)
+            {
+                int key = 0;
+
+                for (int f = normals.Count - 1; f >= 0; f--)
+                {
+                    key = key * (heights[f].Count + 1) + chosen[f] + 1;
+                }
+
+                if (beyond.TryGetValue(key, out (double Volume, GeoVector3 Moment) known))
+                {
+                    return known;
+                }
+
+                var ways = new List<GeoVector3>(3);
+                var levels = new List<double>(3);
+
+                for (int f = 0; f < normals.Count; f++)
+                {
+                    if (chosen[f] >= 0)
+                    {
+                        ways.Add(normals[f]);
+                        levels.Add(heights[f][chosen[f]]);
+                    }
+                }
+
+                (double Volume, GeoVector3 Moment) part;
+
+                if (ways.Count == 0)
+                {
+                    double over = Part(body, origin, origin, normals[0], 1.0, none, 0.0, none, 0.0, out GeoVector3 overMoment);
+                    double under = Part(body, origin, origin, normals[0], -1.0, none, 0.0, none, 0.0, out GeoVector3 underMoment);
+                    part = (over + under, overMoment.Add(underMoment));
+                }
+                else
+                {
+                    // The point on every plane chosen nearest the origin.
+                    GeoVector3 offset;
+
+                    if (ways.Count == 1)
+                    {
+                        offset = ways[0].Multiply(levels[0]);
+                    }
+                    else if (ways.Count == 2)
+                    {
+                        double cosine = ways[0].DotProduct(ways[1]);
+                        double sine = 1.0 - cosine * cosine;
+                        offset = ways[0].Multiply((levels[0] - cosine * levels[1]) / sine).Add(ways[1].Multiply((levels[1] - cosine * levels[0]) / sine));
+                    }
+                    else
+                    {
+                        offset = ways[1].CrossProduct(ways[2]).Multiply(levels[0] / corner)
+                            .Add(ways[2].CrossProduct(ways[0]).Multiply(levels[1] / corner))
+                            .Add(ways[0].CrossProduct(ways[1]).Multiply(levels[2] / corner));
+                    }
+
+                    double volume = Part(body, origin.Add(offset), origin, ways[0], 1.0,
+                        ways.Count > 1 ? ways[1] : none, ways.Count > 1 ? 1.0 : 0.0,
+                        ways.Count > 2 ? ways[2] : none, ways.Count > 2 ? 1.0 : 0.0, out GeoVector3 moment);
+                    part = (volume, moment);
+                }
+
+                beyond[key] = part;
+                return part;
+            }
+
+            // Each part, between planes j - 1 and j of each family, is what lies beyond the first of them, or all of it where
+            // j is nought, less what lies beyond the second, where j is not the last; over the families, every way of taking
+            // one of the two, signed.
+            var parts = new List<(double Volume, GeoPoint3 Middle)>(count);
+            var at = new int[normals.Count];
+            var chosen = new int[normals.Count];
+
+            for (int p = 0; p < count; p++)
+            {
+                int rest = p;
+
+                for (int f = 0; f < normals.Count; f++)
+                {
+                    at[f] = rest % (heights[f].Count + 1);
+                    rest /= heights[f].Count + 1;
+                }
+
+                double volume = 0.0;
+                GeoVector3 moment = none;
+
+                for (int term = 0; term < 1 << normals.Count; term++)
+                {
+                    double sign = 1.0;
+                    bool empty = false;
+
+                    for (int f = 0; f < normals.Count; f++)
+                    {
+                        bool upper = (term >> f & 1) == 1;
+                        empty |= upper && at[f] == heights[f].Count;
+                        chosen[f] = upper ? at[f] : at[f] - 1;
+                        sign = upper ? -sign : sign;
+                    }
+
+                    if (!empty)
+                    {
+                        (double partVolume, GeoVector3 partMoment) = Beyond(chosen);
+                        volume += sign * partVolume;
+                        moment = moment.Add(partMoment.Multiply(sign));
+                    }
+                }
+
+                parts.Add((volume, origin.Add(moment.Multiply(1.0 / volume))));
+            }
+
+            return parts;
         }
 
         /// <summary>

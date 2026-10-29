@@ -225,9 +225,19 @@ takes held by no part one or two of its planes make without more of the U beyond
 crossed so by more planes, by three meeting outside the other body's box or along one line, or by three parallel, is
 read as before, and can still be judged whole. A common part judged so whichever body is cut, and a union judged so
 whichever body's cells are kept, are reported as not worked out; a union judged so one way only is taken where the
-union cut the other way round, the second body whole, holds as much. A difference judged so with no other result to
-take is still taken as the cells glue: the cracked box less that U, the box's cells judged so by the U's planes, holds
-478.10 where 475.54 is left, and is trusted.
+union cut the other way round, the second body whole, holds as much. What such a cell puts on the wrong side of the
+planes is weighed too, by the parts all of them make judged otherwise than the cell, against the tolerance times the
+area of what the boolean gives; more than three planes are weighed so where they fall into no more than three families
+of parallel planes, as the four sides of two boxes and the floor they share do. A cell that cannot be weighed is read as
+before. A difference with no other result to take is not worked out where that is more, unless
+the other body's cells within it, cut by the same planes, weigh less: the cracked box less that U, the box's cells
+judged so by the U's planes, held 478.10 where 475.54 is left, trusted, and is not worked out now, 2.55 of it on the
+wrong side where the tolerance times the area of what is left is 0.41. A cut judged alike on both sides of the planes
+is weighed so as well: a box dipping 0.028 into an arm of that U, less the U, was left whole, 0.84 over where the bound
+is 0.45, the U's 0.84 beyond the box no more than the tolerance times the U's area, and is not worked out now; and of
+two ways of cutting a common part, the one that weighs more than that is not taken where the other weighs less: a box
+whose floor lies 0.014 under the floor of the U's notch, both turned, shares a slab 0.52 with it, which came out as
+nothing and comes out whole now.
 
 The volume is measured by the divergence theorem, so it does not depend on where the solid sits and is
 reported unsigned: faces wound inwards give the same answer as faces wound outwards, and `TurnOutwards()` turns

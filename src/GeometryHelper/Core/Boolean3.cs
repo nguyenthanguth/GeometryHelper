@@ -526,7 +526,7 @@ namespace GeometryHelper.Core
             List<GeoAabb3> reach = firstIsCut ? reachFirst : reachSecond;
             List<GeoAabb3> otherReach = firstIsCut ? reachSecond : reachFirst;
 
-            List<GeoFace3> kept = CellsInside(cut, other, knives, reach, tolerance, out bool clean, out bool misjudged, out List<int> owners, flush);
+            List<GeoFace3> kept = CellsInside(cut, other, knives, reach, tolerance, out bool clean, out bool misjudged, out Func<double> wrong, out List<int> owners, flush);
             bool otherWayAffordable = otherKnives.Count <= 2 * knives.Count + 16;
 
             // A plane can still cross a cell and leave it whole where the cut does not close — a body running
@@ -542,7 +542,7 @@ namespace GeometryHelper.Core
             // each judged alike, and the common part came out as it is.
             if (!clean && (otherWayAffordable || misjudged))
             {
-                List<GeoFace3> otherWay = CellsInside(other, cut, otherKnives, otherReach, tolerance, out bool otherClean, out bool otherMisjudged, out List<int> otherOwners, flush);
+                List<GeoFace3> otherWay = CellsInside(other, cut, otherKnives, otherReach, tolerance, out bool otherClean, out bool otherMisjudged, out Func<double> otherWrong, out List<int> otherOwners, flush);
 
                 if (otherClean || (misjudged && !otherMisjudged))
                 {
@@ -555,6 +555,15 @@ namespace GeometryHelper.Core
                     // dipping into its notch share 26.95, and the box cut by the U's planes kept 2.02.
                     unworkable = "a cell a plane could not cut is judged apart across it whichever body is cut";
                     return false;
+                }
+                else if (!misjudged && !otherMisjudged && OtherWeighsLess(kept, owners, wrong, otherWay, otherOwners, otherWrong, tolerance))
+                {
+                    // Judged alike either way, the way that puts more on the wrong side of a plane that could not cut it
+                    // than the tolerance times the area of what it gives is not taken where the other does not: a cracked U
+                    // and a cracked box whose floor lies 0.014 under the floor of its notch, turned, share a slab 0.52, and
+                    // the U cut by the box's planes, one cell beyond the box, kept nothing.
+                    kept = otherWay;
+                    owners = otherOwners;
                 }
 
                 misjudged = !otherClean && (misjudged || otherMisjudged);
@@ -650,13 +659,52 @@ namespace GeometryHelper.Core
         /// union worked out again reads it; see <see cref="HoldsTheTwo"/>.
         /// </param>
         private static List<GeoFace3> CellsInside(GeoSolid3 body, GeoSolid3 other, List<GeoPlane3> knives, List<GeoAabb3> reach, Tolerance tolerance, out bool clean, out bool misjudged, out List<int> owners, bool flush = false)
+            => CellsInside(body, other, knives, reach, tolerance, out clean, out misjudged, out _, out owners, flush);
+
+        /// <summary>
+        /// Collects the faces of the cells of one body that lie inside another, as
+        /// <see cref="CellsInside(GeoSolid3, GeoSolid3, List{GeoPlane3}, List{GeoAabb3}, Tolerance, out bool, out bool, out List{int}, bool)"/>
+        /// does, and how to weigh what of them lies on the wrong side of the planes that could not cut them
+        /// (<see cref="MisjudgedVolume"/>), weighed only where it is asked for; nought where every plane cut.
+        /// </summary>
+        private static List<GeoFace3> CellsInside(GeoSolid3 body, GeoSolid3 other, List<GeoPlane3> knives, List<GeoAabb3> reach, Tolerance tolerance, out bool clean, out bool misjudged, out Func<double> wrong, out List<int> owners, bool flush = false)
         {
             var stuck = new List<GeoPlane3>();
             var stuckReach = new List<GeoAabb3>();
             List<GeoSolid3> cells = SplitIntoCells(body, other, knives, reach, tolerance, out clean, out bool local, stuck, stuckReach);
             misjudged = !clean && Misjudged(cells, stuck, body, other, true, tolerance, local ? stuckReach : null);
+            bool weighed = !clean;
+            wrong = () => weighed ? MisjudgedVolume(cells, stuck, body, other, true, tolerance, local ? stuckReach : null) : 0.0;
             owners = new List<int>();
             return FacesOfCells(cells, body, other, true, tolerance, owners, 0, flush);
+        }
+
+        /// <summary>
+        /// Whether, of two ways of cutting a common part, neither clean and neither judged apart across a plane, the first
+        /// puts more on the wrong side of a plane that could not cut it (<see cref="MisjudgedVolume"/>) than the tolerance
+        /// times the area of what it gives, or of what the other gives where it gives nothing, and the other gives something
+        /// and puts no more than that on the wrong side; false where either cannot be weighed.
+        /// </summary>
+        /// <param name="kept">The faces the first way kept.</param>
+        /// <param name="owners">The place of the cell of each of those faces.</param>
+        /// <param name="weigh">Weighs what the first way puts on the wrong side.</param>
+        /// <param name="otherWay">The faces the other way kept.</param>
+        /// <param name="otherOwners">The place of the cell of each of those faces.</param>
+        /// <param name="weighOther">Weighs what the other way puts on the wrong side.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        private static bool OtherWeighsLess(List<GeoFace3> kept, List<int> owners, Func<double> weigh, List<GeoFace3> otherWay, List<int> otherOwners, Func<double> weighOther, Tolerance tolerance)
+        {
+            double wrong = weigh();
+            double otherWrong = weighOther();
+
+            if (double.IsPositiveInfinity(wrong) || double.IsPositiveInfinity(otherWrong) || !(wrong > otherWrong))
+            {
+                return false;
+            }
+
+            double area = TryGlue(kept, owners, tolerance, out GeoSolid3 first) ? first.GrossSurfaceArea : 0.0;
+            double otherArea = TryGlue(otherWay, otherOwners, tolerance, out GeoSolid3 second) ? second.GrossSurfaceArea : 0.0;
+            return otherArea > 0.0 && wrong > tolerance.EqualPoint * (area > 0.0 ? area : otherArea) && otherWrong <= tolerance.EqualPoint * otherArea;
         }
 
         /// <summary>
@@ -861,6 +909,13 @@ namespace GeometryHelper.Core
                 return false;
             }
 
+            // With no open result to check them by, cells a plane could not cut are weighed for what they put on the wrong
+            // side of it; see Weighed.
+            if (!clean && openCut == null && !Weighed(cells, stuck, local ? stuckReach : null, misjudged, subject, tool, planes, reach, tolerance, ref result, out unworkable))
+            {
+                return false;
+            }
+
             unworkable = Implausible("difference", result, subject, tool, tolerance);
 
             if (unworkable != null)
@@ -880,6 +935,80 @@ namespace GeometryHelper.Core
             }
 
             return AddsUp("difference", ref result, subject, tool, tolerance, path, out unworkable, ref open);
+        }
+
+        /// <summary>
+        /// Whether more material of cells lies on the wrong side (<see cref="MisjudgedVolume"/>) than the tolerance times the
+        /// area of what they give; where that is not known, whether a cell was found judged apart across a plane
+        /// (<see cref="Misjudged"/>).
+        /// </summary>
+        private static bool Outweighs(double wrong, bool misjudged, GeoSolid3 given, Tolerance tolerance)
+            => double.IsPositiveInfinity(wrong) ? misjudged : wrong > tolerance.EqualPoint * given.GrossSurfaceArea;
+
+        /// <summary>
+        /// Checks what is left of a subject cut by every plane of both, a plane having crossed a cell and left it whole, with
+        /// no open result to check it by: taken where no more of the cells than the tolerance times the area of what is left
+        /// lies on the wrong side of such a plane (<see cref="MisjudgedVolume"/>); otherwise worked out as the subject whole
+        /// less the cells of the tool within it, the tool cut by the same planes, where no more of those lies so; otherwise
+        /// not worked out.
+        /// </summary>
+        /// <param name="cells">The cells of the subject.</param>
+        /// <param name="stuck">The planes that crossed a cell and could not cut it.</param>
+        /// <param name="stuckReach">The reach of each of those planes, or null; see <see cref="Misjudged"/>.</param>
+        /// <param name="misjudged">
+        /// Whether a cell was found judged apart across such a plane (<see cref="Misjudged"/>), which settles it where what lies
+        /// on the wrong side cannot be weighed.
+        /// </param>
+        /// <param name="subject">The body material is taken from.</param>
+        /// <param name="tool">The body taken away.</param>
+        /// <param name="planes">The planes of both.</param>
+        /// <param name="reach">The reach of each of those planes.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="result">What the cells glued into; what is taken instead, or null.</param>
+        /// <param name="unworkable">Why it is not worked out; null where it is.</param>
+        /// <remarks>
+        /// A difference cut so had nothing to check it by: a cracked box dipping 0.088 into an arm of a cracked U, less the U,
+        /// the box one cell to the U's planes, was left whole, 478.10 cubic millimetres where 475.54 is left, trusted; its cell
+        /// holds 2.554 of the U, where the tolerance times the area of what is left is 0.41, and the U's cells within the box
+        /// as much the other way. Weighed so where a cell was found judged apart, of 45 000 booleans of such U's and boxes,
+        /// 1 609 differences trusted and wrong were not worked out, and one more was worked out as the subject less the tool's
+        /// cells within it, 0.90 off where 1.42 is within the tolerance; 197 right differences cut so weighed less than that
+        /// and stood as they were.
+        /// </remarks>
+        private static bool Weighed(List<GeoSolid3> cells, List<GeoPlane3> stuck, List<GeoAabb3> stuckReach, bool misjudged, GeoSolid3 subject, GeoSolid3 tool, List<GeoPlane3> planes, List<GeoAabb3> reach, Tolerance tolerance, ref GeoSolid3 result, out string unworkable)
+        {
+            unworkable = null;
+            double wrong = MisjudgedVolume(cells, stuck, subject, tool, false, tolerance, stuckReach);
+
+            if (!Outweighs(wrong, misjudged, result, tolerance))
+            {
+                return true;
+            }
+
+            var toolStuck = new List<GeoPlane3>();
+            var toolStuckReach = new List<GeoAabb3>();
+            List<GeoSolid3> toolCells = SplitIntoCells(tool, subject, planes, reach, tolerance, out bool toolClean, out bool toolLocal, toolStuck, toolStuckReach);
+            var owners = new List<int>();
+            List<GeoFace3> within = FacesOfCells(toolCells, tool, subject, true, tolerance, out bool anyInside, owners);
+
+            for (int i = 0; i < within.Count; i++)
+            {
+                within[i] = within[i].Flip();
+            }
+
+            within.AddRange(subject.Faces);
+            Own(owners, -1, subject.Faces.Count);
+
+            if (anyInside && TryGlue(within, owners, tolerance, out GeoSolid3 other)
+                && (toolClean || !Outweighs(MisjudgedVolume(toolCells, toolStuck, tool, subject, true, tolerance, toolLocal ? toolStuckReach : null), true, other, tolerance)))
+            {
+                result = other;
+                return true;
+            }
+
+            unworkable = "a cell a plane could not cut is judged apart across it, more of it on the wrong side than the tolerance times the area of what is left, whichever body is cut";
+            result = null;
+            return false;
         }
 
         /// <summary>
@@ -1474,7 +1603,7 @@ namespace GeometryHelper.Core
             // cubic millimetres larger than it was, where nothing of either lay in the other. Both ways are taken in turn, as
             // clean ones are: a slab of a Tekla model less another slab it meets, within a thousandth, came out open by 22
             // edges the first way and closed the other.
-            List<(List<GeoSolid3> Cells, bool CutA)> consistent = null;
+            List<(List<GeoSolid3> Cells, bool CutA, List<GeoPlane3> Stuck, List<GeoAabb3> Reach)> consistent = null;
 
             // A result closed with faces wound against each other is kept while the other way round is tried; see Settle.
             GeoSolid3 crossed = null;
@@ -1510,7 +1639,7 @@ namespace GeometryHelper.Core
 
                     if (!misjudged)
                     {
-                        (consistent = consistent ?? new List<(List<GeoSolid3>, bool)>(2)).Add((cells, cutA));
+                        (consistent = consistent ?? new List<(List<GeoSolid3>, bool, List<GeoPlane3>, List<GeoAabb3>)>(2)).Add((cells, cutA, stuck, cutLocal ? stuckReach : null));
                     }
 
                     continue;
@@ -1529,10 +1658,23 @@ namespace GeometryHelper.Core
             // is taken only where it closes: one finding nothing, or nothing glued, says less than the one before.
             if (!anyClean && consistent != null)
             {
-                foreach ((List<GeoSolid3> cells, bool cutA) in consistent)
+                foreach ((List<GeoSolid3> cells, bool cutA, List<GeoPlane3> stuck, List<GeoAabb3> stuckReach) in consistent)
                 {
                     bool found = open != null || crossed != null;
                     bool? settled = Settle(cells, cutA, a, b, union, flush, tolerance, ref open, ref crossed, out result, out untouched);
+
+                    // Judged alike on both sides of every plane that could not cut them, the cells can still put more on the
+                    // wrong side of one than the tolerance times the area of what they give, where a part is weighed against
+                    // the tolerance times the area of its cell (see MisjudgedVolume); such a way is not taken. At a tolerance
+                    // of nought that is anything a cell open by a crack puts there: of 17 452 booleans of cracked cubes, 75
+                    // unions and differences not worked out and 6 given as nothing came out trusted and wrong, weighed so.
+                    if (tolerance.EqualPoint > 0.0 && settled == true && (untouched ? a : result) is GeoSolid3 given
+                        && Outweighs(MisjudgedVolume(cells, stuck, cutA ? a : b, cutA ? b : a, !union && !cutA, tolerance, stuckReach), false, given, tolerance))
+                    {
+                        result = null;
+                        untouched = false;
+                        continue;
+                    }
 
                     if (settled.HasValue && (!found || settled.Value && !untouched))
                     {
@@ -2289,6 +2431,127 @@ namespace GeometryHelper.Core
                 default:
                     return false;
             }
+        }
+
+        /// <summary>
+        /// The parts every plane crossing a cell makes of it, each with its volume and its middle: where one, two or three do,
+        /// three meeting at a point or two of them parallel, as <see cref="EveryPlanePartsApart"/> reads them; otherwise where
+        /// they fall into no more than three families of parallel planes (<see cref="Grid"/>); null for any others.
+        /// </summary>
+        private static List<(double Volume, GeoPoint3 Middle)> EveryPlaneParts(GeoSolid3 cell, List<GeoPlane3> crossing)
+        {
+            switch (crossing.Count)
+            {
+                case 1:
+                    return Halves(cell, crossing[0]);
+                case 2:
+                    return Quarters(cell, crossing[0], crossing[1]);
+                case 3:
+                    return Meet(cell, crossing[0], crossing[1], crossing[2], out GeoPoint3 apex, out GeoPoint3 origin)
+                        ? Eighths(cell, apex, origin, crossing[0], crossing[1], crossing[2])
+                        : Slabs(cell, crossing[0], crossing[1], crossing[2]) ?? Grid(cell, crossing);
+                default:
+                    return Grid(cell, crossing);
+            }
+        }
+
+        /// <summary>
+        /// How much material of the cells lies on the wrong side, kept with a cell that is kept where it should not be, or
+        /// dropped with one dropped where it should be kept: of each cell planes crossed and could not cut, the parts every
+        /// such plane makes of it judged otherwise than the cell is. Infinite where a cell is crossed so by planes whose parts
+        /// are not read (see <see cref="EveryPlaneParts"/>).
+        /// </summary>
+        /// <param name="cells">The cells.</param>
+        /// <param name="stuck">The planes that crossed a cell and could not cut it.</param>
+        /// <param name="owner">The body the cells were cut from.</param>
+        /// <param name="against">The body deciding inside from outside.</param>
+        /// <param name="wantInside">true where the cells within that body are kept, false where those beyond it are.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="reach">The reach of each plane in <paramref name="stuck"/>, or null; see <see cref="Misjudged"/>.</param>
+        /// <remarks>
+        /// Each such part lies to one side of every plane of the other body whose faces come near the cell, so wholly within
+        /// the other body or wholly beyond it, as its middle does (see <see cref="EveryPlanePartsApart"/>), and what the parts
+        /// judged otherwise than the cell hold is what the cell puts on the wrong side. <see cref="Misjudged"/> says only
+        /// whether there is any, and weighs a part against the tolerance times the area of its cell, which says nothing of
+        /// what is left: a cracked box dipping 0.088 into an arm of a cracked U, less the U, its cells cut by every plane of
+        /// both judged apart, was left whole, 478.10 cubic millimetres, trusted, with nothing else to take, where 475.54 is
+        /// left; its cells hold 2.554 on the wrong side, and the box was 2.554 over. A box dipping 0.028 into the arm, the U
+        /// cut by the box's planes one cell judged alike on both sides of them, its 0.84 beyond the box no more than the
+        /// tolerance times the U's area, said the box took nothing of the U, and the box was left whole, 0.84 over, where the
+        /// tolerance times its area is 0.45. Of 1 767 differences of 45 000 booleans of such U's and boxes weighed so, it came
+        /// within a thousandth of what the result was off by on 1 649, and on none was it within the tolerance times the
+        /// area of the result where the result was off by more, nor past it where it was not; the furthest read 6.02 where the
+        /// result was 4.74 off.
+        /// </remarks>
+        private static double MisjudgedVolume(List<GeoSolid3> cells, List<GeoPlane3> stuck, GeoSolid3 owner, GeoSolid3 against, bool wantInside, Tolerance tolerance, List<GeoAabb3> reach = null)
+        {
+            // The cells of a body that does not close wound alike hold no volume to weigh, nor does such a body hold an inside
+            // to be judged by: a box 30 by 20 by 10 with its top turned over reads 2 000, and cut by a post standing through
+            // it, weighed so, was not worked out, where its cut closed by turning the top back is turned down as holding more
+            // than the body did. Nothing is weighed there, and the cells are taken as they were. Asked once, where a cell has
+            // something to weigh: it costs a reading of every edge of both.
+            bool? alike = null;
+            bool Alike() => alike ?? (alike = Shells3.ClosesAlike(owner.Faces, tolerance) && Shells3.ClosesAlike(against.Faces, tolerance)).Value;
+
+            double rounding = Math.Max(Splition3.Rounding(owner), Splition3.Rounding(against));
+            var crossing = new List<GeoPlane3>();
+            double wrong = 0.0;
+
+            foreach (GeoSolid3 cell in cells)
+            {
+                crossing.Clear();
+
+                for (int s = 0; s < stuck.Count; s++)
+                {
+                    if ((reach == null || cell.GetAabb().CollidesWith(reach[s], tolerance)) && Crosses(cell, stuck[s], tolerance))
+                    {
+                        crossing.Add(stuck[s]);
+                    }
+                }
+
+                if (crossing.Count == 0)
+                {
+                    continue;
+                }
+
+                List<(double Volume, GeoPoint3 Middle)> parts = EveryPlaneParts(cell, crossing);
+
+                if (parts == null)
+                {
+                    return Alike() ? double.PositiveInfinity : 0.0;
+                }
+
+                // Judged as the cells are; see FacesOfCells.
+                bool kept = IsMaterial(cell, owner, tolerance, rounding, out GeoPoint3 sample, out Tolerance? fine)
+                    && (LocateSample(against, sample, tolerance, fine) == PointLocation.Inside) == wantInside;
+
+                foreach ((double volume, GeoPoint3 middle) in parts)
+                {
+                    if (volume == 0.0)
+                    {
+                        continue;
+                    }
+
+                    bool wanted = IsIn(against, middle, tolerance) == wantInside;
+
+                    foreach (GeoSolid3 opening in owner.Openings)
+                    {
+                        wanted = wanted && !IsIn(opening, middle, tolerance);
+                    }
+
+                    if (wanted != kept)
+                    {
+                        if (!Alike())
+                        {
+                            return 0.0;
+                        }
+
+                        wrong += Math.Abs(volume);
+                    }
+                }
+            }
+
+            return wrong;
         }
 
         /// <summary>

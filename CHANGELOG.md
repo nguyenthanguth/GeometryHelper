@@ -6,6 +6,51 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A difference of two closed bodies no longer trusts what it gives where a cell of one, planes of the other
+running through it uncut, puts more on the wrong side of them than the tolerance times the area of what is left. A
+cracked box 9.4 by 12 by 4.24 dipping 0.088 into an arm of a cracked U 30 by 10 by 10, less the U, was left whole,
+478.10 cubic millimetres where 475.54 is left: its cells, cut by every plane of both, were judged apart across a plane,
+and with no other result to check them by were taken as they glued. A cut judged alike on both sides of such planes was
+trusted the same way: a box dipping 0.028 into the arm, the U cut by the box's planes one cell whose 0.84 beyond the box
+was within the tolerance times the U's area, 1.39, said the box took nothing of the U, and left it whole, 0.84 over
+where the tolerance times its area is 0.45. What such a cell puts on the wrong side is weighed now, by the parts every
+plane crossing it makes of it judged otherwise than the cell: one, two or three planes as the cell is read for them, and
+more where they fall into no more than three families of parallel planes, a slab between two of each read as what lies
+beyond the nearer less what lies beyond the further. The box less the U weighs 2.554 so, where it was 2.554 over; of
+1 767 differences weighed so, the measure came within a thousandth of what the result was off by on 1 649, and was never
+on the other side of the bound from it. A difference cut by every plane of both is not worked out where its cells weigh
+more than the tolerance times the area of what is left, unless the other body's cells within it, cut by the same planes,
+weigh no more, and it is then the first body less those; a cut of one body by the other's planes judged alike is not
+taken where it weighs more than that, at a tolerance above nought. A comb 50 by 10 by 10 with two notches, cracked under
+the sides of two boxes taken as one body, each dipping 0.088 into the tooth beside a notch, one cell crossed by five of
+the boxes' planes, held 4 391.85 less them where 4 386.75 is left, and holds 4 386.62; a comb of 100 notches less 100
+such boxes held 255.33 over, and is 0.13 under. Of 45 000 booleans of cracked U's and cracked boxes in and about their
+notches, in five runs, 1 044 differences of the box less the U and 575 of the U less the box trusted and wrong, 0.27 to
+156.43 off, are not worked out, and 3 and 1 are right, so that none is trusted and wrong; no right one moves. A body
+that does not close wound alike is not weighed, its cells holding no volume to weigh: a box 30 by 20 by 10 with its top
+turned over, less a post through it, is cut as it was. Every other result is the same to the bit: 27 000 booleans of the
+U's with boxes not cracked, 17 452 of cracked cubes and boxes about them, 24 000 volumes of such cubes with openings,
+24 000 cuts of them by `TryCutOpenings` and 4 800 of two boxes set off from each other, 600 plates cut by twelve
+openings (543 right, 57 wrong), 400 slabs in bands, 70 bent bars, columns in 200 to 1 000 strips (18.96 under), 32 400
+booleans of a turned cube and slabs or chips half the tolerance to twice it into or beside it, and the columns and beams
+lying about the tolerance into or apart, at three tolerances. On .NET Framework 4.8, the least of seven runs, the box
+less the U is turned down in 3.5 milliseconds where it was made in 2.7, and in 4.0 and 5.4 where 2.6 and 4.1 with the
+box through the floor and into both arms; the box dipping 0.028 in 3.3 where 1.5; the comb of two notches less the two
+boxes takes 7.0 where 4.5, a comb of 100 notches less one box 45 and 47 where 44, and less 100 boxes 15.4 seconds where
+14.8; the U less those boxes, and combs of one and ten notches less one box, up to an eighth more, the cell weighed each
+time; every other boolean of these bodies takes what it took within a tenth.
+
+**FIXED.** A common part of two closed bodies, neither cut cleanly by the other's planes and neither judged apart
+across a plane, no longer comes out as nothing where the way it was cut put more on the wrong side of a plane than the
+tolerance times the area of what the other way gives, and the other way does not. A cracked U and a cracked box whose
+floor lies 0.014 under the floor of its notch, across it, turned or turned and 96 metres off, share a slab of 0.52
+cubic millimetres; the U cut by the box's planes was one cell beyond the box and kept nothing, and the box cut by the
+U's planes, which kept the slab, was not taken. The way that weighs less is taken now: the common part is the slab,
+0.52, 0.66 and 0.53 of three such, in 2.7 milliseconds on .NET Framework 4.8 where nothing took 2.3. Of the 45 000
+booleans, 6 common parts given as nothing are right; none moves otherwise. Not fixed: at a tolerance of a hundredth a
+slab 0.0166 thin, 1.66 tolerances, turned, is cut cleanly into 0.66 of its 1.17, within the tolerance times its area of
+either, and read as enclosing nothing.
+
 **FIXED.** `TryCutOpenings` and the measures of a body with openings no longer keep a skin the tolerance thin over an
 opening that cut in alone would lose it. Cut in together, a plane of one opening cuts every cell that reaches the
 opening's box, and a plate's first cells reach all of its openings: twelve boxes hidden 0.01 inside the faces of a plate
