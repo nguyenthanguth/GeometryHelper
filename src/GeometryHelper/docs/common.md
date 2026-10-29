@@ -492,9 +492,9 @@ Dxf in front and their members' names.
 | `Entity.TransformBy(Matrix3d)`, `GetTransformedCopy` | `TransformBy(GeoTransform3)`, `GetTransformedCopy` | Each class refuses what it cannot hold, as AutoCAD's does (see [Editing rules](#editing-rules)). |
 | `Entity.Explode(DBObjectCollection)` | `Explode()` giving a list | The library explodes an INSERT, a MINSERT, the three polylines, a polyface and a polygon mesh, an MTEXT, a dimension, a table, a leader, a multileader, an MLINE, a HATCH of a pattern and a MESH not smoothed, as AutoCAD's do; every other entity refuses with `NotSupportedException`, a HATCH filled solid or with a gradient, a MESH smoothed, a REGION, a 3DSOLID and a BODY among them, which AutoCAD explodes (see [What the model does not do](#what-the-model-does-not-do)). |
 | `BlockReference.ExplodeToOwnerSpace()` | `ExplodeToOwnerSpace()` | The same: the parts appended, the INSERT kept; a MINSERT of more than one cell refused, as AutoCAD's EXPLODE refuses one. |
-| `entity.IntersectWith(other, Intersect.ExtendThis, points, IntPtr.Zero, IntPtr.Zero)` | `entity.IntersectWith(other, DxfIntersect.ExtendThis)` giving `IReadOnlyList<GeoPoint3>` | Worked out on the library's shapes; a pair it cannot cross, a text among them, throws `NotSupportedException`. |
+| `entity.IntersectWith(other, Intersect.ExtendThis, points, IntPtr.Zero, IntPtr.Zero)` | `entity.IntersectWith(other, DxfIntersect.ExtendThis)` giving `IReadOnlyList<GeoPoint3>` | Worked out on the library's shapes; a pair it cannot cross, a text among them, throws `NotSupportedException`, where AutoCAD crosses the box of a TEXT's or an MTEXT's words, which needs the fonts. |
 | `GeometricExtents` giving `Extents3d` | `GeometricExtents` giving `GeoAabb3` | Of the shapes `GetGeometry()` gives; a text has no fonts to give it a box. |
-| `Curve.GetPointAtParameter`, `GetDistAtPoint`, `GetOffsetCurves`, `GetSplitCurves`, `Extend` | the same on `DxfCurve` | Offsets go to the right of the curve's way, as below. |
+| `Curve.GetPointAtParameter`, `GetDistAtPoint`, `GetOffsetCurves`, `GetSplitCurves`, `Extend` | the same on `DxfCurve` | Offsets go the side AutoCAD's do, a line to the left of its way and the rest to the right, as below. |
 | `Curve.GetGeCurve()` giving a `Curve3d` | `GetGeCurve()` giving the library's shape (`GeoLine3`, `GeoArc3`, ...) as an `object` | `GetGeometry()` gives the same as `DxfReader` reads it, a LEADER its curve, a `GeoPolyline3` or, splined, a `GeoSpline3`, and a MULTILEADER the lines of its leaders. |
 | `Clone()`, `db.WblockCloneObjects(ids, ownerId, map, DuplicateRecordCloning.Ignore, false)` | `entity.Clone()` then `other.ModelSpace.AppendEntity(copy)`; `db.WblockCloneObjects(entities, other.ModelSpace)` giving the copies | Records of the tables and the blocks a copy draws by come with it where the other drawing has none of their names, its own used where it has (see [Editing rules](#editing-rules)). No `IdMapping`: the copies are given back in the order of the entities. |
 | `Point3d`, `Vector3d`, `Point2d`, `Vector2d` | `GeoPoint3`, `GeoVector3`, `GeoPoint2`, `GeoVector2` | CadConvert turns one into the other: `point.ToGeoPoint3()`, `point.ToAcadPoint3()`. |
@@ -506,9 +506,9 @@ Dxf in front and their members' names.
 | `MLeaderStyle`, `mleader.getOverridedMLeaderStyle(style)` | `DxfMLeaderStyle`, `mleader.GetOverridedMLeaderStyle(new DxfMLeaderStyle())` | A multileader style is read, not written: the styles of `db.MLeaderStyleDictionary` as the file holds them, and one made in code given what a multileader is drawn with; `PostMLeaderStyleToDb` is not there. |
 | `db.Insert(Matrix3d, other, true)`, `db.Insert("PLATE", other, true)` | `db.Insert(GeoTransform3, other, true)`, `db.Insert("PLATE", other, true)` giving the block | The other drawing's model space, its tables and named blocks merged by name; the other drawing is never changed. |
 | `db.Purge(ids)` leaving in `ids` what may be erased; `db.CountHardReferences(ids, counts)` | `db.Purge(objects)` giving those back as a list; `db.CountHardReferences(objects, counts)` | The references a DXF writes by name (a layer, a linetype, a style, a block) counted with the hard pointers. |
-| `db.GeoDataObject` giving an `ObjectId`, `GeoLocationData`, `geo.PostToDb()` | `db.GeoDataObject` giving the `DxfGeoData`, `geo.PostToDb()` | `BlockTableRecordId` is `BlockTableRecord`, the record; `PostToDb` gives nothing back, the GEODATA itself now in the file. `EraseFromDb` is `Erase()`. `NorthDirection`, `TransformToLonLatAlt`, `TransformFromLonLatAlt` and `UpdateTransformationMatrix` are not there. The members of `DxfTypeOfCoordinates` and `DxfScaleEstimationMethod` drop AutoCAD's prefixes: `CoordinateTypeLocal` is `Local`, `ScaleEstMethodUnity` is `Unity`. A `DxfMeshPointMap` is read only, where AutoCAD's `MeshPointMap` sets its two points. |
-| `db.LayerStateManager.GetLayerStateNames(false, false)`, `LayerStatesDictionaryId(false)` | `db.LayerStateManager.GetLayerStateNames()`, `LayerStatesDictionary` | `GetLayerStateNames` takes no flags for hidden states and states of an xref, since where a state keeps them is not known, and gives every state; `LayerStatesDictionary` is read only and makes no dictionary. Saving, restoring, renaming, deleting, importing and exporting a state are not there. |
-| `db.LayerFilters` giving a `LayerFilterTree` | `db.LayerFilters` giving a `DxfLayerFilterTree` | Read only: no `Current`, and a tree is not set back. A `DxfLayerFilter`'s `Name` has no setter; `FilterExpression`, `Filter(layer)` and the filters of AutoCAD 2005 and later (AcLyDictionary) are not there. |
+| `db.GeoDataObject` giving an `ObjectId`, `GeoLocationData`, `geo.PostToDb()` | `db.GeoDataObject` giving the `DxfGeoData`, `geo.PostToDb()` | `BlockTableRecordId` is `BlockTableRecord`, the record; `PostToDb` gives nothing back, the GEODATA itself now in the file. `EraseFromDb` is `Erase()`. `NorthDirection` is read only, worked out from `NorthDirectionVector`; `TransformToLonLatAlt`, `TransformFromLonLatAlt` and `UpdateTransformationMatrix` are not there. The members of `DxfTypeOfCoordinates` and `DxfScaleEstimationMethod` drop AutoCAD's prefixes: `CoordinateTypeLocal` is `Local`, `ScaleEstMethodUnity` is `Unity`. A `DxfMeshPointMap` is read only, where AutoCAD's `MeshPointMap` sets its two points. |
+| `db.LayerStateManager.GetLayerStateNames(false, false)`, `LayerStatesDictionaryId(false)` | `db.LayerStateManager.GetLayerStateNames(false, false)`, `LayerStatesDictionary` | A state is hidden where its mask has the flag 0x8000 and of an xref where its record names its layers by name; `GetLayerStateNames()` gives every state. `LayerStatesDictionary` is read only and makes no dictionary. Saving, restoring, renaming, deleting, importing and exporting a state are not there. |
+| `db.LayerFilters` giving a `LayerFilterTree` | `db.LayerFilters` giving a `DxfLayerFilterTree` | Read only: no `Current`, and a tree is not set back. A `DxfLayerFilter`'s `Name` has no setter; `FilterExpression` and `Filter(layer)` are not there. |
 | `Highlight`, `Draw`, grips, overrules, events, reactors of the runtime | none | They need AutoCAD running. |
 
 ### Opening and saving
@@ -674,17 +674,22 @@ viewport takes its overrides out of the layers.
 
 The layer states and layer filters a drawing keeps in the layer table's extension dictionary are read and listed:
 `db.LayerStateManager.GetLayerStateNames()` gives the entries of ACAD_LAYERSTATES, Plan and Sections for a drawing with the
-two, `HasLayerState("plan")` finds one in either case and `LayerStatesDictionary` is the dictionary, each state an XRECORD
-of it; `db.LayerFilters.Root` is All, the names of the entries of ACAD_LAYERFILTERS nested in it. That dictionary holds the
-filters of AutoCAD 2004 and earlier; the property and group filters of AutoCAD 2005 and later, which it keeps in a
-dictionary of its own, AcLyDictionary, are not read, so a drawing saved by AutoCAD 2005 or later most likely gives All and
-no filter nested in it. What a state's or a filter's record holds (its layers, its mask, its expression) is in neither the
-DXF reference nor ezdxf, so a state is not saved, restored, renamed or deleted, and a filter not changed. A drawing's place
-on the earth, AutoCAD's `GeoLocationData`, is a `DxfGeoData`, `db.GeoDataObject` the GEODATA model space's extension
-dictionary names ACAD_GEOGRAPHICDATA, null where the drawing holds none:
+two, `GetLayerStateNames(false, false)` leaves out a state hidden (the flag 0x8000 of its mask, group 91, as AutoCAD 2021
+saves one) and one of an xref (its layers named by name, group 8, not by handle), `HasLayerState("plan")` finds one in
+either case and `LayerStatesDictionary` is the dictionary, each state an XRECORD of it. `db.LayerFilters.Root` is All, and
+nested in it, as AutoCAD 2021 lists them, the property filters and groups of AutoCAD 2005 and later (the XRECORDs of
+ACLYDICTIONARY, each named by its group 300), the filters of AutoCAD 2004 and earlier (the entries of ACAD_LAYERFILTERS,
+AutoCAD keeping a property filter in both, given once), then the three AutoCAD makes, All Used Layers, Unreconciled New
+Layers and Viewport Overrides: a drawing with the property filter GH_STEEL and the group GH_NOTES gives those two, then the
+three. A state is not saved, restored, renamed or deleted, and a filter not changed. A drawing's place on the earth,
+AutoCAD's `GeoLocationData`, is a `DxfGeoData`, `db.GeoDataObject` the GEODATA model space's extension dictionary names
+ACAD_GEOGRAPHICDATA, null where the drawing holds none:
 `new DxfGeoData { BlockTableRecord = db.ModelSpace, TypeOfCoordinates = DxfTypeOfCoordinates.Local, ReferencePoint = new GeoPoint3(500000, 4100000, 0), HorizontalUnits = DxfUnits.Millimeters, HorizontalUnitsScale = 0.001 }.PostToDb()`
 puts a drawing of R2010 or later in millimetres on a local grid at 500 000 east and 4 100 000 north, the GEODATA it had
-erased and the class GEODATA listed where the drawing lists none; a drawing older than R2010 is refused. The class is
+erased and the class GEODATA listed where the drawing lists none; a drawing older than R2010 is refused, and so is any block
+but model space, as AutoCAD 2021 refuses paper space. A `new DxfGeoData()` is AutoCAD's new one: of no known type of
+coordinates, in metres, its scale judged at the reference point. `NorthDirection` is the angle of `NorthDirectionVector` from
+the Y axis towards X, as AutoCAD gives it: (1, 0) is a quarter turn, (-1, 0) minus one. The class is
 listed in the CLASSES section, so a file of R2010 or later written with none is given the GEODATA and no class for it. Its
 design and reference points, units and their scales, up and north directions, how the scale is judged, the correction to
 the sea's level, the coordinate system's XML (in pieces of 255 characters, `^J` a line feed, as ezdxf writes it, a piece
@@ -751,7 +756,8 @@ beam's handle last among the group's (340) and the group into the beam's reactor
 `Reverse`, `Transfer` and `Clear` reorder the members, `GetAllEntityIds` gives them as entities, and `SetColorIndex`,
 `SetLayer` and the other setters of the look set every member at once. A large group is filled by `Append` of a collection,
 in one writing: one at a time is fine for groups as drawings have them (8 000 in half a second), but 32 000 take some 15
-seconds. A group added under `*` is anonymous, `*A1` the first name its dictionary has not. An entity erased leaves its
+seconds. A group added under `*` is anonymous, `*A1` the first name its dictionary has not, and given a name, by its `Name`
+or by `GroupDictionary.SetName`, it is anonymous no longer. An entity erased leaves its
 groups at once, and a group left empty is dropped when the drawing is saved, as AutoCAD drops it, whatever emptied it: its
 last member erased, `Clear`, `RemoveAt`, or never given one. A group the file was read with empty is kept as it was.
 
@@ -893,8 +899,9 @@ DxfCurve flat = spline.GetOrthoProjectedCurve(new GeoPlane3(new GeoPoint3(0, 0, 
 A segment cut keeps the part of its arc and its widths read off along it: the polyline above cut at 1.5 is (0, 0), (10, 0),
 (15, 5) and (15, 5), (10, 10), each arc of bulge 0.414. An offset keeps arcs as arcs and runs the corners on until they meet,
 as AutoCAD's OFFSETGAPTYPE 0; the square of side 10 running counter-clockwise offset by 1 is 12 by 12, running clockwise 8 by
-8. Every curve offsets to that side, the right of its way seen from the tip of its normal, where an arc's radius grows, as
-AutoCAD offsets a circle and an arc: the line from (0, 0, 0) to (30, 40, 0) offset by 5 runs from (4, -3, 0). The exceptions
+8. A polyline and a spline offset to that side, the right of their way seen from the tip of their normal, where an arc's
+radius grows, as AutoCAD 2021 offsets them; a line, a ray and an xline to the left, as AutoCAD offsets a line: the line from
+(0, 0, 0) to (30, 40, 0) offset by 5 runs from (-4, 3, 0). The exceptions
 are an arc, a circle and an ellipse given a normal by `GetOffsetCurvesGivenPlaneNormal`: their radius grows with a distance
 above nought whichever way the normal points, as AutoCAD offsets them by their radius, so that under the normal turned over an
 arc and a polyline of that one arc offset to opposite sides. An ellipse is offset as the spline of the curve at the distance,
@@ -904,7 +911,10 @@ them, until it keeps within 1E-3 of the true offset both ways; the pieces are jo
 of degree 2 from (0, 0) to (10, 0) to (10, 10) offset by 1 has its corner at (11, -1). A span that does not keep within 1E-3
 at 512 points is given as fitted. A cubic of 300 spans with one corner gives an offset of some 9 600 control points in 0.6 s.
 A spline is run on along the polynomial of its end span. Every curve gives the `Spline` that is exactly it (a circle of
-radius 10 is the rational quadratic of 9 control points), and a curve projected keeps its kind where it can: a circle of
+radius 10 is the rational quadratic of 9 control points), but for a polyline of the plane fitted with a spline, which gives
+the B-spline it is fitted with, on its frame, as AutoCAD 2021's `Polyline2d.Spline` does: the frame (0, 0), (10, 10),
+(20, 0), (30, 10), (40, 0) fitted by a cubic gives the cubic of those 5 control points, not a spline through its 17 vertices
+drawn. A curve projected keeps its kind where it can: a circle of
 radius 10 on the floor projected along (0, 0, 1) onto the plane y + z = 0 is an ellipse of radii 14.14 and 10.
 
 `DxfPolyline.ConvertFrom(polyline2d, true)` and `ConvertTo(true)` turn a LWPOLYLINE into a POLYLINE of the plane and back
@@ -912,9 +922,13 @@ in its place, its handle, owner, look, extended data and extension dictionary ke
 the object id over; with `false` the new polyline is made in no file and the old one kept. A polyline of the plane is
 fitted with `CurveFit` (a pair of arcs on each segment through every vertex) or `SplineFit` (a uniform B-spline on its
 vertices as a frame, of the header's SPLINETYPE, 5 quadratic or 6 cubic, and SPLINESEGS segments to each span), a 3D
-polyline with `SplineFit`, a polygon mesh with `SurfaceFit` (of SURFTYPE, SURFU and SURFV), each straightened by
+polyline with `SplineFit`, a polygon mesh with `SurfaceFit` (of SURFTYPE, SURFU and SURFV, spans each way, so that an open
+mesh smoothed at 6 and 6 is given 7 rows of 7 points, as AutoCAD 2021's PEDIT makes them), each straightened by
 `Straighten` or `ConvertToPolyType` / `ConvertToPolyMeshType`; the vertices of the frame keep their handles. The reader reads
-a fitted polyline along the vertices the fitting made, and a smoothed mesh as its grid.
+a fitted polyline along the vertices the fitting made, and a smoothed mesh as its grid. Every vertex of a POLYLINE carries
+the polyline's layer, linetype, colour, lineweight, linetype scale, visibility, true colour and transparency, written on it
+when it is made and when the polyline's are set, as AutoCAD keeps them (its AUDIT reports a vertex of another colour); a
+face of a polyface mesh keeps a colour of its own.
 
 A spline gives and takes its `NurbsData` and `FitData` whole. `ElevateDegree` raises its degree with the curve kept to the
 rounding, `InsertControlPointAt` and `RemoveControlPointAt` put a control point in and take one out with a knot,
@@ -924,7 +938,9 @@ makes it pass a point in a direction, `Rebuild` fits it again of another degree 
 `ToPolylineWithPrecision` give the polyline along it, of arcs where it is flat, within a thousandth of the spline's size
 at precision 0 and a tenth of that for each 10 more, never finer than a millionth of its size: the cubic on (0, 0),
 (10, 10), (20, 10) and (30, 0) made lines gives 65 vertices at precision 10 and 513 from precision 30 up, the floor
-reached, so that a precision above about 30 gives the same polyline.
+reached, so that a precision above about 30 gives the same polyline. That is the library's reading of a precision:
+AutoCAD 2021's SPLINEDIT gives that cubic 33, 257, 1 025 and 4 097 vertices at 0, 10, 30 and 99, a power of two of segments
+to its one span, and how it reads a precision is not found from one curve.
 
 Curves are joined as AutoCAD's JOIN joins them, by `JoinEntity(other)` and `JoinEntities(others)` of the entity they join
 into: its record is written anew to run over them, and the others are left as they are, for the caller to erase. A
@@ -964,7 +980,9 @@ its codes, `Text` without them, `Location`, `TextHeight`, `Width`, `Attachment`)
 times single spacing, 5/3 of the letters' height: 5 for letters 3 high. `SetAttachmentMovingLocation` holds the MTEXT by
 another of its points where it stands, by its width and the height of its words (43): the MTEXT 40 wide at (20, 40, 0) held at
 its top centre stands at (40, 40, 0). `ShowBorders` draws its text frame, and `BackgroundTransparency` is a
-`DxfTransparency`. A text's, an attribute's and an MTEXT's style is set by its name, `TextStyleName`, written as the
+`DxfTransparency`. `BackgroundFill` or `UseBackgroundColor` turned on writes the background's colour (63) and scale (45)
+where the MTEXT has none, BYLAYER and 1.5, and from R2007 its transparency (441) by layer: AutoCAD 2021 refuses the whole
+file over an MTEXT whose background is on without a 63 and a 45. A text's, an attribute's and an MTEXT's style is set by its name, `TextStyleName`, written as the
 drawing's table names it, letters of either case the same, or as its record, `TextStyle` (AutoCAD's `TextStyleId`):
 `text.TextStyle = db.TextStyleTable["GH_TXT"]` writes `7 GH_TXT`. A style the drawing has not, or a record of another
 drawing, is refused. A text, an MTEXT or an attribute made in code takes any style name, and is refused when it is added to a
@@ -1046,7 +1064,9 @@ Its attributes are `DxfAttributeReference` objects (`Tag`, `TextString`, owned b
 `AttributeCollection`: `AppendAttribute` adds one, `SetAttributeFromBlock` fills one from its ATTDEF, and erasing one keeps
 the others' handles. An ATTDEF is a `DxfAttributeDefinition` with its `Prompt`. An attribute of several lines embeds an
 MTEXT from R2018: `IsMTextAttribute` makes one of its value where its text stands, or takes it out, `MTextAttribute` gives
-and takes the MTEXT, its text made to agree as ezdxf's `set_mtext` makes it, and `UpdateMTextAttribute()` places the MTEXT
+and takes the MTEXT, its text made to agree as ezdxf's `set_mtext` makes it but for its value, the words of every line joined
+by spaces as AutoCAD 2021 writes it (`LINE ONE LINE TWO LINE THREE` for three lines, where ezdxf writes the first; an ATTDEF
+keeps its first line), and `UpdateMTextAttribute()` places the MTEXT
 again where the text stands, after the attribute is moved or set from its definition. A MINSERT is a `DxfMInsertBlock` with
 its `Columns`, `Rows`, `ColumnSpacing` and `RowSpacing`.
 
@@ -1078,7 +1098,8 @@ off as `HatchStyle` says: a square 30 by 20 round a circle of radius 5 fills 521
 even-odd rule counts it, a square given twice filling nothing. `GetPlane()` is the plane of its normal at its elevation and
 `GeometricExtents` the box of its loops.
 
-`SetHatchPattern(DxfHatchPatternType.PreDefined, "SOLID")` fills it solid; `PatternScale` and `PatternAngle` scale and turn
+`SetHatchPattern(DxfHatchPatternType.PreDefined, "SOLID")` fills it solid, and any other pattern of AutoCAD's file is
+written by its name with a count of no lines (78 of 0), which AutoCAD 2021 refuses a file without; `PatternScale` and `PatternAngle` scale and turn
 the lines of its pattern with them (`GetPatternDefinitionAt`), and a pattern made by the user (`_USER`, `PatternSpace`,
 `PatternDouble`) is given its lines as AutoCAD makes them. `SetGradient` fills it with one of AutoCAD's gradients from
 R2004, its colours `DxfGradientColor`s, and `EvaluateGradientColorAt(0.5f)` is the colour halfway along it by the
@@ -1096,8 +1117,9 @@ it; a leader of fewer than two vertices is refused by `AppendEntity`, as AutoCAD
 and the other overrides read the extended data of ACAD (`DSTYLE`) where the leader has them and its dimension style where it
 has not, and are written there as AutoCAD writes them: `leader.Dimasz = 3.5` writes `1070 41, 1040 3.5`. A straight leader
 is walked as a curve by the index of its vertices, 1.5 halfway along its second segment; a splined one (`IsSplined`) along the
-spline `Explode()` fits through its vertices, its parameter from 0 to 1, and its `Spline` and `GeometricExtents` are that
-spline's: through (0, 0, 0), (10, 10, 0) and (20, 10, 0) it rises to y = 10.43, past its vertices, and its box with it. The
+spline `Explode()` fits through its vertices, its parameter run over the lengths of its chords as AutoCAD 2021 runs it, and
+its `Spline` is that spline: through (0, 0, 0), (10, 10, 0) and (20, 10, 0) it runs from 0 to 24.14 and rises to y = 10.43,
+past its vertices, but its `GeometricExtents` is the box of its vertices, (0, 0, 0) to (20, 10, 0), as AutoCAD gives it. The
 spline is fitted once and kept until the drawing is next changed, so that a hundred points along a leader of 4 000 vertices
 take a fraction of a millisecond, not 1.6 s. `GetGeometry()` gives the leader's curve, the polyline of its vertices or that
 spline, as `DxfReader` reads a LEADER, and `IntersectWith` meets the leader on it, as AutoCAD's does: the leader from
@@ -1292,10 +1314,11 @@ and `IsLinked` read it from every cell of the range: the table linked over (1, 0
 cell (2, 1), and `link.GetTargets()` gives the table. Only a text cell names a link: a block cell's 340 names its block,
 whatever its 92. Rows and columns put in and taken out, `SetSize` and `CopyFrom` move, grow and shrink a linked range as
 they do a block of merged cells, `CopyFrom` bringing the links wholly within its source unless `SkipDataLink` is given,
-and a cell filled from a linked one is not linked. `RemoveDataLink` takes the links away; a DATALINK the cells let go of
-is erased, with what it owns, only where its `DataLinkOption` is `Anonymous` and nothing else of the file points at it
-(another table, a copy of this one), the dictionary that holds it aside: a named link stays, as AutoCAD's Data Link
-Manager keeps it. The library reads no spreadsheet: the cells keep what they hold, and `UpdateDataLink` is not there.
+and a cell filled from a linked one is not linked. `RemoveDataLink` takes the links away and leaves the DATALINK the cells
+let go of in the drawing, named or `Anonymous`, as AutoCAD 2021's `RemoveDataLink` leaves it. A link whose rows or columns
+are all taken out goes with them, and its DATALINK, with what it owns, where its `DataLinkOption` is `Anonymous` and
+nothing else of the file points at it (another table, a copy of this one), the dictionary that holds it aside. The library
+reads no spreadsheet: the cells keep what they hold, and `UpdateDataLink` is not there.
 
 Writing a link is held for the checks in AutoCAD ([Checking against AutoCAD](dxf-autocad-checks.md), points 73 to 78):
 `SetDataLink` is not there, and a `DxfDataLink` is neither made in code nor has its groups set. The DXF reference
@@ -1317,9 +1340,11 @@ entry renamed with it; Model keeps its name), `TabOrder`, `TabSelected` (the lay
 showing model space about (5 000, 3 000) with a `ViewHeight` of 7 500, has `CustomScale` 0.02 and `StandardScale`
 `Scale1To50`; its view, snap, grid, user coordinate system, plot style, shading and lighting are read and set, and its layers
 frozen and thawed by `FreezeLayersInViewport` and `ThawLayersInViewport` (331, by handle). A viewport of a file before R2000
-keeps its view in its extended data MVIEW, read and set there; what those files have not, as the user coordinate system,
+keeps its view in its extended data MVIEW, read and set there, its twist in radians as AutoCAD 2021 reads it there (degrees
+from R2000); what those files have not, as the user coordinate system,
 reads as AutoCAD's default and is refused when set. A viewport made in code goes to a layout of paper space, given the next
-`Number` of the layout; `On = true` turns it on. The viewport 1 of a layout of paper space, which shows the sheet itself, is
+`Number` of the layout; `On = true` turns it on. `Number` is the id the file writes (69), on or off, where AutoCAD 2021's
+gives -1 for a viewport turned off or of a layout not shown. The viewport 1 of a layout of paper space, which shows the sheet itself, is
 not erased, as AutoCAD keeps it; erasing another takes the overrides the layers keep for it out of their extension
 dictionaries, and a layout whose last active viewport (331) it was no longer names it.
 
@@ -1418,7 +1443,7 @@ breaks as AutoCAD breaks it:
 | the dimensions | the entities of the block they are drawn with (`*D7`), placed where the dimension draws them, as ezdxf's `virtual_entities()` places them: the picture AutoCAD drew last, so a point set since is not in it |
 | `DxfTable` | the entities of its block (`*T12`), the lines of its cells and their words, placed where the table draws them: the picture AutoCAD drew last, so a cell's text set since is not in it |
 | `DxfPolyFaceMesh` | a 3DFACE for each face, in the order of the file, its corners the points its numbers name and the edge from a corner whose number is below nought hidden; a face of three corners ends on its third, and the edge from its third corner back to its first, the 3DFACE's fourth, is hidden with the third. A face record's own layer and colour are the face's, as AutoCAD's PFACE gives them. Its corners are its numbers up to the first of nought, as the reader takes them: a face of fewer than three corners so, (1, 2, 0, 4) among them, or one naming a point the mesh has not, is left out. A pyramid of a square base gives five faces |
-| `DxfPolygonMesh` | a 3DFACE for each cell of its grid, row after row, from its corner (m, n) to (m + 1, n), (m + 1, n + 1) and (m, n + 1), closed where the mesh is closed: a grid of 3 by 4 gives 6 faces, closed both ways 12. A smoothed mesh breaks into the cells of the surface it shows, its points of flag 8, a grid of `MSurfaceDensity` by `NSurfaceDensity` |
+| `DxfPolygonMesh` | a 3DFACE for each cell of its grid, row after row, from its corner (m, n) to (m + 1, n), (m + 1, n + 1) and (m, n + 1), closed where the mesh is closed: a grid of 3 by 4 gives 6 faces, closed both ways 12. A smoothed mesh breaks into the cells of the surface it shows, its points of flag 8, `MSurfaceDensity` by `NSurfaceDensity` spans, one point more than the spans along an open direction |
 | `DxfLeader` | straight, a LINE between each two vertices; splined, one SPLINE through its vertices, of degree 3, leaving along its first segment and reaching along its last, as ezdxf fits it; then, where it has an arrow, its arrowhead at the first vertex pointing away from the second, `Dimasz` times `Dimscale` long: an INSERT of its `Dimldrblk` block, or AutoCAD's closed filled arrow as a SOLID a third as wide as long. Each in the look its dimension style draws a leader in, as ezdxf draws it: the colour of `Dimclrd`, the linetype of DIMLTYPE and the lineweight of `Dimlwd`, the override else the style's, in place of the leader's own; one BYBLOCK, as Standard has them, keeps the leader's own, but for a colour BYBLOCK where the leader writes the colour to use for it (77). The leader from (0, 0, 0) through (10, 10, 0) to (20, 10, 0) with an arrow 2.5 long gives two lines and a SOLID, red with DIMCLRD 1; the hook line to the annotation is AutoCAD's to work out and is not among them |
 | `DxfMLeader` | its words as an MTEXT or its block as an INSERT with its attributes, then, leader by leader and line by line, the arrowhead at the first vertex, where the first segment is more than twice as long as the arrow, and the LINEs to the last point of the leader and the end of its dogleg, or one SPLINE for a splined leader; each line starts at the back of its arrow, and the closed filled arrow is a SOLID a third as wide as long. The words on the left of two leaders with a dogleg of 8 give an MTEXT, two arrows and five lines. The lines AutoCAD draws under or over the words, as long as the words are wide, are AutoCAD's to work out and are not among them. A copy in no file (`Clone()`) finds its blocks, linetype and text style in the drawing it was copied from and gives what its original gives, the values of its attributes among it; one whose block that drawing has erased since is refused with `InvalidOperationException`, the handle of the block said |
 | an MLINE (`DxfUnknownEntity`) | from its record and its MLINESTYLE, for an open one its start caps, a LINE for each element along each segment, the miter lines at each joint where the style draws them, then its end caps: a line across the ends as two LINEs from the outer elements to the point halfway between them, an outer arc as one half circle, or two quarter ARCs where the outer elements' colours differ, and inner arcs joining each pair of inner elements. Each LINE has its element's colour and linetype. An element broken by MLEDIT gives a LINE for each piece left, caps the MLINE leaves off are not drawn, and the fill is left out. Standard through four vertices gives six lines |
@@ -1462,7 +1487,9 @@ original keeps its handle of the erased definition, as AutoCAD leaves it.
 Appended to another drawing, a copy's pointers are taken to the objects of the same name there, as AutoCAD's deep clone
 between drawings maps them: a material (347), a plot style (390) or a visual style (348) by the names of its dictionary and its
 entry, a record of a table by its name; a pointer to an object the drawing has no namesake of is left out, so that the
-drawing's default holds, and a handle of extended data (1005) is left out, as AutoCAD's mapping leaves it null. The LINE of
+drawing's default holds, and a handle of extended data (1005) is kept in its place as null (0), as AutoCAD 2021's
+`CopyObjects` keeps it, so that the groups after it keep theirs (`WblockCloneObjects` names the copy where what it names is
+copied with it). The LINE of
 the material Steel_mat at 2F copied into a drawing whose Steel_mat is 57 points at 57; into one with no Steel_mat it has no
 material. A copy brings what it names that the drawing has not, and uses what the drawing has of the same name:
 
@@ -1494,13 +1521,14 @@ has it now, edits and all, keeps to it when it is renamed there, and places noth
 own, as AutoCAD's `WblockCloneObjects` copies the objects of ids, and gives the copies in the order of the entities: each
 copied as `Clone()` and `AppendEntity` copy one, and what one of them points to among the others pointing to the copy of that
 other. A HATCH copied with every object its loops follow follows their copies and stays associative; a LEADER copied with its
-MTEXT, TOLERANCE or INSERT points to its copy. What one of them points to that is not among the entities given is not kept,
-into its own drawing as into another: a LEADER copied without its annotation by `WblockCloneObjects` points to nothing
-(`AnnoType` `NoAnnotation`) even in its own model space, where `Clone()` and `AppendEntity` keep its pointer, and a HATCH
-copied without every object it follows follows none. A GROUP every entity of which is copied into model space or a layout is copied
-into the group dictionary there, its order, description and selectability kept, under its own name, or that name and `_1`,
-`_2` and on where the dictionary has it, an anonymous one as the next `*A1`; a group holds no entity of a block, so none is
-copied into one. Every copy is checked before any is added, so that a set the drawing cannot hold, a SPLINE for a drawing of
+MTEXT, TOLERANCE or INSERT points to its copy, and a handle of extended data (1005) naming one of the others names its
+copy: the LINE whose data names a CIRCLE, copied with it, names the CIRCLE's copy. A LEADER copied alone into another
+drawing brings its annotation with it, which it points at by a hard pointer (340), as AutoCAD 2021's `WblockCloneObjects`
+brings it; copied alone into its own drawing it points to nothing (`AnnoType` `NoAnnotation`), where `Clone()` and
+`AppendEntity` keep its pointer. A HATCH copied without every object it follows follows none. No GROUP is copied, as
+AutoCAD 2021's `WblockCloneObjects` and COPYCLIP copy none; `db.Insert` copies a drawing's groups with it, each all of
+whose entities come into model space under its own name, or that name and `_1`, `_2` and on where the dictionary has it, an
+anonymous one as the next `*A1`. Every copy is checked before any is added, so that a set the drawing cannot hold, a SPLINE for a drawing of
 R12, changes nothing. A set whose blocks would come to insert themselves once written is refused whole too, with an
 `ArgumentException`: a drawing whose block P holds an INSERT of M, a block it has not, as a drawing read from a file may,
 refuses an INSERT of another drawing's M that inserts P, which would bring an M placing P and a P placing that M without
@@ -1526,7 +1554,10 @@ and loses its markers, owner, lineweight, material and plot style, and an object
 attribute's, which R12 reads as one line; an MTEXT is written as TEXTs, as Appending says. A DIMENSION is written in the forms
 of R12 into a drawing of R12, its block with it, where every entity of the block has a form of R12, an MTEXT of the block
 written as the TEXTs of its lines, so that a dimension of R2018 whose picture holds its text in an MTEXT goes into R12 with
-its picture. A text style an entity copied between drawings of R12 and of R13 or later names is copied by name, as a layer is.
+its picture. A text style an entity copied between drawings of R12 and of R13 or later names is copied by name, as a layer is,
+and the dimension style of a dimension, a leader or a tolerance copied into a drawing of R12 is written in the form of R12:
+its name, flags and the variables R12 has, its arrow blocks by name (5, 6, 7) where the drawing has a block of the name, its
+text style and the variables of later versions left out, said in the log.
 A HATCH copied into a drawing of another version is written as that version writes it, the count of fit points of a spline
 edge as the version has it and a gradient dropped before R2004, as AutoCAD's SAVEAS drops it.
 
@@ -1556,7 +1587,9 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
 - It knows no pattern file. A pattern of AutoCAD's acad.pat the HATCH does not hold the lines of, ANSI31 given by
   `SetHatchPattern` among them, holds no lines (`NumberOfPatternDefinitions` 0), its name written for AutoCAD to take the
   lines from its own file, and `Explode()` and `GetHatchLinesData()` refuse it. A leader drawn anew (`EvaluateLeader`),
-  where a multileader's leaders meet its words, and the size of those words in its `GeometricExtents` are not worked out.
+  where a multileader's leaders meet its words, and the size of those words in its `GeometricExtents` are not worked out: a
+  multileader made in code starts its leader's dogleg at the base point of its content (10 of the context data), at the
+  origin where its block is placed after its leader line is added.
 - It gives no dynamic properties of a dynamic block: they are AutoCAD's engine's to work out. `ConvertToStaticBlock` copies
   what the INSERT draws as it stands; `ResetBlock` is not there. `db.Insert` of another drawing brings a dynamic block of it
   as a static one, without the data that makes it dynamic, which AutoCAD's own insert keeps.

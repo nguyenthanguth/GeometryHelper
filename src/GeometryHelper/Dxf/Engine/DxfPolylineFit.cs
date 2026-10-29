@@ -15,7 +15,8 @@ namespace GeometryHelper.Dxf
     /// The B-spline is AutoCAD's as its PEDIT describes it: on the frame as control points, of the degree the type says (2 for
     /// quadratic, 3 for cubic, one less than the points where there are fewer), clamped to the first and last points of an open
     /// frame and running round a closed one; its knots one step apart. A polyline is given SPLINESEGS segments for each span
-    /// between two knots; a mesh SURFU by SURFV points in all, from end to end of an open direction and round a closed one.
+    /// between two knots; a mesh SURFU by SURFV spans, from end to end of an open direction, one point more than the spans
+    /// there, and round a closed one.
     /// </para>
     /// <para>
     /// A curve fit puts a pair of arcs on each segment, meeting at a vertex the fitting adds, with the tangent at each vertex
@@ -47,19 +48,28 @@ namespace GeometryHelper.Dxf
         /// </summary>
         internal static DxfNurbs Spline(IReadOnlyList<GeoPoint3> frame, int degree, bool closed, out double start, out double end)
         {
+            int q = Spline(frame, degree, closed, out List<GeoPoint3> points, out List<double> knots, out start, out end);
+            return new DxfNurbs(q, knots, points, null);
+        }
+
+        /// <summary>
+        /// The control points and knots of the uniform B-spline on a frame <see cref="Spline(IReadOnlyList{GeoPoint3}, int, bool, out double, out double)"/>
+        /// evaluates, and its degree: an open frame's own points, clamped; a closed one's with its first points again after its
+        /// last, as many as the degree.
+        /// </summary>
+        internal static int Spline(IReadOnlyList<GeoPoint3> frame, int degree, bool closed, out List<GeoPoint3> points, out List<double> knots, out double start, out double end)
+        {
             int n = frame.Count;
+            int q = Math.Max(1, Math.Min(degree, n - 1));
+            points = new List<GeoPoint3>(frame);
+            knots = new List<double>();
 
             if (closed)
             {
-                int q = Math.Max(1, Math.Min(degree, n - 1));
-                var points = new List<GeoPoint3>(frame);
-
                 for (int i = 0; i < q; i++)
                 {
                     points.Add(frame[i]);
                 }
-
-                var knots = new List<double>();
 
                 for (int i = 0; i < points.Count + q + 1; i++)
                 {
@@ -68,32 +78,27 @@ namespace GeometryHelper.Dxf
 
                 start = q;
                 end = q + n;
-                return new DxfNurbs(q, knots, points, null);
+                return q;
             }
-            else
+
+            for (int i = 0; i <= q; i++)
             {
-                int q = Math.Max(1, Math.Min(degree, n - 1));
-                var knots = new List<double>();
-
-                for (int i = 0; i <= q; i++)
-                {
-                    knots.Add(0.0);
-                }
-
-                for (int i = 1; i < n - q; i++)
-                {
-                    knots.Add(i);
-                }
-
-                for (int i = 0; i <= q; i++)
-                {
-                    knots.Add(n - q);
-                }
-
-                start = 0.0;
-                end = n - q;
-                return new DxfNurbs(q, knots, frame, null);
+                knots.Add(0.0);
             }
+
+            for (int i = 1; i < n - q; i++)
+            {
+                knots.Add(i);
+            }
+
+            for (int i = 0; i <= q; i++)
+            {
+                knots.Add(n - q);
+            }
+
+            start = 0.0;
+            end = n - q;
+            return q;
         }
 
         /// <summary>

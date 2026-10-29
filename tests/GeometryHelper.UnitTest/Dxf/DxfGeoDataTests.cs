@@ -21,21 +21,22 @@ namespace GeometryHelper.UnitTest.Dxf
         private const string GeoDataClass = "  0\nCLASS\n  1\nGEODATA\n  2\nAcDbGeoData\n  3\nObjectDBX Classes\n 90\n4095\n 91\n0\n280\n0\n281\n0\n";
 
         [Fact]
-        public void AGeoDataMadeInCode_IsEzdxfsNewOne()
+        public void AGeoDataMadeInCode_IsAutoCADsNewOne()
         {
+            // AutoCAD 2021's new GeoLocationData() (check 68), in the place of ezdxf's geographic one in inches, of no scale estimated.
             var geo = new DxfGeoData();
 
-            Assert.Equal(DxfTypeOfCoordinates.Geographic, geo.TypeOfCoordinates);
+            Assert.Equal(DxfTypeOfCoordinates.Unknown, geo.TypeOfCoordinates);
             Assert.Equal(Bits(new GeoPoint3(0, 0, 0)), Bits(geo.DesignPoint));
             Assert.Equal(Bits(new GeoPoint3(0, 0, 0)), Bits(geo.ReferencePoint));
             Assert.Equal(Bits(1.0), Bits(geo.HorizontalUnitsScale));
-            Assert.Equal(DxfUnits.Inches, geo.HorizontalUnits);
+            Assert.Equal(DxfUnits.Meters, geo.HorizontalUnits);
             Assert.Equal(Bits(1.0), Bits(geo.VerticalUnitsScale));
-            Assert.Equal(DxfUnits.Inches, geo.VerticalUnits);
+            Assert.Equal(DxfUnits.Meters, geo.VerticalUnits);
             Assert.Equal(Bits(new GeoVector3(0, 0, 1)), Bits(geo.UpDirection));
             Assert.Equal(Bits(1.0), Bits(geo.NorthDirectionVector.Y));
             Assert.Equal(Bits(0.0), Bits(geo.NorthDirectionVector.X));
-            Assert.Equal(DxfScaleEstimationMethod.Unity, geo.ScaleEstimationMethod);
+            Assert.Equal(DxfScaleEstimationMethod.ReferencePoint, geo.ScaleEstimationMethod);
             Assert.Equal(Bits(1.0), Bits(geo.ScaleFactor));
             Assert.False(geo.DoSeaLevelCorrection);
             Assert.Equal(Bits(0.0), Bits(geo.SeaLevelElevation));
@@ -46,7 +47,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Empty(geo.GetMeshPointMaps());
             Assert.Null(geo.BlockTableRecord);
             Assert.Null(geo.Handle);
-            Assert.Equal("GEODATA , Geographic", geo.ToString());
+            Assert.Equal("GEODATA , Unknown", geo.ToString());
         }
 
         [Fact]
@@ -74,13 +75,14 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(dictionary, geo.OwnerHandle);
             Assert.Same(geo, db.ModelSpace.ExtensionDictionary.GetAt("ACAD_GEOGRAPHICDATA"));
 
-            // The GEODATA as ezdxf writes a new one, the block's handle after the version; model space's BLOCK_RECORD given its
-            // extension dictionary, which names the GEODATA by a 360; the class listed.
+            // The GEODATA in the order ezdxf writes a new one, of AutoCAD's defaults (vertical units metres, 92 of 6, the scale
+            // judged at the reference point, 95 of 3), the block's handle after the version; model space's BLOCK_RECORD given
+            // its extension dictionary, which names the GEODATA by a 360; the class listed.
             string saved = db.ToText();
             Assert.Equal(
                 "  0\nGEODATA\n  5\n" + geo.Handle + "\n102\n{ACAD_REACTORS\n330\n" + dictionary + "\n102\n}\n330\n" + dictionary + "\n100\nAcDbGeoData\n 90\n2\n330\n17\n 70\n1\n"
-                + " 10\n100\n 20\n200\n 30\n0\n 11\n500000\n 21\n4100000\n 31\n12.5\n 40\n0.001\n 91\n4\n 41\n1.0\n 92\n1\n210\n0.0\n220\n0.0\n230\n1.0\n 12\n0.0\n 22\n1.0\n"
-                + " 95\n1\n141\n1.0\n294\n0\n142\n0.0\n143\n0.0\n301\n\n 93\n0\n 96\n0\n",
+                + " 10\n100\n 20\n200\n 30\n0\n 11\n500000\n 21\n4100000\n 31\n12.5\n 40\n0.001\n 91\n4\n 41\n1.0\n 92\n6\n210\n0.0\n220\n0.0\n230\n1.0\n 12\n0.0\n 22\n1.0\n"
+                + " 95\n3\n141\n1.0\n294\n0\n142\n0.0\n143\n0.0\n301\n\n 93\n0\n 96\n0\n",
                 Records(saved).Single(r => HandleOf(r) == geo.Handle));
             Assert.Contains("  3\nACAD_GEOGRAPHICDATA\n360\n" + geo.Handle + "\n", Records(saved).Single(r => HandleOf(r) == dictionary), StringComparison.Ordinal);
             Assert.Contains("102\n{ACAD_XDICTIONARY\n360\n" + dictionary + "\n102\n}\n", Records(saved).Single(r => HandleOf(r) == "17"), StringComparison.Ordinal);

@@ -593,6 +593,11 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Gets or sets whether a background is drawn behind the words (flag 1 of group 90), as AutoCAD's <c>BackgroundFill</c>.</summary>
+        /// <value>
+        /// Set on, the colour (63) and the scale (45) written where the record has none, as BYLAYER and 1.5, and from R2007 the
+        /// transparency (441) as by layer: the values AutoCAD reads where they are not written, and without which AutoCAD 2021
+        /// refuses the file.
+        /// </value>
         /// <exception cref="InvalidOperationException">Thrown when the MTEXT is erased, or set in a file older than R2004 (AC1018).</exception>
         public bool BackgroundFill
         {
@@ -601,6 +606,7 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Gets or sets whether the background takes the colour of the drawing's background (flag 2 of group 90), as AutoCAD's <c>UseBackgroundColor</c>.</summary>
+        /// <value>Set on, the colour, scale and transparency written where the record has none, as <see cref="BackgroundFill"/> writes them.</value>
         /// <exception cref="InvalidOperationException">Thrown when the MTEXT is erased, or set in a file older than R2004 (AC1018).</exception>
         public bool UseBackgroundColor
         {
@@ -638,7 +644,8 @@ namespace GeometryHelper.Dxf
         /// AutoCAD's <c>BackgroundFillColor</c>; null where the record gives none.
         /// </summary>
         /// <value>Set, a colour of the index or a true colour: the index written, and the red, green and blue of a true colour
-        /// with it, as <see cref="DxfEntity.Color"/> writes them; null takes them out.</value>
+        /// with it, as <see cref="DxfEntity.Color"/> writes them; null takes them out, but for the index 256, BYLAYER, kept while
+        /// the background is on.</value>
         /// <exception cref="ArgumentException">Thrown when the colour set is by layer, by block or of no index or true colour.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the MTEXT is erased, or set in a file older than R2004 (AC1018).</exception>
         public DxfColor BackgroundFillColor
@@ -665,7 +672,9 @@ namespace GeometryHelper.Dxf
 
                 if (value == null)
                 {
-                    Set(new KeyValuePair<int, string>(63, null), new KeyValuePair<int, string>(421, null), new KeyValuePair<int, string>(431, null));
+                    // A background on keeps its 63, BYLAYER, which AutoCAD refuses the file without.
+                    string index = (WholeNumber(90, 0) & 3) != 0 ? "256" : null;
+                    Set(new KeyValuePair<int, string>(63, index), new KeyValuePair<int, string>(421, null), new KeyValuePair<int, string>(431, null));
                     return;
                 }
 
@@ -2592,11 +2601,39 @@ namespace GeometryHelper.Dxf
             int now = WholeNumber(90, 0);
             int next = on ? now | mask : now & ~mask;
 
-            if (next != now)
+            if (next == now)
             {
-                Since(1018, "background of an MTEXT");
-                SetWhole(90, next, 0);
+                return;
             }
+
+            Since(1018, "background of an MTEXT");
+
+            if ((next & 3) == 0)
+            {
+                SetWhole(90, next, 0);
+                return;
+            }
+
+            // A background on needs its colour and its scale, which AutoCAD refuses the file without: those it reads where
+            // there are none, BYLAYER and 1.5, and from R2007 the transparency by layer.
+            var groups = new List<KeyValuePair<int, string>> { new KeyValuePair<int, string>(90, next.ToString(CultureInfo.InvariantCulture)) };
+
+            if (Value(63) == null)
+            {
+                groups.Add(new KeyValuePair<int, string>(63, "256"));
+            }
+
+            if (Value(45) == null)
+            {
+                groups.Add(new KeyValuePair<int, string>(45, "1.5"));
+            }
+
+            if (Value(441) == null && Item.File.Supports(1021))
+            {
+                groups.Add(new KeyValuePair<int, string>(441, "0"));
+            }
+
+            Set(groups.ToArray());
         }
 
         private void Since(int version, string what)

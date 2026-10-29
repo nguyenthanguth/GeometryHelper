@@ -80,11 +80,11 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(Bits(new GeoPoint3(0, 9, 0)), Bits(((DxfRay)pieces[2]).BasePoint));
             Assert.IsType<DxfXline>(Assert.Single(xline.GetSplitCurves(new double[0])));
 
-            // Offset to the right of (0, 1, 0) seen from the tip of (0, 0, 1), the side every curve offsets to: +x.
-            var right = (DxfXline)Assert.Single(xline.GetOffsetCurvesGivenPlaneNormal(new GeoVector3(0, 0, 1), 2.0));
-            Assert.Equal(Bits(new GeoPoint3(2, 5, 0)), Bits(right.BasePoint));
-            var left = (DxfXline)Assert.Single(xline.GetOffsetCurvesGivenPlaneNormal(new GeoVector3(0, 0, -1), 2.0));
+            // Offset to the left of (0, 1, 0) seen from the tip of (0, 0, 1), as a line is (AutoCAD 2021's side, check 11): -x.
+            var left = (DxfXline)Assert.Single(xline.GetOffsetCurvesGivenPlaneNormal(new GeoVector3(0, 0, 1), 2.0));
             Assert.Equal(Bits(new GeoPoint3(-2, 5, 0)), Bits(left.BasePoint));
+            var right = (DxfXline)Assert.Single(xline.GetOffsetCurvesGivenPlaneNormal(new GeoVector3(0, 0, -1), 2.0));
+            Assert.Equal(Bits(new GeoPoint3(2, 5, 0)), Bits(right.BasePoint));
 
             xline.ReverseCurve();
             Assert.Equal(Bits(new GeoVector3(0, -1, 0)), Bits(xline.UnitDir));

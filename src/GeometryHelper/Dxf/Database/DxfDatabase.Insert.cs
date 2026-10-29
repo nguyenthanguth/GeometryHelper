@@ -11,7 +11,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Inserts another drawing into this one's model space, as AutoCAD's <c>Insert(transform, dataBase,
         /// preserveSourceDatabase)</c>: every entity of its model space copied into this model space and moved by the
-        /// transformation, as <see cref="WblockCloneObjects"/> copies entities together, its groups among them; and the records
+        /// transformation, as <see cref="WblockCloneObjects"/> copies entities together, and its groups with them, each group
+        /// all of whose entities come under its name, or that name and <c>_1</c> where this drawing has it; and the records
         /// of its tables and its named blocks that this drawing has none of the name of, merged by name, this drawing's own kept
         /// where it has one: its text styles, linetypes, layers, blocks and dimension styles. Its paper space is not inserted.
         /// </summary>
@@ -81,7 +82,7 @@ namespace GeometryHelper.Dxf
                 least = File.HeaderOf("$EXTMIN");
                 most = File.HeaderOf("$EXTMAX");
                 before = new HashSet<DxfEntity>(ModelSpace);
-                dataBase.WblockCloneObjects(entities, ModelSpace);
+                dataBase.CloneObjects(entities, ModelSpace, true);
             }
             finally
             {

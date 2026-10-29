@@ -7,27 +7,34 @@ reference, ezdxf and the files AutoCAD writes, and are for the maintainer to try
 library does now, and what result would mean the library has to change. Open each file written with AUDIT run on it as well;
 an error AUDIT reports or fixes in a file the library wrote is a change to make whatever the point.
 
+AutoCAD 2021 answered a part of them on 29 and 30 October 2026, by COM, LISP and its .NET API: a point it settled says what
+AutoCAD did, and what the library does since, in the place of what would have meant a change. Two points it found that the
+list had not: AutoCAD refuses a file whose pattern HATCH has no count of its lines (78), and one whose MTEXT turns its
+background on without its colour and scale (63 and 45); both are now written.
+
 ## Entities and copies
 
 1. **A SOLID given a new normal.**
    - Try: make a SOLID of the square of side 2 at the origin, set its `Normal` to (0, 0, -1), save, and open it in AutoCAD.
    - Now: the corners keep their places in the world, each written anew in the system of the new normal (the corner (2, 0, 0)
      written as (-2, 0, 0)), as a polyline's are.
-   - A change if: AutoCAD draws the SOLID elsewhere than its corners stood; the corners should then keep their coordinates
-     in the file's system as the normal changes, as AutoCAD keeps them.
+   - AutoCAD 2021: agrees. AUDIT finds nothing; the SOLID's corners read (0, 0, 0), (2, 0, 0), (0, 2, 0) and (2, 2, 0) in the
+     world.
 
 2. **Extended data handles on a copy into another drawing.**
    - Try: give a LINE extended data with a handle (1005) between other groups, copy it into another drawing with WBLOCK or
      COPYCLIP and PASTECLIP, and list its extended data.
-   - Now: the library leaves the 1005 out of the copy, so the groups after it move up one place.
-   - A change if: AutoCAD keeps the 1005 with a null or mapped handle, so that the data keeps its positions; then the library
-     should write it so too.
+   - AutoCAD 2021: keeps the 1005 in its place, null (0) where what it names stays behind, the copy's handle where that is
+     copied with it (`CopyObjects` of the LINE and its CIRCLE).
+   - Now: so does the library: a copy into another drawing keeps the 1005 as 0, and `WblockCloneObjects` names the copy of
+     an entity copied with it.
 
 3. **An associative HATCH copied into another drawing.**
    - Try: open a drawing the library wrote with the `Clone()` of an associative hatch appended to another drawing.
    - Now: the copy leaves its boundary objects behind, each path counting the pointers it keeps (97 of 0), and is no longer
      associative (71 of 0), as AutoCAD's COPY leaves a hatch copied alone.
-   - A change if: AUDIT reports the hatch, or AutoCAD expects something else of a hatch copied without its boundary.
+   - AutoCAD 2021: agrees. AUDIT finds nothing in the library's copy; AutoCAD's own `CopyObjects` of the hatch alone keeps 71
+     and 97 of 1 with a null 330, which its AUDIT reports and repairs into the library's form.
 
 4. **The values of a table's block cells copied across.**
    - Try: copy an ACAD_TABLE whose block cells give their blocks' attributes values into another drawing with the library,
@@ -35,36 +42,40 @@ an error AUDIT reports or fixes in a file the library wrote is a change to make 
    - Now: where the cell's block comes with the copy, the values are kept, each pointer to a definition (331) naming the copy
      of that definition; where the drawing has a block of the name of its own, each pointer is left out with its value (300)
      and the count 179 made to agree.
-   - A change if: AutoCAD keeps the values in the second case too, against the drawing's own block's definitions of the same
-     tags.
+   - AutoCAD 2021: agrees in what it shows. Its copy into a drawing with a BOLT of its own keeps the 300 with a null 331, but
+     the value is tied to no definition of the drawing's BOLT, and the table drawn anew shows none.
 
 5. **Two entities that point at each other, copied together.**
    - Try: copy a leader with its MTEXT, and a hatch with its four boundary lines, into another drawing with AutoCAD's
      `WblockCloneObjects`, and compare with the library's `WblockCloneObjects` of the same, and with a group of them.
-   - Now: what one points to among the others points to its copy: the leader to the MTEXT's copy, the hatch associative to
-     the lines' copies, each listed among the reactors of what it points to; a group all of whose entities are copied into
-     model space is copied under its name, or the name and `_1` where the drawing has it. Copied alone, a leader points to
-     nothing (`NoAnnotation`) and a hatch is no longer associative.
-   - A change if: AutoCAD names the copied group otherwise, or keeps a leader copied alone pointing at something.
+   - AutoCAD 2021: the leader and the hatch copied together follow their copies, as the library's do; it copies no group, by
+     `CopyObjects` or by COPYCLIP and PASTECLIP; and a leader copied alone brings its MTEXT, which it points at by a hard
+     pointer (340), its copy pointing at the MTEXT's copy (73 of 0).
+   - Now: so does the library's `WblockCloneObjects`: no group is copied (`db.Insert` of a whole drawing still copies its
+     groups), and a leader copied alone into another drawing brings its annotation.
 
 ## Text
 
 6. **The words of an attribute of several lines.**
    - Try: make an attribute of several lines in AutoCAD, save it as DXF, and read its group 1 and AutoCAD's `TextString`.
-   - Now: `MTextAttribute` and `IsMTextAttribute` write the first line of the words as the attribute's own text (group 1), as
-     ezdxf's `set_mtext` does; the MTEXT embedded in it holds them all. ezdxf notes that AutoCAD writes every line there,
-     joined by `\P`.
-   - A change if: AutoCAD writes the lines joined (as ezdxf says it does); then group 1 should hold them so.
+   - AutoCAD 2021: writes every line in the ATTRIB's group 1, joined by spaces: `LINE ONE LINE TWO LINE THREE`, the embedded
+     MTEXT `LINE ONE\PLINE TWO\PLINE THREE` (not `\P` as ezdxf says, nor the first line alone).
+   - Now: so does the library for an ATTRIB, by `MTextAttribute` and by `SetAttributeFromBlock` of a definition of several
+     lines; an ATTDEF keeps its first line, as ezdxf writes it, AutoCAD's own definition having kept the value it had.
 
 7. **An MTEXT's background transparency.**
    - Try: read `BackgroundTransparency` of an MTEXT with no group 441.
-   - Now: BYLAYER.
-   - A change if: AutoCAD gives another default.
+   - AutoCAD 2021: reads BYLAYER (441 of 0), as the library does; but it refuses the whole file ("Error Decrypting Data",
+     DxfIn eMissingDxfField) over an MTEXT whose 90 turns the background on with no 63 and 45, and opens it with 63 256 and 45
+     1.5.
+   - Now: `BackgroundFill` and `UseBackgroundColor` turned on write 63 256 and 45 1.5 where the MTEXT has none, and 441 0 from
+     R2007, the values AutoCAD reads where there are none.
 
 8. **An MTEXT's frame.**
    - Try: open in AutoCAD an MTEXT of R2004 and one of R2007 with `ShowBorders` set.
    - Now: the library sets the frame (flag 16 of group 90) from R2004 on; ezdxf from R2007.
    - A change if: AutoCAD 2004 to 2006 does not read the flag; then the library should refuse it before R2007.
+   - AutoCAD 2021: reads the flag in both, AUDIT finding nothing; AutoCAD 2004 to 2006, the question, were not at hand.
 
 9. **An MTEXT set in columns.**
    - Try: open in AutoCAD the MTEXTs set by `SetStaticColumns`, `SetDynamicColumns` and `SetColumnHeight` in a drawing of R2018
@@ -73,69 +84,90 @@ an error AUDIT reports or fixes in a file the library wrote is a change to make 
    - Now: the columns are written as ezdxf writes them, and the MTEXT's own width (group 41, `Width`, and 40 of the embedded
      object) is made the width of a column: the note 120 wide set in two columns of 50 with a gutter of 10 has 41 of 50.
    - A change if: AutoCAD shows the columns otherwise, or keeps another width in 41.
+   - AutoCAD 2021, still open: in R2018 it keeps in 41 (and the embedded 40) the width of all the columns with their gutters,
+     110 for two of 50 and a gutter of 10, and sets the dynamic columns of no height in 13 columns; in R2000 it keeps 41 the
+     width of a column, as the library does, but saved as R2000 itself writes each column after the first as an MTEXT of its
+     own (`ACAD_MTEXT_COLUMNS_BEGIN`). Not changed yet.
 
 10. **Linked columns copied into R2018.**
     - Try: copy an MTEXT of linked columns of R2000 into a drawing of R2018 with the library, and open it.
     - Now: the copy holds the words of all the columns, in the embedded form of R2018.
-    - A change if: AutoCAD shows the columns otherwise than they were.
+    - AutoCAD 2021: agrees: three columns 40 wide 10 apart with all their words, though it reads the 41 of 40 as 140, as in
+      point 9.
 
 ## Curves
 
 11. **The side an offset goes to.**
     - Try: `GetOffsetCurves(5)` of a line from (0, 0, 0) to (30, 40, 0), of a counter-clockwise polyline square and of a spline,
       in AutoCAD's API.
-    - Now: every curve offsets to the right of its way seen from the tip of its normal, where an arc's radius grows: the line runs
-      from (4, -3, 0), the square grows.
-    - A change if: AutoCAD's line or polyline goes the other way for a positive distance.
+    - AutoCAD 2021: the polyline square grows and the spline goes to the right, as the library's did; the line goes to the left,
+      from (-4, 3, 0).
+    - Now: a line, and a ray and an xline with it, offsets to the left of its way seen from the tip of its normal, the line from
+      (-4, 3, 0); the other curves to the right, an arc's radius growing.
 
 12. **An arc and a circle offset with the normal turned over.**
     - Try: `GetOffsetCurvesGivenPlaneNormal` of an arc with its normal negated, distance 5.
     - Now: the radius grows by 5 whichever way the normal points.
     - A change if: AutoCAD shrinks it.
+    - AutoCAD 2021, so far: `Offset(5)` of the arc of normal (0, 0, -1) gives a radius of 15; `GetOffsetCurvesGivenPlaneNormal`
+      threw `eNotImplementedYet` and is to be tried again.
 
 13. **Spline fitting of a polyline.**
     - Try: `SplineFit` of a 2D and a 3D polyline at SPLINESEGS 8 and SPLINETYPE 5 and 6, and on a polyline of fewer vertices
       than the degree asks for; count the vertices made.
-    - Now: SPLINESEGS segments to each knot span, the degree dropped where the vertices are too few.
-    - A change if: AutoCAD makes another count.
+    - AutoCAD 2021: makes the same counts (39, 39 and 12 at SPLINETYPE 5; 31, 31 and 12 at 6), but its AUDIT reported every
+      vertex that had not its POLYLINE's colour (`AcDb2dVertex color != owner's`, 89 and 106 errors).
+    - Now: SPLINESEGS segments to each knot span, the degree dropped where the vertices are too few; every vertex carries its
+      polyline's look (layer, linetype, colour, lineweight and the rest), written when it is made and when the polyline's is
+      set.
 
 14. **Curve fitting and surface fitting.**
     - Try: `CurveFit` of a polyline and `SurfaceFit` of a polygon mesh at SURFU 6 and SURFV 6, and count the vertices.
-    - Now: a pair of arcs on each segment through every vertex; SURFU by SURFV points of the surface.
-    - A change if: AutoCAD's counts or the points differ.
+    - AutoCAD 2021: the curve fit agrees (7 vertices); its surface of the open mesh 4 by 4 at 6 and 6 has 49 points, 7 by 7,
+      not 36; and AUDIT reports the vertices of another colour than their mesh, as in point 13.
+    - Now: a pair of arcs on each segment through every vertex; SURFU by SURFV spans of the surface, one point more than the
+      spans along an open direction, 49 for 6 and 6; the vertices in their mesh's look.
 
 15. **The spline of a spline-fitted polyline.**
     - Try: `Polyline2d.Spline` of a polyline fitted by `SplineFit`.
-    - Now: the spline of degree 1 through the vertices drawn.
-    - A change if: AutoCAD gives the B-spline of the frame.
+    - AutoCAD 2021: the B-spline of the frame, of degree 3, its 5 control points the frame of 5 vertices (17 drawn).
+    - Now: so does the library: the uniform B-spline the polyline is fitted with, on its frame, clamped where it is open; a
+      join and a projection still take the polyline as drawn.
 
 16. **Control points put in and taken out.**
     - Try: `InsertControlPointAt` and `RemoveControlPointAt` on a cubic, and compare the control points.
     - Now: a knot put in or taken out with the point, the rest of the curve kept where it can be.
-    - A change if: AutoCAD places the new point elsewhere.
+    - AutoCAD 2021: agrees, to the control points and knots.
 
 17. **A spline made a polyline.**
     - Try: `ToPolylineWithPrecision` at 0, 10, 30 and 99 on the cubic on (0, 0), (10, 10), (20, 10), (30, 0).
     - Now: within a thousandth of the spline's size at 0 and a tenth of that for each 10 more, never finer than a millionth of
       its size, judged at three points of each segment: 65 vertices at 10 and 513 from 30 up.
     - A change if: AutoCAD reads the precision another way.
+    - AutoCAD 2021, still open: it does: SPLINEDIT's polyline (PLINECONVERTMODE 0) of the cubic has 33, 257, 1 025 and 4 097
+      vertices at 0, 10, 30 and 99, a power of two of segments to its one span, finer on to 99. No rule both simple and true
+      to the four fits the library's way of judging a segment (a tolerance of the size over the square of one more than the
+      precision misses by a tenth); the library keeps its own reading until AutoCAD's counts on more precisions and more spans
+      show the rule.
 
 18. **The narrowest ellipse.**
     - Try: squash an ellipse to a ratio of 1E-7 by `TransformBy`, and project a circle onto a plane seen almost edge on.
     - Now: `TransformBy` writes a ratio of 1E-6 at the least, the DXF reference's floor, and a projection whose minor axis comes
       within 1E-6 of its major one's length of nothing is refused as a line.
-    - A change if: AutoCAD keeps a smaller ratio.
+    - AutoCAD 2021: agrees: it reads 1E-6, and refuses to explode the INSERT scaled (1, 1E-7, 1) rather than make a thinner
+      ellipse.
 
 19. **A 3DFACE's hidden edges in an intersection.**
     - Try: `IntersectWith` of a line and a 3DFACE whose crossed edge is invisible.
     - Now: the face meets along all four of its edges, its hidden ones among them, as its shape has no hidden edges.
-    - A change if: AutoCAD leaves the hidden edges out.
+    - AutoCAD 2021: agrees: the line meets the face at (10, 5, 0) on its hidden edge.
 
 20. **A text in an intersection.**
     - Try: `IntersectWith` of a line and a TEXT or an MTEXT.
-    - Now: refused with `NotSupportedException`.
-    - A change if: AutoCAD crosses the line with the box of the text; the library would need the size of the words, which it
-      cannot have without fonts.
+    - AutoCAD 2021: crosses the line with the box of the words, at (10, 0, 0) and (10, 5, 0) for the TEXT and (10, 6.67, 0) and
+      (10, 20, 0) for the MTEXT.
+    - Now: refused with `NotSupportedException`: the box needs the size of the words, which the library cannot have without
+      fonts. The guide says so.
 
 ## Objects and tables
 
@@ -152,12 +184,12 @@ an error AUDIT reports or fixes in a file the library wrote is a change to make 
 23. **Binary data under a key.**
     - Try: `SetBinaryDataForKey` of 300 bytes, then AutoCAD's `GetBinaryDataForKey` of the same key.
     - Now: an XRECORD of the key in the extension dictionary, its bytes in groups 310 of 127 bytes each.
-    - A change if: AutoCAD does not read them back.
+    - AutoCAD 2021: agrees: `GetBinaryDataForKey` gives the 300 bytes back.
 
 24. **A hyperlink to a place in a drawing.**
     - Try: a hyperlink with a `SubLocation`, read in AutoCAD's HYPERLINK dialog.
     - Now: written in the extended data of PE_URL as AutoCAD writes it.
-    - A change if: AutoCAD shows another name, description or place.
+    - AutoCAD 2021: agrees, through its API: the name, description and place as written.
 
 25. **A block's preview.**
     - Try: set `PreviewIcon` of a block and look at it in AutoCAD's INSERT dialog.
@@ -179,7 +211,8 @@ an error AUDIT reports or fixes in a file the library wrote is a change to make 
 
 28. **An anonymous group renamed.**
     - Try: rename an anonymous group in AutoCAD.
-    - Now: given a name, it is anonymous no longer (group 70 of 0).
+    - Now: given a name, it is anonymous no longer (group 70 of 0), by `DxfGroup.Name` and, since it was found making the
+      files that it did not, by `GroupDictionary.SetName`.
     - A change if: AutoCAD keeps it anonymous.
 
 29. **Records of R2018 copied into R2000.**
@@ -202,17 +235,22 @@ an error AUDIT reports or fixes in a file the library wrote is a change to make 
       AutoCAD; set an isometric snap.
     - Now: the three flags AutoCAD keeps inverted (0x10, 0x40000, 0x100000) are written inverted; the isometric pair as ezdxf
       writes it.
-    - A change if: AutoCAD shows any of them the other way.
+    - AutoCAD 2021: agrees, through its API (`FrontClipAtEyeOn`, `GridBoundToLimits`, `GridSubdivisionRestricted`,
+      `SnapIsometric`); the grid as drawn is for the eye to see.
 
 32. **A viewport's light and number.**
     - Try: read the ambient light colour of a viewport with no group 63, and the `Number` of a viewport turned off.
-    - Now: the colour index 250; the number from group 69 as written.
-    - A change if: AutoCAD gives another default, or another number for one that is off.
+    - AutoCAD 2021: the colour index 250, as the library; `Number` -1 for the viewport turned off, and -1 for every viewport
+      until its layout is shown, then 1 and 2 for those on.
+    - Now: the colour index 250; the number from group 69 as written, on or off: AutoCAD's `Number` is the number as the
+      layout is shown, which a file does not say. The guide and `Number` say so.
 
 33. **A view of R12, R13 or R14.**
     - Try: set the view of a viewport in a drawing of R12 (its extended data MVIEW) and of R14, and open them.
-    - Now: written as the DXF reference has it; ezdxf reads no MVIEW, so only the library read them back.
-    - A change if: AutoCAD shows another view.
+    - AutoCAD 2021: reads the centre and height of R12 as written, but the twist the library wrote, 30 for 30 degrees, as
+      1 718.87 degrees: 30 radians.
+    - Now: the twist in MVIEW is written and read in radians (group 51 of R2000 on in degrees, as before); the view of R14 is
+      still to be tried.
 
 ## Hatches, leaders and multileaders
 
@@ -234,6 +272,8 @@ an error AUDIT reports or fixes in a file the library wrote is a change to make 
     - Now: the background in the extended data HATCHBACKGROUNDCOLOR, an index packed as 0xC3 and the index; a new gradient blue
       (0, 0, 255) to pale yellow (255, 255, 153).
     - A change if: AutoCAD shows another colour.
+    - AutoCAD 2021, so far: its DxfIn refused the whole file ("expected group code 78"): the pattern HATCH set by
+      `SetHatchPattern` had no 78. The count of no lines is now written; the colours are to be tried again on the new file.
 
 37. **A leader's annotation offset.**
     - Try: a leader whose `AnnotationOffset` is set, moved and turned, against the same in AutoCAD.
@@ -262,6 +302,9 @@ an error AUDIT reports or fixes in a file the library wrote is a change to make 
     - Now: written as ezdxf writes them.
     - A change if: AutoCAD reports or fixes either; or draws the block of a multileader from its group 15 and not from its matrix
       47, or the other way.
+    - Found making the files: a multileader made in code starts its leader's dogleg at the base point of its content, which
+      is the words' own point, and at the origin for the block placed after its leader line was added. Where AutoCAD lands
+      it, and whether it lands it anew on opening, is to be seen in this point's answer.
 
 ## Dimensions and tables
 
@@ -275,25 +318,25 @@ an error AUDIT reports or fixes in a file the library wrote is a change to make 
     - Try: open a table whose cells were set in a drawing of R2007 or later, with a cell of overrides.
     - Now: the cells between `301 CELL_VALUE` and `304 ACVALUE_END`, the overrides in groups 177 and 91, bit k of the flags the
       property 130 + k, grouped by property.
-    - A change if: AutoCAD reads a cell's overrides otherwise.
+    - AutoCAD 2021: agrees: the cell reads SET, 4 high, red, held at its middle centre.
 
 44. **The arrow block of a dimension style.**
     - Try: set `Dimtxsty` and `Dimblk` on a dimension style read from a file and on one made in code, open the drawing and run
       AUDIT.
     - Now: from R2000 the text style is written by handle in group 340 and the arrows in 341 to 344, at their places in the
       record.
-    - A change if: AUDIT fixes a handle of the record, or AutoCAD shows another style or arrow.
+    - AutoCAD 2021: agrees: each style reads the text style and arrow set.
 
 45. **The defaults of a dimension style of inches.**
     - Try: read a variable a DIMSTYLE of a drawing in inches gives no group for.
     - Now: AutoCAD's default of acad.dwt, the template in inches, whatever the drawing's units: arrowheads 0.18 long, four
       decimal places.
-    - A change if: AutoCAD takes those of acadiso.dwt for a drawing in millimetres; the defaults should then follow `$MEASUREMENT`.
+    - AutoCAD 2021: agrees: arrowheads 0.18, four places, in a drawing in inches and in one in millimetres alike.
 
 46. **The angle of a jog.**
     - Try: a jogged radius dimension's `JogAngle` and a style's `Dimjogang` of 60 degrees.
     - Now: the dimension's group 40 in radians; the style's group 50 in degrees, read as radians.
-    - A change if: AutoCAD writes either in the other unit.
+    - AutoCAD 2021: agrees: the dimension's `JogAngle` and the style's `Dimjogang` both read 60 degrees.
 
 47. **An ordinate dimension moved.**
     - Try: move and turn an ordinate dimension and read its `Measurement` in AutoCAD.
@@ -361,6 +404,8 @@ an error AUDIT reports or fixes in a file the library wrote is a change to make 
     - Now: the override names the block by its name (a 1070 of 5, 6 or 7, then a 1000) where the drawing has a block of the name,
       and is left out, said in the log, where it has none.
     - A change if: AutoCAD writes the arrow otherwise in R12.
+    - Found making the files: the copy into R12 named a DIMSTYLE the drawing did not have, the style being left behind. It is
+      now copied in the form of R12: its name, flags and the variables R12 has, its arrows by name.
 
 56. **The overall viewport of a layout.**
     - Try: in AutoCAD, try to erase the viewport 1 of a layout, and erase the last active viewport of a layout; save as DXF.
@@ -385,7 +430,7 @@ an error AUDIT reports or fixes in a file the library wrote is a change to make 
     - Now: inner arcs join every inner pair, the second and the fifth, the third and the fourth, where ezdxf joins the first
       pair alone; the suppressed caps are left out; the cut element gives a LINE for each piece, its parameters after the first
       read as a start and a stop by turns from the point the element stands at; the fill is left out.
-    - A change if: AutoCAD joins one pair, draws suppressed caps, measures a cut from elsewhere, or gives the fill a part.
+    - AutoCAD 2021: agrees, by its API's `Explode()`: 8 arcs and 16 lines, 12 lines, and 8 arcs and 10 lines.
 
 60. **A HATCH exploded.**
     - Try: EXPLODE in AutoCAD a HATCH of DOTS, one of ANSI31 round a circle with an island in it in the outer style, a solid
@@ -413,8 +458,11 @@ an error AUDIT reports or fixes in a file the library wrote is a change to make 
 63. **A splined leader as a curve.**
     - Try: in AutoCAD's API, `GetPointAtParameter`, `EndParam`, `GetDistanceAtParameter(EndParam)` and `GeometricExtents` of a
       splined leader through (0, 0, 0), (10, 10, 0) and (20, 10, 0); compare with the library's.
-    - Now: the spline ezdxf fits, its parameter from 0 to 1, its box (0, 0, 0) to (20, 10.43, 0), the arrowhead not counted.
-    - A change if: AutoCAD's parameter runs over the chord lengths, or its box takes in the arrowhead.
+    - AutoCAD 2021: the same curve, its parameter run over the lengths of the chords, 0 to 24.14, its point at 12.07 the
+      library's at 0.5, 24.3737 long (the library 24.37377, within two millionths); its box (0, 0, 0) to (20, 10, 0), the box of
+      the vertices, though its own spline rises to 10.42 between them.
+    - Now: so does the library: the parameter from 0 to the sum of the chords, and the box of the vertices. `Explode()` still
+      gives the spline with its knots from 0 to 1, as ezdxf fits it.
 
 64. **A MESH exploded.**
     - Try: EXPLODE in AutoCAD a MESH of triangles and quads, one with a face of five corners (a mesh made by MESHSMOOTH of a
@@ -450,27 +498,32 @@ an error AUDIT reports or fixes in a file the library wrote is a change to make 
 68. **A new GeoLocationData, and one in paper space.**
     - Try: in AutoCAD's API, read every property of `new GeoLocationData()`; then set its `BlockTableRecordId` to paper
       space's, `PostToDb()`, save and open the file.
-    - Now: a `DxfGeoData` made in code is ezdxf's new one: geographic, its two points at the origin, inches of scale 1, up
-      along Z, north along Y, no scale estimated, no coordinate system and no mesh. `PostToDb` takes any block, paper space
-      among them; `db.GeoDataObject` reads model space's only.
-    - A change if: AutoCAD's new one differs, which the library's should then follow; or AutoCAD refuses a GEODATA in paper
-      space, or drops it on opening, when `PostToDb` should refuse every block but model space.
+    - AutoCAD 2021: its new one is of no known type (`CoordinateTypeUnknown`), in metres both ways, its scale judged at the
+      reference point (`ScaleEstMethodReferencePoint`), the rest as ezdxf's; and it refuses paper space as the block
+      (`eInvalidInput` from `BlockTableRecordId`). The library's GEODATA in paper space it opens, but `GeoDataObject` finds
+      none.
+    - Now: a `DxfGeoData` made in code is AutoCAD's new one, and `BlockTableRecord` and `PostToDb` refuse any block but model
+      space.
 
 69. **Where AutoCAD 2018 keeps layer filters.**
     - Try: in AutoCAD 2018 or later, make a property filter and a group filter, save as DXF of R2018, and read the layer
       table's extension dictionary; in AutoCAD's API, list `db.LayerFilters.Root.NestedFilters`.
-    - Now: the library reads the names of the entries of ACAD_LAYERFILTERS, the dictionary of AutoCAD 2004 and earlier, and
-      nests them in All; AcLyDictionary is not read, and no "All Used Layers" is made.
-    - A change if: the two filters are only in AcLyDictionary, which the library should then read; or `NestedFilters` holds
-      "All Used Layers", which it should then give, made by AutoCAD like All.
+    - AutoCAD 2021: keeps the property filter in ACAD_LAYERFILTERS and in ACLYDICTIONARY (an XRECORD `*A1`: 1
+      AcLyLayerFilter, 90 1, 300 its name, 301 its expression), the group in ACLYDICTIONARY alone (`*A2`: 1 AcLyLayerGroup, 90
+      1, 300 its name, a 330 for each layer); `NestedFilters` gives the two, then All Used Layers, Unreconciled New Layers and
+      Viewport Overrides, which it makes.
+    - Now: so does the library: the filters of ACLYDICTIONARY by their 300, then those of ACAD_LAYERFILTERS not among them,
+      then the three AutoCAD makes.
 
 70. **The record of a layer state, and its hidden and xref states.**
     - Try: save a layer state, one marked hidden, and one of an attached xref; save as DXF of R2018 and read the XRECORDs of
       ACAD_LAYERSTATES; in AutoCAD's API compare `GetLayerStateNames(false, false)` with `GetLayerStateNames(true, true)`.
-    - Now: the library lists every entry of ACAD_LAYERSTATES; `GetLayerStateNames()` takes no flags, since where a state
-      keeps whether it is hidden or of an xref is not known.
-    - A change if: the two lists differ, as they should; the groups that mark a state hidden or of an xref then let the
-      library take the flags, and the layout of the record its layers, mask and description.
+    - AutoCAD 2021: the lists differ. A state saved hidden has the mask 0x8001 (group 91 of 32769); the state of an attached
+      xref, named `70-b-xref-source__GH_XR_STATE`, names its layers by name (8) where the others name them by handle (330),
+      and is not kept once the drawing is saved and opened again. A record is 91 the mask, 301 the description, 290, 302, then
+      for each layer 330 (or 8), 90, 62, 370, 331, 1 and 440.
+    - Now: `GetLayerStateNames(includeHidden, includeXref)` takes the flags so, `GetLayerStateNames()` gives every state; the
+      layers, mask and description are still not read.
 
 71. **A GEODATA with no class.**
     - Try: open in AutoCAD a DXF of R2010 or later with no CLASSES section, written by a program that leaves it out, given a
@@ -482,9 +535,8 @@ an error AUDIT reports or fixes in a file the library wrote is a change to make 
 72. **The angle of the north direction.**
     - Try: in AutoCAD's API, read `NorthDirection` of a GeoLocationData whose `NorthDirectionVector` is (0, 1), (1, 0) and
       (-1, 0) by turns.
-    - Now: `NorthDirection` is not given; `NorthDirectionVector` is read and set as groups 12 and 22.
-    - A change if: the three angles show from which axis and which way AutoCAD measures it; the library can then give
-      `NorthDirection` from the vector.
+    - AutoCAD 2021: 0, 90 and -90 degrees: from the Y axis, positive towards X.
+    - Now: `NorthDirection` gives that angle, in radians, from `NorthDirectionVector` (groups 12 and 22).
 
 ## Data links of tables
 
@@ -524,9 +576,11 @@ The library reads the data links of a table and takes them away, and writes no n
 77. **A link detached.**
     - Try: detach the link of a table in AutoCAD, once for a link named in the Data Link Manager and once for one whose
       `DataLinkOption` is Anonymous, and save.
-    - Now: the cell's groups of the link taken out and its 92 made even; the DATALINK erased, with what it owns, only where it
-      is anonymous and nothing else of the file points at it; a named one kept in ACAD_DATALINK.
-    - A change if: AutoCAD erases a named link too, or keeps an anonymous one no table names.
+    - AutoCAD 2021: its `RemoveDataLink()` keeps the DATALINK in ACAD_DATALINK, named or anonymous, after it is saved and
+      opened again; the link's count of the objects it is tied to (94) goes from 2 to nought. It reads no link from the
+      library's cells of point 73 (to be settled there).
+    - Now: the cell's groups of the link taken out and its 92 made even; the DATALINK kept, named or anonymous. Its 94 is left
+      as it was until point 76 says what its 330s are.
 
 78. **A formula in a linked cell.**
     - Try: give the top left cell of a linked range a formula in AutoCAD, save, and read the cell's groups.

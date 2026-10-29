@@ -537,7 +537,7 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Refuses a text style the file of the block has not, unless the entity is a copy of another drawing that has it, which
         /// is copied with it; and leaves out the embedded MTEXT (101) of an attribute added to
-        /// a drawing older than R2018, which has no such object, its text's part keeping its first line.
+        /// a drawing older than R2018, which has no such object, its text's part keeping the words of its group 1.
         /// </summary>
         internal override void Appending(DxfBlockTableRecord owner)
         {
@@ -729,7 +729,7 @@ namespace GeometryHelper.Dxf
             ReplaceGroups(0, codes, run.ToArray());
         }
 
-        /// <summary>Leaves out the embedded MTEXT (group 101 on) of an attribute, its text's part keeping its first line; nothing where it has none.</summary>
+        /// <summary>Leaves out the embedded MTEXT (group 101 on) of an attribute, its text's part keeping the words of its group 1; nothing where it has none.</summary>
         internal void DropEmbedded()
         {
             if (IsAttribute && Embedded)
@@ -740,6 +740,12 @@ namespace GeometryHelper.Dxf
 
         /// <summary>The 71 an ATTRIB or ATTDEF of several lines writes in its attribute's part from R2018: 2 for an ATTRIB, 4 for an ATTDEF, as ezdxf writes them.</summary>
         private protected virtual int SeveralLines => 2;
+
+        /// <summary>
+        /// The value (group 1) of an attribute of several lines of the words of its MTEXT: of an ATTRIB every line joined by
+        /// spaces, as AutoCAD 2021 writes it.
+        /// </summary>
+        private protected virtual string ValueOfLines(string text) => text.Replace('\n', ' ');
 
         /// <summary>
         /// The MTEXT an attribute is made of, as AutoCAD's <c>MTextAttribute</c> gives it: a new MTEXT in no file of the groups
@@ -762,7 +768,7 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Makes the attribute of several lines, of an MTEXT, as AutoCAD's <c>MTextAttribute</c> setter and ezdxf's
         /// <c>set_mtext</c> do: the MTEXT's own groups embedded after a 101, those AutoCAD always writes put in where it lacks
-        /// them; its text's part made to agree, the first line of the words its value, the MTEXT's location its two points
+        /// them; its text's part made to agree, its value as <see cref="ValueOfLines"/> gives it, the MTEXT's location its two points
         /// in the system of its plane, its direction its rotation, its attachment its justification, its style and height its
         /// own, its width factor, lean and mirroring taken out; its 71 the type of an attribute of several lines.
         /// </summary>
@@ -799,12 +805,11 @@ namespace GeometryHelper.Dxf
             int horizontal = attachment >= 1 && attachment <= 9 ? (attachment - 1) % 3 : 0;
             int vertical = attachment >= 1 && attachment <= 9 ? 3 - (attachment - 1) / 3 : 3;
             string text = value.Text;
-            int line = text.IndexOf('\n');
             var embedded = new List<DxfTypedValue> { DxfTypedValue.Read(101, "Embedded Object") };
             embedded.AddRange(DxfMText.EmbeddedOf(value));
             Rewrite(
                 Join(
-                    text.Length > 0 ? Pair(1, line < 0 ? text : text.Substring(0, line)) : new KeyValuePair<int, string>[0],
+                    text.Length > 0 ? Pair(1, ValueOfLines(text)) : new KeyValuePair<int, string>[0],
                     TextPointGroups(10, location),
                     TextPointGroups(11, location),
                     NumberGroup(50, degrees, TextDouble(50, 0.0)),
@@ -824,7 +829,7 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Makes the attribute of several lines or of one, as AutoCAD's <c>IsMTextAttribute</c> setter does: of several, an MTEXT
         /// made of its value where its text stands, as <see cref="SetMText"/> embeds one; of one, its embedded MTEXT taken out,
-        /// its text's part keeping its first line, its 71 the type of one line. Nothing where it is as asked.
+        /// its text's part keeping the words of its group 1, its 71 the type of one line. Nothing where it is as asked.
         /// </summary>
         private protected void SetSeveral(bool value)
         {

@@ -243,16 +243,17 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Smooths the mesh into a surface, as AutoCAD's <c>SurfaceFit</c>: its grid made the frame of the surface (flag 16 of
         /// each point's group 70, each keeping its handle), and the points of the surface added after them (flag 8), a grid of
-        /// <paramref name="surfU"/> rows of <paramref name="surfV"/> points spread evenly from end to end of an open direction and
-        /// round a closed one; flag 4 of the mesh's group 70, its densities in groups 73 and 74 and the surface in 75. A quadratic
+        /// <paramref name="surfU"/> spans by <paramref name="surfV"/> spread evenly from end to end of an open direction and
+        /// round a closed one, as AutoCAD's PEDIT makes it: an open mesh smoothed at 6 and 6 is given 7 rows of 7 points, 49, one
+        /// closed both ways 6 of 6; flag 4 of the mesh's group 70, its densities in groups 73 and 74 and the surface in 75. A quadratic
         /// or cubic surface is the uniform B-spline on the grid of that degree each way (one less than the rows or points where
         /// they are fewer), clamped to the edges of an open direction; a Bezier surface the Bernstein one of the whole grid, which
         /// AutoCAD takes up to 11 by 11. A smoothed mesh is straightened first. The reader reads a smoothed mesh as the grid of its
         /// first M by N points, its frame.
         /// </summary>
         /// <param name="surfType">The surface: <see cref="DxfPolyMeshType.QuadSurfaceMesh"/>, <see cref="DxfPolyMeshType.CubicSurfaceMesh"/> or <see cref="DxfPolyMeshType.BezierSurfaceMesh"/>.</param>
-        /// <param name="surfU">The rows of the surface, along M, from 2 to 200.</param>
-        /// <param name="surfV">The points of each row of the surface, along N, from 2 to 200.</param>
+        /// <param name="surfU">The spans of the surface along M, from 2 to 200.</param>
+        /// <param name="surfV">The spans of the surface along N, from 2 to 200.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the type is not a surface, or a density is outside 2 to 200.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the mesh has fewer points than its sizes ask for, sizes below 2,
         /// a Bezier grid above 11 by 11, or is erased.</exception>
@@ -308,6 +309,11 @@ namespace GeometryHelper.Dxf
                 changes.Add(new KeyValuePair<int, KeyValuePair<int, string>[]>(vertices[k].Key, DxfFollowers.WholeChange(own, 70, DxfFollowers.Whole(own, 70, 0) | 16, 0)));
             }
 
+            // A density is a count of spans, as AutoCAD's PEDIT smooths: one point more than it along an open direction (SURFU
+            // and SURFV of 6 give an open grid 7 by 7), as many round a closed one.
+            int rows = closedM ? surfU : surfU + 1;
+            int points = closedN ? surfV : surfV + 1;
+
             // Along M for each column, then along N through those points, for each row of the surface.
             var columns = new List<GeoPoint3>[n];
             List<double> along = null;
@@ -322,8 +328,8 @@ namespace GeometryHelper.Dxf
                 }
 
                 DxfNurbs curve = Direction(column, bezier, degree, closedM, out double start, out double end);
-                along = along ?? DxfPolylineFit.Spread(start, end, surfU, closedM);
-                columns[j] = new List<GeoPoint3>(surfU);
+                along = along ?? DxfPolylineFit.Spread(start, end, rows, closedM);
+                columns[j] = new List<GeoPoint3>(rows);
 
                 foreach (double t in along)
                 {
@@ -331,9 +337,9 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            var made = new List<DxfPolygonMeshVertex>(surfU * surfV);
+            var made = new List<DxfPolygonMeshVertex>(rows * points);
 
-            for (int r = 0; r < surfU; r++)
+            for (int r = 0; r < rows; r++)
             {
                 var row = new List<GeoPoint3>(n);
 
@@ -344,7 +350,7 @@ namespace GeometryHelper.Dxf
 
                 DxfNurbs curve = Direction(row, bezier, degree, closedN, out double start, out double end);
 
-                foreach (double t in DxfPolylineFit.Spread(start, end, surfV, closedN))
+                foreach (double t in DxfPolylineFit.Spread(start, end, points, closedN))
                 {
                     var vertex = new DxfPolygonMeshVertex(curve.PointAt(t));
                     vertex.SetFlags(8 | 64);
@@ -405,8 +411,8 @@ namespace GeometryHelper.Dxf
         /// the last row joined to the first where it is closed in M and the last point of each row to its first where it is
         /// closed in N; each with the mesh's look, every edge drawn. A grid of 3 rows of 4 points gives 6 faces, closed both ways
         /// 12. A smoothed mesh breaks into the cells of the surface it shows, its points the smoothing made (flag 8), a grid of
-        /// <see cref="MSurfaceDensity"/> by <see cref="NSurfaceDensity"/>; where those points do not fill that grid, into the
-        /// cells of its frame.
+        /// <see cref="MSurfaceDensity"/> by <see cref="NSurfaceDensity"/> spans, one point more than the density along an open
+        /// direction, or of that many points; where those points fill neither grid, into the cells of its frame.
         /// </summary>
         /// <returns>The entities, in no file, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the mesh has sizes below 2, or fewer points than its sizes ask
@@ -437,12 +443,19 @@ namespace GeometryHelper.Dxf
             List<GeoPoint3> grid = frame;
             int u = GetInt(73, 0);
             int v = GetInt(74, 0);
+            bool closedM = (flags & 1) != 0;
+            bool closedN = (flags & 32) != 0;
 
-            if ((flags & 4) != 0 && u >= 2 && v >= 2 && surface.Count == u * v)
+            // The surface of densities u and v, AutoCAD's grid of one point more along an open direction; or, as the library
+            // smoothed before AutoCAD was seen to, u by v.
+            int rows = closedM ? u : u + 1;
+            int points = closedN ? v : v + 1;
+
+            if ((flags & 4) != 0 && u >= 2 && v >= 2 && (surface.Count == rows * points || surface.Count == u * v))
             {
                 grid = surface;
-                m = u;
-                n = v;
+                m = surface.Count == rows * points ? rows : u;
+                n = surface.Count == rows * points ? points : v;
             }
 
             if (m < 2 || n < 2 || grid.Count < (long)m * n)
@@ -450,8 +463,6 @@ namespace GeometryHelper.Dxf
                 throw new InvalidOperationException("The mesh of " + m.ToString(CultureInfo.InvariantCulture) + " by " + n.ToString(CultureInfo.InvariantCulture) + " has " + grid.Count.ToString(CultureInfo.InvariantCulture) + " points, and no grid to break into faces.");
             }
 
-            bool closedM = (flags & 1) != 0;
-            bool closedN = (flags & 32) != 0;
             var faces = new List<DxfEntity>();
 
             for (int i = 0; i < (closedM ? m : m - 1); i++)

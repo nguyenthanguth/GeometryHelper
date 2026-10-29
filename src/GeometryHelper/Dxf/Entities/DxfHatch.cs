@@ -366,7 +366,8 @@ namespace GeometryHelper.Dxf
         /// pattern (70 of 0) at the angle and scale it has, its gradient taken out. A pattern made by the user is given its lines,
         /// one family at <see cref="PatternAngle"/> <see cref="PatternSpace"/> apart, crossed where it is double, as AutoCAD makes
         /// them; a pattern of the name it has keeps its lines; the lines of any other pattern are in AutoCAD's pattern file, not in
-        /// the drawing, and are left out, for AutoCAD to draw the pattern by its name.
+        /// the drawing, and are left out, for AutoCAD to draw the pattern by its name, the count of its lines (78) written as 0,
+        /// since AutoCAD refuses a file whose pattern HATCH has no 78.
         /// </summary>
         /// <param name="patternType">Where the pattern comes from.</param>
         /// <param name="patternName">The name of the pattern, as ANSI31; <c>_USER</c> for one made by the user, as AutoCAD names it.</param>
@@ -435,7 +436,8 @@ namespace GeometryHelper.Dxf
             }
             else if (!same)
             {
-                record.SetPart(Kind.Pattern, null);
+                // The count of lines is written though there are none: AutoCAD refuses a pattern's HATCH without its 78.
+                record.SetPart(Kind.Pattern, LineGroups(new List<double[]>()));
             }
 
             Write(record);

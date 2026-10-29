@@ -162,7 +162,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gets or sets the MTEXT the definition is made of where it is of several lines, as AutoCAD's
         /// <c>MTextAttributeDefinition</c>: as <see cref="DxfAttributeReference.MTextAttribute"/> gets and sets one, its type
-        /// (71) 4, as ezdxf writes the definition of an attribute of several lines.
+        /// (71) 4, as ezdxf writes the definition of an attribute of several lines, but its default value (group 1) the first
+        /// line of the words, as ezdxf writes it.
         /// </summary>
         /// <value>Get, a new MTEXT in no file with the definition's look; null for a definition of one line. Set, embedded and
         /// the text made to agree; the MTEXT it is made of, given back, changes nothing, and so does null given to a definition of
@@ -208,6 +209,16 @@ namespace GeometryHelper.Dxf
 
         /// <inheritdoc/>
         private protected override int SeveralLines => 4;
+
+        /// <summary>
+        /// The default value of a definition of several lines: its first line, as ezdxf's <c>set_mtext</c> writes it; what
+        /// AutoCAD writes there is not known, the definition it made through its API keeping the value it had.
+        /// </summary>
+        private protected override string ValueOfLines(string text)
+        {
+            int line = text.IndexOf('\n');
+            return line < 0 ? text : text.Substring(0, line);
+        }
 
         private static IEnumerable<DxfTypedValue> Groups(GeoPoint3 position, string value, string tag, string prompt, string style, bool check)
         {

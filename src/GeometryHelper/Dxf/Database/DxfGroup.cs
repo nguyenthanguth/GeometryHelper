@@ -168,6 +168,15 @@ namespace GeometryHelper.Dxf
             }
         }
 
+        /// <summary>Takes the flag of an anonymous group off (group 70 of 0), the group being given a name; nothing for one that is not anonymous.</summary>
+        internal void Named()
+        {
+            if (Item != null && IsAnonymous)
+            {
+                SetFlag(70, false);
+            }
+        }
+
         /// <summary>Gets whether the group is anonymous (group 70 of 1), as AutoCAD's <c>IsAnonymous</c>: named <c>*A1</c>, <c>*A2</c> and on by the drawing.</summary>
         public bool IsAnonymous => Item == null ? _anonymous : Flag(70, false);
 

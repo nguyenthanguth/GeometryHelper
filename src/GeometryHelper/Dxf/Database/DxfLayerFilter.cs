@@ -24,23 +24,22 @@ namespace GeometryHelper.Dxf
 
     /// <summary>
     /// A layer filter of a drawing, as AutoCAD's <c>LayerFilter</c>: its name, the filter it is nested in and those nested in
-    /// it; read, not changed, and only from the legacy dictionary ACAD_LAYERFILTERS.
+    /// it; read, not changed.
     /// </summary>
     /// <remarks>
     /// <para>
     /// The root, All, is made by AutoCAD, not kept in the drawing: it is not deleted or renamed. Nested in it are the named
-    /// filters the drawing keeps in the dictionary ACAD_LAYERFILTERS of the layer table's extension dictionary, one for each
-    /// entry, named by it, in the order of the record: a drawing with the filters Steel and Notes gives the two.
+    /// filters the drawing keeps, as AutoCAD 2021 lists them: first those of the dictionary ACLYDICTIONARY of the layer table's
+    /// extension dictionary, where AutoCAD 2005 and later keep property filters and groups, each an XRECORD named by its group
+    /// 300, in the order of the dictionary; then those of ACAD_LAYERFILTERS, the dictionary of AutoCAD 2004 and earlier, named
+    /// by their entries, where ACLYDICTIONARY has none of the name (AutoCAD keeps a property filter in both); last the three
+    /// AutoCAD makes, All Used Layers, Unreconciled New Layers and Viewport Overrides. A drawing with the property filter
+    /// GH_STEEL and the group GH_NOTES gives those two, then the three.
     /// </para>
     /// <para>
-    /// ACAD_LAYERFILTERS holds the filters of AutoCAD 2004 and earlier, and only the names of its entries are read. The
-    /// property and group filters of AutoCAD 2005 and later, which it keeps in a dictionary of its own, AcLyDictionary, are
-    /// not read: a drawing saved by AutoCAD 2005 or later most likely gives no filter but All.
-    /// </para>
-    /// <para>
-    /// What a filter lets through (AutoCAD's <c>FilterExpression</c>), the groups of layers (<c>LayerGroup</c>), the filters
-    /// nested deeper and the filter that is current are kept in records whose groups are in neither the DXF reference nor
-    /// ezdxf, and no drawing at hand shows them: they are not read, and a filter is not added, changed or deleted here.
+    /// What a filter lets through (AutoCAD's <c>FilterExpression</c>, group 301 of a property filter's XRECORD), the layers of
+    /// a group (its 330s), the filters nested deeper and the filter that is current are not read, and a filter is not added,
+    /// changed or deleted here.
     /// </para>
     /// </remarks>
     public sealed class DxfLayerFilter
@@ -63,17 +62,20 @@ namespace GeometryHelper.Dxf
         /// <summary>Gets the filters nested in this one, as AutoCAD's <c>NestedFilters</c>, in the order of the record; empty for one with none.</summary>
         public IReadOnlyList<DxfLayerFilter> NestedFilters => _nested.AsReadOnly();
 
-        /// <summary>Gets whether AutoCAD makes the filter rather than the drawing keeping it, as AutoCAD's <c>DynamicallyGenerated</c>: true for the root, All.</summary>
+        /// <summary>Gets whether AutoCAD makes the filter rather than the drawing keeping it, as AutoCAD's <c>DynamicallyGenerated</c>: true for the root, All, and the three nested in it that AutoCAD makes.</summary>
         public bool DynamicallyGenerated { get; }
 
-        /// <summary>Gets whether the filter may be deleted, as AutoCAD's <c>AllowDelete</c>: false for the root, true for a filter the drawing keeps.</summary>
+        /// <summary>Gets whether the filter may be deleted, as AutoCAD's <c>AllowDelete</c>: false for a filter AutoCAD makes, true for one the drawing keeps.</summary>
         public bool AllowDelete => !DynamicallyGenerated;
 
-        /// <summary>Gets whether the filter may be renamed, as AutoCAD's <c>AllowRename</c>: false for the root, true for a filter the drawing keeps.</summary>
+        /// <summary>Gets whether the filter may be renamed, as AutoCAD's <c>AllowRename</c>: false for a filter AutoCAD makes, true for one the drawing keeps.</summary>
         public bool AllowRename => !DynamicallyGenerated;
 
-        /// <summary>Nests a filter the drawing keeps in this one, last.</summary>
-        internal void Nest(string name) => _nested.Add(new DxfLayerFilter(name, this, false));
+        /// <summary>Nests a filter in this one, last: one the drawing keeps, or one AutoCAD makes.</summary>
+        internal void Nest(string name, bool dynamicallyGenerated = false) => _nested.Add(new DxfLayerFilter(name, this, dynamicallyGenerated));
+
+        /// <summary>Whether a filter of a name, letters of either case the same, is nested in this one.</summary>
+        internal bool Nests(string name) => _nested.Exists(f => string.Equals(f.Name, name, System.StringComparison.OrdinalIgnoreCase));
 
         /// <summary>Gives the filter as a line for debugging: its name.</summary>
         /// <returns>The line, such as <c>Steel</c>.</returns>

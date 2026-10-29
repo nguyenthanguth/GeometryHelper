@@ -214,9 +214,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets the ray at a distance from this one in the plane of a normal, as AutoCAD's <c>GetOffsetCurvesGivenPlaneNormal</c>:
-        /// to the right of its direction seen from the tip of the normal where the distance is above nought, the side every curve
-        /// offsets to (AutoCAD's side for a circle and an arc, where the radius grows), as a
-        /// <see cref="DxfLine"/> is offset.
+        /// to the left of its direction seen from the tip of the normal where the distance is above nought, as a
+        /// <see cref="DxfLine"/> is offset, AutoCAD 2021's side for a line.
         /// </summary>
         /// <param name="planeNormal">The normal of the plane; only its part square to the ray counts.</param>
         /// <param name="offsetDist">The distance.</param>
@@ -225,7 +224,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not a finite number.</exception>
         public override IReadOnlyList<DxfCurve> GetOffsetCurvesGivenPlaneNormal(GeoVector3 planeNormal, double offsetDist)
         {
-            GeoVector3 shift = Sideways(planeNormal, Direction(UnitDir), offsetDist);
+            GeoVector3 shift = Sideways(planeNormal, Direction(UnitDir), -offsetDist);
             var copy = (DxfRay)Copy();
             copy.BasePoint = BasePoint.Add(shift);
             return new DxfCurve[] { copy };

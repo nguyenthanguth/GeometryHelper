@@ -105,7 +105,9 @@ namespace GeometryHelper.Dxf
         /// Gets or sets the colour of the entity (group 62), as AutoCAD's <c>ColorIndex</c>: 1 to 255 for a colour of AutoCAD's
         /// index, 0 for BYBLOCK and 256 for BYLAYER, which an entity that gives none has.
         /// </summary>
-        /// <value>Set, from 0 to 256.</value>
+        /// <value>Set, from 0 to 256. The vertices of a POLYLINE follow it, as AutoCAD keeps them, and so they do the
+        /// linetype, lineweight, linetype scale, visibility, true colour and transparency; a face of a polyface mesh keeps a
+        /// colour of its own.</value>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the colour set is below 0 or above 256.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the entity is erased.</exception>
         public int ColorIndex
@@ -763,7 +765,8 @@ namespace GeometryHelper.Dxf
         /// (10, 10) with a bulge of 1 on its second vertex. A <see cref="DxfPolyline3d"/> takes lines, 3D polylines and polylines
         /// of the plane with no arc, in any plane; a curved one is refused, as AutoCAD's JOIN makes a spline of a 3D polyline
         /// joined to a curve, which a POLYLINE does not become in place. A <see cref="DxfSpline"/> takes lines, arcs, elliptical
-        /// arcs, polylines and splines, each as the spline that is exactly it (<see cref="DxfCurve.Spline"/>), all raised to the
+        /// arcs, polylines and splines, each as the spline that is exactly it (<see cref="DxfCurve.Spline"/>, a polyline fitted
+        /// with a spline as the one of the vertices it is drawn through), all raised to the
         /// highest degree among them and joined with their knots run on one from the other, the spline's own kept; it is given
         /// by its control points from then on.
         /// Where the joined ends come back together the polyline or spline is closed, its last vertex the first: the polyline of

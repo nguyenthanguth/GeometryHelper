@@ -163,7 +163,8 @@ namespace GeometryHelper.UnitTest.Dxf
 
             List<DxfPolygonMeshVertex> points = mesh.ToList();
             Assert.Equal(DxfPolyMeshType.CubicSurfaceMesh, mesh.PolyMeshType);
-            Assert.Equal(12 + 48, points.Count);
+            // 6 spans along the open M make 7 rows, as AutoCAD's PEDIT smooths (check 14); 8 points round the closed N.
+            Assert.Equal(12 + 56, points.Count);
             Assert.Equal(6, mesh.MSurfaceDensity);
             Assert.Equal(8, mesh.NSurfaceDensity);
             Assert.Equal(grid, points.Take(12).Select(v => v.Handle).ToArray());
@@ -196,8 +197,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             List<DxfPolygonMeshVertex> points = mesh.ToList();
             Assert.Equal(DxfPolyMeshType.BezierSurfaceMesh, mesh.PolyMeshType);
-            Assert.Equal(4 + 9, points.Count);
-            Assert.True(points[4 + 4].Position.IsEqualTo(new GeoPoint3(5, 5, 1), Tight));
+            // 3 spans each way, 4 rows of 4 points, as AutoCAD's PEDIT smooths (check 14): the patch at a third along each.
+            Assert.Equal(4 + 16, points.Count);
+            Assert.True(points[4 + 5].Position.IsEqualTo(new GeoPoint3(10.0 / 3.0, 10.0 / 3.0, 4.0 / 9.0), Tight));
+            Assert.True(points[4 + 15].Position.IsEqualTo(new GeoPoint3(10, 10, 4), Tight));
             Assert.Throws<ArgumentOutOfRangeException>(() => mesh.SurfaceFit(DxfPolyMeshType.SimpleMesh, 3, 3));
             Assert.Throws<ArgumentOutOfRangeException>(() => mesh.SurfaceFit(DxfPolyMeshType.QuadSurfaceMesh, 1, 3));
             var big = new DxfPolygonMesh(DxfPolyMeshType.SimpleMesh, 12, 2, Enumerable.Range(0, 24).Select(i => new GeoPoint3(i / 2, i % 2, 0)), false, false);

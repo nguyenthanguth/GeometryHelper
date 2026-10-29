@@ -22,9 +22,10 @@ namespace GeometryHelper.Dxf
     /// where the drawing lists none. <see cref="DxfDatabase.GeoDataObject"/> reads it back.
     /// </para>
     /// <para>
-    /// A GEODATA made in code is ezdxf's new one: of version 2, geographic, its two points at the origin, its units inches of
-    /// scale 1, up along Z and north along Y, no scale estimated, a coordinate system of no text and no mesh; that AutoCAD's
-    /// own new one is the same is not confirmed. A GEODATA came with R2010 (AC1024), version 1 of R2009 having no DXF
+    /// A GEODATA made in code is AutoCAD 2021's new one, written in the order of ezdxf's: of version 2, of no known type of
+    /// coordinates, its two points at the origin, its units metres of scale 1, up along Z and north along Y, its scale judged
+    /// at the reference point, a coordinate system of no text and no mesh. It is posted to model space alone, as AutoCAD's
+    /// <c>BlockTableRecordId</c> takes no other block. A GEODATA came with R2010 (AC1024), version 1 of R2009 having no DXF
     /// version of its own: one of version 1 is read by the groups a comment of ezdxf gives it, those of version 2 but the north
     /// direction, the points of its mesh in 12 and 13 there; ezdxf 1.4.5 itself reads no points of the mesh in one of version
     /// 1, and only warns of it.
@@ -32,8 +33,7 @@ namespace GeometryHelper.Dxf
     /// <para>
     /// The faces of the mesh (96 to 99) are kept as they are and not given. Taking a point to latitude and longitude, AutoCAD's
     /// <c>TransformToLonLatAlt</c> and <c>TransformFromLonLatAlt</c>, needs the coordinate system's projection, which AutoCAD
-    /// works out by its own library: neither is here, nor <c>NorthDirection</c>, the angle of the north direction, from which
-    /// axis and which way it is measured not confirmed.
+    /// works out by its own library: neither is here.
     /// </para>
     /// </remarks>
     public sealed class DxfGeoData : DxfDBObject
@@ -48,22 +48,24 @@ namespace GeometryHelper.Dxf
         // The groups of the coordinate system's definition, its pieces (303) and its last (301).
         private static readonly int[] Definition = { 303, 301 };
 
-        // The groups a GEODATA made in code is written with after its subclass marker, as ezdxf writes a new one, the host's
-        // handle (330) put after the version when it is posted.
+        // The groups a GEODATA made in code is written with after its subclass marker, in the order ezdxf writes a new one, the
+        // values those of AutoCAD 2021's new GeoLocationData: of no known type (70 of 0), in metres (91 and 92 of 6), its scale
+        // judged at the reference point (95 of 3). The host's handle (330) is put after the version when it is posted.
         private readonly List<KeyValuePair<int, string>> _made = new List<KeyValuePair<int, string>>
         {
-            Pair(90, "2"), Pair(70, "3"), Pair(10, "0.0"), Pair(20, "0.0"), Pair(30, "0.0"), Pair(11, "0.0"), Pair(21, "0.0"),
-            Pair(31, "0.0"), Pair(40, "1.0"), Pair(91, "1"), Pair(41, "1.0"), Pair(92, "1"), Pair(210, "0.0"), Pair(220, "0.0"),
-            Pair(230, "1.0"), Pair(12, "0.0"), Pair(22, "1.0"), Pair(95, "1"), Pair(141, "1.0"), Pair(294, "0"), Pair(142, "0.0"),
+            Pair(90, "2"), Pair(70, "0"), Pair(10, "0.0"), Pair(20, "0.0"), Pair(30, "0.0"), Pair(11, "0.0"), Pair(21, "0.0"),
+            Pair(31, "0.0"), Pair(40, "1.0"), Pair(91, "6"), Pair(41, "1.0"), Pair(92, "6"), Pair(210, "0.0"), Pair(220, "0.0"),
+            Pair(230, "1.0"), Pair(12, "0.0"), Pair(22, "1.0"), Pair(95, "3"), Pair(141, "1.0"), Pair(294, "0"), Pair(142, "0.0"),
             Pair(143, "0.0"), Pair(301, string.Empty), Pair(93, "0"), Pair(96, "0"),
         };
 
         private DxfBlockTableRecord _block;
 
         /// <summary>
-        /// Initializes a GEODATA made in code, as AutoCAD's <c>GeoLocationData()</c>, with ezdxf's defaults (AutoCAD's own not
-        /// confirmed): of version 2, geographic, its points at the origin, inches of scale 1, up along Z and north along Y;
-        /// given a <see cref="BlockTableRecord"/> and added to its drawing by <see cref="PostToDb"/>.
+        /// Initializes a GEODATA made in code, as AutoCAD's <c>GeoLocationData()</c>, with AutoCAD 2021's defaults: of version
+        /// 2, of no known type of coordinates, its points at the origin, metres of scale 1, up along Z and north along Y, its
+        /// scale judged at the reference point; given a <see cref="BlockTableRecord"/> and added to its drawing by
+        /// <see cref="PostToDb"/>.
         /// </summary>
         public DxfGeoData()
         {
@@ -79,8 +81,10 @@ namespace GeometryHelper.Dxf
         /// <c>BlockTableRecordId</c>: <see cref="DxfDatabase.ModelSpace"/> for the drawing's own; null where the drawing has no
         /// block of the handle, and for one made in code not given one.
         /// </summary>
-        /// <value>Set, on a GEODATA made in code, the block it is posted to.</value>
+        /// <value>Set, on a GEODATA made in code, the block it is posted to: model space, as AutoCAD 2021 refuses paper space
+        /// (eInvalidInput) and every other block.</value>
         /// <exception cref="ArgumentNullException">Thrown when the block set is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the block set is of a drawing and is not its model space.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the block is set on a GEODATA of a file: it stays with the
         /// block whose extension dictionary holds it.</exception>
         public DxfBlockTableRecord BlockTableRecord
@@ -121,6 +125,11 @@ namespace GeometryHelper.Dxf
                 if (Item != null)
                 {
                     throw new InvalidOperationException("The GEODATA " + (Handle ?? string.Empty) + " is in a file, and stays with the block whose extension dictionary holds it: post a new one to another block.");
+                }
+
+                if (value.Item != null && !DxfBlockTableRecord.IsModelName(value.Name))
+                {
+                    throw new ArgumentException("A GEODATA is posted to model space alone, as AutoCAD's BlockTableRecordId takes no other block: " + value.Name + " is not.", nameof(value));
                 }
 
                 _block = value;
@@ -278,6 +287,20 @@ namespace GeometryHelper.Dxf
 
                 NotFirstVersion("a north direction");
                 Set(Pair(12, Numbers.Exact(value.X + 0.0)), Pair(22, Numbers.Exact(value.Y + 0.0)));
+            }
+        }
+
+        /// <summary>
+        /// Gets the angle of the direction north, in radians, as AutoCAD's <c>NorthDirection</c> gives it: from the Y axis of
+        /// the drawing, positive towards X, from -π to π. North along Y is 0, along X a quarter turn (90 degrees), and along -X
+        /// -90 degrees, as AutoCAD 2021 reads the three.
+        /// </summary>
+        public double NorthDirection
+        {
+            get
+            {
+                GeoVector2 north = NorthDirectionVector;
+                return Math.Atan2(north.X, north.Y);
             }
         }
 
@@ -573,7 +596,7 @@ namespace GeometryHelper.Dxf
         /// given the GEODATA and no class for it, and whether AutoCAD opens such a file is not confirmed.
         /// </remarks>
         /// <exception cref="InvalidOperationException">Thrown when the GEODATA is in a file already, has no block, or its block
-        /// is in no file, is erased, or is of a file older than R2010, which has no GEODATA.</exception>
+        /// is in no file, is erased, is not model space, or is of a file older than R2010, which has no GEODATA.</exception>
         public void PostToDb()
         {
             if (Item != null)
@@ -586,6 +609,11 @@ namespace GeometryHelper.Dxf
             if (block.Item == null || !block.IsResident || block.HasNoRecord || block.IsErased)
             {
                 throw new InvalidOperationException("The block " + block.Name + " of the GEODATA is in no file, or is erased.");
+            }
+
+            if (!DxfBlockTableRecord.IsModelName(block.Name))
+            {
+                throw new InvalidOperationException("A GEODATA is posted to model space alone, as AutoCAD's BlockTableRecordId takes no other block: " + block.Name + " is not.");
             }
 
             DxfFile file = block.Item.File;

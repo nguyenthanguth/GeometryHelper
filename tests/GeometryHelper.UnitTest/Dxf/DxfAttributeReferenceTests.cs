@@ -320,7 +320,9 @@ namespace GeometryHelper.UnitTest.Dxf
             OnlyTheseChanged(before, db.ToText(), mark.Handle);
             DxfAttributeReference again = Bolt(DxfDatabase.Parse(db.ToText())).AttributeCollection.Single();
             Assert.True(again.IsMTextAttribute);
-            Assert.Equal("B-12", again.TextString);
+
+            // Its text the words of both lines joined by a space, as AutoCAD 2021 writes it (check 6), where ezdxf writes B-12.
+            Assert.Equal("B-12 M24", again.TextString);
             Assert.Equal(Bits(new GeoPoint3(60, 70, 0)), Bits(again.Position));
             Assert.Equal(Bits(new GeoPoint3(60, 70, 0)), Bits(again.AlignmentPoint));
             Assert.Equal(DxfAttachmentPoint.MiddleCenter, again.Justify);
@@ -332,10 +334,10 @@ namespace GeometryHelper.UnitTest.Dxf
             string record = Records(db.ToText()).Single(r => HandleOf(r) == mark.Handle);
             Assert.Contains("AcDbAttribute\n  2\nMARK\n 70\n0\n 74\n2\n 71\n2\n 72\n0\n101\nEmbedded Object\n", record, StringComparison.Ordinal);
 
-            // Made one of one line again: the MTEXT goes, the text keeps B-12, the type is 1.
+            // Made one of one line again: the MTEXT goes, the text keeps B-12 M24, the type is 1.
             mark.IsMTextAttribute = false;
             Assert.False(mark.IsMTextAttribute);
-            Assert.Equal("B-12", mark.TextString);
+            Assert.Equal("B-12 M24", mark.TextString);
             Assert.Contains("AcDbAttribute\n  2\nMARK\n 70\n0\n 74\n2\n 71\n1\n 72\n0\n", Records(db.ToText()).Single(r => HandleOf(r) == mark.Handle), StringComparison.Ordinal);
             Assert.Null(mark.MTextAttribute);
 

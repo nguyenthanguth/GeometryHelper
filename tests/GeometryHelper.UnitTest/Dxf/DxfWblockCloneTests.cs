@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using GeometryHelper.Dxf;
+using GeometryHelper.Geometry;
 using Xunit;
 using static GeometryHelper.UnitTest.Dxf.DxfModel;
 
@@ -66,7 +67,7 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void ALeaderCopiedWithItsMText_PointsToItsCopy_AndAloneToNothing()
+        public void ALeaderCopiedWithItsMText_PointsToItsCopy_AndAloneBringsItsMTextIntoAnotherDrawing()
         {
             DxfDatabase source = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
             DxfDatabase target = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
@@ -80,10 +81,17 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(DxfAnnotationType.MText, copied.AnnoType);
             Assert.Contains("102\n{ACAD_REACTORS\n330\n" + copied.Handle + "\n102\n}\n", Records(target.ToText()).Single(r => HandleOf(r) == copies[1].Handle), StringComparison.Ordinal);
 
-            // Alone, by WblockCloneObjects or by Clone, it points to nothing.
+            // Alone into another drawing by WblockCloneObjects, it brings its MTEXT, as AutoCAD 2021 follows the hard pointer
+            // 340 (check 5); within its own drawing, or by Clone, it points to nothing.
+            int count = target.ModelSpace.Count();
             var alone = (DxfLeader)source.WblockCloneObjects(new DxfEntity[] { leader }, target.ModelSpace).Single();
-            Assert.Null(alone.Annotation);
-            Assert.Equal(DxfAnnotationType.NoAnnotation, alone.AnnoType);
+            Assert.Equal(DxfAnnotationType.MText, alone.AnnoType);
+            Assert.Equal(note.Contents, ((DxfMText)alone.Annotation).Contents);
+            Assert.NotSame(copies[1], alone.Annotation);
+            Assert.Equal(count + 2, target.ModelSpace.Count());
+            var within = (DxfLeader)source.WblockCloneObjects(new DxfEntity[] { leader }, source.ModelSpace).Single();
+            Assert.Null(within.Annotation);
+            Assert.Equal(DxfAnnotationType.NoAnnotation, within.AnnoType);
             var cloned = (DxfLeader)leader.Clone();
             target.ModelSpace.AppendEntity(cloned);
             Assert.Equal(DxfAnnotationType.NoAnnotation, cloned.AnnoType);
@@ -91,7 +99,7 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AGroupAllOfWhoseEntitiesAreCopied_IsCopied_UnderANameOfItsOwnThere()
+        public void AGroupAllOfWhoseEntitiesAreCopied_IsCopiedByInsertUnderANameOfItsOwnThere_AndByWblockCloneObjectsNot()
         {
             DxfDatabase source = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
             DxfDatabase target = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
@@ -113,16 +121,28 @@ namespace GeometryHelper.UnitTest.Dxf
             target.GroupDictionary.SetAt("PLATE", theirs);
             theirs.Append(target.ModelSpace.First());
 
-            IReadOnlyList<DxfEntity> copies = source.WblockCloneObjects(new[] { hatch, boundary }, target.ModelSpace);
+            string[] before = target.GroupDictionary.Select(e => e.Key).ToArray();
 
-            var copied = (DxfGroup)target.GroupDictionary.GetAt("PLATE_1");
+            // AutoCAD 2021's WblockCloneObjects (and COPYCLIP with PASTECLIP) copies no group (check 5).
+            source.WblockCloneObjects(new[] { hatch, boundary }, target.ModelSpace);
+            Assert.Equal(before, target.GroupDictionary.Select(e => e.Key).ToArray());
+
+            // The drawing inserted whole brings them: PLATE as PLATE_1, MIXED, all of whose entities come too, and the anonymous one.
+            DxfDatabase into = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
+            var own = new DxfGroup();
+            into.GroupDictionary.SetAt("PLATE", own);
+            own.Append(into.ModelSpace.First());
+            HashSet<DxfEntity> was = new HashSet<DxfEntity>(into.ModelSpace);
+            into.Insert(GeoTransform3.Identity, source, true);
+
+            var copied = (DxfGroup)into.GroupDictionary.GetAt("PLATE_1");
             Assert.Equal("Plate P1", copied.Description);
             Assert.False(copied.Selectable);
-            Assert.Equal(new[] { copies[1], copies[0] }, copied.GetAllEntityIds());
-            Assert.False(target.GroupDictionary.Contains("MIXED"));
-            DxfGroup anonymous = target.GroupDictionary.Select(e => e.Value).OfType<DxfGroup>().Single(g => g.IsAnonymous);
-            Assert.Equal(new[] { copies[0] }, anonymous.GetAllEntityIds());
-            DxfDatabase read = DxfDatabase.Parse(target.ToText());
+            Assert.Equal(2, copied.NumEntities);
+            Assert.All(copied.GetAllEntityIds(), e => Assert.DoesNotContain(e, was));
+            Assert.True(into.GroupDictionary.Contains("MIXED"));
+            Assert.Single(into.GroupDictionary.Select(e => e.Value).OfType<DxfGroup>(), g => g.IsAnonymous);
+            DxfDatabase read = DxfDatabase.Parse(into.ToText());
             Assert.Equal(2, ((DxfGroup)read.GroupDictionary.GetAt("PLATE_1")).NumEntities);
         }
 
@@ -141,8 +161,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.Equal(before, target.GroupDictionary.Select(e => e.Key).ToArray());
             Assert.Same(target.BlockTable["BOLT"], copy.Owner);
+
+            // Into model space neither, as AutoCAD 2021's WblockCloneObjects copies no group (check 5).
             source.WblockCloneObjects(new[] { line }, target.ModelSpace);
-            Assert.Contains("ONE", target.GroupDictionary.Select(e => e.Key));
+            Assert.Equal(before, target.GroupDictionary.Select(e => e.Key).ToArray());
         }
 
         [Fact]

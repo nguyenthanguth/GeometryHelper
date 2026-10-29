@@ -1,3 +1,5 @@
+using System.Linq;
+
 namespace GeometryHelper.Dxf
 {
     /// <summary>
@@ -25,18 +27,10 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets the layer filters of the drawing, as AutoCAD's <c>LayerFilters</c>: the filter All at the root, and nested in
-        /// it the names of the entries of the dictionary ACAD_LAYERFILTERS of the layer table's extension dictionary, as
-        /// <see cref="DxfLayerFilter"/> says; a new tree on each call, as the drawing has them then.
+        /// it the filters of the dictionaries ACLYDICTIONARY and ACAD_LAYERFILTERS of the layer table's extension dictionary and
+        /// the three AutoCAD makes, as <see cref="DxfLayerFilter"/> says; a new tree on each call, as the drawing has them then.
         /// </summary>
-        /// <remarks>
-        /// <para>
-        /// ACAD_LAYERFILTERS is the dictionary of the filters of AutoCAD 2004 and earlier, and the only one read. The property
-        /// and group filters of AutoCAD 2005 and later, which it keeps in a dictionary of its own, AcLyDictionary, are not read:
-        /// a drawing saved by AutoCAD 2005 or later most likely gives All and no filter nested in it, whatever filters its layer
-        /// manager shows.
-        /// </para>
-        /// <para>AutoCAD sets a tree back to change the filters; here they are read only, as <see cref="DxfLayerFilter"/> says why.</para>
-        /// </remarks>
+        /// <remarks>AutoCAD sets a tree back to change the filters; here they are read only, as <see cref="DxfLayerFilter"/> says.</remarks>
         public DxfLayerFilterTree LayerFilters
         {
             get
@@ -44,12 +38,34 @@ namespace GeometryHelper.Dxf
                 var root = new DxfLayerFilter("All", null, true);
                 DxfDBDictionary extension = LayerTable.ExtensionDictionary;
 
+                // AutoCAD 2005 and later: property filters and groups, each an XRECORD named by its 300.
+                if (extension != null && extension.Contains("ACLYDICTIONARY") && extension.GetAt("ACLYDICTIONARY") is DxfDBDictionary kept)
+                {
+                    foreach (DxfDBDictionaryEntry entry in kept)
+                    {
+                        string name = entry.Value is DxfXrecord record ? record.Data.Where(g => g.TypeCode == 300).Select(g => g.Value).FirstOrDefault() : null;
+
+                        if (!string.IsNullOrEmpty(name) && !root.Nests(name))
+                        {
+                            root.Nest(name);
+                        }
+                    }
+                }
+
                 if (extension != null && extension.Contains("ACAD_LAYERFILTERS") && extension.GetAt("ACAD_LAYERFILTERS") is DxfDBDictionary filters)
                 {
                     foreach (DxfDBDictionaryEntry entry in filters)
                     {
-                        root.Nest(entry.Key);
+                        if (!root.Nests(entry.Key))
+                        {
+                            root.Nest(entry.Key);
+                        }
                     }
+                }
+
+                foreach (string made in new[] { "All Used Layers", "Unreconciled New Layers", "Viewport Overrides" })
+                {
+                    root.Nest(made, true);
                 }
 
                 return new DxfLayerFilterTree(root);

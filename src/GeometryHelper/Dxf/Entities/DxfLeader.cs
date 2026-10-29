@@ -211,11 +211,11 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Gets the box the leader fills, as AutoCAD's <c>GeometricExtents</c>, its arrowhead not counted: of a straight leader
-        /// the box of its vertices, a leader from (0, 0, 0) to (10, 5, 0) giving the box from the one to the other; of a splined
-        /// one (<see cref="IsSplined"/>) the box of the spline <see cref="Explode"/> fits through its vertices, which bows past
-        /// them: through (0, 0, 0), (10, 10, 0) and (20, 10, 0) it rises to y = 10.43 between the second vertex and the last,
-        /// the box from (0, 0, 0) to (20, 10.43, 0).
+        /// Gets the box the leader fills, as AutoCAD's <c>GeometricExtents</c>, its arrowhead not counted: the box of its
+        /// vertices, a leader from (0, 0, 0) to (10, 5, 0) giving the box from the one to the other; a splined one
+        /// (<see cref="IsSplined"/>) too, as AutoCAD 2021 gives it, though its spline bows past them: through (0, 0, 0),
+        /// (10, 10, 0) and (20, 10, 0) the spline rises to y = 10.43 between the second vertex and the last, and the box runs
+        /// from (0, 0, 0) to (20, 10, 0).
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the leader has no vertex, or is splined and its vertices are
         /// all one point.</exception>
@@ -223,12 +223,8 @@ namespace GeometryHelper.Dxf
         {
             get
             {
-                DxfSpline spline = Splined();
-
-                if (spline != null)
-                {
-                    return spline.GeometricExtents;
-                }
+                // A splined leader whose vertices are all one point is no curve.
+                Splined();
 
                 // The vertices read once: each read of one reads the record, every vertex of it.
                 List<GeoPoint3> vertices = Vertices();
@@ -407,6 +403,44 @@ namespace GeometryHelper.Dxf
             }
 
             return new DxfSpline(3, false, false, false, control, curve.Knots, null, 1E-10, 1E-10);
+        }
+
+        /// <summary>
+        /// The spline of a splined leader as a curve, as AutoCAD 2021 walks one: the curve <see cref="FittedSpline"/> fits, its
+        /// knots run over the lengths of the chords between its vertices, from 0 to their sum, not from 0 to 1. Through (0, 0, 0),
+        /// (10, 10, 0) and (20, 10, 0) it runs from 0 to 24.14, its point at 12.07 the fitted one's at 0.5. Null where its
+        /// vertices are all one point.
+        /// </summary>
+        private static DxfSpline ParameterSpline(List<GeoPoint3> vertices, double tolerance)
+        {
+            DxfSpline fitted = FittedSpline(vertices, tolerance);
+
+            if (fitted == null)
+            {
+                return null;
+            }
+
+            double chords = 0.0;
+            GeoPoint3 last = vertices[0];
+
+            foreach (GeoPoint3 vertex in vertices)
+            {
+                if (last.DistanceTo(vertex) > tolerance)
+                {
+                    chords += last.DistanceTo(vertex);
+                    last = vertex;
+                }
+            }
+
+            DxfNurbsData data = fitted.NurbsData;
+            var knots = new List<double>();
+
+            foreach (double knot in data.GetKnots())
+            {
+                knots.Add(knot * chords);
+            }
+
+            return new DxfSpline(3, false, false, false, data.GetControlPoints(), knots, null, 1E-10, 1E-10);
         }
 
         /// <summary>
@@ -839,7 +873,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets the parameter at the last vertex, as AutoCAD's: the count of the segments of a straight leader; of a splined one
-        /// the end of the spline <see cref="Explode"/> fits through its vertices, 1, its knots running from 0 to 1.
+        /// the sum of the lengths of the chords between its vertices, as AutoCAD 2021 runs it, the spline <see cref="Explode"/>
+        /// fits through its vertices walked over that length: 24.14 through (0, 0, 0), (10, 10, 0) and (20, 10, 0).
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the leader has no vertex, or is splined and its vertices are
         /// all one point.</exception>
@@ -858,8 +893,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets the point at a parameter, as AutoCAD's <c>GetPointAtParameter</c>: of a straight leader the index of a vertex plus
-        /// how far along the segment it leaves; of a splined one the parameter of the spline <see cref="Explode"/> fits, from 0 to
-        /// 1, as each of these members of a splined leader walks that spline.
+        /// how far along the segment it leaves; of a splined one the parameter of the spline <see cref="Explode"/> fits, run from
+        /// 0 to <see cref="EndParam"/> in the place of 0 to 1, as each of these members of a splined leader walks that spline.
         /// </summary>
         /// <param name="value">The parameter, from nought to <see cref="EndParam"/>.</param>
         /// <returns>The point, in the world.</returns>
@@ -1018,7 +1053,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gets the spline that is exactly the leader, as AutoCAD's <c>Spline</c>: of a straight leader, of degree 1 through its
         /// vertices, a knot at each step of its parameter; of a splined one, the spline <see cref="Explode"/> fits through its
-        /// vertices, of degree 3, its knots from 0 to 1. A new <see cref="DxfSpline"/> in no file, on layer 0 with no look of its own.
+        /// vertices, of degree 3, its knots from 0 to <see cref="EndParam"/>, the sum of the lengths of its chords. A new
+        /// <see cref="DxfSpline"/> in no file, on layer 0 with no look of its own.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the leader has fewer than two vertices, or is splined and its
         /// vertices are all one point.</exception>
@@ -1031,7 +1067,7 @@ namespace GeometryHelper.Dxf
                 // A new one, as it was: the spline kept for the curve's members is not handed out.
                 if (Splined() != null)
                 {
-                    return FittedSpline(vertices, Tolerance.Default.EqualPoint);
+                    return ParameterSpline(vertices, Tolerance.Default.EqualPoint);
                 }
 
                 if (vertices.Count < 2)
@@ -1288,7 +1324,7 @@ namespace GeometryHelper.Dxf
 
             List<GeoPoint3> vertices = Vertices();
             bool splined = IsSplined;
-            DxfSpline spline = splined ? FittedSpline(vertices, Tolerance.Default.EqualPoint) : null;
+            DxfSpline spline = splined ? ParameterSpline(vertices, Tolerance.Default.EqualPoint) : null;
 
             // The spline is in the file of the entities in no file, which every entity made anywhere changes: kept for good.
             spline?.KeepUnchanged();

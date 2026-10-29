@@ -22,33 +22,33 @@ namespace GeometryHelper.UnitTest.Dxf
         #region The splined leader
 
         [Fact]
-        public void ASplinedLeader_IsWalkedAlongTheSplineItExplodesInto_ItsBoxBowingPastItsVertices()
+        public void ASplinedLeader_IsWalkedAlongTheSplineItExplodesInto_OverTheLengthsOfItsChords()
         {
             // 89 splined: (0, 0, 0), (10, 10, 0), (20, 10, 0); the spline ezdxf fits rises to y = 10.433915879627 between the
-            // second vertex and the last (its curve sampled at 200 001 points), its knots from 0 to 1.
+            // second vertex and the last (its curve sampled at 200 001 points), its knots from 0 to 1. As a curve it is walked
+            // over the lengths of its chords, 0 to 24.14, and its box is that of its vertices, as AutoCAD 2021 gives them (check 63).
             DxfDatabase db = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
             DxfLeader leader = ByHandle<DxfLeader>(db, "89");
             leader.IsSplined = true;
             var drawn = (DxfSpline)leader.Explode()[0];
+            double chords = Math.Sqrt(200.0) + 10.0;
 
             GeoAabb3 box = leader.GeometricExtents;
 
             Assert.True(box.Min.IsEqualTo(new GeoPoint3(0, 0, 0), Tol), box.Min.ToString());
-            Assert.Equal(20.0, box.Max.X, 9);
-            Assert.Equal(10.433915879627, box.Max.Y, 6);
-            Assert.Equal(0.0, box.Max.Z, 12);
-            Assert.Equal(Bits(drawn.GeometricExtents.Max), Bits(box.Max));
+            Assert.Equal(Bits(new GeoPoint3(20, 10, 0)), Bits(box.Max));
+            Assert.Equal(10.433915879627, drawn.GeometricExtents.Max.Y, 6);
 
             DxfSpline spline = leader.Spline;
             Assert.Equal(3, spline.NurbsData.Degree);
-            Assert.Equal(drawn.NurbsData.GetKnots(), spline.NurbsData.GetKnots());
+            Assert.Equal(drawn.NurbsData.GetKnots().Select(k => k * chords), spline.NurbsData.GetKnots());
             Assert.Equal(drawn.NurbsData.GetControlPoints().Select(Bits), spline.NurbsData.GetControlPoints().Select(Bits));
-            Assert.Equal(1.0, leader.EndParam);
-            Assert.Equal(Bits(drawn.GetPointAtParameter(0.5)), Bits(leader.GetPointAtParameter(0.5)));
-            Assert.True(leader.GetPointAtParameter(1.0).IsEqualTo(new GeoPoint3(20, 10, 0), Tol));
+            Assert.Equal(chords, leader.EndParam, 12);
+            Assert.True(drawn.GetPointAtParameter(0.5).IsEqualTo(leader.GetPointAtParameter(0.5 * chords), new Tolerance(1E-12, 1E-12)));
+            Assert.True(leader.GetPointAtParameter(chords).IsEqualTo(new GeoPoint3(20, 10, 0), Tol));
 
-            double length = leader.GetDistanceAtParameter(1.0);
-            Assert.Equal(drawn.GetDistanceAtParameter(1.0), length);
+            double length = leader.GetDistanceAtParameter(leader.EndParam);
+            Assert.Equal(drawn.GetDistanceAtParameter(1.0), length, 9);
             GeoPoint3 middle = leader.GetPointAtDist(length / 2.0);
             Assert.Equal(length / 2.0, leader.GetDistAtPoint(middle), 6);
             Assert.Equal(leader.GetParameterAtDistance(length / 2.0), leader.GetParameterAtPoint(middle), 6);
@@ -56,8 +56,8 @@ namespace GeometryHelper.UnitTest.Dxf
             GeoVector3 leaving = leader.GetFirstDerivative(0.0).Normalize();
             Assert.Equal(Math.Sqrt(0.5), leaving.X, 9);
             Assert.Equal(Math.Sqrt(0.5), leaving.Y, 9);
-            Assert.Equal(Bits(drawn.GetSecondDerivative(0.25)), Bits(leader.GetSecondDerivative(0.25)));
-            Assert.Throws<ArgumentOutOfRangeException>(() => leader.GetPointAtParameter(1.5));
+            Assert.True(drawn.GetSecondDerivative(0.25).Divide(chords * chords).IsEqualTo(leader.GetSecondDerivative(0.25 * chords), new Tolerance(1E-12, 1E-12)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => leader.GetPointAtParameter(1.5 * chords));
 
             // Straight again, it is walked by its vertices as before.
             leader.IsSplined = false;

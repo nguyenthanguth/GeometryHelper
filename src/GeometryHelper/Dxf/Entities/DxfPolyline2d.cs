@@ -989,6 +989,34 @@ namespace GeometryHelper.Dxf
         /// points in the system of the normal at the elevation, bulges, widths (the default widths where a vertex gives none);
         /// and the index of each one's record.
         /// </summary>
+        /// <summary>
+        /// The frame of a polyline fitted with a spline, in the system of its normal at its elevation: its vertices of the frame
+        /// (flag 16 of their group 70); null where it is not fitted with a spline or has no frame of two points.
+        /// </summary>
+        internal List<GeoPoint3> SplineFrame()
+        {
+            DxfPoly2dType type = PolyType;
+
+            if (type != DxfPoly2dType.QuadSplinePoly && type != DxfPoly2dType.CubicSplinePoly)
+            {
+                return null;
+            }
+
+            double elevation = Elevation;
+            var frame = new List<GeoPoint3>();
+
+            foreach (KeyValuePair<int, IReadOnlyList<DxfTypedValue>> vertex in DxfFollowers.Vertices(Item))
+            {
+                if ((DxfFollowers.Whole(vertex.Value, 70, 0) & 16) != 0)
+                {
+                    GeoPoint3 at = DxfFollowers.Point(vertex.Value, 10, Origin);
+                    frame.Add(new GeoPoint3(at.X, at.Y, elevation));
+                }
+            }
+
+            return frame.Count >= 2 ? frame : null;
+        }
+
         internal List<DxfPolyVertex> Model(out List<int> records)
         {
             List<KeyValuePair<int, IReadOnlyList<DxfTypedValue>>> vertices = DxfFollowers.Vertices(Item);

@@ -1040,6 +1040,12 @@ namespace GeometryHelper.Dxf
         /// <summary>Whether the records of a table are copied by name between drawings of R12 and of R13 or later: a layer and a text style, which both forms hold alike.</summary>
         private static bool CopiesAcross(string table) => table == "LAYER" || table == "STYLE";
 
+        /// <summary>
+        /// Whether a dimension style of the origin, of R13 or later, is copied into this drawing of R12 in the form of R12, as
+        /// <see cref="CopyDimStyleIntoR12"/> writes it: so that a dimension copied into R12 names a style the drawing has.
+        /// </summary>
+        private bool DimStyleIntoR12(DxfFile origin, string table) => table == "DIMSTYLE" && !Style.Markers && origin.Style.Markers;
+
         /// <summary>Whether the records of the tables of another drawing are copied into this one as they are: both of R12, or both of R13 or later.</summary>
         private bool RecordsCopy(DxfFile origin) => origin.Style.Markers == Style.Markers;
 
@@ -1103,7 +1109,7 @@ namespace GeometryHelper.Dxf
             string name = written == null ? string.Empty : DxfReader.NameOf(written).Trim();
             List<string> list = table == "STYLE" ? needs.Styles : table == "LTYPE" ? needs.Linetypes : table == "LAYER" ? needs.Layers : needs.DimStyles;
 
-            if (name.Length == 0 || list.Exists(n => string.Equals(n, name, StringComparison.OrdinalIgnoreCase)) || (!CopiesAcross(table) && !RecordsCopy(origin))
+            if (name.Length == 0 || list.Exists(n => string.Equals(n, name, StringComparison.OrdinalIgnoreCase)) || (!CopiesAcross(table) && !RecordsCopy(origin) && !DimStyleIntoR12(origin, table))
                 || (table == "LTYPE" && (string.Equals(name, "BYLAYER", StringComparison.OrdinalIgnoreCase) || string.Equals(name, "BYBLOCK", StringComparison.OrdinalIgnoreCase)))
                 || FindRecord(this, table, name) != null)
             {
@@ -1286,6 +1292,10 @@ namespace GeometryHelper.Dxf
                         int flags = int.TryParse(read.Text(70)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int f) ? f & 7 : 0;
                         AddLayer(name, colour, null, linetype != null && HasLinetype(linetype) ? linetype : "Continuous", -3, flags, true);
                     }
+                    else if (DimStyleIntoR12(origin, table))
+                    {
+                        CopyDimStyleIntoR12(origin, record, name);
+                    }
                     else if (table == "STYLE")
                     {
                         // A text style with its flags, fixed height, width, slant and fonts, which R12 holds as later versions do.
@@ -1410,6 +1420,92 @@ namespace GeometryHelper.Dxf
                     {
                         GeometryHelperLog.Debug("DxfFile: the " + table + " " + name + " was copied without its groups " + string.Join(", ", dropped) + ", a DXF " + VersionSaid() + " having none.");
                     }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Copies a dimension style of the origin, of R13 or later, into this drawing of R12, as AutoCAD's SAVEAS to R12 writes
+        /// one: its name, its flags and the variables R12 has, in their places; its arrow blocks (DIMBLK, DIMBLK1, DIMBLK2, by
+        /// handle 342 to 344) by name (5, 6, 7) after its texts where this drawing has a block of the name; the rest (its text
+        /// style, lineweights, the variables of later versions) left out, said in the log at Debug.
+        /// </summary>
+        private void CopyDimStyleIntoR12(DxfFile origin, Rec record, string name)
+        {
+            List<Pair> pairs = PairsOf(record);
+            int data = DataAt(record, pairs);
+            var groups = new List<KeyValuePair<int, string>>();
+            var arrows = new List<KeyValuePair<int, string>>();
+            var dropped = new List<string>();
+            bool braced = false;
+            int seventies = 0;
+            int heads = 0;
+
+            for (int i = 1; i < data; i++)
+            {
+                int code = pairs[i].Code;
+                string text = origin.Text(record, pairs[i]);
+
+                if (code == 102)
+                {
+                    braced = text.Trim().StartsWith("{", StringComparison.Ordinal);
+                    continue;
+                }
+
+                if (braced || code == 999 || code == 105 || code == 5 || code == 330 || code == 100)
+                {
+                    continue;
+                }
+
+                seventies += code == 70 ? 1 : 0;
+
+                if (code >= 340 && code <= 347)
+                {
+                    if (R12Override(origin, code.ToString(CultureInfo.InvariantCulture), text, out int r12Code, out string arrow))
+                    {
+                        arrows.Add(new KeyValuePair<int, string>(r12Code, arrow));
+                    }
+                    else
+                    {
+                        dropped.Add(code.ToString(CultureInfo.InvariantCulture));
+                    }
+
+                    continue;
+                }
+
+                if (SinceOf("DIMSTYLE", code, seventies > 1) > Style.Version || IsPointer(code))
+                {
+                    dropped.Add(code.ToString(CultureInfo.InvariantCulture));
+                    continue;
+                }
+
+                groups.Add(new KeyValuePair<int, string>(code, text));
+
+                // The arrows by name go after the name, the flags and the texts (3, 4), as R12 writes them.
+                if (code == 2 || (code == 70 && seventies == 1) || code == 3 || code == 4)
+                {
+                    heads = groups.Count;
+                }
+            }
+
+            arrows.Sort((a, b) => a.Key.CompareTo(b.Key));
+            groups.InsertRange(heads, arrows);
+            DxfItem made = AddTableRecord("DIMSTYLE", MarkerOf("DIMSTYLE"), b =>
+            {
+                foreach (KeyValuePair<int, string> group in groups)
+                {
+                    b.Group(group.Key, group.Value);
+                }
+            });
+
+            if (made != null)
+            {
+                Edited();
+                GeometryHelperLog.Info("DxfFile: the DIMSTYLE " + name + " was copied with an entity of another drawing, in the form of R12.");
+
+                if (dropped.Count > 0)
+                {
+                    GeometryHelperLog.Debug("DxfFile: the DIMSTYLE " + name + " was copied without its groups " + string.Join(", ", dropped) + ", a DXF " + VersionSaid() + " having none.");
                 }
             }
         }
@@ -1823,7 +1919,8 @@ namespace GeometryHelper.Dxf
         /// each soft or hard pointer (320 to 369, 390 to 399, 480 and 481) to the object of the same name there, a table's record
         /// by its name, an object of the named object dictionary (a material, a plot style, a visual style) by the names of its
         /// dictionary and of its entry; left out where the target has none of that name, so that the target's default holds. A
-        /// handle of extended data (1005) is left out, as AutoCAD's mapping of objects between drawings leaves it null; but one
+        /// handle of extended data (1005) is kept in its place as null (0), as AutoCAD's mapping of objects between drawings
+        /// leaves it, or held back for the copy of an entity copied with it while blocks are being copied; but one
         /// of the overrides of a dimension style (ACAD DSTYLE, a 1070 of the variable then a 1005 of its record: DIMBLK, DIMLTYPE,
         /// DIMTXSTY and the others) names the record of the same name in the target, the two left out where it has none, said in
         /// the log; in a target of R12 an arrow block's (DIMBLK, DIMBLK1, DIMBLK2) names the block by its name, a 1070 of 5, 6 or
@@ -1903,7 +2000,22 @@ namespace GeometryHelper.Dxf
                 }
                 else if (i >= data && code == 1005)
                 {
+                    // A handle of extended data keeps its place, as AutoCAD's copy into another drawing keeps it: null (0) where
+                    // what it names stays behind, the copy's handle where that is copied with it (WblockCloneObjects, or the
+                    // entities of a block copied, held back until every one is written).
+                    string was = Text(record, pair);
                     changed = true;
+
+                    if (target._deferred != null && origin.IsEntity(was))
+                    {
+                        b.Group(code, DeferredMark + was.Trim());
+                        deferred = true;
+                    }
+                    else
+                    {
+                        b.Group(code, "0");
+                    }
+
                     continue;
                 }
                 else if (i < data && !braced && (IsPointer(code) || (body >= 0 && i > body && code == 330)))
@@ -2507,6 +2619,13 @@ namespace GeometryHelper.Dxf
                         }
 
                         i++;
+                        continue;
+                    }
+
+                    // A handle of extended data held back: the copy's, or null where its entity stayed behind.
+                    if (i >= data && code == 1005 && Text(record, pairs[i]).Trim().StartsWith(DeferredMark, StringComparison.Ordinal))
+                    {
+                        b.Group(1005, CopyHandle(Text(record, pairs[i]).Trim().Substring(DeferredMark.Length)) ?? "0");
                         continue;
                     }
 
@@ -3171,7 +3290,10 @@ namespace GeometryHelper.Dxf
                 b.Group(100, "AcDbEntity");
             }
 
-            KeepSpaceAndLayer(b, head, headPairs, headData);
+            // A vertex takes its polyline's look, as AutoCAD's AUDIT wants it, in the place of its own.
+            bool face = source.IsFaceRecord(from);
+            bool vertex = from.Type == "VERTEX" && head.Type == "POLYLINE";
+            KeepSpaceAndLayer(b, head, headPairs, headData, from.Type, face);
             bool braced = false;
 
             for (int i = 1; i < pairs.Count; i++)
@@ -3197,7 +3319,7 @@ namespace GeometryHelper.Dxf
                 }
 
                 bool kept = !braced && pair.Code != 5 && pair.Code != 105 && pair.Code != 330 && pair.Code != 360 && pair.Code != 67 && pair.Code != 410 && pair.Code != 8
-                    && !(pair.Code == 100 && (!style.Markers || value.Trim() == "AcDbEntity"));
+                    && !(pair.Code == 100 && (!style.Markers || value.Trim() == "AcDbEntity")) && !(vertex && TakesLook(pair.Code, face));
 
                 if (kept)
                 {
@@ -3707,7 +3829,8 @@ namespace GeometryHelper.Dxf
                     }
                 }
 
-                result.Add(Follower(new KeyValuePair<string, List<DxfTypedValue>>(follower.Key, groups), item.Handle, f => KeepSpaceAndLayer(f, head, pairs, data)));
+                bool face = IsFaceRecord(follower.Key, groups);
+                result.Add(Follower(new KeyValuePair<string, List<DxfTypedValue>>(follower.Key, groups), item.Handle, f => KeepSpaceAndLayer(f, head, pairs, data, follower.Key, face)));
             }
 
             for (int r = 1; r < records.Count; r++)

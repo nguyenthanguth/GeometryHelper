@@ -847,7 +847,7 @@ namespace GeometryHelper.Dxf
             DropEmbeddedBefore(owner);
         }
 
-        /// <summary>A drawing older than R2018 has no MTEXT embedded in an ATTRIB: its text's part keeps the first line.</summary>
+        /// <summary>A drawing older than R2018 has no MTEXT embedded in an ATTRIB: its text's part keeps the words of its group 1.</summary>
         private void DropEmbeddedBefore(DxfBlockTableRecord owner)
         {
             if (owner.File != null && !owner.File.Supports(1032))

@@ -175,7 +175,7 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AnAnonymousDataLinkLetGo_IsErasedWithWhatItOwns_OnlyWhereNothingElseOfTheFilePointsAtIt()
+        public void AnAnonymousDataLinkLetGoByRemoveDataLink_StaysInTheDrawing_AsAutoCADKeepsIt()
         {
             foreach (string version in Versions)
             {
@@ -200,14 +200,14 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(new[] { copy }, link.GetTargets());
                 Assert.Equal(TableRecord(version), TableRecord(db.ToText()));
 
+                // Let go of by every table, it stays, as AutoCAD 2021's RemoveDataLink keeps an anonymous link (check 77).
                 copy.RemoveDataLink();
                 string saved = db.ToText();
-                Assert.True(link.IsErased);
-                Assert.Equal(0, db.DataLinkDictionary.Count);
-                Assert.Null(Record(saved, "A01"));
-                Assert.Null(Record(saved, "A02"));
-                Assert.DoesNotContain("\nA01\n", saved, StringComparison.Ordinal);
-                Assert.DoesNotContain("\nA02\n", saved, StringComparison.Ordinal);
+                Assert.False(link.IsErased);
+                Assert.Empty(link.GetTargets());
+                Assert.Equal(1, db.DataLinkDictionary.Count);
+                Assert.Equal(Record(text, "A01"), Record(saved, "A01"));
+                Assert.Equal(Record(text, "A02"), Record(saved, "A02"));
 
                 // A table of no links takes nothing away and writes nothing.
                 table.RemoveDataLink();

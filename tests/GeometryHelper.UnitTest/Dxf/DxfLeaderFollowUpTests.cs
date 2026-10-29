@@ -101,20 +101,21 @@ namespace GeometryHelper.UnitTest.Dxf
         public void ASplinedLeaderMovedOrStraightened_IsWalkedOnItsNewCurve()
         {
             // The spline is kept between questions and fitted anew once the leader is changed: its middle vertex moved up by 5, the
-            // point at the middle of its parameter is that of the spline fitted through the new vertices; straight again, its polyline.
+            // point at the middle of its parameter is that of the spline fitted through the new vertices, its parameter run over
+            // the lengths of its chords (check 63); straight again, its polyline.
             DxfDatabase db = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
             DxfLeader leader = ByHandle<DxfLeader>(db, "89");
             leader.IsSplined = true;
-            GeoPoint3 before = leader.GetPointAtParameter(0.5);
-            Assert.Equal(Bits(before), Bits(leader.GetPointAtParameter(0.5)));
+            GeoPoint3 before = leader.GetPointAtParameter(0.5 * leader.EndParam);
+            Assert.Equal(Bits(before), Bits(leader.GetPointAtParameter(0.5 * leader.EndParam)));
 
             leader.SetVertexAt(1, new GeoPoint3(10, 15, 0));
-            GeoPoint3 after = leader.GetPointAtParameter(0.5);
+            GeoPoint3 after = leader.GetPointAtParameter(0.5 * leader.EndParam);
 
             var drawn = (DxfSpline)leader.Explode()[0];
             Assert.NotEqual(Bits(before), Bits(after));
-            Assert.Equal(Bits(drawn.GetPointAtParameter(0.5)), Bits(after));
-            Assert.Equal(Bits(leader.Spline.GetPointAtParameter(0.5)), Bits(after));
+            Assert.True(drawn.GetPointAtParameter(0.5).IsEqualTo(after, new Tolerance(1E-12, 1E-12)));
+            Assert.Equal(Bits(leader.Spline.GetPointAtParameter(0.5 * leader.EndParam)), Bits(after));
             Assert.Equal(Assert.IsType<GeoSpline3>(Assert.Single(drawn.GetGeometry())).ControlPoints.Select(Bits), Assert.IsType<GeoSpline3>(Assert.Single(leader.GetGeometry())).ControlPoints.Select(Bits));
 
             leader.IsSplined = false;
@@ -127,7 +128,8 @@ namespace GeometryHelper.UnitTest.Dxf
         public void ASplinedLeaderOfManyVertices_GivesThePointsOfTheSplineItExplodesInto_EntitiesMadeElsewhereBetween()
         {
             // 4 000 vertices, the spline kept between questions while lines are made in no file between them, which change
-            // the file such entities are held in: each point is that of the spline Explode fits, to the bit.
+            // the file such entities are held in: each point is that of the spline Explode fits, its parameter run over the
+            // lengths of the chords (check 63), to the rounding.
             var text = new StringBuilder("  0\nSECTION\n  2\nENTITIES\n  0\nLEADER\n  5\nC10\n100\nAcDbEntity\n  8\n0\n100\nAcDbLeader\n  3\nStandard\n 71\n1\n 72\n1\n 73\n3\n 76\n4000\n");
 
             for (int i = 0; i < 4000; i++)
@@ -140,14 +142,15 @@ namespace GeometryHelper.UnitTest.Dxf
 
             for (int i = 0; i < 400; i++)
             {
-                points[i] = leader.GetPointAtParameter(i / 399.0);
+                points[i] = leader.GetPointAtParameter(i / 399.0 * leader.EndParam);
                 Assert.NotNull(new DxfLine(new GeoPoint3(i, 0, 0), new GeoPoint3(i, 1, 0)));
             }
 
             var drawn = (DxfSpline)leader.Explode()[0];
+            var rounding = new Tolerance(1E-8, 1E-8);
 
-            Assert.Equal(Bits(drawn.GetPointAtParameter(100 / 399.0)), Bits(points[100]));
-            Assert.Equal(Bits(drawn.GetPointAtParameter(1.0)), Bits(points[399]));
+            Assert.True(drawn.GetPointAtParameter(100 / 399.0).IsEqualTo(points[100], rounding));
+            Assert.True(drawn.GetPointAtParameter(1.0).IsEqualTo(points[399], rounding));
         }
 
         [Fact]

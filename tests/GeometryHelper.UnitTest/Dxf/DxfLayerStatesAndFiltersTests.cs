@@ -13,6 +13,9 @@ namespace GeometryHelper.UnitTest.Dxf
     /// </summary>
     public class DxfLayerStatesAndFiltersTests
     {
+        /// <summary>The filters AutoCAD makes and nests in All after the drawing's own, as AutoCAD 2021's NestedFilters gives them.</summary>
+        private static readonly string[] AutoCADsOwn = { "All Used Layers", "Unreconciled New Layers", "Viewport Overrides" };
+
         /// <summary>The R2018 drawing with the dictionaries given, each holding an XRECORD of each name, saved and read again.</summary>
         private static DxfDatabase WithDictionaries(string[] states, string[] filters)
         {
@@ -52,14 +55,16 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.False(states.HasLayerState("Plan"));
                 Assert.Equal("0 layer states", states.ToString());
 
+                // Nested in All, the three filters AutoCAD makes, as AutoCAD 2021 lists them (check 69).
                 DxfLayerFilter root = db.LayerFilters.Root;
                 Assert.Equal("All", root.Name);
                 Assert.Null(root.Parent);
-                Assert.Empty(root.NestedFilters);
+                Assert.Equal(AutoCADsOwn, root.NestedFilters.Select(f => f.Name));
+                Assert.All(root.NestedFilters, f => Assert.True(f.DynamicallyGenerated));
                 Assert.True(root.DynamicallyGenerated);
                 Assert.False(root.AllowDelete);
                 Assert.False(root.AllowRename);
-                Assert.Equal("All, 0 filters", db.LayerFilters.ToString());
+                Assert.Equal("All, 3 filters", db.LayerFilters.ToString());
                 Assert.Equal(text, db.ToText());
             }
         }
@@ -99,8 +104,8 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfLayerFilterTree tree = db.LayerFilters;
 
             Assert.Equal("All", tree.Root.Name);
-            Assert.Equal(new[] { "Steel", "Notes" }, tree.Root.NestedFilters.Select(f => f.Name));
-            Assert.All(tree.Root.NestedFilters, f =>
+            Assert.Equal(new[] { "Steel", "Notes" }.Concat(AutoCADsOwn), tree.Root.NestedFilters.Select(f => f.Name));
+            Assert.All(tree.Root.NestedFilters.Take(2), f =>
             {
                 Assert.Same(tree.Root, f.Parent);
                 Assert.Empty(f.NestedFilters);
@@ -108,7 +113,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.True(f.AllowDelete);
                 Assert.True(f.AllowRename);
             });
-            Assert.Equal("All, 2 filters", tree.ToString());
+            Assert.Equal("All, 5 filters", tree.ToString());
             Assert.Equal("Steel", tree.Root.NestedFilters[0].ToString());
 
             // A new tree on each call, as the drawing has them then.
@@ -128,7 +133,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Null(db.LayerStateManager.LayerStatesDictionary);
             Assert.Empty(db.LayerStateManager.GetLayerStateNames());
             Assert.False(db.LayerStateManager.HasLayerState("Plan"));
-            Assert.Empty(db.LayerFilters.Root.NestedFilters);
+            Assert.Equal(AutoCADsOwn, db.LayerFilters.Root.NestedFilters.Select(f => f.Name));
         }
     }
 }

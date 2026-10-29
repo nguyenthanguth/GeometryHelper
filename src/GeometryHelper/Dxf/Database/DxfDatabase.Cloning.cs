@@ -23,13 +23,13 @@ namespace GeometryHelper.Dxf
         /// picture and of the blocks of its cells, and a LEADER or a dimension whose dimension style is overridden with an arrow
         /// block (DIMLDRBLK, DIMBLK, DIMBLK1, DIMBLK2) names the copy of that block, whichever of the two is copied first: a
         /// block W holding the leader with DIMLDRBLK GKTAG brings GKTAG after W, and the copy of the leader names it. A LEADER copied with the MTEXT, TOLERANCE or INSERT
-        /// it points to points to its copy; without it, it points to none (<see cref="DxfLeader.AnnoType"/>
-        /// <see cref="DxfAnnotationType.NoAnnotation"/>). A GROUP of this drawing every entity of which is copied into model space
-        /// or a layout of paper space is copied too (a group holds no entity of a block, as ezdxf's recover drops one that does),
-        /// into the group dictionary of the block's drawing, its entities' copies in its order, its description and selectability
-        /// kept: under its own name, or that name and <c>_1</c>, <c>_2</c> and on, the first the dictionary has not, where it has
-        /// a group of the name; an anonymous group as the next <c>*A1</c>, <c>*A2</c> and on. A drawing with no group dictionary,
-        /// as one of R12, is given none.
+        /// it points to points to its copy; copied alone into another drawing, it brings that annotation with it, which it points
+        /// at by a hard pointer (340), as AutoCAD 2021's WblockCloneObjects brought the MTEXT of a leader copied alone, the copy
+        /// of the annotation not among those given back; copied alone within this drawing, it points to none
+        /// (<see cref="DxfLeader.AnnoType"/> <see cref="DxfAnnotationType.NoAnnotation"/>). A handle of extended data (1005)
+        /// naming an entity copied with it names that entity's copy; one naming anything else is null (0) in a copy into
+        /// another drawing, in its place, as AutoCAD keeps it. No GROUP is copied, as AutoCAD 2021's WblockCloneObjects copies
+        /// none: <see cref="Insert(GeometryHelper.Geometry.GeoTransform3, DxfDatabase, bool)"/> copies them.
         /// </para>
         /// <para>
         /// Every copy is checked to be one the block's drawing can hold before any is added, so that a copy refused changes
@@ -55,7 +55,14 @@ namespace GeometryHelper.Dxf
         /// <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/> says; or when a block the copies bring would insert itself,
         /// or make the block insert itself, at any depth, which AutoCAD's AUDIT takes out. Nothing is added then.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the block is in no drawing.</exception>
-        public IReadOnlyList<DxfEntity> WblockCloneObjects(IEnumerable<DxfEntity> source, DxfBlockTableRecord owner)
+        public IReadOnlyList<DxfEntity> WblockCloneObjects(IEnumerable<DxfEntity> source, DxfBlockTableRecord owner) => CloneObjects(source, owner, false);
+
+        /// <summary>
+        /// Copies entities together as <see cref="WblockCloneObjects"/> does; with <paramref name="groups"/>, as
+        /// <see cref="Insert(GeometryHelper.Geometry.GeoTransform3, DxfDatabase, bool)"/> copies a drawing, every GROUP of this drawing all of whose
+        /// entities are copied into model space or a layout comes too, as <see cref="CopyGroups"/> says.
+        /// </summary>
+        internal IReadOnlyList<DxfEntity> CloneObjects(IEnumerable<DxfEntity> source, DxfBlockTableRecord owner, bool groups)
         {
             if (source == null)
             {
@@ -93,6 +100,19 @@ namespace GeometryHelper.Dxf
             if (target == null || target.Database == null)
             {
                 throw new InvalidOperationException("The block " + owner.Name + " is in no drawing to copy into.");
+            }
+
+            // A LEADER copied into another drawing brings the annotation it points at by a hard pointer (340), as AutoCAD's
+            // WblockCloneObjects follows one; the annotation's copy is not among those given back.
+            int count = entities.Count;
+
+            for (int i = 0; target != File && i < count; i++)
+            {
+                if (entities[i] is DxfLeader leader && leader.Annotation is DxfEntity annotation && annotation.IsResident && !annotation.IsErased
+                    && annotation.Item.File == File && annotation.Item.Parent == null && given.Add(annotation.Item))
+                {
+                    entities.Add(annotation);
+                }
             }
 
             // Every copy is checked before any is added: a copy refused changes nothing.
@@ -157,6 +177,8 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
+                MapDataHandles(entities[i], copies[i], copyOf);
+
                 if (entities[i] is DxfHatch hatch && hatch.Associative)
                 {
                     FollowCopies(hatch, (DxfHatch)copies[i], copyOf);
@@ -169,9 +191,54 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            CopyGroups(target, copyOf, owner.IsLayout);
+            if (groups)
+            {
+                CopyGroups(target, copyOf, owner.IsLayout);
+            }
+
             GeometryHelperLog.Info("DxfDatabase: " + entities.Count.ToString(CultureInfo.InvariantCulture) + " entities were copied together into the block " + owner.Name + ".");
-            return copies.AsReadOnly();
+            return copies.GetRange(0, count).AsReadOnly();
+        }
+
+        /// <summary>
+        /// Names in each handle of the copy's extended data (1005) that names an entity copied with it the copy of that entity,
+        /// as AutoCAD's map of ids takes it: a LINE whose data names a CIRCLE copied with it names the CIRCLE's copy. Groups
+        /// that do not stand in the same places in the copy, as overrides of a dimension style taken to another drawing, are
+        /// left as the copy has them.
+        /// </summary>
+        private void MapDataHandles(DxfEntity entity, DxfEntity copy, Dictionary<DxfItem, DxfEntity> copyOf)
+        {
+            IReadOnlyList<DxfTypedValue> data = entity.XData;
+            List<DxfTypedValue> copied = null;
+
+            for (int k = 0; k < data.Count; k++)
+            {
+                if (data[k].TypeCode != 1005)
+                {
+                    continue;
+                }
+
+                DxfItem named = ItemByHandle(data[k].Value.Trim());
+
+                if (named == null || !copyOf.TryGetValue(named, out DxfEntity made) || !made.IsResident)
+                {
+                    continue;
+                }
+
+                copied = copied ?? new List<DxfTypedValue>(copy.XData);
+
+                if (copied.Count != data.Count || copied[k].TypeCode != 1005)
+                {
+                    return;
+                }
+
+                copied[k] = new DxfTypedValue(1005, made.Handle);
+            }
+
+            if (copied != null)
+            {
+                copy.XData = copied;
+            }
         }
 
         /// <summary>
@@ -211,9 +278,13 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Copies each GROUP of this drawing whose entities were all copied into the group dictionary of the drawing they were
-        /// copied into, as <see cref="WblockCloneObjects"/> says: in the order of the dictionary, a group with no entity left out;
-        /// none where they were copied into a block that is no layout, whose entities a group does not hold.
+        /// Copies each GROUP of this drawing whose entities were all copied into model space or a layout of paper space into the
+        /// group dictionary of the drawing they were copied into: in the order of the dictionary, a group with no entity left
+        /// out; none where they were copied into a block that is no layout, whose entities a group does not hold (as ezdxf's
+        /// recover drops a group that holds one), nor into a drawing with no group dictionary, as one of R12. Its entities'
+        /// copies in its order, its description and selectability kept, under its own name, or that name and <c>_1</c>,
+        /// <c>_2</c> and on, the first the dictionary has not, where it has a group of the name; an anonymous group as the next
+        /// <c>*A1</c>, <c>*A2</c> and on.
         /// </summary>
         private void CopyGroups(DxfFile target, Dictionary<DxfItem, DxfEntity> copyOf, bool layout)
         {

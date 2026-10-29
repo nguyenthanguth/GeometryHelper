@@ -91,9 +91,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(Bits(new GeoPoint3(1, 2, 13)), Bits(((DxfLine)pieces[1]).EndPoint));
             Assert.Equal(Bits(new GeoPoint3(1, 2, 13)), Bits(((DxfRay)pieces[2]).BasePoint));
 
-            // To the right of (0, 0, 1) seen from the tip of (1, 0, 0), the side every curve offsets to: +y.
+            // To the left of (0, 0, 1) seen from the tip of (1, 0, 0), as a line is (AutoCAD 2021's side, check 11): -y.
             var moved = (DxfRay)Assert.Single(ray.GetOffsetCurvesGivenPlaneNormal(new GeoVector3(1, 0, 0), 2.0));
-            Assert.Equal(Bits(new GeoPoint3(1, 4, 3)), Bits(moved.BasePoint));
+            Assert.Equal(Bits(new GeoPoint3(1, 0, 3)), Bits(moved.BasePoint));
 
             ray.Extend(-3.0);
             Assert.Equal(Bits(new GeoPoint3(1, 2, 0)), Bits(ray.BasePoint));

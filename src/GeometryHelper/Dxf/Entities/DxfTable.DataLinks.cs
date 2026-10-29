@@ -90,10 +90,9 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Takes every data link of the table away, as AutoCAD's <c>RemoveDataLink()</c>: each top left cell's link groups
-        /// taken out, its 92 made even, in one writing of the record. A DATALINK let go of is erased, with what it owns, only
-        /// where it is anonymous (<see cref="DxfDataLinkOption.Anonymous"/>) and nothing else of the file points at it, another
-        /// table or a copy of this one, the dictionary of data links that holds it aside; a named one stays in the drawing, as
-        /// AutoCAD's Data Link Manager keeps it. The cells keep what they hold. Nothing where the table has none.
+        /// taken out, its 92 made even, in one writing of the record. The DATALINK let go of stays in the drawing, in the
+        /// dictionary of data links, named or anonymous (<see cref="DxfDataLinkOption.Anonymous"/>), as AutoCAD 2021's
+        /// <c>RemoveDataLink</c> keeps it. The cells keep what they hold. Nothing where the table has none.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the table has links and is erased.</exception>
         public void RemoveDataLink() => WriteLinks(ReadToWrite(), new List<LinkedRange>());
@@ -205,12 +204,12 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Writes the links given into the text cells in one writing of the record: each top left cell of one naming it, every
         /// other text cell naming none; a block cell, and a cell that holds what it is to, as it is. A DATALINK the cells let go
-        /// of is erased as <see cref="EraseLinks"/> erases one. Nothing is written where the record comes out the same.
+        /// of stays in the drawing, as AutoCAD's <c>RemoveDataLink</c> leaves it. Nothing is written where the record comes out
+        /// the same.
         /// </summary>
         private void WriteLinks(Layout layout, IList<LinkedRange> links)
         {
             DxfDimGroups g = layout.Groups;
-            List<string> before = LinkHandles(layout);
             LinkedRange[] anchored = Anchors(layout.CellStart.Count, layout.Columns, links);
             int first = layout.CellStart.Count > 0 ? layout.CellStart[0] : layout.CellsEnd;
             var list = new List<KeyValuePair<int, string>>(g.List.Count + 5 * links.Count);
@@ -240,7 +239,6 @@ namespace GeometryHelper.Dxf
             {
                 CheckEditable();
                 g.Write(Order);
-                EraseLinks(before);
             }
         }
 

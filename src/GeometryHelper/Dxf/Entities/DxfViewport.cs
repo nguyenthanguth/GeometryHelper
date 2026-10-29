@@ -139,6 +139,9 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gets the id of the viewport in its layout (group 69), as AutoCAD's <c>Number</c>: 1 for the viewport that shows the
         /// sheet itself, 2 and on for those on it. A viewport made in code is given the next free id of its layout when appended.
+        /// AutoCAD's <c>Number</c> is the number of the viewport as its layout is shown: AutoCAD 2021 gives -1 for a viewport
+        /// turned off and for every viewport of a layout not shown, which a file does not say; the library gives the id the file
+        /// writes, on or off.
         /// </summary>
         public int Number => GetInt(69, 0);
 
@@ -315,13 +318,29 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        /// <summary>Gets or sets how far the view is turned about its direction (group 51, degrees in the file), as AutoCAD's <c>TwistAngle</c>, in radians.</summary>
+        /// <summary>
+        /// Gets or sets how far the view is turned about its direction, as AutoCAD's <c>TwistAngle</c>, in radians: group 51, in
+        /// degrees, from R2000; in radians in the extended data MVIEW of a file of R12 to R14, as AutoCAD 2021 reads it there (a
+        /// 30 written there turns the view by 30 radians, 1 718.87 degrees).
+        /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the angle set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the viewport is erased.</exception>
         public double TwistAngle
         {
-            get => Value(51, R12Twist, 0.0) * Math.PI / 180.0;
-            set => SetAngle(51, R12Twist, value, TwistAngle);
+            get => InMview ? R12Real(R12Twist, 0.0) : GetDouble(51, 0.0) * Math.PI / 180.0;
+
+            set
+            {
+                if (!InMview)
+                {
+                    SetAngle(51, R12Twist, value, TwistAngle);
+                }
+                else if (!Same(value, TwistAngle))
+                {
+                    Guard.Finite(value, nameof(value), "An angle has to be a finite number.");
+                    SetValue(51, R12Twist, value);
+                }
+            }
         }
 
         /// <summary>Gets or sets the length of the lens of a view in perspective (group 42), as AutoCAD's <c>LensLength</c>, in millimetres; 50 where the record gives none.</summary>

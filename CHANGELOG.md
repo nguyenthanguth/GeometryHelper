@@ -46,6 +46,86 @@ bodies half the tolerance to twice it apart, 600 plates cut by twelve openings, 
 columns in 200 to 1 000 strips, 41 452 fuzzed booleans, 54 000 of cracked shapes, and 28 800 cuts of openings. 1 new
 test, 5 cases.
 
+**FIXED.** An MTEXT given a background by `BackgroundFill` or `UseBackgroundColor` no longer makes a file AutoCAD 2021
+will not open. The flag of group 90 was written alone, and AutoCAD refuses the whole file ("Error Decrypting Data", and
+`eMissingDxfField` from its DxfIn) over an MTEXT whose background is on with no colour (63) and scale (45); now the two
+are written where the MTEXT has none, as BYLAYER and 1.5, the values AutoCAD reads where they are missing, and from R2007
+the transparency (441) by layer. A colour taken off while the background is on leaves 63 at BYLAYER. 3 new tests.
+
+**FIXED.** A HATCH given a pattern of AutoCAD's file by `SetHatchPattern`, ANSI31 among them, no longer makes a file
+AutoCAD 2021 will not open: the pattern's count of lines (78) was left out with its lines, and AutoCAD's DxfIn refuses
+the file ("expected group code 78"). It is written as 0 now, ezdxf writing none for a pattern of no lines either.
+1 new test.
+
+**FIXED.** The vertices of a POLYLINE carry its look, as AutoCAD 2021's AUDIT wants them: a polyline of colour 1 had
+vertices of no colour, and AUDIT reported each, 22 to 106 errors a file (`AcDb2dVertex color != owner's`, and the same
+of `AcDb3dPolylineVertex` and `AcDbPolygonMeshVertex`). A vertex is now given its polyline's layer, linetype, colour,
+lineweight, linetype scale, visibility, true colour and transparency when it is made (by `AppendVertex`, `SplineFit`,
+`CurveFit`, `SurfaceFit` or a new shape) and when the polyline's are set, as AutoCAD's setters set them on its vertices;
+a face of a polyface mesh keeps a colour of its own. 3 new tests.
+
+**CHANGED.** `DxfPolygonMesh.SurfaceFit` makes the grid AutoCAD 2021's PEDIT makes: SURFU and SURFV are spans, so that an
+open mesh 4 by 4 smoothed at 6 and 6 has 7 rows of 7 points, 49, where it had 36; round a closed direction as many points
+as spans, as before. `Explode()` breaks a mesh smoothed either way into the cells of its surface. 1 new test, 3 changed.
+
+**FIXED.** A handle of extended data (1005) copied into another drawing keeps its place, as AutoCAD 2021's `CopyObjects`
+keeps it: it was left out, so that the groups after it moved up one. It is written as 0 where what it names stays behind,
+and `WblockCloneObjects` names the copy where that is copied with it: the LINE whose data names a CIRCLE, copied with the
+CIRCLE, names the CIRCLE's copy. 1 new test, 1 changed.
+
+**CHANGED.** `WblockCloneObjects` copies no GROUP, as AutoCAD 2021's `WblockCloneObjects` and its COPYCLIP and PASTECLIP
+copy none; it copied a group all of whose entities came along, as PLATE_1 where the drawing had a PLATE. `db.Insert` of a
+whole drawing still copies its groups. A LEADER copied alone into another drawing now brings the annotation it points at
+by a hard pointer (340), as AutoCAD brings the MTEXT, where its copy pointed to nothing; copied alone within its own
+drawing it still points to nothing. 2 tests changed.
+
+**CHANGED.** The value (group 1) of an ATTRIB of several lines is the words of every line joined by spaces, as AutoCAD 2021
+writes it, `LINE ONE LINE TWO LINE THREE` for three lines, by `MTextAttribute` and by `SetAttributeFromBlock` of a
+definition of several lines; it was the first line, as ezdxf writes it, which an ATTDEF still is. 1 new test, 1 changed.
+
+**CHANGED.** A LINE offsets to the left of its way seen from the tip of its normal, as AutoCAD 2021's `Offset(5)` of the
+line from (0, 0, 0) to (30, 40, 0) starts at (-4, 3, 0); it went to the right, to (4, -3, 0), with the polylines and
+splines, which AutoCAD offsets to the right and still go there. A RAY and an XLINE given a plane go the way a line does.
+1 new test, 3 changed.
+
+**FIXED.** The twist of a view of R12, R13 or R14 (`DxfViewport.TwistAngle`, in the extended data MVIEW) is written and
+read in radians, as AutoCAD 2021 reads it: the 30 written for 30 degrees turned the view by 30 radians, 1 718.87 degrees.
+From R2000 group 51 is in degrees, as before. 1 new test, 1 changed.
+
+**FIXED.** A dimension, a leader or a tolerance copied into a drawing of R12 brings its dimension style, written in the form
+of R12: its name, flags and the variables R12 has, its arrow blocks by name where the drawing has a block of the name; the
+copy named a DIMSTYLE the drawing did not have. 1 new test.
+
+**FIXED.** An anonymous group renamed by `GroupDictionary.SetName` is anonymous no longer, as one renamed by its `Name` is.
+1 new test.
+
+**CHANGED.** `DxfCurve.Spline` of a polyline of the plane fitted with a spline is the B-spline it is fitted with, on its
+frame, as AutoCAD 2021's `Polyline2d.Spline` gives it: the frame of 5 vertices fitted by a cubic gives the cubic of those 5
+control points, where it gave the spline of degree 1 through the 17 vertices drawn. Joining such a polyline into a SPLINE
+and projecting it still take it as drawn. 1 new test.
+
+**CHANGED.** A splined LEADER is walked over the lengths of its chords, as AutoCAD 2021 walks one, and boxed by its
+vertices: through (0, 0, 0), (10, 10, 0) and (20, 10, 0) its `EndParam` is 24.14, its point at 12.07 the one it had at
+0.5, and its `GeometricExtents` runs from (0, 0, 0) to (20, 10, 0), where the spline's rose to 10.43. Its `Spline` runs
+over the same length; `Explode()` gives the spline as before, from 0 to 1. 1 new test, 3 changed.
+
+**CHANGED.** A `new DxfGeoData()` is AutoCAD 2021's new one: of no known type of coordinates, in metres both ways, its
+scale judged at the reference point, where it was ezdxf's, geographic in inches of no scale estimated. Its
+`BlockTableRecord` and `PostToDb` refuse any block but model space, as AutoCAD refuses paper space. 2 new tests, 2 changed.
+
+**NEW.** `DxfGeoData.NorthDirection`, the angle of `NorthDirectionVector` from the Y axis towards X, as AutoCAD 2021 gives
+it: (1, 0) a quarter turn, (-1, 0) minus one. 1 new test.
+
+**CHANGED.** `db.LayerFilters` reads the filters of AutoCAD 2005 and later: nested in All, as AutoCAD 2021 lists them, the
+property filters and groups of ACLYDICTIONARY, by their names, then those of ACAD_LAYERFILTERS not among them, then the
+three AutoCAD makes, All Used Layers, Unreconciled New Layers and Viewport Overrides. 1 new test, 3 changed.
+
+**NEW.** `DxfLayerStateManager.GetLayerStateNames(includeHidden, includeXref)`, as AutoCAD's: a state is hidden where its
+mask has the flag 0x8000, as AutoCAD 2021 saves one, and of an xref where it names its layers by name. 1 new test.
+
+**CHANGED.** `DxfTable.RemoveDataLink` leaves the DATALINK it lets go of in the drawing, anonymous or named, as AutoCAD
+2021's `RemoveDataLink` leaves it; it erased an anonymous one. 1 test changed.
+
 **FIXED.** `TryCutOpenings` no longer hands back a plate whose openings end the tolerance inside a face, to a few
 bits, valid and hundreds of cubic millimetres short. Where cutting the openings in together leaves the material open
 and a weld does not close it, they are taken out one at a time by differences, and a difference read a corner as on a

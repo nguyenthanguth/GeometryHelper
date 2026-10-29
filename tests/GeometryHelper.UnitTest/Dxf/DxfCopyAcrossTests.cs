@@ -315,14 +315,15 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AHandleOfExtendedData_IsLeftOut_TheRestOfTheDataKept()
+        public void AHandleOfExtendedData_IsKeptInItsPlaceAsNull_TheRestOfTheDataKept()
         {
+            // AutoCAD 2021's copy into another drawing keeps the 1005, null (0) where what it names stays behind (check 2).
             DxfDatabase target = DxfDatabase.Parse(Target());
             DxfEntity copy = DxfDatabase.Parse(Source()).ModelSpace.Single().Clone();
             target.ModelSpace.AppendEntity(copy);
 
-            Assert.Equal(new[] { "1001 GHAPP", "1000 kept" }, copy.XData.Select(g => g.ToString()));
-            Assert.DoesNotContain("1005", Records(target.ToText()).Single(r => HandleOf(r) == copy.Handle), StringComparison.Ordinal);
+            Assert.Equal(new[] { "1001 GHAPP", "1000 kept", "1005 0" }, copy.XData.Select(g => g.ToString()));
+            Assert.Contains("1005\n0\n", Records(target.ToText()).Single(r => HandleOf(r) == copy.Handle), StringComparison.Ordinal);
         }
 
         [Fact]

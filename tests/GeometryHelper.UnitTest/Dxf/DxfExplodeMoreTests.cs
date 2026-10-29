@@ -137,11 +137,12 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfFace[] faces = mesh.Explode().Cast<DxfFace>().ToArray();
 
-            Assert.Equal(30, surface.Count);
-            Assert.Equal(4 * 5, faces.Length);
+            // 5 by 6 spans of an open mesh, 6 rows of 7 points as AutoCAD's PEDIT smooths (check 14), 5 by 6 faces.
+            Assert.Equal(42, surface.Count);
+            Assert.Equal(5 * 6, faces.Length);
             Assert.Equal(Bits(surface[0]), Bits(faces[0].GetVertexAt(0)));
-            Assert.Equal(Bits(surface[6]), Bits(faces[0].GetVertexAt(1)));
-            Assert.Equal(Bits(surface[29]), Bits(faces[19].GetVertexAt(2)));
+            Assert.Equal(Bits(surface[7]), Bits(faces[0].GetVertexAt(1)));
+            Assert.Equal(Bits(surface[41]), Bits(faces[29].GetVertexAt(2)));
 
             mesh.Straighten();
             Assert.Equal(9, mesh.Explode().Count);

@@ -689,7 +689,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Sets a group of the look of an entity's record: the value of the first group of its code in place, or a new group
         /// where AutoCAD writes it, or none where the value is null. A layer is set on the vertices and the end of a POLYLINE
-        /// and the end of an INSERT's attributes too, where they name one.
+        /// and the end of an INSERT's attributes too, where they name one; every group of the look of a POLYLINE is set on its
+        /// vertices, as <see cref="VertexLook"/> says.
         /// </summary>
         private void SetGroup(DxfItem item, int code, string value, bool following)
         {
@@ -702,11 +703,30 @@ namespace GeometryHelper.Dxf
                 changed = true;
             }
 
-            for (int i = 1; following && i < records.Count; i++)
-            {
-                bool belongs = records[0].Type == "POLYLINE" || records[i].Type == "SEQEND";
+            bool polyline = records[0].Type == "POLYLINE";
 
-                if (belongs && WithGroup(records[i], code, value, false, out Rec next))
+            // A group of the look goes on every vertex, a colour but on a face record; a face is read only for a colour.
+            bool look = polyline && TakesLook(code, false);
+            bool colour = look && !TakesLook(code, true);
+
+            for (int i = 1; i < records.Count; i++)
+            {
+                Rec next;
+
+                if (look && records[i].Type == "VERTEX" && !(colour && IsFaceRecord(records[i])))
+                {
+                    if (WithGroup(records[i], code, value, true, out next))
+                    {
+                        records[i] = next;
+                        changed = true;
+                    }
+
+                    continue;
+                }
+
+                bool belongs = polyline || records[i].Type == "SEQEND";
+
+                if (following && belongs && WithGroup(records[i], code, value, false, out next))
                 {
                     records[i] = next;
                     changed = true;
@@ -1197,7 +1217,8 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                result.Add(Follower(written[r], owner, f => KeepSpaceAndLayer(f, head, pairs, data)));
+                KeyValuePair<string, List<DxfTypedValue>> follower = written[r];
+                result.Add(Follower(follower, owner, f => KeepSpaceAndLayer(f, head, pairs, data, follower.Key, IsFaceRecord(follower.Key, follower.Value))));
             }
 
             for (int r = 1; r < records.Count; r++)
@@ -1331,11 +1352,21 @@ namespace GeometryHelper.Dxf
             return b.Done(written.Key);
         }
 
-        /// <summary>The space (67) and the layer (8) of an entity's record, as it writes them, for a record that follows it.</summary>
-        private void KeepSpaceAndLayer(Builder b, Rec head, List<Pair> pairs, int data)
+        /// <summary>
+        /// The space (67) and the layer (8) of an entity's record, as it writes them, for a record that follows it; for a VERTEX
+        /// of a POLYLINE the rest of its look too, as <see cref="VertexLook"/> says.
+        /// </summary>
+        private void KeepSpaceAndLayer(Builder b, Rec head, List<Pair> pairs, int data, string type, bool face)
         {
-            foreach (int code in new[] { 67, 8 })
+            bool vertex = type == "VERTEX" && head.Type == "POLYLINE";
+
+            foreach (int code in vertex ? SpaceAndVertexLook : SpaceAndLayer)
             {
+                if (vertex && !TakesLook(code, face) && code != 67)
+                {
+                    continue;
+                }
+
                 bool braced = false;
 
                 for (int i = 1; i < data; i++)
@@ -1351,6 +1382,66 @@ namespace GeometryHelper.Dxf
                     }
                 }
             }
+        }
+
+        private static readonly int[] SpaceAndLayer = { 67, 8 };
+
+        /// <summary>
+        /// The groups of the look of a POLYLINE its vertices carry, in the order AutoCAD writes them: the layer, linetype,
+        /// colour, lineweight, linetype scale, visibility, true colour, colour book and transparency, which AutoCAD's setters
+        /// of a polyline set on its vertices as well (their <c>doSubents</c>), and whose difference AUDIT reports
+        /// (<c>AcDb2dVertex color != owner's</c>). A face record of a polyface mesh keeps a colour of its own.
+        /// </summary>
+        private static readonly int[] VertexLook = { 8, 6, 62, 370, 48, 60, 420, 430, 440 };
+
+        private static readonly int[] SpaceAndVertexLook = { 67, 8, 6, 62, 370, 48, 60, 420, 430, 440 };
+
+        /// <summary>Whether a VERTEX takes a group of its POLYLINE's look: every one of <see cref="VertexLook"/>, but the colour for a face record.</summary>
+        private static bool TakesLook(int code, bool face)
+            => Array.IndexOf(VertexLook, code) >= 0 && !(face && (code == 62 || code == 420 || code == 430));
+
+        /// <summary>Whether a VERTEX is the record of a face of a polyface mesh: flag 128 of its group 70 without 64.</summary>
+        private static bool IsFace(int flags) => (flags & 128) != 0 && (flags & 64) == 0;
+
+        /// <summary>Whether a record is a VERTEX that is the record of a face of a polyface mesh.</summary>
+        private bool IsFaceRecord(Rec record)
+        {
+            if (record.Type != "VERTEX")
+            {
+                return false;
+            }
+
+            List<Pair> pairs = PairsOf(record);
+            int data = DataAt(record, pairs);
+
+            for (int i = 1; i < data; i++)
+            {
+                if (pairs[i].Code == 70)
+                {
+                    return int.TryParse(Text(record, pairs[i]).Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int flags) && IsFace(flags);
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Whether the groups of a record that follows an entity make it the record of a face of a polyface mesh.</summary>
+        private static bool IsFaceRecord(string type, IEnumerable<DxfTypedValue> groups)
+        {
+            if (type != "VERTEX")
+            {
+                return false;
+            }
+
+            foreach (DxfTypedValue group in groups)
+            {
+                if (group.TypeCode == 70)
+                {
+                    return int.TryParse(group.Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int flags) && IsFace(flags);
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -1578,11 +1669,15 @@ namespace GeometryHelper.Dxf
                 b.Group(group.TypeCode, group.Value);
             }
 
-            var records = new List<Rec> { b.Done(type) };
+            Rec made = b.Done(type);
+            var records = new List<Rec> { made };
+            List<Pair> madePairs = PairsOf(made);
+            int madeData = DataAt(made, madePairs);
 
             for (int r = 1; r < written.Count; r++)
             {
-                records.Add(Follower(written[r], handle, f => f.Group(8, onLayer)));
+                KeyValuePair<string, List<DxfTypedValue>> follower = written[r];
+                records.Add(Follower(follower, handle, f => KeepSpaceAndLayer(f, made, madePairs, madeData, follower.Key, IsFaceRecord(follower.Key, follower.Value))));
             }
 
             var piece = new Piece(records);

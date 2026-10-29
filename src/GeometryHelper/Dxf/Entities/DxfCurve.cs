@@ -364,72 +364,98 @@ namespace GeometryHelper.Dxf
         /// arc, a circle and an ellipse the rational quadratic of a piece for each quarter turn or less, over their angles or
         /// parameters (a circle of radius 10 is 9 control points over 0 to 2 pi, at a quarter turn on the circle's point there,
         /// between such knots on the circle but not at the same angle); a polyline of the plane the same of its arcs and its
-        /// lines, each segment over one step of its parameter, or of degree 1 where it has no arc; a 3D polyline of degree 1 over
+        /// lines, each segment over one step of its parameter, or of degree 1 where it has no arc, but one fitted with a spline
+        /// the B-spline it is fitted with, as AutoCAD 2021 gives it: on its frame (the vertices of flag 16) as control points,
+        /// of degree 2 or 3 as its type says, its knots one step apart, clamped where it is open and periodic where it is closed,
+        /// which runs through the vertices drawn but not along the lines between them; a 3D polyline of degree 1 over
         /// its parameter; a spline its own data.
         /// </summary>
         /// <exception cref="NotSupportedException">Thrown for a ray or an xline, which run without end.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the curve has no shape the library reads, as a line of no length.</exception>
-        public virtual DxfSpline Spline
+        public virtual DxfSpline Spline => SplineOf(true);
+
+        /// <summary>
+        /// The spline that is exactly the curve as it is drawn: <see cref="Spline"/>, but for a polyline of the plane fitted with
+        /// a spline the spline of the vertices it is drawn through, which joining and projecting it keep.
+        /// </summary>
+        internal DxfSpline ExactSpline => this is DxfPolyline2d ? SplineOf(false) : Spline;
+
+        /// <summary>The spline of <see cref="Spline"/>; with <paramref name="frame"/> false, a spline-fitted polyline's of the vertices drawn.</summary>
+        private DxfSpline SplineOf(bool frame)
         {
-            get
+            var points = new List<GeoPoint3>();
+            var weights = new List<double>();
+            var knots = new List<double>();
+            int degree = 2;
+            bool closed = false;
+            bool periodic = false;
+
+            switch (this)
             {
-                var points = new List<GeoPoint3>();
-                var weights = new List<double>();
-                var knots = new List<double>();
-                int degree = 2;
-                bool closed = false;
+                case DxfLine line:
+                    degree = 1;
+                    points.Add(line.StartPoint);
+                    points.Add(line.EndPoint);
+                    knots.AddRange(new[] { 0.0, 0.0, line.Length, line.Length });
 
-                switch (this)
-                {
-                    case DxfLine line:
-                        degree = 1;
-                        points.Add(line.StartPoint);
-                        points.Add(line.EndPoint);
-                        knots.AddRange(new[] { 0.0, 0.0, line.Length, line.Length });
+                    if (!(line.Length > 0.0))
+                    {
+                        throw new InvalidOperationException("A line of no length has no spline.");
+                    }
 
-                        if (!(line.Length > 0.0))
-                        {
-                            throw new InvalidOperationException("A line of no length has no spline.");
-                        }
+                    break;
 
-                        break;
+                case DxfCircle circle:
+                    closed = true;
+                    DxfCurveTools.Conic(circle.Center, circle.GetPointAtParameter, 0.0, circle.EndParam, true, points, weights, knots);
+                    break;
 
-                    case DxfCircle circle:
-                        closed = true;
-                        DxfCurveTools.Conic(circle.Center, circle.GetPointAtParameter, 0.0, circle.EndParam, true, points, weights, knots);
-                        break;
+                case DxfArc arc:
+                    DxfCurveTools.Conic(arc.Center, arc.GetPointAtParameter, arc.StartParam, arc.EndParam, false, points, weights, knots);
+                    break;
 
-                    case DxfArc arc:
-                        DxfCurveTools.Conic(arc.Center, arc.GetPointAtParameter, arc.StartParam, arc.EndParam, false, points, weights, knots);
-                        break;
+                case DxfEllipse ellipse:
+                    closed = ellipse.Closed;
+                    DxfCurveTools.Conic(ellipse.Center, ellipse.GetPointAtParameter, ellipse.StartParam, ellipse.EndParam, closed, points, weights, knots);
+                    break;
 
-                    case DxfEllipse ellipse:
-                        closed = ellipse.Closed;
-                        DxfCurveTools.Conic(ellipse.Center, ellipse.GetPointAtParameter, ellipse.StartParam, ellipse.EndParam, closed, points, weights, knots);
-                        break;
+                case DxfPolyline polyline:
+                    closed = polyline.Closed;
+                    degree = Chain(polyline.Model(), closed, polyline.Normal, points, weights, knots);
+                    break;
 
-                    case DxfPolyline polyline:
-                        closed = polyline.Closed;
-                        degree = Chain(polyline.Model(), closed, polyline.Normal, points, weights, knots);
-                        break;
+                case DxfPolyline2d polyline when frame && polyline.SplineFrame() is List<GeoPoint3> fitted:
+                    // The B-spline on the frame it is fitted with, as AutoCAD 2021's Polyline2d.Spline gives it.
+                    closed = polyline.Closed;
+                    degree = DxfPolylineFit.Spline(fitted, polyline.PolyType == DxfPoly2dType.QuadSplinePoly ? 2 : 3, closed, out List<GeoPoint3> control, out List<double> uniform, out _, out _);
+                    GeoVector3 normal = polyline.Normal;
 
-                    case DxfPolyline2d polyline:
-                        closed = polyline.Closed;
-                        degree = Chain(polyline.Model(out _), closed, polyline.Normal, points, weights, knots);
-                        break;
+                    foreach (GeoPoint3 p in control)
+                    {
+                        points.Add(OcsToWorld(normal, p));
+                        weights.Add(1.0);
+                    }
 
-                    case DxfPolyline3d polyline:
-                        closed = polyline.Closed;
-                        degree = Chain(polyline.Model(out _), closed, null, points, weights, knots);
-                        break;
+                    knots.AddRange(uniform);
+                    periodic = closed;
+                    break;
 
-                    default:
-                        throw new NotSupportedException("A " + GetType().Name + " runs without end, and no spline is it.");
-                }
+                case DxfPolyline2d polyline:
+                    closed = polyline.Closed;
+                    degree = Chain(polyline.Model(out _), closed, polyline.Normal, points, weights, knots);
+                    break;
 
-                bool rational = weights.Exists(w => w != 1.0);
-                return new DxfSpline(degree, rational, closed, false, points, knots, rational ? weights : null, 1E-10, 1E-10);
+                case DxfPolyline3d polyline:
+                    closed = polyline.Closed;
+                    degree = Chain(polyline.Model(out _), closed, null, points, weights, knots);
+                    break;
+
+                default:
+                    throw new NotSupportedException("A " + GetType().Name + " runs without end, and no spline is it.");
             }
+
+            bool rational = weights.Exists(w => w != 1.0);
+            return new DxfSpline(degree, rational, closed, periodic, points, knots, rational ? weights : null, 1E-10, 1E-10);
         }
 
         /// <summary>
@@ -621,7 +647,7 @@ namespace GeometryHelper.Dxf
             }
 
             // A polyline with arcs onto a plane not its own: its arcs are parts of ellipses there, and it is the spline of them.
-            DxfSpline shape = Spline;
+            DxfSpline shape = ExactSpline;
             DxfNurbsData nurbs = shape.NurbsData;
             var points = new List<GeoPoint3>(nurbs.GetControlPoints().Count);
 

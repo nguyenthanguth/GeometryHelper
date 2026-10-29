@@ -428,7 +428,8 @@ namespace GeometryHelper.Dxf
         public void Remove(DxfDBObject value) => Remove(NameAt(value));
 
         /// <summary>
-        /// Renames an entry, as AutoCAD's <c>SetName</c>; nothing where the name is the one it has.
+        /// Renames an entry, as AutoCAD's <c>SetName</c>; nothing where the name is the one it has. An anonymous group given a
+        /// name that does not begin with <c>*</c> is anonymous no longer (group 70 of 0), as <see cref="DxfGroup.Name"/> makes it.
         /// </summary>
         /// <param name="oldName">The entry's name, letters of either case the same.</param>
         /// <param name="newName">Its new name.</param>
@@ -463,6 +464,12 @@ namespace GeometryHelper.Dxf
             Resident();
             entries[at] = new Entry(newName, entries[at].Handle, entries[at].Code);
             Write(entries);
+
+            // An anonymous group given a name is anonymous no longer, as DxfGroup.Name makes it.
+            if (!newName.StartsWith("*", StringComparison.Ordinal) && ObjectOf(entries[at].Handle) is DxfGroup group)
+            {
+                group.Named();
+            }
         }
 
         /// <summary>Gets an enumerator over the entries, in the order of the record.</summary>

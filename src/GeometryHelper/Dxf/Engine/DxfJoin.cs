@@ -1207,7 +1207,7 @@ namespace GeometryHelper.Dxf
 
             try
             {
-                DxfSpline spline = curve as DxfSpline ?? curve.Spline;
+                DxfSpline spline = curve as DxfSpline ?? curve.ExactSpline;
                 spline.Clamped(out int degree, out List<double> knots, out List<double[]> points);
                 piece = new Nurbs(degree, knots, points);
                 return null;

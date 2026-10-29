@@ -139,7 +139,9 @@ namespace GeometryHelper.Dxf
         /// Set, as AutoCAD sets it and ezdxf's <c>set_mtext</c> writes it: the MTEXT's own groups embedded after a 101, those
         /// AutoCAD always writes put in where it has none (its location, height 2.5, width and box height nought, held at its top
         /// left, flowing by its style, the style Standard, single spacing at least); the text's part made to agree, its value
-        /// the first line of the words, its two points the MTEXT's location, its rotation the MTEXT's direction, its
+        /// the words of every line joined by spaces, as AutoCAD 2021 writes it (three lines <c>LINE ONE</c>, <c>LINE TWO</c> and
+        /// <c>LINE THREE</c> give <c>LINE ONE LINE TWO LINE THREE</c>, where ezdxf writes the first line), its two points the
+        /// MTEXT's location, its rotation the MTEXT's direction, its
         /// justification the MTEXT's attachment, its style and height the MTEXT's, its width factor, lean and mirroring taken
         /// out; its type (71) 2, of several lines. The attribute keeps its own look. The MTEXT it is made of, given back,
         /// changes nothing, and so does null given to an attribute of one line, which reads null.
@@ -171,7 +173,8 @@ namespace GeometryHelper.Dxf
         /// lock, and its look, then placed by the transformation that places the block, an INSERT's
         /// <see cref="DxfBlockReference.BlockTransform"/>. Its prompt is not an attribute's and is left out. A definition of
         /// several lines gives its embedded MTEXT and makes the attribute one of several lines, its type (71) 2 where the
-        /// definition's is 4, as ezdxf writes them.
+        /// definition's is 4, as ezdxf writes them, its value the words of every line of that MTEXT joined by spaces, as
+        /// AutoCAD 2021 writes it.
         /// </summary>
         /// <param name="definition">The definition, of the block the INSERT places.</param>
         /// <param name="blockTransform">The transformation that places the block.</param>
@@ -228,6 +231,15 @@ namespace GeometryHelper.Dxf
                 {
                     locked = group.Value;
                 }
+            }
+
+            // A definition of several lines gives the words of every line, joined by spaces, as AutoCAD 2021 writes the ATTRIB.
+            DxfMText lines = definition.MTextAttributeDefinition;
+            int value = run.FindIndex(g => g.Key == 1);
+
+            if (lines != null && value >= 0 && lines.Text.Length > 0)
+            {
+                run[value] = new KeyValuePair<int, string>(1, ValueOfLines(lines.Text));
             }
 
             if (markers)

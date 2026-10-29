@@ -92,7 +92,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfLeader splined = ByHandle<DxfLeader>(db, "B2");
             Assert.Equal(Bits(new GeoPoint3(600, 0, 0)), Bits(splined.StartPoint));
-            Assert.True(splined.GetPointAtParameter(1.0).IsEqualTo(splined.LastVertex, Tol));
+            Assert.True(splined.GetPointAtParameter(splined.EndParam).IsEqualTo(splined.LastVertex, Tol));
             Assert.Equal(3, splined.Spline.NurbsData.Degree);
         }
 
