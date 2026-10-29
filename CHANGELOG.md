@@ -6,6 +6,35 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The booleans of two curved bodies faceted at different stations, and `VolumeTakeoff` of them, no longer
+run for minutes. A body was cut into cells by each plane of the other wherever the plane ran, and every plane of a
+curved body crosses another curved along the same turn at many places: a spiral ramp 7 600 wide and 300 thick in 32
+facets over half a turn and a spiral girder 600 by 500 in 38, lying 100 into the ramp's outer edge, had the girder cut
+into 36 509 cells for their common part. Once a body is in more than 4 096 cells, and where both bodies close, a plane
+now cuts a cell only where the cell's box comes within the tolerance of the box of the faces lying on that plane, which
+is as far as a face of the other body can reach, and the girder is cut into 5 015. Faceted 56 and 66 times, as a Tekla
+model facets such a pair, the girder was cut into 263 911 cells and their common part took 42 seconds on .NET 10 and 91
+on .NET Framework 4.8; it is cut into 18 345 and takes 2.5 and 3.3, and the take-off of the two, which took 41 and 90
+seconds, takes 1.2 and 3.0. Both give the 65 400 402.028 cubic millimetres slicing gives, as they did. The take-off's
+test of near-coincident pairs does not send such a pair to slicing: their faces cross at small angles rather than
+standing beside each other.
+
+Up to 4 096 cells every plane cuts every cell it crosses, as before, and the booleans of bodies cut into no more give
+what they gave, to the bit: 17 452 booleans of cracked cubes and openings, 72 000 of U bodies and boxes, 24 000 volumes
+of cracked cubes with openings, 32 400 booleans of a cube and boxes half a tolerance to two tolerances into, onto or
+beside it, 600 plates with twelve blind holes cut in at once and 400 bands; and 12 800 joins and cuts of a column and a
+beam fail or fall out of their bounds in the same cases by the same amounts. Booleans of plain bodies take the time
+they took: whether both bodies close, and their openings, is asked only once a body passes 4 096 cells.
+
+A difference or a union whose one body, cut only where the planes reach, came out open, and sealed did not add up
+against the two and their common part, is not taken in the end all the same, welded closed, where the cells of both
+bodies cut by every plane of both have a cell judged apart; what is taken instead is checked the same way, and the
+boolean is not worked out where it does not add up. A spiral ramp 7 600 wide in 56 facets less a spiral girder in 66
+lying 100 into its outer edge, the girder's top 0.002 over the ramp's floor, worked out within a hundredth so, came out
+35 554.6 cubic millimetres short, an eighth of the 263 740.0 the two share; it is not worked out, and the take-off
+slices it. Made within the fallback, a result is held to the fallback times the area of the common part: the same two
+with the girder's top 0.0005 over the floor leave 7 170.1 less than slicing, within the 36 000 a hundredth allows.
+
 **CHANGED.** `IsClosed` reads a body as `Validate` reads it, the edges matched along a line within the point tolerance,
 so that the two agree on every body but a speck. `IsClosed` matched the ends of the edges first, each to the first
 corner seen within the tolerance of it, and made one of two corners 0.0015 apart where a corner lay between them: a

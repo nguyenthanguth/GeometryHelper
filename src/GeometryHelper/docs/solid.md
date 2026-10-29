@@ -1309,6 +1309,21 @@ near it, and of its own openings — and the one it cuts is the one fewer planes
 planes of its own bend as well came apart into thousands of cells, since every plane of a bend runs on
 through the rest of the bar; cut by a beam's handful, it is a few.
 
+Once a body has come apart into more than 4 096 cells, each plane cuts it only where the plane's faces are: a cell is
+cut by a plane only where the cell's box comes within the tolerance of the box of the faces lying on that plane. A face
+of the other body has to come that near a cell to cross it, so the cells are still each wholly inside or wholly
+outside the other. Up to 4 096 cells every plane cuts every cell it crosses, as it always did, and what the booleans
+give is as it was. Two spiral beams faceted at different stations show what that saves: a ramp 7 600 wide and 300
+thick in 32 facets over half a turn, and a girder 600 by 500 in 38 lying 100 into its outer edge. Every plane of the
+ramp crosses the girder at many places along the turn, and cut by each wherever it ran, the girder came apart into
+36 509 cells for their common part; it makes 5 015 now, and the common part holds the same 64 239 944.184 cubic
+millimetres. Faceted 56 and 66 times, as a Tekla model facets such a pair, the girder made 263 911 cells and the common
+part took 42 seconds on .NET 10 and 91 on .NET Framework 4.8; it makes 18 345 and takes 2.5 and 3.3. Where either body
+or any of their openings does not close, there is no inside for a cell to lie in, and every plane cuts every cell,
+however many. A difference or a union whose one body, cut so, came out open and did not add up sealed is not taken
+welded closed in the end all the same; what is taken instead is checked, and the boolean is not worked out where that
+does not add up either.
+
 **What comes back closes within the default tolerance.** Two faces of a result meeting on an edge each have it
 where their own planes put it. Where a plane of one body passes within the tolerance of a face of the other, the
 two copies stand a few hundredths apart: closed within the tolerance the boolean was given, open read within a

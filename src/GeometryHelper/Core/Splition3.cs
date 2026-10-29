@@ -2919,42 +2919,57 @@ namespace GeometryHelper.Core
         {
             List<GeoPlane3> planes = new List<GeoPlane3>();
 
-            CollectFacePlanes(solid, solid.GetAabb(), tolerance, planes);
+            CollectFacePlanes(solid, solid.GetAabb(), tolerance, planes, null);
 
             return planes;
         }
 
         /// <summary>
         /// Adds the face planes of a body and of its openings to a running list, those not one plane over a region with a
-        /// plane in it already.
+        /// plane in it already, and where a list of reaches is given, the box of each face to the reach of its plane; see
+        /// <see cref="AddPlane"/>.
         /// </summary>
-        internal static void CollectFacePlanes(GeoSolid3 solid, GeoAabb3 region, Tolerance tolerance, List<GeoPlane3> planes)
+        internal static void CollectFacePlanes(GeoSolid3 solid, GeoAabb3 region, Tolerance tolerance, List<GeoPlane3> planes, List<GeoAabb3> reach)
         {
             foreach (GeoFace3 face in solid.Faces)
             {
-                AddPlane(face.GetPlane(), region, tolerance, planes);
+                AddPlane(face, region, tolerance, planes, reach);
             }
 
             foreach (GeoSolid3 opening in solid.Openings)
             {
-                CollectFacePlanes(opening, region, tolerance, planes);
+                CollectFacePlanes(opening, region, tolerance, planes, reach);
             }
         }
 
         /// <summary>
-        /// Adds a plane to a list unless one in it already is one plane with it over a region.
+        /// Adds the plane of a face to a list unless one in it already is one plane with it over a region, and where a list
+        /// of reaches is given, the face's box to the reach of the plane it is taken for: the box of every face lying on it.
         /// </summary>
-        internal static void AddPlane(GeoPlane3 plane, GeoAabb3 region, Tolerance tolerance, List<GeoPlane3> planes)
+        /// <param name="face">The face.</param>
+        /// <param name="region">The region over which two planes are one; see <see cref="IsOnePlaneOver"/>.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="planes">The planes collected so far.</param>
+        /// <param name="reach">The reach of each plane in <paramref name="planes"/>, in its order; null where it is not wanted.</param>
+        internal static void AddPlane(GeoFace3 face, GeoAabb3 region, Tolerance tolerance, List<GeoPlane3> planes, List<GeoAabb3> reach)
         {
-            foreach (GeoPlane3 existing in planes)
+            GeoPlane3 plane = face.GetPlane();
+
+            for (int i = 0; i < planes.Count; i++)
             {
-                if (IsOnePlaneOver(existing, plane, region, tolerance))
+                if (IsOnePlaneOver(planes[i], plane, region, tolerance))
                 {
+                    if (reach != null)
+                    {
+                        reach[i] = reach[i].Union(face.GetAabb());
+                    }
+
                     return;
                 }
             }
 
             planes.Add(plane);
+            reach?.Add(face.GetAabb());
         }
 
         /// <summary>

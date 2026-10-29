@@ -96,6 +96,13 @@ though not parallel within the vector tolerance, every corner of the keeper's fa
 plane and further from it than the point tolerance, the pair goes straight to slicing. The curved wall and girder have
 383 such pairs; of the other 51 208 pairs of the model the most any has is 86, and the booleans make every one of them.
 
+Two curved parts faceted at different stations are not near-coincident: their faces cross each other at small angles
+rather than standing beside each other, and the booleans make them. A spiral ramp 7 600 wide and 300 thick in 56 facets
+over half a turn, and a spiral girder 600 by 500 in 66 lying 100 into its outer edge, ranked under it, are taken off in
+1.2 seconds on .NET 10 and 3.0 on .NET Framework 4.8, the girder losing the 65 400 402.028 cubic millimetres slicing
+gives. The booleans used to cut the girder by each plane of the ramp wherever it ran, into hundreds of thousands of
+cells, not only where its faces are (see [space](solid.md#combining-bodies)), and took 41 and 90 seconds over it.
+
 ## On a real model
 
 A Tekla Structures model of 30 921 parts, read closed, ranked columns 8, walls 7, girders and beams 6, slabs 5, stairs
