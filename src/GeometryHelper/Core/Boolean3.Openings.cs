@@ -59,8 +59,13 @@ namespace GeometryHelper.Core
         /// it, as a boolean's is, or not given. Where cutting the openings in at once leaves it open, it is welded within the
         /// tolerance, and where that does not close it the openings are taken out one at a time by a difference, which tries
         /// more ways of cutting and keeps only what closes; where one will not come out so, or what they leave is not valid as
-        /// <c>Validate</c> reads it, wound two ways where the differences met, the method returns false. They are
-        /// taken out so too where a plane of an opening runs through the body and will not cut it, leaving a piece part in the
+        /// <c>Validate</c> reads it, wound two ways where the differences met, the method returns false. Each difference reads
+        /// a corner as on a plane within the planar tolerance and the rounding of the coordinates, a trillionth of their size,
+        /// as cutting them in at once does: within the tolerance alone, a plate 300 by 200 by 12, turned and far from the
+        /// origin, with twelve holes ending 0.01 under its top to within a millionth, cut within a hundredth, came out valid
+        /// and 130.70 cubic millimetres short of the plate less every hole through; it holds 666 668.11, within what its
+        /// skins can leave. They are taken out so too where a plane of an opening runs through the body and will not cut
+        /// it, leaving a piece part in the
         /// opening and part out of it, which cut in at once would be kept or dropped whole. A plate 300 by 200 by 12 with two
         /// blind holes ending 0.015 under its top, turned and far from the origin, came out of the cut within a hundredth open
         /// by four edges 0.015 long; the holes are taken out one at a time, and it closes, holding 711 120.61 as
@@ -277,19 +282,24 @@ namespace GeometryHelper.Core
         /// <param name="material">The body less the opening; null when the method returns false.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="failure">What was thrown where the cut could not be worked out; null otherwise.</param>
+        /// <param name="onPlaneWithinRounding">
+        /// Whether the difference reads a corner as on a plane within the planar tolerance and the rounding of the body's
+        /// coordinates, as the cut of openings does (see <see cref="Splition3.OnPlaneWithinRounding"/>); see
+        /// <see cref="TakeOutOneAtATime"/>.
+        /// </param>
         /// <returns>true when some material is left; false when the opening takes all of it, or the cut cannot be worked out.</returns>
         /// <remarks>
         /// The way back where cutting every opening in at once cannot be worked out or leaves the material open: a
         /// difference tries more ways of cutting and keeps the one that closes, and an opening that will not come out
         /// keeps none of the others in.
         /// </remarks>
-        internal static bool TryTakeOut(GeoSolid3 body, GeoSolid3 opening, out GeoSolid3 material, Tolerance tolerance, out Exception failure)
+        internal static bool TryTakeOut(GeoSolid3 body, GeoSolid3 opening, out GeoSolid3 material, Tolerance tolerance, out Exception failure, bool onPlaneWithinRounding = false)
         {
             failure = null;
 
             try
             {
-                if (TakeAway(body, opening, out material, tolerance, out string unworkable))
+                if (TakeAway(body, opening, out material, tolerance, out string unworkable, out _, null, onPlaneWithinRounding))
                 {
                     return true;
                 }
@@ -1056,13 +1066,22 @@ namespace GeometryHelper.Core
         /// valid as <see cref="GeoSolid3.Validate(Tolerance)"/> reads it.
         /// </returns>
         /// <remarks>
-        /// Each difference comes out closed, and a difference does not read a corner within the rounding of the coordinates of
-        /// a plane as on it, as the cut of openings does: a plate 300 by 200 by 12, turned and far from the origin, less a hole
-        /// 22 across whose floor lay 0.001 under its top to 2E-15, within a thousandth, had its sides cut along a line falling
-        /// from the top to the floor across the plate, each face within the tolerance of where it belongs. With twelve such
-        /// holes, one of them 1.8E-7 deeper, the twelve differences came out wound two ways at the top, which <c>Validate</c>
-        /// reads as not valid, holding 666 653.98 where its material holds 666 657.36, and were handed back as the material;
-        /// they are refused.
+        /// Each difference comes out closed, and reads a corner as on a plane within the planar tolerance and the rounding of
+        /// the coordinates besides, a trillionth of their size, as the cut of openings does (see
+        /// <see cref="Splition3.OnPlaneWithinRounding"/>), all through: its cells, its faces and what it closes. Within the
+        /// tolerance alone, a plate 300 by 200 by 12, turned and far from the origin, less a hole 22 across whose floor lay
+        /// 0.001 under its top to 2E-15, within a thousandth, had its sides cut along a line falling from the top to the floor
+        /// across the plate, each face within the tolerance of where it belongs. With twelve such holes, one of them 1.8E-7
+        /// deeper, the twelve differences came out wound two ways at the top, which <c>Validate</c> reads as not valid,
+        /// holding 666 653.98; they hold 666 657.36, eleven holes through and one under a skin 0.0010002 thick. With twelve
+        /// 0.01 under to within a millionth, cut within a hundredth, a plate came out valid and 130.70 cubic millimetres short
+        /// of the plate less every hole through; it holds 666 668.11, within what its skins can leave. Read so where it parts
+        /// the cells only, the difference reads the rest otherwise: of 600 such plates cut so, 4 that are right came out
+        /// wrong and 10 were refused. With the point tolerance widened by the rounding too, a cube 10 across, cracked, less a
+        /// box, cut within a hundredth, came back 0.32 cubic millimetres short where it is exact. A difference read so that
+        /// will not come out is worked out within the tolerance alone, as it was: a plate with twelve boxes hidden 0.001
+        /// inside its faces, near the origin, had one that came out open whichever way it was cut, and was refused; taken
+        /// out so, it holds what its skins can leave. What the differences leave is still refused where it is not valid.
         /// </remarks>
         private static bool TakeOutOneAtATime(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, string why, ref GeoSolid3 material, Tolerance tolerance, bool withinRounding, out Exception failure)
         {
@@ -1072,7 +1091,11 @@ namespace GeometryHelper.Core
 
             foreach (GeoSolid3 opening in openings)
             {
-                if (withinRounding ? TryCutIn(remaining, opening, out GeoSolid3 left, tolerance, out Exception failed) : TryTakeOut(remaining, opening, out left, tolerance, out failed))
+                // A difference read within the rounding that will not come out is worked out within the tolerance alone.
+                if (withinRounding
+                    ? TryCutIn(remaining, opening, out GeoSolid3 left, tolerance, out Exception failed)
+                    : TryTakeOut(remaining, opening, out left, tolerance, out failed, true)
+                        || (failed != null && TryTakeOut(remaining, opening, out left, tolerance, out failed)))
                 {
                     remaining = left;
                 }

@@ -281,9 +281,14 @@ the openings in at once leaves a crack, it is welded within the tolerance, and w
 openings are taken out one at a time by a difference. A plate 300 by 200 by 12 with twelve blind holes ending 0.011
 under its top, turned and far from the origin, came back open at a hundredth for 15 of 30 turnings; every one closes
 now, within 0.03 cubic millimetres of what `GetVolume` measures. What the differences leave is refused where
-`Validate` reads it as not valid: with the twelve holes ending the tolerance under its top, to a few bits, a plate cut
-within a thousandth came back wound two ways at its top and was handed back as its material; the cut returns false.
-`Triangulate` still
+`Validate` reads it as not valid, and each reads a corner as on a plane within the planar tolerance and the rounding
+of the coordinates, a trillionth of their size, as cutting in at once does. Read within the tolerance alone, with the
+twelve holes ending the tolerance under its top, to a few bits, a plate cut within a thousandth came back wound two
+ways at its top and was handed back as its material; it holds 666 657.36 now, eleven holes through and one under a
+skin 0.0010002 thick. Of 600 such plates, their holes through, flush with the faces, blind, near an edge, or boxes
+hidden inside, cut at 1E-3 and 1E-2, 17 came back valid and as much as 157 cubic millimetres off and 16 were refused;
+every one of them now holds what its skins can leave. A difference read so that will not come out is worked out
+within the tolerance alone, as before. `Triangulate` still
 meshes the faces as they are; `TriangulateSurface` is the mesh to read as the boundary.
 
 A triangle of the surface mesh is left out only when its corners lie on a line within a millionth of the point

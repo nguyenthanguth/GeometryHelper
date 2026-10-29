@@ -6,6 +6,24 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `TryCutOpenings` no longer hands back a plate whose openings end the tolerance inside a face, to a few
+bits, valid and hundreds of cubic millimetres short. Where cutting the openings in together leaves the material open
+and a weld does not close it, they are taken out one at a time by differences, and a difference read a corner as on a
+plane within the planar tolerance alone, not within the rounding of the coordinates besides, a trillionth of their
+size, as the cut of openings does, so that the faces of a hole whose floor lay the tolerance under the top sloped
+across the plate. A plate 300 by 200 by 12, turned and far from the origin, with twelve holes ending 0.01 under its
+top to within a millionth, cut within a hundredth, came back valid and 130.70 cubic millimetres short of the plate less
+every hole through; the differences now read a corner so all through, and it holds 666 668.11, within what its skins
+can leave. With the holes 0.001 under, cut within a thousandth, the plate refused for coming back wound two ways holds
+666 657.36. A difference that will not come out so is worked out within the tolerance alone, as before: a plate with
+twelve boxes hidden 0.001 inside its faces, near the origin, refused either way, holds what its skins can leave. Of 600
+such plates, their holes through, flush with the faces, blind, near an edge, or boxes hidden inside, cut at 1E-3 and
+1E-2, 17 came back valid and as much as 157 cubic millimetres off and 16 were refused, and each now holds what its
+skins can leave; 69 that were right are cut otherwise and stay right, and no other moves. Every union, difference and
+common part of the corpora is the same to the bit, and so are `GetVolume`, `TryGetVolume` and `GetSurfaceArea`, and
+`TryCutOpenings` of 24 000 cracked cubes with openings and of 4 800 less two boxes set off from each other. The 600
+plates take 61 seconds where they took 74. 5 tests, 4 of them new.
+
 **FIXED.** `TryCutOpenings` no longer hands back material that `Validate` reads as not valid where its openings were
 taken out one at a time. Where cutting them in together leaves the material open and a weld does not close it, each
 opening is taken out by a difference, and each difference comes out closed; but a difference does not read a corner
@@ -13,7 +31,8 @@ within the rounding of the coordinates of a plane as on it, as the cut of openin
 turned and far from the origin, less a hole 22 across whose floor lay 0.001 under its top to 2E-15, within a
 thousandth, had its sides cut along a line falling from the top to the floor across the plate. With twelve such holes,
 one of them 1.8E-7 deeper, the twelve differences came out wound two ways at the top, holding 666 653.98 where the
-material holds 666 657.36, and the cut returned true; it returns false, logged, in the 0.42 seconds it took. Of 600
+material holds 666 657.36, and the cut returned true; what the differences leave is checked now, and where it is not
+valid the cut returns false, logged (that plate is cut valid now, as the entry above says). Of 600
 such plates, their holes through, flush with the faces, blind, near an edge, or boxes hidden inside, cut at 1E-3 and
 1E-2, that plate alone changes. Of 24 000 cubes 10 across, cracked, with one or two openings, `TryCutOpenings` refuses
 one it cut not valid within a hundredth, though of the right volume, and cuts the rest to the bit as it did; their

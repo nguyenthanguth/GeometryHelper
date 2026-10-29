@@ -722,7 +722,7 @@ namespace GeometryHelper.Core
         private static bool TakeAway(GeoSolid3 subject, GeoSolid3 tool, out GeoSolid3 result, Tolerance tolerance, out string unworkable)
             => TakeAway(subject, tool, out result, tolerance, out unworkable, out _);
 
-        private static bool TakeAway(GeoSolid3 subject, GeoSolid3 tool, out GeoSolid3 result, Tolerance tolerance, out string unworkable, out GeoSolid3 open, OpenPath path = null)
+        private static bool TakeAway(GeoSolid3 subject, GeoSolid3 tool, out GeoSolid3 result, Tolerance tolerance, out string unworkable, out GeoSolid3 open, OpenPath path = null, bool onPlaneWithinRounding = false)
         {
             result = null;
             unworkable = null;
@@ -737,6 +737,14 @@ namespace GeometryHelper.Core
 
             GeoSolid3 given = subject;
             tolerance = ForWork(tolerance);
+
+            // Taking an opening out one at a time, a corner is read as on a plane where the cut of openings reads it so, all
+            // through the difference; see TakeOutOneAtATime.
+            if (onPlaneWithinRounding)
+            {
+                tolerance = Splition3.OnPlaneWithinRounding(subject, tolerance);
+            }
+
             subject = FlatForWork(subject, tolerance);
             tool = FlatForWork(tool, tolerance);
 

@@ -1410,10 +1410,11 @@ namespace GeometryHelper.Core
         /// a plane 0.0010000000000000009 inside its floor, an opening's, read every corner of the floor beyond the plane, and
         /// cut its sides into strips that lost a corner, so that the slab beneath the plane came out open, and the body with
         /// its opening cut 7.66 cubic millimetres short. A trillionth of the size of the coordinates is far beyond the
-        /// rounding and far within any tolerance. Only the cutting of openings reads a corner so. The cells of a boolean cut
-        /// so read a slab exactly the tolerance thick, in or beside a turned body, as on the plane at some corners and off it
-        /// at others: of 2 700 unions, differences and intersections of such slabs and chips with a cube turned at random,
-        /// six that were valid came out open or wound two ways.
+        /// rounding and far within any tolerance. Only the cutting of openings reads a corner so, and the differences that
+        /// take them out one at a time where it gives no material to trust, all through (see Boolean3.TakeOutOneAtATime). The
+        /// cells of a boolean cut so read a slab exactly the tolerance thick, in or beside a turned body, as on the plane at
+        /// some corners and off it at others: of 2 700 unions, differences and intersections of such slabs and chips with a
+        /// cube turned at random, six that were valid came out open or wound two ways.
         /// </remarks>
         internal static Tolerance OnPlaneWithinRounding(GeoSolid3 solid, Tolerance tolerance)
             => new Tolerance(tolerance.EqualPoint, tolerance.EqualVector, tolerance.EqualAngleRad, tolerance.EqualPlanar + Rounding(solid));
