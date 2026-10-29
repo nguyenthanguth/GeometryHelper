@@ -628,7 +628,10 @@ namespace GeometryHelper.Geometry
         /// The openings are cut in at once; where that leaves the material open it is welded within the tolerance, or
         /// failing that the openings are taken out one at a time by a difference. They are taken out so too where a plane of
         /// an opening runs through the body and will not cut it, leaving a piece part in the opening and part out of it,
-        /// which cut in at once would be kept or dropped whole. At a tolerance at or above the rounding of the coordinates, a
+        /// which cut in at once would be kept or dropped whole. What the differences leave is refused where it is not valid:
+        /// a plate 300 by 200 by 12 with twelve blind holes ending the tolerance under its top, to a few bits, turned and far
+        /// from the origin, came back wound two ways at its top within a thousandth, and the method returned true; it returns
+        /// false. At a tolerance at or above the rounding of the coordinates, a
         /// welded cut can hold a little more or less than <see cref="GetVolume(Tolerance)"/> measures, no more than the
         /// tolerance times the area of the openings: a plate 300 by 200 by 12 with twelve blind holes ending 0.011 under
         /// its top, turned and far from the origin, cut within a hundredth, holds 0.028 cubic millimetres more.

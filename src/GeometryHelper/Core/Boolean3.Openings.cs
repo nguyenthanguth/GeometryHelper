@@ -58,7 +58,8 @@ namespace GeometryHelper.Core
         /// The material of a closed body with closed openings is closed as <see cref="GeoSolid3.Validate(Tolerance)"/> reads
         /// it, as a boolean's is, or not given. Where cutting the openings in at once leaves it open, it is welded within the
         /// tolerance, and where that does not close it the openings are taken out one at a time by a difference, which tries
-        /// more ways of cutting and keeps only what closes; where one will not come out so, the method returns false. They are
+        /// more ways of cutting and keeps only what closes; where one will not come out so, or what they leave is not valid as
+        /// <c>Validate</c> reads it, wound two ways where the differences met, the method returns false. They are
         /// taken out so too where a plane of an opening runs through the body and will not cut it, leaving a piece part in the
         /// opening and part out of it, which cut in at once would be kept or dropped whole. A plate 300 by 200 by 12 with two
         /// blind holes ending 0.015 under its top, turned and far from the origin, came out of the cut within a hundredth open
@@ -1050,7 +1051,19 @@ namespace GeometryHelper.Core
         /// be trusted (see <see cref="TryCutIn"/>).
         /// </param>
         /// <param name="failure">Why no material could be had; null where none was wanted.</param>
-        /// <returns>false where the openings take all of the body, or one could not be taken out closed.</returns>
+        /// <returns>
+        /// false where the openings take all of the body, or one could not be taken out closed, or what they leave is not
+        /// valid as <see cref="GeoSolid3.Validate(Tolerance)"/> reads it.
+        /// </returns>
+        /// <remarks>
+        /// Each difference comes out closed, and a difference does not read a corner within the rounding of the coordinates of
+        /// a plane as on it, as the cut of openings does: a plate 300 by 200 by 12, turned and far from the origin, less a hole
+        /// 22 across whose floor lay 0.001 under its top to 2E-15, within a thousandth, had its sides cut along a line falling
+        /// from the top to the floor across the plate, each face within the tolerance of where it belongs. With twelve such
+        /// holes, one of them 1.8E-7 deeper, the twelve differences came out wound two ways at the top, which <c>Validate</c>
+        /// reads as not valid, holding 666 653.98 where its material holds 666 657.36, and were handed back as the material;
+        /// they are refused.
+        /// </remarks>
         private static bool TakeOutOneAtATime(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, string why, ref GeoSolid3 material, Tolerance tolerance, bool withinRounding, out Exception failure)
         {
             failure = null;
@@ -1075,6 +1088,15 @@ namespace GeometryHelper.Core
                     material = null;
                     return false;
                 }
+            }
+
+            // Each difference comes out closed, and the chain of them can still come out wound two ways; see the remarks. Cut in
+            // at once within the rounding, the material is as it was.
+            if (!withinRounding && !remaining.ValidateForWork(ForWork(tolerance)).IsValid)
+            {
+                failure = new InvalidOperationException(why + ", and taken out one at a time the openings left it not valid.");
+                material = null;
+                return false;
             }
 
             material = remaining;

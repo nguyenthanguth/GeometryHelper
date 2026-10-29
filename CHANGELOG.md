@@ -6,6 +6,20 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `TryCutOpenings` no longer hands back material that `Validate` reads as not valid where its openings were
+taken out one at a time. Where cutting them in together leaves the material open and a weld does not close it, each
+opening is taken out by a difference, and each difference comes out closed; but a difference does not read a corner
+within the rounding of the coordinates of a plane as on it, as the cut of openings does, and a plate 300 by 200 by 12,
+turned and far from the origin, less a hole 22 across whose floor lay 0.001 under its top to 2E-15, within a
+thousandth, had its sides cut along a line falling from the top to the floor across the plate. With twelve such holes,
+one of them 1.8E-7 deeper, the twelve differences came out wound two ways at the top, holding 666 653.98 where the
+material holds 666 657.36, and the cut returned true; it returns false, logged, in the 0.42 seconds it took. Of 600
+such plates, their holes through, flush with the faces, blind, near an edge, or boxes hidden inside, cut at 1E-3 and
+1E-2, that plate alone changes. Of 24 000 cubes 10 across, cracked, with one or two openings, `TryCutOpenings` refuses
+one it cut not valid within a hundredth, though of the right volume, and cuts the rest to the bit as it did; their
+`GetVolume`, `TryGetVolume` and `GetSurfaceArea`, and every boolean of the corpora, are the same to the bit. The 600
+plates take 82 seconds where they took 80. 1 new test.
+
 **FIXED.** `Offset2.Offset` of a `GeoPolygonArc2` that crosses itself, grown or shrunk with miters or chamfers, reads a
 crossing the tolerance does not tell from what lies beside it within a finer step; so does `GeoPolygonArc3.Offset`,
 which miters. A corner of the loop within the tolerance of a crossing turns the tip of the region there by its own

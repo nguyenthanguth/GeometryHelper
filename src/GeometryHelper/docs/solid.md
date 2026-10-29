@@ -280,7 +280,10 @@ body with closed openings comes back closed as `Validate` reads it, as a boolean
 the openings in at once leaves a crack, it is welded within the tolerance, and where that does not close it the
 openings are taken out one at a time by a difference. A plate 300 by 200 by 12 with twelve blind holes ending 0.011
 under its top, turned and far from the origin, came back open at a hundredth for 15 of 30 turnings; every one closes
-now, within 0.03 cubic millimetres of what `GetVolume` measures. `Triangulate` still
+now, within 0.03 cubic millimetres of what `GetVolume` measures. What the differences leave is refused where
+`Validate` reads it as not valid: with the twelve holes ending the tolerance under its top, to a few bits, a plate cut
+within a thousandth came back wound two ways at its top and was handed back as its material; the cut returns false.
+`Triangulate` still
 meshes the faces as they are; `TriangulateSurface` is the mesh to read as the boundary.
 
 A triangle of the surface mesh is left out only when its corners lie on a line within a millionth of the point
