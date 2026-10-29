@@ -307,7 +307,8 @@ namespace GeometryHelper.Core
 
             // All of the first body, and only the part of the second that reaches beyond it: the shared
             // region belongs to the union once, and it is already carried by the first.
-            List<GeoSolid3> firstCells = SplitIntoCells(first, planes, tolerance);
+            var firstStuck = new List<GeoPlane3>();
+            List<GeoSolid3> firstCells = SplitIntoCells(first, planes, tolerance, out bool firstClean, firstStuck);
             kept.AddRange(FacesOfCells(firstCells, first, tolerance, owners));
 
             var stuck = new List<GeoPlane3>();
@@ -318,6 +319,34 @@ namespace GeometryHelper.Core
             if (!GlueOrKeep(kept, owners, openCut, misjudged, tolerance, out result))
             {
                 return false;
+            }
+
+            // A cell of the second judged apart across a plane, with no open result to check it by, is checked by the union
+            // cut the other way round, the second whole and the cells of the first beyond it: a cracked U and a cracked box
+            // standing over its notch, the box's cells judged so by the U's planes, counted the 15.31 the two share twice.
+            // Judged so that way too, both ways can count the same part twice, and the union is no answer: a box dipping
+            // 0.088 into an arm of a cracked U, the U's cells judged so by the box's planes and the box's by the U's, held
+            // 3 145.93 joined to the U either way where the two hold 3 143.38.
+            if (misjudged && openCut == null)
+            {
+                if (!firstClean && Misjudged(firstCells, firstStuck, first, second, false, tolerance))
+                {
+                    unworkable = "a cell a plane could not cut is judged apart across it whichever body's cells are kept";
+                    result = null;
+                    return false;
+                }
+
+                var otherOwners = new List<int>();
+                List<GeoFace3> otherWay = FacesOfCells(cells, second, tolerance, otherOwners);
+                otherWay.AddRange(FacesOfCells(firstCells, first, second, false, tolerance, otherOwners, cells.Count, flush));
+
+                if (!TryGlue(otherWay, otherOwners, tolerance, out GeoSolid3 other)
+                    || Math.Abs(result.GrossVolume - other.GrossVolume) > tolerance.EqualPoint * result.GrossSurfaceArea)
+                {
+                    unworkable = "a cell a plane could not cut is judged apart across it, and the union cut the other way round holds another volume";
+                    result = null;
+                    return false;
+                }
             }
 
             unworkable = Implausible("union", result, first, second, tolerance);
@@ -482,6 +511,13 @@ namespace GeometryHelper.Core
                 {
                     kept = otherWay;
                     owners = otherOwners;
+                }
+                else if (misjudged && otherMisjudged)
+                {
+                    // Judged apart across a plane whichever body is cut, what is kept is no answer: a cracked U and a box
+                    // dipping into its notch share 26.95, and the box cut by the U's planes kept 2.02.
+                    unworkable = "a cell a plane could not cut is judged apart across it whichever body is cut";
+                    return false;
                 }
 
                 misjudged = !otherClean && (misjudged || otherMisjudged);
@@ -1830,6 +1866,15 @@ namespace GeometryHelper.Core
         /// in the notch at (15, 5, 7.25), read as in the box, and was taken for misjudged where the box touches none of its
         /// material. Nor is a cell read where the other body does not close, having no inside to be part in.
         /// </para>
+        /// <para>
+        /// Where one plane crosses a cell, or two, or three that meet at a point within the other body's box, or three of which
+        /// two are parallel, the parts all of them make are read too, each middle wherever it lies (see
+        /// <see cref="EveryPlanePartsApart"/>). A box dipping 0.088 into an arm of a U,
+        /// its sides and its floor crossing the U uncut, takes 2.55 between its sides and over its floor that no one or two
+        /// of its planes part from the rest; the parts they do part from it held the box's piece with more of the U beyond the
+        /// box, or had their middles in the notch, and the U was left whole: 2 667.83 cubic millimetres, trusted, where
+        /// 2 665.28 is left.
+        /// </para>
         /// </remarks>
         internal static bool Misjudged(List<GeoSolid3> cells, List<GeoPlane3> stuck, GeoSolid3 owner, GeoSolid3 against, bool wantInside, Tolerance tolerance)
         {
@@ -1859,13 +1904,8 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            bool InMaterial(GeoSolid3 cell, GeoPoint3 middle)
+            bool OutOfOpenings(GeoSolid3 cell, GeoPoint3 middle)
             {
-                if (Containment3.Locate(cell, middle, tolerance) != PointLocation.Inside)
-                {
-                    return false;
-                }
-
                 foreach (GeoSolid3 opening in owner.Openings)
                 {
                     if (Containment3.Locate(opening, middle, tolerance) == PointLocation.Inside)
@@ -1876,6 +1916,9 @@ namespace GeometryHelper.Core
 
                 return true;
             }
+
+            bool InMaterial(GeoSolid3 cell, GeoPoint3 middle)
+                => Containment3.Locate(cell, middle, tolerance) == PointLocation.Inside && OutOfOpenings(cell, middle);
 
             var crossing = new List<(GeoPlane3 Plane, GeoSolid3 Opening)>();
             var one = new List<GeoSolid3>(1);
@@ -1895,13 +1938,49 @@ namespace GeometryHelper.Core
                 one.Clear();
                 one.Add(cell);
 
-                if (crossing.Count > 0 && JudgedWhole(one, crossing, tolerance, InMaterial))
+                if (crossing.Count > 0 && (JudgedWhole(one, crossing, tolerance, InMaterial) || EveryPlanePartsApart(cell, crossing, OutOfOpenings, tolerance)))
                 {
                     return true;
                 }
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Whether, of the parts every plane crossing a cell makes of it, where no more than three do, one holding more than the
+        /// tolerance times the cell's area has its middle within the other body and another beyond it, each middle read where
+        /// it lies out of the openings, in the cell's material or not.
+        /// </summary>
+        /// <param name="cell">The cell.</param>
+        /// <param name="crossing">The planes crossing it that could not cut it, each with the other body.</param>
+        /// <param name="read">Whether a middle is read, given the cell and the middle.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// The cell lies to one side of every other plane of the other body that comes near it, and a part of it bounded by
+        /// every plane crossing it to one side of those too, so no face of the other body runs between the part and its middle:
+        /// the middle, outside the material where the cell is not convex, lies within the other body where the part does.
+        /// Not read: more than three planes, three meeting at a point outside the other body's box (see
+        /// <see cref="EighthsPart"/>), three meeting along one line, and three parallel.
+        /// </remarks>
+        private static bool EveryPlanePartsApart(GeoSolid3 cell, List<(GeoPlane3 Plane, GeoSolid3 Opening)> crossing, Func<GeoSolid3, GeoPoint3, bool> read, Tolerance tolerance)
+        {
+            GeoSolid3 against = crossing[0].Opening;
+
+            switch (crossing.Count)
+            {
+                case 1:
+                    return Straddles(cell, crossing[0].Plane, tolerance, out GeoPoint3 aboveMiddle, out GeoPoint3 belowMiddle)
+                        && IsIn(against, aboveMiddle, tolerance) != IsIn(against, belowMiddle, tolerance)
+                        && read(cell, aboveMiddle) && read(cell, belowMiddle);
+                case 2:
+                    return QuartersPart(cell, crossing[0].Plane, crossing[1].Plane, against, tolerance, read);
+                case 3:
+                    return EighthsPart(cell, crossing[0].Plane, crossing[1].Plane, crossing[2].Plane, against, tolerance, read)
+                        || SlabsPart(cell, crossing[0].Plane, crossing[1].Plane, crossing[2].Plane, against, tolerance, read);
+                default:
+                    return false;
+            }
         }
 
         /// <summary>

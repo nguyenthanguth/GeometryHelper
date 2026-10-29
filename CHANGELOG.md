@@ -220,6 +220,45 @@ and 9.3 to 9.5. At nought, where it gave a body open or wrong, it takes 2.5 wher
 0.37 where 0.81 and 0.83 where 1.9 a million out; with twenty holes 7.5 where 4.6 and 16.7 where 9.2 at the origin, and 7.8
 where 11.3 and 18.2 where 28.2 a million out, the weld most of what it adds.
 
+**FIXED.** A difference of two closed bodies could leave whole a cell of one that is not convex, where planes of the
+other ran through it and would not cut it, and trust what it gave. A U 30 by 10 by 10 whose bottom and outer sides are
+cracked under the sides and the floor of a box dipping 0.088 into one of its arms is one cell to the box's planes, and was
+read by the middles of its parts either side of each plane and of the four two planes make: those holding the 2.55
+cubic millimetres the box takes held more of the U beyond the box, or had their middles in the notch, outside the
+material, and were not read. The U less the box held 2 667.83, trusted, where 2 665.28 is left, and with the box dipping
+through the floor of the notch, or into both arms and the floor at once, it was left whole the same way. Where one
+such plane crosses a cell, or two, or three that meet at a point within the other body's box, or three of which two are
+parallel and the third runs across them, the parts all of them make are read too, each by its middle wherever it lies,
+since no face of the other body runs between a part and its middle; the U less the box holds 2 665.15. A common part
+judged so whichever body is cut, and a union judged so whichever body's cells are kept, are reported as not worked out
+rather than taken one way: the box dipping into the U's arm, joined to it, held 3 145.93 where the two hold 3 143.38,
+what they share counted twice. A union judged so one way only is taken where the union cut the other way round, the
+second whole and the cells of the first beyond it, holds as much within the tolerance times its area. Of 45 000
+booleans of cracked U's and cracked boxes in and about their notches, in five runs, 325 differences of the U less the
+box trusted and wrong are right, and 5 the difference gave as nothing, where 2 436 to 2 627 are left, are right; 6 more
+given as nothing are trusted now and 1.9 to 5.8 off what is left; 3 common parts given as nothing are right and 2
+trusted and wrong are not worked out; 4 unions trusted and wrong are right and 2 002 are not worked out, so that none is
+trusted and wrong; and 20 unions that counted what the two share twice, 1.13 to 14.38, within the tolerance times their
+area, are not worked out. 1 324 wrong before are wrong by another amount, 473 of them nearer and the rest farther by no
+more than 0.005, and 7 right move within the bound, 6 of them nearer; none right or refused before is wrong now. The
+27 000 booleans of the same U's with boxes not cracked are the same to the bit, as are 24 000 volumes of cracked cubes
+with openings and 17 443 of 17 452 booleans of them; the other 9, trusted and wrong at a tolerance of nought, are not
+worked out.
+
+Not fixed: a difference judged so with no other result to take is still taken as its cells glue: the cracked box
+less the cracked U it dips into, the box's cells judged so by the U's planes, holds 478.10
+where 475.54 is left, trusted, and of the 45 000, 1 047 such differences of the box less the U and 576 of the U less
+the box are trusted and wrong, as they were or by another amount. Checking such a difference against the other body
+cut by every plane of both would leave 13 of the 45 000 trusted and wrong, but refuses 30 differences that are right
+within the bound and 166 of the 325 put right here, and is not done. A cell crossed uncut by more than three planes, by
+three meeting outside the other body's box or along one line, or by three parallel, is read as before; and where the
+part the box takes is within the tolerance times the area of the body it is taken from, as from a comb of 10 notches,
+the cell is read as it was. A comb of 2 notches, cracked the same way under the sides of two such boxes taken as one
+body, one dipping into the tooth beside each notch, holds 4 391.85 less them where 4 386.75 is left, as it did. The U less the
+box takes 3.3 milliseconds on .NET Framework 4.8 where it took 1.8, the least of seven runs, cut now by every plane of
+both; a comb of 100 notches less one box dipping into a tooth by its middle notch takes 47 where it took 45, a comb of 10
+5.1 as it did, and the comb of 100 less 100 boxes 16.9 seconds where it took 16.5.
+
 ## 13.0.0
 
 **BREAKING.** The DXF types move from the namespace `GeometryHelper.Export` to `GeometryHelper.Dxf`: a

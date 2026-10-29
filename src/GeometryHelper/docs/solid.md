@@ -216,7 +216,18 @@ cut by every plane of both, runs through it and will not cut it: where both bodi
 either side of each such plane, of the four two make and of the eight three make, each read where it lies in the cell's
 material; where one is to be kept and another not, the boolean is worked out another way or reported as not worked out.
 A cube 10 across whose faces carry cracks 0.0001 wide, less the corner of a box none of whose three planes will cut it,
-held 1 000 cubic millimetres with the box left in, and holds 874.94 now.
+held 1 000 cubic millimetres with the box left in, and holds 874.94 now. Where one such plane crosses a cell, or two,
+or three that meet at a point within the other body's box, or three of which two are parallel and the third runs across
+them, the parts all of them make are read too, each by its middle wherever it lies, since no face of the other body runs
+between a part and its middle: a U 30 across whose bottom and sides are cracked under the sides and the floor of a box
+dipping 0.088 into one of its arms was left whole, 2 667.83 cubic millimetres where 2 665.28 is left, the part the box
+takes held by no part one or two of its planes make without more of the U beyond the box; it holds 2 665.15 now. A cell
+crossed so by more planes, by three meeting outside the other body's box or along one line, or by three parallel, is
+read as before, and can still be judged whole. A common part judged so whichever body is cut, and a union judged so
+whichever body's cells are kept, are reported as not worked out; a union judged so one way only is taken where the
+union cut the other way round, the second body whole, holds as much. A difference judged so with no other result to
+take is still taken as the cells glue: the cracked box less that U, the box's cells judged so by the U's planes, holds
+478.10 where 475.54 is left, and is trusted.
 
 The volume is measured by the divergence theorem, so it does not depend on where the solid sits and is
 reported unsigned: faces wound inwards give the same answer as faces wound outwards, and `TurnOutwards()` turns
