@@ -111,27 +111,40 @@ drawing saved, anonymous, of no member. 2 new tests, 3 changed.
   whose faces AutoCAD turns to face out. The face 0 to 5 alone, or in an open MESH, gives (0, 1, 5), (2, 5, 1), (5, 2, 4),
   (3, 4, 2), and as the base of a pyramid facing up into it (5, 4, 0), (3, 0, 4), (0, 3, 1), (2, 1, 3), where it gave
   (0, 3, 2) and (2, 1, 0) last; the face 0 to 4 alone (0, 1, 4), (2, 4, 1), (4, 2, 3). An open MESH of a face of six corners
-  and one of five sharing an edge breaks each from its first two corners, as AutoCAD 2021 breaks it. 4 new tests, 1
-  changed.
+  and one of five sharing an edge breaks each from its first two corners, as AutoCAD 2021 breaks it. A face of four
+  corners or three that faces into a closed MESH is turned too, its corners read from its last back, as AutoCAD turns every
+  such face: the square base (0, 1, 2, 3) of a pyramid facing up into it gives the 3DFACE (3, 2, 1, 0) and a side (0, 3, 4)
+  facing in (4, 3, 0), where they were given as held, and the tetrahedron of ezdxf's drawing has the two of its four faces
+  that face in turned. 7 new tests, 2 changed.
 - The SPLINE of a splined LEADER or MULTILEADER line keeps its fit data, the points it runs through and its directions at
   the ends, as AutoCAD's has three fit points: through (1.77, 1.77), (10, 10) and (20, 10), leaving along (0.7071, 0.7071)
   and reaching along (1, 0), its control points and knots as they were. 1 new test.
 
 **CHANGED.** The definition of an attribute of several lines writes its default value (group 1) as the contents of its
 MTEXT, its lines apart by `\P`, as AutoCAD 2021 writes the ATTDEF of three lines it makes: `LINE ONE\PLINE TWO\PLINE THREE`,
-where it wrote `LINE ONE`, as ezdxf does. `TextString` reads the group as it is written; made one of one line, by
-`IsMTextAttributeDefinition`, the definition keeps its first line as before. An ATTRIB of several lines still writes the
-words of its lines joined by spaces (`LINE ONE LINE TWO LINE THREE`), which AutoCAD reads as its own though it writes the
-group empty, so that a reader that does not read the MTEXT has the words. 1 new test, 2 changed.
+where it wrote `LINE ONE`, as ezdxf does. Made one of one line, by `IsMTextAttributeDefinition`, the definition keeps its
+first line as before. An ATTRIB of several lines still writes the words of its lines joined by spaces
+(`LINE ONE LINE TWO LINE THREE`), which AutoCAD reads as its own though it writes the group empty, so that a reader that
+does not read the MTEXT has the words. The `TextString` of an ATTDEF or ATTRIB of several lines is the words of the lines of
+its MTEXT joined by spaces, as AutoCAD 2021 reads both whatever their group 1 holds: `LINE ONE LINE TWO LINE THREE` of the
+definition above, where it read `LINE ONE\PLINE TWO\PLINE THREE`, and of an ATTRIB whose group 1 AutoCAD left empty, where
+it read nothing. Setting it sets the words of the MTEXT, which kept the old ones, its group 1 made to agree: the ATTRIB of
+three lines set to `M24 GALV` is an MTEXT of one line `M24 GALV` where it stood. 4 new tests, 2 changed.
 
 **CHANGED.** `ToPolylineWithPrecision` of a spline made lines gives AutoCAD 2021's vertices: its whole parameter range is
 halved until the spline's point halfway along each piece lies within 1 / (M (p + 1)^2) of the middle of the piece's chord,
 M the largest length of the spline's second derivative and p the precision. The cubic of one span on (0, 0), (10, 10),
 (20, 10), (30, 0) gives 33, 65, 257, 513, 1 025 and 4 097 vertices at 0, 1, 10, 20, 30 and 99, where it gave 17, 27, 65,
 257, 513 and 513; the cubic of two spans of the checks 50, 513 and 4 750 at 0, 10 and 99, where 21, 53 and 632; and of three
-spans 78, 835 and 7 562, where 29, 91 and 843: every one of the 30 counts AutoCAD gave for the three, to the vertex. Made
-arcs, for a flat spline, it is as before. The finer polylines take longer, about as long per vertex: the three spans at 10
-take 3.9 milliseconds where 1.1 (91 vertices) on .NET 10, and 2.7 where 0.54 on .NET Framework 4.8. 4 new tests, 2 changed.
+spans 78, 835 and 7 562, where 29, 91 and 843: every one of the 30 counts AutoCAD gave for the three, to the vertex; a
+quadratic of three spans and a cubic of a double knot are given AutoCAD's counts too (29 and 76 at 0, 2 732 and 8 011 at 99).
+A spline of degree 5 and a rational one are still given more than AutoCAD gives (117 and 371 vertices at 0, where 96 and
+130). Made arcs, for a flat spline, it has the same vertices, each segment the arc that turns as the spline's tangent turns
+along it, its bulge the tangent of a quarter of that turn, as AutoCAD 2021 bends the arcs of all seven splines of the
+checks: the cubic of one span gives 33, 257 and 4 097 vertices at 0, 10 and 99, where 5, 9 and 47, its first arc at 0 of bulge
+-0.00806. The finer polylines take longer, about as long per vertex: the three spans at 10 take 3.9 milliseconds made lines
+where 1.1 (91 vertices) on .NET 10, and 2.7 where 0.54 on .NET Framework 4.8; made arcs 2.4 milliseconds where 0.13 (20
+vertices) on .NET 10, and 4.4 where 0.20 on .NET Framework 4.8. 15 new tests, 2 changed.
 
 **FIXED.** `GetVolume`, `TryGetVolume`, `GetSurfaceArea`, `GetCentroid`, `GetMassProperties` and `Measure3` of a body
 with openings, asked at a point tolerance below the rounding of the coordinates, a quadrillionth of the largest of them,

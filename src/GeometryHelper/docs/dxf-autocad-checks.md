@@ -71,6 +71,12 @@ written as AutoCAD reads them now.
      `LINE ONE LINE TWO LINE THREE` of both, and the same of the library's ATTRIB.
    - Now: the ATTDEF's group 1 is the MTEXT's contents, as AutoCAD's; the ATTRIB's stays the words joined by spaces, which
      AutoCAD reads as its own and other readers need for the words (the maintainer's decision).
+   - AutoCAD 2021 (plugin v6, 06-b): the `TextString` of the library's ATTDEF of three lines, whose group 1 is
+     `LINE ONE\PLINE TWO\PLINE THREE`, is `LINE ONE LINE TWO LINE THREE`, as is its ATTRIB's; the contents of both MTEXTs
+     `LINE ONE\PLINE TWO\PLINE THREE`. Saved again, its ATTDEF and ATTRIB keep the groups 1 the library wrote.
+   - Now: the `TextString` of an ATTRIB or ATTDEF of several lines is the words of the lines of its MTEXT joined by spaces,
+     whatever its group 1 holds, the groups written as before. Setting it, which AutoCAD was not asked about, sets the words
+     of its MTEXT, which keeps its place, and its group 1 to agree, rather than leave the MTEXT saying the old words.
 
 7. **An MTEXT's background transparency.**
    - Try: read `BackgroundTransparency` of an MTEXT with no group 441.
@@ -172,6 +178,27 @@ written as AutoCAD reads them now.
     - Now: made lines, the whole parameter range is halved until the spline's point halfway along each piece lies within
       1 / (M (p + 1)^2) of the middle of its chord, M that largest length: every one of the 30 counts of the three curves, to
       the vertex. Made arcs, which AutoCAD was not asked for, the library's reading is kept.
+    - AutoCAD 2021 (plugin v6, 17-d and four splines it made): every vertex of the three cubics at 0, 1, 2, 5, 10, 20 and 99
+      within 2E-14 of the library's. Made arcs (`ToPolylineWithPrecision(p, true, true)`), each of the seven splines has the
+      vertices it has made lines, at 0, 10 and 99: 33, 257 and 4 097 for the cubic of one span, where the library gave 5, 9
+      and 47. Each bulge is the tangent of a quarter of the angle the spline's tangent turns through along the segment, to
+      1E-16 on all seven: -0.00806 for the first arc of the one span at 0, its tangent turning from 45 degrees to 43.15. Made
+      lines, the quadratic of three spans on (0, -120) ... (40, -130) gives 29, 342 and 2 732 vertices and the cubic of the
+      double knot 0, 0, 0, 0, 1, 1, 2, 2, 2, 2 76, 933 and 8 011, as the rule gives them; the quintic of two spans 96, 1 050
+      and 9 806 and the rational cubic of the weights 1, 2, 0.5, 3, 1 130, 1 377 and 12 078, where the rule gives 117, 1 353
+      and 11 921, and 371, 4 401 and 26 854. AutoCAD's vertices of those two are the rule's halvings at a bend of 142.70 for
+      the quintic (its largest second derivative 223.6) and 202.49 for the rational one (1 866.8): whence those come is not
+      found. `ToPolyline(n)`: 33 vertices for the one span at every n from 2 to 50 and 65 at 99, 50 for the two spans at every
+      n from 3 to 99, 78 for the three at every n from 4 to 99; n = 2, and 3 for the three spans, refused with
+      `eInvalidInput`.
+    - Now: made arcs, the vertices are those made lines, each arc bent by the turn of the spline's tangent along it, as
+      AutoCAD's; the library's own rule for arcs is gone. The quintic and the rational spline are parked with more vertices
+      than AutoCAD's. `ToPolyline(n)` stays the library's own reading of a count, n vertices set evenly along the length,
+      which AutoCAD's does not keep; the difference is written in the guide.
+    - AutoCAD 2021 (plugin v6): logs "Unknown header variable $PLINECONVERTMODE ignored" reading 17-d, to which the program
+      that made the checks gave the variable for SPLINEDIT.
+    - Now: the library writes `$PLINECONVERTMODE` only where the drawing has it, read from its file or set by `SetHeader`;
+      a drawing of R2018 that has none is saved with none. The checks' files of 17 are made without it from after-d14 on.
 
 18. **The narrowest ellipse.**
     - Try: squash an ellipse to a ratio of 1E-7 by `TransformBy`, and project a circle onto a plane seen almost edge on.
@@ -608,6 +635,14 @@ written as AutoCAD reads them now.
       into a closed MESH, the faces of each closed piece turned to agree and to face out of the room they close: one rule for
       A0, A1, A2 and A3, 8B, and the pyramid AutoCAD made. A face of four corners or three is broken as before, as the file
       holds it.
+    - AutoCAD 2021 (plugin v6, 64x-a): A0 to A4 as the library's. The square pyramid A5, its base (0, 1, 2, 3) and its side
+      (0, 3, 4) facing in, its three other sides out, gave the quad (3, 2, 1, 0) and the triangle (4, 3, 0), and the other
+      sides as held; the pyramid on five corners A6, every face facing in, its base from its last two corners back and each
+      side (k + 1, k, 5) as (5, k, k + 1). AutoCAD turns every face that faces into a closed MESH, a quad and a triangle too,
+      each read from its last corner back; it already holds them turned once it has read the file.
+    - Now: so does the library: every face that faces into a closed MESH is read from its last corner back, a quad or a
+      triangle as one of more corners; the tetrahedron of ezdxf's drawing, two of whose faces face in, gives those two turned.
+      A0 to A4, 8B and the pyramid AutoCAD made in v4 are as before.
 
 ## Geographic location, layer filters and layer states
 

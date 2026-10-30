@@ -154,7 +154,8 @@ namespace GeometryHelper.UnitTest.Dxf
         public void TheMeshOfEzdxf_ExplodesIntoA3DFaceForEachOfItsFaces_EachTriangleEndingOnItsThird()
         {
             // 93: the tetrahedron of the corners (0, 0, 0), (1, 0, 0), (0, 1, 0) and (0, 0, 1), its faces (0, 1, 2), (0, 1, 3),
-            // (1, 2, 3) and (0, 2, 3), as ezdxf's MeshBuilder renders them as 3DFACEs.
+            // (1, 2, 3) and (0, 2, 3), as ezdxf's MeshBuilder renders them as 3DFACEs, but for the two that face into it, (0, 1, 2)
+            // and (0, 2, 3), turned to (2, 1, 0) and (3, 2, 0), as AutoCAD 2021 turned the faces facing into MESH A5 (plugin v6).
             foreach (string text in new[] { DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 })
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
@@ -164,7 +165,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 Assert.Equal(4, faces.Length);
                 GeoPoint3[] corners = { new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0), new GeoPoint3(0, 1, 0), new GeoPoint3(0, 0, 1) };
-                int[][] named = { new[] { 0, 1, 2, 2 }, new[] { 0, 1, 3, 3 }, new[] { 1, 2, 3, 3 }, new[] { 0, 2, 3, 3 } };
+                int[][] named = { new[] { 2, 1, 0, 0 }, new[] { 0, 1, 3, 3 }, new[] { 1, 2, 3, 3 }, new[] { 3, 2, 0, 0 } };
 
                 for (int f = 0; f < 4; f++)
                 {

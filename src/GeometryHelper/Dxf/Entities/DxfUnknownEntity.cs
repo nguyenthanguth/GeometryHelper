@@ -57,7 +57,9 @@ namespace GeometryHelper.Dxf
         /// out. The face of the corners 0 to 4 alone, or one of an open MESH, gives the triangles (0, 1, 4), (2, 4, 1) and
         /// (4, 2, 3), and as the base of a pyramid facing up into it (4, 3, 0), (2, 0, 3) and (0, 2, 1); of 0 to 5, (0, 1, 5),
         /// (2, 5, 1), (5, 2, 4) and (3, 4, 2) alone and (5, 4, 0), (3, 0, 4), (0, 3, 1) and (2, 1, 3) as such a base. A face of
-        /// four corners or three is broken as the file holds it, turned or not. A face given a colour of its own (an
+        /// four corners or three that faces into a closed MESH is turned as well, its corners read from its last back, as AutoCAD
+        /// 2021 explodes one: the square base (0, 1, 2, 3) of a pyramid facing up into it gives the 3DFACE of (3, 2, 1, 0), a side
+        /// (0, 3, 4) facing in (4, 3, 0); every other is given as the file holds it. A face given a colour of its own (an
         /// override of the MESH, its subentity 1 the first face) keeps it on its 3DFACEs, as AutoCAD keeps it. A MESH smoothed,
         /// and one that gives a face a material or a transparency of its own, or an edge or a vertex anything of its own, is
         /// refused. Any other type refuses: a REGION, a 3DSOLID, a BODY and a surface, which AutoCAD breaks with its solid
@@ -269,9 +271,20 @@ namespace GeometryHelper.Dxf
                 int[] corners = faces[f];
                 var made = new List<DxfFace>();
 
-                if (corners.Length <= 4)
+                // A face that faces into a closed mesh is read from its last corner back, as AutoCAD 2021 turns every such face, a
+                // triangle and a quad as well: the side (0, 3, 4) of a pyramid facing in gives (4, 3, 0), its base (0, 1, 2, 3)
+                // (3, 2, 1, 0).
+                int count = corners.Length;
+                int[] round = new int[count];
+
+                for (int k = 0; k < count; k++)
                 {
-                    made.Add(new DxfFace(points[corners[0]], points[corners[1]], points[corners[2]], points[corners[corners.Length - 1]], true, true, true, true));
+                    round[k] = facingIn[f] ? corners[count - 1 - k] : corners[k];
+                }
+
+                if (count <= 4)
+                {
+                    made.Add(new DxfFace(points[round[0]], points[round[1]], points[round[2]], points[round[count - 1]], true, true, true, true));
                 }
                 else
                 {
@@ -279,15 +292,7 @@ namespace GeometryHelper.Dxf
                     // the far end and the near one, each triangle after the first the other way round; from the face's first two
                     // corners, from its last two back the other way where it faces into a closed mesh. A hexagon alone gives (0, 1, 5),
                     // (2, 5, 1), (5, 2, 4), (3, 4, 2); the base of a pyramid facing into it (5, 4, 0), (3, 0, 4), (0, 3, 1), (2, 1, 3).
-                    int count = corners.Length;
                     var strip = new List<int>(count);
-                    int[] round = new int[count];
-
-                    for (int k = 0; k < count; k++)
-                    {
-                        round[k] = facingIn[f] ? corners[count - 1 - k] : corners[k];
-                    }
-
                     strip.Add(round[0]);
                     strip.Add(round[1]);
 

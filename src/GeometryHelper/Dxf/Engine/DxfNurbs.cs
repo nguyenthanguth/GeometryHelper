@@ -122,7 +122,30 @@ namespace GeometryHelper.Dxf
         internal void Evaluate(double t, out GeoPoint3 point, out GeoVector3 first, out GeoVector3 second)
         {
             t = Math.Max(Start, Math.Min(End, t));
+            Evaluate(t, Span(t), out point, out first, out second);
+        }
+
+        /// <summary>
+        /// The point, first and second derivatives by the parameter at a parameter of the domain as the spline arrives there:
+        /// at a knot those of the span before it, which differ from <see cref="Evaluate(double, out GeoPoint3, out GeoVector3, out GeoVector3)"/>'s
+        /// where the spline bends sharply there; elsewhere the same.
+        /// </summary>
+        internal void EvaluateArriving(double t, out GeoPoint3 point, out GeoVector3 first, out GeoVector3 second)
+        {
+            t = Math.Max(Start, Math.Min(End, t));
             int span = Span(t);
+
+            while (span > _p && !(_u[span] < t))
+            {
+                span--;
+            }
+
+            Evaluate(t, span, out point, out first, out second);
+        }
+
+        /// <summary>The point, first and second derivatives by the parameter at a parameter, of a span.</summary>
+        private void Evaluate(double t, int span, out GeoPoint3 point, out GeoVector3 first, out GeoVector3 second)
+        {
             double[,] ders = Derivatives(span, t, 2);
             double ax = 0, ay = 0, az = 0, aw = 0, dx = 0, dy = 0, dz = 0, dw = 0, ex = 0, ey = 0, ez = 0, ew = 0;
 

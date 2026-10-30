@@ -493,13 +493,17 @@ namespace GeometryHelper.Dxf
         public DxfCurve ToPolyline() => ToPolylineWithPrecision(10, true, true);
 
         /// <summary>Gets the polyline that runs along the spline, as AutoCAD's <c>ToPolyline</c>, as <see cref="ToPolylineWithPrecision(int, bool, bool)"/> of precision 10.</summary>
-        /// <param name="bConvertAsArcs">Whether its segments are arcs, each through the spline's point halfway along it; lines where false, and for a spline that is not flat.</param>
+        /// <param name="bConvertAsArcs">Whether its segments are arcs, each turning as the spline's tangent turns along it; lines where false, and for a spline that is not flat.</param>
         /// <param name="bToLWPolyline">Whether a flat spline gives a <see cref="DxfPolyline"/>; a <see cref="DxfPolyline2d"/> where false.</param>
         /// <returns>The polyline, of the spline's look, in no file.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the spline has no data that make a spline.</exception>
         public DxfCurve ToPolyline(bool bConvertAsArcs, bool bToLWPolyline) => ToPolylineWithPrecision(10, bConvertAsArcs, bToLWPolyline);
 
-        /// <summary>Gets the polyline of a count of vertices that runs along the spline, as AutoCAD's <c>ToPolyline</c>: of arcs, a <see cref="DxfPolyline"/> where the spline is flat.</summary>
+        /// <summary>
+        /// Gets the polyline of a count of vertices that runs along the spline, the library's own reading of AutoCAD's
+        /// <c>ToPolyline</c>, as <see cref="ToPolyline(int, bool, bool)"/> says: of arcs, a <see cref="DxfPolyline"/> where the
+        /// spline is flat.
+        /// </summary>
         /// <param name="numOfVertices">How many vertices, 2 or more, set evenly along the spline's length.</param>
         /// <returns>The polyline, of the spline's look, in no file.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the count is below 2.</exception>
@@ -507,10 +511,13 @@ namespace GeometryHelper.Dxf
         public DxfCurve ToPolyline(int numOfVertices) => ToPolyline(numOfVertices, true, true);
 
         /// <summary>
-        /// Gets the polyline of a count of vertices that runs along the spline, as AutoCAD's <c>ToPolyline</c>: the vertices set
-        /// evenly along the spline's length, a closed spline's last on its first, which the closed polyline joins back to; each
-        /// segment a line, or the arc through its ends and the spline's point halfway between them. A quarter of a circle of
-        /// radius 100 made a spline, given 3 vertices and arcs, is two arcs of radius 100 to within the rounding.
+        /// Gets the polyline of a count of vertices that runs along the spline, the library's own reading of AutoCAD's
+        /// <c>ToPolyline</c>: the vertices set evenly along the spline's length, a closed spline's last on its first, which the
+        /// closed polyline joins back to; each segment a line, or the arc through its ends and the spline's point halfway between
+        /// them. A quarter of a circle of radius 100 made a spline, given 3 vertices and arcs, is two arcs of radius 100 to within
+        /// the rounding. AutoCAD 2021 keeps a different promise: it was seen to give the cubic of one span 33 vertices for every
+        /// count from 2 to 50 and 65 for 99, the cubic of two spans 50 for every count from 3 to 99, and to refuse the smallest
+        /// counts (2 for two spans, 2 and 3 for three); the count it is given is not the count it makes.
         /// </summary>
         /// <param name="numOfVertices">How many vertices, 2 or more.</param>
         /// <param name="bConvertAsArcs">Whether its segments are arcs; lines where false, and for a spline that is not flat.</param>
@@ -562,13 +569,13 @@ namespace GeometryHelper.Dxf
         /// 99; the cubic of three spans on (0, 0), (10, 10), (20, 10), (30, 0), (40, -10), (50, 0), 78 at 0 and 7 562 at 99. The
         /// sharpest bend is read at the ends of each span of the knots and at seven points between, which for a cubic, whose
         /// second derivative runs straight along a span, is its largest; a piece is halved no more than 20 times over and no finer
-        /// than the rounding of the spline's largest coordinate, and a straight spline is one segment. Of arcs, for a flat
-        /// spline, which AutoCAD was not seen to make, the library's own reading: each span of the knots halved until no point
-        /// of the spline between a segment's ends, judged a quarter and three quarters of the way along its parameter, is farther
-        /// from the arc through its ends and the spline's point halfway between them than the spline's size (the diagonal of the
-        /// box of its control points) times 1E-3 times 10 to the power of minus a tenth of the precision, down to a floor of the
-        /// larger of 1E-6 times the size and 1E-9 times one more than the largest coordinate; a spline 10 000 across made arcs of
-        /// precision 10 strays about 1 from it at most.
+        /// than the rounding of the spline's largest coordinate, and a straight spline is one segment. The rule gives AutoCAD's
+        /// counts for a quadratic of three spans and a cubic of a double knot too (29, 342 and 2 732, and 76, 933 and 8 011 at 0,
+        /// 10 and 99), but more than AutoCAD's for a spline of degree 5 (117 where AutoCAD gives 96 at 0) and a rational one (371
+        /// where it gives 130), whose bend AutoCAD reads otherwise. Of arcs, for a flat spline, the same vertices, each segment the
+        /// arc that turns as the spline's tangent turns along it, its bulge the tangent of a quarter of that turn, as AutoCAD 2021
+        /// makes them: the cubic of one span at 0 gives 33 vertices, its first arc, from (0, 0) to (0.9375, 0.908), of bulge
+        /// -0.00806, the spline's tangent turning from 45 degrees to 43.15 along it.
         /// </summary>
         /// <param name="precision">The precision, from 0 to 99.</param>
         /// <param name="bConvertAsArcs">Whether its segments are arcs; lines where false, and for a spline that is not flat.</param>
@@ -584,37 +591,16 @@ namespace GeometryHelper.Dxf
             }
 
             DxfNurbs nurbs = Nurbs();
-            IReadOnlyList<GeoPoint3> control = NurbsData.GetControlPoints();
-            GeoAabb3 box = Box(control);
+            GeoAabb3 box = Box(NurbsData.GetControlPoints());
             double largest = Math.Max(Math.Max(Math.Max(Math.Abs(box.Min.X), Math.Abs(box.Max.X)), Math.Max(Math.Abs(box.Min.Y), Math.Abs(box.Max.Y))), Math.Max(Math.Abs(box.Min.Z), Math.Abs(box.Max.Z)));
-            bool arcs = bConvertAsArcs && DxfCurveTools.TryPlane(control, Direction(210), out _);
             var parameters = new List<double> { nurbs.Start };
             var middles = new List<double>();
-            IReadOnlyList<double> knots = NurbsData.GetKnots();
+            double bend = SharpestBend(nurbs, NurbsData.GetKnots());
+            double within = Math.Max(1E-9 * (1.0 + largest), bend > 0.0 ? 1.0 / (bend * (precision + 1.0) * (precision + 1.0)) : double.PositiveInfinity);
+            Halve(nurbs, nurbs.Start, nurbs.End, nurbs.PointAt(nurbs.Start), nurbs.PointAt(nurbs.End), within, 0, parameters, middles);
 
-            if (!arcs)
-            {
-                double bend = SharpestBend(nurbs, knots);
-                double within = Math.Max(1E-9 * (1.0 + largest), bend > 0.0 ? 1.0 / (bend * (precision + 1.0) * (precision + 1.0)) : double.PositiveInfinity);
-                Halve(nurbs, nurbs.Start, nurbs.End, nurbs.PointAt(nurbs.Start), nurbs.PointAt(nurbs.End), within, 0, parameters, middles);
-                return Polyline(nurbs, parameters, middles, false, bToLWPolyline);
-            }
-
-            double size = box.Min.DistanceTo(box.Max);
-            double floor = Math.Max(1E-6 * size, 1E-9 * (1.0 + largest));
-            double tolerance = Math.Max(floor, size * 1E-3 * Math.Pow(10.0, -precision / 10.0));
-            double from = nurbs.Start;
-
-            foreach (double knot in knots)
-            {
-                if (knot > from && knot <= nurbs.End)
-                {
-                    Divide(nurbs, from, knot, tolerance, 0, parameters, middles);
-                    from = knot;
-                }
-            }
-
-            return Polyline(nurbs, parameters, middles, true, bToLWPolyline);
+            // Arcs are bent by the turn of the spline's tangent along each segment, not through its point halfway.
+            return Polyline(nurbs, parameters, bConvertAsArcs ? null : middles, bConvertAsArcs, bToLWPolyline);
         }
 
         /// <summary>
@@ -1189,60 +1175,27 @@ namespace GeometryHelper.Dxf
             return new KeyValuePair<List<double>, List<double[]>>(knots, points);
         }
 
-        /// <summary>Halves a stretch of the parameter until its arc keeps within a tolerance of the spline, adding the ends of the arcs.</summary>
-        private static void Divide(DxfNurbs nurbs, double a, double b, double tolerance, int depth, List<double> parameters, List<double> middles)
+        /// <summary>
+        /// The bulge of the arc of a segment from one parameter of the spline to the next, in the plane of a normal: the tangent
+        /// of a quarter of the angle the spline's tangent turns through from the segment's start to its end, as AutoCAD 2021
+        /// bends the arcs of <c>ToPolylineWithPrecision</c>, the arriving tangent read on the span before a knot; nought where
+        /// the spline stands still at either end.
+        /// </summary>
+        private static double Turn(DxfNurbs nurbs, GeoVector3 normal, double a, double b)
         {
-            double m = 0.5 * (a + b);
-            GeoPoint3 pa = nurbs.PointAt(a);
-            GeoPoint3 pb = nurbs.PointAt(b);
-            GeoPoint3 pm = nurbs.PointAt(m);
-            bool near = depth >= 24;
+            nurbs.Evaluate(a, out _, out GeoVector3 leaving, out _);
+            nurbs.EvaluateArriving(b, out _, out GeoVector3 arriving, out _);
+            GeoPoint3 from = WorldToOcs(normal, new GeoPoint3(leaving.X, leaving.Y, leaving.Z));
+            GeoPoint3 to = WorldToOcs(normal, new GeoPoint3(arriving.X, arriving.Y, arriving.Z));
 
-            if (!near)
+            if (!(from.X * from.X + from.Y * from.Y > 0.0) || !(to.X * to.X + to.Y * to.Y > 0.0))
             {
-                near = true;
-
-                foreach (double share in new[] { 0.25, 0.75 })
-                {
-                    GeoPoint3 q = nurbs.PointAt(a + (b - a) * share);
-                    double gap = ArcGap(pa, pm, pb, q);
-
-                    if (!(gap <= tolerance))
-                    {
-                        near = false;
-                        break;
-                    }
-                }
+                return 0.0;
             }
 
-            if (near)
-            {
-                parameters.Add(b);
-                middles.Add(m);
-                return;
-            }
-
-            Divide(nurbs, a, m, tolerance, depth + 1, parameters, middles);
-            Divide(nurbs, m, b, tolerance, depth + 1, parameters, middles);
-        }
-
-        /// <summary>How far a point is from the circle through three points, or from the line through the outer two where they are on one.</summary>
-        private static double ArcGap(GeoPoint3 a, GeoPoint3 m, GeoPoint3 b, GeoPoint3 q)
-        {
-            GeoVector3 ab = a.GetVectorTo(b);
-            GeoVector3 am = a.GetVectorTo(m);
-            GeoVector3 n = ab.CrossProduct(am);
-            double nn = n.LengthSquared;
-
-            if (!(nn > 1E-24 * ab.LengthSquared * am.LengthSquared))
-            {
-                return new GeoLine3(a, b).GetClosestPointOnBoundary(q).DistanceTo(q);
-            }
-
-            // The centre of the circle through a, m and b.
-            GeoVector3 c = n.CrossProduct(ab).Multiply(am.LengthSquared).Add(am.CrossProduct(n).Multiply(ab.LengthSquared)).Divide(2.0 * nn);
-            GeoPoint3 centre = a.Add(c);
-            return Math.Abs(centre.DistanceTo(q) - c.Length);
+            double turn = Math.Atan2(to.Y, to.X) - Math.Atan2(from.Y, from.X);
+            turn = turn > Math.PI ? turn - 2.0 * Math.PI : turn <= -Math.PI ? turn + 2.0 * Math.PI : turn;
+            return Math.Tan(turn / 4.0);
         }
 
         /// <summary>
@@ -1298,7 +1251,10 @@ namespace GeometryHelper.Dxf
             return sharpest;
         }
 
-        /// <summary>The polyline through the spline's points at parameters, each segment a line or the arc through the point at its middle parameter.</summary>
+        /// <summary>
+        /// The polyline through the spline's points at parameters, each segment a line or an arc: the arc through the point at
+        /// its middle parameter, or where no middles are given the arc bent by the turn of the spline's tangent along it.
+        /// </summary>
         private DxfCurve Polyline(DxfNurbs nurbs, List<double> parameters, List<double> middles, bool arcs, bool lightweight)
         {
             var world = new List<GeoPoint3>(parameters.Count);
@@ -1329,7 +1285,11 @@ namespace GeometryHelper.Dxf
                     GeoPoint3 a = WorldToOcs(normal, world[i]);
                     plane.Add(new GeoPoint2(a.X, a.Y));
 
-                    if (arcs && i < middles.Count)
+                    if (arcs && i + 1 < parameters.Count && middles == null)
+                    {
+                        bulges.Add(Turn(nurbs, normal, parameters[i], parameters[i + 1]));
+                    }
+                    else if (arcs && i + 1 < parameters.Count)
                     {
                         GeoPoint3 m = WorldToOcs(normal, nurbs.PointAt(middles[i]));
                         GeoPoint3 b = WorldToOcs(normal, world[i + 1]);

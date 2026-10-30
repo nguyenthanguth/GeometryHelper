@@ -297,8 +297,8 @@ namespace GeometryHelper.UnitTest.Dxf
         public void TheDefinitionOfAnAttributeOfSeveralLines_WritesItsWordsWithTheirLineBreaks_AndAnAttribFilledFromItTheWordsJoined()
         {
             // Plugin v5, 06: AutoCAD 2021's own ATTDEF of three lines writes its group 1 'LINE ONE\PLINE TWO\PLINE THREE'; the
-            // ATTRIB keeps the words joined by spaces (the maintainer's decision), which AutoCAD reads as its own. Made one of one
-            // line, the definition keeps the first.
+            // ATTRIB keeps the words joined by spaces (the maintainer's decision), which AutoCAD reads as its own. The TextString
+            // of both is the words joined (plugin v6). Made one of one line, the definition keeps the first.
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
             DxfAttributeDefinition definition = db.BlockTable["BOLT"].OfType<DxfAttributeDefinition>().Single();
 
@@ -306,7 +306,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.Equal("LINE ONE\\PLINE TWO\\PLINE THREE", Groups(RecordOf(db, definition.Handle)).First(g => g.Key == 1).Value);
             DxfAttributeDefinition read = DxfDatabase.Parse(db.ToText()).BlockTable["BOLT"].OfType<DxfAttributeDefinition>().Single();
-            Assert.Equal("LINE ONE\\PLINE TWO\\PLINE THREE", read.TextString);
+            Assert.Equal("LINE ONE LINE TWO LINE THREE", read.TextString);
             Assert.Equal("LINE ONE\\PLINE TWO\\PLINE THREE", read.MTextAttributeDefinition.Contents);
 
             DxfBlockReference bolt = Everything(db).OfType<DxfBlockReference>().Single(b => b.Owner == db.ModelSpace && b.Name == "BOLT" && !(b is DxfMInsertBlock));

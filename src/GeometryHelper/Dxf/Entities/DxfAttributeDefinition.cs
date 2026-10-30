@@ -164,8 +164,9 @@ namespace GeometryHelper.Dxf
         /// <c>MTextAttributeDefinition</c>: as <see cref="DxfAttributeReference.MTextAttribute"/> gets and sets one, its type
         /// (71) 4, as ezdxf writes the definition of an attribute of several lines, but its default value (group 1) the MTEXT's
         /// contents, its lines apart by <c>\P</c>, as AutoCAD 2021 writes the definition of three lines it makes:
-        /// <c>LINE ONE\PLINE TWO\PLINE THREE</c>, where ezdxf writes the first line. <see cref="DxfDBText.TextString"/> reads that
-        /// group as it is written; an ATTRIB filled from the definition is given the words of its lines joined by spaces.
+        /// <c>LINE ONE\PLINE TWO\PLINE THREE</c>, where ezdxf writes the first line. <see cref="DxfDBText.TextString"/> reads the
+        /// words of its lines joined by spaces, <c>LINE ONE LINE TWO LINE THREE</c>, as AutoCAD 2021 reads them, and an ATTRIB
+        /// filled from the definition is given those.
         /// </summary>
         /// <value>Get, a new MTEXT in no file with the definition's look; null for a definition of one line. Set, embedded and
         /// the text made to agree; the MTEXT it is made of, given back, changes nothing, and so does null given to a definition of

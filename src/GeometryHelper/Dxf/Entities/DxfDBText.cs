@@ -80,15 +80,39 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gets or sets the words of the text (group 1), as AutoCAD's <c>TextString</c>: as the file writes them, its special
         /// characters such as <c>%%d</c> kept, but a letter written as its escape, <c>\U+00E9</c>, read as the letter; empty
-        /// where the record gives none.
+        /// where the record gives none. Those of an ATTRIB or ATTDEF of several lines are the words of the lines of its MTEXT
+        /// joined by spaces, as AutoCAD 2021 reads both whatever their group 1 holds: the definition whose MTEXT reads
+        /// <c>LINE ONE\PLINE TWO\PLINE THREE</c> gives <c>LINE ONE LINE TWO LINE THREE</c>.
         /// </summary>
-        /// <value>Set, one line of words; a letter the file's code page lacks is written as its escape.</value>
+        /// <value>Set, one line of words; a letter the file's code page lacks is written as its escape. Set on an attribute of
+        /// several lines, the words of its MTEXT, which keeps its place and look, its backslashes and braces written as the codes
+        /// <c>\\</c>, <c>\{</c> and <c>\}</c>, its group 1 made to agree as <see cref="DxfAttributeReference.MTextAttribute"/>
+        /// and <see cref="DxfAttributeDefinition.MTextAttributeDefinition"/> make it.</value>
         /// <exception cref="ArgumentNullException">Thrown when the words set are null.</exception>
         /// <exception cref="ArgumentException">Thrown when the words set have a line break in them.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the text is erased.</exception>
         public string TextString
         {
-            get => Unescaped(TextValue(1) ?? string.Empty);
+            get
+            {
+                if (!IsAttribute)
+                {
+                    return Unescaped(GetString(1) ?? string.Empty);
+                }
+
+                // An attribute of several lines reads the words of its MTEXT (101 on), whatever its group 1 holds.
+                IReadOnlyList<DxfTypedValue> own = GetOwnGroups(0);
+
+                for (int i = 0; i < own.Count; i++)
+                {
+                    if (own[i].TypeCode == 101)
+                    {
+                        return Joined(DxfMText.OfEmbedded(own.Skip(i + 1)));
+                    }
+                }
+
+                return Unescaped(TextValue(own, 1) ?? string.Empty);
+            }
 
             set
             {
@@ -108,7 +132,18 @@ namespace GeometryHelper.Dxf
                     throw new ArgumentException("A text is one line: its words have no line break in them.", nameof(value));
                 }
 
-                SetText(Pair(1, value));
+                if (!IsAttribute || !Embedded)
+                {
+                    SetText(Pair(1, value));
+                    return;
+                }
+
+                // An attribute of several lines: the words of its MTEXT, and its group 1 made to agree with them.
+                DxfMText words = DxfMText.OfEmbedded(EmbeddedTail());
+                words.Contents = AsContents(value);
+                var embedded = new List<DxfTypedValue> { DxfTypedValue.Read(101, "Embedded Object") };
+                embedded.AddRange(DxfMText.OwnOf(words));
+                Rewrite(Pair(1, ValueOfLines(words)), null, embedded);
             }
         }
 
@@ -566,14 +601,11 @@ namespace GeometryHelper.Dxf
         /// of an ATTRIB or ATTDEF, its AcDbText part for a text's code and the part after it for an attribute's (2, 3, 70, 73,
         /// 74 and 280), as ezdxf reads them; the whole record in a file of R12. Null where it has none.
         /// </summary>
-        private protected string TextValue(int code)
-        {
-            if (!IsAttribute)
-            {
-                return GetString(code);
-            }
+        private protected string TextValue(int code) => IsAttribute ? TextValue(GetOwnGroups(0), code) : GetString(code);
 
-            IReadOnlyList<DxfTypedValue> own = GetOwnGroups(0);
+        /// <summary>The text of the first group of a code in the part of the own groups of an ATTRIB or ATTDEF it belongs to, as <see cref="TextValue(int)"/> reads it.</summary>
+        private static string TextValue(IReadOnlyList<DxfTypedValue> own, int code)
+        {
             bool later = AttributeCodes.Contains(code);
             int segment = -1;
 
@@ -745,7 +777,13 @@ namespace GeometryHelper.Dxf
         /// The value (group 1) of an attribute of several lines of the MTEXT it is made of: of an ATTRIB the words of every line
         /// joined by spaces, which AutoCAD 2021 reads as its own and other readers take for the attribute's words.
         /// </summary>
-        private protected virtual string ValueOfLines(DxfMText value) => value.Text.Replace('\n', ' ');
+        private protected virtual string ValueOfLines(DxfMText value) => Joined(value);
+
+        /// <summary>The words of every line of an MTEXT joined by spaces, as AutoCAD 2021 gives the <c>TextString</c> of an attribute of several lines.</summary>
+        private static string Joined(DxfMText value) => value.Text.Replace('\n', ' ');
+
+        /// <summary>Words written as the contents of an MTEXT that reads them: their backslashes and braces as the codes <c>\\</c>, <c>\{</c> and <c>\}</c>.</summary>
+        private static string AsContents(string words) => words.Replace("\\", "\\\\").Replace("{", "\\{").Replace("}", "\\}");
 
         /// <summary>
         /// What the text's part of an attribute of several lines is given when it is made one of one line: nothing for an
@@ -852,8 +890,7 @@ namespace GeometryHelper.Dxf
             }
 
             Several();
-            string words = TextString.Replace("\\", "\\\\").Replace("{", "\\{").Replace("}", "\\}");
-            var made = new DxfMText { Contents = words };
+            var made = new DxfMText { Contents = AsContents(TextString) };
             SetMText(Placed(made));
         }
 
