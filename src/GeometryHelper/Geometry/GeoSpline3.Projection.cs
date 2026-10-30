@@ -84,9 +84,14 @@ namespace GeometryHelper.Geometry
         /// Gets the shortest segment leaving this spline and landing on a line segment, within a tolerance.
         /// </summary>
         /// <param name="line">The line segment.</param>
-        /// <param name="tolerance">The tolerance; not read, since the nearest points take none.</param>
+        /// <param name="tolerance">The tolerance: a line segment no longer than its point tolerance is read as its start where it does not truly meet the spline.</param>
         /// <returns>The segment from the point of the spline to the point of the line segment nearest it, as long as <see cref="DistanceTo(GeoLine3, Tolerance)"/>; of no length where the two cross.</returns>
-        public GeoLine3 GetShortestLineTo(GeoLine3 line, Tolerance tolerance) => Spline3.GetShortestLineTo(this, Spline3.Of(this, line));
+        public GeoLine3 GetShortestLineTo(GeoLine3 line, Tolerance tolerance)
+        {
+            GeoLine3 asItIs = Spline3.GetShortestLineTo(this, Spline3.Of(this, line));
+
+            return Stub3.ReadsAsStart(line, tolerance) && !Stub3.Meets(asItIs.Length, line) ? GetShortestLineTo(line.StartPoint, tolerance) : asItIs;
+        }
 
         /// <summary>
         /// Gets the shortest segment leaving this spline and landing on a ray, using the default tolerance.
@@ -331,9 +336,10 @@ namespace GeometryHelper.Geometry
         /// Gets the shortest segment leaving this spline and landing on an edge, within a tolerance.
         /// </summary>
         /// <param name="edge">The edge.</param>
-        /// <param name="tolerance">The tolerance; not read, since the nearest points take none.</param>
+        /// <param name="tolerance">The tolerance: a straight edge no longer than its point tolerance is read as its start where it does not truly meet the spline.</param>
         /// <returns>The segment from the point of the spline to the point of the edge nearest it, as long as <see cref="DistanceTo(GeoEdge3, Tolerance)"/>; of no length where the two cross.</returns>
-        public GeoLine3 GetShortestLineTo(GeoEdge3 edge, Tolerance tolerance) => Spline3.GetShortestLineTo(this, Spline3.Of(this, edge));
+        public GeoLine3 GetShortestLineTo(GeoEdge3 edge, Tolerance tolerance)
+            => Stub3.ReadsAsStart(edge, tolerance) ? GetShortestLineTo(edge.ToLine(), tolerance) : Spline3.GetShortestLineTo(this, Spline3.Of(this, edge));
 
         /// <summary>
         /// Gets the shortest segment leaving this spline and landing on a curved chain, using the default tolerance.

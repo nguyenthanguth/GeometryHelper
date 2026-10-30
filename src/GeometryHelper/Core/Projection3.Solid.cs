@@ -37,20 +37,38 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// A segment that passes clean through the face meets none of its edges, so the crossing is looked
         /// for first; after that the nearest pair is either between the segment and an edge, or under one
-        /// of the segment ends.
+        /// of the segment ends. A segment no longer than the point tolerance is read as its start where it
+        /// does not truly meet the triangle, as for a polygon.
         /// </remarks>
         public static GeoLine3 GetShortestLineTo(GeoLine3 line, GeoTriangle3 triangle, Tolerance tolerance)
+        {
+            if (Stub3.ReadsAsStart(line, tolerance))
+            {
+                return Stub3.Nearest(
+                    line,
+                    Closest(line, triangle, Stub3.AsItIs(line, tolerance)),
+                    new GeoLine3(line.StartPoint, ProjectToTriangle(triangle, line.StartPoint)));
+            }
+
+            return Closest(line, triangle, tolerance);
+        }
+
+        /// <summary>
+        /// Gets the shortest segment joining a segment to a triangle by the search a side of a shape is joined by, the segment
+        /// not read as one you give.
+        /// </summary>
+        internal static GeoLine3 Closest(GeoLine3 line, GeoTriangle3 triangle, Tolerance tolerance)
         {
             if (Intersection3.TryIntersectWith(line, triangle, out GeoPoint3 through, tolerance))
             {
                 return new GeoLine3(through, through);
             }
 
-            GeoLine3 best = GetShortestLineTo(line, triangle.GetEdgeAt(0), tolerance);
+            GeoLine3 best = Closest(line, triangle.GetEdgeAt(0), tolerance);
 
             for (int i = 1; i < 3; i++)
             {
-                Consider(ref best, GetShortestLineTo(line, triangle.GetEdgeAt(i), tolerance));
+                Consider(ref best, Closest(line, triangle.GetEdgeAt(i), tolerance));
             }
 
             Consider(ref best, new GeoLine3(line.StartPoint, ProjectToTriangle(triangle, line.StartPoint)));
@@ -94,13 +112,13 @@ namespace GeometryHelper.Core
                 }
             }
 
-            GeoLine3 best = GetShortestLineTo(first.GetEdgeAt(0), second.GetEdgeAt(0), tolerance);
+            GeoLine3 best = Closest(first.GetEdgeAt(0), second.GetEdgeAt(0), tolerance);
 
             for (int i = 0; i < 3; i++)
             {
                 for (int j = 0; j < 3; j++)
                 {
-                    Consider(ref best, GetShortestLineTo(first.GetEdgeAt(i), second.GetEdgeAt(j), tolerance));
+                    Consider(ref best, Closest(first.GetEdgeAt(i), second.GetEdgeAt(j), tolerance));
                 }
             }
 
@@ -302,7 +320,7 @@ namespace GeometryHelper.Core
             solid = Material3.Whole(solid, tolerance);
 
             GeoTriangle3[] faces = solid.TriangulateQuietly(tolerance);
-            GeoLine3 best = GetShortestLineTo(polyline.GetEdgeAt(0), faces[0], tolerance).Reverse();
+            GeoLine3 best = Closest(polyline.GetEdgeAt(0), faces[0], tolerance).Reverse();
             double shortest = best.Length;
 
             for (int i = 0; i < faces.Length; i++)
@@ -314,7 +332,7 @@ namespace GeometryHelper.Core
                         return best;
                     }
 
-                    Consider(ref best, ref shortest, GetShortestLineTo(polyline.GetEdgeAt(j), faces[i], tolerance).Reverse());
+                    Consider(ref best, ref shortest, Closest(polyline.GetEdgeAt(j), faces[i], tolerance).Reverse());
                 }
             }
 
@@ -458,9 +476,33 @@ namespace GeometryHelper.Core
         /// The nearest pair is either where the two run past each other, or at the origin of the ray, or
         /// under an end of the segment. The first of those is found by reading the ray as the whole line
         /// through it and then clamping what comes back onto the ray and onto the segment, so the pair is
-        /// one both shapes really hold whether or not the perpendicular falls where they live.
+        /// one both shapes really hold whether or not the perpendicular falls where they live. A segment no longer than
+        /// the point tolerance is read as its start where it does not truly meet the ray: at a thousandth, the one from
+        /// (5, 0, 0.0015) down to (5, 0, 0.0006) is joined to the ray from the origin along X from its start, by a
+        /// segment 0.0015 long.
         /// </remarks>
         public static GeoLine3 GetShortestLineTo(GeoRay3 ray, GeoLine3 line, Tolerance tolerance)
+        {
+            if (Stub3.ReadsAsStart(line, tolerance))
+            {
+                // Where the stub meets the ray, it meets the part of it no further from the origin than its far end.
+                double reach = Math.Max(ray.Origin.DistanceTo(line.StartPoint), ray.Origin.DistanceTo(line.EndPoint));
+                var along = new GeoLine3(ray.Origin, Gap3.RayEnd(ray, reach));
+                GeoLine3 asItIs = Closest(along, line, Stub3.AsItIs(along, line, tolerance));
+
+                return Stub3.Meets(asItIs.Length, along, line)
+                    ? asItIs
+                    : new GeoLine3(ProjectToRay(ray, line.StartPoint), line.StartPoint);
+            }
+
+            return Closest(ray, line, tolerance);
+        }
+
+        /// <summary>
+        /// Gets the shortest segment joining a ray to a segment by the search a side of a shape is joined by, the segment not
+        /// read as one you give.
+        /// </summary>
+        internal static GeoLine3 Closest(GeoRay3 ray, GeoLine3 line, Tolerance tolerance)
         {
             var best = new GeoLine3(ProjectToRay(ray, line.StartPoint), line.StartPoint);
 
@@ -496,7 +538,7 @@ namespace GeometryHelper.Core
 
             for (int i = 0; i < 3; i++)
             {
-                Consider(ref best, GetShortestLineTo(ray, triangle.GetEdgeAt(i), tolerance));
+                Consider(ref best, Closest(ray, triangle.GetEdgeAt(i), tolerance));
             }
 
             return best;

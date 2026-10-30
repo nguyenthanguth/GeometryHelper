@@ -118,14 +118,14 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Calculates the shortest distance between two line segments as the closest-point search of
-        /// <see cref="Projection3.GetShortestLineTo(GeoLine3, GeoLine3, Tolerance)"/> finds it.
+        /// <see cref="Projection3.Closest(GeoLine3, GeoLine3, Tolerance)"/> finds it, a segment no longer than the tolerance read as its start.
         /// </summary>
         /// <remarks>
         /// This is what the search for the nearest triangles of two bodies and the collision of two triangles ask, which the
         /// clash reads and keeps as it was.
         /// </remarks>
         internal static double DistanceToByProjection(GeoLine3 line1, GeoLine3 line2, Tolerance tolerance)
-            => Projection3.GetShortestLineTo(line1, line2, tolerance).Length;
+            => Projection3.Closest(line1, line2, tolerance).Length;
 
         /// <summary>
         /// Calculates the shortest distance between a ray and a line segment.

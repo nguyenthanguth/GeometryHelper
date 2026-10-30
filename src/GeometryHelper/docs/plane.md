@@ -936,6 +936,12 @@ speed up is slower than not having it at all.
 — the reading the whole library keeps for a face. So a point sitting in a bolt hole is answered by the rim it
 sits in, not by the outline far away.
 
+**Every edge of an index is a side of a shape.** Two indexes are measured, and collide, edge against edge as the
+shapes they were built from measure their sides: each the side it is however short, never a segment read as its
+start, and the tolerance changes nothing in the distance. At a thousandth, the index over the chain coming down from
+(5, 5) to (5, 0.0015) and on to (5, 0.0006) is 0.0006 from the one over the segment from the origin to (10, 0), and
+collides with it, as the two chains do.
+
 ### Flattening
 
 Arcs stop at the door of the region operations. Clipper, which does the booleans and the region offsets,

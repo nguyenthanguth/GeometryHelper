@@ -87,9 +87,14 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from this spline to a line segment, within a tolerance.
         /// </summary>
         /// <param name="line">The line segment.</param>
-        /// <param name="tolerance">The tolerance; not read, since a distance is measured rather than judged.</param>
+        /// <param name="tolerance">The tolerance: a line segment no longer than its point tolerance is read as its start where it does not truly meet the spline.</param>
         /// <returns>Nought only where they truly meet, a crossing or a touch found to rounding, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoLine3 line, Tolerance tolerance) => Spline3.DistanceTo(this, Spline3.Of(this, line));
+        public double DistanceTo(GeoLine3 line, Tolerance tolerance)
+        {
+            double gap = Spline3.DistanceTo(this, Spline3.Of(this, line));
+
+            return Stub3.ReadsAsStart(line, tolerance) && !Stub3.Meets(gap, line) ? DistanceTo(line.StartPoint, tolerance) : gap;
+        }
 
         /// <summary>
         /// Calculates the shortest distance from this spline to a ray, using the default tolerance.
@@ -337,9 +342,10 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from this spline to an edge, within a tolerance.
         /// </summary>
         /// <param name="edge">The edge.</param>
-        /// <param name="tolerance">The tolerance; not read, since a distance is measured rather than judged.</param>
+        /// <param name="tolerance">The tolerance: a straight edge no longer than its point tolerance is read as its start where it does not truly meet the spline.</param>
         /// <returns>Nought only where they truly meet, a crossing or a touch found to rounding, otherwise the gap, measured exactly.</returns>
-        public double DistanceTo(GeoEdge3 edge, Tolerance tolerance) => Spline3.DistanceTo(this, Spline3.Of(this, edge));
+        public double DistanceTo(GeoEdge3 edge, Tolerance tolerance)
+            => Stub3.ReadsAsStart(edge, tolerance) ? DistanceTo(edge.ToLine(), tolerance) : Spline3.DistanceTo(this, Spline3.Of(this, edge));
 
         /// <summary>
         /// Calculates the shortest distance from this spline to a curved chain, using the default tolerance.

@@ -38,9 +38,16 @@ namespace GeometryHelper.Geometry
         /// <returns>Nought where a segment reaches the ball, otherwise the gap, measured exactly.</returns>
         /// <remarks>
         /// The segment from (100, -100, 0) to (100, 100, 0) is 50 from the ball of radius 50 about the origin; the one from (0, -100, 0) to (0, 100, 0) passes through it and is nought.
+        /// A segment no longer than the point tolerance is read as its start where it does not reach the ball: at a thousandth, the one from (0, 0, 50.0004) to
+        /// (0, 0, 49.9995) passes into it and is nought from it, and the one from (0, 0, 50.0015) to (0, 0, 50.0006) is 0.0015 from it.
         /// </remarks>
         public double DistanceTo(GeoLine3 line, Tolerance tolerance)
         {
+            if (Stub3.ReadsAsStart(line, tolerance) && Stub3.Meets(Sphere3.Reach(this, Distance3.DistanceTo(line, Center, Stub3.AsItIs(line, tolerance))), line))
+            {
+                return 0.0;
+            }
+
             return Sphere3.Reach(this, Distance3.DistanceTo(line, Center, tolerance));
         }
 
@@ -139,10 +146,15 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <returns>Nought where an edge reaches the ball, otherwise the gap, measured exactly.</returns>
         /// <remarks>
-        /// An edge is measured as the segment or the arc it is.
+        /// An edge is measured as the segment or the arc it is, and a straight one no longer than the point tolerance as a segment that short is.
         /// </remarks>
         public double DistanceTo(GeoEdge3 edge, Tolerance tolerance)
         {
+            if (Stub3.ReadsAsStart(edge, tolerance) && Stub3.Meets(Sphere3.Reach(this, edge.DistanceTo(Center, Stub3.AsItIs(edge.ToLine(), tolerance))), edge.ToLine()))
+            {
+                return 0.0;
+            }
+
             return Sphere3.Reach(this, edge.DistanceTo(Center, tolerance));
         }
 

@@ -241,9 +241,37 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// Two segments in space usually do not meet, so the answer is a segment rather than a point, and
         /// its length is the distance between them. When they do cross, the result is a zero-length
-        /// segment sitting at the crossing point.
+        /// segment sitting at the crossing point. A segment no longer than the point tolerance is read as its
+        /// start where it does not truly meet the other, as <see cref="Distance3.DistanceTo(GeoLine3, GeoLine3, Tolerance)"/>
+        /// reads it: at a thousandth, the segment from (5, 0, 0.0004) to (5, 0, -0.0005) crosses the one from the origin
+        /// to (10, 0, 0) and is joined to it by a segment of no length at (5, 0, 0), and the one from (5, 0, 0.0015) to
+        /// (5, 0, 0.0006) is joined to it from its start, by a segment 0.0015 long.
         /// </remarks>
         public static GeoLine3 GetShortestLineTo(GeoLine3 line1, GeoLine3 line2, Tolerance tolerance)
+        {
+            return Stub3.ReadsAsStart(line1, tolerance) || Stub3.ReadsAsStart(line2, tolerance)
+                ? GetShortestLineToStub(line1, line2, tolerance)
+                : Closest(line1, line2, tolerance);
+        }
+
+        /// <summary>
+        /// Finds the shortest segment between two segments, one or both no longer than the tolerance and read as their
+        /// starts unless the two truly meet.
+        /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static GeoLine3 GetShortestLineToStub(GeoLine3 line1, GeoLine3 line2, Tolerance tolerance)
+        {
+            GeoLine3 asItIs = Closest(line1, line2, Stub3.AsItIs(line1, line2, tolerance));
+
+            return Stub3.Meets(asItIs.Length, line1, line2) ? asItIs : Closest(line1, line2, tolerance);
+        }
+
+        /// <summary>
+        /// Finds the shortest segment from a point on one segment to a point on another, either no longer than the point
+        /// tolerance taken for the point at its start, whether a segment you give or the side of a shape: the search the
+        /// sides of shapes and the clash are joined by, and a segment you give where it does not truly meet the other.
+        /// </summary>
+        internal static GeoLine3 Closest(GeoLine3 line1, GeoLine3 line2, Tolerance tolerance)
         {
             GeoVector3 d1 = line1.Direction;
             GeoVector3 d2 = line2.Direction;

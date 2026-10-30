@@ -711,7 +711,13 @@ Seven things are read otherwise, on purpose:
   5E-10 away. Further out than a million the billionth grows with the coordinates, to 1E-15 of the largest of the body
   and the point, past their rounding: a point 0.052 outside a U 5E7 out is outside it.
 * **A segment you give, no longer than the point tolerance, is read as its start** where it does not truly meet the other
-  shape, as it is in the plane.
+  shape, as it is in the plane, by `DistanceTo`, `CollidesWith` and `GetShortestLineTo` alike, and so is a straight
+  `GeoEdge3` that short. At a thousandth, the segment from (5, 5, 0.0015) down to (5, 5, 0.0006), stopping 0.0006 above
+  the square 10 by 10 in the floor, is 0.0015 from it and joined to it from its start, as it is to a triangle, a face, a
+  body, a ray, a ball and a spline so aimed; the one from (5, 5, 0.0004) to (5, 5, -0.0005), passing through the square,
+  is nought from it and joined to it by a line of no length at (5, 5, 0), as it is to a segment it crosses and to a ball
+  it reaches into. The sides of a shape are the sides they are however short. A plane measures a segment exactly, by its
+  nearer end, as above, and a point is measured to a stub's start.
 * **A circle collides as its rim and a loop of arcs as its outline**, so a circle or a loop round a shape touches nothing:
   the circle of radius 40 about the origin does not touch the square 20 by 20 in its middle, and touches the segment from
   (40.0005, 0, 0) to (80, 0, 0). The distance from a point to a circle is to the filled disc, as it always was: nought at the
@@ -719,7 +725,8 @@ Seven things are read otherwise, on purpose:
 * **Projections and intersections keep their readings.** `GetShortestLineTo` and `GetIntersections` ask where the shapes
   are, not whether they are near, so within the tolerance a shortest line can be of no length where the distance is the gap:
   the segment from (5, 5, 0.0004) to (5, 5, 9) over the square is joined at (5, 5, 0.0004) and is 0.0004 from it. Between
-  segments, the line can still differ by the order of the arguments.
+  segments, the line can still differ by the order of the arguments. A segment no longer than the tolerance is joined as
+  the bullet above says; `GetIntersections` still reads one as it reads a longer segment.
 * **One case is searched and not proved**: two partial arcs lying nearly on one axis whose distance stays almost constant
   just beyond the tolerance, which are walked finely with every low point polished.
 
@@ -2508,7 +2515,8 @@ plane (the ring inside the box 200 by 200 by 20 is 10 from it). A plane is a sur
 and a curved loop are the paths they are (the ring inside the square outline of a loop is 50 from it, not nought), and the spline itself is a
 curve with no inside. The distance is nought only where the two truly meet, a crossing or a touch found to rounding, and otherwise the gap,
 measured exactly: it is never read through the tolerance, the planar tolerance is not read at all, and `CollidesWith` is the distance being no
-more than the point tolerance, exactly, so the two never disagree.
+more than the point tolerance, exactly, so the two never disagree. A segment you give no longer than the point tolerance, or a straight edge that
+short, is read as its start where it does not truly meet the spline, as every shape reads one.
 
 **A place is a least of the distance.** Two curves in space seldom meet, so a place is where the distance of the spline from the shape is least
 within the point tolerance: a crossing is a place where it comes to nought, a touch within the tolerance is another, and the tolerance alone

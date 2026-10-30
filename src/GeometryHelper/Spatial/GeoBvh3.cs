@@ -801,7 +801,7 @@ namespace GeometryHelper.Spatial
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="line">
         /// The shortest segment leaving <paramref name="segment"/> and landing on a triangle of the mesh, the one
-        /// <see cref="Projection3.GetShortestLineTo(GeoLine3, GeoTriangle3, Tolerance)"/> gives for the nearest triangle;
+        /// <see cref="Projection3.Closest(GeoLine3, GeoTriangle3, Tolerance)"/> gives for the nearest triangle;
         /// <c>default</c> when the method returns false.
         /// </param>
         /// <returns>false when the mesh is empty, or no triangle comes nearer the segment than the reach.</returns>
@@ -866,7 +866,7 @@ namespace GeometryHelper.Spatial
                             continue;
                         }
 
-                        GeoLine3 candidate = Projection3.GetShortestLineTo(segment, _triangles[t], tolerance);
+                        GeoLine3 candidate = Projection3.Closest(segment, _triangles[t], tolerance);
                         double length = candidate.Length;
 
                         if (length < nearest)

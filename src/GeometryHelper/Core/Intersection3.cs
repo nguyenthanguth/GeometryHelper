@@ -56,7 +56,7 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            GeoLine3 bridge = Projection3.GetShortestLineTo(line1, line2, tolerance);
+            GeoLine3 bridge = Projection3.Closest(line1, line2, tolerance);
 
             if (bridge.Length > tolerance.EqualPoint)
             {
@@ -129,7 +129,10 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            GeoLine3 bridge = Projection3.GetShortestLineTo(line1, line2, extension, tolerance);
+            // Not extended, the bridge is the one TryIntersectWith(GeoLine3, GeoLine3) takes.
+            GeoLine3 bridge = extension == LineExtension.None
+                ? Projection3.Closest(line1, line2, tolerance)
+                : Projection3.GetShortestLineTo(line1, line2, extension, tolerance);
 
             if (bridge.Length > tolerance.EqualPoint)
             {
@@ -1937,7 +1940,7 @@ namespace GeometryHelper.Core
                             return false;
                         }
                     }
-                    else if (Projection3.GetShortestLineTo(edges[i], edges[j], tolerance).Length <= tolerance.EqualPoint)
+                    else if (Projection3.Closest(edges[i], edges[j], tolerance).Length <= tolerance.EqualPoint)
                     {
                         return false;
                     }
@@ -2071,7 +2074,7 @@ namespace GeometryHelper.Core
                             return false;
                         }
                     }
-                    else if (Projection3.GetShortestLineTo(edges[i], edges[j], tolerance).Length <= tolerance.EqualPoint)
+                    else if (Projection3.Closest(edges[i], edges[j], tolerance).Length <= tolerance.EqualPoint)
                     {
                         return false;
                     }

@@ -102,7 +102,10 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// As for a triangle: a segment passing clean through the surface meets none of its edges, so the crossing is
         /// looked for first; after that the nearest pair is either between the segment and an edge, or under one of the
-        /// segment's ends.
+        /// segment's ends. A segment no longer than the point tolerance is read as its start where it does not truly meet
+        /// the polygon: at a thousandth, the one from (5, 5, 0.0015) down to (5, 5, 0.0006) is joined to the square from
+        /// its start, by a segment 0.0015 long, and the one from (5, 5, 0.0004) to (5, 5, -0.0005), passing through it,
+        /// by a segment of no length at (5, 5, 0).
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static GeoLine3 GetShortestLineTo(GeoLine3 line, GeoPolygon3 polygon, Tolerance tolerance)
@@ -112,17 +115,34 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(polygon));
             }
 
+            if (Stub3.ReadsAsStart(line, tolerance))
+            {
+                return Stub3.Nearest(
+                    line,
+                    Closest(line, polygon, Stub3.AsItIs(line, tolerance)),
+                    new GeoLine3(line.StartPoint, ProjectToPolygon(polygon, line.StartPoint, tolerance)));
+            }
+
+            return Closest(line, polygon, tolerance);
+        }
+
+        /// <summary>
+        /// Gets the shortest segment joining a segment to a polygon by the search a side of a shape is joined by, the segment
+        /// not read as one you give.
+        /// </summary>
+        internal static GeoLine3 Closest(GeoLine3 line, GeoPolygon3 polygon, Tolerance tolerance)
+        {
             if (Intersection3.TryIntersectWith(line, polygon, out GeoPoint3 through, tolerance))
             {
                 return new GeoLine3(through, through);
             }
 
-            GeoLine3 best = GetShortestLineTo(line, polygon.GetEdgeAt(0), tolerance);
+            GeoLine3 best = Closest(line, polygon.GetEdgeAt(0), tolerance);
             double shortest = best.Length;
 
             for (int i = 1; i < polygon.EdgeCount; i++)
             {
-                Consider(ref best, ref shortest, GetShortestLineTo(line, polygon.GetEdgeAt(i), tolerance));
+                Consider(ref best, ref shortest, Closest(line, polygon.GetEdgeAt(i), tolerance));
             }
 
             Consider(ref best, ref shortest, new GeoLine3(line.StartPoint, ProjectToPolygon(polygon, line.StartPoint, tolerance)));
@@ -151,7 +171,9 @@ namespace GeometryHelper.Core
         /// The shortest of the segments joining each edge to <paramref name="line"/>, the first edge winning a tie, and of
         /// no length where the two meet. <see cref="Distance3.DistanceTo(GeoPolyline3, GeoLine3, Tolerance)"/> is its
         /// length. The chain (0, 0, 0), (100, 0, 0), (100, 100, 0) is joined to the segment from (60, 50, 30) to
-        /// (60, 50, 80) by the one from (100, 50, 0), on its second edge, to (60, 50, 30), 50 long.
+        /// (60, 50, 80) by the one from (100, 50, 0), on its second edge, to (60, 50, 30), 50 long. A segment no longer
+        /// than the point tolerance is read as its start where it does not truly meet the chain, and joined where it
+        /// crosses an edge where it does; the edges are the sides they are however short.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
         public static GeoLine3 GetShortestLineTo(GeoPolyline3 polyline, GeoLine3 line, Tolerance tolerance)
@@ -161,12 +183,31 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(polyline));
             }
 
-            GeoLine3 best = GetShortestLineTo(polyline.GetEdgeAt(0), line, tolerance);
+            if (Stub3.ReadsAsStart(line, tolerance))
+            {
+                GeoLine3 asItIs = Closest(polyline, line, Stub3.AsItIs(line, tolerance));
+
+                if (Stub3.Meets(asItIs.Length, line))
+                {
+                    return asItIs;
+                }
+            }
+
+            return Closest(polyline, line, tolerance);
+        }
+
+        /// <summary>
+        /// Gets the shortest segment joining a polyline to a segment, edge by edge, a segment no longer than the point
+        /// tolerance read as its start.
+        /// </summary>
+        private static GeoLine3 Closest(GeoPolyline3 polyline, GeoLine3 line, Tolerance tolerance)
+        {
+            GeoLine3 best = Closest(polyline.GetEdgeAt(0), line, tolerance);
             double shortest = best.Length;
 
             for (int i = 1; i < polyline.EdgeCount && shortest > 0.0; i++)
             {
-                Consider(ref best, ref shortest, GetShortestLineTo(polyline.GetEdgeAt(i), line, tolerance));
+                Consider(ref best, ref shortest, Closest(polyline.GetEdgeAt(i), line, tolerance));
             }
 
             return best;
@@ -204,7 +245,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(other));
             }
 
-            GeoLine3 best = GetShortestLineTo(polyline.GetEdgeAt(0), other.GetEdgeAt(0), tolerance);
+            GeoLine3 best = Closest(polyline.GetEdgeAt(0), other.GetEdgeAt(0), tolerance);
             double shortest = best.Length;
 
             for (int i = 0; i < polyline.EdgeCount; i++)
@@ -218,7 +259,7 @@ namespace GeometryHelper.Core
                         return best;
                     }
 
-                    Consider(ref best, ref shortest, GetShortestLineTo(edge, other.GetEdgeAt(j), tolerance));
+                    Consider(ref best, ref shortest, Closest(edge, other.GetEdgeAt(j), tolerance));
                 }
             }
 
@@ -252,12 +293,12 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(polyline));
             }
 
-            GeoLine3 best = GetShortestLineTo(polyline.GetEdgeAt(0), triangle, tolerance);
+            GeoLine3 best = Closest(polyline.GetEdgeAt(0), triangle, tolerance);
             double shortest = best.Length;
 
             for (int i = 1; i < polyline.EdgeCount && shortest > 0.0; i++)
             {
-                Consider(ref best, ref shortest, GetShortestLineTo(polyline.GetEdgeAt(i), triangle, tolerance));
+                Consider(ref best, ref shortest, Closest(polyline.GetEdgeAt(i), triangle, tolerance));
             }
 
             return best;
@@ -302,7 +343,7 @@ namespace GeometryHelper.Core
 
             GeoTriangle3[] pieces = new GeoFace3(polygon).TriangulateSurface(tolerance);
 
-            GeoLine3 best = GetShortestLineTo(polyline.GetEdgeAt(0), pieces[0], tolerance);
+            GeoLine3 best = Closest(polyline.GetEdgeAt(0), pieces[0], tolerance);
             double shortest = best.Length;
 
             for (int i = 0; i < polyline.EdgeCount; i++)
@@ -316,7 +357,7 @@ namespace GeometryHelper.Core
                         return best;
                     }
 
-                    Consider(ref best, ref shortest, GetShortestLineTo(edge, pieces[j], tolerance));
+                    Consider(ref best, ref shortest, Closest(edge, pieces[j], tolerance));
                 }
             }
 

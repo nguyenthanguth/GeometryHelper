@@ -22,6 +22,11 @@ namespace GeometryHelper.Spatial
     {
         private const int LeafSize = 4;
 
+        /// <summary>
+        /// A tolerance of nought, at which two edges are measured as the sides they are, however short.
+        /// </summary>
+        private static Tolerance Exactly => default(Tolerance);
+
         private struct Box
         {
             internal double MinX;
@@ -403,6 +408,13 @@ namespace GeometryHelper.Spatial
         /// <summary>
         /// Gets the distance between two hierarchies, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// Every edge is a side of a shape, measured as the side it is however short, as the shapes measure their sides
+        /// against each other: nought only where two truly meet, otherwise the gap, measured exactly, and the tolerance
+        /// changes nothing. At a thousandth, the chain coming down from (5, 5) to (5, 0.0015) and on to (5, 0.0006) is
+        /// 0.0006 from the one along the x axis from the origin to (10, 0), though its last side is shorter than the
+        /// tolerance.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the other hierarchy is null.</exception>
         public double DistanceTo(GeoBvh2 other, Tolerance tolerance)
         {
@@ -415,7 +427,7 @@ namespace GeometryHelper.Spatial
 
             double best = double.MaxValue;
 
-            Between(0, other, 0, tolerance, ref best);
+            Between(0, other, 0, ref best);
 
             return best;
         }
@@ -431,7 +443,8 @@ namespace GeometryHelper.Spatial
         /// </summary>
         /// <remarks>
         /// This is about the edges meeting, not about one shape lying inside the other; a small loop
-        /// wholly within a large one touches nothing.
+        /// wholly within a large one touches nothing. Two touch where <see cref="DistanceTo(GeoBvh2, Tolerance)"/>
+        /// is no more than the point tolerance, each edge the side it is however short.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the other hierarchy is null.</exception>
         public bool CollidesWith(GeoBvh2 other, Tolerance tolerance)
@@ -747,9 +760,10 @@ namespace GeometryHelper.Spatial
 
         /// <summary>
         /// Looks for the nearest approach between two hierarchies, leaving alone the pairs of branches
-        /// that already stand further apart than the best found.
+        /// that already stand further apart than the best found. Each pair of edges is measured exactly, as
+        /// the sides of shapes they are.
         /// </summary>
-        private void Between(int node, GeoBvh2 other, int otherNode, Tolerance tolerance, ref double best)
+        private void Between(int node, GeoBvh2 other, int otherNode, ref double best)
         {
             Node one = _nodes[node];
             Node two = other._nodes[otherNode];
@@ -765,7 +779,7 @@ namespace GeometryHelper.Spatial
                 {
                     for (int j = two.Start; j < two.Start + two.Count; j++)
                     {
-                        double distance = _edges[_order[i]].DistanceTo(other._edges[other._order[j]], tolerance);
+                        double distance = _edges[_order[i]].DistanceTo(other._edges[other._order[j]], Exactly);
 
                         if (distance < best)
                         {
@@ -787,13 +801,13 @@ namespace GeometryHelper.Spatial
 
             if (openThis)
             {
-                Between(one.Left, other, otherNode, tolerance, ref best);
-                Between(one.Right, other, otherNode, tolerance, ref best);
+                Between(one.Left, other, otherNode, ref best);
+                Between(one.Right, other, otherNode, ref best);
             }
             else
             {
-                Between(node, other, two.Left, tolerance, ref best);
-                Between(node, other, two.Right, tolerance, ref best);
+                Between(node, other, two.Left, ref best);
+                Between(node, other, two.Right, ref best);
             }
         }
         /// <summary>

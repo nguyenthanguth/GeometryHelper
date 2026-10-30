@@ -6,6 +6,36 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** In space, `GetShortestLineTo` reads a segment you give, a `GeoLine3` no longer than the point tolerance, as
+its start where it does not truly meet the other shape, and joins it where it does, as `DistanceTo` has read it and as
+the shapes in the plane do now. At a thousandth, the segment from (5, 5, 0.0015) down to (5, 5, 0.0006), stopping
+0.0006 above the square 10 by 10 in the floor, was joined to it from its end by a line 0.0006 long, and so to a
+triangle, a face, a body and a ray so aimed; it is joined from its start by one 0.0015 long, as long as its distance.
+The one from (5, 5, 0.0004) to (5, 5, -0.0005), passing through the square, was joined from its start by a line 0.0004
+long, and so to a segment, a polyline, a line without ends or a ray it crossed; it is joined by a line of no length
+where it passes. One pointing at a side of the square in its plane, from (10.0015, 5, 0) to (10.0006, 5, 0), was joined
+by a line of no length; it is joined from its start. A ball read a stub reaching into it as its start, 0.0004 from it
+where it is nought, and a spline read one by its nearer end in `DistanceTo`, `CollidesWith` and `GetShortestLineTo`;
+both read it as every other shape does now, and a straight `GeoEdge3` that short with it. Of the 736 queries in space
+that take a segment, asked about four stubs, 178 answers broke that rule and 34 do now, all of a plane, which measures a
+segment exactly by its nearer end, or of a point, measured to a stub's start. Of 112 000 random segments aimed at every
+shape in space, four in five of them stubs, asked either way round at a thousandth and a hundredth and out to 100 000,
+47 264 answers broke it and none does now. A side of a shape, however short, a segment longer than the tolerance, the
+plane, the point and `GetIntersections` are read as before, to the bit: of the 2 944 000 answers, none to a longer
+segment moved. The shortest line between two segments longer than the tolerance takes 0.054 microseconds where 0.029 on
+.NET 10, and 0.08 where 0.07 on .NET Framework 4.8, and from a ray 0.05 where 0.035; every other is asked in the time it
+took. A stub takes longer, as its true meeting is looked for first: against a polygon of 40 sides 2.2 microseconds
+where 1.5, and against a segment 0.05 where 0.01. 7 new tests.
+
+**FIXED.** `GeoBvh2.DistanceTo(GeoBvh2)` and `CollidesWith(GeoBvh2)` measure every edge of the two indexes as the side of
+a shape it is, however short, as the shapes measure their sides. They measured the edges as segments you give, so a
+straight edge no longer than the point tolerance was read as its start: at a thousandth, the index over the chain coming
+down from (5, 5) to (5, 0.0015) and on to (5, 0.0006) was 0.0015 from the one over the segment from the origin to
+(10, 0), and did not collide with it, where the two chains are 0.0006 apart and collide. Of 78 916 random pairs of
+indexes over polylines, polygons, chains, loops, faces and rings of edges with sides shorter than the tolerance, at a
+thousandth and a hundredth, 3 486 distances and 445 collisions differed from the shapes' own, and none does now; no pair
+without such a side moved, to the bit, and the two take the time they took. 2 new tests.
+
 **FIXED.** A union, a common part and a difference of a body whose openings' walls stand apart within the tolerance of
 one plane keep each wall in its own plane, as `TryCutOpenings` keeps it. A boolean cut the openings of its bodies in at
 once within the tolerance, and the plane of one opening, cutting all it reached, took in the wall of another within the

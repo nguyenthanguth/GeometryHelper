@@ -74,7 +74,7 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoLine3 line, GeoRay3 ray, Tolerance tolerance)
         {
-            GeoLine3 join = Projection3.GetShortestLineTo(ray, line, tolerance);
+            GeoLine3 join = Projection3.Closest(ray, line, tolerance);
 
             if (join.Length > tolerance.EqualPoint || ray.IsParallelTo(line, tolerance))
             {

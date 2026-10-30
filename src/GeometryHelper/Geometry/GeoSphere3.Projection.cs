@@ -48,8 +48,22 @@ namespace GeometryHelper.Geometry
         /// Gets the shortest segment leaving this ball and landing on a segment, within a tolerance.
         /// </summary>
         /// <returns>A segment from the surface of the ball to the point of the shape nearest its centre, as long as the distance between them; of no length where they meet.</returns>
+        /// <remarks>
+        /// A segment no longer than the point tolerance is read as its start where it does not reach the ball, and joined
+        /// where it reaches in where it does, as <see cref="DistanceTo(GeoLine3, Tolerance)"/> reads it.
+        /// </remarks>
         public GeoLine3 GetShortestLineTo(GeoLine3 line, Tolerance tolerance)
         {
+            if (Stub3.ReadsAsStart(line, tolerance))
+            {
+                GeoLine3 asItIs = GetShortestLineTo(line, Stub3.AsItIs(line, tolerance));
+
+                if (Stub3.Meets(asItIs.Length, line))
+                {
+                    return asItIs;
+                }
+            }
+
             return Sphere3.Join(this, Projection3.ProjectToLine(line, Center, tolerance), DistanceTo(line, tolerance));
         }
 
@@ -144,6 +158,16 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         public GeoLine3 GetShortestLineTo(GeoEdge3 edge, Tolerance tolerance)
         {
+            if (Stub3.ReadsAsStart(edge, tolerance))
+            {
+                GeoLine3 asItIs = GetShortestLineTo(edge, Stub3.AsItIs(edge.ToLine(), tolerance));
+
+                if (Stub3.Meets(asItIs.Length, edge.ToLine()))
+                {
+                    return asItIs;
+                }
+            }
+
             return Sphere3.Join(this, edge.GetMeasuredPoint(Center, tolerance), DistanceTo(edge, tolerance));
         }
 
