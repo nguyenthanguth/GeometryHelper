@@ -1411,8 +1411,10 @@ namespace GeometryHelper.Core
         /// cut its sides into strips that lost a corner, so that the slab beneath the plane came out open, and the body with
         /// its opening cut 7.66 cubic millimetres short. A trillionth of the size of the coordinates is far beyond the
         /// rounding and far within any tolerance. Only the cutting of openings reads a corner so, the differences that take
-        /// them out one at a time where it gives no material to trust, all through (see Boolean3.TakeOutOneAtATime), and a
-        /// union worked out once more where it came out wound against itself both other ways (see Boolean3.Union). The
+        /// them out one at a time where it gives no material to trust, all through (see Boolean3.TakeOutOneAtATime), a
+        /// union worked out once more where it came out wound against itself both other ways (see Boolean3.Union), and a
+        /// union, a common part or a difference asked within a few roundings of the coordinates (see
+        /// Boolean3.NearTheRounding). The
         /// cells of a boolean cut so read a slab exactly the tolerance thick, in or beside a turned body, as on the plane at
         /// some corners and off it at others: of 2 700 unions, differences and intersections of such slabs and chips with a
         /// cube turned at random, six that were valid came out open or wound two ways.

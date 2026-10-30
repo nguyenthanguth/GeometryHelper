@@ -6,6 +6,24 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `TrySubtract`, `TryIntersect` and `TryUnion` of two bodies, asked within a few roundings of their coordinates,
+a quadrillionth of the largest of them, read a corner as on a plane within what rounding adds to the planar tolerance, a
+trillionth of the size of the coordinates, as the cut of openings does. Within the tolerance alone, rounding put the
+corners of a face lying in a plane of the other body on either side of it: a plate 200 by 100 by 3, turned and a hundred
+thousand out, less a slot 20 wide across all of it, within its rounding of 9.5E-11, was said to leave nothing, where
+54 000 is left; a hundred million out, less a notch 20 by 20 through one end, within 4.9E-8, it came back closed and 320
+short, wound two ways along its sides; and a thousand out, joined to a box 50 by 20 standing through it, within half its
+rounding, it held the two whole, 77 000 where they hold 74 000, and was trusted. A union is taken so where it closes wound
+alike and holds the two less what they share read the same way, and is worked out as before otherwise. Of 136 800 of
+each, plates and blocks less, sharing and joined to each of their openings taken as a plain body, turned at random, a
+thousand to a hundred million out, within half the rounding to a thousand times it, 583 differences said to leave nothing
+and 82 unions holding the wrong volume, all trusted, are right now, as are 5 637 differences, 4 196 common parts and
+4 678 unions that were not worked out; 40 unions still are not, and none that was right moved. Below four tenths of the
+rounding, nought among it, and at every tolerance at or above a trillionth of the coordinates, 1E-3 and 1E-2 among them,
+a boolean is worked out as it was, to the bit; at nought 3 519 of 3 990 such differences are still wrong. The slot takes
+0.94 milliseconds at its rounding where it took 6.4 to say nothing was left, on .NET 10, and 0.39 where 2.3 on .NET
+Framework 4.8; at a thousandth the operations take what they took.
+
 **FIXED.** `GetVolume`, `TryGetVolume`, `GetSurfaceArea`, `GetCentroid`, `GetMassProperties` and `Measure3` of a body
 with openings, asked at a point tolerance below the rounding of the coordinates, a quadrillionth of the largest of them,
 nought among them, measure the material `TryCutOpenings` gives at that tolerance, cut within the rounding. They cut the
@@ -36,9 +54,8 @@ where `TryCutOpenings` gave 56 800; it measures 56 800. Of the 5 000 bodies of t
 1E-12 above the rounding and the 9 at 1E-6, each an opening left in, measure right now; every other measure at or above
 the rounding is the same to the bit, 1E-3 and 1E-2 among them, and `TryCutOpenings` is unchanged at every tolerance.
 The plate with the notches takes 8.8 milliseconds at the rounding where it took 6.2, wrong, on .NET 10, and 20.1 where
-13.7 on .NET Framework 4.8, the openings cut twice. A plain difference of two bodies at the rounding is not covered: a
-plate 200 by 100 by 3 a hundred thousand out less a slot 20 wide across all of it, within 9.5E-11, is said to leave
-nothing where 54 000 is left.
+13.7 on .NET Framework 4.8, the openings cut twice. A plain difference of two bodies at the rounding is fixed on its own;
+see above.
 
 **FIXED.** `TriangulateSurface`, `DxfWriter.Add` of a body, and `ProjectToSolid`, with `GetClosestPointOnBoundary`,
 `GetShortestLineTo` of a point and `SignedDistanceTo` that read it, of a body with openings, at a point tolerance below

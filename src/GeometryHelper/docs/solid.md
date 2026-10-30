@@ -1498,6 +1498,19 @@ tolerance off the body's, to the last bit, is read as touching it, as one a hair
 with an opening 0.1 across 0.001 off three of its faces comes out closed, the opening taken with the outside,
 239 999.998 97, where it came out open 7.66 short.
 
+**Within a few roundings of the coordinates** a union, a common part or a difference reads a corner as on a plane within
+what rounding adds to the planar tolerance, a trillionth of the size of the coordinates, as the cut of openings does:
+where the planar tolerance is below that trillionth and the point tolerance no less than four tenths of the rounding, a
+quadrillionth of the largest coordinate. Within the tolerance alone, rounding put the corners of a face lying in a plane
+of the other body on either side of it. A plate 200 by 100 by 3, turned and a hundred thousand out, less a slot 20 wide
+across all of it, within its rounding of 9.5E-11, was said to leave nothing, and leaves its two pieces, 54 000; a hundred
+million out, less a notch 20 by 20 through one end, within 4.9E-8, it came back closed and 320 short, and holds 58 800;
+and a thousand out, joined to a box 50 by 20 standing through it within half its rounding, it held the two whole, 77 000,
+and holds 74 000. A union is taken so where it closes wound alike and holds the two less what they share read the same
+way, and is worked out within the tolerance alone otherwise. Further below the rounding, nought among it, a boolean is
+worked out as it was, and of such plates turned at random most differences and unions at nought still come out wrong;
+at a tolerance at or above a trillionth of the coordinates nothing changes.
+
 **Exactly the tolerance into or apart counts as touching.** Two bodies whose faces lie the tolerance into or clear of
 each other, or nearer, lie so to a few bits either way once turned, and a boolean reads them as touching there, closed
 across the gap or the slab: their common part is empty, each difference leaves its body whole, and their union holds
