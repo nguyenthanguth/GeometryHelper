@@ -517,7 +517,8 @@ of a segment and a body asks the boxes first as far apart as the body holds a po
 largest coordinate further out than a million; that reaches every point tolerance below it, not only those below the
 rounding, so the segment from 5E-10 over the top of a box touches it at a tolerance of nought, 1E-12, 1E-10 or 3E-10,
 as it is nought from it at each. A segment with a coordinate that is not a number touches nothing, as before. The
-booleans at a tolerance of nought are not covered yet. `GetVolume`, `TryGetVolume`, `GetSurfaceArea`, `GetCentroid`
+booleans at a tolerance of nought are worked out within the rounding too; see the booleans further below the rounding.
+`GetVolume`, `TryGetVolume`, `GetSurfaceArea`, `GetCentroid`
 and `GetMassProperties` of a body with openings, asked at a point tolerance below the rounding, measure the material
 `TryCutOpenings` gives: at nought the plate with the hole through it measures 58 800, where it measured 60 000, the
 hole not taken out, and `TryGetVolume` said that could be trusted. Where `TryCutOpenings` refuses them, or the body's
@@ -1414,11 +1415,10 @@ tolerance, can read the hole closed the same way, its short copy of the side kep
 than the tolerance, is not closed to `IsClosed`, and is closed to `Validate`, which finds no stretch of it open and
 calls it not valid, enclosing nothing. And the booleans, the weld, the cutting and `TryGetVolume` read the bodies they
 work on as `IsClosed` did, the ends of the edges matched first, within the tolerance given and no wider: what a boolean
-makes is taken as closed where the edges matched along lines within that tolerance close it, so that at a tolerance
-of nought a boolean is worked out as it was, and `TryGetVolume` trusts a material by its corners. One cut is the
-exception: `TryCutOpenings`, asked at a point tolerance below the rounding of the coordinates, cuts and closes the
-material within that rounding, and makes its corners a rounding apart one where that closes it within the tolerance
-given. `TryGetVolume` can trust one `IsClosed` reads open, as the cube with the specks given first, 1 000 005, and refuse one `IsClosed` reads closed, as
+makes is taken as closed where the edges matched along lines within that tolerance close it, and `TryGetVolume` trusts
+a material by its corners. The booleans asked below four tenths of the rounding of the coordinates, and
+`TryCutOpenings` asked at a point tolerance below it, are the exception: they cut and close what they give within that
+rounding, and make its corners a rounding apart one where that closes it within the tolerance given. `TryGetVolume` can trust one `IsClosed` reads open, as the cube with the specks given first, 1 000 005, and refuse one `IsClosed` reads closed, as
 that union at nought; its own answer says whether its volume can be trusted. `Mesh3.ToCells` cuts a body into cells
 only where it is closed both ways: it refuses the cube with the specks, which it cut into 8 cells before, and still
 refuses that union at nought, which read closed it would cut into no cell at all. The IFC readers follow `IsClosed`.
@@ -1507,9 +1507,22 @@ across all of it, within its rounding of 9.5E-11, was said to leave nothing, and
 million out, less a notch 20 by 20 through one end, within 4.9E-8, it came back closed and 320 short, and holds 58 800;
 and a thousand out, joined to a box 50 by 20 standing through it within half its rounding, it held the two whole, 77 000,
 and holds 74 000. A union is taken so where it closes wound alike and holds the two less what they share read the same
-way, and is worked out within the tolerance alone otherwise. Further below the rounding, nought among it, a boolean is
-worked out as it was, and of such plates turned at random most differences and unions at nought still come out wrong;
-at a tolerance at or above a trillionth of the coordinates nothing changes.
+way, and is worked out within the tolerance alone otherwise. At a tolerance at or above a trillionth of the coordinates
+nothing changes.
+
+**Further below the rounding**, below four tenths of it, nought among it, a union, a common part or a difference is
+worked out as though asked at the rounding, read as above, and what it gives is welded to close within the tolerance
+asked, its corners a rounding apart made one, as `TryCutOpenings` welds its material. Within the tolerance alone the
+point tolerance held too little of what rounding moves: at nought such a plate at the origin, turned, less a hole 20 by
+20 through it, came back whole, 60 000, and was trusted, and leaves 58 800; a million out, it and a slot 100 by 10
+along it were said to share nothing, and share 3 000; and a thousand out, joined to the box 50 by 20, it held
+68 588.24, and holds 74 000. Of 71 820 of each, plates and blocks less, sharing and joined to each of their openings,
+turned at random at the origin and a thousand to a hundred million out, at nought and a tenth to four tenths of the
+rounding, every difference and common part, and every union but 6 not worked out, 5 of them as before, is right and
+valid at the tolerance asked, where 17 489 differences, 11 373 common parts and 9 785 unions were wrong or said to be
+nothing and trusted. A body open at nought, a cube or a U with cracks up to 0.0001 wide in its faces, is as open within
+the rounding, and what a boolean of it gives is taken as it comes, as at any tolerance where a body is open: as a rule
+not valid, and holding what an open body holds, which depends on where it is measured from.
 
 **Exactly the tolerance into or apart counts as touching.** Two bodies whose faces lie the tolerance into or clear of
 each other, or nearer, lie so to a few bits either way once turned, and a boolean reads them as touching there, closed

@@ -309,17 +309,19 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Fact]
-        public void ACubeLessABoxThroughIt_FarAndTurned_IsStillNotWorkedOutAtAToleranceOfNought()
+        public void ACubeLessABoxThroughIt_FarAndTurned_AtAToleranceOfNought_LeavesWhatTheBoxLeaves()
         {
-            // The booleans read what they make within the tolerance given, unraised: read within the rounding, the cut that
-            // came out as nothing was taken for the cube itself, 1 000 000 where 800 000 is left, and nothing was logged.
+            // Read within the rounding, what the cut made at nought, unraised, was once taken for the cube itself, 1 000 000
+            // where 800 000 is left, and nothing was logged; it was then not worked out. Below four tenths of the rounding the
+            // difference is worked out within the rounding now and welded to close at nought.
             GeoTransform3 place = Placement(3);
             GeoSolid3 cube = new GeoObb3(P(50, 50, 50), 100, 100, 100).ToSolid().TransformBy(place);
             GeoSolid3 box = new GeoObb3(P(40, 45, 50), 40, 50, 120).ToSolid().TransformBy(place);
 
-            Assert.False(cube.TrySubtract(box, out GeoSolid3 rest, Nought, out BooleanOutcome outcome));
-            Assert.Null(rest);
-            Assert.Equal(BooleanOutcome.NotWorkedOut, outcome);
+            Assert.True(cube.TrySubtract(box, out GeoSolid3 rest, Nought, out BooleanOutcome outcome));
+            Assert.Equal(BooleanOutcome.Made, outcome);
+            Assert.Equal(800_000, rest.GrossVolume, 1E-6 * 800_000);
+            Assert.True(rest.Validate(Nought).IsValid);
         }
 
         [Fact]

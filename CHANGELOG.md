@@ -6,6 +6,28 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `TrySubtract`, `TryIntersect` and `TryUnion` of two bodies, asked below four tenths of the rounding of their
+coordinates, a quadrillionth of the largest of them, nought among it, are worked out as though asked at that rounding,
+reading a corner as on a plane within what rounding adds as they do just above it, and what they give is welded to close
+within the tolerance asked, as `TryCutOpenings` welds its material there. Within the tolerance alone they came out wrong
+and were trusted: at nought a plate 200 by 100 by 3 at the origin, turned, less a hole 20 by 20 through it, came back
+whole, 60 000, where 58 800 is left; a hundred thousand out, less a slot 20 wide across it, it came back whole too, where
+54 000 is left; a million out, it and a slot 100 by 10 along it were said to share nothing, where they share 3 000; and
+a thousand out, joined to a box 50 by 20 standing through it, it held 68 588.24 where the two hold 74 000. A cube 100
+across less a box through it, far out and turned, not worked out at nought, leaves 800 000. Of 71 820 of each, plates
+and blocks less, sharing and joined to each of their openings taken as a plain body, turned at random, at the origin and
+a thousand to a hundred million out, at nought and a tenth to four tenths of the rounding, 17 489 differences, 11 373
+common parts and 9 785 unions wrong or said to be nothing, all trusted, are right now and valid at the tolerance asked,
+as are 16 990 differences, 20 078 common parts and 21 741 unions that were not worked out; 6 unions are not worked out,
+5 of them as before, and none that was right moved. A body open at nought, a cube or a U with cracks up to 0.0001 wide
+in its faces, is as open within the rounding, and what a boolean of it gives is taken as it comes: of 17 178 booleans of
+such a cube and a box at nought, 15 698 hold what the closed cube would within 0.01, where 1 578 did, and 1 217 hold
+further from it, not valid at nought, where 7 921 did. At four tenths of the rounding and above, 1E-3, 1E-2 and 0.05
+among them, every boolean is worked out as it was, to the bit. The hole at the origin takes 3.3 milliseconds at nought,
+where it took 3.7 to come back whole, on .NET 10, and 1.2 where 1.6 on .NET Framework 4.8; a plate 400 by 200 by 10 less
+20 holes one after another takes 86 at nought, where it took 10 to take none of them out, and 50 at a thousandth (174, 28
+and 104 on .NET Framework 4.8); at a thousandth the operations take what they took.
+
 **FIXED.** `TrySubtract`, `TryIntersect` and `TryUnion` of two bodies, asked within a few roundings of their coordinates,
 a quadrillionth of the largest of them, read a corner as on a plane within what rounding adds to the planar tolerance, a
 trillionth of the size of the coordinates, as the cut of openings does. Within the tolerance alone, rounding put the
@@ -18,9 +40,9 @@ alike and holds the two less what they share read the same way, and is worked ou
 each, plates and blocks less, sharing and joined to each of their openings taken as a plain body, turned at random, a
 thousand to a hundred million out, within half the rounding to a thousand times it, 583 differences said to leave nothing
 and 82 unions holding the wrong volume, all trusted, are right now, as are 5 637 differences, 4 196 common parts and
-4 678 unions that were not worked out; 40 unions still are not, and none that was right moved. Below four tenths of the
-rounding, nought among it, and at every tolerance at or above a trillionth of the coordinates, 1E-3 and 1E-2 among them,
-a boolean is worked out as it was, to the bit; at nought 3 519 of 3 990 such differences are still wrong. The slot takes
+4 678 unions that were not worked out; 40 unions still are not, and none that was right moved. At every tolerance at or
+above a trillionth of the coordinates, 1E-3 and 1E-2 among them, a boolean is worked out as it was, to the bit; below
+four tenths of the rounding, nought among it, see the entry above. The slot takes
 0.94 milliseconds at its rounding where it took 6.4 to say nothing was left, on .NET 10, and 0.39 where 2.3 on .NET
 Framework 4.8; at a thousandth the operations take what they took.
 

@@ -1414,7 +1414,7 @@ namespace GeometryHelper.Core
         /// them out one at a time where it gives no material to trust, all through (see Boolean3.TakeOutOneAtATime), a
         /// union worked out once more where it came out wound against itself both other ways (see Boolean3.Union), and a
         /// union, a common part or a difference asked within a few roundings of the coordinates (see
-        /// Boolean3.NearTheRounding). The
+        /// Boolean3.NearTheRounding), or below them, raised to the rounding (see Boolean3.BelowTheRounding). The
         /// cells of a boolean cut so read a slab exactly the tolerance thick, in or beside a turned body, as on the plane at
         /// some corners and off it at others: of 2 700 unions, differences and intersections of such slabs and chips with a
         /// cube turned at random, six that were valid came out open or wound two ways.
