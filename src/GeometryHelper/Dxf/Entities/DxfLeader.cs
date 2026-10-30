@@ -18,7 +18,8 @@ namespace GeometryHelper.Dxf
     /// The leader through (0, 0, 0), (10, 10, 0) and (20, 10, 0) has three vertices, <see cref="FirstVertex"/> where its arrow
     /// is and <see cref="LastVertex"/> where its words are; as a curve its parameter is AutoCAD's, the index of a vertex plus
     /// how far along the segment it leaves, so that 1.5 is (15, 10, 0), and its length is 24.14. Splined (<see cref="IsSplined"/>),
-    /// it is walked along the spline <see cref="Explode"/> fits through its vertices, its parameter from 0 to 1, the spline fitted
+    /// it is walked along the spline fitted through its vertices, as <see cref="Explode"/> fits one, its parameter the lengths of
+    /// its chords, the spline fitted
     /// once and kept until the drawing is next changed. <see cref="DxfEntity.GetGeometry"/> gives that curve, the polyline of its
     /// vertices or the spline, so that <see cref="DxfEntity.IntersectWith"/> meets the leader on it, as AutoCAD's does: the
     /// leader from (0, 0, 0) to (10, 5, 0) meets the line x = 5 at (5, 2.5, 0).
@@ -263,30 +264,29 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Gets the lines, or the spline, and the arrowhead the leader breaks into, as AutoCAD's <c>Explode</c>: a LINE between
-        /// each two vertices of a straight leader, a segment of no length left out; for a splined one (<see cref="IsSplined"/>)
-        /// one SPLINE fitted through its vertices, of degree 3, starting along its first segment and ending along its last, as
-        /// ezdxf's <c>virtual_entities</c> draws it; then, where it has an arrow (<see cref="HasArrowHead"/>), its arrowhead at
-        /// the first vertex pointing away from the second, <see cref="Dimasz"/> times <see cref="Dimscale"/> long (a scale of
-        /// nought taken as 1): an INSERT of the block of <see cref="Dimldrblk"/> turned and scaled so, or, where it names none,
-        /// AutoCAD's closed filled arrow as a SOLID a third as wide as long. Each has the leader's look, drawn as its dimension
-        /// style draws a leader, as ezdxf's <c>virtual_entities</c> gives it: the colour of <see cref="Dimclrd"/>, the linetype of
-        /// DIMLTYPE (345) and the lineweight of <see cref="Dimlwd"/>, each the override, else the style's, in place of the
-        /// leader's own, the colour's true colour taken off. One of them BYBLOCK, as the style Standard has them, keeps the
-        /// leader's own, but for a colour BYBLOCK where the leader writes the colour to use for it (77). The leader from
-        /// (0, 0, 0) through (10, 10, 0) to (20, 10, 0) with an arrow 2.5 long gives two lines and a SOLID from the origin back
-        /// along the first segment, splined a SPLINE through the three vertices and the SOLID; with DIMCLRD set to 1, all three
-        /// red. The hook line AutoCAD draws to the annotation is AutoCAD's to work out, and is not among them.
+        /// Gets the arrowhead and the line, or the spline, the leader breaks into, as AutoCAD 2021's <c>Explode</c> gives them:
+        /// first, where it has an arrow (<see cref="HasArrowHead"/>), its arrowhead at the first vertex pointing away from the
+        /// second, <see cref="Dimasz"/> times <see cref="Dimscale"/> long (a scale of nought taken as 1): an INSERT of the block
+        /// of <see cref="Dimldrblk"/> turned and scaled so, or, where it names none, AutoCAD's closed filled arrow as a SOLID a
+        /// third as wide as long, its corners the one on the right of the leader, the tip, and the one on its left; then one
+        /// LWPOLYLINE through its vertices on its plane (a LINE between each two, a leader whose vertices stand off the plane of
+        /// its normal, which a polyline cannot hold), or for a splined one (<see cref="IsSplined"/>) one SPLINE of degree 3
+        /// through them, starting along its first segment and ending along its last, its knots the lengths of the chords. Where
+        /// it has an arrow, the line starts at the arrow's back, the arrow's length along its first segment. Each has the
+        /// leader's own look, its colour, true colour, linetype and lineweight, whatever its dimension style or its overrides
+        /// draw a leader with, as AutoCAD 2021 gives them. The leader from (0, 0, 0) through (10, 10, 0) to (20, 10, 0) with an
+        /// arrow 2.5 long gives a SOLID of the corners (2.06, 1.47, 0), (0, 0, 0) and (1.47, 2.06, 0), and a polyline from
+        /// (1.77, 1.77, 0) through (10, 10, 0) to (20, 10, 0). The hook AutoCAD runs to the annotation of a leader that has one
+        /// (a vertex more, where its text ends) is AutoCAD's to work out from its fonts, and is not among them.
         /// </summary>
         /// <returns>The entities, in no file, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
         public override IReadOnlyList<DxfEntity> Explode()
         {
-            List<GeoPoint3> vertices = Vertices(out int blockColour);
+            List<GeoPoint3> vertices = Vertices(out _);
             double tolerance = Tolerance.Default.EqualPoint;
             var parts = new List<DxfEntity>();
 
-            // The extended data read once, and the look with it: each read of them reads the record, every vertex of it. The
-            // look is given to each part once, as its dimension style draws it.
+            // The extended data read once: each read of it reads the record, every vertex of it.
             List<DxfTypedValue> data = Acad(out int open, out int close);
 
             string Value(int code)
@@ -295,127 +295,143 @@ namespace GeometryHelper.Dxf
                 return pair != null ? pair[1].Value : StyleValue(code);
             }
 
-            Look look = StyledLook(new Look(this), Value, blockColour);
+            var look = new Look(this);
+            GeoVector3 normal = Normal;
+            bool headed = HasArrowHead && vertices.Count >= 2 && vertices[0].DistanceTo(vertices[1]) > tolerance;
+
+            if (headed)
+            {
+                // Dimscale, Dimasz and Dimldrblk, as they read them.
+                double scale = Num(Value(40), 1.0);
+                double size = Num(Value(41), 0.18) * (scale > 0.0 ? scale : 1.0);
+                GeoVector3 away = DxfOcsTransform.Normalized(vertices[1].GetVectorTo(vertices[0]));
+                string arrowHandle = Value(341);
+                DxfBlockTableRecord arrow = arrowHandle == null ? null : BlockByHandle(arrowHandle.Trim());
+                DxfEntity head;
+
+                if (arrow == null)
+                {
+                    GeoPoint3 back = vertices[0].Add(away.Multiply(-size));
+                    GeoVector3 side = DxfOcsTransform.Normalized(normal.CrossProduct(away)).Multiply(size / 6.0);
+                    var solid = new DxfSolid(back.Add(side), vertices[0], back.Add(side.Negate()));
+                    solid.Normal = normal;
+                    head = solid;
+                }
+                else
+                {
+                    OcsAxes(normal, out GeoVector3 x, out GeoVector3 y);
+                    head = new DxfBlockReference(vertices[0], arrow) { Normal = normal, ScaleFactors = new GeoVector3(size, size, size), Rotation = Math.Atan2(away.DotProduct(y), away.DotProduct(x)) };
+                }
+
+                look.GiveTo(head);
+                parts.Add(head);
+
+                // The line starts at the arrow's back, where its first segment is longer than the arrow.
+                if (vertices[0].DistanceTo(vertices[1]) > size + tolerance)
+                {
+                    vertices[0] = vertices[0].Add(away.Multiply(-size));
+                }
+            }
 
             if (IsSplined)
             {
-                DxfSpline spline = FittedSpline(vertices, tolerance);
+                DxfSpline spline = ParameterSpline(vertices, tolerance);
 
                 if (spline != null)
                 {
                     look.GiveTo(spline);
                     parts.Add(spline);
                 }
+
+                return parts.AsReadOnly();
             }
-            else
+
+            // One polyline on the leader's plane, a vertex on the one before it left out; off its plane, a LINE between each two.
+            double thickness = GetThickness();
+            DxfPolyline line = PlanePolyline(vertices, normal, tolerance);
+
+            if (line != null)
             {
-                double thickness = GetThickness();
-
-                for (int i = 0; i + 1 < vertices.Count; i++)
+                if (!Same(thickness, 0.0))
                 {
-                    if (vertices[i].DistanceTo(vertices[i + 1]) > tolerance)
-                    {
-                        parts.Add(PartOf(new GeoLine3(vertices[i], vertices[i + 1]), look, thickness));
-                    }
+                    line.Thickness = thickness;
                 }
+
+                look.GiveTo(line);
+                parts.Add(line);
+                return parts.AsReadOnly();
             }
 
-            if (!HasArrowHead || vertices.Count < 2 || !(vertices[0].DistanceTo(vertices[1]) > tolerance))
+            if (OnPlane(vertices, normal, tolerance))
             {
                 return parts.AsReadOnly();
             }
 
-            // Dimscale, Dimasz and Dimldrblk, as they read them.
-            double scale = Num(Value(40), 1.0);
-            double size = Num(Value(41), 0.18) * (scale > 0.0 ? scale : 1.0);
-            GeoVector3 normal = Normal;
-            GeoVector3 away = DxfOcsTransform.Normalized(vertices[1].GetVectorTo(vertices[0]));
-            string arrowHandle = Value(341);
-            DxfBlockTableRecord arrow = arrowHandle == null ? null : BlockByHandle(arrowHandle.Trim());
-            DxfEntity head;
-
-            if (arrow == null)
+            for (int i = 0; i + 1 < vertices.Count; i++)
             {
-                GeoPoint3 back = vertices[0].Add(away.Multiply(-size));
-                GeoVector3 side = DxfOcsTransform.Normalized(normal.CrossProduct(away)).Multiply(size / 6.0);
-                var solid = new DxfSolid(vertices[0], back.Add(side), back.Add(side.Negate()));
-                solid.Normal = normal;
-                head = solid;
-            }
-            else
-            {
-                OcsAxes(normal, out GeoVector3 x, out GeoVector3 y);
-                head = new DxfBlockReference(vertices[0], arrow) { Normal = normal, ScaleFactors = new GeoVector3(size, size, size), Rotation = Math.Atan2(away.DotProduct(y), away.DotProduct(x)) };
+                if (vertices[i].DistanceTo(vertices[i + 1]) > tolerance)
+                {
+                    parts.Add(PartOf(new GeoLine3(vertices[i], vertices[i + 1]), look, thickness));
+                }
             }
 
-            look.GiveTo(head);
-            parts.Add(head);
             return parts.AsReadOnly();
         }
 
         /// <summary>
-        /// The look of a part of the leader exploded, as <see cref="Explode"/> sets it out: the leader's own, with the colour of
-        /// DIMCLRD, the linetype of DIMLTYPE and the lineweight of DIMLWD in place of its own, each the override, else the
-        /// style's, as the value of a variable gives it; the leader's own where each of them is BYBLOCK or none. The colour the
-        /// leader writes for DIMCLRD BYBLOCK (77) is given, -1 for none.
+        /// The LWPOLYLINE a straight leader, or a straight line of a multileader, is exploded into: through its points on the
+        /// plane of the normal given, a point on the one before it left out; null where fewer than two are left, or a point
+        /// stands off the plane through the first, which a polyline cannot hold.
         /// </summary>
-        private Look StyledLook(Look own, Func<int, string> value, int blockColour)
+        internal static DxfPolyline PlanePolyline(List<GeoPoint3> points, GeoVector3 normal, double tolerance)
         {
-            int colour = Whole(value(176), 0);
-
-            // DIMCLRD BYBLOCK is the colour the leader writes for it (77), as ezdxf reads it; where it writes none, the leader's own.
-            int? index = colour > 0 && colour <= 256 ? colour : colour == 0 && blockColour >= 0 && blockColour <= 256 ? blockColour : (int?)null;
-            int weight = Whole(value(371), -2);
-            DxfLineWeight? lineWeight = weight != -2 && (weight == -1 || weight == -3 || (weight >= 0 && Enum.IsDefined(typeof(DxfLineWeight), weight))) ? (DxfLineWeight)weight : (DxfLineWeight?)null;
-            string handle = value(345)?.Trim();
-            string linetype = null;
-
-            if (!string.IsNullOrEmpty(handle) && NamingDrawing()?.Database is DxfDatabase database && database.TryGetObject(handle, out DxfDBObject found) && found is DxfLinetypeTableRecord record
-                && !string.Equals(record.Name, "BYBLOCK", StringComparison.OrdinalIgnoreCase))
-            {
-                linetype = record.Name;
-            }
-
-            return index == null && lineWeight == null && linetype == null ? own : own.With(index, linetype, lineWeight);
-        }
-
-        /// <summary>
-        /// The SPLINE a splined leader is drawn as, as ezdxf's <c>virtual_entities</c> fits it (<c>fit_points_to_cad_cv</c>): of
-        /// degree 3 through its vertices, a vertex on the one before it left out, by the chord, its inner knots the parameters of
-        /// the inner vertices, leaving the first along the first segment and reaching the last along the last at the speed of
-        /// the length of the chain, or along the directions given; its knots from 0 to 1. Null where its vertices are all one
-        /// point. A multileader's splined leader lines are fitted so too.
-        /// </summary>
-        internal static DxfSpline FittedSpline(List<GeoPoint3> vertices, double tolerance, GeoVector3? leaving = null, GeoVector3? reaching = null)
-        {
-            NurbsCurve curve = FittedCurve(vertices, tolerance, leaving, reaching);
-
-            if (curve == null)
+            if (!OnPlane(points, normal, tolerance))
             {
                 return null;
             }
 
-            var control = new List<GeoPoint3>(curve.Count);
+            OcsAxes(normal, out GeoVector3 u, out GeoVector3 v);
+            var polyline = new DxfPolyline { Normal = normal, Elevation = points[0].ToVector().DotProduct(normal) };
+            GeoPoint3 last = points[0];
+            int count = 0;
 
-            for (int i = 0; i < curve.Count; i++)
+            for (int i = 0; i < points.Count; i++)
             {
-                control.Add(new GeoPoint3(curve.Points[3 * i], curve.Points[3 * i + 1], curve.Points[3 * i + 2]));
+                if (i > 0 && !(points[i].DistanceTo(last) > tolerance))
+                {
+                    continue;
+                }
+
+                GeoVector3 at = points[i].ToVector();
+                polyline.AddVertexAt(count++, new GeoPoint2(at.DotProduct(u), at.DotProduct(v)), 0.0, 0.0, 0.0);
+                last = points[i];
             }
 
-            return new DxfSpline(3, false, false, false, control, curve.Knots, null, 1E-10, 1E-10);
+            return count >= 2 ? polyline : null;
+        }
+
+        /// <summary>Whether every point stands on the plane of the normal given through the first, within the tolerance.</summary>
+        private static bool OnPlane(List<GeoPoint3> points, GeoVector3 normal, double tolerance)
+        {
+            double height = points[0].ToVector().DotProduct(normal);
+            return points.TrueForAll(p => Math.Abs(p.ToVector().DotProduct(normal) - height) <= tolerance);
         }
 
         /// <summary>
-        /// The spline of a splined leader as a curve, as AutoCAD 2021 walks one: the curve <see cref="FittedSpline"/> fits, its
-        /// knots run over the lengths of the chords between its vertices, from 0 to their sum, not from 0 to 1. Through (0, 0, 0),
-        /// (10, 10, 0) and (20, 10, 0) it runs from 0 to 24.14, its point at 12.07 the fitted one's at 0.5. Null where its
-        /// vertices are all one point.
+        /// The spline of a splined leader, as AutoCAD 2021 walks one and its <c>Explode</c> gives it: fitted as ezdxf's
+        /// <c>virtual_entities</c> fits it (<c>fit_points_to_cad_cv</c>), of degree 3 through its vertices, a vertex on the one
+        /// before it left out, by the chord, its inner knots the parameters of the inner vertices, leaving the first along the
+        /// first segment and reaching the last along the last at the speed of the length of the chain, or along the directions
+        /// given; its knots run over the lengths of the chords between its vertices, from 0 to their sum, not from 0 to 1.
+        /// Through (0, 0, 0), (10, 10, 0) and (20, 10, 0) it runs from 0 to 24.14, its point at 12.07 the one fitted from 0 to 1
+        /// has at 0.5. Null where its vertices are all one point. A multileader's splined leader line, leaving and reaching
+        /// along the directions given, is given so by its <c>Explode</c>, as AutoCAD 2021 gives it.
         /// </summary>
-        private static DxfSpline ParameterSpline(List<GeoPoint3> vertices, double tolerance)
+        internal static DxfSpline ParameterSpline(List<GeoPoint3> vertices, double tolerance, GeoVector3? leaving = null, GeoVector3? reaching = null)
         {
-            DxfSpline fitted = FittedSpline(vertices, tolerance);
+            NurbsCurve curve = FittedCurve(vertices, tolerance, leaving, reaching);
 
-            if (fitted == null)
+            if (curve == null)
             {
                 return null;
             }
@@ -432,20 +448,27 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            DxfNurbsData data = fitted.NurbsData;
-            var knots = new List<double>();
+            var control = new List<GeoPoint3>(curve.Count);
 
-            foreach (double knot in data.GetKnots())
+            for (int i = 0; i < curve.Count; i++)
+            {
+                control.Add(new GeoPoint3(curve.Points[3 * i], curve.Points[3 * i + 1], curve.Points[3 * i + 2]));
+            }
+
+            var knots = new List<double>(curve.Knots.Length);
+
+            foreach (double knot in curve.Knots)
             {
                 knots.Add(knot * chords);
             }
 
-            return new DxfSpline(3, false, false, false, data.GetControlPoints(), knots, null, 1E-10, 1E-10);
+            return new DxfSpline(3, false, false, false, control, knots, null, 1E-10, 1E-10);
         }
 
         /// <summary>
-        /// The curve of the spline <see cref="FittedSpline"/> makes, its control points and knots, for <see cref="DxfReader"/>,
-        /// which reads a LEADER as it; null where the vertices are all one point.
+        /// The curve fitted through the vertices of a splined leader, as <see cref="ParameterSpline"/> fits it, its knots from 0
+        /// to 1, its control points and knots, for <see cref="DxfReader"/>, which reads a LEADER as it; null where the vertices
+        /// are all one point.
         /// </summary>
         internal static NurbsCurve FittedCurve(List<GeoPoint3> vertices, double tolerance, GeoVector3? leaving = null, GeoVector3? reaching = null)
         {
@@ -873,8 +896,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets the parameter at the last vertex, as AutoCAD's: the count of the segments of a straight leader; of a splined one
-        /// the sum of the lengths of the chords between its vertices, as AutoCAD 2021 runs it, the spline <see cref="Explode"/>
-        /// fits through its vertices walked over that length: 24.14 through (0, 0, 0), (10, 10, 0) and (20, 10, 0).
+        /// the sum of the lengths of the chords between its vertices, as AutoCAD 2021 runs it, the spline fitted through its
+        /// vertices walked over that length: 24.14 through (0, 0, 0), (10, 10, 0) and (20, 10, 0).
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the leader has no vertex, or is splined and its vertices are
         /// all one point.</exception>
@@ -893,8 +916,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets the point at a parameter, as AutoCAD's <c>GetPointAtParameter</c>: of a straight leader the index of a vertex plus
-        /// how far along the segment it leaves; of a splined one the parameter of the spline <see cref="Explode"/> fits, run from
-        /// 0 to <see cref="EndParam"/> in the place of 0 to 1, as each of these members of a splined leader walks that spline.
+        /// how far along the segment it leaves; of a splined one the parameter of the spline fitted through its vertices, run
+        /// from 0 to <see cref="EndParam"/>, as each of these members of a splined leader walks that spline.
         /// </summary>
         /// <param name="value">The parameter, from nought to <see cref="EndParam"/>.</param>
         /// <returns>The point, in the world.</returns>
@@ -1052,8 +1075,9 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets the spline that is exactly the leader, as AutoCAD's <c>Spline</c>: of a straight leader, of degree 1 through its
-        /// vertices, a knot at each step of its parameter; of a splined one, the spline <see cref="Explode"/> fits through its
-        /// vertices, of degree 3, its knots from 0 to <see cref="EndParam"/>, the sum of the lengths of its chords. A new
+        /// vertices, a knot at each step of its parameter; of a splined one, the spline fitted through its vertices, which
+        /// <see cref="Explode"/> gives where the leader has no arrow, of degree 3, its knots from 0 to <see cref="EndParam"/>,
+        /// the sum of the lengths of its chords. A new
         /// <see cref="DxfSpline"/> in no file, on layer 0 with no look of its own.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the leader has fewer than two vertices, or is splined and its
@@ -1284,7 +1308,7 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// The spline a splined leader is, as <see cref="Explode"/> fits it (<see cref="FittedSpline"/>), which its curve's members
+        /// The spline a splined leader is, fitted through its vertices (<see cref="ParameterSpline"/>), which its curve's members
         /// walk; null for a straight leader. Kept between questions (<see cref="Read"/>), so not to be changed or handed out.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the leader is splined and has no vertex, or its vertices are

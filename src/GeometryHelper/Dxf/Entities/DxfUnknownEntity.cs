@@ -50,18 +50,21 @@ namespace GeometryHelper.Dxf
         /// six LINEs. A MESH not smoothed (level 0) breaks into a 3DFACE for each face, in the order of its list of faces, each
         /// with the MESH's look and every edge drawn, as AutoCAD's EXPLODE breaks one and ezdxf's <c>MeshBuilder</c> renders it:
         /// a face of four corners a 3DFACE of them, of three one ending on its third; a cube 10 by 10 by 10 of eight vertices
-        /// and six faces gives six 3DFACEs. A MESH smoothed, one with a face of more than four corners, which a 3DFACE cannot
-        /// hold and whose breaking by AutoCAD is not known, and one that gives a face a colour, a material or a transparency of
-        /// its own is refused. Any other type refuses: a REGION, a 3DSOLID, a BODY and a surface, which AutoCAD breaks with its
-        /// solid modeler, and every type AutoCAD does not break.
+        /// and six faces gives six 3DFACEs. A face of more than four corners breaks into triangles fanned from its first
+        /// corner, as AutoCAD 2021's <c>Explode</c> breaks one, the last first and each turned the other way round: the face of
+        /// the corners 0 to 4 gives the triangles (4, 3, 0), (2, 0, 3) and (0, 2, 1). A face given a colour of its own (an
+        /// override of the MESH, its subentity 1 the first face) keeps it on its 3DFACEs, as AutoCAD keeps it. A MESH smoothed,
+        /// and one that gives a face a material or a transparency of its own, or an edge or a vertex anything of its own, is
+        /// refused. Any other type refuses: a REGION, a 3DSOLID, a BODY and a surface, which AutoCAD breaks with its solid
+        /// modeler, and every type AutoCAD does not break.
         /// </summary>
         /// <returns>The entities, in no file, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
         /// <exception cref="InvalidOperationException">Thrown for an MLINE whose drawing has no MLINESTYLE of its handle or name,
         /// or whose vertices hold another count of elements than its style; and for a MESH missing the count of its vertices,
         /// faces, edges or creases, or holding fewer than it counts, as ezdxf refuses one, or with a face of fewer than three
         /// corners, past the end of its list of faces or naming a vertex it has not.</exception>
-        /// <exception cref="NotSupportedException">Thrown for a MESH smoothed, with a face of more than four corners or overrides
-        /// of its faces' look, and for any other type.</exception>
+        /// <exception cref="NotSupportedException">Thrown for a MESH smoothed, or with overrides other than the colours of its
+        /// faces, and for any other type.</exception>
         public override IReadOnlyList<DxfEntity> Explode()
         {
             switch (DxfName)
@@ -90,7 +93,9 @@ namespace GeometryHelper.Dxf
         /// The faces of a MESH, as <see cref="Explode"/> sets them out, read in one pass over its record (AcDbSubDMesh) by its
         /// counts, as AutoCAD writes them: its level of smoothing (91), its vertices (92 and a point 10 for each), its faces (93,
         /// the count of the groups 90 after it, each face the count of its corners and their indices), its edges (94 and two
-        /// indices each) and creases (95 and a value each), then the count of its overrides (90).
+        /// indices each) and creases (95 and a value each), then the count of its overrides (90), each a subentity (91), the
+        /// count of its properties (92), and each property its kind (90) and value: a colour (0) its 63, and its 420 where it
+        /// is true.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown where a count the record should hold is missing, below nought or
         /// more than the groups after it, as ezdxf refuses such a MESH.</exception>
@@ -176,10 +181,39 @@ namespace GeometryHelper.Dxf
             }
 
             int overrides = i < n && groups[i].TypeCode == 90 ? DxfLeaderGroups.Whole(groups[i].Value, 0) : 0;
+            i++;
 
-            if (overrides > 0)
+            // The colours of the faces of their own, by the subentity: 1 the first face, as AutoCAD 2021 writes one.
+            var colours = new Dictionary<int, int[]>();
+
+            for (int o = 0; o < overrides; o++)
             {
-                throw new NotSupportedException("The MESH " + handle + " gives " + overrides.ToString(CultureInfo.InvariantCulture) + " of its faces, edges or vertices a colour, a material or a transparency of their own, which AutoCAD keeps on the faces it breaks into and the library does not read: explode it in AutoCAD.");
+                int subentity = i < n && groups[i].TypeCode == 91 ? DxfLeaderGroups.Whole(groups[i].Value, 0) : 0;
+                int properties = i + 1 < n && groups[i + 1].TypeCode == 92 ? DxfLeaderGroups.Whole(groups[i + 1].Value, 0) : 0;
+                i += 2;
+                int index = -1;
+                int truth = -1;
+
+                for (int q = 0; q < properties; q++)
+                {
+                    bool colour = i + 1 < n && groups[i].TypeCode == 90 && DxfLeaderGroups.Whole(groups[i].Value, -1) == 0 && groups[i + 1].TypeCode == 63;
+
+                    if (!colour || subentity < 1)
+                    {
+                        throw new NotSupportedException("The MESH " + handle + " gives " + overrides.ToString(CultureInfo.InvariantCulture) + " of its faces, edges or vertices a material, a transparency or a look of their own other than a face's colour, which AutoCAD keeps on the faces it breaks into and the library does not read: explode it in AutoCAD.");
+                    }
+
+                    index = DxfLeaderGroups.Whole(groups[i + 1].Value, 256);
+                    i += 2;
+
+                    if (i < n && groups[i].TypeCode == 420)
+                    {
+                        truth = DxfLeaderGroups.Whole(groups[i].Value, -1);
+                        i++;
+                    }
+                }
+
+                colours[subentity - 1] = new[] { index, truth };
             }
 
             var faces = new List<int[]>();
@@ -192,11 +226,6 @@ namespace GeometryHelper.Dxf
                 if (count < 3 || count > list.Count - at - 1)
                 {
                     throw new InvalidOperationException(face + (count < 3 ? ", where a face has three at least." : ", and its list of faces ends before them."));
-                }
-
-                if (count > 4)
-                {
-                    throw new NotSupportedException(face + ": a 3DFACE holds four at most, and how AutoCAD breaks a face of more is not known to the library: explode it in AutoCAD.");
                 }
 
                 var corners = new int[count];
@@ -214,14 +243,57 @@ namespace GeometryHelper.Dxf
                 faces.Add(corners);
             }
 
+            int beyond = -1;
+
+            foreach (int face in colours.Keys)
+            {
+                beyond = Math.Max(beyond, face);
+            }
+
+            if (beyond >= faces.Count)
+            {
+                throw new NotSupportedException("The MESH " + handle + " gives " + overrides.ToString(CultureInfo.InvariantCulture) + " of its faces, edges or vertices a colour of their own, the subentity " + (beyond + 1).ToString(CultureInfo.InvariantCulture) + " among them where it has " + faces.Count.ToString(CultureInfo.InvariantCulture) + " faces: an edge's or a vertex's colour is not read by the library: explode it in AutoCAD.");
+            }
+
             var look = new Look(this);
             var parts = new List<DxfEntity>(faces.Count);
 
-            foreach (int[] corners in faces)
+            for (int f = 0; f < faces.Count; f++)
             {
-                var made = new DxfFace(points[corners[0]], points[corners[1]], points[corners[2]], points[corners[corners.Length - 1]], true, true, true, true);
-                look.GiveTo(made);
-                parts.Add(made);
+                int[] corners = faces[f];
+                var made = new List<DxfFace>();
+
+                if (corners.Length <= 4)
+                {
+                    made.Add(new DxfFace(points[corners[0]], points[corners[1]], points[corners[2]], points[corners[corners.Length - 1]], true, true, true, true));
+                }
+                else
+                {
+                    // Fanned from the first corner, the last triangle first, each the other way round and turned on by its place.
+                    int last = corners.Length - 1;
+
+                    for (int t = 0; t + 2 < corners.Length; t++)
+                    {
+                        int[] triangle = { corners[last - t], corners[last - t - 1], corners[0] };
+                        int a = triangle[t % 3];
+                        int b = triangle[(t + 1) % 3];
+                        int c = triangle[(t + 2) % 3];
+                        made.Add(new DxfFace(points[a], points[b], points[c], points[c], true, true, true, true));
+                    }
+                }
+
+                foreach (DxfFace part in made)
+                {
+                    look.GiveTo(part);
+
+                    if (colours.TryGetValue(f, out int[] colour))
+                    {
+                        part.ColorIndex = colour[0];
+                        part.TrueColor = colour[1] >= 0 ? colour[1] : (int?)null;
+                    }
+
+                    parts.Add(part);
+                }
             }
 
             return parts;

@@ -106,13 +106,14 @@ namespace GeometryHelper.UnitTest.Dxf
             builder.CustomPropertyTable.Add(new KeyValuePair<string, string>("Grade", "S355"));
             db.SummaryInfo = builder.ToDatabaseSummaryInfo();
 
-            // The record has the list after a group 90: the custom properties go there, the ten groups each "=".
+            // The custom properties written in the ten groups, as AutoCAD 2021 reads them, their count after the base of the
+            // hyperlinks; the list after the group 90 the record had, which AutoCAD does not read, written no more.
             string saved = db.ToText();
             OnlyTheseChanged(text, saved, "3A");
             string record = Records(saved).Single(r => HandleOf(r) == "3A");
             Assert.Contains("  2\nPlate B-13\n  3\nSteel plates\n  4\nĐỗ\n", record, StringComparison.Ordinal);
-            Assert.Contains("300\n=\n301\n=\n302\n=\n", record, StringComparison.Ordinal);
-            Assert.EndsWith(" 40\n0.125\n 41\n2461338.25\n 42\n2461339.5\n  1\nhttps://example.com/\n 90\n2\n  1\nProject\n  1\nGrid A\n  1\nGrade\n  1\nS355\n", record, StringComparison.Ordinal);
+            Assert.Contains("300\nProject=Grid A\n301\nGrade=S355\n302\n=\n", record, StringComparison.Ordinal);
+            Assert.EndsWith(" 40\n0.125\n 41\n2461338.25\n 42\n2461339.5\n  1\nhttps://example.com/\n 90\n2\n", record, StringComparison.Ordinal);
             DxfDatabaseSummaryInfo read = DxfDatabase.Parse(saved).SummaryInfo;
             Assert.Equal("Plate B-13", read.Title);
             Assert.Equal("Đỗ", read.Author);
@@ -147,20 +148,20 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void CustomPropertiesListedAfterGroup90_AreRead_AndWrittenInTheFormTheRecordHas()
+        public void CustomPropertiesListedAfterGroup90_AreRead_AndWrittenInTheTenGroups_AsAutoCadReadsThem()
         {
             // The list after 90: its count, then each name and value in two groups 1; read after those of 300 to 309.
             string listed = DxfObjectsEzdxfDrawings.R2018.Replace("https://example.com/\n 90\n0\n", "https://example.com/\n 90\n2\n  1\nClient\n  1\nACME\n  1\nproject\n  1\nignored\n");
             DxfDatabase db = DxfDatabase.Parse(listed);
             Assert.Equal(new[] { "Project=Grid A", "Phase=2", "Client=ACME" }, db.SummaryInfo.CustomProperties.Select(p => p.Key + "=" + p.Value));
 
-            // Written back in the list, the ten groups emptied: one set of them in the record.
+            // Written back in the ten groups, as AutoCAD 2021 reads them, the list gone: one set of them in the record.
             db.SummaryInfo = new DxfDatabaseSummaryInfoBuilder(db.SummaryInfo) { Title = "T" }.ToDatabaseSummaryInfo();
             string record = Records(db.ToText()).Single(r => HandleOf(r) == "3A");
-            Assert.Contains("300\n=\n301\n=\n", record, StringComparison.Ordinal);
-            Assert.EndsWith(" 90\n3\n  1\nProject\n  1\nGrid A\n  1\nPhase\n  1\n2\n  1\nClient\n  1\nACME\n", record, StringComparison.Ordinal);
+            Assert.Contains("300\nProject=Grid A\n301\nPhase=2\n302\nClient=ACME\n303\n=\n", record, StringComparison.Ordinal);
+            Assert.EndsWith("  1\nhttps://example.com/\n 90\n3\n", record, StringComparison.Ordinal);
 
-            // A record with no list keeps the ten groups, ten at most.
+            // A record with no list is written in the ten groups too, ten at most, their count after them as AutoCAD writes it.
             string plain = DxfObjectsEzdxfDrawings.R2000.Replace("https://example.com/\n 90\n0\n", "https://example.com/\n");
             DxfDatabase old = DxfDatabase.Parse(plain);
             var builder = new DxfDatabaseSummaryInfoBuilder(old.SummaryInfo);
@@ -168,7 +169,7 @@ namespace GeometryHelper.UnitTest.Dxf
             old.SummaryInfo = builder.ToDatabaseSummaryInfo();
             string kept = Records(old.ToText()).Single(r => HandleOf(r) == "3A");
             Assert.Contains("300\nProject=Grid A\n301\nPhase=2\n302\nGrade=S355\n303\n=\n", kept, StringComparison.Ordinal);
-            Assert.DoesNotContain(" 90\n", kept, StringComparison.Ordinal);
+            Assert.EndsWith("  1\nhttps://example.com/\n 90\n3\n", kept, StringComparison.Ordinal);
 
             for (int i = 0; i < 8; i++)
             {

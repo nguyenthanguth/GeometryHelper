@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace GeometryHelper.Dxf
 {
@@ -636,12 +637,14 @@ namespace GeometryHelper.Dxf
         /// <summary>How many records have been taken out of the file since it was read.</summary>
         internal int RemovedCount => _removed?.Count ?? 0;
 
-        // The GROUPs added or emptied since the file was read, to be dropped on saving where they hold no member then.
+        // The GROUPs added or emptied since the file was read, to be dropped on saving where they are anonymous and hold no
+        // member then.
         private List<DxfItem> _maybeEmptyGroups;
 
         /// <summary>
-        /// Notes a GROUP added, or written with no member, to be dropped when the file is saved where it holds no member then,
-        /// as AutoCAD drops an empty group. A group the file was read with, empty, is kept as it was.
+        /// Notes a GROUP added, or written with no member, to be dropped when the file is saved where it is anonymous and holds
+        /// no member then. A named group is kept empty, as AutoCAD 2021 keeps one emptied by <c>Remove</c> and one made with no
+        /// member; a group the file was read with, empty, is kept as it was.
         /// </summary>
         internal void GroupMayBeEmpty(DxfItem group)
         {
@@ -653,7 +656,7 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        /// <summary>Takes out each GROUP noted by <see cref="GroupMayBeEmpty"/> that holds no member, its handle with what was removed, so that its entry and the reactors that name it go too.</summary>
+        /// <summary>Takes out each anonymous GROUP noted by <see cref="GroupMayBeEmpty"/> that holds no member, its handle with what was removed, so that its entry and the reactors that name it go too.</summary>
         private void DropEmptyGroups()
         {
             if (_maybeEmptyGroups == null)
@@ -669,13 +672,15 @@ namespace GeometryHelper.Dxf
                 }
 
                 bool member = false;
+                string flags = null;
 
                 foreach (DxfTypedValue value in ObjectGroupsOf(group))
                 {
                     member |= value.TypeCode == 340;
+                    flags = value.TypeCode == 70 && flags == null ? value.Value : flags;
                 }
 
-                if (!member)
+                if (!member && Anonymous(flags))
                 {
                     RemoveRecord(group);
                 }
@@ -683,6 +688,10 @@ namespace GeometryHelper.Dxf
 
             _maybeEmptyGroups = null;
         }
+
+        /// <summary>Whether the flags (70) of a GROUP make it anonymous: their bit 1.</summary>
+        private static bool Anonymous(string flags)
+            => int.TryParse(flags?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) && (value & 1) != 0;
 
         /// <summary>Whether a record of a handle has been taken out of the file since it was opened, an entity erased among them.</summary>
         internal bool WasRemoved(string handle)

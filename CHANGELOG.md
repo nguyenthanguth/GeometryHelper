@@ -228,6 +228,74 @@ bodies half the tolerance to twice it apart, 600 plates cut by twelve openings, 
 columns in 200 to 1 000 strips, 41 452 fuzzed booleans, 54 000 of cracked shapes, and 28 800 cuts of openings. 1 new
 test, 5 cases.
 
+**FIXED.** A layer copied with an entity into a drawing of R2000 or later no longer makes a file AutoCAD 2021 will not
+open. Its plot style (390) was left out, AutoCAD's DxfIn refusing the file ("Did not receive PlotStyleName"): the library
+looked for the plot style Normal the layer named in the dictionaries of the drawing, and ACAD_PLOTSTYLENAME is a
+dictionary with a default (ACDBDICTIONARYWDFLT), which it passed over. Any entity copied or appended from another drawing
+of R2000 or later onto a layer the drawing had not brought that layer so: the layer GH_TRUECOLOR copied with a LINE into
+the R2000 `DxfWriter` writes, and Defpoints with a dimension. The plot style is found there now, and a layer whose plot
+style the drawing has none of takes layer 0's. 2 new tests.
+
+**FIXED.** A face of a polyface mesh made in code (`new DxfFaceRecord`) no longer makes a file AutoCAD 2021 will not open:
+it was written with the marker AcDbVertex before its AcDbFaceRecord, and AutoCAD's DxfIn refuses the file ("Class separator
+for class AcDbFaceRecord expected"). It carries AcDbFaceRecord alone now, as AutoCAD and ezdxf write a face. 1 new test.
+
+**FIXED.** `Cetransparency` writes the number an entity's 440 holds, the method in its top byte and the alpha in its low
+one, as AutoCAD 2021 reads the DICTIONARYVAR: the 61 written for the alpha 100, a per cent, AutoCAD read as BYLAYER. The
+alpha 100 is written 33554532 now and reads back as 100, not 99; a number with no method in its top byte, a per cent
+written before among them, reads BYLAYER, as AutoCAD reads it. 1 new test, 1 changed.
+
+**FIXED.** `SummaryInfo` writes what AutoCAD 2021 reads back. The custom properties go in the groups 300 to 309, ten at
+most, and their count after the base of the hyperlinks, as AutoCAD writes them, in every version: a drawing of R2018 had
+them in a list after a group 90, of which AutoCAD read none. The base of the hyperlinks goes to the header's
+`$HYPERLINKBASE` too, which AutoCAD reads it from, where it read none of `https://example.com/plates/`; it is read from
+there where that is not empty. A drawing AutoCAD saved as R2004 or later, which keeps the texts in its header and has no
+DWGPROPS, gives its `$TITLE`, `$AUTHOR` and the others, where it gave none, and has them set with the properties. 2 new
+tests, 2 changed.
+
+**CHANGED.** A named group left empty is kept when the drawing is saved, as AutoCAD 2021 keeps G_ERASE when its one line is
+erased, G_REMOVE when its line is taken out, and G_NEW_EMPTY made with none; they were dropped. An anonymous group left
+empty is still dropped. ezdxf's audit removes an empty group, which AutoCAD keeps. 1 new test, 3 changed.
+
+**CHANGED.** A table mirrored by `TransformBy` stays readable, as AutoCAD 2021's `TransformBy` leaves it: its normal the
+mirror's image of the normal, no longer turned round, its direction the image reversed, and its point the image of the far
+end of its top edge, so that it fills the box the mirror makes of it, its first column still first. The table at (300,
+-100), 70 wide, mirrored in the plane x = 280 stands at (190, -100) facing up, where it stood at (260, -100) facing down.
+1 new test, 3 changed.
+
+**CHANGED.** Erasing the last active viewport of a layout leaves the LAYOUT naming its viewport 1 (331), as AutoCAD 2021
+does, where it named none. 1 new test, 1 changed.
+
+**CHANGED.** A GEODATA made in code is of version 3 (90), as AutoCAD 2021 writes one, where it was of version 2; its class
+is listed with a count of 1 (91), as AutoCAD lists it. Versions 2 and 3 hold the same groups and are read alike. 1 new
+test, 4 changed.
+
+**CHANGED.** `Explode()` breaks a dimension, a LEADER, a MULTILEADER, a HATCH and a MESH as AutoCAD 2021's `Explode()` breaks
+them, compared part by part with the files it saved:
+- A dimension leaves out the POINTs of its block on Defpoints, which mark where it measures: the dimension in a tilted
+  plane gives seven parts of its block's ten. 1 new test, 1 changed.
+- A LEADER gives its arrowhead first, a SOLID of the corner on the right of the leader, the tip and the corner on its left,
+  or the INSERT of its arrow block; then one LWPOLYLINE through its vertices (a LINE between each two, as before, where
+  they stand off the plane of its normal), or for a splined one one SPLINE, its knots the lengths of the chords (0 to
+  21.64 through (1.77, 1.77), (10, 10) and (20, 10)), the line starting at the arrow's back, 2.5 along the first segment
+  for an arrow 2.5 long. It gave a LINE between each two vertices from the tip, then the arrow. Each part has the
+  leader's own colour, true colour, linetype and lineweight, as AutoCAD gives them: DIMCLRD, DIMLWD, the overrides and the
+  colour of the group 77 drew them before. The vertex AutoCAD adds where the words of an annotation end, which its fonts
+  decide, is not among them. 3 new tests, 11 changed.
+- A MULTILEADER gives its words or block, then for each leader its dogleg as a LINE, then for each line an LWPOLYLINE to
+  the last point of the leader, or a SPLINE whose knots are the chords, and its arrowhead, the corners in the LEADER's order;
+  the lines ran on through the dogleg, the arrow first. A colour BYBLOCK is the multileader's own, and the arrowheads have
+  its own lineweight, as AutoCAD gives them: the words on the right of two lines, one splined, give an MTEXT, the dogleg, a
+  polyline and a SOLID, and a SPLINE and a SOLID, all BYLAYER. 1 new test, 7 changed.
+- A HATCH gives nothing along a straight edge a line of its pattern runs along: DOTS 1.5875 apart in a square 30 by 20
+  from its corner give 228 dots, as AutoCAD's, where they gave 247, 19 on its bottom edge. In the outer style the loops
+  flagged external or outermost (1 or 16) are those it is cut by, as AutoCAD and ezdxf take them, ignoring islands those
+  flagged external; by how deep each lies where none is flagged. ANSI31 round circles of radius 7 and 3, both flagged
+  outermost, gives AutoCAD's 17 lines, one inside the smaller circle, where it gave 16. 2 new tests.
+- A MESH face of more than four corners breaks into triangles fanned from its first corner, as AutoCAD breaks one, the
+  last first and each the other way round: the corners 0 to 4 give (4, 3, 0), (2, 0, 3) and (0, 2, 1). A face given a
+  colour of its own keeps it on its 3DFACEs. Both were refused. 1 new test, 1 changed.
+
 **FIXED.** An MTEXT given a background by `BackgroundFill` or `UseBackgroundColor` no longer makes a file AutoCAD 2021
 will not open. The flag of group 90 was written alone, and AutoCAD refuses the whole file ("Error Decrypting Data", and
 `eMissingDxfField` from its DxfIn) over an MTEXT whose background is on with no colour (63) and scale (45); now the two
@@ -289,7 +357,8 @@ and projecting it still take it as drawn. 1 new test.
 **CHANGED.** A splined LEADER is walked over the lengths of its chords, as AutoCAD 2021 walks one, and boxed by its
 vertices: through (0, 0, 0), (10, 10, 0) and (20, 10, 0) its `EndParam` is 24.14, its point at 12.07 the one it had at
 0.5, and its `GeometricExtents` runs from (0, 0, 0) to (20, 10, 0), where the spline's rose to 10.43. Its `Spline` runs
-over the same length; `Explode()` gives the spline as before, from 0 to 1. 1 new test, 3 changed.
+over the same length, and so does the spline `Explode()` gives, from the arrow's back (see `Explode()` above). 1 new
+test, 3 changed.
 
 **CHANGED.** A `new DxfGeoData()` is AutoCAD 2021's new one: of no known type of coordinates, in metres both ways, its
 scale judged at the reference point, where it was ezdxf's, geographic in inches of no scale estimated. Its

@@ -12,26 +12,31 @@ namespace GeometryHelper.Dxf
         private static readonly HashSet<string> NoLength = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "ARCHTICK", "OBLIQUE", "DOTSMALL", "SMALL", "INTEGRAL", "NONE" };
 
         /// <summary>
-        /// Gets the entities the multileader breaks into, as AutoCAD's <c>Explode</c>, as ezdxf's <c>virtual_entities</c> gives
-        /// them from its context data: its content first, an MTEXT of its words (<see cref="MText"/>, as wide as the context's
-        /// scale makes it, in its text style and colour) or an INSERT of its block (<see cref="BlockContent"/> at
-        /// <see cref="BlockPosition"/>, scaled, turned and coloured so, its attributes given the values the multileader holds);
-        /// then, leader by leader and line by line, unless the line is invisible, the arrowhead at the first vertex and the
-        /// LINEs through the vertices, the last point of the leader and, for a leader on the left or right of the words, the
-        /// end of its dogleg, the dogleg itself where the multileader has one; a splined leader is one SPLINE fitted through the
-        /// same points, leaving along its first segment and reaching along its dogleg. The arrowhead is drawn where the first
-        /// segment is more than twice as long as the arrow, as AutoCAD draws it: an INSERT of the line's or the multileader's
-        /// arrow block, turned to point away from the line and scaled to the arrow's size, or AutoCAD's closed filled arrow as a
-        /// SOLID a third as wide as long; the line then starts at the back of the arrow. Each part is on the multileader's layer.
+        /// Gets the entities the multileader breaks into, as AutoCAD 2021's <c>Explode</c> gives them from its context data: its
+        /// content first, an MTEXT of its words (<see cref="MText"/>, as wide as the context's scale makes it, in its text style
+        /// and colour) or an INSERT of its block (<see cref="BlockContent"/> at <see cref="BlockPosition"/>, scaled, turned and
+        /// coloured so, its attributes given the values the multileader holds); then, leader by leader, its dogleg, a LINE from
+        /// the last point of the leader along its direction, where the multileader has one and the leader runs left or right of
+        /// the words; then line by line, unless the line is invisible, an LWPOLYLINE through the vertices to the last point of
+        /// the leader, and the arrowhead at the first vertex. A splined line is one SPLINE fitted through the same points,
+        /// leaving along its first segment and reaching along its dogleg, its knots the lengths of the chords, as AutoCAD's.
+        /// Without a dogleg, a line on the left or right of the words runs on to the end the dogleg would have. The arrowhead is
+        /// drawn where the first segment is more than twice as long as the arrow, as AutoCAD draws it: an INSERT of the line's or
+        /// the multileader's arrow block, turned to point away from the line and scaled to the arrow's size, or AutoCAD's closed
+        /// filled arrow as a SOLID a third as wide as long, its corners the one on the right of the line, the tip and the one on
+        /// its left; the line then starts at the back of the arrow. Each part is on the multileader's layer, and a colour of
+        /// BYBLOCK, as the style Standard gives the words and the lines, is the multileader's own colour, as AutoCAD 2021 gives
+        /// it; the arrowhead has the multileader's own lineweight.
         /// A line is drawn with the type, colour, linetype, lineweight and arrow size of its own where its flags (93) say it has
         /// them, BYBLOCK among them, and its colour where it has no flags and its colour is not BYBLOCK, as ezdxf writes one;
         /// else with the multileader's (<see cref="GetLeaderLineType"/>, <see cref="GetLeaderLineColor"/>,
         /// <see cref="GetLeaderLineWeight"/>): a line splined of its own is one SPLINE among the straight lines of the others, one
         /// invisible of its own gives nothing, and a line of arrows 2 of its own under arrows 4 starts 2 from its tip; a size of
         /// its own is unscaled, as the multileader's own (42), and drawn times the scale of the context data, 4 at a scale of 2,
-        /// where a line of none is drawn with the size of the context data (140). The words left on the left of two leaders 8 long,
-        /// with a dogleg of 8, give an MTEXT, two arrows and five LINEs. A multileader scaled to nothing gives nothing. The lines AutoCAD draws under or over
-        /// the words, as long as the words are wide, are AutoCAD's to work out, and are not among them. A copy in no file, made
+        /// where a line of none is drawn with the size of the context data (140). The words on the right of two leader lines
+        /// with a dogleg of 8 give an MTEXT, the dogleg's LINE, and for each line an LWPOLYLINE and a SOLID. A multileader scaled
+        /// to nothing gives nothing. The lines AutoCAD draws under or over the words, as long as the words are wide, are
+        /// AutoCAD's to work out from its fonts, and are not among them. A copy in no file, made
         /// by <see cref="DxfEntity.Clone"/>, finds the blocks, the linetype and the text style its record names in the drawing it
         /// was copied from, as a dimension's copy finds its block, and gives what the original gives, the values of its attributes
         /// among it; where that drawing has erased a block it names since, it is refused, rather than drawn without it.
@@ -57,6 +62,9 @@ namespace GeometryHelper.Dxf
             // A copy in no file reads what its record names in the drawing it was copied from.
             DxfDatabase database = IsResident ? Database() : Item.File.IsDetached ? Item.File.NamingDrawing?.Database : null;
             Content(rec, ctx, scale, layer, database, parts);
+            int ownColour = ColorIndex;
+            int? ownTrueColour = TrueColor;
+            DxfLineWeight entityWeight = LineWeight;
             DxfLeaderType type = LeaderLineType;
 
             if (type == DxfLeaderType.InVisibleLeader && !ctx.Leaders.Exists(l => l.Lines.Exists(line => LineType(line.Groups, type) != DxfLeaderType.InVisibleLeader)))
@@ -77,6 +85,22 @@ namespace GeometryHelper.Dxf
             foreach (LeaderPart leader in ctx.Leaders)
             {
                 Landing(leader, out GeoPoint3 last, out bool horizontal, out GeoVector3 along);
+                bool landed = EnableDogleg && horizontal;
+
+                // The dogleg, once for the leader, in the multileader's look, where a line of it is drawn.
+                if (landed && along.Length > tolerance && leader.Lines.Exists(l => LineType(l.Groups, type) != DxfLeaderType.InVisibleLeader))
+                {
+                    var dogleg = new DxfLine(last, last.Add(along)) { Layer = layer };
+                    Colour(dogleg, leaderColour, ownColour, ownTrueColour);
+
+                    if (linetype != null)
+                    {
+                        dogleg.Linetype = linetype;
+                    }
+
+                    dogleg.LineWeight = weight;
+                    parts.Add(dogleg);
+                }
 
                 foreach (LinePart line in leader.Lines)
                 {
@@ -98,22 +122,27 @@ namespace GeometryHelper.Dxf
                     double lineSize = ownSize == null ? size : Num(ownSize, 4.0) * scale;
                     string colour = LineColour(own) ?? leaderColour;
 
-                    void Give(DxfEntity part)
+                    void Give(DxfEntity part, DxfLineWeight partWeight)
                     {
                         part.Layer = layer;
-                        Colour(part, colour);
+                        Colour(part, colour, ownColour, ownTrueColour);
 
                         if (lineLinetype != null)
                         {
                             part.Linetype = lineLinetype;
                         }
 
-                        part.LineWeight = lineWeight;
+                        part.LineWeight = partWeight;
                         parts.Add(part);
                     }
 
-                    bool dogleg = EnableDogleg && lineType != DxfLeaderType.SplineLeader;
-                    List<GeoPoint3> vertices = Path(line, last, horizontal, dogleg, along);
+                    // To the last point of the leader where its dogleg is drawn apart; else on to where the dogleg would end.
+                    List<GeoPoint3> vertices = landed ? line.Vertices() : Path(line, last, horizontal, false, along);
+
+                    if (landed)
+                    {
+                        vertices.Add(last);
+                    }
 
                     if (vertices.Count < 2)
                     {
@@ -124,10 +153,12 @@ namespace GeometryHelper.Dxf
                     double run = first.Length;
                     GeoVector3 direction = run > 0.0 ? first.Multiply(1.0 / run) : new GeoVector3(1.0, 0.0, 0.0);
 
+                    DxfEntity head = null;
+
                     if (run * lineSize > 0.0 && run > 2.0 * lineSize)
                     {
                         DxfBlockTableRecord block = arrows.TryGetValue(Whole(Text(line.Groups, 91), 0), out string handle) ? Block(database, handle, "the arrow of a leader line") : arrow;
-                        Give(Arrowhead(vertices[0], direction, lineSize, normal, block));
+                        head = Arrowhead(vertices[0], direction, lineSize, normal, block);
                         string name = block?.Name.TrimStart('_');
                         vertices[0] = vertices[0].Add(direction.Multiply(name != null && NoLength.Contains(name) ? 0.0 : lineSize));
                     }
@@ -135,22 +166,32 @@ namespace GeometryHelper.Dxf
                     if (lineType == DxfLeaderType.SplineLeader)
                     {
                         GeoVector3 end = horizontal ? along : vertices[vertices.Count - 2].GetVectorTo(vertices[vertices.Count - 1]);
-                        DxfSpline spline = DxfLeader.FittedSpline(vertices, tolerance, direction, end.Length > 0.0 ? end : (GeoVector3?)null);
+                        DxfSpline spline = DxfLeader.ParameterSpline(vertices, tolerance, direction, end.Length > 0.0 ? end : (GeoVector3?)null);
 
                         if (spline != null)
                         {
-                            Give(spline);
+                            Give(spline, lineWeight);
                         }
-
-                        continue;
+                    }
+                    else if (DxfLeader.PlanePolyline(vertices, normal, tolerance) is DxfPolyline polyline)
+                    {
+                        Give(polyline, lineWeight);
+                    }
+                    else
+                    {
+                        // Off the multileader's plane, which a polyline cannot hold: a LINE between each two points.
+                        for (int i = 0; i + 1 < vertices.Count; i++)
+                        {
+                            if (vertices[i].DistanceTo(vertices[i + 1]) > tolerance)
+                            {
+                                Give(new DxfLine(vertices[i], vertices[i + 1]), lineWeight);
+                            }
+                        }
                     }
 
-                    for (int i = 0; i + 1 < vertices.Count; i++)
+                    if (head != null)
                     {
-                        if (vertices[i].DistanceTo(vertices[i + 1]) > tolerance)
-                        {
-                            Give(new DxfLine(vertices[i], vertices[i + 1]));
-                        }
+                        Give(head, entityWeight);
                     }
                 }
             }
@@ -343,7 +384,7 @@ namespace GeometryHelper.Dxf
                 List<KeyValuePair<int, string>> m = ctx.Head.GetRange(from, to - from);
                 mtext.Width *= scale;
                 mtext.Layer = layer;
-                Colour(mtext, Text(m, 90) ?? ByBlock);
+                Colour(mtext, Text(m, 90) ?? ByBlock, ColorIndex, TrueColor);
                 string style = Text(m, 340)?.Trim();
 
                 if (style != null && database != null && database.TryGetObject(style, out DxfDBObject found) && found is DxfTextStyleTableRecord record)
@@ -373,7 +414,7 @@ namespace GeometryHelper.Dxf
             }
 
             insert.Layer = layer;
-            Colour(insert, Text(b, 93) ?? ByBlock);
+            Colour(insert, Text(b, 93) ?? ByBlock, ColorIndex, TrueColor);
 
             foreach (DxfEntity entity in block)
             {
@@ -427,7 +468,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// An arrowhead at a point, pointing away from a direction, of a size: an INSERT of its block on the normal, turned so,
-        /// or, of no block, AutoCAD's closed filled arrow as a SOLID a third as wide as long, as a straight LEADER's.
+        /// or, of no block, AutoCAD's closed filled arrow as a SOLID a third as wide as long, as a straight LEADER's: its corner
+        /// on the right of the line, the tip, and its corner on the left, as AutoCAD 2021 gives them.
         /// </summary>
         private static DxfEntity Arrowhead(GeoPoint3 tip, GeoVector3 direction, double size, GeoVector3 normal, DxfBlockTableRecord block)
         {
@@ -435,7 +477,7 @@ namespace GeometryHelper.Dxf
             {
                 GeoPoint3 back = tip.Add(direction.Multiply(size));
                 GeoVector3 side = DxfOcsTransform.Normalized(normal.CrossProduct(direction)).Multiply(size / 6.0);
-                return new DxfSolid(tip, back.Add(side), back.Add(side.Negate())) { Normal = normal };
+                return new DxfSolid(back.Add(side.Negate()), tip, back.Add(side)) { Normal = normal };
             }
 
             OcsAxes(normal, out GeoVector3 x, out GeoVector3 y);
@@ -443,12 +485,21 @@ namespace GeometryHelper.Dxf
             return new DxfBlockReference(tip, block) { Normal = normal, ScaleFactors = new GeoVector3(size, size, size), Rotation = Math.Atan2(away.DotProduct(y), away.DotProduct(x)) };
         }
 
-        /// <summary>Gives a part a colour as the multileader writes one (a raw colour), BYBLOCK, BYLAYER, of the index or true; one an entity cannot hold left as it is.</summary>
-        private static void Colour(DxfEntity part, string raw)
+        /// <summary>
+        /// Gives a part a colour as the multileader writes one (a raw colour): BYLAYER, of the index or true; BYBLOCK the
+        /// multileader's own colour (its index and true colour), as AutoCAD 2021's <c>Explode</c> gives it; one an entity cannot
+        /// hold left as it is.
+        /// </summary>
+        private static void Colour(DxfEntity part, string raw, int ownIndex, int? ownTrue)
         {
             DxfColor colour = DxfMLeaderColors.Of(raw);
 
-            if (colour.ColorMethod == DxfColorMethod.ByBlock || colour.ColorMethod == DxfColorMethod.ByLayer || colour.ColorMethod == DxfColorMethod.ByAci || colour.ColorMethod == DxfColorMethod.ByColor)
+            if (colour.ColorMethod == DxfColorMethod.ByBlock)
+            {
+                part.ColorIndex = ownIndex;
+                part.TrueColor = ownTrue;
+            }
+            else if (colour.ColorMethod == DxfColorMethod.ByLayer || colour.ColorMethod == DxfColorMethod.ByAci || colour.ColorMethod == DxfColorMethod.ByColor)
             {
                 part.Color = colour;
             }

@@ -325,9 +325,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<InvalidOperationException>(() => ((DxfEntity)bent).GetPlane());
             Assert.Throws<InvalidOperationException>(() => ((DxfEntity)new DxfLeader()).GeometricExtents);
 
-            // B2 is splined: its box is that of the spline it explodes into.
+            // B2 is splined: its box is that of the spline it explodes into with no arrow.
             DxfLeader splined = ByHandle<DxfLeader>(DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018), "B2");
-            Assert.Equal(Bits(((DxfSpline)splined.Explode()[0]).GeometricExtents.Max), Bits(((DxfEntity)splined).GeometricExtents.Max));
+            splined.HasArrowHead = false;
+            Assert.Equal(Bits(Assert.Single(splined.Explode().OfType<DxfSpline>()).GeometricExtents.Max), Bits(((DxfEntity)splined).GeometricExtents.Max));
         }
 
         [Fact]

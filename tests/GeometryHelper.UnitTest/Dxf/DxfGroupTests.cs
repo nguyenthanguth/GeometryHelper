@@ -128,19 +128,19 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.DoesNotContain("ACAD_REACTORS", Records(saved).Single(r => HandleOf(r) == "34"), StringComparison.Ordinal);
             Assert.Contains("{ACAD_REACTORS\n330\n37\n102\n}\n", Records(saved).Single(r => HandleOf(r) == "36"), StringComparison.Ordinal);
 
-            // A group left empty is dropped when the drawing is saved, as AutoCAD drops it.
+            // A named group left empty is kept when the drawing is saved, as AutoCAD 2021 keeps it.
             beams.Clear();
             Assert.Equal(0, beams.NumEntities);
             Assert.False(beams.IsErased);
             saved = db.ToText();
-            Assert.True(beams.IsErased);
-            Assert.DoesNotContain(Records(saved), r => HandleOf(r) == "37");
+            Assert.False(beams.IsErased);
+            Assert.Contains(Records(saved), r => HandleOf(r) == "37");
             Assert.DoesNotContain("ACAD_REACTORS", Records(saved).Single(r => HandleOf(r) == "33"), StringComparison.Ordinal);
-            Assert.False(DxfDatabase.Parse(saved).GroupDictionary.Contains("BEAMS"));
+            Assert.Equal(0, ((DxfGroup)DxfDatabase.Parse(saved).GroupDictionary["BEAMS"]).NumEntities);
         }
 
         [Fact]
-        public void AGroupLeftEmpty_IsDroppedOnSaving_WhateverEmptiedIt_AndOneReadEmptyIsKept()
+        public void AnAnonymousGroupLeftEmpty_IsDroppedOnSaving_ANamedOneIsKept_AndOneReadEmptyIsKept()
         {
             // An empty group as the file has it is kept: the file is written back as it was read.
             string empty = DxfObjectsEzdxfDrawings.R2018.Replace("340\n35\n", string.Empty);
@@ -148,7 +148,8 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(0, ((DxfGroup)read.GroupDictionary["*A1"]).NumEntities);
             Assert.Equal(empty, read.ToText());
 
-            // One made in code and never given a member, and one emptied by RemoveAt, go with their entries.
+            // One made in code and never given a member is kept, as AutoCAD 2021 keeps a named one; one anonymous emptied by
+            // RemoveAt goes with its entry.
             DxfDatabase db = DxfDatabase.Parse(DxfObjectsEzdxfDrawings.R2018);
             var made = new DxfGroup("never filled", true);
             db.GroupDictionary.SetAt("EMPTY", made);
@@ -156,9 +157,9 @@ namespace GeometryHelper.UnitTest.Dxf
             anonymous.RemoveAt(0);
 
             string saved = db.ToText();
-            Assert.True(made.IsErased);
+            Assert.False(made.IsErased);
             Assert.True(anonymous.IsErased);
-            Assert.Equal(new[] { "BEAMS" }, DxfDatabase.Parse(saved).GroupDictionary.Select(e => e.Key));
+            Assert.Equal(new[] { "BEAMS", "EMPTY" }, DxfDatabase.Parse(saved).GroupDictionary.Select(e => e.Key));
             Assert.DoesNotContain("ACAD_REACTORS", Records(saved).Single(r => HandleOf(r) == "35"), StringComparison.Ordinal);
 
             // A group emptied and filled again before the drawing is saved is kept.

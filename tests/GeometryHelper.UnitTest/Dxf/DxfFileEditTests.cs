@@ -460,7 +460,7 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AGroupLeftWithNoMember_GoesWithItsEntryInTheDictionary_AndAnImageWithTheReactorItOwned()
+        public void ANamedGroupLeftWithNoMember_IsKeptWithItsEntryInTheDictionary_AndAnImageGoesWithTheReactorItOwned()
         {
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
 
@@ -468,9 +468,11 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfModel.ByHandle<DxfEntity>(db, "65").Erase();
             DxfModel.ByHandle<DxfEntity>(db, "8E").Erase();
 
+            // The group PAIR (90) is kept with no member, as AutoCAD 2021 keeps a named group emptied.
             List<string> records = Records(db.ToText());
-            Assert.DoesNotContain(records, r => new[] { "90", "8F", "65", "66", "67" }.Contains(HandleOf(r)));
-            Assert.DoesNotContain("350\n90\n", records.Single(r => HandleOf(r) == "C"), StringComparison.Ordinal);
+            Assert.DoesNotContain(records, r => new[] { "8F", "65", "66", "67" }.Contains(HandleOf(r)));
+            Assert.DoesNotContain("\n340\n", records.Single(r => HandleOf(r) == "90"), StringComparison.Ordinal);
+            Assert.Contains("350\n90\n", records.Single(r => HandleOf(r) == "C"), StringComparison.Ordinal);
             Assert.DoesNotContain("330\n8F\n", records.Single(r => HandleOf(r) == "8D"), StringComparison.Ordinal);
             Assert.Contains("330\n8C\n", records.Single(r => HandleOf(r) == "8D"), StringComparison.Ordinal);
         }

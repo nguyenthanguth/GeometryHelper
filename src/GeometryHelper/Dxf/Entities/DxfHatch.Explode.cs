@@ -14,10 +14,16 @@ namespace GeometryHelper.Dxf
         /// HATCH's look, a dot of the pattern a LINE of no length, as ezdxf's <c>hatch_entity</c> draws them. The lines of a pattern
         /// line run from its base point and every offset from it; each is cut where it crosses the loops, its stretches inside
         /// them kept by the even-odd rule, and its dashes laid from the line's own base point. The loops it is cut by are those
-        /// the <see cref="HatchStyle"/> fills, by how deep each lies among the others as <see cref="Area"/> counts it: every
-        /// loop in the normal style, the outermost and those just inside them in the outer style, the outermost alone ignoring
-        /// islands. Lines, arcs, ellipses and splines of a loop are cut where they are crossed, an arc and an ellipse exactly, a
-        /// spline to the bit within each sixteenth of a span of its knots; a dot that falls on a loop is kept. A square 30 by 20
+        /// the <see cref="HatchStyle"/> fills: every loop in the normal style; in the outer style those flagged external or
+        /// outermost (1 or 16 of their type), and ignoring islands those flagged external, as AutoCAD 2021 and ezdxf take them,
+        /// so that a square in the outer style round a circle of radius 7 and one of radius 3 in it, both flagged outermost, is
+        /// hatched inside the smaller circle too, as AutoCAD's <c>Explode</c> hatches it; where no loop is so flagged, by how deep
+        /// each lies among the others as <see cref="Area"/> counts it, the outermost and those just inside them in the outer
+        /// style, the outermost alone ignoring islands. Lines, arcs, ellipses and splines of a loop are cut where they are
+        /// crossed, an arc and an ellipse exactly, a spline to the bit within each sixteenth of a span of its knots; a dot that
+        /// falls on a loop where its line crosses it is kept, but a line of the pattern that runs along a straight edge of a loop
+        /// gives nothing along it, as AutoCAD gives nothing there: a square 30 by 20 filled with DOTS from its corner, the dots
+        /// 1.5875 apart, gives 228 dots, none on its bottom edge. A square 30 by 20
         /// filled with ANSI31, the one line at 45 degrees 3.175 apart, gives 11 LINEs; the same round a circle of radius 5 about
         /// its middle in the normal style gives 14, the three lines that cross the circle broken in two. The parts run pattern
         /// line by pattern line, then by the index of the line from the base point, the least first, then along the line, each
@@ -220,16 +226,19 @@ namespace GeometryHelper.Dxf
                 Measured(snapshot);
             }
 
+            // The loops the style takes by their flags, external (1) or outermost (16), where any is flagged so.
+            int wanted = style == DxfHatchStyle.Outer ? 17 : 1;
+            bool flagged = style != DxfHatchStyle.Normal && snapshot.Loops.Exists(l => (LoopData.Read(l).Flags & wanted) != 0);
+
             for (int i = 0; i < snapshot.Loops.Count; i++)
             {
-                int depth = style == DxfHatchStyle.Normal ? 0 : Depth(snapshot, i, tolerance);
+                LoopData loop = LoopData.Read(snapshot.Loops[i]);
 
-                if (depth > (style == DxfHatchStyle.Outer ? 1 : 0))
+                if (flagged ? (loop.Flags & wanted) == 0 : style != DxfHatchStyle.Normal && Depth(snapshot, i, tolerance) > (style == DxfHatchStyle.Outer ? 1 : 0))
                 {
                     continue;
                 }
 
-                LoopData loop = LoopData.Read(snapshot.Loops[i]);
                 var curves = new List<PatternCurve>();
 
                 try
@@ -499,6 +508,10 @@ namespace GeometryHelper.Dxf
 
                 var pieces = new List<Piece>();
                 double crossings = 0.0;
+                double tolerance = Tolerance.Default.EqualPoint;
+
+                // The straight edges that run along a line, by the line's index: what of the line lies along one is no stretch.
+                var edgesOn = new Dictionary<long, List<double[]>>();
 
                 foreach (List<PatternCurve> loop in loops)
                 {
@@ -519,6 +532,21 @@ namespace GeometryHelper.Dxf
 
                             crossings += Math.Ceiling(Math.Max(piece.Ua, piece.Ub)) - Math.Ceiling(Math.Min(piece.Ua, piece.Ub));
                             pieces.Add(piece);
+                            double k = Math.Round(piece.Ua);
+
+                            if (!curve.IsConic && !curve.IsSpline && Math.Abs(piece.Ua - k) * Math.Abs(_apart) <= tolerance && Math.Abs(piece.Ub - k) * Math.Abs(_apart) <= tolerance)
+                            {
+                                double sa = _dx * (a.X - (_bx + k * _ox)) + _dy * (a.Y - (_by + k * _oy));
+                                double sb = _dx * (b.X - (_bx + k * _ox)) + _dy * (b.Y - (_by + k * _oy));
+
+                                if (!edgesOn.TryGetValue((long)k, out List<double[]> edges))
+                                {
+                                    edges = new List<double[]>();
+                                    edgesOn.Add((long)k, edges);
+                                }
+
+                                edges.Add(new[] { Math.Min(sa, sb), Math.Max(sa, sb) });
+                            }
                         }
                     }
                 }
@@ -544,7 +572,6 @@ namespace GeometryHelper.Dxf
                 }
 
                 found.Sort((p, q) => p.Key != q.Key ? p.Key.CompareTo(q.Key) : p.Value.CompareTo(q.Value));
-                double tolerance = Tolerance.Default.EqualPoint;
 
                 for (int i = 0; i < found.Count;)
                 {
@@ -575,12 +602,14 @@ namespace GeometryHelper.Dxf
                     }
 
                     // The parts of the line's stretches counted, a stretch that gives none, shorter than the gaps it falls in,
-                    // not kept: those kept give a part at least, so that past the bound no more are kept.
+                    // or that lies along a straight edge of a loop, not kept: those kept give a part at least, so that past the
+                    // bound no more are kept.
                     int keep = first;
+                    edgesOn.TryGetValue(found[i].Key, out List<double[]> edgesAlong);
 
                     for (int t = first; t < _from.Count; t++)
                     {
-                        long count = Count(_from[t], _to[t], most - _parts);
+                        long count = edgesAlong != null && edgesAlong.Exists(e => _from[t] >= e[0] - tolerance && _to[t] <= e[1] + tolerance) ? 0 : Count(_from[t], _to[t], most - _parts);
 
                         if (count > 0)
                         {

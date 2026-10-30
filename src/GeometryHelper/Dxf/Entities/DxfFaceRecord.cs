@@ -16,8 +16,9 @@ namespace GeometryHelper.Dxf
     /// </remarks>
     public sealed class DxfFaceRecord : DxfVertex
     {
-        // The groups of AcDbVertex and AcDbFaceRecord in the order AutoCAD writes them.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 100, 10, 20, 30, 70, 71, 72, 73, 74 });
+        // The groups of AcDbFaceRecord in the order AutoCAD writes them: its marker alone, no AcDbVertex before it, as AutoCAD
+        // refuses a face record with one ("Class separator for class AcDbFaceRecord expected").
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 10, 20, 30, 70, 71, 72, 73, 74 });
 
         /// <summary>Initializes a face of no corners, as AutoCAD's <c>new FaceRecord()</c>, in no mesh.</summary>
         public DxfFaceRecord()
@@ -126,7 +127,6 @@ namespace GeometryHelper.Dxf
         {
             var groups = new List<DxfTypedValue>
             {
-                new DxfTypedValue(100, "AcDbVertex"),
                 new DxfTypedValue(100, "AcDbFaceRecord"),
                 new DxfTypedValue(10, "0"),
                 new DxfTypedValue(20, "0"),

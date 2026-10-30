@@ -586,12 +586,12 @@ namespace GeometryHelper.UnitTest.Dxf
             Hit(turned.HitTest(new GeoPoint3(114, 355, 0), down), 1, 1);
             Hit(turned.HitTest(new GeoPoint3(122, 310, 0), down), 2, 0);
 
-            // Mirrored in the plane x = 0: at (-300, -100, 0), its columns along -x, read from below.
+            // Mirrored in the plane x = 0: at (-370, -100, 0), its columns along x, read from above, as AutoCAD 2021 keeps it.
             DxfDatabase mirroredDb = DxfDatabase.Parse(DxfDimensionDrawings.R2018);
             DxfTable mirrored = Table(mirroredDb);
             mirrored.TransformBy(GeoTransform3.Scaling(-1.0, 1.0, 1.0));
-            Hit(mirrored.HitTest(new GeoPoint3(-355, -114, 3), down), 1, 1);
-            Hit(mirrored.HitTest(new GeoPoint3(-320, -122, 0), down), 2, 0);
+            Hit(mirrored.HitTest(new GeoPoint3(-355, -114, 3), down), 1, 0);
+            Hit(mirrored.HitTest(new GeoPoint3(-320, -122, 0), down), 2, 1);
             Missed(mirrored.HitTest(new GeoPoint3(-290, -114, 0), down));
         }
 

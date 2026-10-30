@@ -504,19 +504,21 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void ALineGivenByBlockOfItsOwn_IsDrawnByBlock_UnderARedMultileader()
+        public void ALineGivenByBlockOfItsOwn_IsDrawnInTheMultileadersOwnColour_UnderARedMultileader()
         {
-            // B4's leader lines red, its second line BYBLOCK of its own: that line's arrow and two lines are BYBLOCK, the other
-            // seven parts of its leaders red.
+            // B4's leader lines red, its second line BYBLOCK of its own: that line's polyline and arrow take the multileader's
+            // own colour, BYLAYER, as AutoCAD 2021's Explode gives BYBLOCK; the other six parts of its leaders, the two doglegs
+            // among them, red.
             DxfMLeader words = ByHandle<DxfMLeader>(DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018), "B4");
             words.LeaderLineColor = DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1);
             words.SetLeaderLineColor(1, DxfColor.ByBlock);
 
             List<DxfEntity> leaders = words.Explode().Where(e => !(e is DxfMText)).ToList();
-            Assert.Equal(10, leaders.Count);
-            Assert.Equal(3, leaders.Count(e => e.Color.IsByBlock));
-            Assert.Equal(7, leaders.Count(e => e.ColorIndex == 1));
-            Assert.Contains(leaders.OfType<DxfLine>(), l => l.Color.IsByBlock && l.EndPoint.IsEqualTo(new GeoPoint3(790, -1.25, 0), Tol) && l.StartPoint.Y > 0.0);
+            Assert.Equal(8, leaders.Count);
+            Assert.DoesNotContain(leaders, e => e.Color.IsByBlock);
+            Assert.Equal(2, leaders.Count(e => e.ColorIndex == 256));
+            Assert.Equal(6, leaders.Count(e => e.ColorIndex == 1));
+            Assert.Contains(leaders.OfType<DxfPolyline>(), l => l.ColorIndex == 256 && l.GetPoint3dAt(l.NumberOfVertices - 1).IsEqualTo(new GeoPoint3(790, -1.25, 0), Tol) && l.GetPoint3dAt(0).Y > 0.0);
         }
 
         [Fact]
@@ -554,45 +556,50 @@ namespace GeometryHelper.UnitTest.Dxf
             return mleader;
         }
 
-        /// <summary>The lengths of the closed filled arrows a multileader explodes to, line by line: from the tip of each SOLID to the middle of its back, to 1E-9.</summary>
+        /// <summary>The lengths of the closed filled arrows a multileader explodes to, line by line: from the tip of each SOLID (its second corner) to the middle of its back, to 1E-9.</summary>
         private static double[] DrawnArrows(DxfMLeader mleader) => mleader.Explode().OfType<DxfSolid>()
-            .Select(a => Math.Round(a.GetPointAt(0).DistanceTo(new GeoPoint3((a.GetPointAt(1).X + a.GetPointAt(2).X) / 2, (a.GetPointAt(1).Y + a.GetPointAt(2).Y) / 2, (a.GetPointAt(1).Z + a.GetPointAt(2).Z) / 2)), 9))
+            .Select(a => Math.Round(a.GetPointAt(1).DistanceTo(new GeoPoint3((a.GetPointAt(0).X + a.GetPointAt(2).X) / 2, (a.GetPointAt(0).Y + a.GetPointAt(2).Y) / 2, (a.GetPointAt(0).Z + a.GetPointAt(2).Z) / 2)), 9))
             .ToArray();
 
         [Fact]
         public void ALineOfATypeWeightAndArrowOfItsOwn_IsDrawnWithThem()
         {
-            // B4's lines explode to its words and ten parts: an arrow and three lines, an arrow and two (its second line, from
-            // (780, 10, 0) to the dogleg at (790, -1.25, 0)), and an arrow and two of its second leader.
+            // B4's lines explode to its words and eight parts, as AutoCAD 2021's Explode gives them: the dogleg of its first
+            // leader, a polyline and an arrow for each of its two lines (its second line from (780, 10, 0) to the dogleg at
+            // (790, -1.25, 0)), and the dogleg, a polyline and an arrow of its second leader.
             var tip = new GeoPoint3(780, 10, 0);
             GeoVector3 along = tip.GetVectorTo(new GeoPoint3(790, -1.25, 0));
             along = along.Multiply(1.0 / along.Length);
             DxfMLeader words = ByHandle<DxfMLeader>(DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018), "B4");
-            Assert.Equal(11, words.Explode().Count);
+            Assert.Equal(9, words.Explode().Count);
 
-            // A lineweight of 0.50 mm and arrows 2 long of its own: its three parts of that weight, its line from 2 off the tip.
+            // A lineweight of 0.50 mm and arrows 2 long of its own: its polyline of that weight, from 2 off the tip, its arrow of
+            // the multileader's own lineweight, as every arrow is.
             words.SetLeaderLineWeight(1, DxfLineWeight.LineWeight050);
             words.SetArrowSize(1, 2.0);
             IReadOnlyList<DxfEntity> parts = words.Explode();
-            Assert.Equal(11, parts.Count);
-            Assert.Equal(3, parts.Count(e => e.LineWeight == DxfLineWeight.LineWeight050));
-            Assert.Equal(7, parts.Count(e => !(e is DxfMText) && e.LineWeight == DxfLineWeight.ByBlock));
-            Assert.Contains(parts.OfType<DxfLine>(), l => l.StartPoint.IsEqualTo(tip.Add(along.Multiply(2.0)), Tol) && l.LineWeight == DxfLineWeight.LineWeight050);
+            Assert.Equal(9, parts.Count);
+            Assert.Equal(1, parts.Count(e => e.LineWeight == DxfLineWeight.LineWeight050));
+            Assert.Equal(4, parts.Count(e => !(e is DxfMText) && e.LineWeight == DxfLineWeight.ByBlock));
+            Assert.All(parts.OfType<DxfSolid>(), a => Assert.Equal(words.LineWeight, a.LineWeight));
+            Assert.Contains(parts.OfType<DxfPolyline>(), l => l.GetPoint3dAt(0).IsEqualTo(tip.Add(along.Multiply(2.0)), Tol) && l.LineWeight == DxfLineWeight.LineWeight050);
 
             // Splined of its own: its arrow and one spline; invisible of its own: nothing of it.
             words.SetLeaderLineType(1, DxfLeaderType.SplineLeader);
             parts = words.Explode();
-            Assert.Equal(10, parts.Count);
+            Assert.Equal(9, parts.Count);
             Assert.Single(parts.OfType<DxfSpline>());
             words.SetLeaderLineType(1, DxfLeaderType.InVisibleLeader);
-            Assert.Equal(8, words.Explode().Count);
+            Assert.Equal(7, words.Explode().Count);
 
-            // The multileader's leaders invisible, the line straight of its own: the words, and that line's arrow and two lines.
+            // The multileader's leaders invisible, the line straight of its own: the words, the dogleg of its leader, and that
+            // line's polyline and arrow.
             words.LeaderLineType = DxfLeaderType.InVisibleLeader;
             words.SetLeaderLineType(1, DxfLeaderType.StraightLeader);
             parts = words.Explode();
             Assert.Equal(4, parts.Count);
-            Assert.Equal(2, parts.OfType<DxfLine>().Count());
+            Assert.Single(parts.OfType<DxfLine>());
+            Assert.Single(parts.OfType<DxfPolyline>());
         }
 
         #endregion

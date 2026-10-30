@@ -1358,7 +1358,9 @@ namespace GeometryHelper.Dxf
         /// Copies records of a table of another drawing into this one by their names, as AutoCAD's deep clone between databases
         /// copies those an entity names: each with a handle of its own, this drawing's table as its owner, its groups as they are
         /// but its handle, owner, reactors and extension dictionary; each pointer taken to the record of the same name here, or
-        /// left out; the applications of its extended data registered. Between drawings of R12 and of R13 or later, a layer is
+        /// left out; the applications of its extended data registered. A layer copied into a drawing of R2000 or later whose plot
+        /// style (390) is left out takes the plot style of layer 0 here, as AutoCAD reads no LAYER of those versions without one
+        /// ("Did not receive PlotStyleName"). Between drawings of R12 and of R13 or later, a layer is
         /// added with its colour, linetype and flags, a text style with its flags, height, width, slant and fonts, and the other
         /// records are not copied.
         /// </summary>
@@ -1494,6 +1496,13 @@ namespace GeometryHelper.Dxf
                     }
 
                     groups.Add(new KeyValuePair<int, string>(code, text));
+                }
+
+                // A LAYER of R2000 on has a plot style: where its own named none here, layer 0's, after its lineweight.
+                if (table == "LAYER" && Supports(1015) && !groups.Exists(g => g.Key == 390) && ZeroLayerPlotStyle() is string plotStyle)
+                {
+                    int after = groups.FindLastIndex(g => g.Key == 2 || g.Key == 70 || g.Key == 62 || g.Key == 420 || g.Key == 430 || g.Key == 6 || g.Key == 290 || g.Key == 370);
+                    groups.Insert(after + 1, new KeyValuePair<int, string>(390, plotStyle));
                 }
 
                 foreach (string application in applications)
@@ -2972,7 +2981,10 @@ namespace GeometryHelper.Dxf
             return null;
         }
 
-        /// <summary>The names under which the named object dictionary holds an object: its dictionary's and its entry's; false where it holds none.</summary>
+        /// <summary>
+        /// The names under which the named object dictionary holds an object: its dictionary's and its entry's, the dictionary a
+        /// DICTIONARY or one with a default (ACDBDICTIONARYWDFLT, as ACAD_PLOTSTYLENAME is); false where it holds none.
+        /// </summary>
         private bool NamedPath(ulong handle, out string dictionary, out string entry)
         {
             dictionary = null;
@@ -2988,7 +3000,7 @@ namespace GeometryHelper.Dxf
             {
                 Rec record = found.Key;
 
-                if (found.Value || record.Type != "DICTIONARY")
+                if (found.Value || (record.Type != "DICTIONARY" && record.Type != "ACDBDICTIONARYWDFLT"))
                 {
                     continue;
                 }
@@ -4559,6 +4571,48 @@ namespace GeometryHelper.Dxf
         /// <summary>Writes the lineweight (where asked) and the plot style of layer 0 into a new LAYER, as the file has them; found once.</summary>
         private void ZeroLayerLook(Builder b, bool weight)
         {
+            Rec? found = ZeroLayer();
+
+            if (found == null)
+            {
+                return;
+            }
+
+            Rec zero = found.Value;
+
+            foreach (Pair pair in PairsOf(zero))
+            {
+                if ((weight && pair.Code == 370) || pair.Code == 390)
+                {
+                    b.Raw(zero, pair);
+                }
+            }
+        }
+
+        /// <summary>The handle of the plot style (390) of layer 0, as the file has it; null where it has none.</summary>
+        private string ZeroLayerPlotStyle()
+        {
+            Rec? found = ZeroLayer();
+
+            if (found == null)
+            {
+                return null;
+            }
+
+            foreach (Pair pair in PairsOf(found.Value))
+            {
+                if (pair.Code == 390)
+                {
+                    return Text(found.Value, pair).Trim();
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>The LAYER record of layer 0; null where the file has none. Found once.</summary>
+        private Rec? ZeroLayer()
+        {
             if (!_zeroLayerKnown)
             {
                 _zeroLayerKnown = true;
@@ -4573,20 +4627,7 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            if (_zeroLayer == null)
-            {
-                return;
-            }
-
-            Rec zero = _zeroLayer.Value;
-
-            foreach (Pair pair in PairsOf(zero))
-            {
-                if ((weight && pair.Code == 370) || pair.Code == 390)
-                {
-                    b.Raw(zero, pair);
-                }
-            }
+            return _zeroLayer;
         }
 
         /// <summary>What a change to a table record leaves to be read again: the layers, the linetypes and the placing.</summary>

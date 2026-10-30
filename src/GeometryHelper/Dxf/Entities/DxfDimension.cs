@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Threading;
 using GeometryHelper.Export;
 using GeometryHelper.Geometry;
@@ -1450,8 +1451,10 @@ namespace GeometryHelper.Dxf
         /// Gets the entities the dimension is drawn with, as AutoCAD's <c>Explode</c>: those of its block
         /// (<see cref="DimBlock"/>, <c>*D7</c>) placed where the dimension draws them, as ezdxf's <c>virtual_entities()</c> places
         /// them, each a copy of its own look; moved by <see cref="DimBlockPosition"/>, and carried from the system of the
-        /// dimension's <see cref="Normal"/> to the world at the height of its text where that is not the world's. The block is
-        /// the picture AutoCAD drew last: a point set on the dimension since is not in it.
+        /// dimension's <see cref="Normal"/> to the world at the height of its text where that is not the world's. The points
+        /// of its block on the layer Defpoints, which mark where it measures, are left out, as AutoCAD 2021's <c>Explode</c>
+        /// leaves them: a dimension whose block holds two lines, two arrows, a text and three such points explodes into five
+        /// entities. The block is the picture AutoCAD drew last: a point set on the dimension since is not in it.
         /// </summary>
         /// <returns>The entities, in no file, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the drawing has no block of the name the dimension is drawn by.</exception>
@@ -1468,7 +1471,10 @@ namespace GeometryHelper.Dxf
                 placing = placing * Frame(normal, false) * GeoTransform3.Translation(new GeoVector3(0.0, 0.0, elevation));
             }
 
-            return PlacedCopies(block, placing * GeoTransform3.Translation(block.Origin.ToVector().Negate())).AsReadOnly();
+            return PlacedCopies(block, placing * GeoTransform3.Translation(block.Origin.ToVector().Negate()))
+                .Where(e => !(e is DxfDBPoint && string.Equals(e.Layer, "Defpoints", StringComparison.OrdinalIgnoreCase)))
+                .ToList()
+                .AsReadOnly();
         }
 
         [DxfType("DIMENSION")]

@@ -71,7 +71,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Contains("  3\nAcDbVariableDictionary\n350\n" + variables.Handle + "\n", Records(saved).Single(r => HandleOf(r) == root.Handle), StringComparison.Ordinal);
             string size = variables["TSTACKSIZE"].Handle;
             Assert.Equal("  0\nDICTIONARYVAR\n  5\n" + size + "\n102\n{ACAD_REACTORS\n330\n" + variables.Handle + "\n102\n}\n330\n" + variables.Handle + "\n100\nDictionaryVariables\n280\n0\n  1\n55\n", Records(saved).Single(r => HandleOf(r) == size));
-            Assert.Contains("\n  1\n50\n", Records(saved).Single(r => HandleOf(r) == variables["CETRANSPARENCY"].Handle), StringComparison.Ordinal);
+            Assert.Contains("\n  1\n33554559\n", Records(saved).Single(r => HandleOf(r) == variables["CETRANSPARENCY"].Handle), StringComparison.Ordinal);
 
             Assert.Equal(new DxfTransparency(127), again.Cetransparency);
             Assert.False(again.AnnoAllVisible);

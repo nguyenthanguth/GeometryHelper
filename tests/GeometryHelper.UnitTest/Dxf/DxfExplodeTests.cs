@@ -77,7 +77,7 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfEntity[] lines = dimension.Explode().ToArray();
             DxfEntity[] cells = table.Explode().ToArray();
 
-            Assert.Equal(dimension.DimBlock.Count(), lines.Length);
+            Assert.Equal(dimension.DimBlock.Count(e => !(e is DxfDBPoint && e.Layer == "Defpoints")), lines.Length);
             DxfLine first = dimension.DimBlock.OfType<DxfLine>().First();
             Assert.Equal(Bits(first.StartPoint), Bits(lines.OfType<DxfLine>().First().StartPoint));
             Assert.Equal(table.BlockTableRecord.Count(), cells.Length);
@@ -106,7 +106,7 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AStraightLeaderExploded_GivesItsLinesAndItsArrowhead_AndASplinedOneASpline()
+        public void AStraightLeaderExploded_GivesItsArrowheadAndOnePolyline_AndASplinedOneASpline()
         {
             DxfDatabase db = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
             var leader = ByHandle<DxfLeader>(db, "89");
@@ -114,18 +114,21 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfEntity[] parts = leader.Explode().ToArray();
 
-            Assert.Equal(new[] { "DxfLine", "DxfLine", "DxfSolid" }, parts.Select(p => p.GetType().Name));
-            Assert.Equal(Bits(new GeoPoint3(20, 10, 0)), Bits(((DxfLine)parts[1]).EndPoint));
-            var head = (DxfSolid)parts[2];
-            GeoPoint3 tip = head.GetPointAt(0);
+            // As AutoCAD 2021's Explode gives them: the arrowhead, its corner on the right, the tip and its corner on the left,
+            // then one polyline from the arrow's back.
+            Assert.Equal(new[] { "DxfSolid", "DxfPolyline" }, parts.Select(p => p.GetType().Name));
+            var line = (DxfPolyline)parts[1];
+            Assert.Equal(Bits(new GeoPoint3(20, 10, 0)), Bits(line.GetPoint3dAt(line.NumberOfVertices - 1)));
+            var head = (DxfSolid)parts[0];
+            GeoPoint3 tip = head.GetPointAt(1);
             Assert.Equal(Bits(new GeoPoint3(0, 0, 0)), Bits(tip));
-            GeoPoint3 a = head.GetPointAt(1);
+            GeoPoint3 a = head.GetPointAt(0);
             GeoPoint3 b = head.GetPointAt(2);
             Assert.Equal(size, tip.DistanceTo(new GeoPoint3((a.X + b.X) / 2.0, (a.Y + b.Y) / 2.0, (a.Z + b.Z) / 2.0)), 9);
             Assert.Equal(size / 3.0, a.DistanceTo(b), 9);
 
-            Assert.Equal(2, ByHandle<DxfLeader>(db, "B3").Explode().Count);
-            Assert.IsType<DxfSpline>(ByHandle<DxfLeader>(db, "B2").Explode()[0]);
+            Assert.IsType<DxfPolyline>(Assert.Single(ByHandle<DxfLeader>(db, "B3").Explode()));
+            Assert.Single(ByHandle<DxfLeader>(db, "B2").Explode().OfType<DxfSpline>());
             Assert.IsType<DxfMText>(ByHandle<DxfMLeader>(db, "8A").Explode()[0]);
             Assert.Throws<NotSupportedException>(() => db.ModelSpace.OfType<DxfCircle>().First().Explode());
         }

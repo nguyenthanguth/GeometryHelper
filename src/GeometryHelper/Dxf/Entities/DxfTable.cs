@@ -860,8 +860,11 @@ namespace GeometryHelper.Dxf
         /// A scale alike in every direction scales what the table holds of its own sizes: the heights of its rows, the widths of
         /// its columns, its cell margins, and the text heights and block scales it and its cells override; a text height the
         /// table takes from its table style, which the library does not read, stays the style's. A table of rows 10, 8 and 8
-        /// high scaled by 2 has rows 20, 16 and 16 high. A mirror turns the table's normal round, as AutoCAD turns a mirrored
-        /// text's, so that its rows and columns stand where the mirror puts them, read from the other side of its plane.
+        /// high scaled by 2 has rows 20, 16 and 16 high. A mirror leaves the table readable, as AutoCAD 2021's
+        /// <c>TransformBy</c> leaves it: its normal the mirror's image of the normal, not turned round, its direction the image
+        /// of its direction reversed, and its point the image of the far end of its top edge, so that it fills the box the
+        /// mirror makes of it, its first column still first along its direction. The table at (300, -100, 0), 70 wide, mirrored
+        /// in the plane x = 280 stands at (190, -100, 0), its normal (0, 0, 1) and its direction (1, 0, 0), as AutoCAD's does.
         /// </remarks>
         /// <param name="transform">The transformation: one that scales alike in every direction, if it scales, as a move, a turn,
         /// a mirror and a scale.</param>
@@ -898,10 +901,39 @@ namespace GeometryHelper.Dxf
             bool scaled = Math.Abs(scale - 1.0) > 1E-9;
             GeoVector3 normal = Normal;
             GeoVector3 turnedNormal = DxfOcsTransform.Normalized(transform.Transform(normal));
-            turnedNormal = mirrored ? new GeoVector3(-turnedNormal.X, -turnedNormal.Y, -turnedNormal.Z) : turnedNormal;
+            GeoVector3 along = Direction;
             GeoPoint3 position = transform.Transform(Position);
-            GeoVector3 direction = transform.Transform(Direction);
+            GeoVector3 direction = transform.Transform(along);
             direction = scaled ? direction.Divide(scale) : direction;
+
+            // Mirrored, the table is the one a turn puts in the box the mirror makes of it, as AutoCAD keeps it readable: its
+            // direction reversed from the image, its point the image of the far end of its top edge.
+            GeoTransform3 linear = transform;
+
+            if (mirrored)
+            {
+                double width = 0.0;
+
+                for (int col = 0; col < NumColumns; col++)
+                {
+                    width += ColumnWidth(col);
+                }
+
+                GeoVector3 unit = along.Divide(along.Length);
+                position = transform.Transform(Position + unit.Multiply(width));
+                direction = new GeoVector3(-direction.X, -direction.Y, -direction.Z);
+
+                // The flip of the table across its own column of rows, before the mirror: the turn the block is carried by.
+                var flip = new GeoTransform3(new double[,]
+                {
+                    { 1.0 - 2.0 * unit.X * unit.X, -2.0 * unit.X * unit.Y, -2.0 * unit.X * unit.Z, 0.0 },
+                    { -2.0 * unit.Y * unit.X, 1.0 - 2.0 * unit.Y * unit.Y, -2.0 * unit.Y * unit.Z, 0.0 },
+                    { -2.0 * unit.Z * unit.X, -2.0 * unit.Z * unit.Y, 1.0 - 2.0 * unit.Z * unit.Z, 0.0 },
+                    { 0.0, 0.0, 0.0, 1.0 },
+                });
+                linear = transform * flip;
+            }
+
             DxfDimGroups g = Own();
 
             // The sizes first, each in its place, before a point is written where the record had none.
@@ -936,9 +968,9 @@ namespace GeometryHelper.Dxf
             // seen from that system, without its move, which the point carries.
             var turn = new GeoTransform3(new double[,]
             {
-                { transform[0, 0], transform[0, 1], transform[0, 2], 0.0 },
-                { transform[1, 0], transform[1, 1], transform[1, 2], 0.0 },
-                { transform[2, 0], transform[2, 1], transform[2, 2], 0.0 },
+                { linear[0, 0], linear[0, 1], linear[0, 2], 0.0 },
+                { linear[1, 0], linear[1, 1], linear[1, 2], 0.0 },
+                { linear[2, 0], linear[2, 1], linear[2, 2], 0.0 },
                 { 0.0, 0.0, 0.0, 1.0 },
             });
 

@@ -33,7 +33,8 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AViewportErased_ThatWasItsLayoutsLastActive_IsNoLongerPointedAtByTheLayout()
         {
-            // The layout Sheet A made to name its viewport 40 as the one last active (331).
+            // The layout Sheet A made to name its viewport 40 as the one last active (331): erased, the layout names its
+            // viewport 1 (3F) instead, as AutoCAD 2021 does.
             string text = DxfObjectsEzdxfDrawings.R2018.Replace("330\n3B\n331\n3F\n", "330\n3B\n331\n40\n");
             Assert.NotEqual(DxfObjectsEzdxfDrawings.R2018, text);
             DxfDatabase db = DxfDatabase.Parse(text);
@@ -41,8 +42,8 @@ namespace GeometryHelper.UnitTest.Dxf
             ByHandle<DxfViewport>(db, "40").Erase();
 
             string layout = Records(db.ToText()).Single(r => HandleOf(r) == "3E");
-            Assert.DoesNotContain("\n331\n", layout, StringComparison.Ordinal);
-            Assert.Contains("\n330\n3B\n", layout, StringComparison.Ordinal);
+            Assert.DoesNotContain("\n331\n40\n", layout, StringComparison.Ordinal);
+            Assert.Contains("\n330\n3B\n331\n3F\n", layout, StringComparison.Ordinal);
             Assert.Equal("Sheet A", DxfDatabase.Parse(db.ToText()).Layouts[2].LayoutName);
         }
 

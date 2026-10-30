@@ -621,8 +621,8 @@ radius 5 about (100, 50) left in model space, is given (95, 45, 0) to (105, 55, 
 shapes either way, so `doBestFit` changes nothing.
 
 The drawing reads and sets the variables AutoCAD keeps out of the header, as DICTIONARYVAR objects of the dictionary
-AcDbVariableDictionary: `Cannoscale` (a scale of the drawing's list of scales), `Cetransparency` (a whole per cent, so the
-alpha 127 is 50), `Tablestyle`, `MLeaderstyle`, `DetailViewStyle` and `SectionViewStyle` (by name, one of the drawing's),
+AcDbVariableDictionary: `Cannoscale` (a scale of the drawing's list of scales), `Cetransparency` (the number an entity's
+440 holds, as AutoCAD 2021 reads it: the alpha 127 is 33554559, and a per cent written before reads BYLAYER), `Tablestyle`, `MLeaderstyle`, `DetailViewStyle` and `SectionViewStyle` (by name, one of the drawing's),
 `MLeaderscale`, `AnnoAllVisible`, `MsLtScale`, `MsOleScale`, `LayerEval`, `LightingUnits`, `LightsInBlocks`,
 `TStackAlign`, `TstackSize`, `HpInherit`, `Isolines`, `Facetres`, `PdfFrame` and `PlineEllipse`; AutoCAD's default where the
 drawing gives none, as a drawing of ezdxf, to which a variable set adds the dictionary of variables. `ThumbnailBitmap` reads
@@ -630,9 +630,12 @@ the bytes of the THUMBNAILIMAGE section.
 
 The drawing's properties are `db.SummaryInfo`, its DWGPROPS, set as AutoCAD sets them:
 `db.SummaryInfo = new DxfDatabaseSummaryInfoBuilder(db.SummaryInfo) { Title = "Plate B-12" }.ToDatabaseSummaryInfo()`. Its
-custom properties are read from the groups 300 to 309 (`name=value`) and from the list after a group 90 (a count, then each
-name and value in two groups 1); they are written in the form the record has, the list where it has one or is made new in a
-drawing of R2004 or later, so that it never holds two sets.
+custom properties are read from the groups 300 to 309 (`name=value`) and from a list after a group 90 (a count, then each
+name and value in two groups 1), and written in the ten groups alone, ten at most, their count after the base of the
+hyperlinks, as AutoCAD 2021 writes and reads them in every version: it reads none of the list. The base of the hyperlinks
+is written to the header's `$HYPERLINKBASE` too, where AutoCAD reads it, and read from there where it is not empty. A drawing
+AutoCAD saved as R2004 or later has no DWGPROPS but its texts in the header, `$TITLE`, `$AUTHOR` and the like: they are read
+from there, and set there with the properties, so that the two agree.
 
 ### The tables
 
@@ -687,8 +690,9 @@ ACAD_GEOGRAPHICDATA, null where the drawing holds none:
 `new DxfGeoData { BlockTableRecord = db.ModelSpace, TypeOfCoordinates = DxfTypeOfCoordinates.Local, ReferencePoint = new GeoPoint3(500000, 4100000, 0), HorizontalUnits = DxfUnits.Millimeters, HorizontalUnitsScale = 0.001 }.PostToDb()`
 puts a drawing of R2010 or later in millimetres on a local grid at 500 000 east and 4 100 000 north, the GEODATA it had
 erased and the class GEODATA listed where the drawing lists none; a drawing older than R2010 is refused, and so is any block
-but model space, as AutoCAD 2021 refuses paper space. A `new DxfGeoData()` is AutoCAD's new one: of no known type of
-coordinates, in metres, its scale judged at the reference point. `NorthDirection` is the angle of `NorthDirectionVector` from
+but model space, as AutoCAD 2021 refuses paper space. A `new DxfGeoData()` is AutoCAD's new one: of version 3 (90), of no
+known type of coordinates, in metres, its scale judged at the reference point; its class is listed with a count of 1, as
+AutoCAD 2021 lists it. `NorthDirection` is the angle of `NorthDirectionVector` from
 the Y axis towards X, as AutoCAD gives it: (1, 0) is a quarter turn, (-1, 0) minus one. The class is
 listed in the CLASSES section, so a file of R2010 or later written with none is given the GEODATA and no class for it. Its
 design and reference points, units and their scales, up and north directions, how the scale is judged, the correction to
@@ -758,8 +762,9 @@ beam's handle last among the group's (340) and the group into the beam's reactor
 in one writing: one at a time is fine for groups as drawings have them (8 000 in half a second), but 32 000 take some 15
 seconds. A group added under `*` is anonymous, `*A1` the first name its dictionary has not, and given a name, by its `Name`
 or by `GroupDictionary.SetName`, it is anonymous no longer. An entity erased leaves its
-groups at once, and a group left empty is dropped when the drawing is saved, as AutoCAD drops it, whatever emptied it: its
-last member erased, `Clear`, `RemoveAt`, or never given one. A group the file was read with empty is kept as it was.
+groups at once. A named group left empty is kept, as AutoCAD 2021 keeps it, whatever emptied it: its last member erased,
+`Clear`, `RemoveAt`, or never given one; an anonymous group left empty is dropped when the drawing is saved. A group the file
+was read with empty is kept as it was.
 
 ### Other drawings, external references and tidying up
 
@@ -1225,7 +1230,10 @@ of 1 000 rows in milliseconds. Its cells are written in the form of R2000 (text 
 `SetBlockScale`, `SetBlockRotation` and `SetBlockAttributeValue` write that data, the table's block (`*T12`) left for
 AutoCAD to draw anew. Scaled alike by `TransformBy`, a table scales the heights of its rows, the widths of its columns, its
 cell margins and the text heights and block scales it and its cells override: a table of rows 10, 8 and 8 high scaled by 2
-has rows 20, 16 and 16 high. Mirrored, its normal is turned round and its cells stand where the mirror puts them.
+has rows 20, 16 and 16 high; the heights its table style gives are kept, where AutoCAD 2021 doubles them too and measures
+the rows anew by its font (22, 18 and 18). Mirrored, it stays readable, as AutoCAD 2021's `TransformBy` leaves it: its
+normal the mirror's image of its normal, its direction the image reversed, and its point the image of the far end of its
+top edge, so that the table at (300, -100), 70 wide, mirrored in the plane x = 280 stands at (190, -100) facing up.
 
 A cell's value has its kind, `DataType` (`Long`, `Double` or `String`, the value's 90 from R2007 on), what its number
 measures, `UnitType`, and its format, `Format` (`%lu2%pr2`), each in the cell's `301 CELL_VALUE`.
@@ -1346,7 +1354,7 @@ reads as AutoCAD's default and is refused when set. A viewport made in code goes
 `Number` of the layout; `On = true` turns it on. `Number` is the id the file writes (69), on or off, where AutoCAD 2021's
 gives -1 for a viewport turned off or of a layout not shown. The viewport 1 of a layout of paper space, which shows the sheet itself, is
 not erased, as AutoCAD keeps it; erasing another takes the overrides the layers keep for it out of their extension
-dictionaries, and a layout whose last active viewport (331) it was no longer names it.
+dictionaries, and a layout whose last active viewport (331) it was names its viewport 1 instead, as AutoCAD 2021 does.
 
 A layout is made as AutoCAD makes one, `var plan = new DxfLayout { LayoutName = "Plan 1-50" }`, then
 `plan.AddToLayoutDictionary(db, null)`: a LAYOUT in the layout dictionary on the tab after the last, with the plot
@@ -1440,15 +1448,15 @@ breaks as AutoCAD breaks it:
 | `DxfPolyline`, `DxfPolyline2d` | a LINE for each straight segment and an ARC for each bulged one, in its order, each with its look and thickness, its widths left out as AutoCAD leaves them out, and a segment of no length too: a closed square of side 10 with one side bulged by 1 gives three lines and a half circle. Each LINE and ARC is on the polyline's normal, as AutoCAD gives it, so that their walls stand where its wall stood: a polyline on (0, 0, -1) at elevation 5 with a thickness of 2 gives walls from z = -5 down to -7. A POLYLINE fitted to a curve or a spline breaks along the vertices it is drawn through |
 | `DxfPolyline3d` | a LINE for each segment between two vertices it is drawn through, the closing one among them: the polyline through (0, 0, 0), (1, 2, 3) and (4, 5, 6) gives two lines |
 | `DxfMText` | a TEXT for each paragraph, as it is written into a drawing of R12 (see Appending): B-12 and M16 on two lines, 2.5 high, held at the top left at (10, 20), give two TEXTs on the baselines 17.5 and 13.33 high; a paragraph is not wrapped at its width, and a part of it in another font or height is not given a TEXT of its own, as AutoCAD gives it |
-| the dimensions | the entities of the block they are drawn with (`*D7`), placed where the dimension draws them, as ezdxf's `virtual_entities()` places them: the picture AutoCAD drew last, so a point set since is not in it |
+| the dimensions | the entities of the block they are drawn with (`*D7`), placed where the dimension draws them, as ezdxf's `virtual_entities()` places them, but the POINTs on Defpoints that mark where it measures, which AutoCAD 2021's `Explode()` leaves out: the picture AutoCAD drew last, so a point set since is not in it |
 | `DxfTable` | the entities of its block (`*T12`), the lines of its cells and their words, placed where the table draws them: the picture AutoCAD drew last, so a cell's text set since is not in it |
 | `DxfPolyFaceMesh` | a 3DFACE for each face, in the order of the file, its corners the points its numbers name and the edge from a corner whose number is below nought hidden; a face of three corners ends on its third, and the edge from its third corner back to its first, the 3DFACE's fourth, is hidden with the third. A face record's own layer and colour are the face's, as AutoCAD's PFACE gives them. Its corners are its numbers up to the first of nought, as the reader takes them: a face of fewer than three corners so, (1, 2, 0, 4) among them, or one naming a point the mesh has not, is left out. A pyramid of a square base gives five faces |
 | `DxfPolygonMesh` | a 3DFACE for each cell of its grid, row after row, from its corner (m, n) to (m + 1, n), (m + 1, n + 1) and (m, n + 1), closed where the mesh is closed: a grid of 3 by 4 gives 6 faces, closed both ways 12. A smoothed mesh breaks into the cells of the surface it shows, its points of flag 8, `MSurfaceDensity` by `NSurfaceDensity` spans, one point more than the spans along an open direction |
-| `DxfLeader` | straight, a LINE between each two vertices; splined, one SPLINE through its vertices, of degree 3, leaving along its first segment and reaching along its last, as ezdxf fits it; then, where it has an arrow, its arrowhead at the first vertex pointing away from the second, `Dimasz` times `Dimscale` long: an INSERT of its `Dimldrblk` block, or AutoCAD's closed filled arrow as a SOLID a third as wide as long. Each in the look its dimension style draws a leader in, as ezdxf draws it: the colour of `Dimclrd`, the linetype of DIMLTYPE and the lineweight of `Dimlwd`, the override else the style's, in place of the leader's own; one BYBLOCK, as Standard has them, keeps the leader's own, but for a colour BYBLOCK where the leader writes the colour to use for it (77). The leader from (0, 0, 0) through (10, 10, 0) to (20, 10, 0) with an arrow 2.5 long gives two lines and a SOLID, red with DIMCLRD 1; the hook line to the annotation is AutoCAD's to work out and is not among them |
-| `DxfMLeader` | its words as an MTEXT or its block as an INSERT with its attributes, then, leader by leader and line by line, the arrowhead at the first vertex, where the first segment is more than twice as long as the arrow, and the LINEs to the last point of the leader and the end of its dogleg, or one SPLINE for a splined leader; each line starts at the back of its arrow, and the closed filled arrow is a SOLID a third as wide as long. The words on the left of two leaders with a dogleg of 8 give an MTEXT, two arrows and five lines. The lines AutoCAD draws under or over the words, as long as the words are wide, are AutoCAD's to work out and are not among them. A copy in no file (`Clone()`) finds its blocks, linetype and text style in the drawing it was copied from and gives what its original gives, the values of its attributes among it; one whose block that drawing has erased since is refused with `InvalidOperationException`, the handle of the block said |
+| `DxfLeader` | as AutoCAD 2021's `Explode()` gives it: where it has an arrow, its arrowhead first, at the first vertex pointing away from the second, `Dimasz` times `Dimscale` long: an INSERT of its `Dimldrblk` block, or AutoCAD's closed filled arrow as a SOLID a third as wide as long, its corners the one on the right of the leader, the tip and the one on its left; then, straight, one LWPOLYLINE through its vertices (a LINE between each two where they stand off the plane of its normal, which a polyline cannot hold), or splined, one SPLINE through them, of degree 3, leaving along its first segment and reaching along its last, its knots the lengths of the chords; the line starts at the arrow's back. Each in the leader's own look, its colour, true colour, linetype and lineweight, whatever DIMCLRD, DIMLTYPE and DIMLWD say. The leader from (0, 0, 0) through (10, 10, 0) to (20, 10, 0) with an arrow 2.5 long gives a SOLID and a polyline from (1.77, 1.77, 0); the vertex AutoCAD adds where the words of its annotation end is AutoCAD's to work out from its font and is not among them |
+| `DxfMLeader` | as AutoCAD 2021's `Explode()` gives it: its words as an MTEXT or its block as an INSERT with its attributes, then, leader by leader, its dogleg as a LINE from the last point of the leader, and line by line an LWPOLYLINE to the last point of the leader, or one SPLINE for a splined line, its knots the lengths of the chords, then the arrowhead at the first vertex, where the first segment is more than twice as long as the arrow; each line starts at the back of its arrow, and the closed filled arrow is a SOLID a third as wide as long, its corners the one on the right, the tip and the one on the left. A colour BYBLOCK is the multileader's own; the arrowheads have its own lineweight. The words on the right of two leader lines with a dogleg of 8 give an MTEXT, the dogleg, and a polyline and a SOLID for each line. The lines AutoCAD draws under or over the words, as long as the words are wide, are AutoCAD's to work out and are not among them. A copy in no file (`Clone()`) finds its blocks, linetype and text style in the drawing it was copied from and gives what its original gives, the values of its attributes among it; one whose block that drawing has erased since is refused with `InvalidOperationException`, the handle of the block said |
 | an MLINE (`DxfUnknownEntity`) | from its record and its MLINESTYLE, for an open one its start caps, a LINE for each element along each segment, the miter lines at each joint where the style draws them, then its end caps: a line across the ends as two LINEs from the outer elements to the point halfway between them, an outer arc as one half circle, or two quarter ARCs where the outer elements' colours differ, and inner arcs joining each pair of inner elements. Each LINE has its element's colour and linetype. An element broken by MLEDIT gives a LINE for each piece left, caps the MLINE leaves off are not drawn, and the fill is left out. Standard through four vertices gives six lines |
-| a MESH (`DxfUnknownEntity`) not smoothed | a 3DFACE for each face, in the order of its list of faces, with the MESH's look and every edge drawn: a face of four corners a 3DFACE of them, a triangle one ending on its third corner, as ezdxf's `MeshBuilder` renders them; a cube 10 by 10 by 10 of eight vertices and six faces gives six 3DFACEs. A MESH smoothed (level 1 or more), one with a face of more than four corners, which a 3DFACE cannot hold and whose breaking by AutoCAD is not known, and one that gives a face a colour, a material or a transparency of its own are refused with `NotSupportedException`, saying which |
-| `DxfHatch` of a pattern | the dashes of each line of its pattern, as the HATCH holds them, cut by the loops its style fills by the even-odd rule, each a LINE, a dot a LINE of no length, laid from the base point of its line, as ezdxf's `hatch_entity` draws them; an arc, an ellipse and a polyline's bulge cut exactly, a spline within each sixteenth of a span of its knots. A dot that falls on a loop is kept. A square 30 by 20 of ANSI31 gives 11 lines; round a circle of radius 5 about its middle in the normal style, 14, the three lines that cross the circle broken in two. A pattern that would give more than 2 000 000 parts, or cross its loops more than 32 000 000 times (half a gigabyte of crossings), is refused before anything is made, and so is one whose loops lie more than 2^52 of its spacings or dash lengths from its base point |
+| a MESH (`DxfUnknownEntity`) not smoothed | a 3DFACE for each face, in the order of its list of faces, with the MESH's look and every edge drawn: a face of four corners a 3DFACE of them, a triangle one ending on its third corner, as ezdxf's `MeshBuilder` renders them; a cube 10 by 10 by 10 of eight vertices and six faces gives six 3DFACEs. A face of more than four corners breaks into triangles fanned from its first corner, as AutoCAD 2021 breaks one: the corners 0 to 4 give (4, 3, 0), (2, 0, 3) and (0, 2, 1). A face given a colour of its own keeps it on its 3DFACEs. A MESH smoothed (level 1 or more), and one that gives a face a material or a transparency of its own, or an edge or a vertex anything of its own, are refused with `NotSupportedException`, saying which |
+| `DxfHatch` of a pattern | the dashes of each line of its pattern, as the HATCH holds them, cut by the loops its style fills by the even-odd rule, each a LINE, a dot a LINE of no length, laid from the base point of its line, as ezdxf's `hatch_entity` draws them; an arc, an ellipse and a polyline's bulge cut exactly, a spline within each sixteenth of a span of its knots. A dot that falls on a loop where its line crosses it is kept, and a line that runs along a straight edge gives nothing there, as AutoCAD 2021 gives nothing: DOTS 1.5875 apart in a square 30 by 20 from its corner give 228 dots, none on its bottom edge. In the outer style the loops flagged external or outermost are those it is cut by, as AutoCAD and ezdxf take them, ignoring islands those flagged external; where none is flagged, by how deep each lies. A square 30 by 20 of ANSI31 gives 11 lines; round a circle of radius 5 about its middle in the normal style, 14, the three lines that cross the circle broken in two. A pattern that would give more than 2 000 000 parts, or cross its loops more than 32 000 000 times (half a gigabyte of crossings), is refused before anything is made, and so is one whose loops lie more than 2^52 of its spacings or dash lengths from its base point |
 
 The library explodes exactly these classes. Every other entity refuses with `NotSupportedException`: those AutoCAD does not
 break, a LINE or a CIRCLE, as AutoCAD answers eNotApplicable for them, and some AutoCAD does break, listed under [What the
@@ -1602,12 +1610,12 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
   is AutoCAD's work when it opens this one, so an INSERT of it places nothing here and `XrefStatus` is never `Unloaded`.
 - It does not explode every entity AutoCAD explodes. `Explode()` refuses with `NotSupportedException` a HATCH filled solid
   or with a gradient, whose parts AutoCAD's EXPLODE makes and the library does not work out; a MESH smoothed, which AutoCAD
-  breaks into the 3DFACEs of the faces its smoothing makes, one with a face of more than four corners, and one whose faces
-  have a look of their own; a REGION, a 3DSOLID, a BODY and a surface, which AutoCAD breaks with its solid modeler (ACIS);
+  breaks into the 3DFACEs of the faces its smoothing makes, and one whose faces have a material or a transparency of their
+  own; a REGION, a 3DSOLID, a BODY and a surface, which AutoCAD breaks with its solid modeler (ACIS);
   and every other type the library keeps as a `DxfUnknownEntity` but the MLINE and the MESH. It gives a dimension's and a
-  table's parts as their last picture, not as their data now, the spline of a splined leader or multileader as ezdxf fits it,
-  and leaves out the hook line of a leader and the lines under or over a multileader's words, whose length the width of the
-  words decides.
+  table's parts as their last picture, not as their data now, and AutoCAD 2021 draws a table anew before it explodes it;
+  and it leaves out the vertex AutoCAD adds to an exploded leader where the words of its annotation end, and the lines
+  under or over a multileader's words, whose length the width of the words decides.
 - It makes no drawing from nothing but `DxfWriter`'s, reads no DWG and no binary DXF, and saves a drawing in its own version
   only.
 - It has none of AutoCAD's members that need AutoCAD running: `ObjectId`, transactions, documents, drawing to the screen

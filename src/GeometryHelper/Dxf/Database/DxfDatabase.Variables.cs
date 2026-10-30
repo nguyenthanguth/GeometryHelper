@@ -70,9 +70,12 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets or sets the transparency of new entities (CETRANSPARENCY), as AutoCAD's <c>Cetransparency</c>: BYLAYER where the
-        /// drawing gives none. AutoCAD keeps it as ByLayer, ByBlock or a whole per cent, 0 to 90: 50 per cent is the alpha 127.
+        /// drawing gives none. AutoCAD 2021 reads the DICTIONARYVAR as the whole number an entity's 440 holds, its top byte the
+        /// method (2 by alpha, 1 BYBLOCK, 0 BYLAYER) and its low byte the alpha: the alpha 127 is 33554559. A number with no
+        /// method in its top byte, as the per cent 61 the library wrote before, is BYLAYER, as AutoCAD reads it; the words
+        /// ByLayer and ByBlock are read as they say.
         /// </summary>
-        /// <value>Set, written as AutoCAD writes it; an alpha as the nearest whole per cent, so that the alpha 100 reads back as 99.</value>
+        /// <value>Set, written as that number, so that the alpha 100 reads back as 100 in AutoCAD and here.</value>
         /// <exception cref="ArgumentException">Thrown when the transparency set is an error value, or an alpha more than 90 per cent clear.</exception>
         /// <exception cref="InvalidOperationException">Thrown when set in a file with no variables of the OBJECTS section to hold it.</exception>
         public DxfTransparency Cetransparency
@@ -91,8 +94,8 @@ namespace GeometryHelper.Dxf
                     return DxfTransparency.ByBlock;
                 }
 
-                return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int percent) && percent >= 0 && percent <= 100
-                    ? new DxfTransparency((byte)(255 * (100 - percent) / 100))
+                return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int number)
+                    ? DxfTransparency.OfValue(number)
                     : new DxfTransparency(DxfTransparencyMethod.ErrorValue);
             }
 
@@ -115,7 +118,7 @@ namespace GeometryHelper.Dxf
                     throw new ArgumentException("AutoCAD makes new entities at most 90 per cent clear: the alpha " + value.Alpha.ToString(CultureInfo.InvariantCulture) + " is " + percent.ToString(CultureInfo.InvariantCulture) + ".", nameof(value));
                 }
 
-                SetVariable("CETRANSPARENCY", value.IsByLayer ? "ByLayer" : value.IsByBlock ? "ByBlock" : percent.ToString(CultureInfo.InvariantCulture));
+                SetVariable("CETRANSPARENCY", value.Value.ToString(CultureInfo.InvariantCulture));
             }
         }
 

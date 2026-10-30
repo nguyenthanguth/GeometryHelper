@@ -27,10 +27,13 @@ namespace GeometryHelper.UnitTest.Dxf
             // 89 splined: (0, 0, 0), (10, 10, 0), (20, 10, 0); the spline ezdxf fits rises to y = 10.433915879627 between the
             // second vertex and the last (its curve sampled at 200 001 points), its knots from 0 to 1. As a curve it is walked
             // over the lengths of its chords, 0 to 24.14, and its box is that of its vertices, as AutoCAD 2021 gives them (check 63).
+            // Its arrow taken off, it explodes into that spline alone, its knots the chords too; with its arrow, the spline would
+            // start at the arrow's back, as AutoCAD's does (check 52).
             DxfDatabase db = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
             DxfLeader leader = ByHandle<DxfLeader>(db, "89");
             leader.IsSplined = true;
-            var drawn = (DxfSpline)leader.Explode()[0];
+            leader.HasArrowHead = false;
+            var drawn = (DxfSpline)Assert.Single(leader.Explode());
             double chords = Math.Sqrt(200.0) + 10.0;
 
             GeoAabb3 box = leader.GeometricExtents;
@@ -41,14 +44,14 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfSpline spline = leader.Spline;
             Assert.Equal(3, spline.NurbsData.Degree);
-            Assert.Equal(drawn.NurbsData.GetKnots().Select(k => k * chords), spline.NurbsData.GetKnots());
+            Assert.Equal(drawn.NurbsData.GetKnots(), spline.NurbsData.GetKnots());
             Assert.Equal(drawn.NurbsData.GetControlPoints().Select(Bits), spline.NurbsData.GetControlPoints().Select(Bits));
             Assert.Equal(chords, leader.EndParam, 12);
-            Assert.True(drawn.GetPointAtParameter(0.5).IsEqualTo(leader.GetPointAtParameter(0.5 * chords), new Tolerance(1E-12, 1E-12)));
+            Assert.True(drawn.GetPointAtParameter(0.5 * chords).IsEqualTo(leader.GetPointAtParameter(0.5 * chords), new Tolerance(1E-12, 1E-12)));
             Assert.True(leader.GetPointAtParameter(chords).IsEqualTo(new GeoPoint3(20, 10, 0), Tol));
 
             double length = leader.GetDistanceAtParameter(leader.EndParam);
-            Assert.Equal(drawn.GetDistanceAtParameter(1.0), length, 9);
+            Assert.Equal(drawn.GetDistanceAtParameter(chords), length, 9);
             GeoPoint3 middle = leader.GetPointAtDist(length / 2.0);
             Assert.Equal(length / 2.0, leader.GetDistAtPoint(middle), 6);
             Assert.Equal(leader.GetParameterAtDistance(length / 2.0), leader.GetParameterAtPoint(middle), 6);
@@ -56,7 +59,7 @@ namespace GeometryHelper.UnitTest.Dxf
             GeoVector3 leaving = leader.GetFirstDerivative(0.0).Normalize();
             Assert.Equal(Math.Sqrt(0.5), leaving.X, 9);
             Assert.Equal(Math.Sqrt(0.5), leaving.Y, 9);
-            Assert.True(drawn.GetSecondDerivative(0.25).Divide(chords * chords).IsEqualTo(leader.GetSecondDerivative(0.25 * chords), new Tolerance(1E-12, 1E-12)));
+            Assert.True(drawn.GetSecondDerivative(0.25 * chords).IsEqualTo(leader.GetSecondDerivative(0.25 * chords), new Tolerance(1E-12, 1E-12)));
             Assert.Throws<ArgumentOutOfRangeException>(() => leader.GetPointAtParameter(1.5 * chords));
 
             // Straight again, it is walked by its vertices as before.
@@ -87,10 +90,10 @@ namespace GeometryHelper.UnitTest.Dxf
         #region The look of a leader exploded
 
         [Fact]
-        public void ALeaderExploded_IsDrawnInTheColourLinetypeAndLineweightOfItsDimensionStyle_TheOverrideOverTheStyle()
+        public void ALeaderExploded_IsDrawnInItsOwnLook_WhateverItsDimensionStyleOrItsOverridesSay()
         {
-            // As ezdxf's virtual_entities draws it: DIMCLRD, DIMLTYPE and DIMLWD on the lines and the arrow, the override over
-            // the style; the colour's true colour taken off, which ezdxf leaves on.
+            // As AutoCAD 2021's Explode draws it (check 62): the leader's own colour, true colour, linetype and lineweight on its
+            // arrow and its polyline, whatever DIMCLRD, DIMLTYPE and DIMLWD say, the style's or the overrides.
             DxfDatabase db = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
             DxfLeader leader = ByHandle<DxfLeader>(db, "89");
             leader.ColorIndex = 3;
@@ -103,30 +106,31 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfEntity[] styled = leader.Explode().ToArray();
 
-            Assert.Equal(new[] { "DxfLine", "DxfLine", "DxfSolid" }, styled.Select(p => p.GetType().Name));
-            Assert.All(styled, p => Assert.Equal(4, p.ColorIndex));
-            Assert.All(styled, p => Assert.Null(p.TrueColor));
-            Assert.All(styled, p => Assert.Equal("DASHED", p.Linetype));
+            Assert.Equal(new[] { "DxfSolid", "DxfPolyline" }, styled.Select(p => p.GetType().Name));
+            Assert.All(styled, p => Assert.Equal(3, p.ColorIndex));
+            Assert.All(styled, p => Assert.Equal(0x112233, p.TrueColor));
+            Assert.All(styled, p => Assert.Equal(leader.Linetype, p.Linetype));
             Assert.All(styled, p => Assert.Equal(leader.LineWeight, p.LineWeight));
 
             leader.Dimclrd = DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1);
             leader.Dimlwd = DxfLineWeight.LineWeight035;
             DxfEntity[] overridden = leader.Explode().ToArray();
 
-            Assert.All(overridden, p => Assert.Equal(1, p.ColorIndex));
-            Assert.All(overridden, p => Assert.Equal(DxfLineWeight.LineWeight035, p.LineWeight));
-            Assert.All(overridden, p => Assert.Equal("DASHED", p.Linetype));
+            Assert.All(overridden, p => Assert.Equal(3, p.ColorIndex));
+            Assert.All(overridden, p => Assert.Equal(leader.LineWeight, p.LineWeight));
+            Assert.All(overridden, p => Assert.Equal(leader.Linetype, p.Linetype));
 
-            // A splined one: its SPLINE so too, which ezdxf gives no look.
+            // A splined one: its SPLINE so too.
             leader.IsSplined = true;
-            Assert.All(leader.Explode(), p => Assert.Equal(1, p.ColorIndex));
+            Assert.All(leader.Explode(), p => Assert.Equal(3, p.ColorIndex));
         }
 
         [Fact]
-        public void ALeaderWhoseStyleDrawsItByBlock_KeepsItsOwnLook_OrTheColourItWritesForByBlock()
+        public void ALeaderWhoseStyleDrawsItByBlock_KeepsItsOwnLook_TheColourItWritesForByBlockAside()
         {
             // B3 of DIMCLRD and DIMLWD BYBLOCK, as the style Standard has them: the leader's own look, as before; with 77 = 5, the
-            // colour AutoCAD's reference gives the group, "the colour to use if DIMCLRD is BYBLOCK", as ezdxf reads it.
+            // colour AutoCAD's reference gives the group, "the colour to use if DIMCLRD is BYBLOCK", its own still, as AutoCAD
+            // 2021's Explode gives it (check 62).
             const string Head = "LEADER\n  5\nB3\n330\n17\n100\nAcDbEntity\n  8\n0\n100\nAcDbLeader\n  3\nStandard\n";
             string text = DxfHatchLeaderDrawings.R2018.Replace("\r\n", "\n");
             Assert.Contains(Head, text, StringComparison.Ordinal);
@@ -138,8 +142,8 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.All(plain.Explode(), p => Assert.Equal(plain.ColorIndex, p.ColorIndex));
             Assert.All(plain.Explode(), p => Assert.Equal(plain.LineWeight, p.LineWeight));
             Assert.All(plain.Explode(), p => Assert.Equal(plain.Linetype, p.Linetype));
-            Assert.Equal(2, withColour.Explode().Count);
-            Assert.All(withColour.Explode(), p => Assert.Equal(5, p.ColorIndex));
+            Assert.Single(withColour.Explode());
+            Assert.All(withColour.Explode(), p => Assert.Equal(withColour.ColorIndex, p.ColorIndex));
         }
 
         #endregion
@@ -197,7 +201,7 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AMeshSmoothed_OrOfAFaceOfMoreThanFourCorners_OrWithOverrides_IsRefusedSayingWhy()
+        public void AMeshSmoothed_OrWithOverridesOtherThanAFacesColour_IsRefusedSayingWhy_AndAFaceOfFiveCornersIsFanned()
         {
             DxfDatabase db = WithMeshes(
                 Mesh("C01", 1, Cube(), "0 3 2 1|4 5 6 7|0 1 5 4|1 2 6 5|2 3 7 6|3 0 4 7", 0)
@@ -208,7 +212,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 + Mesh("C06", 0, Cube(), "0 3 2 1", 0).Replace(" 93\n5\n", " 93\n7\n").Replace(" 94\n0\n", " 90\n4\n 90\n0\n 94\n0\n"));
 
             Assert.Contains("MESH C01 is smoothed to level 1", Assert.Throws<NotSupportedException>(() => ByHandle<DxfUnknownEntity>(db, "C01").Explode()).Message, StringComparison.Ordinal);
-            Assert.Contains("5 corners", Assert.Throws<NotSupportedException>(() => ByHandle<DxfUnknownEntity>(db, "C02").Explode()).Message, StringComparison.Ordinal);
+            Assert.Equal(3, ByHandle<DxfUnknownEntity>(db, "C02").Explode().Count);
             Assert.Contains("MESH C03 gives 1 of", Assert.Throws<NotSupportedException>(() => ByHandle<DxfUnknownEntity>(db, "C03").Explode()).Message, StringComparison.Ordinal);
             Assert.Contains("the vertex 8", Assert.Throws<InvalidOperationException>(() => ByHandle<DxfUnknownEntity>(db, "C04").Explode()).Message, StringComparison.Ordinal);
             Assert.Contains("three at least", Assert.Throws<InvalidOperationException>(() => ByHandle<DxfUnknownEntity>(db, "C05").Explode()).Message, StringComparison.Ordinal);
@@ -258,7 +262,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.Equal("GKTAG", Assert.IsType<DxfBlockReference>(block.Clone().Explode()[0]).Name);
             Assert.Equal(new[] { "NUM=42" }, Values(block.Clone()));
-            Assert.Equal("GKTAG", Assert.IsType<DxfBlockReference>(words.Clone().Explode()[1]).Name);
+            Assert.Equal("GKTAG", Assert.Single(words.Clone().Explode().OfType<DxfBlockReference>()).Name);
         }
 
         [Fact]
@@ -320,7 +324,7 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfEntity[] expected = original.Explode().ToArray();
             DxfEntity[] parts = original.Clone().Explode().ToArray();
 
-            Assert.Equal(new[] { "DxfSolid", "DxfLine", "DxfLine" }, expected.Select(p => p.GetType().Name));
+            Assert.Equal(new[] { "DxfLine", "DxfPolyline", "DxfSolid" }, expected.Select(p => p.GetType().Name));
             Assert.Equal(expected.Select(Described), parts.Select(Described));
         }
 
@@ -328,7 +332,7 @@ namespace GeometryHelper.UnitTest.Dxf
         public void ALeaderCopiedIntoNoDrawing_IsDrawnByTheDimensionStyleOfTheDrawingItCameFrom()
         {
             // 89 of colour 3 with a true colour, its style Standard of DIMCLRD BYLAYER, DIMASZ 2.5 and the arrow block GKTAG:
-            // its copy reads them there, as the original does, and explodes as it does.
+            // its copy reads them there, as the original does, and explodes as it does, in its own look, as AutoCAD 2021's.
             DxfDatabase db = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
             DxfLeader leader = ByHandle<DxfLeader>(db, "89");
             leader.ColorIndex = 3;
@@ -341,9 +345,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(Bits(leader.Dimasz), Bits(copy.Dimasz));
             Assert.Equal("GKTAG", copy.Dimldrblk.Name);
             Assert.Equal(leader.Explode().Select(Described), copy.Explode().Select(Described));
-            Assert.All(copy.Explode(), p => Assert.Equal(256, p.ColorIndex));
-            Assert.All(copy.Explode(), p => Assert.Null(p.TrueColor));
-            Assert.IsType<DxfBlockReference>(copy.Explode()[2]);
+            Assert.All(copy.Explode(), p => Assert.Equal(3, p.ColorIndex));
+            Assert.All(copy.Explode(), p => Assert.Equal(0x112233, p.TrueColor));
+            Assert.IsType<DxfBlockReference>(copy.Explode()[0]);
         }
 
         [Fact]

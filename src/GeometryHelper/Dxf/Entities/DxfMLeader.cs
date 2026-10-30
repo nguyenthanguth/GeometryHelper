@@ -32,10 +32,11 @@ namespace GeometryHelper.Dxf
     /// <see cref="DxfEntity.GetGeometry"/> gives the lines of its leaders, as <see cref="DxfReader"/> reads a MULTILEADER, so
     /// that <see cref="DxfEntity.IntersectWith"/> meets it on them: for each leader line a <see cref="GeoPolyline3"/> from its
     /// first vertex, where its arrow points, through its vertices and the last point of its leader to the end of the dogleg, a
-    /// vertex on the one before it left out, along the path <see cref="Explode"/> draws; splined, a <see cref="GeoSpline3"/>
-    /// fitted through those points with the tangents <see cref="Explode"/> fits its spline with. Both start at the arrow's
-    /// point, where <see cref="Explode"/> starts its line at the back of the arrow, so that a splined line and the spline
-    /// exploded part by up to about the arrow's size near the arrow. The line above is met by the line y = -3 from (780, -3, 0)
+    /// vertex on the one before it left out, along the path <see cref="Explode"/> draws with the line and its dogleg; splined,
+    /// a <see cref="GeoSpline3"/> fitted through those points, leaving along the first segment and reaching along the dogleg.
+    /// Both start at the arrow's point, where <see cref="Explode"/> starts its line at the back of the arrow, and the spline
+    /// runs on through the dogleg, where the spline exploded ends at the dogleg's start, so that the two part near the arrow
+    /// and near the words. The line above is met by the line y = -3 from (780, -3, 0)
     /// to (795, -3, 0) at (788, -3, 0), on its way up to the dogleg. Its words or block, its arrowheads and the lines AutoCAD
     /// draws under the words are not among them, and invisible lines give none.
     /// </para>

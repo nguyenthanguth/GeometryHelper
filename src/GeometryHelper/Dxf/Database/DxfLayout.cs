@@ -483,8 +483,10 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Takes the layout's last active viewport (group 331 of AcDbLayout) out where it names the viewport of a handle, erased,
-        /// so that no pointer is left at it; nothing where it names another, or none.
+        /// Takes the layout's last active viewport (group 331 of AcDbLayout) off the viewport of a handle, erased, so that no
+        /// pointer is left at it: to the layout's viewport 1, which shows the sheet itself, as AutoCAD 2021 points it there when
+        /// the last active viewport is erased; out where the layout has no other viewport 1. Nothing where it names another, or
+        /// none.
         /// </summary>
         internal void ForgetViewport(string handle)
         {
@@ -492,7 +494,16 @@ namespace GeometryHelper.Dxf
 
             if (at >= 0 && !IsErased && string.Equals(PartValue(Marker, 331)?.Trim(), handle, StringComparison.OrdinalIgnoreCase))
             {
-                Item.File.RemoveGroupAt(Item, at);
+                DxfViewport sheet = GetViewports().FirstOrDefault(v => v.Number == 1 && !v.IsErased && v.Handle != null && !string.Equals(v.Handle, handle, StringComparison.OrdinalIgnoreCase));
+
+                if (sheet != null)
+                {
+                    Item.File.SetValueAt(Item, at, sheet.Handle);
+                }
+                else
+                {
+                    Item.File.RemoveGroupAt(Item, at);
+                }
             }
         }
 

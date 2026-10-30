@@ -136,6 +136,10 @@ namespace GeometryHelper.Dxf
         /// <summary>The texts in the order of their codes, for the builder.</summary>
         internal string[] Texts => (string[])_texts.Clone();
 
+        /// <summary>These properties with another base of the hyperlinks, as the header gives it.</summary>
+        internal DxfDatabaseSummaryInfo WithHyperlinkBase(string hyperlinkBase)
+            => new DxfDatabaseSummaryInfo(_texts, hyperlinkBase, new List<KeyValuePair<string, string>>(CustomProperties));
+
         /// <summary>
         /// The properties of the data of a DWGPROPS: the first group of each of the codes 2, 3, 4, 6, 7, 8 and 9, the group 1
         /// after the marker, and the custom properties: each group 300 to 309 of a name, split at its first equals sign, then
@@ -227,13 +231,12 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// The data of a DWGPROPS of these properties, as AutoCAD writes it: the marker, the texts, the ten groups of custom
+        /// The data of a DWGPROPS of these properties, as AutoCAD 2021 writes it: the marker, the texts, the ten groups of custom
         /// properties 300 to 309, the time spent and the two dates (those of the data kept where it has them, else the header's),
-        /// the base of the hyperlinks; where <paramref name="list"/> says so, the custom properties in the list after a group 90
-        /// instead, the ten groups each <c>=</c>, so that the record holds one set of them; then the groups the data kept has
-        /// after those.
+        /// the base of the hyperlinks and the count of the custom properties (90); then the groups the data kept has after
+        /// those, a list of custom properties after its group 90 left out, so that the record holds one set of them.
         /// </summary>
-        internal List<DxfTypedValue> Written(IReadOnlyList<DxfTypedValue> kept, string editing, string created, string updated, bool list)
+        internal List<DxfTypedValue> Written(IReadOnlyList<DxfTypedValue> kept, string editing, string created, string updated)
         {
             string[] times = { editing ?? "0.0", created ?? "0.0", updated ?? "0.0" };
             var rest = new List<DxfTypedValue>();
@@ -278,7 +281,7 @@ namespace GeometryHelper.Dxf
 
             for (int i = 0; i < 10; i++)
             {
-                data.Add(new DxfTypedValue(300 + i, !list && i < CustomProperties.Count ? CustomProperties[i].Key + "=" + CustomProperties[i].Value : "="));
+                data.Add(new DxfTypedValue(300 + i, i < CustomProperties.Count ? CustomProperties[i].Key + "=" + CustomProperties[i].Value : "="));
             }
 
             for (int i = 0; i < 3; i++)
@@ -287,18 +290,7 @@ namespace GeometryHelper.Dxf
             }
 
             data.Add(new DxfTypedValue(1, HyperlinkBase));
-
-            if (list)
-            {
-                data.Add(new DxfTypedValue(90, CustomProperties.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)));
-
-                foreach (KeyValuePair<string, string> property in CustomProperties)
-                {
-                    data.Add(new DxfTypedValue(1, property.Key));
-                    data.Add(new DxfTypedValue(1, property.Value));
-                }
-            }
-
+            data.Add(new DxfTypedValue(90, CustomProperties.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)));
             data.AddRange(rest);
             return data;
         }

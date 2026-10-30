@@ -18,7 +18,7 @@ namespace GeometryHelper.UnitTest.Dxf
     /// </summary>
     public class DxfGeoDataTests
     {
-        private const string GeoDataClass = "  0\nCLASS\n  1\nGEODATA\n  2\nAcDbGeoData\n  3\nObjectDBX Classes\n 90\n4095\n 91\n0\n280\n0\n281\n0\n";
+        private const string GeoDataClass = "  0\nCLASS\n  1\nGEODATA\n  2\nAcDbGeoData\n  3\nObjectDBX Classes\n 90\n4095\n 91\n1\n280\n0\n281\n0\n";
 
         [Fact]
         public void AGeoDataMadeInCode_IsAutoCADsNewOne()
@@ -80,7 +80,7 @@ namespace GeometryHelper.UnitTest.Dxf
             // its extension dictionary, which names the GEODATA by a 360; the class listed.
             string saved = db.ToText();
             Assert.Equal(
-                "  0\nGEODATA\n  5\n" + geo.Handle + "\n102\n{ACAD_REACTORS\n330\n" + dictionary + "\n102\n}\n330\n" + dictionary + "\n100\nAcDbGeoData\n 90\n2\n330\n17\n 70\n1\n"
+                "  0\nGEODATA\n  5\n" + geo.Handle + "\n102\n{ACAD_REACTORS\n330\n" + dictionary + "\n102\n}\n330\n" + dictionary + "\n100\nAcDbGeoData\n 90\n3\n330\n17\n 70\n1\n"
                 + " 10\n100\n 20\n200\n 30\n0\n 11\n500000\n 21\n4100000\n 31\n12.5\n 40\n0.001\n 91\n4\n 41\n1.0\n 92\n6\n210\n0.0\n220\n0.0\n230\n1.0\n 12\n0.0\n 22\n1.0\n"
                 + " 95\n3\n141\n1.0\n294\n0\n142\n0.0\n143\n0.0\n301\n\n 93\n0\n 96\n0\n",
                 Records(saved).Single(r => HandleOf(r) == geo.Handle));
@@ -224,7 +224,7 @@ namespace GeometryHelper.UnitTest.Dxf
             // points of the mesh and a face on them.
             string text = db.ToText()
                 .Replace("  3\nACAD_GEOGRAPHICDATA\n360\n" + handle + "\n", "  3\nACAD_GEOGRAPHICDATA\n350\n" + handle + "\n")
-                .Replace("AcDbGeoData\n 90\n2\n330\n17\n", "AcDbGeoData\n 90\n2\n330\n0\n")
+                .Replace("AcDbGeoData\n 90\n3\n330\n17\n", "AcDbGeoData\n 90\n2\n330\n0\n")
                 .Replace("301\n\n 93\n0\n 96\n0\n", "303\n<A>^J<B>\n301\n</B>^J</A>^J\n302\nrss\n 93\n3\n"
                     + " 13\n0.0\n 23\n0.0\n 14\n500000.0\n 24\n4100000.0\n 13\n1000.0\n 23\n0.0\n 14\n500001.0\n 24\n4100000.0\n"
                     + " 13\n0.0\n 23\n1000.0\n 14\n500000.0\n 24\n4100001.0\n 96\n1\n 97\n0\n 98\n1\n 99\n2\n");
@@ -291,7 +291,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
             // Version 1 (R2009): no north direction, the points of the mesh in 12 and 22, those they are taken to in 13 and 23, as
             // ezdxf's comment maps them; ezdxf 1.4.5 itself reads no points there.
-            string version1 = db.ToText().Replace("AcDbGeoData\n 90\n2\n", "AcDbGeoData\n 90\n1\n").Replace("230\n1.0\n 12\n0.0\n 22\n1.0\n 95\n", "230\n1.0\n 95\n")
+            string version1 = db.ToText().Replace("AcDbGeoData\n 90\n3\n", "AcDbGeoData\n 90\n1\n").Replace("230\n1.0\n 12\n0.0\n 22\n1.0\n 95\n", "230\n1.0\n 95\n")
                 .Replace("301\n\n 93\n0\n", "301\n\n 93\n1\n 12\n5\n 22\n6\n 13\n7\n 23\n8\n");
             DxfDatabase old = DxfDatabase.Parse(version1);
             DxfGeoData geo = old.GeoDataObject;
@@ -346,7 +346,7 @@ namespace GeometryHelper.UnitTest.Dxf
             new DxfGeoData { BlockTableRecord = db.ModelSpace }.PostToDb();
             new DxfGeoData { BlockTableRecord = db.ModelSpace }.PostToDb();
 
-            // Listed last of the CLASSES section, as ezdxf lists it: ObjectDBX Classes, flags 4095.
+            // Listed last of the CLASSES section, as ezdxf lists it: ObjectDBX Classes, flags 4095, the count 1 AutoCAD 2021 writes.
             string saved = db.ToText();
             Assert.Single(Records(saved), r => r == GeoDataClass);
             int classes = saved.IndexOf("\nCLASSES\n", StringComparison.Ordinal);

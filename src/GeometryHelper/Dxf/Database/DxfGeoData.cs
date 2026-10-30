@@ -22,9 +22,9 @@ namespace GeometryHelper.Dxf
     /// where the drawing lists none. <see cref="DxfDatabase.GeoDataObject"/> reads it back.
     /// </para>
     /// <para>
-    /// A GEODATA made in code is AutoCAD 2021's new one, written in the order of ezdxf's: of version 2, of no known type of
-    /// coordinates, its two points at the origin, its units metres of scale 1, up along Z and north along Y, its scale judged
-    /// at the reference point, a coordinate system of no text and no mesh. It is posted to model space alone, as AutoCAD's
+    /// A GEODATA made in code is AutoCAD 2021's new one, written in the order of ezdxf's: of version 3, as AutoCAD 2021 writes
+    /// one (group 90), of no known type of coordinates, its two points at the origin, its units metres of scale 1, up along Z
+    /// and north along Y, its scale judged at the reference point, a coordinate system of no text and no mesh. It is posted to model space alone, as AutoCAD's
     /// <c>BlockTableRecordId</c> takes no other block. A GEODATA came with R2010 (AC1024), version 1 of R2009 having no DXF
     /// version of its own: one of version 1 is read by the groups a comment of ezdxf gives it, those of version 2 but the north
     /// direction, the points of its mesh in 12 and 13 there; ezdxf 1.4.5 itself reads no points of the mesh in one of version
@@ -38,7 +38,7 @@ namespace GeometryHelper.Dxf
     /// </remarks>
     public sealed class DxfGeoData : DxfDBObject
     {
-        // The groups of AcDbGeoData in the order AutoCAD writes them, those of version 2.
+        // The groups of AcDbGeoData in the order AutoCAD writes them, those of versions 2 and 3, which hold the same groups.
         private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[]
         {
             100, 90, 330, 70, 10, 20, 30, 11, 21, 31, 40, 91, 41, 92, 210, 220, 230, 12, 22, 95, 141, 294, 142, 143, 303, 301, 302,
@@ -49,11 +49,12 @@ namespace GeometryHelper.Dxf
         private static readonly int[] Definition = { 303, 301 };
 
         // The groups a GEODATA made in code is written with after its subclass marker, in the order ezdxf writes a new one, the
-        // values those of AutoCAD 2021's new GeoLocationData: of no known type (70 of 0), in metres (91 and 92 of 6), its scale
-        // judged at the reference point (95 of 3). The host's handle (330) is put after the version when it is posted.
+        // values those of AutoCAD 2021's new GeoLocationData: of version 3 (90), of no known type (70 of 0), in metres (91 and
+        // 92 of 6), its scale judged at the reference point (95 of 3). The host's handle (330) is put after the version when it
+        // is posted.
         private readonly List<KeyValuePair<int, string>> _made = new List<KeyValuePair<int, string>>
         {
-            Pair(90, "2"), Pair(70, "0"), Pair(10, "0.0"), Pair(20, "0.0"), Pair(30, "0.0"), Pair(11, "0.0"), Pair(21, "0.0"),
+            Pair(90, "3"), Pair(70, "0"), Pair(10, "0.0"), Pair(20, "0.0"), Pair(30, "0.0"), Pair(11, "0.0"), Pair(21, "0.0"),
             Pair(31, "0.0"), Pair(40, "1.0"), Pair(91, "6"), Pair(41, "1.0"), Pair(92, "6"), Pair(210, "0.0"), Pair(220, "0.0"),
             Pair(230, "1.0"), Pair(12, "0.0"), Pair(22, "1.0"), Pair(95, "3"), Pair(141, "1.0"), Pair(294, "0"), Pair(142, "0.0"),
             Pair(143, "0.0"), Pair(301, string.Empty), Pair(93, "0"), Pair(96, "0"),
@@ -63,7 +64,7 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Initializes a GEODATA made in code, as AutoCAD's <c>GeoLocationData()</c>, with AutoCAD 2021's defaults: of version
-        /// 2, of no known type of coordinates, its points at the origin, metres of scale 1, up along Z and north along Y, its
+        /// 3, of no known type of coordinates, its points at the origin, metres of scale 1, up along Z and north along Y, its
         /// scale judged at the reference point; given a <see cref="BlockTableRecord"/> and added to its drawing by
         /// <see cref="PostToDb"/>.
         /// </summary>
@@ -589,7 +590,8 @@ namespace GeometryHelper.Dxf
         /// Adds the GEODATA made in code to the drawing of its <see cref="BlockTableRecord"/>, as AutoCAD's <c>PostToDb</c>:
         /// at the end of the OBJECTS section, owned by the block's extension dictionary, which is made where the block has none,
         /// under the name ACAD_GEOGRAPHICDATA, the GEODATA it held erased, as ezdxf replaces it; the block's handle written as
-        /// its group 330 and the class GEODATA listed where the drawing lists none, as ezdxf lists it (flags 4095).
+        /// its group 330 and the class GEODATA listed where the drawing lists none, as AutoCAD 2021 lists it (flags 4095, a
+        /// count of 1).
         /// </summary>
         /// <remarks>
         /// The class is listed in the drawing's CLASSES section: a file of R2010 or later written with no CLASSES section is
@@ -636,7 +638,7 @@ namespace GeometryHelper.Dxf
                 }
             });
 
-            file.AddClass("GEODATA", "AcDbGeoData", 4095);
+            file.AddClass("GEODATA", "AcDbGeoData", 4095, count: 1);
             _block = null;
             Bind(item);
         }

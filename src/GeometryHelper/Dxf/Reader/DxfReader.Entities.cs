@@ -1628,10 +1628,10 @@ namespace GeometryHelper.Dxf
             /// <summary>
             /// Reads a LEADER as its curve, as AutoCAD's <c>IntersectWith</c> meets it: the chain of its vertices (each 10, 20,
             /// 30) in world coordinates, a vertex within the point tolerance of the one kept before it left out; splined (72 of 1),
-            /// the spline <see cref="DxfLeader.Explode"/> fits through them, of degree 3, leaving along its first segment and
-            /// reaching along its last, its parameter from 0 to 1. Inside a block the spline is fitted through the vertices where
-            /// the block has them, and then placed. The arrowhead and the hook line to the annotation, which AutoCAD works out when
-            /// it draws them, are not read.
+            /// the spline fitted through them, as <see cref="DxfLeader.Explode"/> fits one, of degree 3, leaving along its first
+            /// segment and reaching along its last, its parameter from 0 to 1. Inside a block the spline is fitted through the
+            /// vertices where the block has them, and then placed. The arrowhead and the hook line to the annotation, which AutoCAD
+            /// works out when it draws them, are not read.
             /// </summary>
             private void ReadLeader(Record r)
             {
@@ -1671,8 +1671,9 @@ namespace GeometryHelper.Dxf
             /// <summary>
             /// Reads a MULTILEADER as the lines of its leaders, as AutoCAD's <c>IntersectWith</c> meets it: each leader line the
             /// chain from its first vertex, where its arrow points, through its vertices and the last point of its leader to the end
-            /// of its dogleg, as <see cref="DxfMLeader.Explode"/> draws it, or, splined, the spline fitted through those points, as
-            /// <see cref="DxfLeader"/>'s is (<see cref="DxfMLeader"/>). Its words or block and its arrowheads are not read.
+            /// of its dogleg, as <see cref="DxfMLeader.Explode"/> draws the line and its dogleg, or, splined, the spline fitted
+            /// through those points, as <see cref="DxfLeader"/>'s is (<see cref="DxfMLeader"/>). Its words or block and its
+            /// arrowheads are not read.
             /// </summary>
             private void ReadMLeader(Record r)
             {

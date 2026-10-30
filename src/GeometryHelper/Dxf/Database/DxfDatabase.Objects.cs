@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
 namespace GeometryHelper.Dxf
 {
@@ -142,18 +143,26 @@ namespace GeometryHelper.Dxf
         /// Gets or sets the properties of the drawing, as AutoCAD's <c>SummaryInfo</c>: those of its DWGPROPS, the XRECORD of
         /// the named object dictionary AutoCAD keeps them in, its title (group 2), subject (3), author (4), comments (6),
         /// keywords (7), who saved it last (8), its revision (9), the base of its hyperlinks (the group 1 after its dates) and its
-        /// custom properties: each <c>name=value</c> in a group 300 to 309, then those of the list after the group 90 that
-        /// follows the base of the hyperlinks, its count, each a name and a value in two groups 1. Empty where the drawing has none.
+        /// custom properties: each <c>name=value</c> in a group 300 to 309, then those of a list after the group 90 that follows
+        /// the base of the hyperlinks, where one follows it, each a name and a value in two groups 1. The base of the hyperlinks
+        /// is the header's <c>$HYPERLINKBASE</c> where that is not empty, as AutoCAD 2021 reads it there. A drawing with no
+        /// DWGPROPS, as AutoCAD saves one of R2004 or later, gives the texts of its header, <c>$TITLE</c>, <c>$SUBJECT</c>,
+        /// <c>$AUTHOR</c>, <c>$COMMENTS</c>, <c>$KEYWORDS</c> and <c>$REVISIONNUMBER</c>: AutoCAD 2021 saved a drawing of R2018
+        /// titled Plate B-12 with <c>$TITLE</c> and no DWGPROPS. Its custom properties there (<c>$CUSTOMPROPERTYTAG</c>) are not
+        /// read. Empty where the drawing has none.
         /// </summary>
         /// <value>
         /// <para>
-        /// Set, the DWGPROPS written anew, as AutoCAD writes it: its marker <c>DWGPROPS COOKIE</c> (1), the texts, the ten
-        /// groups 300 to 309, the time spent on it and the dates it was made and saved (40, 41, 42, those of a DWGPROPS kept, else
-        /// the header's <c>$TDINDWG</c>, <c>$TDCREATE</c> and <c>$TDUPDATE</c>), and the base of its hyperlinks; the groups after
-        /// those kept as they were. The custom properties are written in the form the record has: in the list after a group 90,
-        /// the ten groups each <c>=</c>, where it has that list, or is made new in a drawing of R2004 or later; else in the ten
-        /// groups, <c>=</c> where there is none. A record never holds two sets of them. A drawing with none is given one, owned
-        /// by the named object dictionary. Properties the same as the drawing has change nothing.
+        /// Set, the DWGPROPS written anew, as AutoCAD 2021 writes it and reads it back: its marker <c>DWGPROPS COOKIE</c> (1), the
+        /// texts, the custom properties in the ten groups 300 to 309 (<c>=</c> where there is none), the time spent on it and the
+        /// dates it was made and saved (40, 41, 42, those of a DWGPROPS kept, else the header's <c>$TDINDWG</c>,
+        /// <c>$TDCREATE</c> and <c>$TDUPDATE</c>), the base of its hyperlinks and the count of the custom properties (90); the
+        /// groups after those kept as they were. A list of them after the group 90, which AutoCAD 2021 does not read, is
+        /// written no more: a drawing of R2018 given a hyperlink base and two custom properties shows them in AutoCAD only in
+        /// the ten groups. The base of the hyperlinks is written to the header's <c>$HYPERLINKBASE</c> too, in a drawing of
+        /// R2000 or later, and each text the header holds already (a drawing AutoCAD saved) is set there as well, so that the
+        /// two agree. A drawing with none is given one, owned by the named object dictionary. Properties the same as the
+        /// drawing has change nothing.
         /// </para>
         /// <para>
         /// <c>db.SummaryInfo = new DxfDatabaseSummaryInfoBuilder(db.SummaryInfo) { Title = "Plate B-12" }.ToDatabaseSummaryInfo()</c>
@@ -161,15 +170,26 @@ namespace GeometryHelper.Dxf
         /// </para>
         /// </value>
         /// <exception cref="ArgumentNullException">Thrown when the properties set are null.</exception>
-        /// <exception cref="ArgumentException">Thrown when the properties set have more than ten custom properties for a record of
-        /// the ten groups, or a custom property's name has an equals sign in it there.</exception>
+        /// <exception cref="ArgumentException">Thrown when the properties set have more than ten custom properties, or a custom
+        /// property's name has an equals sign in it.</exception>
         /// <exception cref="InvalidOperationException">Thrown when set in a file of R12, or one with no named object dictionary.</exception>
         public DxfDatabaseSummaryInfo SummaryInfo
         {
             get
             {
                 DxfXrecord properties = DwgProps();
-                return properties == null ? DxfDatabaseSummaryInfo.Empty : DxfDatabaseSummaryInfo.Read(properties.Data);
+                string hyperlinkBase = HyperlinkBase;
+
+                if (properties == null)
+                {
+                    string[] texts = HeaderTexts.Select(name => name == null || File.HeaderOf(name) == null ? null : TextOf(name, 1, string.Empty)).ToArray();
+                    return texts.All(t => t == null) && hyperlinkBase.Length == 0
+                        ? DxfDatabaseSummaryInfo.Empty
+                        : new DxfDatabaseSummaryInfo(texts, hyperlinkBase, new List<KeyValuePair<string, string>>());
+                }
+
+                DxfDatabaseSummaryInfo read = DxfDatabaseSummaryInfo.Read(properties.Data);
+                return hyperlinkBase.Length == 0 ? read : read.WithHyperlinkBase(hyperlinkBase);
             }
 
             set
@@ -186,14 +206,13 @@ namespace GeometryHelper.Dxf
 
                 DxfDBDictionary root = NamedObjectsDictionary ?? throw new InvalidOperationException("A DXF " + (Version ?? "with no version") + " has no named object dictionary to hold DWGPROPS: R13 (AC1012) brought it.");
                 DxfXrecord properties = DwgProps();
-                bool list = properties != null ? DxfDatabaseSummaryInfo.ListAt(properties.Data, out _) >= 0 : File.Supports(1018);
 
-                if (!list && value.CustomProperties.Count > 10)
+                if (value.CustomProperties.Count > 10)
                 {
                     throw new ArgumentException("A DWGPROPS of the groups 300 to 309 holds ten custom properties, and " + value.CustomProperties.Count.ToString(CultureInfo.InvariantCulture) + " are given.", nameof(value));
                 }
 
-                foreach (KeyValuePair<string, string> property in list ? new List<KeyValuePair<string, string>>() : value.CustomProperties)
+                foreach (KeyValuePair<string, string> property in value.CustomProperties)
                 {
                     if (property.Key.IndexOf('=') >= 0)
                     {
@@ -201,15 +220,32 @@ namespace GeometryHelper.Dxf
                     }
                 }
 
-                List<DxfTypedValue> data = value.Written(properties?.Data, Header("$TDINDWG"), Header("$TDCREATE"), Header("$TDUPDATE"), list);
+                List<DxfTypedValue> data = value.Written(properties?.Data, Header("$TDINDWG"), Header("$TDCREATE"), Header("$TDUPDATE"));
 
                 if (properties != null)
                 {
                     properties.Data = data;
-                    return;
+                }
+                else
+                {
+                    root.SetAt("DWGPROPS", new DxfXrecord { Data = data });
                 }
 
-                root.SetAt("DWGPROPS", new DxfXrecord { Data = data });
+                // The header's base of the hyperlinks, which AutoCAD reads, and each text a drawing AutoCAD saved holds there.
+                if (File.Supports(1015))
+                {
+                    HyperlinkBase = value.HyperlinkBase;
+                }
+
+                string[] now = value.Texts;
+
+                for (int i = 0; i < HeaderTexts.Length; i++)
+                {
+                    if (HeaderTexts[i] != null && File.HeaderOf(HeaderTexts[i]) != null)
+                    {
+                        PutText(HeaderTexts[i], 1, now[i], TextOf(HeaderTexts[i], 1, string.Empty), 1018);
+                    }
+                }
             }
         }
 
@@ -457,6 +493,14 @@ namespace GeometryHelper.Dxf
             DxfDBDictionary root = NamedObjectsDictionary;
             return root != null && root.Contains(name) ? root.GetAt(name) as DxfDBDictionary : null;
         }
+
+        /// <summary>
+        /// The variables of the header AutoCAD writes the texts of the drawing's properties in from R2004 on, in the order of the
+        /// texts of <see cref="DxfDatabaseSummaryInfo"/>: title, subject, author, comments, keywords, revision. Who saved it last
+        /// (<c>$LASTSAVEDBY</c>) is none of them here: ezdxf writes its own name there in every drawing, and AutoCAD 2021 does
+        /// not carry that into the properties it saves.
+        /// </summary>
+        private static readonly string[] HeaderTexts = { "$TITLE", "$SUBJECT", "$AUTHOR", "$COMMENTS", "$KEYWORDS", null, "$REVISIONNUMBER" };
 
         /// <summary>The XRECORD DWGPROPS of the named object dictionary; null where there is none.</summary>
         private DxfXrecord DwgProps()

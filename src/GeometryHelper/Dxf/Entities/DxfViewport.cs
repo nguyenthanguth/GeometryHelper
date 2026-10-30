@@ -1421,7 +1421,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Erases the viewport, as <see cref="DxfEntity.Erase"/> erases an entity, and takes the overrides the layers keep for it
         /// out of their extension dictionaries, as AutoCAD does: an XRECORD of overrides left with none goes with its entry. A
-        /// layout whose last active viewport it was (group 331 of its LAYOUT) no longer names it. The viewport of
+        /// layout whose last active viewport it was (group 331 of its LAYOUT) names its viewport 1 instead, as AutoCAD 2021 does,
+        /// or none where it has no other. The viewport of
         /// <see cref="Number"/> 1 of a layout of paper space, which shows the sheet itself, is refused, as AutoCAD keeps it.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the viewport is in no file, or is erased, or is the viewport 1

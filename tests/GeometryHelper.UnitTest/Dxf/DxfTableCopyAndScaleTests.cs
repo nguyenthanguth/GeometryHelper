@@ -82,8 +82,10 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void ATableMirrored_StandsWhereTheMirrorPutsItsCells_ItsNormalTurnedRound()
+        public void ATableMirrored_StandsReadableInTheBoxTheMirrorMakes_AsAutoCadLeavesIt()
         {
+            // Columns 40 and 30 wide from (300, -100), mirrored in the plane x = 0: AutoCAD 2021's TransformBy keeps it readable,
+            // facing up along x, in the box the mirror makes of it, from x -370 to -300, its first column first.
             DxfDatabase db = DxfDatabase.Parse(DxfDimensionDrawings.R2018);
             DxfTable table = Table(db);
             var mirror = GeoTransform3.Scaling(-1.0, 1.0, 1.0);
@@ -99,8 +101,8 @@ namespace GeometryHelper.UnitTest.Dxf
 
             table.TransformBy(mirror);
 
-            Assert.Equal(Bits(new GeoVector3(0.0, 0.0, -1.0)), Bits(table.Normal));
-            Assert.Equal(-1.0, table.Direction.X, 15);
+            Assert.Equal(1.0, table.Normal.Z, 15);
+            Assert.Equal(1.0, table.Direction.X, 15);
             Assert.Equal(10.0, table.RowHeight(0));
             var after = new List<GeoPoint3>();
 
@@ -112,10 +114,11 @@ namespace GeometryHelper.UnitTest.Dxf
                 }
             }
 
-            for (int i = 0; i < before.Count; i++)
-            {
-                Assert.True(before[i].DistanceTo(after[i]) <= 1E-9, "corner " + i + ": " + before[i] + " against " + after[i]);
-            }
+            Assert.Equal(before.Min(p => p.X), after.Min(p => p.X), 9);
+            Assert.Equal(before.Max(p => p.X), after.Max(p => p.X), 9);
+            Assert.Equal(before.Min(p => p.Y), after.Min(p => p.Y), 9);
+            Assert.Equal(before.Max(p => p.Y), after.Max(p => p.Y), 9);
+            Assert.True(table.GetCellExtents(0, 0, false)[0].DistanceTo(new GeoPoint3(-370, -100, 0)) <= 1E-9);
         }
 
         [Fact]
@@ -146,8 +149,8 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(Bits(new GeoPoint3(600.0, -200.0, 0.0)), Bits(part.Position));
             insert.ScaleFactors = new GeoVector3(-1.0, 1.0, 1.0);
             DxfTable mirrored = insert.Explode().OfType<DxfTable>().Single();
-            Assert.Equal(-300.0, mirrored.Position.X, 12);
-            Assert.Equal(-1.0, mirrored.Normal.Z, 15);
+            Assert.Equal(-370.0, mirrored.Position.X, 12);
+            Assert.Equal(1.0, mirrored.Normal.Z, 15);
             insert.ScaleFactors = new GeoVector3(2.0, 1.0, 1.0);
             Assert.Empty(insert.Explode().OfType<DxfTable>());
         }

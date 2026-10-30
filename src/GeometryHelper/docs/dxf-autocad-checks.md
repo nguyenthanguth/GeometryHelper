@@ -8,9 +8,11 @@ library does now, and what result would mean the library has to change. Open eac
 an error AUDIT reports or fixes in a file the library wrote is a change to make whatever the point.
 
 AutoCAD 2021 answered a part of them on 29 and 30 October 2026, by COM, LISP and its .NET API: a point it settled says what
-AutoCAD did, and what the library does since, in the place of what would have meant a change. Two points it found that the
-list had not: AutoCAD refuses a file whose pattern HATCH has no count of its lines (78), and one whose MTEXT turns its
-background on without its colour and scale (63 and 45); both are now written.
+AutoCAD did, and what the library does since, in the place of what would have meant a change. Four points it found that the
+list had not: AutoCAD refuses a file whose pattern HATCH has no count of its lines (78), one whose MTEXT turns its background
+on without its colour and scale (63 and 45), one whose LAYER of R2000 or later has no plot style (390, "Did not receive
+PlotStyleName", points 29 and 30), and one whose face of a PFACE has AcDbVertex before its AcDbFaceRecord (point 58); all
+four are now written as AutoCAD reads them.
 
 ## Entities and copies
 
@@ -178,8 +180,11 @@ background on without its colour and scale (63 and 45); both are now written.
 
 22. **The current transparency.**
     - Try: set CETRANSPARENCY to the alpha 100 through `Cetransparency` and read it in AutoCAD.
-    - Now: written as the nearest whole per cent, so the alpha 100 reads back as 99.
-    - A change if: AutoCAD rounds otherwise.
+    - AutoCAD 2021: reads the 61 the library wrote, the per cent, as BYLAYER: its `Transparency` is the number 61, its method
+      nought. The DICTIONARYVAR holds the number an entity's 440 holds, the method in its top byte and the alpha in its low
+      one.
+    - Now: written as that number, 33554532 for the alpha 100, which reads back as 100; a number with no method in its top
+      byte, a per cent the library wrote before among them, reads BYLAYER, as AutoCAD reads it.
 
 23. **Binary data under a key.**
     - Try: `SetBinaryDataForKey` of 300 bytes, then AutoCAD's `GetBinaryDataForKey` of the same key.
@@ -200,14 +205,23 @@ background on without its colour and scale (63 and 45); both are now written.
     - Try: set `SummaryInfo` with a hyperlink base and two custom properties in a drawing of R2004 or later and of R2000, and
       open DWGPROPS in AutoCAD; save from AutoCAD as DXF and see whether it writes DWGPROPS or `$CUSTOMPROPERTYTAG` in the
       header.
-    - Now: the DWGPROPS record, the hyperlink base as its second text, the custom properties in the list after group 90 from
-      R2004 and in groups 300 to 309 before; a record that has both is written in the form it has.
-    - A change if: AutoCAD shows them otherwise, writes the header form, or reads one form where a record has both.
+    - AutoCAD 2021: reads the title and the author of the DWGPROPS of both; the custom properties of the ten groups 300 to
+      309 of R2000, and none of the list after the group 90 of R2018; and the hyperlink base of neither, reading it from the
+      header's `$HYPERLINKBASE`, empty in both. Saved as R2018, it writes no DWGPROPS but `$TITLE` and `$AUTHOR` after
+      `$DWGCODEPAGE`; saved as R2000, a DWGPROPS of the ten groups, the dates, the hyperlink base, then a 90 of the count of
+      the custom properties, 2.
+    - Now: the DWGPROPS of R2000's form in every version, the custom properties in the ten groups (ten at most) and their
+      count after the hyperlink base, which goes to `$HYPERLINKBASE` too; each text a header holds already (a drawing AutoCAD
+      saved) is set there as well. A drawing with no DWGPROPS gives the texts of its header (`$TITLE`, `$SUBJECT`,
+      `$AUTHOR`, `$COMMENTS`, `$KEYWORDS`, `$REVISIONNUMBER`). The custom properties of a header (`$CUSTOMPROPERTYTAG`), which
+      no file of AutoCAD's here holds, are not read.
 
 27. **Empty groups.**
     - Try: in AutoCAD, empty a group by erasing its last member, by removing it, and make one with no member; save.
-    - Now: each emptied group is dropped when the drawing is saved; a group the file was read with empty is kept.
-    - A change if: AutoCAD keeps an emptied group in one of those cases.
+    - AutoCAD 2021: keeps all three, G_ERASE, G_REMOVE and G_NEW_EMPTY, each of no member, after it saves the drawing and
+      opens it again (through its API; the ERASE and GROUP commands not run).
+    - Now: so does the library for a named group. An anonymous group left empty is still dropped when the drawing is saved,
+      which AutoCAD was not asked about.
 
 28. **An anonymous group renamed.**
     - Try: rename an anonymous group in AutoCAD.
@@ -222,11 +236,19 @@ background on without its colour and scale (63 and 45); both are now written.
       (R2007), the versions as ezdxf gives them; so are the overrides of a dimension style (ACAD DSTYLE) of a variable R2000
       has not, as DIMLTYPE and DIMFXLEN.
     - A change if: AutoCAD 2000 or AUDIT still reports the records, or AutoCAD's SAVEAS keeps a group the library leaves out.
+    - AutoCAD 2021: refused the library's copy, "Did not receive PlotStyleName": the layer GH_TRUECOLOR came with no plot
+      style (390). The library had not found the plot style Normal the source's layer named, as the drawing keeps
+      ACAD_PLOTSTYLENAME in a dictionary with a default (ACDBDICTIONARYWDFLT), which it did not look in; any entity copied
+      between drawings of R2000 or later onto a layer the drawing had not brought that layer so.
+    - Now: the plot style of the name found there, and a layer whose plot style the drawing has none of given layer 0's, so
+      that every LAYER copied into R2000 or later has a 390.
 
 30. **A dimension copied into another drawing.**
     - Try: copy a dimension with the library into a drawing that has none of its text style or arrow blocks, and open it.
     - Now: the text style, the arrow blocks and the dimension style come with it by name.
     - A change if: AutoCAD shows another text style or other arrows than in the drawing it came from.
+    - AutoCAD 2021: refused the copy as it refused point 29's, the layer Defpoints come with no plot style; the same change
+      lets it open the file now (`after-d11`).
 
 ## Viewports and layouts
 
@@ -295,7 +317,9 @@ background on without its colour and scale (63 and 45); both are now written.
 40. **A multileader's overrides.**
     - Try: set a property of a multileader, open it in AutoCAD, and change the property in its style.
     - Now: the property is written in the multileader and its context data, and its bit of the overrides of the style set.
-    - A change if: AutoCAD follows the style's change, so that the bit is wrong.
+    - AutoCAD 2021: through its API neither multileader follows the style's arrow size made 10: the one of its own 6 keeps 6,
+      the other its 4, exploded with arrows 6.08 and 4.06 long. The library reads each multileader's own size (42) and has no
+      setter of a style's, so it agrees; whether the MLEADERSTYLE dialog carries the change on is AutoCAD's editor's.
 
 41. **A new multileader and one of a block.**
     - Try: open a `new DxfMLeader()` with words and one with a block placed at its base point.
@@ -356,7 +380,8 @@ background on without its colour and scale (63 and 45); both are now written.
     - Now: a LINE for each straight segment and an ARC for each bulged one, each with the polyline's look and thickness and on
       its normal, the widths left out: a polyline on (0, 0, -1) at elevation 5 with a thickness of 2 gives walls from z = -5
       down to -7. A POLYLINE fitted to a curve or a spline breaks along the vertices it is drawn through.
-    - A change if: AutoCAD keeps something the library leaves out, or breaks a fitted polyline otherwise.
+    - AutoCAD 2021: agrees, its `Explode()` giving the library's parts of all four, the spline-fitted POLYLINE the four LINEs
+      from (80, 30) to (110, 40) in the library's order.
 
 49. **An MTEXT exploded, and saved as R12.**
     - Try: EXPLODE in AutoCAD an MTEXT of three paragraphs, one wrapped at its width, held at its middle centre, and SAVEAS R12
@@ -364,14 +389,19 @@ background on without its colour and scale (63 and 45); both are now written.
     - Now: one TEXT for each paragraph, not wrapped, its formatting and the heights of its codes left out, the lines spaced as
       `LineSpaceDistance` says and held at the left, the middle or the right as the MTEXT is held; two lines 2.5 high held at
       the top left at (10, 20) stand on the baselines 17.5 and 13.33 high.
-    - A change if: AutoCAD's baselines or alignments differ for the lines it does not wrap.
+    - AutoCAD 2021: wraps the long paragraph by its font into six lines at the width 40, eight TEXTs in all, each held at its
+      left (no 72, 73 or 11) where its font puts it; the baselines, from 33.33 for eight lines 4.17 apart about the middle 20,
+      follow the library's rule for that many lines. Where the lines break and where each starts needs AutoCAD's font, which
+      the library has not; it still gives a TEXT a paragraph.
 
 50. **A dimension and a table exploded.**
     - Try: EXPLODE in AutoCAD a dimension in a tilted plane and a table, each drawn last by AutoCAD, and compare with
       `Explode()`.
-    - Now: the entities of the `*D` or `*T` block placed where the dimension or the table draws them, as ezdxf's
-      `virtual_entities()` places a dimension's; the picture drawn last, not the data set since.
-    - A change if: AutoCAD's parts stand elsewhere, or AutoCAD draws the picture anew from the data before it explodes it.
+    - AutoCAD 2021: its `Explode()` of the dimension in the tilted plane gives seven parts where the library placed them, its
+      block's ten but the three POINTs on Defpoints; the table it draws anew when it opens the file, its rows 11, 9 and 9 by
+      its font, and explodes that, 13 parts.
+    - Now: a dimension's POINTs on Defpoints are left out; a table still gives its picture as drawn last, as drawing it anew
+      needs AutoCAD's font.
 
 51. **A MINSERT exploded.**
     - Try: `Explode()` in AutoCAD's API of a MINSERT of 2 rows by 3 columns, and EXPLODE of it.
@@ -382,12 +412,13 @@ background on without its colour and scale (63 and 45); both are now written.
 52. **A leader exploded.**
     - Try: EXPLODE in AutoCAD a straight leader with the closed filled arrow, one with an arrow block (DIMLDRBLK) and one with a
       hook line, and compare with `Explode()`.
-    - Now: a LINE between each two vertices, then the arrowhead at the first vertex, `Dimasz` times `Dimscale` long: an INSERT
-      of the arrow block turned and scaled so, or a SOLID a third as wide as long; no hook line. A splined leader gives one
-      SPLINE through its vertices, fitted as ezdxf fits it: of degree 3 by the chord, its inner knots the parameters of the inner
-      vertices, leaving along the first segment and reaching along the last at the speed of the length of the chain.
-    - A change if: AutoCAD's arrow is of another size or shape, a hook line comes out of it, or its spline has other control
-      points or keeps its fit points.
+    - AutoCAD 2021: each leader gives the arrow first, a SOLID of the corner on the right, the tip and the corner on the left,
+      or the INSERT of GH_ARROW; then one Polyline from the arrow's back, 2.5 along the first segment, or for the splined
+      leader one SPLINE from there, its knots the lengths of the chords (0 to 21.64), with three fit points. A leader with
+      words has one vertex more, where AutoCAD's font ends the words (x = -11.46 for CLOSED FILLED), and its last moved to the
+      words where it has a hook.
+    - Now: so does the library, but the vertex at the words, which needs the font, and the spline's fit points, which a
+      `DxfSpline` made in code has not.
 
 53. **A named block brought by a copy.**
     - Try: copy an INSERT of a block that inserts another block into a drawing that has neither, with WBLOCK or COPYCLIP and
@@ -399,9 +430,12 @@ background on without its colour and scale (63 and 45); both are now written.
 54. **A table scaled and mirrored.**
     - Try: SCALE by 2 and MIRROR in AutoCAD a table of rows 10, 8 and 8 high, with a cell of its own text height and a block
       cell, and compare with `TransformBy` of the same.
-    - Now: scaled, its rows 20, 16 and 16 high, its column widths, cell margins and the text heights and block scales it and its
-      cells override doubled; mirrored, its normal turned round and its cells standing where the mirror puts them.
-    - A change if: AutoCAD keeps the text heights, or mirrors a table some other way.
+    - AutoCAD 2021 (`TransformBy`): scaled by 2, rows 22, 18 and 18 and every cell's text height doubled, those its style
+      gives (6 and 4.5) too; it measures a row by its text, reading rows 10, 8 and 8 as 11, 9 and 9. Mirrored in x = 280, the
+      table at (300, -100) stands at (190, -100), its normal (0, 0, 1) and its direction (1, 0, 0), readable, in the box the
+      mirror makes of it.
+    - Now: mirrored, as AutoCAD; scaled, the heights the table and its cells override doubled, those of its style kept, as
+      the library reads no table style, and its rows as written, as it measures none by a font.
 
 55. **Arrow blocks of a dimension saved as R12.**
     - Try: SAVEAS R12 in AutoCAD a dimension whose DIMBLK is overridden, and compare its ACAD extended data with the library's
@@ -414,8 +448,9 @@ background on without its colour and scale (63 and 45); both are now written.
 
 56. **The overall viewport of a layout.**
     - Try: in AutoCAD, try to erase the viewport 1 of a layout, and erase the last active viewport of a layout; save as DXF.
-    - Now: the viewport 1 is refused; a layout whose last active viewport (331) is erased no longer names it.
-    - A change if: AutoCAD writes another viewport in the LAYOUT's 331 after the erase.
+    - AutoCAD 2021: erasing the last active viewport leaves the LAYOUT's 331 naming the viewport 1; its API's `Erase()` takes
+      the viewport 1 too (the ERASE command not run).
+    - Now: the LAYOUT names the viewport 1 of the layout; the viewport 1 is still refused, as AutoCAD's editor keeps it.
 
 57. **A text style across R12 and R2018.**
     - Try: copy a TEXT in a style of its own from a drawing of R2018 into one of R12 with AutoCAD, and the other way.
@@ -428,6 +463,9 @@ background on without its colour and scale (63 and 45); both are now written.
     - Now: a 3DFACE for each face, the triangle ending on its third corner with its edges 3 and 4 hidden (70 of 12), the face
       in its own colour; the smoothed mesh breaks into the cells of its surface, a grid of its densities, not of its frame.
     - A change if: AutoCAD hides edge 3 alone, gives the face the mesh's colour, or explodes the frame of a smoothed mesh.
+    - AutoCAD 2021: refused the input file, "Class separator for class AcDbFaceRecord expected": the library wrote a face
+      made in code with AcDbVertex before its AcDbFaceRecord. AutoCAD writes the face's marker alone, and so does the
+      library now; the exploding is to be seen again (`after-d11`).
 
 59. **An MLINE exploded.**
     - Try: EXPLODE in AutoCAD an MLINE of a style of six elements with inner arcs at both ends, one with its caps suppressed,
@@ -440,25 +478,29 @@ background on without its colour and scale (63 and 45); both are now written.
 60. **A HATCH exploded.**
     - Try: EXPLODE in AutoCAD a HATCH of DOTS, one of ANSI31 round a circle with an island in it in the outer style, a solid
       fill and a gradient; compare with `Explode()`.
-    - Now: the pattern's dashes as LINEs cut by the loops its style fills, a dot a LINE of no length; the solid fill and the
-      gradient refused.
-    - A change if: AutoCAD makes a dot a POINT, cuts by other loops in the outer style, or breaks a solid fill or a gradient
-      into parts the library can make.
+    - AutoCAD 2021: the DOTS give 228 LINEs of no length, none on the bottom edge its row of dots runs along (the library
+      gave 247); the ANSI31 in the outer style 17 LINEs, one inside the island of radius 3, as it cuts by the loops flagged
+      external or outermost, as ezdxf does, and both circles were flagged outermost; the solid fill and the gradient it
+      refuses (eNotApplicable).
+    - Now: so does the library, line for line.
 
 61. **A multileader exploded.**
     - Try: EXPLODE in AutoCAD a multileader of words with two leaders on the left, one splined, one of a block with an
       attribute, and one whose words are underlined (attachment 5 or 6); compare with `Explode()`.
-    - Now: the MTEXT or the INSERT with its attribute, then for each leader line its arrow, a SOLID for the closed filled arrow
-      or an INSERT of the arrow block, where the first segment is more than twice the arrow, and the LINEs from the back of the
-      arrow to the end of the dogleg, or one SPLINE; no underline.
-    - A change if: AutoCAD makes the closed filled arrow a block, starts the line at the tip, or draws an underline.
+    - AutoCAD 2021: the words or the block first, then for each leader its dogleg, a LINE from its last point, then for each
+      line a Polyline from the arrow's back to the last point of the leader, or a SPLINE whose knots are the lengths of the
+      chords, and its arrow, a SOLID of the corner on the right, the tip and the corner on the left. BYBLOCK is made the
+      multileader's own colour, BYLAYER here, the lines keep the lineweight BYBLOCK and the arrows and words are BYLAYER. The
+      underlined words get a Polyline under them as long as the words are wide, and the INSERT of the block no ATTRIB.
+    - Now: so does the library, but the underline, which needs AutoCAD's font, and the INSERT, which keeps its ATTRIB, as
+      the API's `Explode()` may leave the attributes to the EXPLODE command.
 
 62. **A leader exploded in the look of its dimension style.**
     - Try: EXPLODE in AutoCAD a leader of colour 3 whose style has DIMCLRD BYBLOCK, one with DIMCLRD 1 and DIMLWD 0.35 as
       overrides, and one of DIMCLRD BYBLOCK whose record writes a 77; compare with `Explode()`.
-    - Now: the overrides' colour and lineweight on the lines and the arrow, the true colour taken off; DIMCLRD BYBLOCK the
-      leader's own colour, or the colour of its 77 where it has one, as ezdxf reads it (ezdxf gives 7 where there is none).
-    - A change if: AutoCAD gives the parts of a BYBLOCK style BYBLOCK, or colour 7, or keeps the leader's true colour.
+    - AutoCAD 2021: each leader gives a SOLID and one Polyline in the leader's own colour, true colour and lineweight: the
+      style's DIMCLRD BYBLOCK, the overrides DIMCLRD 1 and DIMLWD 0.35, and the 77 change nothing.
+    - Now: so does the library: the parts have the leader's own look.
 
 63. **A splined leader as a curve.**
     - Try: in AutoCAD's API, `GetPointAtParameter`, `EndParam`, `GetDistanceAtParameter(EndParam)` and `GeometricExtents` of a
@@ -466,33 +508,31 @@ background on without its colour and scale (63 and 45); both are now written.
     - AutoCAD 2021: the same curve, its parameter run over the lengths of the chords, 0 to 24.14, its point at 12.07 the
       library's at 0.5, 24.3737 long (the library 24.37377, within two millionths); its box (0, 0, 0) to (20, 10, 0), the box of
       the vertices, though its own spline rises to 10.42 between them.
-    - Now: so does the library: the parameter from 0 to the sum of the chords, and the box of the vertices. `Explode()` still
-      gives the spline with its knots from 0 to 1, as ezdxf fits it.
+    - Now: so does the library: the parameter from 0 to the sum of the chords, and the box of the vertices. `Explode()` gives
+      the spline from the arrow's back, its knots the chords too, as AutoCAD's (point 52).
 
 64. **A MESH exploded.**
     - Try: EXPLODE in AutoCAD a MESH of triangles and quads, one with a face of five corners (a mesh made by MESHSMOOTH of a
       solid's flat face), and one with a face given a colour of its own; compare with `Explode()`.
-    - Now: a 3DFACE for each face of three or four corners, a triangle ending on its third, every edge drawn; the face of five
-      corners and the face of its own colour refused.
-    - A change if: AutoCAD hides the edges inside a face, or breaks a face of five corners in a way the library can follow
-      (a fan from its first corner), which would let it take one.
+    - AutoCAD 2021: the cube as the library's; the face of the five corners 0 to 4 as three triangles fanned from its first
+      corner, the last first and each the other way round, (4, 3, 0), (2, 0, 3) and (0, 2, 1), every edge drawn; the face
+      given red (an override of the MESH: 91 1, 92 1, 90 0, 63 1) a red 3DFACE.
+    - Now: so does the library. A face of six corners or more is fanned by the same rule, which one face of five settles
+      only in part.
 
 ## Geographic location, layer filters and layer states
 
 65. **The GEODATA AutoCAD writes.**
     - Try: in AutoCAD 2018 or later, GEOGRAPHICLOCATION on a drawing in millimetres, with three points of the mesh, saved as
       DXF of R2018; read the GEODATA record.
-    - Now: the library writes a GEODATA of version 2 (group 90), as ezdxf's new one, its groups in the order 90, 330, 70, 10
-      to 31, 40, 91, 41, 92, 210 to 230, 12, 22, 95, 141, 294, 142, 143, 303, 301, 302, 305 to 307, 93, then each point of
-      the mesh with the point it is taken to, interleaved (13, 23, 14, 24 for each), then the faces (96 to 99).
-    - A change if: AutoCAD writes version 3, another order, or every point of the drawing before every point taken to; the
-      library should then write so, and read a version 3 by what it holds.
+    - AutoCAD 2021: writes version 3, the groups otherwise in the library's order, the mesh interleaved.
+    - Now: a GEODATA made in code is of version 3; one of version 2 or 3 is read alike.
 
 66. **The class GEODATA.**
     - Try: in the same file, read the CLASS whose DXF name is GEODATA.
-    - Now: the library lists it, where the file lists none, as ezdxf does: ObjectDBX Classes, proxy flags (90) 4095, the
-      count of objects (91) 0, not a proxy and not an entity.
-    - A change if: AutoCAD writes other proxy flags, or AUDIT reports a count of 0 with a GEODATA in the file.
+    - AutoCAD 2021: ObjectDBX Classes, 4095, a count of 1 for its one GEODATA, 0 and 0; it reads the library's count of 0
+      with no word in its log.
+    - Now: the class is listed with a count of 1, the GEODATA it is listed for.
 
 67. **The entry ACAD_GEOGRAPHICDATA and the host of the GEODATA.**
     - Try: in the same file, read model space's extension dictionary and the GEODATA's group 330 after its version.
@@ -583,6 +623,8 @@ The library reads the data links of a table and takes them away, and writes no n
     - A change if: AutoCAD's flags or names differ; the writing takes AutoCAD's.
     - AutoCAD 2021: `DATALINK`, `AcDbDataLink`, `ObjectDBX Classes`, flags 1152 (not 1153), 91 1, 280 0, 281 0; and
       `TABLECONTENT`, `AcDbTableContent`, of the same flags.
+    - Now: unchanged, as the library writes no link and no class of one; the writing held back is to take 1152 and the
+      count of the links.
 
 76. **What a linked table keeps of its link.**
     - Try: in the drawing of point 73, look in the ACAD_TABLE for a reactor or a pointer to the DATALINK other than the
@@ -620,5 +662,7 @@ The library reads the data links of a table and takes them away, and writes no n
       would reach x = ±1 000. The square grows to the square from (-1, -1.01005) to (11, 11), its bottom rising from
       -1.01005 at the corners to (5, -0.95005). `Offset2.Offset` of a `GeoPolygonArc2` grown with miters or chamfers miters or cuts each tip of two
       lobes as a corner, as the straight path does.
-    - A change if: AutoCAD runs the two tips at a bow tie's waist on as corners; the DXF offset then joins them as
-      `Offset2.Offset` does, with AutoCAD's limit, if it has one.
+    - AutoCAD 2021: `GetOffsetCurves` gives no curve of either bow tie, either way; of the curled square, outwards (+1) one
+      closed polyline of 11 vertices that runs out to x = 206 and -196 at the level of the crossing, inwards none. The
+      library keeps its offsets; whether to refuse a closed polyline that crosses itself, as AutoCAD answers the bow tie,
+      is the maintainer's to decide.

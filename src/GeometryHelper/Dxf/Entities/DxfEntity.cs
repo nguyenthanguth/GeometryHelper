@@ -1691,19 +1691,6 @@ namespace GeometryHelper.Dxf
             private readonly DxfLineWeight _lineWeight;
             private readonly bool _visible;
 
-            // Of a look of a dimension style (With): the entity's own look, and the colour, linetype and lineweight given in
-            // place of its own, each null where none is; null for the entity's own look.
-            private readonly Look _own;
-            private readonly int? _styledColour;
-            private readonly string _styledLinetype;
-            private readonly DxfLineWeight? _styledLineWeight;
-
-            // Whether the colour, the linetype and the lineweight are written where a part made new has them already: where they
-            // stand in place of the entity's own, which giving the entity's look and then theirs wrote, as BYLAYER over a colour 3.
-            private readonly bool _colourWritten;
-            private readonly bool _linetypeWritten;
-            private readonly bool _lineWeightWritten;
-
             internal Look(DxfEntity of)
             {
                 _layer = of.Layer;
@@ -1715,32 +1702,6 @@ namespace GeometryHelper.Dxf
                 _visible = of.Visible;
             }
 
-            private Look(Look of, int? colorIndex, string linetype, DxfLineWeight? lineWeight)
-            {
-                _layer = of._layer;
-                _colorIndex = colorIndex ?? of._colorIndex;
-                _trueColor = colorIndex == null ? of._trueColor : null;
-                _linetype = linetype ?? of._linetype;
-                _linetypeScale = of._linetypeScale;
-                _lineWeight = lineWeight ?? of._lineWeight;
-                _visible = of._visible;
-                _own = of;
-                _styledColour = colorIndex;
-                _styledLinetype = linetype;
-                _styledLineWeight = lineWeight;
-                _colourWritten = colorIndex != null && colorIndex.Value != of._colorIndex;
-                _linetypeWritten = linetype != null && !string.Equals(linetype, of._linetype, StringComparison.Ordinal);
-                _lineWeightWritten = lineWeight != null && lineWeight.Value != of._lineWeight;
-            }
-
-            /// <summary>
-            /// The look with a colour of the index, its true colour taken off, a linetype and a lineweight in place of its own,
-            /// each where one is given: a leader's drawn by its dimension style. A part is given it as it was given the entity's
-            /// look and then those, to the byte: one in place of the entity's own is written though a part made new has it, and
-            /// an own look the setters refuse is refused as giving it first refused it.
-            /// </summary>
-            internal Look With(int? colorIndex, string linetype, DxfLineWeight? lineWeight) => new Look(this, colorIndex, linetype, lineWeight);
-
             /// <summary>
             /// Whether the setters take the entity's own look, its colour an index from 0 to 256, its lineweight one of AutoCAD's
             /// and its layer a name AutoCAD takes, so that it is given in one writing; one read from a file that breaks their
@@ -1750,9 +1711,8 @@ namespace GeometryHelper.Dxf
             {
                 get
                 {
-                    Look own = _own ?? this;
-                    int weight = (int)own._lineWeight;
-                    return own._colorIndex >= 0 && own._colorIndex <= 256 && ((weight >= -3 && weight <= -1) || DxfShape.IsLineweight(weight)) && DxfFile.IsLayerName(own._layer);
+                    int weight = (int)_lineWeight;
+                    return _colorIndex >= 0 && _colorIndex <= 256 && ((weight >= -3 && weight <= -1) || DxfShape.IsLineweight(weight)) && DxfFile.IsLayerName(_layer);
                 }
             }
 
@@ -1775,10 +1735,10 @@ namespace GeometryHelper.Dxf
                 DxfEntity made = Of(DxfFile.Detached(
                     shape,
                     _layer,
-                    _colourWritten || _colorIndex != 256 ? _colorIndex : (int?)null,
+                    _colorIndex != 256 ? _colorIndex : (int?)null,
                     _trueColor,
-                    _linetypeWritten || !string.Equals(_linetype, "ByLayer", StringComparison.Ordinal) ? _linetype : null,
-                    _lineWeightWritten || _lineWeight != DxfLineWeight.ByLayer ? (int)_lineWeight : (int?)null));
+                    !string.Equals(_linetype, "ByLayer", StringComparison.Ordinal) ? _linetype : null,
+                    _lineWeight != DxfLineWeight.ByLayer ? (int)_lineWeight : (int?)null));
 
                 if (!Same(_linetypeScale, 1.0))
                 {
@@ -1794,67 +1754,16 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>
-            /// Gives a part made in no file the look, in the order <see cref="GiveLook"/> always gave it; a look of a dimension
-            /// style whose own look the setters refuse as the entity's own look and then the style's, which refuses it as before.
+            /// Gives a part made in no file the look, in the order <see cref="GiveLook"/> always gave it.
             /// </summary>
             internal void GiveTo(DxfEntity made)
             {
-                if (_own != null && !Taken)
-                {
-                    _own.GiveTo(made);
-
-                    if (_styledColour != null)
-                    {
-                        made.TrueColor = null;
-                        made.ColorIndex = _styledColour.Value;
-                    }
-
-                    if (_styledLinetype != null)
-                    {
-                        made.Linetype = _styledLinetype;
-                    }
-
-                    if (_styledLineWeight != null)
-                    {
-                        made.LineWeight = _styledLineWeight.Value;
-                    }
-
-                    return;
-                }
-
                 made.Layer = _layer;
-
-                if (_colourWritten)
-                {
-                    made.Item.Colour = _colorIndex;
-                }
-                else
-                {
-                    made.ColorIndex = _colorIndex;
-                }
-
+                made.ColorIndex = _colorIndex;
                 made.TrueColor = _trueColor;
-
-                if (_linetypeWritten)
-                {
-                    made.Item.Linetype = _linetype;
-                }
-                else
-                {
-                    made.Linetype = _linetype;
-                }
-
+                made.Linetype = _linetype;
                 made.LinetypeScale = _linetypeScale;
-
-                if (_lineWeightWritten)
-                {
-                    made.Item.Lineweight = (int)_lineWeight;
-                }
-                else
-                {
-                    made.LineWeight = _lineWeight;
-                }
-
+                made.LineWeight = _lineWeight;
                 made.Visible = _visible;
             }
         }

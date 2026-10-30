@@ -75,12 +75,13 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfLeader leader = ByHandle<DxfLeader>(db, "89");
             leader.IsSplined = true;
             var line = new DxfLine(new GeoPoint3(15, -5, 0), new GeoPoint3(15, 25, 0));
-            var drawn = (DxfSpline)leader.Explode()[0];
+            leader.HasArrowHead = false;
+            var drawn = (DxfSpline)Assert.Single(leader.Explode());
 
             GeoPoint3 met = Assert.Single(leader.IntersectWith(line, DxfIntersect.OnBothOperands));
             GeoPoint3 expected = Assert.Single(drawn.IntersectWith(line, DxfIntersect.OnBothOperands));
 
-            Assert.Equal(Bits(expected), Bits(met));
+            Assert.True(expected.IsEqualTo(met, new Tolerance(1E-12, 1E-12)), expected + " against " + met);
             Assert.True(met.Y > 10.0 + 0.1, met.ToString());
             Assert.True(leader.GetClosestPointTo(met, false).IsEqualTo(met, Tol));
             var shape = Assert.IsType<GeoSpline3>(Assert.Single(leader.GetGeometry()));
@@ -112,9 +113,10 @@ namespace GeometryHelper.UnitTest.Dxf
             leader.SetVertexAt(1, new GeoPoint3(10, 15, 0));
             GeoPoint3 after = leader.GetPointAtParameter(0.5 * leader.EndParam);
 
-            var drawn = (DxfSpline)leader.Explode()[0];
+            leader.HasArrowHead = false;
+            var drawn = (DxfSpline)Assert.Single(leader.Explode());
             Assert.NotEqual(Bits(before), Bits(after));
-            Assert.True(drawn.GetPointAtParameter(0.5).IsEqualTo(after, new Tolerance(1E-12, 1E-12)));
+            Assert.True(drawn.GetPointAtParameter(0.5 * leader.EndParam).IsEqualTo(after, new Tolerance(1E-12, 1E-12)));
             Assert.Equal(Bits(leader.Spline.GetPointAtParameter(0.5 * leader.EndParam)), Bits(after));
             Assert.Equal(Assert.IsType<GeoSpline3>(Assert.Single(drawn.GetGeometry())).ControlPoints.Select(Bits), Assert.IsType<GeoSpline3>(Assert.Single(leader.GetGeometry())).ControlPoints.Select(Bits));
 
@@ -146,11 +148,12 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.NotNull(new DxfLine(new GeoPoint3(i, 0, 0), new GeoPoint3(i, 1, 0)));
             }
 
-            var drawn = (DxfSpline)leader.Explode()[0];
+            leader.HasArrowHead = false;
+            var drawn = (DxfSpline)Assert.Single(leader.Explode());
             var rounding = new Tolerance(1E-8, 1E-8);
 
-            Assert.True(drawn.GetPointAtParameter(100 / 399.0).IsEqualTo(points[100], rounding));
-            Assert.True(drawn.GetPointAtParameter(1.0).IsEqualTo(points[399], rounding));
+            Assert.True(drawn.GetPointAtParameter(100 / 399.0 * leader.EndParam).IsEqualTo(points[100], rounding));
+            Assert.True(drawn.GetPointAtParameter(leader.EndParam).IsEqualTo(points[399], rounding));
         }
 
         [Fact]

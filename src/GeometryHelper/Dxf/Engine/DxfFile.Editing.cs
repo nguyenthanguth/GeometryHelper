@@ -2484,8 +2484,9 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Sees to what pointed at what was removed: an object it owned, by the owner of the object (330), goes with it, and
-        /// what that owned with that; a GROUP no longer lists it (340), and one it leaves with no member goes, as AutoCAD and
-        /// ezdxf drop an empty group; a list of reactors no longer holds it (330 in {ACAD_REACTORS), nor a SORTENTSTABLE (331
+        /// what that owned with that; a GROUP no longer lists it (340), and an anonymous one it leaves with no member goes, a
+        /// named one kept empty, as AutoCAD 2021 keeps G_ERASE when its one line is erased; a list of reactors no longer holds
+        /// it (330 in {ACAD_REACTORS), nor a SORTENTSTABLE (331
         /// with the 5 after it), nor a dictionary (350 or 360 with the name 3 before it); any other pointer at it is kept and
         /// said in the log.
         /// </summary>
@@ -2531,7 +2532,7 @@ namespace GeometryHelper.Dxf
                     }
                 }
 
-                // A GROUP emptied goes too, and then what lists it: once more until nothing more goes.
+                // An anonymous GROUP emptied goes too, and then what lists it: once more until nothing more goes.
                 listed = gone.Count;
                 left.Clear();
 
@@ -2701,8 +2702,9 @@ namespace GeometryHelper.Dxf
                 return false;
             }
 
-            // A GROUP left with no member goes, its handle with what was removed.
-            if (record.Type == "GROUP")
+            // An anonymous GROUP left with no member goes, its handle with what was removed; a named one is kept, empty, as
+            // AutoCAD 2021 keeps it.
+            if (record.Type == "GROUP" && Anonymous(Record(record).Text(70)))
             {
                 bool member = false;
                 braced = false;

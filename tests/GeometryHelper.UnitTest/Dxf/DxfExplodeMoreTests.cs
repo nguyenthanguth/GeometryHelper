@@ -235,10 +235,10 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void ASplinedLeaderExploded_GivesTheSplineEzdxfFitsThroughItsVertices_ThenItsArrowhead()
+        public void ASplinedLeaderExploded_GivesItsArrowhead_ThenTheSplineFromTheArrowsBack_ItsKnotsTheChords()
         {
-            // As ezdxf's virtual_entities gives it: a cubic through the four vertices by the chord, its inner knots their
-            // parameters, leaving along the first segment and arriving along the last.
+            // As AutoCAD 2021's Explode gives it: the arrowhead, then a cubic through the four vertices from the arrow's back by
+            // the chord, leaving along the first segment and arriving along the last, its knots the lengths of the chords.
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
             var leader = new DxfLeader();
 
@@ -253,19 +253,20 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfEntity[] parts = leader.Explode().ToArray();
 
-            Assert.Equal(new[] { "DxfSpline", "DxfSolid" }, parts.Select(p => p.GetType().Name));
-            DxfNurbsData nurbs = ((DxfSpline)parts[0]).NurbsData;
+            Assert.Equal(new[] { "DxfSolid", "DxfSpline" }, parts.Select(p => p.GetType().Name));
+            DxfNurbsData nurbs = ((DxfSpline)parts[1]).NurbsData;
             Assert.Equal(3, nurbs.Degree);
-            GeoPoint3[] expected =
-            {
-                new GeoPoint3(0, 20, 0), new GeoPoint3(3.333333333333334, 23.333333333333336, 0), new GeoPoint3(8.888459181845917, 34.571651519132175, 0),
-                new GeoPoint3(26.301812980525387, 24.048695051384765, 0), new GeoPoint3(35.0, 32.666666666666664, 0), new GeoPoint3(40, 35, 0),
-            };
-            Assert.Equal(expected.Length, nurbs.GetControlPoints().Count);
-            Assert.All(expected.Zip(nurbs.GetControlPoints(), (e, a) => e.DistanceTo(a)), d => Assert.True(d < 1E-9, d.ToString()));
-            Assert.Equal(new[] { 0, 0, 0, 0, 0.308592760571, 0.638801434290, 1, 1, 1, 1 }, nurbs.GetKnots().Select(k => Math.Round(k, 12)));
+            double size = leader.Dimasz * (leader.Dimscale > 0.0 ? leader.Dimscale : 1.0);
+            GeoPoint3 back = new GeoPoint3(0, 20, 0).Add(new GeoVector3(10, 10, 0).Normalize().Multiply(size));
+            Assert.Equal(6, nurbs.GetControlPoints().Count);
+            Assert.True(back.DistanceTo(nurbs.GetControlPoints()[0]) < 1E-9);
+            Assert.True(new GeoPoint3(40, 35, 0).DistanceTo(nurbs.GetControlPoints()[5]) < 1E-9);
+            double c1 = back.DistanceTo(new GeoPoint3(10, 30, 0));
+            double c2 = c1 + new GeoPoint3(10, 30, 0).DistanceTo(new GeoPoint3(25, 28, 0));
+            double c3 = c2 + new GeoPoint3(25, 28, 0).DistanceTo(new GeoPoint3(40, 35, 0));
+            Assert.Equal(new[] { 0, 0, 0, 0, c1, c2, c3, c3, c3, c3 }.Select(k => Math.Round(k, 9)), nurbs.GetKnots().Select(k => Math.Round(k, 9)));
             Assert.All(parts, p => Assert.Equal(3, p.ColorIndex));
-            Assert.Equal(Bits(new GeoPoint3(0, 20, 0)), Bits(((DxfSolid)parts[1]).GetPointAt(0)));
+            Assert.Equal(Bits(new GeoPoint3(0, 20, 0)), Bits(((DxfSolid)parts[0]).GetPointAt(1)));
 
             foreach (DxfEntity part in parts)
             {
@@ -371,10 +372,10 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AMultileaderExploded_GivesItsWordsOrBlock_ThenItsArrowAndLinesToTheEndOfItsDogleg()
+        public void AMultileaderExploded_GivesItsWordsOrBlock_ThenItsDoglegAndForEachLineAPolylineAndItsArrow()
         {
-            // As ezdxf's virtual_entities gives them, the closed filled arrow a SOLID: the words "note" held at (0, 20), the leader
-            // from (-20, 20) to (-10, 18), an arrow 4 long, then the dogleg 8 long to (-2, 18).
+            // As AutoCAD 2021's Explode gives them, the closed filled arrow a SOLID: the words "note" held at (0, 20), the dogleg
+            // 8 long from (-10, 18) to (-2, 18), the leader a polyline from 4 along from (-20, 20) to (-10, 18), then its arrow.
             DxfDatabase db = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
             DxfMLeader words = ByHandle<DxfMLeader>(db, "8A");
             DxfMLeader block = ByHandle<DxfMLeader>(db, "BA");
@@ -382,23 +383,27 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfEntity[] parts = words.Explode().ToArray();
             DxfEntity[] marked = block.Explode().ToArray();
 
-            Assert.Equal(new[] { "DxfMText", "DxfSolid", "DxfLine", "DxfLine" }, parts.Select(p => p.GetType().Name));
+            Assert.Equal(new[] { "DxfMText", "DxfLine", "DxfPolyline", "DxfSolid" }, parts.Select(p => p.GetType().Name));
             var mtext = (DxfMText)parts[0];
             Assert.Equal("note", mtext.Contents);
             Assert.Equal(Bits(new GeoPoint3(0, 20, 0)), Bits(mtext.Location));
-            var arrow = (DxfSolid)parts[1];
-            Assert.Equal(Bits(new GeoPoint3(-20, 20, 0)), Bits(arrow.GetPointAt(0)));
+            var dogleg = (DxfLine)parts[1];
+            Near(new GeoPoint3(-10, 18, 0), dogleg.StartPoint);
+            Near(new GeoPoint3(-2, 18, 0), dogleg.EndPoint);
             GeoVector3 along = new GeoPoint3(-20, 20, 0).GetVectorTo(new GeoPoint3(-10, 18, 0)).Normalize();
-            var line = (DxfLine)parts[2];
-            Near(new GeoPoint3(-20, 20, 0).Add(along.Multiply(4.0)), line.StartPoint);
-            Near(new GeoPoint3(-10, 18, 0), line.EndPoint);
-            Near(new GeoPoint3(-2, 18, 0), ((DxfLine)parts[3]).EndPoint);
-            Assert.All(parts.Skip(1), p => Assert.Equal(DxfLineWeight.ByBlock, p.LineWeight));
+            var line = (DxfPolyline)parts[2];
+            Assert.Equal(2, line.NumberOfVertices);
+            Near(new GeoPoint3(-20, 20, 0).Add(along.Multiply(4.0)), line.GetPoint3dAt(0));
+            Near(new GeoPoint3(-10, 18, 0), line.GetPoint3dAt(1));
+            var arrow = (DxfSolid)parts[3];
+            Assert.Equal(Bits(new GeoPoint3(-20, 20, 0)), Bits(arrow.GetPointAt(1)));
+            Assert.All(parts.Skip(1).Take(2), p => Assert.Equal(DxfLineWeight.ByBlock, p.LineWeight));
+            Assert.Equal(words.LineWeight, arrow.LineWeight);
 
             var insert = Assert.IsType<DxfBlockReference>(marked[0]);
             Assert.Equal("GKTAG", insert.Name);
             Assert.Equal(15.0, insert.Rotation * 180.0 / Math.PI, 9);
-            Assert.Equal(new[] { "DxfBlockReference", "DxfSolid", "DxfLine", "DxfLine" }, marked.Select(p => p.GetType().Name));
+            Assert.Equal(new[] { "DxfBlockReference", "DxfLine", "DxfPolyline", "DxfSolid" }, marked.Select(p => p.GetType().Name));
 
             foreach (DxfEntity part in parts.Concat(marked))
             {
@@ -436,22 +441,25 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void ASplinedMultileaderExploded_GivesOneSplineFromTheBackOfItsArrowToTheEndOfItsDogleg()
+        public void ASplinedMultileaderExploded_GivesItsDogleg_ThenOneSplineFromTheBackOfItsArrowToTheStartOfTheDogleg()
         {
-            // As ezdxf's virtual_entities gives it: the leader 8A splined runs from 4 back from (-20, 20) towards (-2, 18) and
-            // arrives there along its dogleg, (1, 0), the point the dogleg starts at not among its vertices.
+            // As AutoCAD 2021's Explode gives it: the leader 8A splined runs from 4 back from (-20, 20) towards (-10, 18) and
+            // arrives there along its dogleg, (1, 0), its knots the length of its chord; the dogleg a LINE of its own.
             DxfDatabase db = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
             DxfMLeader leader = ByHandle<DxfMLeader>(db, "8A");
             leader.LeaderLineType = DxfLeaderType.SplineLeader;
 
             DxfEntity[] parts = leader.Explode().ToArray();
 
-            Assert.Equal(new[] { "DxfMText", "DxfSolid", "DxfSpline" }, parts.Select(p => p.GetType().Name));
+            Assert.Equal(new[] { "DxfMText", "DxfLine", "DxfSpline", "DxfSolid" }, parts.Select(p => p.GetType().Name));
             DxfNurbsData nurbs = ((DxfSpline)parts[2]).NurbsData;
-            GeoPoint3[] expected = { new GeoPoint3(-16.024465061, 19.558273896, 0), new GeoPoint3(-11.349643374, 19.038849264, 0), new GeoPoint3(-6.703590092, 18, 0), new GeoPoint3(-2, 18, 0) };
+            GeoVector3 along = new GeoVector3(10, -2, 0).Normalize();
+            GeoPoint3 back = new GeoPoint3(-20, 20, 0).Add(along.Multiply(4.0));
+            double chord = back.DistanceTo(new GeoPoint3(-10, 18, 0));
+            GeoPoint3[] expected = { back, back.Add(along.Multiply(chord / 3.0)), new GeoPoint3(-10 - chord / 3.0, 18, 0), new GeoPoint3(-10, 18, 0) };
             Assert.Equal(4, nurbs.GetControlPoints().Count);
             Assert.All(expected.Zip(nurbs.GetControlPoints(), (e, a) => e.DistanceTo(a)), d => Assert.True(d < 1E-8, d.ToString()));
-            Assert.Equal(new[] { 0.0, 0, 0, 0, 1, 1, 1, 1 }, nurbs.GetKnots());
+            Assert.Equal(new[] { 0.0, 0, 0, 0, chord, chord, chord, chord }.Select(k => Math.Round(k, 9)), nurbs.GetKnots().Select(k => Math.Round(k, 9)));
         }
 
         [Fact]

@@ -264,9 +264,14 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.IsType<GeoPolyline3>(straight.Shape).Vertices.Select(Bits));
             Assert.IsType<GeoPolyline2>(plan.Shapes.Single(s => s.Handle == "89").Shape);
             var spline = Assert.IsType<GeoSpline3>(read.Shapes.Single(s => s.Handle == "B2").Shape);
-            var drawn = (DxfSpline)ByHandle<DxfLeader>(db, "B2").Explode()[0];
+            DxfLeader b2 = ByHandle<DxfLeader>(db, "B2");
+            b2.HasArrowHead = false;
+            var drawn = (DxfSpline)Assert.Single(b2.Explode());
             Assert.Equal(Assert.IsType<GeoSpline3>(Assert.Single(drawn.GetGeometry())).ControlPoints.Select(Bits), spline.ControlPoints.Select(Bits));
-            Assert.Equal(Assert.IsType<GeoSpline3>(Assert.Single(drawn.GetGeometry())).Knots.Select(Bits), spline.Knots.Select(Bits));
+            // The exploded spline's knots run over the lengths of the chords, as AutoCAD 2021's; the reader's from 0 to 1.
+            IReadOnlyList<double> knots = Assert.IsType<GeoSpline3>(Assert.Single(drawn.GetGeometry())).Knots;
+            Assert.Equal(knots.Count, spline.Knots.Count);
+            Assert.All(spline.Knots.Zip(knots, (k, d) => (k * knots[knots.Count - 1]) - d), d => Assert.True(Math.Abs(d) < 1E-9, d.ToString(System.Globalization.CultureInfo.InvariantCulture)));
             Assert.Contains(read.Shapes, s => s.Handle == "B3" && s.Shape is GeoPolyline3);
             Assert.False(read.Skipped.ContainsKey("LEADER"));
 
