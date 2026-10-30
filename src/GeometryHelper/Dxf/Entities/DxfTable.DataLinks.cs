@@ -30,8 +30,9 @@ namespace GeometryHelper.Dxf
     /// </para>
     /// <para>
     /// Links are taken away as AutoCAD's <c>RemoveDataLink</c> takes them, the TABLECONTENT's cell made unlinked in place, its
-    /// 92 even, its run out and its flag 4 cleared; and put in as AutoCAD's <c>SetDataLink</c> puts them, into the cell of the
-    /// TABLECONTENT, to a DATALINK the drawing has (<see cref="SetDataLink(DxfCellRange, DxfDataLink)"/>). A table of no
+    /// 92 even, its run out, and the flag 4 cleared from it and from every other cell of its range; and put in as AutoCAD's
+    /// <c>SetDataLink</c> puts them, into the cell of the TABLECONTENT, to a DATALINK the drawing has
+    /// (<see cref="SetDataLink(DxfCellRange, DxfDataLink)"/>). A table of no
     /// TABLECONTENT, as a program other than AutoCAD writes one, is not linked: AutoCAD writes the whole of it, every cell's
     /// content and format and the table's geometry, when it links such a table, which the library does not make.
     /// </para>
@@ -43,8 +44,8 @@ namespace GeometryHelper.Dxf
         private int _linksEdits;
         private List<LinkedRange> _links;
 
-        // The cells of the TABLECONTENT whose state has the flag 4 of a linked cell, read with the links.
-        private HashSet<(int, int)> _flagged;
+        // The cells of the TABLECONTENT whose state has the flag 4 of a linked cell, read with the links: where each state stands.
+        private Dictionary<(int, int), int> _flagged;
 
         #region Data links
 
@@ -105,7 +106,8 @@ namespace GeometryHelper.Dxf
         /// of it, as <see cref="GetDataLinkRange"/> finds it. AutoCAD 2021 read a range linked over (1, 0) to (2, 1) in the
         /// TABLECONTENT as linked at (1, 0) and not at (1, 1), (2, 0) or (2, 1), though each of them gave the range and the link
         /// (its 73-h); with the state 4 given to (2, 1) as well, as linked at (1, 0) and (2, 1) (73-k); and with the state 0 at
-        /// (1, 0), still as linked there (73-l).
+        /// (1, 0), still as linked there (73-l). A cell of the state 4 in no range is not linked, as AutoCAD read (0, 1) given it
+        /// beside that range (73-m).
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="column">The column, from nought.</param>
@@ -115,13 +117,16 @@ namespace GeometryHelper.Dxf
         {
             // The cells of a linked state are read with the links Covering reads.
             LinkedRange link = Covering(row, column, out _);
-            return link != null && (link.Cell == null || (link.TopRow == row && link.LeftColumn == column) || _flagged.Contains((row, column)));
+            return link != null && (link.Cell == null || (link.TopRow == row && link.LeftColumn == column) || _flagged.ContainsKey((row, column)));
         }
 
         /// <summary>
         /// Takes every data link of the table away, as AutoCAD's <c>RemoveDataLink()</c>: each top left cell's link groups
-        /// taken out and its 92 made even, in the TABLECONTENT, where the cell's flag 4 of a linked cell is cleared too, and in
-        /// the cells of the ACAD_TABLE, in one writing of each record. The DATALINK let go of stays in the drawing, in the
+        /// taken out and its 92 made even, in the TABLECONTENT, where the flag 4 of a linked cell is cleared too from the state
+        /// of every cell of the range, and in the cells of the ACAD_TABLE, in one writing of each record. AutoCAD 2021 read the
+        /// cell (2, 1) of a range linked over (1, 0) to (2, 1), left with its state 4 when the link was taken away, as linked
+        /// with no range, and saved it so (its 73-n); no cell of the range is left so. A cell of the flag 4 outside every
+        /// range, which AutoCAD reads as not linked (73-m), is left as it is. The DATALINK let go of stays in the drawing, in the
         /// dictionary of data links, named or anonymous (<see cref="DxfDataLinkOption.Anonymous"/>), as AutoCAD 2021's
         /// <c>RemoveDataLink</c> keeps it, the table and what it owns taken out of the objects it lists itself tied to (its
         /// 94 and their 330s): AutoCAD's link of the table F6 alone, <c>94 2</c>, <c>330 F6</c>, <c>330 149</c>, comes out
@@ -131,17 +136,18 @@ namespace GeometryHelper.Dxf
         public void RemoveDataLink()
         {
             Layout layout = ReadToWrite();
-            List<LinkedRange> before = AllLinks(layout);
+            var flagged = new Dictionary<(int, int), int>();
+            List<LinkedRange> before = AllLinks(layout, flagged);
             WriteLinks(layout, new List<LinkedRange>());
-            TakeOutOfContent(before.FindAll(l => l.Cell != null));
+            TakeOutOfContent(before.FindAll(l => l.Cell != null), flagged);
             KeepFormulas(before);
             LetGo(Handles(before));
         }
 
         /// <summary>
         /// Takes away the data link of the range a cell is in, as AutoCAD's <c>RemoveDataLink(row, column)</c>, as
-        /// <see cref="RemoveDataLink()"/> takes every one away: the first range by its top left cell, row by row, that holds the
-        /// cell. Nothing where it is in none.
+        /// <see cref="RemoveDataLink()"/> takes every one away, the flag 4 cleared from every cell of the range: the first range by
+        /// its top left cell, row by row, that holds the cell. Nothing where it is in none.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="column">The column, from nought.</param>
@@ -151,7 +157,8 @@ namespace GeometryHelper.Dxf
         {
             Layout layout = ReadToWrite();
             layout.CellOf(row, column);
-            List<LinkedRange> before = AllLinks(layout);
+            var flagged = new Dictionary<(int, int), int>();
+            List<LinkedRange> before = AllLinks(layout, flagged);
             LinkedRange taken = before.Find(l => l.Holds(row, column));
 
             if (taken == null)
@@ -161,7 +168,7 @@ namespace GeometryHelper.Dxf
 
             if (taken.Cell != null)
             {
-                TakeOutOfContent(new List<LinkedRange> { taken });
+                TakeOutOfContent(new List<LinkedRange> { taken }, flagged);
             }
             else
             {
@@ -394,7 +401,7 @@ namespace GeometryHelper.Dxf
 
             if (!ReferenceEquals(layout, _linksOf) || edits != _linksEdits)
             {
-                var flagged = new HashSet<(int, int)>();
+                var flagged = new Dictionary<(int, int), int>();
                 _links = AllLinks(layout, flagged);
                 _flagged = flagged;
                 _linksOf = layout;
@@ -407,9 +414,10 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// The links of the table, those its TABLECONTENT names and those its cells name, by their top left cells row by row, a
         /// link of the TABLECONTENT before one of the cells at the same cell, then by their bottom right cells and handles; the
-        /// cells of the TABLECONTENT whose state has the flag 4 of a linked cell put in a set where one is given.
+        /// cells of the TABLECONTENT whose state has the flag 4 of a linked cell put, with where their states stand, in a
+        /// dictionary where one is given.
         /// </summary>
-        private List<LinkedRange> AllLinks(Layout layout, HashSet<(int, int)> flagged = null)
+        private List<LinkedRange> AllLinks(Layout layout, Dictionary<(int, int), int> flagged = null)
         {
             List<LinkedRange> links = ContentLinks(layout, flagged);
             links.AddRange(Links(layout));
@@ -727,9 +735,10 @@ namespace GeometryHelper.Dxf
         /// at the table's last row and column; none where the table has no TABLECONTENT. A cell is the table's of its row and
         /// column, whatever rows or columns the TABLECONTENT has, as AutoCAD 2021 read its link of (1, 0) in a table of four rows
         /// whose TABLECONTENT had three (its 73-e); one past the table's last row or column names none. Each cell whose state
-        /// (the 90 after its LINKEDTABLEDATACELL_BEGIN) has the flag 4 of a linked cell is put in <paramref name="flagged"/>, where it is not null.
+        /// (the 90 after its LINKEDTABLEDATACELL_BEGIN) has the flag 4 of a linked cell is put in <paramref name="flagged"/>, where
+        /// it is not null, with where its state stands among the record's groups.
         /// </summary>
-        private List<LinkedRange> ContentLinks(Layout layout, HashSet<(int, int)> flagged)
+        private List<LinkedRange> ContentLinks(Layout layout, Dictionary<(int, int), int> flagged)
         {
             var links = new List<LinkedRange>();
             DxfItem content = IsResident ? ContentItem() : null;
@@ -761,10 +770,10 @@ namespace GeometryHelper.Dxf
                     int row = widths.Count - 1;
                     int column = widths[row]++;
 
-                    if (i + 1 < groups.Count && groups[i + 1].TypeCode == 90
+                    if (flagged != null && i + 1 < groups.Count && groups[i + 1].TypeCode == 90
                         && int.TryParse(groups[i + 1].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int state) && (state & 4) != 0)
                     {
-                        flagged?.Add((row, column));
+                        flagged[(row, column)] = i + 1;
                     }
 
                     i = ReadCell(groups, i, row, column, cells);
@@ -930,10 +939,12 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Makes cells of the TABLECONTENT unlinked, as AutoCAD's <c>RemoveDataLink</c>: each one's 92 made even and the run of
-        /// its link (340, 93, 94, 96) taken out, its state's flag 4 of a linked cell cleared, in one writing of the record, every
-        /// other group kept as it is.
+        /// its link (340, 93, 94, 96) taken out, and the flag 4 of a linked cell cleared in the state of every cell of its range
+        /// (<paramref name="flagged"/>, as <see cref="ContentLinks"/> reads them), in one writing of the record, every other
+        /// group kept as it is. AutoCAD 2021 read a cell of the range left with its state 4, once the link was taken away, as
+        /// linked with no range, and saved it so (its 73-n); a cell of the flag 4 outside the ranges is left as it is.
         /// </summary>
-        private void TakeOutOfContent(List<LinkedRange> links)
+        private void TakeOutOfContent(List<LinkedRange> links, Dictionary<(int, int), int> flagged)
         {
             if (links.Count == 0)
             {
@@ -948,11 +959,31 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
+            // Where the states of the flag 4 of the ranges' cells stand, their top left cells' among them, first to last.
+            var states = new List<int>();
+
+            foreach (KeyValuePair<(int, int), int> state in flagged)
+            {
+                if (links.Exists(l => l.Holds(state.Key.Item1, state.Key.Item2)))
+                {
+                    states.Add(state.Value);
+                }
+            }
+
+            states.Sort();
             var cells = links.ConvertAll(l => l.Cell);
             cells.Sort((a, b) => b.LinkAt.CompareTo(a.LinkAt));
             int from = cells[cells.Count - 1].FlagAt >= 0 ? cells[cells.Count - 1].FlagAt : cells[cells.Count - 1].LinkAt;
+            from = states.Count > 0 ? Math.Min(from, states[0]) : from;
             List<DxfTypedValue> tail = Item.File.TailOf(content, from);
             var groups = tail.ConvertAll(g => new KeyValuePair<int, string>(g.TypeCode, g.Value));
+
+            // The states first, where they stand before any run is taken out.
+            foreach (int at in states)
+            {
+                int flags = int.Parse(groups[at - from].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture);
+                groups[at - from] = new KeyValuePair<int, string>(90, (flags & ~4).ToString(CultureInfo.InvariantCulture));
+            }
 
             foreach (ContentCell cell in cells)
             {
@@ -960,11 +991,6 @@ namespace GeometryHelper.Dxf
                 int linked = int.TryParse(groups[at].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int read) ? read : 1;
                 groups[at] = new KeyValuePair<int, string>(92, (linked & ~1).ToString(CultureInfo.InvariantCulture));
                 groups.RemoveRange(at + 1, cell.Run);
-
-                if (cell.FlagAt >= 0 && int.TryParse(groups[cell.FlagAt - from].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int flags) && (flags & 4) != 0)
-                {
-                    groups[cell.FlagAt - from] = new KeyValuePair<int, string>(90, (flags & ~4).ToString(CultureInfo.InvariantCulture));
-                }
             }
 
             Item.File.ReplaceTail(content, from, groups);

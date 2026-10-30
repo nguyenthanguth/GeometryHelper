@@ -295,6 +295,20 @@ written as AutoCAD reads them now.
       `NurbsData.Periodic` and `FitData.Periodic`, and `ToPolylineWithPrecision` places the knots by it as before, so every
       polyline of v6 to v9 that matched still matches, each the same to the bit. Not done: the 4 control points and 5 knots
       AutoCAD gives a periodic spline, the library giving those of its record.
+    - AutoCAD 2021 (plugin v12, 17j): the knots of all eight are in place by the flag 1024, which is where AutoCAD gives fit
+      points, as the library places them. `NurbsData.Periodic` is the flag 2048, as `IsPeriodic`: True on 3115, 2091, 3083
+      and 2059, False on 11, 1067, 1035 and 43. `FitData.Periodic` is False on all four that have fit data, 3115 and 3083 of
+      the flag 2048 among them, and the getter throws on the four that have none. The 4 control points AutoCAD gives a
+      spline of the flag 2048 are those of its record with its right end unclamped (The NURBS Book, A12.1): of the 7 and the
+      clamped knots of the record, unclamped at the right end, the points from the degree on, 3 to 6, and the knots from the
+      degree on, 0, 30, 45, 55 and 80; within 2E-14 on 3115, 2091, 3083 and 2059.
+    - Parked (D20): `NurbsData.Periodic` and `FitData.Periodic` still give the flag 2, and the control points and knots
+      those of the record. `NurbsData.Periodic` cannot follow AutoCAD and leave every written byte as it was: a spline of 70
+      11 given its own data back by `SetNurbsData(..., data.Periodic, ...)` would lose its flag 2, which the same call made
+      not periodic takes off, and AutoCAD gives the flag 2048 with the 4 points and 5 knots of its own form, which
+      `SetNurbsData` refuses. Still to see (v13): AutoCAD's `SetNurbsData` and `FitData` set on its 11 and 1035; and 17-m, a
+      rational spline of the flag 2048, 17-n and 17-o, 2059 of a seam made not smooth at its left and at its right, of
+      after-d20, whose 4 points the rule gives (`_notes-d20.txt`).
     - Degree 4, 5 and rational, parked: the tolerance the counts fit is the larger of 1 / M and the spline's length over
       10 000, over (p + 1)^2: the quartic (M 120, length 47.7) takes 1 / M, every one of its nine counts; the quintic Bezier
       (M 400, length 55.00), the quintic of two spans (M 223.6, length 70.085), the rational cubics 1, 2, 2, 1 (M 600, length
@@ -912,6 +926,16 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is not linked, as the l
       gives it and the link 142 in both. Saved again (v11-73k-resaved, -73l-resaved), each cell's state is kept as written.
     - Now (D19): `IsLinked` of a range of the TABLECONTENT is true at its top left cell, whatever its state, and at any other
       cell of it whose state has the flag 4, as AutoCAD read 73-k and 73-l.
+    - AutoCAD 2021 (plugin v12): 73-m, the flag 4 given to (1, 1) inside the range and to (0, 1) outside it, is linked at
+      (1, 0) and (1, 1), not at (0, 1), which gives no range and a `State` of none, as the library reads it. 73-n, 73-k given
+      `RemoveDataLink()` by the library, which cleared the top left's flag alone: (2, 1), left with `90 4`, reads linked with
+      no range, its `State` Linked, and its save kept `90 4` there; the table has no link and the DATALINK no target.
+    - Now (D20): `RemoveDataLink()` and `RemoveDataLink(row, column)` clear the flag 4 from the state of every cell of the
+      range they let go of, the one byte of 73-n that differs; a cell of the flag 4 outside every range is left as it is, and
+      reads not linked, as 73-m. Still to see (v13): 73-o, 73-p and 73-q of after-d20 read with no cell linked; and 73-r, the
+      flag 4 on (2, 1), a cell with a content in a row of data outside the range (1, 0) to (1, 1), and on the title (0, 0),
+      which the library reads as not linked, where AutoCAD read 73-n's (2, 1) of no range as linked and 73-m's (0, 1),
+      of no content, as not.
 
 74. **The groups of a DATALINK.**
     - Try: read the DATALINK of the drawing of point 73; then open in AutoCAD, with AUDIT, a drawing whose DATALINK has no 70

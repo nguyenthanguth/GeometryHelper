@@ -78,6 +78,13 @@ within the tolerance of one plane are fixed on their own, see above. On .NET 10,
 1.03 seconds at nought where they took 1.71, and 2.38 where 3.95 on .NET Framework 4.8; two sections of each take what
 they took, 2.38 seconds where 2.40, and 5.87 where 5.91; at a thousandth both take what they took. 8 new tests.
 
+**FIXED.** `DxfTable.RemoveDataLink()` and `RemoveDataLink(row, column)` clear the flag 4 of a linked cell from the state of
+every cell of the range they take the link from, where they cleared it from the top left cell alone. The library's range
+(1, 0) to (2, 1) with the state 4 given to (2, 1) as well kept it at (2, 1) once its link was taken away, and AutoCAD 2021
+read (2, 1) as linked with no range, and saved it so; now no cell of the range keeps it, and that one byte is all that
+changes in the file. A cell of the flag 4 outside every range, which AutoCAD reads as not linked, is left as it is. Taking
+the links away takes what it took, 1.3 milliseconds with the reading of the drawing on .NET Framework 4.8. 3 new tests.
+
 **CHANGED.** `DxfSpline.IsPeriodic` is the flag 2048 of group 70, as AutoCAD 2021 reads it, where it was the flag 2:
 AutoCAD writes the flag 2 on its closed splines too and reads no period from it. Its periodic cubic of 70 3115 is periodic
 and its closed cubic of 70 11 is not, and either turns into the other with the flag 2048 alone taken out or put in, the

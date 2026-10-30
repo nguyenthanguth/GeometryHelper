@@ -1407,7 +1407,8 @@ DATALINK's handle (340), the range's rows (93) and columns (94) and a 96, and it
 the ACAD_TABLE's own cells name no link. `GetDataLink` and `GetDataLinkRange` read it from every cell of the range, and
 `IsLinked` is true at its top left cell, whatever its state, and at any other cell of it whose state in the TABLECONTENT
 has the flag 4, as AutoCAD 2021 read the library's range (1, 0) to (2, 1) linked at (1, 0) and not at (1, 1), (2, 0) or
-(2, 1), each of which gave the range and the link, and linked at (2, 1) too once its state was given the flag 4; a cell of the TABLECONTENT is taken as the
+(2, 1), each of which gave the range and the link, and linked at (2, 1) too once its state was given the flag 4; a cell of
+the flag 4 in no range is not linked, as AutoCAD read (0, 1) given it beside that range; a cell of the TABLECONTENT is taken as the
 table's of its row and column whatever rows the TABLECONTENT has, as AutoCAD
 2021 read the link of (1, 0) of a table given a fourth row by a program that left its TABLECONTENT of three: AutoCAD's table
 linked over (1, 0) to (2, 1), which it read back as (1, 0) alone, gives (1, 0) to (1, 0), and `link.GetTargets()` gives the
@@ -1416,8 +1417,9 @@ of the drawing: the range's top left cell of the TABLECONTENT given the flag 4, 
 `94` columns, `96 1` after it, and the DATALINK tied to the table and its TABLECONTENT (`94 2`, `330 F6`, `330 187`). The
 cells keep what they hold until AutoCAD updates the link; a table of no TABLECONTENT, as a program other than AutoCAD writes
 one, and a range that meets a linked one are refused. `RemoveDataLink` takes the links
-away as AutoCAD 2021's does: the TABLECONTENT's cell made unlinked in place (92 even, the run out, the flag 4 cleared),
-the DATALINK left in the drawing, named or `Anonymous`, the table and what it owns taken out of the objects it lists
+away as AutoCAD 2021's does: the TABLECONTENT's cell made unlinked in place (92 even, the run out, the flag 4 cleared from
+it and from every other cell of its range, as AutoCAD read a cell of the range left with it as linked with no range and
+saved it so; a cell of the flag 4 outside every range is left as it is), the DATALINK left in the drawing, named or `Anonymous`, the table and what it owns taken out of the objects it lists
 itself tied to (`94 2`, `330 F6`, `330 149` comes out `94 0`). Rows and columns put in or taken out leave the TABLECONTENT
 as it was, so a link of AutoCAD's stays at its cell, as AutoCAD reads it, and one past the table's last row or column names
 none. The library reads no
