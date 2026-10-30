@@ -30,6 +30,30 @@ first, stood in their place; each arc is bent by
 the turn over the piece the halving made, 0.418 from (0, 0) to (40, 0), as AutoCAD's. An open spline is given what it was.
 4 new tests.
 
+**FIXED.** `TrySubtract`, `TryIntersect` and `TryUnion` asked below four tenths of the rounding of the coordinates,
+nought among it, of a body that does not close within that rounding, as one with cracks in its faces does not, take what
+they work out within the rounding where it holds up, or where they give something within the tolerance alone too, and
+are not worked out otherwise. Nothing such a body gives is checked on the way, and worked out within the rounding, the
+booleans the tolerance alone did not work out came out wrong and were trusted: at nought a cube 10 across, cracked
+0.0001 wide along its top, its bottom and a side, less a box 3 across turned inside it, came back whole, 999.998, where
+973 is left; turned and joined to a box 7.5 by 6.2 through its corner, it held 1 232.638, where the two hold 1 107.64;
+and its common part with a slab leaning through it was the whole cube, where they share 76.79. A difference or a union
+holds up where it adds up with the common part of the two, itself lying within the body that closes, the volumes read
+as `GetVolume` reads them, within what the open area of each body that does not close, the faces' areas summed with
+their normals, times the diagonal of its box moves a volume; where the common part comes out as nothing the skins of
+the two may not run into each other. A common part holds up where no corner of it lies outside the body that closes. Of
+17 178 booleans of such a cube and a body through it at nought, 433 the tolerance alone did not work out and 51 it said
+were nothing came out wrong: 9 still do, unions 0.0102 to 0.0125 from what the uncracked cube gives against the 0.01
+the cracks move, and 15 696 hold what it does within 0.01, where 15 698 did, the 2 not worked out now open by holes the
+cube does not have. Of 36 000 differences, common parts and unions of a U so cracked and a box, 1 342 unions, 201
+differences and 21 common parts came out wrong where the tolerance alone gave nothing: 54 unions and 21 common parts
+still do, and 25 of the 13 655 differences and unions that held what they should are not worked out now. Wherever both
+bodies close within the rounding, and at four tenths of it and above, 1E-3, 1E-2 and 0.05 among them, every boolean is
+worked out as it was, to the bit; below it, of two bodies that close, a boolean takes up to 0.03 milliseconds more, a
+slot 1E6 out at three tenths of the rounding 0.149 where it took 0.127 on .NET 10, and 0.354 where 0.315 on .NET
+Framework 4.8. Turned down, the cracked cube less the box inside it takes 4.2 milliseconds, where it took 2.2 to come
+back whole (9.1 and 4.1 on .NET Framework 4.8).
+
 **FIXED.** `TrySubtract`, `TryIntersect` and `TryUnion` of two bodies, asked below four tenths of the rounding of their
 coordinates, a quadrillionth of the largest of them, nought among it, are worked out as though asked at that rounding,
 reading a corner as on a plane within what rounding adds as they do just above it, and what they give is welded to close
@@ -44,13 +68,13 @@ a thousand to a hundred million out, at nought and a tenth to four tenths of the
 common parts and 9 785 unions wrong or said to be nothing, all trusted, are right now and valid at the tolerance asked,
 as are 16 990 differences, 20 078 common parts and 21 741 unions that were not worked out; 6 unions are not worked out,
 5 of them as before, and none that was right moved. A body open at nought, a cube or a U with cracks up to 0.0001 wide
-in its faces, is as open within the rounding, and what a boolean of it gives is taken as it comes: of 17 178 booleans of
-such a cube and a box at nought, 15 698 hold what the closed cube would within 0.01, where 1 578 did, and 1 217 hold
-further from it, not valid at nought, where 7 921 did. At four tenths of the rounding and above, 1E-3, 1E-2 and 0.05
-among them, every boolean is worked out as it was, to the bit. The hole at the origin takes 3.3 milliseconds at nought,
-where it took 3.7 to come back whole, on .NET 10, and 1.2 where 1.6 on .NET Framework 4.8; a plate 400 by 200 by 10 less
-20 holes one after another takes 86 at nought, where it took 10 to take none of them out, and 50 at a thousandth (174, 28
-and 104 on .NET Framework 4.8); at a thousandth the operations take what they took.
+in its faces, is as open within the rounding, and what a boolean of it gives is taken where it holds up, as the entry
+above says: of 17 178 booleans of such a cube and a box at nought, 15 696 hold what the closed cube would within 0.01,
+where 1 578 did, and 742 hold further from it, not valid at nought, where 7 921 did. At four tenths of the rounding and
+above, 1E-3, 1E-2 and 0.05 among them, every boolean is worked out as it was, to the bit. The hole at the origin takes
+3.3 milliseconds at nought, where it took 3.7 to come back whole, on .NET 10, and 1.2 where 1.6 on .NET Framework 4.8; a
+plate 400 by 200 by 10 less 20 holes one after another takes 86 at nought, where it took 10 to take none of them out,
+and 50 at a thousandth (174, 28 and 104 on .NET Framework 4.8); at a thousandth the operations take what they took.
 
 **FIXED.** `TrySubtract`, `TryIntersect` and `TryUnion` of two bodies, asked within a few roundings of their coordinates,
 a quadrillionth of the largest of them, read a corner as on a plane within what rounding adds to the planar tolerance, a

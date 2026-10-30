@@ -1521,8 +1521,20 @@ turned at random at the origin and a thousand to a hundred million out, at nough
 rounding, every difference and common part, and every union but 6 not worked out, 5 of them as before, is right and
 valid at the tolerance asked, where 17 489 differences, 11 373 common parts and 9 785 unions were wrong or said to be
 nothing and trusted. A body open at nought, a cube or a U with cracks up to 0.0001 wide in its faces, is as open within
-the rounding, and what a boolean of it gives is taken as it comes, as at any tolerance where a body is open: as a rule
-not valid, and holding what an open body holds, which depends on where it is measured from.
+the rounding, and what a boolean of it gives is as a rule not valid, holding what an open body holds, which depends on
+where it is measured from. Nothing of it is checked on the way, as what two closed bodies give is, so it is taken only
+where it holds up, or where the boolean within the tolerance alone gives something too, and is not worked out
+otherwise. A difference or a union holds up where it adds up with the common part of the two, itself lying within the
+body that closes, the volumes read as `GetVolume` reads them, each from a corner of its own: read from anywhere in its
+box, an open body's volume moves by no more than its open area, the faces' areas summed with their normals, times
+the diagonal of the box, and that is what the volumes may miss by. A common part said to be nothing holds up only where
+the skin of neither body runs into the other, and a common part only where no corner of it lies outside the body that
+closes. At nought such a cube 10 across, cracked along its top, its bottom and a side, less a box 3 across turned inside
+it, came back whole, 999.998, where 973 is left; turned and joined to a box through its corner it held 1 232.638, where
+the two hold 1 107.64; and its common part with a slab leaning through it was the whole cube, where they share 76.79.
+None of the three is worked out now. Of 17 178 booleans of such a cube and a body through it at nought, 9 unions are
+still made 0.0102 to 0.0125 from what the uncracked cube gives, against the 0.01 the cracks move, where 433 made so
+and 51 said to be nothing were wrong.
 
 **Exactly the tolerance into or apart counts as touching.** Two bodies whose faces lie the tolerance into or clear of
 each other, or nearer, lie so to a few bits either way once turned, and a boolean reads them as touching there, closed
