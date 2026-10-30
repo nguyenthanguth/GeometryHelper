@@ -137,7 +137,15 @@ a rectangle's runs from its side. Against anything else such a side is the side 
 long. The closest edge of a polygon, a polyline or a rectangle takes no tolerance: it measures every side exactly, and
 reads a segment you give no longer than the global tolerance as its start. `TryIntersectWith` and `GetIntersections`
 still accept a crossing up to the tolerance past a segment's end, because they place points for cutting and extending
-rather than test for contact.
+rather than test for contact. Against a circle or an arc they place a touch exactly where the segment comes within the
+tolerance of the rim, as the distance to the rim says, however far its line runs on before it would cross: at a
+thousandth, the segment from (0.05, 50.0005) to (10, 50.0005) touches the circle of radius 50 about the origin at its
+start, 0.000525 off, and the one from (0.0009, 0.0019) to (1, 0.0019) does not touch the circle of radius 0.001 about the
+origin, its start 0.0011 off, though its line passes within the tolerance just behind it. A segment that runs into the
+rim and stops within the tolerance of it meets it once, where it crosses; and an arc whose end lies within the tolerance
+of a segment touches it there, where `CollidesWith` says they collide, wherever its circle crosses the segment's line.
+So the shortest line from a shape with straight sides to a circle or an arc is of no length only where the two come
+within the tolerance.
 
 The straight shapes and the curved ones are pairs like any other, in either order and for measuring as
 well as meeting:

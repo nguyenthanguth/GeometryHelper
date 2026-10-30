@@ -312,7 +312,7 @@ namespace GeometryHelper.Core
 
                 GeoEdge2 before = result[left].Edge;
                 GeoEdge2 after = result[right].Edge;
-                GeoPoint2[] crossings = before.GetIntersections(after, tolerance);
+                GeoPoint2[] crossings = CrossingsOf(before, after, tolerance);
 
                 if (crossings.Length == 0)
                 {
@@ -379,7 +379,7 @@ namespace GeometryHelper.Core
             // at most at the end they share.
             bool spent = afterSpent || result[result.Count - 1].Spent;
             bool closes = !across && Closes(arriving, leaving, distance, tolerance, exactTurns);
-            GeoPoint2[] crossings = spent ? new GeoPoint2[0] : before.GetIntersections(after, tolerance);
+            GeoPoint2[] crossings = spent ? new GeoPoint2[0] : CrossingsOf(before, after, tolerance);
 
             if (crossings.Length > 0)
             {
@@ -532,7 +532,7 @@ namespace GeometryHelper.Core
         {
             GeoPoint2 corner = arriving.EndPoint;
 
-            foreach (GeoPoint2 at in arriving.GetIntersections(leaving, tolerance))
+            foreach (GeoPoint2 at in CrossingsOf(arriving, leaving, tolerance))
             {
                 if (!at.IsEqualTo(corner, tolerance))
                 {
@@ -1602,7 +1602,7 @@ namespace GeometryHelper.Core
                             continue;
                         }
 
-                        foreach (GeoPoint2 meeting in offset[i].Edge.GetIntersections(offset[j].Edge, tolerance))
+                        foreach (GeoPoint2 meeting in CrossingsOf(offset[i].Edge, offset[j].Edge, tolerance))
                         {
                             // Where one piece only touches the other with an end, neither crosses to a side of the other.
                             bool touches = Ends(offset[i].Edge, meeting, tolerance) || Ends(offset[j].Edge, meeting, tolerance);

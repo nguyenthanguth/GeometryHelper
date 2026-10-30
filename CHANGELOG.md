@@ -409,6 +409,28 @@ tolerance of its rim still touches, up to 1.35 times the tolerance off; the 972 
 the shape are none, and of the curved loops and chains the 505 and 385 are none. Only shortest lines moved, and no
 collision, distance, intersection, offset or fillet of 600 000 random pairs. 3 new tests.
 
+**FIXED.** A segment meets a circle or an arc exactly where it comes within the point tolerance of it, as the gap to the
+rim says and as `CollidesWith` says of an arc. `TryIntersectWith` and `GetIntersections` of a `GeoCircle2` or a
+`GeoArc2` and a segment, and so of a ray, a polyline, a polygon, a rectangle, a triangle, a face, a chain, a loop and an
+edge against them, missed an end within the tolerance of the rim wherever the segment's line crossed the circle further
+than the tolerance past it, and took a foot of the line up to the tolerance past an end for a touch though that end
+stood up to 1.35 times the tolerance off. At a thousandth, the segment from (0.05, 50.0005) to (10, 50.0005) touches the
+circle of radius 50 about the origin at its start, 0.000525 off, where it met it nowhere, and the one from (0.0009,
+0.0019) to (1, 0.0019) no longer touches the circle of radius 0.001 about the origin, its start 0.0011 off; the shortest
+line from the square on that segment to the circle is 0.0011024 long, where it had no length. A segment that runs into
+the rim and stops within the tolerance of it meets it once, where it crosses: the one from (-1, 0) to (0.0004, 0) meets
+the circle of radius 0.0012 about the origin at (-0.0012, 0) only, where its end was a second meeting. An arc whose end
+lies within the tolerance of a segment touches it below that end, where they collide: the arc of radius 50 about (0,
+50.0002) starting 0.0045 radians past its bottom touches the x axis at (0.2249992, 0), where it met it nowhere. Of
+200 000 random segments ending about the rim of a circle and of an arc, at a thousandth and a hundredth and out to a
+million, 7 035 touches of the circle and 6 551 of the arc were missed, 8 read past the tolerance, and 344 and 206
+counted twice; none is now. A segment no longer than the tolerance is still read as its start. The shortest line
+follows: of 600 000 random polygons, polylines and rectangles, the 218 lines of no length to a circle more than the
+tolerance away are none, and the 25 841 lines that moved to a circle or an arc, with the 32 064 of the curved chains and
+loops, each lie within the tolerance, of no length where the two touch. Offsets cut their pieces where they cross as
+before: no collision, distance, closest edge, offset or fillet of 600 000 random pairs moved. On .NET Framework 4.8 a
+circle meets a segment in 0.065 microseconds where it took 0.059, and an arc in 0.209 where it took 0.131. 7 new tests.
+
 **FIXED.** `TryCutOpenings` and the measures of a body with openings no longer keep a skin the tolerance thin over an
 opening that cut in alone would lose it. Cut in together, a plane of one opening cuts every cell that reaches the
 opening's box, and a plate's first cells reach all of its openings: twelve boxes hidden 0.01 inside the faces of a plate

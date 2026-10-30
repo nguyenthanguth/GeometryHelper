@@ -193,32 +193,53 @@ namespace GeometryHelper.Core
         /// <returns>true if they meet at least once; otherwise, false.</returns>
         /// <remarks>
         /// The circle carrying the arc may be met where the arc itself does not reach, and those crossings
-        /// are left out. A segment whose line runs inside the rim within the point tolerance of it, and that
-        /// meets the arc nowhere so, still touches it where it comes within the tolerance of the arc: once, at
-        /// the foot of the perpendicular from the centre when the foot is on the segment and the arc holds
-        /// it, else at the point of the segment nearest the arc. At a tolerance of 0.001, a segment ending
-        /// 0.0002 from the end of an arc, its line 0.0002 inside the rim, touches the arc at that end of the
-        /// segment.
+        /// are left out. A segment that meets the arc nowhere so still touches it where it comes within the point
+        /// tolerance of it, exactly where <see cref="Collision2.CollidesWith(GeoLine2, GeoArc2, Tolerance)"/> says they
+        /// collide: once, at the foot of the perpendicular from the centre when its line runs inside the rim within the
+        /// tolerance of it, the foot is on the segment and the arc holds it, else at the point of the segment nearest the
+        /// arc. At a tolerance of 0.001, a segment ending 0.0002 from the end of an arc, its line 0.0002 inside the rim,
+        /// touches the arc at that end of the segment; and the arc of radius 50 about (0, 50.0002) starting 0.0045
+        /// radians past its bottom, at (0.2249992, 0.0007062), touches the segment along the x axis below that start,
+        /// though its circle passes the segment where the arc does not reach.
         /// </remarks>
         public static bool TryIntersectWith(GeoArc2 arc, GeoLine2 line, out GeoPoint2[] intersections, Tolerance tolerance)
         {
-            Intersection2.TryIntersectWith(arc.GetCircle(), line, out GeoPoint2[] onCircle, tolerance);
+            return TryIntersectWith(arc, line, out intersections, tolerance, true);
+        }
+
+        /// <summary>
+        /// Finds where an arc meets a segment, within a tolerance, with or without the touches of a segment that comes
+        /// within the tolerance of the arc away from where its line crosses the circle.
+        /// </summary>
+        /// <param name="arc">The arc.</param>
+        /// <param name="line">The segment.</param>
+        /// <param name="intersections">The crossings, empty when there are none.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="touches">
+        /// true for <see cref="TryIntersectWith(GeoArc2, GeoLine2, out GeoPoint2[], Tolerance)"/>; false for the crossings
+        /// an offset cuts its pieces at, read as they were before: a segment that meets the arc nowhere touches it only
+        /// where its line runs within the tolerance inside the rim.
+        /// </param>
+        internal static bool TryIntersectWith(GeoArc2 arc, GeoLine2 line, out GeoPoint2[] intersections, Tolerance tolerance, bool touches)
+        {
+            Intersection2.TryIntersectWith(arc.GetCircle(), line, out GeoPoint2[] onCircle, tolerance, touches);
 
             if (KeepWhatTheArcsReach(onCircle, arc, null, tolerance, out intersections))
             {
                 return true;
             }
 
-            return TryTouchInsideTheRim(arc, line, tolerance, out intersections);
+            return TryTouch(arc, line, tolerance, touches, out intersections);
         }
 
         /// <summary>
-        /// Finds the one point where a segment whose line runs inside an arc's rim, within the point tolerance of it,
-        /// touches the arc without meeting it: at the foot of the perpendicular from the centre when the foot is on the
-        /// segment and the arc holds it, else at the point of the segment nearest the arc. None when the segment does
-        /// not come within the tolerance of the arc.
+        /// Finds the one point where a segment that meets an arc nowhere touches it, coming within the point tolerance of
+        /// it: at the foot of the perpendicular from the centre when the segment's line runs inside the rim within the
+        /// tolerance of it, the foot is on the segment and the arc holds it, else at the point of the segment nearest the
+        /// arc. None when the segment does not come within the tolerance of the arc, nor, without the touches, when its
+        /// line does not run inside the rim within the tolerance of it.
         /// </summary>
-        private static bool TryTouchInsideTheRim(GeoArc2 arc, GeoLine2 line, Tolerance tolerance, out GeoPoint2[] intersections)
+        private static bool TryTouch(GeoArc2 arc, GeoLine2 line, Tolerance tolerance, bool touches, out GeoPoint2[] intersections)
         {
             intersections = Array.Empty<GeoPoint2>();
 
@@ -234,33 +255,65 @@ namespace GeometryHelper.Core
             double centerParameter = line.StartPoint.GetVectorTo(arc.Center).DotProduct(d) / (dLength * dLength);
             double centerDistance = Distance2.DistanceTo(arc.Center, line.GetPointAtParameter(centerParameter));
 
-            if (!(centerDistance < arc.Radius && centerDistance >= arc.Radius - tolerance.EqualPoint))
+            if (centerDistance < arc.Radius && centerDistance >= arc.Radius - tolerance.EqualPoint)
             {
-                return false;
-            }
+                GeoLine2 nearest = NearestPair(arc, line, tolerance);
 
-            GeoLine2 nearest = NearestPair(arc, line, tolerance);
-
-            if (!(nearest.Length <= tolerance.EqualPoint))
-            {
-                return false;
-            }
-
-            double parameterTolerance = tolerance.EqualPoint / dLength;
-
-            if (centerParameter >= -parameterTolerance && centerParameter <= 1.0 + parameterTolerance)
-            {
-                GeoPoint2 foot = line.GetPointAtParameter(Math.Max(0.0, Math.Min(1.0, centerParameter)));
-
-                if (IsPointOn(arc, foot, tolerance))
+                if (nearest.Length <= tolerance.EqualPoint)
                 {
-                    intersections = new[] { foot };
+                    double parameterTolerance = tolerance.EqualPoint / dLength;
+
+                    if (centerParameter >= -parameterTolerance && centerParameter <= 1.0 + parameterTolerance)
+                    {
+                        GeoPoint2 foot = line.GetPointAtParameter(Math.Max(0.0, Math.Min(1.0, centerParameter)));
+
+                        if (IsPointOn(arc, foot, tolerance))
+                        {
+                            intersections = new[] { foot };
+                            return true;
+                        }
+                    }
+
+                    intersections = new[] { nearest.EndPoint };
                     return true;
                 }
             }
 
-            intersections = new[] { nearest.EndPoint };
-            return true;
+            // A segment whose line passes more than twice the tolerance outside the circle, or whose ends lie both that far
+            // inside it, is clear of the whole circle, as the collision's own test reads it.
+            double inside = arc.Radius - 2.0 * tolerance.EqualPoint;
+
+            if (!touches
+                || centerDistance > arc.Radius + 2.0 * tolerance.EqualPoint
+                || (inside > 0.0
+                    && Distance2.GetDistanceSquaredTo(arc.Center, line.StartPoint) < inside * inside
+                    && Distance2.GetDistanceSquaredTo(arc.Center, line.EndPoint) < inside * inside))
+            {
+                return false;
+            }
+
+            // The two come within the tolerance only at an end of the segment near the rim where the arc sweeps, an end of
+            // the arc near the segment, or the foot of the perpendicular where the line runs near the rim; with none of
+            // them within twice the tolerance, nothing is measured. An arc read as its chord is measured to the chord.
+            double reach = 2.0 * tolerance.EqualPoint;
+
+            if (Math.Abs(centerDistance - arc.Radius) > reach
+                && !(Math.Abs(Distance2.DistanceTo(arc.Center, line.StartPoint) - arc.Radius) <= reach && Sweeps(arc, line.StartPoint))
+                && !(Math.Abs(Distance2.DistanceTo(arc.Center, line.EndPoint) - arc.Radius) <= reach && Sweeps(arc, line.EndPoint))
+                && !TryChord(arc, out _)
+                && Distance2.DistanceTo(line, arc.StartPoint, Exactly) > reach
+                && Distance2.DistanceTo(line, arc.EndPoint, Exactly) > reach)
+            {
+                return false;
+            }
+
+            if (Gap(arc, line, tolerance) <= tolerance.EqualPoint)
+            {
+                intersections = new[] { NearestPair(arc, line, tolerance, Exactly).EndPoint };
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>

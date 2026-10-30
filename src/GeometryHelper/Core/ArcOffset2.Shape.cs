@@ -646,8 +646,14 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Gets where two edges cross, as <see cref="Carrier.Meet(Carrier, Tolerance)"/> reads it.
+        /// </summary>
+        private static GeoPoint2[] CrossingsOf(GeoEdge2 first, GeoEdge2 second, Tolerance tolerance)
+            => new Carrier(first).Meet(new Carrier(second), tolerance);
+
+        /// <summary>
         /// An edge with the arc it draws worked out once, since the pruning asks the same edges over and over; it
-        /// answers exactly as the edge itself does.
+        /// answers as the edge itself does, but for touches away from a crossing.
         /// </summary>
         private struct Carrier
         {
@@ -673,28 +679,47 @@ namespace GeometryHelper.Core
             }
 
             /// <summary>
-            /// Gets where the edge meets another, as <see cref="GeoEdge2.GetIntersections(GeoEdge2, Tolerance)"/> does.
+            /// Gets where the edge meets another, as <see cref="GeoEdge2.GetIntersections(GeoEdge2, Tolerance)"/> does, but
+            /// for the touch of a segment that comes within the tolerance of an arc away from where it crosses the arc's
+            /// circle: the pieces are cut where they cross.
             /// </summary>
             internal GeoPoint2[] Meet(Carrier other, Tolerance tolerance)
             {
+                GeoPoint2[] meetings;
+
                 if (_edge.IsArc)
                 {
-                    return other._edge.IsArc
-                        ? Arc2.GetIntersections(_arc, other._arc, tolerance)
-                        : Arc2.GetIntersections(_arc, other._edge.ToLine(), tolerance);
+                    if (other._edge.IsArc)
+                    {
+                        return Arc2.GetIntersections(_arc, other._arc, tolerance);
+                    }
+
+                    Arc2.TryIntersectWith(_arc, other._edge.ToLine(), out meetings, tolerance, false);
+                    return meetings;
                 }
 
-                return other._edge.IsArc
-                    ? Arc2.GetIntersections(other._arc, _edge.ToLine(), tolerance)
-                    : _edge.GetIntersections(other._edge.ToLine(), tolerance);
+                if (other._edge.IsArc)
+                {
+                    Arc2.TryIntersectWith(other._arc, _edge.ToLine(), out meetings, tolerance, false);
+                    return meetings;
+                }
+
+                return _edge.GetIntersections(other._edge.ToLine(), tolerance);
             }
 
             /// <summary>
-            /// Gets where the edge crosses a circle, as <see cref="GeoEdge2.GetIntersections(GeoCircle2, Tolerance)"/> does.
+            /// Gets where the edge crosses a circle, as <see cref="GeoEdge2.GetIntersections(GeoCircle2, Tolerance)"/> does,
+            /// but for the touch of a segment that comes within the tolerance of the rim away from where its line crosses it.
             /// </summary>
             internal GeoPoint2[] Meet(GeoCircle2 circle, Tolerance tolerance)
             {
-                return _edge.IsArc ? _arc.GetIntersections(circle, tolerance) : _edge.ToLine().GetIntersections(circle, tolerance);
+                if (_edge.IsArc)
+                {
+                    return _arc.GetIntersections(circle, tolerance);
+                }
+
+                Intersection2.TryIntersectWith(circle, _edge.ToLine(), out GeoPoint2[] meetings, tolerance, false);
+                return meetings;
             }
         }
 

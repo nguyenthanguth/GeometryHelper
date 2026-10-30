@@ -235,10 +235,42 @@ namespace GeometryHelper.Core
         /// 50 long from (0, 49.9995) along (1, 0.001), against the circle of radius 50 about the origin at a tolerance of
         /// 0.001, leaves the circle once, at (0.1791, 49.99968). A segment whose line runs inside the rim within the
         /// tolerance of it, but which crosses the rim nowhere along its length, touches it once where it comes within
-        /// the tolerance: at the foot when the foot is on it, else at its end nearer the rim. At a tolerance of 0.1 the
-        /// segment from (-0.2, 49.97) to (0.2, 49.97) touches the circle of radius 50 at (0, 49.97).
+        /// the tolerance: at the foot when the foot is on it. At a tolerance of 0.1 the segment from (-0.2, 49.97) to
+        /// (0.2, 49.97) touches the circle of radius 50 at (0, 49.97).
+        /// <para>
+        /// Any other segment touches the circle exactly where it comes within the point tolerance of its rim, as the
+        /// shortest line to the rim measures it, however far its line runs on before it would cross: once, at its point
+        /// nearest the centre where it lies outside, else at its end nearer the rim. At a tolerance of 0.001, the segment
+        /// from (0.05, 50.0005) to (10, 50.0005), whose line passes nearest the circle of radius 50 0.05 behind its start,
+        /// touches it at its start, 0.000525 off; the one from (0, 49.95) to (2.225, 49.95) at its end, 0.00047 inside;
+        /// and the one from (0.0009, 0.0019) to (1, 0.0019), whose line passes 0.0009 above the circle of radius 0.001
+        /// about the origin just behind its start, does not touch it, the start being 0.0011 off. A crossing up to the
+        /// tolerance past an end, taken at that end, within twice the tolerance of the other crossing is the same touch,
+        /// and counts once: the segment from (-1, 0) to (0.0004, 0) meets the circle of radius 0.0012 about the origin
+        /// at (-0.0012, 0) only. A segment no longer than the tolerance is read as its start.
+        /// </para>
         /// </remarks>
         public static bool TryIntersectWith(GeoCircle2 circle, GeoLine2 line, out GeoPoint2[] intersections, Tolerance tolerance)
+        {
+            return TryIntersectWith(circle, line, out intersections, tolerance, true);
+        }
+
+        /// <summary>
+        /// Tries to calculate the intersection points between a circle and a line segment within tolerance, with or
+        /// without the touches of a segment that comes within the tolerance of the rim away from where its line crosses
+        /// it.
+        /// </summary>
+        /// <param name="circle">The circle.</param>
+        /// <param name="line">The segment.</param>
+        /// <param name="intersections">The points, empty when there are none.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="touches">
+        /// true for <see cref="TryIntersectWith(GeoCircle2, GeoLine2, out GeoPoint2[], Tolerance)"/>; false for the
+        /// crossings an offset cuts its pieces at, read as they were before: a segment that crosses nowhere touches only
+        /// where its line runs within the tolerance inside the rim, a foot up to the tolerance past an end is taken at
+        /// that end however far it is from the rim, and a crossing taken at an end is kept beside the other.
+        /// </param>
+        internal static bool TryIntersectWith(GeoCircle2 circle, GeoLine2 line, out GeoPoint2[] intersections, Tolerance tolerance, bool touches)
         {
             GeoVector2 d = line.Direction;
             double dLength = d.Length;
@@ -282,37 +314,97 @@ namespace GeometryHelper.Core
             if (merged)
             {
                 AddPointOnSegment(points, line, centerParameter, dLength, tolerance);
+
+                // Outside the rim, a foot up to the tolerance past an end leaves that end further from the rim than the
+                // line is: it touches only where the end itself comes within the tolerance.
+                if (touches && points.Count > 0 && centerDistance >= circle.Radius && (centerParameter < 0.0 || centerParameter > 1.0)
+                    && Distance2.DistanceTo(circle.Center, points[0]) - circle.Radius > tolerance.EqualPoint)
+                {
+                    points.Clear();
+                }
             }
             else
             {
                 AddPointOnSegment(points, line, centerParameter - halfChord, dLength, tolerance);
                 AddPointOnSegment(points, line, centerParameter + halfChord, dLength, tolerance);
-            }
 
-            // Inside the rim within the tolerance of it, a segment that crosses it nowhere along its length may still lie
-            // within the tolerance of it: it touches once, at the foot when the foot is on it, else at its end nearer the
-            // rim.
-            if (points.Count == 0 && centerDistance < circle.Radius && centerDistance >= circle.Radius - tolerance.EqualPoint)
-            {
-                if (!merged)
+                // A crossing up to the tolerance past an end, taken at that end, within twice the tolerance of the other
+                // crossing is the same touch: the segment runs into the rim and stops within the tolerance of it.
+                if (touches && points.Count == 2 && Distance2.DistanceTo(points[0], points[1]) <= 2.0 * tolerance.EqualPoint)
                 {
-                    AddPointOnSegment(points, line, centerParameter, dLength, tolerance);
-                }
+                    bool firstPast = centerParameter - halfChord < 0.0 || centerParameter - halfChord > 1.0;
+                    bool secondPast = centerParameter + halfChord < 0.0 || centerParameter + halfChord > 1.0;
 
-                if (points.Count == 0)
-                {
-                    double startGap = Math.Abs(Distance2.DistanceTo(circle.Center, line.StartPoint) - circle.Radius);
-                    double endGap = Math.Abs(Distance2.DistanceTo(circle.Center, line.EndPoint) - circle.Radius);
-
-                    if (Math.Min(startGap, endGap) <= tolerance.EqualPoint)
+                    if (firstPast && !secondPast)
                     {
-                        points.Add(startGap <= endGap ? line.StartPoint : line.EndPoint);
+                        points.RemoveAt(0);
+                    }
+                    else if (secondPast && !firstPast)
+                    {
+                        points.RemoveAt(1);
+                    }
+                    else if (firstPast)
+                    {
+                        // Both past an end: the segment lies within the tolerance of the rim along its whole length, and
+                        // touches at its end nearer it.
+                        double firstGap = Math.Abs(Distance2.DistanceTo(circle.Center, points[0]) - circle.Radius);
+                        double secondGap = Math.Abs(Distance2.DistanceTo(circle.Center, points[1]) - circle.Radius);
+                        points.RemoveAt(firstGap <= secondGap ? 1 : 0);
                     }
                 }
             }
 
+            // Inside the rim within the tolerance of it, a segment that crosses it nowhere along its length may still lie
+            // within the tolerance of it: it touches once, at the foot when the foot is on it.
+            bool insideTheRim = centerDistance < circle.Radius && centerDistance >= circle.Radius - tolerance.EqualPoint;
+
+            if (points.Count == 0 && !merged && insideTheRim)
+            {
+                AddPointOnSegment(points, line, centerParameter, dLength, tolerance);
+            }
+
+            // Any other segment that crosses the rim nowhere, nor within the tolerance past an end, touches it once where
+            // it comes within the tolerance of it, as its distance to the rim says: at its point nearest the centre where
+            // it lies outside, else at its end nearer the rim. Without the touches only one whose line runs inside the
+            // rim within the tolerance is read so, which places the same point.
+            if (points.Count == 0 && (touches || insideTheRim))
+            {
+                AddNearestToTheRim(points, circle, line, centerParameter, tolerance);
+            }
+
             intersections = points.ToArray();
             return intersections.Length > 0;
+        }
+
+        /// <summary>
+        /// Adds the point of a segment that meets a circle's rim nowhere where it comes nearest the rim, if that is within
+        /// the point tolerance of it: the point nearest the centre where the segment lies outside the circle, else the
+        /// end further from the centre, the start where the two are as far.
+        /// </summary>
+        private static void AddNearestToTheRim(List<GeoPoint2> points, GeoCircle2 circle, GeoLine2 line, double centerParameter, Tolerance tolerance)
+        {
+            GeoPoint2 nearest = centerParameter <= 0.0 ? line.StartPoint
+                : centerParameter >= 1.0 ? line.EndPoint
+                : line.GetPointAtParameter(centerParameter);
+            double nearestDistance = Distance2.DistanceTo(circle.Center, nearest);
+
+            if (nearestDistance >= circle.Radius)
+            {
+                if (nearestDistance - circle.Radius <= tolerance.EqualPoint)
+                {
+                    points.Add(nearest);
+                }
+
+                return;
+            }
+
+            double startDistance = Distance2.DistanceTo(circle.Center, line.StartPoint);
+            double endDistance = Distance2.DistanceTo(circle.Center, line.EndPoint);
+
+            if (circle.Radius - Math.Max(startDistance, endDistance) <= tolerance.EqualPoint)
+            {
+                points.Add(startDistance >= endDistance ? line.StartPoint : line.EndPoint);
+            }
         }
 
         /// <summary>
