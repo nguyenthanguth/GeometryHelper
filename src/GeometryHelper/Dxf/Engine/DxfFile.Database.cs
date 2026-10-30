@@ -34,6 +34,7 @@ namespace GeometryHelper.Dxf
             _sections = from._sections;
             _decoding = from._decoding;
             _header = from._header;
+            _headerInOrder = from._headerInOrder;
             _namedPage = from._namedPage;
             Version = from.Version;
             CodePage = from.CodePage;
@@ -5076,6 +5077,153 @@ namespace GeometryHelper.Dxf
 
             Put(at, new List<Piece> { new Piece(new List<Rec> { b.Done(record.Type) }) });
             ReadHeader();
+        }
+
+        /// <summary>The variables of the header in the order of the file as it would be saved, a variable named more than once given each time.</summary>
+        internal IReadOnlyList<KeyValuePair<string, IReadOnlyList<DxfTypedValue>>> HeaderInOrder()
+        {
+            FlushHeader();
+            return _headerInOrder;
+        }
+
+        /// <summary>
+        /// Gives the header a run of variables in the place of those of some names: every variable of those names taken out,
+        /// wherever it stands and however often, and the run, each a name and its groups, a name given as often as it comes,
+        /// put after the groups of the first of the anchors the header has, at its end where it has none. Nothing is written
+        /// where the header comes out as it was.
+        /// </summary>
+        internal void SetHeaderRun(ICollection<string> names, IReadOnlyList<KeyValuePair<string, IReadOnlyList<DxfTypedValue>>> run, IReadOnlyList<string> anchors)
+        {
+            FlushHeader();
+            var slots = new List<int>();
+
+            foreach (Section section in _sections)
+            {
+                for (int i = section.First; section.Name == "HEADER" && i < section.Last; i++)
+                {
+                    if (Current(i, i + 1).Count == 1)
+                    {
+                        slots.Add(i);
+                    }
+                }
+            }
+
+            if (slots.Count == 0)
+            {
+                throw new InvalidOperationException("The file has no HEADER section to set its variables in.");
+            }
+
+            // The anchor the run follows, and the record it stands in.
+            string anchor = null;
+            int target = slots[slots.Count - 1];
+
+            foreach (string candidate in anchors)
+            {
+                foreach (int slot in slots)
+                {
+                    Rec record = Current(slot, slot + 1)[0];
+                    List<Pair> pairs = PairsOf(record);
+
+                    for (int p = 1; anchor == null && p < pairs.Count; p++)
+                    {
+                        if (pairs[p].Code == 9 && Text(record, pairs[p]).Trim() == candidate)
+                        {
+                            anchor = candidate;
+                            target = slot;
+                        }
+                    }
+                }
+
+                if (anchor != null)
+                {
+                    break;
+                }
+            }
+
+            bool changed = false;
+
+            foreach (int slot in slots)
+            {
+                Rec record = Current(slot, slot + 1)[0];
+                List<Pair> pairs = PairsOf(record);
+                var b = new Builder(this);
+                bool placed = slot != target;
+                bool skipping = false;
+                bool inAnchor = false;
+
+                for (int p = 0; p < pairs.Count; p++)
+                {
+                    if (p > 0 && pairs[p].Code == 9)
+                    {
+                        string name = Text(record, pairs[p]).Trim();
+
+                        if (inAnchor && !placed)
+                        {
+                            WriteRun(b, run);
+                            placed = true;
+                        }
+
+                        inAnchor = anchor != null && name == anchor;
+                        skipping = names.Contains(name);
+                    }
+
+                    if (!skipping)
+                    {
+                        b.Raw(record, pairs[p]);
+                    }
+                }
+
+                if (!placed)
+                {
+                    WriteRun(b, run);
+                }
+
+                Rec written = b.Done(record.Type);
+
+                if (!SameBytes(written, record))
+                {
+                    Put(slot, new List<Piece> { new Piece(new List<Rec> { written }) });
+                    changed = true;
+                }
+            }
+
+            if (changed)
+            {
+                ReadHeader();
+            }
+        }
+
+        /// <summary>Writes a run of variables of the header, each its group 9 and its groups.</summary>
+        private static void WriteRun(Builder b, IReadOnlyList<KeyValuePair<string, IReadOnlyList<DxfTypedValue>>> run)
+        {
+            foreach (KeyValuePair<string, IReadOnlyList<DxfTypedValue>> variable in run)
+            {
+                b.Group(9, variable.Key);
+
+                foreach (DxfTypedValue group in variable.Value)
+                {
+                    b.Group(group.TypeCode, group.Value);
+                }
+            }
+        }
+
+        /// <summary>Whether two records hold the same bytes.</summary>
+        private static bool SameBytes(Rec a, Rec b)
+        {
+            if (a.End - a.Start != b.End - b.Start)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < a.End - a.Start; i++)
+            {
+                if (a.Bytes[a.Start + i] != b.Bytes[b.Start + i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         #endregion

@@ -6,7 +6,7 @@ namespace GeometryHelper.Dxf
     /// <summary>
     /// The properties of a drawing, as AutoCAD's <c>DatabaseSummaryInfo</c>: its title, subject, author, keywords, comments,
     /// who saved it last, its revision, the base of its hyperlinks and its custom properties, as
-    /// <see cref="DxfDatabase.SummaryInfo"/> reads them from DWGPROPS. It does not change: a
+    /// <see cref="DxfDatabase.SummaryInfo"/> reads them from DWGPROPS or the header. It does not change: a
     /// <see cref="DxfDatabaseSummaryInfoBuilder"/> makes another.
     /// </summary>
     public sealed class DxfDatabaseSummaryInfo : IEquatable<DxfDatabaseSummaryInfo>
@@ -60,7 +60,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets the custom properties of the drawing, each its name and value, in the order of DWGPROPS (groups 300 to 309, each
-        /// <c>name=value</c>), as AutoCAD's <c>CustomProperties</c> gives them; empty where it has none.
+        /// <c>name=value</c>), or of the header's pairs of a <c>$CUSTOMPROPERTYTAG</c> and a <c>$CUSTOMPROPERTY</c> in a drawing
+        /// of R2004 or later, as AutoCAD's <c>CustomProperties</c> gives them; empty where it has none.
         /// </summary>
         public IReadOnlyList<KeyValuePair<string, string>> CustomProperties { get; }
 

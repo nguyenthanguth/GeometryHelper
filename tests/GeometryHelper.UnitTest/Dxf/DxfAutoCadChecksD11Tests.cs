@@ -135,10 +135,11 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void ThePropertiesOfADrawingOfR2018_AreWrittenInTheTenGroupsAndTheHeader_WhereAutoCadReadsThem()
+        public void ThePropertiesOfADrawingOfR2000_AreWrittenInTheTenGroupsAndTheHeader_WhereAutoCadReadsThem()
         {
-            // AutoCAD read no custom property of the list after group 90, and the hyperlink base from $HYPERLINKBASE alone.
-            DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
+            // AutoCAD read no custom property of the list after group 90, and the hyperlink base from $HYPERLINKBASE alone. A
+            // drawing of R2000: AutoCAD 2021 saves one of R2018 with its properties in the header (D15).
+            DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
             var builder = new DxfDatabaseSummaryInfoBuilder { Title = "Plate B-12", Author = "GeometryHelper", HyperlinkBase = "https://example.com/plates/" };
             builder.CustomPropertyTable.Add(new KeyValuePair<string, string>("Project", "P4 checks"));
             builder.CustomPropertyTable.Add(new KeyValuePair<string, string>("Checked by", "GH"));

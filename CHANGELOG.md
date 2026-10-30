@@ -6,6 +6,30 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** `SummaryInfo` of a drawing of R2004 or later is kept in its header, as AutoCAD 2021 saves one of R2018: set, its
+texts go to `$TITLE`, `$SUBJECT`, `$AUTHOR`, `$KEYWORDS`, `$COMMENTS` and `$REVISIONNUMBER`, an empty one leaving its
+variable out, and each custom property to a `$CUSTOMPROPERTYTAG` followed by a `$CUSTOMPROPERTY`, as many as there are,
+where they went to a DWGPROPS of ten at most; a DWGPROPS the drawing had is taken out, as AutoCAD saved the library's 26-a
+of R2018 without it. Read, a drawing with no DWGPROPS gives the custom properties of its header in their order, Project and
+Checked by of AutoCAD's 26-a, where it gave none. A drawing of R2000 keeps its DWGPROPS, as AutoCAD saves one. Reading the
+properties of a drawing of R2018 takes 16 microseconds where 13 on .NET Framework 4.8, and 19 where 13 on .NET 10. 5 new
+tests, 4 changed.
+
+**CHANGED.** `Explode()` of a MINSERT of more than one cell throws `NotSupportedException`, as AutoCAD 2021's refused a MINSERT
+of a circle in 2 rows by 3 columns (eNotApplicable), where it gave the block in every cell, six circles; its
+`ExplodeToOwnerSpace()` appends the first cell's entities, one circle at the insertion point, as AutoCAD's did, where it was
+refused. `GeometryExtentsBestFit` still measures every cell, and a MINSERT of one cell explodes as an INSERT. 3 new tests, 3
+changed.
+
+**FIXED.** `ToPolylineWithPrecision` of a periodic spline has each of its knots in the place of the vertex nearest it, and of
+a closed spline its last vertex on its first, the polyline closed, as AutoCAD 2021 gives them: the closed cubic through
+(0, 0), (40, 0), (50, 30) and (10, 25), its knots the lengths of the chords, gives 5, 9, 15, 17, 30, 48, 86, 252 and 493
+vertices at 0, 1, 2, 3, 5, 10, 20, 50 and 99, where 4, 8, 14, 16, 29, 47, 85, 251 and 492, and at 0 the four points it runs
+through and the first again, where its points at a quarter, a half and three quarters of its range, (34.42, -3.51) the
+first, stood in their place; each arc is bent by
+the turn over the piece the halving made, 0.418 from (0, 0) to (40, 0), as AutoCAD's. An open spline is given what it was.
+4 new tests.
+
 **FIXED.** `TrySubtract`, `TryIntersect` and `TryUnion` of two bodies, asked below four tenths of the rounding of their
 coordinates, a quadrillionth of the largest of them, nought among it, are worked out as though asked at that rounding,
 reading a corner as on a plane within what rounding adds as they do just above it, and what they give is welded to close

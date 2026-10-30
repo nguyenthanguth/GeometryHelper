@@ -147,22 +147,31 @@ namespace GeometryHelper.Dxf
         /// the base of the hyperlinks, where one follows it, each a name and a value in two groups 1. The base of the hyperlinks
         /// is the header's <c>$HYPERLINKBASE</c> where that is not empty, as AutoCAD 2021 reads it there. A drawing with no
         /// DWGPROPS, as AutoCAD saves one of R2004 or later, gives the texts of its header, <c>$TITLE</c>, <c>$SUBJECT</c>,
-        /// <c>$AUTHOR</c>, <c>$COMMENTS</c>, <c>$KEYWORDS</c> and <c>$REVISIONNUMBER</c>: AutoCAD 2021 saved a drawing of R2018
-        /// titled Plate B-12 with <c>$TITLE</c> and no DWGPROPS. Its custom properties there (<c>$CUSTOMPROPERTYTAG</c>) are not
-        /// read. Empty where the drawing has none.
+        /// <c>$AUTHOR</c>, <c>$COMMENTS</c>, <c>$KEYWORDS</c> and <c>$REVISIONNUMBER</c>, and its custom properties, each the
+        /// value of a <c>$CUSTOMPROPERTYTAG</c> and of the <c>$CUSTOMPROPERTY</c> after it, in their order: AutoCAD 2021 saved a
+        /// drawing of R2018 titled Plate B-12, of the custom properties Project and Checked by, with <c>$TITLE</c>,
+        /// <c>$AUTHOR</c> and two such pairs after <c>$DWGCODEPAGE</c>, and no DWGPROPS. Empty where the drawing has none.
         /// </summary>
         /// <value>
         /// <para>
-        /// Set, the DWGPROPS written anew, as AutoCAD 2021 writes it and reads it back: its marker <c>DWGPROPS COOKIE</c> (1), the
-        /// texts, the custom properties in the ten groups 300 to 309 (<c>=</c> where there is none), the time spent on it and the
-        /// dates it was made and saved (40, 41, 42, those of a DWGPROPS kept, else the header's <c>$TDINDWG</c>,
-        /// <c>$TDCREATE</c> and <c>$TDUPDATE</c>), the base of its hyperlinks and the count of the custom properties (90); the
-        /// groups after those kept as they were. A list of them after the group 90, which AutoCAD 2021 does not read, is
-        /// written no more: a drawing of R2018 given a hyperlink base and two custom properties shows them in AutoCAD only in
-        /// the ten groups. The base of the hyperlinks is written to the header's <c>$HYPERLINKBASE</c> too, in a drawing of
-        /// R2000 or later, and each text the header holds already (a drawing AutoCAD saved) is set there as well, so that the
-        /// two agree. A drawing with none is given one, owned by the named object dictionary. Properties the same as the
-        /// drawing has change nothing.
+        /// Set in a drawing of R2004 (AC1018) or later, written in its header as AutoCAD 2021 writes a drawing of R2018: each
+        /// text not empty in its variable, <c>$TITLE</c>, <c>$SUBJECT</c>, <c>$AUTHOR</c>, <c>$KEYWORDS</c>, <c>$COMMENTS</c>
+        /// and <c>$REVISIONNUMBER</c>, then a <c>$CUSTOMPROPERTYTAG</c> and a <c>$CUSTOMPROPERTY</c> for each custom property, as
+        /// many as there are, after <c>$LASTSAVEDBY</c> where the header has one, as ezdxf writes its pairs, else after
+        /// <c>$DWGCODEPAGE</c>; an empty text has no variable, and the base of the hyperlinks goes to <c>$HYPERLINKBASE</c>. A
+        /// DWGPROPS the drawing has is taken out, as AutoCAD 2021 saved one of R2018 read with a DWGPROPS without it; who saved
+        /// it last is not written, the header's <c>$LASTSAVEDBY</c> kept as it is.
+        /// </para>
+        /// <para>
+        /// Set in a drawing of R13 to R2000, the DWGPROPS written anew, as AutoCAD 2021 writes one of R2000 and reads it back:
+        /// its marker <c>DWGPROPS COOKIE</c> (1), the texts, the custom properties in the ten groups 300 to 309 (<c>=</c> where
+        /// there is none), the time spent on it and the dates it was made and saved (40, 41, 42, those of a DWGPROPS kept, else
+        /// the header's <c>$TDINDWG</c>, <c>$TDCREATE</c> and <c>$TDUPDATE</c>), the base of its hyperlinks and the count of the
+        /// custom properties (90); the groups after those kept as they were. A list of them after the group 90, which AutoCAD
+        /// 2021 does not read, is written no more. The base of the hyperlinks is written to the header's
+        /// <c>$HYPERLINKBASE</c> too, in a drawing of R2000, and each text the header holds already is set there as well, so
+        /// that the two agree. A drawing with none is given one, owned by the named object dictionary. Properties the same as
+        /// the drawing has change nothing, in a drawing of any version.
         /// </para>
         /// <para>
         /// <c>db.SummaryInfo = new DxfDatabaseSummaryInfoBuilder(db.SummaryInfo) { Title = "Plate B-12" }.ToDatabaseSummaryInfo()</c>
@@ -170,9 +179,10 @@ namespace GeometryHelper.Dxf
         /// </para>
         /// </value>
         /// <exception cref="ArgumentNullException">Thrown when the properties set are null.</exception>
-        /// <exception cref="ArgumentException">Thrown when the properties set have more than ten custom properties, or a custom
-        /// property's name has an equals sign in it.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when set in a file of R12, or one with no named object dictionary.</exception>
+        /// <exception cref="ArgumentException">Thrown when set in a drawing older than R2004 with more than ten custom
+        /// properties, or one whose name has an equals sign in it.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when set in a file of R12, or one older than R2004 with no named
+        /// object dictionary.</exception>
         public DxfDatabaseSummaryInfo SummaryInfo
         {
             get
@@ -183,9 +193,10 @@ namespace GeometryHelper.Dxf
                 if (properties == null)
                 {
                     string[] texts = HeaderTexts.Select(name => name == null || File.HeaderOf(name) == null ? null : TextOf(name, 1, string.Empty)).ToArray();
-                    return texts.All(t => t == null) && hyperlinkBase.Length == 0
+                    List<KeyValuePair<string, string>> custom = HeaderCustomProperties();
+                    return texts.All(t => t == null) && hyperlinkBase.Length == 0 && custom.Count == 0
                         ? DxfDatabaseSummaryInfo.Empty
-                        : new DxfDatabaseSummaryInfo(texts, hyperlinkBase, new List<KeyValuePair<string, string>>());
+                        : new DxfDatabaseSummaryInfo(texts, hyperlinkBase, custom);
                 }
 
                 DxfDatabaseSummaryInfo read = DxfDatabaseSummaryInfo.Read(properties.Data);
@@ -201,6 +212,12 @@ namespace GeometryHelper.Dxf
 
                 if (value.Equals(SummaryInfo))
                 {
+                    return;
+                }
+
+                if (File.Supports(1018))
+                {
+                    WriteSummaryToHeader(value);
                     return;
                 }
 
@@ -501,6 +518,86 @@ namespace GeometryHelper.Dxf
         /// not carry that into the properties it saves.
         /// </summary>
         private static readonly string[] HeaderTexts = { "$TITLE", "$SUBJECT", "$AUTHOR", "$COMMENTS", "$KEYWORDS", null, "$REVISIONNUMBER" };
+
+        /// <summary>
+        /// The texts of <see cref="HeaderTexts"/> in the order the header of R2004 or later is given them, by their place among
+        /// the texts of <see cref="DxfDatabaseSummaryInfo"/>: title, subject, author, keywords, comments, revision, the order
+        /// of the properties in a drawing of R2004.
+        /// </summary>
+        private static readonly int[] HeaderTextOrder = { 0, 1, 2, 4, 3, 6 };
+
+        /// <summary>The variables of the header the properties of a drawing of R2004 or later are written in, each taken out before they are.</summary>
+        private static readonly string[] SummaryVariables = { "$TITLE", "$SUBJECT", "$AUTHOR", "$KEYWORDS", "$COMMENTS", "$REVISIONNUMBER", "$CUSTOMPROPERTYTAG", "$CUSTOMPROPERTY" };
+
+        /// <summary>
+        /// The custom properties of the header, each the value of a <c>$CUSTOMPROPERTYTAG</c> and of the
+        /// <c>$CUSTOMPROPERTY</c> after it, in the order of the file; a tag with no value after it has an empty one.
+        /// </summary>
+        private List<KeyValuePair<string, string>> HeaderCustomProperties()
+        {
+            var custom = new List<KeyValuePair<string, string>>();
+            string tag = null;
+
+            foreach (KeyValuePair<string, IReadOnlyList<DxfTypedValue>> variable in File.HeaderInOrder())
+            {
+                string text = variable.Value.Count > 0 ? DxfReader.Decode(variable.Value[0].Value ?? string.Empty) : string.Empty;
+
+                if (variable.Key == "$CUSTOMPROPERTYTAG")
+                {
+                    if (tag != null)
+                    {
+                        custom.Add(new KeyValuePair<string, string>(tag, string.Empty));
+                    }
+
+                    tag = text;
+                }
+                else if (variable.Key == "$CUSTOMPROPERTY" && tag != null)
+                {
+                    custom.Add(new KeyValuePair<string, string>(tag, text));
+                    tag = null;
+                }
+            }
+
+            if (tag != null)
+            {
+                custom.Add(new KeyValuePair<string, string>(tag, string.Empty));
+            }
+
+            return custom;
+        }
+
+        /// <summary>
+        /// Writes the properties of a drawing of R2004 or later in its header, as <see cref="SummaryInfo"/> says, and takes out
+        /// the DWGPROPS it has.
+        /// </summary>
+        private void WriteSummaryToHeader(DxfDatabaseSummaryInfo value)
+        {
+            string[] texts = value.Texts;
+            var run = new List<KeyValuePair<string, IReadOnlyList<DxfTypedValue>>>();
+
+            foreach (int i in HeaderTextOrder)
+            {
+                if (texts[i].Length > 0)
+                {
+                    run.Add(new KeyValuePair<string, IReadOnlyList<DxfTypedValue>>(HeaderTexts[i], new[] { new DxfTypedValue(1, texts[i]) }));
+                }
+            }
+
+            foreach (KeyValuePair<string, string> property in value.CustomProperties)
+            {
+                run.Add(new KeyValuePair<string, IReadOnlyList<DxfTypedValue>>("$CUSTOMPROPERTYTAG", new[] { new DxfTypedValue(1, property.Key) }));
+                run.Add(new KeyValuePair<string, IReadOnlyList<DxfTypedValue>>("$CUSTOMPROPERTY", new[] { new DxfTypedValue(1, property.Value) }));
+            }
+
+            File.SetHeaderRun(SummaryVariables, run, new[] { "$LASTSAVEDBY", "$DWGCODEPAGE" });
+            HyperlinkBase = value.HyperlinkBase;
+            DxfDBDictionary root = NamedObjectsDictionary;
+
+            if (root != null && root.Contains("DWGPROPS"))
+            {
+                root.Remove("DWGPROPS");
+            }
+        }
 
         /// <summary>The XRECORD DWGPROPS of the named object dictionary; null where there is none.</summary>
         private DxfXrecord DwgProps()

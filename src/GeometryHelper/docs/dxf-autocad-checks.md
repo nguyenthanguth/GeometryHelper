@@ -199,6 +199,29 @@ written as AutoCAD reads them now.
       that made the checks gave the variable for SPLINEDIT.
     - Now: the library writes `$PLINECONVERTMODE` only where the drawing has it, read from its file or set by `SetHeader`;
       a drawing of R2018 that has none is saved with none. The checks' files of 17 are made without it from after-d14 on.
+    - AutoCAD 2021 (plugin v7, 17n): counts at 0, 1, 2, 3, 5, 10, 20, 50 and 99, of lines and arcs alike, of a quintic Bezier
+      on (0, 0), (10, 10), (20, 10), (30, 0), (40, -10), (50, 0), 86 ... 7 929; a quartic on the first five, 53 ... 4 877; the
+      cubic of one span rational with every weight 2, the same as not rational (33 ... 4 097); with the weights 1, 2, 2, 1,
+      97 ... 9 257, and 1, 3, 1, 1, 99 ... 9 847; the quintic of v6 moved by (100, 100), the same as where v6 made it; and a
+      closed periodic cubic through (0, 0), (40, 0), (50, 30), (10, 25), its knots the chords, 5, 9, 15, 17, 30, 48, 86, 252
+      and 493, closed. Every vertex at 0 and 10 lies on a halving of the whole range, the test the distance of the middle
+      point from the chord's middle, one tolerance for the whole curve scaled by 1 / (p + 1)^2.
+    - The closed cubic: its vertices are the halving of the whole range at 1 / (M (p + 1)^2), as an open cubic's, with each
+      knot standing where the vertex nearest it stood (the knot 40 in the place of 39.05 at 10), and the last vertex kept on
+      the first; each arc's bulge is the turn of the tangent over the piece the halving made, not over the knots' spans
+      (0.418 from (0, 0) to (40, 0) at 0, where the span from 0 to 40 turns as 0.480). Every count, and every vertex and bulge
+      at 0 and 10, to 1E-12.
+    - Now: so does the library for a periodic spline, and keeps the last vertex of a closed one on its first (D15).
+    - Degree 4, 5 and rational, parked: the tolerance the counts fit is the larger of 1 / M and the spline's length over
+      10 000, over (p + 1)^2: the quartic (M 120, length 47.7) takes 1 / M, every one of its nine counts; the quintic Bezier
+      (M 400, length 55.00), the quintic of two spans (M 223.6, length 70.085), the rational cubics 1, 2, 2, 1 (M 600, length
+      35.457), 1, 3, 1, 1 (M 1 910, length 35.388) and 1, 2, 0.5, 3, 1 (M 1 867, length 49.366) take the length. The rule
+      gives 88 of the 92 counts of all thirteen curves and misses four by one to three vertices: the quintic Bezier at 5 (476
+      where AutoCAD gives 478), the cubic 1, 3, 1, 1 at 5 (595 for 594) and the rational of v6 at 10 and 99 (1 378 for 1 377,
+      12 081 for 12 078), each a piece whose middle lies within 0.2 % of the tolerance. The three of the rational curves
+      would fit a length 0.02 % above the true one, as a length AutoCAD works out by its own sum might be; the quintic at 5
+      fits no length, its count at 3 asking a tolerance 0.2 % larger than its count at 5 allows. The library keeps 1 / M for
+      every spline (117 where AutoCAD gives 96 for the quintic of two spans at 0) until the four are understood.
 
 18. **The narrowest ellipse.**
     - Try: squash an ellipse to a ratio of 1E-7 by `TransformBy`, and project a circle onto a plane seen almost edge on.
@@ -225,6 +248,14 @@ written as AutoCAD reads them now.
     - Try: a complex linetype whose text is turned by 30 degrees, its group 50 read in AutoCAD.
     - Now: the file holds degrees (30), as ezdxf writes them; `ShapeRotationAt` gives radians.
     - A change if: AutoCAD writes radians in group 50.
+    - AutoCAD 2021 (plugin v2): the check stopped at `TextAt(0)`, which threw eNotApplicable for the first dash of
+      GH_GAS30, a dash of no text (74 of 0); the file was not saved, so what AutoCAD writes in group 50 is still not seen. No
+      file AutoCAD saved here holds a linetype of a text or a shape.
+    - Others: ezdxf 1.4.5 writes the `R=` of a .lin as it stands, degrees (`tools/complex_ltype.py`, the code 50 of `r`), and
+      netDxf 2023.11.10 wrote 50 = 30.0 for a `LinetypeTextSegment` turned by 30 (its `Rotation` in degrees); both read the
+      group so. The library is unchanged.
+    - Still open: `TextAt` of a dash of no text gives an empty text, where AutoCAD's throws eNotApplicable; kept, as the
+      library's own reading, until it is asked for.
 
 22. **The current transparency.**
     - Try: set CETRANSPARENCY to the alpha 100 through `Cetransparency` and read it in AutoCAD.
@@ -268,6 +299,15 @@ written as AutoCAD reads them now.
       each custom property as a pair `$CUSTOMPROPERTYTAG` and `$CUSTOMPROPERTY` after `$DWGCODEPAGE`, and `$HYPERLINKBASE`.
       Writing the header's form needs a variable named more than once in the header, which the library's header keeps by
       name: parked, the library's DWGPROPS being read as written.
+    - Now (D15): a drawing of R2004 or later keeps its properties in the header, as AutoCAD 2021 saves one of R2018 (and as
+      its R2007 save of point 73 holds no DWGPROPS): set, the texts not empty in `$TITLE`, `$SUBJECT`, `$AUTHOR`,
+      `$KEYWORDS`, `$COMMENTS` and `$REVISIONNUMBER`, then a `$CUSTOMPROPERTYTAG` and a `$CUSTOMPROPERTY` for each custom
+      property, as many as there are, after `$LASTSAVEDBY` where the header has one (where ezdxf writes its pairs) else after
+      `$DWGCODEPAGE`, and the DWGPROPS taken out; read, a drawing with no DWGPROPS gives the header's pairs in their order. A
+      drawing of R2000 keeps the DWGPROPS of the ten groups, as AutoCAD saves one. Who saved it last is not written in the
+      header's form.
+    - Still open: where AutoCAD puts `$SUBJECT`, `$KEYWORDS`, `$COMMENTS`, `$REVISIONNUMBER` and `$LASTSAVEDBY` among the
+      others, which its files here do not hold, and whether it reads more than ten custom properties.
 
 27. **Empty groups.**
     - Try: in AutoCAD, empty a group by erasing its last member, by removing it, and make one with no member; save.
@@ -474,6 +514,12 @@ written as AutoCAD reads them now.
     - Now: `Explode()` gives the block in every cell, six circles for a block of one; `ExplodeToOwnerSpace` refuses a MINSERT
       of more than one cell, as AutoCAD's EXPLODE refuses one.
     - A change if: AutoCAD's `Explode()` gives the first cell alone, or its EXPLODE takes a MINSERT.
+    - AutoCAD 2021 (plugins v1 and v2, 51-minsert-2x3, a circle of radius 3 in 2 rows 8 apart by 3 columns 10 apart):
+      `Explode()` threw eNotApplicable; `ExplodeToOwnerSpace()` made one CIRCLE, at (0, 0, 0) of radius 3, the first cell.
+    - Now (D15): so does the library: `Explode()` of a MINSERT of more than one cell throws `NotSupportedException`, and
+      `ExplodeToOwnerSpace()` appends the first cell's entities; `GeometryExtentsBestFit` still measures every cell. A MINSERT
+      of one cell explodes as an INSERT.
+    - Still open: whether AutoCAD's `Explode()` takes a MINSERT of one cell, and its EXPLODE command, which needs the editor.
 
 52. **A leader exploded.**
     - Try: EXPLODE in AutoCAD a straight leader with the closed filled arrow, one with an arrow block (DIMLDRBLK) and one with a

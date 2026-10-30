@@ -547,7 +547,7 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            return Polyline(nurbs, parameters, middles, bConvertAsArcs, bToLWPolyline);
+            return Polyline(nurbs, parameters, middles, bConvertAsArcs, bToLWPolyline, false, null);
         }
 
         /// <summary>Gets the polyline that runs along the spline within a precision, as AutoCAD's <c>ToPolylineWithPrecision</c>, of arcs, a <see cref="DxfPolyline"/> where the spline is flat.</summary>
@@ -572,9 +572,14 @@ namespace GeometryHelper.Dxf
         /// than the rounding of the spline's largest coordinate, and a straight spline is one segment. The rule gives AutoCAD's
         /// counts for a quadratic of three spans and a cubic of a double knot too (29, 342 and 2 732, and 76, 933 and 8 011 at 0,
         /// 10 and 99), but more than AutoCAD's for a spline of degree 5 (117 where AutoCAD gives 96 at 0) and a rational one (371
-        /// where it gives 130), whose bend AutoCAD reads otherwise. Of arcs, for a flat spline, the same vertices, each segment the
-        /// arc that turns as the spline's tangent turns along it, its bulge the tangent of a quarter of that turn, as AutoCAD 2021
-        /// makes them: the cubic of one span at 0 gives 33 vertices, its first arc, from (0, 0) to (0.9375, 0.908), of bulge
+        /// where it gives 130), whose bend AutoCAD reads otherwise. A periodic spline has each of its knots in the place of the
+        /// vertex nearest it, and a closed one its last vertex on its first, the polyline closed, as AutoCAD 2021 gave them: the
+        /// closed cubic through (0, 0), (40, 0), (50, 30) and (10, 25), its knots the lengths of the chords, is those four
+        /// points and the first again at 0, and 48 vertices at 10, the range halved into 64ths and the knot 40 standing in the
+        /// place of the 64th at 39.05; each arc is bent as the piece the halving made, its first, from (0, 0) to (40, 0) at 0,
+        /// by the turn of the tangent over the first quarter of the range. Of arcs, for a flat spline, the same vertices, each
+        /// segment the arc that turns as the spline's tangent turns along it, its bulge the tangent of a quarter of that turn,
+        /// as AutoCAD 2021 makes them: the cubic of one span at 0 gives 33 vertices, its first arc, from (0, 0) to (0.9375, 0.908), of bulge
         /// -0.00806, the spline's tangent turning from 45 degrees to 43.15 along it.
         /// </summary>
         /// <param name="precision">The precision, from 0 to 99.</param>
@@ -599,8 +604,12 @@ namespace GeometryHelper.Dxf
             double within = Math.Max(1E-9 * (1.0 + largest), bend > 0.0 ? 1.0 / (bend * (precision + 1.0) * (precision + 1.0)) : double.PositiveInfinity);
             Halve(nurbs, nurbs.Start, nurbs.End, nurbs.PointAt(nurbs.Start), nurbs.PointAt(nurbs.End), within, 0, parameters, middles);
 
+            // A periodic spline's knots stand where the vertices nearest them were, each arc still bent by the turn along the
+            // piece the halving made; the last vertex of a closed spline is kept on its first.
+            List<double> places = IsPeriodic ? PlaceKnots(parameters, NurbsData.GetKnots(), nurbs.Start, nurbs.End) : parameters;
+
             // Arcs are bent by the turn of the spline's tangent along each segment, not through its point halfway.
-            return Polyline(nurbs, parameters, bConvertAsArcs ? null : middles, bConvertAsArcs, bToLWPolyline);
+            return Polyline(nurbs, parameters, bConvertAsArcs ? null : middles, bConvertAsArcs, bToLWPolyline, true, places);
         }
 
         /// <summary>
@@ -1221,6 +1230,58 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// The parameters the vertices of a periodic spline stand at, as AutoCAD 2021's <c>ToPolylineWithPrecision</c> puts
+        /// them: those the halving gave, each knot within the range in the place of the one nearest it, the ends aside, the
+        /// first of two as near. The halving's parameters, which bend the arcs, are kept, but for a knot whose nearest is a knot
+        /// already, or that has none between the ends, which is put in among both.
+        /// </summary>
+        private static List<double> PlaceKnots(List<double> parameters, IReadOnlyList<double> knots, double start, double end)
+        {
+            var places = new List<double>(parameters);
+            var placed = new List<bool>(new bool[parameters.Count]);
+            double previous = start;
+
+            foreach (double knot in knots)
+            {
+                if (!(knot > previous) || !(knot < end))
+                {
+                    continue;
+                }
+
+                previous = knot;
+                int nearest = -1;
+
+                for (int i = 1; i < parameters.Count - 1; i++)
+                {
+                    if (nearest < 0 || Math.Abs(parameters[i] - knot) < Math.Abs(parameters[nearest] - knot))
+                    {
+                        nearest = i;
+                    }
+                }
+
+                if (nearest >= 0 && !placed[nearest])
+                {
+                    places[nearest] = knot;
+                    placed[nearest] = true;
+                    continue;
+                }
+
+                int at = 1;
+
+                while (at < places.Count - 1 && places[at] < knot)
+                {
+                    at++;
+                }
+
+                parameters.Insert(at, knot);
+                places.Insert(at, knot);
+                placed.Insert(at, true);
+            }
+
+            return places;
+        }
+
+        /// <summary>
         /// The largest length of the spline's second derivative by its parameter, read at the ends of each span of its knots,
         /// just short of the end for the span's own side of a knot, and at seven points between.
         /// </summary>
@@ -1253,20 +1314,22 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// The polyline through the spline's points at parameters, each segment a line or an arc: the arc through the point at
-        /// its middle parameter, or where no middles are given the arc bent by the turn of the spline's tangent along it.
+        /// its middle parameter, or where no middles are given the arc bent by the turn of the spline's tangent along it; each
+        /// vertex the point at its place, which is its parameter where no places are given. A closed polyline's last vertex,
+        /// on its first, is left out, or kept where asked.
         /// </summary>
-        private DxfCurve Polyline(DxfNurbs nurbs, List<double> parameters, List<double> middles, bool arcs, bool lightweight)
+        private DxfCurve Polyline(DxfNurbs nurbs, List<double> parameters, List<double> middles, bool arcs, bool lightweight, bool keepLast, List<double> places)
         {
             var world = new List<GeoPoint3>(parameters.Count);
 
-            foreach (double t in parameters)
+            foreach (double t in places ?? parameters)
             {
                 world.Add(nurbs.PointAt(t));
             }
 
             bool closed = Closed && world[0].IsEqualTo(world[world.Count - 1], Tolerance.Default) && world.Count > 2;
             bool flat = DxfCurveTools.TryPlane(NurbsData.GetControlPoints(), Direction(210), out GeoVector3 normal);
-            int count = closed ? world.Count - 1 : world.Count;
+            int count = closed && !keepLast ? world.Count - 1 : world.Count;
             DxfCurve result;
 
             if (!flat)

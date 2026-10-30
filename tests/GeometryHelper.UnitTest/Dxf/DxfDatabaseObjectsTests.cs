@@ -95,7 +95,8 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void PropertiesSet_RewriteDwgprops_KeepingItsDatesAndWhatFollows()
         {
-            string text = DxfObjectsEzdxfDrawings.R2018;
+            // A drawing of R2000, whose properties AutoCAD 2021 keeps in DWGPROPS; one of R2018 keeps them in its header.
+            string text = DxfObjectsEzdxfDrawings.R2000;
             DxfDatabase db = DxfDatabase.Parse(text);
 
             db.SummaryInfo = db.SummaryInfo;
@@ -111,7 +112,7 @@ namespace GeometryHelper.UnitTest.Dxf
             string saved = db.ToText();
             OnlyTheseChanged(text, saved, "3A");
             string record = Records(saved).Single(r => HandleOf(r) == "3A");
-            Assert.Contains("  2\nPlate B-13\n  3\nSteel plates\n  4\nĐỗ\n", record, StringComparison.Ordinal);
+            Assert.Contains("  2\nPlate B-13\n  3\nSteel plates\n  4\n\\U+0110\\U+1ED7\n", record, StringComparison.Ordinal);
             Assert.Contains("300\nProject=Grid A\n301\nGrade=S355\n302\n=\n", record, StringComparison.Ordinal);
             Assert.EndsWith(" 40\n0.125\n 41\n2461338.25\n 42\n2461339.5\n  1\nhttps://example.com/\n 90\n2\n", record, StringComparison.Ordinal);
             DxfDatabaseSummaryInfo read = DxfDatabase.Parse(saved).SummaryInfo;
@@ -127,7 +128,8 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void PropertiesGivenADrawingWithNone_AreADwgpropsOfTheNamedObjectDictionary()
         {
-            string text = DxfFileEzdxfDrawings.R2018;
+            // A drawing of R2000: one of R2018 is given them in its header.
+            string text = DxfFileEzdxfDrawings.R2000;
             DxfDatabase db = DxfDatabase.Parse(text);
 
             Assert.Equal(string.Empty, db.SummaryInfo.Title);
@@ -151,7 +153,7 @@ namespace GeometryHelper.UnitTest.Dxf
         public void CustomPropertiesListedAfterGroup90_AreRead_AndWrittenInTheTenGroups_AsAutoCadReadsThem()
         {
             // The list after 90: its count, then each name and value in two groups 1; read after those of 300 to 309.
-            string listed = DxfObjectsEzdxfDrawings.R2018.Replace("https://example.com/\n 90\n0\n", "https://example.com/\n 90\n2\n  1\nClient\n  1\nACME\n  1\nproject\n  1\nignored\n");
+            string listed = DxfObjectsEzdxfDrawings.R2000.Replace("https://example.com/\n 90\n0\n", "https://example.com/\n 90\n2\n  1\nClient\n  1\nACME\n  1\nproject\n  1\nignored\n");
             DxfDatabase db = DxfDatabase.Parse(listed);
             Assert.Equal(new[] { "Project=Grid A", "Phase=2", "Client=ACME" }, db.SummaryInfo.CustomProperties.Select(p => p.Key + "=" + p.Value));
 

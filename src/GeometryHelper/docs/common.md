@@ -493,8 +493,8 @@ Dxf in front and their members' names.
 | `DBDictionary`, `Xrecord`, `Group`, `db.NamedObjectsDictionaryId`, `db.GroupDictionaryId` | `DxfDBDictionary`, `DxfXrecord`, `DxfGroup`, `db.NamedObjectsDictionary`, `db.GroupDictionary` | The dictionaries are objects; `SetAt` takes the object made in code. |
 | `ResultBuffer`, `TypedValue` | `IReadOnlyList<DxfTypedValue>`, `DxfTypedValue` | A value is the text the file prints: `new DxfTypedValue(1040, "2.5")`. Setting `XData` registers its application. |
 | `Entity.TransformBy(Matrix3d)`, `GetTransformedCopy` | `TransformBy(GeoTransform3)`, `GetTransformedCopy` | Each class refuses what it cannot hold, as AutoCAD's does (see [Editing rules](#editing-rules)). |
-| `Entity.Explode(DBObjectCollection)` | `Explode()` giving a list | The library explodes an INSERT, a MINSERT, the three polylines, a polyface and a polygon mesh, an MTEXT, a dimension, a table, a leader, a multileader, an MLINE, a HATCH of a pattern and a MESH not smoothed, as AutoCAD's do; every other entity refuses with `NotSupportedException`, a HATCH filled solid or with a gradient, a MESH smoothed, a REGION, a 3DSOLID and a BODY among them, which AutoCAD explodes (see [What the model does not do](#what-the-model-does-not-do)). |
-| `BlockReference.ExplodeToOwnerSpace()` | `ExplodeToOwnerSpace()` | The same: the parts appended, the INSERT kept; a MINSERT of more than one cell refused, as AutoCAD's EXPLODE refuses one. |
+| `Entity.Explode(DBObjectCollection)` | `Explode()` giving a list | The library explodes an INSERT, a MINSERT of one cell, the three polylines, a polyface and a polygon mesh, an MTEXT, a dimension, a table, a leader, a multileader, an MLINE, a HATCH of a pattern and a MESH not smoothed, as AutoCAD's do; every other entity refuses with `NotSupportedException`, a MINSERT of more than one cell, which AutoCAD refuses too, a HATCH filled solid or with a gradient, a MESH smoothed, a REGION, a 3DSOLID and a BODY among them, which AutoCAD explodes (see [What the model does not do](#what-the-model-does-not-do)). |
+| `BlockReference.ExplodeToOwnerSpace()` | `ExplodeToOwnerSpace()` | The same: the parts appended, the INSERT kept; a MINSERT gives its first cell alone, as AutoCAD 2021's did. |
 | `entity.IntersectWith(other, Intersect.ExtendThis, points, IntPtr.Zero, IntPtr.Zero)` | `entity.IntersectWith(other, DxfIntersect.ExtendThis)` giving `IReadOnlyList<GeoPoint3>` | Worked out on the library's shapes; a pair it cannot cross, a text among them, throws `NotSupportedException`, where AutoCAD crosses the box of a TEXT's or an MTEXT's words, which needs the fonts. |
 | `GeometricExtents` giving `Extents3d` | `GeometricExtents` giving `GeoAabb3` | Of the shapes `GetGeometry()` gives; a text has no fonts to give it a box. |
 | `Curve.GetPointAtParameter`, `GetDistAtPoint`, `GetOffsetCurves`, `GetSplitCurves`, `Extend` | the same on `DxfCurve` | Offsets go the side AutoCAD's do, a line to the left of its way and the rest to the right, as below. |
@@ -631,14 +631,17 @@ AcDbVariableDictionary: `Cannoscale` (a scale of the drawing's list of scales), 
 drawing gives none, as a drawing of ezdxf, to which a variable set adds the dictionary of variables. `ThumbnailBitmap` reads
 the bytes of the THUMBNAILIMAGE section.
 
-The drawing's properties are `db.SummaryInfo`, its DWGPROPS, set as AutoCAD sets them:
-`db.SummaryInfo = new DxfDatabaseSummaryInfoBuilder(db.SummaryInfo) { Title = "Plate B-12" }.ToDatabaseSummaryInfo()`. Its
-custom properties are read from the groups 300 to 309 (`name=value`) and from a list after a group 90 (a count, then each
-name and value in two groups 1), and written in the ten groups alone, ten at most, their count after the base of the
-hyperlinks, as AutoCAD 2021 writes and reads them in every version: it reads none of the list. The base of the hyperlinks
-is written to the header's `$HYPERLINKBASE` too, where AutoCAD reads it, and read from there where it is not empty. A drawing
-AutoCAD saved as R2004 or later has no DWGPROPS but its texts in the header, `$TITLE`, `$AUTHOR` and the like: they are read
-from there, and set there with the properties, so that the two agree.
+The drawing's properties are `db.SummaryInfo`, set as AutoCAD sets them:
+`db.SummaryInfo = new DxfDatabaseSummaryInfoBuilder(db.SummaryInfo) { Title = "Plate B-12" }.ToDatabaseSummaryInfo()`. A
+drawing AutoCAD saved as R2004 or later keeps them in its header and has no DWGPROPS: its texts in `$TITLE`, `$AUTHOR` and
+the like, and each custom property a `$CUSTOMPROPERTYTAG` followed by a `$CUSTOMPROPERTY`, as AutoCAD 2021 saved a drawing of
+R2018 titled Plate B-12 with Project and Checked by after its `$DWGCODEPAGE`. They are read from there, and set there in a
+drawing of R2004 or later, as many custom properties as there are, an empty text leaving its variable out and a DWGPROPS the
+drawing had taken out, as AutoCAD saved such a drawing. A drawing of R2000 keeps them in its DWGPROPS, as AutoCAD 2021 saves
+one: its custom properties are read from the groups 300 to 309 (`name=value`) and from a list after a group 90 (a count,
+then each name and value in two groups 1), and written in the ten groups alone, ten at most, their count after the base of
+the hyperlinks, as AutoCAD writes and reads them: it reads none of the list. The base of the hyperlinks is written to the
+header's `$HYPERLINKBASE` too, where AutoCAD reads it, and read from there where it is not empty.
 
 ### The tables
 
@@ -959,7 +962,11 @@ second derivative is 60 everywhere, gives 33, 65, 257, 1 025 and 4 097 vertices 
 two and three spans of the checks 50 and 78 at 0, 4 750 and 7 562 at 99, as AutoCAD gives them; so do a quadratic of three
 spans and a cubic of a double knot (29 and 76 vertices at 0). A spline of degree 5 and a rational one are given more than
 AutoCAD gives them (117 where AutoCAD gives 96, 371 where it gives 130, at 0): AutoCAD reads their bend otherwise, and how
-is not found yet. Made arcs, for a flat spline, it has the same vertices, each segment the arc that turns as the spline's
+is not found yet. A periodic spline has each of its knots in the place of the vertex nearest it, and a closed one its last
+vertex on its first, the polyline closed: the closed cubic through (0, 0), (40, 0), (50, 30) and (10, 25), its knots the
+lengths of the chords, is those four points and the first again at 0, its 48 vertices at 10 the range's 64ths with the knot
+40 in the place of the 64th at 39.05, as AutoCAD 2021 gave them; its arcs are bent as the pieces the halving made. Made
+arcs, for a flat spline, it has the same vertices, each segment the arc that turns as the spline's
 tangent turns along it, its bulge the tangent of a quarter of that turn, as AutoCAD 2021 makes them: the cubic of one span
 at 0 gives 33 vertices, its first arc, from (0, 0) to (0.9375, 0.908), of bulge -0.00806, the tangent turning from 45
 degrees to 43.15.
@@ -1483,7 +1490,7 @@ breaks as AutoCAD breaks it:
 | Class | Breaks into |
 |---|---|
 | `DxfBlockReference` | the entities of its block placed where it puts them, one level down: the block's ATTDEFs among them, each a `DxfAttributeDefinition` placed as the rest are, and none of the INSERT's ATTRIBs, whose values stay in its `AttributeCollection` |
-| `DxfMInsertBlock` | the block in every cell, the first cell's entities, then each other cell's, row by row, moved along the turned axes by the spacing of its column and row: a block of one circle in 2 rows by 3 columns gives six circles |
+| `DxfMInsertBlock` | the block in its one cell, as an INSERT; a MINSERT of more than one cell is refused with `NotSupportedException`, as AutoCAD 2021's `Explode` refused one of a circle in 2 rows by 3 columns (eNotApplicable) |
 | `DxfPolyline`, `DxfPolyline2d` | a LINE for each straight segment and an ARC for each bulged one, in its order, each with its look and thickness, its widths left out as AutoCAD leaves them out, and a segment of no length too: a closed square of side 10 with one side bulged by 1 gives three lines and a half circle. Each LINE and ARC is on the polyline's normal, as AutoCAD gives it, so that their walls stand where its wall stood: a polyline on (0, 0, -1) at elevation 5 with a thickness of 2 gives walls from z = -5 down to -7. A POLYLINE fitted to a curve or a spline breaks along the vertices it is drawn through |
 | `DxfPolyline3d` | a LINE for each segment between two vertices it is drawn through, the closing one among them: the polyline through (0, 0, 0), (1, 2, 3) and (4, 5, 6) gives two lines |
 | `DxfMText` | a TEXT for each paragraph, as it is written into a drawing of R12 (see Appending): B-12 and M16 on two lines, 2.5 high, held at the top left at (10, 20), give two TEXTs on the baselines 17.5 and 13.33 high; a paragraph is not wrapped at its width, and a part of it in another font or height is not given a TEXT of its own, as AutoCAD gives it |
@@ -1519,8 +1526,9 @@ while one scaled alike or mirrored is kept.
 the block the INSERT is in, in the order of the block, and keeps the INSERT with its ATTRIBs, as AutoCAD does:
 `insert.ExplodeToOwnerSpace(); insert.Erase();` explodes it as AutoCAD's EXPLODE does, the attributes turned back into their
 definitions. Where the drawing cannot hold a part, as R12 the ELLIPSE a circle comes out as under a scale unlike along its
-axes, the parts appended before it are erased again; a MINSERT of more than one cell is refused, as AutoCAD's EXPLODE refuses
-one, its `Explode()` giving the entities of every cell.
+axes, the parts appended before it are erased again. A MINSERT gives its first cell alone, as AutoCAD 2021's
+`ExplodeToOwnerSpace` gave one circle of a MINSERT of a circle in 2 rows by 3 columns; its `GeometryExtentsBestFit` still
+measures every cell.
 
 **Copying.** `Clone()` copies any entity as it is, as AutoCAD's `Clone` does, a `DxfUnknownEntity` among them, an INSERT with
 its attributes, and `GetTransformedCopy` copies and moves one; a copy is of the class of its original, a vertex a vertex, in

@@ -420,7 +420,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets whether the INSERT is exploded as a block reference, as AutoCAD's <c>TreatAsBlockRefForExplode</c>: true for
-        /// every INSERT and MINSERT, which <see cref="Explode"/> breaks into its block's entities.
+        /// every INSERT and MINSERT, which <see cref="Explode"/> breaks into its block's entities, a MINSERT of more than one
+        /// cell aside, which it refuses as AutoCAD does.
         /// </summary>
         public bool TreatAsBlockRefForExplode => true;
 
@@ -481,8 +482,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The box, in the coordinates the transformation takes the file's to.</returns>
         /// <remarks>
         /// The identity gives <see cref="DxfEntity.GeometricExtents"/> of an INSERT of a drawing; any other transformation, or
-        /// an INSERT in no drawing, the box of the entities of <see cref="Explode"/> each moved by it, an INSERT among them
-        /// exploded in its turn, so that what the block now holds is what is measured.
+        /// an INSERT in no drawing, the box of the entities of <see cref="Explode"/> each moved by it, those of every cell of a
+        /// MINSERT, an INSERT among them exploded in its turn, so that what the block now holds is what is measured.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the transformation flattens or shears an entity of the block that
@@ -519,7 +520,9 @@ namespace GeometryHelper.Dxf
         /// <see cref="Explode"/> gives, an ATTDEF of the block among them, appended to the INSERT's owner, model space for
         /// one of model space, in the order of the block, with handles of their own. The INSERT itself is kept, with its
         /// ATTRIBs, as AutoCAD keeps it: <c>insert.ExplodeToOwnerSpace(); insert.Erase();</c> explodes it as AutoCAD's EXPLODE
-        /// does, the attributes turned back into their definitions.
+        /// does, the attributes turned back into their definitions. A MINSERT gives its first cell alone, as AutoCAD 2021's
+        /// <c>ExplodeToOwnerSpace</c> did: its MINSERT of a circle of radius 3 in 3 columns by 2 rows made one circle, that at
+        /// the MINSERT's insertion point.
         /// </summary>
         /// <remarks>
         /// An entity the drawing cannot hold, as the ELLIPSE a circle comes out as under a scale unlike along its axes in a
@@ -529,8 +532,6 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the INSERT is in no drawing, is erased, its drawing has no
         /// block of its name, or exploding would make more than the 2 000 000 entities of
         /// <see cref="DxfReadOptions.MaxPlacedEntities"/>.</exception>
-        /// <exception cref="NotSupportedException">Thrown for a MINSERT of more than one cell, which AutoCAD does not explode into
-        /// its owner, as its EXPLODE command refuses one: <see cref="Explode"/> gives the entities of every cell.</exception>
         /// <exception cref="ArgumentException">Thrown when the drawing cannot hold an entity exploding makes, or the block
         /// inserts itself.</exception>
         public void ExplodeToOwnerSpace()
@@ -540,12 +541,7 @@ namespace GeometryHelper.Dxf
                 throw new InvalidOperationException("The INSERT of " + Name + " is in no block of a drawing to be exploded into: append it to one first.");
             }
 
-            if (CellCount > 1)
-            {
-                throw new NotSupportedException("A MINSERT of more than one cell is not exploded into its owner, as AutoCAD's EXPLODE refuses one: Explode gives the entities of every cell.");
-            }
-
-            IReadOnlyList<DxfEntity> parts = Explode();
+            IReadOnlyList<DxfEntity> parts = FirstCell();
             var appended = new List<DxfEntity>(parts.Count);
 
             try
@@ -691,7 +687,8 @@ namespace GeometryHelper.Dxf
         /// Gets the entities of the block placed where the INSERT puts them, as AutoCAD's <c>Explode</c> gives them: new
         /// entities in no file, one level down, so that an INSERT in the block comes out an INSERT, and an ATTDEF of the block a
         /// <see cref="DxfAttributeDefinition"/> placed as the rest are. The INSERT's ATTRIBs are not among them: their values
-        /// stay where they are, in <see cref="AttributeCollection"/>. A MINSERT gives those of every cell, row by row.
+        /// stay where they are, in <see cref="AttributeCollection"/>. A MINSERT of more than one cell is refused, as AutoCAD
+        /// refuses one (see <see cref="DxfMInsertBlock.Explode"/>).
         /// </summary>
         /// <returns>The entities, in the order of the block, each of its own look; to be added to a drawing by
         /// <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>. The INSERT of BOLT whose block holds a CIRCLE, a LINE and
@@ -728,7 +725,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when exploding would make more than 2 000 000 entities, the bound of
         /// <see cref="DxfReadOptions.MaxPlacedEntities"/>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the drawing has no block of the INSERT's name.</exception>
-        public override IReadOnlyList<DxfEntity> Explode() => Parts(Item.File, 0).AsReadOnly();
+        public override IReadOnlyList<DxfEntity> Explode() => FirstCell();
 
         /// <summary>
         /// Moves, turns, scales or mirrors the INSERT, as AutoCAD's <c>TransformBy</c> does, and as ezdxf's <c>transform()</c>
@@ -868,6 +865,12 @@ namespace GeometryHelper.Dxf
         /// <summary>How many cells the INSERT places its block in: 1, a MINSERT's columns by its rows.</summary>
         private protected virtual int CellCount => 1;
 
+        /// <summary>The entities of the block placed where the INSERT puts its first cell, as <see cref="Explode"/> gives those of an INSERT.</summary>
+        private protected IReadOnlyList<DxfEntity> FirstCell() => Parts(Item.File, 0).AsReadOnly();
+
+        /// <summary>The entities of the block placed in every cell the INSERT has, as a box is measured round them: those of its one cell, a MINSERT's of each.</summary>
+        private protected virtual IReadOnlyList<DxfEntity> EveryCell() => FirstCell();
+
         /// <summary>The millimetres in a unit of <c>$INSUNITS</c>, as the reader takes them; nought for none, or a number the DXF reference does not list.</summary>
         private static double Millimetres(int units)
         {
@@ -911,7 +914,7 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private static void Measure(DxfBlockReference insert, GeoTransform3 transform, Walk walk, ref double[] box)
         {
-            IReadOnlyList<DxfEntity> first = insert.Explode();
+            IReadOnlyList<DxfEntity> first = insert.EveryCell();
             walk.Spend(first.Count);
             var nesting = new Stack<KeyValuePair<IEnumerator<DxfEntity>, string>>();
             nesting.Push(new KeyValuePair<IEnumerator<DxfEntity>, string>(first.GetEnumerator(), null));
@@ -943,7 +946,7 @@ namespace GeometryHelper.Dxf
                         throw new ArgumentException("The INSERT of " + name + " would make the block " + name + " insert itself.");
                     }
 
-                    IReadOnlyList<DxfEntity> parts = nested.Explode();
+                    IReadOnlyList<DxfEntity> parts = nested.EveryCell();
                     walk.Spend(parts.Count);
                     nesting.Push(new KeyValuePair<IEnumerator<DxfEntity>, string>(parts.GetEnumerator(), name));
                     continue;

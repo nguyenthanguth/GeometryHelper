@@ -88,8 +88,9 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AMInsertExploded_GivesTheBlockInEveryCell()
+        public void AMInsertOfSixCells_IsNotExploded_ButMeasuredInEveryCell_AndExplodedIntoItsOwnerGivesItsFirstCell()
         {
+            // As AutoCAD 2021's Explode refused a MINSERT of 3 by 2 and its ExplodeToOwnerSpace gave its first cell (D15).
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
             var ring = new DxfBlockTableRecord { Name = "GH_RING" };
             db.BlockTable.Add(ring);
@@ -97,12 +98,15 @@ namespace GeometryHelper.UnitTest.Dxf
             var array = new DxfMInsertBlock(new GeoPoint3(100, 0, 0), ring, 3, 2, 40.0, 25.0);
             db.ModelSpace.AppendEntity(array);
 
-            DxfCircle[] circles = array.Explode().Cast<DxfCircle>().ToArray();
+            Assert.Throws<NotSupportedException>(() => array.Explode());
+            GeoAabb3 box = array.GeometryExtentsBestFit(GeoTransform3.Translation(new GeoVector3(0, 0, 1)));
+            Assert.Equal(new[] { 98.0, -2.0, 182.0, 27.0 }, new[] { box.Min.X, box.Min.Y, box.Max.X, box.Max.Y }.Select(v => Math.Round(v, 9)));
 
-            Assert.Equal(6, circles.Length);
-            Assert.Equal(new[] { 100.0, 140.0, 180.0, 100.0, 140.0, 180.0 }, circles.Select(c => Math.Round(c.Center.X, 9)));
-            Assert.Equal(new[] { 0.0, 0.0, 0.0, 25.0, 25.0, 25.0 }, circles.Select(c => Math.Round(c.Center.Y, 9)));
-            Assert.Throws<NotSupportedException>(() => array.ExplodeToOwnerSpace());
+            DxfEntity[] before = db.ModelSpace.ToArray();
+            array.ExplodeToOwnerSpace();
+            var circle = Assert.IsType<DxfCircle>(Assert.Single(db.ModelSpace, e => !before.Contains(e)));
+            Assert.Equal(100.0, Math.Round(circle.Center.X, 9));
+            Assert.Equal(0.0, Math.Round(circle.Center.Y, 9));
         }
 
         [Fact]

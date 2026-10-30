@@ -110,18 +110,34 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Gets the entities of the block placed in every cell of the array, as AutoCAD's <c>Explode</c> of a MINSERT: those of the
-        /// first cell, as <see cref="DxfBlockReference.Explode"/> places them, then each other cell's, row by row, the first moved
-        /// along the turned axes of the INSERT by the spacing of its column and row. The MINSERT of a block of one circle in 2 rows
-        /// by 3 columns gives six circles.
+        /// Gets the entities of the block placed where a MINSERT of one cell puts it, as <see cref="DxfBlockReference.Explode"/>
+        /// gives those of an INSERT; a MINSERT of more than one cell is refused, as AutoCAD 2021's <c>Explode</c> refused its
+        /// MINSERT of a circle in 3 columns by 2 rows (eNotApplicable). <see cref="DxfBlockReference.ExplodeToOwnerSpace"/>
+        /// gives such a MINSERT's first cell, as AutoCAD's does.
         /// </summary>
         /// <returns>The entities, in no file, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
-        /// <exception cref="InvalidOperationException">Thrown when the drawing has no block of the MINSERT's name, or the cells
+        /// <exception cref="NotSupportedException">Thrown when the MINSERT has more than one cell.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the drawing has no block of the MINSERT's name, or the cell
         /// would hold more than the 2 000 000 entities of <see cref="DxfReadOptions.MaxPlacedEntities"/>.</exception>
         /// <exception cref="ArgumentException">Thrown when the block inserts itself, as <see cref="DxfBlockReference.Explode"/> says.</exception>
         public override IReadOnlyList<DxfEntity> Explode()
         {
-            IReadOnlyList<DxfEntity> first = base.Explode();
+            if (CellCount > 1)
+            {
+                throw new NotSupportedException("A MINSERT of more than one cell is not exploded, as AutoCAD's Explode refuses one: ExplodeToOwnerSpace gives its first cell.");
+            }
+
+            return base.Explode();
+        }
+
+        /// <summary>
+        /// The entities of the block placed in every cell of the array: those of the first cell, as
+        /// <see cref="DxfBlockReference.Explode"/> places them, then each other cell's, row by row, the first moved along the
+        /// turned axes of the INSERT by the spacing of its column and row; a block of one circle in 2 rows by 3 columns gives six.
+        /// </summary>
+        private protected override IReadOnlyList<DxfEntity> EveryCell()
+        {
+            IReadOnlyList<DxfEntity> first = FirstCell();
             int columns = Columns;
             int rows = Rows;
 

@@ -54,6 +54,7 @@ namespace GeometryHelper.Dxf
         private Lazy<IReadOnlyList<DxfLayer>> _layers;
         private Lazy<DxfReader.Placer> _placer;
         private IReadOnlyDictionary<string, IReadOnlyList<DxfTypedValue>> _header;
+        private IReadOnlyList<KeyValuePair<string, IReadOnlyList<DxfTypedValue>>> _headerInOrder;
         private string _namedPage;
 
         private DxfFile(byte[] bytes, int length, string source)
@@ -732,6 +733,7 @@ namespace GeometryHelper.Dxf
         private void ReadHeader()
         {
             var variables = new SortedDictionary<string, IReadOnlyList<DxfTypedValue>>(StringComparer.Ordinal);
+            var order = new List<KeyValuePair<string, IReadOnlyList<DxfTypedValue>>>();
             List<DxfTypedValue> current = null;
             string variable = null;
             string version = null;
@@ -766,6 +768,7 @@ namespace GeometryHelper.Dxf
                             variable = value.Trim();
                             current = new List<DxfTypedValue>();
                             variables[variable] = current.AsReadOnly();
+                            order.Add(new KeyValuePair<string, IReadOnlyList<DxfTypedValue>>(variable, current.AsReadOnly()));
                             return;
                         }
 
@@ -784,6 +787,7 @@ namespace GeometryHelper.Dxf
             }
 
             _header = new ReadOnlyDictionary<string, IReadOnlyList<DxfTypedValue>>(variables);
+            _headerInOrder = order.AsReadOnly();
 
             if (CodePage == null)
             {

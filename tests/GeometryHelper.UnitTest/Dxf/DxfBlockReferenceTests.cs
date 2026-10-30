@@ -572,14 +572,18 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AnInsertInNoDrawing_OrAnArrayOfCells_IsNotExplodedToOwnerSpace()
+        public void AnInsertInNoDrawing_IsNotExplodedToOwnerSpace_AndAnArrayOfCellsGivesItsFirstCell()
         {
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
             var loose = new DxfBlockReference(new GeoPoint3(0, 0, 0), db.BlockTable["BOLT"]);
             DxfMInsertBlock grid = ByHandle<DxfMInsertBlock>(db, "6A");
+            int before = db.ModelSpace.Count();
 
             Assert.Throws<InvalidOperationException>(() => loose.ExplodeToOwnerSpace());
-            Assert.Throws<NotSupportedException>(() => grid.ExplodeToOwnerSpace());
+
+            // As AutoCAD 2021's ExplodeToOwnerSpace of a MINSERT of 3 by 2 gave its first cell (D15): BOLT's entities once.
+            grid.ExplodeToOwnerSpace();
+            Assert.Equal(before + db.BlockTable["BOLT"].Count(), db.ModelSpace.Count());
             Assert.False(grid.IsErased);
             Assert.True(Bolt(db).TreatAsBlockRefForExplode);
             Assert.True(grid.TreatAsBlockRefForExplode);
