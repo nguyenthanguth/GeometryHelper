@@ -117,12 +117,17 @@ an arc, a chain and a loop as it is against a segment.
 
 #### What the projections keep
 
-`GetClosestPointOnBoundary` and `GetShortestLineTo` are projections, and keep two older readings, so their segment is as
+`GetClosestPointOnBoundary` and `GetShortestLineTo` are projections, and keep three older readings, so their segment is as
 long as `DistanceTo` except in these cases. Where two shapes come within the tolerance without meeting, the segment may
-be one of no length, a touch. And a point within the tolerance of the centre of an arc, which has no direction, is carried to
+be one of no length, a touch. A point within the tolerance of the centre of an arc, which has no direction, is carried to
 the arc's start, so the segment can be longer than the distance, by at most twice the point's offset from the centre:
 from (0, -0.0009) to the arc of radius 50 about the origin from (-50, 0) to (50, 0) through (0, -50), it runs from
-(-50, 0) and is 50.00000001 long, where the distance is 49.9991. `TryIntersectWith` and `GetIntersections` still accept a
+(-50, 0) and is 50.00000001 long, where the distance is 49.9991. And a point beside a straight side of a chain or a loop
+no longer than the tolerance is carried to the side's start, as a segment that short carries it, so the line to the
+point can be longer than the distance by up to the side's length: at a hundredth, the loop (0, 0), (10, 0), (10, 0.006),
+(0, 10) is 0.03 from (10.03, 0.003), and its line to that point runs from (10, 0), 0.0301496 long. Against anything else
+such a side is the side it is, for `GetShortestLineTo` as for `GetClosestEdge`: the loop's line to the segment from
+(10.03, 0.003) to (10.05, 0.003) runs from (10, 0.003) and is 0.03 long. `TryIntersectWith` and `GetIntersections` still accept a
 crossing up to the tolerance past a segment's end, because they place points for cutting and extending rather than test
 for contact.
 

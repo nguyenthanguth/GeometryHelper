@@ -25,6 +25,13 @@ namespace GeometryHelper.Core
     /// touches several at nothing at all &#8212; the earlier one in the shape's own order wins, so the
     /// answer does not drift from one run to the next.
     /// </para>
+    /// <para>
+    /// A curved loop or chain measures each of its edges as its own distance does: a straight side no longer than the
+    /// point tolerance is the side it is, not the point at its start, and a segment you give no longer than the
+    /// tolerance is read as its start where it crosses no side. At a hundredth, the loop (0, 0), (10, 0), (10, 0.006),
+    /// (0, 10) names its side 0.006 long for the point (10.03, 0.003), 0.03 from it, where read as its start it stood
+    /// 0.0301496 off, as far as the side along the bottom, which came first.
+    /// </para>
     /// </remarks>
     public static class ClosestEdge2
     {
@@ -195,7 +202,7 @@ namespace GeometryHelper.Core
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
 
-            return Among(loop.GetEdges(), edge => edge.DistanceTo(point));
+            return Among(loop.GetEdges(), edge => edge.DistanceTo(point, ArcChain2.ForSide(edge, Tolerance.Global)));
         }
 
         /// <summary>
@@ -209,7 +216,7 @@ namespace GeometryHelper.Core
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
 
-            return Among(loop.GetEdges(), edge => edge.DistanceTo(point, tolerance));
+            return Among(loop.GetEdges(), edge => edge.DistanceTo(point, ArcChain2.ForSide(edge, tolerance)));
         }
 
         /// <summary>
@@ -222,7 +229,7 @@ namespace GeometryHelper.Core
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
 
-            return Among(loop.GetEdges(), edge => edge.DistanceTo(line));
+            return Among(loop.GetEdges(), edge => ArcChain2.GapOfSide(edge, line, Tolerance.Global));
         }
 
         /// <summary>
@@ -236,7 +243,7 @@ namespace GeometryHelper.Core
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
 
-            return Among(loop.GetEdges(), edge => edge.DistanceTo(line, tolerance));
+            return Among(loop.GetEdges(), edge => ArcChain2.GapOfSide(edge, line, tolerance));
         }
 
         /// <summary>
@@ -249,7 +256,7 @@ namespace GeometryHelper.Core
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
 
-            return Among(loop.GetEdges(), edge => edge.DistanceTo(circle));
+            return Among(loop.GetEdges(), edge => edge.DistanceTo(circle, ArcChain2.ForSide(edge, Tolerance.Global)));
         }
 
         /// <summary>
@@ -263,7 +270,7 @@ namespace GeometryHelper.Core
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
 
-            return Among(loop.GetEdges(), edge => edge.DistanceTo(circle, tolerance));
+            return Among(loop.GetEdges(), edge => edge.DistanceTo(circle, ArcChain2.ForSide(edge, tolerance)));
         }
 
         /// <summary>
@@ -276,7 +283,7 @@ namespace GeometryHelper.Core
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
 
-            return Among(loop.GetEdges(), edge => edge.DistanceTo(arc));
+            return Among(loop.GetEdges(), edge => edge.DistanceTo(arc, ArcChain2.ForSide(edge, Tolerance.Global)));
         }
 
         /// <summary>
@@ -290,7 +297,7 @@ namespace GeometryHelper.Core
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
 
-            return Among(loop.GetEdges(), edge => edge.DistanceTo(arc, tolerance));
+            return Among(loop.GetEdges(), edge => edge.DistanceTo(arc, ArcChain2.ForSide(edge, tolerance)));
         }
 
         #endregion
@@ -307,7 +314,7 @@ namespace GeometryHelper.Core
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));
 
-            return Among(chain.GetEdges(), edge => edge.DistanceTo(point));
+            return Among(chain.GetEdges(), edge => edge.DistanceTo(point, ArcChain2.ForSide(edge, Tolerance.Global)));
         }
 
         /// <summary>
@@ -321,7 +328,7 @@ namespace GeometryHelper.Core
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));
 
-            return Among(chain.GetEdges(), edge => edge.DistanceTo(point, tolerance));
+            return Among(chain.GetEdges(), edge => edge.DistanceTo(point, ArcChain2.ForSide(edge, tolerance)));
         }
 
         /// <summary>
@@ -334,7 +341,7 @@ namespace GeometryHelper.Core
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));
 
-            return Among(chain.GetEdges(), edge => edge.DistanceTo(line));
+            return Among(chain.GetEdges(), edge => ArcChain2.GapOfSide(edge, line, Tolerance.Global));
         }
 
         /// <summary>
@@ -348,7 +355,7 @@ namespace GeometryHelper.Core
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));
 
-            return Among(chain.GetEdges(), edge => edge.DistanceTo(line, tolerance));
+            return Among(chain.GetEdges(), edge => ArcChain2.GapOfSide(edge, line, tolerance));
         }
 
         /// <summary>
@@ -361,7 +368,7 @@ namespace GeometryHelper.Core
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));
 
-            return Among(chain.GetEdges(), edge => edge.DistanceTo(circle));
+            return Among(chain.GetEdges(), edge => edge.DistanceTo(circle, ArcChain2.ForSide(edge, Tolerance.Global)));
         }
 
         /// <summary>
@@ -375,7 +382,7 @@ namespace GeometryHelper.Core
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));
 
-            return Among(chain.GetEdges(), edge => edge.DistanceTo(circle, tolerance));
+            return Among(chain.GetEdges(), edge => edge.DistanceTo(circle, ArcChain2.ForSide(edge, tolerance)));
         }
 
         /// <summary>
@@ -388,7 +395,7 @@ namespace GeometryHelper.Core
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));
 
-            return Among(chain.GetEdges(), edge => edge.DistanceTo(arc));
+            return Among(chain.GetEdges(), edge => edge.DistanceTo(arc, ArcChain2.ForSide(edge, Tolerance.Global)));
         }
 
         /// <summary>
@@ -402,7 +409,7 @@ namespace GeometryHelper.Core
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));
 
-            return Among(chain.GetEdges(), edge => edge.DistanceTo(arc, tolerance));
+            return Among(chain.GetEdges(), edge => edge.DistanceTo(arc, ArcChain2.ForSide(edge, tolerance)));
         }
 
         #endregion

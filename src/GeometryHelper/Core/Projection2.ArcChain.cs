@@ -13,7 +13,15 @@ namespace GeometryHelper.Core
     /// reports the gap out to its outline rather than nothing at all. <see cref="Distance2"/> takes the
     /// opposite view and reads a closed shape as a filled region, so the two deliberately disagree for
     /// that pair; everywhere else the segment is exactly as long as the distance, except for a point within the tolerance of the centre of an
-    /// arc, which is carried to the arc's start.
+    /// arc, which is carried to the arc's start, and a point beside a straight side no longer than the tolerance, which is
+    /// carried to the side's start.
+    /// </para>
+    /// <para>
+    /// Against anything but a point, every side is joined as it is however short, as the distance measures it: at a
+    /// hundredth, the loop (0, 0), (10, 0), (10, 0.006), (0, 10) is joined to the segment from (10.03, 0.003) to
+    /// (10.05, 0.003) by the line from (10, 0.003), 0.03 long, where read as its start its side 0.006 long gave one from a
+    /// corner 0.0301496 long. Where the two come within the tolerance without meeting, the segment may still be one of no
+    /// length, a touch.
     /// </para>
     /// <para>
     /// Arcs are measured as arcs, not cut into pieces first, so the answer is exact. Where the two
@@ -39,6 +47,11 @@ namespace GeometryHelper.Core
         /// it, by at most twice the point's offset from the centre. At a tolerance of a thousandth, the point (0,
         /// -0.0009) and the arc of radius 50 about the origin from (-50, 0) to (50, 0) through (0, -50): the closest
         /// point is (-50, 0), 50.00000001 away, where the distance is 49.9991.
+        /// <para>
+        /// A straight edge no longer than the tolerance offers its start, though the distance measures it as it is, so
+        /// beside it the line can be longer than the distance by up to the edge's length: at a hundredth, the loop (0, 0),
+        /// (10, 0), (10, 0.006), (0, 10) is 0.03 from (10.03, 0.003), and the line runs from (10, 0), 0.0301496 long.
+        /// </para>
         /// </remarks>
         /// <param name="loop">The curved loop.</param>
         /// <param name="point">The point.</param>
@@ -50,7 +63,8 @@ namespace GeometryHelper.Core
         /// it, where <see cref="Distance2.DistanceTo(GeoPolygonArc2, GeoPoint2, Tolerance)"/> reads the loop as filled
         /// and answers nought. Outside, by more than the tolerance, it is as long as
         /// <see cref="Distance2.DistanceTo(GeoPolygonArc2, GeoPoint2, Tolerance)"/>, which takes a point within the
-        /// tolerance outside as in; on the boundary it has no length.
+        /// tolerance outside as in, but near the centre of an arc and beside a straight side no longer than the tolerance,
+        /// as the remarks say; on the boundary it has no length.
         /// Where two edges are equally near, the first of them round the loop is taken.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
@@ -212,6 +226,11 @@ namespace GeometryHelper.Core
         /// it, by at most twice the point's offset from the centre. At a tolerance of a thousandth, the point (0,
         /// -0.0009) and the arc of radius 50 about the origin from (-50, 0) to (50, 0) through (0, -50): the closest
         /// point is (-50, 0), 50.00000001 away, where the distance is 49.9991.
+        /// <para>
+        /// A straight edge no longer than the tolerance offers its start, though the distance measures it as it is, so
+        /// beside it the line can be longer than the distance by up to the edge's length: at a hundredth, the loop (0, 0),
+        /// (10, 0), (10, 0.006), (0, 10) is 0.03 from (10.03, 0.003), and the line runs from (10, 0), 0.0301496 long.
+        /// </para>
         /// </remarks>
         /// <param name="chain">The curved chain.</param>
         /// <param name="point">The point.</param>
@@ -219,8 +238,9 @@ namespace GeometryHelper.Core
         /// <returns>
         /// A segment from the point <see cref="ProjectToPolylineArc(GeoPolylineArc2, GeoPoint2, Tolerance)"/> gives to
         /// <paramref name="point"/>, measured on the arcs, so it is exactly as long as
-        /// <see cref="Distance2.DistanceTo(GeoPolylineArc2, GeoPoint2, Tolerance)"/>. Where two edges are equally near, the
-        /// first of them along the chain is taken.
+        /// <see cref="Distance2.DistanceTo(GeoPolylineArc2, GeoPoint2, Tolerance)"/> but near the centre of an arc and beside
+        /// a straight edge no longer than the tolerance, as the remarks say. Where two edges are equally near, the first of
+        /// them along the chain is taken.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoPoint2 point, Tolerance tolerance) => new GeoLine2(ProjectToPolylineArc(chain, point, tolerance), point);

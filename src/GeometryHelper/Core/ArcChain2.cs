@@ -212,68 +212,100 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Whether a tolerance reads an edge as the point at its start: a straight one no longer than the point tolerance,
+        /// which the projection onto a segment and the crossing test take for a point.
+        /// </summary>
+        internal static bool ReadsAsPoint(GeoEdge2 edge, Tolerance tolerance)
+        {
+            // The projection weighs the square of the run from the start to the end, and the crossing test its root, which
+            // can come out no longer than the tolerance where the square is a few parts in 1E16 over it; the root is taken only
+            // there.
+            double x = edge.EndPoint.X - edge.StartPoint.X;
+            double y = edge.EndPoint.Y - edge.StartPoint.Y;
+            double square = x * x + y * y;
+            double limit = tolerance.EqualPoint * tolerance.EqualPoint;
+
+            return (square <= limit || (square <= limit * (1.0 + 1E-14) && Math.Sqrt(square) <= tolerance.EqualPoint)) && !edge.IsArc;
+        }
+
+        /// <summary>
+        /// Gets the tolerance a side of a shape is joined to something else at: the one given, but nought for a straight side
+        /// it would read as a point, which is the side it is however short. A side 0.006 long is joined at nought at a
+        /// tolerance of a hundredth, and at the tolerance given at a thousandth.
+        /// </summary>
+        internal static Tolerance ForSide(GeoEdge2 side, Tolerance tolerance) => ReadsAsPoint(side, tolerance) ? Exactly : tolerance;
+
+        /// <summary>
+        /// Gets the tolerance two sides of shapes are joined at: nought where either is a straight side the tolerance would
+        /// read as a point.
+        /// </summary>
+        private static Tolerance ForSides(GeoEdge2 side, GeoEdge2 other, Tolerance tolerance)
+            => ReadsAsPoint(side, tolerance) || ReadsAsPoint(other, tolerance) ? Exactly : tolerance;
+
+        /// <summary>
         /// Gets the shortest segment joining a run of edges to a straight segment.
         /// </summary>
         /// <remarks>
         /// Nothing here knows whether the run closes on itself, so nothing here treats it as a filled
         /// region: the answer runs from the boundary to the other shape, which is what
         /// <see cref="Projection2"/> promises of every shape and where it parts company with
-        /// <see cref="Distance2"/>.
+        /// <see cref="Distance2"/>. Each edge is a side of a shape, joined as it is however short (see
+        /// <see cref="ForSide"/>).
         /// </remarks>
         internal static GeoLine2 ShortestLineTo(List<GeoEdge2> edges, GeoLine2 line, Tolerance tolerance)
         {
-            GeoLine2 best = edges[0].GetShortestLineTo(line, tolerance);
+            GeoLine2 best = edges[0].GetShortestLineTo(line, ForSide(edges[0], tolerance));
 
             for (int i = 1; i < edges.Count && best.Length > 0.0; i++)
             {
-                Consider(ref best, edges[i].GetShortestLineTo(line, tolerance));
+                Consider(ref best, edges[i].GetShortestLineTo(line, ForSide(edges[i], tolerance)));
             }
 
             return best;
         }
 
         /// <summary>
-        /// Gets the shortest segment joining a run of edges to an arc.
+        /// Gets the shortest segment joining a run of edges to an arc, each edge joined as it is however short.
         /// </summary>
         internal static GeoLine2 ShortestLineTo(List<GeoEdge2> edges, GeoArc2 arc, Tolerance tolerance)
         {
-            GeoLine2 best = edges[0].GetShortestLineTo(arc, tolerance);
+            GeoLine2 best = edges[0].GetShortestLineTo(arc, ForSide(edges[0], tolerance));
 
             for (int i = 1; i < edges.Count && best.Length > 0.0; i++)
             {
-                Consider(ref best, edges[i].GetShortestLineTo(arc, tolerance));
+                Consider(ref best, edges[i].GetShortestLineTo(arc, ForSide(edges[i], tolerance)));
             }
 
             return best;
         }
 
         /// <summary>
-        /// Gets the shortest segment joining a run of edges to a circle.
+        /// Gets the shortest segment joining a run of edges to a circle, each edge joined as it is however short.
         /// </summary>
         internal static GeoLine2 ShortestLineTo(List<GeoEdge2> edges, GeoCircle2 circle, Tolerance tolerance)
         {
-            GeoLine2 best = edges[0].GetShortestLineTo(circle, tolerance);
+            GeoLine2 best = edges[0].GetShortestLineTo(circle, ForSide(edges[0], tolerance));
 
             for (int i = 1; i < edges.Count && best.Length > 0.0; i++)
             {
-                Consider(ref best, edges[i].GetShortestLineTo(circle, tolerance));
+                Consider(ref best, edges[i].GetShortestLineTo(circle, ForSide(edges[i], tolerance)));
             }
 
             return best;
         }
 
         /// <summary>
-        /// Gets the shortest segment joining two runs of edges.
+        /// Gets the shortest segment joining two runs of edges, each edge of either joined as it is however short.
         /// </summary>
         internal static GeoLine2 ShortestLineTo(List<GeoEdge2> first, List<GeoEdge2> second, Tolerance tolerance)
         {
-            GeoLine2 best = first[0].GetShortestLineTo(second[0], tolerance);
+            GeoLine2 best = first[0].GetShortestLineTo(second[0], ForSides(first[0], second[0], tolerance));
 
             foreach (GeoEdge2 one in first)
             {
                 foreach (GeoEdge2 other in second)
                 {
-                    Consider(ref best, one.GetShortestLineTo(other, tolerance));
+                    Consider(ref best, one.GetShortestLineTo(other, ForSides(one, other, tolerance)));
 
                     if (best.Length <= 0.0)
                     {

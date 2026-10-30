@@ -70,6 +70,30 @@ offers its start as it does on its own, and still off. Every answer for chains, 
 no side of, is the same to the bit, and `Locate` on a loop of 100 sides takes the 18 microseconds it took on .NET
 Framework 4.8. 6 new tests.
 
+**FIXED.** The closest edge of a curved loop or chain in the plane, and its shortest line to a segment, an arc, a circle,
+a polyline, a polygon or another loop or chain, measure a straight side no longer than the point tolerance as it is, as
+the distance does. Such a side was read as the point at its start, so a shape beside its middle was measured to a corner
+of it: at a tolerance of a hundredth, the loop (0, 0), (10, 0), (10, 0.006), (0, 10) is 0.03 from the segment from
+(10.03, 0.003) to (10.05, 0.003), and the shortest line to it now runs from (10, 0.003), 0.03 long, where it ran from a
+corner, 0.0301496 long; the edge nearest the point (10.03, 0.003) is the side 0.006 long, where it was the side along
+the bottom, as far from the corner and first round the loop. A `GeoPolygonArc3` asked about its plane follows, and so
+does the shortest line from a straight polygon, rectangle or polyline to an arc. A segment you give no longer than the
+tolerance is still read as its start where it crosses no side, and the closest edge now takes one crossing a side as
+nought from it, as the distance does. The nearest point keeps its reading: `GetClosestPointOnBoundary`, and the shortest
+line to a point, which leaves it, still carry a point beside such a side to the side's start, so that line can be longer
+than the distance by up to the side's length, 0.0301496 from (10, 0) here where the distance is 0.03, as a point near
+the centre of an arc is carried to the arc's start. Of 300 000 random chains and loops with straight edges and arcs, many
+no longer than the tolerance, at tolerances of a thousandth and a hundredth, at the origin and out to a million, 89 666
+closest edges were not the nearest and 158 are not now, every one beside the centre of an arc or a circle no wider than
+the tolerance, or for a segment shorter than it read as its start; of 300 000 more at a ten-thousandth, 73 719 and 107.
+The 1 459 and 1 095 shortest lines that were off the exact length beside a short side are none; of the shortest lines
+of a `GeoPolygonArc3` to a segment in its plane, 50 off the exact length are 15: 7 a touch read within the tolerance
+past the ends of two sides, 5 a segment shorter than the tolerance read as its start and 3 a rounding of five parts in
+1E10. Every answer for a shape with no straight side as short as the tolerance, against a
+shape with none either, is the same to the bit, and every answer of `GetClosestPointOnBoundary` and `DistanceTo`.
+The shortest line from a loop of 100 sides to a segment takes the 31 microseconds it took on .NET Framework 4.8, and its
+closest edge to a point 8.8 where it took 8.4. 9 new tests.
+
 **FIXED.** `TryCutOpenings` and the measures of a body with openings no longer keep a skin the tolerance thin over an
 opening that cut in alone would lose it. Cut in together, a plane of one opening cuts every cell that reaches the
 opening's box, and a plate's first cells reach all of its openings: twelve boxes hidden 0.01 inside the faces of a plate
