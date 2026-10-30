@@ -521,8 +521,6 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private void Flush()
         {
-            DropEmptyGroups();
-
             if (_removed != null && _removed.Count > _cleaned)
             {
                 Clean();

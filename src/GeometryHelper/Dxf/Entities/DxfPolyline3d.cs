@@ -525,7 +525,8 @@ namespace GeometryHelper.Dxf
         /// Gets the polylines at a distance from this one in the plane it lies in, as AutoCAD's <c>GetOffsetCurves</c>, as
         /// <see cref="GetOffsetCurvesGivenPlaneNormal"/> offsets it about the normal of that plane turned to the side its largest
         /// part is above nought on, (0, 0, 1) for a polyline on the floor: to the right of its way seen from above, so that a
-        /// closed polyline running counter-clockwise grows.
+        /// closed polyline running counter-clockwise grows. A closed one that crosses itself in its plane has none, as a
+        /// <see cref="DxfPolyline"/> has none.
         /// </summary>
         /// <param name="offsetDist">The distance.</param>
         /// <returns>The 3D polylines, of the same look, in no file.</returns>

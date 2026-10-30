@@ -46,7 +46,7 @@ namespace GeometryHelper.Dxf
     public sealed partial class DxfTable : DxfEntity
     {
         // The groups of AcDbBlockReference and AcDbTable in the order AutoCAD writes them, the table's head.
-        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 2, 10, 20, 30, 100, 280, 342, 343, 11, 21, 31, 90, 91, 92, 93, 94, 95, 96, 141, 142 });
+        private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 2, 10, 20, 30, 100, 280, 342, 343, 11, 21, 31, 90, 91, 92, 93, 94, 95, 96, 70, 141, 142 });
 
         private static readonly GeoPoint3 Origin = new GeoPoint3(0.0, 0.0, 0.0);
 
@@ -906,11 +906,18 @@ namespace GeometryHelper.Dxf
             GeoVector3 direction = transform.Transform(along);
             direction = scaled ? direction.Divide(scale) : direction;
 
-            // Mirrored, the table is the one a turn puts in the box the mirror makes of it, as AutoCAD keeps it readable: its
-            // direction reversed from the image, its point the image of the far end of its top edge.
             GeoTransform3 linear = transform;
 
-            if (mirrored)
+            // Mirrored, the table whose direction's image still reads left to right or upwards, seen from the tip of its normal,
+            // stands at the image of its point along that image, its rows running the other way (its flow turned over), as
+            // AutoCAD 2021's TransformBy leaves one mirrored in a level line or one at 45 degrees. Any other is the one a turn
+            // puts in the box the mirror makes of it, as AutoCAD keeps it readable: its direction reversed from the image, its
+            // point the image of the far end of its top edge.
+            GeoPoint3 seen = WorldToOcs(turnedNormal, new GeoPoint3(direction.X, direction.Y, direction.Z));
+            double eps = Tolerance.Default.EqualVector * direction.Length;
+            bool flipFlow = mirrored && (seen.X > eps || (Math.Abs(seen.X) <= eps && seen.Y > 0.0));
+
+            if (mirrored && !flipFlow)
             {
                 double width = 0.0;
 
@@ -939,7 +946,14 @@ namespace GeometryHelper.Dxf
             // The sizes first, each in its place, before a point is written where the record had none.
             if (scaled)
             {
-                ScaleSizes(new Layout(g), scale);
+                var layout = new Layout(g);
+                ScaleSizes(layout, scale);
+                ScaleStyleHeights(layout, scale);
+            }
+
+            if (flipFlow)
+            {
+                FlipFlow(g);
             }
 
             g.SetPoint(10, WorldToOcs(turnedNormal, position), g.Base, Order, Origin);
@@ -1036,6 +1050,103 @@ namespace GeometryHelper.Dxf
                     list[at] = new KeyValuePair<int, string>(list[at].Key, Numbers.Exact(size * scale + 0.0));
                 }
             }
+        }
+
+        /// <summary>
+        /// Writes the text height the table style gives each kind of row the table gives none of its own, scaled, as the table's
+        /// own of that kind (its 140 after its last cell, its flag in 93 from bit 20 on, the title's, the header's, the data's),
+        /// as AutoCAD 2021's <c>TransformBy</c> doubles the heights of the style too: of the drawing of point 54, which has no
+        /// table style, scaled by 2, the title 12 and the header and the data 9. The style is the one the table names (342), else
+        /// the drawing's Standard, else AutoCAD's own Standard, which it makes where the drawing has none: the data and the header
+        /// 4.5 and the title 6 in a drawing of millimetres (<c>$MEASUREMENT</c> 1), 0.18 and 0.25 in one of inches, as 43
+        /// drawings AutoCAD 2021 saved give it. A table in no drawing has no style to read.
+        /// </summary>
+        private void ScaleStyleHeights(Layout layout, double scale)
+        {
+            DxfDimGroups g = layout.Groups;
+            int headTo = layout.CellStart.Count > 0 ? layout.CellStart[0] : layout.CellsEnd;
+            int cellsEnd = layout.CellsEnd;
+            int all = 7 << RowLooks[140];
+
+            // A table that gives every kind of row a height of its own has none of its style to scale.
+            if (!IsResident || (g.Whole(93, new DxfDimGroups.Range(g.Sub.From, headTo), 0) & all) == all)
+            {
+                return;
+            }
+
+            double[] heights = StyleTextHeights();
+
+            for (int rowKind = 0; rowKind < 3; rowKind++)
+            {
+                var head = new DxfDimGroups.Range(g.Sub.From, headTo);
+                int looks = g.Whole(93, head, 0);
+                int bit = RowLooks[140] + rowKind;
+
+                if ((looks & (1 << bit)) != 0 || double.IsNaN(heights[rowKind]))
+                {
+                    continue;
+                }
+
+                int[] ranks = TailRanks(g, headTo, cellsEnd, out int to);
+                g.Insert(PlaceOf(g, ranks, cellsEnd, to, 140, bit), new KeyValuePair<int, string>(140, Numbers.Exact(heights[rowKind] * scale + 0.0)));
+                bool had = g.Find(93, head) >= 0;
+                g.Set(93, (looks | (1 << bit)).ToString(CultureInfo.InvariantCulture), head, Order);
+
+                if (!had)
+                {
+                    headTo++;
+                    cellsEnd++;
+                }
+            }
+        }
+
+        /// <summary>
+        /// The text heights a table style gives the title, the header and the data, in that order, NaN for one it gives none: a
+        /// TABLESTYLE gives them as the 140 of each of its three kinds of cell, the data's, the title's and the header's, in
+        /// that order, as AutoCAD writes its Standard (0.18, 0.25, 0.18).
+        /// </summary>
+        private double[] StyleTextHeights()
+        {
+            DxfFile file = Item.File;
+            DxfDimGroups own = Own();
+            string handle = own.Text(342, own.Sub)?.Trim();
+            DxfItem style = handle == null ? null : file.ObjectItem(handle);
+
+            if (style == null)
+            {
+                string root = file.RootDictionaryHandle();
+                string styles = root == null ? null : Entry(file, root, e => string.Equals(e.Key, "ACAD_TABLESTYLE", StringComparison.OrdinalIgnoreCase));
+                string standard = styles == null ? null : Entry(file, styles, e => string.Equals(e.Key, "Standard", StringComparison.OrdinalIgnoreCase));
+                style = standard == null ? null : file.ObjectItem(standard);
+            }
+
+            if (style == null)
+            {
+                bool metric = file.Database == null || file.Database.Measurement == DxfMeasurementValue.Metric;
+                return metric ? new[] { 6.0, 4.5, 4.5 } : new[] { 0.25, 0.18, 0.18 };
+            }
+
+            var found = new List<double>(3);
+            bool inStyle = false;
+
+            foreach (DxfTypedValue group in file.ObjectGroupsOf(style))
+            {
+                if (group.TypeCode == 100)
+                {
+                    inStyle = group.Value.Trim() == "AcDbTableStyle";
+                }
+                else if (inStyle && group.TypeCode == 140 && found.Count < 3)
+                {
+                    found.Add(Numbers.TryRead(group.Value, out double height) && Guard.IsFinite(height) && height > 0.0 ? height : double.NaN);
+                }
+            }
+
+            while (found.Count < 3)
+            {
+                found.Add(double.NaN);
+            }
+
+            return new[] { found[1], found[2], found[0] };
         }
 
         #endregion
@@ -1146,7 +1257,10 @@ namespace GeometryHelper.Dxf
 
         private double TableReal(int code, double fallback) => Numbers.TryRead(TableText(code), out double value) && Guard.IsFinite(value) ? value : fallback;
 
-        /// <summary>The text of the last group of a code after the table's last cell, where the table's own overrides stand.</summary>
+        /// <summary>
+        /// The text of the last group of a code after the table's last cell, where the table's own overrides stand; of the flow
+        /// (70), where there is none there, the one of its head, where AutoCAD 2021 writes it after 96.
+        /// </summary>
         private string TableText(int code)
         {
             Layout layout = Read();
@@ -1160,7 +1274,40 @@ namespace GeometryHelper.Dxf
                 }
             }
 
+            if (code == 70)
+            {
+                DxfDimGroups g = layout.Groups;
+                int at = g.Find(70, new DxfDimGroups.Range(g.Sub.From, layout.CellStart.Count > 0 ? layout.CellStart[0] : layout.CellsEnd));
+                return at < 0 ? null : g.List[at].Value;
+            }
+
             return null;
+        }
+
+        /// <summary>
+        /// Turns the table's flow over (its 70, 0 down and 1 up): where the table gives its own after its last cell, there; else
+        /// in its head after 96, its flag 0x04 set in 93, where AutoCAD 2021 writes the flow of a table it mirrored.
+        /// </summary>
+        private void FlipFlow(DxfDimGroups g)
+        {
+            string turned = FlowDirection == DxfFlowDirection.BottomToTop ? "0" : "1";
+            var layout = new Layout(g);
+
+            for (int i = g.List.Count - 1; layout.CellStart.Count > 0 && i >= layout.CellsEnd; i--)
+            {
+                if (g.List[i].Key == 70)
+                {
+                    g.List[i] = new KeyValuePair<int, string>(70, turned);
+                    return;
+                }
+            }
+
+            int headTo = layout.CellStart.Count > 0 ? layout.CellStart[0] : layout.CellsEnd;
+            var head = new DxfDimGroups.Range(g.Sub.From, headTo);
+            bool had = g.Find(93, head) >= 0;
+            g.Set(93, (g.Whole(93, head, 0) | 0x04).ToString(CultureInfo.InvariantCulture), head, Order);
+            head = new DxfDimGroups.Range(g.Sub.From, had ? headTo : headTo + 1);
+            g.Set(70, turned, head, Order);
         }
 
         /// <summary>

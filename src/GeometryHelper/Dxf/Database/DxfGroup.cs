@@ -17,11 +17,10 @@ namespace GeometryHelper.Dxf
     /// </para>
     /// <para>
     /// The members are the entities the group lists that the drawing has: an entity erased leaves the group at once, as it
-    /// leaves AutoCAD's, and the file saved lists it no longer. A named group left empty is kept, as AutoCAD 2021 keeps it
-    /// whatever emptied it: its last member erased, <see cref="Clear"/>, <see cref="RemoveAt(int)"/>, or never given one; the
-    /// groups G_ERASE, G_REMOVE and G_NEW_EMPTY so emptied are all in the drawing it saves, each of no member. An anonymous
-    /// group left empty is dropped when the drawing is saved, and reads erased from then on. A group the file was read with
-    /// empty is kept as it was.
+    /// leaves AutoCAD's, and the file saved lists it no longer. A group left empty is kept, named or anonymous, as AutoCAD
+    /// 2021 keeps it whatever emptied it: its last member erased, <see cref="Clear"/>, <see cref="RemoveAt(int)"/>, or never
+    /// given one; the groups G_ERASE, G_REMOVE and G_NEW_EMPTY so emptied, and the anonymous *A1, *A2 and *A3, are all in
+    /// the drawing it saves, each of no member.
     /// </para>
     /// <para>
     /// The look of every member is set at once by <see cref="SetColorIndex"/>, <see cref="SetLayer"/> and the others: a
@@ -539,7 +538,7 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Takes every entity out of the group, as AutoCAD's <c>Clear</c>, and the group out of their reactors; the group is
-        /// kept empty where it is named, and an anonymous one dropped when the drawing is saved unless it is given members first.
+        /// kept, empty, named or anonymous, as AutoCAD 2021 keeps it.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the group is in no file, or is erased.</exception>
         public void Clear() => RemoveAt(0, Members());
@@ -828,12 +827,6 @@ namespace GeometryHelper.Dxf
 
             Item.File.ReplaceOwn(Item, 0, MemberCodes, groups, Order, false);
             Keep(items);
-
-            // An anonymous group left empty is dropped when the drawing is saved; a named one is kept, as AutoCAD keeps it.
-            if (members.Count == 0)
-            {
-                Item.File.GroupMayBeEmpty(Item);
-            }
         }
 
         private bool Flag(int code, bool fallback)

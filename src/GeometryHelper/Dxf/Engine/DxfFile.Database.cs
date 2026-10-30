@@ -1595,6 +1595,32 @@ namespace GeometryHelper.Dxf
                 }
             }
 
+            // R12 writes the texts 3 and 4 and every arrow by name, 5, 6 and 7, after the flags, each empty where there is none:
+            // AutoCAD 2021 refuses a DIMSTYLE of R12 without its 5 ("Omitted group 5").
+            foreach (int code in new[] { 5, 6, 7 })
+            {
+                if (!arrows.Exists(a => a.Key == code))
+                {
+                    arrows.Add(new KeyValuePair<int, string>(code, string.Empty));
+                }
+            }
+
+            foreach (int code in new[] { 3, 4 })
+            {
+                int at = groups.FindIndex(g => g.Key == code);
+
+                if (at >= 0)
+                {
+                    arrows.Add(groups[at]);
+                    groups.RemoveAt(at);
+                    heads--;
+                }
+                else
+                {
+                    arrows.Add(new KeyValuePair<int, string>(code, string.Empty));
+                }
+            }
+
             arrows.Sort((a, b) => a.Key.CompareTo(b.Key));
             groups.InsertRange(heads, arrows);
             DxfItem made = AddTableRecord("DIMSTYLE", MarkerOf("DIMSTYLE"), b =>
@@ -1669,11 +1695,15 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// A record of another file written in this one's style: its type, the handle and owner given, its space in paper space,
-        /// and its groups as they are, but its subclass markers in a file of R12.
+        /// and its groups as they are, but its subclass markers in a file of R12, and a dimension's version (280 under
+        /// AcDbDimension), which R2010 brought, in a file of an earlier version, as AutoCAD's SAVEAS leaves it out: AutoCAD 2021
+        /// refuses a DIMENSION of R2000 with it ("Unexpected DXF group code: 280").
         /// </summary>
         private Rec Copied(DxfFile source, Rec record, string handle, string owner, bool paper)
         {
             Writing style = Style;
+            bool older = style.Version < source.Style.Version && style.Version < 1024;
+            string marker = null;
             var b = new Builder(this);
             b.Group(0, record.Type);
 
@@ -1697,8 +1727,9 @@ namespace GeometryHelper.Dxf
             for (int i = 1; i < pairs.Count; i++)
             {
                 string value = source.Text(record, pairs[i]);
+                marker = pairs[i].Code == 100 ? value.Trim() : marker;
 
-                if (pairs[i].Code == 100 && !style.Markers)
+                if ((pairs[i].Code == 100 && !style.Markers) || (older && pairs[i].Code == 280 && marker == "AcDbDimension"))
                 {
                     continue;
                 }

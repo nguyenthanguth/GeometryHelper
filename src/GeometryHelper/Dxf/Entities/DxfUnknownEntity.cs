@@ -50,9 +50,12 @@ namespace GeometryHelper.Dxf
         /// six LINEs. A MESH not smoothed (level 0) breaks into a 3DFACE for each face, in the order of its list of faces, each
         /// with the MESH's look and every edge drawn, as AutoCAD's EXPLODE breaks one and ezdxf's <c>MeshBuilder</c> renders it:
         /// a face of four corners a 3DFACE of them, of three one ending on its third; a cube 10 by 10 by 10 of eight vertices
-        /// and six faces gives six 3DFACEs. A face of more than four corners breaks into triangles fanned from its first
-        /// corner, as AutoCAD 2021's <c>Explode</c> breaks one, the last first and each turned the other way round: the face of
-        /// the corners 0 to 4 gives the triangles (4, 3, 0), (2, 0, 3) and (0, 2, 1). A face given a colour of its own (an
+        /// and six faces gives six 3DFACEs. A face of more than four corners breaks into a strip of triangles, as AutoCAD
+        /// 2021's <c>Explode</c> breaks one: from two corners on, the rest taken by turns from the far end and the near one, each
+        /// triangle after the first the other way round; from the face's first two corners in a MESH of that one face, from its
+        /// last two back the other way in a MESH of more. The face of the corners 0 to 4 alone gives the triangles (0, 1, 4),
+        /// (2, 4, 1) and (4, 2, 3), and as the base of a pyramid (4, 3, 0), (2, 0, 3) and (0, 2, 1); of 0 to 5, (0, 1, 5),
+        /// (2, 5, 1), (5, 2, 4) and (3, 4, 2) alone and (5, 4, 0), (3, 0, 4), (0, 3, 1) and (2, 1, 3) as a base. A face given a colour of its own (an
         /// override of the MESH, its subentity 1 the first face) keeps it on its 3DFACEs, as AutoCAD keeps it. A MESH smoothed,
         /// and one that gives a face a material or a transparency of its own, or an edge or a vertex anything of its own, is
         /// refused. Any other type refuses: a REGION, a 3DSOLID, a BODY and a surface, which AutoCAD breaks with its solid
@@ -269,15 +272,32 @@ namespace GeometryHelper.Dxf
                 }
                 else
                 {
-                    // Fanned from the first corner, the last triangle first, each the other way round and turned on by its place.
-                    int last = corners.Length - 1;
+                    // A strip of triangles, as AutoCAD 2021's Explode gives one: from two corners on, the rest taken by turns from
+                    // the far end and the near one, each triangle after the first the other way round; from the face's first two
+                    // corners in a mesh of that one face, from its last two back the other way in a mesh of more. A hexagon alone
+                    // gives (0, 1, 5), (2, 5, 1), (5, 2, 4), (3, 4, 2); the base of a pyramid (5, 4, 0), (3, 0, 4), (0, 3, 1), (2, 1, 3).
+                    int count = corners.Length;
+                    var strip = new List<int>(count);
+                    int[] round = new int[count];
 
-                    for (int t = 0; t + 2 < corners.Length; t++)
+                    for (int k = 0; k < count; k++)
                     {
-                        int[] triangle = { corners[last - t], corners[last - t - 1], corners[0] };
-                        int a = triangle[t % 3];
-                        int b = triangle[(t + 1) % 3];
-                        int c = triangle[(t + 2) % 3];
+                        round[k] = faces.Count > 1 ? corners[count - 1 - k] : corners[k];
+                    }
+
+                    strip.Add(round[0]);
+                    strip.Add(round[1]);
+
+                    for (int near = 2, far = count - 1, turn = 0; near <= far; turn++)
+                    {
+                        strip.Add(turn % 2 == 0 ? round[far--] : round[near++]);
+                    }
+
+                    for (int t = 0; t + 2 < strip.Count; t++)
+                    {
+                        int a = t % 2 == 0 ? strip[t] : strip[t + 2];
+                        int b = strip[t + 1];
+                        int c = t % 2 == 0 ? strip[t + 2] : strip[t];
                         made.Add(new DxfFace(points[a], points[b], points[c], points[c], true, true, true, true));
                     }
                 }

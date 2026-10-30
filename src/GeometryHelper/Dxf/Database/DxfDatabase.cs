@@ -102,8 +102,9 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Saves the drawing to a path, replacing whatever is there: the bytes read where nothing was changed, and each record
-        /// not changed, added or erased with its own bytes where something was. <see cref="Filename"/> is the path from then on,
-        /// as AutoCAD's <c>SaveAs</c> makes it.
+        /// not changed, added or erased with its own bytes where something was; a face of a polyface mesh read with AcDbVertex
+        /// before its AcDbFaceRecord, as GeometryHelper 13.0.0 and 13.1.0 wrote one and AutoCAD 2021 refuses, is written with its
+        /// own marker alone. <see cref="Filename"/> is the path from then on, as AutoCAD's <c>SaveAs</c> makes it.
         /// </summary>
         /// <param name="path">The path of the file.</param>
         /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>

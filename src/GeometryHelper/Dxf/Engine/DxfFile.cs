@@ -75,6 +75,16 @@ namespace GeometryHelper.Dxf
             }
 
             var walk = new Walk(this);
+
+            // A face of a polyface mesh with AcDbVertex before its AcDbFaceRecord, as GeometryHelper 13.0.0 and 13.1.0 wrote
+            // one, which AutoCAD 2021 refuses ("Class separator for class AcDbFaceRecord expected"), is read with its own
+            // marker alone, as AutoCAD writes it, so that the file is saved so.
+            if (walk.Extra.Count > 0)
+            {
+                _bytes = Without(bytes, length, walk.Extra, out _length);
+                walk = new Walk(this);
+            }
+
             _starts = walk.Starts.ToArray();
             _types = walk.Types.ToArray();
             _sections = walk.Sections.ToArray();
@@ -946,6 +956,12 @@ namespace GeometryHelper.Dxf
 
             internal List<Section> Sections { get; } = new List<Section>();
 
+            /// <summary>
+            /// Where a face of a polyface mesh has the marker AcDbVertex straight before its AcDbFaceRecord: the bytes of that
+            /// group, from the line of its code to the line of the next group.
+            /// </summary>
+            internal List<KeyValuePair<int, int>> Extra { get; } = new List<KeyValuePair<int, int>>();
+
             private void Run()
             {
                 string section = null;
@@ -953,15 +969,33 @@ namespace GeometryHelper.Dxf
                 int sectionFirst = 0;
                 bool entities = false;
                 bool ended = false;
+                bool vertex = false;
+                int vertexMarker = -1;
 
                 while (Next(out int code, out int codeStart, out int valueStart, out int valueEnd, out int line))
                 {
                     if (code != 0)
                     {
+                        if (vertex && code == 100)
+                        {
+                            if (vertexMarker >= 0 && _file.IsWord(valueStart, valueEnd, "AcDbFaceRecord"))
+                            {
+                                Extra.Add(new KeyValuePair<int, int>(vertexMarker, codeStart));
+                            }
+
+                            vertexMarker = _file.IsWord(valueStart, valueEnd, "AcDbVertex") ? codeStart : -1;
+                        }
+                        else
+                        {
+                            vertexMarker = -1;
+                        }
+
                         continue;
                     }
 
                     string word = Word(valueStart, valueEnd);
+                    vertex = word == "VERTEX";
+                    vertexMarker = -1;
 
                     if (word == "EOF")
                     {
@@ -1092,6 +1126,61 @@ namespace GeometryHelper.Dxf
                     }
                 }
             }
+        }
+
+        /// <summary>Whether the bytes from one place to another are a word of ASCII, spaces and tabs about it left out, as <see cref="Walk"/> trims a value.</summary>
+        private bool IsWord(int start, int end, string word)
+        {
+            while (start < end && (_bytes[start] == (byte)' ' || _bytes[start] == (byte)'\t'))
+            {
+                start++;
+            }
+
+            while (end > start && (_bytes[end - 1] == (byte)' ' || _bytes[end - 1] == (byte)'\t'))
+            {
+                end--;
+            }
+
+            if (end - start != word.Length)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < word.Length; i++)
+            {
+                if (_bytes[start + i] != (byte)word[i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>The bytes of a file with the runs given, each from where it begins to where it ends, in order and apart, taken out.</summary>
+        private static byte[] Without(byte[] bytes, int length, List<KeyValuePair<int, int>> runs, out int left)
+        {
+            int cut = 0;
+
+            foreach (KeyValuePair<int, int> run in runs)
+            {
+                cut += run.Value - run.Key;
+            }
+
+            left = length - cut;
+            var kept = new byte[left];
+            int from = 0;
+            int to = 0;
+
+            foreach (KeyValuePair<int, int> run in runs)
+            {
+                Buffer.BlockCopy(bytes, from, kept, to, run.Key - from);
+                to += run.Key - from;
+                from = run.Value;
+            }
+
+            Buffer.BlockCopy(bytes, from, kept, to, length - from);
+            return kept;
         }
 
         /// <summary>The end of the line from a byte, a carriage return before its line feed left out, and where the next begins.</summary>

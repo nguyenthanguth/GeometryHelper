@@ -221,14 +221,16 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(vertices[16].Position.IsEqualTo(new GeoPoint3(0, 0, 0), tolerance));
             Assert.True(vertices[64].Position.IsEqualTo(new GeoPoint3(30, 30, 0), tolerance));
             Assert.Equal(6, mesh.MSurfaceDensity);
-            Assert.Equal(36, mesh.Explode().Count);
 
-            // Closed along N, the 4 points of a row round it: 7 rows of 6.
+            // AutoCAD 2021's Explode reads the 49 points as a grid of 6 by 6 (plugin v4, point 58): 25 faces.
+            Assert.Equal(25, mesh.Explode().Count);
+
+            // Closed along N, the 4 points of a row round it: 7 rows of 6, exploded as a grid of 6 by 6 closed along N.
             var ring = new DxfPolygonMesh(DxfPolyMeshType.SimpleMesh, 4, 4, grid, false, true);
             db.ModelSpace.AppendEntity(ring);
             ring.SurfaceFit(DxfPolyMeshType.CubicSurfaceMesh, 6, 6);
             Assert.Equal(16 + 42, ring.Cast<DxfEntity>().Count());
-            Assert.Equal(36, ring.Explode().Count);
+            Assert.Equal(30, ring.Explode().Count);
         }
 
         [Fact]

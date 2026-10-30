@@ -884,7 +884,8 @@ namespace GeometryHelper.Dxf
         /// Gets the polylines at a distance from this one in its plane, as AutoCAD's <c>GetOffsetCurves</c>, as a
         /// <see cref="DxfPolyline"/> offsets its own: to the right of its way seen from the tip of its <see cref="Normal"/>
         /// where the distance is above nought, arcs kept and corners run on until the segments meet. A fitted polyline is
-        /// offset along the vertices it is drawn through, and gives straight polylines.
+        /// offset along the vertices it is drawn through, and gives straight polylines. A closed one that crosses itself has
+        /// none, as a <see cref="DxfPolyline"/> has none.
         /// </summary>
         /// <param name="offsetDist">The distance.</param>
         /// <returns>The polylines of the plane, of the same look, in no file.</returns>

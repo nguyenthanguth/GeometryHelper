@@ -12,7 +12,9 @@ AutoCAD did, and what the library does since, in the place of what would have me
 list had not: AutoCAD refuses a file whose pattern HATCH has no count of its lines (78), one whose MTEXT turns its background
 on without its colour and scale (63 and 45), one whose LAYER of R2000 or later has no plot style (390, "Did not receive
 PlotStyleName", points 29 and 30), and one whose face of a PFACE has AcDbVertex before its AcDbFaceRecord (point 58); all
-four are now written as AutoCAD reads them.
+four are now written as AutoCAD reads them. Its plugin v4 found two more: a DIMENSION of R2000 that keeps the version 280
+R2010 brought (points 29 and 30), and a DIMSTYLE copied into R12 without its arrows by name 5, 6 and 7 (point 55); both are
+written as AutoCAD reads them now.
 
 ## Entities and copies
 
@@ -151,6 +153,11 @@ four are now written as AutoCAD reads them.
       to the four fits the library's way of judging a segment (a tolerance of the size over the square of one more than the
       precision misses by a tenth); the library keeps its own reading until AutoCAD's counts on more precisions and more spans
       show the rule.
+    - AutoCAD 2021 (plugin v4, the cubic of three spans 17-b): 78, 156, 224, 447, 835, 1 594, 3 888 and 7 562 vertices at 0,
+      1, 2, 5, 10, 20, 50 and 99, where the library gives 29, 35, 36, 51, 91, 284, 843 and 843. Halving the parameter range
+      of the whole spline from 0 to 3 while the curve's middle lies further than 0.01054 / (p + 1)^2 from the chord's middle
+      gives all eight counts of the three spans, but 512 segments for the one span at 10, where AutoCAD gives 256: no rule
+      found yet, parked.
 
 18. **The narrowest ellipse.**
     - Try: squash an ellipse to a ratio of 1E-7 by `TransformBy`, and project a circle onto a plane seen almost edge on.
@@ -215,6 +222,11 @@ four are now written as AutoCAD reads them.
       saved) is set there as well. A drawing with no DWGPROPS gives the texts of its header (`$TITLE`, `$SUBJECT`,
       `$AUTHOR`, `$COMMENTS`, `$KEYWORDS`, `$REVISIONNUMBER`). The custom properties of a header (`$CUSTOMPROPERTYTAG`), which
       no file of AutoCAD's here holds, are not read.
+    - AutoCAD 2021 (plugin v4): reads the title, the author, the hyperlink base and both custom properties of the library's
+      26-a (R2018) and 26-b (R2000); its SAVEAS of either as R2018 writes no DWGPROPS, but `$TITLE` and `$AUTHOR` and then
+      each custom property as a pair `$CUSTOMPROPERTYTAG` and `$CUSTOMPROPERTY` after `$DWGCODEPAGE`, and `$HYPERLINKBASE`.
+      Writing the header's form needs a variable named more than once in the header, which the library's header keeps by
+      name: parked, the library's DWGPROPS being read as written.
 
 27. **Empty groups.**
     - Try: in AutoCAD, empty a group by erasing its last member, by removing it, and make one with no member; save.
@@ -222,6 +234,9 @@ four are now written as AutoCAD reads them.
       opens it again (through its API; the ERASE and GROUP commands not run).
     - Now: so does the library for a named group. An anonymous group left empty is still dropped when the drawing is saved,
       which AutoCAD was not asked about.
+    - AutoCAD 2021 (plugin v4, 27x): keeps the anonymous *A1, *A2 and *A3 too, emptied by an erase, by `Remove` and made
+      with no member, still anonymous and of no member after it saves the drawing and opens it again.
+    - Now: so does the library: no group left empty is dropped.
 
 28. **An anonymous group renamed.**
     - Try: rename an anonymous group in AutoCAD.
@@ -242,6 +257,9 @@ four are now written as AutoCAD reads them.
       between drawings of R2000 or later onto a layer the drawing had not brought that layer so.
     - Now: the plot style of the name found there, and a layer whose plot style the drawing has none of given layer 0's, so
       that every LAYER copied into R2000 or later has a 390.
+    - AutoCAD 2021 (plugin v4, `after-d11`): refused 29-b again, "in AcDbRotatedDimension starting at line 5890: Unexpected
+      DXF group code: 280": the DIMENSION copied from R2018 kept its version (280 of AcDbDimension), which R2010 brought.
+    - Now: a dimension copied into a drawing before R2010 is written without it, as AutoCAD's SAVEAS writes one.
 
 30. **A dimension copied into another drawing.**
     - Try: copy a dimension with the library into a drawing that has none of its text style or arrow blocks, and open it.
@@ -249,6 +267,7 @@ four are now written as AutoCAD reads them.
     - A change if: AutoCAD shows another text style or other arrows than in the drawing it came from.
     - AutoCAD 2021: refused the copy as it refused point 29's, the layer Defpoints come with no plot style; the same change
       lets it open the file now (`after-d11`).
+    - AutoCAD 2021 (plugin v4): refused 30-b for the dimension's 280 at line 1686, as point 29's; written without it now.
 
 ## Viewports and layouts
 
@@ -273,6 +292,9 @@ four are now written as AutoCAD reads them.
       1 718.87 degrees: 30 radians.
     - Now: the twist in MVIEW is written and read in radians (group 51 of R2000 on in degrees, as before); the view of R14 is
       still to be tried.
+    - AutoCAD 2021 (plugin v4, 33-b): reads the snap angle in MVIEW in radians as well, the library's 30 as 1 718.87 degrees,
+      and writes a snap of pi/6 there as 0.5235987755982988.
+    - Now: the snap angle in MVIEW is written and read in radians too.
 
 ## Hatches, leaders and multileaders
 
@@ -419,6 +441,10 @@ four are now written as AutoCAD reads them.
       words where it has a hook.
     - Now: so does the library, but the vertex at the words, which needs the font, and the spline's fit points, which a
       `DxfSpline` made in code has not.
+    - AutoCAD 2021 (plugin v4): every part of colour 256 (BYLAYER), where the library's file had 1: the generator of the
+      check gave the library's parts colour 1 to tell them apart (`p.ColorIndex = 1`), so the library's `Explode()` agrees.
+    - Now: the spline keeps its fit data, the three vertices it runs through, the first at the arrow's back, and the
+      directions of the first and last segments, as AutoCAD's.
 
 53. **A named block brought by a copy.**
     - Try: copy an INSERT of a block that inserts another block into a drawing that has neither, with WBLOCK or COPYCLIP and
@@ -436,6 +462,17 @@ four are now written as AutoCAD reads them.
       mirror makes of it.
     - Now: mirrored, as AutoCAD; scaled, the heights the table and its cells override doubled, those of its style kept, as
       the library reads no table style, and its rows as written, as it measures none by a font.
+    - Now (D12): scaled, the heights the table style gives are doubled too, written as the table's own for each kind of row
+      it gives none of (its 140 after its last cell, flags 0x100000 to 0x400000 of 93): the title 12 and the header and data
+      9. The style is the one the table names, else the drawing's Standard, else AutoCAD's own Standard, which 43 drawings
+      AutoCAD 2021 saved show: data, title and header 4.5, 6 and 4.5 of millimetres ($MEASUREMENT 1), 0.18, 0.25 and 0.18 of
+      inches. The rows 22, 18 and 18 need AutoCAD's font: parked. To see: whether AutoCAD reads a height of the table's own
+      for a kind of row from a file (no file of AutoCAD's here has one), and where its own save of the scaled table puts it.
+    - AutoCAD 2021 (plugin v4, 54x): mirrored in y = -150 the table stands at (300, -200) along (1, 0, 0), and in the line at
+      45 degrees through (280, -100) at (280, -80) along (0, 1, 0), its normal (0, 0, 1) in both, its flow up: its saves
+      write 70 of 1 in the table's head after 96, the flag 0x04 set in 93.
+    - Now: so does the library: mirrored so that the image of its direction still reads left to right or upwards, a table
+      stands at the image of its point along that image, its flow turned over; otherwise as in x = 280.
 
 55. **Arrow blocks of a dimension saved as R12.**
     - Try: SAVEAS R12 in AutoCAD a dimension whose DIMBLK is overridden, and compare its ACAD extended data with the library's
@@ -443,6 +480,10 @@ four are now written as AutoCAD reads them.
     - Now: the override names the block by its name (a 1070 of 5, 6 or 7, then a 1000) where the drawing has a block of the name,
       and is left out, said in the log, where it has none.
     - A change if: AutoCAD writes the arrow otherwise in R12.
+    - AutoCAD 2021 (plugin v4, `after-d9`): refused 55-b and 55-c, "Omitted group 5 on line 2978": the DIMSTYLE GH_DIM
+      copied in the form of R12 had no 5, 6 and 7 where its source had no arrow by name; AutoCAD's own R12 writes 3, 4, 5, 6
+      and 7 after the flags, empty where there is none.
+    - Now: so does the library.
     - Found making the files: the copy into R12 named a DIMSTYLE the drawing did not have, the style being left behind. It is
       now copied in the form of R12: its name, flags and the variables R12 has, its arrows by name.
 
@@ -466,6 +507,11 @@ four are now written as AutoCAD reads them.
     - AutoCAD 2021: refused the input file, "Class separator for class AcDbFaceRecord expected": the library wrote a face
       made in code with AcDbVertex before its AcDbFaceRecord. AutoCAD writes the face's marker alone, and so does the
       library now; the exploding is to be seen again (`after-d11`).
+    - AutoCAD 2021 (plugin v4): the faces of the PFACE 8E all of colour 256, the face of colour 1 of its own among them; the
+      mesh 9B smoothed at 6 and 6 into 25 faces, its 7 by 7 points read as a grid of 6 by 6 from the first, the first face
+      of the points 0, 1, 7 and 6.
+    - Now: so does the library: a face's own colour is not taken, and a smoothed mesh breaks as AutoCAD's. A file written by
+      13.0.0 or 13.1.0 with AcDbVertex before a face's AcDbFaceRecord is read and saved with the marker alone.
 
 59. **An MLINE exploded.**
     - Try: EXPLODE in AutoCAD an MLINE of a style of six elements with inner arcs at both ends, one with its caps suppressed,
@@ -494,6 +540,9 @@ four are now written as AutoCAD reads them.
       underlined words get a Polyline under them as long as the words are wide, and the INSERT of the block no ATTRIB.
     - Now: so does the library, but the underline, which needs AutoCAD's font, and the INSERT, which keeps its ATTRIB, as
       the API's `Explode()` may leave the attributes to the EXPLODE command.
+    - AutoCAD 2021 (plugin v4): the splined line's SPLINE has three fit points, the arrow's back, the vertex and the last
+      point, and its tangents at the ends; the library's had none.
+    - Now: the SPLINE keeps them, its control points and knots as they were.
 
 62. **A leader exploded in the look of its dimension style.**
     - Try: EXPLODE in AutoCAD a leader of colour 3 whose style has DIMCLRD BYBLOCK, one with DIMCLRD 1 and DIMLWD 0.35 as
@@ -519,6 +568,13 @@ four are now written as AutoCAD reads them.
       given red (an override of the MESH: 91 1, 92 1, 90 0, 63 1) a red 3DFACE.
     - Now: so does the library. A face of six corners or more is fanned by the same rule, which one face of five settles
       only in part.
+    - AutoCAD 2021 (plugin v4, 64x, three MESHes made through its API): the base of six corners of a pyramid as (5, 4, 0),
+      (3, 0, 4), (0, 3, 1), (2, 1, 3); one face of six alone as (0, 1, 5), (2, 5, 1), (5, 2, 4), (3, 4, 2); one of five alone
+      as (0, 1, 4), (2, 4, 1), (4, 2, 3). Each is a strip: two corners, then the rest by turns from the far end and the near
+      one, each triangle after the first the other way round; alone from the first two corners, as a base from the last two
+      back the other way.
+    - Now: so does the library, the strip from the first two corners in a MESH of one face and from the last two back in a
+      MESH of more. Whether a MESH of more faces that is not closed reads its faces as the pyramid's is still to be tried.
 
 ## Geographic location, layer filters and layer states
 
@@ -657,12 +713,15 @@ The library reads the data links of a table and takes them away, and writes no n
     - Try: `GetOffsetCurves(1)` in AutoCAD's API of the closed polyline (-10, 1), (10, -1), (10, 1), (-10, -1), a bow tie
       crossing itself at the origin, of the same bow tie 0.02 high at its ends, and of the square (0, 0), (6, 0.06),
       (4, 0.06), (10, 0), (10, 10), (0, 10), whose bottom curls into a loop; note the vertices beside each crossing.
-    - Now: the crossing is no corner. The two lobes' offsets are joined where they cross, the bow tie's at (0, ±1.004988),
+    - Before D12: the crossing is no corner. The two lobes' offsets are joined where they cross, the bow tie's at (0, ±1.004988),
       and the thin one's at (0, ±1); its tips are not run on, which with the unlimited miter `GetOffsetCurves` uses
       would reach x = ±1 000. The square grows to the square from (-1, -1.01005) to (11, 11), its bottom rising from
       -1.01005 at the corners to (5, -0.95005). `Offset2.Offset` of a `GeoPolygonArc2` grown with miters or chamfers miters or cuts each tip of two
       lobes as a corner, as the straight path does.
     - AutoCAD 2021: `GetOffsetCurves` gives no curve of either bow tie, either way; of the curled square, outwards (+1) one
-      closed polyline of 11 vertices that runs out to x = 206 and -196 at the level of the crossing, inwards none. The
-      library keeps its offsets; whether to refuse a closed polyline that crosses itself, as AutoCAD answers the bow tie,
-      is the maintainer's to decide.
+      closed polyline of 11 vertices that runs out to x = 206 and -196 at the level of the crossing, inwards none.
+    - Now (the maintainer's decision): a closed polyline that crosses itself has no offset, either way, said in one Debug
+      line: both bow ties and the curled square, whose first and third sides cross at (5, 0.05), give none. A corner that
+      only touches another side, both its own sides on one side of it, is no crossing, and a polyline that only touches
+      itself, or an open one that crosses itself, is offset as before. `Offset2.Offset` of the library's own loops is not
+      changed.

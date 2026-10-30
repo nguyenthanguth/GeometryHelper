@@ -140,7 +140,7 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AnAnonymousGroupLeftEmpty_IsDroppedOnSaving_ANamedOneIsKept_AndOneReadEmptyIsKept()
+        public void AGroupLeftEmpty_IsKeptOnSaving_NamedOrAnonymous_AndOneReadEmptyIsKept()
         {
             // An empty group as the file has it is kept: the file is written back as it was read.
             string empty = DxfObjectsEzdxfDrawings.R2018.Replace("340\n35\n", string.Empty);
@@ -148,8 +148,8 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(0, ((DxfGroup)read.GroupDictionary["*A1"]).NumEntities);
             Assert.Equal(empty, read.ToText());
 
-            // One made in code and never given a member is kept, as AutoCAD 2021 keeps a named one; one anonymous emptied by
-            // RemoveAt goes with its entry.
+            // One made in code and never given a member is kept, and one anonymous emptied by RemoveAt, as AutoCAD 2021 keeps
+            // both (checks 27 and 27x).
             DxfDatabase db = DxfDatabase.Parse(DxfObjectsEzdxfDrawings.R2018);
             var made = new DxfGroup("never filled", true);
             db.GroupDictionary.SetAt("EMPTY", made);
@@ -158,8 +158,11 @@ namespace GeometryHelper.UnitTest.Dxf
 
             string saved = db.ToText();
             Assert.False(made.IsErased);
-            Assert.True(anonymous.IsErased);
-            Assert.Equal(new[] { "BEAMS", "EMPTY" }, DxfDatabase.Parse(saved).GroupDictionary.Select(e => e.Key));
+            Assert.False(anonymous.IsErased);
+            DxfDatabase reread = DxfDatabase.Parse(saved);
+            Assert.Equal(new[] { "*A1", "BEAMS", "EMPTY" }, reread.GroupDictionary.Select(e => e.Key).OrderBy(k => k, StringComparer.Ordinal));
+            Assert.Equal(0, ((DxfGroup)reread.GroupDictionary["*A1"]).NumEntities);
+            Assert.True(((DxfGroup)reread.GroupDictionary["*A1"]).IsAnonymous);
             Assert.DoesNotContain("ACAD_REACTORS", Records(saved).Single(r => HandleOf(r) == "35"), StringComparison.Ordinal);
 
             // A group emptied and filled again before the drawing is saved is kept.

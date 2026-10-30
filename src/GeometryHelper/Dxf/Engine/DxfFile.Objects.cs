@@ -637,58 +637,6 @@ namespace GeometryHelper.Dxf
         /// <summary>How many records have been taken out of the file since it was read.</summary>
         internal int RemovedCount => _removed?.Count ?? 0;
 
-        // The GROUPs added or emptied since the file was read, to be dropped on saving where they are anonymous and hold no
-        // member then.
-        private List<DxfItem> _maybeEmptyGroups;
-
-        /// <summary>
-        /// Notes a GROUP added, or written with no member, to be dropped when the file is saved where it is anonymous and holds
-        /// no member then. A named group is kept empty, as AutoCAD 2021 keeps one emptied by <c>Remove</c> and one made with no
-        /// member; a group the file was read with, empty, is kept as it was.
-        /// </summary>
-        internal void GroupMayBeEmpty(DxfItem group)
-        {
-            _maybeEmptyGroups = _maybeEmptyGroups ?? new List<DxfItem>();
-
-            if (!_maybeEmptyGroups.Contains(group))
-            {
-                _maybeEmptyGroups.Add(group);
-            }
-        }
-
-        /// <summary>Takes out each anonymous GROUP noted by <see cref="GroupMayBeEmpty"/> that holds no member, its handle with what was removed, so that its entry and the reactors that name it go too.</summary>
-        private void DropEmptyGroups()
-        {
-            if (_maybeEmptyGroups == null)
-            {
-                return;
-            }
-
-            foreach (DxfItem group in _maybeEmptyGroups)
-            {
-                if (group.IsRemoved)
-                {
-                    continue;
-                }
-
-                bool member = false;
-                string flags = null;
-
-                foreach (DxfTypedValue value in ObjectGroupsOf(group))
-                {
-                    member |= value.TypeCode == 340;
-                    flags = value.TypeCode == 70 && flags == null ? value.Value : flags;
-                }
-
-                if (!member && Anonymous(flags))
-                {
-                    RemoveRecord(group);
-                }
-            }
-
-            _maybeEmptyGroups = null;
-        }
-
         /// <summary>Whether the flags (70) of a GROUP make it anonymous: their bit 1.</summary>
         private static bool Anonymous(string flags)
             => int.TryParse(flags?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) && (value & 1) != 0;

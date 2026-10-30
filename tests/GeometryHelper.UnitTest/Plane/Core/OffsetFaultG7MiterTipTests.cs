@@ -169,12 +169,11 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         [Fact]
-        public void TheDxfOffsetOfAPolylineThatCrossesItself_KeepsItsCrossingsAsTheyWere()
+        public void TheDxfOffsetOfAPolylineThatCrossesItself_IsNone_AsAutoCadGivesNone()
         {
-            // A DXF polyline is offset with an unlimited miter, and AutoCAD's OFFSET is not known to read a crossing as a
-            // corner: the loops are joined round the space between there, as before. The square whose bottom curls into a
-            // loop 0.06 high is the square grown, from (-1, -1.01005) to (11, 11), and the bow tie 20 long and 0.02 high at its
-            // ends reaches x = 11; mitered as tips its waist would run on to 1 000.
+            // A closed DXF polyline that crosses itself has no offset, as AutoCAD 2021's GetOffsetCurves gives none of a bow tie
+            // (the maintainer's decision, point 79 of the AutoCAD checks): the square whose bottom curls into a loop 0.06 high,
+            // its sides crossing at (5, 0.05), and the bow tie 20 long and 0.02 high at its ends.
             DxfPolyline Closed(params GeoPoint2[] points)
             {
                 var polyline = new DxfPolyline();
@@ -188,16 +187,8 @@ namespace GeometryHelper.UnitTest.Plane
                 return polyline;
             }
 
-            var curl = (DxfPolyline)Assert.Single(Closed(P(0, 0), P(6, 0.06), P(4, 0.06), P(10, 0), P(10, 10), P(0, 10)).GetOffsetCurves(1.0));
-            var bow = (DxfPolyline)Assert.Single(Closed(P(-10, 0.01), P(10, -0.01), P(10, 0.01), P(-10, -0.01)).GetOffsetCurves(1.0));
-
-            GeoPoint2[] corners = Enumerable.Range(0, curl.NumberOfVertices).Select(i => curl.GetPoint2dAt(i)).ToArray();
-            Assert.Equal(5, corners.Length);
-            Assert.Equal(-1.0, corners.Min(p => p.X), 1E-9);
-            Assert.Equal(11.0, corners.Max(p => p.X), 1E-9);
-            Assert.Equal(-1.01005, corners.Min(p => p.Y), 1E-5);
-            Assert.Equal(11.0, corners.Max(p => p.Y), 1E-9);
-            Assert.Equal(11.0, Enumerable.Range(0, bow.NumberOfVertices).Max(i => System.Math.Abs(bow.GetPoint2dAt(i).X)), 1E-9);
+            Assert.Empty(Closed(P(0, 0), P(6, 0.06), P(4, 0.06), P(10, 0), P(10, 10), P(0, 10)).GetOffsetCurves(1.0));
+            Assert.Empty(Closed(P(-10, 0.01), P(10, -0.01), P(10, 0.01), P(-10, -0.01)).GetOffsetCurves(1.0));
         }
 
         [Fact]

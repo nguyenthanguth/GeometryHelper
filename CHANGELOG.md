@@ -24,6 +24,70 @@ a boolean is worked out as it was, to the bit; at nought 3 519 of 3 990 such dif
 0.94 milliseconds at its rounding where it took 6.4 to say nothing was left, on .NET 10, and 0.39 where 2.3 on .NET
 Framework 4.8; at a thousandth the operations take what they took.
 
+**FIXED.** A dimension copied into a drawing of R2000 no longer makes a file AutoCAD 2021 will not open. It kept its
+version (280 of AcDbDimension), which R2010 brought, and AutoCAD's DxfIn refuses the file ("in AcDbRotatedDimension ...
+Unexpected DXF group code: 280"): the dimension 4D of R2018 copied by `WblockCloneObjects` into the R2000 `DxfWriter`
+writes. It is written without it into a drawing before R2010 now, as AutoCAD's SAVEAS writes one, and with it into R2010 or
+later. 1 new test.
+
+**FIXED.** A dimension style copied into a drawing of R12 no longer makes a file AutoCAD 2021 will not open. Its arrows by
+name (5, 6 and 7) were written only where a block was named, and AutoCAD's DxfIn refuses a DIMSTYLE of R12 without its 5
+("Omitted group 5"): GH_DIM, whose arrows are those of AutoCAD's own, had none. Its texts (3, 4) and its three arrows are
+written after its flags now, each empty where it has none, as AutoCAD's own R12 writes them. 1 new test.
+
+**FIXED.** A face of a polyface mesh written by GeometryHelper 13.0.0 or 13.1.0, with the marker AcDbVertex before its
+AcDbFaceRecord, which AutoCAD 2021 refuses, is read with its own marker alone and saved so: such a file opened and saved
+again opens in AutoCAD, every other record of it as it was. A file with no such face is saved byte for byte as before.
+2 new tests.
+
+**CHANGED.** The offset of a closed polyline that crosses itself is none, as AutoCAD 2021's `GetOffsetCurves` gives none of
+a bow tie (the maintainer's decision, point 79 of the AutoCAD checks): `GetOffsetCurves` and
+`GetOffsetCurvesGivenPlaneNormal` of a `DxfPolyline`, a `DxfPolyline2d` and a `DxfPolyline3d` give an empty list, either
+way, and say why in one Debug line. A polyline crosses itself where a side passes through another, from one side of it to
+the other: the bow tie (-10, 1), (10, -1), (10, 1), (-10, -1), grown by 1, was one polyline joined at (0, 1.004988), and
+the square (0, 0), (6, 0.06), (4, 0.06), (10, 0), (10, 10), (0, 10), whose bottom curls into a loop of 0.01 square units
+about (5, 0.05), was the square from (-1, -1.01005) to (11, 11), where AutoCAD gave one running out to x = 206. A corner
+that only touches another side, a spike narrower than the point tolerance at its foot, a corner given twice, and an open
+polyline that crosses itself are offset as before. `Offset2.Offset` is not changed. 4 new tests, 1 changed.
+
+**CHANGED.** `TransformBy` of a table scaled alike scales the text heights its table style gives too, as AutoCAD 2021's
+does: each kind of row the table gives no height of its own takes the style's, scaled, as its own (its 140 after its last
+cell, with its flag in 93). The style is the one the table names, else the drawing's Standard, else AutoCAD's own Standard,
+the title 6 and the header and the data 4.5 in a drawing of millimetres and 0.25 and 0.18 in one of inches, as the 43
+drawings AutoCAD 2021 saved for the checks have it. The table of rows 10, 8 and 8 that names no style, scaled by 2, has
+its title 12 high and its header and data 9, as AutoCAD reads it, where they stayed 6 and 4.5; its rows are still 20, 16
+and 16, where AutoCAD measures them by its font as 22, 18 and 18. 4 new tests.
+
+**CHANGED.** A table mirrored so that the image of its direction still reads left to right or upwards stands at the image
+of its point along that image, its rows running up (`FlowDirection` `BottomToTop`, 70 of 1 in its head with the flag 0x04
+of 93), as AutoCAD 2021's `TransformBy` leaves it: mirrored in y = -150 the table at (300, -100) stands at (300, -200)
+along (1, 0, 0), where it stood at (370, -200) along (-1, 0, 0), and in the line at 45 degrees through (280, -100) at
+(280, -80) along (0, 1, 0). A table mirrored in x = 280 stands at (190, -100) as before. `FlowDirection` reads a 70 of the
+table's head, where AutoCAD writes it. 1 new test.
+
+**CHANGED.** The snap angle of a viewport of R12 to R14, in its extended data MVIEW, is written and read in radians, as
+AutoCAD 2021 writes and reads it, as the twist is: a snap of 30 degrees is written 0.5235987755982988, where 30 was written
+and AutoCAD read 30 radians. 1 new test, 1 changed.
+
+**CHANGED.** An anonymous group left empty is kept when the drawing is saved, as AutoCAD 2021 keeps *A1, *A2 and *A3
+emptied by an erase, by `Remove` and made with no member; they were dropped. No group is dropped for being empty now.
+1 new test, 1 changed.
+
+**CHANGED.** `Explode()` gives what AutoCAD 2021's `Explode()` gives of a few more:
+- A face of a polyface mesh takes the mesh's colour, not its own: the face of colour 1 of its own in a mesh of BYLAYER is
+  BYLAYER, where it was 1. Its own layer is still its own. 1 new test, 1 changed.
+- A polygon mesh smoothed breaks as AutoCAD breaks one, its points of the surface read as a grid of the densities from the
+  first: the mesh 4 by 4 smoothed at 6 and 6, its 7 by 7 points, gives 25 faces, the first of the points 0, 1, 7 and 6,
+  where it gave 36 of the 7 by 7 grid. 1 new test, 2 changed.
+- A MESH face of more than four corners breaks into AutoCAD's strip of triangles: two corners, then the rest by turns from
+  the far end and the near one, from the first two in a MESH of that one face and from the last two back in a MESH of more.
+  The face 0 to 5 alone gives (0, 1, 5), (2, 5, 1), (5, 2, 4), (3, 4, 2), and as the base of a pyramid (5, 4, 0),
+  (3, 0, 4), (0, 3, 1), (2, 1, 3), where it gave (0, 3, 2) and (2, 1, 0) last; the face 0 to 4 alone (0, 1, 4), (2, 4, 1),
+  (4, 2, 3). 1 new test, 1 changed.
+- The SPLINE of a splined LEADER or MULTILEADER line keeps its fit data, the points it runs through and its directions at
+  the ends, as AutoCAD's has three fit points: through (1.77, 1.77), (10, 10) and (20, 10), leaving along (0.7071, 0.7071)
+  and reaching along (1, 0), its control points and knots as they were. 1 new test.
+
 **FIXED.** `GetVolume`, `TryGetVolume`, `GetSurfaceArea`, `GetCentroid`, `GetMassProperties` and `Measure3` of a body
 with openings, asked at a point tolerance below the rounding of the coordinates, a quadrillionth of the largest of them,
 nought among them, measure the material `TryCutOpenings` gives at that tolerance, cut within the rounding. They cut the

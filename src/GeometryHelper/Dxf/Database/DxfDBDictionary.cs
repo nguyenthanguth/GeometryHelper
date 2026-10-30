@@ -228,7 +228,6 @@ namespace GeometryHelper.Dxf
                         b.Group(70, anonymous ? "1" : "0");
                         b.Group(71, group.MadeSelectable ? "1" : "0");
                     }));
-                    newValue.Item.File.GroupMayBeEmpty(newValue.Item);
                     break;
                 default:
                     throw new ArgumentException("A dictionary takes a DxfDBDictionary, a DxfXrecord or a DxfGroup made in code: a " + newValue.GetType().Name + " is not added.", nameof(newValue));

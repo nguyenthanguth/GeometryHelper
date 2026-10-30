@@ -19,7 +19,8 @@ namespace GeometryHelper.UnitTest.Dxf
         public void APolyfaceMeshExploded_GivesA3DFaceForEachFace_ItsHiddenEdgesHiddenAndATriangleEndingOnItsThird()
         {
             // As ezdxf's virtual_entities gives them: a pyramid of a square base 10 wide and 6 high, its base hiding the edge from
-            // its second corner, a side hiding the edge from its third back to its first, and one side in colour 3 of its own.
+            // its second corner, a side hiding the edge from its third back to its first, and one side in colour 3 of its own,
+            // which its 3DFACE does not take: AutoCAD 2021's Explode gives every face the mesh's colour (plugin v4, point 58).
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
             var mesh = new DxfPolyFaceMesh();
             db.ModelSpace.AppendEntity(mesh);
@@ -48,7 +49,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
             // The edge from the third corner back to the first is the fourth of a 3DFACE of three corners: hidden with the third.
             Assert.Equal(new[] { true, true, false, false }, Enumerable.Range(0, 4).Select(i => faces[1].IsEdgeVisibleAt((short)i)));
-            Assert.Equal(new[] { 5, 5, 3 }, faces.Select(f => f.ColorIndex));
+            Assert.Equal(new[] { 5, 5, 5 }, faces.Select(f => f.ColorIndex));
             Assert.All(faces, f => Assert.Equal(DxfLineWeight.LineWeight035, f.LineWeight));
 
             foreach (DxfFace face in faces)
@@ -137,12 +138,14 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfFace[] faces = mesh.Explode().Cast<DxfFace>().ToArray();
 
-            // 5 by 6 spans of an open mesh, 6 rows of 7 points as AutoCAD's PEDIT smooths (check 14), 5 by 6 faces.
+            // 5 by 6 spans of an open mesh, 6 rows of 7 points as AutoCAD's PEDIT smooths (check 14), read as a grid of 5 by 6
+            // points as AutoCAD 2021's Explode reads them (plugin v4, point 58): 4 by 5 faces, from (0, 1, 7, 6) to (22, 23, 29, 28).
             Assert.Equal(42, surface.Count);
-            Assert.Equal(5 * 6, faces.Length);
+            Assert.Equal(4 * 5, faces.Length);
             Assert.Equal(Bits(surface[0]), Bits(faces[0].GetVertexAt(0)));
-            Assert.Equal(Bits(surface[7]), Bits(faces[0].GetVertexAt(1)));
-            Assert.Equal(Bits(surface[41]), Bits(faces[29].GetVertexAt(2)));
+            Assert.Equal(Bits(surface[1]), Bits(faces[0].GetVertexAt(1)));
+            Assert.Equal(Bits(surface[7]), Bits(faces[0].GetVertexAt(2)));
+            Assert.Equal(Bits(surface[29]), Bits(faces[19].GetVertexAt(2)));
 
             mesh.Straighten();
             Assert.Equal(9, mesh.Explode().Count);

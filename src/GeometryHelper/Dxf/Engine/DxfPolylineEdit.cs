@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using GeometryHelper.Core;
 using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
@@ -262,7 +263,8 @@ namespace GeometryHelper.Dxf
         /// The chains at a distance from a polyline of the plane, to the right of its way seen from the tip of its normal where
         /// the distance is above nought, as the library's arc offsets give them with corners mitred as far as they reach (as
         /// AutoCAD's OFFSETGAPTYPE 0 extends them): a closed polyline gives the loops of <see cref="Offset2.Offset(GeoPolygonArc2, double, OffsetOptions, Tolerance)"/>
-        /// and an open one the chains of <see cref="Offset2.Offset(GeoPolylineArc2, double, OffsetOptions, Tolerance)"/>.
+        /// and an open one the chains of <see cref="Offset2.Offset(GeoPolylineArc2, double, OffsetOptions, Tolerance)"/>. A
+        /// closed polyline that crosses itself gives none, as AutoCAD 2021's <c>GetOffsetCurves</c> gives none of a bow tie.
         /// </summary>
         internal static List<KeyValuePair<List<DxfPolyVertex>, bool>> Offset(List<DxfPolyVertex> v, bool closed, double distance, double z)
         {
@@ -288,6 +290,17 @@ namespace GeometryHelper.Dxf
                 }
 
                 var polygon = new GeoPolygonArc2(Points(loop), Bulges(loop));
+
+                // A closed polyline that crosses itself has no offset, as AutoCAD 2021's GetOffsetCurves gives none of a bow tie
+                // either way: its sides do not say which way is out.
+                int crossings = Offset2.CrossingsOf(polygon, Tolerance.Default);
+
+                if (crossings > 0)
+                {
+                    GeometryHelperLog.Debug("DxfPolyline: a closed polyline of " + v.Count.ToString(CultureInfo.InvariantCulture) + " vertices crosses itself at " + crossings.ToString(CultureInfo.InvariantCulture) + (crossings == 1 ? " place" : " places") + ", and has no offset, as AutoCAD gives none.");
+                    return results;
+                }
+
                 double sideways = polygon.IsClockwise ? -distance : distance;
 
                 foreach (GeoPolygonArc2 one in Offset2.Offset(polygon, sideways, options, Tolerance.Default, false))

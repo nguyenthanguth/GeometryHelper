@@ -166,7 +166,7 @@ namespace GeometryHelper.Dxf
                     if (lineType == DxfLeaderType.SplineLeader)
                     {
                         GeoVector3 end = horizontal ? along : vertices[vertices.Count - 2].GetVectorTo(vertices[vertices.Count - 1]);
-                        DxfSpline spline = DxfLeader.ParameterSpline(vertices, tolerance, direction, end.Length > 0.0 ? end : (GeoVector3?)null);
+                        DxfSpline spline = DxfLeader.ParameterSpline(vertices, tolerance, direction, end.Length > 0.0 ? end : (GeoVector3?)null, true);
 
                         if (spline != null)
                         {

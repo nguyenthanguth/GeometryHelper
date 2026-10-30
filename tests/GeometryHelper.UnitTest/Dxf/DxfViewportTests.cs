@@ -117,9 +117,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(Bits(2.5), Bits(viewport.FrontClipDistance));
             Assert.Equal(Bits(-4.0), Bits(viewport.BackClipDistance));
 
-            // The twist in MVIEW is in radians, as AutoCAD 2021 reads it (check 33): ezdxf's 15, meant as degrees, is 15 radians.
+            // The twist and the snap angle in MVIEW are in radians, as AutoCAD 2021 reads and writes them (checks 33 and 33-b):
+            // ezdxf's 15 and 30, meant as degrees, are 15 and 30 radians.
             Assert.Equal(15.0, viewport.TwistAngle, 15);
-            Assert.Equal(30.0 * Math.PI / 180.0, viewport.SnapAngle, 15);
+            Assert.Equal(30.0, viewport.SnapAngle, 15);
             Assert.Equal(Bits(20.0) + Bits(25.0), Bits(viewport.GridIncrement.X) + Bits(viewport.GridIncrement.Y));
             Assert.Equal(1000, viewport.CircleSides);
             Assert.True(viewport.SnapOn);

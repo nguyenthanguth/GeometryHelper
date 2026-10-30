@@ -354,6 +354,12 @@ namespace GeometryHelper.Core
             return true;
         }
 
+        /// <summary>
+        /// Counts the places two edges of a loop cross each other, as <see cref="TrySplitAtCrossings(List{GeoEdge2}, Tolerance, out List{List{GeoEdge2}}, out List{List{GeoEdge2}}, out int, bool)"/>
+        /// finds them, the loop not cut: a vertex that only touches another edge, or edges that only graze, are no crossing.
+        /// </summary>
+        internal static int CountCrossings(List<GeoEdge2> edges, Tolerance tolerance) => FindCrossings(edges, tolerance).Count;
+
         private static List<List<GeoEdge2>> EdgesOf(List<List<Sub>> loops)
         {
             var edges = new List<List<GeoEdge2>>(loops.Count);

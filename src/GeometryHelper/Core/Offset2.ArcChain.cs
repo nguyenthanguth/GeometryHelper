@@ -415,6 +415,18 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Counts the places a loop crosses itself, as <see cref="Offset(GeoPolygonArc2, double, OffsetOptions, Tolerance, bool)"/>
+        /// finds them before it offsets the loop: its spikes dropped first, and a vertex that only touches another edge, or two
+        /// edges that only graze, no crossing. The bow tie (-10, 1), (10, -1), (10, 1), (-10, -1) crosses itself once.
+        /// </summary>
+        internal static int CrossingsOf(GeoPolygonArc2 loop, Tolerance tolerance)
+        {
+            List<GeoEdge2> edges = ArcChain2.EdgesOf(loop);
+            DropSpikes(edges, tolerance);
+            return ArcOffset2.CountCrossings(edges, tolerance);
+        }
+
+        /// <summary>
         /// Drops each corner a loop runs out to and straight back from, between two straight edges whose far ends lie within
         /// the point tolerance of each other, and the far end of the second with it, the edge after it starting where the
         /// first began, as the straight offsets drop them.

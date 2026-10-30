@@ -914,7 +914,9 @@ namespace GeometryHelper.Dxf
         /// arcs stay arcs and the corners are run on until the segments meet, as AutoCAD's OFFSETGAPTYPE 0 runs them; where a
         /// part comes nearer the polyline than the distance it is cut away, as the library's offsets of a chain cut it, which
         /// can leave several polylines or none. The square 10 by 10 counter-clockwise offset by 1 is the square 12 by 12 about
-        /// the same centre. Each keeps the look, elevation, normal, thickness and constant width; widths of the vertices go.
+        /// the same centre. Each keeps the look, elevation, normal, thickness and constant width; widths of the vertices go. A
+        /// closed polyline that crosses itself, a side passing through another, has none, as AutoCAD 2021 gives none of the bow
+        /// tie (-10, 1), (10, -1), (10, 1), (-10, -1), and one Debug line says so; one that only touches itself is offset.
         /// </summary>
         /// <param name="offsetDist">The distance.</param>
         /// <returns>The polylines, of the same look, in no file.</returns>

@@ -335,7 +335,7 @@ namespace GeometryHelper.Dxf
 
             if (IsSplined)
             {
-                DxfSpline spline = ParameterSpline(vertices, tolerance);
+                DxfSpline spline = ParameterSpline(vertices, tolerance, null, null, true);
 
                 if (spline != null)
                 {
@@ -425,15 +425,26 @@ namespace GeometryHelper.Dxf
         /// given; its knots run over the lengths of the chords between its vertices, from 0 to their sum, not from 0 to 1.
         /// Through (0, 0, 0), (10, 10, 0) and (20, 10, 0) it runs from 0 to 24.14, its point at 12.07 the one fitted from 0 to 1
         /// has at 0.5. Null where its vertices are all one point. A multileader's splined leader line, leaving and reaching
-        /// along the directions given, is given so by its <c>Explode</c>, as AutoCAD 2021 gives it.
+        /// along the directions given, is given so by its <c>Explode</c>, as AutoCAD 2021 gives it. Exploded, the spline keeps
+        /// its fit data too, the vertices it runs through and its directions at the ends, as AutoCAD 2021's has three fit points.
         /// </summary>
-        internal static DxfSpline ParameterSpline(List<GeoPoint3> vertices, double tolerance, GeoVector3? leaving = null, GeoVector3? reaching = null)
+        internal static DxfSpline ParameterSpline(List<GeoPoint3> vertices, double tolerance, GeoVector3? leaving = null, GeoVector3? reaching = null, bool exploded = false)
         {
             NurbsCurve curve = FittedCurve(vertices, tolerance, leaving, reaching);
 
             if (curve == null)
             {
                 return null;
+            }
+
+            var through = new List<GeoPoint3>(vertices.Count);
+
+            foreach (GeoPoint3 vertex in vertices)
+            {
+                if (through.Count == 0 || through[through.Count - 1].DistanceTo(vertex) > tolerance)
+                {
+                    through.Add(vertex);
+                }
             }
 
             double chords = 0.0;
@@ -462,7 +473,16 @@ namespace GeometryHelper.Dxf
                 knots.Add(knot * chords);
             }
 
-            return new DxfSpline(3, false, false, false, control, knots, null, 1E-10, 1E-10);
+            var spline = new DxfSpline(3, false, false, false, control, knots, null, 1E-10, 1E-10);
+
+            if (exploded)
+            {
+                GeoVector3 start = DxfOcsTransform.Normalized(leaving ?? through[0].GetVectorTo(through[1]));
+                GeoVector3 end = DxfOcsTransform.Normalized(reaching ?? through[through.Count - 2].GetVectorTo(through[through.Count - 1]));
+                spline.KeepFit(through, start, end);
+            }
+
+            return spline;
         }
 
         /// <summary>

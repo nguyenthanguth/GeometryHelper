@@ -656,13 +656,29 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        /// <summary>Gets or sets the angle of the snap (group 50, degrees in the file), as AutoCAD's <c>SnapAngle</c>, in radians.</summary>
+        /// <summary>
+        /// Gets or sets the angle of the snap, as AutoCAD's <c>SnapAngle</c>, in radians: group 50, in degrees, from R2000; in
+        /// radians in the extended data MVIEW of a file of R12 to R14, as the twist is, AutoCAD 2021 writing a snap of 30 degrees
+        /// there as 0.5235987755982988 (a 30 written there turns the snap by 30 radians).
+        /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the angle set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the viewport is erased.</exception>
         public double SnapAngle
         {
-            get => Value(50, R12SnapAngle, 0.0) * Math.PI / 180.0;
-            set => SetAngle(50, R12SnapAngle, value, SnapAngle);
+            get => InMview ? R12Real(R12SnapAngle, 0.0) : GetDouble(50, 0.0) * Math.PI / 180.0;
+
+            set
+            {
+                if (!InMview)
+                {
+                    SetAngle(50, R12SnapAngle, value, SnapAngle);
+                }
+                else if (!Same(value, SnapAngle))
+                {
+                    Guard.Finite(value, nameof(value), "An angle has to be a finite number.");
+                    SetValue(50, R12SnapAngle, value);
+                }
+            }
         }
 
         /// <summary>Gets or sets the point the snap is laid from (groups 13, 23), as AutoCAD's <c>SnapBasePoint</c>.</summary>

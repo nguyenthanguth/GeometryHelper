@@ -410,9 +410,12 @@ namespace GeometryHelper.Dxf
         /// 3DFACE for each cell of its grid, row after row, from its corner (m, n) to (m + 1, n), (m + 1, n + 1) and (m, n + 1),
         /// the last row joined to the first where it is closed in M and the last point of each row to its first where it is
         /// closed in N; each with the mesh's look, every edge drawn. A grid of 3 rows of 4 points gives 6 faces, closed both ways
-        /// 12. A smoothed mesh breaks into the cells of the surface it shows, its points the smoothing made (flag 8), a grid of
-        /// <see cref="MSurfaceDensity"/> by <see cref="NSurfaceDensity"/> spans, one point more than the density along an open
-        /// direction, or of that many points; where those points fill neither grid, into the cells of its frame.
+        /// 12. A smoothed mesh breaks as AutoCAD 2021's <c>Explode</c> breaks one: its points the smoothing made (flag 8), a
+        /// grid of one point more than <see cref="MSurfaceDensity"/> and <see cref="NSurfaceDensity"/> along an open direction,
+        /// are read as a grid of the densities themselves, row after row from the first, each cell from (m, n) to (m, n + 1),
+        /// (m + 1, n + 1) and (m + 1, n): the 7 by 7 points of densities 6 and 6 give 25 faces, the first of the points 0, 1, 7
+        /// and 6, the last row of the points left out and the cells running across the ends of the rows, as AutoCAD's do. Where
+        /// those points fill neither grid, it breaks into the cells of its frame.
         /// </summary>
         /// <returns>The entities, in no file, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the mesh has sizes below 2, or fewer points than its sizes ask
@@ -445,17 +448,21 @@ namespace GeometryHelper.Dxf
             int v = GetInt(74, 0);
             bool closedM = (flags & 1) != 0;
             bool closedN = (flags & 32) != 0;
+            bool smoothed = false;
 
             // The surface of densities u and v, AutoCAD's grid of one point more along an open direction; or, as the library
-            // smoothed before AutoCAD was seen to, u by v.
+            // smoothed before AutoCAD was seen to, u by v. AutoCAD 2021 breaks either into the cells of a grid of u by v taken
+            // from the first of its points, row after row, as its Explode gives the 7 by 7 points of densities 6 and 6: 25 faces,
+            // the first (0, 1, 7, 6).
             int rows = closedM ? u : u + 1;
             int points = closedN ? v : v + 1;
 
             if ((flags & 4) != 0 && u >= 2 && v >= 2 && (surface.Count == rows * points || surface.Count == u * v))
             {
                 grid = surface;
-                m = surface.Count == rows * points ? rows : u;
-                n = surface.Count == rows * points ? points : v;
+                m = u;
+                n = v;
+                smoothed = true;
             }
 
             if (m < 2 || n < 2 || grid.Count < (long)m * n)
@@ -471,7 +478,9 @@ namespace GeometryHelper.Dxf
                 {
                     int i1 = (i + 1) % m;
                     int j1 = (j + 1) % n;
-                    var face = new DxfFace(grid[i * n + j], grid[i1 * n + j], grid[i1 * n + j1], grid[i * n + j1], true, true, true, true);
+                    var face = smoothed
+                        ? new DxfFace(grid[i * n + j], grid[i * n + j1], grid[i1 * n + j1], grid[i1 * n + j], true, true, true, true)
+                        : new DxfFace(grid[i * n + j], grid[i1 * n + j], grid[i1 * n + j1], grid[i * n + j1], true, true, true, true);
                     look.GiveTo(face);
                     faces.Add(face);
                 }

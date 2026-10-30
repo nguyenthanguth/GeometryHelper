@@ -428,16 +428,16 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AMeshFaceOfFiveCorners_IsFannedFromItsFirstCorner_AndAFaceOfItsOwnColourKeepsIt_AsAutoCadExplodesThem()
         {
-            // 64: the pentagon 0 1 2 3 4 gave AutoCAD's triangles (4, 3, 0), (2, 0, 3), (0, 2, 1); the face 0 given red (its
-            // subentity 1) gave a red 3DFACE.
-            string pentagon = Rec("MESH", "5=C01 330=17 100=AcDbEntity 8=0 100=AcDbSubDMesh 71=2 72=0 91=0 92=5 10=30 20=0 30=0 10=40 20=0 30=0 10=43 20=9 30=0 10=35 20=15 30=0 10=27 20=9 30=0 93=6 90=5 90=0 90=1 90=2 90=3 90=4 94=0 95=0 90=0");
+            // 64: the base 0 1 2 3 4 of the pyramid 8B gave AutoCAD's triangles (4, 3, 0), (2, 0, 3), (0, 2, 1); the face 0
+            // given red (its subentity 1) gave a red 3DFACE.
+            string pentagon = Rec("MESH", "5=C01 330=17 100=AcDbEntity 8=0 100=AcDbSubDMesh 71=2 72=0 91=0 92=6 10=30 20=0 30=0 10=40 20=0 30=0 10=43 20=9 30=0 10=35 20=15 30=0 10=27 20=9 30=0 10=35 20=7 30=8 93=26 90=5 90=0 90=1 90=2 90=3 90=4 90=3 90=0 90=1 90=5 90=3 90=1 90=2 90=5 90=3 90=2 90=3 90=5 90=3 90=3 90=4 90=5 90=3 90=4 90=0 90=5 94=0 95=0 90=0");
             string coloured = Rec("MESH", "5=C02 330=17 100=AcDbEntity 8=0 100=AcDbSubDMesh 71=2 72=0 91=0 92=5 10=60 20=0 30=0 10=70 20=0 30=0 10=70 20=10 30=0 10=60 20=10 30=0 10=65 20=5 30=6 93=21 90=4 90=0 90=3 90=2 90=1 90=3 90=0 90=1 90=4 90=3 90=1 90=2 90=4 90=3 90=2 90=3 90=4 90=3 90=3 90=0 90=4 94=0 95=0 90=1 91=1 92=1 90=0 63=1");
             DxfDatabase db = With(pentagon + coloured);
 
             DxfFace[] faces = ByHandle<DxfUnknownEntity>(db, "C01").Explode().Cast<DxfFace>().ToArray();
             DxfFace[] red = ByHandle<DxfUnknownEntity>(db, "C02").Explode().Cast<DxfFace>().ToArray();
 
-            Assert.Equal(3, faces.Length);
+            Assert.Equal(8, faces.Length);
             GeoPoint3[] corners = { P(30, 0), P(40, 0), P(43, 9), P(35, 15), P(27, 9) };
             int[][] expected = { new[] { 4, 3, 0, 0 }, new[] { 2, 0, 3, 3 }, new[] { 0, 2, 1, 1 } };
 

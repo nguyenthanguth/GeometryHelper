@@ -988,6 +988,29 @@ namespace GeometryHelper.Dxf
             SetDouble(44, fitTolerance, 0.0);
         }
 
+        /// <summary>
+        /// Writes the points the spline was fitted through and its tangents at the ends (11 with their count 74, 12 and 13 of
+        /// unit length) and the fit tolerance 1E-10 (44), its control points and knots kept as they are, as AutoCAD 2021's
+        /// <c>Explode</c> gives the spline of a splined leader: the three vertices of the leader through (150, 0), (160, 10)
+        /// and (170, 10), the first moved to the arrow's back, leaving along (0.7071, 0.7071) and reaching along (1, 0).
+        /// </summary>
+        internal void KeepFit(IReadOnlyList<GeoPoint3> fit, GeoVector3 startTangent, GeoVector3 endTangent)
+        {
+            var written = new List<List<KeyValuePair<int, string>>>(fit.Count);
+
+            foreach (GeoPoint3 point in fit)
+            {
+                written.Add(Point(11, point, null, nameof(fit)));
+            }
+
+            WritePoints(11, FitCodes, written, 74);
+            var groups = new List<KeyValuePair<int, string>>();
+            groups.AddRange(TangentGroups(12, startTangent));
+            groups.AddRange(TangentGroups(13, endTangent));
+            SetGroups(groups.ToArray());
+            SetDouble(44, 1E-10, 0.0);
+        }
+
         /// <summary>The groups of a tangent at an end (12 or 13 and the codes 10 and 20 above), of unit length.</summary>
         private KeyValuePair<int, string>[] TangentGroups(int code, GeoVector3 tangent)
         {

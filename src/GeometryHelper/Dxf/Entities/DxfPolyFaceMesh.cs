@@ -149,8 +149,8 @@ namespace GeometryHelper.Dxf
         /// Gets the faces the mesh breaks into, as AutoCAD's <c>Explode</c>, as ezdxf's <c>virtual_entities</c> gives them: a
         /// 3DFACE for each face, in the order of the file, its corners the points its numbers name, the edge from a corner whose
         /// number is below nought hidden. A face of three corners ends on its third, as AutoCAD writes one, and the edge from its
-        /// third back to its first, the 3DFACE's fourth, is hidden with its third. Each has the mesh's look, and the layer and
-        /// colour its face writes of its own, as AutoCAD's PFACE gives a face one. The pyramid of a square base and four sides
+        /// third back to its first, the 3DFACE's fourth, is hidden with its third. Each has the mesh's look and the layer its face
+        /// writes of its own; a colour of the face's own is not taken, as AutoCAD 2021's <c>Explode</c> gives the mesh's. The pyramid of a square base and four sides
         /// gives five faces, the base of four corners and four triangles. Its corners are its numbers up to the first of nought,
         /// as the reader takes them: a face of fewer than three corners so, (1, 2, 0, 4) among them, or one naming a point the
         /// mesh has not, is left out, as the reader leaves it out of the mesh's body.
@@ -227,8 +227,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Gives a face exploded the layer and the colour its face record writes of its own (8, 62 and 420), as AutoCAD's PFACE
-        /// gives a face them: a colour index written takes the mesh's true colour off, a true colour written is the face's.
+        /// Gives a face exploded the layer its face record writes of its own (8); its colour stays the mesh's, as AutoCAD 2021's
+        /// <c>Explode</c> gives a face of colour 1 of its own the mesh's BYLAYER.
         /// </summary>
         private static void OwnLook(DxfFace face, IReadOnlyList<DxfTypedValue> record)
         {
@@ -238,20 +238,6 @@ namespace GeometryHelper.Dxf
             if (name.Length > 0)
             {
                 face.Layer = name;
-            }
-
-            int index = DxfFollowers.Whole(record, 62, -1);
-            int rgb = DxfFollowers.Whole(record, 420, -1);
-
-            if (index >= 0 && index <= 256)
-            {
-                face.TrueColor = null;
-                face.ColorIndex = index;
-            }
-
-            if (rgb >= 0)
-            {
-                face.TrueColor = rgb & 0xFFFFFF;
             }
         }
 
