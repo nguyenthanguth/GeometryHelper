@@ -95,12 +95,22 @@ namespace GeometryHelper.Dxf
             return link == null ? null : new DxfCellRange(this, link.TopRow, link.LeftColumn, link.BottomRow, link.RightColumn);
         }
 
-        /// <summary>Gets whether a cell is filled from a data link, as AutoCAD's <c>IsLinked</c>: it is in a linked range, as <see cref="GetDataLinkRange"/> finds one.</summary>
+        /// <summary>
+        /// Gets whether a cell is linked to data, as AutoCAD's <c>IsLinked</c>: for a range the TABLECONTENT names, its top left
+        /// cell alone, which names the link; for one named in the cells of the ACAD_TABLE, which AutoCAD reads no link from, every
+        /// cell of it, as <see cref="GetDataLinkRange"/> finds it. AutoCAD 2021 read a range linked over (1, 0) to (2, 1) in the
+        /// TABLECONTENT as linked at (1, 0) and not at (1, 1), (2, 0) or (2, 1), though each of them gave the range and the link
+        /// (its 73-h).
+        /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="column">The column, from nought.</param>
         /// <returns>Whether it is.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the cell is not one of the table's.</exception>
-        public bool IsLinked(int row, int column) => Covering(row, column, out _) != null;
+        public bool IsLinked(int row, int column)
+        {
+            LinkedRange link = Covering(row, column, out _);
+            return link != null && (link.Cell == null || (link.TopRow == row && link.LeftColumn == column));
+        }
 
         /// <summary>
         /// Takes every data link of the table away, as AutoCAD's <c>RemoveDataLink()</c>: each top left cell's link groups

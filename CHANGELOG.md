@@ -78,6 +78,24 @@ within the tolerance of one plane are fixed on their own, see above. On .NET 10,
 1.03 seconds at nought where they took 1.71, and 2.38 where 3.95 on .NET Framework 4.8; two sections of each take what
 they took, 2.38 seconds where 2.40, and 5.87 where 5.91; at a thousandth both take what they took. 8 new tests.
 
+**CHANGED.** `DxfTable.IsLinked` of a range linked in the TABLECONTENT is true at the range's top left cell alone, as
+AutoCAD 2021 reads it: the range (1, 0) to (2, 1) the library linked AutoCAD read as linked at (1, 0) and not at (1, 1),
+(2, 0) or (2, 1), where the library read all four linked; each of them still gives the range and the link by
+`GetDataLinkRange` and `GetDataLink`, as AutoCAD's do. A range named in the cells of the ACAD_TABLE, which AutoCAD reads no
+link from, is linked at every cell, as before, and `SetDataLink` writes the other cells of a range as AutoCAD saved them
+again, as it did. `IsLinked` of the six cells takes what it took, 1.0 microsecond on .NET Framework 4.8 and 1.9 on .NET 10.
+2 new tests.
+
+**FIXED.** `DxfMText.Width` of an MTEXT in columns before R2018, whose 41 holds a column's width as AutoCAD writes it, is the
+width of all its columns with the gutters between them, as AutoCAD 2021 reads it: two static columns 50 wide with a gutter of
+10, in R2007 or in AutoCAD's own R2000, are 110 wide, AutoCAD's thirteen dynamic columns of R2000 770 and its three of their
+own heights 170, where each read 50. The 41 written is AutoCAD's, a column's, as before; a width given back changes nothing,
+and an MTEXT of R2018, or of no columns, reads its 41 as before. `Height` of an MTEXT of R2000 in dynamic columns of their
+own heights is its `ACAD_MTEXT_DEFINED_HEIGHT`, the first column's, 15 for AutoCAD's columns 15, 25 and 0 high, where it read
+nought, and a column added to them takes that height; from R2007, with no group 46, they are of no height, as AutoCAD read
+them. Reading the width of such an MTEXT takes 4 microseconds where 1.3 on .NET Framework 4.8, 1.6 where 0.5 on .NET 10, as
+it reads the columns; of R2018 it takes what it took. 4 new tests, 5 changed.
+
 **NEW.** `DxfTable.SetDataLink(row, column, dataLink)` and `SetDataLink(range, dataLink)` link cells to a DATALINK of the
 drawing, as AutoCAD 2021's `SetDataLink` links them: in the TABLECONTENT AutoCAD keeps for the table, the range's top left
 cell given the flag 4 of a linked cell, its 92 made odd and the run `340` link, `93` rows, `94` columns, `96 1` after it,
@@ -113,7 +131,7 @@ as AutoCAD 2021 writes it: two columns 50 wide with a gutter of 10 make 110, whe
 copy into the other form takes the other width. Before R2018 `ACAD_MTEXT_DEFINED_HEIGHT` is written only for a height
 above nought, and for dynamic columns of their own heights holds the first column's, each linked column MTEXT its own, as
 AutoCAD writes them, where a height of nought was written and columns of their own heights had none; their `Height` is
-nought. Setting columns takes 180 microseconds where 134 on .NET Framework 4.8, 190 where 137 on .NET 10. 4 new tests, 4
+nought from R2007. Setting columns takes 180 microseconds where 134 on .NET Framework 4.8, 190 where 137 on .NET 10. 4 new tests, 4
 changed.
 
 **CHANGED.** In a drawing older than R2007, which brought columns, the column data of an MTEXT (`ACAD_MTEXT_COLUMN_INFO`)

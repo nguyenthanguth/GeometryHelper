@@ -108,10 +108,11 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void ColumnsSet_GiveTheMTextTheWidthAutoCadGivesIt_OfAllTheColumnsFromR2018_AndOfAColumnBefore()
+        public void ColumnsSet_GiveTheMTextTheWidthAutoCadGivesIt_OfAllTheColumns_Its41AColumnsBeforeR2018()
         {
             // As AutoCAD 2021 wrote the columns of 09-a (point 9): 41 of R2018 that of all the columns with their gutters; before
-            // it, in R2007, as R2000 takes columns only with column MTEXTs linked, which are not made (09d).
+            // it, in R2007, as R2000 takes columns only with column MTEXTs linked, which are not made (09d), a column's, and the
+            // MTEXT read as wide as all its columns, as AutoCAD read its columns of R2007 (D18, 09e).
             foreach (string text in new[] { DxfFileEzdxfDrawings.R2018.Replace("AC1032", "AC1021"), DxfFileEzdxfDrawings.R2018 })
             {
                 bool r2018 = text == DxfFileEzdxfDrawings.R2018;
@@ -120,9 +121,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 mtext.SetStaticColumns(12.5, 2.5, 3);
 
-                Assert.Equal(r2018 ? 42.5 : 12.5, mtext.Width);
+                Assert.Equal(42.5, mtext.Width);
+                Assert.Contains(r2018 ? "\n 41\n42.5\n" : "\n 41\n12.5\n", Records(db.ToText()).Single(r => HandleOf(r) == "73"), StringComparison.Ordinal);
                 DxfMText read = ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "73");
-                Assert.Equal(r2018 ? 42.5 : 12.5, read.Width);
+                Assert.Equal(42.5, read.Width);
                 Assert.Equal(12.5, read.ColumnWidth);
 
                 if (r2018)
@@ -131,9 +133,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 }
 
                 mtext.SetDynamicColumns(10.0, 2.0, true);
-                Assert.Equal(r2018 ? 34.0 : 10.0, mtext.Width);
+                Assert.Equal(34.0, mtext.Width);
                 mtext.ColumnWidth = 8.0;
-                Assert.Equal(r2018 ? 28.0 : 8.0, ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "73").Width);
+                Assert.Equal(28.0, ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "73").Width);
+                Assert.Contains(r2018 ? "\n 41\n28\n" : "\n 41\n8\n", Records(db.ToText()).Single(r => HandleOf(r) == "73"), StringComparison.Ordinal);
             }
         }
 

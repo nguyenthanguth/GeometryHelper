@@ -1032,11 +1032,13 @@ appended; a copy of a drawing that has the style brings it instead. In a drawing
 is refused before it would become TEXTs.
 
 An MTEXT is set in columns as AutoCAD sets one: `SetStaticColumns(12.5, 2.5, 3)` is three columns 12.5 wide with gutters of
-2.5, 42.5 across, the MTEXT's `Width` (41, and 40 of its embedded object) made 42.5 from R2018 and 12.5, the width of a
+2.5, 42.5 across, the MTEXT's group 41 (and 40 of its embedded object) made 42.5 from R2018 and 12.5, the width of a
 column, before it, as AutoCAD 2021 wrote two columns 50 wide with a gutter of 10 as 110 in R2018 and 50 in R2000, and so
 do `SetDynamicColumns`, `ColumnCount`, `ColumnWidth` and `ColumnGutterWidth`, over the columns the MTEXT counts (AutoCAD
 counts dynamic columns as it lays the words out, which the library does not); an MTEXT copied from one form to the other
-takes the other width. Before R2018 `ACAD_MTEXT_DEFINED_HEIGHT` is written where the height is above nought, the first
+takes the other width. `Width` is 42.5 in either form, as AutoCAD 2021 reads an MTEXT in columns before R2018 as wide as
+all its columns with their gutters, though its 41 holds a column's: its own 09-a of R2000, 41 50 on each, gave 110 for two
+static columns, 770 for thirteen dynamic ones and 170 for three of their own heights; one of no columns wraps at its 41. Before R2018 `ACAD_MTEXT_DEFINED_HEIGHT` is written where the height is above nought, the first
 column's for columns of their own heights and each later column's on its own MTEXT, as AutoCAD 2021 writes it, and none
 for a height of nought; `SetDynamicColumns`, `SetColumnHeight` and the column properties (`ColumnType`, `ColumnCount`,
 `ColumnWidth`, `ColumnGutterWidth`, `ColumnAutoHeight`, `ColumnFlowReversed`) the rest, written in its embedded object from
@@ -1047,7 +1049,9 @@ its `Contents` holds its own column's words alone. They are part of that MTEXT, 
 and counts the main MTEXT alone, so that moving every MTEXT of model space moves each column once; an MTEXT that lists its
 own handle among its columns is walked still. A copy of the first holds the words of them all and links to none, so no two
 MTEXTs claim the same columns; and `Height`, before R2007, is the height of the columns in the extended data of ACAD, 30 for
-ezdxf's three static columns 30 high. Before R2007, which brought columns, the column data are columns only with those linked
+ezdxf's three static columns 30 high, and the first column's for dynamic columns of their own heights, 15 for AutoCAD's
+columns 15, 25 and 0 high, as AutoCAD 2021 read them; from R2007 such columns with no group 46 are of no height, as it read
+the library's. Before R2007, which brought columns, the column data are columns only with those linked
 MTEXTs: AutoCAD 2021 read three MTEXTs of R2000 given the column data alone as of no columns, each 50 wide, the one of a
 defined height of 15 that high, and so does the library, which refuses columns to such an MTEXT (`SetStaticColumns`,
 `SetDynamicColumns`, `ColumnType`), as it makes no column MTEXT.
@@ -1386,8 +1390,10 @@ such links, takes them away and puts them in. A `DxfDataLink` is a DATALINK of t
 which the table's extension dictionary holds under ACAD_XREC_ROUNDTRIP through an XRECORD of
 ACAD_ROUNDTRIP_2008_TABLE_ENTITY: the range's top left cell there has its 92 odd after its custom data, then the
 DATALINK's handle (340), the range's rows (93) and columns (94) and a 96, and its state (90) the flag 4 of a linked cell;
-the ACAD_TABLE's own cells name no link. `GetDataLink`, `GetDataLinkRange` and `IsLinked` read it from every cell of the
-range, a cell of the TABLECONTENT taken as the table's of its row and column whatever rows the TABLECONTENT has, as AutoCAD
+the ACAD_TABLE's own cells name no link. `GetDataLink` and `GetDataLinkRange` read it from every cell of the range, and
+`IsLinked` is true at its top left cell alone, as AutoCAD 2021 read the library's range (1, 0) to (2, 1) linked at (1, 0)
+and not at (1, 1), (2, 0) or (2, 1), each of which gave the range and the link; a cell of the TABLECONTENT is taken as the
+table's of its row and column whatever rows the TABLECONTENT has, as AutoCAD
 2021 read the link of (1, 0) of a table given a fourth row by a program that left its TABLECONTENT of three: AutoCAD's table
 linked over (1, 0) to (2, 1), which it read back as (1, 0) alone, gives (1, 0) to (1, 0), and `link.GetTargets()` gives the
 table. `SetDataLink(row, column, link)` and `SetDataLink(range, link)` put a link in as AutoCAD 2021's does, to a DATALINK
@@ -1403,8 +1409,8 @@ none. The library reads no
 spreadsheet: the cells keep what they hold, and `UpdateDataLink` is not there.
 
 A link named in a cell of the ACAD_TABLE, the run 340, 93, 94, 96 straight after the cell's 92 made odd, is read as well:
-it was the library's guess, which AutoCAD reads no link from, and which makes AutoCAD read the cells after it awry. Only a
-text cell names a link so: a block cell's 340 names its block, whatever its 92. Rows and columns put in and taken out,
+it was the library's guess, which AutoCAD reads no link from, and which makes AutoCAD read the cells after it awry; every
+cell of its range is `IsLinked`, as before. Only a text cell names a link so: a block cell's 340 names its block, whatever its 92. Rows and columns put in and taken out,
 `SetSize` and `CopyFrom` move, grow and shrink such a range as they do a block of merged cells, `CopyFrom` bringing the
 links wholly within its source unless `SkipDataLink` is given, and a cell filled from a linked one is not linked. A link
 whose rows or columns are all taken out goes with them, and its DATALINK, with what it owns, where its `DataLinkOption` is

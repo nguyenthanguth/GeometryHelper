@@ -287,16 +287,18 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AnMTextBeforeR2018InColumns_IsAsWideAsAColumn_AndWritesNoDefinedHeightOfNought_AsAutoCadWritesIt()
+        public void AnMTextBeforeR2018InColumns_Writes41AsWideAsAColumn_AndNoDefinedHeightOfNought_AsAutoCadWritesIt()
         {
             // AutoCAD 2021 saved 09-a as R2000: the static columns of 8D with 41 50 and no ACAD_MTEXT_DEFINED_HEIGHT, its
-            // height being nought. Written in R2007, as R2000 takes columns only with column MTEXTs linked (D17, 09d).
+            // height being nought. Written in R2007, as R2000 takes columns only with column MTEXTs linked (D17, 09d); read as
+            // 110 wide, as AutoCAD read it (D18, 09e).
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018.Replace("AC1032", "AC1021"));
             DxfMText mtext = ByHandle<DxfMText>(db, "73");
 
             mtext.SetStaticColumns(50.0, 10.0, 2);
 
-            Assert.Equal(50.0, mtext.Width);
+            Assert.Equal(110.0, mtext.Width);
+            Assert.Contains("\n 41\n50\n", Record(db.ToText(), "73"), StringComparison.Ordinal);
             Assert.Equal(
                 new[] { "1001 ACAD", "1000 ACAD_MTEXT_COLUMN_INFO_BEGIN", "1070 75", "1070 1", "1070 79", "1070 0", "1070 76", "1070 2", "1070 78", "1070 0", "1070 48", "1040 50", "1070 49", "1040 10", "1000 ACAD_MTEXT_COLUMN_INFO_END" },
                 ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "73").GetXDataForApplication("ACAD").Select(g => g.TypeCode + " " + g.Value));
@@ -324,7 +326,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(
                 new[] { "1001 ACAD", "1000 ACAD_MTEXT_COLUMN_INFO_BEGIN", "1070 75", "1070 2", "1070 79", "1070 0", "1070 76", "1070 2", "1070 78", "1070 0", "1070 48", "1040 50", "1070 49", "1040 10", "1070 50", "1070 2", "1040 15", "1040 25", "1000 ACAD_MTEXT_COLUMN_INFO_END", "1000 ACAD_MTEXT_DEFINED_HEIGHT_BEGIN", "1070 46", "1040 15", "1000 ACAD_MTEXT_DEFINED_HEIGHT_END" },
                 again.GetXDataForApplication("ACAD").Select(g => g.TypeCode + " " + g.Value));
-            Assert.Equal(50.0, again.Width);
+            Assert.Equal(110.0, again.Width);
             Assert.Equal(new[] { 15.0, 25.0 }, new[] { again.GetColumnHeight(0), again.GetColumnHeight(1) });
             Assert.Equal(0.0, again.Height);
         }
@@ -332,7 +334,8 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AnMTextInColumnsMadeInCode_TakesTheWidthOfTheFormOfTheDrawingItIsAddedTo()
         {
-            // Point 10: AutoCAD 2021 read the columns 40 wide 10 apart copied into R2018 as 140 wide; into R2007 a column wide.
+            // Point 10: AutoCAD 2021 read the columns 40 wide 10 apart copied into R2018 as 140 wide; into R2007 its 41 is a
+            // column's, and it is read as 140 wide too, as AutoCAD read its columns of R2007 (D18, 09e).
             foreach (string text in new[] { DxfFileEzdxfDrawings.R2018.Replace("AC1032", "AC1021"), DxfFileEzdxfDrawings.R2018 })
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
@@ -342,7 +345,8 @@ namespace GeometryHelper.UnitTest.Dxf
                 db.ModelSpace.AppendEntity(made);
 
                 DxfMText again = ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), made.Handle);
-                Assert.Equal(text == DxfFileEzdxfDrawings.R2018 ? 140.0 : 40.0, again.Width);
+                Assert.Equal(140.0, again.Width);
+                Assert.Contains(text == DxfFileEzdxfDrawings.R2018 ? "\n 41\n140\n" : "\n 41\n40\n", Record(db.ToText(), made.Handle), StringComparison.Ordinal);
                 Assert.Equal(40.0, again.ColumnWidth);
             }
         }

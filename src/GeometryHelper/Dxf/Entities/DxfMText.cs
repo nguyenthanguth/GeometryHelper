@@ -251,16 +251,41 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        /// <summary>Gets or sets the width the lines wrap at (group 41), as AutoCAD's <c>Width</c>; nought, no wrapping, where the record gives none.</summary>
+        /// <summary>
+        /// Gets or sets the width the lines wrap at (group 41), as AutoCAD's <c>Width</c>; nought, no wrapping, where the record
+        /// gives none. An MTEXT in columns before R2018 (AC1032), whose 41 holds the width of a column, is as wide as all its
+        /// columns with the gutters between them, as AutoCAD 2021 reads it: two static columns 50 wide with a gutter of 10 in
+        /// R2007 or R2000 make an MTEXT 110 wide, thirteen dynamic ones 770, and one 50, though AutoCAD writes 41 50 on each.
+        /// </summary>
+        /// <value>Set, written as group 41; the columns of an MTEXT before R2018 are given their widths by
+        /// <see cref="ColumnWidth"/>, <see cref="ColumnGutterWidth"/> and <see cref="ColumnCount"/>.</value>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the width set is below nought or not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the MTEXT is erased.</exception>
         public double Width
+        {
+            get
+            {
+                ColumnSet columns = Item.File.Supports(1032) ? null : Columns();
+                return columns != null && columns.InXData && columns.Type != DxfColumnType.NoColumns ? Span(columns, true) : WrapWidth;
+            }
+
+            set
+            {
+                if (!Same(value, Width))
+                {
+                    WrapWidth = value;
+                }
+            }
+        }
+
+        /// <summary>The width of group 41 as the record gives it, nought where it gives none; set, written there.</summary>
+        private double WrapWidth
         {
             get => Number(41, 0.0);
 
             set
             {
-                if (!Same(value, Width))
+                if (!Same(value, WrapWidth))
                 {
                     Guard.NonNegative(value, nameof(value), "The width of an MTEXT has to be a finite number of nought or more.");
                     SetNumber(41, value, 0.0);
@@ -271,19 +296,20 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gets or sets the height of the box the MTEXT is given (group 46), as AutoCAD's <c>Height</c>; where the record gives
         /// none, the height of its columns of one height, from its embedded object (41) or its extended data of ACAD
-        /// (<c>ACAD_MTEXT_DEFINED_HEIGHT</c>), as ezdxf reads it; nought where it gives neither, and for dynamic columns of their
-        /// own heights, whose <c>ACAD_MTEXT_DEFINED_HEIGHT</c> is the first column's, as AutoCAD 2021 writes it. A file older
-        /// than R2007 (AC1021) has no group 46: the MTEXT of R2000 in three static columns 30 high has the height 30 of its
-        /// extended data.
+        /// (<c>ACAD_MTEXT_DEFINED_HEIGHT</c>), as ezdxf reads it; nought where it gives neither, and from R2007 for dynamic
+        /// columns of their own heights, whose <c>ACAD_MTEXT_DEFINED_HEIGHT</c> is the first column's, as AutoCAD 2021 writes and
+        /// reads it. A file older than R2007 (AC1021) has no group 46, and its height is that of the extended data whatever the
+        /// columns: the MTEXT of R2000 in three static columns 30 high has the height 30, and AutoCAD 2021 read its own R2000
+        /// MTEXT in dynamic columns 15, 25 and 0 high, of the defined height 15, as 15 high (its 09-a).
         /// </summary>
-        /// <value>Set, written as group 46 from R2007; before it in <c>ACAD_MTEXT_DEFINED_HEIGHT</c>, which an MTEXT of R2000 has
-        /// only in columns of one height.</value>
+        /// <value>Set, written as group 46 from R2007; before it in <c>ACAD_MTEXT_DEFINED_HEIGHT</c>, set there only on an MTEXT in
+        /// columns of one height, as the first column's height is that of dynamic columns of their own heights.</value>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the height set is below nought or not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the MTEXT is erased, or a height is set in a file older than
         /// R2007 on an MTEXT that is not in columns of one height.</exception>
         public double Height
         {
-            get => Value(46) != null ? Number(46, 0.0) : OneHeight(Columns());
+            get => Value(46) != null ? Number(46, 0.0) : !Item.File.Supports(1021) ? Columns().Defined ?? 0.0 : OneHeight(Columns());
 
             set
             {
@@ -739,7 +765,7 @@ namespace GeometryHelper.Dxf
                 if (columns.Type == DxfColumnType.NoColumns && value != DxfColumnType.NoColumns)
                 {
                     columns.Count = Math.Max(columns.Count, 1);
-                    columns.Width = columns.Width > 0.0 ? columns.Width : Width;
+                    columns.Width = columns.Width > 0.0 ? columns.Width : WrapWidth;
                     columns.Auto = value == DxfColumnType.DynamicColumns;
                 }
 
@@ -776,7 +802,7 @@ namespace GeometryHelper.Dxf
 
                 ColumnSet columns = WithColumns();
                 columns.Count = value;
-                Width = Span(columns);
+                WrapWidth = Span(columns);
                 WriteColumns(columns.Pad(Height));
             }
         }
@@ -800,7 +826,7 @@ namespace GeometryHelper.Dxf
                 Guard.Positive(value, nameof(value), "The width of a column has to be a finite number above nought.");
                 ColumnSet columns = WithColumns();
                 columns.Width = value;
-                Width = Span(columns);
+                WrapWidth = Span(columns);
                 WriteColumns(columns);
             }
         }
@@ -824,7 +850,7 @@ namespace GeometryHelper.Dxf
                 Guard.NonNegative(value, nameof(value), "The gutter between columns has to be a finite number of nought or more.");
                 ColumnSet columns = WithColumns();
                 columns.Gutter = value;
-                Width = Span(columns);
+                WrapWidth = Span(columns);
                 WriteColumns(columns);
             }
         }
@@ -929,9 +955,9 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Sets the MTEXT in static columns, as AutoCAD's <c>SetStaticColumns</c>: as many columns as given, each as wide as
         /// given and as high as the MTEXT's <see cref="Height"/>, a gutter between them; written as <see cref="ColumnType"/>
-        /// says, the MTEXT's <see cref="Width"/> (41, and 40 of its embedded object) made that of all the columns with their
-        /// gutters from R2018, and a column's before it, as AutoCAD 2021 writes it: two columns 50 wide with a gutter of 10 make
-        /// an MTEXT of R2018 110 wide, and one of R2000, its later columns MTEXTs of their own, 50 wide. Three columns 12.5 wide
+        /// says, the MTEXT's group 41 (and 40 of its embedded object) made the width of all the columns with their gutters from
+        /// R2018, and a column's before it, as AutoCAD 2021 writes it: two columns 50 wide with a gutter of 10 give an MTEXT of
+        /// R2018 41 110, and one of R2007 or R2000 41 50, each read as 110 wide (<see cref="Width"/>). Three columns 12.5 wide
         /// with gutters of 2.5 take 42.5 across.
         /// </summary>
         /// <param name="width">How wide each column is, a finite number above nought.</param>
@@ -958,7 +984,7 @@ namespace GeometryHelper.Dxf
             columns.Count = count;
             columns.Auto = false;
             columns.Heights.Clear();
-            Width = Span(columns);
+            WrapWidth = Span(columns);
             WriteColumns(columns);
         }
 
@@ -987,7 +1013,7 @@ namespace GeometryHelper.Dxf
             columns.Gutter = gutter;
             columns.Count = Math.Max(columns.Count, 1);
             columns.Auto = autoHeight;
-            Width = Span(columns);
+            WrapWidth = Span(columns);
             WriteColumns(columns.Pad(Height));
         }
 
@@ -1080,7 +1106,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Holds the MTEXT by another of its points where it stands, as AutoCAD's <c>SetAttachmentMovingLocation</c>: its
         /// <see cref="Attachment"/> set and its <see cref="Location"/> moved to that point of its box, so that the words stay
-        /// where they are. The box is <see cref="Width"/> wide, the <see cref="ActualWidth"/> where the MTEXT does not wrap, and
+        /// where they are. The box is as wide as the group 41 (<see cref="Width"/>, but a column's before R2018 for an MTEXT in
+        /// columns), the <see cref="ActualWidth"/> where the MTEXT does not wrap, and
         /// <see cref="ActualHeight"/> high, as the file writes them, along its <see cref="Direction"/> and up from it in its
         /// plane: the MTEXT 40 wide held at its top left at (20, 40, 0), held at its top centre, stands at (40, 40, 0).
         /// </summary>
@@ -1105,7 +1132,7 @@ namespace GeometryHelper.Dxf
 
             int across = ((int)value - 1) % 3 - ((int)now - 1) % 3;
             int down = ((int)value - 1) / 3 - ((int)now - 1) / 3;
-            double width = Width > 0.0 ? Width : Value(42) != null ? ActualWidth : double.NaN;
+            double width = WrapWidth > 0.0 ? WrapWidth : Value(42) != null ? ActualWidth : double.NaN;
             double height = Value(43) != null ? ActualHeight : double.NaN;
 
             if (across != 0 && double.IsNaN(width))
@@ -1199,9 +1226,9 @@ namespace GeometryHelper.Dxf
 
             if (Value(41) != null)
             {
-                double width = transform.Transform(oldDirection.Multiply(Width / oldDirection.Length)).Length;
+                double width = transform.Transform(oldDirection.Multiply(WrapWidth / oldDirection.Length)).Length;
 
-                if (!Same(width, Width))
+                if (!Same(width, WrapWidth))
                 {
                     groups.Add(new KeyValuePair<int, string>(41, Numbers.Exact(width + 0.0)));
                 }
@@ -1455,7 +1482,7 @@ namespace GeometryHelper.Dxf
             {
                 bool embedded = owner.File.Supports(1032);
                 WriteColumns(columns, embedded);
-                Width = Span(columns, embedded);
+                WrapWidth = Span(columns, embedded);
             }
         }
 
@@ -2298,7 +2325,7 @@ namespace GeometryHelper.Dxf
                 PutReal(tail, 11, location.X);
                 PutReal(tail, 21, location.Y);
                 PutReal(tail, 31, location.Z);
-                PutReal(tail, 40, Width);
+                PutReal(tail, 40, WrapWidth);
                 PutReal(tail, 41, defined);
                 PutReal(tail, 42, total);
                 PutReal(tail, 43, height);

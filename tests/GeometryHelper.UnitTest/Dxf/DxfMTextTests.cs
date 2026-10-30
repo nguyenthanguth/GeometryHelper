@@ -371,7 +371,8 @@ namespace GeometryHelper.UnitTest.Dxf
         public void AnMTextWithLinkedColumns_MovedOrScaled_CarriesItsColumnMTexts_AsEzdxfCarriesThem()
         {
             // ezdxf 1.4.5's transform() of 5A by the scale 2: 5A at (200, 0, 0), its columns 5B at (230, 0, 0) and 5C at
-            // (260, 0, 0), each 5 high, 25 wide, their ACAD_MTEXT_DEFINED_HEIGHT 60; 5A's own words one\N kept.
+            // (260, 0, 0), each 5 high, 25 wide, their ACAD_MTEXT_DEFINED_HEIGHT 60; 5A's own words one\N kept. 5A, its 41 25, is
+            // as wide as its three columns 25 wide 5 apart, 85, as AutoCAD 2021 read its columns of R2000 (D18, 09a).
             DxfDatabase db = DxfDatabase.Parse(WithLinkedColumns());
             ByHandle<DxfMText>(db, "5A").TransformBy(GeoTransform3.Scaling(2.0));
 
@@ -381,7 +382,8 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfMText column = Linked(again, handle);
                 Assert.Equal(Bits(new GeoPoint3(x, 0, 0)), Bits(column.Location));
                 Assert.Equal(5.0, column.TextHeight);
-                Assert.Equal(25.0, column.Width);
+                Assert.Equal(handle == "5A" ? 85.0 : 25.0, column.Width);
+                Assert.Contains("\n 41\n25\n", Records(db.ToText()).Single(r => HandleOf(r) == handle), StringComparison.Ordinal);
                 Assert.Equal(60.0, column.Height);
             }
 

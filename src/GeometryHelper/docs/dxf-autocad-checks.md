@@ -122,6 +122,21 @@ written as AutoCAD reads them now.
      `SetDynamicColumns` and `ColumnType` refuse such an MTEXT columns, as the library makes no column MTEXT. Still to see:
      whether AutoCAD takes its own 09-a of R2000, with its column MTEXTs, as columns, and the library's columns of R2007,
      the extended data alone (09-e of after-d17).
+   - AutoCAD 2021 (plugin v10): takes both as columns. Its own 09-a of R2000, 41 50 on each: 8D static, 2 columns, `Width`
+     110; 8E dynamic of auto height, 13 columns, `Width` 770; 8F dynamic of their own heights 15, 25 and 0, 3 columns,
+     `Width` 170, `Height` 15 (its defined height); `ActualWidth` 110, 770 and 170. The library's 09-e of R2007, the extended
+     data alone: 8D 2 columns, `Width` 110; 8E 1 column, `Width` 50 (`ActualWidth` 770, the 13 columns it lays the words out
+     in); 8F 2 columns, `Width` 110, `Height` 0 (no 46, a defined height of 15). `ColumnAutoHeight` and `GetColumnHeight` of
+     static columns throw `eNotApplicable`. Saved as R2007 it writes 41 50 on each and makes a column MTEXT for each later
+     column, as in R2000.
+   - Now (D18): `Width` of an MTEXT in columns before R2018 is that of all its columns with their gutters, the count of its
+     extended data times the column's width and the gutters between, 110, 770 and 170, as AutoCAD reads it, its 41 still
+     written a column's; of R2018, and of an MTEXT of no columns, its 41 as before. `Height` before R2007 is the defined height
+     whatever the columns, 15 for 8F. Still as they were, the library having no fonts: `ActualWidth`, read from 42, which
+     these files lack, where AutoCAD lays the words out; and the count of dynamic columns AutoCAD makes as it lays them out
+     (13 for 8E of 09-e). `ColumnAutoHeight` and `GetColumnHeight` of static columns give false and nought, as documented,
+     where AutoCAD throws. Still to see (v11): R2010 and R2013 (09-f, 09-g), taken here as R2007; and what AutoCAD's `Width`
+     set does to an MTEXT in columns before R2018, which the library writes into 41 alone.
 
 10. **Linked columns copied into R2018.**
     - Try: copy an MTEXT of linked columns of R2000 into a drawing of R2018 with the library, and open it.
@@ -252,6 +267,12 @@ written as AutoCAD reads them now.
       3), stay the halving alone, as AutoCAD made them. Parked, the third round: a closed spline of 70 11 with fit points, a
       form AutoCAD does not write, which it fits anew through its fit points as a spline not periodic; the library keeps its
       control points, so neither the knots in place nor the halving alone gives AutoCAD's 44 and 42 vertices.
+    - Measured (D18), not changed: `IsPeriodic` reads the flag 2 of 70, true for AutoCAD's 3115 and for 11 and 3; AutoCAD read
+      its 3115 as periodic and 11 (its own closed cubic and the library's 17-g) and 3 (17-f) as not, so its periodic spline
+      is told by 32, 1024 or 2048, which 3115 has and 11 has not, and the flag 2 is written on its closed splines too. It
+      read 5 fit points on its 3115, whose DXF has none: the points it fits through, which the library does not work out
+      from the control points. Still to see (v11, 17-h): 3115 with each of 2048, 1024 and 32 taken out, and 11 with each
+      put in.
     - Degree 4, 5 and rational, parked: the tolerance the counts fit is the larger of 1 / M and the spline's length over
       10 000, over (p + 1)^2: the quartic (M 120, length 47.7) takes 1 / M, every one of its nine counts; the quintic Bezier
       (M 400, length 55.00), the quintic of two spans (M 223.6, length 70.085), the rational cubics 1, 2, 2, 1 (M 600, length
@@ -853,6 +874,17 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is not linked, as the l
       taken away and set again, is AutoCAD's file to the byte. A table of no TABLECONTENT is refused: AutoCAD writes it whole
       when it links one (its 73 of an ezdxf table, 469 groups for three rows of two columns, and a TABLEGEOMETRY of every
       cell's place and extents). To check: 73-f to 73-j of after-d17.
+    - AutoCAD 2021 (plugin v10): 73-f, a row put in above AutoCAD's linked cell, keeps the link at (1, 0), by the
+      TABLECONTENT's cell; 73-g, 73-i and 73-j, a cell linked by the library in R2018 and R2007, named or anonymous, read
+      linked, the link's targets the table, no line in the log; 73-h, the library's range (1, 0) to (2, 1): `IsLinked` True at
+      (1, 0) alone and False at (1, 1), (2, 0) and (2, 1), though each gives `GetDataLinkRange` (1, 0)-(2, 1) and the link
+      142. Saved again, every cell but the top left keeps the state 0 and `92 0` the library wrote, the ACAD_TABLE's cells as
+      written, and the top left `96 0` where the library wrote `96 1`, as in its saves of 73-g, 73-i and 73-j.
+    - Now (D18): `IsLinked` of a range of the TABLECONTENT is true at its top left cell alone, as AutoCAD read 73-h;
+      `GetDataLinkRange` and `GetDataLink` give the range and the link at every cell of it. A range named in the cells of the
+      ACAD_TABLE, which AutoCAD reads no link from, is linked at every cell, as before. Still to see (v11): whether AutoCAD's
+      `IsLinked` follows the top left cell or the flag 4 of a cell's state, which the top left alone has in every file so
+      far (73-k, the flag given to (2, 1) as well; 73-l, taken from (1, 0)).
 
 74. **The groups of a DATALINK.**
     - Try: read the DATALINK of the drawing of point 73; then open in AutoCAD, with AUDIT, a drawing whose DATALINK has no 70
