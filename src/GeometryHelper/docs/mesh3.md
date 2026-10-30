@@ -218,7 +218,12 @@ GeoCellGrid3 world = wall.ToCells(CellOptions3.Grid(1000, 0, 1000));            
 **Pieces.** A cell the body holds in several pieces, as the cell across the notch of a U holds two, comes as one `GeoCell3`
 a piece, with the same indexes, `Piece` telling them apart, numbered up Z, along Y and along X by their middles. Two pieces
 of one cell never share a face; `GetAdjacentCells` gives the cells that do, found where their material meets across the
-planes between them rather than by their indexes, and none where joints stand between.
+planes between them rather than by their indexes, and none where joints stand between. Two cells a place apart across
+the plane as well share no more than an edge, and are not neighbours however fine the tolerance: asked below a millionth,
+cells meet over more than a strip as wide as the point tolerance, or as what rounding can move a corner, a trillionth of
+the size of the coordinates, where that is more, along where they overlap. At nought a plate 200 by 100 by 3 turned about
+in space, cut into twelve cells, gave 25 pairs of neighbours, the cells a place over along both axes among them; it gives
+17. At a millionth and above cells meet over more than the point tolerance squared, as before.
 
 ![A U cut into two rows: the row over the arms holds two pieces, each a cell of its own](images/mesh3/u-pieces.svg)
 

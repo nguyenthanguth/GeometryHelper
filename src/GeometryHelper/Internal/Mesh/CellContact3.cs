@@ -26,7 +26,8 @@ namespace GeometryHelper.Core
         /// <param name="frame">The grid's frame.</param>
         /// <param name="joint">The gap between neighbouring cells; with one, no cell meets another.</param>
         /// <param name="tolerance">The tolerance the cells were cut within.</param>
-        public static int[][] Adjacency(GeoCell3[] cells, double[][] starts, double[][] ends, GeoCoordinateSystem3 frame, double joint, Tolerance tolerance)
+        /// <param name="asked">The tolerance the cells were asked within: below a millionth, cells meet over more than a strip.</param>
+        public static int[][] Adjacency(GeoCell3[] cells, double[][] starts, double[][] ends, GeoCoordinateSystem3 frame, double joint, Tolerance tolerance, Tolerance asked)
         {
             var adjacent = new List<int>[cells.Length];
 
@@ -37,7 +38,7 @@ namespace GeometryHelper.Core
 
             if (joint == 0.0 && cells.Length > 1)
             {
-                new Search(cells, starts, ends, frame, tolerance).Run(adjacent);
+                new Search(cells, starts, ends, frame, tolerance, asked).Run(adjacent);
             }
 
             var result = new int[cells.Length][];
@@ -79,8 +80,9 @@ namespace GeometryHelper.Core
             private readonly int[][] _from;
             private readonly int[][] _to;
             private readonly List<Laid>[] _laid;
+            private readonly double _strip;
 
-            public Search(GeoCell3[] cells, double[][] starts, double[][] ends, GeoCoordinateSystem3 frame, Tolerance tolerance)
+            public Search(GeoCell3[] cells, double[][] starts, double[][] ends, GeoCoordinateSystem3 frame, Tolerance tolerance, Tolerance asked)
             {
                 _cells = cells;
                 _starts = starts;
@@ -104,6 +106,32 @@ namespace GeometryHelper.Core
                         stray[a] = Math.Max(stray[a], Math.Max(starts[a][index] - _min[n][a], _max[n][a] - ends[a][index]));
                     }
                 }
+
+                // The width of a strip two cells meeting on no more than an edge can share, below a millionth: the point
+                // tolerance, raised to what rounding can move a corner, a trillionth of the size of the coordinates, as
+                // Splition3.Rounding reads it. At a millionth and above none is, and the cells meet as they did; see Meet.
+                var low = new[] { double.MaxValue, double.MaxValue, double.MaxValue };
+                var high = new[] { double.MinValue, double.MinValue, double.MinValue };
+
+                for (int n = 0; n < cells.Length; n++)
+                {
+                    for (int a = 0; a < 3; a++)
+                    {
+                        low[a] = Math.Min(low[a], _min[n][a]);
+                        high[a] = Math.Max(high[a], _max[n][a]);
+                    }
+                }
+
+                double reach = 0.0;
+
+                for (int corner = 0; corner < 8 && cells.Length > 0; corner++)
+                {
+                    GeoPoint3 world = frame.ToGlobal(new GeoPoint3(
+                        (corner & 1) == 0 ? low[0] : high[0], (corner & 2) == 0 ? low[1] : high[1], (corner & 4) == 0 ? low[2] : high[2]));
+                    reach = Math.Max(reach, Math.Max(Math.Abs(world.X), Math.Max(Math.Abs(world.Y), Math.Abs(world.Z))));
+                }
+
+                _strip = asked.EqualPoint < Splition3.RaisedBelow ? Math.Max(tolerance.EqualPoint, 1E-12 * (1.0 + reach)) : 0.0;
 
                 // The lines along each axis whose cells can reach those of a line: their spans grown by the stray overlap.
                 _from = new int[3][];
@@ -287,11 +315,23 @@ namespace GeometryHelper.Core
                 && Math.Min(_max[n][v], _max[m][v]) > Math.Max(_min[n][v], _min[m][v]);
 
             /// <summary>
-            /// Whether two cells cut apart by a plane square to an axis meet on it over more than the point tolerance squared.
+            /// Whether two cells cut apart by a plane square to an axis meet on it over more than the point tolerance squared,
+            /// and below a millionth over more than a strip as wide as the point tolerance, raised to the rounding of the
+            /// coordinates, along where their extents overlap across the plane.
             /// </summary>
+            /// <remarks>
+            /// Two cells a place apart across the plane as well share no more than an edge, and the rounding, or the tolerance,
+            /// lets their extents overlap by as much along it: over the point tolerance squared alone, nought at nought, a
+            /// quarter of the grids cut at fine tolerances from prisms with openings, turned about in space, counted such cells as
+            /// neighbours. At a millionth and above the strip is not asked, as the cells are cut there as they were (see
+            /// <see cref="Splition3.RaisedBelow"/>): at a thousandth, a cell of a ledge 0.109 thick meets the column it stands
+            /// out of over 0.000 44, a strip narrower than the tolerance, and is its neighbour.
+            /// </remarks>
             private bool Meet(int below, int above, int axis, int u, int v)
             {
-                double least = _tolerance.EqualPoint * _tolerance.EqualPoint;
+                double alongU = Math.Min(_max[below][u], _max[above][u]) - Math.Max(_min[below][u], _min[above][u]);
+                double alongV = Math.Min(_max[below][v], _max[above][v]) - Math.Max(_min[below][v], _min[above][v]);
+                double least = Math.Max(_tolerance.EqualPoint * _tolerance.EqualPoint, _strip * Math.Max(alongU, alongV));
 
                 if (_cells[below].Material != null && _cells[above].Material != null)
                 {

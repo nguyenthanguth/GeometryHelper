@@ -176,7 +176,7 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Cuts some of a body's openings into it within a finer tolerance where walls stand apart within the tolerance of one
-        /// plane (see <see cref="FinerForWallsApart"/>), as
+        /// plane (see <see cref="FinerForWallsApart(GeoSolid3, IReadOnlyList{GeoSolid3}, Tolerance, out Tolerance)"/>), as
         /// <see cref="TryCutOpenings(GeoSolid3, IReadOnlyList{GeoSolid3}, out GeoSolid3, Tolerance, out Exception)"/> cuts them,
         /// taking what that gives where it closes within the tolerance asked.
         /// </summary>
@@ -199,6 +199,91 @@ namespace GeometryHelper.Core
 
             material = fine;
             return true;
+        }
+
+        /// <summary>
+        /// Works out a union, a common part or a difference of two bodies within a finer tolerance where walls of one of them
+        /// and its openings stand apart within the tolerance of one plane (see
+        /// <see cref="FinerForWallsApart(GeoSolid3, GeoSolid3, Tolerance, out Tolerance)"/>): the openings of each cut into it
+        /// within that tolerance, as <see cref="TryCutOpenings(GeoSolid3, out GeoSolid3, Tolerance)"/> cuts them, and the
+        /// operation worked out on the two so cut; what it gives is taken where it is made and closes within the tolerance
+        /// asked.
+        /// </summary>
+        /// <param name="operation">The operation, as the public methods work it out within the tolerance given.</param>
+        /// <param name="first">The first body; for a difference, the one material is taken from.</param>
+        /// <param name="second">The second body; for a difference, the one taken away.</param>
+        /// <param name="result">What the operation gives; null when the method returns false.</param>
+        /// <param name="tolerance">The tolerance asked.</param>
+        /// <param name="open">What came out open where two closed bodies gave nothing closed, for a closing to try.</param>
+        /// <returns>
+        /// true where such walls stand apart and the operation so worked out made a body that closes; otherwise, false, and the
+        /// operation is worked out as before.
+        /// </returns>
+        /// <remarks>
+        /// A boolean cuts the openings of a body into it at once, and the plane of one opening cut the whole of what it reached:
+        /// a plane of another within the tolerance of it was read as that plane, however far away, as the cut of openings read
+        /// it. An L 100 by 80 by 50 with two blind openings 27 apart whose walls stood 0.0009 apart across it, less a box 65 by
+        /// 20 by 40 across both walls, within a thousandth or a hundredth, held 130 189.39 one way round and 130 189.26 the
+        /// other, where it holds 130 189.32, and the box less the L 28 457.23 and 28 457.88, where it holds 28 457.68. Of 4 800
+        /// unions, common parts and differences of prisms with two or three such openings, turned about in space or not, at the
+        /// origin and a thousand to a thousand million out, and boxes, at 1E-3 and 1E-2, 1 363 that were wrong are right now,
+        /// every one a million out and nearer among them, and none that was right moved, but in its last bits; at a millionth
+        /// and below, where no walls stood so near, nothing changed, to the bit. Where a wall of the other body lies within the
+        /// tolerance of the plane of a wall of either, or the finer tolerance would come within a few roundings of the
+        /// coordinates (see <see cref="FinerRoundings"/>), the boolean is worked out as before: of 4 800 more, a face of each
+        /// box a tenth to six tenths of the tolerance off the plane of a wall, 5 changed, all to right.
+        /// </remarks>
+        private static bool WithWallsApart(Operation operation, GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out GeoSolid3 open)
+        {
+            result = null;
+            open = null;
+
+            if (first.Openings.Count == 0 && second.Openings.Count == 0
+                || !FinerForWallsApart(first, second, tolerance, out Tolerance finer)
+                || !(finer.EqualPlanar >= FinerRoundings * Math.Max(Splition3.Rounding(first), Splition3.Rounding(second)))
+                || !ClosesAsFinely(first, first.Openings, tolerance, finer) || !ClosesAsFinely(second, second.Openings, tolerance, finer)
+                || !MaterialWithin(first, finer, tolerance, out GeoSolid3 a) || !MaterialWithin(second, finer, tolerance, out GeoSolid3 b)
+                || !operation(a, b, out GeoSolid3 made, finer, out BooleanOutcome outcome, out GeoSolid3 left)
+                || outcome != BooleanOutcome.Made || made == null || !Shells3.Closes(made, ForWork(tolerance)))
+            {
+                return false;
+            }
+
+            result = made;
+            open = left;
+            return true;
+        }
+
+        /// <summary>
+        /// How many times what rounding can move a corner off a plane, a trillionth of the size of the coordinates, the finer
+        /// tolerance a boolean is worked out within where walls stand apart (see <see cref="WithWallsApart"/>) has to be; a
+        /// boolean whose finer tolerance would be less is worked out as before.
+        /// </summary>
+        /// <remarks>
+        /// Of 4 800 unions, common parts and differences of prisms with such openings and boxes, at 1E-3 and 1E-2, 3 that were
+        /// right came out wrong within a finer tolerance two to four times that trillionth, all ten million and more out, the
+        /// worst 0.98 off a thousand million out. None does within eight times it, and up to a million out every one still
+        /// comes out right; 354 further out that came out right within the finer tolerance are worked out as before, and
+        /// wrong.
+        /// </remarks>
+        private const double FinerRoundings = 8.0;
+
+        /// <summary>
+        /// A body with its openings cut into it within a finer tolerance, as
+        /// <see cref="TryCutOpenings(GeoSolid3, out GeoSolid3, Tolerance)"/> cuts them, where what that gives closes within
+        /// the tolerance asked; the body itself where it has none.
+        /// </summary>
+        private static bool MaterialWithin(GeoSolid3 solid, Tolerance finer, Tolerance tolerance, out GeoSolid3 material)
+        {
+            material = solid;
+
+            if (solid.Openings.Count == 0)
+            {
+                return true;
+            }
+
+            return TryCutOpeningsWithin(solid, solid.Openings, out material, finer, false, out _, out _)
+                && material != null && Shells3.Closes(material, ForWork(tolerance));
         }
 
         /// <summary>
@@ -295,18 +380,57 @@ namespace GeometryHelper.Core
         /// cannot, the walls are cut as before.
         /// </remarks>
         internal static bool FinerForWallsApart(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, Tolerance tolerance, out Tolerance finer)
+            => FinerForWallsApart(new[] { (solid, openings) }, tolerance, out finer);
+
+        /// <summary>
+        /// Determines whether two walls of one of two bodies and its openings stand apart within the tolerance of one plane,
+        /// as <see cref="FinerForWallsApart(GeoSolid3, IReadOnlyList{GeoSolid3}, Tolerance, out Tolerance)"/> reads them,
+        /// where no wall of either body or its openings lies within the tolerance of the plane of a wall of the other; and
+        /// gives the tolerance a boolean of the two is worked out within then.
+        /// </summary>
+        /// <param name="first">The first body of the boolean.</param>
+        /// <param name="second">The second body of the boolean.</param>
+        /// <param name="tolerance">The tolerance asked.</param>
+        /// <param name="finer">The tolerance to work within; the one asked where the method returns false.</param>
+        /// <returns>
+        /// true where such walls stand apart, as for one body, and no wall of the one lies so near the plane of a wall of the
+        /// other; otherwise, false.
+        /// </returns>
+        /// <remarks>
+        /// A wall of one body within the tolerance of the plane of a wall of the other is read by the boolean as it was, worked
+        /// out within the tolerance: of 4 800 booleans of prisms with such openings and boxes whose face stood a tenth to six
+        /// tenths of the tolerance off the plane of a wall of the prism or of an opening, 12 that came out as the two are came
+        /// out otherwise within the finer tolerance, the box's face put onto the wall in part, as the material cut alone
+        /// reads it. Such a boolean is worked out as before, and none moves but to right.
+        /// </remarks>
+        internal static bool FinerForWallsApart(GeoSolid3 first, GeoSolid3 second, Tolerance tolerance, out Tolerance finer)
+            => FinerForWallsApart(new[] { (first, first.Openings), (second, second.Openings) }, tolerance, out finer);
+
+        /// <summary>
+        /// Determines whether two walls of one of some bodies and its openings stand apart within the tolerance of one plane,
+        /// where no wall of one of the bodies lies within it of the plane of a wall of another. See
+        /// <see cref="FinerForWallsApart(GeoSolid3, IReadOnlyList{GeoSolid3}, Tolerance, out Tolerance)"/>.
+        /// </summary>
+        private static bool FinerForWallsApart((GeoSolid3 Solid, IReadOnlyList<GeoSolid3> Openings)[] bodies, Tolerance tolerance, out Tolerance finer)
         {
             finer = tolerance;
 
-            if (openings.Count == 0)
+            if (Array.TrueForAll(bodies, body => body.Openings.Count == 0))
             {
                 return false;
             }
 
             Tolerance work = ForWork(tolerance);
-            double rounding = Splition3.Rounding(solid);
+            double rounding = 0.0;
+            GeoAabb3 box = GeoAabb3.Empty;
+
+            foreach ((GeoSolid3 solid, _) in bodies)
+            {
+                rounding = Math.Max(rounding, Splition3.Rounding(solid));
+                box = box.Union(solid.GetAabb());
+            }
+
             double onPlane = work.EqualPlanar + rounding;
-            GeoAabb3 box = solid.GetAabb();
 
             if (box.IsEmpty || !(work.EqualPlanar > 4.0 * rounding))
             {
@@ -314,23 +438,28 @@ namespace GeometryHelper.Core
             }
 
             // A face with no plane, its corners on a line, is no wall.
-            var walls = new List<(GeoFace3 Face, GeoPlane3 Plane, int Owner)>();
+            var walls = new List<(GeoFace3 Face, GeoPlane3 Plane, int Body, int Owner)>();
 
-            foreach (GeoFace3 face in solid.Faces)
+            for (int n = 0; n < bodies.Length; n++)
             {
-                if (face.Normal.Length > 0.5)
-                {
-                    walls.Add((face, face.GetPlane(), -1));
-                }
-            }
+                (GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings) = bodies[n];
 
-            for (int i = 0; i < openings.Count; i++)
-            {
-                foreach (GeoFace3 face in openings[i].Faces)
+                foreach (GeoFace3 face in solid.Faces)
                 {
                     if (face.Normal.Length > 0.5)
                     {
-                        walls.Add((face, face.GetPlane(), i));
+                        walls.Add((face, face.GetPlane(), n, -1));
+                    }
+                }
+
+                for (int i = 0; i < openings.Count; i++)
+                {
+                    foreach (GeoFace3 face in openings[i].Faces)
+                    {
+                        if (face.Normal.Length > 0.5)
+                        {
+                            walls.Add((face, face.GetPlane(), n, i));
+                        }
                     }
                 }
             }
@@ -367,24 +496,23 @@ namespace GeometryHelper.Core
 
             for (int a = 0; a < keys.Length; a++)
             {
-                // Each pair is met with the first of them as it is.
-                if (keys[a].Turned)
-                {
-                    continue;
-                }
-
-                (GeoFace3 face, GeoPlane3 plane, int owner) = walls[keys[a].Wall];
+                (GeoFace3 face, GeoPlane3 plane, int body, int owner) = walls[keys[a].Wall];
 
                 for (int b = a + 1; b < keys.Length && keys[b].Key - keys[a].Key <= onPlane; b++)
                 {
-                    (GeoFace3 otherFace, GeoPlane3 other, int otherOwner) = walls[keys[b].Wall];
+                    (GeoFace3 otherFace, GeoPlane3 other, int otherBody, int otherOwner) = walls[keys[b].Wall];
 
-                    if (keys[b].Wall == keys[a].Wall)
+                    // Each pair is met with one of them as it is: walls turned the same way both as they are, walls turned
+                    // opposite ways one as it is and the other turned, whichever comes first. Met only with the first as it
+                    // is, walls turned opposite ways were met only where rounding put their heights one way: an L's inner wall
+                    // and an opening's wall turned the other way 0.0004 off its plane, 5 along it, were not met at all, and
+                    // the L measured 0.09 too little.
+                    if (keys[b].Wall == keys[a].Wall || keys[a].Turned && keys[b].Turned)
                     {
                         continue;
                     }
 
-                    double sign = keys[b].Turned ? -1.0 : 1.0;
+                    double sign = keys[a].Turned != keys[b].Turned ? -1.0 : 1.0;
 
                     if (plane.Normal.DotProduct(other.Normal) * sign < 0.5)
                     {
@@ -401,7 +529,25 @@ namespace GeometryHelper.Core
                         most = Math.Max(most, gap);
                     }
 
-                    if (most > onPlane || most <= rounding)
+                    if (most > onPlane)
+                    {
+                        continue;
+                    }
+
+                    // A wall of one body within the tolerance of the plane of a wall of the other leaves the boolean as it
+                    // was, but where the two lie in one plane to the rounding of the coordinates, a quadrillionth of their
+                    // size, which no finer tolerance reads otherwise.
+                    if (body != otherBody)
+                    {
+                        if (most > 1E-3 * rounding)
+                        {
+                            return false;
+                        }
+
+                        continue;
+                    }
+
+                    if (most <= rounding)
                     {
                         continue;
                     }
@@ -426,7 +572,7 @@ namespace GeometryHelper.Core
             }
 
             // A face off flat is laid flat within the tolerance; the finer one has to lay it flat too.
-            foreach ((GeoFace3 face, GeoPlane3 plane, _) in walls)
+            foreach ((GeoFace3 face, GeoPlane3 plane, _, _) in walls)
             {
                 together = Math.Max(together, OffFlat(face.Boundary, plane));
 

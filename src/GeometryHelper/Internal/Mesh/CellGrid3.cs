@@ -700,7 +700,7 @@ namespace GeometryHelper.Core
                 return byJ != 0 ? byJ : a.I.CompareTo(b.I) != 0 ? a.I.CompareTo(b.I) : a.Piece.CompareTo(b.Piece);
             });
 
-            return new GeoCellGrid3(layout.Frame, Starts(layout), Ends(layout), all.ToArray(), layout.Joint, tolerance);
+            return new GeoCellGrid3(layout.Frame, Starts(layout), Ends(layout), all.ToArray(), layout.Joint, tolerance, asked);
         }
 
         /// <summary>

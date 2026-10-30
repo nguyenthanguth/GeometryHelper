@@ -23,6 +23,7 @@ namespace GeometryHelper.Meshing
         private readonly double[][] _ends;
         private readonly double _joint;
         private readonly Tolerance _tolerance;
+        private readonly Tolerance _asked;
         private Dictionary<(int, int, int), int[]> _byIndex;
         private int[][] _adjacent;
 
@@ -35,7 +36,8 @@ namespace GeometryHelper.Meshing
         /// <param name="cells">The cells, in order.</param>
         /// <param name="joint">The gap between neighbouring cells; nought for none.</param>
         /// <param name="tolerance">The tolerance the cells were cut within.</param>
-        internal GeoCellGrid3(GeoCoordinateSystem3 frame, double[][] starts, double[][] ends, GeoCell3[] cells, double joint, Tolerance tolerance)
+        /// <param name="asked">The tolerance the cells were asked within, where they were cut within a coarser one; the one they were cut within where null.</param>
+        internal GeoCellGrid3(GeoCoordinateSystem3 frame, double[][] starts, double[][] ends, GeoCell3[] cells, double joint, Tolerance tolerance, Tolerance? asked = null)
         {
             Frame = frame;
             _starts = starts;
@@ -43,6 +45,7 @@ namespace GeometryHelper.Meshing
             _cells = cells;
             _joint = joint;
             _tolerance = tolerance;
+            _asked = asked ?? tolerance;
 
             double volume = 0.0;
 
@@ -158,7 +161,11 @@ namespace GeometryHelper.Meshing
         /// of a U, the piece of one arm meets only the cell beside it in that arm. A neighbour is found where it meets the
         /// cell, not by its indexes: a cut moved onto a corner can leave the next cell along an axis empty and the one after
         /// meeting this one, and the slabs and bars, each cut to its own corners, can leave a cell meeting one beside the
-        /// next.
+        /// next. Asked below a millionth, two cells meet over more than a strip as wide as the point tolerance, or as what
+        /// rounding can move a corner, a trillionth of the size of the coordinates, where that is more, along where they
+        /// overlap: two a place apart across the plane as well share no more than an edge, and at nought a plate 200 by 100
+        /// by 3 turned about in space, cut into twelve cells, gave 25 pairs of neighbours, those among them; it gives 17. At a
+        /// millionth and above two cells meet over more than the point tolerance squared, as before.
         /// </remarks>
         public int[] GetAdjacentCells(int index)
         {
@@ -169,7 +176,7 @@ namespace GeometryHelper.Meshing
 
             if (_adjacent == null)
             {
-                _adjacent = CellContact3.Adjacency(_cells, _starts, _ends, Frame, _joint, _tolerance);
+                _adjacent = CellContact3.Adjacency(_cells, _starts, _ends, Frame, _joint, _tolerance, _asked);
             }
 
             return (int[])_adjacent[index].Clone();

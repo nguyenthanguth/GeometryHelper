@@ -47,10 +47,14 @@ namespace GeometryHelper.Geometry
         /// <para>
         /// Where the point tolerance is below the rounding of the coordinates, a quadrillionth of the largest of them, nought
         /// among them, the openings are cut as <see cref="TryCutOpenings(out GeoSolid3, Tolerance)"/> cuts them, within that
-        /// rounding, and where it refuses them, cut at the tolerance given as they were, and
-        /// <see cref="TryGetVolume(out double, Tolerance)"/> says the volume cannot be trusted. At nought the plate with a hole
-        /// 20 by 20 through it in place of the notches measured 60 000, the hole left in, and <c>TryGetVolume</c> trusted it;
-        /// it measures 58 800. With the notches, a thousand out, it measured nought, and that was trusted too.
+        /// rounding; where it refuses them, within what rounding can move a corner off a plane, a trillionth of the size of the
+        /// coordinates, as <see cref="Section(GeoPlane3, Tolerance)"/> cuts them; and only where that refuses them too, at
+        /// the tolerance given as they were, and <see cref="TryGetVolume(out double, Tolerance)"/> says the volume cannot be
+        /// trusted. At nought the plate with a hole 20 by 20 through it in place of the notches measured 60 000, the hole left
+        /// in, and <c>TryGetVolume</c> trusted it; it measures 58 800. With the notches, a thousand out, it measured nought,
+        /// and that was trusted too. Such a plate at the origin, turned another way, with an opening 32.7 by 51 down from its
+        /// top to 0.9 over its bottom, measured nought at nought, and the whole plate, 60 000, at 1E-15, neither trusted; it
+        /// measures 56 497.83, trusted.
         /// </para>
         /// <para>
         /// Each face is taken as the fan of its boundary from its first corner, which is exact for a flat face and
@@ -285,8 +289,9 @@ namespace GeometryHelper.Geometry
 
         /// <summary>
         /// Cuts every opening out of the faces: where the point tolerance is below the rounding of the coordinates, as
-        /// <see cref="TryCutOpenings(out GeoSolid3, Tolerance)"/> cuts them, within that rounding; otherwise, or where that
-        /// refuses, as <see cref="CutMaterialAsGiven"/> cuts them at the tolerance given, not to be trusted where it refused.
+        /// <see cref="TryCutOpenings(out GeoSolid3, Tolerance)"/> cuts them, within that rounding, or where that refuses, within
+        /// what rounding can move a corner off a plane, a trillionth of the size of the coordinates; otherwise, or where both
+        /// refuse, as <see cref="CutMaterialAsGiven"/> cuts them at the tolerance given, not to be trusted where they refused.
         /// </summary>
         /// <remarks>
         /// Cut at the tolerance given, the openings within the rounding came out wrong and were trusted: a plate 200 by 100 by
@@ -294,7 +299,12 @@ namespace GeometryHelper.Geometry
         /// the other, measured nought at a tolerance of nought, said to be trusted so, where it holds 56 800. Where
         /// <c>TryCutOpenings</c> refuses them, cut as they were they can come out right, a plate a thousand out with three
         /// openings 48 758.41 at 1E-12, and are measured so, untrusted: of 5 000 bodies it refused 29 at nought, and cut as
-        /// they were, 25 of those came out wrong and were trusted.
+        /// they were, 25 of those came out wrong and were trusted. Refused within the rounding, a plate with blind openings
+        /// cut as they were measured nought or the whole plate, untrusted: of 4 000 prisms with up to three openings, turned
+        /// about in space or not, at the origin and a thousand to a thousand million out, 22 at nought and 7 between 1E-12
+        /// and 9E-7. Cut within the trillionth, as <see cref="Section(GeoPlane3, Tolerance)"/> and
+        /// <see cref="Meshing.Mesh3.ToCells(GeoSolid3, Meshing.CellOptions3, Meshing.MeshPlacement3, Tolerance)"/> cut them,
+        /// every one measures what it holds, and all but one star are trusted.
         /// </remarks>
         private MaterialCut CutMaterial(Tolerance tolerance)
         {
@@ -314,6 +324,20 @@ namespace GeometryHelper.Geometry
             {
                 // The openings take all of it.
                 return new MaterialCut(tolerance, null, true);
+            }
+
+            // Refused within the rounding, the openings are cut within what rounding can move a corner off a plane, a
+            // trillionth of the size of the coordinates, as Section and Mesh3.ToCells cut them, and the corners that leaves
+            // apart made one where that closes the material within the tolerance given; see the remarks.
+            if (Splition3.BelowTheRounding(this, tolerance, out Tolerance trillionth)
+                && Boolean3.TryCutOpenings(this, out GeoSolid3 coarser, trillionth, out _) && coarser != null)
+            {
+                if (!coarser.ClosesByCorners(tolerance) && Weld3.TryWeld(coarser, trillionth, tolerance, out GeoSolid3 welded))
+                {
+                    coarser = welded;
+                }
+
+                return new MaterialCut(tolerance, coarser, true);
             }
 
             GeometryHelperLog.Debug("GeoSolid3: the openings could not be cut out closed within the rounding of the coordinates; they are cut at the tolerance given, and the volume is not to be trusted.", failure);

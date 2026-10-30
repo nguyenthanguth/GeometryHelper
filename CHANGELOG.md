@@ -6,6 +6,53 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A union, a common part and a difference of a body whose openings' walls stand apart within the tolerance of
+one plane keep each wall in its own plane, as `TryCutOpenings` keeps it. A boolean cut the openings of its bodies in at
+once within the tolerance, and the plane of one opening, cutting all it reached, took in the wall of another within the
+tolerance of it, however far away, and which of the two kept its own hung on their order. An L 100 by 80 by 50 with two
+blind openings 27 apart whose walls stood 0.0009 apart across it, less a box 65 by 20 by 40 across both walls, within a
+thousandth or a hundredth, held 130 189.39 one way round and 130 189.26 the other, where it holds 130 189.32; the box
+less the L held 28 457.23 and 28 457.88, where it holds 28 457.68, and their union and common part were as far off. The
+openings of both bodies are cut in, and the operation worked out, within the finer tolerance the cut of openings takes
+for such walls, and what that gives is taken where it closes within the tolerance asked. Of 4 800 unions, common parts
+and differences of prisms with two or three such openings and boxes, turned about in space or not, at the origin and a
+thousand to a thousand million out, at 1E-3 and 1E-2, 1 363 that were wrong are right now, every one a million out and
+nearer among them, and none that was right moved but in its last bits; at a millionth and below none moved, to the bit.
+Where a wall of the other body lies within the tolerance of the plane of a wall of the one, the boolean is worked out as
+before: of 4 800 more, each box with a face a tenth to six tenths of the tolerance off the plane of a wall, 5 changed,
+all to right. So it is too ten million and more out where the finer tolerance would come within eight trillionths of
+the size of the coordinates: worked out within it, 3 that were right came out wrong, the worst 0.98 off a thousand
+million out. A wall of an opening turned the other way from a wall of the body, or of another opening, whose plane it
+stands within the tolerance of, is found standing apart too, by `TryCutOpenings`, `GetVolume`, `Section` and
+`Mesh3.ToCells` as well: an L with an opening's wall 0.0004 off its inner wall, 5 along it, measured 0.09 too little.
+A boolean worked out within the finer tolerance takes a tenth to a quarter longer, on .NET 10 and on .NET Framework
+4.8, its openings cut first; every other is worked out in the time it took. 6 new tests.
+
+**FIXED.** `GetVolume`, `TryGetVolume`, `GetSurfaceArea`, `GetCentroid` and `GetMassProperties` of a body whose openings
+`TryCutOpenings` will not cut in closed within the rounding of the coordinates, asked at a point tolerance below that
+rounding, nought among it, cut them within what rounding can move a corner off a plane, a trillionth of the size of the
+coordinates, as `Section` and `Mesh3.ToCells` cut them, before they are cut at the tolerance asked and not trusted. A
+plate 200 by 100 by 3 at the origin, turned about in space, with an opening 32.7 by 51 down from its top to 0.9 over its
+bottom, measured nought at nought, its area nought too, and the whole plate, 60 000, at 1E-15, neither trusted; it
+measures 56 497.83 at both, and is trusted. Of 4 000 prisms with up to three openings, turned about in space or not, at
+the origin and a thousand to a thousand million out, 22 measured nought or the whole body at nought and 7 between 1E-12
+and 9E-7, all untrusted; every one measures what it holds now, and all but one star are trusted. Nothing else moved at any
+tolerance from nought to 1E-3. 1 new test.
+
+**FIXED.** `GeoCellGrid3.GetAdjacentCells` of a grid cut at a fine tolerance gives the cells beside each along the grid's
+axes, not the cells a place over across the plane between them as well, which share no more than an edge. The rounding
+let the extents of two such cells overlap by a hair along that edge, and they were read as meeting over the sliver, more
+than the point tolerance squared, which is nought at nought. Asked below a millionth, two cells meet now over more than
+a strip as wide as the point tolerance, or as what rounding can move a corner, a trillionth of the size of the
+coordinates, where that is more, along where they overlap. At nought a plate 200 by 100 by 3 turned about in space, cut
+into twelve cells, gave 25 pairs of neighbours; it gives 17. Of 2 000 grids of prisms with up to three openings, turned
+about in space or not, at the origin and a thousand to a thousand million out, 482 had other neighbours at nought than at
+1E-3, and 526 to 546 between the rounding and 1E-7; of 2 000 boxes turned against a grid along the world's axes, 138 at
+nought and up to 183; one grid does now. At a millionth and above, the default tolerance among them, where the cells are
+cut as they were, they meet as they did, to the bit: a cell of a ledge 0.109 thick meets the column it stands out of
+over 0.000 44 at a thousandth, a strip narrower than the tolerance, and is its neighbour, and at a millionth 181 of the
+2 000 grids still have other neighbours than at 1E-3. 1 new test.
+
 **FIXED.** A segment you give in the plane, a `GeoLine2` or a straight `GeoEdge2` no longer than the point tolerance, is
 read as its start where it does not truly meet the other shape, and is in contact where it does, as the guide has said
 and as space reads it. `DistanceTo`, `CollidesWith` and `GetShortestLineTo` measured such a stub by its nearer end

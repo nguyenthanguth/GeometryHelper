@@ -528,7 +528,10 @@ booleans at a tolerance of nought are worked out within the rounding too; see th
 `GetVolume`, `TryGetVolume`, `GetSurfaceArea`, `GetCentroid`
 and `GetMassProperties` of a body with openings, asked at a point tolerance below the rounding, measure the material
 `TryCutOpenings` gives: at nought the plate with the hole through it measures 58 800, where it measured 60 000, the
-hole not taken out, and `TryGetVolume` said that could be trusted. Where `TryCutOpenings` refuses them, or the body's
+hole not taken out, and `TryGetVolume` said that could be trusted. Where `TryCutOpenings` refuses them, they are cut
+within what rounding can move a corner off a plane, a trillionth of the size of the coordinates, as `Section` cuts them:
+such a plate turned another way, with an opening 32.7 by 51 down from its top to 0.9 over its bottom, measured nought at
+nought and the whole plate, 60 000, at 1E-15, and measures 56 497.83 at both. Where that refuses them too, or the body's
 own faces do not close within the rounding, `TryGetVolume` says the volume cannot be trusted. `TriangulateSurface`,
 `DxfWriter.Add` and `ProjectToSolid` cut the openings within the rounding too, and `ProjectToSolid` reads the faces
 they leave within it: at nought the plate's surface was meshed into triangles holding 29 999.99, its bottom lost, and
@@ -1515,6 +1518,23 @@ cube's top less the cube is the slab as it came. An opening whose face stands th
 tolerance off the body's, to the last bit, is read as touching it, as one a hair nearer is: a box 100 by 60 by 40
 with an opening 0.1 across 0.001 off three of its faces comes out closed, the opening taken with the outside,
 239 999.998 97, where it came out open 7.66 short.
+
+**Walls of a body's openings standing apart within the tolerance of one plane** are each kept in their own by a union,
+a common part or a difference, as `TryCutOpenings` keeps them: the openings of both bodies are cut in, and the operation
+worked out, within the finer tolerance the cut of openings takes for them, and what that gives is taken where it closes
+within the tolerance asked. A boolean cut the openings of its bodies in at once within the tolerance, and the plane of
+one opening, cutting all it reached, took in the wall of another within the tolerance of it, however far away. An L 100
+by 80 by 50 with two blind openings 27 apart whose walls stood 0.0009 apart across it, less a box 65 by 20 by 40 across
+both walls, within a thousandth or a hundredth, held 130 189.39 one way round and 130 189.26 the other, where it holds
+130 189.32, and the box less the L 28 457.23 and 28 457.88, where it holds 28 457.68; both hold it now, as do their union
+and their common part. Of 4 800 such booleans of prisms with two or three such openings and boxes, turned about in space
+or not, at the origin and a thousand to a thousand million out, at 1E-3 and 1E-2, 1 363 that were wrong are right now,
+every one a million out and nearer among them, and none that was right moved. Where a wall of the other body lies within
+the tolerance of the plane of a wall of the one, the boolean reads the two as before, and so it does ten million and
+more out, where the finer tolerance would come within eight trillionths of the size of the coordinates: worked out so,
+3 that were right came out wrong. A wall of an opening turned the other way from a wall of the body it stands within
+the tolerance of the plane of, as an opening's wall 0.0004 off an L's inner wall and 5 along it, is found standing apart
+too, by `TryCutOpenings`, `GetVolume`, `Section` and `Mesh3.ToCells` as well: that L measured 0.09 too little.
 
 **Within a few roundings of the coordinates** a union, a common part or a difference reads a corner as on a plane within
 what rounding adds to the planar tolerance, a trillionth of the size of the coordinates, as the cut of openings does:

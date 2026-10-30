@@ -45,6 +45,12 @@ namespace GeometryHelper.Core
     /// so no cell straddles a wall, and drops the cells filling them as not being material. Either way the
     /// result carries the cavity as real geometry rather than as an opening of its own. Two bodies too far
     /// apart to meet are the exception — nothing is cut there, and each keeps the openings it came with.
+    /// Walls of two openings of a body, or of an opening and the body, standing apart within the tolerance of one plane
+    /// are each kept in their own: the openings of both bodies are cut in, and the operation worked out, within a finer
+    /// tolerance, as <see cref="TryCutOpenings(GeoSolid3, out GeoSolid3, Tolerance)"/> cuts such openings, where no wall of
+    /// the other body lies within the tolerance of the plane of a wall of the one. An L 100 by 80 by 50 with two blind
+    /// openings whose walls stood 0.0009 apart, less a box across both walls, within a thousandth, held 130 189.39 one way
+    /// round and 130 189.26 the other, where it holds 130 189.32, as it does now.
     /// </para>
     /// <para>
     /// A result of two closed bodies is closed as <see cref="GeoSolid3.Validate(Tolerance)"/> reads it, or not made: one
@@ -143,6 +149,14 @@ namespace GeometryHelper.Core
         private static bool Union(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome, out GeoSolid3 open)
         {
             Guard(first, second);
+
+            // Walls of a body and its openings standing apart within the tolerance of one plane are worked out within a finer
+            // one; see WithWallsApart.
+            if (WithWallsApart(UnionAsAsked, first, second, out result, tolerance, out open))
+            {
+                outcome = BooleanOutcome.Made;
+                return true;
+            }
 
             // Below a few roundings of the coordinates the union is worked out within the rounding; see BelowTheRounding.
             if (BelowTheRounding(first, second, tolerance, out Tolerance within))
@@ -541,6 +555,14 @@ namespace GeometryHelper.Core
         {
             Guard(first, second);
 
+            // Walls of a body and its openings standing apart within the tolerance of one plane are worked out within a finer
+            // one; see WithWallsApart.
+            if (WithWallsApart(IntersectAsAsked, first, second, out result, tolerance, out open))
+            {
+                outcome = BooleanOutcome.Made;
+                return true;
+            }
+
             // Below a few roundings of the coordinates the common part is worked out within the rounding; see BelowTheRounding.
             if (BelowTheRounding(first, second, tolerance, out Tolerance within))
             {
@@ -871,6 +893,14 @@ namespace GeometryHelper.Core
         private static bool Subtract(GeoSolid3 subject, GeoSolid3 tool, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome, out GeoSolid3 open)
         {
             Guard(subject, tool);
+
+            // Walls of a body and its openings standing apart within the tolerance of one plane are worked out within a finer
+            // one; see WithWallsApart.
+            if (WithWallsApart(SubtractAsAsked, subject, tool, out result, tolerance, out open))
+            {
+                outcome = BooleanOutcome.Made;
+                return true;
+            }
 
             // Below a few roundings of the coordinates the difference is worked out within the rounding; see BelowTheRounding.
             if (BelowTheRounding(subject, tool, tolerance, out Tolerance within))

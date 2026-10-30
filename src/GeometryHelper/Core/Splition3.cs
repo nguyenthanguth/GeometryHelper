@@ -1477,10 +1477,10 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// The point tolerance at and above which a section and the cells of a body are cut within the tolerance asked, as they
-        /// were, to the bit, wherever <see cref="Rounding"/> stands, but below the rounding of the coordinates: a millionth,
-        /// so that the default tolerance and every one used in a model in millimetres are left as they were however far out a
-        /// body stands.
+        /// The point tolerance at and above which a section and the cells of a body are cut, and the cells' neighbours read,
+        /// within the tolerance asked, as they were, to the bit, wherever <see cref="Rounding"/> stands, but below the rounding of
+        /// the coordinates: a millionth, so that the default tolerance and every one used in a model in millimetres are left as
+        /// they were however far out a body stands.
         /// </summary>
         /// <remarks>
         /// Between the rounding and a millionth, of 8 000 planes through prisms with openings, 125 at 1E-7, 50 at 5E-7 and 102 at
@@ -1488,7 +1488,7 @@ namespace GeometryHelper.Core
         /// out; cut within <see cref="Rounding"/>, none does, and none that was right changed but to the bit. At a millionth
         /// itself 139 planes and 115 bodies, a hundred million and more out, are still cut wrong.
         /// </remarks>
-        private const double RaisedBelow = 1E-6;
+        internal const double RaisedBelow = 1E-6;
 
         /// <summary>
         /// Cuts every face of a body by a plane and caps each half from its own rim.
