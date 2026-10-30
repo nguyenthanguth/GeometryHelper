@@ -951,15 +951,30 @@ the polyline's layer, linetype, colour, lineweight, linetype scale, visibility, 
 when it is made and when the polyline's are set, as AutoCAD keeps them (its AUDIT reports a vertex of another colour); a
 face of a polyface mesh keeps a colour of its own.
 
-A spline is periodic (`IsPeriodic`) by the flag 2048 of its group 70, as AutoCAD 2021 reads it: AutoCAD writes the flag 2
-on its closed splines too and reads no period from it, its periodic cubic of 70 3115 being periodic and its closed cubic of
-70 11 not, either turning into the other with the flag 2048 alone taken out or put in. The library writes the flag 2 for a
-spline made or given NURBS data periodic, which `NurbsData.Periodic` and `FitData.Periodic` give back, and not the flag
-2048, so that its own periodic spline of 70 3 reads as not periodic, as AutoCAD read it; NURBS data set not periodic take
-the flag 2048 off with the flag 2. Where the record holds no fit points and the flag 1024 of its 70 is set, as AutoCAD
-saves a periodic spline it fitted, `NumFitPoints`, `FitPoints`, `GetFitPointAt` and `FitData` give the points of the curve
-at its knots from its start to its end, as AutoCAD gives them: (0, 0), (30, 0), (30, 15), (20, 15) and (0, 0) for its
-3115 of the knots 0, 30, 45, 55 and 80; its fit data taken out (`SetNurbsData`, `PurgeFitData`) take the flag 1024 off.
+A spline is periodic (`IsPeriodic`) by the flag 2048 of its group 70 on a curve that runs on round its seam, as AutoCAD
+2021 reads it: AutoCAD writes the flag 2 on its closed splines of a smooth seam too and reads no period from it, its
+periodic cubic of 70 3115 being periodic and its closed cubic of 70 11 not, either turning into the other with the flag
+2048 alone taken out or put in; its 2059 with a control point beside the seam moved by 5, a corner there, is not periodic.
+The seam is read as AutoCAD's periodic form is made: the curve unclamped at its start and at its end, the first degree of
+its points the same, within 1E-3, as the degree a period on (AutoCAD's own periodic splines to 1E-13, the moved point off by
+20.6). NURBS data whose curve ends where it starts make a closed spline, the flag 1, and one that leaves its start in the
+direction it reaches its end the flag 2 too, whatever `closed` and `periodic` say, as AutoCAD writes them: its closed
+cubic of 70 11 given its own data not periodic, or not closed, was saved 70 11 and read closed. `periodic` puts the flag 2
+on any curve, as before, which `NurbsData.Periodic` and `FitData.Periodic` give back, and not the flag 2048, so that the
+library's own periodic spline of 70 3 reads as not periodic, as AutoCAD read it; NURBS data set not periodic take the flag
+2048 off. Where the record holds no fit points and the flag 1024 of its 70 is set, as AutoCAD saves a periodic spline it
+fitted, `NumFitPoints`, `FitPoints`, `GetFitPointAt` and `FitData` give the points of the curve at its knots from its start
+to its end, as AutoCAD gives them: (0, 0), (30, 0), (30, 15), (20, 15) and (0, 0) for its 3115 of the knots 0, 30, 45, 55
+and 80; its fit data taken out (`SetNurbsData`, `PurgeFitData`) take the flag 1024 off, and `SetNurbsData` the flag 32
+of fit data set as well, as AutoCAD saved its 3115 given its own data back 2059.
+
+Fit data set (`FitData`) keep a closed spline closed and give it the flags 32 and 1024 of fit data, as AutoCAD 2021 saved
+its closed cubic of 70 1035 given fit data 70 1067. Set periodic, they give AutoCAD's periodic spline through the points
+taken round: each point on the curve at its knot, the knots the lengths of the chords, clamped into as many control points
+as the points and the degree, written 70 3115 with no fit points, tangents or fit tolerance, its points at its knots being
+its fit points. Through (0, 0), (40, 1), (50, 30) and (10, 25) it runs over the knots 0, 40.01, 70.69, 111.00 and 137.93,
+its control points AutoCAD's to 1E-14. Where the points make no periodic spline, two of them as one or an even degree
+through an even count of points, it is the closed spline the library fits through them.
 
 A spline gives and takes its `NurbsData` and `FitData` whole. `ElevateDegree` raises its degree with the curve kept to the
 rounding, `InsertControlPointAt` and `RemoveControlPointAt` put a control point in and take one out with a knot,
@@ -1408,7 +1423,9 @@ the ACAD_TABLE's own cells name no link. `GetDataLink` and `GetDataLinkRange` re
 `IsLinked` is true at its top left cell, whatever its state, and at any other cell of it whose state in the TABLECONTENT
 has the flag 4, as AutoCAD 2021 read the library's range (1, 0) to (2, 1) linked at (1, 0) and not at (1, 1), (2, 0) or
 (2, 1), each of which gave the range and the link, and linked at (2, 1) too once its state was given the flag 4; a cell of
-the flag 4 in no range is not linked, as AutoCAD read (0, 1) given it beside that range; a cell of the TABLECONTENT is taken as the
+the flag 4 in no range is linked where it holds a content (its 95 above nought), with no range and no link, as AutoCAD read
+the title (0, 0) of Parts and a cell of data (2, 1) of no text given it beside a range over (1, 0) to (1, 1), and not
+where it holds none, as AutoCAD read (0, 1) given it beside the range of (1, 0) to (2, 1); a cell of the TABLECONTENT is taken as the
 table's of its row and column whatever rows the TABLECONTENT has, as AutoCAD
 2021 read the link of (1, 0) of a table given a fourth row by a program that left its TABLECONTENT of three: AutoCAD's table
 linked over (1, 0) to (2, 1), which it read back as (1, 0) alone, gives (1, 0) to (1, 0), and `link.GetTargets()` gives the

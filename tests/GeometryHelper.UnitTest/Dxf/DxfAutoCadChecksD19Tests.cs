@@ -273,20 +273,21 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void ASplineOfAutoCadsFlagsGivenNurbsDataNotPeriodic_IsNeitherPeriodicNorFitted()
         {
-            // Its NURBS data set not periodic, AutoCAD's 3115 takes off the flag 2048 with the flag 2, and the flag 1024 with its fit
-            // data: 41, closed and planar, its 32 kept; given them periodic, the flag 2048 is kept.
+            // Its NURBS data set not periodic, AutoCAD's 3115 takes off the flag 2048, and the flags 1024 and 32 with its fit data:
+            // 11, closed and planar, the flag 2 kept on its smooth seam, as AutoCAD 2021 wrote its 11 given data not periodic
+            // (plugin v13, 17k); given them periodic, the flag 2048 is kept, 2059, as AutoCAD wrote its 3115 given its own data.
             DxfSpline spline = Halfway(3115);
             DxfNurbsData data = spline.NurbsData;
 
             spline.SetNurbsData(data.Degree, data.Rational, data.Closed, false, data.GetControlPoints(), data.GetKnots(), data.GetWeights());
 
-            Assert.Equal("41", Flags(spline));
+            Assert.Equal("11", Flags(spline));
             Assert.False(spline.IsPeriodic);
             Assert.False(spline.HasFitData);
 
             DxfSpline kept = Halfway(3115);
             kept.SetNurbsData(data.Degree, data.Rational, data.Closed, true, data.GetControlPoints(), data.GetKnots(), data.GetWeights());
-            Assert.Equal("2091", Flags(kept));
+            Assert.Equal("2059", Flags(kept));
             Assert.True(kept.IsPeriodic);
 
             DxfSpline purged = Halfway(3115);

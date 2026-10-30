@@ -717,6 +717,346 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Whether a spline clamped at both ends has a periodic form, as AutoCAD 2021 gives one to a spline of the flag 2048:
+        /// unclamped at its start and at its end (A12.1), the first degree of its control points the same as the degree a period
+        /// on, within the point tolerance, and of the same weights within the vector tolerance of the largest. AutoCAD's
+        /// periodic cubic of 7 control points and the knots 0, 0, 0, 0, 30, 45, 55, 80, 80, 80, 80 is so to 1E-13; its closed
+        /// cubic of 2059 with a point beside its seam moved by 5 is off by 20 and more. False where the spline has fewer points
+        /// than twice the degree and one, or knots the unclamping cannot divide by.
+        /// </summary>
+        internal static bool IsPeriodicForm(int p, List<double> u, List<double[]> pw, Tolerance tolerance)
+        {
+            int count = pw.Count;
+            int m = count - p;
+
+            if (m < p + 1)
+            {
+                return false;
+            }
+
+            int n = count - 1;
+            List<double[]> left = pw.ConvertAll(q => (double[])q.Clone());
+            List<double[]> right = pw.ConvertAll(q => (double[])q.Clone());
+            var ul = new List<double>(u);
+            var ur = new List<double>(u);
+
+            for (int i = 0; i <= p - 2; i++)
+            {
+                // The start: the knots before it laid out as those before the end, and the points before it worked back.
+                ul[p - i - 1] = ul[p - i] - (ul[n - i + 1] - ul[n - i]);
+
+                for (int j = i, k = p - 1; j >= 0; j--, k--)
+                {
+                    double span = ul[p + j + 1] - ul[k];
+                    double a = (ul[p] - ul[k]) / span;
+
+                    if (!(span > 0.0) || !(a < 1.0))
+                    {
+                        return false;
+                    }
+
+                    left[j] = Unmix(left[j], left[j + 1], a, 1.0 - a);
+                }
+
+                // The end: the knots after it laid out as those after the start, and the points after it worked back.
+                ur[n + i + 2] = ur[n + i + 1] + (ur[p + i + 1] - ur[p + i]);
+
+                for (int j = i; j >= 0; j--)
+                {
+                    double span = ur[n - j + i + 2] - ur[n - j];
+                    double a = (ur[n + 1] - ur[n - j]) / span;
+
+                    if (!(span > 0.0) || !(a > 0.0))
+                    {
+                        return false;
+                    }
+
+                    right[n - j] = Unmix(right[n - j], right[n - j - 1], 1.0 - a, a);
+                }
+            }
+
+            double largest = 0.0;
+
+            foreach (double[] q in pw)
+            {
+                largest = Math.Max(largest, Math.Abs(q[3]));
+            }
+
+            for (int i = 0; i < p; i++)
+            {
+                // The points of the curve unclamped: those before the degree less one from the start, those after from the end.
+                double[] a = i < p - 1 ? left[i] : pw[i];
+                double[] b = i + m > n - p + 1 ? right[i + m] : pw[i + m];
+
+                if (!(Math.Abs(a[3] - b[3]) <= tolerance.EqualVector * largest)
+                    || !new GeoPoint3(a[0] / a[3], a[1] / a[3], a[2] / a[3]).IsEqualTo(new GeoPoint3(b[0] / b[3], b[1] / b[3], b[2] / b[3]), tolerance))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>The point that, mixed as a of it and b of another, gives a third: (q - b other) / a, coordinate by coordinate.</summary>
+        private static double[] Unmix(double[] q, double[] other, double b, double a)
+        {
+            var point = new double[q.Length];
+
+            for (int c = 0; c < q.Length; c++)
+            {
+                point[c] = (q[c] - b * other[c]) / a;
+            }
+
+            return point;
+        }
+
+        /// <summary>
+        /// The periodic spline of a degree through points taken round, the last back to the first, as AutoCAD 2021 fits a
+        /// periodic spline: each point on the curve at its knot, the knots the lengths of the chords from the first point, the m
+        /// points' system solved for the m control points of a period, then clamped at the first knot and again a period on, as
+        /// AutoCAD writes it, m and the degree control points and the end knots the degree and one times each. Its cubic
+        /// through (0, 0), (40, 1), (50, 30) and (10, 25) is that of its 17-l to 1E-14: the knots 0, 40.01, 70.69, 111.00 and
+        /// 137.93, the control points (0, 0), (4.78, -9.71), (44.07, -9.27), (60.39, 41.46), (8.49, 34.10), (-3.22, 6.53) and
+        /// (0, 0). False where there are fewer points than the degree and one, a chord is of no length, or the system has no
+        /// solution, as for any spline of an even degree through an even count of points, whose system is singular.
+        /// </summary>
+        internal static bool InterpolatePeriodic(IReadOnlyList<GeoPoint3> ring, int p, out List<double> knots, out List<GeoPoint3> points)
+        {
+            knots = null;
+            points = null;
+            int m = ring.Count;
+
+            if (p < 1 || m < p + 1)
+            {
+                return false;
+            }
+
+            var t = new double[m + 1];
+
+            for (int i = 1; i <= m; i++)
+            {
+                double chord = ring[i - 1].DistanceTo(ring[i % m]);
+
+                if (!(chord > 0.0))
+                {
+                    return false;
+                }
+
+                t[i] = t[i - 1] + chord;
+            }
+
+            // The knots of the curve as it runs on round, a period before and after: the floating point k is the control
+            // point (k + m - p) mod m of the period.
+            double period = t[m];
+            var u = new List<double>(m + 2 * p + 1);
+
+            for (int i = m - p; i < m; i++)
+            {
+                u.Add(t[i] - period);
+            }
+
+            for (int i = 0; i <= m; i++)
+            {
+                u.Add(t[i]);
+            }
+
+            for (int i = 1; i <= p; i++)
+            {
+                u.Add(t[i] + period);
+            }
+
+            var columns = new List<int>[m];
+            var entries = new List<double>[m];
+            var rhs = new double[m][];
+
+            for (int j = 0; j < m; j++)
+            {
+                double[,] basis = BasisDerivatives(p, u, p + j, t[j], 0);
+                var row = new SortedDictionary<int, double>();
+
+                for (int a = 0; a <= p; a++)
+                {
+                    if (basis[0, a] != 0.0)
+                    {
+                        int column = (j + a + m - p) % m;
+                        row[column] = (row.TryGetValue(column, out double held) ? held : 0.0) + basis[0, a];
+                    }
+                }
+
+                columns[j] = new List<int>(row.Keys);
+                entries[j] = new List<double>(row.Values);
+                rhs[j] = new[] { ring[j].X, ring[j].Y, ring[j].Z };
+            }
+
+            double[][] solved = SolveSparse(columns, entries, rhs);
+
+            if (solved == null)
+            {
+                return false;
+            }
+
+            var pw = new List<double[]>(m + p);
+
+            for (int k = 0; k < m + p; k++)
+            {
+                double[] q = solved[(k + m - p) % m];
+                pw.Add(new[] { q[0], q[1], q[2], 1.0 });
+            }
+
+            Clamp(p, u, pw);
+            Split(pw, out points, out _);
+            knots = u;
+            return true;
+        }
+
+        /// <summary>
+        /// Solves a square system of few entries to a row, each row its columns rising and their entries, for three right sides:
+        /// Gaussian elimination with the largest entry of each column as pivot, the first row of two as large, the rows kept as
+        /// their entries alone, so that a ring of 5 000 points costs 5 000 short rows and not a square of 25 million; null where
+        /// the system has no solution.
+        /// </summary>
+        private static double[][] SolveSparse(List<int>[] columns, List<double>[] entries, double[][] rhs)
+        {
+            int m = rhs.Length;
+
+            // The rows by the column of their first entry, those of the column eliminated next among them.
+            var byFirst = new List<int>[m];
+
+            for (int r = 0; r < m; r++)
+            {
+                if (columns[r].Count == 0)
+                {
+                    return null;
+                }
+
+                (byFirst[columns[r][0]] ?? (byFirst[columns[r][0]] = new List<int>())).Add(r);
+            }
+
+            var pivotOf = new int[m];
+
+            for (int c = 0; c < m; c++)
+            {
+                List<int> rows = byFirst[c];
+                int pivot = -1;
+                double largest = 0.0;
+
+                foreach (int r in rows ?? new List<int>())
+                {
+                    double size = Math.Abs(entries[r][0]);
+
+                    if (size > largest || (size == largest && pivot >= 0 && r < pivot))
+                    {
+                        largest = size;
+                        pivot = r;
+                    }
+                }
+
+                // The entries are values of the basis, from nought to 1: one this small leaves the column with no pivot.
+                if (!(largest > 1E-12))
+                {
+                    return null;
+                }
+
+                pivotOf[c] = pivot;
+
+                foreach (int r in rows)
+                {
+                    if (r == pivot)
+                    {
+                        continue;
+                    }
+
+                    double factor = entries[r][0] / entries[pivot][0];
+                    Subtract(columns, entries, r, pivot, factor);
+
+                    for (int k = 0; k < 3; k++)
+                    {
+                        rhs[r][k] -= factor * rhs[pivot][k];
+                    }
+
+                    if (columns[r].Count == 0)
+                    {
+                        return null;
+                    }
+
+                    (byFirst[columns[r][0]] ?? (byFirst[columns[r][0]] = new List<int>())).Add(r);
+                }
+
+                byFirst[c] = null;
+            }
+
+            var x = new double[m][];
+
+            for (int c = m - 1; c >= 0; c--)
+            {
+                int r = pivotOf[c];
+                var value = (double[])rhs[r].Clone();
+
+                for (int i = 1; i < columns[r].Count; i++)
+                {
+                    for (int k = 0; k < 3; k++)
+                    {
+                        value[k] -= entries[r][i] * x[columns[r][i]][k];
+                    }
+                }
+
+                for (int k = 0; k < 3; k++)
+                {
+                    value[k] /= entries[r][0];
+                }
+
+                x[c] = value;
+            }
+
+            return x;
+        }
+
+        /// <summary>Takes a factor of the pivot's row from a row whose first entry it clears, the entries left in their columns' order, none of nought kept.</summary>
+        private static void Subtract(List<int>[] columns, List<double>[] entries, int row, int pivot, double factor)
+        {
+            List<int> rc = columns[row];
+            List<double> re = entries[row];
+            List<int> pc = columns[pivot];
+            List<double> pe = entries[pivot];
+            var keptColumns = new List<int>(rc.Count + pc.Count);
+            var keptEntries = new List<double>(rc.Count + pc.Count);
+            int i = 1;
+            int j = 1;
+
+            while (i < rc.Count || j < pc.Count)
+            {
+                int column;
+                double entry;
+
+                if (j >= pc.Count || (i < rc.Count && rc[i] < pc[j]))
+                {
+                    column = rc[i];
+                    entry = re[i++];
+                }
+                else if (i >= rc.Count || pc[j] < rc[i])
+                {
+                    column = pc[j];
+                    entry = -factor * pe[j++];
+                }
+                else
+                {
+                    column = rc[i];
+                    entry = re[i++] - factor * pe[j++];
+                }
+
+                if (entry != 0.0)
+                {
+                    keptColumns.Add(column);
+                    keptEntries.Add(entry);
+                }
+            }
+
+            columns[row] = keptColumns;
+            entries[row] = keptEntries;
+        }
+
+        /// <summary>
         /// Solves a symmetric system that is nought beyond a band of its diagonal, given as the band's upper half (row i, column
         /// d the entry at i, i + d), for three right sides: the band factored as U^T U by Cholesky, then the two triangles solved.
         /// </summary>

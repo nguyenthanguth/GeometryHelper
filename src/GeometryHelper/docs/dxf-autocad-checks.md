@@ -309,6 +309,37 @@ written as AutoCAD reads them now.
       `SetNurbsData` refuses. Still to see (v13): AutoCAD's `SetNurbsData` and `FitData` set on its 11 and 1035; and 17-m, a
       rational spline of the flag 2048, 17-n and 17-o, 2059 of a seam made not smooth at its left and at its right, of
       after-d20, whose 4 points the rule gives (`_notes-d20.txt`).
+    - AutoCAD 2021 (plugin v13, 17k): `NurbsData = d` on its 11 saved 70 11; with `d.Periodic` false, 11; with `d.Closed`
+      false, 11, the control points as they were and read closed: its closedness is the curve's, its ends meeting. Its
+      3115 given its own form back (4 points, 5 knots, periodic) was saved 70 2059, 7 points and 11 clamped knots, the
+      flags 32 and 1024 dropped. 17l: `FitData` set on its 1035, a fit point moved, not periodic, saved 70 1067 (closed, 32
+      and 1024 set, its 5 fit points and its tangents written); on its 3115, of no tangents, 70 1065, closed but without the
+      flag 2, its new seam a corner of 114 degrees; set periodic, 70 3115 on both, no fit points (74 0), no tangents, no 44,
+      7 control points and 11 clamped knots at the lengths of the chords. Its own saves of closed splines all bear the flag 2
+      where the seam runs on in one direction (11, 1067, 2059, 3115) and not where it turns (1065). 17m: 17-n and 17-o read
+      not periodic, 7 points and 11 knots, the polylines of the record's curve; the rational 17-m periodic, its 4 points the
+      right and the left unclamping alike.
+    - Measured (D21): AutoCAD's periodic fit is the periodic cubic through the points at the lengths of the chords, each
+      point at its knot, clamped at the first knot and a period on: its 17l saves of 1035 and 3115 to 1E-14. Its closed fit
+      not periodic is the clamped cubic through the points at the same knots, its derivative at each end the unit tangent
+      given (1067), or its second derivative nought at each end where none is given (1065), which is why its seam has a
+      corner; the library fits otherwise (`GeoSpline3.Interpolate`, its knots averaged), up to 10 off AutoCAD's curve.
+    - Now (D21): `SetNurbsData`, `NurbsData` set and the constructor write the flag 1 where the curve's ends meet (within
+      1E-3) and the flag 2 where it also leaves its start in the direction it reaches its end (within a degree), whatever
+      `closed` and `periodic` say (`periodic` still writes the flag 2), and take off the flags 32 and 1024: 11, 11 and 2059
+      as AutoCAD saved them. `FitData` set keeps a closed spline closed, the flags 32 and 1024 added (1067), and set
+      periodic fits AutoCAD's periodic cubic, written 70 3115 with no fit points, its points at its knots the fit points, the
+      control points AutoCAD's to 1E-14 on both; an even degree through an even count of points, whose system is singular,
+      and points two of them as one, fall back to the closed fit. `IsPeriodic` is the flag 2048 on a curve whose start and
+      end unclamped give the same points a period apart, within 1E-3 (AutoCAD's periodic splines to 1E-13, 17-n off by 20.6,
+      17-o by 48.4). Ripple over every DXF of the checks folder: the readings of 17-n and 17-o; the flags written by the
+      edits above and nothing else; no polyline. Parked: AutoCAD's closed fit not periodic (natural ends or unit tangents at
+      the chords' knots; the library's keeps its own, so its flag 2 on AutoCAD's 3115 refitted is its own, 1067 where AutoCAD
+      wrote 1065); the 4 points and 5 knots of AutoCAD's periodic form, which `NurbsData` does not give; `NurbsData.Periodic`
+      and `FitData.Periodic`, still the flag 2 (AutoCAD's are the flag 2048, and False on every spline of fit data).
+      Still to see (v14): whether a seam smooth in its direction but not in its bend (1067's curve given the flag 2048) is
+      periodic, which tells the unclamping from the turn of the tangent; the tolerances of both, a seam turned by 0.01, 0.5
+      and 2 degrees and moved by 1E-6, 1E-4 and 1E-2; and the library's after-d21 files.
     - Degree 4, 5 and rational, parked: the tolerance the counts fit is the larger of 1 / M and the spline's length over
       10 000, over (p + 1)^2: the quartic (M 120, length 47.7) takes 1 / M, every one of its nine counts; the quintic Bezier
       (M 400, length 55.00), the quintic of two spans (M 223.6, length 70.085), the rational cubics 1, 2, 2, 1 (M 600, length
@@ -936,6 +967,18 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is not linked, as the l
       flag 4 on (2, 1), a cell with a content in a row of data outside the range (1, 0) to (1, 1), and on the title (0, 0),
       which the library reads as not linked, where AutoCAD read 73-n's (2, 1) of no range as linked and 73-m's (0, 1),
       of no content, as not.
+    - AutoCAD 2021 (plugin v13): 73-o, 73-p and 73-q read with no cell linked, no range, the table of no link and the
+      DATALINK of no target, as the library reads them; its save of 73-p wrote the state of (0, 1), the flag 4 of no content
+      outside every range, as `90 12` where the library wrote `90 4` (recorded; `Table.IsLinked(0, 1)` True there,
+      `Cells[0, 1].IsLinked` False). 73-r: (0, 0), the title of Parts, and (2, 1), a cell of data of a content of no text,
+      both of the state 4 outside the range, read linked (`Cells` and `Table` alike), with no range and no link, their
+      `State` Linked; (1, 0) linked and (1, 1) not, as the library reads them.
+    - Now (D21): `IsLinked` of a cell in no range of the TABLECONTENT is true where its state has the flag 4 and it holds a
+      content (its 95 above nought), as AutoCAD read 73-r's (0, 0) and (2, 1) and 73-n's (2, 1), and false where it holds
+      none, as 73-m's (0, 1); a cell of a range reads as before. Ripple over every DXF of the checks folder: 73-r's (0, 0)
+      and (2, 1), and (2, 1) of 73-n and of AutoCAD's save of it, read linked; every other cell as before, no byte moved.
+      The library writes the state as it is (no 12). Still to see (v14): `RemoveDataLink()` on 73-r, whether AutoCAD clears
+      the flag 4 of (0, 0) and (2, 1), cells of no range it reads linked, which the library leaves as they are.
 
 74. **The groups of a DATALINK.**
     - Try: read the DATALINK of the drawing of point 73; then open in AutoCAD, with AUDIT, a drawing whose DATALINK has no 70

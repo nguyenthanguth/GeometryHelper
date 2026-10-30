@@ -67,9 +67,17 @@ namespace GeometryHelper.Dxf
         /// the spline through the points by <see cref="GeoSpline3.Interpolate(IEnumerable{GeoPoint3}, int, Tolerance)"/>
         /// (with the tangents where given), its knots the lengths of the chords from the first point, so that a spline through
         /// (0, 0, 0), (30, 40, 0) and (60, 0, 0) runs from 0 to 100. It passes through every point, which is within any fit
-        /// tolerance. A periodic spline is closed through its first point again, its tangent there the direction from the
-        /// point before to the point after; with fewer points than the degree asks for, the degree is lowered to what they
-        /// carry, as <see cref="DxfReader"/> reads such a spline, and written so. Data equal to the data read changes nothing.
+        /// tolerance. A spline closed, or set periodic data, is closed through its first point again, its tangent there the
+        /// direction from the point before to the point after where none is given, and stays closed, as AutoCAD 2021 kept its
+        /// closed cubic of 70 1035 given fit data not periodic, saving it 70 1067 (its 17-l); with fewer points than the degree
+        /// asks for, the degree is lowered to what they carry, as <see cref="DxfReader"/> reads such a spline, and written so.
+        /// The flags 32 and 1024 of fit data are set, and the flags 1 and 2 as <see cref="SetNurbsData"/> gives them. Periodic
+        /// data give AutoCAD's periodic spline through the points taken round, each point on the curve at its knot, the knots
+        /// the lengths of the chords, clamped into the degree and the count of the points as control points, written with the
+        /// flag 2048 and no fit points, tangents or fit tolerance, its fit points the points at its knots by the flag 1024: as
+        /// AutoCAD wrote 70 3115 for its 1035 through (0, 0), (40, 1), (50, 30) and (10, 25), its control points the library's
+        /// to 1E-14; where the points make no such spline (two of them as one, within 1E-3, or an even degree through an even
+        /// count of points), the closed spline above. Data equal to the data read changes nothing.
         /// </value>
         /// <exception cref="ArgumentException">Thrown when there are fewer than two points, a point or a tangent is not finite,
         /// or the points are all one.</exception>
@@ -104,7 +112,7 @@ namespace GeometryHelper.Dxf
                 }
 
                 Guard.NonNegative(value.FitTolerance, nameof(value), "A tolerance has to be a finite number, nought or more.");
-                WriteFit(value.GetFitPoints(), value.Degree, value.FitTolerance, value.TangentsExist, value.StartTangent, value.EndTangent, value.Periodic, nameof(value));
+                WriteFit(value.GetFitPoints(), value.Degree, value.FitTolerance, value.TangentsExist, value.StartTangent, value.EndTangent, value.Periodic || Closed, value.Periodic, nameof(value));
             }
         }
 
@@ -850,7 +858,7 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Writes clamped data in homogeneous form as the spline's, as <see cref="SetNurbsData"/> writes it: rational where a
-        /// weight is not 1, closed where it was and still starts where it ends, periodic no longer.
+        /// weight is not 1, closed where it starts where it ends, of the flag 2048 of a periodic spline no longer.
         /// </summary>
         private void WriteClamped(int p, List<double> u, List<double[]> pw)
         {
@@ -901,11 +909,11 @@ namespace GeometryHelper.Dxf
         private void Refit(List<GeoPoint3> fit, string parameter)
         {
             DxfFitData data = FitData;
-            WriteFit(fit, data.Degree, data.FitTolerance, data.TangentsExist, data.StartTangent, data.EndTangent, data.Periodic || Closed, parameter);
+            WriteFit(fit, data.Degree, data.FitTolerance, data.TangentsExist, data.StartTangent, data.EndTangent, data.Periodic || Closed, false, parameter);
         }
 
         /// <summary>Writes fit data and the control points of the spline through them, as <see cref="FitData"/> says.</summary>
-        private void WriteFit(IReadOnlyList<GeoPoint3> fit, int degree, double fitTolerance, bool tangents, GeoVector3 startTangent, GeoVector3 endTangent, bool closed, string parameter)
+        private void WriteFit(IReadOnlyList<GeoPoint3> fit, int degree, double fitTolerance, bool tangents, GeoVector3 startTangent, GeoVector3 endTangent, bool closed, bool periodic, string parameter)
         {
             if (degree < 1 || degree > MostDegree)
             {
@@ -962,6 +970,11 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentException("The fit points are all one point, and a spline through them has no length.", parameter);
             }
 
+            if (periodic && WritePeriodic(fit, degree))
+            {
+                return;
+            }
+
             int used = ends ? Math.Max(2, Math.Min(degree, distinct + 1)) : Math.Min(degree, distinct - 1);
             GeoSpline3 spline = ends
                 ? GeoSpline3.Interpolate(through, first, last, used, Tolerance.Default)
@@ -990,6 +1003,7 @@ namespace GeometryHelper.Dxf
 
             bool closedCurve = closed && spline.StartPoint.IsEqualTo(spline.EndPoint, Tolerance.Default);
             SetNurbsData(used, false, closedCurve, false, spline.ControlPoints, knots, null);
+            SetInt(70, GetInt(70, 0) | FitMade | FitByKnots, 0);
             WritePoints(11, FitCodes, written, 74);
             var groups = new List<KeyValuePair<int, string>>();
 
@@ -1005,6 +1019,35 @@ namespace GeometryHelper.Dxf
 
             SetGroups(groups.ToArray());
             SetDouble(44, fitTolerance, 0.0);
+        }
+
+        /// <summary>
+        /// Writes the periodic spline through fit points taken round, the last back to the first, as AutoCAD 2021 writes one
+        /// (its 17-l): of <see cref="DxfNurbsEdit.InterpolatePeriodic"/>, the degree lowered to the points less one where they
+        /// are fewer, closed, the flags 2048 of a periodic spline, 1024 of fit data and 32 of fit data set, and no fit points,
+        /// tangents or fit tolerance, its points at its knots being the fit points. False, nothing written, where the points
+        /// make no periodic spline: two of them as one, or a system with no solution.
+        /// </summary>
+        private bool WritePeriodic(IReadOnlyList<GeoPoint3> fit, int degree)
+        {
+            var ring = new List<GeoPoint3>(fit);
+
+            if (ring.Count > 2 && ring[0].IsEqualTo(ring[ring.Count - 1], Tolerance.Default))
+            {
+                ring.RemoveAt(ring.Count - 1);
+            }
+
+            int used = Math.Min(degree, ring.Count - 1);
+
+            if (Distinct(ring) < ring.Count || !DxfNurbsEdit.InterpolatePeriodic(ring, used, out List<double> knots, out List<GeoPoint3> points))
+            {
+                return false;
+            }
+
+            SetNurbsData(used, false, true, true, points, knots, null);
+            SetInt(70, GetInt(70, 0) | PeriodicFlag | FitByKnots | FitMade, 0);
+            SetString(44, null);
+            return true;
         }
 
         /// <summary>

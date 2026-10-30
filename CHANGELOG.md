@@ -6,6 +6,43 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `DxfSpline.FitData` set on a closed spline keeps it closed, where fit data not periodic opened it, and gives it
+the flags 32 and 1024 of fit data, as AutoCAD 2021 does: its closed cubic of 70 1035 given fit data not periodic, a fit
+point moved, was saved 70 1067, closed, where the library wrote 70 8, open. Fit data set periodic give AutoCAD's periodic
+spline through the points taken round, each point on the curve at its knot and the knots the lengths of the chords,
+clamped into as many control points as the points and the degree and written 70 3115 with no fit points, tangents or fit
+tolerance, its fit points read back as the points at its knots; AutoCAD's control points of its 1035 and 3115 given
+periodic fit data are the library's to 1E-14, where the library wrote a closed spline of 70 9 up to 3 off them. Where the
+points make no periodic spline, two of them as one or an even degree through an even count of points, the closed spline
+is fitted as before. Of 3 000 random rings of 3 to 60 points of degree 1 to 5, every periodic one reads periodic with its
+fit points within 3E-13, and the rest closed; 5 000 points are fitted in 40 milliseconds. Setting the fit data takes what
+it took, 0.6 milliseconds with the reading of the drawing on .NET Framework 4.8. 3 new tests.
+
+**CHANGED.** `DxfSpline.SetNurbsData`, `NurbsData` set and the constructor write the flags 1 and 2 of group 70 as AutoCAD
+2021 writes them: a curve whose ends meet is closed, the flag 1, and one that leaves its start in the direction it reaches
+its end has the flag 2 as well, whatever `closed` and `periodic` say; the flags 32 and 1024 of fit data go with the fit
+data. AutoCAD's closed cubic of 70 11 given its own NURBS data not periodic, or not closed, was saved 70 11 and read
+closed, where the library wrote 9 and 8; its periodic cubic of 70 3115 given its own data back was saved 70 2059, where
+the library wrote 2091. A curve closed round a corner is written 1, as AutoCAD wrote its 1065 of a corner at the seam.
+`periodic` still puts the flag 2 on any curve, and the flag 2048 is kept or taken off by it as before. What writes NURBS
+data anew (raising the degree, putting control points in and out, cutting, `Spline`) follows the same rule. No polyline
+made of a spline in the AutoCAD checks moved, to the bit. 3 new tests, 1 changed to AutoCAD's answers.
+
+**CHANGED.** `DxfSpline.IsPeriodic` is true where the flag 2048 of group 70 is set on a curve that runs on round its seam,
+as AutoCAD 2021 reads it: its 2059 with the control point 1 moved down by 5, or the point 5 up by 5, a corner at the seam,
+read as not periodic, 7 control points and 11 knots. The seam is read as AutoCAD's periodic form is made, the curve
+unclamped at its start and at its end, the first degree of its points the same as the degree a period on, within 1E-3;
+AutoCAD's periodic splines, a rational one among them, are so to 1E-13, and the moved points are off by 20.6 and 48.4.
+`IsPeriodic` of a spline of the flag 2048 takes 5.7 microseconds where 1.5 on .NET Framework 4.8, and 2.6 where 0.6 on
+.NET 10; of any other spline, what it took. 2 new tests.
+
+**CHANGED.** `DxfTable.IsLinked` of a cell in no range linked in the TABLECONTENT is true where the cell's state there has
+the flag 4 of a linked cell and the cell holds a content (its 95 above nought), as AutoCAD 2021 reads it: the title (0, 0)
+of Parts and a cell of data (2, 1) of no text, given the state 4 beside a range over (1, 0) to (1, 1), it read as linked
+with no range and no link, where the library read them not linked; (0, 1) of the state 4 and no content it read as not
+linked, as before. `IsLinked` of the six cells takes what it took, 0.9 microseconds on .NET Framework 4.8 and 1.5 on .NET
+10. 2 new tests.
+
 **FIXED.** In space, `GetShortestLineTo` reads a segment you give, a `GeoLine3` no longer than the point tolerance, as
 its start where it does not truly meet the other shape, and joins it where it does, as `DistanceTo` has read it and as
 the shapes in the plane do now. At a thousandth, the segment from (5, 5, 0.0015) down to (5, 5, 0.0006), stopping

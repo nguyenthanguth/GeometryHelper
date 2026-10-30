@@ -76,8 +76,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets whether the spline is periodic, as AutoCAD's <c>Periodic</c>: of a SPLINE, the flag 2 of its group 70, the periodic
-        /// of the DXF reference, which AutoCAD writes on its closed splines too; <see cref="DxfSpline.IsPeriodic"/> is AutoCAD's
-        /// reading, the flag 2048.
+        /// of the DXF reference, which AutoCAD writes on its closed splines of a smooth seam too; <see cref="DxfSpline.IsPeriodic"/>
+        /// is AutoCAD's reading, the flag 2048.
         /// </summary>
         public bool Periodic { get; }
 

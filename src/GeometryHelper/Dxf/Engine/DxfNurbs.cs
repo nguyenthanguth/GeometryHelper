@@ -118,6 +118,15 @@ namespace GeometryHelper.Dxf
         /// <summary>The length of the whole spline.</summary>
         internal double Length => LengthTo(End);
 
+        /// <summary>Whether the spline, clamped at its ends, has a periodic form, as <see cref="DxfNurbsEdit.IsPeriodicForm"/> reads one.</summary>
+        internal bool HasPeriodicForm(Tolerance tolerance)
+        {
+            var u = new List<double>(_u);
+            List<double[]> pw = DxfNurbsEdit.Homogeneous(_points, _w);
+            DxfNurbsEdit.Clamp(_p, u, pw);
+            return DxfNurbsEdit.IsPeriodicForm(_p, u, pw, tolerance);
+        }
+
         /// <summary>The point, first and second derivatives by the parameter at a parameter of the domain.</summary>
         internal void Evaluate(double t, out GeoPoint3 point, out GeoVector3 first, out GeoVector3 second)
         {

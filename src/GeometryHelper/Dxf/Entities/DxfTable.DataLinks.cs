@@ -44,8 +44,10 @@ namespace GeometryHelper.Dxf
         private int _linksEdits;
         private List<LinkedRange> _links;
 
-        // The cells of the TABLECONTENT whose state has the flag 4 of a linked cell, read with the links: where each state stands.
+        // The cells of the TABLECONTENT whose state has the flag 4 of a linked cell, read with the links: where each state stands;
+        // and those of them that hold a content.
         private Dictionary<(int, int), int> _flagged;
+        private HashSet<(int, int)> _filled;
 
         #region Data links
 
@@ -106,8 +108,10 @@ namespace GeometryHelper.Dxf
         /// of it, as <see cref="GetDataLinkRange"/> finds it. AutoCAD 2021 read a range linked over (1, 0) to (2, 1) in the
         /// TABLECONTENT as linked at (1, 0) and not at (1, 1), (2, 0) or (2, 1), though each of them gave the range and the link
         /// (its 73-h); with the state 4 given to (2, 1) as well, as linked at (1, 0) and (2, 1) (73-k); and with the state 0 at
-        /// (1, 0), still as linked there (73-l). A cell of the state 4 in no range is not linked, as AutoCAD read (0, 1) given it
-        /// beside that range (73-m).
+        /// (1, 0), still as linked there (73-l). A cell of the state 4 in no range is linked where it holds a content (its 95
+        /// above nought), with no range and no link: AutoCAD read the title (0, 0) of Parts and (2, 1), a cell of data of no
+        /// text, given it beside a range over (1, 0) to (1, 1) as linked (73-r), and (0, 1), of no content, given it beside the
+        /// range of 73-k, as not (73-m).
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="column">The column, from nought.</param>
@@ -117,7 +121,42 @@ namespace GeometryHelper.Dxf
         {
             // The cells of a linked state are read with the links Covering reads.
             LinkedRange link = Covering(row, column, out _);
-            return link != null && (link.Cell == null || (link.TopRow == row && link.LeftColumn == column) || _flagged.ContainsKey((row, column)));
+
+            if (link != null)
+            {
+                return link.Cell == null || (link.TopRow == row && link.LeftColumn == column) || _flagged.ContainsKey((row, column));
+            }
+
+            return _filled.Contains((row, column));
+        }
+
+        /// <summary>
+        /// Whether the cell of a TABLECONTENT whose state stands at a place among its groups holds a content: the count (95)
+        /// after its custom data, its 92 and the run of its link, above nought.
+        /// </summary>
+        private static bool HoldsContent(IReadOnlyList<DxfTypedValue> groups, int stateAt)
+        {
+            int at = stateAt;
+
+            while (at < groups.Count && !(groups[at].TypeCode == 309 && (groups[at].Value.Trim() == "DATAMAP_END" || groups[at].Value.Trim() == "LINKEDTABLEDATACELL_END")))
+            {
+                at++;
+            }
+
+            if (at >= groups.Count || groups[at].Value.Trim() != "DATAMAP_END")
+            {
+                return false;
+            }
+
+            at++;
+
+            while (at < groups.Count && (groups[at].TypeCode == 92 || groups[at].TypeCode == 340 || groups[at].TypeCode == 93 || groups[at].TypeCode == 94 || groups[at].TypeCode == 96))
+            {
+                at++;
+            }
+
+            return at < groups.Count && groups[at].TypeCode == 95
+                && long.TryParse(groups[at].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out long contents) && contents > 0;
         }
 
         /// <summary>
@@ -402,8 +441,10 @@ namespace GeometryHelper.Dxf
             if (!ReferenceEquals(layout, _linksOf) || edits != _linksEdits)
             {
                 var flagged = new Dictionary<(int, int), int>();
-                _links = AllLinks(layout, flagged);
+                var filled = new HashSet<(int, int)>();
+                _links = AllLinks(layout, flagged, filled);
                 _flagged = flagged;
+                _filled = filled;
                 _linksOf = layout;
                 _linksEdits = edits;
             }
@@ -415,11 +456,11 @@ namespace GeometryHelper.Dxf
         /// The links of the table, those its TABLECONTENT names and those its cells name, by their top left cells row by row, a
         /// link of the TABLECONTENT before one of the cells at the same cell, then by their bottom right cells and handles; the
         /// cells of the TABLECONTENT whose state has the flag 4 of a linked cell put, with where their states stand, in a
-        /// dictionary where one is given.
+        /// dictionary where one is given, and those of them holding a content in a set where one is given.
         /// </summary>
-        private List<LinkedRange> AllLinks(Layout layout, Dictionary<(int, int), int> flagged = null)
+        private List<LinkedRange> AllLinks(Layout layout, Dictionary<(int, int), int> flagged = null, HashSet<(int, int)> filled = null)
         {
-            List<LinkedRange> links = ContentLinks(layout, flagged);
+            List<LinkedRange> links = ContentLinks(layout, flagged, filled);
             links.AddRange(Links(layout));
             links.Sort((a, b) =>
             {
@@ -736,9 +777,10 @@ namespace GeometryHelper.Dxf
         /// column, whatever rows or columns the TABLECONTENT has, as AutoCAD 2021 read its link of (1, 0) in a table of four rows
         /// whose TABLECONTENT had three (its 73-e); one past the table's last row or column names none. Each cell whose state
         /// (the 90 after its LINKEDTABLEDATACELL_BEGIN) has the flag 4 of a linked cell is put in <paramref name="flagged"/>, where
-        /// it is not null, with where its state stands among the record's groups.
+        /// it is not null, with where its state stands among the record's groups, and in <paramref name="filled"/> too, where it
+        /// is not null, where it holds a content.
         /// </summary>
-        private List<LinkedRange> ContentLinks(Layout layout, Dictionary<(int, int), int> flagged)
+        private List<LinkedRange> ContentLinks(Layout layout, Dictionary<(int, int), int> flagged, HashSet<(int, int)> filled = null)
         {
             var links = new List<LinkedRange>();
             DxfItem content = IsResident ? ContentItem() : null;
@@ -774,6 +816,11 @@ namespace GeometryHelper.Dxf
                         && int.TryParse(groups[i + 1].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int state) && (state & 4) != 0)
                     {
                         flagged[(row, column)] = i + 1;
+
+                        if (filled != null && HoldsContent(groups, i + 1))
+                        {
+                            filled.Add((row, column));
+                        }
                     }
 
                     i = ReadCell(groups, i, row, column, cells);

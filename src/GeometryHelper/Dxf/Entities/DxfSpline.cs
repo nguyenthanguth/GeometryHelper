@@ -31,6 +31,9 @@ namespace GeometryHelper.Dxf
         private const int PeriodicFlag = 2048;
         private const int FitByKnots = 1024;
 
+        // The flag of group 70 AutoCAD gives a spline its fit data are set on and takes off with its NURBS data (its 17-k, 17-l).
+        private const int FitMade = 32;
+
         // The groups of AcDbSpline in the order AutoCAD writes them.
         private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 210, 220, 230, 70, 71, 72, 73, 74, 42, 43, 44, 12, 22, 32, 13, 23, 33, 40, 41, 10, 20, 30, 11, 21, 31 });
 
@@ -59,9 +62,11 @@ namespace GeometryHelper.Dxf
         /// </summary>
         /// <param name="degree">The degree, 1 or more.</param>
         /// <param name="rational">Whether the weights are written (flag 4 of group 70).</param>
-        /// <param name="closed">Whether it is closed (flag 1).</param>
+        /// <param name="closed">Whether it is closed (flag 1); a curve whose ends meet is closed whatever this says, as
+        /// <see cref="SetNurbsData"/> writes it.</param>
         /// <param name="periodic">Whether it is periodic as the DXF reference has it (flag 2), the <see cref="DxfNurbsData.Periodic"/>
-        /// of its data; AutoCAD reads a spline as periodic by the flag 2048 alone (<see cref="IsPeriodic"/>), which is not written.</param>
+        /// of its data, which a curve closed round a smooth seam is whatever this says; AutoCAD reads a spline as periodic by the
+        /// flag 2048 (<see cref="IsPeriodic"/>), which is not written.</param>
         /// <param name="controlPoints">The control points, in the world.</param>
         /// <param name="knots">The knots, as many as the points and the degree and one.</param>
         /// <param name="weights">The weights, one to each point where the spline is rational; empty or null otherwise.</param>
@@ -207,14 +212,46 @@ namespace GeometryHelper.Dxf
         public override bool Closed => (GetInt(70, 0) & 1) != 0;
 
         /// <summary>
-        /// Gets whether the spline is periodic, as AutoCAD's <c>IsPeriodic</c>: the flag 2048 of group 70. AutoCAD 2021 writes
-        /// the flag 2 on its closed splines too and reads no period from it: its periodic cubic of 70 3115 is periodic, its
-        /// closed cubic of 70 11 is not, and either is the other with the flag 2048 alone taken out or put in (its 17-h).
+        /// Gets whether the spline is periodic, as AutoCAD's <c>IsPeriodic</c>: the flag 2048 of group 70, on a curve that runs on
+        /// round its seam as one periodic curve. AutoCAD 2021 writes the flag 2 on its closed splines of a smooth seam too and
+        /// reads no period from it: its periodic cubic of 70 3115 is periodic, its closed cubic of 70 11 is not, and either is
+        /// the other with the flag 2048 alone taken out or put in (its 17-h). Its 2059 with the control point 1 moved down by 5,
+        /// or the point 5 up by 5, a corner at the seam, is not periodic (17-n, 17-o).
         /// </summary>
-        public override bool IsPeriodic => (GetInt(70, 0) & PeriodicFlag) != 0;
+        /// <value>
+        /// The seam is read as AutoCAD's periodic form is made: the curve clamped at its ends, then unclamped at its start and at
+        /// its end (The NURBS Book, A12.1), and its first degree of points set against those a period on, each within 1E-3 and
+        /// of the same weight within 1E-5 of the largest. Such a curve runs on across its seam as smoothly as along its knots
+        /// (twice over for a cubic). The 2059 of the moved point 1 is off by 20.6; AutoCAD's own periodic splines by 1E-13. A
+        /// spline of fewer control points than twice the degree and one has no such form, and is not periodic.
+        /// </value>
+        public override bool IsPeriodic => (GetInt(70, 0) & PeriodicFlag) != 0 && Seamless();
 
         /// <summary>Whether the flag 2 of group 70 is set, the periodic of the DXF reference, which the NURBS and fit data carry and the library writes.</summary>
         private bool FlaggedPeriodic => (GetInt(70, 0) & 2) != 0;
+
+        /// <summary>Whether the curve of the control points has a periodic form, as <see cref="IsPeriodic"/> reads it; false where its data make no spline.</summary>
+        private bool Seamless()
+        {
+            if (Points(10).Count == 0)
+            {
+                return false;
+            }
+
+            DxfNurbs nurbs;
+
+            try
+            {
+                nurbs = Nurbs();
+            }
+            catch (InvalidOperationException)
+            {
+                // Data that make no spline have no seam to run on round.
+                return false;
+            }
+
+            return nurbs.HasPeriodicForm(Tolerance.Default);
+        }
 
         /// <summary>Gets how the spline is given, as AutoCAD's <c>Type</c>: by its fit points where it has some, else by its control points.</summary>
         public DxfSplineType Type => HasFitData ? DxfSplineType.FitPoints : DxfSplineType.ControlPoints;
@@ -330,14 +367,18 @@ namespace GeometryHelper.Dxf
         /// Gives the spline its whole NURBS data at once, as setting AutoCAD's <c>NurbsData</c> does: degree, flags, control
         /// points, knots and weights, checked together and written in one go, its fit data (fit points and end tangents) taken
         /// out, as the spline is given by its control points from then on. A cubic of 4 points from (0, 0, 0) to (4, 0, 0) takes
-        /// the knots 0, 0, 0, 0, 1, 1, 1, 1.
+        /// the knots 0, 0, 0, 0, 1, 1, 1, 1. A curve whose ends meet (within 1E-3) is written closed, the flag 1 of group 70, and
+        /// where it runs on across its seam in the one direction (within a degree), with the flag 2 as well, whatever
+        /// <paramref name="closed"/> and <paramref name="periodic"/> say, as AutoCAD 2021 writes one: its closed cubic of 70 11
+        /// given its own data back not periodic, or not closed, was saved 70 11 and read closed (its 17-k); the flags 32 and
+        /// 1024 of fit data go with the fit data, its periodic cubic of 70 3115 given its own data back being saved 70 2059.
         /// </summary>
         /// <param name="degree">The degree, 1 or more.</param>
         /// <param name="rational">Whether the weights are written (flag 4 of group 70).</param>
-        /// <param name="closed">Whether it is closed (flag 1).</param>
-        /// <param name="periodic">Whether it is periodic as the DXF reference has it (flag 2); where it is not, AutoCAD's flag 2048
-        /// of a periodic spline (<see cref="IsPeriodic"/>) is taken off too, and kept as it was where it is. The flag 1024 goes
-        /// with the fit data.</param>
+        /// <param name="closed">Whether it is closed (flag 1); a curve whose ends meet is closed whatever this says.</param>
+        /// <param name="periodic">Whether it is periodic as the DXF reference has it (flag 2), which a curve closed round a smooth
+        /// seam is whatever this says; where it is not, AutoCAD's flag 2048 of a periodic spline (<see cref="IsPeriodic"/>) is
+        /// taken off too, and kept as it was where it is.</param>
         /// <param name="controlPoints">The control points, in the world, the degree and one at least.</param>
         /// <param name="knots">The knots, as many as the points and the degree and one, none going down.</param>
         /// <param name="weights">The weights, one to each point above nought where the spline is rational; not read, and may be
@@ -395,14 +436,40 @@ namespace GeometryHelper.Dxf
 
             CheckNurbs(degree, points.Count, knotList, weightList.Count, nameof(knots));
             List<List<KeyValuePair<int, string>>> written = Rewritten(points);
-            // AutoCAD's flag of a periodic spline goes with the flag 2 taken off, and its flag of fit points at the knots with the fit data.
-            int flags = (GetInt(70, 0) & ~7 & ~FitByKnots & ~(periodic ? 0 : PeriodicFlag)) | (closed ? 1 : 0) | (periodic ? 2 : 0) | (rational ? 4 : 0);
+            Seam(degree, knotList, points, rational ? weightList : null, out bool meet, out bool smooth);
+            // AutoCAD's flag of a periodic spline goes with the flag 2 taken off, and its flags of fit data (32 and 1024) with the
+            // fit data; a curve whose ends meet is closed, and has the flag 2 where its seam is smooth, whatever it is given.
+            int flags = (GetInt(70, 0) & ~7 & ~FitMade & ~FitByKnots & ~(periodic ? 0 : PeriodicFlag))
+                | (closed || meet ? 1 : 0) | (periodic || smooth ? 2 : 0) | (rational ? 4 : 0);
             SetInt(70, flags, 0);
             SetInt(71, degree, 3);
             WriteNumbers(40, KnotCodes, knotList, 72);
             WriteNumbers(41, WeightCodes, weightList, -1);
             WritePoints(10, ControlCodes, written, 73);
             RemoveFitData();
+        }
+
+        /// <summary>
+        /// Whether the curve of NURBS data checked as <see cref="CheckNurbs"/> checks them has its ends meet, within the point
+        /// tolerance of <see cref="Tolerance.Default"/>, and runs on across its seam smoothly, leaving its start in the
+        /// direction it reaches its end (within the angle of <see cref="Tolerance.Default"/>, a degree); neither where its knots
+        /// span nothing.
+        /// </summary>
+        private static void Seam(int degree, List<double> knots, List<GeoPoint3> points, List<double> weights, out bool meet, out bool smooth)
+        {
+            meet = false;
+            smooth = false;
+
+            if (!(knots[points.Count] > knots[degree]))
+            {
+                return;
+            }
+
+            var nurbs = new DxfNurbs(degree, knots, points, weights);
+            nurbs.Evaluate(nurbs.Start, out GeoPoint3 start, out GeoVector3 leaving, out _);
+            nurbs.EvaluateArriving(nurbs.End, out GeoPoint3 end, out GeoVector3 arriving, out _);
+            meet = start.IsEqualTo(end, Tolerance.Default);
+            smooth = meet && leaving.IsCodirectionalTo(arriving, Tolerance.Default);
         }
 
         /// <summary>
