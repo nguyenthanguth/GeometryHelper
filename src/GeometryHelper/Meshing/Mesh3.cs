@@ -447,6 +447,16 @@ namespace GeometryHelper.Meshing
         /// wound outwards. Openings that cannot be cut into the whole body, or leave it open, are cut into each cell they
         /// meet; a cell they cannot be cut into either keeps their material, and says so in the log.
         /// </para>
+        /// <para>
+        /// Asked at a point tolerance below the rounding of the coordinates, a quadrillionth of the largest of them, nought
+        /// among them, the body and its openings are cut within what rounding can move a corner off a plane, a trillionth of
+        /// the size of the coordinates, and each cell whose corners that leaves a rounding apart is welded to close within the
+        /// tolerance asked. Within the tolerance asked, the two faces beside an edge each cut their own copy of it a rounding
+        /// apart, and no cut closed: at nought a plate 200 by 100 by 3 turned about in space, cut into cells 60 by 40 along it,
+        /// came out one cell of 60 000, where twelve hold it, and with a hole 20 by 20 through it one cell of 60 000, the hole
+        /// left in, each cut not made said so in the log. Which bodies are refused is read at the tolerance asked, as before.
+        /// At and above the rounding the body is cut as it was, to the bit.
+        /// </para>
         /// </remarks>
         public static GeoCellGrid3 ToCells(GeoSolid3 solid, CellOptions3 options, MeshPlacement3 placement, Tolerance tolerance)
         {
@@ -471,11 +481,15 @@ namespace GeometryHelper.Meshing
             GeoSolid3 material = solid;
             IReadOnlyList<GeoSolid3> left = new GeoSolid3[0];
 
+            // Below the rounding of the coordinates the body is cut within it, and each cell welded to close within the
+            // tolerance asked; see the remarks.
+            Splition3.BelowTheRounding(solid, tolerance, out Tolerance within);
+
             if (solid.Openings.Count > 0)
             {
-                bool cut = Boolean3.TryCutOpenings(solid, solid.Openings, out material, tolerance, out Exception failure);
+                bool cut = Boolean3.TryCutOpenings(solid, solid.Openings, out material, within, out Exception failure);
 
-                if (failure != null || (cut && !material.ClosesBothWays(tolerance)))
+                if (failure != null || (cut && !material.ClosesBothWays(within)))
                 {
                     // The openings could not be cut into the whole body, or left it open: the body is cut into its cells as
                     // it is, and each cell has the openings it meets cut into it.
@@ -490,7 +504,7 @@ namespace GeometryHelper.Meshing
             }
 
             GeoCoordinateSystem3 axes = placement.AxesOfBody(Corners(solid), null, tolerance);
-            return CellGrid3.OfSolid(solid, material, left, axes, options, placement.Origin, tolerance);
+            return CellGrid3.OfSolid(solid, material, left, axes, options, placement.Origin, within, tolerance);
         }
 
         /// <summary>
@@ -523,7 +537,10 @@ namespace GeometryHelper.Meshing
         /// </exception>
         /// <remarks>
         /// A grid along the box's own sides cuts it by arithmetic, every cell a box, which a grid of a million cells takes a
-        /// second over; one turned against them cuts it as a body.
+        /// second over; one turned against them cuts it as a body, within the rounding of the coordinates where the point
+        /// tolerance is below it, as <see cref="ToCells(GeoSolid3, CellOptions3, MeshPlacement3, Tolerance)"/> cuts a body: at
+        /// nought a box 100 by 60 by 40 turned about in space, cut into cells 37 by 41 by 43 along the world's axes, came out
+        /// one cell, where the grid lays 19 through it.
         /// </remarks>
         public static GeoCellGrid3 ToCells(GeoObb3 box, CellOptions3 options, MeshPlacement3 placement, Tolerance tolerance)
         {
@@ -542,8 +559,10 @@ namespace GeometryHelper.Meshing
                 return CellGrid3.OfBox(box, axes, options, placement.Origin, tolerance);
             }
 
+            // Below the rounding of the coordinates the box is cut within it, as a body is.
             GeoSolid3 solid = CellGrid3.BoxSolid(box);
-            return CellGrid3.OfSolid(solid, solid, new GeoSolid3[0], axes, options, placement.Origin, tolerance);
+            Splition3.BelowTheRounding(solid, tolerance, out Tolerance within);
+            return CellGrid3.OfSolid(solid, solid, new GeoSolid3[0], axes, options, placement.Origin, within, tolerance);
         }
 
         /// <summary>

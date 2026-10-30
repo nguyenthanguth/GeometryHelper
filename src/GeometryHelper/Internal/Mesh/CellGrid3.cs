@@ -629,7 +629,11 @@ namespace GeometryHelper.Core
         /// <param name="options">How the axes are divided.</param>
         /// <param name="origin">Where a cell starts, or null for the alignments.</param>
         /// <param name="tolerance">The tolerance the body is cut within.</param>
-        public static GeoCellGrid3 OfSolid(GeoSolid3 gross, GeoSolid3 material, IReadOnlyList<GeoSolid3> openings, GeoCoordinateSystem3 axes, CellOptions3 options, GeoPoint3? origin, Tolerance tolerance)
+        /// <param name="asked">
+        /// The tolerance the cells were asked within: below the rounding of the coordinates, where the body is cut within the
+        /// rounding (see <see cref="Splition3.BelowTheRounding"/>), a finer one, which each cell is welded to close within.
+        /// </param>
+        public static GeoCellGrid3 OfSolid(GeoSolid3 gross, GeoSolid3 material, IReadOnlyList<GeoSolid3> openings, GeoCoordinateSystem3 axes, CellOptions3 options, GeoPoint3? origin, Tolerance tolerance, Tolerance asked)
         {
             Layout layout = Lay(Corners(gross), axes, options, origin, tolerance);
 
@@ -674,7 +678,7 @@ namespace GeometryHelper.Core
 
             var cells = new List<GeoCell3>[pieces.Count];
 
-            Run(pieces.Count, threads, p => cells[p] = Cells(pieces[p], openings, layout, tolerance));
+            Run(pieces.Count, threads, p => cells[p] = Cells(pieces[p], openings, layout, tolerance, asked));
 
             var all = new List<GeoCell3>();
 
@@ -971,7 +975,7 @@ namespace GeometryHelper.Core
         /// The cells a piece makes: one for each part of it that does not touch the others, numbered in turn up Z, along Y
         /// and along X by their middles.
         /// </summary>
-        private static List<GeoCell3> Cells(Piece piece, IReadOnlyList<GeoSolid3> openings, Layout layout, Tolerance tolerance)
+        private static List<GeoCell3> Cells(Piece piece, IReadOnlyList<GeoSolid3> openings, Layout layout, Tolerance tolerance, Tolerance asked)
         {
             GeoSolid3 material = CutIn(piece.Solid, openings, tolerance);
 
@@ -1014,16 +1018,26 @@ namespace GeometryHelper.Core
 
             for (int p = 0; p < parts.Count; p++)
             {
-                double volume = parts[p].Solid.GrossVolume;
+                GeoSolid3 solid = parts[p].Solid;
+
+                // Cut within the rounding of the coordinates, below which the cells were asked, a cell meets on corners as far
+                // apart as it: made one, it closes within the tolerance asked too, as the cut of openings asked so welds its
+                // material.
+                if (asked.EqualPoint < tolerance.EqualPoint && !solid.ClosesByCorners(asked) && Weld3.TryWeld(solid, tolerance, asked, out GeoSolid3 welded))
+                {
+                    solid = welded;
+                }
+
+                double volume = solid.GrossVolume;
 
                 // The body fills the cell but for a skin no thicker than the point tolerance: every face it has there lies on
                 // a side of the cell, as a box's whole cell is cut by none of its sides. The volume alone would let through a
                 // hole or a pocket taking less than the skin's.
                 bool isWhole = parts.Count == 1
                     && Math.Abs(boxVolume - volume) <= tolerance.EqualPoint * boxArea
-                    && OnSides(parts[p].Solid, layout.Frame, low, high, tolerance);
+                    && OnSides(solid, layout.Frame, low, high, tolerance);
 
-                cells.Add(new GeoCell3(piece.I, piece.J, piece.K, p, whole, parts[p].Solid, null, isWhole, volume, (double[])piece.Low.Clone(), (double[])piece.High.Clone()));
+                cells.Add(new GeoCell3(piece.I, piece.J, piece.K, p, whole, solid, null, isWhole, volume, (double[])piece.Low.Clone(), (double[])piece.High.Clone()));
             }
 
             return cells;

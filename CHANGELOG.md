@@ -6,6 +6,27 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `Section`, and `Mesh3.ToCells` of a body or of a box turned against the grid, asked at a point tolerance below
+the rounding of the coordinates, a quadrillionth of the largest of them, nought among it, cut within what rounding can
+move a corner off a plane, a trillionth of the size of the coordinates: `Section` cuts the material by its plane so, and
+`ToCells` the body and its openings, each cell whose corners that leaves a rounding apart welded to close within the
+tolerance asked. Within the tolerance asked, the two
+faces beside an edge each cut their own copy of it a rounding apart, and no cut closed: at nought a plate 200 by 100 by 3
+turned about in space, at the origin or a million out, had no section, where a plane square to its face cuts 20 000 of
+it; cut into cells 60 by 40 along it, it came out one cell of 60 000, where twelve hold it, and with a hole 20 by 20
+through it one cell of 60 000, the hole left in, where they hold 58 800; and a box 100 by 60 by 40 so turned, cut by a
+grid along the world's axes, came out one cell, where the grid lays 19 through it. Of 8 000 planes through plates, boxes
+and prisms shaped as an L or a star with up to three openings, turned about in space or not, at the origin and a
+thousand to a thousand million out, 7 383 cut nothing at nought and 73 cut the wrong area, as 4 974 of 5 534 did at
+1E-12 below the rounding; of 2 000 of the bodies cut into cells at nought, 1 918 came out in the wrong cells, 85 with
+nothing said in the log, as 1 282 of 1 370 did at 1E-12; and so did each of 2 000 boxes turned about in space and cut
+along the world's axes at nought, and 1 338 of 1 409 at 1E-12. None does now: 2 of the bodies, a thousand million out,
+have a cell closed along its edges and holding what it should whose corners the weld leaves apart at nought. Which
+bodies `ToCells` refuses is read at the tolerance asked, as before. At and above the rounding, 1E-3 and 1E-2 among them,
+every section and every cell is the same to the bit. On .NET 10, 300 of the bodies are cut into cells in 1.03 seconds at
+nought where they took 1.71, and 2.38 where 3.95 on .NET Framework 4.8; two sections of each take what they took, 2.38
+seconds where 2.40, and 5.87 where 5.91; at a thousandth both take what they took. 8 new tests.
+
 **FIXED.** A table's data link is read where AutoCAD 2021 keeps it, in the TABLECONTENT of the table's extension dictionary
 (ACAD_XREC_ROUNDTRIP, an XRECORD of ACAD_ROUNDTRIP_2008_TABLE_ENTITY), from the cell whose 92 after its custom data is odd:
 `GetDataLink`, `GetDataLinkRange`, `IsLinked` and `GetTargets` read AutoCAD's link of the table F6 over (1, 0) to (1, 0),
@@ -271,9 +292,8 @@ and more out 10.11 from it, onto the rim of the hole's wall, the wall's face rea
 wall, 10 off, the faces read within the rounding too. Of the 54 plates, from the middle of an opening, 36 were
 projected wrong and none is now; of 1 000 of the bodies of the run above, six points drawn about each, 1 954 of the
 4 989 points outside were projected wrong at nought and 1 213 of 3 494 at 1E-12 below the rounding, and none is now; at
-and above the rounding every projection is the same to the bit. `Mesh3.ToCells` at nought still leaves an opening it
-cannot cut in at nought in its cells, warned of: cut within the rounding, the cells cut at nought lost more of the
-material than the openings hold.
+and above the rounding every projection is the same to the bit. `Section` and `Mesh3.ToCells` below the rounding are
+fixed on their own; see above.
 
 **FIXED.** A difference of two closed bodies no longer trusts what it gives where a cell of one, planes of the other
 running through it uncut, puts more on the wrong side of them than the tolerance times the area of what is left. A

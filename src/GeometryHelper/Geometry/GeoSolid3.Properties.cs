@@ -218,13 +218,27 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>One face per region of the cut; empty where the plane misses the body or only grazes it.</returns>
         /// <remarks>
+        /// <para>
         /// The material is cut, so a hole the plane passes through is a hole in the section, and a body in two
         /// pieces gives two faces. A plane lying along a face of the body touches it without cutting it, and gives
         /// nothing there: the section is where the body has material on both sides of the plane.
+        /// </para>
+        /// <para>
+        /// Asked at a point tolerance below the rounding of the coordinates, a quadrillionth of the largest of them, nought
+        /// among them, the plane cuts the material within what rounding can move a corner off a plane, a trillionth of the
+        /// size of the coordinates: within the tolerance asked, the two faces beside an edge each cut their own copy of it a
+        /// rounding apart, and the rim did not close. At nought a plate 200 by 100 by 3 turned about in space, at the origin or a
+        /// million out, had no section, where a plane square to its face cuts 20 000 of it and one across its length 300;
+        /// with a hole 20 by 20 through it, it cuts 19 600, the hole in it. At and above the rounding the material is cut as
+        /// it was, to the bit.
+        /// </para>
         /// </remarks>
         public GeoFace3[] Section(GeoPlane3 plane, Tolerance tolerance)
         {
-            return Splition3.Section(Material3.Whole(this, tolerance), plane, tolerance);
+            // Below the rounding of the coordinates the material is cut by the plane within it; see the remarks.
+            Splition3.BelowTheRounding(this, tolerance, out Tolerance within);
+
+            return Splition3.Section(Material3.Whole(this, tolerance), plane, within);
         }
 
         #endregion

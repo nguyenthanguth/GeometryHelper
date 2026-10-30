@@ -526,8 +526,14 @@ own faces do not close within the rounding, `TryGetVolume` says the volume canno
 `DxfWriter.Add` and `ProjectToSolid` cut the openings within the rounding too, and `ProjectToSolid` reads the faces
 they leave within it: at nought the plate's surface was meshed into triangles holding 29 999.99, its bottom lost, and
 a point in the middle of the hole was projected 1.5 from it, onto a face across the hole, where the hole's wall stands
-10 off. `Mesh3.ToCells` does not yet: at nought it leaves an opening
-it cannot cut in its cells, and says so in the log.
+10 off. Asked at a point tolerance below the rounding, `Section` cuts the material by its plane, and `Mesh3.ToCells`
+cuts the body and its openings, within what rounding can move a corner off a plane, a trillionth of the size of the
+coordinates, and each cell whose corners that leaves a rounding apart is welded to close within the tolerance asked. At nought the two faces beside an
+edge each cut their own copy of it a rounding apart, and no cut closed: the plate had no section, where a plane square
+to its face cuts 20 000, or 19 600 with the hole; cut into cells 60 by 40 it came out one cell of 60 000 with the hole
+or without it, where twelve hold it, 58 800 with the hole; and a box 100 by 60 by 40 turned against a grid along the
+world's axes came out one cell, where the grid lays 19 through it. A body `ToCells` refuses at the tolerance asked it
+still refuses.
 
 A `GeoCircle3` is not on the list. The distance from a circle in space to a flat face has no closed form,
 and the library does not guess: turn it into a chain first, which says in the call how close an answer you
