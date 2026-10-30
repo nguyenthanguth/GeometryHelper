@@ -108,29 +108,31 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void ColumnsSet_GiveTheMTextTheWidthOfAColumn_AsAutoCADAndEzdxfGiveIt()
+        public void ColumnsSet_GiveTheMTextTheWidthAutoCadGivesIt_OfAllTheColumnsFromR2018_AndOfAColumnBefore()
         {
+            // As AutoCAD 2021 wrote the columns of 09-a (point 9): 41 of R2018 that of all the columns with their gutters.
             foreach (string text in new[] { DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 })
             {
+                bool r2018 = text == DxfFileEzdxfDrawings.R2018;
                 DxfDatabase db = DxfDatabase.Parse(text);
                 DxfMText mtext = ByHandle<DxfMText>(db, "73");
 
                 mtext.SetStaticColumns(12.5, 2.5, 3);
 
-                Assert.Equal(12.5, mtext.Width);
+                Assert.Equal(r2018 ? 42.5 : 12.5, mtext.Width);
                 DxfMText read = ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "73");
-                Assert.Equal(12.5, read.Width);
+                Assert.Equal(r2018 ? 42.5 : 12.5, read.Width);
                 Assert.Equal(12.5, read.ColumnWidth);
 
-                if (text == DxfFileEzdxfDrawings.R2018)
+                if (r2018)
                 {
-                    Assert.Contains("101\nEmbedded Object\n 70\n1\n 10\n1\n 20\n0\n 30\n0\n 11\n20\n 21\n40\n 31\n0\n 40\n12.5\n", Records(db.ToText()).Single(r => HandleOf(r) == "73"), StringComparison.Ordinal);
+                    Assert.Contains("101\nEmbedded Object\n 70\n1\n 10\n1\n 20\n0\n 30\n0\n 11\n20\n 21\n40\n 31\n0\n 40\n42.5\n", Records(db.ToText()).Single(r => HandleOf(r) == "73"), StringComparison.Ordinal);
                 }
 
                 mtext.SetDynamicColumns(10.0, 2.0, true);
-                Assert.Equal(10.0, mtext.Width);
+                Assert.Equal(r2018 ? 34.0 : 10.0, mtext.Width);
                 mtext.ColumnWidth = 8.0;
-                Assert.Equal(8.0, ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "73").Width);
+                Assert.Equal(r2018 ? 28.0 : 8.0, ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "73").Width);
             }
         }
 

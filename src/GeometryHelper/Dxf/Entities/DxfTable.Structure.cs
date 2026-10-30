@@ -908,8 +908,10 @@ namespace GeometryHelper.Dxf
         /// Gets the formula of a cell, as AutoCAD's <c>GetFormula</c>: the expression of the FIELD the cell's 344 points at, of
         /// the evaluator AcExpr, or of the one field within a field of text (<c>_text</c>, its code <c>%&lt;\_FldIdx 0&gt;%</c>)
         /// that is one; its field code <c>\AcExpr (A1+B1)</c> is given as <c>=A1+B1</c>, a format after it (<c>\f "%lu2"</c>)
-        /// left out. Null for a cell of no field, or of a field of another kind, as a date. The library does not work a formula
-        /// out: the cell's value is the one AutoCAD last wrote.
+        /// left out. Null for a cell of no field, or of a field of another kind, as a date. A 344 that names no record of the
+        /// file, as AutoCAD 2021 wrote the formula of a linked cell (its 192, written in none), is read from the cell's field in
+        /// the table's TABLECONTENT, where AutoCAD keeps it (its 195 of <c>\AcExpr (1+2)</c>). The library does not work a
+        /// formula out: the cell's value is the one AutoCAD last wrote.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="column">The column, from nought.</param>
@@ -920,7 +922,21 @@ namespace GeometryHelper.Dxf
         {
             CheckContent(contentIndex);
             string handle = Cell(row, column).Head(344)?.Trim();
-            return string.IsNullOrEmpty(handle) || !IsResident ? null : FormulaOf(Item.File, handle, true);
+
+            if (string.IsNullOrEmpty(handle) || !IsResident)
+            {
+                return null;
+            }
+
+            string formula = FormulaOf(Item.File, handle, true);
+
+            if (formula == null && Item.File.ObjectItem(handle) == null)
+            {
+                string field = ContentFieldOf(row, column);
+                formula = field == null ? null : FormulaOf(Item.File, field, true);
+            }
+
+            return formula;
         }
 
         /// <summary>

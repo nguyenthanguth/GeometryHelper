@@ -271,8 +271,10 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gets or sets the height of the box the MTEXT is given (group 46), as AutoCAD's <c>Height</c>; where the record gives
         /// none, the height of its columns of one height, from its embedded object (41) or its extended data of ACAD
-        /// (<c>ACAD_MTEXT_DEFINED_HEIGHT</c>), as ezdxf reads it; nought where it gives neither. A file older than R2007 (AC1021)
-        /// has no group 46: the MTEXT of R2000 in three static columns 30 high has the height 30 of its extended data.
+        /// (<c>ACAD_MTEXT_DEFINED_HEIGHT</c>), as ezdxf reads it; nought where it gives neither, and for dynamic columns of their
+        /// own heights, whose <c>ACAD_MTEXT_DEFINED_HEIGHT</c> is the first column's, as AutoCAD 2021 writes it. A file older
+        /// than R2007 (AC1021) has no group 46: the MTEXT of R2000 in three static columns 30 high has the height 30 of its
+        /// extended data.
         /// </summary>
         /// <value>Set, written as group 46 from R2007; before it in <c>ACAD_MTEXT_DEFINED_HEIGHT</c>, which an MTEXT of R2000 has
         /// only in columns of one height.</value>
@@ -281,7 +283,7 @@ namespace GeometryHelper.Dxf
         /// R2007 on an MTEXT that is not in columns of one height.</exception>
         public double Height
         {
-            get => Value(46) != null ? Number(46, 0.0) : Columns().Defined ?? 0.0;
+            get => Value(46) != null ? Number(46, 0.0) : OneHeight(Columns());
 
             set
             {
@@ -742,8 +744,9 @@ namespace GeometryHelper.Dxf
         /// <c>ColumnCount</c>: where the embedded object gives none, as for dynamic columns of auto height, worked out from the
         /// width of all the columns (42) as ezdxf works it out; nought where the MTEXT has no columns.
         /// </summary>
-        /// <value>Set, 1 or more, written as <see cref="ColumnType"/> says; columns of their own heights given one of the MTEXT's
-        /// <see cref="Height"/> for each column added.</value>
+        /// <value>Set, 1 or more, written as <see cref="ColumnType"/> says, the MTEXT's <see cref="Width"/> made to agree, as
+        /// <see cref="SetStaticColumns"/> makes it; columns of their own heights given one of the MTEXT's <see cref="Height"/> for
+        /// each column added.</value>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the count set is below 1.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the MTEXT is erased, or has no columns: give it some first.</exception>
         public int ColumnCount
@@ -764,13 +767,14 @@ namespace GeometryHelper.Dxf
 
                 ColumnSet columns = WithColumns();
                 columns.Count = value;
+                Width = Span(columns);
                 WriteColumns(columns.Pad(Height));
             }
         }
 
         /// <summary>Gets or sets how wide each column is (group 44 of its embedded object, 48 of its extended data), as AutoCAD's <c>ColumnWidth</c>; nought where it gives none.</summary>
         /// <value>Set, a finite number above nought, written as <see cref="ColumnType"/> says, the MTEXT's <see cref="Width"/> made
-        /// the same, as <see cref="SetStaticColumns"/> makes it.</value>
+        /// to agree, as <see cref="SetStaticColumns"/> makes it.</value>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the width set is not a finite number above nought.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the MTEXT is erased, or has no columns: give it some first.</exception>
         public double ColumnWidth
@@ -787,13 +791,14 @@ namespace GeometryHelper.Dxf
                 Guard.Positive(value, nameof(value), "The width of a column has to be a finite number above nought.");
                 ColumnSet columns = WithColumns();
                 columns.Width = value;
-                Width = value;
+                Width = Span(columns);
                 WriteColumns(columns);
             }
         }
 
         /// <summary>Gets or sets the space between the columns (group 45 of its embedded object, 49 of its extended data), as AutoCAD's <c>ColumnGutterWidth</c>; nought where it gives none.</summary>
-        /// <value>Set, a finite number of nought or more, written as <see cref="ColumnType"/> says.</value>
+        /// <value>Set, a finite number of nought or more, written as <see cref="ColumnType"/> says, the MTEXT's <see cref="Width"/>
+        /// made to agree, as <see cref="SetStaticColumns"/> makes it.</value>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the width set is below nought or not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the MTEXT is erased, or has no columns: give it some first.</exception>
         public double ColumnGutterWidth
@@ -810,6 +815,7 @@ namespace GeometryHelper.Dxf
                 Guard.NonNegative(value, nameof(value), "The gutter between columns has to be a finite number of nought or more.");
                 ColumnSet columns = WithColumns();
                 columns.Gutter = value;
+                Width = Span(columns);
                 WriteColumns(columns);
             }
         }
@@ -914,8 +920,9 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Sets the MTEXT in static columns, as AutoCAD's <c>SetStaticColumns</c>: as many columns as given, each as wide as
         /// given and as high as the MTEXT's <see cref="Height"/>, a gutter between them; written as <see cref="ColumnType"/>
-        /// says, the MTEXT's <see cref="Width"/> (41, and 40 of its embedded object) made the column's, as AutoCAD and ezdxf make
-        /// it. Three columns 12.5 wide with gutters of 2.5 take 42.5 across, the MTEXT 12.5 wide.
+        /// says, the MTEXT's <see cref="Width"/> (41, and 40 of its embedded object) made that of all the columns with their
+        /// gutters from R2018, and a column's before it, as AutoCAD 2021 writes it: two columns 50 wide with a gutter of 10 make
+        /// an MTEXT of R2018 110 wide, and one of R2000 50 wide. Three columns 12.5 wide with gutters of 2.5 take 42.5 across.
         /// </summary>
         /// <param name="width">How wide each column is, a finite number above nought.</param>
         /// <param name="gutter">The space between two columns, a finite number of nought or more.</param>
@@ -939,7 +946,7 @@ namespace GeometryHelper.Dxf
             columns.Count = count;
             columns.Auto = false;
             columns.Heights.Clear();
-            Width = width;
+            Width = Span(columns);
             WriteColumns(columns);
         }
 
@@ -948,7 +955,8 @@ namespace GeometryHelper.Dxf
         /// them, which AutoCAD fills with the words as they flow; all as high as the MTEXT's <see cref="Height"/> where their
         /// height is automatic, else each of its own, given the MTEXT's <see cref="Height"/> to start with and set by
         /// <see cref="SetColumnHeight"/>. The count of columns is kept, 1 where the MTEXT had none; written as
-        /// <see cref="ColumnType"/> says, the MTEXT's <see cref="Width"/> made the column's, as <see cref="SetStaticColumns"/> makes it.
+        /// <see cref="ColumnType"/> says, the MTEXT's <see cref="Width"/> made to agree, as <see cref="SetStaticColumns"/> makes
+        /// it: that of the columns the MTEXT counts, as AutoCAD counts those the words fill only as it lays them out.
         /// </summary>
         /// <param name="width">How wide each column is, a finite number above nought.</param>
         /// <param name="gutter">The space between two columns, a finite number of nought or more.</param>
@@ -965,7 +973,7 @@ namespace GeometryHelper.Dxf
             columns.Gutter = gutter;
             columns.Count = Math.Max(columns.Count, 1);
             columns.Auto = autoHeight;
-            Width = width;
+            Width = Span(columns);
             WriteColumns(columns.Pad(Height));
         }
 
@@ -1349,9 +1357,10 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Gives the column MTEXTs the height of the MTEXT's columns of one height, as ezdxf's <c>set_linked_columns_xdata</c>
-        /// writes them: their own <c>ACAD_MTEXT_DEFINED_HEIGHT</c>, and their group 46 where the MTEXT has one; for columns of
-        /// their own heights, their <c>ACAD_MTEXT_DEFINED_HEIGHT</c> taken out. Nothing where they are as that already.
+        /// Gives the column MTEXTs their heights, as AutoCAD 2021 writes them: for columns of one height, the MTEXT's height in
+        /// their own <c>ACAD_MTEXT_DEFINED_HEIGHT</c>, and in their group 46 where the MTEXT has one; for columns of their own
+        /// heights, each its column's in its <c>ACAD_MTEXT_DEFINED_HEIGHT</c>, the second column the second height; a height of
+        /// nought written as none, the block taken out. Nothing where they are as that already.
         /// </summary>
         private void HeightToColumns()
         {
@@ -1363,26 +1372,14 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            if (columns.Type == DxfColumnType.DynamicColumns && !columns.Auto)
+            bool manual = columns.Type == DxfColumnType.DynamicColumns && !columns.Auto;
+            bool group = !manual && Value(46) != null;
+
+            for (int k = 0; k < linked.Count; k++)
             {
-                foreach (DxfMText column in linked)
-                {
-                    List<DxfTypedValue> data = (column.GetXDataForApplication("ACAD") ?? new DxfTypedValue[0]).Skip(1).ToList();
+                DxfMText column = linked[k];
+                double height = manual ? (k + 1 < columns.Heights.Count ? columns.Heights[k + 1] : 0.0) : Height;
 
-                    if (Cut(data, "ACAD_MTEXT_DEFINED_HEIGHT") >= 0)
-                    {
-                        column.XData = new[] { new DxfTypedValue(1001, "ACAD") }.Concat(data).ToList();
-                    }
-                }
-
-                return;
-            }
-
-            double height = Height;
-            bool group = Value(46) != null;
-
-            foreach (DxfMText column in linked)
-            {
                 if (group && !Same(column.Number(46, double.NaN), height))
                 {
                     column.Set(new KeyValuePair<int, string>(46, Numbers.Exact(height + 0.0)));
@@ -1391,6 +1388,17 @@ namespace GeometryHelper.Dxf
                 List<DxfTypedValue> data = (column.GetXDataForApplication("ACAD") ?? new DxfTypedValue[0]).Skip(1).ToList();
                 int at = Find(data, "ACAD_MTEXT_DEFINED_HEIGHT");
                 int end = at < 0 ? -1 : End(data, at);
+
+                if (!(height > 0.0))
+                {
+                    if (Cut(data, "ACAD_MTEXT_DEFINED_HEIGHT") >= 0)
+                    {
+                        column.XData = new[] { new DxfTypedValue(1001, "ACAD") }.Concat(data).ToList();
+                    }
+
+                    continue;
+                }
+
                 bool same = at >= 0 && data.GetRange(at, end - at + 1).Any(g => g.TypeCode == 1040 && Numbers.TryRead(g.Value, out double now) && Same(now, height));
 
                 if (same)
@@ -1431,7 +1439,9 @@ namespace GeometryHelper.Dxf
 
             if (owner.File != null && columns.Type != DxfColumnType.NoColumns && owner.File.Supports(1032) != columns.Embedded)
             {
-                WriteColumns(columns, owner.File.Supports(1032));
+                bool embedded = owner.File.Supports(1032);
+                WriteColumns(columns, embedded);
+                Width = Span(columns, embedded);
             }
         }
 
@@ -2245,7 +2255,7 @@ namespace GeometryHelper.Dxf
             {
                 GeoVector3 direction = Direction;
                 GeoPoint3 location = Location;
-                double defined = Value(46) != null ? Height : columns.Defined ?? 0.0;
+                double defined = Value(46) != null ? Height : OneHeight(columns);
                 int count = columns.Count;
                 double total = count > 0 ? count * columns.Width + (count - 1) * columns.Gutter : 0.0;
                 bool manual = columns.Type == DxfColumnType.DynamicColumns && !columns.Auto;
@@ -2293,9 +2303,10 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Writes the columns in the extended data of ACAD as ezdxf and AutoCAD write it before R2018: ACAD_MTEXT_COLUMN_INFO
-        /// in its place, or first, and ACAD_MTEXT_DEFINED_HEIGHT after it for columns of one height; the linked columns
-        /// (ACAD_MTEXT_COLUMNS) kept where they are. None takes the three out. The other data of ACAD is kept as it is.
+        /// Writes the columns in the extended data of ACAD as AutoCAD 2021 writes it before R2018: ACAD_MTEXT_COLUMN_INFO in its
+        /// place, or first, and ACAD_MTEXT_DEFINED_HEIGHT after it where the height is above nought, the MTEXT's for columns of
+        /// one height, the first column's for columns of their own heights; the linked columns (ACAD_MTEXT_COLUMNS) kept where
+        /// they are. None takes the three out. The other data of ACAD is kept as it is.
         /// </summary>
         private void WriteColumnData(ColumnSet columns)
         {
@@ -2333,10 +2344,10 @@ namespace GeometryHelper.Dxf
                 }
 
                 info.Add(new DxfTypedValue(1000, "ACAD_MTEXT_COLUMN_INFO_END"));
+                double defined = DefinedToWrite(columns);
 
-                if (!manual)
+                if (defined > 0.0)
                 {
-                    double defined = Value(46) != null ? Height : columns.Defined ?? 0.0;
                     height = new List<DxfTypedValue>
                     {
                         new DxfTypedValue(1000, "ACAD_MTEXT_DEFINED_HEIGHT_BEGIN"),
@@ -2404,16 +2415,45 @@ namespace GeometryHelper.Dxf
             DxfTypedValue Short(int value) => new DxfTypedValue(1070, value.ToString(CultureInfo.InvariantCulture));
         }
 
-        /// <summary>Whether the columns of the extended data read as those to be written, the height of one height among them.</summary>
+        /// <summary>Whether the columns of the extended data read as those to be written, the defined height among them.</summary>
         private bool SameData(ColumnSet now, ColumnSet columns)
         {
             bool manual = columns.Type == DxfColumnType.DynamicColumns && !columns.Auto;
-            double defined = Value(46) != null ? Height : columns.Defined ?? 0.0;
+            double defined = DefinedToWrite(columns);
 
             return now.Type == columns.Type && now.Count == columns.Count && now.Auto == columns.Auto && now.Reversed == columns.Reversed
                 && Same(now.Width, columns.Width) && Same(now.Gutter, columns.Gutter)
-                && (manual ? now.Heights.Count == columns.Heights.Count && now.Heights.Zip(columns.Heights, Same).All(s => s) : now.Heights.Count == 0 && now.Defined.HasValue && Same(now.Defined.Value, defined));
+                && (manual ? now.Heights.Count == columns.Heights.Count && now.Heights.Zip(columns.Heights, Same).All(s => s) : now.Heights.Count == 0)
+                && (defined > 0.0 ? now.Defined.HasValue && Same(now.Defined.Value, defined) : !now.Defined.HasValue);
         }
+
+        /// <summary>
+        /// The height ACAD_MTEXT_DEFINED_HEIGHT holds as AutoCAD 2021 writes it before R2018: the MTEXT's for columns of one
+        /// height, the first column's for columns of their own heights; nought, for none, where the height is nought.
+        /// </summary>
+        private double DefinedToWrite(ColumnSet columns)
+        {
+            if (columns.Type == DxfColumnType.DynamicColumns && !columns.Auto)
+            {
+                return columns.Heights.Count > 0 ? columns.Heights[0] : 0.0;
+            }
+
+            return Value(46) != null ? Height : columns.Defined ?? 0.0;
+        }
+
+        /// <summary>The height of one box of columns as read: the defined height, but for dynamic columns of their own heights, which have none.</summary>
+        private static double OneHeight(ColumnSet columns)
+            => columns.Type == DxfColumnType.DynamicColumns && !columns.Auto ? 0.0 : columns.Defined ?? 0.0;
+
+        /// <summary>
+        /// The width the MTEXT has in its columns, as AutoCAD 2021 writes its group 41: from R2018, in the embedded object, that
+        /// of all the columns with the gutters between them, 110 for two columns 50 wide with a gutter of 10; before it, in the
+        /// extended data, a column's, 50.
+        /// </summary>
+        private double Span(ColumnSet columns) => Span(columns, Item.File.Supports(1032));
+
+        private static double Span(ColumnSet columns, bool embedded)
+            => embedded && columns.Count > 1 ? columns.Count * columns.Width + (columns.Count - 1) * columns.Gutter : columns.Width;
 
         /// <summary>Whether the extended data of ACAD holds a block of a name, between its _BEGIN and _END.</summary>
         private bool HasBlock(string name) => Find((GetXDataForApplication("ACAD") ?? new DxfTypedValue[0]).ToList(), name) >= 0;

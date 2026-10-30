@@ -10,26 +10,33 @@ namespace GeometryHelper.Dxf
     /// </summary>
     /// <remarks>
     /// <para>
-    /// A range's top left cell names its link after its 92, made odd: the DATALINK's handle (340), the range's rows (93) and
-    /// columns (94), and a 96 of nought, before the cell's value (<c>301 CELL_VALUE</c>). The cell (1, 0) of a table linked
-    /// over (1, 0) to (2, 1) holds <c>92 1</c>, <c>340 2F</c>, <c>93 2</c>, <c>94 2</c>, <c>96 0</c>; its other cells hold
-    /// nothing of it. That run is the one LibreDWG gives a cell of a TABLECONTENT, whose 92 says it has linked data; that a cell
-    /// of an ACAD_TABLE names its link so, after the 92 of R2007, is the library's guess, which AutoCAD 2021 does not bear out:
-    /// it names the link in the cell of the TABLECONTENT that the table's extension dictionary holds (ACAD_XREC_ROUNDTRIP,
-    /// an XRECORD of ACAD_ROUNDTRIP_2008_TABLE_ENTITY), by that same run, and reads no link from the ACAD_TABLE's cells. So
-    /// a link AutoCAD made is not read here, and one of the layout guessed is not read by AutoCAD. A link the drawing has no
-    /// DATALINK of is read as none.
+    /// AutoCAD 2021 names a link in the TABLECONTENT it keeps for the table from R2007 on, which the table's extension
+    /// dictionary holds under ACAD_XREC_ROUNDTRIP, through an XRECORD of ACAD_ROUNDTRIP_2008_TABLE_ENTITY: the range's top
+    /// left cell there, after its custom data, has its 92 odd, then the DATALINK's handle (340), the range's rows (93) and
+    /// columns (94) and a 96, its state (90) with the flag 4 of a linked cell. AutoCAD's table F6 linked over (1, 0) to (2, 1),
+    /// which it read back as (1, 0) alone, has in its TABLECONTENT 149 the cell (1, 0) of <c>90 4</c> and <c>92 1</c>,
+    /// <c>340 142</c>, <c>93 1</c>, <c>94 1</c>, <c>96 1</c>, and in its ACAD_TABLE no link at all, <c>92 0</c> in every
+    /// cell. That is read here, while the TABLECONTENT has the table's rows and columns: one a program that does not know it
+    /// left behind as the table changed names none.
     /// </para>
     /// <para>
-    /// Only a text cell (171 of 1) names a link: a block cell's 340 names its block, whatever its 92, and a range whose top
-    /// left cell comes to be a block cell, by rows or columns taken out before it, loses its link. The library writes no new
-    /// link: those of the file are read, moved and copied with their cells, and taken away.
+    /// The same run straight after the 92 of a cell of the ACAD_TABLE, which the library first guessed, is read as well, as
+    /// before; AutoCAD reads no link from it, and reads the cells after such a run awry (its 74-a, saved again, had them a
+    /// cell along). Only a text cell (171 of 1) names a link so: a block cell's 340 names its block, whatever its 92, and a
+    /// range whose top left cell comes to be a block cell, by rows or columns taken out before it, loses its link. Those
+    /// links are moved and copied with their cells; a link of the TABLECONTENT is not: rows or columns put in or taken out
+    /// leave the TABLECONTENT as it was, as before. A link the drawing has no DATALINK of is read as none.
+    /// </para>
+    /// <para>
+    /// The library writes no new link: those of the file are read and taken away, as AutoCAD's <c>RemoveDataLink</c> takes
+    /// them, the TABLECONTENT's cell made unlinked in place, its 92 even, its run out and its flag 4 cleared.
     /// </para>
     /// </remarks>
     public sealed partial class DxfTable
     {
-        // The links of the layout read last, kept with it.
+        // The links of the layout read last, kept with it and with the count of the file's changes they were read at.
         private Layout _linksOf;
+        private int _linksEdits;
         private List<LinkedRange> _links;
 
         #region Data links
@@ -93,14 +100,22 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Takes every data link of the table away, as AutoCAD's <c>RemoveDataLink()</c>: each top left cell's link groups
-        /// taken out, its 92 made even, in one writing of the record. The DATALINK let go of stays in the drawing, in the
+        /// taken out and its 92 made even, in the TABLECONTENT, where the cell's flag 4 of a linked cell is cleared too, and in
+        /// the cells of the ACAD_TABLE, in one writing of each record. The DATALINK let go of stays in the drawing, in the
         /// dictionary of data links, named or anonymous (<see cref="DxfDataLinkOption.Anonymous"/>), as AutoCAD 2021's
         /// <c>RemoveDataLink</c> keeps it, the table and what it owns taken out of the objects it lists itself tied to (its
         /// 94 and their 330s): AutoCAD's link of the table F6 alone, <c>94 2</c>, <c>330 F6</c>, <c>330 149</c>, comes out
         /// <c>94 0</c>. The cells keep what they hold. Nothing where the table has none.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the table has links and is erased.</exception>
-        public void RemoveDataLink() => WriteLinks(ReadToWrite(), new List<LinkedRange>());
+        public void RemoveDataLink()
+        {
+            Layout layout = ReadToWrite();
+            List<LinkedRange> before = AllLinks(layout);
+            WriteLinks(layout, new List<LinkedRange>());
+            TakeOutOfContent(before.FindAll(l => l.Cell != null));
+            LetGo(Handles(before));
+        }
 
         /// <summary>
         /// Takes away the data link of the range a cell is in, as AutoCAD's <c>RemoveDataLink(row, column)</c>, as
@@ -115,24 +130,24 @@ namespace GeometryHelper.Dxf
         {
             Layout layout = ReadToWrite();
             layout.CellOf(row, column);
-            var links = new List<LinkedRange>();
-            bool taken = false;
+            List<LinkedRange> before = AllLinks(layout);
+            LinkedRange taken = before.Find(l => l.Holds(row, column));
 
-            foreach (LinkedRange link in Links(layout))
+            if (taken == null)
             {
-                if (!taken && link.Holds(row, column))
-                {
-                    taken = true;
-                    continue;
-                }
-
-                links.Add(link);
+                return;
             }
 
-            if (taken)
+            if (taken.Cell != null)
             {
-                WriteLinks(layout, links);
+                TakeOutOfContent(new List<LinkedRange> { taken });
             }
+            else
+            {
+                WriteLinks(layout, before.FindAll(l => l.Cell == null && !ReferenceEquals(l, taken)));
+            }
+
+            LetGo(Handles(before));
         }
 
         /// <summary>Whether a range of the table's cells names the DATALINK of a handle.</summary>
@@ -192,30 +207,67 @@ namespace GeometryHelper.Dxf
             return item == null || item.IsRemoved || item.Type != "DATALINK" ? null : OfObject(item) as DxfDataLink;
         }
 
-        /// <summary>The links of the record as it stands, read once for it, as its layout is.</summary>
+        /// <summary>The links of the record and of its TABLECONTENT as they stand, read once for them while the file is not changed.</summary>
         private List<LinkedRange> CurrentLinks()
         {
             Layout layout = Read();
+            int edits = IsResident ? Item.File.EditCount : 0;
 
-            if (!ReferenceEquals(layout, _linksOf))
+            if (!ReferenceEquals(layout, _linksOf) || edits != _linksEdits)
             {
-                _links = Links(layout);
+                _links = AllLinks(layout);
                 _linksOf = layout;
+                _linksEdits = edits;
             }
 
             return _links;
         }
 
         /// <summary>
+        /// The links of the table, those its TABLECONTENT names and those its cells name, by their top left cells row by row, a
+        /// link of the TABLECONTENT before one of the cells at the same cell, then by their bottom right cells and handles.
+        /// </summary>
+        private List<LinkedRange> AllLinks(Layout layout)
+        {
+            List<LinkedRange> links = ContentLinks(layout);
+            links.AddRange(Links(layout));
+            links.Sort((a, b) =>
+            {
+                int by = a.TopRow.CompareTo(b.TopRow);
+                by = by != 0 ? by : a.LeftColumn.CompareTo(b.LeftColumn);
+                by = by != 0 ? by : (a.Cell == null).CompareTo(b.Cell == null);
+                by = by != 0 ? by : a.BottomRow.CompareTo(b.BottomRow);
+                by = by != 0 ? by : a.RightColumn.CompareTo(b.RightColumn);
+                return by != 0 ? by : string.CompareOrdinal(a.Handle, b.Handle);
+            });
+            return links;
+        }
+
+        /// <summary>The handles of links, each once, in their order.</summary>
+        private static List<string> Handles(List<LinkedRange> links)
+        {
+            var handles = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (LinkedRange link in links)
+            {
+                if (seen.Add(link.Handle))
+                {
+                    handles.Add(link.Handle);
+                }
+            }
+
+            return handles;
+        }
+
+        /// <summary>
         /// Writes the links given into the text cells in one writing of the record: each top left cell of one naming it, every
-        /// other text cell naming none; a block cell, and a cell that holds what it is to, as it is. A DATALINK the cells let go
-        /// of stays in the drawing, as AutoCAD's <c>RemoveDataLink</c> leaves it. Nothing is written where the record comes out
-        /// the same.
+        /// other text cell naming none; a block cell, and a cell that holds what it is to, as it is. Nothing is written where
+        /// the record comes out the same.
         /// </summary>
         private void WriteLinks(Layout layout, IList<LinkedRange> links)
         {
             DxfDimGroups g = layout.Groups;
-            List<string> before = LinkHandles(layout);
             LinkedRange[] anchored = Anchors(layout.CellStart.Count, layout.Columns, links);
             int first = layout.CellStart.Count > 0 ? layout.CellStart[0] : layout.CellsEnd;
             var list = new List<KeyValuePair<int, string>>(g.List.Count + 5 * links.Count);
@@ -245,7 +297,6 @@ namespace GeometryHelper.Dxf
             {
                 CheckEditable();
                 g.Write(Order);
-                LetGo(before);
             }
         }
 
@@ -265,7 +316,7 @@ namespace GeometryHelper.Dxf
             }
 
             DxfFile file = Item.File;
-            var held = new HashSet<string>(LinkHandles(Read()), StringComparer.OrdinalIgnoreCase);
+            var held = new HashSet<string>(Handles(CurrentLinks()), StringComparer.OrdinalIgnoreCase);
 
             foreach (string handle in dropped)
             {
@@ -395,8 +446,8 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                // The cells of the table as it stands now, read once, and only where a link was let go of.
-                held = held ?? new HashSet<string>(LinkHandles(Read()), StringComparer.OrdinalIgnoreCase);
+                // The links of the table as it stands now, read once, and only where a link was let go of.
+                held = held ?? new HashSet<string>(Handles(CurrentLinks()), StringComparer.OrdinalIgnoreCase);
 
                 if (held.Contains(handle))
                 {
@@ -429,6 +480,271 @@ namespace GeometryHelper.Dxf
                     DxfDBDictionary.EraseFromOwner(OfObject(items[k]), file);
                 }
             }
+        }
+
+        #endregion
+
+        #region The links of the TABLECONTENT
+
+        /// <summary>
+        /// The links the TABLECONTENT of the table names, by their cells row by row: each cell whose 92 after its custom data is
+        /// odd and followed by a handle (340), its range of the rows (93) and columns (94) after it, one where it gives none, cut
+        /// at the table's last row and column; none where the table has no TABLECONTENT, or one of other rows or columns.
+        /// </summary>
+        private List<LinkedRange> ContentLinks(Layout layout)
+        {
+            var links = new List<LinkedRange>();
+            DxfItem content = IsResident ? ContentItem() : null;
+
+            if (content == null)
+            {
+                return links;
+            }
+
+            IReadOnlyList<DxfTypedValue> groups = Item.File.GroupsOf(content);
+            var cells = new List<ContentCell>();
+            var widths = new List<int>();
+
+            for (int i = 0; i < groups.Count; i++)
+            {
+                if (groups[i].TypeCode != 1)
+                {
+                    continue;
+                }
+
+                string marker = groups[i].Value.Trim();
+
+                if (marker == "LINKEDTABLEDATAROW_BEGIN")
+                {
+                    widths.Add(0);
+                }
+                else if (marker == "LINKEDTABLEDATACELL_BEGIN" && widths.Count > 0)
+                {
+                    int row = widths.Count - 1;
+                    int column = widths[row]++;
+                    i = ReadCell(groups, i, row, column, cells);
+                }
+            }
+
+            if (widths.Count != layout.Rows || widths.Exists(w => w != layout.Columns))
+            {
+                return links;
+            }
+
+            foreach (ContentCell cell in cells)
+            {
+                links.Add(new LinkedRange(cell.Row, cell.Column, (int)Math.Min(layout.Rows - 1, cell.Row + cell.Rows - 1), (int)Math.Min(layout.Columns - 1, cell.Column + cell.Columns - 1), cell.Handle, cell));
+            }
+
+            return links;
+        }
+
+        /// <summary>
+        /// The field of a cell's first content in the TABLECONTENT of the table (its content of type 2 and the 340 after it),
+        /// where AutoCAD keeps a formula; null where the table has no TABLECONTENT of its rows and columns, or the cell's first
+        /// content is no field.
+        /// </summary>
+        private string ContentFieldOf(int row, int column)
+        {
+            Layout layout = Read();
+            DxfItem content = ContentItem();
+
+            if (content == null)
+            {
+                return null;
+            }
+
+            IReadOnlyList<DxfTypedValue> groups = Item.File.GroupsOf(content);
+            var widths = new List<int>();
+            string found = null;
+
+            for (int i = 0; i < groups.Count; i++)
+            {
+                string marker = groups[i].TypeCode == 1 ? groups[i].Value.Trim() : null;
+
+                if (marker == "LINKEDTABLEDATAROW_BEGIN")
+                {
+                    widths.Add(0);
+                }
+                else if (marker == "LINKEDTABLEDATACELL_BEGIN" && widths.Count > 0)
+                {
+                    int r = widths.Count - 1;
+                    int c = widths[r]++;
+
+                    if (r != row || c != column)
+                    {
+                        continue;
+                    }
+
+                    // The cell's first content after its 92: CONTENT, CELLCONTENT_BEGIN, its type 2 of a field, the field.
+                    int at = i + 1;
+
+                    while (at < groups.Count && !(groups[at].TypeCode == 309 && groups[at].Value.Trim() == "LINKEDTABLEDATACELL_END") && !(groups[at].TypeCode == 1 && groups[at].Value.Trim() == "CELLCONTENT_BEGIN"))
+                    {
+                        at++;
+                    }
+
+                    found = at + 2 < groups.Count && groups[at].TypeCode == 1 && groups[at + 1].TypeCode == 90 && groups[at + 1].Value.Trim() == "2" && groups[at + 2].TypeCode == 340 ? groups[at + 2].Value.Trim() : null;
+                }
+            }
+
+            return widths.Count == layout.Rows && !widths.Exists(w => w != layout.Columns) ? found : null;
+        }
+
+        /// <summary>
+        /// Reads a cell of a TABLECONTENT from its LINKEDTABLEDATACELL_BEGIN: its state (the 90 after it), and the 92 after the
+        /// end of its custom data (DATAMAP_END) with the run of its link where that is odd; a cell that names a link is added.
+        /// Gives where the reading stopped, its custom data's end or the cell's.
+        /// </summary>
+        private static int ReadCell(IReadOnlyList<DxfTypedValue> groups, int begin, int row, int column, List<ContentCell> cells)
+        {
+            int flagAt = begin + 1 < groups.Count && groups[begin + 1].TypeCode == 90 ? begin + 1 : -1;
+            int end = begin + 1;
+
+            while (end < groups.Count && !(groups[end].TypeCode == 309 && (groups[end].Value.Trim() == "DATAMAP_END" || groups[end].Value.Trim() == "LINKEDTABLEDATACELL_END")))
+            {
+                end++;
+            }
+
+            int at = end + 1;
+
+            if (end >= groups.Count || groups[end].Value.Trim() != "DATAMAP_END" || at >= groups.Count || groups[at].TypeCode != 92
+                || !int.TryParse(groups[at].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int linked) || (linked & 1) == 0
+                || at + 1 >= groups.Count || groups[at + 1].TypeCode != 340 || groups[at + 1].Value.Trim().Length == 0)
+            {
+                return end;
+            }
+
+            int next = at + 1;
+
+            foreach (int code in new[] { 340, 93, 94, 96 })
+            {
+                next += next < groups.Count && groups[next].TypeCode == code ? 1 : 0;
+            }
+
+            long rows = at + 2 < next && groups[at + 2].TypeCode == 93 ? Count(groups[at + 2].Value) : 1;
+            int wideAt = at + 2 < next && groups[at + 2].TypeCode == 93 ? at + 3 : at + 2;
+            long wide = wideAt < next && groups[wideAt].TypeCode == 94 ? Count(groups[wideAt].Value) : 1;
+            cells.Add(new ContentCell(row, column, flagAt, at, next - at - 1, groups[at + 1].Value.Trim(), rows, wide));
+            return end;
+        }
+
+        /// <summary>
+        /// The TABLECONTENT AutoCAD keeps for the table: the one the XRECORD of ACAD_ROUNDTRIP_2008_TABLE_ENTITY points at
+        /// (360), which the table's extension dictionary holds under ACAD_XREC_ROUNDTRIP; null where there is none.
+        /// </summary>
+        private DxfItem ContentItem()
+        {
+            DxfFile file = Item.File;
+            DxfItem dictionary = file.ObjectItem(file.ExtensionDictionaryOf(Item));
+            DxfItem record = dictionary == null || dictionary.Type != "DICTIONARY" ? null : file.ObjectItem(EntryOf(file.GroupsOf(dictionary), "ACAD_XREC_ROUNDTRIP"));
+
+            if (record == null || record.Type != "XRECORD")
+            {
+                return null;
+            }
+
+            IReadOnlyList<DxfTypedValue> groups = file.GroupsOf(record);
+
+            for (int i = 0; i + 1 < groups.Count; i++)
+            {
+                if (groups[i].TypeCode == 102 && groups[i].Value.Trim() == "ACAD_ROUNDTRIP_2008_TABLE_ENTITY")
+                {
+                    DxfItem content = groups[i + 1].TypeCode == 360 ? file.ObjectItem(groups[i + 1].Value) : null;
+                    return content != null && content.Type == "TABLECONTENT" ? content : null;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>The handle of the entry of a name of a dictionary's groups: the 350 or 360 after its 3; null where it has none.</summary>
+        private static string EntryOf(IReadOnlyList<DxfTypedValue> groups, string name)
+        {
+            for (int i = 0; i + 1 < groups.Count; i++)
+            {
+                if (groups[i].TypeCode == 3 && string.Equals(groups[i].Value, name, StringComparison.Ordinal)
+                    && (groups[i + 1].TypeCode == 350 || groups[i + 1].TypeCode == 360))
+                {
+                    return groups[i + 1].Value;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Makes cells of the TABLECONTENT unlinked, as AutoCAD's <c>RemoveDataLink</c>: each one's 92 made even and the run of
+        /// its link (340, 93, 94, 96) taken out, its state's flag 4 of a linked cell cleared, in one writing of the record, every
+        /// other group kept as it is.
+        /// </summary>
+        private void TakeOutOfContent(List<LinkedRange> links)
+        {
+            if (links.Count == 0)
+            {
+                return;
+            }
+
+            CheckEditable();
+            DxfItem content = ContentItem();
+
+            if (content == null)
+            {
+                return;
+            }
+
+            var cells = links.ConvertAll(l => l.Cell);
+            cells.Sort((a, b) => b.LinkAt.CompareTo(a.LinkAt));
+            int from = cells[cells.Count - 1].FlagAt >= 0 ? cells[cells.Count - 1].FlagAt : cells[cells.Count - 1].LinkAt;
+            List<DxfTypedValue> tail = Item.File.TailOf(content, from);
+            var groups = tail.ConvertAll(g => new KeyValuePair<int, string>(g.TypeCode, g.Value));
+
+            foreach (ContentCell cell in cells)
+            {
+                int at = cell.LinkAt - from;
+                int linked = int.TryParse(groups[at].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int read) ? read : 1;
+                groups[at] = new KeyValuePair<int, string>(92, (linked & ~1).ToString(CultureInfo.InvariantCulture));
+                groups.RemoveRange(at + 1, cell.Run);
+
+                if (cell.FlagAt >= 0 && int.TryParse(groups[cell.FlagAt - from].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int flags) && (flags & 4) != 0)
+                {
+                    groups[cell.FlagAt - from] = new KeyValuePair<int, string>(90, (flags & ~4).ToString(CultureInfo.InvariantCulture));
+                }
+            }
+
+            Item.File.ReplaceTail(content, from, groups);
+        }
+
+        /// <summary>A cell of a TABLECONTENT that names a link: where its state (90) and its 92 stand among the record's groups, and the run of its link after the 92.</summary>
+        private sealed class ContentCell
+        {
+            internal ContentCell(int row, int column, int flagAt, int linkAt, int run, string handle, long rows, long columns)
+            {
+                Row = row;
+                Column = column;
+                FlagAt = flagAt;
+                LinkAt = linkAt;
+                Run = run;
+                Handle = handle;
+                Rows = rows;
+                Columns = columns;
+            }
+
+            internal int Row { get; }
+
+            internal int Column { get; }
+
+            internal int FlagAt { get; }
+
+            internal int LinkAt { get; }
+
+            internal int Run { get; }
+
+            internal string Handle { get; }
+
+            internal long Rows { get; }
+
+            internal long Columns { get; }
         }
 
         #endregion
@@ -677,16 +993,17 @@ namespace GeometryHelper.Dxf
             return links;
         }
 
-        /// <summary>A range of cells linked to the DATALINK of a handle.</summary>
+        /// <summary>A range of cells linked to the DATALINK of a handle, by a cell of the TABLECONTENT or of the table's own.</summary>
         private sealed class LinkedRange
         {
-            internal LinkedRange(int topRow, int leftColumn, int bottomRow, int rightColumn, string handle)
+            internal LinkedRange(int topRow, int leftColumn, int bottomRow, int rightColumn, string handle, ContentCell cell = null)
             {
                 TopRow = topRow;
                 LeftColumn = leftColumn;
                 BottomRow = bottomRow;
                 RightColumn = rightColumn;
                 Handle = handle;
+                Cell = cell;
             }
 
             internal int TopRow { get; }
@@ -698,6 +1015,9 @@ namespace GeometryHelper.Dxf
             internal int RightColumn { get; }
 
             internal string Handle { get; }
+
+            /// <summary>The cell of the TABLECONTENT that names the link; null for a link a cell of the table's own names.</summary>
+            internal ContentCell Cell { get; }
 
             internal DxfCellRange Range => new DxfCellRange(TopRow, LeftColumn, BottomRow, RightColumn);
 

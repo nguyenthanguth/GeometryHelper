@@ -420,10 +420,10 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets whether the INSERT is exploded as a block reference, as AutoCAD's <c>TreatAsBlockRefForExplode</c>: true for
-        /// every INSERT and MINSERT, which <see cref="Explode"/> breaks into its block's entities, a MINSERT of more than one
-        /// cell aside, which it refuses as AutoCAD does.
+        /// every INSERT, which <see cref="Explode"/> breaks into its block's entities; false for a MINSERT, of one cell or more,
+        /// which it refuses, as AutoCAD 2021 gave false for its MINSERTs of 3 by 2 cells and of one.
         /// </summary>
-        public bool TreatAsBlockRefForExplode => true;
+        public bool TreatAsBlockRefForExplode => !(this is DxfMInsertBlock);
 
         /// <summary>
         /// Gets whether the INSERT places a dynamic block, as AutoCAD's <c>IsDynamicBlock</c>: its block is one (its
@@ -467,8 +467,9 @@ namespace GeometryHelper.Dxf
         /// gives them.
         /// </summary>
         /// <returns>The box, in the coordinates of the file.</returns>
-        /// <exception cref="InvalidOperationException">Thrown when the INSERT places no shape the library reads, or would place
-        /// more than the 2 000 000 entities of <see cref="DxfReadOptions.MaxPlacedEntities"/>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the INSERT is a MINSERT, as AutoCAD 2021 refused one of one
+        /// cell and one of six (eInvalidExtents), places no shape the library reads, or would place more than the 2 000 000
+        /// entities of <see cref="DxfReadOptions.MaxPlacedEntities"/>.</exception>
         public GeoAabb3 GeometryExtentsBestFit() => GeometryExtentsBestFit(GeoTransform3.Identity);
 
         /// <summary>
@@ -483,13 +484,14 @@ namespace GeometryHelper.Dxf
         /// <remarks>
         /// The identity gives <see cref="DxfEntity.GeometricExtents"/> of an INSERT of a drawing; any other transformation, or
         /// an INSERT in no drawing, the box of the entities of <see cref="Explode"/> each moved by it, those of every cell of a
-        /// MINSERT, an INSERT among them exploded in its turn, so that what the block now holds is what is measured.
+        /// MINSERT inside the block, an INSERT among them exploded in its turn, so that what the block now holds is what is
+        /// measured. A MINSERT itself is refused, as AutoCAD 2021's <c>GeometryExtentsBestFit</c> refused it.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the transformation flattens or shears an entity of the block that
         /// cannot hold it, or the block inserts itself.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when the INSERT places no shape the library reads, its drawing has
-        /// no block of its name, or it would place more than the 2 000 000 entities of
+        /// <exception cref="InvalidOperationException">Thrown when the INSERT is a MINSERT, places no shape the library reads, its
+        /// drawing has no block of its name, or it would place more than the 2 000 000 entities of
         /// <see cref="DxfReadOptions.MaxPlacedEntities"/>.</exception>
         public GeoAabb3 GeometryExtentsBestFit(GeoTransform3 parentTransform)
         {
@@ -498,14 +500,28 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(parentTransform));
             }
 
+            if (this is DxfMInsertBlock)
+            {
+                throw new InvalidOperationException("A MINSERT has no extents best fit, as AutoCAD 2021's GeometryExtentsBestFit refused its MINSERTs (eInvalidExtents): GeometricExtents gives its first cell's.");
+            }
+
             if (IsResident && DxfOcsTransform.IsIdentity(parentTransform))
             {
                 return GeometricExtents;
             }
 
+            return Box(parentTransform, false);
+        }
+
+        /// <summary>
+        /// The box of what the INSERT explodes into, each entity moved by a transformation, an INSERT among them measured in its
+        /// turn: of its first cell alone, or of every cell of a MINSERT.
+        /// </summary>
+        private protected GeoAabb3 Box(GeoTransform3 transform, bool firstCell)
+        {
             double[] box = null;
             var walk = new Walk(Name, BlockToExplode(Item.File).Name);
-            Measure(this, parentTransform, walk, ref box);
+            Measure(this, transform, walk, firstCell, ref box);
 
             if (box == null)
             {
@@ -771,10 +787,11 @@ namespace GeometryHelper.Dxf
         [DxfType("INSERT")]
         internal static DxfEntity Create(DxfItem item) => IsArray(item) ? null : new DxfBlockReference(item);
 
-        /// <summary>Whether an INSERT is an array, a MINSERT: more than one column (70) or row (71).</summary>
-        internal static bool IsArray(DxfItem item)
-            => (int.TryParse(item.File.ValueOf(item, 70)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int columns) && columns > 1)
-            || (int.TryParse(item.File.ValueOf(item, 71)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int rows) && rows > 1);
+        /// <summary>
+        /// Whether an INSERT is an array, a MINSERT: its marker AcDbMInsertBlock, as AutoCAD 2021 read a MINSERT of one cell, or
+        /// more than one column (70) or row (71), as a record of R12, which has no marker, says it.
+        /// </summary>
+        internal static bool IsArray(DxfItem item) => item.File.IsArrayInsert(item);
 
         /// <summary>
         /// Refuses a block of no drawing or another, a layout, one erased, or one that would make the block it is added to insert itself;
@@ -912,9 +929,9 @@ namespace GeometryHelper.Dxf
         /// being measured are held on a stack of their own rather than the thread's, each with the name of its block, so that
         /// 3 000 blocks nested one inside the next are measured as one is.
         /// </summary>
-        private static void Measure(DxfBlockReference insert, GeoTransform3 transform, Walk walk, ref double[] box)
+        private static void Measure(DxfBlockReference insert, GeoTransform3 transform, Walk walk, bool firstCell, ref double[] box)
         {
-            IReadOnlyList<DxfEntity> first = insert.EveryCell();
+            IReadOnlyList<DxfEntity> first = firstCell ? insert.FirstCell() : insert.EveryCell();
             walk.Spend(first.Count);
             var nesting = new Stack<KeyValuePair<IEnumerator<DxfEntity>, string>>();
             nesting.Push(new KeyValuePair<IEnumerator<DxfEntity>, string>(first.GetEnumerator(), null));

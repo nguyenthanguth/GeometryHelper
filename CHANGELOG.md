@@ -6,23 +6,57 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A table's data link is read where AutoCAD 2021 keeps it, in the TABLECONTENT of the table's extension dictionary
+(ACAD_XREC_ROUNDTRIP, an XRECORD of ACAD_ROUNDTRIP_2008_TABLE_ENTITY), from the cell whose 92 after its custom data is odd:
+`GetDataLink`, `GetDataLinkRange`, `IsLinked` and `GetTargets` read AutoCAD's link of the table F6 over (1, 0) to (1, 0),
+as AutoCAD reads it back, where they read none; one of a TABLECONTENT of other rows or columns than the table's is not.
+`RemoveDataLink` takes such a link away in place, the cell's 92 made even, its run 340, 93, 94, 96 taken out and the flag 4
+of a linked cell cleared, the DATALINK kept and tied to nothing (`94 0`), as AutoCAD's `RemoveDataLink` leaves it. A link
+of the cells of the ACAD_TABLE, the library's guess of before, is still read. `GetFormula` of a cell whose 344 names no
+record, as AutoCAD wrote its linked cell's, reads the field of the cell in the TABLECONTENT, `=1+2` where it read none.
+Reading a cell of AutoCAD's linked table first takes 0.71 ms with the drawing's parse where 0.65 on .NET Framework 4.8, 0.51
+where 0.44 on .NET 10. 4 new tests.
+
+**CHANGED.** `SetFormula` writes the cell's 344 after its 145 and before its 92, as AutoCAD 2021 wrote the formula of a cell,
+where it went after the 92. 1 new test, 1 changed.
+
+**CHANGED.** An MTEXT of R2018 set in columns by `SetStaticColumns`, `SetDynamicColumns`, `ColumnCount`, `ColumnWidth` or
+`ColumnGutterWidth` is given the width of all the columns it counts with their gutters (41, and 40 of its embedded object),
+as AutoCAD 2021 writes it: two columns 50 wide with a gutter of 10 make 110, where 50; one of R2000 keeps a column's, and a
+copy into the other form takes the other width. Before R2018 `ACAD_MTEXT_DEFINED_HEIGHT` is written only for a height
+above nought, and for dynamic columns of their own heights holds the first column's, each linked column MTEXT its own, as
+AutoCAD writes them, where a height of nought was written and columns of their own heights had none; their `Height` is
+nought. Setting columns takes 180 microseconds where 134 on .NET Framework 4.8, 190 where 137 on .NET 10. 4 new tests, 4
+changed.
+
+**CHANGED.** `DxfViewport.Number` is -1 for a viewport turned off, as AutoCAD 2021 gives it, where it gave the id of group 69;
+a viewport on keeps its id, and the id of one off is still not given to a new one. 1 new test, 5 changed.
+
 **CHANGED.** `SummaryInfo` of a drawing of R2004 or later is kept in its header, as AutoCAD 2021 saves one of R2018: set, its
 texts go to `$TITLE`, `$SUBJECT`, `$AUTHOR`, `$KEYWORDS`, `$COMMENTS` and `$REVISIONNUMBER`, an empty one leaving its
 variable out, and each custom property to a `$CUSTOMPROPERTYTAG` followed by a `$CUSTOMPROPERTY`, as many as there are,
-where they went to a DWGPROPS of ten at most; a DWGPROPS the drawing had is taken out, as AutoCAD saved the library's 26-a
+after `$DWGCODEPAGE`, the header's `$LASTSAVEDBY` kept before `$REVISIONNUMBER` as AutoCAD 2021 orders them in R2004,
+R2010 and R2018, where they went to a DWGPROPS of ten at most; a DWGPROPS the drawing had is taken out, as AutoCAD saved the library's 26-a
 of R2018 without it. Read, a drawing with no DWGPROPS gives the custom properties of its header in their order, Project and
 Checked by of AutoCAD's 26-a, where it gave none. A drawing of R2000 keeps its DWGPROPS, as AutoCAD saves one. Reading the
 properties of a drawing of R2018 takes 16 microseconds where 13 on .NET Framework 4.8, and 19 where 13 on .NET 10. 5 new
 tests, 4 changed.
 
-**CHANGED.** `Explode()` of a MINSERT of more than one cell throws `NotSupportedException`, as AutoCAD 2021's refused a MINSERT
-of a circle in 2 rows by 3 columns (eNotApplicable), where it gave the block in every cell, six circles; its
-`ExplodeToOwnerSpace()` appends the first cell's entities, one circle at the insertion point, as AutoCAD's did, where it was
-refused. `GeometryExtentsBestFit` still measures every cell, and a MINSERT of one cell explodes as an INSERT. 3 new tests, 3
+**CHANGED.** `Explode()` of a MINSERT, of one cell or more, throws `NotSupportedException`, as AutoCAD 2021's refused a
+MINSERT of a circle in 2 rows by 3 columns and one of one cell (eNotApplicable), where it gave the block in every cell, six
+circles; its `ExplodeToOwnerSpace()` appends the first cell's entities, one circle at the insertion point, as AutoCAD's did,
+where it was refused. Its `TreatAsBlockRefForExplode` is false, its `GeometryExtentsBestFit` throws
+`InvalidOperationException` (AutoCAD: eInvalidExtents) and its `GeometricExtents` is its first cell's, (-3, -3, 0) to (3, 3,
+0) for the circle of radius 3, where they measured every cell; `UpdateExt` still takes in every cell. An INSERT of the
+subclass AcDbMInsertBlock is a `DxfMInsertBlock` of one cell too, as AutoCAD reads it, where it was a `DxfBlockReference`.
+Reading a drawing of 20 000 INSERTs takes 46 ms where 53 on .NET Framework 4.8, 24 where 26 on .NET 10. 5 new tests, 6
 changed.
 
-**FIXED.** `ToPolylineWithPrecision` of a periodic spline has each of its knots in the place of the vertex nearest it, and of
-a closed spline its last vertex on its first, the polyline closed, as AutoCAD 2021 gives them: the closed cubic through
+**FIXED.** `ToPolylineWithPrecision` of a periodic spline of fit points has each of its knots, one after another, in the
+place of the vertex nearest it, the later of two as near, a later knot taking the place an earlier one took, and of a closed
+spline its last vertex on its first, the polyline closed, as AutoCAD 2021 gives them; a closed spline of no fit points, as a
+DXF of AutoCAD keeps one, is the halving alone, (0, 0), (34.42, -3.51), (50.86, 28.40), (18.15, 30.49) at 0, as AutoCAD read
+it back. The closed cubic through
 (0, 0), (40, 0), (50, 30) and (10, 25), its knots the lengths of the chords, gives 5, 9, 15, 17, 30, 48, 86, 252 and 493
 vertices at 0, 1, 2, 3, 5, 10, 20, 50 and 99, where 4, 8, 14, 16, 29, 47, 85, 251 and 492, and at 0 the four points it runs
 through and the first again, where its points at a quarter, a half and three quarters of its range, (34.42, -3.51) the

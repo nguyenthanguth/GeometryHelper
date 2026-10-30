@@ -95,7 +95,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfViewport off = ByHandle<DxfViewport>(db, "41");
             Assert.False(off.On);
-            Assert.Equal(4, off.Number);
+            Assert.Equal(-1, off.Number);
             Assert.Equal(1, ByHandle<DxfViewport>(db, "3F").Number);
         }
 
@@ -370,7 +370,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(DxfStandardScaleType.Scale1To50, viewport.StandardScale);
             Assert.Equal(sheet.Handle, viewport.OwnerHandle);
             DxfDatabase again = DxfDatabase.Parse(db.ToText());
-            Assert.Equal(new[] { 1, 3, 4, 2 }, again.Layouts[2].GetViewports().Select(v => v.Number));
+            Assert.Equal(new[] { 1, 3, -1, 2 }, again.Layouts[2].GetViewports().Select(v => v.Number));
             Assert.True(again.Layouts[2].GetViewports()[3].On);
         }
 

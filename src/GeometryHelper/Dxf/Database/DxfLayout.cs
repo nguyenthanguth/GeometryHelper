@@ -443,7 +443,7 @@ namespace GeometryHelper.Dxf
 
             foreach (DxfViewport existing in others)
             {
-                if (existing.Number == 1)
+                if (existing.Id == 1)
                 {
                     return existing;
                 }
@@ -494,7 +494,7 @@ namespace GeometryHelper.Dxf
 
             if (at >= 0 && !IsErased && string.Equals(PartValue(Marker, 331)?.Trim(), handle, StringComparison.OrdinalIgnoreCase))
             {
-                DxfViewport sheet = GetViewports().FirstOrDefault(v => v.Number == 1 && !v.IsErased && v.Handle != null && !string.Equals(v.Handle, handle, StringComparison.OrdinalIgnoreCase));
+                DxfViewport sheet = GetViewports().FirstOrDefault(v => v.Id == 1 && !v.IsErased && v.Handle != null && !string.Equals(v.Handle, handle, StringComparison.OrdinalIgnoreCase));
 
                 if (sheet != null)
                 {

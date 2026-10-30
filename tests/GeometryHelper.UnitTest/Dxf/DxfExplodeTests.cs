@@ -88,9 +88,10 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AMInsertOfSixCells_IsNotExploded_ButMeasuredInEveryCell_AndExplodedIntoItsOwnerGivesItsFirstCell()
+        public void AMInsertOfSixCells_IsNotExploded_MeasuresItsFirstCell_AndExplodedIntoItsOwnerGivesItsFirstCell()
         {
-            // As AutoCAD 2021's Explode refused a MINSERT of 3 by 2 and its ExplodeToOwnerSpace gave its first cell (D15).
+            // As AutoCAD 2021's Explode refused a MINSERT of 3 by 2 and its ExplodeToOwnerSpace gave its first cell (D15), its
+            // GeometricExtents gave its first cell's and its GeometryExtentsBestFit refused it (D16).
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
             var ring = new DxfBlockTableRecord { Name = "GH_RING" };
             db.BlockTable.Add(ring);
@@ -99,8 +100,9 @@ namespace GeometryHelper.UnitTest.Dxf
             db.ModelSpace.AppendEntity(array);
 
             Assert.Throws<NotSupportedException>(() => array.Explode());
-            GeoAabb3 box = array.GeometryExtentsBestFit(GeoTransform3.Translation(new GeoVector3(0, 0, 1)));
-            Assert.Equal(new[] { 98.0, -2.0, 182.0, 27.0 }, new[] { box.Min.X, box.Min.Y, box.Max.X, box.Max.Y }.Select(v => Math.Round(v, 9)));
+            Assert.Throws<InvalidOperationException>(() => array.GeometryExtentsBestFit(GeoTransform3.Translation(new GeoVector3(0, 0, 1))));
+            GeoAabb3 box = array.GeometricExtents;
+            Assert.Equal(new[] { 98.0, -2.0, 102.0, 2.0 }, new[] { box.Min.X, box.Min.Y, box.Max.X, box.Max.Y }.Select(v => Math.Round(v, 9)));
 
             DxfEntity[] before = db.ModelSpace.ToArray();
             array.ExplodeToOwnerSpace();

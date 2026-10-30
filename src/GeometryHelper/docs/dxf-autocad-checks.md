@@ -103,6 +103,17 @@ written as AutoCAD reads them now.
      110 for two of 50 and a gutter of 10, and sets the dynamic columns of no height in 13 columns; in R2000 it keeps 41 the
      width of a column, as the library does, but saved as R2000 itself writes each column after the first as an MTEXT of its
      own (`ACAD_MTEXT_COLUMNS_BEGIN`). Not changed yet.
+   - AutoCAD 2021 (its saves of 09-a as R2018 and R2000): the static columns, 41 and the embedded 40 and 42 110; the dynamic
+     ones of no height in 13 columns (41 770) and those 15 and 25 high in 3 (41 170, a third height of 0), as it laid the
+     words out; in R2000 no `ACAD_MTEXT_DEFINED_HEIGHT` for a height of nought, and for the columns of their own heights
+     the first column's, 15, after the heights, each later column's on its own MTEXT (25 on the second, none on the third).
+   - Now (D16): `SetStaticColumns`, `SetDynamicColumns`, `ColumnCount`, `ColumnWidth` and `ColumnGutterWidth` make the 41 of
+     an MTEXT of R2018 (and its embedded 40) the width of all the columns the MTEXT counts with their gutters, 110 for two
+     of 50 apart by 10, and keep a column's before R2018; a copy into the other form takes the other width.
+     `ACAD_MTEXT_DEFINED_HEIGHT` is written where the height is above nought, the first column's for columns of their own
+     heights, each linked column MTEXT its own; `Height` of such columns is nought, as AutoCAD's R2018 save gives (46 0).
+     The count of dynamic columns AutoCAD works out as it lays the words out, and its linked column MTEXTs of R2000, are
+     not made: the library has no fonts.
 
 10. **Linked columns copied into R2018.**
     - Try: copy an MTEXT of linked columns of R2000 into a drawing of R2018 with the library, and open it.
@@ -212,6 +223,17 @@ written as AutoCAD reads them now.
       (0.418 from (0, 0) to (40, 0) at 0, where the span from 0 to 40 turns as 0.480). Every count, and every vertex and bulge
       at 0 and 10, to 1E-12.
     - Now: so does the library for a periodic spline, and keeps the last vertex of a closed one on its first (D15).
+    - AutoCAD 2021 (plugin v8, 17f): the same cubic as the library wrote it in 17-f, of no fit points (as AutoCAD's own DXF
+      of v7 keeps it), read back with `IsPeriodic` false and `NumFitPoints` 0, is the halving alone at every precision,
+      (0, 0), (34.42, -3.51), (50.86, 28.40), (18.15, 30.49) and the first again at 0, the counts and bulges as before; the
+      knots stood in place only in v7's cubic, which ran through its fit points. Two periodic cubics of fit points: through
+      (0, 0), (30, 0), (30, 15), (20, 15), knots 0, 30, 45, 55, 80, at 0 the parameters 0, 20, 45, 55, 80 (the knot 30,
+      halfway between 20 and 40, at neither, 45 in the place of 40); through (0, 0), (40, 0), (40.5, 0.5), (50, 30),
+      (10, 25), at 0 0, 40.71, 71.70, 112.01, 138.94 (the knot 40.71 in the place of 34.73, where the knot 40, nearer it,
+      would stand); every vertex at 10 too (54 and 51).
+    - Now (D16): a periodic spline of fit points has each knot, one after another, in the place of the vertex nearest it,
+      the later of two as near, a later knot taking the place an earlier one took; any other closed spline is the halving
+      alone, its last vertex on its first. Every vertex of the four polylines of 17f at 0 and 10, and of 17-f's, to 1E-9.
     - Degree 4, 5 and rational, parked: the tolerance the counts fit is the larger of 1 / M and the spline's length over
       10 000, over (p + 1)^2: the quartic (M 120, length 47.7) takes 1 / M, every one of its nine counts; the quintic Bezier
       (M 400, length 55.00), the quintic of two spans (M 223.6, length 70.085), the rational cubics 1, 2, 2, 1 (M 600, length
@@ -308,6 +330,13 @@ written as AutoCAD reads them now.
       header's form.
     - Still open: where AutoCAD puts `$SUBJECT`, `$KEYWORDS`, `$COMMENTS`, `$REVISIONNUMBER` and `$LASTSAVEDBY` among the
       others, which its files here do not hold, and whether it reads more than ten custom properties.
+    - AutoCAD 2021 (plugin v8): reads all three files of after-d15, the twelve custom properties of 26-e among them; saved as
+      R2018, R2010 and R2004, after `$DWGCODEPAGE`: `$TITLE`, `$SUBJECT`, `$AUTHOR`, `$KEYWORDS`, `$COMMENTS`,
+      `$LASTSAVEDBY`, `$REVISIONNUMBER`, then the pairs; saved as R2000, the twelve in a DWGPROPS, ten in 300 to 309 and
+      the two more as 300 after the count, `90 12`.
+    - Now (D16): the header's `$LASTSAVEDBY` moved into the run before `$REVISIONNUMBER`, its value kept, and the run after
+      `$DWGCODEPAGE`, as AutoCAD writes it. A DWGPROPS of R2000 still takes ten custom properties at most (parked: the two
+      more after the 90 that AutoCAD writes are not written yet).
 
 27. **Empty groups.**
     - Try: in AutoCAD, empty a group by erasing its last member, by removing it, and make one with no member; save.
@@ -369,6 +398,9 @@ written as AutoCAD reads them now.
       until its layout is shown, then 1 and 2 for those on.
     - Now: the colour index 250; the number from group 69 as written, on or off: AutoCAD's `Number` is the number as the
       layout is shown, which a file does not say. The guide and `Number` say so.
+    - Now (D16): `Number` follows AutoCAD's rule for a layout shown: the id of group 69 for a viewport on, -1 for one turned
+      off (the viewport 94 of id 3 gives -1); the id of one turned off is kept and not given to a new viewport, and the
+      viewport 1 is still found by its id.
 
 33. **A view of R12, R13 or R14.**
     - Try: set the view of a viewport in a drawing of R12 (its extended data MVIEW) and of R14, and open them.
@@ -520,6 +552,14 @@ written as AutoCAD reads them now.
       `ExplodeToOwnerSpace()` appends the first cell's entities; `GeometryExtentsBestFit` still measures every cell. A MINSERT
       of one cell explodes as an INSERT.
     - Still open: whether AutoCAD's `Explode()` takes a MINSERT of one cell, and its EXPLODE command, which needs the editor.
+    - AutoCAD 2021 (plugin v8, 51-b): `Explode()` refused the MINSERT of one cell at (60, 0) too (eNotApplicable);
+      `TreatAsBlockRefForExplode` false for both; `GeometryExtentsBestFit()` threw eInvalidExtents for both, and
+      `GeometricExtents` gave the first cell alone, (-3, -3, 0) to (3, 3, 0) and (57, -3, 0) to (63, 3, 0);
+      `ExplodeToOwnerSpace()` the first cell, as the library's.
+    - Now (D16): so does the library: a MINSERT is one by its subclass AcDbMInsertBlock, of one cell too (by its counts in
+      R12); its `Explode()` throws `NotSupportedException`, its `TreatAsBlockRefForExplode` is false, its
+      `GeometryExtentsBestFit` throws `InvalidOperationException` and its `GeometricExtents` is its first cell's. The
+      extents of the drawing (`UpdateExt`) still take in every cell, which AutoCAD was not asked about.
 
 52. **A leader exploded.**
     - Try: EXPLODE in AutoCAD a straight leader with the closed filled arrow, one with an arrow block (DIMLDRBLK) and one with a
@@ -755,7 +795,8 @@ written as AutoCAD reads them now.
 
 ## Data links of tables
 
-The library reads the data links of a table and takes them away, and writes no new one until the points below are settled.
+The library reads the data links of a table and takes them away, and writes no new one: AutoCAD keeps a link in the table's
+TABLECONTENT (points 73 to 78), which the library would have to write whole.
 
 73. **Where a table's cell names its data link.**
     - Try: link the cells (1, 0) to (2, 1) of a table to a spreadsheet with DATALINK, save as DXF of R2007 and of R2018, and
@@ -773,6 +814,14 @@ The library reads the data links of a table and takes them away, and writes no n
       library's cells. So the guess is wrong, and the writing held back, which writes the guess, is not taken: writing a link
       AutoCAD reads means writing the table's TABLECONTENT, which AutoCAD builds anew on a detach (every cell's format written
       out, new handles), and keeping it with the table's edits.
+    - Now (D16): a link is read from the TABLECONTENT, while it has the table's rows and columns: the cell whose 92 after
+      its custom data is odd names the link (340) over its rows (93) and columns (94), AutoCAD's link of 73 read as (1, 0)
+      alone, as AutoCAD reads it. Each cell of a TABLECONTENT carries a checksum, ACAD_ROUNDTRIP_2008_CELL_CHECKSUM, the sum
+      of each letter's code times its place from 1 of the cell's text (1 655 for Parts, 676 for Qty, 1 041 for Mark, 503 for
+      B-12, nought for an empty or block cell) or of its formula's field code (5 577 for `\AcExpr (1+2)`). The guessed run
+      in the ACAD_TABLE's cells is still read, but AutoCAD misreads the cells after it: 74-a saved again had its cells a cell
+      along (Qty in (0, 0), the bolt in (1, 0)). Rows or columns put in or taken out leave the TABLECONTENT as it was, and
+      its link is then no longer read.
 
 74. **The groups of a DATALINK.**
     - Try: read the DATALINK of the drawing of point 73; then open in AutoCAD, with AUDIT, a drawing whose DATALINK has no 70
@@ -815,11 +864,24 @@ The library reads the data links of a table and takes them away, and writes no n
       and what it owns, through its extension dictionary at any depth, taken out of the objects the link lists itself tied to:
       a link of the table F6 alone, `94 2`, `330 F6`, `330 149`, comes out `94 0`, its 360 and custom data as they were. A
       link AutoCAD made is still not read (point 73), so it is not taken away either.
+    - Now (D16): a link of AutoCAD's is taken away in its TABLECONTENT: the cell's 92 made even, its run (340, 93, 94, 96)
+      taken out and the flag 4 of a linked cell cleared from its state (90), in place, every other group as it was;
+      AutoCAD's own detach writes the TABLECONTENT anew, every cell's format written out, under new handles. The DATALINK
+      comes out `94 0` as before.
 
 78. **A formula in a linked cell.**
     - Try: give the top left cell of a linked range a formula in AutoCAD, save, and read the cell's groups.
     - Now: `SetFormula` writes the cell's 344 after the link's run: `92 1`, `340`, `93`, `94`, `96 0`, then `344`.
     - A change if: AutoCAD writes the 344 before the 340, or keeps no formula in a linked cell.
+    - AutoCAD 2021 (plugin v3, 78-autocad-formula.dxf): keeps the formula in a linked cell it was let unlock: its ACAD_TABLE
+      cell (1, 0) holds `145 0.0`, `344 192`, `170 5`, `92 0`, the field before the cell's overrides and its 92, no link;
+      its TABLECONTENT's cell keeps the link (`92 1`, `340 142`, `93 1`, `94 1`, now `96 0`), its state 76, its content a
+      field of its own (195), and its checksum that of the field code. The library's 78 file, of the guessed run, it read
+      as an empty cell of no link.
+    - Now (D16): `SetFormula` writes the 344 after the cell's 145 and before its 92, as AutoCAD does, in every cell; the
+      TABLECONTENT of a table AutoCAD saved is left as it was, its cell's checksum no longer that of the cell. `GetFormula`
+      of a cell whose 344 names no record, as AutoCAD's 192, reads the field of the cell's first content in the TABLECONTENT:
+      `=1+2` from AutoCAD's 78, where it read none.
 
 ## Offsets of polylines that cross themselves
 

@@ -337,7 +337,7 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AFormulaSetOnTheTopLeftCellOfALinkedRange_GoesAfterItsLink_WhichStillReadsAndIsTakenAway()
+        public void AFormulaSetOnTheTopLeftCellOfALinkedRange_GoesBeforeIts92AndLink_WhichStillReadsAndIsTakenAway()
         {
             foreach (string version in Versions)
             {
@@ -348,7 +348,9 @@ namespace GeometryHelper.UnitTest.Dxf
                 table.SetFormula(1, 0, 0, "=1+2");
 
                 string saved = db.ToText();
-                Assert.Contains(" 92\n1\n340\nA01\n 93\n2\n 94\n1\n 96\n0\n344\n", TableRecord(saved), StringComparison.Ordinal);
+                // As AutoCAD 2021 wrote the formula of its cell (1, 0), 344 after 145 and before the 92 (point 78).
+                Assert.Contains("145\n0.0\n344\n", TableRecord(saved), StringComparison.Ordinal);
+                Assert.Contains(" 92\n1\n340\nA01\n 93\n2\n 94\n1\n 96\n0\n301\nCELL_VALUE\n", TableRecord(saved), StringComparison.Ordinal);
                 DxfTable read = Table(DxfDatabase.Parse(saved));
                 Assert.True(read.IsLinked(1, 0));
                 Assert.True(read.IsLinked(2, 0));
@@ -360,7 +362,8 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 string after = db.ToText();
                 Assert.DoesNotContain("\n340\nA01\n", TableRecord(after), StringComparison.Ordinal);
-                Assert.Contains(" 92\n0\n344\n", TableRecord(after), StringComparison.Ordinal);
+                Assert.Contains(" 92\n0\n301\nCELL_VALUE\n 93\n6\n 90\n4\n  1\nMark\n", TableRecord(after), StringComparison.Ordinal);
+                Assert.Contains("145\n0.0\n344\n", TableRecord(after), StringComparison.Ordinal);
                 Assert.Empty(table.GetDataLink());
                 Assert.Equal("=1+2", Table(DxfDatabase.Parse(after)).GetFormula(1, 0, 0));
                 Assert.False(link.IsErased);

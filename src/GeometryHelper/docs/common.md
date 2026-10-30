@@ -493,7 +493,7 @@ Dxf in front and their members' names.
 | `DBDictionary`, `Xrecord`, `Group`, `db.NamedObjectsDictionaryId`, `db.GroupDictionaryId` | `DxfDBDictionary`, `DxfXrecord`, `DxfGroup`, `db.NamedObjectsDictionary`, `db.GroupDictionary` | The dictionaries are objects; `SetAt` takes the object made in code. |
 | `ResultBuffer`, `TypedValue` | `IReadOnlyList<DxfTypedValue>`, `DxfTypedValue` | A value is the text the file prints: `new DxfTypedValue(1040, "2.5")`. Setting `XData` registers its application. |
 | `Entity.TransformBy(Matrix3d)`, `GetTransformedCopy` | `TransformBy(GeoTransform3)`, `GetTransformedCopy` | Each class refuses what it cannot hold, as AutoCAD's does (see [Editing rules](#editing-rules)). |
-| `Entity.Explode(DBObjectCollection)` | `Explode()` giving a list | The library explodes an INSERT, a MINSERT of one cell, the three polylines, a polyface and a polygon mesh, an MTEXT, a dimension, a table, a leader, a multileader, an MLINE, a HATCH of a pattern and a MESH not smoothed, as AutoCAD's do; every other entity refuses with `NotSupportedException`, a MINSERT of more than one cell, which AutoCAD refuses too, a HATCH filled solid or with a gradient, a MESH smoothed, a REGION, a 3DSOLID and a BODY among them, which AutoCAD explodes (see [What the model does not do](#what-the-model-does-not-do)). |
+| `Entity.Explode(DBObjectCollection)` | `Explode()` giving a list | The library explodes an INSERT, the three polylines, a polyface and a polygon mesh, an MTEXT, a dimension, a table, a leader, a multileader, an MLINE, a HATCH of a pattern and a MESH not smoothed, as AutoCAD's do; every other entity refuses with `NotSupportedException`, a MINSERT of one cell or more, which AutoCAD refuses too, a HATCH filled solid or with a gradient, a MESH smoothed, a REGION, a 3DSOLID and a BODY among them, which AutoCAD explodes (see [What the model does not do](#what-the-model-does-not-do)). |
 | `BlockReference.ExplodeToOwnerSpace()` | `ExplodeToOwnerSpace()` | The same: the parts appended, the INSERT kept; a MINSERT gives its first cell alone, as AutoCAD 2021's did. |
 | `entity.IntersectWith(other, Intersect.ExtendThis, points, IntPtr.Zero, IntPtr.Zero)` | `entity.IntersectWith(other, DxfIntersect.ExtendThis)` giving `IReadOnlyList<GeoPoint3>` | Worked out on the library's shapes; a pair it cannot cross, a text among them, throws `NotSupportedException`, where AutoCAD crosses the box of a TEXT's or an MTEXT's words, which needs the fonts. |
 | `GeometricExtents` giving `Extents3d` | `GeometricExtents` giving `GeoAabb3` | Of the shapes `GetGeometry()` gives; a text has no fonts to give it a box. |
@@ -600,7 +600,7 @@ new flag, grows them at once; a run of groups of its record written in place (a 
 a record that follows it (a VERTEX put in or set in a POLYLINE, a point of a mesh) grows them by the entity as it stands
 when the header is next read or the file saved, once however many vertices were written, so that a vertex moved out and
 back between two readings leaves no trace. An INSERT appended, moved or copied by `WblockCloneObjects` grows them by what it
-places, its `GeometricExtents`, each cell of a MINSERT's array among it, read in the same way when the header is next read
+places, its `GeometricExtents`, each cell of a MINSERT's array among it (whose own `GeometricExtents` is its first cell's, as AutoCAD 2021's), read in the same way when the header is next read
 or the file saved, so that its block is placed once and as the drawing then has it: block W of the line from (0, 0, 0) to
 (10, 0, 0) inserted at (5100, 0, 0) grows them to x 5110. An attribute of an INSERT written places its block anew in the
 same way. An INSERT that places nothing, its block not defined, an external reference or the block of a layout, or one
@@ -637,7 +637,8 @@ drawing AutoCAD saved as R2004 or later keeps them in its header and has no DWGP
 the like, and each custom property a `$CUSTOMPROPERTYTAG` followed by a `$CUSTOMPROPERTY`, as AutoCAD 2021 saved a drawing of
 R2018 titled Plate B-12 with Project and Checked by after its `$DWGCODEPAGE`. They are read from there, and set there in a
 drawing of R2004 or later, as many custom properties as there are, an empty text leaving its variable out and a DWGPROPS the
-drawing had taken out, as AutoCAD saved such a drawing. A drawing of R2000 keeps them in its DWGPROPS, as AutoCAD 2021 saves
+drawing had taken out, as AutoCAD saved such a drawing, in AutoCAD 2021's order after `$DWGCODEPAGE`: `$TITLE`, `$SUBJECT`,
+`$AUTHOR`, `$KEYWORDS`, `$COMMENTS`, the header's `$LASTSAVEDBY` as it was, `$REVISIONNUMBER`, then the pairs. A drawing of R2000 keeps them in its DWGPROPS, as AutoCAD 2021 saves
 one: its custom properties are read from the groups 300 to 309 (`name=value`) and from a list after a group 90 (a count,
 then each name and value in two groups 1), and written in the ten groups alone, ten at most, their count after the base of
 the hyperlinks, as AutoCAD writes and reads them: it reads none of the list. The base of the hyperlinks is written to the
@@ -962,10 +963,14 @@ second derivative is 60 everywhere, gives 33, 65, 257, 1 025 and 4 097 vertices 
 two and three spans of the checks 50 and 78 at 0, 4 750 and 7 562 at 99, as AutoCAD gives them; so do a quadratic of three
 spans and a cubic of a double knot (29 and 76 vertices at 0). A spline of degree 5 and a rational one are given more than
 AutoCAD gives them (117 where AutoCAD gives 96, 371 where it gives 130, at 0): AutoCAD reads their bend otherwise, and how
-is not found yet. A periodic spline has each of its knots in the place of the vertex nearest it, and a closed one its last
-vertex on its first, the polyline closed: the closed cubic through (0, 0), (40, 0), (50, 30) and (10, 25), its knots the
-lengths of the chords, is those four points and the first again at 0, its 48 vertices at 10 the range's 64ths with the knot
-40 in the place of the 64th at 39.05, as AutoCAD 2021 gave them; its arcs are bent as the pieces the halving made. Made
+is not found yet. A closed spline has its last vertex on its first, the polyline closed; a periodic one that runs through
+fit points has each of its knots, one after another, in the place of the vertex nearest it, the later of two as near, a
+knot taking the place another took before it: the closed cubic through (0, 0), (40, 0), (50, 30) and (10, 25), its knots
+the lengths of the chords, is those four points and the first again at 0, its 48 vertices at 10 the range's 64ths with the
+knot 40 in the place of the 64th at 39.05; through (0, 0), (40, 0), (40.5, 0.5), (50, 30) and (10, 25) it has at 0 the
+knot 40.71 where the knot 40 would stand, as AutoCAD 2021 gave them. The same cubic of no fit points, as a DXF of AutoCAD
+keeps it, is the halving alone, (0, 0), (34.42, -3.51), (50.86, 28.40), (18.15, 30.49) and the first again at 0, as AutoCAD
+2021 gave it too; the arcs are bent as the pieces the halving made. Made
 arcs, for a flat spline, it has the same vertices, each segment the arc that turns as the spline's
 tangent turns along it, its bulge the tangent of a quarter of that turn, as AutoCAD 2021 makes them: the cubic of one span
 at 0 gives 33 vertices, its first arc, from (0, 0) to (0.9375, 0.908), of bulge -0.00806, the tangent turning from 45
@@ -1026,8 +1031,13 @@ appended; a copy of a drawing that has the style brings it instead. In a drawing
 is refused before it would become TEXTs.
 
 An MTEXT is set in columns as AutoCAD sets one: `SetStaticColumns(12.5, 2.5, 3)` is three columns 12.5 wide with gutters of
-2.5, 42.5 across, the MTEXT's `Width` (41, and 40 of its embedded object) made 12.5, the width of a column, as AutoCAD and
-ezdxf make it, and so do `SetDynamicColumns` and `ColumnWidth`; `SetDynamicColumns`, `SetColumnHeight` and the column properties (`ColumnType`, `ColumnCount`,
+2.5, 42.5 across, the MTEXT's `Width` (41, and 40 of its embedded object) made 42.5 from R2018 and 12.5, the width of a
+column, before it, as AutoCAD 2021 wrote two columns 50 wide with a gutter of 10 as 110 in R2018 and 50 in R2000, and so
+do `SetDynamicColumns`, `ColumnCount`, `ColumnWidth` and `ColumnGutterWidth`, over the columns the MTEXT counts (AutoCAD
+counts dynamic columns as it lays the words out, which the library does not); an MTEXT copied from one form to the other
+takes the other width. Before R2018 `ACAD_MTEXT_DEFINED_HEIGHT` is written where the height is above nought, the first
+column's for columns of their own heights and each later column's on its own MTEXT, as AutoCAD 2021 writes it, and none
+for a height of nought; `SetDynamicColumns`, `SetColumnHeight` and the column properties (`ColumnType`, `ColumnCount`,
 `ColumnWidth`, `ColumnGutterWidth`, `ColumnAutoHeight`, `ColumnFlowReversed`) the rest, written in its embedded object from
 R2018 and in the extended data of ACAD before (`ACAD_MTEXT_COLUMN_INFO`, `ACAD_MTEXT_DEFINED_HEIGHT`), as AutoCAD and ezdxf
 write them. Before R2018 the columns after the first are MTEXTs of their own, linked to the first (`ACAD_MTEXT_COLUMNS`),
@@ -1114,7 +1124,10 @@ its `Columns`, `Rows`, `ColumnSpacing` and `RowSpacing`.
 
 `UnitFactor` takes the block's units to the drawing's (`$INSUNITS`): 25.4 for a block in inches inserted in millimetres, 1
 where either gives none. `GeometryExtentsBestFit()` is the box of the shapes placed, and
-`GeometryExtentsBestFit(parentTransform)` the same after an outer INSERT's `BlockTransform`. A dynamic block is found as
+`GeometryExtentsBestFit(parentTransform)` the same after an outer INSERT's `BlockTransform`; a MINSERT has none
+(`InvalidOperationException`, as AutoCAD 2021 threw eInvalidExtents), its `GeometricExtents` its first cell's, and its
+`TreatAsBlockRefForExplode` false. A MINSERT is one by its subclass AcDbMInsertBlock, of one cell too, or by its counts in
+R12. A dynamic block is found as
 ezdxf finds it, by the extended data `AcDbDynamicBlockGUID` of its BLOCK_RECORD, or `AcDbBlockRepBTag` of the anonymous
 block that stands for it (`IsDynamicBlock`, `DynamicBlockTableRecord`, `AnonymousBlockTableRecord`); its dynamic properties
 are AutoCAD's engine's to work out, and are not given. `insert.ConvertToStaticBlock("BOLT_500")` makes the INSERT place a
@@ -1340,13 +1353,15 @@ col, edge)` read a cell's own, null where it has none. `GridColor(gridlineType, 
 the title, the header or the data after its last cell, with their flags in 94, 95 and 96, the groups of a code in the
 order of their flags and after the table's colours of its rows. `SetFormula(row, column, 0, "=A2+B2")`, from R2004 on,
 adds a FIELD of AutoCAD's expressions (AcExpr, field code `\AcExpr (A2+B2)`) owned by the table, written as `DxfField`
-writes one with the class FIELD listed, and points the cell's 344 at it, its value left for AutoCAD to work out; a field
+writes one with the class FIELD listed, and points the cell's 344 at it, after its turn (145) and before its 92, as
+AutoCAD 2021 wrote one, its value left for AutoCAD to work out; a field
 a cell lets go of, by a text, a value or a formula set, by its row or column taken out or by a copy or a fill over it,
 is erased with its children where the table owns it and nothing else of the file points at it (a copy of the table,
 which holds its original's fields, an XRECORD, another field), and taken out of the drawing's ACAD_FIELDLIST; a field
 kept whose owner goes is given to a field that names it, else to the table. A copy of a table in its own drawing shares
 the original's fields: erasing the original table leaves the copy's 344s naming nothing, a limit listed for later;
-`GetFormula` and `HasFormula` read one back, or one AutoCAD wrote as a field of text holding it. `CopyFrom(source,
+`GetFormula` and `HasFormula` read one back, or one AutoCAD wrote as a field of text holding it, from the cell's field in
+the table's TABLECONTENT where the cell's 344 names no record, as AutoCAD 2021 wrote the formula of a linked cell. `CopyFrom(source,
 options, sourceRange, targetRange)` copies cells of a table of the same drawing, content, look and merges, growing the
 table with `ExpandOrContractTable`, which never shrinks it (a copy past the last row of the header and data rows makes
 the table of 3 rows one of 5), the content alone with `SkipFormat`, the look alone with `SkipContent`; a cell's field is
@@ -1362,24 +1377,33 @@ A range of a table's cells is linked to data as AutoCAD links one to a spreadshe
 such links and takes them away, and writes no new one yet. A `DxfDataLink` is a DATALINK of the drawing's
 `DataLinkDictionary` (ACAD_DATALINK), read with its `DataAdapterId` (`AcExcel`), `ConnectionString`
 (`parts.xlsx!Sheet1!A1:B2`), `Description`, `ToolTip`, `DataLinkOption`, `UpdateOption`, `IsValid` and
-`GetUpdateStatus`; its `Name` set renames its entry. A range's top left cell names its link after its 92, made odd: the
-DATALINK's handle (340), the range's rows (93) and columns (94) and a 96 of nought. `GetDataLink`, `GetDataLinkRange`
-and `IsLinked` read it from every cell of the range: the table linked over (1, 0) to (2, 1) gives that range from its
-cell (2, 1), and `link.GetTargets()` gives the table. Only a text cell names a link: a block cell's 340 names its block,
-whatever its 92. Rows and columns put in and taken out, `SetSize` and `CopyFrom` move, grow and shrink a linked range as
-they do a block of merged cells, `CopyFrom` bringing the links wholly within its source unless `SkipDataLink` is given,
-and a cell filled from a linked one is not linked. `RemoveDataLink` takes the links away and leaves the DATALINK the cells
-let go of in the drawing, named or `Anonymous`, as AutoCAD 2021's `RemoveDataLink` leaves it. A link whose rows or columns
-are all taken out goes with them, and its DATALINK, with what it owns, where its `DataLinkOption` is `Anonymous` and
-nothing else of the file points at it (another table, a copy of this one), the dictionary that holds it aside. The library
-reads no spreadsheet: the cells keep what they hold, and `UpdateDataLink` is not there.
+`GetUpdateStatus`; its `Name` set renames its entry. AutoCAD 2021 names a link in the TABLECONTENT it keeps for the table,
+which the table's extension dictionary holds under ACAD_XREC_ROUNDTRIP through an XRECORD of
+ACAD_ROUNDTRIP_2008_TABLE_ENTITY: the range's top left cell there has its 92 odd after its custom data, then the
+DATALINK's handle (340), the range's rows (93) and columns (94) and a 96, and its state (90) the flag 4 of a linked cell;
+the ACAD_TABLE's own cells name no link. `GetDataLink`, `GetDataLinkRange` and `IsLinked` read it from every cell of the
+range, while the TABLECONTENT has the table's rows and columns: AutoCAD's table linked over (1, 0) to (2, 1), which it read
+back as (1, 0) alone, gives (1, 0) to (1, 0), and `link.GetTargets()` gives the table. `RemoveDataLink` takes the links
+away as AutoCAD 2021's does: the TABLECONTENT's cell made unlinked in place (92 even, the run out, the flag 4 cleared),
+the DATALINK left in the drawing, named or `Anonymous`, the table and what it owns taken out of the objects it lists
+itself tied to (`94 2`, `330 F6`, `330 149` comes out `94 0`). Rows and columns put in or taken out leave the TABLECONTENT
+as it was, so a link of AutoCAD's is no longer read once the table has other rows or columns. The library reads no
+spreadsheet: the cells keep what they hold, and `UpdateDataLink` is not there.
 
-Writing a link is held for the checks in AutoCAD ([Checking against AutoCAD](dxf-autocad-checks.md), points 73 to 78):
-`SetDataLink` is not there, and a `DxfDataLink` is neither made in code nor has its groups set. The DXF reference
-describes no DATALINK and ezdxf keeps one as it reads it; the groups read are those LibreDWG gives, which have no 70 and
-put the link's custom data between `305 CUSTOMDATA`, `1 DATAMAP_BEGIN` and `309 DATAMAP_END`. The run 340, 93, 94, 96 is
-the one LibreDWG gives a cell of a TABLECONTENT, whose 92 says it has linked data; that a cell of an ACAD_TABLE names
-its link so, after the 92 of R2007, is the library's guess. An `UpdateOption` of 1 179 649, as LibreDWG's example gives
+A link named in a cell of the ACAD_TABLE, the run 340, 93, 94, 96 straight after the cell's 92 made odd, is read as well:
+it was the library's guess, which AutoCAD reads no link from, and which makes AutoCAD read the cells after it awry. Only a
+text cell names a link so: a block cell's 340 names its block, whatever its 92. Rows and columns put in and taken out,
+`SetSize` and `CopyFrom` move, grow and shrink such a range as they do a block of merged cells, `CopyFrom` bringing the
+links wholly within its source unless `SkipDataLink` is given, and a cell filled from a linked one is not linked. A link
+whose rows or columns are all taken out goes with them, and its DATALINK, with what it owns, where its `DataLinkOption` is
+`Anonymous` and nothing else of the file points at it (another table, a copy of this one), the dictionary that holds it
+aside.
+
+Writing a new link is not there ([Checking against AutoCAD](dxf-autocad-checks.md), points 73 to 78): `SetDataLink` is
+not there, and a `DxfDataLink` is neither made in code nor has its groups set, as writing one AutoCAD reads means writing
+the table's TABLECONTENT whole. The DXF reference describes no DATALINK and ezdxf keeps one as it reads it; the groups read
+are those LibreDWG and AutoCAD 2021 give, which have no 70, the count of the objects the link is tied to (94) with a 330
+each, what it owns (360) and its custom data between `305 CUSTOMDATA`, `1 DATAMAP_BEGIN` and `309 DATAMAP_END`. An `UpdateOption` of 1 179 649, as LibreDWG's example gives
 it, is SkipFormat (0x20000) and AllowSourceUpdate (0x100000), which make 1 179 648, and a 0x1 no flag of AutoCAD's
 `UpdateOption` explains. The breaking of a table into parts (`BreakEnabled` and the rest) is not there either: its
 groups are in no reference.
@@ -1397,8 +1421,9 @@ frozen and thawed by `FreezeLayersInViewport` and `ThawLayersInViewport` (331, b
 keeps its view in its extended data MVIEW, read and set there, its twist and its snap angle in radians as AutoCAD 2021
 reads and writes them there, a snap of 30 degrees as 0.5235987755982988 (degrees from R2000); what those files have not, as the user coordinate system,
 reads as AutoCAD's default and is refused when set. A viewport made in code goes to a layout of paper space, given the next
-`Number` of the layout; `On = true` turns it on. `Number` is the id the file writes (69), on or off, where AutoCAD 2021's
-gives -1 for a viewport turned off or of a layout not shown. The viewport 1 of a layout of paper space, which shows the sheet itself, is
+`Number` of the layout; `On = true` turns it on. `Number` is the id the file writes (69) for a viewport on, and -1 for one
+turned off, as AutoCAD 2021 gives it once the layout is shown (it gives -1 for every viewport of a layout not shown, which a
+file does not say); the id of one turned off is kept, and not given to a new one. The viewport 1 of a layout of paper space, which shows the sheet itself, is
 not erased, as AutoCAD keeps it; erasing another takes the overrides the layers keep for it out of their extension
 dictionaries, and a layout whose last active viewport (331) it was names its viewport 1 instead, as AutoCAD 2021 does.
 
@@ -1490,7 +1515,7 @@ breaks as AutoCAD breaks it:
 | Class | Breaks into |
 |---|---|
 | `DxfBlockReference` | the entities of its block placed where it puts them, one level down: the block's ATTDEFs among them, each a `DxfAttributeDefinition` placed as the rest are, and none of the INSERT's ATTRIBs, whose values stay in its `AttributeCollection` |
-| `DxfMInsertBlock` | the block in its one cell, as an INSERT; a MINSERT of more than one cell is refused with `NotSupportedException`, as AutoCAD 2021's `Explode` refused one of a circle in 2 rows by 3 columns (eNotApplicable) |
+| `DxfMInsertBlock` | refused with `NotSupportedException`, of one cell or more, as AutoCAD 2021's `Explode` refused one of a circle in 2 rows by 3 columns and one of one cell (eNotApplicable); `ExplodeToOwnerSpace` gives its first cell |
 | `DxfPolyline`, `DxfPolyline2d` | a LINE for each straight segment and an ARC for each bulged one, in its order, each with its look and thickness, its widths left out as AutoCAD leaves them out, and a segment of no length too: a closed square of side 10 with one side bulged by 1 gives three lines and a half circle. Each LINE and ARC is on the polyline's normal, as AutoCAD gives it, so that their walls stand where its wall stood: a polyline on (0, 0, -1) at elevation 5 with a thickness of 2 gives walls from z = -5 down to -7. A POLYLINE fitted to a curve or a spline breaks along the vertices it is drawn through |
 | `DxfPolyline3d` | a LINE for each segment between two vertices it is drawn through, the closing one among them: the polyline through (0, 0, 0), (1, 2, 3) and (4, 5, 6) gives two lines |
 | `DxfMText` | a TEXT for each paragraph, as it is written into a drawing of R12 (see Appending): B-12 and M16 on two lines, 2.5 high, held at the top left at (10, 20), give two TEXTs on the baselines 17.5 and 13.33 high; a paragraph is not wrapped at its width, and a part of it in another font or height is not given a TEXT of its own, as AutoCAD gives it |
@@ -1527,8 +1552,9 @@ the block the INSERT is in, in the order of the block, and keeps the INSERT with
 `insert.ExplodeToOwnerSpace(); insert.Erase();` explodes it as AutoCAD's EXPLODE does, the attributes turned back into their
 definitions. Where the drawing cannot hold a part, as R12 the ELLIPSE a circle comes out as under a scale unlike along its
 axes, the parts appended before it are erased again. A MINSERT gives its first cell alone, as AutoCAD 2021's
-`ExplodeToOwnerSpace` gave one circle of a MINSERT of a circle in 2 rows by 3 columns; its `GeometryExtentsBestFit` still
-measures every cell.
+`ExplodeToOwnerSpace` gave one circle of a MINSERT of a circle in 2 rows by 3 columns; its `GeometricExtents` is that
+first cell's, and its `GeometryExtentsBestFit` is refused, as AutoCAD 2021's were, while the drawing's extents take in
+every cell.
 
 **Copying.** `Clone()` copies any entity as it is, as AutoCAD's `Clone` does, a `DxfUnknownEntity` among them, an INSERT with
 its attributes, and `GetTransformedCopy` copies and moves one; a copy is of the class of its original, a vertex a vertex, in

@@ -27,7 +27,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Contains("viewport 1", refused.Message, StringComparison.Ordinal);
             Assert.False(sheet.IsErased);
             Assert.Equal(text, db.ToText());
-            Assert.Equal(new[] { 1, 3, 4 }, db.Layouts[2].GetViewports().Select(v => v.Number));
+            Assert.Equal(new[] { 1, 3, -1 }, db.Layouts[2].GetViewports().Select(v => v.Number));
         }
 
         [Fact]

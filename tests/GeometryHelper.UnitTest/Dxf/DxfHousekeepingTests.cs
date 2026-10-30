@@ -547,7 +547,8 @@ namespace GeometryHelper.UnitTest.Dxf
 
                     try
                     {
-                        extents = entity.GeometricExtents;
+                        // A MINSERT's GeometricExtents is its first cell's, as AutoCAD's: the drawing's take in every cell.
+                        extents = entity is DxfMInsertBlock array ? array.EveryCellExtents : entity.GeometricExtents;
                     }
                     catch (InvalidOperationException)
                     {

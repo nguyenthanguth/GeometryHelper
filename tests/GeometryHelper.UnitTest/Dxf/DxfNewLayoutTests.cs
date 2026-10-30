@@ -123,6 +123,8 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(saved, db.ToText());
             var detail = new DxfViewport { CenterPoint = new GeoPoint3(200, 130, 0), Width = 300, Height = 200, ViewHeight = 10000 };
             plan.BlockTableRecord.AppendEntity(detail);
+            Assert.Equal(-1, detail.Number);
+            detail.On = true;
             Assert.Equal(2, detail.Number);
 
             DxfDatabase again = DxfDatabase.Parse(db.ToText());

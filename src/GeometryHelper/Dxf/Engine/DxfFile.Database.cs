@@ -3661,6 +3661,34 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Whether an INSERT is an array, a MINSERT: its first subclass marker other than AcDbEntity AcDbMInsertBlock, or its
+        /// columns (70) or rows (71) above 1, as <see cref="ValueOf(DxfItem, int)"/> reads them, its groups read once.
+        /// </summary>
+        internal bool IsArrayInsert(DxfItem item)
+        {
+            Rec head = HeadOf(item);
+            List<Pair> pairs = PairsOf(head);
+            int body = BodyAt(head, pairs, DataAt(head, pairs));
+
+            if (body >= 0 && Text(head, pairs[body]).Trim() == "AcDbMInsertBlock")
+            {
+                return true;
+            }
+
+            foreach (int code in new[] { 70, 71 })
+            {
+                int at = OwnIndexOf(head, pairs, code);
+
+                if (at >= 0 && int.TryParse(Text(head, pairs[at]).Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int count) && count > 1)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// The value of the first group of a code in the part all entities have, before the type's own part, outside the groups
         /// of the applications; null where it has none.
         /// </summary>

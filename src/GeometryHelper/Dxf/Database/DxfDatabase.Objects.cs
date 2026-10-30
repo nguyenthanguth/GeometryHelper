@@ -157,10 +157,10 @@ namespace GeometryHelper.Dxf
         /// Set in a drawing of R2004 (AC1018) or later, written in its header as AutoCAD 2021 writes a drawing of R2018: each
         /// text not empty in its variable, <c>$TITLE</c>, <c>$SUBJECT</c>, <c>$AUTHOR</c>, <c>$KEYWORDS</c>, <c>$COMMENTS</c>
         /// and <c>$REVISIONNUMBER</c>, then a <c>$CUSTOMPROPERTYTAG</c> and a <c>$CUSTOMPROPERTY</c> for each custom property, as
-        /// many as there are, after <c>$LASTSAVEDBY</c> where the header has one, as ezdxf writes its pairs, else after
-        /// <c>$DWGCODEPAGE</c>; an empty text has no variable, and the base of the hyperlinks goes to <c>$HYPERLINKBASE</c>. A
-        /// DWGPROPS the drawing has is taken out, as AutoCAD 2021 saved one of R2018 read with a DWGPROPS without it; who saved
-        /// it last is not written, the header's <c>$LASTSAVEDBY</c> kept as it is.
+        /// many as there are, after <c>$DWGCODEPAGE</c>, the header's <c>$LASTSAVEDBY</c> moved among them before
+        /// <c>$REVISIONNUMBER</c>, its value kept, as AutoCAD 2021 wrote the header of R2004, R2010 and R2018; an empty text has
+        /// no variable, and the base of the hyperlinks goes to <c>$HYPERLINKBASE</c>. A DWGPROPS the drawing has is taken out,
+        /// as AutoCAD 2021 saved one of R2018 read with a DWGPROPS without it; who saved it last is not written but kept.
         /// </para>
         /// <para>
         /// Set in a drawing of R13 to R2000, the DWGPROPS written anew, as AutoCAD 2021 writes one of R2000 and reads it back:
@@ -574,9 +574,16 @@ namespace GeometryHelper.Dxf
         {
             string[] texts = value.Texts;
             var run = new List<KeyValuePair<string, IReadOnlyList<DxfTypedValue>>>();
+            IReadOnlyList<DxfTypedValue> saved = File.HeaderOf("$LASTSAVEDBY");
 
             foreach (int i in HeaderTextOrder)
             {
+                // Who saved it last stands before the revision, as AutoCAD 2021 writes the header, its value kept.
+                if (i == 6 && saved != null)
+                {
+                    run.Add(new KeyValuePair<string, IReadOnlyList<DxfTypedValue>>("$LASTSAVEDBY", saved));
+                }
+
                 if (texts[i].Length > 0)
                 {
                     run.Add(new KeyValuePair<string, IReadOnlyList<DxfTypedValue>>(HeaderTexts[i], new[] { new DxfTypedValue(1, texts[i]) }));
@@ -589,7 +596,7 @@ namespace GeometryHelper.Dxf
                 run.Add(new KeyValuePair<string, IReadOnlyList<DxfTypedValue>>("$CUSTOMPROPERTY", new[] { new DxfTypedValue(1, property.Value) }));
             }
 
-            File.SetHeaderRun(SummaryVariables, run, new[] { "$LASTSAVEDBY", "$DWGCODEPAGE" });
+            File.SetHeaderRun(saved != null ? SummaryVariables.Concat(new[] { "$LASTSAVEDBY" }).ToArray() : SummaryVariables, run, new[] { "$DWGCODEPAGE", "$LASTSAVEDBY" });
             HyperlinkBase = value.HyperlinkBase;
             DxfDBDictionary root = NamedObjectsDictionary;
 

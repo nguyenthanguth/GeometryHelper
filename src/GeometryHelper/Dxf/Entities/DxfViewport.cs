@@ -16,7 +16,7 @@ namespace GeometryHelper.Dxf
     /// <see cref="CenterPoint"/> (150, 100, 0), <see cref="Width"/> 200, <see cref="Height"/> 150, <see cref="ViewCenter"/>
     /// (5 000, 3 000) and <see cref="ViewHeight"/> 7 500: <see cref="CustomScale"/> is 150 / 7 500, 0.02, and
     /// <see cref="StandardScale"/> <see cref="DxfStandardScaleType.Scale1To50"/>. Its <see cref="Number"/> is the id the file
-    /// gives it (group 69): 1 for the viewport that shows the sheet itself.
+    /// gives it (group 69) while it is on, 1 for the viewport that shows the sheet itself, and -1 turned off.
     /// </para>
     /// <para>
     /// A file of R2000 or later holds the view in the viewport's own groups (12 to 51, 90 for its flags, 331 for its frozen
@@ -137,13 +137,14 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Gets the id of the viewport in its layout (group 69), as AutoCAD's <c>Number</c>: 1 for the viewport that shows the
-        /// sheet itself, 2 and on for those on it. A viewport made in code is given the next free id of its layout when appended.
-        /// AutoCAD's <c>Number</c> is the number of the viewport as its layout is shown: AutoCAD 2021 gives -1 for a viewport
-        /// turned off and for every viewport of a layout not shown, which a file does not say; the library gives the id the file
-        /// writes, on or off.
+        /// Gets the number of the viewport in its layout, as AutoCAD's <c>Number</c> gives it once the layout is shown: the id
+        /// of group 69 for a viewport that is <see cref="On"/>, 1 for the viewport that shows the sheet itself and 2 and on for
+        /// those on it; -1 for a viewport turned off, as AutoCAD 2021 gave its viewport 94 of id 3 turned off, which a file
+        /// still writes the id of. A viewport made in code is given the next free id of its layout when appended. AutoCAD gives
+        /// -1 for every viewport of a layout not yet shown as well, which a file does not say: the library reads the layout as
+        /// shown.
         /// </summary>
-        public int Number => GetInt(69, 0);
+        public int Number => On ? Id : -1;
 
         /// <summary>
         /// Gets or sets whether the viewport is on, as AutoCAD's <c>On</c>: its status (group 68) not nought and, from R2000 on, its
@@ -1439,7 +1440,7 @@ namespace GeometryHelper.Dxf
         /// out of their extension dictionaries, as AutoCAD does: an XRECORD of overrides left with none goes with its entry. A
         /// layout whose last active viewport it was (group 331 of its LAYOUT) names its viewport 1 instead, as AutoCAD 2021 does,
         /// or none where it has no other. The viewport of
-        /// <see cref="Number"/> 1 of a layout of paper space, which shows the sheet itself, is refused, as AutoCAD keeps it.
+        /// id 1 (group 69) of a layout of paper space, which shows the sheet itself, is refused, as AutoCAD keeps it.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the viewport is in no file, or is erased, or is the viewport 1
         /// of a layout of paper space.</exception>
@@ -1448,7 +1449,7 @@ namespace GeometryHelper.Dxf
             string handle = Handle;
             bool resident = IsResident && !IsErased;
 
-            if (resident && Number == 1 && Owner is DxfBlockTableRecord block && block.IsLayout && !DxfBlockTableRecord.IsModelName(block.Name ?? string.Empty))
+            if (resident && Id == 1 && Owner is DxfBlockTableRecord block && block.IsLayout && !DxfBlockTableRecord.IsModelName(block.Name ?? string.Empty))
             {
                 throw new InvalidOperationException("The viewport " + (handle ?? string.Empty) + " is the viewport 1 of the layout " + block.Name + ", which shows the sheet itself, and AutoCAD does not erase it.");
             }
@@ -1475,7 +1476,10 @@ namespace GeometryHelper.Dxf
         /// <summary>Gives the viewport as a line for debugging: its type, handle, id and size.</summary>
         /// <returns>The line, such as <c>VIEWPORT 9D 3, 200 by 150</c>.</returns>
         public override string ToString()
-            => "VIEWPORT " + (Handle ?? string.Empty) + " " + Number.ToString(CultureInfo.InvariantCulture) + ", " + Width.ToString("R", CultureInfo.InvariantCulture) + " by " + Height.ToString("R", CultureInfo.InvariantCulture);
+            => "VIEWPORT " + (Handle ?? string.Empty) + " " + Id.ToString(CultureInfo.InvariantCulture) + ", " + Width.ToString("R", CultureInfo.InvariantCulture) + " by " + Height.ToString("R", CultureInfo.InvariantCulture);
+
+        /// <summary>The id of the viewport in its layout (group 69), on or off: 1 for the viewport that shows the sheet itself.</summary>
+        internal int Id => GetInt(69, 0);
 
         /// <summary>
         /// Moves and scales the viewport on its sheet, as AutoCAD's MOVE and SCALE: its centre moved, its width and height scaled,
@@ -1524,7 +1528,7 @@ namespace GeometryHelper.Dxf
             {
                 if (entity is DxfViewport viewport)
                 {
-                    numbers.Add(viewport.Number);
+                    numbers.Add(viewport.Id);
                 }
             }
 

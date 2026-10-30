@@ -44,7 +44,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(new DxfExtents2d(new GeoPoint2(-10, -10), new GeoPoint2(410, 287)), sheet.Limits);
             Assert.Equal("*Paper_Space0", sheet.BlockTableRecord.Name);
             Assert.Equal(new[] { "3F", "40", "41" }, sheet.GetViewports().Select(v => v.Handle));
-            Assert.Equal(new[] { 1, 3, 4 }, sheet.GetViewports().Select(v => v.Number));
+            Assert.Equal(new[] { 1, 3, -1 }, sheet.GetViewports().Select(v => v.Number));
             Assert.Equal("LAYOUT 3E Sheet A, tab 3", sheet.ToString());
         }
 

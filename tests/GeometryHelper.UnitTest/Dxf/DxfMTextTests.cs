@@ -161,7 +161,7 @@ namespace GeometryHelper.UnitTest.Dxf
             string saved = db.ToText();
             OnlyTheseChanged(text, saved, "73");
             string record = Records(saved).Single(r => HandleOf(r) == "73");
-            Assert.Contains("101\nEmbedded Object\n 70\n1\n 10\n1\n 20\n0\n 30\n0\n 11\n20\n 21\n40\n 31\n0\n 40\n12.5\n 41\n0\n 42\n42.5\n 43\n0\n 71\n1\n 72\n3\n 44\n12.5\n 45\n2.5\n 73\n0\n 74\n0\n", record, StringComparison.Ordinal);
+            Assert.Contains("101\nEmbedded Object\n 70\n1\n 10\n1\n 20\n0\n 30\n0\n 11\n20\n 21\n40\n 31\n0\n 40\n42.5\n 41\n0\n 42\n42.5\n 43\n0\n 71\n1\n 72\n3\n 44\n12.5\n 45\n2.5\n 73\n0\n 74\n0\n", record, StringComparison.Ordinal);
             DxfMText again = ByHandle<DxfMText>(DxfDatabase.Parse(saved), "73");
             Assert.Equal(DxfColumnType.StaticColumns, again.ColumnType);
             Assert.Equal(3, again.ColumnCount);
@@ -206,7 +206,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
             OnlyTheseChanged(text, db.ToText(), "73");
             Assert.Equal(
-                new[] { "1001 ACAD", "1000 ACAD_MTEXT_COLUMN_INFO_BEGIN", "1070 75", "1070 1", "1070 79", "1070 0", "1070 76", "1070 3", "1070 78", "1070 0", "1070 48", "1040 12.5", "1070 49", "1040 2.5", "1000 ACAD_MTEXT_COLUMN_INFO_END", "1000 ACAD_MTEXT_DEFINED_HEIGHT_BEGIN", "1070 46", "1040 0", "1000 ACAD_MTEXT_DEFINED_HEIGHT_END" },
+                new[] { "1001 ACAD", "1000 ACAD_MTEXT_COLUMN_INFO_BEGIN", "1070 75", "1070 1", "1070 79", "1070 0", "1070 76", "1070 3", "1070 78", "1070 0", "1070 48", "1040 12.5", "1070 49", "1040 2.5", "1000 ACAD_MTEXT_COLUMN_INFO_END" },
                 ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "73").GetXDataForApplication("ACAD").Select(g => g.TypeCode + " " + g.Value));
             Assert.DoesNotContain("101\nEmbedded Object\n", db.ToText(), StringComparison.Ordinal);
 
@@ -433,8 +433,8 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AnMTextWithLinkedColumns_GivenColumnsOfTheirOwnHeights_TakesTheDefinedHeightFromItsColumnMTexts()
         {
-            // As ezdxf's set_linked_columns_xdata: columns of their own heights, 5A's [30, 7, 30], leave its column MTEXTs no
-            // ACAD_MTEXT_DEFINED_HEIGHT; made static again of a box 25 high, they have that height again.
+            // As AutoCAD 2021 wrote its columns of R2000 (point 9): columns of their own heights, 5A's [30, 7, 30], give each
+            // column MTEXT its own ACAD_MTEXT_DEFINED_HEIGHT, 7 and 30; made static again of a box 25 high, they have that height.
             DxfDatabase db = DxfDatabase.Parse(WithLinkedColumns());
             DxfMText main = ByHandle<DxfMText>(db, "5A");
 
@@ -443,7 +443,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfDatabase again = DxfDatabase.Parse(db.ToText());
             Assert.Equal(new[] { 30.0, 7.0, 30.0 }, Enumerable.Range(0, 3).Select(i => ByHandle<DxfMText>(again, "5A").GetColumnHeight(i)));
-            Assert.All(new[] { "5B", "5C" }, h => Assert.Null(Linked(again, h).GetXDataForApplication("ACAD")));
+            Assert.Equal(new[] { 7.0, 30.0 }, new[] { "5B", "5C" }.Select(h => Linked(again, h).Height));
 
             main.SetStaticColumns(12.5, 2.5, 3);
             main.Height = 25.0;

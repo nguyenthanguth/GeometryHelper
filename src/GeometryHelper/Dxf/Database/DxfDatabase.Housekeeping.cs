@@ -457,7 +457,7 @@ namespace GeometryHelper.Dxf
 
                 try
                 {
-                    extents = entity.GeometricExtents;
+                    extents = entity is DxfMInsertBlock array ? array.EveryCellExtents : entity.GeometricExtents;
                 }
                 catch (InvalidOperationException)
                 {

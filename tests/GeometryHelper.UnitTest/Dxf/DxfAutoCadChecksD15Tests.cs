@@ -66,8 +66,9 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // Plugin v7, 17n (g) at 0: the four points it runs through, which are its knots, and the first again; the arcs' bulges
             // 0.418, 0.398, 0.435 and 0.406, the last vertex's nought, each the tangent of a quarter of the turn over a quarter of
-            // the range, the pieces the halving made, not over the knots' spans (0.480 for the first).
-            DxfSpline spline = Periodic();
+            // the range, the pieces the halving made, not over the knots' spans (0.480 for the first). AutoCAD's g ran through
+            // its fit points; the same spline of none is the halving alone (plugin v8, 17f, in DxfAutoCadChecksD16Tests).
+            DxfSpline spline = DxfAutoCadChecksD16Tests.FittedG();
             var lines = Assert.IsType<DxfPolyline>(spline.ToPolylineWithPrecision(0, false, true));
             var arcs = Assert.IsType<DxfPolyline>(spline.ToPolylineWithPrecision(0, true, true));
             GeoPoint2[] wanted = { new GeoPoint2(0, 0), new GeoPoint2(40, 0), new GeoPoint2(50, 30), new GeoPoint2(10, 25), new GeoPoint2(0, 0) };
@@ -85,7 +86,7 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // Plugin v7, 17n (g) at 10: the whole range halved into 64ths, and each knot, 40, 71.62 and 111.93, in the place of
             // the 64th nearest it: (36.81, -2.20), the knot (40, 0), then (41.17, 0.97) at 19/64, not the 64th at 18/64.
-            var lines = Assert.IsType<DxfPolyline>(Periodic().ToPolylineWithPrecision(10, false, true));
+            var lines = Assert.IsType<DxfPolyline>(DxfAutoCadChecksD16Tests.FittedG().ToPolylineWithPrecision(10, false, true));
             var wanted = new Dictionary<int, GeoPoint2>
             {
                 [12] = new GeoPoint2(36.806966792921443, -2.1998622303112678),
@@ -105,7 +106,7 @@ namespace GeometryHelper.UnitTest.Dxf
             }
 
             // Of arcs, AutoCAD's bulges of those vertices.
-            var arcs = Assert.IsType<DxfPolyline>(Periodic().ToPolylineWithPrecision(10, true, true));
+            var arcs = Assert.IsType<DxfPolyline>(DxfAutoCadChecksD16Tests.FittedG().ToPolylineWithPrecision(10, true, true));
             var bulges = new Dictionary<int, double>
             {
                 [0] = 0.04765626161679417, [12] = 0.021455394627566883, [13] = 0.022638777411657811, [14] = 0.02164784907839656,
@@ -165,14 +166,14 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void ThePropertiesOfADrawingOfR2018_AreWrittenInItsHeaderAsAutoCadWritesThem_AndNoDwgprops()
         {
-            // AutoCAD 2021's R2018 of 26-a: the texts and the pairs after $DWGCODEPAGE, here after the $LASTSAVEDBY ezdxf wrote
-            // there, as ezdxf writes its pairs; the hyperlink base in $HYPERLINKBASE.
+            // AutoCAD 2021's R2018 of 26-a: the texts and the pairs after $DWGCODEPAGE, the $LASTSAVEDBY ezdxf wrote moved
+            // between them before the revision, as AutoCAD wrote it in plugin v8 (D16); the hyperlink base in $HYPERLINKBASE.
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
 
             db.SummaryInfo = Plate();
 
             string text = db.ToText();
-            Assert.Contains("$LASTSAVEDBY\n  1\nezdxf\n" + AutoCadRun, text, StringComparison.Ordinal);
+            Assert.Contains("$DWGCODEPAGE\n  3\nANSI_1252\n  9\n$TITLE\n  1\nPlate B-12\n  9\n$AUTHOR\n  1\nGeometryHelper\n  9\n$LASTSAVEDBY\n  1\nezdxf\n  9\n$CUSTOMPROPERTYTAG\n  1\nProject\n", text, StringComparison.Ordinal);
             Assert.Contains("$HYPERLINKBASE\n  1\nhttps://example.com/plates/\n", text, StringComparison.Ordinal);
             Assert.DoesNotContain("DWGPROPS", text, StringComparison.Ordinal);
             DxfDatabaseSummaryInfo read = DxfDatabase.Parse(text).SummaryInfo;
@@ -283,18 +284,17 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AMInsertOfSixCells_StillMeasuresEveryCell_AndOneOfOneCellIsExplodedAsAnInsert()
+        public void AMInsertOfSixCells_HasNoBestFit_AndOneOfOneCellIsNotExplodedEither()
         {
+            // Plugin v8, 51: AutoCAD 2021's GeometryExtentsBestFit() refused it (eInvalidExtents), and its Explode() refused
+            // a MINSERT of one cell too (D16).
             DxfMInsertBlock grid = Grid(out _);
 
-            GeoAabb3 box = grid.GeometryExtentsBestFit(GeoTransform3.Translation(new GeoVector3(0, 0, 0.5)));
-
-            Assert.True(P3(-3, -3, 0.5).IsEqualTo(box.Min, Tol), box.Min.ToString());
-            Assert.True(P3(23, 11, 0.5).IsEqualTo(box.Max, Tol), box.Max.ToString());
+            Assert.Throws<InvalidOperationException>(() => grid.GeometryExtentsBestFit(GeoTransform3.Translation(new GeoVector3(0, 0, 0.5))));
 
             grid.Columns = 1;
             grid.Rows = 1;
-            Assert.IsType<DxfCircle>(Assert.Single(grid.Explode()));
+            Assert.Throws<NotSupportedException>(() => grid.Explode());
         }
 
         #endregion

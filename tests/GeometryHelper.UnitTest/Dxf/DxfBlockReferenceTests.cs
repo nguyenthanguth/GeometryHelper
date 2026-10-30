@@ -586,7 +586,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(before + db.BlockTable["BOLT"].Count(), db.ModelSpace.Count());
             Assert.False(grid.IsErased);
             Assert.True(Bolt(db).TreatAsBlockRefForExplode);
-            Assert.True(grid.TreatAsBlockRefForExplode);
+            Assert.False(grid.TreatAsBlockRefForExplode);
         }
 
         #endregion

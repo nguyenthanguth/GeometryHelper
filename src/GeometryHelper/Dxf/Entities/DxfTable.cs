@@ -1588,8 +1588,9 @@ namespace GeometryHelper.Dxf
         private sealed class CellView
         {
             // The groups of a cell's head in the order AutoCAD writes them: its flags in 177 before R2007 and in 91 from R2007
-            // on, in the one place; its text, before R2007, in 2 and 1.
-            private static readonly int[] HeadOrder = { 171, 172, 173, 174, 175, 176, 177, 91, 178, 145, 92, 344, 2, 1, 3, 340, 144, 179, 331, 300 };
+            // on, in the one place; its field (344) after its turn (145) and before its 92, as AutoCAD 2021 wrote the formula of
+            // its cell (1, 0) (point 78); its text, before R2007, in 2 and 1.
+            private static readonly int[] HeadOrder = { 171, 172, 173, 174, 175, 176, 177, 91, 178, 145, 344, 92, 2, 1, 3, 340, 144, 179, 331, 300 };
 
             // The groups of a cell's own overrides in the order of the DXF reference, after its head and its value.
             private static readonly int[] OverrideOrder = { 7, 140, 170, 64, 63, 69, 65, 66, 68, 279, 275, 276, 278, 283, 289, 285, 286, 288 };

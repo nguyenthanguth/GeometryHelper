@@ -110,25 +110,27 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Gets the entities of the block placed where a MINSERT of one cell puts it, as <see cref="DxfBlockReference.Explode"/>
-        /// gives those of an INSERT; a MINSERT of more than one cell is refused, as AutoCAD 2021's <c>Explode</c> refused its
-        /// MINSERT of a circle in 3 columns by 2 rows (eNotApplicable). <see cref="DxfBlockReference.ExplodeToOwnerSpace"/>
-        /// gives such a MINSERT's first cell, as AutoCAD's does.
+        /// Refuses to give the entities of the block in the MINSERT's cells, as AutoCAD 2021's <c>Explode</c> refused its MINSERT
+        /// of a circle in 3 columns by 2 rows and its MINSERT of one cell alike (eNotApplicable), its
+        /// <see cref="DxfBlockReference.TreatAsBlockRefForExplode"/> false. <see cref="DxfBlockReference.ExplodeToOwnerSpace"/>
+        /// gives a MINSERT's first cell, as AutoCAD's does.
         /// </summary>
-        /// <returns>The entities, in no file, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
-        /// <exception cref="NotSupportedException">Thrown when the MINSERT has more than one cell.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when the drawing has no block of the MINSERT's name, or the cell
-        /// would hold more than the 2 000 000 entities of <see cref="DxfReadOptions.MaxPlacedEntities"/>.</exception>
-        /// <exception cref="ArgumentException">Thrown when the block inserts itself, as <see cref="DxfBlockReference.Explode"/> says.</exception>
+        /// <returns>Never: the call is refused.</returns>
+        /// <exception cref="NotSupportedException">Thrown always.</exception>
         public override IReadOnlyList<DxfEntity> Explode()
-        {
-            if (CellCount > 1)
-            {
-                throw new NotSupportedException("A MINSERT of more than one cell is not exploded, as AutoCAD's Explode refuses one: ExplodeToOwnerSpace gives its first cell.");
-            }
+            => throw new NotSupportedException("A MINSERT is not exploded, as AutoCAD's Explode refuses one, of one cell or more: ExplodeToOwnerSpace gives its first cell.");
 
-            return base.Explode();
-        }
+        /// <summary>
+        /// Gets the box of the block placed in the MINSERT's first cell, as AutoCAD 2021's <c>GeometricExtents</c> of a MINSERT
+        /// gives it: its MINSERT of a circle of radius 3 at the origin in 3 columns 10 apart by 2 rows 8 apart had the box
+        /// (-3, -3, 0) to (3, 3, 0), not that of all six. The extents of the drawing still take in every cell.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the cell places no shape the library reads, its drawing has no
+        /// block of its name, or it would place more than the 2 000 000 entities of <see cref="DxfReadOptions.MaxPlacedEntities"/>.</exception>
+        public override GeoAabb3 GeometricExtents => Box(GeoTransform3.Identity, true);
+
+        /// <summary>The box of every cell, as the extents of the drawing take a MINSERT in.</summary>
+        internal GeoAabb3 EveryCellExtents => base.GeometricExtents;
 
         /// <summary>
         /// The entities of the block placed in every cell of the array: those of the first cell, as
