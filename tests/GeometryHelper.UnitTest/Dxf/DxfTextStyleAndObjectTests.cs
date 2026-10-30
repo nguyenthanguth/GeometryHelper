@@ -110,8 +110,9 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void ColumnsSet_GiveTheMTextTheWidthAutoCadGivesIt_OfAllTheColumnsFromR2018_AndOfAColumnBefore()
         {
-            // As AutoCAD 2021 wrote the columns of 09-a (point 9): 41 of R2018 that of all the columns with their gutters.
-            foreach (string text in new[] { DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 })
+            // As AutoCAD 2021 wrote the columns of 09-a (point 9): 41 of R2018 that of all the columns with their gutters; before
+            // it, in R2007, as R2000 takes columns only with column MTEXTs linked, which are not made (09d).
+            foreach (string text in new[] { DxfFileEzdxfDrawings.R2018.Replace("AC1032", "AC1021"), DxfFileEzdxfDrawings.R2018 })
             {
                 bool r2018 = text == DxfFileEzdxfDrawings.R2018;
                 DxfDatabase db = DxfDatabase.Parse(text);

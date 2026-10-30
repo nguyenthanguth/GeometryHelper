@@ -968,8 +968,9 @@ fit points has each of its knots, one after another, in the place of the vertex 
 knot taking the place another took before it: the closed cubic through (0, 0), (40, 0), (50, 30) and (10, 25), its knots
 the lengths of the chords, is those four points and the first again at 0, its 48 vertices at 10 the range's 64ths with the
 knot 40 in the place of the 64th at 39.05; through (0, 0), (40, 0), (40.5, 0.5), (50, 30) and (10, 25) it has at 0 the
-knot 40.71 where the knot 40 would stand, as AutoCAD 2021 gave them. The same cubic of no fit points, as a DXF of AutoCAD
-keeps it, is the halving alone, (0, 0), (34.42, -3.51), (50.86, 28.40), (18.15, 30.49) and the first again at 0, as AutoCAD
+knot 40.71 where the knot 40 would stand, as AutoCAD 2021 gave them. So does one AutoCAD keeps by its fit points, the flag
+1024 of its 70 set (3115 for a periodic cubic), though its DXF holds no fit points, as AutoCAD read its own again. The same
+cubic of no fit points and no flag 1024, its 70 of 3 or 11, is the halving alone, (0, 0), (34.42, -3.51), (50.86, 28.40), (18.15, 30.49) and the first again at 0, as AutoCAD
 2021 gave it too; the arcs are bent as the pieces the halving made. Made
 arcs, for a flat spline, it has the same vertices, each segment the arc that turns as the spline's
 tangent turns along it, its bulge the tangent of a quarter of that turn, as AutoCAD 2021 makes them: the cubic of one span
@@ -1046,7 +1047,10 @@ its `Contents` holds its own column's words alone. They are part of that MTEXT, 
 and counts the main MTEXT alone, so that moving every MTEXT of model space moves each column once; an MTEXT that lists its
 own handle among its columns is walked still. A copy of the first holds the words of them all and links to none, so no two
 MTEXTs claim the same columns; and `Height`, before R2007, is the height of the columns in the extended data of ACAD, 30 for
-ezdxf's three static columns 30 high.
+ezdxf's three static columns 30 high. Before R2007, which brought columns, the column data are columns only with those linked
+MTEXTs: AutoCAD 2021 read three MTEXTs of R2000 given the column data alone as of no columns, each 50 wide, the one of a
+defined height of 15 that high, and so does the library, which refuses columns to such an MTEXT (`SetStaticColumns`,
+`SetDynamicColumns`, `ColumnType`), as it makes no column MTEXT.
 
 The words of a text can hold fields, kept as AutoCAD keeps them: a `DxfField`, AutoCAD's `Field`, is a FIELD the object's
 extension dictionary names in its dictionary ACAD_FIELD under the property TEXT. `GetField()` gives the field of an object's
@@ -1361,7 +1365,8 @@ which holds its original's fields, an XRECORD, another field), and taken out of 
 kept whose owner goes is given to a field that names it, else to the table. A copy of a table in its own drawing shares
 the original's fields: erasing the original table leaves the copy's 344s naming nothing, a limit listed for later;
 `GetFormula` and `HasFormula` read one back, or one AutoCAD wrote as a field of text holding it, from the cell's field in
-the table's TABLECONTENT where the cell's 344 names no record, as AutoCAD 2021 wrote the formula of a linked cell. `CopyFrom(source,
+the table's TABLECONTENT where the cell's 344 names no record, as AutoCAD 2021 wrote the formula of a linked cell; the
+link taken away, such a formula is written in the cell's own FIELD, as AutoCAD read none there until the cell had one. `CopyFrom(source,
 options, sourceRange, targetRange)` copies cells of a table of the same drawing, content, look and merges, growing the
 table with `ExpandOrContractTable`, which never shrinks it (a copy past the last row of the header and data rows makes
 the table of 3 rows one of 5), the content alone with `SkipFormat`, the look alone with `SkipContent`; a cell's field is
@@ -1374,7 +1379,7 @@ these versions has no group for is not there: several contents in one cell, and 
 of a double line.
 
 A range of a table's cells is linked to data as AutoCAD links one to a spreadsheet, from R2007 on; the library reads
-such links and takes them away, and writes no new one yet. A `DxfDataLink` is a DATALINK of the drawing's
+such links, takes them away and puts them in. A `DxfDataLink` is a DATALINK of the drawing's
 `DataLinkDictionary` (ACAD_DATALINK), read with its `DataAdapterId` (`AcExcel`), `ConnectionString`
 (`parts.xlsx!Sheet1!A1:B2`), `Description`, `ToolTip`, `DataLinkOption`, `UpdateOption`, `IsValid` and
 `GetUpdateStatus`; its `Name` set renames its entry. AutoCAD 2021 names a link in the TABLECONTENT it keeps for the table,
@@ -1382,12 +1387,19 @@ which the table's extension dictionary holds under ACAD_XREC_ROUNDTRIP through a
 ACAD_ROUNDTRIP_2008_TABLE_ENTITY: the range's top left cell there has its 92 odd after its custom data, then the
 DATALINK's handle (340), the range's rows (93) and columns (94) and a 96, and its state (90) the flag 4 of a linked cell;
 the ACAD_TABLE's own cells name no link. `GetDataLink`, `GetDataLinkRange` and `IsLinked` read it from every cell of the
-range, while the TABLECONTENT has the table's rows and columns: AutoCAD's table linked over (1, 0) to (2, 1), which it read
-back as (1, 0) alone, gives (1, 0) to (1, 0), and `link.GetTargets()` gives the table. `RemoveDataLink` takes the links
+range, a cell of the TABLECONTENT taken as the table's of its row and column whatever rows the TABLECONTENT has, as AutoCAD
+2021 read the link of (1, 0) of a table given a fourth row by a program that left its TABLECONTENT of three: AutoCAD's table
+linked over (1, 0) to (2, 1), which it read back as (1, 0) alone, gives (1, 0) to (1, 0), and `link.GetTargets()` gives the
+table. `SetDataLink(row, column, link)` and `SetDataLink(range, link)` put a link in as AutoCAD 2021's does, to a DATALINK
+of the drawing: the range's top left cell of the TABLECONTENT given the flag 4, its 92 made odd and `340` link, `93` rows,
+`94` columns, `96 1` after it, and the DATALINK tied to the table and its TABLECONTENT (`94 2`, `330 F6`, `330 187`). The
+cells keep what they hold until AutoCAD updates the link; a table of no TABLECONTENT, as a program other than AutoCAD writes
+one, and a range that meets a linked one are refused. `RemoveDataLink` takes the links
 away as AutoCAD 2021's does: the TABLECONTENT's cell made unlinked in place (92 even, the run out, the flag 4 cleared),
 the DATALINK left in the drawing, named or `Anonymous`, the table and what it owns taken out of the objects it lists
 itself tied to (`94 2`, `330 F6`, `330 149` comes out `94 0`). Rows and columns put in or taken out leave the TABLECONTENT
-as it was, so a link of AutoCAD's is no longer read once the table has other rows or columns. The library reads no
+as it was, so a link of AutoCAD's stays at its cell, as AutoCAD reads it, and one past the table's last row or column names
+none. The library reads no
 spreadsheet: the cells keep what they hold, and `UpdateDataLink` is not there.
 
 A link named in a cell of the ACAD_TABLE, the run 340, 93, 94, 96 straight after the cell's 92 made odd, is read as well:
@@ -1399,9 +1411,9 @@ whose rows or columns are all taken out goes with them, and its DATALINK, with w
 `Anonymous` and nothing else of the file points at it (another table, a copy of this one), the dictionary that holds it
 aside.
 
-Writing a new link is not there ([Checking against AutoCAD](dxf-autocad-checks.md), points 73 to 78): `SetDataLink` is
-not there, and a `DxfDataLink` is neither made in code nor has its groups set, as writing one AutoCAD reads means writing
-the table's TABLECONTENT whole. The DXF reference describes no DATALINK and ezdxf keeps one as it reads it; the groups read
+Linking a table of no TABLECONTENT is not there ([Checking against AutoCAD](dxf-autocad-checks.md), points 73 to 78), as
+AutoCAD writes the whole of it, every cell's content and format and the table's geometry, when it links one; and a
+`DxfDataLink` is neither made in code nor has its groups set. The DXF reference describes no DATALINK and ezdxf keeps one as it reads it; the groups read
 are those LibreDWG and AutoCAD 2021 give, which have no 70, the count of the objects the link is tied to (94) with a 330
 each, what it owns (360) and its custom data between `305 CUSTOMDATA`, `1 DATAMAP_BEGIN` and `309 DATAMAP_END`. An `UpdateOption` of 1 179 649, as LibreDWG's example gives
 it, is SkipFormat (0x20000) and AllowSourceUpdate (0x100000), which make 1 179 648, and a 0x1 no flag of AutoCAD's

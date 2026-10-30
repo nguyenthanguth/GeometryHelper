@@ -573,13 +573,14 @@ namespace GeometryHelper.Dxf
         /// counts for a quadratic of three spans and a cubic of a double knot too (29, 342 and 2 732, and 76, 933 and 8 011 at 0,
         /// 10 and 99), but more than AutoCAD's for a spline of degree 5 (117 where AutoCAD gives 96 at 0) and a rational one (371
         /// where it gives 130), whose bend AutoCAD reads otherwise. A closed spline has its last vertex on its first, the
-        /// polyline closed; a periodic one that runs through fit points has each of its knots, one after another, in the place
-        /// of the vertex of the halving nearest it, the later of two as near, a knot taking the place another took before it, as
-        /// AutoCAD 2021 gave them: the closed cubic through (0, 0), (40, 0), (50, 30) and (10, 25), its knots the lengths of the
+        /// polyline closed; a periodic one that runs through fit points, or that AutoCAD keeps by its fit points, the flag 1024
+        /// of its 70 set (its 3115 of a periodic cubic, written with no fit points), has each of its knots, one after another, in
+        /// the place of the vertex of the halving nearest it, the later of two as near, a knot taking the place another took
+        /// before it, as AutoCAD 2021 gave them: the closed cubic through (0, 0), (40, 0), (50, 30) and (10, 25), its knots the lengths of the
         /// chords, is those four points and the first again at 0, and 48 vertices at 10, the range halved into 64ths and the knot
         /// 40 standing in the place of the 64th at 39.05; through (0, 0), (40, 0), (40.5, 0.5), (50, 30) and (10, 25) it is at
         /// 0 the vertices at 0, 40.71, 71.70, 112.01 and its end, the knot 40.71 in the place the knot 40 took. The same spline
-        /// of no fit points, as a DXF keeps it, is the halving alone, as AutoCAD 2021 gave it: (0, 0), (34.42, -3.51),
+        /// of no fit points and no flag 1024, its 70 of 3, is the halving alone, as AutoCAD 2021 gave it: (0, 0), (34.42, -3.51),
         /// (50.86, 28.40), (18.15, 30.49) and the first again at 0. Each arc is bent as the piece the halving made, its first,
         /// from (0, 0) to (40, 0) at 0, by the turn of the tangent over the first quarter of the range. Of arcs, for a flat spline, the same vertices, each
         /// segment the arc that turns as the spline's tangent turns along it, its bulge the tangent of a quarter of that turn,
@@ -608,9 +609,11 @@ namespace GeometryHelper.Dxf
             double within = Math.Max(1E-9 * (1.0 + largest), bend > 0.0 ? 1.0 / (bend * (precision + 1.0) * (precision + 1.0)) : double.PositiveInfinity);
             Halve(nurbs, nurbs.Start, nurbs.End, nurbs.PointAt(nurbs.Start), nurbs.PointAt(nurbs.End), within, 0, parameters, middles);
 
-            // A periodic spline of fit points has its knots where the vertices nearest them were, each arc still bent by the turn
-            // along the piece the halving made; the last vertex of a closed spline is kept on its first.
-            List<double> places = IsPeriodic && HasFitData ? PlaceKnots(parameters, NurbsData.GetKnots(), nurbs.Start, nurbs.End) : parameters;
+            // A periodic spline of fit points, or one AutoCAD keeps by its fit points (the flag 1024 of its 70), has its knots
+            // where the vertices nearest them were, each arc still bent by the turn along the piece the halving made; the last
+            // vertex of a closed spline is kept on its first.
+            bool byFitPoints = HasFitData || (GetInt(70, 0) & 1024) != 0;
+            List<double> places = IsPeriodic && byFitPoints ? PlaceKnots(parameters, NurbsData.GetKnots(), nurbs.Start, nurbs.End) : parameters;
 
             // Arcs are bent by the turn of the spline's tangent along each segment, not through its point halfway.
             return Polyline(nurbs, parameters, bConvertAsArcs ? null : middles, bConvertAsArcs, bToLWPolyline, true, places);

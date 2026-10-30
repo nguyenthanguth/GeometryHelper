@@ -993,6 +993,15 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
+            WriteFormula(row, column, code);
+        }
+
+        /// <summary>
+        /// Writes a field code into a text cell as <see cref="SetFormula"/> writes one: a FIELD of it owned by the table, the
+        /// cell's 344 pointed at it, the field it pointed at before erased where nothing else holds it.
+        /// </summary>
+        private void WriteFormula(int row, int column, string code)
+        {
             CheckEditable();
             string old = CellToWrite(row, column).Head(344);
             DxfItem field = DxfField.WriteOwned(Item.File, Handle, new DxfField("%<" + code + ">%"));

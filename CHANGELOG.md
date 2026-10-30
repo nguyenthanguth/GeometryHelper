@@ -27,16 +27,31 @@ every section and every cell is the same to the bit. On .NET 10, 300 of the bodi
 nought where they took 1.71, and 2.38 where 3.95 on .NET Framework 4.8; two sections of each take what they took, 2.38
 seconds where 2.40, and 5.87 where 5.91; at a thousandth both take what they took. 8 new tests.
 
+**NEW.** `DxfTable.SetDataLink(row, column, dataLink)` and `SetDataLink(range, dataLink)` link cells to a DATALINK of the
+drawing, as AutoCAD 2021's `SetDataLink` links them: in the TABLECONTENT AutoCAD keeps for the table, the range's top left
+cell given the flag 4 of a linked cell, its 92 made odd and the run `340` link, `93` rows, `94` columns, `96 1` after it,
+and the DATALINK tied to the table and to its TABLECONTENT (`94 2`, `330 F6`, `330` of the TABLECONTENT), as AutoCAD wrote
+its 73; AutoCAD's linked table, its link taken away and set again, is AutoCAD's file to the byte. The cells keep what they
+hold, for AutoCAD to fill when it updates the link. A table of no TABLECONTENT, as a program other than AutoCAD writes one,
+and a range that meets a linked one are refused. Linking a cell takes 0.46 ms after the table's parse of 0.68 on .NET
+Framework 4.8, 0.35 after 0.57 on .NET 10. 3 new tests, 1 changed.
+
 **FIXED.** A table's data link is read where AutoCAD 2021 keeps it, in the TABLECONTENT of the table's extension dictionary
 (ACAD_XREC_ROUNDTRIP, an XRECORD of ACAD_ROUNDTRIP_2008_TABLE_ENTITY), from the cell whose 92 after its custom data is odd:
 `GetDataLink`, `GetDataLinkRange`, `IsLinked` and `GetTargets` read AutoCAD's link of the table F6 over (1, 0) to (1, 0),
-as AutoCAD reads it back, where they read none; one of a TABLECONTENT of other rows or columns than the table's is not.
+as AutoCAD reads it back, where they read none; a cell of the TABLECONTENT is the table's of its row and column, whatever
+rows the TABLECONTENT has, as AutoCAD read the link of (1, 0) of a table given a fourth row by a program that left its
+TABLECONTENT of three, and one past the table's last row or column names none.
 `RemoveDataLink` takes such a link away in place, the cell's 92 made even, its run 340, 93, 94, 96 taken out and the flag 4
 of a linked cell cleared, the DATALINK kept and tied to nothing (`94 0`), as AutoCAD's `RemoveDataLink` leaves it. A link
 of the cells of the ACAD_TABLE, the library's guess of before, is still read. `GetFormula` of a cell whose 344 names no
-record, as AutoCAD wrote its linked cell's, reads the field of the cell in the TABLECONTENT, `=1+2` where it read none.
+record, as AutoCAD wrote its linked cell's, reads the field of the cell in the TABLECONTENT, `=1+2` where it read none;
+`RemoveDataLink` writes that formula in the cell, a FIELD of its own owned by the table as `SetFormula` writes one, as
+AutoCAD read no formula there once the link was taken away and read the one of a cell of its own. Taking the link of
+AutoCAD's 78 away takes 1.8 ms with the parse where 1.2 on .NET Framework 4.8, the FIELD written; one of no formula is as
+before.
 Reading a cell of AutoCAD's linked table first takes 0.71 ms with the drawing's parse where 0.65 on .NET Framework 4.8, 0.51
-where 0.44 on .NET 10. 4 new tests.
+where 0.44 on .NET 10. 8 new tests, 1 changed.
 
 **CHANGED.** `SetFormula` writes the cell's 344 after its 145 and before its 92, as AutoCAD 2021 wrote the formula of a cell,
 where it went after the 92. 1 new test, 1 changed.
@@ -49,6 +64,14 @@ above nought, and for dynamic columns of their own heights holds the first colum
 AutoCAD writes them, where a height of nought was written and columns of their own heights had none; their `Height` is
 nought. Setting columns takes 180 microseconds where 134 on .NET Framework 4.8, 190 where 137 on .NET 10. 4 new tests, 4
 changed.
+
+**CHANGED.** In a drawing older than R2007, which brought columns, the column data of an MTEXT (`ACAD_MTEXT_COLUMN_INFO`)
+are columns only with the MTEXTs of its later columns linked (`ACAD_MTEXT_COLUMNS`), as AutoCAD and ezdxf write them:
+AutoCAD 2021 read three MTEXTs of R2000 given the column data alone, two static columns 50 wide among them, as of no columns,
+each 50 wide, and the one of a defined height of 15 that high. `ColumnType` of such an MTEXT is `NoColumns` and `Height` its
+`ACAD_MTEXT_DEFINED_HEIGHT`, where they read the columns; `SetStaticColumns`, `SetDynamicColumns` and `ColumnType` refuse
+it columns, as the library makes no column MTEXT, where they wrote data AutoCAD did not read. From R2007 on, and with linked
+column MTEXTs in R2000, nothing changes. 2 new tests, 7 changed.
 
 **CHANGED.** `DxfViewport.Number` is -1 for a viewport turned off, as AutoCAD 2021 gives it, where it gave the id of group 69;
 a viewport on keeps its id, and the id of one off is still not given to a new one. 1 new test, 5 changed.
@@ -77,13 +100,16 @@ changed.
 place of the vertex nearest it, the later of two as near, a later knot taking the place an earlier one took, and of a closed
 spline its last vertex on its first, the polyline closed, as AutoCAD 2021 gives them; a closed spline of no fit points, as a
 DXF of AutoCAD keeps one, is the halving alone, (0, 0), (34.42, -3.51), (50.86, 28.40), (18.15, 30.49) at 0, as AutoCAD read
-it back. The closed cubic through
+it back; a periodic spline AutoCAD keeps by its fit points, the flag 1024 of its 70 set (its 3115), has its knots in place
+though its DXF holds no fit points, as AutoCAD read its own again: the 26 polylines AutoCAD made of its three periodic cubics
+of v7 and v8, at 0 to 99, are the library's to 1E-9, where 24 were not; at 10 they take 0.32 ms where 0.30 on .NET Framework
+4.8, the knots now placed. The closed cubic through
 (0, 0), (40, 0), (50, 30) and (10, 25), its knots the lengths of the chords, gives 5, 9, 15, 17, 30, 48, 86, 252 and 493
 vertices at 0, 1, 2, 3, 5, 10, 20, 50 and 99, where 4, 8, 14, 16, 29, 47, 85, 251 and 492, and at 0 the four points it runs
 through and the first again, where its points at a quarter, a half and three quarters of its range, (34.42, -3.51) the
 first, stood in their place; each arc is bent by
 the turn over the piece the halving made, 0.418 from (0, 0) to (40, 0), as AutoCAD's. An open spline is given what it was.
-4 new tests.
+6 new tests.
 
 **FIXED.** `TrySubtract`, `TryIntersect` and `TryUnion` asked below four tenths of the rounding of the coordinates,
 nought among it, of a body that does not close within that rounding, as one with cracks in its faces does not, take what

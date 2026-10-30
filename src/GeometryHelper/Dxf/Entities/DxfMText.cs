@@ -696,7 +696,10 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gets or sets how the MTEXT is set in columns, as AutoCAD's <c>ColumnType</c>: from its embedded object from R2018 (group
         /// 71), else from its extended data of ACAD (75), as ezdxf reads them; <see cref="DxfColumnType.NoColumns"/> where it
-        /// gives none.
+        /// gives none. In a file older than R2007 (AC1021), which brought columns, the extended data are columns only with the
+        /// MTEXTs of the later columns they link (<c>ACAD_MTEXT_COLUMNS</c>), as AutoCAD and ezdxf write them: AutoCAD 2021 read
+        /// three MTEXTs of R2000 given the column data alone, two static columns 50 wide among them, as of no columns, each 50
+        /// wide (<see cref="Width"/>), the one of a defined height of 15 that high (<see cref="Height"/>).
         /// </summary>
         /// <value>
         /// Set, the columns written in the form of the file's version, as AutoCAD writes them: from R2018 (AC1032) the MTEXT's
@@ -708,7 +711,8 @@ namespace GeometryHelper.Dxf
         /// (<c>ACAD_MTEXT_COLUMNS</c>) left as MTEXTs of their own, their words where they stand.
         /// </value>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the type set is not one of AutoCAD's, 0 to 2.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when the MTEXT is erased.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the MTEXT is erased, or given columns in a file older than R2007
+        /// with no MTEXTs of its later columns linked, which the library does not make.</exception>
         public DxfColumnType ColumnType
         {
             get => Columns().Type;
@@ -723,6 +727,11 @@ namespace GeometryHelper.Dxf
                 if (value < DxfColumnType.NoColumns || value > DxfColumnType.DynamicColumns)
                 {
                     throw new ArgumentOutOfRangeException(nameof(value), value, "A column type is one of AutoCAD's, 0 to 2.");
+                }
+
+                if (value != DxfColumnType.NoColumns)
+                {
+                    CheckColumnsWritable();
                 }
 
                 ColumnSet columns = Columns();
@@ -922,13 +931,15 @@ namespace GeometryHelper.Dxf
         /// given and as high as the MTEXT's <see cref="Height"/>, a gutter between them; written as <see cref="ColumnType"/>
         /// says, the MTEXT's <see cref="Width"/> (41, and 40 of its embedded object) made that of all the columns with their
         /// gutters from R2018, and a column's before it, as AutoCAD 2021 writes it: two columns 50 wide with a gutter of 10 make
-        /// an MTEXT of R2018 110 wide, and one of R2000 50 wide. Three columns 12.5 wide with gutters of 2.5 take 42.5 across.
+        /// an MTEXT of R2018 110 wide, and one of R2000, its later columns MTEXTs of their own, 50 wide. Three columns 12.5 wide
+        /// with gutters of 2.5 take 42.5 across.
         /// </summary>
         /// <param name="width">How wide each column is, a finite number above nought.</param>
         /// <param name="gutter">The space between two columns, a finite number of nought or more.</param>
         /// <param name="count">How many columns, 1 or more.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when a width is outside what it takes, or the count is below 1.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when the MTEXT is erased.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the MTEXT is erased, or of a file older than R2007 with no MTEXTs
+        /// of its later columns linked, which AutoCAD 2021 reads as of no columns.</exception>
         public void SetStaticColumns(double width, double gutter, int count)
         {
             Guard.Positive(width, nameof(width), "The width of a column has to be a finite number above nought.");
@@ -939,6 +950,7 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentOutOfRangeException(nameof(count), count, "An MTEXT in columns has 1 column or more.");
             }
 
+            CheckColumnsWritable();
             ColumnSet columns = Columns();
             columns.Type = DxfColumnType.StaticColumns;
             columns.Width = width;
@@ -962,11 +974,13 @@ namespace GeometryHelper.Dxf
         /// <param name="gutter">The space between two columns, a finite number of nought or more.</param>
         /// <param name="autoHeight">Whether the columns are all of one height.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when a width is outside what it takes.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when the MTEXT is erased.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the MTEXT is erased, or of a file older than R2007 with no MTEXTs
+        /// of its later columns linked, which AutoCAD 2021 reads as of no columns.</exception>
         public void SetDynamicColumns(double width, double gutter, bool autoHeight)
         {
             Guard.Positive(width, nameof(width), "The width of a column has to be a finite number above nought.");
             Guard.NonNegative(gutter, nameof(gutter), "The gutter between columns has to be a finite number of nought or more.");
+            CheckColumnsWritable();
             ColumnSet columns = Columns();
             columns.Type = DxfColumnType.DynamicColumns;
             columns.Width = width;
@@ -2142,7 +2156,10 @@ namespace GeometryHelper.Dxf
                 return read;
             }
 
+            // Before R2007, which brought columns, AutoCAD 2021 takes the column data for columns only with the MTEXTs of the
+            // later columns linked (ACAD_MTEXT_COLUMNS), as it writes them; the data alone it reads as no columns (its 09-d).
             IReadOnlyList<DxfTypedValue> acad = GetXDataForApplication("ACAD");
+            bool columns = Item.File.Supports(1021) || (acad != null && acad.Any(g => g.TypeCode == 1000 && g.Value.Trim() == "ACAD_MTEXT_COLUMNS_BEGIN"));
             bool inside = false;
             bool defined = false;
             int? code = null;
@@ -2153,7 +2170,7 @@ namespace GeometryHelper.Dxf
                 if (group.TypeCode == 1000)
                 {
                     string name = group.Value.Trim();
-                    inside = name == "ACAD_MTEXT_COLUMN_INFO_BEGIN" || (inside && name != "ACAD_MTEXT_COLUMN_INFO_END");
+                    inside = columns && (name == "ACAD_MTEXT_COLUMN_INFO_BEGIN" || (inside && name != "ACAD_MTEXT_COLUMN_INFO_END"));
                     defined = name == "ACAD_MTEXT_DEFINED_HEIGHT_BEGIN" || (defined && name != "ACAD_MTEXT_DEFINED_HEIGHT_END");
                     read.InXData |= inside;
                     continue;
@@ -2198,6 +2215,19 @@ namespace GeometryHelper.Dxf
             }
 
             return read;
+        }
+
+        /// <summary>
+        /// Refuses columns given to an MTEXT of a file older than R2007 (AC1021) that links no MTEXTs of its later columns
+        /// (<c>ACAD_MTEXT_COLUMNS</c>): AutoCAD 2021 reads the column data of such a file as columns only with them, as it
+        /// writes them, and the library makes no column MTEXT.
+        /// </summary>
+        private void CheckColumnsWritable()
+        {
+            if (!Item.File.Supports(1021) && !HasBlock("ACAD_MTEXT_COLUMNS"))
+            {
+                throw new InvalidOperationException("A DXF older than R2007 (AC1021) keeps an MTEXT's columns with an MTEXT of its own for each column after the first (ACAD_MTEXT_COLUMNS), as AutoCAD writes them, and AutoCAD 2021 reads the column data alone as no columns: the library makes no column MTEXT.");
+            }
         }
 
         /// <summary>The columns of the MTEXT, to be changed; refused where it has none.</summary>

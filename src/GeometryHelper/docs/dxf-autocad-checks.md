@@ -114,6 +114,14 @@ written as AutoCAD reads them now.
      heights, each linked column MTEXT its own; `Height` of such columns is nought, as AutoCAD's R2018 save gives (46 0).
      The count of dynamic columns AutoCAD works out as it lays the words out, and its linked column MTEXTs of R2000, are
      not made: the library has no fonts.
+   - AutoCAD 2021 (plugin v9, 09-d of R2000, the column data alone, no column MTEXTs): takes none of the three as columns,
+     `ColumnType` NoColumns, `Width` 50, `Height` 0, 0 and 15 (the defined height of 8F); saved as R2000 it drops the column
+     data and keeps the defined height, saved as R2018 it keeps the data as extended data, 41 50.
+   - Now (D17): before R2007 the column data are columns only with the column MTEXTs linked (`ACAD_MTEXT_COLUMNS`), as AutoCAD
+     and ezdxf write them; the data alone read as no columns, the defined height as `Height`, and `SetStaticColumns`,
+     `SetDynamicColumns` and `ColumnType` refuse such an MTEXT columns, as the library makes no column MTEXT. Still to see:
+     whether AutoCAD takes its own 09-a of R2000, with its column MTEXTs, as columns, and the library's columns of R2007,
+     the extended data alone (09-e of after-d17).
 
 10. **Linked columns copied into R2018.**
     - Try: copy an MTEXT of linked columns of R2000 into a drawing of R2018 with the library, and open it.
@@ -234,6 +242,16 @@ written as AutoCAD reads them now.
     - Now (D16): a periodic spline of fit points has each knot, one after another, in the place of the vertex nearest it,
       the later of two as near, a later knot taking the place an earlier one took; any other closed spline is the halving
       alone, its last vertex on its first. Every vertex of the four polylines of 17f at 0 and 10, and of 17-f's, to 1E-9.
+    - AutoCAD 2021 (plugin v9, 17g): its own HALFWAY of v8, its 70 3115 and no fit points in its DXF, read again as
+      periodic with 5 fit points, the knots in place (0, 20, 45, 55, 80 at 0); the library's 17-g, the same cubics written
+      with 70 11 and their fit points, read as not periodic and fitted anew through its fit points, another curve: 44 and 42
+      vertices at 10 where the library gives 54 and 51, and NEAR at 0 at 0, 40.71, 55.57, 71.70, 111.15.
+    - Now (D17): the knots stand in place too for a periodic spline of the flag 1024 of its 70 (AutoCAD's 3115), its fit
+      points kept by AutoCAD though its DXF writes none: the 26 polylines AutoCAD made of its periodic cubics of v7 and v8 are
+      the library's to 1E-9, where 24 were not; its closed cubic that is not periodic (70 11, no flag 1024), and 17-f's (70
+      3), stay the halving alone, as AutoCAD made them. Parked, the third round: a closed spline of 70 11 with fit points, a
+      form AutoCAD does not write, which it fits anew through its fit points as a spline not periodic; the library keeps its
+      control points, so neither the knots in place nor the halving alone gives AutoCAD's 44 and 42 vertices.
     - Degree 4, 5 and rational, parked: the tolerance the counts fit is the larger of 1 / M and the spline's length over
       10 000, over (p + 1)^2: the quartic (M 120, length 47.7) takes 1 / M, every one of its nine counts; the quintic Bezier
       (M 400, length 55.00), the quintic of two spans (M 223.6, length 70.085), the rational cubics 1, 2, 2, 1 (M 600, length
@@ -795,8 +813,8 @@ written as AutoCAD reads them now.
 
 ## Data links of tables
 
-The library reads the data links of a table and takes them away, and writes no new one: AutoCAD keeps a link in the table's
-TABLECONTENT (points 73 to 78), which the library would have to write whole.
+The library reads the data links of a table, takes them away and puts them in, in the table's TABLECONTENT, where AutoCAD
+keeps them (points 73 to 78); a table of no TABLECONTENT is not linked, as the library would have to write one whole.
 
 73. **Where a table's cell names its data link.**
     - Try: link the cells (1, 0) to (2, 1) of a table to a spreadsheet with DATALINK, save as DXF of R2007 and of R2018, and
@@ -822,6 +840,19 @@ TABLECONTENT (points 73 to 78), which the library would have to write whole.
       in the ACAD_TABLE's cells is still read, but AutoCAD misreads the cells after it: 74-a saved again had its cells a cell
       along (Qty in (0, 0), the bolt in (1, 0)). Rows or columns put in or taken out leave the TABLECONTENT as it was, and
       its link is then no longer read.
+    - AutoCAD 2021 (plugin v9): 73-d, the title set Bolts in the ACAD_TABLE and Parts left in the TABLECONTENT of the
+      checksum 1 655: shows Bolts and keeps the link of (1, 0); 73-e, a fourth row put in by the library, its TABLECONTENT
+      and TABLEGEOMETRY of three left: opened, four rows, the link kept at (1, 0), saved with a TABLECONTENT of four rows.
+    - Now (D17): a cell of the TABLECONTENT is the table's of its row and column whatever rows it has, as AutoCAD read 73-e;
+      one past the table's last row or column names none. Writing the TABLECONTENT anew as rows and columns change, as
+      AutoCAD's save of 73-e does (every cell of the new row, its format and its geometry), is not done: parked.
+      `SetDataLink(row, column, link)` and `SetDataLink(range, link)` put a link in as AutoCAD linked 73: the range's top
+      left cell of the TABLECONTENT given the flag 4 in its state, its 92 made odd and `340` link, `93` rows, `94` columns,
+      `96 1` after it, and the DATALINK tied to the table and its TABLECONTENT (`94 2`, `330 F6`, `330 187`), the cells
+      left as they are, as AutoCAD takes the ACAD_TABLE's where the checksum does not agree (73-d); AutoCAD's 73, its link
+      taken away and set again, is AutoCAD's file to the byte. A table of no TABLECONTENT is refused: AutoCAD writes it whole
+      when it links one (its 73 of an ezdxf table, 469 groups for three rows of two columns, and a TABLEGEOMETRY of every
+      cell's place and extents). To check: 73-f to 73-j of after-d17.
 
 74. **The groups of a DATALINK.**
     - Try: read the DATALINK of the drawing of point 73; then open in AutoCAD, with AUDIT, a drawing whose DATALINK has no 70
@@ -882,6 +913,13 @@ TABLECONTENT (points 73 to 78), which the library would have to write whole.
       TABLECONTENT of a table AutoCAD saved is left as it was, its cell's checksum no longer that of the cell. `GetFormula`
       of a cell whose 344 names no record, as AutoCAD's 192, reads the field of the cell's first content in the TABLECONTENT:
       `=1+2` from AutoCAD's 78, where it read none.
+    - AutoCAD 2021 (plugin v9): 78-b, AutoCAD's 78 with its link taken away by the library: no formula, no value, even after
+      `EvaluateFields()`, and saved with the TABLECONTENT's cell pointing at the 192 of no record and no FIELD at all; 78-c,
+      the formula set by the library in the ACAD_TABLE's cell of AutoCAD's linked 73, its TABLECONTENT's cell of checksum 0:
+      the formula `(1+2)`, 3 after `EvaluateFields()`, and the link, both.
+    - Now (D17): `RemoveDataLink` writes the formula of a cell whose 344 names no record, read from the TABLECONTENT, in a
+      FIELD of the cell's own, owned by the table, as `SetFormula` writes one (78c's form); the TABLECONTENT's field is kept.
+      To check: 78-d of after-d17.
 
 ## Offsets of polylines that cross themselves
 

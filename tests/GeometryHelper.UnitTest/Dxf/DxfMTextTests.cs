@@ -196,9 +196,10 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void ColumnsSetInAnMTextOfR2000_AreWrittenInTheExtendedDataOfAcad_AsEzdxfWritesThem()
+        public void ColumnsSetInAnMTextOfR2007_AreWrittenInTheExtendedDataOfAcad_AsEzdxfWritesThem()
         {
-            string text = DxfFileEzdxfDrawings.R2000;
+            // From R2007 to R2013; an MTEXT of R2000 with no column MTEXTs linked is given none, as AutoCAD 2021 reads none (09d).
+            string text = DxfFileEzdxfDrawings.R2018.Replace("AC1032", "AC1021");
             DxfDatabase db = DxfDatabase.Parse(text);
             DxfMText mtext = ByHandle<DxfMText>(db, "73");
 
@@ -228,7 +229,8 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void TheColumnsOfAnMTextMadeInCode_AreWrittenInTheFormOfTheDrawingItIsAddedTo()
         {
-            foreach (string text in Drawings)
+            // The extended data of R2007, as R2000 reads them as columns only with column MTEXTs linked, which are not made.
+            foreach (string text in new[] { DxfFileEzdxfDrawings.R2018.Replace("AC1032", "AC1021"), DxfFileEzdxfDrawings.R2018 })
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
                 var made = new DxfMText { Contents = "a\\Pb\\Pc", Location = new GeoPoint3(1, 2, 0), Width = 20.0 };
@@ -331,10 +333,12 @@ namespace GeometryHelper.UnitTest.Dxf
 
                     target.ModelSpace.AppendEntity(copy);
 
+                    // In R2000 the column data left, with no column MTEXTs linked, are no columns, as AutoCAD 2021 reads them (09d).
                     DxfMText again = ByHandle<DxfMText>(DxfDatabase.Parse(target.ToText()), copy.Handle);
+                    bool r2018 = into == DxfFileEzdxfDrawings.R2018;
                     Assert.Equal("one\\Ntwo\\Nthree", again.Contents);
-                    Assert.Equal(DxfColumnType.StaticColumns, again.ColumnType);
-                    Assert.Equal(3, again.ColumnCount);
+                    Assert.Equal(r2018 ? DxfColumnType.StaticColumns : DxfColumnType.NoColumns, again.ColumnType);
+                    Assert.Equal(r2018 ? 3 : 0, again.ColumnCount);
                     Assert.DoesNotContain("ACAD_MTEXT_COLUMNS_BEGIN", Records(target.ToText()).Single(r => HandleOf(r) == copy.Handle), StringComparison.Ordinal);
                     Assert.Equal(before, Records(db.ToText()).Single(r => HandleOf(r) == "5A"));
                 }

@@ -35,7 +35,7 @@ namespace GeometryHelper.UnitTest.Dxf
         // The cells (1, 0) Mark of the table F6, before its value, and the R2007 drawing of the same text.
         private const string MarkCell = "145\n0.0\n 92\n0\n301\nCELL_VALUE\n 93\n6\n 90\n4\n  1\nMark\n";
 
-        private static readonly string R2007 = DxfDimensionDrawings.R2018.Replace("$ACADVER\n  1\nAC1032\n", "$ACADVER\n  1\nAC1021\n");
+        internal static readonly string R2007 = DxfDimensionDrawings.R2018.Replace("$ACADVER\n  1\nAC1032\n", "$ACADVER\n  1\nAC1021\n");
 
         /// <summary>
         /// A cell of a TABLECONTENT as AutoCAD 2021 wrote its cells of no content in 73-autocad-linked-r2018.dxf: its state,
@@ -68,7 +68,7 @@ namespace GeometryHelper.UnitTest.Dxf
         /// 40 and 30 wide, the rows given, 10, 8 and 8 high, the cell given in the state 4 of a linked cell naming the DATALINK
         /// B06 over one row and one column, the merging of the title, and the table style 126.
         /// </summary>
-        private static string TableContent(int rows, int linkedRow, int linkedColumn, string field = null)
+        internal static string TableContent(int rows, int linkedRow, int linkedColumn, string field = null)
         {
             var text = new StringBuilder();
             text.Append(G(0, "TABLECONTENT")).Append(G(5, "B03")).Append(G(330, "B02")).Append(G(100, "AcDbLinkedData")).Append(G(1, string.Empty))
@@ -116,7 +116,7 @@ namespace GeometryHelper.UnitTest.Dxf
         /// the DATALINK GH_PARTS (B06, in ACAD_DATALINK B05) from the cell (1, 0); the DATALINK tied to the table and its
         /// TABLECONTENT (94 2, 330 F6, 330 B03), its groups as AutoCAD's 142; the cells of the ACAD_TABLE naming no link.
         /// </summary>
-        private static string LinkedByAutoCad(string version, int rows = 3, bool formula = false)
+        internal static string LinkedByAutoCad(string version, int rows = 3, bool formula = false)
         {
             string text = version
                 .Replace("$HANDSEED\n  5\n10A\n", "$HANDSEED\n  5\nB10\n")
@@ -154,9 +154,9 @@ namespace GeometryHelper.UnitTest.Dxf
             return text.Replace("  0\nENDSEC\n  0\nEOF\n", objects + "  0\nENDSEC\n  0\nEOF\n");
         }
 
-        private static DxfTable Table(DxfDatabase db) => db.ModelSpace.OfType<DxfTable>().First();
+        internal static DxfTable Table(DxfDatabase db) => db.ModelSpace.OfType<DxfTable>().First();
 
-        private static string Record(string text, string handle) => Records(text).Single(r => HandleOf(r) == handle);
+        internal static string Record(string text, string handle) => Records(text).Single(r => HandleOf(r) == handle);
 
         [Fact]
         public void ALinkAutoCadKeepsInTheTableContent_IsReadFromItsCell_OverTheRangeItNames()
@@ -181,16 +181,6 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(new[] { table }, link.GetTargets());
                 Assert.Equal("Mark", table.TextString(1, 0));
             }
-        }
-
-        [Fact]
-        public void ATableContentOfOtherRowsThanItsTable_NamesNoLink()
-        {
-            // A TABLECONTENT left behind as the table changed, two rows where the table has three, is not read.
-            DxfDatabase db = DxfDatabase.Parse(LinkedByAutoCad(DxfDimensionDrawings.R2018, 2));
-
-            Assert.Empty(Table(db).GetDataLink());
-            Assert.False(Table(db).IsLinked(1, 0));
         }
 
         [Fact]
@@ -297,11 +287,11 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AnMTextOfR2000InColumns_IsAsWideAsAColumn_AndWritesNoDefinedHeightOfNought_AsAutoCadWritesIt()
+        public void AnMTextBeforeR2018InColumns_IsAsWideAsAColumn_AndWritesNoDefinedHeightOfNought_AsAutoCadWritesIt()
         {
             // AutoCAD 2021 saved 09-a as R2000: the static columns of 8D with 41 50 and no ACAD_MTEXT_DEFINED_HEIGHT, its
-            // height being nought.
-            DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
+            // height being nought. Written in R2007, as R2000 takes columns only with column MTEXTs linked (D17, 09d).
+            DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018.Replace("AC1032", "AC1021"));
             DxfMText mtext = ByHandle<DxfMText>(db, "73");
 
             mtext.SetStaticColumns(50.0, 10.0, 2);
@@ -318,10 +308,11 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AnMTextOfR2000InColumnsOfTheirOwnHeights_WritesTheFirstColumnsHeightAsItsDefinedHeight_AsAutoCadWritesIt()
+        public void AnMTextBeforeR2018InColumnsOfTheirOwnHeights_WritesTheFirstColumnsHeightAsItsDefinedHeight_AsAutoCadWritesIt()
         {
             // AutoCAD 2021 saved the columns 15 and 25 high of 8F as R2000 with ACAD_MTEXT_DEFINED_HEIGHT 15 after the heights.
-            DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
+            // Written in R2007, as R2000 takes columns only with column MTEXTs linked (D17, 09d).
+            DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018.Replace("AC1032", "AC1021"));
             DxfMText mtext = ByHandle<DxfMText>(db, "73");
 
             mtext.SetDynamicColumns(50.0, 10.0, false);
@@ -341,8 +332,8 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AnMTextInColumnsMadeInCode_TakesTheWidthOfTheFormOfTheDrawingItIsAddedTo()
         {
-            // Point 10: AutoCAD 2021 read the columns 40 wide 10 apart copied into R2018 as 140 wide.
-            foreach (string text in new[] { DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 })
+            // Point 10: AutoCAD 2021 read the columns 40 wide 10 apart copied into R2018 as 140 wide; into R2007 a column wide.
+            foreach (string text in new[] { DxfFileEzdxfDrawings.R2018.Replace("AC1032", "AC1021"), DxfFileEzdxfDrawings.R2018 })
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
                 var made = new DxfMText { Contents = "a\\Nb\\Nc", Location = P3(1, 2, 0), Width = 40.0 };
@@ -547,7 +538,7 @@ namespace GeometryHelper.UnitTest.Dxf
             new[] { P3(0, 0, 0), P3(40, 0, 0), P3(40.5, 0.5, 0), P3(50, 30, 0), P3(10, 25, 0), P3(0, 0, 0) });
 
         /// <summary>Checks a polyline of a spline: its vertices, closed, at the parameters AutoCAD 2021's stood at.</summary>
-        private static void AtParameters(DxfSpline spline, int precision, double[] parameters)
+        internal static void AtParameters(DxfSpline spline, int precision, double[] parameters)
         {
             foreach (bool arcs in new[] { false, true })
             {

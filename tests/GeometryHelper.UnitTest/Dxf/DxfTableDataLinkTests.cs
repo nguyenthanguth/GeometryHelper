@@ -131,8 +131,8 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void ADataLink_IsReadAndTakenAway_ItsWritingHeldForTheAutoCADChecks()
         {
+            // A cell is linked to a DATALINK of the drawing (SetDataLink, of the AutoCAD checks D17); no new DATALINK is made.
             Assert.Null(typeof(DxfDataLink).GetConstructor(Type.EmptyTypes));
-            Assert.Empty(typeof(DxfTable).GetMember("SetDataLink"));
 
             foreach (string name in new[] { "DataAdapterId", "Description", "ToolTip", "ConnectionString", "DataLinkOption", "UpdateOption" })
             {
