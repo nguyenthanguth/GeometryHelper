@@ -26,15 +26,23 @@ namespace GeometryHelper.Core
     /// answer does not drift from one run to the next.
     /// </para>
     /// <para>
-    /// A curved loop or chain measures each of its edges as its own distance does: a straight side no longer than the
-    /// point tolerance is the side it is, not the point at its start, and a segment you give no longer than the
-    /// tolerance is read as its start where it crosses no side. At a hundredth, the loop (0, 0), (10, 0), (10, 0.006),
-    /// (0, 10) names its side 0.006 long for the point (10.03, 0.003), 0.03 from it, where read as its start it stood
-    /// 0.0301496 off, as far as the side along the bottom, which came first.
+    /// Every shape measures each of its edges as its own distance does: a straight side no longer than the point
+    /// tolerance is the side it is, not the point at its start, and a segment you give no longer than the tolerance is
+    /// read as its start where it crosses no side. At a hundredth, the loop (0, 0), (10, 0), (10, 0.006), (0, 10) names
+    /// its side 0.006 long for the point (10.03, 0.003), 0.03 from it, where read as its start it stood 0.0301496 off, as
+    /// far as the side along the bottom, which came first. A polygon, a polyline and a rectangle take no tolerance here:
+    /// they measure every side exactly, and read a segment you give as its start by the global tolerance. The rectangle
+    /// 10 by 0.0006 on the origin names its right-hand side, 0.0006 long, for the point (10.03, 0.0003).
     /// </para>
     /// </remarks>
     public static class ClosestEdge2
     {
+        /// <summary>
+        /// A tolerance of nought, for measuring a straight side as it is however short: a side longer than any tolerance
+        /// projects a point to the same place at nought as at the tolerance.
+        /// </summary>
+        private static Tolerance Exactly => default(Tolerance);
+
         /// <summary>
         /// Walks a shape's pieces once and keeps the one the measure rates lowest.
         /// </summary>
@@ -79,7 +87,7 @@ namespace GeometryHelper.Core
         {
             if (poly == null) throw new ArgumentNullException(nameof(poly));
 
-            return Among(poly.GetEdges(), edge => Distance2.DistanceTo(edge, point));
+            return Among(poly.GetEdges(), edge => Distance2.DistanceTo(edge, point, Exactly));
         }
 
         /// <summary>
@@ -92,7 +100,7 @@ namespace GeometryHelper.Core
         {
             if (poly == null) throw new ArgumentNullException(nameof(poly));
 
-            return Among(poly.GetEdges(), edge => Distance2.DistanceTo(edge, line));
+            return Among(poly.GetEdges(), edge => Distance2.DistanceToSide(edge, line, Tolerance.Global));
         }
 
         /// <summary>
@@ -105,7 +113,7 @@ namespace GeometryHelper.Core
         {
             if (poly == null) throw new ArgumentNullException(nameof(poly));
 
-            return Among(poly.GetEdges(), edge => Distance2.DistanceTo(circle, edge));
+            return Among(poly.GetEdges(), edge => Distance2.DistanceTo(circle, edge, Exactly));
         }
 
         #endregion
@@ -122,7 +130,7 @@ namespace GeometryHelper.Core
         {
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
 
-            return Among(polyline.GetEdges(), edge => Distance2.DistanceTo(edge, point));
+            return Among(polyline.GetEdges(), edge => Distance2.DistanceTo(edge, point, Exactly));
         }
 
         /// <summary>
@@ -135,7 +143,7 @@ namespace GeometryHelper.Core
         {
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
 
-            return Among(polyline.GetEdges(), edge => Distance2.DistanceTo(edge, line));
+            return Among(polyline.GetEdges(), edge => Distance2.DistanceToSide(edge, line, Tolerance.Global));
         }
 
         /// <summary>
@@ -148,7 +156,7 @@ namespace GeometryHelper.Core
         {
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
 
-            return Among(polyline.GetEdges(), edge => Distance2.DistanceTo(circle, edge));
+            return Among(polyline.GetEdges(), edge => Distance2.DistanceTo(circle, edge, Exactly));
         }
 
         #endregion
@@ -163,7 +171,7 @@ namespace GeometryHelper.Core
         /// <returns>The edge of <paramref name="rect"/> lying nearest <paramref name="point"/>.</returns>
         public static GeoLine2 GetClosestEdge(GeoRectangle2 rect, GeoPoint2 point)
         {
-            return Among(rect.GetEdges(), edge => Distance2.DistanceTo(edge, point));
+            return Among(rect.GetEdges(), edge => Distance2.DistanceTo(edge, point, Exactly));
         }
 
         /// <summary>
@@ -174,7 +182,7 @@ namespace GeometryHelper.Core
         /// <returns>The edge of <paramref name="rect"/> lying nearest <paramref name="line"/>.</returns>
         public static GeoLine2 GetClosestEdge(GeoRectangle2 rect, GeoLine2 line)
         {
-            return Among(rect.GetEdges(), edge => Distance2.DistanceTo(edge, line));
+            return Among(rect.GetEdges(), edge => Distance2.DistanceToSide(edge, line, Tolerance.Global));
         }
 
         /// <summary>
@@ -185,7 +193,7 @@ namespace GeometryHelper.Core
         /// <returns>The edge of <paramref name="rect"/> lying nearest <paramref name="circle"/>.</returns>
         public static GeoLine2 GetClosestEdge(GeoRectangle2 rect, GeoCircle2 circle)
         {
-            return Among(rect.GetEdges(), edge => Distance2.DistanceTo(circle, edge));
+            return Among(rect.GetEdges(), edge => Distance2.DistanceTo(circle, edge, Exactly));
         }
 
         #endregion

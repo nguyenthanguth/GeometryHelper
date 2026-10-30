@@ -27,6 +27,16 @@ namespace GeometryHelper.Core
     /// end of it.
     /// </para>
     /// <para>
+    /// Against anything but a point, every side of a rectangle, a polygon or a polyline is joined as it is however short, as
+    /// the distance measures it: at a hundredth, the polygon (0, 0), (10, 0), (10, 0.006), (0, 10) is joined to the segment
+    /// from (10.03, 0.003) to (10.05, 0.003) by the line from (10, 0.003), 0.03 long, where read as its start its side 0.006
+    /// long gave one from a corner 0.0301496 long. A point beside such a side is still carried to the side's start. Where two
+    /// shapes come within the tolerance without meeting, the segment may be one of no length, a touch, and only there: two
+    /// sides whose lines cross within the tolerance past the ends of both can be twice as far apart, and are joined by the
+    /// gap. Two squares 100 by 100 whose corners are 0.00085 apart in x and in y are joined at a thousandth by the line
+    /// between the corners, 0.0012 long.
+    /// </para>
+    /// <para>
     /// The tolerance is used for the projections themselves and for the endpoint slack when deciding
     /// whether two edges meet. It is deliberately not used as a cutoff for the edge scans: those stop
     /// early only on an exact zero, so widening the tolerance cannot make a search settle for a nearer
@@ -180,6 +190,11 @@ namespace GeometryHelper.Core
         /// <param name="point">The target point.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>The closest point on the polygon boundary.</returns>
+        /// <remarks>
+        /// A side no longer than the tolerance offers its start, as a segment that short does on its own, so beside it the
+        /// closest point can be further than the distance by up to the side's length: at a hundredth, the polygon (0, 0),
+        /// (10, 0), (10, 0.006), (0, 10) is 0.03 from (10.03, 0.003), and the closest point is (10, 0), 0.0301496 away.
+        /// </remarks>
         public static GeoPoint2 ProjectToPolygon(GeoPolygon2 poly, GeoPoint2 point, Tolerance tolerance)
         {
             if (poly == null) throw new ArgumentNullException(nameof(poly));
@@ -266,6 +281,11 @@ namespace GeometryHelper.Core
         /// <param name="point">The target point.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>The closest point on the polyline.</returns>
+        /// <remarks>
+        /// A leg no longer than the tolerance offers its start, as a segment that short does on its own, so beside it the
+        /// closest point can be further than the distance by up to the leg's length: at a hundredth, the polyline (0, 0),
+        /// (10, 0), (10, 0.006), (0, 0.006) is 0.03 from (10.03, 0.003), and the closest point is (10, 0), 0.0301496 away.
+        /// </remarks>
         public static GeoPoint2 ProjectToPolyline(GeoPolyline2 polyline, GeoPoint2 point, Tolerance tolerance)
         {
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
@@ -364,7 +384,9 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
         /// A <see cref="GeoLine2"/> from the point <see cref="ProjectToPolyline(GeoPolyline2, GeoPoint2, Tolerance)"/> gives to
-        /// <paramref name="point"/>, so it is exactly as long as <see cref="Distance2.DistanceTo(GeoPolyline2, GeoPoint2)"/>. Only
+        /// <paramref name="point"/>, so it is as long as <see cref="Distance2.DistanceTo(GeoPolyline2, GeoPoint2)"/> but beside
+        /// a leg no longer than the tolerance, which carries the point to the leg's start: at a hundredth, the polyline (0, 0),
+        /// (10, 0), (10, 0.006), (0, 0.006) is 0.03 from (10.03, 0.003), and the line runs from (10, 0), 0.0301496 long. Only
         /// the path counts: a point in the mouth of a horseshoe gets the line out to the nearest leg, never one of no length.
         /// Where two legs are equally near, the first of them along the polyline is taken.
         /// </returns>
@@ -393,6 +415,13 @@ namespace GeometryHelper.Core
         /// <param name="line2">The second line segment.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>A <see cref="GeoLine2"/> whose start point is on <paramref name="line1"/> and end point is on <paramref name="line2"/>.</returns>
+        /// <remarks>
+        /// Two segments whose lines cross within the tolerance past the end of either are read as touching, and the segment
+        /// has no length; past the ends of both they can be up to twice the tolerance apart, and touch only where they come
+        /// within it. At a thousandth, the segment from the origin to (10, 0) and the one leaving (10.00135, 0.00078) at 60
+        /// degrees, whose lines cross 0.0009 past the end of each, are joined by the line between those two ends, 0.00156
+        /// long.
+        /// </remarks>
         public static GeoLine2 GetShortestLineTo(GeoLine2 line1, GeoLine2 line2, Tolerance tolerance)
         {
             return GetShortestLineTo(line1, line2, tolerance, out _);
@@ -514,9 +543,10 @@ namespace GeometryHelper.Core
         /// <para>
         /// With <paramref name="pastEnds"/> a crossing of the two lines up to the point tolerance past the end of either
         /// counts, as it does for that method, and the point is clamped onto the first: the shortest line reads two
-        /// segments meeting so as touching. Without it the crossing has to lie on both, which is how the distance and the
-        /// collision read them: the segment ending at (10, 0) and the one leaving (10.00135, 0.00078) at 60 degrees, whose
-        /// lines cross at (10.0009, 0), cross nowhere, and are 0.00156 apart.
+        /// segments meeting so as touching. Past the ends of both it counts only where the two come within the tolerance.
+        /// Without it the crossing has to lie on both, which is how the distance and the collision read them: the segment
+        /// ending at (10, 0) and the one leaving (10.00135, 0.00078) at 60 degrees, whose lines cross at (10.0009, 0), cross
+        /// nowhere, and are 0.00156 apart, too far for a touch either way.
         /// </para>
         /// </remarks>
         internal static bool TryGetCrossingPoint(GeoLine2 line1, GeoLine2 line2, Tolerance tolerance, bool pastEnds, out GeoPoint2 crossing)
@@ -559,8 +589,28 @@ namespace GeometryHelper.Core
                 return false;
             }
 
+            // Past the end of one only, the end lies within the tolerance of the other. Past the ends of both, the two can be
+            // up to twice the tolerance apart, and touch only where they truly come within it.
+            if ((t < 0.0 || t > 1.0) && (u < 0.0 || u > 1.0) && !(GapPastTheEnds(line1, line2) <= tolerance.EqualPoint))
+            {
+                return false;
+            }
+
             crossing = line1.GetPointAtParameter(Math.Max(0.0, Math.Min(1.0, t)));
             return true;
+        }
+
+        /// <summary>
+        /// Gets the exact distance between two segments whose lines cross past an end of both, so that it is the distance
+        /// from an end of one to the other.
+        /// </summary>
+        private static double GapPastTheEnds(GeoLine2 line1, GeoLine2 line2)
+        {
+            Tolerance exactly = default(Tolerance);
+
+            return Math.Min(
+                Math.Min(Distance2.DistanceTo(line1, line2.StartPoint, exactly), Distance2.DistanceTo(line1, line2.EndPoint, exactly)),
+                Math.Min(Distance2.DistanceTo(line2, line1.StartPoint, exactly), Distance2.DistanceTo(line2, line1.EndPoint, exactly)));
         }
 
         /// <summary>
@@ -662,7 +712,7 @@ namespace GeometryHelper.Core
             GeoLine2[] edges = rect.GetEdges();
             for (int i = 0; i < edges.Length; i++)
             {
-                GeoLine2 seg = GetShortestLineTo(line, edges[i], tolerance, out double extent);
+                GeoLine2 seg = GetShortestLineTo(line, edges[i], ArcChain2.ForSide(edges[i], tolerance), out double extent);
                 double dSq = Distance2.GetDistanceSquaredTo(seg.StartPoint, seg.EndPoint);
                 if (!found || IsBetterCandidate(dSq, extent, minDistanceSq, bestExtent))
                 {
@@ -714,7 +764,7 @@ namespace GeometryHelper.Core
             for (int i = 0; i < polyline.EdgeCount; i++)
             {
                 GeoLine2 edge = polyline.GetEdgeAt(i);
-                GeoLine2 seg = GetShortestLineTo(line, edge, tolerance, out double extent);
+                GeoLine2 seg = GetShortestLineTo(line, edge, ArcChain2.ForSide(edge, tolerance), out double extent);
                 double dSq = Distance2.GetDistanceSquaredTo(seg.StartPoint, seg.EndPoint);
                 if (!found || IsBetterCandidate(dSq, extent, minDistanceSq, bestExtent))
                 {
@@ -763,7 +813,7 @@ namespace GeometryHelper.Core
             for (int i = 0; i < poly.EdgeCount; i++)
             {
                 GeoLine2 edge = poly.GetEdgeAt(i);
-                GeoLine2 seg = GetShortestLineTo(line, edge, tolerance, out double extent);
+                GeoLine2 seg = GetShortestLineTo(line, edge, ArcChain2.ForSide(edge, tolerance), out double extent);
                 double dSq = Distance2.GetDistanceSquaredTo(seg.StartPoint, seg.EndPoint);
                 if (!found || IsBetterCandidate(dSq, extent, minDistanceSq, bestExtent))
                 {
@@ -1097,7 +1147,10 @@ namespace GeometryHelper.Core
         /// Outside, by more than the tolerance, it is as long as <see cref="Distance2.DistanceTo(GeoPolygon2, GeoPoint2)"/>,
         /// which takes a point within the tolerance outside as in; on the boundary it has no length.
         /// Where two edges are equally near, the first of them round the polygon is taken. Inside the square 100 by 100 on
-        /// the origin, the point (50, 30) gets the segment from (50, 0), 30 long.
+        /// the origin, the point (50, 30) gets the segment from (50, 0), 30 long. Beside a side no longer than the tolerance
+        /// the point is carried to the side's start, so the segment can be longer than the distance by up to the side's
+        /// length: at a hundredth, the polygon (0, 0), (10, 0), (10, 0.006), (0, 10) is 0.03 from (10.03, 0.003), and the
+        /// segment runs from (10, 0), 0.0301496 long.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static GeoLine2 GetShortestLineTo(GeoPolygon2 poly, GeoPoint2 point, Tolerance tolerance) => new GeoLine2(ProjectToPolygon(poly, point, tolerance), point);
@@ -1188,7 +1241,7 @@ namespace GeometryHelper.Core
             {
                 foreach (var e2 in edges2)
                 {
-                    GeoLine2 seg = GetShortestLineTo(e1, e2, tolerance, out double extent);
+                    GeoLine2 seg = GetShortestLineTo(e1, e2, ArcChain2.ForSides(e1, e2, tolerance), out double extent);
                     double dSq = Distance2.GetDistanceSquaredTo(seg.StartPoint, seg.EndPoint);
                     if (!found || IsBetterCandidate(dSq, extent, minDistanceSq, bestExtent))
                     {
@@ -1225,7 +1278,7 @@ namespace GeometryHelper.Core
 
             foreach (var edge in edges)
             {
-                GeoLine2 seg = GetShortestLineTo(edge, circle, tolerance);
+                GeoLine2 seg = GetShortestLineTo(edge, circle, ArcChain2.ForSide(edge, tolerance));
                 double dSq = Distance2.GetDistanceSquaredTo(seg.StartPoint, seg.EndPoint);
                 if (!found || dSq < minDistanceSq)
                 {

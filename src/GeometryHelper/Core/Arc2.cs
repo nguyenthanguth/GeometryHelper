@@ -78,7 +78,8 @@ namespace GeometryHelper.Core
         /// centre of the arc. Both are checked, so the answer is exact rather than sampled. A segment ending 0.0005 above
         /// the top of the arc of radius 50 about the origin is 0.0005 from it, whatever the tolerance; the tolerance only
         /// reads a segment no longer than itself as its start point, and an arc bowing less than its own rounding as its
-        /// chord.
+        /// chord. The place facing the centre counts however near the centre the segment passes: at a hundredth, the half
+        /// circle of radius 0.004 below the origin is 0.004 from the segment along y = -0.008, not the 0.008 of its ends.
         /// </remarks>
         public static double DistanceTo(GeoArc2 arc, GeoLine2 line, Tolerance tolerance) => Gap(arc, line, tolerance);
 
@@ -770,10 +771,12 @@ namespace GeometryHelper.Core
             Consider(ref best, ProjectToArc(arc, line.EndPoint, onArc), line.EndPoint);
 
             // Where the segment runs straight at the centre, the nearest point of the circle lies on that
-            // line, clamped onto the arc so that the pair is one the arc really holds.
+            // line, clamped onto the arc so that the pair is one the arc really holds. Read exactly, a segment
+            // passing within the tolerance of the centre has that pair too: an arc smaller than the tolerance can
+            // be nearest it there.
             GeoPoint2 nearestOnLine = Projection2.ProjectToLine(line, arc.Center, tolerance);
 
-            if (arc.Center.GetVectorTo(nearestOnLine).Length > tolerance.EqualPoint)
+            if (arc.Center.GetVectorTo(nearestOnLine).Length > onArc.EqualPoint)
             {
                 Consider(ref best, ProjectToArc(arc, nearestOnLine, onArc), nearestOnLine);
             }
@@ -797,11 +800,16 @@ namespace GeometryHelper.Core
         /// As with an arc and a segment, the pair is one of those
         /// <see cref="DistanceTo(GeoArc2, GeoArc2, Tolerance)"/> already weighs: an end of one against the
         /// other, or a point of each on the line joining the centres. Where they come within the point tolerance, this
-        /// reads them as meeting and hands back a segment of no length, where the distance is the gap.
+        /// reads them as meeting and hands back a segment of no length, where the distance is the gap. Two arcs whose
+        /// circles cross within the tolerance past the ends of both can be twice as far apart, and are joined by the gap: at
+        /// a thousandth, the quarter circle of radius 50 from (50, 0) to (0, 50) and an arc of the same radius starting
+        /// 0.0009 short of where its circle crosses the first's, 0.0009 on past that end at 60 degrees, are joined by the
+        /// line between the two ends, 0.00156 long.
         /// </remarks>
         public static GeoLine2 GetShortestLineTo(GeoArc2 first, GeoArc2 second, Tolerance tolerance)
         {
-            if (TryIntersectWith(first, second, out GeoPoint2[] meetings, tolerance) && meetings.Length > 0)
+            // A meeting up to the tolerance past an end of both is a touch only where the two come within the tolerance.
+            if (TryIntersectWith(first, second, out GeoPoint2[] meetings, tolerance) && meetings.Length > 0 && Gap(first, second) <= tolerance.EqualPoint)
             {
                 return new GeoLine2(meetings[0], meetings[0]);
             }

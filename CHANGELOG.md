@@ -142,6 +142,52 @@ shape with none either, is the same to the bit, and every answer of `GetClosestP
 The shortest line from a loop of 100 sides to a segment takes the 31 microseconds it took on .NET Framework 4.8, and its
 closest edge to a point 8.8 where it took 8.4. 9 new tests.
 
+**FIXED.** The closest edge of a `GeoPolygon2`, a `GeoPolyline2` or a `GeoRectangle2`, and its shortest line to a
+segment, a circle, a polyline, a polygon or a rectangle, measure a side no longer than the point tolerance as it is, as
+the distance does and as the curved loops and chains now do. Such a side was read as the point at its start, so a shape
+beside its middle was measured to a corner: at a tolerance of a hundredth, the polygon (0, 0), (10, 0), (10, 0.006),
+(0, 10) is 0.03 from the segment from (10.03, 0.003) to (10.05, 0.003), and the shortest line to it now runs from
+(10, 0.003), 0.03 long, where it ran from a corner, 0.0301496 long; so do the polyline and the rectangle 10 by 0.006 on
+the same corners, and the lines asked the other way round. The closest edge takes no tolerance and measured at the
+global one, so a side shorter than a thousandth was read so: the rectangle 10 by 0.0006 on the origin names its
+right-hand side for the point (10.03, 0.0003), 0.03 off, where it named the bottom, as far from the corner and first. A
+segment you give no longer than the global tolerance is still read as its start where it crosses no side, and the
+closest edge now takes one crossing a side as nought from it, as the distance does. The nearest point keeps its reading:
+`GetClosestPointOnBoundary` of a polygon or a polyline, and the shortest line to a point, still carry a point beside
+such a side to the side's start, 0.0301496 from (10, 0) here where the distance is 0.03; a rectangle's was exact and
+stays so. A triangle and a face follow their polygons. Of 300 000 random polygons, polylines and rectangles with sides
+down to a twentieth of the tolerance, at a thousandth and a hundredth, at the origin and out to a million, 59 072
+closest edges were not the nearest and 12 are not now, each for a segment shorter than the tolerance read as its start;
+of 300 000 more at a ten-thousandth, 116 915 and 63. The 4 097 and 1 681 shortest lines off the exact length beside a
+short side are 1 and 2, each a side passing within the tolerance of the centre of an arc, which the line keeps carrying
+to the arc's start. Every answer for a shape with no side as short as the tolerance, against a shape with none either,
+is the same to the bit, and every answer of `GetClosestPointOnBoundary` and `DistanceTo`; no collision, intersection,
+offset or fillet of 600 000 random pairs moved. The closest edge of a polygon of 100 sides to a point takes 2.9
+microseconds on .NET Framework 4.8 where it took 3.2; its shortest line to a circle takes 7.6 where it took 7.1, and to
+a triangle 45.3 where it took 43.6. 6 new tests.
+
+**FIXED.** The distance from a segment to an arc smaller than the tolerance weighs the point of the arc facing the
+segment however near the arc's centre the segment passes. A segment within the tolerance of the centre was measured to
+the arc's ends only: at a tolerance of a hundredth, the half circle of radius 0.004 below the origin is 0.004 from the
+segment along y = -0.008, where it read 0.008. The chains, the loops and the edges that hold such an arc follow, and so
+do their closest edges and their collisions: of 600 000 random pairs of segments, arcs, chains, loops and edges, 7 that
+read clear though within the tolerance now collide, every one beside an arc smaller than the tolerance: one read 0.0015
+off where it is 0.000002 off, and one read clear at a hundredth and collided at a thousandth. Of the curved loops and
+chains measured as above, the 109 and 71 closest edges left not the nearest beside an arc's centre are none. The
+shortest line keeps carrying a point within the tolerance of an arc's centre to the arc's start. 2 new tests.
+
+**FIXED.** The shortest line between two shapes in the plane reads them as touching only where they come within the
+tolerance. Two sides whose lines cross within the tolerance past the ends of both, and two arcs whose circles do, were
+read so though they stand up to twice the tolerance apart, where `DistanceTo` measures the gap and `CollidesWith` says
+they are clear: at a thousandth, two squares 100 by 100 whose corners stand 0.00085 apart in x and in y are joined by
+the line between the corners, 0.0012 long, where it had no length, and the segment from the origin to (10, 0) and the
+one leaving (10.00135, 0.00078) at 60 degrees by the line between those ends, 0.00156 long. A touch within the tolerance
+stays one of no length. Of the random shapes above, the 1 011 and 953 straight shortest lines of no length where the two
+stand more than the tolerance apart are 118 and 100, every one now against a circle, which a segment's end within the
+tolerance of its rim still touches, up to 1.35 times the tolerance off; the 972 that started more than the tolerance off
+the shape are none, and of the curved loops and chains the 505 and 385 are none. Only shortest lines moved, and no
+collision, distance, intersection, offset or fillet of 600 000 random pairs. 3 new tests.
+
 **FIXED.** `TryCutOpenings` and the measures of a body with openings no longer keep a skin the tolerance thin over an
 opening that cut in alone would lose it. Cut in together, a plane of one opening cuts every cell that reaches the
 opening's box, and a plate's first cells reach all of its openings: twelve boxes hidden 0.01 inside the faces of a plate

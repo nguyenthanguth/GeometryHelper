@@ -215,17 +215,28 @@ namespace GeometryHelper.Core
         /// Whether a tolerance reads an edge as the point at its start: a straight one no longer than the point tolerance,
         /// which the projection onto a segment and the crossing test take for a point.
         /// </summary>
-        internal static bool ReadsAsPoint(GeoEdge2 edge, Tolerance tolerance)
+        internal static bool ReadsAsPoint(GeoEdge2 edge, Tolerance tolerance) => !edge.IsArc && ReadsAsPoint(edge.StartPoint, edge.EndPoint, tolerance);
+
+        /// <summary>
+        /// Whether a tolerance reads a side of a polygon, a polyline or a rectangle as the point at its start, as it reads a
+        /// straight edge.
+        /// </summary>
+        internal static bool ReadsAsPoint(GeoLine2 side, Tolerance tolerance) => ReadsAsPoint(side.StartPoint, side.EndPoint, tolerance);
+
+        /// <summary>
+        /// Whether a tolerance reads the straight run from one point to another as the point at its start.
+        /// </summary>
+        private static bool ReadsAsPoint(GeoPoint2 start, GeoPoint2 end, Tolerance tolerance)
         {
             // The projection weighs the square of the run from the start to the end, and the crossing test its root, which
             // can come out no longer than the tolerance where the square is a few parts in 1E16 over it; the root is taken only
             // there.
-            double x = edge.EndPoint.X - edge.StartPoint.X;
-            double y = edge.EndPoint.Y - edge.StartPoint.Y;
+            double x = end.X - start.X;
+            double y = end.Y - start.Y;
             double square = x * x + y * y;
             double limit = tolerance.EqualPoint * tolerance.EqualPoint;
 
-            return (square <= limit || (square <= limit * (1.0 + 1E-14) && Math.Sqrt(square) <= tolerance.EqualPoint)) && !edge.IsArc;
+            return square <= limit || (square <= limit * (1.0 + 1E-14) && Math.Sqrt(square) <= tolerance.EqualPoint);
         }
 
         /// <summary>
@@ -236,10 +247,21 @@ namespace GeometryHelper.Core
         internal static Tolerance ForSide(GeoEdge2 side, Tolerance tolerance) => ReadsAsPoint(side, tolerance) ? Exactly : tolerance;
 
         /// <summary>
+        /// Gets the tolerance a side of a polygon, a polyline or a rectangle is joined to something else at, as for an edge.
+        /// </summary>
+        internal static Tolerance ForSide(GeoLine2 side, Tolerance tolerance) => ReadsAsPoint(side, tolerance) ? Exactly : tolerance;
+
+        /// <summary>
         /// Gets the tolerance two sides of shapes are joined at: nought where either is a straight side the tolerance would
         /// read as a point.
         /// </summary>
         private static Tolerance ForSides(GeoEdge2 side, GeoEdge2 other, Tolerance tolerance)
+            => ReadsAsPoint(side, tolerance) || ReadsAsPoint(other, tolerance) ? Exactly : tolerance;
+
+        /// <summary>
+        /// Gets the tolerance two straight sides of shapes are joined at, as for two edges.
+        /// </summary>
+        internal static Tolerance ForSides(GeoLine2 side, GeoLine2 other, Tolerance tolerance)
             => ReadsAsPoint(side, tolerance) || ReadsAsPoint(other, tolerance) ? Exactly : tolerance;
 
         /// <summary>
@@ -250,7 +272,7 @@ namespace GeometryHelper.Core
         /// region: the answer runs from the boundary to the other shape, which is what
         /// <see cref="Projection2"/> promises of every shape and where it parts company with
         /// <see cref="Distance2"/>. Each edge is a side of a shape, joined as it is however short (see
-        /// <see cref="ForSide"/>).
+        /// <see cref="ForSide(GeoEdge2, Tolerance)"/>).
         /// </remarks>
         internal static GeoLine2 ShortestLineTo(List<GeoEdge2> edges, GeoLine2 line, Tolerance tolerance)
         {
