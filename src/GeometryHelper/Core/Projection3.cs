@@ -610,6 +610,12 @@ namespace GeometryHelper.Core
         /// So the openings within reach are cut in and the answer is taken from what is left; see
         /// <see cref="ProjectToMaterial(GeoSolid3, GeoPoint3, Tolerance)"/> for which are within reach.
         /// </para>
+        /// <para>
+        /// A body with openings asked at a point tolerance below the rounding of the coordinates, a quadrillionth of the
+        /// largest of them, nought among them, has its openings cut and its faces read within that rounding: at nought, a
+        /// point in the middle of a hole 20 by 20 through a plate 200 by 100 by 3 turned about in space was projected 1.5
+        /// from it, onto a face across the hole; it is projected onto the hole's wall, 10 off.
+        /// </para>
         /// </remarks>
         public static GeoPoint3 ProjectToSolid(GeoSolid3 solid, GeoPoint3 point, Tolerance tolerance)
         {
@@ -639,10 +645,20 @@ namespace GeometryHelper.Core
         /// A body whose openings take all of its material has no boundary to land on; the faces are answered
         /// then, as the only thing the body still describes.
         /// </para>
+        /// <para>
+        /// A point tolerance below the rounding of the coordinates is raised to it, for the openings as for the faces they
+        /// leave: at nought, a point in the middle of a hole 20 by 20 through a plate 200 by 100 by 3 turned about in space
+        /// was projected onto a face across the hole, 1.5 off, and a thousand and more out onto the rim of the hole's wall,
+        /// 10.11 off, the wall's face read at nought; it is projected onto the wall, 10 off.
+        /// </para>
         /// </remarks>
         internal static GeoPoint3 ProjectToMaterial(GeoSolid3 solid, GeoPoint3 point, Tolerance tolerance)
         {
-            GeoPoint3 best = ProjectToFaces(solid.Faces, point, tolerance);
+            // A point tolerance below the rounding of the coordinates reads the faces within it, as the openings are cut.
+            Tolerance within = Material3.ToRounding(solid, tolerance);
+            Tolerance read = within.EqualPoint > tolerance.EqualPoint ? within : tolerance;
+
+            GeoPoint3 best = ProjectToFaces(solid.Faces, point, read);
             double reach = point.DistanceTo(best);
 
             var chosen = new List<GeoSolid3>();
@@ -654,7 +670,7 @@ namespace GeometryHelper.Core
 
                 for (int i = 0; i < solid.Openings.Count; i++)
                 {
-                    if (!taken[i] && solid.Openings[i].GetAabb().DistanceTo(point) <= reach + tolerance.EqualPoint)
+                    if (!taken[i] && solid.Openings[i].GetAabb().DistanceTo(point) <= reach + read.EqualPoint)
                     {
                         taken[i] = true;
                         chosen.Add(solid.Openings[i]);
@@ -671,10 +687,10 @@ namespace GeometryHelper.Core
 
                 if (material == null)
                 {
-                    return ProjectToFaces(solid.Faces, point, tolerance);
+                    return ProjectToFaces(solid.Faces, point, read);
                 }
 
-                best = ProjectToFaces(material.Faces, point, tolerance);
+                best = ProjectToFaces(material.Faces, point, read);
                 reach = point.DistanceTo(best);
             }
         }

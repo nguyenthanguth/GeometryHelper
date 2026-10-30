@@ -6,6 +6,54 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `GetVolume`, `TryGetVolume`, `GetSurfaceArea`, `GetCentroid`, `GetMassProperties` and `Measure3` of a body
+with openings, asked at a point tolerance below the rounding of the coordinates, a quadrillionth of the largest of them,
+nought among them, measure the material `TryCutOpenings` gives at that tolerance, cut within the rounding. They cut the
+openings their own way at the tolerance given, and within the rounding that came out wrong and was trusted: at nought a
+plate 200 by 100 by 3 turned about in space, with a hole 20 by 20 through it, measured 60 000, the hole not taken out,
+and `TryGetVolume` said that could be trusted; it measures 58 800, trusted. With a notch 20 by 20 through one end and
+one 20 wide and 1 deep across the other, flush with three faces, a thousand out, it measured nought, trusted too; it
+measures 56 800. Where `TryCutOpenings` refuses the openings they are cut as they were, and `TryGetVolume` says the
+volume cannot be trusted; it says so too of a body whose own faces do not close within the rounding, whatever its cut
+gives: a cube 10 across with cracks 0.0001 wide in its faces, less a tetrahedron, cut within the rounding at nought, is
+a closed sliver of 0.000042 cubic millimetres, where the cube less the tetrahedron holds 888.41. Of 5 000 plates, boxes
+and prisms shaped as an L or a star with one to three openings, turned about in space or not and 0 to 1E9 out, measured
+at nought, 3 912 measured wrong and 3 178 of them were trusted; 29 measure wrong now, those whose openings
+`TryCutOpenings` refuses, and none is trusted, where 4 820 are trusted and right and 1 028 were. Of the 3 417 of them
+measured at 1E-12 below the rounding, 2 407 measured wrong and 163 were trusted; 1 measures wrong now, refused, and 2
+measured right are refused, their cut refused. Of 6 000 cubes 10 across with cracks 0.0001 to 0.005 wide in their faces,
+less one or two bodies, measured at nought, 37 trusted and wrong are refused now, and no other moves. The material costs
+one cut now where it cost a cut and differences: the volume of a plate 400 by 200 by 10 turned about in space, with
+twenty holes through it, takes 6.8 milliseconds at nought at the origin where it took 13.7, and 7.0 where 20.0 a million
+out, on .NET 10, and 15.2 where 35.3 and 16.5 where 53.7 on .NET Framework 4.8; at a thousandth it takes what it took.
+
+**FIXED.** `GetVolume` and the measures of a body with openings at or above the rounding of the coordinates no longer
+leave an opening in, or measure the material as nothing, where a difference at the tolerance alone will not take it
+out, or says it takes all that is left where cutting the openings in at once left material, and `TryCutOpenings` cuts
+them. A difference at a tolerance at or just above the rounding reads corners the rounding puts either side of a plane:
+the plate with the two notches a million out measured 58 800 at the rounding and at twice it, the second notch left in,
+where `TryCutOpenings` gave 56 800; it measures 56 800. Of the 5 000 bodies of the run above, the 6 measured wrong at
+1E-12 above the rounding and the 9 at 1E-6, each an opening left in, measure right now; every other measure at or above
+the rounding is the same to the bit, 1E-3 and 1E-2 among them, and `TryCutOpenings` is unchanged at every tolerance.
+The plate with the notches takes 8.8 milliseconds at the rounding where it took 6.2, wrong, on .NET 10, and 20.1 where
+13.7 on .NET Framework 4.8, the openings cut twice. A plain difference of two bodies at the rounding is not covered: a
+plate 200 by 100 by 3 a hundred thousand out less a slot 20 wide across all of it, within 9.5E-11, is said to leave
+nothing where 54 000 is left.
+
+**FIXED.** `TriangulateSurface`, `DxfWriter.Add` of a body, and `ProjectToSolid`, with `GetClosestPointOnBoundary`,
+`GetShortestLineTo` of a point and `SignedDistanceTo` that read it, of a body with openings, at a point tolerance below
+the rounding of the coordinates, cut the openings within the rounding as `TryCutOpenings` does. At nought the turned
+plate with the hole through it was meshed into triangles holding 29 999.99 where it holds 58 800, its bottom lost; of
+54 such plates with one or two openings, 0 to 1E8 out, 53 were meshed wrong and 2 are now, where `TryCutOpenings`
+refuses them. A point in the middle of the hole was projected 1.5 from it, onto a face across the hole, and a thousand
+and more out 10.11 from it, onto the rim of the hole's wall, the wall's face read at nought; it is projected onto the
+wall, 10 off, the faces read within the rounding too. Of the 54 plates, from the middle of an opening, 36 were
+projected wrong and none is now; of 1 000 of the bodies of the run above, six points drawn about each, 1 954 of the
+4 989 points outside were projected wrong at nought and 1 213 of 3 494 at 1E-12 below the rounding, and none is now; at
+and above the rounding every projection is the same to the bit. `Mesh3.ToCells` at nought still leaves an opening it
+cannot cut in at nought in its cells, warned of: cut within the rounding, the cells cut at nought lost more of the
+material than the openings hold.
+
 **FIXED.** A difference of two closed bodies no longer trusts what it gives where a cell of one, planes of the other
 running through it uncut, puts more on the wrong side of them than the tolerance times the area of what is left. A
 cracked box 9.4 by 12 by 4.24 dipping 0.088 into an arm of a cracked U 30 by 10 by 10, less the U, was left whole,

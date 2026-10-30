@@ -210,7 +210,11 @@ material closed. Cut in at once, the body is parted by the planes of its opening
 of it, so a plane that runs through a piece and will not cut it, leaving it part in an opening and part out, has the
 openings taken out one at a time by a difference instead: a half of a hull cut near a face within a hundredth, a box
 3.5 by 3.5 by 5 standing through the cut, held 1 465.33 cubic millimetres with the box left in, and `TryGetVolume`
-trusted it; it holds 1 434.58 now, where the hull less the box holds 1 434.77 on that side of the plane. A union, a
+trusted it; it holds 1 434.58 now, where the hull less the box holds 1 434.77 on that side of the plane. An opening
+that will not come out so, or is said by the difference to take all that is left where the cut at once left material,
+has the openings cut as `TryCutOpenings` cuts them before it is left in: a plate 200 by 100 by 3 turned about in space
+and a million out, with a notch 20 by 20 through one end and one 20 wide and 1 deep across the other, flush with three
+faces, measured 58 800 at the rounding of its coordinates, the second notch left in, and measures 56 800. A union, a
 common part or a difference reads a cell the same way where a plane of the other body, or of either body where both are
 cut by every plane of both, runs through it and will not cut it: where both bodies close, by the middles of its parts
 either side of each such plane, of the four two make and of the eight three make, each read where it lies in the cell's
@@ -513,9 +517,16 @@ of a segment and a body asks the boxes first as far apart as the body holds a po
 largest coordinate further out than a million; that reaches every point tolerance below it, not only those below the
 rounding, so the segment from 5E-10 over the top of a box touches it at a tolerance of nought, 1E-12, 1E-10 or 3E-10,
 as it is nought from it at each. A segment with a coordinate that is not a number touches nothing, as before. The
-booleans at a tolerance of nought are not covered yet, nor are `GetVolume`, `TryGetVolume`, `GetSurfaceArea` and
-`GetCentroid` of a body with openings: at nought the plate with the hole through it measures 60 000, the hole not taken
-out, and `TryGetVolume` says that can be trusted. Measure what `TryCutOpenings` gives instead.
+booleans at a tolerance of nought are not covered yet. `GetVolume`, `TryGetVolume`, `GetSurfaceArea`, `GetCentroid`
+and `GetMassProperties` of a body with openings, asked at a point tolerance below the rounding, measure the material
+`TryCutOpenings` gives: at nought the plate with the hole through it measures 58 800, where it measured 60 000, the
+hole not taken out, and `TryGetVolume` said that could be trusted. Where `TryCutOpenings` refuses them, or the body's
+own faces do not close within the rounding, `TryGetVolume` says the volume cannot be trusted. `TriangulateSurface`,
+`DxfWriter.Add` and `ProjectToSolid` cut the openings within the rounding too, and `ProjectToSolid` reads the faces
+they leave within it: at nought the plate's surface was meshed into triangles holding 29 999.99, its bottom lost, and
+a point in the middle of the hole was projected 1.5 from it, onto a face across the hole, where the hole's wall stands
+10 off. `Mesh3.ToCells` does not yet: at nought it leaves an opening
+it cannot cut in its cells, and says so in the log.
 
 A `GeoCircle3` is not on the list. The distance from a circle in space to a flat face has no closed form,
 and the library does not guess: turn it into a chain first, which says in the call how close an answer you

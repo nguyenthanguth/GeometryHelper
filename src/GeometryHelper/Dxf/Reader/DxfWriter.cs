@@ -662,6 +662,10 @@ namespace GeometryHelper.Dxf
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the body is null.</exception>
         /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number.</exception>
+        /// <remarks>
+        /// The openings are cut in as <see cref="GeoSolid3.TriangulateSurface(Tolerance)"/> cuts them, within the rounding of
+        /// the coordinates where the point tolerance is below it.
+        /// </remarks>
         public DxfWriter Add(GeoSolid3 solid, Tolerance tolerance, string layer = null)
         {
             if (solid == null)

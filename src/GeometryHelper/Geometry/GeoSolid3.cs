@@ -553,6 +553,12 @@ namespace GeometryHelper.Geometry
         /// <see cref="Triangulate(Tolerance)"/>. The mesh is then open edge by edge but closed within the tolerance: a slab
         /// thinner than the tolerance has its top and bottom meet along every edge where its sides were.
         /// </para>
+        /// <para>
+        /// Asked at a point tolerance below the rounding of the coordinates, a quadrillionth of the largest of them, nought
+        /// among them, the openings are cut within that rounding, as <see cref="TryCutOpenings(out GeoSolid3, Tolerance)"/>
+        /// cuts them: at nought, a plate 200 by 100 by 3 turned about in space, with a hole 20 by 20 through it, was meshed
+        /// into triangles holding 29 999.99, its bottom lost, where it holds 58 800.
+        /// </para>
         /// </remarks>
         public GeoTriangle3[] TriangulateSurface(Tolerance tolerance)
             => Boolean3.MaterialToRead(this, Openings, tolerance)?.Triangulate(tolerance) ?? new GeoTriangle3[0];
@@ -657,9 +663,8 @@ namespace GeometryHelper.Geometry
         /// <see cref="TryGetVolume(out double, Tolerance)"/> at nought can still refuse it where corners stand further
         /// apart than the rounding. The measures of a body with openings, <see cref="GetVolume(Tolerance)"/>,
         /// <see cref="TryGetVolume(out double, Tolerance)"/>, <see cref="GetSurfaceArea(Tolerance)"/> and
-        /// <see cref="GetCentroid(Tolerance)"/>, do not cut them so: at nought that plate measures 60 000, its hole not
-        /// taken out, and <c>TryGetVolume</c> says the volume can be trusted. Measure the material this method gives, or
-        /// ask at a tolerance at or above the rounding.
+        /// <see cref="GetCentroid(Tolerance)"/>, read the material this method gives: at nought that plate measures
+        /// 58 800, where it measured 60 000, its hole not taken out, and <c>TryGetVolume</c> said that could be trusted.
         /// </para>
         /// </remarks>
         public bool TryCutOpenings(out GeoSolid3 material, Tolerance tolerance) => Boolean3.TryCutOpenings(this, out material, tolerance);

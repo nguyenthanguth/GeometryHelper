@@ -34,7 +34,19 @@ namespace GeometryHelper.Geometry
         /// planes of its openings and each piece judged by one point of it; where a plane runs through a piece and will not
         /// cut it, leaving it part in an opening and part out, the openings are taken out one at a time by a difference
         /// instead. A half of a hull cut near a face within a hundredth, a box 3.5 by 3.5 by 5 standing through the cut, held
-        /// 1 465.33 cubic millimetres so, the box left in, where it holds 1 434.77.
+        /// 1 465.33 cubic millimetres so, the box left in, where it holds 1 434.77. An opening that will not come out so has
+        /// the openings cut as <see cref="TryCutOpenings(out GeoSolid3, Tolerance)"/> cuts them before it is left in: a plate
+        /// 200 by 100 by 3 turned about in space and a million out, with a notch 20 by 20 through one end and one 20 wide and
+        /// 1 deep across the other, flush with three faces, measured 58 800 at the rounding of its coordinates, the second
+        /// notch left in; it measures 56 800, as it holds.
+        /// </para>
+        /// <para>
+        /// Where the point tolerance is below the rounding of the coordinates, a quadrillionth of the largest of them, nought
+        /// among them, the openings are cut as <see cref="TryCutOpenings(out GeoSolid3, Tolerance)"/> cuts them, within that
+        /// rounding, and where it refuses them, cut at the tolerance given as they were, and
+        /// <see cref="TryGetVolume(out double, Tolerance)"/> says the volume cannot be trusted. At nought the plate with a hole
+        /// 20 by 20 through it in place of the notches measured 60 000, the hole left in, and <c>TryGetVolume</c> trusted it;
+        /// it measures 58 800. With the notches, a thousand out, it measured nought, and that was trusted too.
         /// </para>
         /// <para>
         /// Each face is taken as the fan of its boundary from its first corner, which is exact for a flat face and
@@ -77,12 +89,18 @@ namespace GeometryHelper.Geometry
         /// thousandth, read open by <c>IsClosed</c> by a hair of rounding, keeps its volume, 860.046 where the cube less the
         /// box holds 860.047.
         /// </para>
+        /// <para>
+        /// Below the rounding of the coordinates, where the openings are cut within it, a body whose own faces do not close
+        /// within it is not trusted, whatever its cut gives: a cube 10 across with cracks 0.0001 wide in its faces, less a
+        /// tetrahedron, cut within the rounding at a tolerance of nought, is a closed sliver of 0.000042 cubic millimetres,
+        /// where the cube less the tetrahedron holds 888.41.
+        /// </para>
         /// </remarks>
         public bool TryGetVolume(out double volume, Tolerance tolerance)
         {
             GeoSolid3 material = GetMaterial(tolerance, out bool whole);
 
-            if (!whole || !(material ?? this).ClosesByCorners(tolerance))
+            if (!whole || !(material ?? this).ClosesByCorners(tolerance) || !ClosesWithinRounding(tolerance))
             {
                 volume = 0.0;
                 return false;
@@ -90,6 +108,23 @@ namespace GeometryHelper.Geometry
 
             volume = material == null ? 0.0 : material.GrossVolume;
             return true;
+        }
+
+        /// <summary>
+        /// Whether the faces of a body with openings close within the rounding of the coordinates, where the point tolerance is
+        /// below it and the openings are cut within it; true otherwise.
+        /// </summary>
+        /// <remarks>
+        /// A body that does not close within the rounding holds no closed material to trust, whatever cutting its openings in
+        /// gives: a cube 10 across whose faces carry cracks 0.0001 wide, less a tetrahedron, cut within the rounding at a
+        /// tolerance of nought, came out a closed sliver of 4.2E-5 cubic millimetres, where the cube less the tetrahedron holds
+        /// 888.41.
+        /// </remarks>
+        private bool ClosesWithinRounding(Tolerance tolerance)
+        {
+            Tolerance within = Material3.ToRounding(this, tolerance);
+
+            return !(within.EqualPoint > tolerance.EqualPoint) || ClosesByCorners(within);
         }
 
         /// <summary>
@@ -229,11 +264,56 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
-        /// Cuts every opening out of the faces: all at once, which costs least, or where that cannot be worked out, opens a
-        /// body that closed or leaves a piece of it part in an opening and part out, one at a time by a difference, leaving
-        /// in any one that will not come out.
+        /// Cuts every opening out of the faces: where the point tolerance is below the rounding of the coordinates, as
+        /// <see cref="TryCutOpenings(out GeoSolid3, Tolerance)"/> cuts them, within that rounding; otherwise, or where that
+        /// refuses, as <see cref="CutMaterialAsGiven"/> cuts them at the tolerance given, not to be trusted where it refused.
         /// </summary>
+        /// <remarks>
+        /// Cut at the tolerance given, the openings within the rounding came out wrong and were trusted: a plate 200 by 100 by
+        /// 3 turned about in space and a thousand out, with a notch 20 by 20 through one end and one 20 wide and 1 deep across
+        /// the other, measured nought at a tolerance of nought, said to be trusted so, where it holds 56 800. Where
+        /// <c>TryCutOpenings</c> refuses them, cut as they were they can come out right, a plate a thousand out with three
+        /// openings 48 758.41 at 1E-12, and are measured so, untrusted: of 5 000 bodies it refused 29 at nought, and cut as
+        /// they were, 25 of those came out wrong and were trusted.
+        /// </remarks>
         private MaterialCut CutMaterial(Tolerance tolerance)
+        {
+            Tolerance within = Material3.ToRounding(this, tolerance);
+
+            if (!(within.EqualPoint > tolerance.EqualPoint))
+            {
+                return CutMaterialAsGiven(tolerance);
+            }
+
+            if (Boolean3.TryCutOpenings(this, out GeoSolid3 material, tolerance, out Exception failure))
+            {
+                return new MaterialCut(tolerance, material, true);
+            }
+
+            if (failure == null)
+            {
+                // The openings take all of it.
+                return new MaterialCut(tolerance, null, true);
+            }
+
+            GeometryHelperLog.Debug("GeoSolid3: the openings could not be cut out closed within the rounding of the coordinates; they are cut at the tolerance given, and the volume is not to be trusted.", failure);
+            return new MaterialCut(tolerance, CutMaterialAsGiven(tolerance).Body, false);
+        }
+
+        /// <summary>
+        /// Cuts every opening out of the faces at the tolerance given: all at once, which costs least, or where that cannot be
+        /// worked out, opens a body that closed or leaves a piece of it part in an opening and part out, one at a time by a
+        /// difference, leaving in any one that will not come out.
+        /// </summary>
+        /// <remarks>
+        /// Where an opening will not come out by a difference at the tolerance alone, or one is said to take all that is left
+        /// where the cut at once left material, the openings are cut as <see cref="TryCutOpenings(out GeoSolid3, Tolerance)"/>
+        /// cuts them, which reads a corner as on a plane within the rounding of the coordinates too, and only where that gives
+        /// no material is the opening left in. A difference at a tolerance at or just above that rounding is read on corners
+        /// the rounding puts either side of a plane: the plate with the notches a million out measured 58 800 at the rounding
+        /// and twice it, the second notch left in, where <c>TryCutOpenings</c> gave 56 800, as it holds.
+        /// </remarks>
+        private MaterialCut CutMaterialAsGiven(Tolerance tolerance)
         {
             bool cut = Boolean3.TryCutOpeningsAtOnce(this, _openings, out GeoSolid3 material, tolerance, out Exception failure, out bool judgedWhole);
 
@@ -263,6 +343,7 @@ namespace GeometryHelper.Geometry
 
             GeoSolid3 remaining = new GeoSolid3(_faces);
             bool whole = true;
+            bool cutAsTryCutOpenings = false;
 
             for (int i = 0; i < _openings.Length; i++)
             {
@@ -270,13 +351,27 @@ namespace GeometryHelper.Geometry
                 {
                     remaining = left;
                 }
-                else if (failed == null)
+                else if (failed == null && !cut)
                 {
                     // This opening takes all the others left, and with it whatever would not come out.
                     return new MaterialCut(tolerance, null, true);
                 }
                 else
                 {
+                    // An opening that will not come out, or is said to take all that is left where cutting them in at once
+                    // left material, which the two cannot both be, has them all cut as TryCutOpenings cuts them, where that
+                    // gives material, at or above the rounding; see the remarks.
+                    if (!cutAsTryCutOpenings)
+                    {
+                        cutAsTryCutOpenings = true;
+
+                        if (!(Material3.ToRounding(this, tolerance).EqualPoint > tolerance.EqualPoint)
+                            && Boolean3.TryCutOpenings(this, out GeoSolid3 cutOpenings, tolerance, out _) && cutOpenings != null)
+                        {
+                            return new MaterialCut(tolerance, cutOpenings, true);
+                        }
+                    }
+
                     whole = false;
                     GeometryHelperLog.Warn(
                         $"GeoSolid3: opening {i + 1} of {_openings.Length}, within {_openings[i].GetAabb()}, could not be cut out of the body, and is measured as material.",

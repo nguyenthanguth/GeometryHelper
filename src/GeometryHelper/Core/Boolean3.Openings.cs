@@ -91,25 +91,41 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(solid));
             }
 
+            return TryCutOpenings(solid, out material, tolerance, out Exception failure)
+                || (failure != null && Unworkable("cut of openings", failure, out material));
+        }
+
+        /// <summary>
+        /// Cuts every opening of a body into it as <see cref="TryCutOpenings(GeoSolid3, out GeoSolid3, Tolerance)"/> does, within
+        /// the rounding of the coordinates where the point tolerance is below it, handing back a cut that cannot be worked out
+        /// rather than warning of it.
+        /// </summary>
+        /// <param name="solid">The body.</param>
+        /// <param name="material">The body with every opening cut into it, or the body itself when it has none; null when the method returns false.</param>
+        /// <param name="tolerance">The tolerance asked.</param>
+        /// <param name="failure">What was thrown where the cut could not be worked out, or why it would not close; null otherwise.</param>
+        /// <returns>true when some material is left; false when the openings take all of it, or the cut cannot be worked out.</returns>
+        internal static bool TryCutOpenings(GeoSolid3 solid, out GeoSolid3 material, Tolerance tolerance, out Exception failure)
+        {
             // A point tolerance below the rounding of the coordinates is raised to it, as the queries raise it (see Material3);
             // a planar one below it alone is not, and the cut is as it was.
             Tolerance within = Material3.ToRounding(solid, tolerance);
             bool withinRounding = within.EqualPoint > tolerance.EqualPoint;
 
-            if (TryCutOpenings(solid, solid.Openings, out material, withinRounding ? within : tolerance, withinRounding, out Exception failure, out _))
+            if (!TryCutOpenings(solid, solid.Openings, out material, withinRounding ? within : tolerance, withinRounding, out failure, out _))
             {
-                // The faces cut within the rounding meet on corners as far apart as it; made one, the material closes within
-                // the tolerance given too.
-                if (withinRounding && material != null && !material.ClosesByCorners(tolerance)
-                    && Weld3.TryWeld(material, within, tolerance, out GeoSolid3 welded))
-                {
-                    material = welded;
-                }
-
-                return true;
+                return false;
             }
 
-            return failure != null && Unworkable("cut of openings", failure, out material);
+            // The faces cut within the rounding meet on corners as far apart as it; made one, the material closes within the
+            // tolerance given too.
+            if (withinRounding && material != null && !material.ClosesByCorners(tolerance)
+                && Weld3.TryWeld(material, within, tolerance, out GeoSolid3 welded))
+            {
+                material = welded;
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -187,9 +203,21 @@ namespace GeometryHelper.Core
         /// <param name="openings">The openings to cut.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>The material; null where the openings take all of it, or the cut cannot be worked out at all, which is logged.</returns>
+        /// <remarks>
+        /// Where the point tolerance is below the rounding of the coordinates the openings are cut within it, as
+        /// <see cref="TryCutOpenings(GeoSolid3, out GeoSolid3, Tolerance)"/> cuts them: cut at nought, a plate 200 by 100 by 3
+        /// turned about in space, with a hole 20 by 20 through it, was meshed by <see cref="GeoSolid3.TriangulateSurface(Tolerance)"/>
+        /// into triangles holding 29 999.99 where it holds 58 800, and a point in the middle of the hole was projected 1.5 from
+        /// it, onto a face across the hole, where its wall stands 10 off.
+        /// </remarks>
         internal static GeoSolid3 MaterialToRead(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, Tolerance tolerance)
         {
-            if (TryCutOpenings(solid, openings, out GeoSolid3 material, tolerance, false, out Exception failure, out GeoSolid3 open))
+            // A point tolerance below the rounding of the coordinates is raised to it, and the openings cut within it as
+            // TryCutOpenings cuts them; Material3 hands its queries' tolerance in raised already, and they read as they did.
+            Tolerance within = Material3.ToRounding(solid, tolerance);
+            bool withinRounding = within.EqualPoint > tolerance.EqualPoint;
+
+            if (TryCutOpenings(solid, openings, out GeoSolid3 material, withinRounding ? within : tolerance, withinRounding, out Exception failure, out GeoSolid3 open))
             {
                 return material;
             }
