@@ -239,7 +239,7 @@ namespace GeometryHelper.Dxf
 
             if (lines != null && value >= 0 && lines.Text.Length > 0)
             {
-                run[value] = new KeyValuePair<int, string>(1, ValueOfLines(lines.Text));
+                run[value] = new KeyValuePair<int, string>(1, ValueOfLines(lines));
             }
 
             if (markers)

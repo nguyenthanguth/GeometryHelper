@@ -178,9 +178,10 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void ANamedGroupEmptied_IsKeptEmpty_AsAutoCadKeepsIt_AndAnAnonymousOneEmptiedStillGoes()
+        public void ANamedGroupEmptied_IsKeptEmpty_AsAutoCadKeepsIt_AndAnAnonymousOneEmptiedToo()
         {
-            // AutoCAD 2021 kept G_ERASE (its line erased), G_REMOVE (its line taken out) and G_NEW_EMPTY, each of no member.
+            // AutoCAD 2021 kept G_ERASE (its line erased), G_REMOVE (its line taken out) and G_NEW_EMPTY, each of no member, and
+            // the anonymous GH_ANON_ERASE, its line erased (plugin v5, 27x).
             DxfDatabase db = DxfDatabase.Parse(DxfObjectsEzdxfDrawings.R2018);
             var beams = (DxfGroup)db.GroupDictionary["BEAMS"];
             ByHandle<DxfLine>(db, "33").Erase();
@@ -192,7 +193,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.Equal(0, ((DxfGroup)again.GroupDictionary["BEAMS"]).NumEntities);
             Assert.Equal(0, ((DxfGroup)again.GroupDictionary["G_NEW_EMPTY"]).NumEntities);
-            Assert.False(again.GroupDictionary.Contains("*A1"));
+            Assert.Equal(0, ((DxfGroup)again.GroupDictionary["*A1"]).NumEntities);
         }
 
         [Fact]

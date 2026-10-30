@@ -84,7 +84,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Contains("AcDbAttributeDefinition\n  3\n\n  2\nMARK\n 70\n0\n 74\n3\n 71\n4\n 72\n0\n101\nEmbedded Object\n", Records(db.ToText()).Single(r => HandleOf(r) == "37"), StringComparison.Ordinal);
             DxfAttributeDefinition again = DxfDatabase.Parse(db.ToText()).BlockTable["BOLT"].OfType<DxfAttributeDefinition>().Single();
             Assert.True(again.IsMTextAttributeDefinition);
-            Assert.Equal("M20", again.TextString);
+            Assert.Equal("M20\\Pgrade 8.8", again.TextString);
             Assert.Equal("M20\\Pgrade 8.8", again.MTextAttributeDefinition.Contents);
             Assert.Equal(DxfAttachmentPoint.TopLeft, again.Justify);
 

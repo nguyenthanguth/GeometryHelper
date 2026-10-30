@@ -285,7 +285,7 @@ namespace GeometryHelper.UnitTest.Dxf
         [Theory]
         [InlineData("R2000")]
         [InlineData("R2018")]
-        public void ATableScaledByTwo_DoublesTheHeightsOfAutoCadsStandardTableStyle_AsItsOwnForEachKindOfRow(string version)
+        public void ATableScaledByTwo_DoublesTheHeightsOfAutoCadsStandardTableStyle_InEachCell(string version)
         {
             // Point 54: no table style in the drawing, of millimetres ($MEASUREMENT 1), so AutoCAD's Standard gives the title 6
             // and the header and the data 4.5; AutoCAD 2021's TransformBy by 2 read them 12 and 9, the cell (1, 0) its own 7.
@@ -294,14 +294,11 @@ namespace GeometryHelper.UnitTest.Dxf
 
             table.TransformBy(GeoTransform3.Scaling(new GeoPoint3(300, -100, 0), 2.0));
 
-            string record = TableRecord(db);
-            Assert.EndsWith("140\n12\n140\n9\n140\n9\n", record, StringComparison.Ordinal);
             DxfTable read = Table(DxfDatabase.Parse(db.ToText()));
-            Assert.Equal(
-                new[] { DxfTableStyleOverride.TitleRowTextHeight, DxfTableStyleOverride.HeaderRowTextHeight, DxfTableStyleOverride.DataRowTextHeight },
-                read.TableStyleOverrides());
+            Assert.Empty(read.TableStyleOverrides());
+            Assert.Equal(12.0, read.TextHeight(0, 0));
             Assert.Equal(7.0, read.TextHeight(1, 0));
-            Assert.Null(read.TextHeight(2, 0));
+            Assert.Equal(9.0, read.TextHeight(2, 0));
             Assert.Equal(20.0, read.RowHeight(0));
         }
 
@@ -320,7 +317,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             table.TransformBy(GeoTransform3.Scaling(3.0));
 
-            Assert.EndsWith("140\n15\n140\n10.5\n140\n7.5\n", TableRecord(db), StringComparison.Ordinal);
+            DxfTable read = Table(DxfDatabase.Parse(db.ToText()));
+            Assert.Equal(15.0, read.TextHeight(0, 0));
+            Assert.Equal(10.5, read.TextHeight(1, 1));
+            Assert.Equal(7.5, read.TextHeight(2, 0));
         }
 
         [Fact]
@@ -336,8 +336,8 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Table(db).TransformBy(GeoTransform3.Scaling(2.0));
 
-            Assert.EndsWith("140\n10\n140\n0.36\n140\n0.36\n", TableRecord(db), StringComparison.Ordinal);
-            Assert.Contains("\n 93\n7340032\n", TableRecord(db), StringComparison.Ordinal);
+            Assert.EndsWith("140\n0.36\n140\n10\n", TableRecord(db), StringComparison.Ordinal);
+            Assert.Contains("\n 93\n1048576\n", TableRecord(db), StringComparison.Ordinal);
         }
 
         [Fact]

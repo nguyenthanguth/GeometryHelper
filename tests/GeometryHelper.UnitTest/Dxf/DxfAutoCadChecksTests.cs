@@ -339,7 +339,7 @@ namespace GeometryHelper.UnitTest.Dxf
             insert.AttributeCollection.AppendAttribute(filled);
             filled.SetAttributeFromBlock(definition, insert.BlockTransform);
             Assert.Equal("LINE ONE LINE TWO LINE THREE", Groups(RecordOf(db, filled.Handle)).First(g => g.Key == 1).Value);
-            Assert.Equal("LINE ONE", Groups(RecordOf(db, definition.Handle)).First(g => g.Key == 1).Value);
+            Assert.Equal("LINE ONE\\PLINE TWO\\PLINE THREE", Groups(RecordOf(db, definition.Handle)).First(g => g.Key == 1).Value);
         }
 
         #endregion

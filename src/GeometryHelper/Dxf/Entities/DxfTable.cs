@@ -858,9 +858,10 @@ namespace GeometryHelper.Dxf
         /// </summary>
         /// <remarks>
         /// A scale alike in every direction scales what the table holds of its own sizes: the heights of its rows, the widths of
-        /// its columns, its cell margins, and the text heights and block scales it and its cells override; a text height the
-        /// table takes from its table style, which the library does not read, stays the style's. A table of rows 10, 8 and 8
-        /// high scaled by 2 has rows 20, 16 and 16 high. A mirror leaves the table readable, as AutoCAD 2021's
+        /// its columns, its cell margins, and the text heights and block scales it and its cells override; and each cell that
+        /// has no text height of its own is given the height of its kind of row, the table's own or its table style's, scaled,
+        /// as AutoCAD keeps it. A table of rows 10, 8 and 8 high scaled by 2 has rows 20, 16 and 16 high, and, of AutoCAD's
+        /// Standard of millimetres, the cells of its title 12 high and the others 9. A mirror leaves the table readable, as AutoCAD 2021's
         /// <c>TransformBy</c> leaves it: its normal the mirror's image of the normal, not turned round, its direction the image
         /// of its direction reversed, and its point the image of the far end of its top edge, so that it fills the box the
         /// mirror makes of it, its first column still first along its direction. The table at (300, -100, 0), 70 wide, mirrored
@@ -1053,49 +1054,70 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Writes the text height the table style gives each kind of row the table gives none of its own, scaled, as the table's
-        /// own of that kind (its 140 after its last cell, its flag in 93 from bit 20 on, the title's, the header's, the data's),
-        /// as AutoCAD 2021's <c>TransformBy</c> doubles the heights of the style too: of the drawing of point 54, which has no
-        /// table style, scaled by 2, the title 12 and the header and the data 9. The style is the one the table names (342), else
-        /// the drawing's Standard, else AutoCAD's own Standard, which it makes where the drawing has none: the data and the header
-        /// 4.5 and the title 6 in a drawing of millimetres (<c>$MEASUREMENT</c> 1), 0.18 and 0.25 in one of inches, as 43
-        /// drawings AutoCAD 2021 saved give it. A table in no drawing has no style to read.
+        /// Gives each cell that has no text height of its own the height of its kind of row, scaled, as its own (its 140, its
+        /// flag 0x20), as AutoCAD 2021's <c>TransformBy</c> leaves a table it scales: the table of point 54, in a drawing of no
+        /// table style, scaled by 2, keeps 12 in the cells of its title, 9 in those of its header and its data, and 7 in the cell
+        /// (1, 0), whose own 3.5 is doubled with the table's other sizes. The height of a kind of row is the table's own of that
+        /// kind (its 140 after its last cell, its flag in 93 from bit 20 on, the title's, the header's, the data's), scaled with
+        /// it, else its table style's scaled. The style is the one the table names (342), else the drawing's Standard, else
+        /// AutoCAD's own Standard, which it makes where the drawing has none: the data and the header 4.5 and the title 6 in a
+        /// drawing of millimetres (<c>$MEASUREMENT</c> 1), 0.18 and 0.25 in one of inches, as 43 drawings AutoCAD 2021 saved give
+        /// it. The heights are not written as the table's own: AutoCAD 2021 read those of a scaled table as 0.18 in every cell.
+        /// A table in no drawing has no style to read.
         /// </summary>
         private void ScaleStyleHeights(Layout layout, double scale)
         {
-            DxfDimGroups g = layout.Groups;
-            int headTo = layout.CellStart.Count > 0 ? layout.CellStart[0] : layout.CellsEnd;
-            int cellsEnd = layout.CellsEnd;
-            int all = 7 << RowLooks[140];
-
-            // A table that gives every kind of row a height of its own has none of its style to scale.
-            if (!IsResident || (g.Whole(93, new DxfDimGroups.Range(g.Sub.From, headTo), 0) & all) == all)
+            if (!IsResident)
             {
                 return;
             }
 
-            double[] heights = StyleTextHeights();
+            DxfDimGroups g = layout.Groups;
+            int headTo = layout.CellStart.Count > 0 ? layout.CellStart[0] : layout.CellsEnd;
+            int looks = g.Whole(93, new DxfDimGroups.Range(g.Sub.From, headTo), 0);
+            int[] ranks = TailRanks(g, headTo, layout.CellsEnd, out int to);
+            double[] style = null;
+            var heights = new double[3];
 
             for (int rowKind = 0; rowKind < 3; rowKind++)
             {
-                var head = new DxfDimGroups.Range(g.Sub.From, headTo);
-                int looks = g.Whole(93, head, 0);
                 int bit = RowLooks[140] + rowKind;
+                heights[rowKind] = double.NaN;
 
-                if ((looks & (1 << bit)) != 0 || double.IsNaN(heights[rowKind]))
+                for (int i = layout.CellsEnd; (looks & (1 << bit)) != 0 && i < to; i++)
                 {
-                    continue;
+                    if (g.List[i].Key == 140 && ranks[i - layout.CellsEnd] == bit && Numbers.TryRead(g.List[i].Value, out double own) && Guard.IsFinite(own) && own > 0.0)
+                    {
+                        heights[rowKind] = own;
+                    }
                 }
 
-                int[] ranks = TailRanks(g, headTo, cellsEnd, out int to);
-                g.Insert(PlaceOf(g, ranks, cellsEnd, to, 140, bit), new KeyValuePair<int, string>(140, Numbers.Exact(heights[rowKind] * scale + 0.0)));
-                bool had = g.Find(93, head) >= 0;
-                g.Set(93, (looks | (1 << bit)).ToString(CultureInfo.InvariantCulture), head, Order);
-
-                if (!had)
+                if (double.IsNaN(heights[rowKind]))
                 {
-                    headTo++;
-                    cellsEnd++;
+                    style = style ?? StyleTextHeights();
+                    heights[rowKind] = style[rowKind] * scale;
+                }
+            }
+
+            var kinds = new int[layout.Rows];
+
+            for (int row = 0; row < layout.Rows; row++)
+            {
+                DxfRowType type = RowType(row);
+                kinds[row] = type == DxfRowType.TitleRow ? 0 : type == DxfRowType.HeaderRow ? 1 : 2;
+            }
+
+            // From the last cell back, so that what is put in a cell leaves the places of the cells before it as they were.
+            int flagsCode = Item.File.Supports(1021) ? 91 : 177;
+
+            for (int index = Math.Min(layout.CellStart.Count, layout.Rows * layout.Columns) - 1; index >= 0; index--)
+            {
+                CellView cell = layout.CellAt(index / layout.Columns, index % layout.Columns);
+                double height = heights[kinds[index / layout.Columns]];
+
+                if (cell.Override(140, Layout.CellOverrides[140]) == null && !double.IsNaN(height))
+                {
+                    cell.SetOverride(140, Numbers.Exact(height + 0.0), flagsCode);
                 }
             }
         }

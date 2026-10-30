@@ -162,8 +162,10 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gets or sets the MTEXT the definition is made of where it is of several lines, as AutoCAD's
         /// <c>MTextAttributeDefinition</c>: as <see cref="DxfAttributeReference.MTextAttribute"/> gets and sets one, its type
-        /// (71) 4, as ezdxf writes the definition of an attribute of several lines, but its default value (group 1) the first
-        /// line of the words, as ezdxf writes it.
+        /// (71) 4, as ezdxf writes the definition of an attribute of several lines, but its default value (group 1) the MTEXT's
+        /// contents, its lines apart by <c>\P</c>, as AutoCAD 2021 writes the definition of three lines it makes:
+        /// <c>LINE ONE\PLINE TWO\PLINE THREE</c>, where ezdxf writes the first line. <see cref="DxfDBText.TextString"/> reads that
+        /// group as it is written; an ATTRIB filled from the definition is given the words of its lines joined by spaces.
         /// </summary>
         /// <value>Get, a new MTEXT in no file with the definition's look; null for a definition of one line. Set, embedded and
         /// the text made to agree; the MTEXT it is made of, given back, changes nothing, and so does null given to a definition of
@@ -211,13 +213,17 @@ namespace GeometryHelper.Dxf
         private protected override int SeveralLines => 4;
 
         /// <summary>
-        /// The default value of a definition of several lines: its first line, as ezdxf's <c>set_mtext</c> writes it; what
-        /// AutoCAD writes there is not known, the definition it made through its API keeping the value it had.
+        /// The default value of a definition of several lines: the MTEXT's contents, its lines apart by <c>\P</c>, as AutoCAD 2021
+        /// writes the group 1 of the ATTDEF of three lines it makes, <c>LINE ONE\PLINE TWO\PLINE THREE</c>.
         /// </summary>
-        private protected override string ValueOfLines(string text)
+        private protected override string ValueOfLines(DxfMText value) => value.Contents;
+
+        /// <summary>The default value of the definition made one of one line: the first line of the words of its MTEXT.</summary>
+        private protected override KeyValuePair<int, string>[] ValueOfOneLine()
         {
+            string text = MTextOf()?.Text ?? string.Empty;
             int line = text.IndexOf('\n');
-            return line < 0 ? text : text.Substring(0, line);
+            return text.Length == 0 ? new KeyValuePair<int, string>[0] : Pair(1, line < 0 ? text : text.Substring(0, line));
         }
 
         private static IEnumerable<DxfTypedValue> Groups(GeoPoint3 position, string value, string tag, string prompt, string style, bool check)

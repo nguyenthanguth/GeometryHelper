@@ -52,10 +52,12 @@ namespace GeometryHelper.Dxf
         /// a face of four corners a 3DFACE of them, of three one ending on its third; a cube 10 by 10 by 10 of eight vertices
         /// and six faces gives six 3DFACEs. A face of more than four corners breaks into a strip of triangles, as AutoCAD
         /// 2021's <c>Explode</c> breaks one: from two corners on, the rest taken by turns from the far end and the near one, each
-        /// triangle after the first the other way round; from the face's first two corners in a MESH of that one face, from its
-        /// last two back the other way in a MESH of more. The face of the corners 0 to 4 alone gives the triangles (0, 1, 4),
-        /// (2, 4, 1) and (4, 2, 3), and as the base of a pyramid (4, 3, 0), (2, 0, 3) and (0, 2, 1); of 0 to 5, (0, 1, 5),
-        /// (2, 5, 1), (5, 2, 4) and (3, 4, 2) alone and (5, 4, 0), (3, 0, 4), (0, 3, 1) and (2, 1, 3) as a base. A face given a colour of its own (an
+        /// triangle after the first the other way round; from the face's first two corners, or from its last two back the other
+        /// way where it faces into a closed MESH whose other faces face out, as AutoCAD turns every face of a closed mesh to face
+        /// out. The face of the corners 0 to 4 alone, or one of an open MESH, gives the triangles (0, 1, 4), (2, 4, 1) and
+        /// (4, 2, 3), and as the base of a pyramid facing up into it (4, 3, 0), (2, 0, 3) and (0, 2, 1); of 0 to 5, (0, 1, 5),
+        /// (2, 5, 1), (5, 2, 4) and (3, 4, 2) alone and (5, 4, 0), (3, 0, 4), (0, 3, 1) and (2, 1, 3) as such a base. A face of
+        /// four corners or three is broken as the file holds it, turned or not. A face given a colour of its own (an
         /// override of the MESH, its subentity 1 the first face) keeps it on its 3DFACEs, as AutoCAD keeps it. A MESH smoothed,
         /// and one that gives a face a material or a transparency of its own, or an edge or a vertex anything of its own, is
         /// refused. Any other type refuses: a REGION, a 3DSOLID, a BODY and a surface, which AutoCAD breaks with its solid
@@ -260,6 +262,7 @@ namespace GeometryHelper.Dxf
 
             var look = new Look(this);
             var parts = new List<DxfEntity>(faces.Count);
+            bool[] facingIn = FacingIn(points, faces);
 
             for (int f = 0; f < faces.Count; f++)
             {
@@ -274,15 +277,15 @@ namespace GeometryHelper.Dxf
                 {
                     // A strip of triangles, as AutoCAD 2021's Explode gives one: from two corners on, the rest taken by turns from
                     // the far end and the near one, each triangle after the first the other way round; from the face's first two
-                    // corners in a mesh of that one face, from its last two back the other way in a mesh of more. A hexagon alone
-                    // gives (0, 1, 5), (2, 5, 1), (5, 2, 4), (3, 4, 2); the base of a pyramid (5, 4, 0), (3, 0, 4), (0, 3, 1), (2, 1, 3).
+                    // corners, from its last two back the other way where it faces into a closed mesh. A hexagon alone gives (0, 1, 5),
+                    // (2, 5, 1), (5, 2, 4), (3, 4, 2); the base of a pyramid facing into it (5, 4, 0), (3, 0, 4), (0, 3, 1), (2, 1, 3).
                     int count = corners.Length;
                     var strip = new List<int>(count);
                     int[] round = new int[count];
 
                     for (int k = 0; k < count; k++)
                     {
-                        round[k] = faces.Count > 1 ? corners[count - 1 - k] : corners[k];
+                        round[k] = facingIn[f] ? corners[count - 1 - k] : corners[k];
                     }
 
                     strip.Add(round[0]);
@@ -317,6 +320,149 @@ namespace GeometryHelper.Dxf
             }
 
             return parts;
+        }
+
+        /// <summary>
+        /// Which faces of a MESH face into it, to be read the other way round, as AutoCAD 2021 turns every face of a closed mesh
+        /// to face out: of each piece of faces joined edge to edge that is closed (each of its edges shared by two of its faces)
+        /// and whose faces can all be turned to agree, those that, once they agree, face into the room it closes. A piece that
+        /// closes no room beyond a point's tolerance by its area, an open one, and one whose faces cannot agree, is read as the
+        /// file holds it. The pyramid on six corners whose base faces up into it and whose sides face out has its base read the
+        /// other way round.
+        /// </summary>
+        private static bool[] FacingIn(List<GeoPoint3> points, List<int[]> faces)
+        {
+            var facingIn = new bool[faces.Count];
+            var edges = new Dictionary<long, List<int>>(PackedKeys.Instance);
+
+            for (int f = 0; f < faces.Count; f++)
+            {
+                int[] corners = faces[f];
+
+                for (int k = 0; k < corners.Length; k++)
+                {
+                    int a = corners[k];
+                    int b = corners[(k + 1) % corners.Length];
+
+                    if (a != b)
+                    {
+                        long key = ((long)Math.Min(a, b) << 32) | (uint)Math.Max(a, b);
+
+                        if (!edges.TryGetValue(key, out List<int> sharing))
+                        {
+                            edges[key] = sharing = new List<int>(2);
+                        }
+
+                        sharing.Add(f);
+                    }
+                }
+            }
+
+            // How each face is read against the first of its piece: 1 as it is held, -1 the other way round, 0 not reached yet.
+            var side = new int[faces.Count];
+
+            for (int seed = 0; seed < faces.Count; seed++)
+            {
+                if (side[seed] != 0)
+                {
+                    continue;
+                }
+
+                var piece = new List<int> { seed };
+                side[seed] = 1;
+                bool closed = true;
+                bool agrees = true;
+
+                for (int at = 0; at < piece.Count; at++)
+                {
+                    int f = piece[at];
+                    int[] corners = faces[f];
+
+                    for (int k = 0; k < corners.Length; k++)
+                    {
+                        int a = corners[k];
+                        int b = corners[(k + 1) % corners.Length];
+
+                        if (a == b)
+                        {
+                            continue;
+                        }
+
+                        List<int> sharing = edges[((long)Math.Min(a, b) << 32) | (uint)Math.Max(a, b)];
+                        int other = sharing.Count == 2 ? (sharing[0] == f ? sharing[1] : sharing[0]) : f;
+
+                        if (other == f)
+                        {
+                            closed = false;
+                            continue;
+                        }
+
+                        // Two faces agree where they run the edge they share opposite ways.
+                        int wanted = Runs(faces[other], a, b) ? -side[f] : side[f];
+
+                        if (side[other] == 0)
+                        {
+                            side[other] = wanted;
+                            piece.Add(other);
+                        }
+                        else if (side[other] != wanted)
+                        {
+                            agrees = false;
+                        }
+                    }
+                }
+
+                if (!closed || !agrees)
+                {
+                    continue;
+                }
+
+                // Six times the room the faces close, each read as it agrees with the first, measured from a corner of the
+                // piece; and their area.
+                GeoPoint3 from = points[faces[seed][0]];
+                double volume = 0.0;
+                double area = 0.0;
+
+                foreach (int f in piece)
+                {
+                    int[] corners = faces[f];
+                    GeoVector3 first = points[corners[0]] - from;
+
+                    for (int k = 1; k + 1 < corners.Length; k++)
+                    {
+                        GeoVector3 p = points[corners[k]] - from;
+                        GeoVector3 q = points[corners[k + 1]] - from;
+                        volume += side[f] * first.DotProduct(p.CrossProduct(q));
+                        area += (p - first).CrossProduct(q - first).Length / 2.0;
+                    }
+                }
+
+                if (Math.Abs(volume) / 6.0 <= Tolerance.Default.EqualPoint * area)
+                {
+                    continue;
+                }
+
+                foreach (int f in piece)
+                {
+                    facingIn[f] = volume > 0.0 ? side[f] < 0 : side[f] > 0;
+                }
+            }
+
+            return facingIn;
+        }
+
+        /// <summary>Whether a face runs from one corner to another next after it, its last corner going on to its first.</summary>
+        private static bool Runs(int[] corners, int from, int to)
+        {
+            for (int k = 0; k < corners.Length; k++)
+            {
+                if (corners[k] == from && corners[(k + 1) % corners.Length] == to)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>Refuses: the geometry of a type the library keeps as it is is not changed.</summary>

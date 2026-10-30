@@ -742,10 +742,16 @@ namespace GeometryHelper.Dxf
         private protected virtual int SeveralLines => 2;
 
         /// <summary>
-        /// The value (group 1) of an attribute of several lines of the words of its MTEXT: of an ATTRIB every line joined by
-        /// spaces, as AutoCAD 2021 writes it.
+        /// The value (group 1) of an attribute of several lines of the MTEXT it is made of: of an ATTRIB the words of every line
+        /// joined by spaces, which AutoCAD 2021 reads as its own and other readers take for the attribute's words.
         /// </summary>
-        private protected virtual string ValueOfLines(string text) => text.Replace('\n', ' ');
+        private protected virtual string ValueOfLines(DxfMText value) => value.Text.Replace('\n', ' ');
+
+        /// <summary>
+        /// What the text's part of an attribute of several lines is given when it is made one of one line: nothing for an
+        /// ATTRIB, whose value is its words already.
+        /// </summary>
+        private protected virtual KeyValuePair<int, string>[] ValueOfOneLine() => new KeyValuePair<int, string>[0];
 
         /// <summary>
         /// The MTEXT an attribute is made of, as AutoCAD's <c>MTextAttribute</c> gives it: a new MTEXT in no file of the groups
@@ -809,7 +815,7 @@ namespace GeometryHelper.Dxf
             embedded.AddRange(DxfMText.EmbeddedOf(value));
             Rewrite(
                 Join(
-                    text.Length > 0 ? Pair(1, ValueOfLines(text)) : new KeyValuePair<int, string>[0],
+                    text.Length > 0 ? Pair(1, ValueOfLines(value)) : new KeyValuePair<int, string>[0],
                     TextPointGroups(10, location),
                     TextPointGroups(11, location),
                     NumberGroup(50, degrees, TextDouble(50, 0.0)),
@@ -829,7 +835,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Makes the attribute of several lines or of one, as AutoCAD's <c>IsMTextAttribute</c> setter does: of several, an MTEXT
         /// made of its value where its text stands, as <see cref="SetMText"/> embeds one; of one, its embedded MTEXT taken out,
-        /// its text's part keeping the words of its group 1, its 71 the type of one line. Nothing where it is as asked.
+        /// its text's part keeping the words of its group 1 (a definition the first line of its MTEXT's words), its 71 the type
+        /// of one line. Nothing where it is as asked.
         /// </summary>
         private protected void SetSeveral(bool value)
         {
@@ -840,7 +847,7 @@ namespace GeometryHelper.Dxf
 
             if (!value)
             {
-                Rewrite(new KeyValuePair<int, string>[0], null, new DxfTypedValue[0], AttributeValue(71) != null ? 1 : (int?)null);
+                Rewrite(ValueOfOneLine(), null, new DxfTypedValue[0], AttributeValue(71) != null ? 1 : (int?)null);
                 return;
             }
 

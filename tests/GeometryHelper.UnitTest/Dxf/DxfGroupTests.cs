@@ -195,7 +195,7 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AMemberErased_LeavesTheGroup_AndTheLastErasedTakesTheGroupWithIt()
+        public void AMemberErased_LeavesTheGroup_AndTheLastErasedLeavesItEmpty_AsAutoCadKeepsIt()
         {
             DxfDatabase db = DxfDatabase.Parse(DxfObjectsEzdxfDrawings.R2018);
             var beams = (DxfGroup)db.GroupDictionary["BEAMS"];
@@ -211,8 +211,8 @@ namespace GeometryHelper.UnitTest.Dxf
             string saved = db.ToText();
             DxfDatabase again = DxfDatabase.Parse(saved);
             Assert.Equal(new[] { "34" }, Handles((DxfGroup)again.GroupDictionary["BEAMS"]));
-            Assert.False(again.GroupDictionary.Contains("*A1"));
-            Assert.DoesNotContain(Records(saved), r => HandleOf(r) == "38");
+            Assert.Equal(0, ((DxfGroup)again.GroupDictionary["*A1"]).NumEntities);
+            Assert.Contains(Records(saved), r => HandleOf(r) == "38");
         }
 
         [Fact]

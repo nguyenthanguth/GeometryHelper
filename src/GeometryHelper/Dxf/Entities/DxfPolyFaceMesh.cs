@@ -149,11 +149,12 @@ namespace GeometryHelper.Dxf
         /// Gets the faces the mesh breaks into, as AutoCAD's <c>Explode</c>, as ezdxf's <c>virtual_entities</c> gives them: a
         /// 3DFACE for each face, in the order of the file, its corners the points its numbers name, the edge from a corner whose
         /// number is below nought hidden. A face of three corners ends on its third, as AutoCAD writes one, and the edge from its
-        /// third back to its first, the 3DFACE's fourth, is hidden with its third. Each has the mesh's look and the layer its face
-        /// writes of its own; a colour of the face's own is not taken, as AutoCAD 2021's <c>Explode</c> gives the mesh's. The pyramid of a square base and four sides
-        /// gives five faces, the base of four corners and four triangles. Its corners are its numbers up to the first of nought,
-        /// as the reader takes them: a face of fewer than three corners so, (1, 2, 0, 4) among them, or one naming a point the
-        /// mesh has not, is left out, as the reader leaves it out of the mesh's body.
+        /// third back to its first, the 3DFACE's fourth, is hidden with its third. Each has the mesh's look: a layer or a colour its
+        /// face record writes of its own is not taken, as AutoCAD 2021's <c>Explode</c> gives the faces of a PFACE on
+        /// INPUT_PFACE_LAYER whose records stand on FACE_OWN_LAYER, one of them red, that layer and BYLAYER. The pyramid of a
+        /// square base and four sides gives five faces, the base of four corners and four triangles. Its corners are its numbers
+        /// up to the first of nought, as the reader takes them: a face of fewer than three corners so, (1, 2, 0, 4) among them,
+        /// or one naming a point the mesh has not, is left out, as the reader leaves it out of the mesh's body.
         /// </summary>
         /// <returns>The entities, in no file, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
         public override IReadOnlyList<DxfEntity> Explode()
@@ -219,26 +220,10 @@ namespace GeometryHelper.Dxf
 
                 var face = new DxfFace(corners[0], corners[1], corners[2], corners[3], (hidden & 1) == 0, (hidden & 2) == 0, (hidden & 4) == 0, (hidden & 8) == 0);
                 look.GiveTo(face);
-                OwnLook(face, record.Value);
                 faces.Add(face);
             }
 
             return faces.AsReadOnly();
-        }
-
-        /// <summary>
-        /// Gives a face exploded the layer its face record writes of its own (8); its colour stays the mesh's, as AutoCAD 2021's
-        /// <c>Explode</c> gives a face of colour 1 of its own the mesh's BYLAYER.
-        /// </summary>
-        private static void OwnLook(DxfFace face, IReadOnlyList<DxfTypedValue> record)
-        {
-            string layer = DxfFollowers.Text(record, 8);
-            string name = layer == null ? string.Empty : DxfReader.NameOf(layer);
-
-            if (name.Length > 0)
-            {
-                face.Layer = name;
-            }
         }
 
         /// <summary>

@@ -637,10 +637,6 @@ namespace GeometryHelper.Dxf
         /// <summary>How many records have been taken out of the file since it was read.</summary>
         internal int RemovedCount => _removed?.Count ?? 0;
 
-        /// <summary>Whether the flags (70) of a GROUP make it anonymous: their bit 1.</summary>
-        private static bool Anonymous(string flags)
-            => int.TryParse(flags?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) && (value & 1) != 0;
-
         /// <summary>Whether a record of a handle has been taken out of the file since it was opened, an entity erased among them.</summary>
         internal bool WasRemoved(string handle)
             => _removed != null && handle != null && TryHex(handle.Trim(), out ulong key) && _removed.Contains(key);

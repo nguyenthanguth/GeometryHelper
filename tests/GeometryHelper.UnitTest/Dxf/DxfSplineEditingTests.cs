@@ -360,14 +360,15 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void APolylineOfTheHighestPrecision_IsHeldToAFloor_OfAMillionthOfTheSize()
+        public void APolylineOfTheHighestPrecision_IsFinerThanOneOf30_AsAutoCadMakesIt()
         {
+            // AutoCAD 2021 (plugin v5, 17-b): 1 025 vertices at 30 and 4 097 at 99 for this cubic of one span.
             DxfSpline spline = Bezier();
             DxfCurve fine = spline.ToPolylineWithPrecision(99, false, true);
-            DxfCurve floor = spline.ToPolylineWithPrecision(30, false, true);
+            DxfCurve coarser = spline.ToPolylineWithPrecision(30, false, true);
 
-            Assert.True(((DxfPolyline)fine).NumberOfVertices < 2000, "Precision 99 gave " + ((DxfPolyline)fine).NumberOfVertices + " vertices.");
-            Assert.Equal(((DxfPolyline)floor).NumberOfVertices, ((DxfPolyline)fine).NumberOfVertices);
+            Assert.Equal(4097, ((DxfPolyline)fine).NumberOfVertices);
+            Assert.Equal(1025, ((DxfPolyline)coarser).NumberOfVertices);
         }
 
         private static double Segment(GeoPoint3 q, double ax, double ay, double bx, double by)
@@ -388,8 +389,10 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfSpline spline = Fixture(out _);
             var lines = Assert.IsType<DxfPolyline3d>(spline.ToPolylineWithPrecision(20, false, true));
             double size = Tolerance.Default.EqualPoint;
+            int count = lines.Count();
 
-            for (int i = 0; i + 1 < lines.Count(); i++)
+            // Some 200 segments, evenly through the 2 542 AutoCAD's rule gives at 20, each judged by the spline's nearest point.
+            for (int i = 0; i + 1 < count; i += Math.Max(1, count / 200))
             {
                 GeoPoint3 middle = lines.GetPointAtParameter(i + 0.5);
                 Assert.True(spline.GetClosestPointTo(middle, false).DistanceTo(middle) < size, "The segment " + i + " strays " + spline.GetClosestPointTo(middle, false).DistanceTo(middle));

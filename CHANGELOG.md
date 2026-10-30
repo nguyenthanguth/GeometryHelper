@@ -51,12 +51,15 @@ that only touches another side, a spike narrower than the point tolerance at its
 polyline that crosses itself are offset as before. `Offset2.Offset` is not changed. 4 new tests, 1 changed.
 
 **CHANGED.** `TransformBy` of a table scaled alike scales the text heights its table style gives too, as AutoCAD 2021's
-does: each kind of row the table gives no height of its own takes the style's, scaled, as its own (its 140 after its last
-cell, with its flag in 93). The style is the one the table names, else the drawing's Standard, else AutoCAD's own Standard,
-the title 6 and the header and the data 4.5 in a drawing of millimetres and 0.25 and 0.18 in one of inches, as the 43
-drawings AutoCAD 2021 saved for the checks have it. The table of rows 10, 8 and 8 that names no style, scaled by 2, has
-its title 12 high and its header and data 9, as AutoCAD reads it, where they stayed 6 and 4.5; its rows are still 20, 16
-and 16, where AutoCAD measures them by its font as 22, 18 and 18. 4 new tests.
+does: each cell that has no text height of its own takes the height of its kind of row, scaled, as its own (its 140 with
+its flag 0x20), as AutoCAD's own save of the table it scaled keeps them, one in each cell. The height of a kind of row is
+the table's own where it has one, else its style's: the style the table names, else the drawing's Standard, else
+AutoCAD's own Standard, the title 6 and the header and the data 4.5 in a drawing of millimetres and 0.25 and 0.18 in one of
+inches, as the 43 drawings AutoCAD 2021 saved for the checks have it. The table of rows 10, 8 and 8 that names no style,
+scaled by 2, has the two cells of its title 12 high and its other four 9, its cell of its own 3.5 now 7, as AutoCAD reads
+it, where they stayed 6 and 4.5; AutoCAD read the heights first written as the table's own, after its last cell, as 0.18
+in every cell, and none is written there now. Its rows are still 20, 16 and 16, where AutoCAD measures them by its font as
+22, 18 and 18. 8 new tests.
 
 **CHANGED.** A table mirrored so that the image of its direction still reads left to right or upwards stands at the image
 of its point along that image, its rows running up (`FlowDirection` `BottomToTop`, 70 of 1 in its head with the flag 0x04
@@ -70,23 +73,43 @@ AutoCAD 2021 writes and reads it, as the twist is: a snap of 30 degrees is writt
 and AutoCAD read 30 radians. 1 new test, 1 changed.
 
 **CHANGED.** An anonymous group left empty is kept when the drawing is saved, as AutoCAD 2021 keeps *A1, *A2 and *A3
-emptied by an erase, by `Remove` and made with no member; they were dropped. No group is dropped for being empty now.
-1 new test, 1 changed.
+emptied by an erase, by `Remove` and made with no member; they were dropped. No group is dropped for being empty now, one
+whose only member is erased among them, which the saving still dropped: *A1 of ezdxf's drawing, its text erased, is in the
+drawing saved, anonymous, of no member. 2 new tests, 3 changed.
 
 **CHANGED.** `Explode()` gives what AutoCAD 2021's `Explode()` gives of a few more:
-- A face of a polyface mesh takes the mesh's colour, not its own: the face of colour 1 of its own in a mesh of BYLAYER is
-  BYLAYER, where it was 1. Its own layer is still its own. 1 new test, 1 changed.
+- A face of a polyface mesh takes the mesh's colour and layer, not its face record's: the face of colour 1 of its own in a
+  mesh of BYLAYER is BYLAYER, where it was 1, and the faces of a mesh on INPUT_PFACE_LAYER whose records stand on
+  FACE_OWN_LAYER are on INPUT_PFACE_LAYER, where they were on FACE_OWN_LAYER. 2 new tests, 1 changed.
 - A polygon mesh smoothed breaks as AutoCAD breaks one, its points of the surface read as a grid of the densities from the
   first: the mesh 4 by 4 smoothed at 6 and 6, its 7 by 7 points, gives 25 faces, the first of the points 0, 1, 7 and 6,
   where it gave 36 of the 7 by 7 grid. 1 new test, 2 changed.
 - A MESH face of more than four corners breaks into AutoCAD's strip of triangles: two corners, then the rest by turns from
-  the far end and the near one, from the first two in a MESH of that one face and from the last two back in a MESH of more.
-  The face 0 to 5 alone gives (0, 1, 5), (2, 5, 1), (5, 2, 4), (3, 4, 2), and as the base of a pyramid (5, 4, 0),
-  (3, 0, 4), (0, 3, 1), (2, 1, 3), where it gave (0, 3, 2) and (2, 1, 0) last; the face 0 to 4 alone (0, 1, 4), (2, 4, 1),
-  (4, 2, 3). 1 new test, 1 changed.
+  the far end and the near one, from the face's first two, or from its last two back where it faces into a closed MESH,
+  whose faces AutoCAD turns to face out. The face 0 to 5 alone, or in an open MESH, gives (0, 1, 5), (2, 5, 1), (5, 2, 4),
+  (3, 4, 2), and as the base of a pyramid facing up into it (5, 4, 0), (3, 0, 4), (0, 3, 1), (2, 1, 3), where it gave
+  (0, 3, 2) and (2, 1, 0) last; the face 0 to 4 alone (0, 1, 4), (2, 4, 1), (4, 2, 3). An open MESH of a face of six corners
+  and one of five sharing an edge breaks each from its first two corners, as AutoCAD 2021 breaks it. 4 new tests, 1
+  changed.
 - The SPLINE of a splined LEADER or MULTILEADER line keeps its fit data, the points it runs through and its directions at
   the ends, as AutoCAD's has three fit points: through (1.77, 1.77), (10, 10) and (20, 10), leaving along (0.7071, 0.7071)
   and reaching along (1, 0), its control points and knots as they were. 1 new test.
+
+**CHANGED.** The definition of an attribute of several lines writes its default value (group 1) as the contents of its
+MTEXT, its lines apart by `\P`, as AutoCAD 2021 writes the ATTDEF of three lines it makes: `LINE ONE\PLINE TWO\PLINE THREE`,
+where it wrote `LINE ONE`, as ezdxf does. `TextString` reads the group as it is written; made one of one line, by
+`IsMTextAttributeDefinition`, the definition keeps its first line as before. An ATTRIB of several lines still writes the
+words of its lines joined by spaces (`LINE ONE LINE TWO LINE THREE`), which AutoCAD reads as its own though it writes the
+group empty, so that a reader that does not read the MTEXT has the words. 1 new test, 2 changed.
+
+**CHANGED.** `ToPolylineWithPrecision` of a spline made lines gives AutoCAD 2021's vertices: its whole parameter range is
+halved until the spline's point halfway along each piece lies within 1 / (M (p + 1)^2) of the middle of the piece's chord,
+M the largest length of the spline's second derivative and p the precision. The cubic of one span on (0, 0), (10, 10),
+(20, 10), (30, 0) gives 33, 65, 257, 513, 1 025 and 4 097 vertices at 0, 1, 10, 20, 30 and 99, where it gave 17, 27, 65,
+257, 513 and 513; the cubic of two spans of the checks 50, 513 and 4 750 at 0, 10 and 99, where 21, 53 and 632; and of three
+spans 78, 835 and 7 562, where 29, 91 and 843: every one of the 30 counts AutoCAD gave for the three, to the vertex. Made
+arcs, for a flat spline, it is as before. The finer polylines take longer, about as long per vertex: the three spans at 10
+take 3.9 milliseconds where 1.1 (91 vertices) on .NET 10, and 2.7 where 0.54 on .NET Framework 4.8. 4 new tests, 2 changed.
 
 **FIXED.** `GetVolume`, `TryGetVolume`, `GetSurfaceArea`, `GetCentroid`, `GetMassProperties` and `Measure3` of a body
 with openings, asked at a point tolerance below the rounding of the coordinates, a quadrillionth of the largest of them,

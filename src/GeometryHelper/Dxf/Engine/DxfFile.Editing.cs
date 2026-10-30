@@ -2700,33 +2700,6 @@ namespace GeometryHelper.Dxf
                 return false;
             }
 
-            // An anonymous GROUP left with no member goes, its handle with what was removed; a named one is kept, empty, as
-            // AutoCAD 2021 keeps it.
-            if (record.Type == "GROUP" && Anonymous(Record(record).Text(70)))
-            {
-                bool member = false;
-                braced = false;
-
-                for (int i = 1; i < pairs.Count && !member; i++)
-                {
-                    if (pairs[i].Code == 102)
-                    {
-                        braced = Text(record, pairs[i]).Trim().StartsWith("{", StringComparison.Ordinal);
-                    }
-                    else
-                    {
-                        member = !braced && pairs[i].Code == 340 && !drop[i];
-                    }
-                }
-
-                if (!member && HandleOf(record, out ulong group))
-                {
-                    ObjectGone(group, record);
-                    gone.Add(group);
-                    return true;
-                }
-            }
-
             var b = new Builder(this);
 
             for (int i = 0; i < pairs.Count; i++)

@@ -66,6 +66,11 @@ written as AutoCAD reads them now.
      MTEXT `LINE ONE\PLINE TWO\PLINE THREE` (not `\P` as ezdxf says, nor the first line alone).
    - Now: so does the library for an ATTRIB, by `MTextAttribute` and by `SetAttributeFromBlock` of a definition of several
      lines; an ATTDEF keeps its first line, as ezdxf writes it, AutoCAD's own definition having kept the value it had.
+   - AutoCAD 2021 (plugin v5, an ATTDEF made an MTEXT attribute through its API): writes the definition's group 1 as the
+     MTEXT's contents, `LINE ONE\PLINE TWO\PLINE THREE`, and the ATTRIB's empty; its `TextString` reads
+     `LINE ONE LINE TWO LINE THREE` of both, and the same of the library's ATTRIB.
+   - Now: the ATTDEF's group 1 is the MTEXT's contents, as AutoCAD's; the ATTRIB's stays the words joined by spaces, which
+     AutoCAD reads as its own and other readers need for the words (the maintainer's decision).
 
 7. **An MTEXT's background transparency.**
    - Try: read `BackgroundTransparency` of an MTEXT with no group 441.
@@ -158,6 +163,15 @@ written as AutoCAD reads them now.
       of the whole spline from 0 to 3 while the curve's middle lies further than 0.01054 / (p + 1)^2 from the chord's middle
       gives all eight counts of the three spans, but 512 segments for the one span at 10, where AutoCAD gives 256: no rule
       found yet, parked.
+    - AutoCAD 2021 (plugin v5, 17-c, `ToPolylineWithPrecision(p, false, true)`): the cubic of one span 33, 65, 65, 129, 129,
+      129, 257, 513, 1 025, 2 049 and 4 097 vertices at 0, 1, 2, 3, 4, 5, 10, 20, 30, 50 and 99; the cubic of two spans on
+      (0, 40), (10, 50), (20, 50), (30, 40), (40, 30), knots 0, 0, 0, 0, 1, 2, 2, 2, 2, 50, 99, 144, 197, 237, 288, 513, 973,
+      1 519, 2 413 and 4 750. The tolerance of the halving above fits each curve alone as c / (p + 1)^2, c 0.0165 to 0.0179
+      for the one span, 0.014907 for the two and 0.0105415 for the three: one over the largest length of each curve's second
+      derivative, 60, 30 sqrt 5 (67.08) and 30 sqrt 10 (94.87).
+    - Now: made lines, the whole parameter range is halved until the spline's point halfway along each piece lies within
+      1 / (M (p + 1)^2) of the middle of its chord, M that largest length: every one of the 30 counts of the three curves, to
+      the vertex. Made arcs, which AutoCAD was not asked for, the library's reading is kept.
 
 18. **The narrowest ellipse.**
     - Try: squash an ellipse to a ratio of 1E-7 by `TransformBy`, and project a circle onto a plane seen almost edge on.
@@ -237,6 +251,9 @@ written as AutoCAD reads them now.
     - AutoCAD 2021 (plugin v4, 27x): keeps the anonymous *A1, *A2 and *A3 too, emptied by an erase, by `Remove` and made
       with no member, still anonymous and of no member after it saves the drawing and opens it again.
     - Now: so does the library: no group left empty is dropped.
+    - AutoCAD 2021 (plugin v5, 27x): kept GH_ANON_ERASE, its only line erased, where the library's 27x-b had dropped it: an
+      anonymous group emptied by an erase still went when the drawing was saved.
+    - Now: it is kept, of no member, as one emptied by `Remove` or `Clear`.
 
 28. **An anonymous group renamed.**
     - Try: rename an anonymous group in AutoCAD.
@@ -473,6 +490,11 @@ written as AutoCAD reads them now.
       write 70 of 1 in the table's head after 96, the flag 0x04 set in 93.
     - Now: so does the library: mirrored so that the image of its direction still reads left to right or upwards, a table
       stands at the image of its point along that image, its flow turned over; otherwise as in x = 280.
+    - AutoCAD 2021 (plugin v5): read the heights D12 wrote after the last cell as 0.18 in each cell, the default of inches,
+      the cell (1, 0) its own 7. Its own scaled table keeps the heights in every cell (12 in the title's two, 9 in the
+      header's and the data's, 7 in (1, 0), its block cell 9 too), and three more in its head after 96.
+    - Now: each cell that has no height of its own is given its kind of row's, the table's own or its style's, scaled, as
+      its own (140, flag 0x20); no height is written as the table's own.
 
 55. **Arrow blocks of a dimension saved as R12.**
     - Try: SAVEAS R12 in AutoCAD a dimension whose DIMBLK is overridden, and compare its ACAD extended data with the library's
@@ -512,6 +534,9 @@ written as AutoCAD reads them now.
       of the points 0, 1, 7 and 6.
     - Now: so does the library: a face's own colour is not taken, and a smoothed mesh breaks as AutoCAD's. A file written by
       13.0.0 or 13.1.0 with AcDbVertex before a face's AcDbFaceRecord is read and saved with the marker alone.
+    - AutoCAD 2021 (plugin v5, 58-e): the faces of the PFACE on INPUT_PFACE_LAYER whose face records stand on FACE_OWN_LAYER
+      on INPUT_PFACE_LAYER too, colour 256.
+    - Now: so does the library: neither the layer nor the colour of a face record is taken.
 
 59. **An MLINE exploded.**
     - Try: EXPLODE in AutoCAD an MLINE of a style of six elements with inner arcs at both ends, one with its caps suppressed,
@@ -575,6 +600,14 @@ written as AutoCAD reads them now.
       back the other way.
     - Now: so does the library, the strip from the first two corners in a MESH of one face and from the last two back in a
       MESH of more. Whether a MESH of more faces that is not closed reads its faces as the pyramid's is still to be tried.
+    - AutoCAD 2021 (plugin v5, 64x-a): the open MESH A3 of a face of six corners and one of five sharing an edge, both
+      facing up, breaks each from its first two corners, as a face alone. The pyramid AutoCAD made in v4 was handed every
+      face facing in and saved with every face facing out, its base (5, 4, 3, 2, 1, 0); the pyramids A0 and 8B, whose base
+      faces in and sides out, break their bases from the last two corners back.
+    - Now: a face of more than four corners breaks from its first two corners, or from its last two back where it faces
+      into a closed MESH, the faces of each closed piece turned to agree and to face out of the room they close: one rule for
+      A0, A1, A2 and A3, 8B, and the pyramid AutoCAD made. A face of four corners or three is broken as before, as the file
+      holds it.
 
 ## Geographic location, layer filters and layer states
 
