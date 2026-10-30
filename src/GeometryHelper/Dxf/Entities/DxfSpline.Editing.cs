@@ -37,10 +37,10 @@ namespace GeometryHelper.Dxf
                 if (points.Count > 0 || !(GetGeCurve() is GeoSpline3 spline))
                 {
                     bool rational = IsRational;
-                    return new DxfNurbsData(Degree, rational, Closed, IsPeriodic, points, Knots, rational ? Weights : null, pointTolerance, knotTolerance);
+                    return new DxfNurbsData(Degree, rational, Closed, FlaggedPeriodic, points, Knots, rational ? Weights : null, pointTolerance, knotTolerance);
                 }
 
-                return new DxfNurbsData(spline.Degree, spline.IsRational, Closed, IsPeriodic, spline.ControlPoints, spline.Knots, spline.IsRational ? spline.Weights : null, pointTolerance, knotTolerance);
+                return new DxfNurbsData(spline.Degree, spline.IsRational, Closed, FlaggedPeriodic, spline.ControlPoints, spline.Knots, spline.IsRational ? spline.Weights : null, pointTolerance, knotTolerance);
             }
 
             set
@@ -87,7 +87,7 @@ namespace GeometryHelper.Dxf
                     EndTangent = EndFitTangent,
                     TangentsExist = tangents,
                     KnotParam = DxfKnotParameterizationEnum.Chord,
-                    Periodic = IsPeriodic,
+                    Periodic = FlaggedPeriodic,
                 };
             }
 
@@ -573,8 +573,9 @@ namespace GeometryHelper.Dxf
         /// counts for a quadratic of three spans and a cubic of a double knot too (29, 342 and 2 732, and 76, 933 and 8 011 at 0,
         /// 10 and 99), but more than AutoCAD's for a spline of degree 5 (117 where AutoCAD gives 96 at 0) and a rational one (371
         /// where it gives 130), whose bend AutoCAD reads otherwise. A closed spline has its last vertex on its first, the
-        /// polyline closed; a periodic one that runs through fit points, or that AutoCAD keeps by its fit points, the flag 1024
-        /// of its 70 set (its 3115 of a periodic cubic, written with no fit points), has each of its knots, one after another, in
+        /// polyline closed; one of the flag 2 of its 70 (the periodic of the DXF reference, which AutoCAD writes on its closed
+        /// splines) that runs through fit points, or that AutoCAD keeps by its fit points, the flag 1024 of its 70 set (its 3115
+        /// of a periodic cubic, written with no fit points), has each of its knots, one after another, in
         /// the place of the vertex of the halving nearest it, the later of two as near, a knot taking the place another took
         /// before it, as AutoCAD 2021 gave them: the closed cubic through (0, 0), (40, 0), (50, 30) and (10, 25), its knots the lengths of the
         /// chords, is those four points and the first again at 0, and 48 vertices at 10, the range halved into 64ths and the knot
@@ -609,11 +610,12 @@ namespace GeometryHelper.Dxf
             double within = Math.Max(1E-9 * (1.0 + largest), bend > 0.0 ? 1.0 / (bend * (precision + 1.0) * (precision + 1.0)) : double.PositiveInfinity);
             Halve(nurbs, nurbs.Start, nurbs.End, nurbs.PointAt(nurbs.Start), nurbs.PointAt(nurbs.End), within, 0, parameters, middles);
 
-            // A periodic spline of fit points, or one AutoCAD keeps by its fit points (the flag 1024 of its 70), has its knots
+            // A spline of the flag 2 and of fit points, or one AutoCAD keeps by its fit points (the flag 1024 of its 70), has its knots
             // where the vertices nearest them were, each arc still bent by the turn along the piece the halving made; the last
             // vertex of a closed spline is kept on its first.
-            bool byFitPoints = HasFitData || (GetInt(70, 0) & 1024) != 0;
-            List<double> places = IsPeriodic && byFitPoints ? PlaceKnots(parameters, NurbsData.GetKnots(), nurbs.Start, nurbs.End) : parameters;
+            int flags = GetInt(70, 0);
+            bool byFitPoints = (flags & FitByKnots) != 0 || Points(11).Count > 0;
+            List<double> places = (flags & 2) != 0 && byFitPoints ? PlaceKnots(parameters, NurbsData.GetKnots(), nurbs.Start, nurbs.End) : parameters;
 
             // Arcs are bent by the turn of the spline's tangent along each segment, not through its point halfway.
             return Polyline(nurbs, parameters, bConvertAsArcs ? null : middles, bConvertAsArcs, bToLWPolyline, true, places);
@@ -1062,7 +1064,7 @@ namespace GeometryHelper.Dxf
         /// <summary>Refuses a closed spline, which has no end to be extended.</summary>
         private void Open()
         {
-            if (Closed || IsPeriodic)
+            if (Closed || FlaggedPeriodic)
             {
                 throw new InvalidOperationException("A closed spline has no end to be extended.");
             }

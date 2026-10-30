@@ -78,6 +78,36 @@ within the tolerance of one plane are fixed on their own, see above. On .NET 10,
 1.03 seconds at nought where they took 1.71, and 2.38 where 3.95 on .NET Framework 4.8; two sections of each take what
 they took, 2.38 seconds where 2.40, and 5.87 where 5.91; at a thousandth both take what they took. 8 new tests.
 
+**CHANGED.** `DxfSpline.IsPeriodic` is the flag 2048 of group 70, as AutoCAD 2021 reads it, where it was the flag 2:
+AutoCAD writes the flag 2 on its closed splines too and reads no period from it. Its periodic cubic of 70 3115 is periodic
+and its closed cubic of 70 11 is not, and either turns into the other with the flag 2048 alone taken out or put in, the
+flags 1024 and 32 changing nothing; the library's own periodic spline, written with the flag 2 (70 3), is not periodic, as
+AutoCAD read it. The flag 2 is still written for `periodic` and is what `NurbsData.Periodic` and `FitData.Periodic` give,
+and a polyline made of a spline, its extension refused, its pieces and copies are what they were. NURBS data set not
+periodic (`SetNurbsData`, `Degree`, and what writes them anew) take the flag 2048 off with the flag 2. 3 new tests.
+
+**CHANGED.** `DxfSpline.NumFitPoints`, `HasFitData`, `FitPoints`, `GetFitPointAt`, `FitData` and `Type` of a spline of the flag
+1024 of its group 70 and no fit points in its record give the points of its curve at its knots, from its start to its end,
+as AutoCAD 2021 gives them: its periodic cubic of the knots 0, 30, 45, 55 and 80, saved with 70 3115 and 74 0, has the 5
+fit points (0, 0), (30, 0), (30, 15), (20, 15) and (0, 0), and its closed cubic of 70 11 given the flag 1024 the 5 points
+(0, 0), (40, 0), (50, 30), (10, 25) and (0, 0) it runs through; a spline whose record holds fit points gives them, as before.
+Its fit data taken out (`SetNurbsData`, `PurgeFitData`) take the flag 1024 off with them. `NumFitPoints` of a spline of no
+fit points takes 3.0 microseconds where 1.9 on .NET Framework 4.8, 1.5 where 1.0 on .NET 10, as it reads the flag; of the
+3115, which works out its knots, 10 where 2.6. 2 new tests, 1 changed.
+
+**CHANGED.** `DxfTable.IsLinked` of a cell of a range linked in the TABLECONTENT, not its top left, is true where the cell's
+own state there (its 90) has the flag 4 of a linked cell, as AutoCAD 2021 reads it: the library's range (1, 0) to (2, 1)
+with the state 4 given to (2, 1) as well is linked at (1, 0) and (2, 1), where the library read (1, 0) alone; the top left
+cell is linked whatever its state, as AutoCAD read it with the state 0. The states are read with the links, so `IsLinked`
+of the six cells takes what it took, 1.0 microsecond on .NET Framework 4.8 and 1.7 on .NET 10. 2 new tests.
+
+**CHANGED.** `DxfMText.Width` set on an MTEXT in columns before R2018 leaves its 41 and its columns as they are, as AutoCAD
+2021 saves one: it read its 8D of two static columns 50 wide with a gutter of 10, of R2000 and of R2007, given the width 80
+as 80 until it saved it, and saved 41 50 and the columns as they were, which read 110 wide again. The library's drawing is
+its file, so the MTEXT reads 110 wide straight away, where 80 was written into its 41. A width below nought is refused, as
+before; an MTEXT of R2018, or of no columns, has its 41 set as before. Setting it takes 6 microseconds where 8 on .NET
+Framework 4.8. 2 new tests.
+
 **CHANGED.** `DxfTable.IsLinked` of a range linked in the TABLECONTENT is true at the range's top left cell alone, as
 AutoCAD 2021 reads it: the range (1, 0) to (2, 1) the library linked AutoCAD read as linked at (1, 0) and not at (1, 1),
 (2, 0) or (2, 1), where the library read all four linked; each of them still gives the range and the link by

@@ -64,7 +64,10 @@ namespace GeometryHelper.Dxf
         /// <summary>Gets or sets how the points are given their parameters, as AutoCAD's <c>KnotParam</c>.</summary>
         public DxfKnotParameterizationEnum KnotParam { get; set; }
 
-        /// <summary>Gets or sets whether the spline runs round on itself through its points, as AutoCAD's <c>Periodic</c>.</summary>
+        /// <summary>
+        /// Gets or sets whether the spline runs round on itself through its points, as AutoCAD's <c>Periodic</c>: of a SPLINE, the
+        /// flag 2 of its group 70, as <see cref="DxfNurbsData.Periodic"/>.
+        /// </summary>
         public bool Periodic { get; set; }
 
         /// <summary>Gets the fit points, in the world, as AutoCAD's <c>GetFitPoints</c>.</summary>

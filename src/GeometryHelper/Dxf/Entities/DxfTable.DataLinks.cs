@@ -43,6 +43,9 @@ namespace GeometryHelper.Dxf
         private int _linksEdits;
         private List<LinkedRange> _links;
 
+        // The cells of the TABLECONTENT whose state has the flag 4 of a linked cell, read with the links.
+        private HashSet<(int, int)> _flagged;
+
         #region Data links
 
         /// <summary>
@@ -97,10 +100,12 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets whether a cell is linked to data, as AutoCAD's <c>IsLinked</c>: for a range the TABLECONTENT names, its top left
-        /// cell alone, which names the link; for one named in the cells of the ACAD_TABLE, which AutoCAD reads no link from, every
-        /// cell of it, as <see cref="GetDataLinkRange"/> finds it. AutoCAD 2021 read a range linked over (1, 0) to (2, 1) in the
+        /// cell, which names the link, whatever its state, and any other cell of it whose state in the TABLECONTENT (its 90) has
+        /// the flag 4 of a linked cell; for one named in the cells of the ACAD_TABLE, which AutoCAD reads no link from, every cell
+        /// of it, as <see cref="GetDataLinkRange"/> finds it. AutoCAD 2021 read a range linked over (1, 0) to (2, 1) in the
         /// TABLECONTENT as linked at (1, 0) and not at (1, 1), (2, 0) or (2, 1), though each of them gave the range and the link
-        /// (its 73-h).
+        /// (its 73-h); with the state 4 given to (2, 1) as well, as linked at (1, 0) and (2, 1) (73-k); and with the state 0 at
+        /// (1, 0), still as linked there (73-l).
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="column">The column, from nought.</param>
@@ -108,8 +113,9 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the cell is not one of the table's.</exception>
         public bool IsLinked(int row, int column)
         {
+            // The cells of a linked state are read with the links Covering reads.
             LinkedRange link = Covering(row, column, out _);
-            return link != null && (link.Cell == null || (link.TopRow == row && link.LeftColumn == column));
+            return link != null && (link.Cell == null || (link.TopRow == row && link.LeftColumn == column) || _flagged.Contains((row, column)));
         }
 
         /// <summary>
@@ -388,7 +394,9 @@ namespace GeometryHelper.Dxf
 
             if (!ReferenceEquals(layout, _linksOf) || edits != _linksEdits)
             {
-                _links = AllLinks(layout);
+                var flagged = new HashSet<(int, int)>();
+                _links = AllLinks(layout, flagged);
+                _flagged = flagged;
                 _linksOf = layout;
                 _linksEdits = edits;
             }
@@ -398,11 +406,12 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// The links of the table, those its TABLECONTENT names and those its cells name, by their top left cells row by row, a
-        /// link of the TABLECONTENT before one of the cells at the same cell, then by their bottom right cells and handles.
+        /// link of the TABLECONTENT before one of the cells at the same cell, then by their bottom right cells and handles; the
+        /// cells of the TABLECONTENT whose state has the flag 4 of a linked cell put in a set where one is given.
         /// </summary>
-        private List<LinkedRange> AllLinks(Layout layout)
+        private List<LinkedRange> AllLinks(Layout layout, HashSet<(int, int)> flagged = null)
         {
-            List<LinkedRange> links = ContentLinks(layout);
+            List<LinkedRange> links = ContentLinks(layout, flagged);
             links.AddRange(Links(layout));
             links.Sort((a, b) =>
             {
@@ -717,9 +726,10 @@ namespace GeometryHelper.Dxf
         /// odd and followed by a handle (340), its range of the rows (93) and columns (94) after it, one where it gives none, cut
         /// at the table's last row and column; none where the table has no TABLECONTENT. A cell is the table's of its row and
         /// column, whatever rows or columns the TABLECONTENT has, as AutoCAD 2021 read its link of (1, 0) in a table of four rows
-        /// whose TABLECONTENT had three (its 73-e); one past the table's last row or column names none.
+        /// whose TABLECONTENT had three (its 73-e); one past the table's last row or column names none. Each cell whose state
+        /// (the 90 after its LINKEDTABLEDATACELL_BEGIN) has the flag 4 of a linked cell is put in <paramref name="flagged"/>, where it is not null.
         /// </summary>
-        private List<LinkedRange> ContentLinks(Layout layout)
+        private List<LinkedRange> ContentLinks(Layout layout, HashSet<(int, int)> flagged)
         {
             var links = new List<LinkedRange>();
             DxfItem content = IsResident ? ContentItem() : null;
@@ -750,6 +760,13 @@ namespace GeometryHelper.Dxf
                 {
                     int row = widths.Count - 1;
                     int column = widths[row]++;
+
+                    if (i + 1 < groups.Count && groups[i + 1].TypeCode == 90
+                        && int.TryParse(groups[i + 1].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int state) && (state & 4) != 0)
+                    {
+                        flagged?.Add((row, column));
+                    }
+
                     i = ReadCell(groups, i, row, column, cells);
                 }
             }

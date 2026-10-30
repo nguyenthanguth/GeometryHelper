@@ -257,25 +257,52 @@ namespace GeometryHelper.Dxf
         /// columns with the gutters between them, as AutoCAD 2021 reads it: two static columns 50 wide with a gutter of 10 in
         /// R2007 or R2000 make an MTEXT 110 wide, thirteen dynamic ones 770, and one 50, though AutoCAD writes 41 50 on each.
         /// </summary>
-        /// <value>Set, written as group 41; the columns of an MTEXT before R2018 are given their widths by
-        /// <see cref="ColumnWidth"/>, <see cref="ColumnGutterWidth"/> and <see cref="ColumnCount"/>.</value>
+        /// <value>
+        /// Set, written as group 41. An MTEXT in columns before R2018 is left as it is, its 41 and its columns, as AutoCAD 2021
+        /// saves one: its 8D of two static columns 50 wide with a gutter of 10, of R2000 and of R2007, given the width 80, read
+        /// 80 until it was saved, and was saved with 41 50 and its columns as they were, 110 wide when opened again (its 09-h);
+        /// the library, whose drawing is its file, reads it 110 wide straight away. Its columns are given their widths by
+        /// <see cref="ColumnWidth"/>, <see cref="ColumnGutterWidth"/> and <see cref="ColumnCount"/>.
+        /// </value>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the width set is below nought or not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the MTEXT is erased.</exception>
         public double Width
         {
             get
             {
-                ColumnSet columns = Item.File.Supports(1032) ? null : Columns();
-                return columns != null && columns.InXData && columns.Type != DxfColumnType.NoColumns ? Span(columns, true) : WrapWidth;
+                ColumnSet columns = SpanningColumns();
+                return columns != null ? Span(columns, true) : WrapWidth;
             }
 
             set
             {
-                if (!Same(value, Width))
+                ColumnSet columns = SpanningColumns();
+
+                if (Same(value, columns != null ? Span(columns, true) : WrapWidth))
+                {
+                    return;
+                }
+
+                if (columns == null)
                 {
                     WrapWidth = value;
+                    return;
+                }
+
+                Guard.NonNegative(value, nameof(value), "The width of an MTEXT has to be a finite number of nought or more.");
+
+                if (IsErased)
+                {
+                    throw new InvalidOperationException("The MTEXT " + (Handle ?? string.Empty) + " is erased, and is not changed.");
                 }
             }
+        }
+
+        /// <summary>The columns of an MTEXT before R2018 its extended data holds, whose span is its width; null for any other MTEXT.</summary>
+        private ColumnSet SpanningColumns()
+        {
+            ColumnSet columns = Item.File.Supports(1032) ? null : Columns();
+            return columns != null && columns.InXData && columns.Type != DxfColumnType.NoColumns ? columns : null;
         }
 
         /// <summary>The width of group 41 as the record gives it, nought where it gives none; set, written there.</summary>

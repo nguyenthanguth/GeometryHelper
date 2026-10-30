@@ -137,6 +137,13 @@ written as AutoCAD reads them now.
      (13 for 8E of 09-e). `ColumnAutoHeight` and `GetColumnHeight` of static columns give false and nought, as documented,
      where AutoCAD throws. Still to see (v11): R2010 and R2013 (09-f, 09-g), taken here as R2007; and what AutoCAD's `Width`
      set does to an MTEXT in columns before R2018, which the library writes into 41 alone.
+   - AutoCAD 2021 (plugin v11): 09-f and 09-g, of R2010 and R2013, read as 09-e of R2007, `Width` 110, 50 and 110, as the
+     library reads them. `Width` = 80 on 8D of its own 09-a of R2000 and of the library's 09-e of R2007 read 80 back, the
+     columns kept (`ColumnWidth` 50, gutter 10, 2 columns, `ActualWidth` 110), but its saves (v11-09h-width80-r2000 and
+     -r2007) wrote 41 50 and the column data as they were, and read again gave `Width` 110.
+   - Now (D19): `Width` set on an MTEXT in columns before R2018 changes nothing in the file, as AutoCAD saves it, and reads
+     110 at once, the width AutoCAD reads after the save; the 80 AutoCAD holds until then is not kept, the library's drawing
+     being its file. A width below nought is still refused.
 
 10. **Linked columns copied into R2018.**
     - Try: copy an MTEXT of linked columns of R2000 into a drawing of R2018 with the library, and open it.
@@ -273,6 +280,21 @@ written as AutoCAD reads them now.
       read 5 fit points on its 3115, whose DXF has none: the points it fits through, which the library does not work out
       from the control points. Still to see (v11, 17-h): 3115 with each of 2048, 1024 and 32 taken out, and 11 with each
       put in.
+    - AutoCAD 2021 (plugin v11, 17h): periodic exactly where the flag 2048 is set: 3115, 2091 (less 1024), 3083 (less 32) and
+      2059 (11 and 2048) are, 11, 1067 (less 2048), 1035 (11 and 1024) and 43 (11 and 32) are not. Fit points the DXF does
+      not hold exactly where the flag 1024 is set: 5 on 3115, 1067, 3083 and 1035, none on 2091, 11, 2059 and 43; they are the
+      points of the curve at its knots, (0, 0), (30, 0), (30, 15), (20, 15) and (0, 0) at 0, 30, 45, 55 and 80, and (0, 0),
+      (40, 0), (50, 30), (10, 25) and (0, 0) for 1035, every one within 1E-14 of the library's curve there. A periodic spline
+      AutoCAD gives in its own form: 4 control points and the 5 knots 0, 30, 45, 55, 80 of 3115, 2091 and 3083, and 4 and
+      0, 40, 71.62, 111.93, 138.86 of 2059, whose DXF holds 7 control points and 11 clamped knots; 1067 and 1035 read as their
+      DXF holds them.
+    - Now (D19): `IsPeriodic` is the flag 2048, and `NumFitPoints`, `FitPoints`, `GetFitPointAt` and `FitData` give the
+      points at the knots where the flag 1024 is set and the record holds no fit points: all eight readings of 17h, and those
+      of v8 and v9 (17-f and AutoCAD's closed cubic not periodic, the library's 17-g not periodic with its 5 and 6 fit points,
+      AutoCAD's 3115 periodic with 5), are AutoCAD's. The flag 2 is still written for a periodic spline and read back by
+      `NurbsData.Periodic` and `FitData.Periodic`, and `ToPolylineWithPrecision` places the knots by it as before, so every
+      polyline of v6 to v9 that matched still matches, each the same to the bit. Not done: the 4 control points and 5 knots
+      AutoCAD gives a periodic spline, the library giving those of its record.
     - Degree 4, 5 and rational, parked: the tolerance the counts fit is the larger of 1 / M and the spline's length over
       10 000, over (p + 1)^2: the quartic (M 120, length 47.7) takes 1 / M, every one of its nine counts; the quintic Bezier
       (M 400, length 55.00), the quintic of two spans (M 223.6, length 70.085), the rational cubics 1, 2, 2, 1 (M 600, length
@@ -885,6 +907,11 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is not linked, as the l
       ACAD_TABLE, which AutoCAD reads no link from, is linked at every cell, as before. Still to see (v11): whether AutoCAD's
       `IsLinked` follows the top left cell or the flag 4 of a cell's state, which the top left alone has in every file so
       far (73-k, the flag given to (2, 1) as well; 73-l, taken from (1, 0)).
+    - AutoCAD 2021 (plugin v11): both. 73-k is linked at (1, 0) and at (2, 1), whose `State` reads Linked, and not at (1, 1)
+      or (2, 0); 73-l, the top left of the state 0, is still linked at (1, 0) alone, its `State` None. Every cell of the range
+      gives it and the link 142 in both. Saved again (v11-73k-resaved, -73l-resaved), each cell's state is kept as written.
+    - Now (D19): `IsLinked` of a range of the TABLECONTENT is true at its top left cell, whatever its state, and at any other
+      cell of it whose state has the flag 4, as AutoCAD read 73-k and 73-l.
 
 74. **The groups of a DATALINK.**
     - Try: read the DATALINK of the drawing of point 73; then open in AutoCAD, with AUDIT, a drawing whose DATALINK has no 70

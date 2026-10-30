@@ -321,8 +321,9 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // Plugin v9, 17g: AutoCAD 2021 read its own HALFWAY again, periodic of 5 fit points, and put the knots in place at 0
             // (0, 20, 45, 55, 80), as for the spline it fitted in v8; NEAR at 0 at 0, 40.71, 71.70, 112.01 and its end.
+            // Its fit points are those of the curve at its knots, which AutoCAD gives by the flag 1024 (plugin v11, 17h).
             DxfSpline halfway = SavedByAutoCad(3115, HalfwayKnots, HalfwayPoints);
-            Assert.False(halfway.HasFitData);
+            Assert.True(halfway.HasFitData);
 
             DxfAutoCadChecksD16Tests.AtParameters(halfway, 0, new[] { 0.0, 20, 45, 55, 80 });
 

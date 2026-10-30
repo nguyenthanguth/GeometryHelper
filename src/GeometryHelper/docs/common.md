@@ -951,6 +951,16 @@ the polyline's layer, linetype, colour, lineweight, linetype scale, visibility, 
 when it is made and when the polyline's are set, as AutoCAD keeps them (its AUDIT reports a vertex of another colour); a
 face of a polyface mesh keeps a colour of its own.
 
+A spline is periodic (`IsPeriodic`) by the flag 2048 of its group 70, as AutoCAD 2021 reads it: AutoCAD writes the flag 2
+on its closed splines too and reads no period from it, its periodic cubic of 70 3115 being periodic and its closed cubic of
+70 11 not, either turning into the other with the flag 2048 alone taken out or put in. The library writes the flag 2 for a
+spline made or given NURBS data periodic, which `NurbsData.Periodic` and `FitData.Periodic` give back, and not the flag
+2048, so that its own periodic spline of 70 3 reads as not periodic, as AutoCAD read it; NURBS data set not periodic take
+the flag 2048 off with the flag 2. Where the record holds no fit points and the flag 1024 of its 70 is set, as AutoCAD
+saves a periodic spline it fitted, `NumFitPoints`, `FitPoints`, `GetFitPointAt` and `FitData` give the points of the curve
+at its knots from its start to its end, as AutoCAD gives them: (0, 0), (30, 0), (30, 15), (20, 15) and (0, 0) for its
+3115 of the knots 0, 30, 45, 55 and 80; its fit data taken out (`SetNurbsData`, `PurgeFitData`) take the flag 1024 off.
+
 A spline gives and takes its `NurbsData` and `FitData` whole. `ElevateDegree` raises its degree with the curve kept to the
 rounding, `InsertControlPointAt` and `RemoveControlPointAt` put a control point in and take one out with a knot,
 `InsertFitPointAt`, `SetFitPointAt` and `RemoveFitPointAt` fit it anew through its points (its knots the lengths of the
@@ -963,8 +973,8 @@ second derivative is 60 everywhere, gives 33, 65, 257, 1 025 and 4 097 vertices 
 two and three spans of the checks 50 and 78 at 0, 4 750 and 7 562 at 99, as AutoCAD gives them; so do a quadratic of three
 spans and a cubic of a double knot (29 and 76 vertices at 0). A spline of degree 5 and a rational one are given more than
 AutoCAD gives them (117 where AutoCAD gives 96, 371 where it gives 130, at 0): AutoCAD reads their bend otherwise, and how
-is not found yet. A closed spline has its last vertex on its first, the polyline closed; a periodic one that runs through
-fit points has each of its knots, one after another, in the place of the vertex nearest it, the later of two as near, a
+is not found yet. A closed spline has its last vertex on its first, the polyline closed; one of the flag 2 of its 70 that
+runs through fit points has each of its knots, one after another, in the place of the vertex nearest it, the later of two as near, a
 knot taking the place another took before it: the closed cubic through (0, 0), (40, 0), (50, 30) and (10, 25), its knots
 the lengths of the chords, is those four points and the first again at 0, its 48 vertices at 10 the range's 64ths with the
 knot 40 in the place of the 64th at 39.05; through (0, 0), (40, 0), (40.5, 0.5), (50, 30) and (10, 25) it has at 0 the
@@ -1038,7 +1048,11 @@ do `SetDynamicColumns`, `ColumnCount`, `ColumnWidth` and `ColumnGutterWidth`, ov
 counts dynamic columns as it lays the words out, which the library does not); an MTEXT copied from one form to the other
 takes the other width. `Width` is 42.5 in either form, as AutoCAD 2021 reads an MTEXT in columns before R2018 as wide as
 all its columns with their gutters, though its 41 holds a column's: its own 09-a of R2000, 41 50 on each, gave 110 for two
-static columns, 770 for thirteen dynamic ones and 170 for three of their own heights; one of no columns wraps at its 41. Before R2018 `ACAD_MTEXT_DEFINED_HEIGHT` is written where the height is above nought, the first
+static columns, 770 for thirteen dynamic ones and 170 for three of their own heights; one of no columns wraps at its 41.
+`Width` set on an MTEXT in columns before R2018 leaves it as it is, as AutoCAD 2021 saves one: given the width 80, its two
+static columns of R2000 and of R2007 read 80 until they were saved, and were saved with 41 50 and their columns as they
+were, 110 wide when opened again; the library's drawing is its file, so it reads 110 straight away, and the columns are
+given their widths by `ColumnWidth`, `ColumnGutterWidth` and `ColumnCount`. Before R2018 `ACAD_MTEXT_DEFINED_HEIGHT` is written where the height is above nought, the first
 column's for columns of their own heights and each later column's on its own MTEXT, as AutoCAD 2021 writes it, and none
 for a height of nought; `SetDynamicColumns`, `SetColumnHeight` and the column properties (`ColumnType`, `ColumnCount`,
 `ColumnWidth`, `ColumnGutterWidth`, `ColumnAutoHeight`, `ColumnFlowReversed`) the rest, written in its embedded object from
@@ -1391,8 +1405,9 @@ which the table's extension dictionary holds under ACAD_XREC_ROUNDTRIP through a
 ACAD_ROUNDTRIP_2008_TABLE_ENTITY: the range's top left cell there has its 92 odd after its custom data, then the
 DATALINK's handle (340), the range's rows (93) and columns (94) and a 96, and its state (90) the flag 4 of a linked cell;
 the ACAD_TABLE's own cells name no link. `GetDataLink` and `GetDataLinkRange` read it from every cell of the range, and
-`IsLinked` is true at its top left cell alone, as AutoCAD 2021 read the library's range (1, 0) to (2, 1) linked at (1, 0)
-and not at (1, 1), (2, 0) or (2, 1), each of which gave the range and the link; a cell of the TABLECONTENT is taken as the
+`IsLinked` is true at its top left cell, whatever its state, and at any other cell of it whose state in the TABLECONTENT
+has the flag 4, as AutoCAD 2021 read the library's range (1, 0) to (2, 1) linked at (1, 0) and not at (1, 1), (2, 0) or
+(2, 1), each of which gave the range and the link, and linked at (2, 1) too once its state was given the flag 4; a cell of the TABLECONTENT is taken as the
 table's of its row and column whatever rows the TABLECONTENT has, as AutoCAD
 2021 read the link of (1, 0) of a table given a fourth row by a program that left its TABLECONTENT of three: AutoCAD's table
 linked over (1, 0) to (2, 1), which it read back as (1, 0) alone, gives (1, 0) to (1, 0), and `link.GetTargets()` gives the
