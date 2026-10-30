@@ -306,7 +306,14 @@ within the tolerance alone, as before. Cut in together, each opening keeps or lo
 would cut in alone: twelve boxes hidden 0.01 inside the faces of a plate, one 1.7E-7 deeper than the tolerance and
 another 5.7E-6 nearer the faces, came back valid and 9.68 cubic millimetres over the most its skins can leave, the
 plane of the deeper box's floor having cut a skin off the whole plate that the nearer kept; it loses its skins now, and
-`GetVolume` reads it so too. `Triangulate` still
+`GetVolume` reads it so too. Walls of two openings, or of an opening and the body, standing apart within the tolerance
+of one plane are each cut in their own: the plane of one opening cuts all it reaches, and a plane of another within the
+tolerance of it was read as that plane, however far away. An L 100 by 80 by 50, a million out, with two blind openings
+27 apart whose walls stood 0.0009 apart across it, cut within a thousandth, held 153 674.08 where it holds 153 673.56,
+its section 0.014 off, and with the openings the other way round 153 673.30; such openings are cut within a finer
+tolerance, between that gap and the most that walls meeting within the tolerance, or a face off flat, stand off one
+plane, where the body and its openings close within it and what it gives closes within the tolerance asked, and
+`GetVolume`, `Section` and `Mesh3.ToCells` read it so too. Walls that meet are made one plane, as before. `Triangulate` still
 meshes the faces as they are; `TriangulateSurface` is the mesh to read as the boundary.
 
 A triangle of the surface mesh is left out only when its corners lie on a line within a millionth of the point
@@ -532,8 +539,13 @@ coordinates, and each cell whose corners that leaves a rounding apart is welded 
 edge each cut their own copy of it a rounding apart, and no cut closed: the plate had no section, where a plane square
 to its face cuts 20 000, or 19 600 with the hole; cut into cells 60 by 40 it came out one cell of 60 000 with the hole
 or without it, where twelve hold it, 58 800 with the hole; and a box 100 by 60 by 40 turned against a grid along the
-world's axes came out one cell, where the grid lays 19 through it. A body `ToCells` refuses at the tolerance asked it
-still refuses.
+world's axes came out one cell, where the grid lays 19 through it. So they are cut too at and a little above the
+rounding, while the point tolerance is below both a trillionth of the size of the coordinates and a millionth: of
+8 000 planes through prisms with openings, 871 cut nothing or the wrong area at the rounding and 547 at twice it, and
+of 2 000 such bodies 668 and 452 came out in the wrong cells; none does now but those a thousand million out at twice
+the rounding, 2E-6. At a millionth and above, the default tolerance among them, a section and the cells are cut as
+they were, to the bit, but for walls of openings standing apart within the tolerance of one plane. A body `ToCells`
+refuses at the tolerance asked it still refuses.
 
 A `GeoCircle3` is not on the list. The distance from a circle in space to a flat face has no closed form,
 and the library does not guess: turn it into a chain first, which says in the call how close an answer you

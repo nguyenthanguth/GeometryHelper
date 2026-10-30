@@ -80,7 +80,11 @@ namespace GeometryHelper.Core
         /// rounding can come back closed and wrong, and the corners the cut leaves a rounding apart are made one where that
         /// closes the material within the tolerance given. Cut at a tolerance of nought, a plate 200 by 100 by 3 turned about
         /// in space, with a hole 20 by 20 through it, came back as a shell of 7 faces, its bottom lost, and the method returned
-        /// true; it comes back closed, holding 58 800. See <see cref="GeoSolid3.TryCutOpenings(out GeoSolid3, Tolerance)"/>
+        /// true; it comes back closed, holding 58 800. Walls of two openings, or of an opening and the body, standing apart
+        /// within the tolerance of one plane are cut within a finer tolerance, where what that gives closes within the one
+        /// asked: an L 100 by 80 by 50, a million out, with two blind openings 27 apart whose walls stood 0.0009 apart
+        /// across it, cut within a thousandth, held 153 674.08 where it holds 153 673.56, the second opening's wall cut in
+        /// the plane of the first's. See <see cref="GeoSolid3.TryCutOpenings(out GeoSolid3, Tolerance)"/>
         /// for what it refuses and what the measures of the body read at nought.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the body is null.</exception>
@@ -160,6 +164,80 @@ namespace GeometryHelper.Core
         private static bool TryCutOpenings(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, out GeoSolid3 material, Tolerance tolerance, bool withinRounding, out Exception failure, out GeoSolid3 open)
         {
             open = null;
+            failure = null;
+
+            if (TryCutWallsApart(solid, openings, out material, tolerance))
+            {
+                return true;
+            }
+
+            return TryCutOpeningsWithin(solid, openings, out material, tolerance, withinRounding, out failure, out open);
+        }
+
+        /// <summary>
+        /// Cuts some of a body's openings into it within a finer tolerance where walls stand apart within the tolerance of one
+        /// plane (see <see cref="FinerForWallsApart"/>), as
+        /// <see cref="TryCutOpenings(GeoSolid3, IReadOnlyList{GeoSolid3}, out GeoSolid3, Tolerance, out Exception)"/> cuts them,
+        /// taking what that gives where it closes within the tolerance asked.
+        /// </summary>
+        /// <param name="solid">The body.</param>
+        /// <param name="openings">The openings to cut.</param>
+        /// <param name="material">The body with the openings cut into it; null when the method returns false.</param>
+        /// <param name="tolerance">The tolerance asked.</param>
+        /// <returns>true where such walls stand apart and the material so cut closes; otherwise, false, and nothing is cut.</returns>
+        internal static bool TryCutWallsApart(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, out GeoSolid3 material, Tolerance tolerance)
+        {
+            material = null;
+
+            if (!FinerForWallsApart(solid, openings, tolerance, out Tolerance finer) || !ClosesAsFinely(solid, openings, tolerance, finer)
+                || !TryCutOpeningsWithin(solid, openings, out GeoSolid3 fine, finer, false, out _, out _)
+                || fine == null
+                || !Shells3.Closes(fine, ForWork(tolerance)))
+            {
+                return false;
+            }
+
+            material = fine;
+            return true;
+        }
+
+        /// <summary>
+        /// Whether the body and each opening that close within the tolerance asked close within the finer one too: one closed
+        /// only within the tolerance, by a crack or corners further apart than the finer one, is not cut within it.
+        /// </summary>
+        /// <remarks>
+        /// A cube 10 across cracked 0.0001 wide, less two openings 0.0022 apart, cut within the finer tolerance that their
+        /// walls asked for, came back closed within a thousandth and holding the whole cube, 999.998 where it holds 749.88.
+        /// </remarks>
+        private static bool ClosesAsFinely(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, Tolerance tolerance, Tolerance finer)
+        {
+            Tolerance work = ForWork(tolerance);
+            Tolerance fine = ForWork(finer);
+
+            if (Shells3.Closes(solid, work) && !Shells3.Closes(solid, fine))
+            {
+                return false;
+            }
+
+            foreach (GeoSolid3 opening in openings)
+            {
+                if (Shells3.Closes(opening, work) && !Shells3.Closes(opening, fine))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Cuts some of a body's openings into it within the tolerance given, as
+        /// <see cref="TryCutOpenings(GeoSolid3, IReadOnlyList{GeoSolid3}, out GeoSolid3, Tolerance, bool, out Exception, out GeoSolid3)"/>
+        /// does where no walls stand apart within the tolerance of one plane.
+        /// </summary>
+        private static bool TryCutOpeningsWithin(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, out GeoSolid3 material, Tolerance tolerance, bool withinRounding, out Exception failure, out GeoSolid3 open)
+        {
+            open = null;
 
             if (!TryCutOpeningsAtOnce(solid, openings, out material, tolerance, out failure, out bool judgedWhole) && !judgedWhole)
             {
@@ -191,6 +269,197 @@ namespace GeometryHelper.Core
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Determines whether two walls of a body and its openings, of two openings or of an opening and the body, standing
+        /// apart, lie within the tolerance of one plane and further apart than the rounding of the coordinates, and gives the
+        /// tolerance they are cut within then: one between the gap of those walls and the most that walls that meet, or a face
+        /// off flat, stand off one plane within the tolerance.
+        /// </summary>
+        /// <param name="solid">The body.</param>
+        /// <param name="openings">The openings to cut.</param>
+        /// <param name="tolerance">The tolerance asked.</param>
+        /// <param name="finer">The tolerance to cut within; the one asked where the method returns false.</param>
+        /// <returns>
+        /// true where such walls stand apart, the narrowest gap between them more than four times the widest of walls that
+        /// meet; otherwise, false.
+        /// </returns>
+        /// <remarks>
+        /// The planes of an opening cut the whole cell they reach, and a plane of another opening within the tolerance of the
+        /// first then finds that cell's corners on it, and leaves it whole: its wall is cut in the first one's plane, however
+        /// far away. An L 100 by 80 by 50, a million out, with two blind openings 27 apart whose walls stood 0.0009 apart
+        /// across the L, cut within a thousandth, held 153 674.08 where it holds 153 673.56, its section 0.014 off, and with
+        /// the openings the other way round 153 673.30. Walls that meet within the tolerance are made one plane by the cut, as
+        /// they are meant to be, and a face off flat is laid flat, so the finer tolerance stays wider than either; where it
+        /// cannot, the walls are cut as before.
+        /// </remarks>
+        internal static bool FinerForWallsApart(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, Tolerance tolerance, out Tolerance finer)
+        {
+            finer = tolerance;
+
+            if (openings.Count == 0)
+            {
+                return false;
+            }
+
+            Tolerance work = ForWork(tolerance);
+            double rounding = Splition3.Rounding(solid);
+            double onPlane = work.EqualPlanar + rounding;
+            GeoAabb3 box = solid.GetAabb();
+
+            if (box.IsEmpty || !(work.EqualPlanar > 4.0 * rounding))
+            {
+                return false;
+            }
+
+            // A face with no plane, its corners on a line, is no wall.
+            var walls = new List<(GeoFace3 Face, GeoPlane3 Plane, int Owner)>();
+
+            foreach (GeoFace3 face in solid.Faces)
+            {
+                if (face.Normal.Length > 0.5)
+                {
+                    walls.Add((face, face.GetPlane(), -1));
+                }
+            }
+
+            for (int i = 0; i < openings.Count; i++)
+            {
+                foreach (GeoFace3 face in openings[i].Faces)
+                {
+                    if (face.Normal.Length > 0.5)
+                    {
+                        walls.Add((face, face.GetPlane(), i));
+                    }
+                }
+            }
+
+            // Each wall twice, by how far the middle of the box stands off its plane either way round, so that two planes
+            // within the tolerance of one over the box come within it of each other in one of the two orders; see
+            // Splition3.IsOnePlaneOver.
+            GeoPoint3 middle = box.Center;
+            GeoPoint3[] corners = box.GetCorners();
+            var keys = new (double Key, int Wall, bool Turned)[2 * walls.Count];
+
+            for (int k = 0; k < walls.Count; k++)
+            {
+                double height = walls[k].Plane.SignedDistanceTo(middle);
+                keys[2 * k] = (height, k, false);
+                keys[2 * k + 1] = (-height, k, true);
+            }
+
+            Array.Sort(keys, (a, b) =>
+            {
+                int byKey = a.Key.CompareTo(b.Key);
+
+                if (byKey != 0)
+                {
+                    return byKey;
+                }
+
+                int byWall = a.Wall.CompareTo(b.Wall);
+                return byWall != 0 ? byWall : a.Turned.CompareTo(b.Turned);
+            });
+
+            double apart = double.PositiveInfinity;
+            double together = rounding;
+
+            for (int a = 0; a < keys.Length; a++)
+            {
+                // Each pair is met with the first of them as it is.
+                if (keys[a].Turned)
+                {
+                    continue;
+                }
+
+                (GeoFace3 face, GeoPlane3 plane, int owner) = walls[keys[a].Wall];
+
+                for (int b = a + 1; b < keys.Length && keys[b].Key - keys[a].Key <= onPlane; b++)
+                {
+                    (GeoFace3 otherFace, GeoPlane3 other, int otherOwner) = walls[keys[b].Wall];
+
+                    if (keys[b].Wall == keys[a].Wall)
+                    {
+                        continue;
+                    }
+
+                    double sign = keys[b].Turned ? -1.0 : 1.0;
+
+                    if (plane.Normal.DotProduct(other.Normal) * sign < 0.5)
+                    {
+                        continue;
+                    }
+
+                    double least = double.PositiveInfinity;
+                    double most = 0.0;
+
+                    foreach (GeoPoint3 corner in corners)
+                    {
+                        double gap = Math.Abs(plane.SignedDistanceTo(corner) - sign * other.SignedDistanceTo(corner));
+                        least = Math.Min(least, gap);
+                        most = Math.Max(most, gap);
+                    }
+
+                    if (most > onPlane || most <= rounding)
+                    {
+                        continue;
+                    }
+
+                    // Walls of the body, of one opening, or that meet, are made one plane by the cut; walls of two apart,
+                    // or of an opening and the body apart, are not to be. Walls facing each other across the gap meet: they
+                    // stand no further apart than it.
+                    if (owner != otherOwner && face.DistanceTo(otherFace, tolerance) > most + work.EqualPoint)
+                    {
+                        apart = Math.Min(apart, least);
+                    }
+                    else
+                    {
+                        together = Math.Max(together, most);
+                    }
+                }
+            }
+
+            if (double.IsPositiveInfinity(apart))
+            {
+                return false;
+            }
+
+            // A face off flat is laid flat within the tolerance; the finer one has to lay it flat too.
+            foreach ((GeoFace3 face, GeoPlane3 plane, _) in walls)
+            {
+                together = Math.Max(together, OffFlat(face.Boundary, plane));
+
+                foreach (GeoPolygon3 hole in face.Holes)
+                {
+                    together = Math.Max(together, OffFlat(hole, plane));
+                }
+            }
+
+            double level = Math.Sqrt(together * apart);
+
+            if (!(apart > 4.0 * together) || !(level < work.EqualPlanar))
+            {
+                return false;
+            }
+
+            finer = new Tolerance(Math.Min(level, tolerance.EqualPoint), tolerance.EqualVector, tolerance.EqualAngleRad, Math.Min(level, tolerance.EqualPlanar));
+            return true;
+        }
+
+        /// <summary>
+        /// How far the furthest corner of a ring stands off a plane.
+        /// </summary>
+        private static double OffFlat(GeoPolygon3 ring, GeoPlane3 plane)
+        {
+            double most = 0.0;
+
+            foreach (GeoPoint3 corner in ring.Vertices)
+            {
+                most = Math.Max(most, Math.Abs(plane.SignedDistanceTo(corner)));
+            }
+
+            return most;
         }
 
         /// <summary>

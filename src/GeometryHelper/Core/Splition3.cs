@@ -1439,9 +1439,9 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Determines whether a section or the cells of a body are asked at a point tolerance below the rounding of its
-        /// coordinates, a quadrillionth of the largest of them, nought among them; and gives the tolerance they are cut within
-        /// there: the one asked with its point and planar tolerances raised to <see cref="Rounding"/>, as far as rounding can
-        /// move a corner off a plane it lies in.
+        /// coordinates, a quadrillionth of the largest of them, nought among them, or below both <see cref="Rounding"/> and a
+        /// millionth; and gives the tolerance they are cut within there: the one asked with its point and planar tolerances
+        /// raised to <see cref="Rounding"/>, as far as rounding can move a corner off a plane it lies in.
         /// </summary>
         /// <param name="solid">The body.</param>
         /// <param name="tolerance">The tolerance asked.</param>
@@ -1454,22 +1454,41 @@ namespace GeometryHelper.Core
         /// 2 000 boxes so turned, cut by a grid along the world's axes. None does now. Raised to the rounding alone, a
         /// quadrillionth, with a corner read on the plane within a trillionth, 5 of 4 000 planes still cut nothing and 2 of
         /// 1 000 bodies came out in the wrong cells: the corners of the material of a body with openings, cut at nought, stand
-        /// further apart than the rounding. At every point tolerance at or above the rounding the body is cut as it was, to the
-        /// bit.
+        /// further apart than the rounding. At and a little above the rounding the rims did not close either: of the 8 000
+        /// planes 871 cut nothing or the wrong area at the rounding, 547 at twice it and 136 at 1E-12 where that is above it,
+        /// and 125 at 1E-7, every one a million and more out; of the 2 000 bodies 668, 452, 110 and 110 came out in the wrong
+        /// cells. Raised so up to a trillionth of the size of the coordinates, none does, but for 86 planes and 73 bodies a
+        /// thousand million out at twice the rounding, 2E-6, which is not below a millionth (see <see cref="RaisedBelow"/>).
         /// </remarks>
         internal static bool BelowTheRounding(GeoSolid3 solid, Tolerance tolerance, out Tolerance within)
         {
             GeoAabb3 box = solid.GetAabb();
             within = tolerance;
 
-            if (!(tolerance.EqualPoint < Intersection3.Rounding(box, box.Min)))
+            double rounding = Rounding(solid);
+
+            if (!(tolerance.EqualPoint < Intersection3.Rounding(box, box.Min)) && !(tolerance.EqualPoint < Math.Min(rounding, RaisedBelow)))
             {
                 return false;
             }
 
-            within = Intersection3.Holding(Rounding(solid), tolerance);
+            within = Intersection3.Holding(rounding, tolerance);
             return true;
         }
+
+        /// <summary>
+        /// The point tolerance at and above which a section and the cells of a body are cut within the tolerance asked, as they
+        /// were, to the bit, wherever <see cref="Rounding"/> stands, but below the rounding of the coordinates: a millionth,
+        /// so that the default tolerance and every one used in a model in millimetres are left as they were however far out a
+        /// body stands.
+        /// </summary>
+        /// <remarks>
+        /// Between the rounding and a millionth, of 8 000 planes through prisms with openings, 125 at 1E-7, 50 at 5E-7 and 102 at
+        /// 9E-7 cut nothing, and of 2 000 such bodies 110, 42 and 94 came out in the wrong cells, every one a million and more
+        /// out; cut within <see cref="Rounding"/>, none does, and none that was right changed but to the bit. At a millionth
+        /// itself 139 planes and 115 bodies, a hundred million and more out, are still cut wrong.
+        /// </remarks>
+        private const double RaisedBelow = 1E-6;
 
         /// <summary>
         /// Cuts every face of a body by a plane and caps each half from its own rim.

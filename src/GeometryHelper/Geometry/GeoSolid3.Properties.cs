@@ -38,7 +38,11 @@ namespace GeometryHelper.Geometry
         /// the openings cut as <see cref="TryCutOpenings(out GeoSolid3, Tolerance)"/> cuts them before it is left in: a plate
         /// 200 by 100 by 3 turned about in space and a million out, with a notch 20 by 20 through one end and one 20 wide and
         /// 1 deep across the other, flush with three faces, measured 58 800 at the rounding of its coordinates, the second
-        /// notch left in; it measures 56 800, as it holds.
+        /// notch left in; it measures 56 800, as it holds. Where walls of two openings, or of an opening and the body, stand
+        /// apart within the tolerance of one plane, the openings are cut as <see cref="TryCutOpenings(out GeoSolid3, Tolerance)"/>
+        /// cuts them, within a finer tolerance: an L 100 by 80 by 50, a million out, with two blind openings 27 apart
+        /// whose walls stood 0.0009 apart across it, measured 153 674.08 within a thousandth, the second opening's wall
+        /// cut in the plane of the first's; it measures 153 673.56, as it holds.
         /// </para>
         /// <para>
         /// Where the point tolerance is below the rounding of the coordinates, a quadrillionth of the largest of them, nought
@@ -229,8 +233,10 @@ namespace GeometryHelper.Geometry
         /// size of the coordinates: within the tolerance asked, the two faces beside an edge each cut their own copy of it a
         /// rounding apart, and the rim did not close. At nought a plate 200 by 100 by 3 turned about in space, at the origin or a
         /// million out, had no section, where a plane square to its face cuts 20 000 of it and one across its length 300;
-        /// with a hole 20 by 20 through it, it cuts 19 600, the hole in it. At and above the rounding the material is cut as
-        /// it was, to the bit.
+        /// with a hole 20 by 20 through it, it cuts 19 600, the hole in it. It is cut so too at and above the rounding while the
+        /// point tolerance is below both that trillionth and a millionth: a million out, at 2E-9, twice the rounding, or at
+        /// 1E-7, the plate had no section either. At a millionth and above, the default tolerance among them, the material is
+        /// cut as it was, to the bit.
         /// </para>
         /// </remarks>
         public GeoFace3[] Section(GeoPlane3 plane, Tolerance tolerance)
@@ -329,6 +335,12 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         private MaterialCut CutMaterialAsGiven(Tolerance tolerance)
         {
+            // Walls standing apart within the tolerance of one plane are cut within a finer one, as TryCutOpenings cuts them.
+            if (Boolean3.TryCutWallsApart(this, _openings, out GeoSolid3 apart, tolerance))
+            {
+                return new MaterialCut(tolerance, apart, true);
+            }
+
             bool cut = Boolean3.TryCutOpeningsAtOnce(this, _openings, out GeoSolid3 material, tolerance, out Exception failure, out bool judgedWhole);
 
             if (judgedWhole)

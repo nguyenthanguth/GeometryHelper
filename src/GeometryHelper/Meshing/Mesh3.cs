@@ -454,8 +454,18 @@ namespace GeometryHelper.Meshing
         /// tolerance asked. Within the tolerance asked, the two faces beside an edge each cut their own copy of it a rounding
         /// apart, and no cut closed: at nought a plate 200 by 100 by 3 turned about in space, cut into cells 60 by 40 along it,
         /// came out one cell of 60 000, where twelve hold it, and with a hole 20 by 20 through it one cell of 60 000, the hole
-        /// left in, each cut not made said so in the log. Which bodies are refused is read at the tolerance asked, as before.
-        /// At and above the rounding the body is cut as it was, to the bit.
+        /// left in, each cut not made said so in the log. They are cut so too at and above the rounding while the point tolerance
+        /// is below both that trillionth and a millionth: a million out, at 2E-9, twice the rounding, the plate with the hole
+        /// came out in the wrong cells as well. Which bodies are refused is read at the tolerance asked, as before. At a
+        /// millionth and above, the default tolerance among them, the body is cut as it was, to the bit, but where walls
+        /// stand apart within the tolerance of one plane.
+        /// </para>
+        /// <para>
+        /// Where walls of two openings, or of an opening and the body, stand apart within the tolerance of one plane, the
+        /// openings are cut in, and the cells cut, within a finer tolerance, as
+        /// <see cref="GeoSolid3.TryCutOpenings(out GeoSolid3, Tolerance)"/> cuts them: an L 100 by 80 by 50, a million out, with
+        /// three openings, the walls of two of them 0.0009 apart across it, cut within a thousandth into 15 cells, held 0.76
+        /// too little in six of them, and cut within a thousandth from its material cut exact, 0.06 too much in one.
         /// </para>
         /// </remarks>
         public static GeoCellGrid3 ToCells(GeoSolid3 solid, CellOptions3 options, MeshPlacement3 placement, Tolerance tolerance)
@@ -487,6 +497,13 @@ namespace GeometryHelper.Meshing
 
             if (solid.Openings.Count > 0)
             {
+                // Walls standing apart within the tolerance of one plane are cut, and the cells with them, within a finer
+                // tolerance; see the remarks.
+                if (Boolean3.FinerForWallsApart(solid, solid.Openings, within, out Tolerance finer))
+                {
+                    within = finer;
+                }
+
                 bool cut = Boolean3.TryCutOpenings(solid, solid.Openings, out material, within, out Exception failure);
 
                 if (failure != null || (cut && !material.ClosesBothWays(within)))

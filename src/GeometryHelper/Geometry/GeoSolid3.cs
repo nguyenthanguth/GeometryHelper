@@ -650,6 +650,17 @@ namespace GeometryHelper.Geometry
         /// its top, turned and far from the origin, cut within a hundredth, holds 0.028 cubic millimetres more.
         /// </para>
         /// <para>
+        /// Where walls of two openings, or of an opening and the body, stand apart within the tolerance of one plane and
+        /// further apart than a trillionth of the size of the coordinates, the openings are cut within a finer tolerance,
+        /// between the gap of those walls and the most that walls meeting within the tolerance, or a face off flat, stand off
+        /// one plane, where the body and its openings close within it, and what that gives is taken where it closes within the
+        /// tolerance asked: the plane of an opening cuts the whole of what it reaches, and a plane of another within the
+        /// tolerance of it was read as that plane, however far away: an L 100 by 80 by 50, a million out, with two blind
+        /// openings 27 apart whose walls stood 0.0009 apart across it, cut within a thousandth, held 153 674.08 where it
+        /// holds 153 673.56, the second opening's wall cut in the plane of the first's, and with the openings the other way
+        /// round 153 673.30. Walls that meet are made one plane, as before.
+        /// </para>
+        /// <para>
         /// Where the point tolerance is below the rounding of the coordinates, a quadrillionth of the largest of them, nought
         /// among them, the openings are cut within that rounding, as the queries read them; a planar tolerance below it with a
         /// point tolerance that is not cuts as it did. Where cutting them in together leaves the material open they are cut in

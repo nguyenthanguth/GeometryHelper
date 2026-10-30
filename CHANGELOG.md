@@ -27,6 +27,35 @@ asked in the time it took, to within the noise, on .NET 10 and on .NET Framework
 looked for before its start is measured, takes up to half as long again: against a polygon of 40 sides, 1.69
 microseconds where 1.25 on .NET 10, and the shortest line to a chain of 40 edges 7.0 where 4.4. 9 new tests.
 
+**FIXED.** Walls of two openings of a body, or of an opening and the body, standing apart within the tolerance of one
+plane are each cut in their own plane by `TryCutOpenings`, and so by `GetVolume`, `TryGetVolume`, `Section`,
+`Mesh3.ToCells` and the queries that read the material. The plane of one opening cuts all of the body it reaches, and the
+plane of another within the tolerance of it found the corners of that cut on it and was not made: its wall was cut in
+the first one's plane, however far away, and which of the two kept its own hung on their order. An L 100 by 80 by 50, a
+million out, with two blind openings 27 apart whose walls stood 0.0009 apart across it, measured 153 674.08 within a
+thousandth where it holds 153 673.56, its section 0.014 off, and 153 673.30 with the openings the other way round. Such
+openings are cut within a finer tolerance, between that gap and the most that walls meeting within the tolerance, or a
+face off flat, stand off one plane, where the body and its openings close within it and what it gives closes within the
+tolerance asked, and `ToCells` cuts its cells within it too; walls that meet are made one plane, as before. Of 8 000
+planes through 4 000 prisms with up to three openings, turned about in space or not, at the origin and a thousand to a
+thousand million out, 2 cut the wrong area at 1E-3 and 2 of the prisms measured the wrong volume; of 2 000 more cut
+into cells, 1 came out in the wrong cells. None does now. Nothing else changed at any tolerance from nought to 1E-3 but
+a star whose volume and section were within the slack and are exact now, and one section changed in its last bits. Of
+600 plates 300 by 200 by 12 with twelve holes, the walls of a row of them within the tolerance, 1E-3 or 1E-2, of the
+planes of their neighbours' walls, 62 came out as much as 12.2 cubic millimetres off what they hold, and are within
+0.002 of it now. The booleans read their operands as before. 2 new tests.
+
+**FIXED.** `Section` and `Mesh3.ToCells` asked at or a little above the rounding of the coordinates, at a point tolerance
+below both what rounding can move a corner off a plane, a trillionth of the size of the coordinates, and a millionth,
+are cut within that trillionth, as they are below the rounding. Cut within the tolerance asked, the rims a plane left did
+not close there either: of 8 000 planes through prisms with up to three openings, turned about in space or not, at the
+origin and a thousand to a thousand million out, 871 cut nothing or the wrong area at the rounding, 547 at twice it, 136
+at 1E-12 where that is above it and 125 at 1E-7; of 2 000 of the bodies cut into cells, 668, 452, 110 and 110 came out in
+the wrong cells, and 5 of 2 000 boxes turned about in space and cut along the world's axes at the rounding. None does
+now, but for 86 planes and 73 bodies a thousand million out at twice the rounding, 2E-6, and 1 box. At a millionth and
+above, the default tolerance among them, a section and the cells are cut as they were, to the bit, however far out the
+body stands: of the planes, 139 a hundred million and more out still cut nothing at a millionth. 4 new tests.
+
 **FIXED.** `Section`, and `Mesh3.ToCells` of a body or of a box turned against the grid, asked at a point tolerance below
 the rounding of the coordinates, a quadrillionth of the largest of them, nought among it, cut within what rounding can
 move a corner off a plane, a trillionth of the size of the coordinates: `Section` cuts the material by its plane so, and
@@ -44,9 +73,10 @@ nothing said in the log, as 1 282 of 1 370 did at 1E-12; and so did each of 2 00
 along the world's axes at nought, and 1 338 of 1 409 at 1E-12. None does now: 2 of the bodies, a thousand million out,
 have a cell closed along its edges and holding what it should whose corners the weld leaves apart at nought. Which
 bodies `ToCells` refuses is read at the tolerance asked, as before. At and above the rounding, 1E-3 and 1E-2 among them,
-every section and every cell is the same to the bit. On .NET 10, 300 of the bodies are cut into cells in 1.03 seconds at
-nought where they took 1.71, and 2.38 where 3.95 on .NET Framework 4.8; two sections of each take what they took, 2.38
-seconds where 2.40, and 5.87 where 5.91; at a thousandth both take what they took. 8 new tests.
+this change left every section and every cell the same to the bit; the band up to a millionth and walls of openings
+within the tolerance of one plane are fixed on their own, see above. On .NET 10, 300 of the bodies are cut into cells in
+1.03 seconds at nought where they took 1.71, and 2.38 where 3.95 on .NET Framework 4.8; two sections of each take what
+they took, 2.38 seconds where 2.40, and 5.87 where 5.91; at a thousandth both take what they took. 8 new tests.
 
 **NEW.** `DxfTable.SetDataLink(row, column, dataLink)` and `SetDataLink(range, dataLink)` link cells to a DATALINK of the
 drawing, as AutoCAD 2021's `SetDataLink` links them: in the TABLECONTENT AutoCAD keeps for the table, the range's top left
