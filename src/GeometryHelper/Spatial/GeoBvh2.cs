@@ -632,7 +632,7 @@ namespace GeometryHelper.Spatial
             {
                 for (int i = one.Start; i < one.Start + one.Count; i++)
                 {
-                    foreach (GeoPoint2 meeting in _edges[_order[i]].GetIntersections(line, tolerance))
+                    foreach (GeoPoint2 meeting in Core.ArcChain2.Meetings(_edges[_order[i]], line, tolerance))
                     {
                         bool already = false;
 

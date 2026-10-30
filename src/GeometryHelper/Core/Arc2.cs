@@ -540,6 +540,11 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static GeoLine2 GetShortestLineTo(GeoArc2 arc, GeoLine2 line, Tolerance tolerance)
         {
+            if (Stub2.ReadsAsStart(line, tolerance))
+            {
+                return ShortestLineToStub(arc, line, tolerance);
+            }
+
             if (TryIntersectWith(arc, line, out GeoPoint2[] meetings, tolerance) && meetings.Length > 0)
             {
                 return new GeoLine2(meetings[0], meetings[0]);
@@ -547,6 +552,14 @@ namespace GeometryHelper.Core
 
             return NearestPair(arc, line, tolerance);
         }
+
+        /// <summary>
+        /// Gets the shortest segment joining an arc to a segment read as its start: the one to the segment as it is where
+        /// it truly meets the arc, otherwise the one to its start.
+        /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static GeoLine2 ShortestLineToStub(GeoArc2 arc, GeoLine2 line, Tolerance tolerance)
+            => Stub2.Nearest(line, GetShortestLineTo(arc, line, Stub2.AsItIs(line, tolerance)), GetShortestLineTo(arc, line.StartPoint, tolerance));
 
         /// <summary>
         /// A tolerance of nought, for measuring with no slack.
@@ -584,8 +597,26 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static double Bowed(GeoArc2 arc, GeoLine2 line, Tolerance tolerance)
         {
-            return Meets(arc, line) ? 0.0 : NearestPair(arc, line, tolerance, Exactly).Length;
+            if (Meets(arc, line))
+            {
+                return 0.0;
+            }
+
+            if (Stub2.ReadsAsStart(line, tolerance))
+            {
+                return BowedToStub(arc, line);
+            }
+
+            return NearestPair(arc, line, tolerance, Exactly).Length;
         }
+
+        /// <summary>
+        /// Gets the exact distance between an arc that bows and a segment read as its start, which crosses it nowhere: a
+        /// segment too short to have a direction is its start, unless it meets the arc within the rounding.
+        /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static double BowedToStub(GeoArc2 arc, GeoLine2 line)
+            => Stub2.Meets(NearestPair(arc, line, Exactly, Exactly).Length, line) ? 0.0 : DistanceTo(arc, line.StartPoint, Exactly);
 
         /// <summary>
         /// Gets the exact distance between two arcs: nought only where they truly meet.

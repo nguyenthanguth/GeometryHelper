@@ -743,7 +743,7 @@ namespace GeometryHelper.Core
             List<double> parameters = new List<double> { 0.0, 1.0 };
             for (int i = 0; i < poly.EdgeCount; i++)
             {
-                if (Intersection2.TryIntersectWith(line, poly.GetEdgeAt(i), out GeoPoint2 crossing, tolerance))
+                if (Intersection2.Crossing(line, poly.GetEdgeAt(i), Enums.LineExtension.None, out GeoPoint2 crossing, tolerance))
                 {
                     parameters.Add(Parametrization2.GetParameterAtPoint(line, crossing, tolerance));
                 }

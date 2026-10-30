@@ -74,9 +74,53 @@ namespace GeometryHelper.Core
         /// test of contact. The segment ending at (10, 0) and the one leaving (10.00135, 0.00078) at 60 degrees meet here
         /// at (10, 0) at a tolerance of a thousandth, though they are 0.00156 apart and do not collide.
         /// </para>
+        /// <para>
+        /// A segment no longer than the point tolerance has no direction to be reached along, and meets the other, with
+        /// neither extended, only where it truly crosses it: at a thousandth, the one from (5, 0.0004) to (5, -0.0005)
+        /// meets the segment from the origin to (10, 0) at (5, 0), and the one from (5, 0.0008) to (5, 0.0002) meets it
+        /// nowhere.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the extension is not a defined value.</exception>
         public static bool TryIntersectWith(GeoLine2 line1, GeoLine2 line2, LineExtension extension, out GeoPoint2 intersection, Tolerance tolerance)
+        {
+            return extension == LineExtension.None
+                ? TryCross(line1, true, line2, true, out intersection, tolerance)
+                : Crossing(line1, line2, extension, out intersection, tolerance);
+        }
+
+        /// <summary>
+        /// Finds where two segments cross, a segment you give no longer than the point tolerance crossing the other only
+        /// where it truly does: found as the segment it is, at the rounding of its start, where
+        /// <see cref="Crossing"/> reads it as having no direction and finds nothing. A side of a shape is the side it is.
+        /// </summary>
+        /// <param name="first">The first segment.</param>
+        /// <param name="firstGiven">true when the first segment is one you give; false for a side of a shape.</param>
+        /// <param name="second">The second segment.</param>
+        /// <param name="secondGiven">true when the second segment is one you give.</param>
+        /// <param name="crossing">The point, clamped onto both.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        internal static bool TryCross(GeoLine2 first, bool firstGiven, GeoLine2 second, bool secondGiven, out GeoPoint2 crossing, Tolerance tolerance)
+        {
+            if (Crossing(first, second, LineExtension.None, out crossing, tolerance))
+            {
+                return true;
+            }
+
+            bool firstShort = firstGiven && Stub2.ReadsAsStart(first, tolerance);
+            bool secondShort = secondGiven && Stub2.ReadsAsStart(second, tolerance);
+
+            return (firstShort || secondShort)
+                && Crossing(first, second, LineExtension.None, out crossing, Stub2.AsItIs(firstShort ? first : second, tolerance));
+        }
+
+        /// <summary>
+        /// Finds where two segments, or the lines carrying them, cross, as
+        /// <see cref="TryIntersectWith(GeoLine2, GeoLine2, LineExtension, out GeoPoint2, Tolerance)"/> reads them, a
+        /// segment no longer than the point tolerance having no direction and crossing nothing. The sides of shapes are
+        /// crossed so, and the segments split or tested for lying in a polygon.
+        /// </summary>
+        internal static bool Crossing(GeoLine2 line1, GeoLine2 line2, LineExtension extension, out GeoPoint2 intersection, Tolerance tolerance)
         {
             bool extendFirst;
             bool extendSecond;
@@ -623,7 +667,7 @@ namespace GeometryHelper.Core
             List<GeoPoint2> points = new List<GeoPoint2>();
             foreach (var edge in rect.GetEdges())
             {
-                if (TryIntersectWith(edge, line, out GeoPoint2 pt, tolerance))
+                if (TryCross(edge, false, line, true, out GeoPoint2 pt, tolerance))
                 {
                     AddUniquePoint(points, pt, tolerance);
                 }
@@ -652,7 +696,7 @@ namespace GeometryHelper.Core
             {
                 foreach (var e2 in edges2)
                 {
-                    if (TryIntersectWith(e1, e2, out GeoPoint2 pt, tolerance))
+                    if (Crossing(e1, e2, LineExtension.None, out GeoPoint2 pt, tolerance))
                     {
                         AddUniquePoint(points, pt, tolerance);
                     }
@@ -711,7 +755,7 @@ namespace GeometryHelper.Core
             List<GeoPoint2> points = new List<GeoPoint2>();
             foreach (var edge in poly.GetEdges())
             {
-                if (TryIntersectWith(edge, line, out GeoPoint2 pt, tolerance))
+                if (TryCross(edge, false, line, true, out GeoPoint2 pt, tolerance))
                 {
                     AddUniquePoint(points, pt, tolerance);
                 }
@@ -740,7 +784,7 @@ namespace GeometryHelper.Core
             {
                 foreach (var e2 in poly2.GetEdges())
                 {
-                    if (TryIntersectWith(e1, e2, out GeoPoint2 pt, tolerance))
+                    if (Crossing(e1, e2, LineExtension.None, out GeoPoint2 pt, tolerance))
                     {
                         AddUniquePoint(points, pt, tolerance);
                     }
@@ -771,7 +815,7 @@ namespace GeometryHelper.Core
             {
                 foreach (var e2 in rectEdges)
                 {
-                    if (TryIntersectWith(e1, e2, out GeoPoint2 pt, tolerance))
+                    if (Crossing(e1, e2, LineExtension.None, out GeoPoint2 pt, tolerance))
                     {
                         AddUniquePoint(points, pt, tolerance);
                     }
@@ -831,7 +875,7 @@ namespace GeometryHelper.Core
             List<GeoPoint2> points = new List<GeoPoint2>();
             for (int i = 0; i < polyline.EdgeCount; i++)
             {
-                if (TryIntersectWith(polyline.GetEdgeAt(i), line, out GeoPoint2 pt, tolerance))
+                if (TryCross(polyline.GetEdgeAt(i), false, line, true, out GeoPoint2 pt, tolerance))
                 {
                     AddUniquePoint(points, pt, tolerance);
                 }
@@ -881,7 +925,7 @@ namespace GeometryHelper.Core
                 for (int j = 0; j < pl2.EdgeCount; j++)
                 {
                     GeoLine2 e2 = pl2.GetEdgeAt(j);
-                    if (TryIntersectWith(e1, e2, out GeoPoint2 pt, tolerance))
+                    if (Crossing(e1, e2, LineExtension.None, out GeoPoint2 pt, tolerance))
                     {
                         AddUniquePoint(points, pt, tolerance);
                     }
@@ -914,7 +958,7 @@ namespace GeometryHelper.Core
                 GeoLine2 e1 = polyline.GetEdgeAt(i);
                 foreach (var e2 in rectEdges)
                 {
-                    if (TryIntersectWith(e1, e2, out GeoPoint2 pt, tolerance))
+                    if (Crossing(e1, e2, LineExtension.None, out GeoPoint2 pt, tolerance))
                     {
                         AddUniquePoint(points, pt, tolerance);
                     }
@@ -976,7 +1020,7 @@ namespace GeometryHelper.Core
                 GeoLine2 e1 = polyline.GetEdgeAt(i);
                 foreach (var e2 in poly.GetEdges())
                 {
-                    if (TryIntersectWith(e1, e2, out GeoPoint2 pt, tolerance))
+                    if (Crossing(e1, e2, LineExtension.None, out GeoPoint2 pt, tolerance))
                     {
                         AddUniquePoint(points, pt, tolerance);
                     }

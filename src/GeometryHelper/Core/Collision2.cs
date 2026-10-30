@@ -594,6 +594,11 @@ namespace GeometryHelper.Core
 
             double reach = tolerance.EqualPoint;
 
+            if (Stub2.ReadsAsStart(line, tolerance))
+            {
+                return Distance2.DistanceToSide(side, line, tolerance) <= reach;
+            }
+
             return Distance2.DistanceTo(side, line.StartPoint, Exactly) <= reach
                 || Distance2.DistanceTo(side, line.EndPoint, Exactly) <= reach
                 || Distance2.DistanceTo(line, side.StartPoint, tolerance) <= reach

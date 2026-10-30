@@ -365,7 +365,7 @@ namespace GeometryHelper.Core
             {
                 foreach (GeoEdge2 other in second)
                 {
-                    foreach (GeoPoint2 meeting in one.GetIntersections(other, tolerance))
+                    foreach (GeoPoint2 meeting in Meetings(one, other, tolerance))
                     {
                         Keep(found, meeting, tolerance);
                     }
@@ -948,6 +948,34 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Gets the points where an edge of a shape meets a segment you give: the edge is the edge it is however short,
+        /// and the segment, if no longer than the tolerance, crosses a straight edge only where it truly does.
+        /// </summary>
+        internal static GeoPoint2[] Meetings(GeoEdge2 side, GeoLine2 line, Tolerance tolerance)
+        {
+            if (side.IsArc)
+            {
+                return Arc2.GetIntersections(side.ToArc(), line, tolerance);
+            }
+
+            return Intersection2.TryCross(side.ToLine(), false, line, true, out GeoPoint2 meeting, tolerance) ? new[] { meeting } : new GeoPoint2[0];
+        }
+
+        /// <summary>
+        /// Gets the points where two edges of shapes meet, each the edge it is however short: two straight edges cross as
+        /// two segments do, neither read as its start.
+        /// </summary>
+        internal static GeoPoint2[] Meetings(GeoEdge2 side, GeoEdge2 other, Tolerance tolerance)
+        {
+            if (side.IsArc || other.IsArc)
+            {
+                return side.GetIntersections(other, tolerance);
+            }
+
+            return Intersection2.Crossing(side.ToLine(), other.ToLine(), Enums.LineExtension.None, out GeoPoint2 meeting, tolerance) ? new[] { meeting } : new GeoPoint2[0];
+        }
+
+        /// <summary>
         /// Gets the points where a run of edges meets a straight segment.
         /// </summary>
         internal static GeoPoint2[] Intersections(List<GeoEdge2> edges, GeoLine2 line, Tolerance tolerance)
@@ -956,7 +984,7 @@ namespace GeometryHelper.Core
 
             foreach (GeoEdge2 edge in edges)
             {
-                foreach (GeoPoint2 meeting in edge.GetIntersections(line, tolerance))
+                foreach (GeoPoint2 meeting in Meetings(edge, line, tolerance))
                 {
                     Keep(found, meeting, tolerance);
                 }

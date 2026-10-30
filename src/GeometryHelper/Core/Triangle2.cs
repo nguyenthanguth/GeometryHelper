@@ -72,7 +72,7 @@ namespace GeometryHelper.Core
         /// Where two segments meet, as a list: the point they cross at, or none.
         /// </summary>
         private static GeoPoint2[] Meet(GeoLine2 hull, GeoLine2 line, Tolerance tolerance)
-            => hull.TryIntersectWith(line, out GeoPoint2 point, tolerance) ? new[] { point } : Array.Empty<GeoPoint2>();
+            => Intersection2.TryCross(hull, false, line, true, out GeoPoint2 point, tolerance) ? new[] { point } : Array.Empty<GeoPoint2>();
 
         #region Collision
 
@@ -476,7 +476,7 @@ namespace GeometryHelper.Core
         public static GeoPoint2[] GetIntersections(GeoTriangle2 triangle, GeoEdge2 edge, Tolerance tolerance)
             => TryAsPolygonByItsSides(triangle, out GeoPolygon2 shape, out GeoLine2 hull)
                 ? shape.GetIntersections(edge, tolerance)
-                : hull.GetIntersections(edge, tolerance);
+                : edge.IsArc ? hull.GetIntersections(edge, tolerance) : Meet(hull, edge.ToLine(), tolerance);
 
         /// <summary>
         /// Gets every point where the edges of a triangle meet another triangle, using the default tolerance.

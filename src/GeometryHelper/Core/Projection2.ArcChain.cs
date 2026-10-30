@@ -86,6 +86,11 @@ namespace GeometryHelper.Core
         {
             if (loop == null) throw new ArgumentNullException(nameof(loop));
 
+            if (Stub2.ReadsAsStart(line, tolerance))
+            {
+                return Stub2.Nearest(line, ArcChain2.ShortestLineTo(ArcChain2.EdgesOf(loop), line, Stub2.AsItIs(line, tolerance)), GetShortestLineTo(loop, line.StartPoint, tolerance));
+            }
+
             return ArcChain2.ShortestLineTo(ArcChain2.EdgesOf(loop), line, tolerance);
         }
 
@@ -260,6 +265,11 @@ namespace GeometryHelper.Core
         public static GeoLine2 GetShortestLineTo(GeoPolylineArc2 chain, GeoLine2 line, Tolerance tolerance)
         {
             if (chain == null) throw new ArgumentNullException(nameof(chain));
+
+            if (Stub2.ReadsAsStart(line, tolerance))
+            {
+                return Stub2.Nearest(line, ArcChain2.ShortestLineTo(ArcChain2.EdgesOf(chain), line, Stub2.AsItIs(line, tolerance)), GetShortestLineTo(chain, line.StartPoint, tolerance));
+            }
 
             return ArcChain2.ShortestLineTo(ArcChain2.EdgesOf(chain), line, tolerance);
         }

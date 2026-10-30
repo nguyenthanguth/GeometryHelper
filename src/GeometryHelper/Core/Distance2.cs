@@ -81,10 +81,17 @@ namespace GeometryHelper.Core
         /// Nought exactly where the two truly cross or overlap, read with no slack past their ends; otherwise the least of
         /// the distances from an end of one to the other. The segment from the origin to (10, 0) and the one leaving
         /// (10.00135, 0.00078) at 60 degrees, whose lines cross 0.0009 past the first one's end, are 0.00156 apart at every
-        /// tolerance.
+        /// tolerance. A segment no longer than the point tolerance is read as its start where it does not truly meet the
+        /// other: at a thousandth, the one from (5, 0.0015) to (5, 0.0006) is 0.0015 from the segment from the origin to
+        /// (10, 0), and the one from (5, 0.0004) to (5, -0.0005), crossing it, is nought from it.
         /// </remarks>
         public static double DistanceTo(GeoLine2 line1, GeoLine2 line2, Tolerance tolerance)
         {
+            if (Stub2.ReadsAsStart(line1, tolerance) || Stub2.ReadsAsStart(line2, tolerance))
+            {
+                return DistanceToStub(line1, line2, tolerance);
+            }
+
             // Not Intersection2.TryIntersectWith: that one reports no intersection for any pair meeting at
             // less than the angular tolerance, which is right when the intersection point is wanted but
             // would make two crossing segments measure the gap between their endpoints instead of zero,
@@ -104,6 +111,26 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Calculates the distance between two segments a caller gave, one or both no longer than the tolerance and read
+        /// as their starts unless the two truly meet, as space reads them.
+        /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static double DistanceToStub(GeoLine2 line1, GeoLine2 line2, Tolerance tolerance)
+        {
+            if (Stub2.Meets(DistanceTo(line1, line2, Exactly), line1, line2))
+            {
+                return 0.0;
+            }
+
+            bool short1 = Stub2.ReadsAsStart(line1, tolerance);
+            bool short2 = Stub2.ReadsAsStart(line2, tolerance);
+
+            return short1 && short2 ? DistanceTo(line1.StartPoint, line2.StartPoint)
+                : short1 ? DistanceTo(line2, line1.StartPoint, Exactly)
+                : DistanceTo(line1, line2.StartPoint, Exactly);
+        }
+
+        /// <summary>
         /// Calculates the shortest distance between one side of a shape and a segment a caller gave: the side is the side
         /// it is however short, and the segment, if no longer than the tolerance, is read as its start point where it
         /// does not cross.
@@ -116,6 +143,12 @@ namespace GeometryHelper.Core
         /// crosses a side is nought from it however short, as it is from the shape.
         /// </remarks>
         internal static double DistanceToSide(GeoLine2 side, GeoLine2 line, Tolerance tolerance)
+            => Stub2.ReadsAsStart(line, tolerance) ? DistanceToStubOfSide(side, line) : DistanceToLongerOfSide(side, line, tolerance);
+
+        /// <summary>
+        /// Calculates the distance between one side of a shape and a segment a caller gave longer than the tolerance.
+        /// </summary>
+        private static double DistanceToLongerOfSide(GeoLine2 side, GeoLine2 line, Tolerance tolerance)
         {
             if (Projection2.TryGetCrossingPoint(side, line, Exactly, false, out _))
             {
@@ -128,6 +161,26 @@ namespace GeometryHelper.Core
             double d4 = DistanceTo(line, side.EndPoint, tolerance);
 
             return Math.Min(Math.Min(d1, d2), Math.Min(d3, d4));
+        }
+
+        /// <summary>
+        /// Calculates the distance between one side of a shape and a segment a caller gave no longer than the tolerance:
+        /// nought where they cross or meet within the rounding, otherwise the distance from its start.
+        /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static double DistanceToStubOfSide(GeoLine2 side, GeoLine2 line)
+        {
+            if (Projection2.TryGetCrossingPoint(side, line, Exactly, false, out _))
+            {
+                return 0.0;
+            }
+
+            double fromStart = DistanceTo(side, line.StartPoint, Exactly);
+            double gap = Math.Min(
+                Math.Min(fromStart, DistanceTo(side, line.EndPoint, Exactly)),
+                Math.Min(DistanceTo(line, side.StartPoint, Exactly), DistanceTo(line, side.EndPoint, Exactly)));
+
+            return Stub2.Meets(gap, side, line) ? 0.0 : fromStart;
         }
 
         #endregion
@@ -163,6 +216,12 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static double DistanceTo(GeoCircle2 circle, GeoLine2 line, Tolerance tolerance)
         {
+            // A segment read as its start that runs into the circle is nought from it, however short.
+            if (Stub2.ReadsAsStart(line, tolerance) && Stub2.Meets(DistanceTo(circle, line, Exactly), line))
+            {
+                return 0.0;
+            }
+
             return Math.Max(0.0, DistanceTo(line, circle.Center, tolerance) - circle.Radius);
         }
 

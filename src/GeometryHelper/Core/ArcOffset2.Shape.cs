@@ -704,7 +704,7 @@ namespace GeometryHelper.Core
                     return meetings;
                 }
 
-                return _edge.GetIntersections(other._edge.ToLine(), tolerance);
+                return ArcChain2.Meetings(_edge, other._edge, tolerance);
             }
 
             /// <summary>

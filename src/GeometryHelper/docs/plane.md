@@ -107,13 +107,18 @@ largest coordinate or radius in the scene (the audit's worst was 4.7E-11, an arc
 across, 3.2E-16 of its size). Compare a distance with a tolerance, with
 `d <= tolerance.EqualPoint` or with `CollidesWith`, and never with `== 0`.
 
-**A segment you give, shorter than the point tolerance, is read as its start.** `DistanceTo` and the collisions that rest on
-it read a `GeoLine2`, or a straight `GeoEdge2`, no longer than `EqualPoint` as the point at its start when it does not meet
-the other shape: against a segment, a ray, a polyline, a polygon, a rectangle, a triangle, a loop, a chain, an arc and a
-circle. A stub that crosses a side of a polygon, a rectangle or a polyline, an edge of a chain or a loop, or an arc, is
-nought from it, as any crossing is; against a segment, a ray, a circle or a straight `GeoEdge2` it stays its start; a face
-measures it as it is. The sides of a shape, those of a polygon, rectangle, triangle, chain, loop or face, are never read
-so, however short, whatever the tolerance: the polygon (0, 0), (0, -50), (0.004, -50), (0.004, 0) is 0.006 from the
+**A segment you give, shorter than the point tolerance, is read as its start.** `DistanceTo`, `CollidesWith` and
+`GetShortestLineTo` read a `GeoLine2`, or a straight `GeoEdge2`, no longer than `EqualPoint` as the point at its start
+where it does not truly meet the other shape, against every shape in the plane and either way round, as space reads it:
+at a thousandth, the segment from (5, 0.0015) to (5, 0.0006), pointing at the segment from the origin to (10, 0) and
+stopping 0.0006 short of it, is 0.0015 from it, does not collide with it, and is joined to it by the line from (5, 0) to
+its start; the one from (5, -0.0015) to (5, -0.0006) is as far from the square 10 by 10 on the origin, and a stub so
+aimed at an arc, an ellipse, a spline or a face is as far from it as its start is. Where the stub truly meets the shape
+it is in contact however short: one crossing a side, an edge or an arc, or running into a circle, is nought from it and
+joined to it by a line of no length where it crosses, and `GetIntersections` and `TryIntersectWith` give that crossing:
+the segment from (5, 0.0004) to (5, -0.0005) meets the segment along the x axis at (5, 0). A point is measured to a
+stub's start. The sides of a shape, those of a polygon, rectangle, triangle, chain, loop or face, are never read so,
+however short, whatever the tolerance: the polygon (0, 0), (0, -50), (0.004, -50), (0.004, 0) is 0.006 from the
 segment that runs up from (0.002, 0.006), at a global tolerance of 0.01 as at 0.00001, and not the 0.00632 it is from
 the corner at (0, 0). A rectangle 0.0005 wide, thinner than the default tolerance, is measured by its four sides against
 an arc, a chain and a loop as it is against a segment.
@@ -137,7 +142,9 @@ a rectangle's runs from its side. Against anything else such a side is the side 
 long. The closest edge of a polygon, a polyline or a rectangle takes no tolerance: it measures every side exactly, and
 reads a segment you give no longer than the global tolerance as its start. `TryIntersectWith` and `GetIntersections`
 still accept a crossing up to the tolerance past a segment's end, because they place points for cutting and extending
-rather than test for contact. Against a circle or an arc they place a touch exactly where the segment comes within the
+rather than test for contact; a segment you give no longer than the tolerance has no direction to reach along, and meets
+a straight side only where it truly crosses it.
+Against a circle or an arc they place a touch exactly where the segment comes within the
 tolerance of the rim, as the distance to the rim says, however far its line runs on before it would cross: at a
 thousandth, the segment from (0.05, 50.0005) to (10, 50.0005) touches the circle of radius 50 about the origin at its
 start, 0.000525 off, and the one from (0.0009, 0.0019) to (1, 0.0019) does not touch the circle of radius 0.001 about the

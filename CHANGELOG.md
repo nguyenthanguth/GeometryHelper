@@ -6,6 +6,27 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A segment you give in the plane, a `GeoLine2` or a straight `GeoEdge2` no longer than the point tolerance, is
+read as its start where it does not truly meet the other shape, and is in contact where it does, as the guide has said
+and as space reads it. `DistanceTo`, `CollidesWith` and `GetShortestLineTo` measured such a stub by its nearer end
+against nearly every shape: at a thousandth, the segment from (5, 0.0015) to (5, 0.0006), pointing at the segment from
+the origin to (10, 0) and stopping 0.0006 short of it, was 0.0006 from it and collided with it, as it did with a ray, a
+line without ends, a polyline, a polygon, a rectangle, a triangle, a chain, a loop, a face, an arc, an ellipse, a spline
+and an edge so aimed; it is 0.0015 from each, joined to it from its start, and collides with none. A stub that truly
+meets a shape is in contact however short: the one from (5, 0.0004) to (5, -0.0005), crossing that segment, was 0.0004
+from it, from a ray, a line without ends and a straight edge, and joined by a line 0.0004 long to every straight shape;
+it is nought from each and joined where it crosses, at (5, 0), and `GetIntersections` and `TryIntersectWith` of the
+straight shapes, which gave it no crossing at all, give that one. One running into a circle, an arc, an ellipse, a chain
+or a loop is joined to it where it crosses the rim, not at its start up to the tolerance off it, and is nought from a
+circle. Of 40 864 random stubs aimed at every shape in the plane, asked of it either way round at a thousandth and a
+hundredth and out to 100 000, 292 492 of the 1 425 400 answers broke that rule, and none does now. A side of a shape,
+however short, a segment longer than the tolerance and a point are read as before, to the bit: no answer to a longer
+segment moved, and of 400 000 random pairs of segments, arcs, circles, polylines, polygons, rectangles, chains, loops
+and edges, many with sides shorter than the tolerance, only answers to a stub did. A segment longer than the tolerance is
+asked in the time it took, to within the noise, on .NET 10 and on .NET Framework 4.8; a stub, whose true meeting is now
+looked for before its start is measured, takes up to half as long again: against a polygon of 40 sides, 1.69
+microseconds where 1.25 on .NET 10, and the shortest line to a chain of 40 edges 7.0 where 4.4. 9 new tests.
+
 **FIXED.** `Section`, and `Mesh3.ToCells` of a body or of a box turned against the grid, asked at a point tolerance below
 the rounding of the coordinates, a quadrillionth of the largest of them, nought among it, cut within what rounding can
 move a corner off a plane, a trillionth of the size of the coordinates: `Section` cuts the material by its plane so, and

@@ -34,7 +34,8 @@ namespace GeometryHelper.Core
     /// shapes come within the tolerance without meeting, the segment may be one of no length, a touch, and only there: two
     /// sides whose lines cross within the tolerance past the ends of both can be twice as far apart, and are joined by the
     /// gap. Two squares 100 by 100 whose corners are 0.00085 apart in x and in y are joined at a thousandth by the line
-    /// between the corners, 0.0012 long.
+    /// between the corners, 0.0012 long. A segment you give no longer than the tolerance is read as its start where it does
+    /// not truly meet the other shape, and is joined from there, as a point is.
     /// </para>
     /// <para>
     /// The tolerance is used for the projections themselves and for the endpoint slack when deciding
@@ -45,6 +46,11 @@ namespace GeometryHelper.Core
     /// </summary>
     public static partial class Projection2
     {
+        /// <summary>
+        /// A tolerance of nought, for joining a segment read as its start to a shape as the segment it is.
+        /// </summary>
+        private static Tolerance Exactly => default(Tolerance);
+
         #region Point on Line
 
         /// <summary>
@@ -420,11 +426,40 @@ namespace GeometryHelper.Core
         /// has no length; past the ends of both they can be up to twice the tolerance apart, and touch only where they come
         /// within it. At a thousandth, the segment from the origin to (10, 0) and the one leaving (10.00135, 0.00078) at 60
         /// degrees, whose lines cross 0.0009 past the end of each, are joined by the line between those two ends, 0.00156
-        /// long.
+        /// long. A segment no longer than the point tolerance is read as its start where it does not truly meet the other,
+        /// as <see cref="Distance2.DistanceTo(GeoLine2, GeoLine2, Tolerance)"/> reads it: at a thousandth, the line from the
+        /// segment from the origin to (10, 0) to the one from (5, 0.0015) to (5, 0.0006) runs to (5, 0.0015).
         /// </remarks>
         public static GeoLine2 GetShortestLineTo(GeoLine2 line1, GeoLine2 line2, Tolerance tolerance)
         {
+            if (Stub2.ReadsAsStart(line1, tolerance) || Stub2.ReadsAsStart(line2, tolerance))
+            {
+                return GetShortestLineToStub(line1, line2, tolerance);
+            }
+
             return GetShortestLineTo(line1, line2, tolerance, out _);
+        }
+
+        /// <summary>
+        /// Finds the shortest segment between two segments, one or both no longer than the tolerance and read as their
+        /// starts unless the two truly meet, as <see cref="Distance2.DistanceTo(GeoLine2, GeoLine2, Tolerance)"/> reads them.
+        /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static GeoLine2 GetShortestLineToStub(GeoLine2 line1, GeoLine2 line2, Tolerance tolerance)
+        {
+            GeoLine2 asItIs = GetShortestLineTo(line1, line2, Exactly, out _);
+
+            if (Stub2.Meets(asItIs.Length, line1, line2))
+            {
+                return asItIs;
+            }
+
+            bool short1 = Stub2.ReadsAsStart(line1, tolerance);
+            bool short2 = Stub2.ReadsAsStart(line2, tolerance);
+
+            return short1 && short2 ? new GeoLine2(line1.StartPoint, line2.StartPoint)
+                : short1 ? GetShortestLineTo(line2, line1.StartPoint, tolerance).Reverse()
+                : GetShortestLineTo(line1, line2.StartPoint, tolerance);
         }
 
         /// <summary>
@@ -660,6 +695,11 @@ namespace GeometryHelper.Core
         /// <returns>A <see cref="GeoLine2"/> whose start point is on <paramref name="line"/> and end point is on the circumference of <paramref name="circle"/>.</returns>
         public static GeoLine2 GetShortestLineTo(GeoLine2 line, GeoCircle2 circle, Tolerance tolerance)
         {
+            if (Stub2.ReadsAsStart(line, tolerance))
+            {
+                return Stub2.Nearest(line, GetShortestLineTo(line, circle, Stub2.AsItIs(line, tolerance)), GetShortestLineTo(circle, line.StartPoint, tolerance).Reverse());
+            }
+
             if (Intersection2.TryIntersectWith(circle, line, out GeoPoint2[] intersections, tolerance) && intersections.Length > 0)
             {
                 return new GeoLine2(intersections[0], intersections[0]);
@@ -704,6 +744,11 @@ namespace GeometryHelper.Core
         /// <returns>A <see cref="GeoLine2"/> whose start point is on <paramref name="line"/> and end point is on the boundary of <paramref name="rect"/>.</returns>
         public static GeoLine2 GetShortestLineTo(GeoLine2 line, GeoRectangle2 rect, Tolerance tolerance)
         {
+            if (Stub2.ReadsAsStart(line, tolerance))
+            {
+                return Stub2.Nearest(line, GetShortestLineTo(line, rect, Stub2.AsItIs(line, tolerance)), GetShortestLineTo(rect, line.StartPoint, tolerance).Reverse());
+            }
+
             GeoLine2 bestSegment = new GeoLine2(line.StartPoint, line.StartPoint);
             double minDistanceSq = 0.0;
             double bestExtent = 0.0;
@@ -756,6 +801,11 @@ namespace GeometryHelper.Core
         {
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
 
+            if (Stub2.ReadsAsStart(line, tolerance))
+            {
+                return Stub2.Nearest(line, GetShortestLineTo(line, polyline, Stub2.AsItIs(line, tolerance)), GetShortestLineTo(polyline, line.StartPoint, tolerance).Reverse());
+            }
+
             GeoLine2 bestSegment = new GeoLine2(line.StartPoint, line.StartPoint);
             double minDistanceSq = 0.0;
             double bestExtent = 0.0;
@@ -804,6 +854,11 @@ namespace GeometryHelper.Core
         public static GeoLine2 GetShortestLineTo(GeoLine2 line, GeoPolygon2 poly, Tolerance tolerance)
         {
             if (poly == null) throw new ArgumentNullException(nameof(poly));
+
+            if (Stub2.ReadsAsStart(line, tolerance))
+            {
+                return Stub2.Nearest(line, GetShortestLineTo(line, poly, Stub2.AsItIs(line, tolerance)), GetShortestLineTo(poly, line.StartPoint, tolerance).Reverse());
+            }
 
             GeoLine2 bestSegment = new GeoLine2(line.StartPoint, line.StartPoint);
             double minDistanceSq = 0.0;

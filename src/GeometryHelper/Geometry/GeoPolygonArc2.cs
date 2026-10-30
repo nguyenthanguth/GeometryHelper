@@ -872,7 +872,7 @@ namespace GeometryHelper.Geometry
                     GeoEdge2 other = GetEdgeAt(j);
                     bool neighbours = j == i + 1 || (i == 0 && j == count - 1);
 
-                    foreach (GeoPoint2 meeting in one.GetIntersections(other, tolerance))
+                    foreach (GeoPoint2 meeting in ArcChain2.Meetings(one, other, tolerance))
                     {
                         if (!neighbours)
                         {

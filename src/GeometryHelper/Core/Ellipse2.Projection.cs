@@ -60,6 +60,11 @@ namespace GeometryHelper.Core
         /// </returns>
         public static GeoLine2 GetShortestLineTo(GeoEllipse2 ellipse, GeoLine2 line, Tolerance tolerance)
         {
+            if (Stub2.ReadsAsStart(line, tolerance))
+            {
+                return Stub2.Nearest(line, GetShortestLineTo(ellipse, line, Stub2.AsItIs(line, tolerance)), GetShortestLineTo(ellipse, line.StartPoint, tolerance));
+            }
+
             GeoPoint2[] crossings = GetIntersections(ellipse, line, tolerance);
 
             if (crossings.Length > 0)

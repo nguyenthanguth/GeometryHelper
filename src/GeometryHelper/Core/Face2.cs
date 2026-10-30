@@ -434,10 +434,18 @@ namespace GeometryHelper.Core
         /// Nought where the segment crosses a rim or lies on the material; otherwise the gap from its nearest rim, measured exactly. In the square 100 by
         /// 100 with a corner at the origin and a hole 40 by 40 in its middle, the segment from (40, 50) to (60, 50) lies
         /// in the hole and is 10 from its rim; the one from (10, 50) to (20, 50) lies on the material and is nought away.
+        /// A segment no longer than the point tolerance is read as its start where it does not truly meet the material.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static double DistanceTo(GeoFace2 face, GeoLine2 line, Tolerance tolerance)
-            => Apart(face, rim => Distance2.DistanceTo(rim, line, Exactly), line.StartPoint);
+        {
+            if (Stub2.ReadsAsStart(line, tolerance))
+            {
+                return Stub2.Meets(DistanceTo(face, line, Exactly), line) ? 0.0 : Distance2.DistanceTo(face, line.StartPoint, tolerance);
+            }
+
+            return Apart(face, rim => Distance2.DistanceTo(rim, line, Exactly), line.StartPoint);
+        }
 
         /// <summary>
         /// Gets the distance from the material of a face to an arc.
@@ -638,7 +646,15 @@ namespace GeometryHelper.Core
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static double DistanceTo(GeoFace2 face, GeoEdge2 edge, Tolerance tolerance)
-            => Apart(face, rim => Gap(edge, rim), edge.StartPoint);
+        {
+            // A straight edge no longer than the point tolerance is read as a segment that short is.
+            if (!edge.IsArc && Stub2.ReadsAsStart(edge.ToLine(), tolerance))
+            {
+                return DistanceTo(face, edge.ToLine(), tolerance);
+            }
+
+            return Apart(face, rim => Gap(edge, rim), edge.StartPoint);
+        }
 
         /// <summary>
         /// Gets the distance from the material of a face to a triangle.

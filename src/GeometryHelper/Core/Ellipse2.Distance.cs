@@ -94,11 +94,18 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <param name="ellipse">The ellipse.</param>
         /// <param name="line">The segment.</param>
-        /// <param name="tolerance">The tolerance; not read, as a circle reads none for a segment.</param>
+        /// <param name="tolerance">The tolerance: a segment no longer than its point tolerance is read as its start where it does not truly meet the ellipse, as a circle reads it.</param>
         /// <returns>Nought when the segment crosses the rim or lies inside; otherwise the shortest gap. The segment from (-100, 150) to (100, 150) is 50 from the ellipse 300 by 100 centred on the origin.</returns>
         public static double DistanceTo(GeoEllipse2 ellipse, GeoLine2 line, Tolerance tolerance)
         {
-            return Reaches(ellipse, line) ? 0.0 : Nearest(ellipse, line, out _, out _);
+            double gap = Reaches(ellipse, line) ? 0.0 : Nearest(ellipse, line, out _, out _);
+
+            if (Stub2.ReadsAsStart(line, tolerance) && !Stub2.Meets(gap, line))
+            {
+                return DistanceTo(ellipse, line.StartPoint, tolerance);
+            }
+
+            return gap;
         }
 
         /// <summary>

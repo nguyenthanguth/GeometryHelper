@@ -241,7 +241,7 @@ namespace GeometryHelper.Core
             first = default(GeoLine2);
             second = default(GeoLine2);
 
-            if (!Intersection2.TryIntersectWith(subject, cutter, out GeoPoint2 crossing, tolerance))
+            if (!Intersection2.Crossing(subject, cutter, Enums.LineExtension.None, out GeoPoint2 crossing, tolerance))
             {
                 return false;
             }
@@ -276,7 +276,7 @@ namespace GeometryHelper.Core
             var crossings = new List<GeoPoint2>();
             foreach (GeoLine2 cutter in cutters)
             {
-                if (cutter != null && Intersection2.TryIntersectWith(subject, cutter, out GeoPoint2 crossing, tolerance))
+                if (cutter != null && Intersection2.Crossing(subject, cutter, Enums.LineExtension.None, out GeoPoint2 crossing, tolerance))
                 {
                     crossings.Add(crossing);
                 }
