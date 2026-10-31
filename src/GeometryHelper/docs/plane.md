@@ -417,6 +417,8 @@ The instance methods live on the shape being cut, not on the cutter: `polygon.Sp
 
 **What gets skipped.** Cut positions outside the subject, or landing on one of its endpoints, are not splits. Positions closer together than the tolerance merge into one, and a position within a tolerance of an existing vertex snaps onto it, so no piece and no edge is ever shorter than the tolerance. A point that does not lie on the subject is refused rather than projected onto it — cutting at its projection would be cutting somewhere nobody asked for.
 
+**However short.** A segment is measured along as it is however much shorter than the global tolerance, whatever cuts it: at a billionth, the segment from (5, 0.0004) to (5, -0.0005) is cut at (5, 0) by a point there or by a line, a polyline or a polygon crossing it there, where the place was measured at the global thousandth, at the segment's start, and the segment came back whole.
+
 **Against a polygon.** A part running along the boundary counts as inside, matching `Contains`. A path that merely touches the boundary and turns back has not crossed it, so it comes back whole instead of split in two at the touch.
 
 ### Cutting a region into regions

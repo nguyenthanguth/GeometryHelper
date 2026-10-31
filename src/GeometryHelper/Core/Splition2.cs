@@ -54,6 +54,12 @@ namespace GeometryHelper.Core
         /// true if the segment was split; false if the point is off the segment, or sits on one of its
         /// endpoints, where there is nothing to cut.
         /// </returns>
+        /// <remarks>
+        /// The place is measured along the segment as it is however much shorter than the global tolerance, so are those a
+        /// line, lines, a polyline, points or polygons cut it at: at a billionth, the segment from (5, 0.0004) to
+        /// (5, -0.0005) is cut at (5, 0), where the place was measured at the global thousandth, at its start, and the
+        /// segment came back whole.
+        /// </remarks>
         public static bool TrySplitBy(GeoLine2 line, GeoPoint2 point, out GeoLine2 first, out GeoLine2 second, Tolerance tolerance)
         {
             first = default(GeoLine2);

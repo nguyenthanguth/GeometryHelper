@@ -143,9 +143,17 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            distance = Parametrization2.GetDistanceAtPoint(source, point);
+            distance = DistanceAlong(source, point);
             return true;
         }
+
+        /// <summary>
+        /// Gets how far along a segment the foot of a point lies, the segment measured as it is however short, where
+        /// <see cref="Parametrization2.GetDistanceAtPoint(GeoLine2, GeoPoint2)"/> reads one no longer than the global tolerance
+        /// as its start.
+        /// </summary>
+        private static double DistanceAlong(GeoLine2 line, GeoPoint2 point)
+            => Parametrization2.GetParameterAtPoint(line, point, default(Tolerance)) * line.Length;
 
         /// <summary>
         /// Converts a point into the arc length at which the subject should be cut, rejecting points that
@@ -301,7 +309,7 @@ namespace GeometryHelper.Core
             var distances = new double[crossings.Length];
             for (int i = 0; i < crossings.Length; i++)
             {
-                distances[i] = Parametrization2.GetDistanceAtPoint(subject, crossings[i]);
+                distances[i] = DistanceAlong(subject, crossings[i]);
             }
 
             return NormalizeCuts(subject.Length, distances, tolerance);

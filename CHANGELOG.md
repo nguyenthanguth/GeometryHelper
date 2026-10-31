@@ -68,6 +68,15 @@ worked out anew, nor set. The five properties of ACadSharp's lookup sample, a gr
 microseconds an INSERT under .NET 10 and 86 under .NET Framework 4.8. 16 new tests, 1 changed (an INSERT of BOLT scaled
 (1.5, -1.5, 2) is not `IsDynamicBlock`).
 
+**FIXED.** A segment in the plane shorter than the global tolerance, cut within a tolerance finer than that by
+`Splition2.TrySplitBy` or the `TrySplitBy` of `GeoLine2`, is cut where a point, a line, lines, a polyline, points or polygons
+cut it: the place was measured at the global tolerance, which reads a segment no longer than that as its start, so it came
+out nought along and the segment came back whole. At a billionth, the segment from (5, 0.0004) to (5, -0.0005) is cut at
+(5, 0) by the point (5, 0) or by the line from (4, 0) to (6, 0). Of 2 634 segments from four tolerances to the global one
+long, at tolerances from a billionth to a ten-thousandth, each cut those six ways, 15 543 cuts were not made; every one is,
+at the place.
+The 32 196 answers for segments longer than the global tolerance are the same to the bit. 6 new tests.
+
 **FIXED.** A polyline cut at a distance in space, by `SplitAtDistances` or any cut that goes through it (by a point, a
 plane, a polygon, a face, a box or a body), ends its last piece where the polyline ends however short its last leg: a last
 leg no longer than the tolerance takes the corner before it, as a first one is taken by the start. At a hundredth, the
