@@ -796,7 +796,9 @@ along their tangents: the square of side 10 grown by 2 is cut from (8 + 2√2, -
 straight offset cuts it. Two edges a fraction of a degree off straight are mitred like any others. Shrunk far enough a
 shape can fall into several pieces or vanish, so the answer is an array. A growing loop that closes a gap
 around empty space gives that space as a hole wound the other way, so that signed areas add up, as the
-straight offsets do, however the hole's pieces meet.
+straight offsets do, however the hole's pieces meet. A loop is put together edge for edge, its corners counted within
+the tolerance asked: at a millionth, the rectangle 100 by 50 grown by 0.0004 with round joins keeps its four arcs, 0.00057
+across, where the global tolerance of a thousandth dropped them.
 
 What tells the folded-over parts from the real ones is the one thing an offset cannot break: every point
 of a valid offset stands **exactly** the offset distance from the shape it came from. Each piece is cut
@@ -1080,6 +1082,13 @@ end when only one of its corners was reshaped. The two ends of a chain never mov
 corner taking more gives way, as above. The square of side 10 filleted at 5.02 at a tolerance of 0.1 is the
 circle of radius 5 through the midpoints of its sides. A loop that would keep fewer than three corners is
 given back as it was.
+
+A loop keeps every arc however small, and every cut and side the tolerance keeps, as a chain does; only its corners
+are counted within the tolerance. The rectangle 100 by 50 filleted at 0.0005 is eight edges, four of them arcs 0.0007
+across, where the loop was put back together within the global tolerance and came back its four corners, 0.0625 square
+units short. A straight chain or loop is rounded corner for corner, a leg shorter than the global tolerance and all, so
+a corner is named by its vertex: at a millionth, the chain (0, 0), (10, 0), (10.0004, 0.0004), (10.0004, 10), (0, 10)
+rounded by 1 at vertex 3 turns at (10.0004, 10), where the short leg was dropped first and vertex 3 was the chain's end.
 
 ## Circles as polygons
 

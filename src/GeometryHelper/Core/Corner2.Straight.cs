@@ -20,6 +20,12 @@ namespace GeometryHelper.Core
     /// same shape of answer space gives. Nothing new is worked out here: the chain is read as a curved one with
     /// every bulge at nought, and the rounding that already exists does the rest.
     /// </para>
+    /// <para>
+    /// It is read corner for corner, a leg shorter than the global tolerance and all, so the index of a corner is the
+    /// index of the vertex: at a millionth, the chain (0, 0), (10, 0), (10.0004, 0.0004), (10.0004, 10), (0, 10) rounded
+    /// by 1 at its vertex 3 turns at (10.0004, 10), where the leg 0.00057 long was dropped first and vertex 3 was the
+    /// chain's end.
+    /// </para>
     /// </remarks>
     public static partial class Corner2
     {
@@ -45,7 +51,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(polyline));
             }
 
-            return Fillet(new GeoPolylineArc2(polyline), radius, tolerance);
+            return Fillet(Widened(polyline), radius, tolerance);
         }
 
         /// <summary>
@@ -68,7 +74,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(polyline));
             }
 
-            return Fillet(new GeoPolylineArc2(polyline), radii, tolerance);
+            return Fillet(Widened(polyline), radii, tolerance);
         }
 
         /// <summary>
@@ -94,7 +100,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(polyline));
             }
 
-            return TryFilletAt(new GeoPolylineArc2(polyline), index, radius, out result, tolerance);
+            return TryFilletAt(Widened(polyline), index, radius, out result, tolerance);
         }
 
         #endregion
@@ -121,7 +127,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(polygon));
             }
 
-            return Fillet(new GeoPolygonArc2(polygon), radius, tolerance);
+            return Fillet(Widened(polygon), radius, tolerance);
         }
 
         /// <summary>
@@ -144,7 +150,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(polygon));
             }
 
-            return Fillet(new GeoPolygonArc2(polygon), radii, tolerance);
+            return Fillet(Widened(polygon), radii, tolerance);
         }
 
         /// <summary>
@@ -170,8 +176,37 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(polygon));
             }
 
-            return TryFilletAt(new GeoPolygonArc2(polygon), index, radius, out result, tolerance);
+            return TryFilletAt(Widened(polygon), index, radius, out result, tolerance);
         }
+
+        #endregion
+
+        #region Widening corner for corner
+
+        /// <summary>
+        /// The chain read as a curved one, leg for leg, every bulge at nought.
+        /// </summary>
+        /// <remarks>
+        /// The public constructor drops a leg shorter than the global tolerance, which a chain built or cut within a finer
+        /// one keeps; the corners after it would then be counted one short, and a fillet asked at one of them would round
+        /// the next.
+        /// </remarks>
+        private static GeoPolylineArc2 Widened(GeoPolyline2 polyline)
+        {
+            var legs = new List<GeoEdge2>(polyline.EdgeCount);
+
+            for (int i = 0; i < polyline.EdgeCount; i++)
+            {
+                legs.Add(new GeoEdge2(polyline[i], polyline[i + 1]));
+            }
+
+            return GeoPolylineArc2.FromEdges(legs, default(Tolerance));
+        }
+
+        /// <summary>
+        /// The loop read as a curved one, corner for corner, every bulge at nought.
+        /// </summary>
+        private static GeoPolygonArc2 Widened(GeoPolygon2 polygon) => GeoPolygonArc2.FromEdges(polygon.Vertices, null, default(Tolerance));
 
         #endregion
     }

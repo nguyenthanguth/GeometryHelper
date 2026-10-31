@@ -183,30 +183,67 @@ namespace GeometryHelper.Geometry
         {
             loop = null;
 
-            // Counted the way the constructor keeps them: a start in the same place as the one kept before it
-            // goes, and so do starts at the end in the same place as the first.
-            var kept = new List<GeoPoint2>(starts.Count);
-
-            foreach (GeoPoint2 start in starts)
-            {
-                if (kept.Count == 0 || !kept[kept.Count - 1].IsEqualTo(start))
-                {
-                    kept.Add(start);
-                }
-            }
-
-            while (kept.Count > 1 && kept[kept.Count - 1].IsEqualTo(kept[0]))
-            {
-                kept.RemoveAt(kept.Count - 1);
-            }
-
-            if (kept.Count < 3)
+            if (!HoldsThreeCorners(starts, Tolerance.Global))
             {
                 return false;
             }
 
             loop = FromEdges(starts, bulges);
             return true;
+        }
+
+        /// <summary>
+        /// Builds a loop from the start and bulge of each of its edges, every edge of any length kept, unless fewer than
+        /// three of the starts stand apart within a tolerance.
+        /// </summary>
+        /// <param name="starts">Where each edge starts.</param>
+        /// <param name="bulges">The bulge of each edge.</param>
+        /// <param name="tolerance">The tolerance whose point threshold says when two starts are one corner.</param>
+        /// <param name="loop">The loop, when the method returns true.</param>
+        /// <returns>true when the starts hold three corners apart within the tolerance; otherwise, false.</returns>
+        /// <remarks>
+        /// For edges already cleaned within the tolerance, as a fillet or an offset leaves them: a fillet keeps an arc
+        /// however small, and the loop keeps it too, as a chain does. Only an edge whose ends land on the very same point
+        /// goes. The rectangle 100 by 50 filleted at radius 0.0005 at a millionth keeps its four arcs, where building within
+        /// the global tolerance of a thousandth dropped them and left four corners 0.0625 square units short.
+        /// </remarks>
+        internal static bool TryFromEdges(IReadOnlyList<GeoPoint2> starts, IReadOnlyList<double> bulges, Tolerance tolerance, out GeoPolygonArc2 loop)
+        {
+            loop = null;
+
+            if (!HoldsThreeCorners(starts, tolerance))
+            {
+                return false;
+            }
+
+            loop = FromEdges(starts, bulges, default(Tolerance));
+            return true;
+        }
+
+        /// <summary>
+        /// Determines whether at least three starts are left once those the constructor would drop within a tolerance are
+        /// gone.
+        /// </summary>
+        private static bool HoldsThreeCorners(IReadOnlyList<GeoPoint2> starts, Tolerance tolerance)
+        {
+            // Counted the way the constructor keeps them: a start in the same place as the one kept before it
+            // goes, and so do starts at the end in the same place as the first.
+            var kept = new List<GeoPoint2>(starts.Count);
+
+            foreach (GeoPoint2 start in starts)
+            {
+                if (kept.Count == 0 || !kept[kept.Count - 1].IsEqualTo(start, tolerance))
+                {
+                    kept.Add(start);
+                }
+            }
+
+            while (kept.Count > 1 && kept[kept.Count - 1].IsEqualTo(kept[0], tolerance))
+            {
+                kept.RemoveAt(kept.Count - 1);
+            }
+
+            return kept.Count >= 3;
         }
 
         /// <summary>

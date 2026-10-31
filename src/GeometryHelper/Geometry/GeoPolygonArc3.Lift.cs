@@ -71,6 +71,16 @@ namespace GeometryHelper.Geometry
         /// </summary>
         private GeoPolygonArc2 Flatten(GeoPolygonArc3 other, GeoCoordinateSystem3 frame, Tolerance tolerance, string name)
         {
+            RequireSamePlane(other, tolerance, name);
+
+            return other.ProjectToPolygonArc2(frame);
+        }
+
+        /// <summary>
+        /// Refuses another loop where it lies in another plane than this one.
+        /// </summary>
+        private void RequireSamePlane(GeoPolygonArc3 other, Tolerance tolerance, string name)
+        {
             if (other == null)
             {
                 throw new ArgumentNullException(name);
@@ -82,8 +92,6 @@ namespace GeometryHelper.Geometry
                     "The two loops lie in different planes, so there is no plane to work in. Bring them into one plane first.",
                     name);
             }
-
-            return other.ProjectToPolygonArc2(frame);
         }
 
         /// <summary>

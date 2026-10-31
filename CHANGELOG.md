@@ -137,6 +137,37 @@ worked out anew, nor set. The five properties of ACadSharp's lookup sample, a gr
 microseconds an INSERT under .NET 10 and 86 under .NET Framework 4.8. 16 new tests, 1 changed (an INSERT of BOLT scaled
 (1.5, -1.5, 2) is not `IsDynamicBlock`).
 
+**FIXED.** A loop in the plane filleted or chamfered by `Corner2.Fillet`, `Chamfer`, `TryFilletAt` or `TryChamferAt`, or
+the members of `GeoPolygonArc2` that call them, and a loop grown or shrunk by `Offset2.Offset` keeping its arcs, keeps
+every arc and every cut the work leaves, as a chain does, and every side the tolerance keeps; only its corners are
+counted within the tolerance. The loop was put back together within the global tolerance, which dropped an arc or a cut
+shorter than a thousandth, or a side the loop had kept within a finer tolerance, and ran the next side on from the
+corner before: the rectangle 100 by 50 filleted at 0.0005 came back its four corners, 0.0625 square units short, where
+the chain round the same corners kept its three arcs, and grown by 0.0004 with round joins at a millionth it came back
+without its arcs. Of 24 000 convex loops, half with a side cut off a corner between six tolerances and 0.0009 long,
+rounded, cut or grown at tolerances from nought to a tenth, 3 864 rounded or cut came out of the area the corners give
+and 1 712 grown or shrunk; 216 and 1 120 do now, the same as before (a fillet at a tolerance of nought, refused corner
+by corner, and offsets of a distance about the tolerance). Loops whose work leaves nothing shorter than the global
+tolerance are the same to the bit; at a tolerance coarser than it, an offset is the same to the bit, and a fillet or a
+single cut keeps an arc or a cut it dropped below a thousandth, as the chain does. 7 new tests, 1 changed (the rectangle
+filleted at 0.0005 at a ten-thousandth keeps its four arcs).
+
+**FIXED.** A straight chain or loop filleted by `Corner2.Fillet` or `TryFilletAt`, or the `Fillet` of `GeoPolyline2` and
+`GeoPolygon2`, is rounded corner for corner, a leg shorter than the global tolerance and all, so a corner is named by
+its vertex. The chain was read as a curved one through the constructor, which drops such a leg first: at a millionth,
+the chain (0, 0), (10, 0), (10.0004, 0.0004), (10.0004, 10), (0, 10) asked to round vertex 3 by 1 answered false, vertex
+3 being its end once the leg 0.00057 long was gone. Of 24 000 chains and loops with a leg from a twentieth of the
+tolerance to 1 long, 10 233 came out other than the same work on the chain read corner for corner and 372 threw; none
+does now. Legs longer than the global tolerance give the same bits. 2 new tests.
+
+**FIXED.** The shortest line from a curved loop in space, `GeoPolygonArc3.GetShortestLineTo`, to a chain, a polygon, a
+face or another curved loop in its plane is measured to every side the other shape has, however short. The other shape
+was laid out in the loop's plane within the global tolerance, which dropped a side shorter than a thousandth that the
+shape kept within a finer tolerance: at a millionth, the square 10 by 10 at the origin read 0.5004 from the polygon
+(10.5004, 5), (16, 2), (16, 8), (10.5, 5), where it is 0.5. Of 16 000 such shapes at tolerances from a ten-millionth to
+0.03, 6 192 were measured off the exact distance, 2 730 by more than the tolerance; none is now, and shapes of sides
+longer than the global tolerance give the same bits. 4 new tests.
+
 **FIXED.** A loop in the plane cut along a chain or by a line, by `Splition2.TrySplitBy` or the `TrySplitBy` of
 `GeoPolygon2`, is cut at the tolerance asked, corner for corner, as a polygon in space is. The loop, the chain and the
 pieces went into space and back through constructors that read the global tolerance, which dropped a side shorter than a

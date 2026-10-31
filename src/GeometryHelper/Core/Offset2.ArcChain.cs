@@ -152,6 +152,11 @@ namespace GeometryHelper.Core
         /// by 1 at a tolerance of 0.01, keeps the miter of its long lobe and encloses 54.419; the miter was left out, 52.501. A loop of four corners whose spike 2.4 degrees wide is crossed by
         /// an edge where it is 0.0057 wide, grown by 3 with miters at 0.01, is 386.351, as within 1E-4; it was 387.385.
         /// </para>
+        /// <para>
+        /// A loop is put together edge for edge, its corners counted within the tolerance asked, not the global one: at a
+        /// millionth, the rectangle 100 by 50 grown by 0.0004 with round joins keeps its four arcs, 0.00057 across, and
+        /// encloses 5 000.12, where they were dropped within the global tolerance of a thousandth.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop or the options are null.</exception>
         public static GeoPolygonArc2[] Offset(GeoPolygonArc2 loop, double distance, OffsetOptions options, Tolerance tolerance)
@@ -489,7 +494,7 @@ namespace GeometryHelper.Core
         {
             turned = false;
 
-            if (TryLoopOf(run, out loop))
+            if (TryLoopOf(run, tolerance, out loop))
             {
                 return true;
             }
@@ -513,7 +518,7 @@ namespace GeometryHelper.Core
             halved[longest] = first;
             halved.Insert(longest + 1, second);
 
-            if (!TryLoopOf(halved, out loop))
+            if (!TryLoopOf(halved, tolerance, out loop))
             {
                 return false;
             }
@@ -554,7 +559,7 @@ namespace GeometryHelper.Core
             return true;
         }
 
-        private static bool TryLoopOf(List<GeoEdge2> run, out GeoPolygonArc2 loop)
+        private static bool TryLoopOf(List<GeoEdge2> run, Tolerance tolerance, out GeoPolygonArc2 loop)
         {
             loop = null;
 
@@ -567,16 +572,8 @@ namespace GeometryHelper.Core
                 bulges.Add(edge.Bulge);
             }
 
-            try
-            {
-                loop = GeoPolygonArc2.FromEdges(vertices, bulges);
-                return true;
-            }
-            catch (ArgumentException)
-            {
-                // Fewer than three distinct vertices is a sliver rather than a shape, and is no answer.
-                return false;
-            }
+            // Fewer than three corners apart within the tolerance is a sliver rather than a shape, and is no answer.
+            return GeoPolygonArc2.TryFromEdges(vertices, bulges, tolerance, out loop);
         }
 
         #endregion

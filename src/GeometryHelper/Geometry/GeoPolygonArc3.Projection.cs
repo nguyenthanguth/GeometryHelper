@@ -158,6 +158,10 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="polyline">The chain; it has to lie in the loop's plane.</param>
         /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// The chain is laid out in the loop's plane vertex for vertex, a leg shorter than the global tolerance and all, as
+        /// <see cref="GetShortestLineTo(GeoPolygon3, Tolerance)"/> lays out a polygon.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the chain does not lie in the loop's plane.</exception>
         public GeoLine3 GetShortestLineTo(GeoPolyline3 polyline, Tolerance tolerance)
@@ -169,7 +173,7 @@ namespace GeometryHelper.Geometry
 
             GeoCoordinateSystem3 frame = FrameFor(polyline.Vertices, tolerance, nameof(polyline));
 
-            return Lift(frame, Flat(frame).GetShortestLineTo(PlanarMap.ProjectToPolyline2(frame, polyline), tolerance));
+            return Lift(frame, Flat(frame).GetShortestLineTo(FlatAsItIs(frame, polyline), tolerance));
         }
 
         /// <summary>
@@ -211,6 +215,13 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="polygon">The polygon; it has to lie in the loop's plane.</param>
         /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// The polygon is laid out in the loop's plane corner for corner, so a side shorter than the global tolerance, which
+        /// it keeps when built within a finer one, is measured to: at a millionth, the square 10 by 10 at the origin is 0.5
+        /// from the polygon (10.5004, 5), (16, 2), (16, 8), (10.5, 5), where laid out within the global tolerance of a
+        /// thousandth the polygon lost its corner (10.5, 5) and the line was 0.5004 long. So are a chain, a face and another
+        /// curved loop.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the polygon does not lie in the loop's plane.</exception>
         public GeoLine3 GetShortestLineTo(GeoPolygon3 polygon, Tolerance tolerance)
@@ -222,7 +233,7 @@ namespace GeometryHelper.Geometry
 
             GeoCoordinateSystem3 frame = FrameFor(polygon.Vertices, tolerance, nameof(polygon));
 
-            return Lift(frame, Flat(frame).GetShortestLineTo(PlanarMap.ProjectToPolygon2(frame, polygon), tolerance));
+            return Lift(frame, Flat(frame).GetShortestLineTo(FlatAsItIs(frame, polygon), tolerance));
         }
 
         /// <summary>
@@ -235,13 +246,19 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="other">The other loop; it has to lie in this one's plane.</param>
         /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// The other loop is laid out in this one's plane edge for edge, as this one is, a side shorter than the global
+        /// tolerance and all, as <see cref="GetShortestLineTo(GeoPolygon3, Tolerance)"/> lays out a polygon.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the other loop is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the other loop lies in a different plane.</exception>
         public GeoLine3 GetShortestLineTo(GeoPolygonArc3 other, Tolerance tolerance)
         {
+            RequireSamePlane(other, tolerance, nameof(other));
+
             GeoCoordinateSystem3 frame = GetFrame();
 
-            return Lift(frame, Flat(frame).GetShortestLineTo(Flatten(other, frame, tolerance, nameof(other)), tolerance));
+            return Lift(frame, Flat(frame).GetShortestLineTo(other.LayOut(frame, default(Tolerance)), tolerance));
         }
 
         /// <summary>
@@ -254,6 +271,10 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="face">The face; it has to lie in the loop's plane.</param>
         /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// The face and its holes are laid out in the loop's plane corner for corner, a side shorter than the global
+        /// tolerance and all, as <see cref="GetShortestLineTo(GeoPolygon3, Tolerance)"/> lays out a polygon.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the face does not lie in the loop's plane.</exception>
         public GeoLine3 GetShortestLineTo(GeoFace3 face, Tolerance tolerance)
@@ -265,7 +286,7 @@ namespace GeometryHelper.Geometry
 
             GeoCoordinateSystem3 frame = FrameFor(face.Boundary.Vertices, tolerance, nameof(face));
 
-            return Lift(frame, Flat(frame).GetShortestLineTo(PlanarMap.ProjectToFace2(frame, face), tolerance));
+            return Lift(frame, Flat(frame).GetShortestLineTo(FlatAsItIs(frame, face), tolerance));
         }
 
         #endregion
@@ -394,6 +415,48 @@ namespace GeometryHelper.Geometry
 
             return GetFrame();
         }
+
+        /// <summary>
+        /// A chain laid out in the loop's frame vertex for vertex, as <see cref="Flat(GeoCoordinateSystem3)"/> lays out the
+        /// loop: no leg goes unless its ends land on the very same point, so a leg shorter than the global tolerance, which
+        /// the chain keeps when built within a finer one, is measured to.
+        /// </summary>
+        private static GeoPolyline2 FlatAsItIs(GeoCoordinateSystem3 frame, GeoPolyline3 polyline)
+        {
+            var vertices = new GeoPoint2[polyline.VertexCount];
+            int count = 0;
+
+            foreach (GeoPoint3 vertex in polyline.Vertices)
+            {
+                GeoPoint2 flat = PlanarMap.ProjectToPoint2(frame, vertex);
+
+                if (count == 0 || !vertices[count - 1].IsEqualTo(flat, default(Tolerance)))
+                {
+                    vertices[count++] = flat;
+                }
+            }
+
+            return count < 2 ? PlanarMap.ProjectToPolyline2(frame, polyline) : new GeoPolyline2(vertices, count);
+        }
+
+        /// <summary>
+        /// A polygon laid out in the loop's frame corner for corner: no side goes unless its ends land on the very same
+        /// point. <see cref="PlanarMap.ProjectToPolygon2(GeoCoordinateSystem3, GeoPolygon3)"/> builds within the global
+        /// tolerance, and is left to say what it always said of a polygon whose corners land on one another.
+        /// </summary>
+        private static GeoPolygon2 FlatAsItIs(GeoCoordinateSystem3 frame, GeoPolygon3 polygon)
+            => PlanarMap.TryProjectToPolygon2(frame, polygon, default(Tolerance), out GeoPolygon2 flat)
+                ? flat
+                : PlanarMap.ProjectToPolygon2(frame, polygon);
+
+        /// <summary>
+        /// A face and its holes laid out in the loop's frame corner for corner: no side goes unless its ends land on the
+        /// very same point.
+        /// </summary>
+        private static GeoFace2 FlatAsItIs(GeoCoordinateSystem3 frame, GeoFace3 face)
+            => PlanarMap.TryProjectToFace2(frame, face, default(Tolerance), out GeoFace2 flat)
+                ? flat
+                : PlanarMap.ProjectToFace2(frame, face);
 
         /// <summary>
         /// Lays an arc out in the loop's frame, refusing it where it lies anywhere else.

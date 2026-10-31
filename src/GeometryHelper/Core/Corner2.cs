@@ -560,6 +560,11 @@ namespace GeometryHelper.Core
         /// Chamfers every corner of a loop that has room for it, within a tolerance.
         /// </summary>
         /// <returns>The chamfered loop, its arcs untouched.</returns>
+        /// <remarks>
+        /// The loop keeps every cut longer than the tolerance, as a chain does: at a millionth, the rectangle 100 by 50
+        /// chamfered by 0.0003 is eight corners, where the loop was put back together within the global tolerance of a
+        /// thousandth and came back its four.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when either distance is not a positive number.</exception>
         public static GeoPolygonArc2 Chamfer(GeoPolygonArc2 polygon, double distance1, double distance2, Tolerance tolerance)
@@ -619,6 +624,11 @@ namespace GeometryHelper.Core
         /// square of side 10 filleted at 5.02 at a tolerance of 0.1 is the circle of radius 5 through the
         /// midpoints of its sides. A loop the fillets would leave with fewer than three corners is given back as
         /// it was.
+        /// <para>
+        /// The loop keeps every arc however small, and every side the tolerance keeps, as a chain does: the rectangle
+        /// 100 by 50 filleted at 0.0005 is eight edges, four of them arcs 0.0007 across, where the loop was put back
+        /// together within the global tolerance of a thousandth and came back its four corners, 0.0625 square units short.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius is not a positive number.</exception>
@@ -666,7 +676,7 @@ namespace GeometryHelper.Core
             // A loop whose corners between them take nearly all of it, as a hairpin 0.1 wide filleted at a
             // tolerance of 0.1, can come back with fewer than three corners the loop can tell apart. It cannot
             // take those fillets, and is given back as it was.
-            if (!GeoPolygonArc2.TryFromEdges(vertices, bulges, out GeoPolygonArc2 loop))
+            if (!GeoPolygonArc2.TryFromEdges(vertices, bulges, tolerance, out GeoPolygonArc2 loop))
             {
                 GeometryHelperLog.Debug("Fillet or chamfer left the loop alone: what it would leave has fewer than three corners.");
                 return polygon;
@@ -1174,6 +1184,12 @@ namespace GeometryHelper.Core
         /// <param name="result">The filleted loop, or the loop unchanged when the method returns false.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the corner had room for the arc on its inside; false when it had not, or when it turns by no more than <see cref="Tolerance.EqualAngleRad"/>.</returns>
+        /// <remarks>
+        /// The arc stays however small, and the rest of the loop as it was, a side shorter than the global tolerance and
+        /// all: at a millionth, the square 10 by 10 with its corner (0, 0) cut off by a side 0.00057 long, rounded by 1 at
+        /// (10, 10), keeps the short side, where the loop was put back together within the global tolerance of a
+        /// thousandth and lost it.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the index is outside the loop or the radius is not a positive number.</exception>
         public static bool TryFilletAt(GeoPolygonArc2 polygon, int index, double radius, out GeoPolygonArc2 result, Tolerance tolerance)
@@ -1222,7 +1238,7 @@ namespace GeometryHelper.Core
             }
 
             // A loop left with fewer than three corners it can tell apart cannot take this one.
-            if (!GeoPolygonArc2.TryFromEdges(vertices, bulges, out GeoPolygonArc2 loop))
+            if (!GeoPolygonArc2.TryFromEdges(vertices, bulges, tolerance, out GeoPolygonArc2 loop))
             {
                 return false;
             }
@@ -1341,6 +1357,11 @@ namespace GeometryHelper.Core
         /// <param name="result">The chamfered loop, or the loop unchanged when the method returns false.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the corner had room for the cut; false when it had not, or either edge is an arc.</returns>
+        /// <remarks>
+        /// The cut stays however short, as on a chain: at a millionth, the corner (100, 50) of the rectangle 100 by 50 cut
+        /// back 0.0004 along both sides is a side 0.00057 long, where the loop was put back together within the global
+        /// tolerance of a thousandth and came back its four corners.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the index is outside the loop or either distance is not a positive number.</exception>
         public static bool TryChamferAt(GeoPolygonArc2 polygon, int index, double distance1, double distance2, out GeoPolygonArc2 result, Tolerance tolerance)
@@ -1390,7 +1411,7 @@ namespace GeometryHelper.Core
             }
 
             // A loop left with fewer than three corners it can tell apart cannot take this one.
-            if (!GeoPolygonArc2.TryFromEdges(vertices, bulges, out GeoPolygonArc2 loop))
+            if (!GeoPolygonArc2.TryFromEdges(vertices, bulges, tolerance, out GeoPolygonArc2 loop))
             {
                 return false;
             }

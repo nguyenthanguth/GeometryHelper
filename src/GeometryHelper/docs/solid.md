@@ -2286,6 +2286,10 @@ plane stands at the same height above every point of the boundary, so the neares
 nearest place to its shadow, and the answer is exact. Two shapes in different planes have no such
 shortcut, so they are refused. `GetClosestEdge` takes a primitive probe only — a point, a segment, an arc,
 a circle or an edge — because the nearest edge of one many-edged shape to another is a *pair* of edges.
+A chain, a polygon, a face or another curved loop is laid out in the loop's plane corner for corner, as the loop is,
+so a side shorter than the global tolerance is measured to: at a millionth, the square 10 by 10 at the origin is 0.5
+from the polygon (10.5004, 5), (16, 2), (16, 8), (10.5, 5), built within a finer tolerance, where the line ran 0.5004 to
+the corner before the side 0.0004 long.
 
 ### What is exact, and what is sampled
 
