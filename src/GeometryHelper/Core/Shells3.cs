@@ -695,6 +695,22 @@ namespace GeometryHelper.Core
         /// </remarks>
         internal static bool Closes(GeoSolid3 solid, Tolerance tolerance)
         {
+            // Read once a body for each tolerance it is asked within in turn; see GeoSolid3.ClosesAsLastRead.
+            if (solid.ClosesAsLastRead(tolerance) is bool known)
+            {
+                return known;
+            }
+
+            bool closes = ReadCloses(solid, tolerance);
+            solid.KeepCloses(tolerance, closes);
+            return closes;
+        }
+
+        /// <summary>
+        /// Reads whether a body closes, as <see cref="Closes"/> says.
+        /// </summary>
+        private static bool ReadCloses(GeoSolid3 solid, Tolerance tolerance)
+        {
             if (solid.Faces.Count == 0)
             {
                 return false;

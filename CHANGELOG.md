@@ -6,6 +6,26 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `TryIntersect` asked below four tenths of the rounding of the coordinates, nought among it, of two bodies
+neither of which closes within that rounding, as two with cracks in their faces do not, is not worked out where the
+common part it gives has a corner outside either, each read as though it closed, or leaves out a corner of one lying
+inside the other; nothing checked it, and at nought a U 30 by 10 by 10 and a box through its notch, both cracked 1.5E-5
+wide, came out sharing 3.66 where they share 34.02. Of 36 000 booleans of such a U and a box at nought, the 21 common
+parts made wrong where the tolerance alone gave nothing are not worked out now, and none that held what the two share
+is turned down. `TryUnion` and `TrySubtract` of such a body, checked by the volumes adding up with the common part of
+the two, allow as well for what faces lying off flat move a volume, a third of how far a corner of each stands off its
+plane times its area: a cube 10 across cracked 0.0001 wide, turned, joined to a slab a million long through it, whose
+corners stand off its faces where planes a millionth of a radian apart meet, holds 59 169 796.05, what the two hold
+within 0.01, and is made again, where the check turned it down for missing the two less their common part by 0.57, as
+much as the slab read whole is short of what it holds. Of 17 178 booleans of such a cube and a body through it at
+nought, the 2 unions turned down so are made again, and none turned down before is made wrong. Every other boolean is
+worked out as it was, to the bit. Whether a body closes is read once for each tolerance it is asked within in turn, so
+two closed bodies asked below the rounding take what they took, within the noise, and the same two asked again up to a
+fifth less: a plate and a slot 1E6 out sharing 3 000 at nought, 0.048 milliseconds where 0.056 on .NET 10, 0.130 where
+0.164 on .NET Framework 4.8. Turned down, the common part of the cracked U and box takes 6.3 milliseconds, where it took
+3.2 to come out wrong (16.3 and 8.0 on .NET Framework 4.8); the cube and the slab joined take 7.5, where they took 14.7
+to be turned down (17.5 and 41.1).
+
 **NEW.** The last kinds of AutoCAD's dynamic blocks are made in code, each written as AutoCAD 2021 saved ACadSharp's sample
 of it. `DxfBlockTableRecord.AddArrayAction(linear, entities, columnSpacing)` and `AddArrayAction(xy, entities,
 columnSpacing, rowSpacing)` copy entities as the distance grows, as many as the spacing goes whole into it: a post every 60

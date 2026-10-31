@@ -86,7 +86,9 @@ namespace GeometryHelper.Core
     /// leaves 58 800, where it came back whole, 60 000. Of a body that does not close within the rounding, what is given there
     /// is taken where it holds up against the common part of the two, or where the tolerance alone gives something too: at
     /// nought a cube 10 across cracked 0.0001 wide along three of its faces, less a box turned inside it, is not worked out,
-    /// where it came back whole.
+    /// where it came back whole. The common part of two such bodies is taken only where it has no corner outside either,
+    /// and leaves out no corner of one lying inside the other: a U 30 by 10 by 10 and a box through its notch, both cracked
+    /// 1.5E-5 wide, have their common part not worked out, where it came out 3.66 of the 34.02 they share.
     /// </para>
     /// <para>
     /// A union of two bodies lying face to face within the tolerance of each other and apart, welded closed, is taken where
@@ -2140,11 +2142,11 @@ namespace GeometryHelper.Core
         /// tolerance alone gives nothing either, and kept as it is otherwise, so that nothing the tolerance alone gave is lost.
         /// Of 17 178 booleans of such a cube and a body through it at nought, 433 the tolerance alone did not work out and 51
         /// it said were nothing came out wrong so, and 9 still do, unions 0.0102 to 0.0125 from what the uncracked cube gives,
-        /// against the 0.01 the cracks move; of 15 698 within 0.01 of it, 2 unions are not worked out now, both open by holes
-        /// the cube does not have, and of 1 217 further from it, 475 are not worked out now. Of 36 000 of a U so cracked and a
-        /// box, 1 342 unions, 201 differences and 21 common parts came out wrong so: 54 unions and the 21 common parts still
-        /// do, of two bodies neither of which closes, and 25 of 13 655 differences and unions within 0.01 of the uncracked U
-        /// are not worked out now.
+        /// against the 0.01 the cracks move; of 15 698 within 0.01 of it, all are worked out still, and of 1 217 further from
+        /// it, 475 are not worked out now. Of 36 000 of a U so cracked and a box, 1 342 unions, 201 differences and 21 common
+        /// parts came out wrong so: 54 unions still do, of two bodies neither of which closes, and 25 of 13 655 differences and
+        /// unions within 0.01 of the uncracked U are not worked out now, 19 of them of two such bodies whose common part, the
+        /// check, is not worked out within the rounding either.
         /// </para>
         /// </remarks>
         private static bool WithinTheRounding(Operation operation, string name, GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, Tolerance within, out BooleanOutcome outcome, out GeoSolid3 open)
@@ -2185,14 +2187,17 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// <para>
         /// A common part lies within both bodies: one with a corner further outside a body that closes than a thousand
-        /// roundings of the coordinates does not hold up. A difference holds the first less the common part of the two, and a
+        /// roundings of the coordinates does not hold up. Of two bodies neither of which closes, each is read as though it
+        /// did, and a common part holds up only where it has no corner outside either and leaves out no corner of one lying
+        /// inside the other (see <see cref="Misses"/>). A difference holds the first less the common part of the two, and a
         /// union the two less it, the common part worked out within the rounding too and lying within both; one that comes
         /// out not worked out, or as nothing where the skin of either body runs into the other, says nothing of the result,
         /// which does not hold up then either. The volumes are read as <see cref="GeoSolid3.GetVolume(Tolerance)"/> reads
         /// them, each from a corner of its own. Faces that do not close hold a volume only from where it is read: read from
         /// anywhere in their box it moves by no more than their open area, the faces' areas summed with their normals, times
         /// the diagonal of the box. The volumes have to add up within that for each body that does not close, the tolerance
-        /// times the area of the two, and a hair for the rounding.
+        /// times the area of the two, what the faces of the four lying off flat move (see
+        /// <see cref="OffFlat(GeoSolid3)"/>), and a hair for the rounding.
         /// </para>
         /// <para>
         /// Read so, the cube 10 across cracked 0.0001 wide, its open area 0.0005, moves by no more than 0.0087. Less a box 3
@@ -2200,17 +2205,23 @@ namespace GeometryHelper.Core
         /// turned, joined to a box 7.5 by 6.2 through its corner whose floor stands 0.003 below its own, it held 1 232.638,
         /// where the two less their common part, 125, hold 1 107.638; and turned another way, its common part with a slab
         /// leaning through it, sharing 76.79, was the whole cube, its corners outside the slab. Two unions of such a cube and
-        /// a slab thousands long that held what the uncracked cube gives within 0.01 do not hold up: open by holes the cube
-        /// does not have, they miss the two less their common part by 0.023 and 0.57.
+        /// a slab thousands long, which hold what the uncracked cube gives within 0.01, missed the two less their common part
+        /// by 0.023 and 0.57, within what the faces of the four off flat move, 0.18 and 16.2 at most, and hold up now; a union
+        /// 36 over the two, of the cube cracked 0.001 wide and such a slab, their faces off flat moving 13.4 at most, does not.
         /// </para>
         /// </remarks>
         private static string HoldsUpOpen(string operation, GeoSolid3 result, GeoSolid3 first, GeoSolid3 second, Tolerance within)
         {
+            if (first.Openings.Count > 0 || second.Openings.Count > 0)
+            {
+                return null;
+            }
+
             Tolerance work = ForWork(within);
             bool firstCloses = Shells3.Closes(first, work);
             bool secondCloses = Shells3.Closes(second, work);
 
-            if (firstCloses && secondCloses || first.Openings.Count > 0 || second.Openings.Count > 0)
+            if (firstCloses && secondCloses)
             {
                 return null;
             }
@@ -2219,7 +2230,16 @@ namespace GeometryHelper.Core
 
             if (operation == "intersection")
             {
-                return LiesOutside(result, first, firstCloses, second, secondCloses, reading) ? "it came out with a corner outside a body" : null;
+                if (LiesOutside(result, first, firstCloses, second, secondCloses, reading))
+                {
+                    return "it came out with a corner outside a body";
+                }
+
+                // Of two bodies neither of which closes, each is read as though it did; see Misses.
+                return !firstCloses && !secondCloses
+                    && (LiesOutside(result, first, true, second, true, reading) || Misses(result, first, second, reading) || Misses(result, second, first, reading))
+                    ? "it came out with a corner outside a body, or without a corner of one inside the other"
+                    : null;
             }
 
             if (!IntersectAsAsked(first, second, out GeoSolid3 common, within, out BooleanOutcome shared, out _) && shared != BooleanOutcome.Empty)
@@ -2242,7 +2262,8 @@ namespace GeometryHelper.Core
             double v2 = second.GrossVolume;
             double expected = (operation == "difference" ? v1 : v1 + v2) - (common == null ? 0.0 : common.GrossVolume);
             double bound = (firstCloses ? 0.0 : Moves(first)) + (secondCloses ? 0.0 : Moves(second))
-                + within.EqualPoint * (first.GrossSurfaceArea + second.GrossSurfaceArea) + 1E-9 * (Math.Abs(v1) + Math.Abs(v2));
+                + within.EqualPoint * (first.GrossSurfaceArea + second.GrossSurfaceArea) + 1E-9 * (Math.Abs(v1) + Math.Abs(v2))
+                + OffFlat(result) + OffFlat(first) + OffFlat(second) + (common == null ? 0.0 : OffFlat(common));
 
             return Math.Abs(v - expected) <= bound ? null : $"it holds {v:R} where the two less their common part hold {expected:R}, within {bound:R}";
         }
@@ -2267,6 +2288,66 @@ namespace GeometryHelper.Core
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Whether a common part of two bodies misses a corner of the first lying inside the second: inside it further than a
+        /// distance, and outside the common part further than it.
+        /// </summary>
+        /// <remarks>
+        /// What lies inside both lies inside their common part, the corners of either among it. Of two bodies neither of which
+        /// closes, each is read as though it did, a ray cast from a corner leaving through a crack only where it runs into one:
+        /// of 46 common parts made at nought of a U 30 by 10 by 10 and a box through its notch, both cracked up to 0.0001 wide,
+        /// the 34 holding what the two share hold up, and the 12 that do not do not. One, of the two cracked 1.5E-5 wide, came
+        /// out 3.66 where they share 34.02, 3 corners of the box inside the U and outside it.
+        /// </remarks>
+        private static bool Misses(GeoSolid3 common, GeoSolid3 first, GeoSolid3 second, double reading)
+        {
+            var tolerance = new Tolerance(reading, reading, reading, reading);
+
+            foreach (GeoFace3 face in first.Faces)
+            {
+                foreach (GeoPoint3 corner in face.Boundary.Vertices)
+                {
+                    if (Containment3.Locate(second, corner, tolerance) == PointLocation.Inside
+                        && Containment3.Locate(common, corner, tolerance) == PointLocation.OutSide)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// How far the volume of a body is known for its faces lying off flat: a third of the furthest a corner of each face
+        /// stands off the face's plane, times the face's area, summed, as a face twisted so moves the volume it bounds by a
+        /// third of that taken in triangles one way or the other.
+        /// </summary>
+        /// <remarks>
+        /// A slab a few millimetres thick and thousands long, its corners worked out where planes a millionth of a radian apart
+        /// meet, has corners standing off its faces' planes, and what it holds moves with how its faces are taken, cut or
+        /// whole: one of 2 252 584.09 read 0.0125 short of it, and one of 59 169 045.91, 0.57 short.
+        /// </remarks>
+        private static double OffFlat(GeoSolid3 solid)
+        {
+            double total = 0.0;
+
+            foreach (GeoFace3 face in solid.Faces)
+            {
+                GeoPlane3 plane = face.GetPlane();
+                double furthest = OffFlat(face.Boundary, plane);
+
+                foreach (GeoPolygon3 hole in face.Holes)
+                {
+                    furthest = Math.Max(furthest, OffFlat(hole, plane));
+                }
+
+                total += furthest * face.Area;
+            }
+
+            return total / 3.0;
         }
 
         /// <summary>

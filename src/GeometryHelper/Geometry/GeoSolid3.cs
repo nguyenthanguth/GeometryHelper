@@ -45,6 +45,11 @@ namespace GeometryHelper.Geometry
         // can the answer.
         private volatile bool _woundOutwards;
 
+        // Whether Shells3.Closes last read this body closed, and within which tolerance: a boolean asks of its result, and
+        // asked below the rounding of what it is handed again (see Boolean3.HoldsUpOpen), so a body made by one boolean and
+        // handed to the next is read once. Written whole or not at all, and the body cannot change, so neither can the answer.
+        private volatile ClosesWithin _closes;
+
         /// <summary>
         /// Gets the read-only list of faces bounding the solid.
         /// </summary>
@@ -213,6 +218,37 @@ namespace GeometryHelper.Geometry
             }
 
             return new GeoSolid3(faces, openings) { _woundOutwards = true };
+        }
+
+        /// <summary>
+        /// Gets what <see cref="Shells3.Closes"/> last read of this body, where it was asked within the tolerance given; null
+        /// where it was last asked within another, or never.
+        /// </summary>
+        internal bool? ClosesAsLastRead(Tolerance tolerance)
+        {
+            ClosesWithin closes = _closes;
+            return closes != null && closes.Tolerance == tolerance ? closes.Closes : (bool?)null;
+        }
+
+        /// <summary>
+        /// Keeps what <see cref="Shells3.Closes"/> read of this body within a tolerance.
+        /// </summary>
+        internal void KeepCloses(Tolerance tolerance, bool closes) => _closes = new ClosesWithin(tolerance, closes);
+
+        /// <summary>
+        /// What <see cref="Shells3.Closes"/> read of a body, and within which tolerance.
+        /// </summary>
+        private sealed class ClosesWithin
+        {
+            public ClosesWithin(Tolerance tolerance, bool closes)
+            {
+                Tolerance = tolerance;
+                Closes = closes;
+            }
+
+            public Tolerance Tolerance { get; }
+
+            public bool Closes { get; }
         }
 
         #region Measurements
