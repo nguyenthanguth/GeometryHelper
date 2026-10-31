@@ -109,6 +109,22 @@ worked out anew, nor set. The five properties of ACadSharp's lookup sample, a gr
 microseconds an INSERT under .NET 10 and 86 under .NET Framework 4.8. 16 new tests, 1 changed (an INSERT of BOLT scaled
 (1.5, -1.5, 2) is not `IsDynamicBlock`).
 
+**FIXED.** A loop in the plane cut along a chain or by a line, by `Splition2.TrySplitBy` or the `TrySplitBy` of
+`GeoPolygon2`, is cut at the tolerance asked, corner for corner, as a polygon in space is. The loop, the chain and the
+pieces went into space and back through constructors that read the global tolerance, which dropped a side shorter than a
+thousandth before the cut was asked and a side of a piece shorter than that after it. At a millionth, a chain starting on a
+side 0.00057 long was refused, a chain ending 0.0005 from a corner gave a piece that lost the place it ended and 0.0025
+square units with it, and a loop or a cut-off corner smaller than a thousandth threw; the line through (0.0005, 0) and
+(0, 0.0005) now cuts the square 10 by 10 at the origin into its corner, a triangle of 0.000000125 square units, and the
+rest. Of 18 000 polygons, half of them in the plane, cut along a chain from mid-side, beside a corner or on one at
+tolerances from a millionth to 0.03, 337 in the plane started or ended the cut off its place and 2 started it apart in the
+two pieces; of 12 000 with sides and ends from six tolerances to 0.0009 long or away, at tolerances from a ten-millionth to
+a ten-thousandth, 1 598 in the plane lost area, 699 started or ended apart and 47 threw. Of 16 000 loops cut by a line, 723
+threw, 3 211 of sides longer than the tolerance lost area and 5 850 came out other than the same cut in space. None does
+now, but for 4 chain cuts and 3 line cuts whose pieces add up to more than the loop, as 3 chain cuts in space do; a loop cut
+by a line gives the answer of space to the bit. Loops of sides longer than the global tolerance cut from mid-side, across
+or on a corner are the same to the bit, and both cuts take 7 to 19 % less time. 6 new tests.
+
 **FIXED.** A polygon cut along a chain by `Splition3.TrySplitBy` or the `TrySplitBy` of `GeoPolygon3`, and a loop in the
 plane by `Splition2.TrySplitBy` or the `TrySplitBy` of `GeoPolygon2`, is cut from a corner where an end of the chain meets
 the outline within the tolerance of it, as a polyline cut within the tolerance of a vertex is: both pieces keep the corner,

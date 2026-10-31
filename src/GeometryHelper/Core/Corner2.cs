@@ -1319,7 +1319,7 @@ namespace GeometryHelper.Core
                 }
             }
 
-            result = new GeoPolylineArc2(rebuilt);
+            result = GeoPolylineArc2.FromEdges(rebuilt, tolerance);
             return true;
         }
 

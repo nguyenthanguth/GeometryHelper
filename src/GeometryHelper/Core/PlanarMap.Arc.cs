@@ -254,7 +254,7 @@ namespace GeometryHelper.Core
                 edges.Add(edge);
             }
 
-            result = new GeoPolylineArc2(edges);
+            result = GeoPolylineArc2.FromEdges(edges, tolerance);
             return true;
         }
 

@@ -53,6 +53,12 @@ namespace GeometryHelper.Core
         /// Left and right are read from the cutter's own direction, so reversing the cutter swaps the two
         /// answers and nothing else. A concave loop can give several pieces to a side, which is why each side
         /// is an array.
+        /// <para>
+        /// The loop and the pieces are taken corner for corner at the tolerance asked, never at the global one: at a
+        /// millionth, the line through (0.0005, 0) and (0, 0.0005) cuts the square 10 by 10 at the origin into its corner, a
+        /// triangle of 0.000000125 square units, and the rest, where the global tolerance of a thousandth read the corner as
+        /// no polygon and threw.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static bool TrySplitBy(GeoPolygon2 polygon, GeoLine2 cutter, out GeoPolygon2[] left, out GeoPolygon2[] right, Tolerance tolerance)
@@ -70,12 +76,19 @@ namespace GeometryHelper.Core
             }
 
             GeoCoordinateSystem3 frame = GeoCoordinateSystem3.Global;
+            GeoPolygon3 lifted = LiftedAsItIs(frame, polygon);
 
-            bool split = Splition3.TrySplitBy(
-                PlanarMap.ToPolygon3(frame, polygon), plane, out GeoPolygon3[] above, out GeoPolygon3[] below, tolerance);
+            if (lifted == null)
+            {
+                left = new[] { polygon };
+                right = new GeoPolygon2[0];
+                return false;
+            }
 
-            left = FlattenPolygons(frame, above);
-            right = FlattenPolygons(frame, below);
+            bool split = Splition3.TrySplitBy(lifted, plane, out GeoPolygon3[] above, out GeoPolygon3[] below, tolerance);
+
+            left = FlattenAsTheyAre(frame, above);
+            right = FlattenAsTheyAre(frame, below);
 
             return split;
         }
@@ -159,6 +172,12 @@ namespace GeometryHelper.Core
         /// triangle of 25 square units from (0, 0) and the rest, of 75, where the rest lost a sliver of 0.02 square units
         /// at the corner.
         /// </para>
+        /// <para>
+        /// The loop, the chain and the pieces are taken corner for corner at the tolerance asked, never at the global one:
+        /// at a millionth, the square 10 by 10 with its corner (0, 0) cut off by a side 0.00057 long is cut from (0, 5) to
+        /// (10, 5) into the top of 50 square units and the bottom of 50 less the 0.00000008 the cut-off corner takes, where
+        /// the global tolerance of a thousandth dropped the short side and refused the cut.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop or the chain is null.</exception>
         public static bool TrySplitBy(GeoPolygon2 subject, GeoPolyline2 cutLine, out GeoPolygon2[] pieces, Tolerance tolerance)
@@ -174,14 +193,17 @@ namespace GeometryHelper.Core
             }
 
             GeoCoordinateSystem3 frame = GeoCoordinateSystem3.Global;
+            GeoPolygon3 lifted = LiftedAsItIs(frame, subject);
 
-            bool split = Splition3.TrySplitBy(
-                PlanarMap.ToPolygon3(frame, subject),
-                PlanarMap.ToPolyline3(frame, cutLine),
-                out GeoPolygon3[] cut,
-                tolerance);
+            if (lifted == null)
+            {
+                pieces = new[] { subject };
+                return false;
+            }
 
-            pieces = split ? FlattenPolygons(frame, cut) : new[] { subject };
+            bool split = Splition3.TrySplitBy(lifted, LiftedAsItIs(frame, cutLine), out GeoPolygon3[] cut, tolerance);
+
+            pieces = split ? FlattenAsTheyAre(frame, cut) : new[] { subject };
 
             return split;
         }
@@ -217,13 +239,68 @@ namespace GeometryHelper.Core
             return true;
         }
 
-        private static GeoPolygon2[] FlattenPolygons(GeoCoordinateSystem3 frame, GeoPolygon3[] polygons)
+        /// <summary>
+        /// A loop put into space at z = 0 corner for corner, with the normal and area its corners give; null when it
+        /// encloses nothing.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="PlanarMap.ToPolygon3(GeoCoordinateSystem3, GeoPolygon2)"/> builds through the constructor, which
+        /// reads <see cref="Tolerance.Global"/>: a side shorter than that was dropped before the cut was asked, and with it
+        /// the place a chain started at a millionth, and a loop smaller than that threw.
+        /// </remarks>
+        private static GeoPolygon3 LiftedAsItIs(GeoCoordinateSystem3 frame, GeoPolygon2 loop)
+        {
+            var corners = new GeoPoint3[loop.VertexCount];
+
+            for (int i = 0; i < corners.Length; i++)
+            {
+                corners[i] = PlanarMap.ToPoint3(frame, loop[i]);
+            }
+
+            GeoVector3 areaVector = Newell.GetAreaVector(corners);
+            double area = areaVector.Length;
+
+            if (!(area > 0.0))
+            {
+                return null;
+            }
+
+            return GeoPolygon3.FromValidated(corners, new GeoVector3(areaVector.X / area, areaVector.Y / area, areaVector.Z / area), area);
+        }
+
+        /// <summary>
+        /// A chain put into space at z = 0 vertex for vertex.
+        /// </summary>
+        private static GeoPolyline3 LiftedAsItIs(GeoCoordinateSystem3 frame, GeoPolyline2 chain)
+        {
+            var vertices = new GeoPoint3[chain.VertexCount];
+
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                vertices[i] = PlanarMap.ToPoint3(frame, chain[i]);
+            }
+
+            return new GeoPolyline3(vertices, true);
+        }
+
+        /// <summary>
+        /// Pieces cut in space laid back in the plane corner for corner: they were built at the tolerance asked, and
+        /// the global one would drop a side shorter than it, and with it the place the cut ended.
+        /// </summary>
+        private static GeoPolygon2[] FlattenAsTheyAre(GeoCoordinateSystem3 frame, GeoPolygon3[] polygons)
         {
             var result = new GeoPolygon2[polygons.Length];
 
             for (int i = 0; i < polygons.Length; i++)
             {
-                result[i] = PlanarMap.ProjectToPolygon2(frame, polygons[i]);
+                var corners = new GeoPoint2[polygons[i].VertexCount];
+
+                for (int j = 0; j < corners.Length; j++)
+                {
+                    corners[j] = PlanarMap.ProjectToPoint2(frame, polygons[i][j]);
+                }
+
+                result[i] = new GeoPolygon2(corners, corners.Length);
             }
 
             return result;

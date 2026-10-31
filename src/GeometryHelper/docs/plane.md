@@ -449,6 +449,10 @@ between them has to stay inside: a chain that leaves and comes back would divide
 two, so it is refused rather than answered in part. An end that meets the boundary within the tolerance of a corner is
 cut from the corner, so both pieces keep it and they add up to the region: at a hundredth, the square 10 by 10 cut from
 (0.004, 0) to (10, 5) gives the triangle of 25 square units from (0, 0) and the rest, of 75, where the corner was cut off.
+The region and its pieces are taken corner for corner at the tolerance asked, by a line as by a chain, so a side shorter
+than the global tolerance stays: at a millionth, the line through (0.0005, 0) and (0, 0.0005) cuts the square 10 by 10 at
+the origin into its corner, a triangle of 0.000000125 square units, and the rest, where the global tolerance of a
+thousandth read the corner as no polygon and threw.
 
 ## Extending and trimming
 
