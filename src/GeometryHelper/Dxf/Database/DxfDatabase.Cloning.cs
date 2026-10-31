@@ -191,6 +191,7 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
+                target.Copies?.Entity(entities[i].Item, copies[i].Item);
                 MapDataHandles(entities[i], copies[i], copyOf);
 
                 if (entities[i] is DxfHatch hatch && hatch.Associative)

@@ -6,6 +6,28 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** `DxfDatabase.Insert` of another drawing keeps its dynamic blocks dynamic, as AutoCAD's own insert keeps them,
+where it brought them as static copies before. The extended data of a dynamic block's BLOCK_RECORD (its true name, its
+GUID and its tags) and the evaluation graph with its nodes and the purge preventer of its extension dictionary come with
+the block, the AcDbBlockRepBTag with each anonymous block standing for it, and the representation data, the values and
+any history of grip edits with each INSERT. Every object is copied under a handle of its own, and every handle among
+them names the copy of what it named, an entity of the block, a node of the graph or the block itself, so that nothing
+points into the other drawing or at nothing; the classes of the objects are listed and the applications of their
+extended data registered. A block GH_PANEL of a Width of 100 with an INSERT of it set to 200 comes as GH_PANEL, dynamic,
+its INSERT reading Width 200, and Width set to 270 on the copy stretches its anonymous block as the same set stretches the
+original's. A dynamic block of a name the drawing has is the drawing's own, as any block of the name is: the INSERTs
+copied stand for it where it is dynamic, and are static copies otherwise; a drawing older than R2010, into which the
+library writes no dynamic block, takes them static as before. Both overloads do so, `Insert("SHEET", other, true)` too.
+226 drawings of dynamic blocks (ACadSharp's AutoCAD samples, AutoCAD's saves of the checks v16 to v22, the library's
+own), each inserted into new drawings of R2018 and R2010, moved and not, give every INSERT the dynamic properties and
+values it had, no handle naming what the drawing has not, and nothing new for ezdxf's recover and audit to fix; 2 150 sets of
+a value on the copies give what the same sets give on the originals, 2 008 of them drawn and the rest refused alike. A
+drawing with no dynamic block is inserted as before, to the bit: 7 380 inserts of 492 drawings, three ways into five
+drawings each, write the same. Inserting a drawing of 1 000 INSERTs of which 500 are set, the 4 000 objects of their
+representations copied, takes about 75 milliseconds under .NET 10 where it took 45, and 195 under .NET Framework 4.8
+where it took 130; ACadSharp's linear sample, of two INSERTs, takes 0.8 where it took 0.5 (1.5 and 0.8); a drawing with
+no dynamic block takes what it took.
+
 **FIXED.** The area, the winding, the centroid and the check for crossings of a curved loop in space,
 `GeoPolygonArc3.Area`, `SignedArea`, `IsClockwise`, `Centroid` and `IsSimple`, read the loop as it is, every arc and
 side however small, and `Reverse` turns it round edge for edge, as its fillets, chamfers and offsets have worked on it

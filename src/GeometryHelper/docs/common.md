@@ -800,8 +800,20 @@ line and M an INSERT of P, neither A nor M comes. So is `db.Insert("NEWB", other
 INSERT of NEWB and the other's model space one of P, which NEWB would hold. The extents grow by the
 entities where they were moved to, and the other drawing is left as it is, whatever `preserveSourceDatabase` says. Its paper
 space is not inserted, nor its external references but one an INSERT of its model space places, which comes with the INSERT
-an external reference still, its BLOCK flagged 4 (12 overlaid) and naming its drawing as before. A dynamic block comes as a
-static one: its copy draws what it drew, without the data that makes it dynamic, which AutoCAD's own insert keeps. A
+an external reference still, its BLOCK flagged 4 (12 overlaid) and naming its drawing as before. A dynamic block stays
+dynamic, as AutoCAD's own insert keeps it: the extended data of its BLOCK_RECORD (AcDbDynamicBlockTrueName,
+AcDbDynamicBlockGUID, AcDbBlockRepETag) and the evaluation graph with its nodes and the purge preventer of its extension
+dictionary come with it, each anonymous block standing for it keeps its AcDbBlockRepBTag (a block placed by two INSERTs is
+copied for each, as the copy has always brought it), and each INSERT its representation data, the values it keeps and any
+history of grip edits. Every object is copied under a handle of its own, and every handle among them names the copy of what
+it named, an entity of the block, a node of the graph or the block itself, so that nothing points back into the other
+drawing; the classes of the objects are listed and the applications of their extended data registered. A block GH_PANEL of
+a Width of 100 with an INSERT of it set to 200 comes as GH_PANEL, dynamic, with an INSERT that reads Width 200, can be set
+again, and stretches as the one it was copied from. A dynamic block of a name this drawing has is this drawing's own, as any
+block of the name is: the INSERTs copied stand for it where it is dynamic, and are static copies otherwise. A drawing older
+than R2010 (AC1024), into which the library writes no dynamic block, takes them all static. Copying what makes them
+dynamic takes about a tenth of a millisecond for each INSERT that keeps values of its own: a drawing of 1 000 INSERTs of
+GH_PANEL, 500 of them set, takes 30 milliseconds more to insert under .NET 10 and 65 more under .NET Framework 4.8. A
 drawing of 10 000 blocks nested one inside the next is inserted in about a second, and 3 000 dimensions each drawn by a
 block of its own are copied in under half a second; nothing of the drawing copied from is written,
 so that several threads may copy from it at once. The walks down nested blocks keep no limit of depth, but exploding and the reader's placing stop at 64
@@ -2228,8 +2240,8 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
     sample, which AutoCAD draws from there.
 
   A block whose entities another program changed keeps the values AutoCAD saved. `ConvertToStaticBlock` copies what the
-  INSERT draws as it stands; `ResetBlock` is not there. `db.Insert` of another drawing brings a dynamic block of it as a
-  static one, without the data that makes it dynamic, which AutoCAD's own insert keeps.
+  INSERT draws as it stands; `ResetBlock` is not there. `db.Insert` of another drawing keeps a dynamic block dynamic, as
+  AutoCAD's own insert does, but `WblockCloneObjects` of an INSERT alone brings its block as a static copy.
 - It resolves no external reference: `AttachXref` writes the block that names the drawing, and reading that drawing into it
   is AutoCAD's work when it opens this one, so an INSERT of it places nothing here and `XrefStatus` is never `Unloaded`.
 - It does not explode every entity AutoCAD explodes. `Explode()` refuses with `NotSupportedException` a HATCH filled solid

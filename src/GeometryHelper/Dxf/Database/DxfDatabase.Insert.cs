@@ -24,10 +24,18 @@ namespace GeometryHelper.Dxf
         /// dimension's <c>*D</c>, comes under a name of its own, as <see cref="DxfBlockTableRecord.AppendEntity"/> says; the
         /// external references of the other drawing and what they brought (a name with a | in it) are not merged, but one an
         /// INSERT of its model space places comes with the INSERT, an external reference still: its BLOCK flagged 4, or 12
-        /// overlaid, naming its drawing in its 1, with no entities. A dynamic block comes as a static one, its copy holding
-        /// what it draws without what makes it dynamic (the <c>AcDbDynamicBlockGUID</c> of its record, the
-        /// <c>AcDbBlockRepBTag</c> of an anonymous block standing for it, their extension dictionaries), which AutoCAD's own
-        /// insert keeps.
+        /// overlaid, naming its drawing in its 1, with no entities.
+        /// </para>
+        /// <para>
+        /// A dynamic block stays dynamic, as AutoCAD's own insert keeps it: its record's extended data
+        /// (<c>AcDbDynamicBlockTrueName</c>, <c>AcDbDynamicBlockGUID</c>, <c>AcDbBlockRepETag</c>) and the evaluation graph and
+        /// purge preventer of its extension dictionary come with it, each anonymous block standing for it keeps its
+        /// <c>AcDbBlockRepBTag</c>, and each INSERT its representation data and the values it keeps, every object copied under a
+        /// handle of its own here and every handle among them naming the copies; the classes of the objects are listed. A block
+        /// GH_PANEL of a Width of 100 with an INSERT of it set to 200 comes as GH_PANEL, dynamic, with an INSERT that reads
+        /// Width 200 and is set again as the one it was copied from. A dynamic block of a name this drawing has is this
+        /// drawing's own: the INSERTs copied stand for it where it is dynamic, and are static copies otherwise; and a drawing
+        /// older than R2010 (AC1024), which the library writes no dynamic block into, takes them all static.
         /// </para>
         /// <para>
         /// Every entity is checked before anything is written, its copy and its copy moved, so that a drawing this one cannot
@@ -73,12 +81,14 @@ namespace GeometryHelper.Dxf
             IReadOnlyList<DxfTypedValue> least;
             IReadOnlyList<DxfTypedValue> most;
             HashSet<DxfEntity> before;
+            var copied = new DxfFile.InsertCopies();
             File.HoldTableNames();
             bool keeping = false;
 
             try
             {
                 keeping = File.KeepAnonymousNames(dataBase.File, CheckCopies(dataBase, entities, null));
+                File.Copies = copied;
                 MergeTables(dataBase);
                 least = File.HeaderOf("$EXTMIN");
                 most = File.HeaderOf("$EXTMAX");
@@ -87,6 +97,8 @@ namespace GeometryHelper.Dxf
             }
             finally
             {
+                File.Copies = null;
+
                 if (keeping)
                 {
                     File.ReleaseAnonymousNames();
@@ -94,6 +106,8 @@ namespace GeometryHelper.Dxf
 
                 File.ReleaseTableNames();
             }
+
+            File.CopyDynamicBlocks(dataBase.File, copied);
 
             if (moved)
             {
@@ -178,12 +192,14 @@ namespace GeometryHelper.Dxf
 
             var entities = new List<DxfEntity>(dataBase.ModelSpace);
             DxfBlockTableRecord block;
+            var copied = new DxfFile.InsertCopies();
             File.HoldTableNames();
             bool keeping = false;
 
             try
             {
                 keeping = File.KeepAnonymousNames(dataBase.File, CheckCopies(dataBase, entities, blockName));
+                File.Copies = copied;
                 MergeTables(dataBase);
                 block = new DxfBlockTableRecord { Name = blockName, Origin = dataBase.Insbase };
 
@@ -197,6 +213,8 @@ namespace GeometryHelper.Dxf
             }
             finally
             {
+                File.Copies = null;
+
                 if (keeping)
                 {
                     File.ReleaseAnonymousNames();
@@ -205,6 +223,7 @@ namespace GeometryHelper.Dxf
                 File.ReleaseTableNames();
             }
 
+            File.CopyDynamicBlocks(dataBase.File, copied);
             GeometryHelperLog.Info("DxfDatabase: a drawing of " + entities.Count.ToString(CultureInfo.InvariantCulture) + " entities was made the block " + blockName + ".");
             return block;
         }
@@ -327,6 +346,7 @@ namespace GeometryHelper.Dxf
                     }
 
                     BlockTable.Add(made);
+                    File.Copies?.Block(block.Name, made.Name);
                     source.WblockCloneObjects(new List<DxfEntity>(block), made);
                 }
             }

@@ -721,6 +721,7 @@ namespace GeometryHelper.Dxf
             foreach (DxfFileBlock block in blocks)
             {
                 _blockCopies[block] = IsAnonymous(block.Name) ? FreeAnonymousName(block.Name, kept = kept ?? AnonymousNamesKept(origin, blocks, AnonymousKept), ref now) : block.Name;
+                Copies?.Block(block.Name, _blockCopies[block]);
             }
 
             NoteDangling(origin, blocks);
@@ -765,6 +766,7 @@ namespace GeometryHelper.Dxf
                     {
                         _entityCopies[was] = copy.Handle;
                         _copiedItems[copy.Handle] = copy;
+                        Copies?.Entity(item.Handle, copy.Handle);
                     }
                 }
             }
