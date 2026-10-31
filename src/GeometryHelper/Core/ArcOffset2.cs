@@ -161,9 +161,11 @@ namespace GeometryHelper.Core
 
             if (!edge.IsArc)
             {
+                // A segment of any length has a direction. Read within the global vector tolerance, one shorter than 1E-5
+                // had none and was left where it was, so a loop with a side 0.000007 long grown by a half lost that side.
                 GeoVector2 along = edge.StartPoint.GetVectorTo(edge.EndPoint);
 
-                if (!along.TryGetNormal(out GeoVector2 unit))
+                if (!along.TryGetNormal(out GeoVector2 unit, default(Tolerance)))
                 {
                     return false;
                 }

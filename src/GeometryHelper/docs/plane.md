@@ -762,6 +762,10 @@ chain.TrySplitAtDistance(at, out GeoPolylineArc2 first, out GeoPolylineArc2 seco
 chain.SplitAtDistances(new[] { 50.0, 150.0 });
 ```
 
+The centroid weighs every vertex and every arc, however near or small: at a millionth, the rectangle 100 by 50 with its
+corner (100, 50) rounded by 0.0005 has its centroid at (50, 25) to a billionth, where the vertices were merged within
+the global tolerance, the end of the arc went, and the centroid was 0.00008 off.
+
 A cut inside an arc leaves two arcs of the same radius, so the pieces put back end to end draw exactly
 what went in. Cutting a loop gives open chains, and the run after the last cut carries on through the
 vertex the loop happened to be held from.
@@ -801,7 +805,10 @@ the tolerance asked: at a millionth, the rectangle 100 by 50 grown by 0.0004 wit
 across, where the global tolerance of a thousandth dropped them. What a miter fills is read within the tolerance asked
 too, however small the miter: a chain of nine corners some 0.005 across, grown by 0.00137 with miters at a billionth, is
 one chain, as the same chain a million times larger is within a thousandth, where a stray piece 0.00004 long was kept
-inside a miter smaller than the global tolerance.
+inside a miter smaller than the global tolerance. A side shorter than a hundredth of a millimetre moves with the rest: at
+a millionth, the square 10 by 10 at the origin with its corner (0, 0) cut off by a side 0.000007 long, grown by a half
+with miters, keeps that side, 0.41422 long now, where the side had no direction within the global vector tolerance of
+1E-5, stayed where it was, and the corner came out square.
 
 What tells the folded-over parts from the real ones is the one thing an offset cannot break: every point
 of a valid offset stands **exactly** the offset distance from the shape it came from. Each piece is cut
@@ -1092,6 +1099,10 @@ across, where the loop was put back together within the global tolerance and cam
 units short. A straight chain or loop is rounded corner for corner, a leg shorter than the global tolerance and all, so
 a corner is named by its vertex: at a millionth, the chain (0, 0), (10, 0), (10.0004, 0.0004), (10.0004, 10), (0, 10)
 rounded by 1 at vertex 3 turns at (10.0004, 10), where the short leg was dropped first and vertex 3 was the chain's end.
+A side shorter than a hundredth of a millimetre is a side to round beside like any other: at a millionth, the square 10
+by 10 at the origin with its corner (0, 0) cut off by a side 0.000007 long is rounded by 0.00001 at (0.000005, 0), where
+the side had no direction within the global vector tolerance of 1E-5, no circle was found touching it, and the corner
+was left alone.
 
 ## Circles as polygons
 
@@ -1140,7 +1151,9 @@ new GeoRectangle2(frame, 80.0, 40.0);                  // and can be built from 
 `GeoObb3` does in space.
 
 A loop can be turned round with `Reverse()`, which is what decides winding and which way round a pair of
-chamfer distances goes.
+chamfer distances goes. A curved loop is turned round edge for edge: at a millionth, the rectangle 100 by 50 filleted at
+0.0005 reverses to its eight edges, four of them arcs 0.0007 across, where it was put back together within the global
+tolerance and came back its four corners.
 
 ## Ellipses
 

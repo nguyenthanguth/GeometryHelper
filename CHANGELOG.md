@@ -6,6 +6,46 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The area, the winding, the centroid and the check for crossings of a curved loop in space,
+`GeoPolygonArc3.Area`, `SignedArea`, `IsClockwise`, `Centroid` and `IsSimple`, read the loop as it is, every arc and
+side however small, and `Reverse` turns it round edge for edge, as its fillets, chamfers and offsets have worked on it
+since the last fix. The loop was laid out in its plane within the global tolerance, which dropped the arcs and sides
+shorter than a thousandth that work at a finer tolerance leaves, and reversing put it back together within it: at a
+millionth, the rectangle 100 by 50 standing in the plane x = 20 filleted at 0.0005 read 4 999.9375, where it encloses
+4 999.99999979, and reversed to its four corners; with only its corner (20, 100, 50) rounded, its centroid was 0.00008
+off (20, 50, 25). In the plane, `GeoPolygonArc2.Reverse` put the loop back together within the global tolerance as well,
+and `Centroid` weighed the straight loop through corners merged within it and left out an arc of radius 0.00001 or
+less; both read the loop as it is now. Of 6 000 loops standing in planes at random, filleted or chamfered at
+tolerances from a billionth to a ten-thousandth or with a side between ten tolerances and 0.0009 long, 3 497 read an
+area off the formula, 3 331 a centroid off, 3 539 reversed to fewer edges in space and in the plane, and 24 read simple
+where the same loop in the plane crosses itself; none does now. Loops with no arc or side shorter than a thousandth
+give the same bits. Within a tolerance coarser than an edge, the edges either side of it meet across it, so a loop
+holding such an edge is not simple at the global tolerance, as it is not in the plane: 3 366 of the 6 000, read simple
+before, are not; within a tolerance finer than their edges they are. Each takes the time it took, within the noise,
+and a centroid 6 to 9 % less. 6 new tests.
+
+**FIXED.** A corner beside a side shorter than a hundredth of a millimetre is rounded by `Corner2.Fillet` and
+`TryFilletAt`, the members that call them and `Corner3.Fillet` and `TryFilletAt` of a loop in space, and such a side
+moves with the rest when a loop or a chain that may curve is grown or shrunk by `Offset2.Offset` or the `Offset` of
+`GeoPolygonArc2` and `GeoPolygonArc3`. The side was read within the global vector tolerance of 1E-5 as having no
+direction: the fillet found no circle touching it and left the corner alone, and the offset left the side where it was
+and squared the corner off. At a millionth, the square 10 by 10 at the origin with its corner (0, 0) cut off by a side 0.000007 long is rounded by 0.00001 at (0.000005, 0),
+where it was left alone, and grown by a half it keeps that side, 0.41422 long now. Of 6 000 loops with a side between
+ten tolerances and 0.00005 long, at tolerances from a billionth to a tenth, the 369 corners beside a side shorter than
+1E-5 with room for the radius were left alone and the 385 grown lost that side; none is now. Loops with no side shorter
+than 1E-5 give the same bits, and so does every one of 20 000 stars and wavy rings offset with miters, limited miters
+and chamfers. 4 new tests.
+
+**FIXED.** A straight chain in space cut by `Corner3.Chamfer` or `TryChamferAt` is put back together within the
+tolerance asked, as a loop's cut corners and a curved chain's are, so a cut longer than that tolerance stays. It was put
+back together within the global tolerance: at a millionth, the chain (0, 0, 0), (10, 0, 0), (10, 10, 0) cut by 0.0003
+turned at (9.9997, 0, 0) alone, the two ends of the cut 0.00042 apart taken for one corner, where it turns at
+(9.9997, 0, 0) and (10, 0.0003, 0). Within a coarser tolerance than the global one, a cut no longer than it is no edge
+and the chain turns where the cut starts, as a loop and a curved chain turn: a chain cut by 0.03 at a tenth turns once
+at each corner, where it turned twice. Of 6 000 chains cut at tolerances from a billionth to a tenth, 906 came out with
+a cut missing or a corner moved; none does now. At the global tolerance every chain is the same to the bit; 470 cut at
+a hundredth or a tenth lose a cut no longer than the tolerance. A chain is cut in 8 to 20 % less time. 2 new tests.
+
 **FIXED.** `TrySubtract`, `TryIntersect` and `TryUnion` asked below four tenths of the rounding of the coordinates,
 nought among it, of a body that does not close within that rounding, as one with cracks in its faces does not, no
 longer keep what they give within the rounding where it does not hold up and the tolerance alone gives something too:

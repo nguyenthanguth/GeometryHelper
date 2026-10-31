@@ -2222,9 +2222,16 @@ tie.ToPolygonArc2();       // laid out in its own frame
 What is on the loop, inside it or nearest it in its plane, `Locate`, `Contains`, `SignedDistanceTo`, `GetClosestEdge`
 and the shortest line to a shape in its plane, is worked out on every side the loop has, as `IsPointOn` and
 `DistanceTo` measure them. A loop built within a finer tolerance than the global one keeps a side shorter than that,
-and `ToPolygonArc2`, built as a `GeoPolygonArc2` is, drops it, as the area does. At a ten-thousandth, the
+and `ToPolygonArc2`, built as a `GeoPolygonArc2` is, drops it. At a ten-thousandth, the
 loop (0, 0, 0), (10, 0, 0), (10, 0.0006, 0), (0, 10, 0), built within a billionth, has (10.00005, 0.0003, 0) on its
 side 0.0006 long and (9.9998, 0.0003, 0) inside it, 0.0002 deep, and that side is the edge nearest the first.
+
+`Area`, `SignedArea`, `IsClockwise`, `Centroid` and `IsSimple` read the loop as it is too, and `Reverse` turns it round
+edge for edge. At a millionth, the rectangle 100 by 50 standing in the plane x = 20 filleted at 0.0005 encloses
+4 999.99999979 and reverses to its eight edges, where it was laid out within the global tolerance, read 4 999.9375 and
+reversed to its four corners; with only its corner (20, 100, 50) rounded, its centroid is (20, 50, 25) to a billionth,
+where it was 0.00008 off. Within a tolerance coarser than an edge, the edges either side of it meet across it, so the
+filleted rectangle is simple within a millionth and not within a thousandth, as the same loop in the plane is.
 
 The shaping works on the loop as it is too. `Fillet`, `Chamfer`, `TryFilletAt`, `TryChamferAt` and `Offset` lay it out
 corner for corner and lift what comes of it back edge for edge, so they keep what the same work keeps in the plane, every
@@ -2290,7 +2297,11 @@ every end is on a surface by construction and a surface belongs to neither side.
 
 A chamfer needs no plane at all — it moves back along one leg and forward along the other, so both points
 land on the legs themselves. Only a corner between two **straight** legs is cut, the rule the fillet keeps,
-because a leg that curves leaves at a tangent.
+because a leg that curves leaves at a tangent. A straight chain is put back together within the tolerance asked, as a
+loop's cut corners and a curved chain's are: at a millionth, the chain (0, 0, 0), (10, 0, 0), (10, 10, 0) cut by 0.0003
+turns at (9.9997, 0, 0) and (10, 0.0003, 0), where the two ends of the cut, 0.00042 apart, were one corner within the
+global tolerance; within a thousandth or coarser, a cut no longer than the tolerance is no edge, and the chain turns
+where it starts.
 
 ```csharp
 crooked.Chamfer(50.0);                     // a GeoPolyline3 that lies in no one plane, all the same

@@ -262,8 +262,8 @@ namespace GeometryHelper.Geometry
         /// Lays the loop out in its own frame.
         /// </summary>
         /// <remarks>
-        /// This is where every answer about area and about offsetting comes from; what is inside is worked out in the
-        /// same frame on every side the loop has (see <see cref="ProjectToPolygonArc2(GeoCoordinateSystem3)"/>). The
+        /// This is the frame every answer about area, about offsetting and about what is inside is worked out in, on every
+        /// side the loop has (see <see cref="ProjectToPolygonArc2(GeoCoordinateSystem3)"/>). The
         /// frame turns with the loop, so a plate gives the same local coordinates whichever way it is
         /// oriented in the model.
         /// </remarks>
@@ -280,7 +280,8 @@ namespace GeometryHelper.Geometry
         /// its side 0.0006 long. What the loop says about a point or a shape in its plane, as
         /// <see cref="Locate(GeoPoint3, Tolerance)"/>, <see cref="SignedDistanceTo(GeoPoint3, Tolerance)"/>,
         /// <see cref="GetClosestEdge(GeoPoint3, Tolerance)"/> and the shortest lines to shapes in its plane do, is worked
-        /// out on every side it has, and so are its fillets, chamfers and offsets.
+        /// out on every side it has, and so are its area, its centroid, the check for crossings, its reverse, its fillets,
+        /// chamfers and offsets.
         /// </remarks>
         public GeoPolygonArc2 ProjectToPolygonArc2(GeoCoordinateSystem3 frame) => LayOut(frame, Tolerance.Global);
 
@@ -329,28 +330,41 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the area the loop encloses, counting each arc against its own chord.
         /// </summary>
-        public double Area => ToPolygonArc2().Area;
+        /// <remarks>
+        /// The loop is measured as it is, every arc and side however small: at a millionth, the rectangle 100 by 50 standing
+        /// in the plane x = 20 and filleted at 0.0005 encloses 4 999.99999979, where it was laid out within the global
+        /// tolerance of a thousandth, lost its arcs 0.0007 across, and read 4 999.9375.
+        /// </remarks>
+        public double Area => Flat(GetFrame()).Area;
 
         /// <summary>
         /// Gets the area the loop encloses, negative when it runs clockwise in its own frame.
         /// </summary>
-        public double SignedArea => ToPolygonArc2().SignedArea;
+        /// <remarks>The loop is measured as it is, as <see cref="Area"/> measures it.</remarks>
+        public double SignedArea => Flat(GetFrame()).SignedArea;
 
         /// <summary>
         /// Gets a value indicating whether the loop runs clockwise in its own frame.
         /// </summary>
-        public bool IsClockwise => ToPolygonArc2().IsClockwise;
+        /// <remarks>The loop is read as it is, as <see cref="Area"/> measures it.</remarks>
+        public bool IsClockwise => Flat(GetFrame()).IsClockwise;
 
         /// <summary>
         /// Gets the centroid of the region the loop encloses.
         /// </summary>
+        /// <remarks>
+        /// The loop is weighed as it is, every arc and side however small: at a millionth, the rectangle 100 by 50 standing in
+        /// the plane x = 20 with its corner (20, 100, 50) rounded by 0.0005 has its centroid at (20, 50, 25) to a billionth,
+        /// where it was laid out within the global tolerance of a thousandth, lost the end of its arc, and was weighed with
+        /// its next side running in a slant, 0.00008 off.
+        /// </remarks>
         public GeoPoint3 Centroid
         {
             get
             {
                 GeoCoordinateSystem3 frame = GetFrame();
 
-                return PlanarMap.ToPoint3(frame, ProjectToPolygonArc2(frame).Centroid);
+                return PlanarMap.ToPoint3(frame, Flat(frame).Centroid);
             }
         }
 
@@ -362,7 +376,15 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Determines whether no two edges of the loop cross, within a tolerance.
         /// </summary>
-        public bool IsSimple(Tolerance tolerance) => ToPolygonArc2().IsSimple(tolerance);
+        /// <remarks>
+        /// Every edge is checked as it is, however short, as the loop laid out in its plane checks it: at a millionth, the
+        /// loop (10, 0, 0), (10, 10, 0), (0, 10, 0), (0.0004, 0, 0), (0, 0.0004, 0) crosses itself near (0.0004, 0.0004, 0),
+        /// where it was laid out within the global tolerance of a thousandth and lost the corner the crossing comes back
+        /// round by. Within a tolerance coarser than an edge, the edges either side of it meet across it, so the rectangle
+        /// 100 by 50 filleted at 0.0005 at a millionth is simple within a millionth and not within a thousandth, as the same
+        /// loop in the plane is; laid out within the global tolerance, it lost its arcs and read simple at any tolerance.
+        /// </remarks>
+        public bool IsSimple(Tolerance tolerance) => Flat(GetFrame()).IsSimple(tolerance);
 
         /// <summary>
         /// Says where a point sits relative to the loop.
@@ -649,11 +671,16 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the loop run the other way round, drawing the same outline.
         /// </summary>
+        /// <remarks>
+        /// The loop is reversed edge for edge, every arc and side however small: at a millionth, the rectangle 100 by 50
+        /// standing in the plane x = 20 and filleted at 0.0005 reverses to eight edges, four of them arcs, where it was laid
+        /// out and put back together within the global tolerance of a thousandth and came back its four corners.
+        /// </remarks>
         public GeoPolygonArc3 Reverse()
         {
             GeoCoordinateSystem3 frame = GetFrame();
 
-            return new GeoPolygonArc3(frame, ProjectToPolygonArc2(frame).Reverse());
+            return LiftAsItIs(frame, Flat(frame).Reverse());
         }
 
         /// <summary>

@@ -206,11 +206,15 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets a straight edge moved sideways, as the endless line it lies on.
         /// </summary>
+        /// <remarks>
+        /// An edge of any length has a direction. Read within the global vector tolerance, an edge shorter than 1E-5 had
+        /// none and was not moved, so a corner beside a side 0.000007 long found no centre for a radius that fitted it.
+        /// </remarks>
         private static GeoLine2 Moved(GeoEdge2 edge, double distance)
         {
             GeoVector2 along = edge.StartPoint.GetVectorTo(edge.EndPoint);
 
-            along.TryGetNormal(out GeoVector2 unit);
+            along.TryGetNormal(out GeoVector2 unit, default(Tolerance));
 
             var sideways = new GeoVector2(-unit.Y * distance, unit.X * distance);
 
@@ -267,7 +271,7 @@ namespace GeometryHelper.Core
         {
             GeoVector2 along = line.StartPoint.GetVectorTo(line.EndPoint);
 
-            if (!along.TryGetNormal(out GeoVector2 unit))
+            if (!along.TryGetNormal(out GeoVector2 unit, default(Tolerance)))
             {
                 return;
             }
@@ -318,7 +322,7 @@ namespace GeometryHelper.Core
                 GeoArc2 arc = edge.ToArc();
                 GeoVector2 outward = arc.Center.GetVectorTo(centre);
 
-                if (!outward.TryGetNormal(out GeoVector2 unit))
+                if (!outward.TryGetNormal(out GeoVector2 unit, default(Tolerance)))
                 {
                     return false;
                 }
@@ -327,9 +331,10 @@ namespace GeometryHelper.Core
             }
             else
             {
+                // A side of any length has a direction, as Moved reads it.
                 GeoVector2 along = edge.StartPoint.GetVectorTo(edge.EndPoint);
 
-                if (!along.TryGetNormal(out GeoVector2 unit))
+                if (!along.TryGetNormal(out GeoVector2 unit, default(Tolerance)))
                 {
                     return false;
                 }

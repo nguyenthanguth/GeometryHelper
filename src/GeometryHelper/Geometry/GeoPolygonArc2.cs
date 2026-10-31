@@ -511,6 +511,11 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the loop running the other way round.
         /// </summary>
+        /// <remarks>
+        /// The loop is reversed edge for edge, every arc and side however small: at a millionth, the rectangle 100 by 50
+        /// filleted at 0.0005 reverses to eight edges, four of them arcs 0.0007 across, where it was put back together within
+        /// the global tolerance of a thousandth and came back its four corners.
+        /// </remarks>
         public GeoPolygonArc2 Reverse()
         {
             var vertices = new List<GeoPoint2>(VertexCount);
@@ -524,7 +529,9 @@ namespace GeometryHelper.Geometry
                 bulges.Add(-_bulges[(i - 1 + VertexCount) % VertexCount]);
             }
 
-            return new GeoPolygonArc2(vertices, bulges);
+            // The vertices stand apart already, however near; only one landing on the very same point as the one before
+            // it would go.
+            return FromEdges(vertices, bulges, default(Tolerance));
         }
 
         /// <summary>
@@ -808,19 +815,19 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// Exact rather than an approximation of the arcs: the centroid of the straight loop through the
         /// vertices, weighted against the centroid of each piece an arc cuts off its own chord.
+        /// <para>
+        /// The straight loop runs through every vertex, however near the next: at a millionth, the rectangle 100 by 50 with
+        /// its corner (100, 50) rounded by 0.0005 has its centroid at (50, 25) to a billionth, where the vertices were merged
+        /// within the global tolerance of a thousandth, the end of the arc went, and the centroid was 0.00008 off. An arc of
+        /// any radius weighs in too, where one of radius 0.00001 or less was left out of the sum.
+        /// </para>
         /// </remarks>
         public GeoPoint2 Centroid
         {
             get
             {
-                var chords = new GeoPoint2[_vertices.Length];
-
-                for (int i = 0; i < _vertices.Length; i++)
-                {
-                    chords[i] = _vertices[i];
-                }
-
-                var straight = new GeoPolygon2(chords);
+                // The vertices stand apart already, so the straight loop takes them as they are.
+                var straight = new GeoPolygon2(_vertices, _vertices.Length);
 
                 double weight = straight.SignedArea;
                 double x = straight.Centroid.X * weight;
@@ -846,9 +853,11 @@ namespace GeometryHelper.Geometry
                     // middle of the arc, this far along it.
                     double reach = 4.0 * arc.Radius * Math.Pow(Math.Sin(swept * 0.5), 3.0) / (3.0 * (swept - Math.Sin(swept)));
 
+                    // An arc of any radius points somewhere; read within the global vector tolerance, one of radius
+                    // 1E-5 or less was left out of the sum.
                     GeoVector2 along = arc.Center.GetVectorTo(arc.MidPoint);
 
-                    if (!along.TryGetNormal(out GeoVector2 unit))
+                    if (!along.TryGetNormal(out GeoVector2 unit, default(Tolerance)))
                     {
                         continue;
                     }

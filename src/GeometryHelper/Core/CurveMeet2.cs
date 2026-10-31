@@ -70,13 +70,17 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the endless line a straight edge lies on, moved sideways.
         /// </summary>
+        /// <remarks>
+        /// An edge of any length lies on a line. Read within the global vector tolerance, one shorter than 1E-5 lay on none,
+        /// so a miter beside the moved side 0.000007 long found nothing to meet and the corner was rounded off.
+        /// </remarks>
         internal static bool TryLine(GeoEdge2 edge, double distance, out GeoLine2 line)
         {
             line = default(GeoLine2);
 
             GeoVector2 along = edge.StartPoint.GetVectorTo(edge.EndPoint);
 
-            if (!along.TryGetNormal(out GeoVector2 unit))
+            if (!along.TryGetNormal(out GeoVector2 unit, default(Tolerance)))
             {
                 return false;
             }
@@ -152,7 +156,7 @@ namespace GeometryHelper.Core
         {
             GeoVector2 along = line.StartPoint.GetVectorTo(line.EndPoint);
 
-            if (!along.TryGetNormal(out GeoVector2 unit))
+            if (!along.TryGetNormal(out GeoVector2 unit, default(Tolerance)))
             {
                 return;
             }

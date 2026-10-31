@@ -54,6 +54,14 @@ namespace GeometryHelper.Core
         /// <param name="distance2">How far along the leg leaving it to finish.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>The chain with its corners cut; a corner with too little leg to give is left alone.</returns>
+        /// <remarks>
+        /// The chain is put back together within the tolerance asked, as a loop's cut corners and a curved chain's are, so a
+        /// cut longer than the tolerance stays and one no longer than it is no edge, its two ends meeting where it starts: at
+        /// a millionth, the chain (0, 0, 0), (10, 0, 0), (10, 10, 0) cut by 0.0003 turns at (9.9997, 0, 0) and
+        /// (10, 0.0003, 0), where it was put back together within the global tolerance of a thousandth, the two ends of the
+        /// cut 0.00042 apart were one corner, and the chain turned at (9.9997, 0, 0) alone, as it still does within a
+        /// thousandth.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when either distance is not a positive number.</exception>
         public static GeoPolyline3 Chamfer(GeoPolyline3 polyline, double distance1, double distance2, Tolerance tolerance)
@@ -68,7 +76,7 @@ namespace GeometryHelper.Core
 
             List<GeoPoint3> vertices = BuildCut(polyline.Vertices, false, distance1, distance2, tolerance, "chain");
 
-            return vertices == null ? polyline.Clone() : new GeoPolyline3(vertices);
+            return vertices == null ? polyline.Clone() : ChainWithin(vertices, tolerance);
         }
 
         /// <summary>
@@ -87,6 +95,10 @@ namespace GeometryHelper.Core
         /// <param name="result">The cut chain, or the chain unchanged where the corner would not take it.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when the corner was cut; otherwise, false.</returns>
+        /// <remarks>
+        /// The chain is put back together within the tolerance asked, as
+        /// <see cref="Chamfer(GeoPolyline3, double, double, Tolerance)"/> puts it, so a cut longer than the tolerance stays.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the index is outside the chain, or either distance is not positive.</exception>
         public static bool TryChamferAt(GeoPolyline3 polyline, int index, double distance1, double distance2, out GeoPolyline3 result, Tolerance tolerance)
@@ -116,7 +128,7 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            result = new GeoPolyline3(Spliced(polyline.Vertices, index, from, to));
+            result = ChainWithin(Spliced(polyline.Vertices, index, from, to), tolerance);
             return true;
         }
 
@@ -647,7 +659,7 @@ namespace GeometryHelper.Core
         /// Nothing of such a leg is left, and a stub running back along it would make the walk turn back on
         /// itself. The point is the leg's own end where only one of its corners was cut, so the ends of a chain
         /// and a corner left alone never move, and midway between the two cuts where both were. The repeated
-        /// point this leaves is dropped by the constructor.
+        /// point this leaves is dropped when the chain is put back together.
         /// </remarks>
         private static void MeetWhereNothingIsLeft(
             IReadOnlyList<GeoPoint3> vertices,
@@ -873,6 +885,27 @@ namespace GeometryHelper.Core
             from = corner.Add(back.Multiply(distance1 / backLength));
             to = corner.Add(forward.Multiply(distance2 / forwardLength));
             return true;
+        }
+
+        /// <summary>
+        /// A chain of the vertices a cut leaves, built within the tolerance the cut was asked at, as a loop's are: a vertex
+        /// within it of the one kept before goes, so a cut no longer than the tolerance is no edge and its two ends meet
+        /// where it starts, as a curved chain's does. The public constructor merged within the global tolerance, and with it
+        /// the two ends of a cut a finer tolerance keeps.
+        /// </summary>
+        private static GeoPolyline3 ChainWithin(List<GeoPoint3> vertices, Tolerance tolerance)
+        {
+            var kept = new List<GeoPoint3>(vertices.Count);
+
+            foreach (GeoPoint3 vertex in vertices)
+            {
+                if (kept.Count == 0 || !kept[kept.Count - 1].IsEqualTo(vertex, tolerance))
+                {
+                    kept.Add(vertex);
+                }
+            }
+
+            return new GeoPolyline3(kept.ToArray(), true);
         }
 
         /// <summary>
