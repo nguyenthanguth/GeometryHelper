@@ -429,14 +429,26 @@ namespace GeometryHelper.Dxf
         /// Gets whether the INSERT places a dynamic block, as AutoCAD's <c>IsDynamicBlock</c>: its block is one (its
         /// BLOCK_RECORD has the extended data <c>AcDbDynamicBlockGUID</c>), or is the anonymous block that stands for one, whose
         /// extended data <c>AcDbBlockRepBTag</c> names the dynamic block's BLOCK_RECORD by its handle (1005), as AutoCAD writes
-        /// them and ezdxf reads them. An anonymous block whose tag names no block of the drawing is not.
+        /// them and ezdxf reads them. An anonymous block whose tag names no block of the drawing is not, nor is an INSERT scaled
+        /// unlike along its axes (by more than 1E-9 of the largest, a mirror alike), as AutoCAD 2021 read its INSERTs scaled
+        /// (2, 3, 2) and (2, 2, 1) as not dynamic though they keep their <see cref="DynamicBlockTableRecord"/> and their
+        /// <see cref="DynamicBlockReferencePropertyCollection"/>.
         /// </summary>
         /// <remarks>
         /// <see cref="DynamicBlockReferencePropertyCollection"/> reads the dynamic properties as AutoCAD saved them; they are not
         /// set, nor is AutoCAD's <c>ResetBlock</c> given, as the library does not evaluate the block's graph.
         /// <see cref="ConvertToStaticBlock(string)"/> makes the INSERT place a plain copy of what it draws.
         /// </remarks>
-        public bool IsDynamicBlock => Dynamic(out _) != null;
+        public bool IsDynamicBlock => Dynamic(out _) != null && ScaledAlike();
+
+        /// <summary>Whether the INSERT is scaled alike along its axes, within 1E-9 of the largest; a mirror is scaled alike.</summary>
+        private bool ScaledAlike()
+        {
+            GeoVector3 factors = ScaleFactors;
+            double x = Math.Abs(factors.X), y = Math.Abs(factors.Y), z = Math.Abs(factors.Z);
+            double most = Math.Max(x, Math.Max(y, z));
+            return Math.Abs(x - y) <= 1E-9 * most && Math.Abs(x - z) <= 1E-9 * most;
+        }
 
         /// <summary>
         /// Gets the dynamic block the INSERT places, as AutoCAD's <c>DynamicBlockTableRecord</c>: the block whose anonymous
@@ -462,8 +474,7 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gets the dynamic properties of the INSERT, as AutoCAD's <c>DynamicBlockReferencePropertyCollection</c>: read only, a
         /// new list on each call, each property's value the one AutoCAD saved for this INSERT, or the dynamic block's own where
-        /// it saved none, as for an INSERT of the dynamic block itself. Empty where the INSERT places no dynamic block, or is
-        /// scaled unlike along its axes, as AutoCAD then shows none.
+        /// it saved none, as for an INSERT of the dynamic block itself. Empty where the INSERT places no dynamic block.
         /// </summary>
         /// <remarks>
         /// <para>
@@ -473,8 +484,10 @@ namespace GeometryHelper.Dxf
         /// extension dictionary. A linear parameter gives its distance; a polar one its distance and its angle; an XY one its
         /// distances along x and along y; a rotation one its angle from its base angle, in radians from nought up to a whole
         /// turn; a point one its position's x and y; a flip one its state, 0 or 1; a visibility one its state, the first of its
-        /// states where none is saved; a lookup one the value its table gives. A length is scaled by the INSERT's scale, so that
-        /// the door of Width 1 000 inserted at a scale of 2 gives 2 000. Actions, grips, base point and alignment parameters
+        /// states where none is saved; a lookup one the value its table gives. A length is scaled by the largest of the INSERT's
+        /// scale factors, so that the door of Width 1 000 inserted at a scale of 2 gives 2 000, and a distance of 7.5 along x
+        /// at the scale (2, 3, 2) 22.5, as AutoCAD 2021 read it. A value set's list is given where its flags hold 8, a list, as AutoCAD gave
+        /// none of a list under the flags 1, 2 or 4. Actions, grips, base point and alignment parameters
         /// give none, nor do the parameters of constraints and of a block properties table, which the library does not read.
         /// </para>
         /// <para>

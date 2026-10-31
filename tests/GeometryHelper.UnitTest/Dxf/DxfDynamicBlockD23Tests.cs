@@ -54,9 +54,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static string OnePoint(double x, double y) => G(100, "AcDbBlock1PtParameter") + P(1010, x, y) + G(93, "0") + G(170, "0") + G(171, "0");
 
-        private static string ValueSet(int descCode, int flagsCode, int minCode, int countCode, double[] values)
+        // The flags 8 mark a list, as AutoCAD writes them on a set of listed values; 1 on one of none.
+        private static string ValueSet(int descCode, int flagsCode, int minCode, int countCode, double[] values, string flags = null)
         {
-            var text = new StringBuilder(G(descCode, string.Empty) + G(flagsCode, "1") + G(minCode, 0.0) + G(minCode + 1, 0.0) + G(minCode + 2, 0.0)
+            var text = new StringBuilder(G(descCode, string.Empty) + G(flagsCode, flags ?? (values.Length > 0 ? "8" : "1")) + G(minCode, 0.0) + G(minCode + 1, 0.0) + G(minCode + 2, 0.0)
                 + G(countCode, values.Length.ToString(CultureInfo.InvariantCulture)));
 
             foreach (double value in values)
@@ -68,8 +69,11 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         private static Node Linear(string handle, int id, string name, string description, double bx, double by, double ex, double ey, params double[] list)
+            => LinearFlagged(handle, id, name, description, bx, by, ex, ey, null, list);
+
+        private static Node LinearFlagged(string handle, int id, string name, string description, double bx, double by, double ex, double ey, string flags, params double[] list)
             => new Node(handle, id, Element("BLOCKLINEARPARAMETER", handle, id, "Linear") + Parameter() + TwoPoints(bx, by, ex, ey)
-                + G(100, "AcDbBlockLinearParameter") + G(305, name) + G(306, description) + G(140, 7.5) + ValueSet(307, 96, 141, 175, list));
+                + G(100, "AcDbBlockLinearParameter") + G(305, name) + G(306, description) + G(140, 7.5) + ValueSet(307, 96, 141, 175, list, flags));
 
         private static Node Rotation(string handle, int id, string name, double ex, double ey, double ax, double ay)
             => new Node(handle, id, Element("BLOCKROTATIONPARAMETER", handle, id, "Rotation") + Parameter() + TwoPoints(0, 0, ex, ey)
@@ -211,17 +215,45 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AnInsertScaledAlikeScalesItsDistances_AndOneScaledUnlikeHasNoProperties()
+        public void AnInsertScalesItsDistancesByItsLargestFactor_AndOneScaledUnlikeIsNotDynamic_AsAutoCadReadIt()
         {
-            Node[] nodes = { Linear("1031", 7, "Width", string.Empty, 0, 0, 500, 0, 250, 500, 750) };
-            KeyValuePair<int, string>[] caches = { Cache(7, Two(0, 0, 750, 0)) };
+            // Plugin v16, 23b-e: AutoCAD 2021 read 7.5 along x as 15 at the scale (2, 2, 2), (-2, 2, 2) and (2, 2, 1), and as
+            // 22.5 at (2, 3, 2), the last two INSERTs not dynamic though they keep their properties.
+            Node[] nodes = { Linear("1031", 7, "Width", string.Empty, 0, 0, 500, 0, 250, 500, 750), Linear("1032", 8, "Height", string.Empty, 0, 0, 0, 300) };
+            KeyValuePair<int, string>[] caches = { Cache(7, Two(0, 0, 750, 0)), Cache(8, Two(0, 0, 0, 200)) };
 
-            DxfDynamicBlockReferenceProperty doubled = Named(Insert(Drawing(nodes, caches, 2, 2, 2), "1021"), "Width");
-            Assert.Equal(1500.0, Real(doubled), Close);
-            Assert.Equal(new object[] { 500.0, 1000.0, 1500.0 }, doubled.GetAllowedValues());
+            DxfBlockReference doubled = Insert(Drawing(nodes, caches, 2, 2, 2), "1021");
+            Assert.True(doubled.IsDynamicBlock);
+            Assert.Equal(1500.0, Real(Named(doubled, "Width")), Close);
+            Assert.Equal(new object[] { 500.0, 1000.0, 1500.0 }, Named(doubled, "Width").GetAllowedValues());
+            Assert.Equal(400.0, Real(Named(doubled, "Height")), Close);
 
             Assert.Equal(1500.0, Real(Named(Insert(Drawing(nodes, caches, -2, 2, 2), "1021"), "Width")), Close);
-            Assert.Empty(Insert(Drawing(nodes, caches, 2, 3, 2), "1021").DynamicBlockReferencePropertyCollection);
+
+            DxfBlockReference unlike = Insert(Drawing(nodes, caches, 2, 3, 2), "1021");
+            Assert.False(unlike.IsDynamicBlock);
+            Assert.Equal("PANEL", unlike.DynamicBlockTableRecord.Name);
+            Assert.Equal(2250.0, Real(Named(unlike, "Width")), Close);
+            Assert.Equal(600.0, Real(Named(unlike, "Height")), Close);
+            Assert.Equal(new object[] { 750.0, 1500.0, 2250.0 }, Named(unlike, "Width").GetAllowedValues());
+
+            DxfBlockReference flat = Insert(Drawing(nodes, caches, 2, 2, 1), "1021");
+            Assert.False(flat.IsDynamicBlock);
+            Assert.Equal(1500.0, Real(Named(flat, "Width")), Close);
+        }
+
+        [Theory]
+        [InlineData("1")]
+        [InlineData("2")]
+        [InlineData("4")]
+        public void AValueListUnderFlagsOtherThan8_GivesNoAllowedValues_AsAutoCadReadIt(string flags)
+        {
+            // Plugin v16, 23f-i: the list 5, 7.5, 10 under the flags 1, 2 and 4 AutoCAD 2021 gave no allowed values of;
+            // under 8, all three.
+            DxfDatabase db = Drawing(new[] { LinearFlagged("1031", 7, "Width", string.Empty, 0, 0, 500, 0, flags, 250, 500, 750) }, new KeyValuePair<int, string>[0]);
+
+            Assert.Empty(Named(Insert(db, "1020"), "Width").GetAllowedValues());
+            Assert.Empty(Named(Insert(db, "1021"), "Width").GetAllowedValues());
         }
 
         [Fact]

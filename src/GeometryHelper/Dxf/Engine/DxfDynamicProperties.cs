@@ -23,7 +23,7 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// The properties of an INSERT of a dynamic block, as <see cref="DxfBlockReference.DynamicBlockReferencePropertyCollection"/>
-        /// gives them; none for an INSERT scaled unlike along its axes, nor for a block of no graph.
+        /// gives them; none for a block of no graph. A length is scaled by the INSERT's largest scale factor.
         /// </summary>
         internal static IReadOnlyList<DxfDynamicBlockReferenceProperty> Of(DxfBlockReference insert, DxfBlockTableRecord dynamic)
         {
@@ -35,14 +35,10 @@ namespace GeometryHelper.Dxf
                 return properties.AsReadOnly();
             }
 
-            // AutoCAD shows no dynamic property of an INSERT scaled unlike along its axes; a mirror is scaled alike.
+            // A length is scaled by the largest factor, a mirror as its size: AutoCAD 2021 read 7.5 along x as 22.5 at the
+            // scale (2, 3, 2) and as 15 at (2, 2, 1) and at (-2, 2, 2).
             GeoVector3 factors = insert.ScaleFactors;
-            double scale = Math.Abs(factors.X);
-
-            if (!Alike(scale, Math.Abs(factors.Y)) || !Alike(scale, Math.Abs(factors.Z)))
-            {
-                return properties.AsReadOnly();
-            }
+            double scale = Math.Max(Math.Abs(factors.X), Math.Max(Math.Abs(factors.Y), Math.Abs(factors.Z)));
 
             DxfFile file = graph.Item.File;
             var nodes = new List<DxfItem>();
@@ -454,12 +450,20 @@ namespace GeometryHelper.Dxf
             => Number(Text(groups, code), out double x) && Number(Text(groups, code + 10), out double y) && Number(Text(groups, code + 20) ?? "0", out double z) ? new[] { x, y, z } : null;
 
         /// <summary>
-        /// The list of a value set: the reals after the group of a code that counts them (175 or 176), each scaled; none where
-        /// the count is nought, or the list cannot be read whole.
+        /// The list of a value set: the reals after the group of a code that counts them (175 or 176), each scaled, where the
+        /// flags of the set (96 before 175, 97 before 176) hold 8, a list; none where they do not, as AutoCAD 2021 gave none
+        /// of a list of three under the flags 1, 2 and 4, and the three under 8; none where the count is nought, or the list
+        /// cannot be read whole.
         /// </summary>
         private static object[] List(List<DxfTypedValue> groups, int countCode, double scale)
         {
             int at = groups.FindIndex(g => g.TypeCode == countCode);
+            int flags = groups.FindIndex(g => g.TypeCode == (countCode == 175 ? 96 : 97));
+
+            if (flags < 0 || !int.TryParse(groups[flags].Value?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int set) || (set & 8) == 0)
+            {
+                return None;
+            }
 
             if (at < 0 || !int.TryParse(groups[at].Value?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int count) || count <= 0 || at + count >= groups.Count)
             {
@@ -503,8 +507,5 @@ namespace GeometryHelper.Dxf
 
             return turned >= Turn ? 0.0 : turned;
         }
-
-        /// <summary>Whether two scale factors are alike, within 1E-9 of the larger, as the reader takes a scale alike.</summary>
-        private static bool Alike(double a, double b) => Math.Abs(a - b) <= 1E-9 * Math.Max(a, b);
     }
 }

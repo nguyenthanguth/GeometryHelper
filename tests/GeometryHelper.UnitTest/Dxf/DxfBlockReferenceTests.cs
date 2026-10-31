@@ -653,7 +653,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 bolt = Bolt(again);
                 frame = Everything(again).OfType<DxfBlockReference>().Single(b => b.Owner == again.ModelSpace && b.Name == "FRAME");
 
-                Assert.True(bolt.IsDynamicBlock);
+                // The INSERT of BOLT, scaled (1.5, -1.5, 2), unlike along its axes, is not dynamic, as AutoCAD 2021 read such
+                // INSERTs (plugin v16, 23c and 23e), though its block is.
+                Assert.True(again.BlockTable["BOLT"].IsDynamicBlock);
+                Assert.False(bolt.IsDynamicBlock);
                 Assert.Same(again.BlockTable["BOLT"], bolt.DynamicBlockTableRecord);
                 Assert.Null(bolt.AnonymousBlockTableRecord);
                 Assert.True(frame.IsDynamicBlock);

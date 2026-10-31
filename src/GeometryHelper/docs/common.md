@@ -1180,10 +1180,14 @@ dynamic block itself. Each parameter of the block's evaluation graph gives its o
 parameter its distance, a polar one its distance and its angle, an XY one its distances along x and along y, a rotation one
 its angle from its base angle, a point one its position's x and y (`Anchor X`, `Anchor Y`), a flip one 0 or 1 (a `short`), a
 visibility one its state, the first of its states where none is saved, every state allowed, and a lookup one the value its
-table gives, read only where the table allows no reverse lookup. Lengths are scaled by the INSERT's scale and angles are in
-radians: the door whose linear parameter Width AutoCAD stretched from 900 to 1 000, inserted at a scale of 2, gives
-`Width = 2000.0`, `UnitsType` `Distance`. An INSERT scaled unlike along its axes gives none, as AutoCAD shows none;
-constraint parameters and a block properties table give none either, as they are not read.
+table gives, read only where the table allows no reverse lookup. Lengths are scaled by the largest of the INSERT's scale
+factors and angles are in radians: the door whose linear parameter Width AutoCAD stretched from 900 to 1 000, inserted at a
+scale of 2, gives `Width = 2000.0`, `UnitsType` `Distance`; AutoCAD 2021 read a distance of 7.5 along x as 22.5 at the
+scale (2, 3, 2), and as 15 at (2, 2, 1), where `IsDynamicBlock` is false, as it read such INSERTs. A value set's list is
+allowed where its flags (96, or 97 for the second set) hold 8; AutoCAD gave none of a list under the flags 1, 2 or 4.
+AutoCAD's hidden `Origin` points (not shown in its properties) are left out, and constraint parameters and a block
+properties table give none, as they are not read. AutoCAD 2021 read the same names, values (to 1E-9, most to the bit),
+types, units, read-only flags, descriptions and allowed values on ACadSharp's AutoCAD-saved samples.
 
 ```csharp
 foreach (DxfDynamicBlockReferenceProperty p in insert.DynamicBlockReferencePropertyCollection)

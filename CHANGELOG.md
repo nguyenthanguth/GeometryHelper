@@ -14,10 +14,14 @@ its distance, a polar one its distance and angle, an XY one its distances along 
 one its position's x and y, a flip one 0 or 1, a visibility one its state with every state allowed, a lookup one the value
 its table gives. The value is the one AutoCAD saved for the INSERT in its representation data, else the block's own: of
 ACadSharp's ten samples saved by AutoCAD, the linear parameter reads 5 for the block and 7.5 for the INSERT AutoCAD
-stretched, the rotation one 90 and 50 degrees (in radians), as acadrust reads them. Lengths are scaled by the INSERT's
-scale, and an INSERT scaled unlike along its axes gives none. Nothing is worked out anew, nor set. The five properties of
-ACadSharp's lookup sample, a graph of 19 nodes, are read in 41 microseconds an INSERT under .NET 10 and 86 under .NET
-Framework 4.8. 13 new tests.
+stretched, the rotation one 90 and 50 degrees (in radians), as acadrust reads them. Lengths are scaled by the largest of
+the INSERT's scale factors, as AutoCAD 2021 read 7.5 as 22.5 at the scale (2, 3, 2), where an INSERT scaled unlike along
+its axes is not `IsDynamicBlock`, as AutoCAD read it; a value set's list is allowed only under the flags 8, as AutoCAD
+gave none under 1, 2 or 4. AutoCAD (plugin v16) read the same names, values, types, units, flags, descriptions and allowed
+values on every sample and on a user's drawing, leaving out its hidden `Origin` points as the library does. Nothing is
+worked out anew, nor set. The five properties of ACadSharp's lookup sample, a graph of 19 nodes, are read in 41
+microseconds an INSERT under .NET 10 and 86 under .NET Framework 4.8. 16 new tests, 1 changed (an INSERT of BOLT scaled
+(1.5, -1.5, 2) is not `IsDynamicBlock`).
 
 **FIXED.** In the plane, a curved chain or loop, `GeoPolylineArc2` or `GeoPolygonArc2`, gives a point beside a straight
 side its closest point on the side as it is however short, as it does in space, and its `GetShortestLineTo(GeoPoint2)`,
