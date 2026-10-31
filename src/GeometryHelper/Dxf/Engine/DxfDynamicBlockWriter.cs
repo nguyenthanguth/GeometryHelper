@@ -358,10 +358,10 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Writes a stretch action driven by the end point of a linear or an XY parameter (EndXDelta, EndYDelta): its frame of
-        /// two corners, and each entity with the indices of its points inside the frame; one node, and the edge from the
-        /// parameter.
+        /// two corners, each entity with the indices of its points inside the frame, its distance multiplier and angle offset;
+        /// one node, and the edge from the parameter.
         /// </summary>
-        internal static void AddStretch(DxfBlockTableRecord block, int node, string name, GeoPoint2 low, GeoPoint2 high, List<KeyValuePair<DxfEntity, List<int>>> held)
+        internal static void AddStretch(DxfBlockTableRecord block, int node, string name, GeoPoint2 low, GeoPoint2 high, List<KeyValuePair<DxfEntity, List<int>>> held, double multiplier, double angle)
         {
             Graph graph = Graph.Of(block);
             Known(graph, block, node, name);
@@ -401,8 +401,8 @@ namespace GeometryHelper.Dxf
                 }
 
                 b.Group(75, "0");
-                b.Group(140, "1.0");
-                b.Group(141, "0.0");
+                b.Group(140, Factor(multiplier));
+                b.Group(141, Factor(angle));
                 b.Group(280, "0");
             });
 
@@ -415,9 +415,9 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Writes a move action driven by a parameter's connections (EndXDelta and EndYDelta of a linear or an XY parameter,
         /// XDelta and YDelta of a point parameter), as AutoCAD saved the move of ACadSharp's point sample: the entities it
-        /// moves, its distance multiplier 1 and angle offset nought; one node, and the edge from the parameter.
+        /// moves, its distance multiplier and angle offset; one node, and the edge from the parameter.
         /// </summary>
-        internal static void AddMove(DxfBlockTableRecord block, int node, string name, string x, string y, GeoPoint3 at, List<DxfEntity> entities)
+        internal static void AddMove(DxfBlockTableRecord block, int node, string name, string x, string y, GeoPoint3 at, List<DxfEntity> entities, double multiplier, double angle)
         {
             Graph graph = Graph.Of(block);
             Known(graph, block, node, name);
@@ -431,8 +431,8 @@ namespace GeometryHelper.Dxf
                 b.Group(301, x);
                 b.Group(93, Int(node));
                 b.Group(302, y);
-                b.Group(140, "1.0");
-                b.Group(141, "0.0");
+                b.Group(140, Factor(multiplier));
+                b.Group(141, Factor(angle));
                 b.Group(280, "0");
             });
 
@@ -529,6 +529,247 @@ namespace GeometryHelper.Dxf
             graph.Link(p, s, 4);
             graph.Write();
             graph.File.AddClass("BLOCKFLIPACTION", "AcDbBlockFlipAction", 1153);
+        }
+
+        /// <summary>
+        /// Writes an array action of a linear or an XY parameter, as AutoCAD saved the array of ACadSharp's XY sample: the
+        /// entities it copies, its connections Base, End, UpdatedBase and UpdatedEnd, the row offset (140) and the column
+        /// offset (141); one node, and the edge from the parameter (of four connections).
+        /// </summary>
+        internal static void AddArray(DxfBlockTableRecord block, int node, string name, GeoPoint3 at, List<DxfEntity> entities, double rows, double columns)
+        {
+            Graph graph = Graph.Of(block);
+            Known(graph, block, node, name);
+            int s = graph.NextId;
+            string element = graph.FreeName("Array");
+            DxfItem action = graph.File.AddObject("BLOCKARRAYACTION", null, b =>
+            {
+                ActionHead(b, graph, s, element, entities, at);
+                b.Group(100, "AcDbBlockArrayAction");
+                b.Group(92, Int(node));
+                b.Group(93, Int(node));
+                b.Group(94, Int(node));
+                b.Group(95, Int(node));
+                b.Group(301, "Base");
+                b.Group(302, "End");
+                b.Group(303, "UpdatedBase");
+                b.Group(304, "UpdatedEnd");
+                b.Group(140, Factor(rows));
+                b.Group(141, Real(columns));
+            });
+
+            graph.Add(s, action.Handle);
+            graph.Link(node, s, 4);
+            graph.Write();
+            graph.File.AddClass("BLOCKARRAYACTION", "AcDbBlockArrayAction", 1153);
+        }
+
+        /// <summary>The label a column of a lookup table shows where no row holds the values of the inputs (its 305), as AutoCAD's sample labels its input columns.</summary>
+        internal const string Unmatched = "Custom";
+
+        /// <summary>
+        /// Writes a lookup parameter with its grip, the grip's two location components and its lookup action, as AutoCAD saved
+        /// those of ACadSharp's lookup sample: five nodes; the edges of the grip to the parameter and of the parameter to each
+        /// component; then, for each parameter of an input column in the order of the columns and last for the lookup
+        /// parameter, a pair of edges each way between it and the action, of as many connections as the table reads of it,
+        /// each edge naming its pair, as AutoCAD writes them.
+        /// </summary>
+        internal static void AddLookup(DxfBlockTableRecord block, string name, string description, GeoPoint3 location, List<DxfBlockLookupInput> inputs, List<DxfBlockLookupRow> rows)
+        {
+            Graph graph = Graph.Of(block);
+            inputs.ForEach(i => Known(graph, block, i.Node, i.Name));
+            DxfFile file = graph.File;
+            int p = graph.NextId;
+            string element = graph.FreeName("Lookup");
+            string table = graph.FreeName("Lookup");
+
+            DxfItem parameter = file.AddObject("BLOCKLOOKUPPARAMETER", null, b =>
+            {
+                Head(b, graph.Handle, p, element);
+                b.Group(100, "AcDbBlockParameter");
+                b.Group(280, "1");
+                b.Group(281, "0");
+                b.Group(100, "AcDbBlock1PtParameter");
+                Point(b, 1010, location);
+                b.Group(93, Int(p + 1));
+                b.Group(170, "0");
+                b.Group(171, "0");
+                b.Group(100, "AcDbBlockLookUpParameter");
+                b.Group(303, name);
+                b.Group(304, description);
+                b.Group(94, Int(p + 4));
+            });
+
+            Environ(parameter, location);
+            graph.Add(p, parameter.Handle);
+            GripOf(graph, "BLOCKLOOKUPGRIP", "AcDbBlockLookUpGrip", p + 1, "Grip", location, "0", null);
+            Components(graph, p, p + 1, "0.0", "Updated");
+
+            DxfItem action = file.AddObject("BLOCKLOOKUPACTION", null, b =>
+            {
+                ActionHead(b, graph, p + 4, table, new List<DxfEntity>(), location);
+                b.Group(100, "AcDbBlockLookupAction");
+                b.Group(92, Int(rows.Count));
+                b.Group(93, Int(inputs.Count + 1));
+                b.Group(301, string.Empty);
+
+                foreach (DxfBlockLookupRow row in rows)
+                {
+                    foreach (double value in row.Values)
+                    {
+                        b.Group(302, Real(value));
+                    }
+
+                    b.Group(302, row.Label);
+                }
+
+                foreach (DxfBlockLookupInput input in inputs)
+                {
+                    Column(b, input.Node, "40", "2", "0", "0", input.Connection);
+                }
+
+                Column(b, p, "1", "0", "1", "1", "lookupString");
+                b.Group(280, "1");
+            });
+
+            graph.Add(p + 4, action.Handle);
+            graph.Link(p + 1, p, 1);
+            graph.Link(p, p + 2, 1);
+            graph.Link(p, p + 3, 1);
+            var read = new List<int>();
+            inputs.ForEach(i =>
+            {
+                if (!read.Contains(i.Node))
+                {
+                    read.Add(i.Node);
+                }
+            });
+
+            foreach (int node in read)
+            {
+                graph.LinkPair(node, p + 4, inputs.FindAll(i => i.Node == node).Count);
+            }
+
+            graph.LinkPair(p + 4, p, 1);
+            graph.Write();
+
+            file.AddClass("BLOCKLOOKUPPARAMETER", "AcDbBlockLookupParameter", 1153);
+            file.AddClass("BLOCKLOOKUPGRIP", "AcDbBlockLookupGrip", 1153);
+            file.AddClass("BLOCKGRIPLOCATIONCOMPONENT", "AcDbBlockGripExpr", 1153);
+            file.AddClass("BLOCKLOOKUPACTION", "AcDbBlockLookupAction", 1153);
+        }
+
+        /// <summary>
+        /// A column of a lookup table, as AutoCAD writes one: its node, the type of its cells (40 a real, 1 a text) and the
+        /// number after it, whether it is looked up (282), its label of no match, whether it looks back (281), its connection.
+        /// </summary>
+        private static void Column(DxfFile.Builder b, int node, string type, string kind, string lookedUp, string reverse, string connection)
+        {
+            b.Group(303, string.Empty);
+            b.Group(94, Int(node));
+            b.Group(95, type);
+            b.Group(96, kind);
+            b.Group(282, lookedUp);
+            b.Group(305, Unmatched);
+            b.Group(281, reverse);
+            b.Group(304, connection);
+        }
+
+        /// <summary>
+        /// Writes an alignment parameter with its grip at the base point and the grip's two location components: four nodes, and
+        /// the three edges AutoCAD writes for them (the grip to the parameter, the parameter to each component), as AutoCAD
+        /// saved the alignment parameter of ACadSharp's sample, of no label and no extended data.
+        /// </summary>
+        internal static void AddAlignment(DxfBlockTableRecord block, GeoPoint3 basePoint, GeoPoint3 endPoint)
+        {
+            if (Has(block, "BLOCKALIGNMENTPARAMETER"))
+            {
+                throw new InvalidOperationException("The block " + block.Name + " has an alignment parameter already, and AutoCAD's Block Editor gives a block one.");
+            }
+
+            Graph graph = Graph.Of(block);
+            DxfFile file = graph.File;
+            int p = graph.NextId;
+            string element = graph.FreeName("Alignment");
+            GeoVector3 along = basePoint.GetVectorTo(endPoint);
+
+            DxfItem parameter = file.AddObject("BLOCKALIGNMENTPARAMETER", null, b =>
+            {
+                Head(b, graph.Handle, p, element);
+                b.Group(100, "AcDbBlockParameter");
+                b.Group(280, "1");
+                b.Group(281, "0");
+                b.Group(100, "AcDbBlock2PtParameter");
+                Point(b, 1010, basePoint);
+                Point(b, 1011, endPoint);
+                b.Group(170, "4");
+                b.Group(91, Int(p + 1));
+                b.Group(91, "0");
+                b.Group(91, "0");
+                b.Group(91, "0");
+                b.Group(171, "0");
+                b.Group(172, "0");
+                b.Group(173, "0");
+                b.Group(174, "0");
+                b.Group(177, "0");
+                b.Group(100, "AcDbBlockAlignmentParameter");
+                b.Group(280, "1");
+            });
+
+            graph.Add(p, parameter.Handle);
+            GripOf(graph, "BLOCKALIGNMENTGRIP", "AcDbBlockAlignmentGrip", p + 1, "Grip", basePoint, "1", b =>
+            {
+                b.Group(140, Real(along.X));
+                b.Group(141, Real(along.Y));
+                b.Group(142, Real(along.Z));
+            });
+
+            Components(graph, p, p + 1, "0.0", "UpdatedBase");
+            graph.Link(p + 1, p, 1);
+            graph.Link(p, p + 2, 1);
+            graph.Link(p, p + 3, 1);
+            graph.Write();
+
+            file.AddClass("BLOCKALIGNMENTPARAMETER", "AcDbBlockAlignmentParameter", 1153);
+            file.AddClass("BLOCKALIGNMENTGRIP", "AcDbBlockAlignmentGrip", 1153);
+            file.AddClass("BLOCKGRIPLOCATIONCOMPONENT", "AcDbBlockGripExpr", 1153);
+        }
+
+        /// <summary>
+        /// Writes a base point parameter: one node and no edge, as AutoCAD saved the base point parameter of ACadSharp's sample,
+        /// its own two points (1011, 1012) nought, of no extended data.
+        /// </summary>
+        internal static void AddBasePoint(DxfBlockTableRecord block, GeoPoint3 location)
+        {
+            if (Has(block, "BLOCKBASEPOINTPARAMETER"))
+            {
+                throw new InvalidOperationException("The block " + block.Name + " has a base point parameter already, and AutoCAD's Block Editor gives a block one.");
+            }
+
+            Graph graph = Graph.Of(block);
+            DxfFile file = graph.File;
+            int p = graph.NextId;
+            string element = graph.FreeName("Base Point");
+
+            DxfItem parameter = file.AddObject("BLOCKBASEPOINTPARAMETER", null, b =>
+            {
+                Head(b, graph.Handle, p, element);
+                b.Group(100, "AcDbBlockParameter");
+                b.Group(280, "1");
+                b.Group(281, "0");
+                b.Group(100, "AcDbBlock1PtParameter");
+                Point(b, 1010, location);
+                b.Group(93, "0");
+                b.Group(170, "0");
+                b.Group(171, "0");
+                b.Group(100, "AcDbBlockBasepointParameter");
+                Point(b, 1011, new GeoPoint3(0, 0, 0));
+                Point(b, 1012, new GeoPoint3(0, 0, 0));
+            });
+
+            graph.Add(p, parameter.Handle);
+            graph.Write();
+            file.AddClass("BLOCKBASEPOINTPARAMETER", "AcDbBlockBasepointParameter", 1153);
         }
 
         /// <summary>Refuses a parameter whose node is no longer in the block's evaluation graph.</summary>
@@ -679,10 +920,10 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// The handles of the entities the actions of a block's evaluation graph work on (the 330s of each AcDbBlockAction): of
-        /// its flip actions, or of its other actions; read without writing anything, none where the block has no graph.
+        /// The handles of the entities the actions of a block's evaluation graph work on (the 330s of each AcDbBlockAction), of
+        /// the actions of the types given; read without writing anything, none where the block has no graph.
         /// </summary>
-        internal static HashSet<string> ActedOn(DxfBlockTableRecord block, bool flips)
+        internal static HashSet<string> ActedOn(DxfBlockTableRecord block, Func<string, bool> types)
         {
             var handles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             DxfDBDictionary dictionary = block.ExtensionDictionary;
@@ -697,7 +938,7 @@ namespace GeometryHelper.Dxf
             {
                 DxfItem node = group.TypeCode == 360 ? item.File.ObjectItem(group.Value) : null;
 
-                if (node != null && node.Type.EndsWith("ACTION", StringComparison.Ordinal) && (node.Type == "BLOCKFLIPACTION") == flips)
+                if (node != null && node.Type.EndsWith("ACTION", StringComparison.Ordinal) && types(node.Type))
                 {
                     foreach (DxfTypedValue acted in DxfDynamicProperties.Section(node.Groups, "AcDbBlockAction"))
                     {
@@ -867,20 +1108,23 @@ namespace GeometryHelper.Dxf
 
         private static string Real(double value) => Numbers.Exact(value + 0.0);
 
+        /// <summary>A distance multiplier or an angle offset: 1 and nought as AutoCAD writes them (1.0, 0.0), another as a real.</summary>
+        private static string Factor(double value) => value == 1.0 ? "1.0" : value == 0.0 ? "0.0" : Real(value);
+
         private static string Int(int value) => value.ToString(CultureInfo.InvariantCulture);
 
         /// <summary>
         /// The evaluation graph of a dynamic block, its nodes and edges as its record holds them, to which nodes and edges are
         /// added and the record written anew: the four links of each node (its first and last edge in, its first and last edge
-        /// out) and the five of each edge (the edges before and after it into the same node and out of the same node, then -1)
-        /// worked out from the order of the edges, as AutoCAD writes them.
+        /// out) and the five of each edge (the edges before and after it into the same node and out of the same node, then the
+        /// edge it pairs with the other way, -1 for none) worked out from the order of the edges, as AutoCAD writes them.
         /// </summary>
         private sealed class Graph
         {
             private readonly DxfItem _item;
             private readonly List<int[]> _nodes = new List<int[]>();          // flags, id
             private readonly List<string> _handles = new List<string>();
-            private readonly List<int[]> _edges = new List<int[]>();          // flags, kind, from index, to index
+            private readonly List<int[]> _edges = new List<int[]>();          // flags, kind, from index, to index, index of its pair
             private readonly HashSet<string> _names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             private int _last;
 
@@ -1032,7 +1276,20 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>An edge from one node to another, by their ids, of a kind (94): 1 to a grip's component, 2 to a parameter or an action.</summary>
-            internal void Link(int from, int to, int kind) => _edges.Add(new[] { 0, kind, _nodes.FindIndex(n => n[1] == from), _nodes.FindIndex(n => n[1] == to) });
+            internal void Link(int from, int to, int kind) => _edges.Add(new[] { 0, kind, _nodes.FindIndex(n => n[1] == from), _nodes.FindIndex(n => n[1] == to), -1 });
+
+            /// <summary>
+            /// Two edges between two nodes, by their ids, one each way, of a kind (the connections the action reads or sets), each
+            /// naming the other as its pair (its fifth link), as AutoCAD pairs the edges of a lookup action and its parameters.
+            /// </summary>
+            internal void LinkPair(int from, int to, int kind)
+            {
+                int k = _edges.Count;
+                int a = _nodes.FindIndex(n => n[1] == from);
+                int b = _nodes.FindIndex(n => n[1] == to);
+                _edges.Add(new[] { 0, kind, a, b, k + 1 });
+                _edges.Add(new[] { 0, kind, b, a, k });
+            }
 
             /// <summary>Reads the nodes and edges the record holds, and the names of the elements of its nodes.</summary>
             private void Read()
@@ -1059,7 +1316,7 @@ namespace GeometryHelper.Dxf
 
                 while (at + 9 < groups.Count && groups[at].TypeCode == 92)
                 {
-                    _edges.Add(new[] { Number(groups[at + 1].Value), Number(groups[at + 2].Value), Number(groups[at + 3].Value), Number(groups[at + 4].Value) });
+                    _edges.Add(new[] { Number(groups[at + 1].Value), Number(groups[at + 2].Value), Number(groups[at + 3].Value), Number(groups[at + 4].Value), Number(groups[at + 9].Value) });
                     at += 10;
                 }
 
@@ -1124,7 +1381,7 @@ namespace GeometryHelper.Dxf
                     written.Add(Pair(92, Int(i + 1 < into.Count ? into[i + 1] : -1)));
                     written.Add(Pair(92, Int(o > 0 ? outOf[o - 1] : -1)));
                     written.Add(Pair(92, Int(o + 1 < outOf.Count ? outOf[o + 1] : -1)));
-                    written.Add(Pair(92, "-1"));
+                    written.Add(Pair(92, Int(edge[4])));
                 }
 
                 File.ReplaceTail(_item, from, written);

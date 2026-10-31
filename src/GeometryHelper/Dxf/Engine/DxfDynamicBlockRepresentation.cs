@@ -8,10 +8,11 @@ namespace GeometryHelper.Dxf
 {
     /// <summary>
     /// Sets the value of a dynamic property of an INSERT as AutoCAD's <c>DynamicBlockReferenceProperty.Value</c> sets it, for a
-    /// dynamic block of linear, XY, point, rotation, flip and visibility parameters with the stretch, move, scale, rotate and
-    /// flip actions the library writes: the value taken to its value set, the block worked out at the values of all its
-    /// properties into an anonymous block of AutoCAD's (*U) the INSERT places, and the INSERT's representation data and cache
-    /// (ACAD_ENHANCEDBLOCKDATA) written as AutoCAD 2021 wrote them when it set a value (plugins v17, v18): no history.
+    /// dynamic block of linear, XY, point, rotation, flip, visibility and lookup parameters with the stretch, move, scale,
+    /// rotate, flip, array and lookup actions the library writes: the value taken to its value set, the block worked out at
+    /// the values of all its properties into an anonymous block of AutoCAD's (*U) the INSERT places, and the INSERT's
+    /// representation data and cache (ACAD_ENHANCEDBLOCKDATA) written as AutoCAD 2021 wrote them when it set a value (plugins
+    /// v17, v18): no history.
     /// </summary>
     internal static class DxfDynamicBlockRepresentation
     {
@@ -29,6 +30,7 @@ namespace GeometryHelper.Dxf
         private static readonly string[] MoveKey = { "1553528", "2094574" };
         private static readonly string[] ScaleKey = { "2551693", "3435815" };
         private static readonly string[] RotateKey = { "4195796", "5656503" };
+        private static readonly string[] LookupKey = { "18605567", "25317787" };
 
         /// <summary>
         /// Sets the value of a property of a node of the INSERT's dynamic block (its part: 0, else 1 for the y of a point or of
@@ -60,6 +62,7 @@ namespace GeometryHelper.Dxf
             // The values the INSERT has now, by the parameter's node: lengths and positions in the block's own units, angles,
             // flip states; and the visibility state.
             var values = new Dictionary<string, double[]>(StringComparer.Ordinal);
+            var labels = new Dictionary<string, string>(StringComparer.Ordinal);
             string state = null;
 
             foreach (Param parameter in block.Parameters)
@@ -76,7 +79,14 @@ namespace GeometryHelper.Dxf
 
                 if (property.Value is string name)
                 {
-                    state = name;
+                    if (block.Lookups.Exists(l => l.Id == property.Node))
+                    {
+                        labels[property.Node] = name;
+                    }
+                    else
+                    {
+                        state = name;
+                    }
                 }
                 else if (values.TryGetValue(property.Node, out double[] now) && property.Part < now.Length)
                 {
@@ -90,8 +100,14 @@ namespace GeometryHelper.Dxf
             }
 
             Param asked = block.Parameters.Find(p => p.Id == node);
+            Looked lookup = block.Lookups.Find(l => l.Id == node);
 
-            if (asked is Linear linear)
+            if (lookup != null)
+            {
+                string label = value as string ?? throw new ArgumentException("A lookup property is set by the label of a row, a string; a " + value.GetType().Name + " is not one.", nameof(value));
+                lookup.Choose(label.Trim(), values, labels, dynamic.Name);
+            }
+            else if (asked is Linear linear)
             {
                 double distance = Number(value);
                 double taken = linear.Take(distance, values[node][0] * scale, scale);
@@ -137,7 +153,16 @@ namespace GeometryHelper.Dxf
                 throw new NotSupportedException("The property's parameter is not one the library works out.");
             }
 
-            Write(insert, dynamic, block, values, state);
+            // Each lookup shows the label of the row of the values now, or its label of no match; a lookup set keeps its row.
+            foreach (Looked other in block.Lookups)
+            {
+                if (lookup == null || other.Table != lookup.Table)
+                {
+                    other.Table.Relabel(values, labels);
+                }
+            }
+
+            Write(insert, dynamic, block, values, state, labels);
 
             foreach (DxfDynamicBlockReferenceProperty property in DxfDynamicProperties.Of(insert, dynamic))
             {
@@ -235,7 +260,7 @@ namespace GeometryHelper.Dxf
         /// Makes the INSERT place the block worked out at the values given: its anonymous block filled anew where no other INSERT
         /// places it, else a new one; then its representation data and cache written.
         /// </summary>
-        private static void Write(DxfBlockReference insert, DxfBlockTableRecord dynamic, Block block, Dictionary<string, double[]> values, string state)
+        private static void Write(DxfBlockReference insert, DxfBlockTableRecord dynamic, Block block, Dictionary<string, double[]> values, string state, Dictionary<string, string> labels)
         {
             DxfFile file = insert.Item.File;
             DxfDatabase database = file.Database;
@@ -300,18 +325,21 @@ namespace GeometryHelper.Dxf
                 }
             }
 
+            Copy(block, values, copyOf, database, anonymous);
+
             if (!ReferenceEquals(insert.BlockTableRecord, anonymous))
             {
                 insert.BlockTableRecord = anonymous;
             }
 
-            Cache(insert, dynamic, block, values, state);
+            Cache(insert, dynamic, block, values, state, labels);
         }
 
         /// <summary>
         /// Works the actions out on the copies, in the order of the graph: the stretches in a row first summed point by point
         /// and then applied, as <see cref="Stretch"/> says; a move, a scale, a rotation and a flip applied to each entity whole.
-        /// An action whose parameter keeps the block's own value leaves its entities as they are.
+        /// An action whose parameter keeps the block's own value leaves its entities as they are. Arrays are worked out after
+        /// them all (<see cref="Copy"/>).
         /// </summary>
         private static void Act(Block block, Dictionary<string, double[]> values, Dictionary<string, DxfEntity> copyOf)
         {
@@ -319,6 +347,11 @@ namespace GeometryHelper.Dxf
 
             foreach (BlockAction action in block.Actions)
             {
+                if (action.Kind == ActionKind.Array)
+                {
+                    continue;
+                }
+
                 if (action.Kind == ActionKind.Stretch)
                 {
                     stretches.Add(action);
@@ -327,7 +360,7 @@ namespace GeometryHelper.Dxf
 
                 Stretch(block, stretches, values, copyOf);
                 stretches.Clear();
-                GeoTransform3 transform = Transform(block.Parameters.Find(p => p.Id == action.Parameter), action.Kind, values);
+                GeoTransform3 transform = Transform(block.Parameters.Find(p => p.Id == action.Parameter), action, values);
 
                 if (transform == null)
                 {
@@ -348,17 +381,18 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// What an action of a kind does to its entities at the parameter's value: a move by the change of the point it follows,
-        /// a scale about the base point by the distance over the block's own, a turn about the base point by the angle less the
-        /// block's own, a mirror about the reflection line where flipped; null where it changes nothing.
+        /// times its distance multiplier and turned by its angle offset; a scale about the base point by the distance over the
+        /// block's own; a turn about the base point by the angle less the block's own; a mirror about the reflection line where
+        /// flipped; null where it changes nothing.
         /// </summary>
-        private static GeoTransform3 Transform(Param parameter, ActionKind kind, Dictionary<string, double[]> values)
+        private static GeoTransform3 Transform(Param parameter, BlockAction action, Dictionary<string, double[]> values)
         {
             double[] now = values[parameter.Id];
 
-            switch (kind)
+            switch (action.Kind)
             {
                 case ActionKind.Move:
-                    double[] move = parameter.Moved(now);
+                    double[] move = action.Factored(parameter.Moved(now));
                     return move[0] == 0.0 && move[1] == 0.0 ? null : GeoTransform3.Translation(new GeoVector3(move[0], move[1], 0.0));
                 case ActionKind.Scale:
                     double factor = now[0] / parameter.Own[0];
@@ -379,8 +413,9 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Moves the points of the copies each stretch holds by its parameter's change: the end point now less the block's own,
-        /// in x and y; a point held by several stretches moves by them all. A line moves its start or end, a polyline its
-        /// vertex; an entity of one point, or an arc held by both ends, moves whole.
+        /// in x and y, times the stretch's distance multiplier and turned by its angle offset; a point held by several stretches
+        /// moves by them all. A line moves its start or end, a polyline its vertex; an entity of one point moves whole; an arc
+        /// held by both ends moves whole, by one end has that end moved, as <see cref="Bend"/> says.
         /// </summary>
         private static void Stretch(Block block, List<BlockAction> stretches, Dictionary<string, double[]> values, Dictionary<string, DxfEntity> copyOf)
         {
@@ -391,7 +426,7 @@ namespace GeometryHelper.Dxf
             foreach (BlockAction stretch in stretches)
             {
                 Param parameter = block.Parameters.Find(p => p.Id == stretch.Parameter);
-                double[] change = parameter.Moved(values[parameter.Id]);
+                double[] change = stretch.Factored(parameter.Moved(values[parameter.Id]));
                 double dx = change[0];
                 double dy = change[1];
 
@@ -422,6 +457,14 @@ namespace GeometryHelper.Dxf
             {
                 if (!copyOf.TryGetValue(handle, out DxfEntity copy))
                 {
+                    continue;
+                }
+
+                if (copy is DxfArc arc)
+                {
+                    moves[handle].TryGetValue(0, out double[] start);
+                    moves[handle].TryGetValue(1, out double[] end);
+                    Bend(arc, start ?? new double[2], end ?? new double[2]);
                     continue;
                 }
 
@@ -462,12 +505,130 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Moves the ends of an arc by the moves given, in x and y: both alike, the arc moves whole; else the arc is drawn anew
+        /// through its ends moved, in its plane and its sense, keeping the height of its middle off its chord, as AutoCAD 2021
+        /// kept 2.929 for the arc of the radius 10 from (100, 25) to (90, 35) whose start went to (150, 25) and then to (200, 25),
+        /// its radius becoming 159.37 and then 522.13 (plugin v20, 24d-k). An arc whose ends would meet within the point
+        /// tolerance of <see cref="Tolerance.Default"/> moves whole by the move of its start.
+        /// </summary>
+        private static void Bend(DxfArc arc, double[] start, double[] end)
+        {
+            if (start[0] == end[0] && start[1] == end[1])
+            {
+                if (start[0] != 0.0 || start[1] != 0.0)
+                {
+                    arc.TransformBy(GeoTransform3.Translation(new GeoVector3(start[0], start[1], 0.0)));
+                }
+
+                return;
+            }
+
+            GeoPoint3 from = arc.StartPoint;
+            GeoPoint3 to = arc.EndPoint;
+            GeoPoint3 middle = arc.GetPointAtParameter((arc.StartParam + arc.EndParam) / 2.0);
+            double cx = to.X - from.X, cy = to.Y - from.Y;
+            double chord = Math.Sqrt(cx * cx + cy * cy);
+            var a = new GeoPoint3(from.X + start[0], from.Y + start[1], from.Z);
+            var b = new GeoPoint3(to.X + end[0], to.Y + end[1], to.Z);
+            double nx = b.X - a.X, ny = b.Y - a.Y;
+            double reach = Math.Sqrt(nx * nx + ny * ny);
+
+            if (!(chord > 0.0) || !(reach > Tolerance.Default.EqualPoint))
+            {
+                arc.TransformBy(GeoTransform3.Translation(new GeoVector3(start[0], start[1], 0.0)));
+                return;
+            }
+
+            // The height of the middle off the chord, signed to the left of the chord from the start to the end, kept.
+            double height = ((middle.X - (from.X + to.X) / 2.0) * -cy + (middle.Y - (from.Y + to.Y) / 2.0) * cx) / chord;
+            double half = reach / 2.0;
+            double radius = (half * half + height * height) / (2.0 * Math.Abs(height));
+            double lx = -ny / reach, ly = nx / reach;
+            double off = height - Math.Sign(height) * radius;
+            var centre = new GeoPoint3((a.X + b.X) / 2.0 + lx * off, (a.Y + b.Y) / 2.0 + ly * off, from.Z);
+            GeoVector3 normal = arc.Normal;
+            GeoPoint3 c = DxfEntity.WorldToOcs(normal, centre);
+            GeoPoint3 s = DxfEntity.WorldToOcs(normal, a);
+            GeoPoint3 e = DxfEntity.WorldToOcs(normal, b);
+            arc.Center = centre;
+            arc.Radius = radius;
+            arc.StartAngle = Math.Atan2(s.Y - c.Y, s.X - c.X);
+            arc.EndAngle = Math.Atan2(e.Y - c.Y, e.X - c.X);
+        }
+
+        /// <summary>
+        /// Copies the entities of each array of the block, after the other actions and the visibility are worked out, into the
+        /// anonymous block: along a linear parameter, a copy at each column spacing from the entity along the line from the
+        /// base point to the end point, as many in all as the spacing goes whole into the distance, one at least; of an XY
+        /// parameter, in rows and columns the way the end point lies, each count the distance along its axis over its spacing,
+        /// rounded down, one at least, as AutoCAD's save of ACadSharp's XY sample shows (four columns of 25 in 100.59, five rows
+        /// of 20 in 104.30). The entity itself is the first copy; the others follow the block's entities, row by row.
+        /// </summary>
+        private static void Copy(Block block, Dictionary<string, double[]> values, Dictionary<string, DxfEntity> copyOf, DxfDatabase database, DxfBlockTableRecord anonymous)
+        {
+            double slack = Tolerance.Default.EqualPoint;
+
+            foreach (BlockAction action in block.Actions)
+            {
+                if (action.Kind != ActionKind.Array)
+                {
+                    continue;
+                }
+
+                Param parameter = block.Parameters.Find(p => p.Id == action.Parameter);
+                double[] now = values[parameter.Id];
+                var offsets = new List<GeoVector3>();
+
+                if (parameter is Linear linear)
+                {
+                    int count = Math.Max(1, (int)Math.Floor((now[0] + slack) / action.Columns));
+
+                    for (int i = 1; i < count; i++)
+                    {
+                        offsets.Add(new GeoVector3(linear.UnitX * i * action.Columns, linear.UnitY * i * action.Columns, linear.UnitZ * i * action.Columns));
+                    }
+                }
+                else
+                {
+                    double[] signs = ((Planar)parameter).Signs;
+                    int columns = Math.Max(1, (int)Math.Floor((now[0] + slack) / action.Columns));
+                    int rows = Math.Max(1, (int)Math.Floor((now[1] + slack) / action.Rows));
+
+                    for (int j = 0; j < rows; j++)
+                    {
+                        for (int i = 0; i < columns; i++)
+                        {
+                            if (i > 0 || j > 0)
+                            {
+                                offsets.Add(new GeoVector3(signs[0] * i * action.Columns, signs[1] * j * action.Rows, 0.0));
+                            }
+                        }
+                    }
+                }
+
+                foreach (string handle in action.Entities)
+                {
+                    if (!copyOf.TryGetValue(handle, out DxfEntity copy))
+                    {
+                        continue;
+                    }
+
+                    foreach (GeoVector3 offset in offsets)
+                    {
+                        database.WblockCloneObjects(new[] { copy }, anonymous)[0].TransformBy(GeoTransform3.Translation(offset));
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// The INSERT's extension dictionary as AutoCAD writes it for an INSERT whose value it set: AcDbBlockRepresentation with
         /// the representation data (AcDbRepData) naming the dynamic block, and AppDataCache with a record for each parameter and
         /// action of the graph (ACAD_ENHANCEDBLOCKDATA, by the node's id, in the order of the ids as text), and for a flip
-        /// parameter's grip as AutoCAD keeps one; the history and its data taken out.
+        /// parameter's grip as AutoCAD keeps one, and for each lookup parameter its label; none for an array or a lookup action,
+        /// as AutoCAD's samples keep none; the history and its data taken out.
         /// </summary>
-        private static void Cache(DxfBlockReference insert, DxfBlockTableRecord dynamic, Block block, Dictionary<string, double[]> values, string state)
+        private static void Cache(DxfBlockReference insert, DxfBlockTableRecord dynamic, Block block, Dictionary<string, double[]> values, string state, Dictionary<string, string> labels)
         {
             DxfFile file = insert.Item.File;
             insert.CreateExtensionDictionary();
@@ -531,6 +692,14 @@ namespace GeometryHelper.Dxf
                 }
 
                 written.Add(new KeyValuePair<string, List<KeyValuePair<int, string>>>(action.Id, groups));
+            }
+
+            foreach (Looked lookup in block.Lookups)
+            {
+                List<KeyValuePair<int, string>> groups = Head(LookupKey);
+                Point(groups, lookup.Location);
+                groups.Add(new KeyValuePair<int, string>(1, labels.TryGetValue(lookup.Id, out string label) ? label : lookup.Table.Label(lookup.Id, values)));
+                written.Add(new KeyValuePair<string, List<KeyValuePair<int, string>>>(lookup.Id, groups));
             }
 
             if (block.Visibility != null)
@@ -612,6 +781,7 @@ namespace GeometryHelper.Dxf
             Scale,
             Rotate,
             Flip,
+            Array,
         }
 
         /// <summary>
@@ -626,9 +796,15 @@ namespace GeometryHelper.Dxf
 
             internal Visible Visibility { get; private set; }
 
+            internal List<Looked> Lookups { get; } = new List<Looked>();
+
             internal static Block Of(DxfBlockTableRecord dynamic)
             {
                 var block = new Block();
+
+                // The node id of each grip by its object's handle, and the lookup tables by their action's node id.
+                var grips = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                var tables = new List<KeyValuePair<string, IReadOnlyList<DxfTypedValue>>>();
                 DxfDBObject graph = DxfDynamicProperties.Entry(dynamic.ExtensionDictionary, "ACAD_ENHANCEDBLOCK");
 
                 if (graph?.Item == null || graph.Item.Type != "ACAD_EVALUATION_GRAPH")
@@ -647,6 +823,7 @@ namespace GeometryHelper.Dxf
 
                     IReadOnlyList<DxfTypedValue> groups = node.Groups;
                     string id = DxfDynamicProperties.Text(DxfDynamicProperties.Section(groups, "AcDbEvalExpr"), 90)?.Trim();
+                    int before = block.Parameters.Count;
 
                     switch (node.Type)
                     {
@@ -672,20 +849,61 @@ namespace GeometryHelper.Dxf
                         case "BLOCKSCALEACTION":
                         case "BLOCKROTATEACTION":
                         case "BLOCKFLIPACTION":
+                        case "BLOCKARRAYACTION":
                             block.Actions.Add(BlockAction.Of(node.Type, groups, id, dynamic.Name));
                             break;
                         case "BLOCKVISIBILITYPARAMETER":
                             block.Visibility = Visible.Of(groups, id);
+                            break;
+                        case "BLOCKLOOKUPPARAMETER":
+                            block.Lookups.Add(Looked.Of(groups, id, dynamic.Name));
+                            break;
+                        case "BLOCKLOOKUPACTION":
+                            tables.Add(new KeyValuePair<string, IReadOnlyList<DxfTypedValue>>(id, groups));
                             break;
                         case "BLOCKLINEARGRIP":
                         case "BLOCKXYGRIP":
                         case "BLOCKROTATIONGRIP":
                         case "BLOCKFLIPGRIP":
                         case "BLOCKVISIBILITYGRIP":
+                        case "BLOCKLOOKUPGRIP":
+                        case "BLOCKALIGNMENTGRIP":
+                            if (id != null)
+                            {
+                                grips[node.Handle] = id;
+                            }
+
+                            break;
                         case "BLOCKGRIPLOCATIONCOMPONENT":
+                        case "BLOCKALIGNMENTPARAMETER":
+                        case "BLOCKBASEPOINTPARAMETER":
                             break;
                         default:
-                            throw new NotSupportedException("The block " + dynamic.Name + " holds a " + node.Type + ", which the library does not work out: it works out linear, XY, point, rotation, flip and visibility parameters with stretch, move, scale, rotate and flip actions.");
+                            throw new NotSupportedException("The block " + dynamic.Name + " holds a " + node.Type + ", which the library does not work out: it works out linear, XY, point, rotation, flip, visibility and lookup parameters with stretch, move, scale, rotate, flip, array and lookup actions, and alignment and base point parameters.");
+                    }
+
+                    if (block.Parameters.Count > before)
+                    {
+                        block.Parameters[before].Grips = Param.GripsOf(groups);
+                    }
+                }
+
+                foreach (Looked lookup in block.Lookups)
+                {
+                    KeyValuePair<string, IReadOnlyList<DxfTypedValue>> table = tables.Find(t => t.Key == lookup.Action);
+                    lookup.Table = block.Lookups.Find(l => l.Action == lookup.Action && l.Table != null)?.Table
+                        ?? Table.Of(table.Value ?? throw new NotSupportedException("A lookup parameter of the block " + dynamic.Name + " names no lookup action of it."), block, dynamic.Name);
+                }
+
+                // A move may list its own parameter's grips among what it moves, as AutoCAD's point sample does: the grips follow
+                // the parameter anyway, and are left out.
+                foreach (BlockAction action in block.Actions)
+                {
+                    HashSet<string> own = block.Parameters.Find(p => p.Id == action.Parameter)?.Grips;
+
+                    if (action.Kind == ActionKind.Move && own != null)
+                    {
+                        action.Entities.RemoveAll(h => grips.TryGetValue(h, out string grip) && own.Contains(grip));
                     }
                 }
 
@@ -714,6 +932,18 @@ namespace GeometryHelper.Dxf
                     }
                 }
 
+                // An entity an array copies and another action works on is not worked out: no sample shows the order they take.
+                foreach (BlockAction array in block.Actions.FindAll(a => a.Kind == ActionKind.Array))
+                {
+                    foreach (BlockAction action in block.Actions)
+                    {
+                        if (action != array && (action.Entities.Exists(array.Entities.Contains) || action.Held.Exists(h => array.Entities.Contains(h.Key))))
+                        {
+                            throw new NotSupportedException("The block " + dynamic.Name + " copies by an array an entity another action works on, an order no sample of AutoCAD shows: the library does not work it out.");
+                        }
+                    }
+                }
+
                 return block;
             }
         }
@@ -731,6 +961,20 @@ namespace GeometryHelper.Dxf
             internal GeoPoint3 End { get; set; }
 
             internal double[] Own { get; set; }
+
+            /// <summary>The node ids of the parameter's grips.</summary>
+            internal HashSet<string> Grips { get; set; }
+
+            /// <summary>The node ids of the grips a parameter lists: the 91s of a parameter of two points, the 93 of one of one point; nought left out.</summary>
+            internal static HashSet<string> GripsOf(IReadOnlyList<DxfTypedValue> groups)
+            {
+                var grips = new HashSet<string>(StringComparer.Ordinal);
+                DxfDynamicProperties.Section(groups, "AcDbBlock2PtParameter").FindAll(g => g.TypeCode == 91).ForEach(g => grips.Add(g.Value?.Trim()));
+                DxfDynamicProperties.Section(groups, "AcDbBlock1PtParameter").FindAll(g => g.TypeCode == 93).ForEach(g => grips.Add(g.Value?.Trim()));
+                grips.Remove("0");
+                grips.Remove(null);
+                return grips;
+            }
 
             /// <summary>The move, in x and y, of the point a stretch or a move follows, at the value given; none for a parameter no stretch or move follows.</summary>
             internal virtual double[] Moved(double[] now) => new double[2];
@@ -955,6 +1199,9 @@ namespace GeometryHelper.Dxf
                 return planar;
             }
 
+            /// <summary>The way the end point lies from the base point along x and along y, 1 or -1 each.</summary>
+            internal double[] Signs => new[] { _signX, _signY };
+
             /// <summary>The move of the end point: each distance now less the block's own, the way the end point lies.</summary>
             internal override double[] Moved(double[] now) => new[] { _signX * (now[0] - Own[0]), _signY * (now[1] - Own[1]) };
 
@@ -1088,6 +1335,30 @@ namespace GeometryHelper.Dxf
 
             internal List<string> Entities { get; } = new List<string>();
 
+            /// <summary>The distance multiplier of a stretch or a move (140); 1 for the others.</summary>
+            internal double Multiplier { get; private set; } = 1.0;
+
+            /// <summary>The angle offset of a stretch or a move (141), in radians; nought for the others.</summary>
+            internal double Offset { get; private set; }
+
+            /// <summary>The column offset of an array (141).</summary>
+            internal double Columns { get; private set; }
+
+            /// <summary>The row offset of an array (140).</summary>
+            internal double Rows { get; private set; }
+
+            /// <summary>A move in x and y times the multiplier and turned by the offset, counter-clockwise.</summary>
+            internal double[] Factored(double[] move)
+            {
+                if (Multiplier == 1.0 && Offset == 0.0)
+                {
+                    return move;
+                }
+
+                double cos = Math.Cos(Offset), sin = Math.Sin(Offset);
+                return new[] { Multiplier * (cos * move[0] - sin * move[1]), Multiplier * (sin * move[0] + cos * move[1]) };
+            }
+
             // The connections and the numbers read, checked against the parameter once the graph is read.
             private string _x;
             private string _y;
@@ -1152,12 +1423,14 @@ namespace GeometryHelper.Dxf
 
                 double slack = Tolerance.Default.EqualVector;
 
-                if (id == null || stretch._x == null || stretch._x != stretch._y || stretch._xBy != "EndXDelta" || stretch._yBy != "EndYDelta" || parameters != 0 || Math.Abs(multiplier - 1.0) > slack || Math.Abs(angle) > slack)
+                if (id == null || stretch._x == null || stretch._x != stretch._y || stretch._xBy != "EndXDelta" || stretch._yBy != "EndYDelta" || parameters != 0)
                 {
-                    throw new NotSupportedException("A stretch of the block " + block + " is not one the library works out: it works out a stretch by the end point of a linear or an XY parameter, unscaled and unturned, moving no other parameter.");
+                    throw new NotSupportedException("A stretch of the block " + block + " is not one the library works out: it works out a stretch by the end point of a linear or an XY parameter, moving no other parameter.");
                 }
 
                 stretch.Parameter = stretch._x;
+                stretch.Multiplier = Math.Abs(multiplier - 1.0) <= slack ? 1.0 : multiplier;
+                stretch.Offset = Math.Abs(angle) <= slack ? 0.0 : angle;
                 return stretch;
             }
 
@@ -1188,7 +1461,23 @@ namespace GeometryHelper.Dxf
                     action._xBy = DxfDynamicProperties.Text(own, 301)?.Trim();
                     action._yBy = DxfDynamicProperties.Text(own, 302)?.Trim();
                     action._xyType = Param.FlagsOf(own, 280);
-                    known = Math.Abs(Param.RealOf(own, 140, 1.0) - 1.0) <= slack && Math.Abs(Param.RealOf(own, 141, 0.0)) <= slack;
+                    double multiplier = Param.RealOf(own, 140, 1.0), angle = Param.RealOf(own, 141, 0.0);
+                    action.Multiplier = Math.Abs(multiplier - 1.0) <= slack ? 1.0 : multiplier;
+                    action.Offset = Math.Abs(angle) <= slack ? 0.0 : angle;
+                    known = true;
+                }
+                else if (type == "BLOCKARRAYACTION")
+                {
+                    action.Kind = ActionKind.Array;
+                    List<DxfTypedValue> own = DxfDynamicProperties.Section(groups, "AcDbBlockArrayAction");
+                    action._x = DxfDynamicProperties.Text(own, 92)?.Trim();
+                    action._y = DxfDynamicProperties.Text(own, 93)?.Trim();
+                    action._xBy = DxfDynamicProperties.Text(own, 301)?.Trim();
+                    action._yBy = DxfDynamicProperties.Text(own, 302)?.Trim();
+                    action.Rows = Param.RealOf(own, 140, 0.0);
+                    action.Columns = Param.RealOf(own, 141, 0.0);
+                    known = action._xBy == "Base" && action._yBy == "End" && action.Columns > Tolerance.Default.EqualPoint
+                        && DxfDynamicProperties.Text(own, 94)?.Trim() == action._x && DxfDynamicProperties.Text(own, 95)?.Trim() == action._x;
                 }
                 else if (type == "BLOCKFLIPACTION")
                 {
@@ -1220,7 +1509,7 @@ namespace GeometryHelper.Dxf
 
                 if (id == null || action._x == null || action._x != action._y || chained || !known)
                 {
-                    throw new NotSupportedException("A " + type + " of the block " + block + " is not one the library works out: it works out a move of distance multiplier 1 and angle offset nought, a scale and a rotate about the parameter's base point, and a flip, each of entities only.");
+                    throw new NotSupportedException("A " + type + " of the block " + block + " is not one the library works out: it works out a move, a scale and a rotate about the parameter's base point, a flip and an array of a column offset, each of entities only.");
                 }
 
                 action.Parameter = action._x;
@@ -1230,9 +1519,9 @@ namespace GeometryHelper.Dxf
             /// <summary>
             /// Refuses an action whose parameter is not of the kind it follows, or that works on what is not an entity of the
             /// block the library works out: a stretch of a linear or an XY parameter, of lines, polylines and entities of one
-            /// point by their points, and of arcs by both ends; a move of a linear or an XY parameter by its end point, of a
-            /// point parameter by its position; a scale of a linear parameter, a rotate of a rotation parameter, a flip of a flip
-            /// parameter.
+            /// point by their points, and of arcs by both ends or, lying flat, by one; a move of a linear or an XY parameter by
+            /// its end point, of a point parameter by its position; a scale of a linear parameter, a rotate of a rotation
+            /// parameter, a flip of a flip parameter, an array of a linear parameter or of an XY parameter of a row offset.
             /// </summary>
             internal void Check(Block block, Dictionary<string, DxfEntity> entities, string name)
             {
@@ -1253,6 +1542,9 @@ namespace GeometryHelper.Dxf
                         break;
                     case ActionKind.Rotate:
                         fits = parameter is Turning;
+                        break;
+                    case ActionKind.Array:
+                        fits = parameter is Linear || (parameter is Planar && Rows > Tolerance.Default.EqualPoint);
                         break;
                     default:
                         fits = parameter is Mirror;
@@ -1277,13 +1569,210 @@ namespace GeometryHelper.Dxf
                     entities.TryGetValue(held.Key, out DxfEntity entity);
                     List<GeoPoint3> points = entity == null ? null : DxfBlockTableRecord.StretchPoints(entity);
                     int count = points?.Count ?? 0;
-                    bool whole = entity is DxfLine || entity is DxfPolyline || held.Value.Count == count;
+                    bool whole = entity is DxfLine || entity is DxfPolyline || held.Value.Count == count || (entity is DxfArc arc && DxfBlockTableRecord.Flat(arc.Normal));
 
                     if (count == 0 || held.Value.Exists(i => i < 0 || i >= count) || !whole)
                     {
-                        throw new NotSupportedException("A stretch of the block " + name + " holds the entity " + held.Key + ", which is not one the library works out with the points it names: lines and polylines by their points, arcs by both ends, circles, texts, multiline texts and INSERTs by their one point.");
+                        throw new NotSupportedException("A stretch of the block " + name + " holds the entity " + held.Key + ", which is not one the library works out with the points it names: lines and polylines by their points, arcs by both ends or, lying flat, by one, circles, texts, multiline texts and INSERTs by their one point.");
                     }
                 }
+            }
+        }
+
+        /// <summary>A lookup parameter: its node's id, its location, the id of its lookup action, and the table of that action.</summary>
+        private sealed class Looked
+        {
+            internal string Id { get; private set; }
+
+            internal GeoPoint3 Location { get; private set; }
+
+            internal string Action { get; private set; }
+
+            internal Table Table { get; set; }
+
+            internal static Looked Of(IReadOnlyList<DxfTypedValue> groups, string id, string block)
+            {
+                double[] at = DxfDynamicProperties.PointOf(DxfDynamicProperties.Section(groups, "AcDbBlock1PtParameter"), 1010);
+                string action = DxfDynamicProperties.Text(DxfDynamicProperties.Section(groups, "AcDbBlockLookUpParameter"), 94)?.Trim();
+
+                if (id == null || at == null || action == null)
+                {
+                    throw new NotSupportedException("A lookup parameter of the block " + block + " is not one the library works out: its location or its action cannot be read.");
+                }
+
+                return new Looked { Id = id, Location = new GeoPoint3(at[0], at[1], at[2]), Action = action };
+            }
+
+            /// <summary>Sets the inputs and the lookups of the table to the row of a label of this lookup's column, as <see cref="Table.Choose"/> says.</summary>
+            internal void Choose(string label, Dictionary<string, double[]> values, Dictionary<string, string> labels, string block) => Table.Choose(this, label, values, labels, block);
+        }
+
+        /// <summary>
+        /// The table of a lookup action, as AutoCAD writes it: its cells row by row, and its columns, each of a parameter's node,
+        /// looked up (282 of 1) or an input, its label of no match (305) and its connection (304). The library works out input
+        /// columns of a linear parameter's distance (UpdatedDistance) and of a point parameter's x and y (UpdatedX, UpdatedY),
+        /// of reals in the block's units, and looked-up columns of a lookup parameter (lookupString).
+        /// </summary>
+        private sealed class Table
+        {
+            private readonly List<string[]> _rows = new List<string[]>();
+            private readonly List<Column> _columns = new List<Column>();
+
+            internal static Table Of(IReadOnlyList<DxfTypedValue> groups, Block block, string name)
+            {
+                var table = new Table();
+                List<DxfTypedValue> own = DxfDynamicProperties.Section(groups, "AcDbBlockLookupAction");
+                int rows = Param.FlagsOf(own, 92), width = Param.FlagsOf(own, 93);
+                var cells = new List<string>();
+
+                foreach (DxfTypedValue group in own)
+                {
+                    if (group.TypeCode == 302 && table._columns.Count == 0)
+                    {
+                        cells.Add(DxfReader.Decode(group.Value ?? string.Empty).Trim());
+                    }
+                    else if (group.TypeCode == 303)
+                    {
+                        table._columns.Add(new Column());
+                    }
+                    else if (table._columns.Count > 0)
+                    {
+                        Column column = table._columns[table._columns.Count - 1];
+
+                        switch (group.TypeCode)
+                        {
+                            case 94:
+                                column.Node = group.Value?.Trim();
+                                break;
+                            case 282:
+                                column.LookedUp = group.Value?.Trim() == "1";
+                                break;
+                            case 305:
+                                column.Unmatched = DxfReader.Decode(group.Value ?? string.Empty);
+                                break;
+                            case 304:
+                                column.Connection = group.Value?.Trim();
+                                break;
+                        }
+                    }
+                }
+
+                if (rows <= 0 || width <= 0 || width != table._columns.Count || cells.Count != rows * width)
+                {
+                    throw new NotSupportedException("A lookup table of the block " + name + " cannot be read whole.");
+                }
+
+                for (int r = 0; r < rows; r++)
+                {
+                    table._rows.Add(cells.GetRange(r * width, width).ToArray());
+                }
+
+                for (int c = 0; c < width; c++)
+                {
+                    Column column = table._columns[c];
+                    Param parameter = block.Parameters.Find(p => p.Id == column.Node);
+                    bool known = column.LookedUp
+                        ? column.Connection == "lookupString" && block.Lookups.Exists(l => l.Id == column.Node)
+                        : (parameter is Linear && column.Connection == "UpdatedDistance") || (parameter is Spot && (column.Connection == "UpdatedX" || column.Connection == "UpdatedY"));
+
+                    if (!known || (!column.LookedUp && table._rows.Exists(r => !DxfDynamicProperties.Number(r[c], out _))))
+                    {
+                        throw new NotSupportedException("A lookup table of the block " + name + " has a column the library does not work out: it works out inputs of a linear parameter's distance and of a point parameter's x and y, of numbers, and lookup parameters looked up.");
+                    }
+
+                    column.Part = column.Connection == "UpdatedY" ? 1 : 0;
+                }
+
+                return table;
+            }
+
+            /// <summary>
+            /// The label a lookup, by its node's id, shows at the values given: its cell of the first row whose inputs are the values, within the
+            /// point tolerance of <see cref="Tolerance.Default"/>; else its column's label of no match.
+            /// </summary>
+            internal string Label(string lookup, Dictionary<string, double[]> values)
+            {
+                int column = _columns.FindIndex(c => c.LookedUp && c.Node == lookup);
+
+                if (column < 0)
+                {
+                    return string.Empty;
+                }
+
+                foreach (string[] row in _rows)
+                {
+                    bool all = true;
+
+                    for (int c = 0; c < _columns.Count && all; c++)
+                    {
+                        if (!_columns[c].LookedUp)
+                        {
+                            DxfDynamicProperties.Number(row[c], out double cell);
+                            all = Math.Abs(cell - values[_columns[c].Node][_columns[c].Part]) <= Tolerance.Default.EqualPoint;
+                        }
+                    }
+
+                    if (all)
+                    {
+                        return row[column];
+                    }
+                }
+
+                return _columns[column].Unmatched;
+            }
+
+            /// <summary>Gives each lookup of the table the label of the values given.</summary>
+            internal void Relabel(Dictionary<string, double[]> values, Dictionary<string, string> labels)
+            {
+                foreach (Column column in _columns)
+                {
+                    if (column.LookedUp)
+                    {
+                        labels[column.Node] = Label(column.Node, values);
+                    }
+                }
+            }
+
+            /// <summary>
+            /// Sets each input of the table to its cell of the first row whose cell of the lookup's column is the label given,
+            /// letters of either case the same, and each lookup of the table to its cell of that row; refuses a label of no row.
+            /// </summary>
+            internal void Choose(Looked lookup, string label, Dictionary<string, double[]> values, Dictionary<string, string> labels, string block)
+            {
+                int column = _columns.FindIndex(c => c.LookedUp && c.Node == lookup.Id);
+                string[] chosen = column < 0 ? null : _rows.Find(r => string.Equals(r[column], label, StringComparison.OrdinalIgnoreCase));
+
+                if (chosen == null)
+                {
+                    throw new ArgumentException("The lookup table of the block " + block + " has no row labelled " + label + ".", "value");
+                }
+
+                for (int c = 0; c < _columns.Count; c++)
+                {
+                    if (_columns[c].LookedUp)
+                    {
+                        labels[_columns[c].Node] = chosen[c];
+                    }
+                    else
+                    {
+                        DxfDynamicProperties.Number(chosen[c], out double cell);
+                        values[_columns[c].Node][_columns[c].Part] = cell;
+                    }
+                }
+            }
+
+            /// <summary>A column of the table.</summary>
+            private sealed class Column
+            {
+                internal string Node { get; set; }
+
+                internal bool LookedUp { get; set; }
+
+                internal string Unmatched { get; set; } = string.Empty;
+
+                internal string Connection { get; set; }
+
+                internal int Part { get; set; }
             }
         }
 

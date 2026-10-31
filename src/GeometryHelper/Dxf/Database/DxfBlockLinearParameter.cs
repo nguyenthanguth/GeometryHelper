@@ -8,7 +8,7 @@ namespace GeometryHelper.Dxf
     /// changed by the actions tied to it
     /// (<see cref="DxfBlockTableRecord.AddStretchAction(DxfBlockLinearParameter, GeoPoint2, GeoPoint2, System.Collections.Generic.IEnumerable{DxfEntity})"/>,
     /// <see cref="DxfBlockTableRecord.AddMoveAction(DxfBlockLinearParameter, System.Collections.Generic.IEnumerable{DxfEntity})"/>,
-    /// <see cref="DxfBlockTableRecord.AddScaleAction"/>).
+    /// <see cref="DxfBlockTableRecord.AddScaleAction"/>, <see cref="DxfBlockTableRecord.AddArrayAction(DxfBlockLinearParameter, System.Collections.Generic.IEnumerable{DxfEntity}, double)"/>).
     /// </summary>
     /// <remarks>
     /// The parameter Width from (0, 0, 0) to (100, 0, 0) of a rectangle 100 by 50 gives each INSERT of the block the property

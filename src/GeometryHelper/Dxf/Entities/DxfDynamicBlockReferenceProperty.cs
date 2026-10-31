@@ -5,8 +5,8 @@ namespace GeometryHelper.Dxf
     /// <summary>
     /// One dynamic property of an INSERT of a dynamic block, as AutoCAD's <c>DynamicBlockReferenceProperty</c> gives it: the
     /// name a parameter of the block shows it by, its value for this INSERT as AutoCAD saved it, and the values it may take.
-    /// The value of a linear, XY, point, rotation, flip or visibility parameter, in a block of the actions the library writes,
-    /// is set as AutoCAD sets it (<see cref="Value"/>); the others are read only.
+    /// The value of a linear, XY, point, rotation, flip, visibility or lookup parameter, in a block of the actions the library
+    /// writes, is set as AutoCAD sets it (<see cref="Value"/>); the others are read only.
     /// </summary>
     /// <remarks>
     /// The INSERT of a door whose linear parameter Width AutoCAD stretched from 900 to 1 000 gives the property Width, of the
@@ -51,8 +51,9 @@ namespace GeometryHelper.Dxf
         /// <value>
         /// <para>
         /// Set, as AutoCAD's <c>Value</c> sets it, on the distance of a linear parameter, the distances of an XY parameter, the
-        /// position of a point parameter, the angle of a rotation parameter, the state of a flip parameter and the state of a
-        /// visibility parameter, in a block of those and of the stretch, move, scale, rotate and flip actions the library writes
+        /// position of a point parameter, the angle of a rotation parameter, the state of a flip parameter, the state of a
+        /// visibility parameter and the label of a lookup parameter, in a block of those, of alignment and base point
+        /// parameters, and of the stretch, move, scale, rotate, flip, array and lookup actions the library writes
         /// (<see cref="DxfBlockTableRecord.AddStretchAction(DxfBlockLinearParameter, GeometryHelper.Geometry.GeoPoint2, GeometryHelper.Geometry.GeoPoint2, System.Collections.Generic.IEnumerable{DxfEntity})"/>
         /// and the others): the value taken to the parameter's value set, then the block worked out at the values of all its
         /// properties, the copy written as AutoCAD writes it, and the value read back. A Width of the rectangle 100 by 50 set to
@@ -61,11 +62,17 @@ namespace GeometryHelper.Dxf
         /// </para>
         /// <para>
         /// The actions are worked out in the order they were added: stretches in a row are summed point by point (a line's ends,
-        /// a polyline's vertices; an arc, a circle, a text, a multiline text or an INSERT held moves whole), a move moves its
-        /// entities whole by the change of the point it follows (the end point of a linear or an XY parameter, the position of a
-        /// point parameter), a scale scales them alike about the base point of its linear parameter by the distance over the
-        /// block's own, a rotate turns them about the base point of its rotation parameter by the angle less the block's own, and
-        /// a flip mirrors them about its reflection line while the state is 1.
+        /// a polyline's vertices; an arc held by one end has that end moved and keeps the height of its middle off its chord,
+        /// as AutoCAD 2021 kept it; an arc held by both ends, a circle, a text, a multiline text or an INSERT held moves whole),
+        /// a move moves its entities whole by the change of the point it follows (the end point of a linear or an XY parameter,
+        /// the position of a point parameter), each times its distance multiplier and turned by its angle offset; a scale scales
+        /// them alike about the base point of its linear parameter by the distance over the block's own, a rotate turns them
+        /// about the base point of its rotation parameter by the angle less the block's own, and a flip mirrors them about its
+        /// reflection line while the state is 1. Then each array copies its entities, as many as its spacing goes whole into
+        /// the distance, one at least: a Length of 250 of a post every 60 shows four posts. A move listing its own parameter's
+        /// grip among what it moves, as AutoCAD's point sample does, moves its entities alone. A lookup set to a row's label
+        /// sets the properties of its input columns to the row's values; any property set, each lookup reads the label of the
+        /// first row of the values then, or its label of no match, Custom as the library writes it.
         /// </para>
         /// <para>
         /// A distance or a position is a number (a <see cref="double"/>, or a whole number taken as one); a linear distance is
@@ -78,7 +85,7 @@ namespace GeometryHelper.Dxf
         /// scaled by 2 is twice the block's, as it is read. A distance of an XY parameter is above the point tolerance. An angle
         /// is a number of radians, taken into a turn, from nought up to 2 pi. A flip state is a whole number, 0 or 1, and reads
         /// back as a <see cref="short"/>. A visibility state is one of the parameter's, by its name, letters of either case the
-        /// same, and reads back as the parameter names it.
+        /// same, and reads back as the parameter names it; so is a lookup's label, one of a row of its table.
         /// </para>
         /// <para>
         /// The INSERT is made to place an anonymous block of AutoCAD's (<c>*U1</c> and on, flagged anonymous) holding a copy of
@@ -95,17 +102,20 @@ namespace GeometryHelper.Dxf
         /// </value>
         /// <exception cref="ArgumentNullException">Thrown when the value set is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the value set is not a finite number for a distance, a position or an
-        /// angle, not a whole number for a flip state, or not the name of a state of a visibility parameter.</exception>
+        /// angle, not a whole number for a flip state, not the name of a state of a visibility parameter, or not the label of
+        /// a row of a lookup's table.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when a distance, taken to the value set, is not above the point
         /// tolerance of <see cref="Tolerance.Default"/>, or a flip state is neither 0 nor 1.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the property is read only, or its INSERT is erased, in no
         /// drawing, or scaled unlike along its axes, which AutoCAD does not take as a dynamic block's.</exception>
         /// <exception cref="NotSupportedException">Thrown when the property is of a parameter the library does not work out (a
-        /// polar or lookup parameter), or the block holds such a parameter, an action of another kind (an array, a polar
-        /// stretch, a lookup), or an action the library does not work out: a stretch of an entity other than those above or of
-        /// an arc by one end, an action moving other parameters, a move or a stretch scaled or turned, a scale or a rotate about
+        /// polar parameter), or the block holds such a parameter, an action of another kind (a polar stretch), or an action the
+        /// library does not work out: a stretch of an entity other than those above or of a tilted arc by one end, an action
+        /// moving other parameters or grips of another parameter, a stretch or a move by a base point, a scale or a rotate about
         /// another point than its parameter's base point, a rotation or an XY parameter with a value set, an entity both flipped
-        /// and moved by other actions. Nothing is written then.</exception>
+        /// and moved by other actions, an entity both copied by an array and worked on by another action, a lookup table of
+        /// columns other than a linear parameter's distance, a point parameter's x and y and lookups. Nothing is written
+        /// then.</exception>
         public object Value
         {
             get => _value;
@@ -119,7 +129,7 @@ namespace GeometryHelper.Dxf
 
                 if (_insert == null)
                 {
-                    throw new NotSupportedException("The property " + PropertyName + " is of a parameter the library does not work out: it sets those of linear, XY, point, rotation, flip and visibility parameters.");
+                    throw new NotSupportedException("The property " + PropertyName + " is of a parameter the library does not work out: it sets those of linear, XY, point, rotation, flip, visibility and lookup parameters.");
                 }
 
                 _value = DxfDynamicBlockRepresentation.Set(_insert, _node, _part, value);

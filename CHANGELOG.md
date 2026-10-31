@@ -6,6 +6,36 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The last kinds of AutoCAD's dynamic blocks are made in code, each written as AutoCAD 2021 saved ACadSharp's sample
+of it. `DxfBlockTableRecord.AddArrayAction(linear, entities, columnSpacing)` and `AddArrayAction(xy, entities,
+columnSpacing, rowSpacing)` copy entities as the distance grows, as many as the spacing goes whole into it: a post every 60
+of a fence shows four at a Length of 250, a bolt every 25 by 20 of a plate 4 by 3 at 100 by 70, as AutoCAD's sample drew four
+columns of 25 in 100.59 and five rows of 20 in 104.30. `AddLookupParameter(name, description, location, inputs, rows)`
+gives a lookup parameter and its table, the new `DxfBlockLookupInput` (the distance of a linear parameter, the x or the y of
+a point parameter) and `DxfBlockLookupRow` (a label and a value for each input): Size set to Large sets Width to 200 and
+Height to 80, and Width set to 150 then reads Custom. `AddAlignmentParameter(basePoint, endPoint)` and
+`AddBasePointParameter(location)` give the grips AutoCAD uses when the block is placed; they give no property.
+`DxfDynamicBlockReferenceProperty.Value` sets each as AutoCAD sets it: the copies of an array follow the block's entities,
+each keeping its tag; a lookup is set by a row's label, letters of either case the same. A lookup property was read only
+before.
+
+**NEW.** A stretch action takes an arc with one end only in its frame, numbered as AutoCAD numbers it (its start 0, its end
+1), lying flat in the block: that end moves and the arc is drawn anew through its ends, keeping the height of its middle off
+its chord, as AutoCAD 2021 kept 2.929 for an arc of the radius 10 whose start went from (100, 25) to (200, 25), its radius
+becoming 522.13. It was refused before.
+
+**NEW.** `AddStretchAction` and `AddMoveAction` take a distance multiplier and an angle offset, AutoCAD's Distance
+Multiplier and Angle Offset (140 and 141 of the action): a mark moved of the multiplier 0.5 stays in the middle of a panel
+whose Width goes from 100 to 200, and an offset of Math.PI / 2 turns a move along x to one along y. The overloads without
+them write what they wrote before. `DxfDynamicBlockReferenceProperty.Value` works such actions out, and a move that lists
+its own parameter's grip among what it moves, as AutoCAD's point sample and drawings from AutoCAD do; both were refused
+before.
+
+**CHANGED.** A flip action is written in a block of no stretch, move, scale, rotate or array action, either given second
+refused with `NotSupportedException`, where before only an entity both flipped and moved was refused. AutoCAD 2021, given a
+panel whose flip and stretch held other entities, did not flip the INSERT of the block itself, reading its Hand back as 0,
+though it flipped an INSERT the library had set and one of a block of the flip alone (check v20b).
+
 **NEW.** The other dynamic blocks of AutoCAD's Block Editor are made in code, each written as AutoCAD 2021 saved
 ACadSharp's sample of it, its graph number for number. `DxfBlockTableRecord.AddPointParameter(name, description,
 location)` gives a block a position, the properties Tag X and Tag Y of a parameter named Tag, and `AddMoveAction(point,
@@ -28,14 +58,12 @@ INSERTs takes about half a millisecond for a set under .NET 10 and one under .NE
 audits the files of AutoCAD check v20 with nothing to fix, where AutoCAD 2021 read and set the move, the scale, the point,
 the flip and the XY blocks right. A scale or a rotate is written with 1012 nought, as AutoCAD's samples write it: AutoCAD
 adds 1012 to the base point, and turned an arrow about (100, 50) instead of (50, 25) while the library wrote the base point
-there. An entity a flip mirrors and another action moves is refused with `NotSupportedException`, either action given
-second, as AutoCAD worked such a block out from each INSERT's last state (a panel stretched to x = -250 for a Width of
-150 after a flip) and would not flip it. A polar parameter and its polar stretch are not written.
+there. A polar parameter and its polar stretch are not written.
 
 **NEW.** A stretch action takes, besides lines and polylines, an arc with both its ends in the frame, a circle by its
 centre, a text by the point it is held by, a multiline text by its location and an INSERT by its insertion point, each
-moving whole, numbered as AutoCAD's files number them (an arc 0 and 1, the others 0); an arc with one end only in the
-frame, a text aligned or fitted between two points, an attribute definition and an INSERT of rows and columns are refused.
+moving whole, numbered as AutoCAD's files number them (an arc 0 and 1, the others 0); a text aligned or fitted between two
+points, an attribute definition and an INSERT of rows and columns are refused.
 A frame over the right side of a rectangle 100 by 50 set to Width 200 moves an arc, a circle, two texts, a multiline text
 and an INSERT there by 100 along x.
 

@@ -6,7 +6,7 @@ namespace GeometryHelper.Dxf
     /// <summary>
     /// An XY parameter of a dynamic block, as <see cref="DxfBlockTableRecord.AddXYParameter"/> wrote it: the distances along x
     /// and along y from a base point to an end point, shown on every INSERT of the block as two dynamic properties, and
-    /// followed by the stretch and move actions tied to it, which follow its end point both ways.
+    /// followed by the stretch, move and array actions tied to it, which follow its end point both ways.
     /// </summary>
     /// <remarks>
     /// The parameter of the labels Width and Depth from (0, 0, 0) to (100, 50, 0) gives each INSERT the properties Width of 100

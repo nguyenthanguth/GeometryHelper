@@ -282,15 +282,15 @@ namespace GeometryHelper.UnitTest.Dxf
         public void WhatAStretchDoesNotTake_IsRefused_AndNothingIsWritten()
         {
             DxfDatabase db = Panel(null, out DxfBlockTableRecord block, out DxfBlockLinearParameter width, out _);
-            DxfArc arc = Add(block, new DxfArc(new GeoPoint3(95, 25, 0), 10, 0, Math.PI));
+            DxfArc arc = Add(block, new DxfArc(new GeoPoint3(95, 25, 0), new GeoVector3(1, 0, 1), 10, 0, Math.PI));
             DxfDBText fitted = Add(block, Text(92, 40, "F"));
             fitted.HorizontalMode = DxfTextHorizontalMode.TextFit;
             fitted.AlignmentPoint = new GeoPoint3(98, 40, 0);
             var definition = Add(block, new DxfAttributeDefinition(new GeoPoint3(95, 5, 0), "x", "TAG", "Tag?", null));
             string before = db.ToText();
 
-            // The arc's start (105, 25) is in the frame, its end (85, 25) is not.
-            Assert.Throws<ArgumentException>(() => block.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), new[] { arc }));
+            // The tilted arc's end (95, 15) is in the frame, its start (95, 35) is not: an arc held by one end lies flat (D24e).
+            Assert.Throws<ArgumentException>(() => block.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 30), new[] { arc }));
             Assert.Throws<ArgumentException>(() => block.AddStretchAction(width, new GeoPoint2(80, -10), new GeoPoint2(110, 60), new[] { fitted }));
             Assert.Throws<ArgumentException>(() => block.AddStretchAction(width, new GeoPoint2(80, -10), new GeoPoint2(110, 60), new[] { definition }));
             Assert.Equal(before, db.ToText());
@@ -634,19 +634,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<NotSupportedException>(() => block.AddFlipAction(hand, new[] { lines[3], lines[0] }));
             Assert.Equal(before, db.ToText());
 
-            // The left edge alone is held by no stretch: it is flipped; then a stretch or a move of it is refused.
-            block.AddFlipAction(hand, new DxfEntity[] { lines[3], tag });
-            string flipped = db.ToText();
-            Assert.Throws<NotSupportedException>(() => block.AddStretchAction(width, new GeoPoint2(-10, -10), new GeoPoint2(10, 60), new[] { lines[3] }));
-            Assert.Throws<NotSupportedException>(() => block.AddMoveAction(width, new[] { tag }));
-            Assert.Equal(flipped, db.ToText());
-
-            DxfBlockReference insert = TheInsert(db);
-            Property(insert, "Width").Value = 200.0;
-            Property(insert, "Hand").Value = (short)1;
-            List<DxfLine> shown = Shown<DxfLine>(TheInsert(Reopened(db)));
-            Assert.True(Is(shown[0], 200, 0, 200, 50));
-            Assert.True(Is(shown[3], 0, 50, 0, 0));
+            // The left edge and a circle held by no stretch are refused too since D24e: AutoCAD 2021 did not flip an INSERT of
+            // the block itself where the flip and the stretch held other entities (plugin v20b, 24d-i).
+            Assert.Throws<NotSupportedException>(() => block.AddFlipAction(hand, new DxfEntity[] { lines[3], tag }));
+            Assert.Equal(before, db.ToText());
         }
 
         // ---- the base point of a scale and a rotate --------------------------------------------------------------------------

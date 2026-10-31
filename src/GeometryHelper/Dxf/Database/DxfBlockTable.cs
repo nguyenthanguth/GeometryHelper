@@ -866,30 +866,64 @@ namespace GeometryHelper.Dxf
         /// (<see cref="DxfCircle"/>) by its centre, a text (<see cref="DxfDBText"/>) by the point it is held by (its position
         /// where it stands left on its baseline, else its alignment point), a multiline text (<see cref="DxfMText"/>) by its
         /// location, an INSERT (<see cref="DxfBlockReference"/>) by its insertion point; each is written as its point 0, as
-        /// AutoCAD's files write the one point of a text. An arc (<see cref="DxfArc"/>) is taken with both its ends in the
-        /// frame, written as its points 0 and 1 as AutoCAD's files write an arc wholly inside, and moves whole: which end
-        /// AutoCAD numbers 0 is not known, so an arc with one end in the frame is refused. A text aligned or fitted between
-        /// two points, an attribute definition and an INSERT of rows and columns are refused. An entity given twice is taken
-        /// once.
+        /// AutoCAD's files write the one point of a text. An arc (<see cref="DxfArc"/>) is numbered by its ends, 0 its start
+        /// and 1 its end as AutoCAD numbers them (plugin v20, 24d-k): with both in the frame it moves whole; with one, that
+        /// end moves and the other stays, the arc keeping the height of its middle off its chord, as AutoCAD 2021 kept 2.929
+        /// for the arc of the radius 10 from (100, 25) to (90, 35) whose start went to (150, 25) and then to (200, 25), its
+        /// radius becoming 159.37 and then 522.13. An arc held by one end lies flat in the block, its normal along z. A text
+        /// aligned or fitted between two points, an attribute definition and an INSERT of rows and columns are refused. An
+        /// entity given twice is taken once.
         /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the parameter, a corner, the entities or one of them is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the parameter is of another block or no longer in its graph, the
         /// frame is no wider or no higher than the point tolerance, there are no entities, or an entity is not of this block,
-        /// is erased, is of a kind not taken, has no point in the frame, or is an arc with one end only in it. Nothing is
-        /// written then.</exception>
+        /// is erased, is of a kind not taken, has no point in the frame, or is an arc with one end only in it whose normal is
+        /// not along z. Nothing is written then.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
-        /// <exception cref="NotSupportedException">Thrown when an entity is also mirrored by a flip action of the block, or, for
-        /// a flip action, also moved by another action: AutoCAD 2021 worked such a block out from each INSERT's last state
-        /// (plugin v20). Nothing is written then.</exception>
+        /// <exception cref="NotSupportedException">Thrown when the block has a flip action, or an entity is also copied by an
+        /// array action: AutoCAD 2021 worked a flip with a stretch out from each INSERT's last state and did not flip an
+        /// INSERT of such a block itself (plugins v20 and v20b). Nothing is written then.</exception>
         public void AddStretchAction(DxfBlockLinearParameter parameter, GeoPoint2 frameCorner, GeoPoint2 oppositeCorner, IEnumerable<DxfEntity> entities)
+            => AddStretchAction(parameter, frameCorner, oppositeCorner, entities, 1.0, 0.0);
+
+        /// <summary>
+        /// Gives the block a stretch action tied to a linear parameter of it, as
+        /// <see cref="AddStretchAction(DxfBlockLinearParameter, GeoPoint2, GeoPoint2, IEnumerable{DxfEntity})"/> does, of a
+        /// distance multiplier and an angle offset, AutoCAD's Distance Multiplier and Angle Offset of the action: the points in
+        /// the frame move by the change of the parameter's end point times the multiplier, turned by the offset.
+        /// </summary>
+        /// <param name="parameter">The parameter of this block the action follows, by its end point.</param>
+        /// <param name="frameCorner">A corner of the stretch frame, a rectangle along the block's x and y.</param>
+        /// <param name="oppositeCorner">The corner across from it.</param>
+        /// <param name="entities">The entities of the block to stretch, as the overload of no multiplier takes them.</param>
+        /// <param name="distanceMultiplier">What the change of the end point is multiplied by, a finite number: 0.5 moves the
+        /// points in the frame half as far as the end point; 1 as far.</param>
+        /// <param name="angleOffset">The angle the move is turned by, counter-clockwise in radians, a finite number: Math.PI / 2
+        /// turns a move along x to one along y; nought keeps it.</param>
+        /// <remarks>
+        /// The rectangle 100 by 50 whose right edge is stretched by a Width from (0, 0, 0) to (100, 0, 0) of the multiplier 0.5
+        /// has its right edge at x = 150 when Width is set to 200. The multiplier and the offset are written as AutoCAD writes
+        /// them (140 and 141 of the action); 1 and nought, the values of the overload of none, write the action that overload
+        /// writes.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the parameter, a corner, the entities or one of them is null.</exception>
+        /// <exception cref="ArgumentException">Thrown as
+        /// <see cref="AddStretchAction(DxfBlockLinearParameter, GeoPoint2, GeoPoint2, IEnumerable{DxfEntity})"/> says. Nothing is
+        /// written then.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the multiplier or the offset is not a finite number.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
+        /// <exception cref="NotSupportedException">Thrown as
+        /// <see cref="AddStretchAction(DxfBlockLinearParameter, GeoPoint2, GeoPoint2, IEnumerable{DxfEntity})"/> says. Nothing is
+        /// written then.</exception>
+        public void AddStretchAction(DxfBlockLinearParameter parameter, GeoPoint2 frameCorner, GeoPoint2 oppositeCorner, IEnumerable<DxfEntity> entities, double distanceMultiplier, double angleOffset)
         {
             if (parameter == null)
             {
                 throw new ArgumentNullException(nameof(parameter));
             }
 
-            Stretch(parameter.Block, parameter.Node, parameter.Name, frameCorner, oppositeCorner, entities);
+            Stretch(parameter.Block, parameter.Node, parameter.Name, frameCorner, oppositeCorner, entities, distanceMultiplier, angleOffset);
         }
 
         /// <summary>
@@ -913,21 +947,49 @@ namespace GeometryHelper.Dxf
         /// <see cref="AddStretchAction(DxfBlockLinearParameter, GeoPoint2, GeoPoint2, IEnumerable{DxfEntity})"/> says. Nothing is
         /// written then.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
-        /// <exception cref="NotSupportedException">Thrown when an entity is also mirrored by a flip action of the block, or, for
-        /// a flip action, also moved by another action: AutoCAD 2021 worked such a block out from each INSERT's last state
-        /// (plugin v20). Nothing is written then.</exception>
+        /// <exception cref="NotSupportedException">Thrown as
+        /// <see cref="AddStretchAction(DxfBlockLinearParameter, GeoPoint2, GeoPoint2, IEnumerable{DxfEntity})"/> says. Nothing is
+        /// written then.</exception>
         public void AddStretchAction(DxfBlockXYParameter parameter, GeoPoint2 frameCorner, GeoPoint2 oppositeCorner, IEnumerable<DxfEntity> entities)
+            => AddStretchAction(parameter, frameCorner, oppositeCorner, entities, 1.0, 0.0);
+
+        /// <summary>
+        /// Gives the block a stretch action tied to an XY parameter of it, as
+        /// <see cref="AddStretchAction(DxfBlockXYParameter, GeoPoint2, GeoPoint2, IEnumerable{DxfEntity})"/> does, of a distance
+        /// multiplier and an angle offset: the points in the frame move by the move of the parameter's end point times the
+        /// multiplier, turned by the offset.
+        /// </summary>
+        /// <param name="parameter">The XY parameter of this block the action follows, by its end point.</param>
+        /// <param name="frameCorner">A corner of the stretch frame, a rectangle along the block's x and y.</param>
+        /// <param name="oppositeCorner">The corner across from it.</param>
+        /// <param name="entities">The entities of the block to stretch, as the overload of no multiplier takes them.</param>
+        /// <param name="distanceMultiplier">What the move of the end point is multiplied by, a finite number; 1 as far.</param>
+        /// <param name="angleOffset">The angle the move is turned by, counter-clockwise in radians, a finite number; nought keeps it.</param>
+        /// <remarks>
+        /// The top right corner (100, 50) of a rectangle stretched by an XY parameter from (0, 0, 0) to (100, 50, 0) of the
+        /// multiplier 2 goes to (220, 110) when Width is set to 160 and Depth to 80.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the parameter, a corner, the entities or one of them is null.</exception>
+        /// <exception cref="ArgumentException">Thrown as
+        /// <see cref="AddStretchAction(DxfBlockLinearParameter, GeoPoint2, GeoPoint2, IEnumerable{DxfEntity})"/> says. Nothing is
+        /// written then.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the multiplier or the offset is not a finite number.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
+        /// <exception cref="NotSupportedException">Thrown as
+        /// <see cref="AddStretchAction(DxfBlockLinearParameter, GeoPoint2, GeoPoint2, IEnumerable{DxfEntity})"/> says. Nothing is
+        /// written then.</exception>
+        public void AddStretchAction(DxfBlockXYParameter parameter, GeoPoint2 frameCorner, GeoPoint2 oppositeCorner, IEnumerable<DxfEntity> entities, double distanceMultiplier, double angleOffset)
         {
             if (parameter == null)
             {
                 throw new ArgumentNullException(nameof(parameter));
             }
 
-            Stretch(parameter.Block, parameter.Node, parameter.XName, frameCorner, oppositeCorner, entities);
+            Stretch(parameter.Block, parameter.Node, parameter.XName, frameCorner, oppositeCorner, entities, distanceMultiplier, angleOffset);
         }
 
         /// <summary>Writes a stretch action of a parameter of a block, by its node, once the frame and the entities are checked.</summary>
-        private void Stretch(DxfBlockTableRecord block, int node, string name, GeoPoint2 frameCorner, GeoPoint2 oppositeCorner, IEnumerable<DxfEntity> entities)
+        private void Stretch(DxfBlockTableRecord block, int node, string name, GeoPoint2 frameCorner, GeoPoint2 oppositeCorner, IEnumerable<DxfEntity> entities, double multiplier, double angle)
         {
             if (frameCorner == null)
             {
@@ -945,6 +1007,7 @@ namespace GeometryHelper.Dxf
             }
 
             Own(block, name);
+            Factors(multiplier, angle);
             double slack = Tolerance.Default.EqualPoint;
             var low = new GeoPoint2(Math.Min(frameCorner.X, oppositeCorner.X), Math.Min(frameCorner.Y, oppositeCorner.Y));
             var high = new GeoPoint2(Math.Max(frameCorner.X, oppositeCorner.X), Math.Max(frameCorner.Y, oppositeCorner.Y));
@@ -987,9 +1050,9 @@ namespace GeometryHelper.Dxf
                     throw new ArgumentException("The entity " + entity.Handle + " has no point in the stretch frame, so nothing of it would move.", nameof(entities));
                 }
 
-                if (entity is DxfArc && inside.Count < points.Count)
+                if (entity is DxfArc arc && inside.Count < points.Count && !Flat(arc.Normal))
                 {
-                    throw new ArgumentException("The arc " + entity.Handle + " has one end only in the stretch frame: an arc is taken with both its ends in it, as which end AutoCAD numbers first is not known.", nameof(entities));
+                    throw new ArgumentException("The arc " + entity.Handle + " has one end only in the stretch frame and does not lie flat in the block: an arc held by one end has its normal along z.", nameof(entities));
                 }
 
                 if (seen.Add(entity.Handle))
@@ -1003,8 +1066,19 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentException("A stretch action is given one entity at least.", nameof(entities));
             }
 
-            Unflipped(held.ConvertAll(h => h.Key), false);
-            DxfDynamicBlockWriter.AddStretch(this, node, name, low, high, held);
+            Unflipped(false);
+            Unarrayed(held.ConvertAll(h => h.Key), false);
+            DxfDynamicBlockWriter.AddStretch(this, node, name, low, high, held, multiplier, angle);
+        }
+
+        /// <summary>Whether a normal lies along z, within the vector tolerance of <see cref="Tolerance.Default"/>: the entity lies flat in the block.</summary>
+        internal static bool Flat(GeoVector3 normal) => Math.Abs(normal.X) <= Tolerance.Default.EqualVector && Math.Abs(normal.Y) <= Tolerance.Default.EqualVector;
+
+        /// <summary>Refuses a distance multiplier or an angle offset that is not a finite number.</summary>
+        private static void Factors(double multiplier, double angle)
+        {
+            Guard.Finite(multiplier, "distanceMultiplier", "The distance multiplier of an action is a finite number.");
+            Guard.Finite(angle, "angleOffset", "The angle offset of an action is a finite number of radians.");
         }
 
         /// <summary>
@@ -1335,6 +1409,185 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Makes the block dynamic, where it is not, and gives it a lookup parameter with its lookup action: a table of rows,
+        /// each a label and the values it gives other parameters' properties, which each INSERT of the block shows as the
+        /// dynamic property of the parameter's name, AutoCAD's Lookup parameter and Lookup action as its Block Editor makes
+        /// them. Set to a row's label, the property sets the other properties to the row's values; any of those set, it shows
+        /// the label of the row of their values, or Custom where no row holds them.
+        /// </summary>
+        /// <param name="name">The label of the parameter, the name of the property, as Size.</param>
+        /// <param name="description">The description of the property; null or empty for none.</param>
+        /// <param name="location">Where the parameter's grip stands, in the block's coordinates.</param>
+        /// <param name="inputs">The input columns of the table, each the property of another parameter of this block
+        /// (<see cref="DxfBlockLookupInput.Distance"/>, <see cref="DxfBlockLookupInput.X"/>,
+        /// <see cref="DxfBlockLookupInput.Y"/>), each once.</param>
+        /// <param name="rows">The rows, each a label and a value for each input column (<see cref="DxfBlockLookupRow"/>), the
+        /// labels apart, letters of either case the same.</param>
+        /// <remarks>
+        /// <para>
+        /// A panel of a Width and a Height given <c>AddLookupParameter("Size", "Panel size", new GeoPoint3(50, -20, 0), new[] {
+        /// DxfBlockLookupInput.Distance(width), DxfBlockLookupInput.Distance(height) }, new[] { new DxfBlockLookupRow("Small",
+        /// 100, 50), new DxfBlockLookupRow("Large", 200, 80) })</c> gives every INSERT the property Size, allowed Small and
+        /// Large; set to Large, Width goes to 200 and Height to 80, stretching what they stretch; Width set to 150 afterwards,
+        /// Size reads Custom. The lookup property is set and read as AutoCAD keeps it: by its label, a string, letters of
+        /// either case the same.
+        /// </para>
+        /// <para>
+        /// The parameter and the action are written as AutoCAD saved those of ACadSharp's lookup sample: the parameter (its
+        /// element named Lookup, the next Lookup1 and on) with its grip and the grip's two location components; the action
+        /// (named after it, Lookup1 for the first) with the table row by row, each input column of its parameter's node, of
+        /// reals, labelled Custom where no row matches, and the lookup column of the parameter, of text, looking back
+        /// (reverse lookup on), so that the property may be set; five nodes of the evaluation graph and three edges, and a
+        /// pair of edges each way between the action and each parameter it reads or sets, as AutoCAD pairs them. An INSERT
+        /// keeps the label it shows in its cache, as AutoCAD keeps it; one of the block itself, of no cache, shows Custom, as
+        /// <see cref="DxfBlockReference.DynamicBlockReferencePropertyCollection"/> reads it.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the name, the inputs, the rows or one of them is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the name is empty, the name or the description holds a line break, a
+        /// coordinate of the location is not a finite number, there are no inputs or no rows, an input is of another block or
+        /// given twice, two rows have one label or a row is labelled Custom, a row has not one value for each input, or a
+        /// distance is not above the point tolerance of <see cref="Tolerance.Default"/> or not of its parameter's value set.
+        /// Nothing is written then.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
+        public void AddLookupParameter(string name, string description, GeoPoint3 location, IEnumerable<DxfBlockLookupInput> inputs, IEnumerable<DxfBlockLookupRow> rows)
+        {
+            description = Labelled(name, description);
+            Placed(location, nameof(location));
+
+            if (inputs == null)
+            {
+                throw new ArgumentNullException(nameof(inputs));
+            }
+
+            if (rows == null)
+            {
+                throw new ArgumentNullException(nameof(rows));
+            }
+
+            var columns = new List<DxfBlockLookupInput>();
+
+            foreach (DxfBlockLookupInput input in inputs)
+            {
+                if (input == null)
+                {
+                    throw new ArgumentNullException(nameof(inputs), "An input of a lookup table is null.");
+                }
+
+                if (input.Block != this)
+                {
+                    throw new ArgumentException("The input " + input.Name + " is of the block " + input.Block.Name + ", not of " + Name + ".", nameof(inputs));
+                }
+
+                if (columns.Exists(c => c.Node == input.Node && c.Connection == input.Connection))
+                {
+                    throw new ArgumentException("The input " + input.Name + " is given twice.", nameof(inputs));
+                }
+
+                columns.Add(input);
+            }
+
+            if (columns.Count == 0)
+            {
+                throw new ArgumentException("A lookup table has one input column at least.", nameof(inputs));
+            }
+
+            var table = new List<DxfBlockLookupRow>();
+            var labels = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { DxfDynamicBlockWriter.Unmatched };
+
+            foreach (DxfBlockLookupRow row in rows)
+            {
+                if (row == null)
+                {
+                    throw new ArgumentNullException(nameof(rows), "A row of a lookup table is null.");
+                }
+
+                if (!labels.Add(row.Label))
+                {
+                    throw new ArgumentException("The label " + row.Label + " is of two rows, or is the label " + DxfDynamicBlockWriter.Unmatched + " of no row, letters of either case the same.", nameof(rows));
+                }
+
+                if (row.Values.Count != columns.Count)
+                {
+                    throw new ArgumentException("The row " + row.Label + " has " + row.Values.Count.ToString(CultureInfo.InvariantCulture) + " values for " + columns.Count.ToString(CultureInfo.InvariantCulture) + " input columns.", nameof(rows));
+                }
+
+                for (int i = 0; i < columns.Count; i++)
+                {
+                    if (columns[i].Connection == "UpdatedDistance" && (!(row.Values[i] > Tolerance.Default.EqualPoint) || (columns[i].ValueSet != null && !columns[i].ValueSet.Holds(row.Values[i]))))
+                    {
+                        throw new ArgumentException("The row " + row.Label + " gives " + columns[i].Name + " a distance not above the point tolerance, or not of its value set.", nameof(rows));
+                    }
+                }
+
+                table.Add(row);
+            }
+
+            if (table.Count == 0)
+            {
+                throw new ArgumentException("A lookup table has one row at least.", nameof(rows));
+            }
+
+            Dynamic("be given a parameter");
+            DxfDynamicBlockWriter.AddLookup(this, name.Trim(), description, location, columns, table);
+        }
+
+        /// <summary>
+        /// Makes the block dynamic, where it is not, and gives it an alignment parameter, AutoCAD's Alignment parameter as its
+        /// Block Editor makes one: a grip at the base point that turns an INSERT dragged by it in AutoCAD to lie along the
+        /// entity it is dragged over, along the line from the base point to the end point. It gives no property.
+        /// </summary>
+        /// <param name="basePoint">The point the INSERT is aligned about, where the grip stands, in the block's coordinates.</param>
+        /// <param name="endPoint">The point the alignment line runs to from the base point.</param>
+        /// <remarks>
+        /// A block of a pipe along x from the origin given <c>AddAlignmentParameter(new GeoPoint3(0, 0, 0), new GeoPoint3(50,
+        /// 0, 0))</c> has a grip at the origin that lays the pipe along a wall it is dragged over in AutoCAD. The parameter is
+        /// written as AutoCAD saved the one of ACadSharp's alignment sample: the line from the base point to the end point,
+        /// its element named Alignment, of the alignment type 1 (280) as the sample; its grip at the base point with the
+        /// direction to the end point and its two location components; four nodes of the evaluation graph and three edges. A
+        /// block has one alignment parameter, as AutoCAD's Block Editor gives it.
+        /// </remarks>
+        /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number, or the two points are within
+        /// the point tolerance of <see cref="Tolerance.Default"/> of each other seen along z. Nothing is written then.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the block has an alignment parameter already, or cannot be
+        /// dynamic, as <see cref="AddLinearParameter"/> says.</exception>
+        public void AddAlignmentParameter(GeoPoint3 basePoint, GeoPoint3 endPoint)
+        {
+            Placed(basePoint, nameof(basePoint));
+            Placed(endPoint, nameof(endPoint));
+
+            if (!(Math.Sqrt((endPoint.X - basePoint.X) * (endPoint.X - basePoint.X) + (endPoint.Y - basePoint.Y) * (endPoint.Y - basePoint.Y)) > Tolerance.Default.EqualPoint))
+            {
+                throw new ArgumentException("The end point of an alignment line is apart from its base point along x or y, beyond the point tolerance.", nameof(endPoint));
+            }
+
+            Dynamic("be given a parameter");
+            DxfDynamicBlockWriter.AddAlignment(this, basePoint, endPoint);
+        }
+
+        /// <summary>
+        /// Makes the block dynamic, where it is not, and gives it a base point parameter, AutoCAD's Base Point parameter as its
+        /// Block Editor makes one: a base point for the INSERTs of the block apart from its origin. It gives no property.
+        /// </summary>
+        /// <param name="location">The base point, in the block's coordinates.</param>
+        /// <remarks>
+        /// A block given <c>AddBasePointParameter(new GeoPoint3(5, 5, 0))</c> holds a Base Point at (5, 5). The parameter is
+        /// written as AutoCAD saved the one of ACadSharp's base point sample: its point, its element named Base Point, and its
+        /// own two points (1011, 1012) nought; one node of the evaluation graph and no edge. Where AutoCAD shows an INSERT of the
+        /// block against its base point is not known: the library keeps the block's entities where they are. A block has one
+        /// base point parameter, as AutoCAD's Block Editor gives it.
+        /// </remarks>
+        /// <exception cref="ArgumentException">Thrown when a coordinate is not a finite number. Nothing is written then.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the block has a base point parameter already, or cannot be
+        /// dynamic, as <see cref="AddLinearParameter"/> says.</exception>
+        public void AddBasePointParameter(GeoPoint3 location)
+        {
+            Placed(location, nameof(location));
+            Dynamic("be given a parameter");
+            DxfDynamicBlockWriter.AddBasePoint(this, location);
+        }
+
+        /// <summary>
         /// Gives the block a move action tied to a linear parameter of it, AutoCAD's Move action as its Block Editor makes one:
         /// as the parameter's distance grows by an amount, the entities move whole by that amount along the line from the
         /// parameter's base point to its end point, following the end point.
@@ -1353,18 +1606,46 @@ namespace GeometryHelper.Dxf
         /// are no entities, or an entity is not of this block, is erased, is an attribute definition or is of a type the
         /// library keeps as it is (<see cref="DxfUnknownEntity"/>). Nothing is written then.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
-        /// <exception cref="NotSupportedException">Thrown when an entity is also mirrored by a flip action of the block, or, for
-        /// a flip action, also moved by another action: AutoCAD 2021 worked such a block out from each INSERT's last state
-        /// (plugin v20). Nothing is written then.</exception>
-        public void AddMoveAction(DxfBlockLinearParameter parameter, IEnumerable<DxfEntity> entities)
+        /// <exception cref="NotSupportedException">Thrown when the block has a flip action, or an entity is also copied by an
+        /// array action: AutoCAD 2021 worked a flip with a stretch out from each INSERT's last state and did not flip an
+        /// INSERT of such a block itself (plugins v20 and v20b). Nothing is written then.</exception>
+        public void AddMoveAction(DxfBlockLinearParameter parameter, IEnumerable<DxfEntity> entities) => AddMoveAction(parameter, entities, 1.0, 0.0);
+
+        /// <summary>
+        /// Gives the block a move action tied to a linear parameter of it, as
+        /// <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/> does, of a distance multiplier and an
+        /// angle offset, AutoCAD's Distance Multiplier and Angle Offset of the action: the entities move by the change of the
+        /// parameter's end point times the multiplier, turned by the offset.
+        /// </summary>
+        /// <param name="parameter">The parameter of this block the action follows, by its end point.</param>
+        /// <param name="entities">The entities of the block to move.</param>
+        /// <param name="distanceMultiplier">What the change of the end point is multiplied by, a finite number: 0.5 moves the
+        /// entities half as far, keeping a mark in the middle of a stretched panel; 1 as far.</param>
+        /// <param name="angleOffset">The angle the move is turned by, counter-clockwise in radians, a finite number: Math.PI / 2
+        /// turns a move along x to one along y; nought keeps it.</param>
+        /// <remarks>
+        /// A circle at (50, 25), the middle of a rectangle 100 by 50 whose Width runs from (0, 0, 0) to (100, 0, 0), moved of the
+        /// multiplier 0.5 stands at (100, 25), the middle still, when Width is set to 200; of the multiplier 1 and the offset
+        /// Math.PI / 2 it stands at (50, 125). The multiplier and the offset are written as AutoCAD writes them (140 and 141 of
+        /// the action); 1 and nought write the action the overload of none writes.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the parameter, the entities or one of them is null.</exception>
+        /// <exception cref="ArgumentException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
+        /// says. Nothing is written then.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the multiplier or the offset is not a finite number.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
+        /// <exception cref="NotSupportedException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
+        /// says. Nothing is written then.</exception>
+        public void AddMoveAction(DxfBlockLinearParameter parameter, IEnumerable<DxfEntity> entities, double distanceMultiplier, double angleOffset)
         {
             if (parameter == null)
             {
                 throw new ArgumentNullException(nameof(parameter));
             }
 
+            Factors(distanceMultiplier, angleOffset);
             List<DxfEntity> acted = Acted(parameter.Block, parameter.Name, entities, "move");
-            DxfDynamicBlockWriter.AddMove(this, parameter.Node, parameter.Name, "EndXDelta", "EndYDelta", parameter.EndPoint, acted);
+            DxfDynamicBlockWriter.AddMove(this, parameter.Node, parameter.Name, "EndXDelta", "EndYDelta", parameter.EndPoint, acted, distanceMultiplier, angleOffset);
         }
 
         /// <summary>
@@ -1377,23 +1658,47 @@ namespace GeometryHelper.Dxf
         /// A tag circle at (80, 20) whose point parameter Tag stands at its centre moves to (120, 35) as Tag X is set to 120 and
         /// Tag Y to 35. The action is written as AutoCAD saved the move of ACadSharp's point sample: the entities it moves, its
         /// connections XDelta and YDelta, the distance multiplier 1 and the angle offset nought; its element named Move.
+        /// AutoCAD's sample also lists the parameter's own grip among what it moves; such a block, of AutoCAD's or the
+        /// user's, is worked out by <see cref="DxfDynamicBlockReferenceProperty.Value"/> as the grip follows its parameter
+        /// anyway, and the library writes the entities only, as AutoCAD 2021 read them (plugin v20).
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the parameter, the entities or one of them is null.</exception>
         /// <exception cref="ArgumentException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
         /// says. Nothing is written then.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
-        /// <exception cref="NotSupportedException">Thrown when an entity is also mirrored by a flip action of the block, or, for
-        /// a flip action, also moved by another action: AutoCAD 2021 worked such a block out from each INSERT's last state
-        /// (plugin v20). Nothing is written then.</exception>
-        public void AddMoveAction(DxfBlockPointParameter parameter, IEnumerable<DxfEntity> entities)
+        /// <exception cref="NotSupportedException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
+        /// says. Nothing is written then.</exception>
+        public void AddMoveAction(DxfBlockPointParameter parameter, IEnumerable<DxfEntity> entities) => AddMoveAction(parameter, entities, 1.0, 0.0);
+
+        /// <summary>
+        /// Gives the block a move action tied to a point parameter of it, as
+        /// <see cref="AddMoveAction(DxfBlockPointParameter, IEnumerable{DxfEntity})"/> does, of a distance multiplier and an
+        /// angle offset: the entities move by the move of the parameter's position times the multiplier, turned by the offset.
+        /// </summary>
+        /// <param name="parameter">The point parameter of this block the action follows.</param>
+        /// <param name="entities">The entities of the block to move.</param>
+        /// <param name="distanceMultiplier">What the move of the position is multiplied by, a finite number; 1 as far.</param>
+        /// <param name="angleOffset">The angle the move is turned by, counter-clockwise in radians, a finite number; nought keeps it.</param>
+        /// <remarks>
+        /// A circle at (80, 20) moved of the multiplier 0.5 by a Tag at (80, 20) stands at (100, 20) when Tag X is set to 120.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the parameter, the entities or one of them is null.</exception>
+        /// <exception cref="ArgumentException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
+        /// says. Nothing is written then.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the multiplier or the offset is not a finite number.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
+        /// <exception cref="NotSupportedException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
+        /// says. Nothing is written then.</exception>
+        public void AddMoveAction(DxfBlockPointParameter parameter, IEnumerable<DxfEntity> entities, double distanceMultiplier, double angleOffset)
         {
             if (parameter == null)
             {
                 throw new ArgumentNullException(nameof(parameter));
             }
 
+            Factors(distanceMultiplier, angleOffset);
             List<DxfEntity> acted = Acted(parameter.Block, parameter.Name, entities, "move");
-            DxfDynamicBlockWriter.AddMove(this, parameter.Node, parameter.Name, "XDelta", "YDelta", parameter.Location, acted);
+            DxfDynamicBlockWriter.AddMove(this, parameter.Node, parameter.Name, "XDelta", "YDelta", parameter.Location, acted, distanceMultiplier, angleOffset);
         }
 
         /// <summary>
@@ -1411,18 +1716,40 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
         /// says. Nothing is written then.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
-        /// <exception cref="NotSupportedException">Thrown when an entity is also mirrored by a flip action of the block, or, for
-        /// a flip action, also moved by another action: AutoCAD 2021 worked such a block out from each INSERT's last state
-        /// (plugin v20). Nothing is written then.</exception>
-        public void AddMoveAction(DxfBlockXYParameter parameter, IEnumerable<DxfEntity> entities)
+        /// <exception cref="NotSupportedException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
+        /// says. Nothing is written then.</exception>
+        public void AddMoveAction(DxfBlockXYParameter parameter, IEnumerable<DxfEntity> entities) => AddMoveAction(parameter, entities, 1.0, 0.0);
+
+        /// <summary>
+        /// Gives the block a move action tied to an XY parameter of it, as
+        /// <see cref="AddMoveAction(DxfBlockXYParameter, IEnumerable{DxfEntity})"/> does, of a distance multiplier and an angle
+        /// offset: the entities move by the move of the parameter's end point times the multiplier, turned by the offset.
+        /// </summary>
+        /// <param name="parameter">The XY parameter of this block the action follows, by its end point.</param>
+        /// <param name="entities">The entities of the block to move.</param>
+        /// <param name="distanceMultiplier">What the move of the end point is multiplied by, a finite number; 1 as far.</param>
+        /// <param name="angleOffset">The angle the move is turned by, counter-clockwise in radians, a finite number; nought keeps it.</param>
+        /// <remarks>
+        /// A circle at (50, 25), the middle of a rectangle whose XY parameter runs from (0, 0, 0) to (100, 50, 0), moved of the
+        /// multiplier 0.5 stands at (80, 40), the middle still, when Width is set to 160 and Depth to 80.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the parameter, the entities or one of them is null.</exception>
+        /// <exception cref="ArgumentException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
+        /// says. Nothing is written then.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the multiplier or the offset is not a finite number.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
+        /// <exception cref="NotSupportedException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
+        /// says. Nothing is written then.</exception>
+        public void AddMoveAction(DxfBlockXYParameter parameter, IEnumerable<DxfEntity> entities, double distanceMultiplier, double angleOffset)
         {
             if (parameter == null)
             {
                 throw new ArgumentNullException(nameof(parameter));
             }
 
+            Factors(distanceMultiplier, angleOffset);
             List<DxfEntity> acted = Acted(parameter.Block, parameter.XName, entities, "move");
-            DxfDynamicBlockWriter.AddMove(this, parameter.Node, parameter.XName, "EndXDelta", "EndYDelta", parameter.EndPoint, acted);
+            DxfDynamicBlockWriter.AddMove(this, parameter.Node, parameter.XName, "EndXDelta", "EndYDelta", parameter.EndPoint, acted, distanceMultiplier, angleOffset);
         }
 
         /// <summary>
@@ -1442,9 +1769,8 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
         /// says. Nothing is written then.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
-        /// <exception cref="NotSupportedException">Thrown when an entity is also mirrored by a flip action of the block, or, for
-        /// a flip action, also moved by another action: AutoCAD 2021 worked such a block out from each INSERT's last state
-        /// (plugin v20). Nothing is written then.</exception>
+        /// <exception cref="NotSupportedException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
+        /// says. Nothing is written then.</exception>
         public void AddScaleAction(DxfBlockLinearParameter parameter, IEnumerable<DxfEntity> entities)
         {
             if (parameter == null)
@@ -1472,9 +1798,8 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
         /// says. Nothing is written then.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
-        /// <exception cref="NotSupportedException">Thrown when an entity is also mirrored by a flip action of the block, or, for
-        /// a flip action, also moved by another action: AutoCAD 2021 worked such a block out from each INSERT's last state
-        /// (plugin v20). Nothing is written then.</exception>
+        /// <exception cref="NotSupportedException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
+        /// says. Nothing is written then.</exception>
         public void AddRotateAction(DxfBlockRotationParameter parameter, IEnumerable<DxfEntity> entities)
         {
             if (parameter == null)
@@ -1497,15 +1822,17 @@ namespace GeometryHelper.Dxf
         /// and back as it is set to 0. The mirror is taken in the block's plane, about the vertical plane through the line. The
         /// action is written as AutoCAD saved the flip of ACadSharp's sample: the entities it flips, its connections Flip,
         /// UpdatedFlip, UpdatedBase and UpdatedEnd; its element named Flip1 after the parameter's Flip. An entity given twice is
-        /// taken once.
+        /// taken once. A block of flip actions has no stretch, move, scale, rotate or array action: AutoCAD 2021 stretched a
+        /// flipped panel from where its last flip left it (plugin v20), and, where the flip and a stretch held other entities,
+        /// did not flip an INSERT of the block itself, reading Hand back as 0 (plugin v20b, 24d-i), though it flipped one of
+        /// the block of the flip alone (24d-g).
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the parameter, the entities or one of them is null.</exception>
         /// <exception cref="ArgumentException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
         /// says. Nothing is written then.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
-        /// <exception cref="NotSupportedException">Thrown when an entity is also mirrored by a flip action of the block, or, for
-        /// a flip action, also moved by another action: AutoCAD 2021 worked such a block out from each INSERT's last state
-        /// (plugin v20). Nothing is written then.</exception>
+        /// <exception cref="NotSupportedException">Thrown when the block has a stretch, move, scale, rotate or array action. Nothing
+        /// is written then.</exception>
         public void AddFlipAction(DxfBlockFlipParameter parameter, IEnumerable<DxfEntity> entities)
         {
             if (parameter == null)
@@ -1515,6 +1842,104 @@ namespace GeometryHelper.Dxf
 
             List<DxfEntity> acted = Acted(parameter.Block, parameter.Name, entities, "flip");
             DxfDynamicBlockWriter.AddFlipAction(parameter, acted);
+        }
+
+        /// <summary>
+        /// Gives the block an array action tied to a linear parameter of it, AutoCAD's Array action as its Block Editor makes
+        /// one: as the parameter's distance grows, the entities are copied along the line from the parameter's base point to
+        /// its end point, a copy at each column spacing, as many in all as the spacing goes whole into the distance.
+        /// </summary>
+        /// <param name="parameter">The parameter of this block the action follows.</param>
+        /// <param name="entities">The entities of the block to copy; the first copy is each entity itself.</param>
+        /// <param name="columnSpacing">The distance from one copy to the next along the parameter, above the point tolerance of
+        /// <see cref="Tolerance.Default"/>.</param>
+        /// <remarks>
+        /// <para>
+        /// A post, a circle of the radius 5 at (0, 0), of a fence whose Length runs from (0, 0, 0) to (100, 0, 0), given an
+        /// array of the column spacing 60, is one post, as the block draws it; Length set to 250, the INSERT shows four, at
+        /// x = 0, 60, 120 and 180. The count is the distance over the spacing, rounded down, one at least, as AutoCAD's save of
+        /// ACadSharp's XY sample shows: four columns of the spacing 25 in 100.59, five rows of 20 in 104.30. A block whose own
+        /// distance holds the spacing twice or more draws one copy still, which its INSERTs show until a value is set.
+        /// </para>
+        /// <para>
+        /// The action is written as AutoCAD saved the array of that sample: the entities it copies, its connections Base, End,
+        /// UpdatedBase and UpdatedEnd, the row offset (140) nought and the column offset (141) the spacing; its element named
+        /// Array; the edge from the parameter of four connections; no record of the INSERT's cache. A linear parameter's
+        /// array is written as the XY sample's with no rows, which no sample of AutoCAD shows. An entity given twice is taken
+        /// once; one an array copies is moved by no other action.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the parameter, the entities or one of them is null.</exception>
+        /// <exception cref="ArgumentException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
+        /// says. Nothing is written then.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the spacing is not a finite number above the point tolerance.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
+        /// <exception cref="NotSupportedException">Thrown when the block has a flip action, or an entity is also moved, stretched,
+        /// scaled, turned or copied by another action. Nothing is written then.</exception>
+        public void AddArrayAction(DxfBlockLinearParameter parameter, IEnumerable<DxfEntity> entities, double columnSpacing)
+        {
+            if (parameter == null)
+            {
+                throw new ArgumentNullException(nameof(parameter));
+            }
+
+            Spacing(columnSpacing, nameof(columnSpacing));
+            List<DxfEntity> acted = Acted(parameter.Block, parameter.Name, entities, "copy");
+            DxfDynamicBlockWriter.AddArray(this, parameter.Node, parameter.Name, parameter.EndPoint, acted, 0.0, columnSpacing);
+        }
+
+        /// <summary>
+        /// Gives the block an array action tied to an XY parameter of it, AutoCAD's Array action as its Block Editor makes one:
+        /// as the parameter's end point moves, the entities are copied in rows and columns from the base point the way the end
+        /// point lies, a column at each column spacing along x and a row at each row spacing along y.
+        /// </summary>
+        /// <param name="parameter">The XY parameter of this block the action follows.</param>
+        /// <param name="entities">The entities of the block to copy; the first copy is each entity itself.</param>
+        /// <param name="columnSpacing">The distance from one column to the next along x, above the point tolerance of
+        /// <see cref="Tolerance.Default"/>.</param>
+        /// <param name="rowSpacing">The distance from one row to the next along y, above the point tolerance.</param>
+        /// <remarks>
+        /// <para>
+        /// A bolt, a circle of the radius 5 at (0, 0), of a plate whose XY parameter runs from (0, 0, 0) to (40, 30, 0), given an
+        /// array of the column spacing 25 and the row spacing 20, is one bolt; Width set to 100 and Depth to 70 show four
+        /// columns of three rows, the bolts at x = 0, 25, 50, 75 and y = 0, 20, 40. Each count is the distance over its spacing,
+        /// rounded down, one at least, as AutoCAD's save of ACadSharp's XY sample shows: four columns of 25 in 100.59, five
+        /// rows of 20 in 104.30, the rows running down from the base point to an end point below it.
+        /// </para>
+        /// <para>
+        /// The action is written as AutoCAD saved the array of that sample: the entities it copies, its connections Base, End,
+        /// UpdatedBase and UpdatedEnd, the row offset (140) and the column offset (141); its element named Array; the edge from
+        /// the parameter of four connections; no record of the INSERT's cache. An entity given twice is taken once; one an
+        /// array copies is moved by no other action.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the parameter, the entities or one of them is null.</exception>
+        /// <exception cref="ArgumentException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
+        /// says. Nothing is written then.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when a spacing is not a finite number above the point tolerance.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
+        /// <exception cref="NotSupportedException">Thrown as
+        /// <see cref="AddArrayAction(DxfBlockLinearParameter, IEnumerable{DxfEntity}, double)"/> says. Nothing is written then.</exception>
+        public void AddArrayAction(DxfBlockXYParameter parameter, IEnumerable<DxfEntity> entities, double columnSpacing, double rowSpacing)
+        {
+            if (parameter == null)
+            {
+                throw new ArgumentNullException(nameof(parameter));
+            }
+
+            Spacing(columnSpacing, nameof(columnSpacing));
+            Spacing(rowSpacing, nameof(rowSpacing));
+            List<DxfEntity> acted = Acted(parameter.Block, parameter.XName, entities, "copy");
+            DxfDynamicBlockWriter.AddArray(this, parameter.Node, parameter.XName, parameter.EndPoint, acted, rowSpacing, columnSpacing);
+        }
+
+        /// <summary>Refuses a spacing of an array that is not a finite number above the point tolerance.</summary>
+        private static void Spacing(double spacing, string name)
+        {
+            if (!Guard.IsFinite(spacing) || !(spacing > Tolerance.Default.EqualPoint))
+            {
+                throw new ArgumentOutOfRangeException(name, spacing, "The spacing of an array is a finite number above the point tolerance.");
+            }
         }
 
         /// <summary>Refuses a label that is null, empty or of more than one line, and a description of more than one line; gives the description, empty for null.</summary>
@@ -1593,26 +2018,44 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentException("An action is given one entity at least.", nameof(entities));
             }
 
-            Unflipped(acted, what == "flip");
+            Unflipped(what == "flip");
+            Unarrayed(acted, what == "copy");
             return acted;
         }
 
         /// <summary>
-        /// Refuses an entity that a flip action of the block would mirror and another action move, either way round: AutoCAD
-        /// 2021 stretched the edges of a panel flipped about the y axis from where its last flip left them (to x = -250 for a
-        /// Width of 150, set after 200) and refused to flip a panel it stretched (plugin v20, 24d-i), so the block cannot be
-        /// worked out from its values.
+        /// Refuses a flip action in a block of a stretch, move, scale, rotate or array action, either way round: AutoCAD 2021
+        /// stretched the edges of a panel flipped about the y axis from where its last flip left them (to x = -250 for a Width
+        /// of 150, set after 200; plugin v20, 24d-i), and, the flip and the stretch holding other entities, did not flip an
+        /// INSERT of the block itself, reading its Hand back as 0 (plugin v20b), so such a block is not one AutoCAD works out
+        /// from its values.
         /// </summary>
-        private void Unflipped(IEnumerable<DxfEntity> entities, bool flip)
+        private void Unflipped(bool flip)
         {
-            HashSet<string> other = DxfDynamicBlockWriter.ActedOn(this, !flip);
+            HashSet<string> other = DxfDynamicBlockWriter.ActedOn(this, type => (type == "BLOCKFLIPACTION") != flip && type != "BLOCKLOOKUPACTION");
+
+            if (other.Count > 0)
+            {
+                throw new NotSupportedException("The block " + Name + " has " + (flip ? "a stretch, move, scale, rotate or array action" : "a flip action")
+                    + ", and a flip is not written with the others: AutoCAD 2021 worked such a block out from the last state of each INSERT and did not flip an INSERT of the block itself.");
+            }
+        }
+
+        /// <summary>
+        /// Refuses an entity that an array action of the block copies and another action works on, either way round: the copies
+        /// would follow an order of the actions no sample of AutoCAD shows.
+        /// </summary>
+        private void Unarrayed(IEnumerable<DxfEntity> entities, bool array)
+        {
+            HashSet<string> arrayed = DxfDynamicBlockWriter.ActedOn(this, type => type == "BLOCKARRAYACTION");
+            HashSet<string> other = array ? DxfDynamicBlockWriter.ActedOn(this, type => type != "BLOCKLOOKUPACTION") : arrayed;
 
             foreach (DxfEntity entity in entities)
             {
                 if (other.Contains(entity.Handle))
                 {
-                    throw new NotSupportedException("The entity " + entity.Handle + " is " + (flip ? "moved by another action" : "mirrored by a flip action") + " of the block " + Name
-                        + ", and an entity both flipped and moved is not written: AutoCAD 2021 worked such a block out from the last state of each INSERT, not from its values.");
+                    throw new NotSupportedException("The entity " + entity.Handle + " is " + (array ? "worked on by another action" : "copied by an array action") + " of the block " + Name
+                        + ", and an entity an array copies is not written with another action on it: no sample of AutoCAD shows the order they would take.");
                 }
             }
         }

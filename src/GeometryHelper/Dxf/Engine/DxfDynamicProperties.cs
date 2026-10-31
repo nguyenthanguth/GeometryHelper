@@ -97,6 +97,7 @@ namespace GeometryHelper.Dxf
                         break;
                     case "BLOCKLOOKUPPARAMETER":
                         Lookup(groups, id, cache, nodes, properties);
+                        Bind(properties, before, insert, id);
                         break;
                 }
             }
