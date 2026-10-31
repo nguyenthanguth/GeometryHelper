@@ -88,18 +88,283 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Writes a stretch action driven by the end point of a linear parameter (EndXDelta, EndYDelta): its frame of two
-        /// corners, and each entity with the indices of its points inside the frame; one node, and the edge from the parameter.
+        /// Writes a point parameter with its grip and the grip's two location components: four nodes, and the three edges
+        /// AutoCAD writes for them (the parameter to each component, the grip to the parameter), as AutoCAD saved the point
+        /// parameter of ACadSharp's sample; the label at the point.
         /// </summary>
-        internal static void AddStretch(DxfBlockLinearParameter parameter, GeoPoint2 low, GeoPoint2 high, List<KeyValuePair<DxfEntity, List<int>>> held)
+        internal static DxfBlockPointParameter AddPoint(DxfBlockTableRecord block, string name, string description, GeoPoint3 location)
         {
-            Graph graph = Graph.Of(parameter.Block);
+            Graph graph = Graph.Of(block);
+            DxfFile file = graph.File;
+            int p = graph.NextId;
+            string element = graph.FreeName("Point");
 
-            if (!graph.HasNode(parameter.Node))
+            DxfItem parameter = file.AddObject("BLOCKPOINTPARAMETER", null, b =>
             {
-                throw new ArgumentException("The parameter " + parameter.Name + " is no longer in the evaluation graph of the block " + parameter.Block.Name + ".", nameof(parameter));
+                Head(b, graph.Handle, p, element);
+                b.Group(100, "AcDbBlockParameter");
+                b.Group(280, "1");
+                b.Group(281, "0");
+                b.Group(100, "AcDbBlock1PtParameter");
+                Point(b, 1010, location);
+                b.Group(93, Int(p + 1));
+                b.Group(170, "1");
+                b.Group(91, Int(p + 1));
+                b.Group(301, "DisplacementX");
+                b.Group(171, "1");
+                b.Group(92, Int(p + 1));
+                b.Group(302, "DisplacementY");
+                b.Group(100, "AcDbBlockPointParameter");
+                b.Group(303, name);
+                b.Group(304, description);
+                Point(b, 1011, location);
+            });
+
+            Environ(parameter, location);
+            graph.Add(p, parameter.Handle);
+            GripOf(graph, "BLOCKXYGRIP", "AcDbBlockXYGrip", p + 1, "Grip", location, "1", null);
+            Components(graph, p, p + 1, "0.0", "Updated");
+            graph.Link(p, p + 2, 1);
+            graph.Link(p, p + 3, 1);
+            graph.Link(p + 1, p, 2);
+            graph.Write();
+
+            file.AddClass("BLOCKPOINTPARAMETER", "AcDbBlockPointParameter", 1153);
+            file.AddClass("BLOCKXYGRIP", "AcDbBlockXYGrip", 1153);
+            file.AddClass("BLOCKGRIPLOCATIONCOMPONENT", "AcDbBlockGripExpr", 1153);
+            return new DxfBlockPointParameter(block, p, parameter.Handle, name, description, location);
+        }
+
+        /// <summary>
+        /// Writes a rotation parameter with its grip at the end point and the grip's two location components: four nodes, and
+        /// the three edges AutoCAD writes for them, as AutoCAD saved the rotation parameter of ACadSharp's sample: the end point
+        /// at the radius and the angle from the base point, the base angle point at the radius along the block's x axis, the
+        /// angle's set of none (flags 3, nought to a whole turn).
+        /// </summary>
+        internal static DxfBlockRotationParameter AddRotation(DxfBlockTableRecord block, string name, string description, GeoPoint3 basePoint, double radius, double angle)
+        {
+            Graph graph = Graph.Of(block);
+            DxfFile file = graph.File;
+            int p = graph.NextId;
+            string element = graph.FreeName("Rotation");
+            var endPoint = new GeoPoint3(basePoint.X + radius * Math.Cos(angle), basePoint.Y + radius * Math.Sin(angle), basePoint.Z);
+            var baseAngle = new GeoPoint3(basePoint.X + radius, basePoint.Y, basePoint.Z);
+
+            DxfItem parameter = file.AddObject("BLOCKROTATIONPARAMETER", null, b =>
+            {
+                Head(b, graph.Handle, p, element);
+                b.Group(100, "AcDbBlockParameter");
+                b.Group(280, "1");
+                b.Group(281, "0");
+                b.Group(100, "AcDbBlock2PtParameter");
+                Point(b, 1010, basePoint);
+                Point(b, 1011, endPoint);
+                b.Group(170, "4");
+                b.Group(91, "0");
+                b.Group(91, Int(p + 1));
+                b.Group(91, "0");
+                b.Group(91, "0");
+                b.Group(171, "0");
+                b.Group(172, "0");
+                Connection(b, 173, 94, p + 1, "DisplacementX");
+                Connection(b, 174, 95, p + 1, "DisplacementY");
+                b.Group(177, "0");
+                b.Group(100, "AcDbBlockRotationParameter");
+                b.Group(305, name);
+                b.Group(306, description);
+                Point(b, 1011, baseAngle);
+                b.Group(140, "0.0");
+                b.Group(307, string.Empty);
+                b.Group(96, "3");
+                b.Group(141, "0.0");
+                b.Group(142, Real(2.0 * Math.PI));
+                b.Group(143, "0.0");
+                b.Group(175, "0");
+            });
+
+            Environ(parameter, baseAngle);
+            graph.Add(p, parameter.Handle);
+            GripOf(graph, "BLOCKROTATIONGRIP", "AcDbBlockRotationGrip", p + 1, "Grip", endPoint, "0", null);
+            Components(graph, p, p + 1, Unset, "UpdatedEnd");
+            graph.Link(p, p + 2, 1);
+            graph.Link(p, p + 3, 1);
+            graph.Link(p + 1, p, 2);
+            graph.Write();
+
+            file.AddClass("BLOCKROTATIONPARAMETER", "AcDbBlockRotationParameter", 1153);
+            file.AddClass("BLOCKROTATIONGRIP", "AcDbBlockRotationGrip", 1153);
+            file.AddClass("BLOCKGRIPLOCATIONCOMPONENT", "AcDbBlockGripExpr", 1153);
+            return new DxfBlockRotationParameter(block, p, parameter.Handle, name, description, basePoint, radius, angle);
+        }
+
+        /// <summary>
+        /// Writes a flip parameter with its grip and the grip's three components (the state, the base point's x and y): five
+        /// nodes, and the four edges AutoCAD writes for them, as AutoCAD saved the flip parameter of ACadSharp's sample: the
+        /// reflection line from the base point to the end point, the states labelled Not flipped and Flipped, the label and
+        /// the grip at the line's end point.
+        /// </summary>
+        internal static DxfBlockFlipParameter AddFlip(DxfBlockTableRecord block, string name, string description, GeoPoint3 basePoint, GeoPoint3 endPoint)
+        {
+            Graph graph = Graph.Of(block);
+            DxfFile file = graph.File;
+            int p = graph.NextId;
+            string element = graph.FreeName("Flip");
+            GeoVector3 along = basePoint.GetVectorTo(endPoint);
+
+            DxfItem parameter = file.AddObject("BLOCKFLIPPARAMETER", null, b =>
+            {
+                Head(b, graph.Handle, p, element);
+                b.Group(100, "AcDbBlockParameter");
+                b.Group(280, "1");
+                b.Group(281, "0");
+                b.Group(100, "AcDbBlock2PtParameter");
+                Point(b, 1010, basePoint);
+                Point(b, 1011, endPoint);
+                b.Group(170, "4");
+                b.Group(91, Int(p + 1));
+                b.Group(91, "0");
+                b.Group(91, "0");
+                b.Group(91, "0");
+                b.Group(171, "0");
+                b.Group(172, "0");
+                b.Group(173, "0");
+                b.Group(174, "0");
+                b.Group(177, "0");
+                b.Group(100, "AcDbBlockFlipParameter");
+                b.Group(305, name);
+                b.Group(306, description);
+                b.Group(307, "Not flipped");
+                b.Group(308, "Flipped");
+                Point(b, 1012, endPoint);
+                b.Group(309, "UpdatedFlip");
+                b.Group(96, "2");
+            });
+
+            Environ(parameter, endPoint);
+            graph.Add(p, parameter.Handle);
+            GripOf(graph, "BLOCKFLIPGRIP", "AcDbBlockFlipGrip", p + 1, "Grip", endPoint, "0", b =>
+            {
+                b.Group(140, Real(along.X));
+                b.Group(141, Real(along.Y));
+                b.Group(142, Real(along.Z));
+                b.Group(93, Int(p + 2));
+            }, p + 3, p + 4);
+
+            DxfItem state = file.AddObject("BLOCKGRIPLOCATIONCOMPONENT", null, b =>
+            {
+                Head(b, graph.Handle, p + 2, null);
+                b.Group(1, string.Empty);
+                b.Group(70, "70");
+                b.Group(70, "0");
+                b.Group(100, "AcDbBlockGripExpr");
+                b.Group(91, Int(p));
+                b.Group(300, "UpdatedFlip");
+            });
+
+            graph.Add(p + 2, state.Handle);
+            Component(graph, p, p + 3, "0.0", "UpdatedBaseX");
+            Component(graph, p, p + 4, "0.0", "UpdatedBaseY");
+            graph.Link(p, p + 3, 1);
+            graph.Link(p, p + 4, 1);
+            graph.Link(p, p + 2, 1);
+            graph.Link(p + 1, p, 1);
+            graph.Write();
+
+            file.AddClass("BLOCKFLIPPARAMETER", "AcDbBlockFlipParameter", 1153);
+            file.AddClass("BLOCKFLIPGRIP", "AcDbBlockFlipGrip", 1153);
+            file.AddClass("BLOCKGRIPLOCATIONCOMPONENT", "AcDbBlockGripExpr", 1153);
+            return new DxfBlockFlipParameter(block, p, parameter.Handle, name, description, basePoint, endPoint);
+        }
+
+        /// <summary>
+        /// Writes an XY parameter with its four grips (the end, the base, base x with end y, end x with base y), each with its
+        /// two location components: thirteen nodes, and the twelve edges AutoCAD writes for them, as AutoCAD saved the XY
+        /// parameter of ACadSharp's sample: the labels of y and x at 305 and 306, their descriptions at 307 and 308, the label
+        /// offsets nought, the sets of none.
+        /// </summary>
+        internal static DxfBlockXYParameter AddXY(DxfBlockTableRecord block, string xName, string xDescription, string yName, string yDescription, GeoPoint3 basePoint, GeoPoint3 endPoint)
+        {
+            Graph graph = Graph.Of(block);
+            DxfFile file = graph.File;
+            int p = graph.NextId;
+            string element = graph.FreeName("XY");
+
+            DxfItem parameter = file.AddObject("BLOCKXYPARAMETER", null, b =>
+            {
+                Head(b, graph.Handle, p, element);
+                b.Group(100, "AcDbBlockParameter");
+                b.Group(280, "1");
+                b.Group(281, "0");
+                b.Group(100, "AcDbBlock2PtParameter");
+                Point(b, 1010, basePoint);
+                Point(b, 1011, endPoint);
+                b.Group(170, "4");
+                b.Group(91, Int(p + 4));
+                b.Group(91, Int(p + 1));
+                b.Group(91, Int(p + 7));
+                b.Group(91, Int(p + 10));
+                Connections(b, 171, 92, p + 4, p + 7, "DisplacementX");
+                Connections(b, 172, 93, p + 4, p + 10, "DisplacementY");
+                Connections(b, 173, 94, p + 1, p + 10, "DisplacementX");
+                Connections(b, 174, 95, p + 1, p + 7, "DisplacementY");
+                b.Group(177, "0");
+                b.Group(100, "AcDbBlockXYParameter");
+                b.Group(305, yName);
+                b.Group(306, xName);
+                b.Group(307, yDescription);
+                b.Group(308, xDescription);
+                b.Group(141, "0.0");
+                b.Group(140, "0.0");
+                b.Group(309, string.Empty);
+                b.Group(97, "1");
+                b.Group(146, "0.0");
+                b.Group(147, "0.0");
+                b.Group(148, "0.0");
+                b.Group(176, "0");
+                b.Group(410, string.Empty);
+                b.Group(96, "1");
+                b.Group(142, "0.0");
+                b.Group(143, "0.0");
+                b.Group(144, "0.0");
+                b.Group(175, "0");
+            });
+
+            Environ(parameter, endPoint);
+            graph.Add(p, parameter.Handle);
+            GripOf(graph, "BLOCKXYGRIP", "AcDbBlockXYGrip", p + 1, "End Grip", endPoint, "1", null);
+            Components(graph, p, p + 1, Unset, "UpdatedEnd");
+            GripOf(graph, "BLOCKXYGRIP", "AcDbBlockXYGrip", p + 4, "Base Grip", basePoint, "1", null);
+            Components(graph, p, p + 4, "0.0", "UpdatedBase");
+            GripOf(graph, "BLOCKXYGRIP", "AcDbBlockXYGrip", p + 7, "BaseX-EndY Grip", new GeoPoint3(basePoint.X, endPoint.Y, basePoint.Z), "1", null);
+            Component(graph, p, p + 8, "0.0", "UpdatedBaseX");
+            Component(graph, p, p + 9, Unset, "UpdatedEndY");
+            GripOf(graph, "BLOCKXYGRIP", "AcDbBlockXYGrip", p + 10, "BaseY-EndX Grip", new GeoPoint3(endPoint.X, basePoint.Y, basePoint.Z), "1", null);
+            Component(graph, p, p + 11, Unset, "UpdatedEndX");
+            Component(graph, p, p + 12, "0.0", "UpdatedBaseY");
+
+            for (int grip = p + 1; grip <= p + 10; grip += 3)
+            {
+                graph.Link(p, grip + 1, 1);
+                graph.Link(p, grip + 2, 1);
+                graph.Link(grip, p, 2);
             }
 
+            graph.Write();
+            file.AddClass("BLOCKXYPARAMETER", "AcDbBlockXYParameter", 1153);
+            file.AddClass("BLOCKXYGRIP", "AcDbBlockXYGrip", 1153);
+            file.AddClass("BLOCKGRIPLOCATIONCOMPONENT", "AcDbBlockGripExpr", 1153);
+            return new DxfBlockXYParameter(block, p, parameter.Handle, xName, xDescription, yName, yDescription, basePoint, endPoint);
+        }
+
+        /// <summary>
+        /// Writes a stretch action driven by the end point of a linear or an XY parameter (EndXDelta, EndYDelta): its frame of
+        /// two corners, and each entity with the indices of its points inside the frame; one node, and the edge from the
+        /// parameter.
+        /// </summary>
+        internal static void AddStretch(DxfBlockTableRecord block, int node, string name, GeoPoint2 low, GeoPoint2 high, List<KeyValuePair<DxfEntity, List<int>>> held)
+        {
+            Graph graph = Graph.Of(block);
+            Known(graph, block, node, name);
             DxfFile file = graph.File;
             int s = graph.NextId;
             string element = graph.FreeName("Stretch");
@@ -117,9 +382,9 @@ namespace GeometryHelper.Dxf
 
                 Point(b, 1010, new GeoPoint3((low.X + high.X) / 2.0, (low.Y + high.Y) / 2.0, 0.0));
                 b.Group(100, "AcDbBlockStretchAction");
-                b.Group(92, Int(parameter.Node));
+                b.Group(92, Int(node));
                 b.Group(301, "EndXDelta");
-                b.Group(93, Int(parameter.Node));
+                b.Group(93, Int(node));
                 b.Group(302, "EndYDelta");
                 b.Group(72, "2");
                 b.Group(1011, Real(low.X));
@@ -142,9 +407,174 @@ namespace GeometryHelper.Dxf
             });
 
             graph.Add(s, action.Handle);
-            graph.Link(parameter.Node, s, 2);
+            graph.Link(node, s, 2);
             graph.Write();
             file.AddClass("BLOCKSTRETCHACTION", "AcDbBlockStretchAction", 1153);
+        }
+
+        /// <summary>
+        /// Writes a move action driven by a parameter's connections (EndXDelta and EndYDelta of a linear or an XY parameter,
+        /// XDelta and YDelta of a point parameter), as AutoCAD saved the move of ACadSharp's point sample: the entities it
+        /// moves, its distance multiplier 1 and angle offset nought; one node, and the edge from the parameter.
+        /// </summary>
+        internal static void AddMove(DxfBlockTableRecord block, int node, string name, string x, string y, GeoPoint3 at, List<DxfEntity> entities)
+        {
+            Graph graph = Graph.Of(block);
+            Known(graph, block, node, name);
+            int s = graph.NextId;
+            string element = graph.FreeName("Move");
+            DxfItem action = graph.File.AddObject("BLOCKMOVEACTION", null, b =>
+            {
+                ActionHead(b, graph, s, element, entities, at);
+                b.Group(100, "AcDbBlockMoveAction");
+                b.Group(92, Int(node));
+                b.Group(301, x);
+                b.Group(93, Int(node));
+                b.Group(302, y);
+                b.Group(140, "1.0");
+                b.Group(141, "0.0");
+                b.Group(280, "0");
+            });
+
+            graph.Add(s, action.Handle);
+            graph.Link(node, s, 2);
+            graph.Write();
+            graph.File.AddClass("BLOCKMOVEACTION", "AcDbBlockMoveAction", 1153);
+        }
+
+        /// <summary>
+        /// Writes a scale action of a linear parameter, as AutoCAD saved the scale of ACadSharp's linear sample: its base the
+        /// parameter's base point (dependent, of no offset), its connections Scale, XScale and YScale; one node, and the edge
+        /// from the parameter (of five connections).
+        /// </summary>
+        internal static void AddScale(DxfBlockLinearParameter parameter, List<DxfEntity> entities)
+        {
+            Graph graph = Graph.Of(parameter.Block);
+            Known(graph, parameter.Block, parameter.Node, parameter.Name);
+            int s = graph.NextId;
+            string element = graph.FreeName("Scale");
+            int p = parameter.Node;
+            DxfItem action = graph.File.AddObject("BLOCKSCALEACTION", null, b =>
+            {
+                ActionHead(b, graph, s, element, entities, parameter.EndPoint);
+                WithBase(b, p);
+                b.Group(100, "AcDbBlockScaleAction");
+                b.Group(94, Int(p));
+                b.Group(95, Int(p));
+                b.Group(96, Int(p));
+                b.Group(303, "Scale");
+                b.Group(304, "XScale");
+                b.Group(305, "YScale");
+            });
+
+            graph.Add(s, action.Handle);
+            graph.Link(p, s, 5);
+            graph.Write();
+            graph.File.AddClass("BLOCKSCALEACTION", "AcDbBlockScaleAction", 1153);
+        }
+
+        /// <summary>
+        /// Writes a rotate action of a rotation parameter, as AutoCAD saved the rotate of ACadSharp's rotation sample: its base
+        /// the parameter's base point (dependent, of no offset), its connection AngleDelta; one node, and the edge from the
+        /// parameter (of three connections).
+        /// </summary>
+        internal static void AddRotate(DxfBlockRotationParameter parameter, List<DxfEntity> entities)
+        {
+            Graph graph = Graph.Of(parameter.Block);
+            Known(graph, parameter.Block, parameter.Node, parameter.Name);
+            int s = graph.NextId;
+            string element = graph.FreeName("Rotate");
+            int p = parameter.Node;
+            DxfItem action = graph.File.AddObject("BLOCKROTATEACTION", null, b =>
+            {
+                ActionHead(b, graph, s, element, entities, parameter.BasePoint);
+                WithBase(b, p);
+                b.Group(100, "AcDbBlockRotationAction");
+                b.Group(94, Int(p));
+                b.Group(303, "AngleDelta");
+            });
+
+            graph.Add(s, action.Handle);
+            graph.Link(p, s, 3);
+            graph.Write();
+            graph.File.AddClass("BLOCKROTATEACTION", "AcDbBlockRotateAction", 1153);
+        }
+
+        /// <summary>
+        /// Writes a flip action of a flip parameter, as AutoCAD saved the flip of ACadSharp's sample: its connections Flip,
+        /// UpdatedFlip, UpdatedBase and UpdatedEnd; one node, and the edge from the parameter (of four connections).
+        /// </summary>
+        internal static void AddFlipAction(DxfBlockFlipParameter parameter, List<DxfEntity> entities)
+        {
+            Graph graph = Graph.Of(parameter.Block);
+            Known(graph, parameter.Block, parameter.Node, parameter.Name);
+            int s = graph.NextId;
+            string element = graph.FreeName("Flip");
+            int p = parameter.Node;
+            DxfItem action = graph.File.AddObject("BLOCKFLIPACTION", null, b =>
+            {
+                ActionHead(b, graph, s, element, entities, parameter.BasePoint.GetMiddlePoint(parameter.EndPoint));
+                b.Group(100, "AcDbBlockFlipAction");
+                b.Group(92, Int(p));
+                b.Group(93, Int(p));
+                b.Group(94, Int(p));
+                b.Group(95, Int(p));
+                b.Group(301, "Flip");
+                b.Group(302, "UpdatedFlip");
+                b.Group(303, "UpdatedBase");
+                b.Group(304, "UpdatedEnd");
+            });
+
+            graph.Add(s, action.Handle);
+            graph.Link(p, s, 4);
+            graph.Write();
+            graph.File.AddClass("BLOCKFLIPACTION", "AcDbBlockFlipAction", 1153);
+        }
+
+        /// <summary>Refuses a parameter whose node is no longer in the block's evaluation graph.</summary>
+        private static void Known(Graph graph, DxfBlockTableRecord block, int node, string name)
+        {
+            if (!graph.HasNode(node))
+            {
+                throw new ArgumentException("The parameter " + name + " is no longer in the evaluation graph of the block " + block.Name + ".", "parameter");
+            }
+        }
+
+        /// <summary>The head of an action: its node's head, then the entities it works on (330) and where it is shown (1010).</summary>
+        private static void ActionHead(DxfFile.Builder b, Graph graph, int id, string element, List<DxfEntity> entities, GeoPoint3 at)
+        {
+            Head(b, graph.Handle, id, element);
+            b.Group(100, "AcDbBlockAction");
+            b.Group(70, "0");
+            b.Group(71, Int(entities.Count));
+            entities.ForEach(e => b.Group(330, e.Handle));
+            Point(b, 1010, at);
+        }
+
+        /// <summary>
+        /// The base of a scale or a rotate action: the parameter's base point (UpdatedBaseX, UpdatedBaseY), of no offset (1011),
+        /// dependent (280 of 1), and 1012 nought, as AutoCAD's samples write it: AutoCAD 2021 adds 1012 to the parameter's base
+        /// point, and turned an arrow about (100, 50) where 1012 was the base point (50, 25) itself (plugin v20, 24d-f).
+        /// </summary>
+        private static void WithBase(DxfFile.Builder b, int parameter)
+        {
+            b.Group(100, "AcDbBlockActionWithBasePt");
+            b.Group(92, Int(parameter));
+            b.Group(93, Int(parameter));
+            b.Group(301, "UpdatedBaseX");
+            b.Group(302, "UpdatedBaseY");
+            Point(b, 1011, new GeoPoint3(0, 0, 0));
+            b.Group(280, "1");
+            Point(b, 1012, new GeoPoint3(0, 0, 0));
+        }
+
+        /// <summary>The extended data AutoCAD ends a parameter with: ACAUTHENVIRON and the point its label or action bar is shown at.</summary>
+        private static void Environ(DxfItem parameter, GeoPoint3 at)
+        {
+            DxfDBObject.OfObject(parameter).XData = new[]
+            {
+                new DxfTypedValue(1001, "ACAUTHENVIRON"), new DxfTypedValue(1010, Real(at.X)), new DxfTypedValue(1020, Real(at.Y)), new DxfTypedValue(1030, Real(at.Z)),
+            };
         }
 
         /// <summary>
@@ -248,6 +678,40 @@ namespace GeometryHelper.Dxf
             return handles;
         }
 
+        /// <summary>
+        /// The handles of the entities the actions of a block's evaluation graph work on (the 330s of each AcDbBlockAction): of
+        /// its flip actions, or of its other actions; read without writing anything, none where the block has no graph.
+        /// </summary>
+        internal static HashSet<string> ActedOn(DxfBlockTableRecord block, bool flips)
+        {
+            var handles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            DxfDBDictionary dictionary = block.ExtensionDictionary;
+            DxfItem item = dictionary != null && dictionary.Contains("ACAD_ENHANCEDBLOCK") ? dictionary.GetAt("ACAD_ENHANCEDBLOCK")?.Item : null;
+
+            if (item == null || item.Type != "ACAD_EVALUATION_GRAPH")
+            {
+                return handles;
+            }
+
+            foreach (DxfTypedValue group in item.Groups)
+            {
+                DxfItem node = group.TypeCode == 360 ? item.File.ObjectItem(group.Value) : null;
+
+                if (node != null && node.Type.EndsWith("ACTION", StringComparison.Ordinal) && (node.Type == "BLOCKFLIPACTION") == flips)
+                {
+                    foreach (DxfTypedValue acted in DxfDynamicProperties.Section(node.Groups, "AcDbBlockAction"))
+                    {
+                        if (acted.TypeCode == 330)
+                        {
+                            handles.Add(acted.Value?.Trim());
+                        }
+                    }
+                }
+            }
+
+            return handles;
+        }
+
         /// <summary>Whether the evaluation graph of a block holds a node of a type, read without writing anything.</summary>
         private static bool Has(DxfBlockTableRecord block, string type)
         {
@@ -292,25 +756,60 @@ namespace GeometryHelper.Dxf
             Components(graph, parameter, id, value, connection);
         }
 
+        /// <summary>
+        /// A grip of a type other than linear: its two location components (by default the nodes after it), its location, its
+        /// cycling flag (280) and what its own subclass holds.
+        /// </summary>
+        private static void GripOf(Graph graph, string type, string subclass, int id, string name, GeoPoint3 at, string cycling, Action<DxfFile.Builder> tail, int x = -1, int y = -1)
+        {
+            DxfItem grip = graph.File.AddObject(type, null, b =>
+            {
+                Head(b, graph.Handle, id, name);
+                b.Group(100, "AcDbBlockGrip");
+                b.Group(91, Int(x < 0 ? id + 1 : x));
+                b.Group(92, Int(y < 0 ? id + 2 : y));
+                Point(b, 1010, at);
+                b.Group(280, cycling);
+                b.Group(93, "-1");
+                b.Group(100, subclass);
+                tail?.Invoke(b);
+            });
+
+            graph.Add(id, grip.Handle);
+        }
+
         /// <summary>The two location components of a grip, X and Y, the nodes after it: each of a value and of a connection with X or Y after it.</summary>
         private static void Components(Graph graph, int parameter, int id, string value, string connection)
         {
-            for (int k = 1; k <= 2; k++)
-            {
-                string axis = k == 1 ? "X" : "Y";
-                DxfItem component = graph.File.AddObject("BLOCKGRIPLOCATIONCOMPONENT", null, b =>
-                {
-                    Head(b, graph.Handle, id + k, null);
-                    b.Group(1, string.Empty);
-                    b.Group(70, "40");
-                    b.Group(140, value);
-                    b.Group(100, "AcDbBlockGripExpr");
-                    b.Group(91, Int(parameter));
-                    b.Group(300, connection + axis);
-                });
+            Component(graph, parameter, id + 1, value, connection + "X");
+            Component(graph, parameter, id + 2, value, connection + "Y");
+        }
 
-                graph.Add(id + k, component.Handle);
-            }
+        /// <summary>A location component of a grip: its value, and the parameter's connection it follows.</summary>
+        private static void Component(Graph graph, int parameter, int id, string value, string connection)
+        {
+            DxfItem component = graph.File.AddObject("BLOCKGRIPLOCATIONCOMPONENT", null, b =>
+            {
+                Head(b, graph.Handle, id, null);
+                b.Group(1, string.Empty);
+                b.Group(70, "40");
+                b.Group(140, value);
+                b.Group(100, "AcDbBlockGripExpr");
+                b.Group(91, Int(parameter));
+                b.Group(300, connection);
+            });
+
+            graph.Add(id, component.Handle);
+        }
+
+        /// <summary>Two connections of a parameter's point to grips: their count (2), then each grip's id and what it gives.</summary>
+        private static void Connections(DxfFile.Builder b, int count, int node, int first, int second, string connection)
+        {
+            b.Group(count, "2");
+            b.Group(node, Int(first));
+            b.Group(count + 130, connection);
+            b.Group(node, Int(second));
+            b.Group(count + 130, connection);
         }
 
         /// <summary>The head of a node's object: its owner, the graph, its id, and its name where it is a named element.</summary>

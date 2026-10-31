@@ -6,6 +6,47 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The other dynamic blocks of AutoCAD's Block Editor are made in code, each written as AutoCAD 2021 saved
+ACadSharp's sample of it, its graph number for number. `DxfBlockTableRecord.AddPointParameter(name, description,
+location)` gives a block a position, the properties Tag X and Tag Y of a parameter named Tag, and `AddMoveAction(point,
+entities)` moves entities with it: a tag circle at (80, 20) goes to (120, 20) as Tag X is set to 120.
+`AddRotationParameter(name, description, basePoint, radius, angle)` gives an angle in radians about a base point, and
+`AddRotateAction(rotation, entities)` turns entities by it: an arrow from (50, 25) to (80, 25) set to Math.PI / 2 points
+to (50, 55). `AddFlipParameter(name, description, basePoint, endPoint)` gives a reflection line, the property 0 or 1, and
+`AddFlipAction(flip, entities)` mirrors entities about it: a door leaf from (0, 0) to (90, 0) flipped about the y axis runs
+to (-90, 0). `AddXYParameter(xName, xDescription, yName, yDescription, basePoint, endPoint)` gives the distances along x
+and y to an end point, with four grips, and `AddStretchAction(xy, ...)` and `AddMoveAction(xy, entities)` follow its end
+point both ways: Width 160 and Depth 80 take the corner (100, 50) of a plate to (160, 80). A linear parameter is given
+`AddMoveAction(linear, entities)`, the entities following its end point (a circle at (90, 25) goes to (190, 25) at Width
+200), and `AddScaleAction(linear, entities)`, the entities scaled alike about its base point by the distance over the
+block's own (a disc of the radius 25 at (50, 25) is of the radius 50 at (100, 50) at Size 200). Each returns, or takes,
+the new `DxfBlockPointParameter`, `DxfBlockRotationParameter`, `DxfBlockFlipParameter` or `DxfBlockXYParameter`.
+`DxfDynamicBlockReferenceProperty.Value` sets each on an INSERT as AutoCAD sets it, the actions worked out in the order
+they were added into the anonymous block the INSERT places, and the cache records of each kind written as AutoCAD writes
+them; an angle is taken into a turn, a flip state is a whole number 0 or 1 read back as a `short`. A drawing of 1 000
+INSERTs takes about half a millisecond for a set under .NET 10 and one under .NET Framework 4.8. ezdxf 1.4.5 recovers and
+audits the files of AutoCAD check v20 with nothing to fix, where AutoCAD 2021 read and set the move, the scale, the point,
+the flip and the XY blocks right. A scale or a rotate is written with 1012 nought, as AutoCAD's samples write it: AutoCAD
+adds 1012 to the base point, and turned an arrow about (100, 50) instead of (50, 25) while the library wrote the base point
+there. An entity a flip mirrors and another action moves is refused with `NotSupportedException`, either action given
+second, as AutoCAD worked such a block out from each INSERT's last state (a panel stretched to x = -250 for a Width of
+150 after a flip) and would not flip it. A polar parameter and its polar stretch are not written.
+
+**NEW.** A stretch action takes, besides lines and polylines, an arc with both its ends in the frame, a circle by its
+centre, a text by the point it is held by, a multiline text by its location and an INSERT by its insertion point, each
+moving whole, numbered as AutoCAD's files number them (an arc 0 and 1, the others 0); an arc with one end only in the
+frame, a text aligned or fitted between two points, an attribute definition and an INSERT of rows and columns are refused.
+A frame over the right side of a rectangle 100 by 50 set to Width 200 moves an arc, a circle, two texts, a multiline text
+and an INSERT there by 100 along x.
+
+**CHANGED.** A value of a linear parameter half way between two steps of an increment set goes to the step below, as
+AutoCAD 2021 took it in plugin v19: 85 to 80 (from 250), 65 to 60 (from 80) and 75 to 70 (from 60) of 50 to 300 by 10,
+where the library took 85 to 90 and 65 to 70 before, by the even step; AutoCAD check v20 took all seven further ties so. A
+value half way between two values of a list goes to the one farther from the value the property had, beyond the value asked
+in the way it changes: of 50, 100 ... 300, 125 to 100 from 300 and 225 to 250 from 50, as AutoCAD 2021 took 8 of the 11 ties
+of check v20, where the library took the one nearer the old value before. AutoCAD was not consistent here: it took the
+other value in the other three, and in three of the four ties of the rounds before.
+
 **NEW.** `new DxfDatabase(version)` makes a new drawing with nothing in it, of the version named as `Version` names one:
 AC1015 (R2000), AC1018, AC1021, AC1024 (R2010), AC1027 or AC1032 (R2018), as AutoCAD's `new Database(true, true)` makes one
 of its own. It is the drawing `DxfWriter` writes with no shape, in millimetres, its header naming the version, so that a

@@ -77,15 +77,19 @@ namespace GeometryHelper.Dxf
                         break;
                     case "BLOCKXYPARAMETER":
                         Xy(groups, cache, scale, properties);
+                        Bind(properties, before, insert, id);
                         break;
                     case "BLOCKROTATIONPARAMETER":
                         Rotation(groups, cache, properties);
+                        Bind(properties, before, insert, id);
                         break;
                     case "BLOCKPOINTPARAMETER":
                         Point(groups, cache, scale, properties);
+                        Bind(properties, before, insert, id);
                         break;
                     case "BLOCKFLIPPARAMETER":
                         Flip(groups, cache, properties);
+                        Bind(properties, before, insert, id);
                         break;
                     case "BLOCKVISIBILITYPARAMETER":
                         Visibility(groups, cache, properties);
@@ -100,12 +104,12 @@ namespace GeometryHelper.Dxf
             return properties.AsReadOnly();
         }
 
-        /// <summary>Ties the property a parameter gave, where it gave one, to the INSERT and the parameter's node, for its value to be set.</summary>
+        /// <summary>Ties each property a parameter gave, where it gave one, to the INSERT, the parameter's node and its place among them, for its value to be set.</summary>
         private static void Bind(List<DxfDynamicBlockReferenceProperty> properties, int at, DxfBlockReference insert, string id)
         {
-            if (id != null && properties.Count > at)
+            for (int i = at; id != null && i < properties.Count; i++)
             {
-                properties[at].Bind(insert, id);
+                properties[i].Bind(insert, id, i - at);
             }
         }
 

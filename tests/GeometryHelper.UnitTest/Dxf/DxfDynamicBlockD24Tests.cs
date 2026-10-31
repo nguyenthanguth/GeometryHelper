@@ -319,7 +319,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfBlockLinearParameter width = block.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
             string written = db.ToText();
-            var circle = new DxfCircle(new GeoPoint3(100, 25, 0), new GeoVector3(0, 0, 1), 5);
+            var circle = new DxfEllipse(new GeoPoint3(100, 25, 0), new GeoVector3(0, 0, 1), new GeoVector3(5, 0, 0), 0.5, 0, 2 * Math.PI);
             block.AppendEntity(circle);
             var stray = new DxfLine(new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0));
             db.ModelSpace.AppendEntity(stray);

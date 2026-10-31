@@ -435,8 +435,8 @@ namespace GeometryHelper.Dxf
         /// <see cref="DynamicBlockReferencePropertyCollection"/>.
         /// </summary>
         /// <remarks>
-        /// <see cref="DynamicBlockReferencePropertyCollection"/> reads the dynamic properties as AutoCAD saved them; a linear
-        /// property whose actions are stretches of lines and polylines, and a visibility state, is set by
+        /// <see cref="DynamicBlockReferencePropertyCollection"/> reads the dynamic properties as AutoCAD saved them; a linear,
+        /// XY, point, rotation, flip or visibility property of a block of the actions the library writes is set by
         /// <see cref="DxfDynamicBlockReferenceProperty.Value"/>, the others are not, nor is AutoCAD's <c>ResetBlock</c> given.
         /// <see cref="ConvertToStaticBlock(string)"/> makes the INSERT place a plain copy of what it draws.
         /// </remarks>
@@ -476,7 +476,7 @@ namespace GeometryHelper.Dxf
         /// Gets the dynamic properties of the INSERT, as AutoCAD's <c>DynamicBlockReferencePropertyCollection</c>: a new list on
         /// each call, each property's value the one AutoCAD saved for this INSERT, or the dynamic block's own where it saved
         /// none, as for an INSERT of the dynamic block itself. Empty where the INSERT places no dynamic block. The value of a
-        /// linear property and of a visibility state is set as AutoCAD sets it, where the block is one the library works out
+        /// linear, XY, point, rotation, flip or visibility property is set as AutoCAD sets it, where the block is one the library works out
         /// (<see cref="DxfDynamicBlockReferenceProperty.Value"/>); the others are read only.
         /// </summary>
         /// <remarks>

@@ -1214,6 +1214,7 @@ the base point towards the end point, so an entity across the frame stretches an
 (90, -10)-(110, 60), and an INSERT of it whose Width is set to 200:
 
 ```csharp
+using System;
 using System.Linq;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
@@ -1240,7 +1241,7 @@ db.Save("panel.dxf");
 ```
 
 The frame holds the right edge whole and the right ends of the bottom and the top; the left edge has no point in it and is
-not given (an entity given with none is refused, as is any type but a LINE and a LWPOLYLINE). An INSERT shows
+not given (an entity given with none is refused, as are the kinds listed below that a stretch does not take). An INSERT shows
 `Width = 100.0` until its property is set; AutoCAD 2021, given the same block (plugin v17), set it to 200 and moved the right edge to x = 200, took
 75 to 70, 77 to 80 and 400 to 300 by the value set, and kept the values through a DXF and a DWG saved and opened again. The block is written as AutoCAD's Block
 Editor saves one: the extended data AcDbDynamicBlockTrueName, AcDbDynamicBlockGUID (a new GUID) and AcDbBlockRepETag on
@@ -1253,10 +1254,13 @@ stretch of the rectangle takes about half a millisecond, and tagging and stretch
 under .NET Framework 4.8 and 30 under .NET 10.
 
 Setting `Value` works the block out as AutoCAD's `DynamicBlockReferenceProperty.Value` does. The value is taken to the
-value set as AutoCAD 2021 took it (plugins v17 and v18): to the nearest step of an increment, a tie to the even step from
-the minimum, then into the minimum and the maximum, so that 75 goes to 70, 77 to 80 and 400 to 300 of the set above; to the
-nearest of a list, a tie to the one nearer the value the property had, so that 75 goes to 100 from 100 of 50, 100 ... 300,
-and 100 to 80 from 80 of 50, 80, 120; and as given where there is no set. The INSERT is then made to place an anonymous
+value set as AutoCAD 2021 took it (plugins v17 to v20): to the nearest step of an increment, a tie to the step below, then
+into the minimum and the maximum, so that 75 goes to 70, 85 to 80, 77 to 80 and 400 to 300 of the set above; to the
+nearest of a list, a tie to the one farther from the value the property had, beyond the value asked in the way it changes,
+so that 125 goes to 100 from 300 and 225 to 250 from 50 of 50, 100 ... 300; and as given where there is no set. AutoCAD's
+choice between two values of a list exactly as near was not the same every time: it took 8 of the 11 such ties of check
+v20 this way, the other one in the other three (125 to 100 from 50, 275 to 250 from 100, 75 to 100 from 300), and the
+other one in three of the four of the rounds before (75 to 100 from 100, 100 to 80 from 80, 225 to 200 from 150). The INSERT is then made to place an anonymous
 block, `*U1` the first the drawing has not, holding a copy of each entity of the block with the points the stretches hold
 moved by the change: here the right edge at x = 200 and the right ends of the bottom and the top with it, the left edge at
 x = 0. The anonymous block names the dynamic one in its extended data AcDbBlockRepBTag, each copy keeps its source's tag
@@ -1267,10 +1271,11 @@ naming the dynamic block and the record of each parameter and action AutoCAD rea
 such an INSERT, written by a script, as Width 150 with its stretched lines, and set it again (plugin v17).
 `DynamicBlockReferencePropertyCollection` reads 200 back; the dynamic block itself keeps 100. Set again, the INSERT's
 anonymous block is filled anew where no other INSERT places it, else the INSERT is given one of its own. A length of an
-INSERT scaled by 2 is twice the block's: 300 set on it moves the right edge to x = 150 in the block. Only a block of linear
-parameters with stretches of lines and polylines, and of a visibility parameter, is worked out: a property of another
-kind, or of a block holding another parameter or action, or a stretch that moves other parameters or is scaled or turned,
-is refused with `NotSupportedException`, and an INSERT scaled unlike along its axes with `InvalidOperationException`, as
+INSERT scaled by 2 is twice the block's: 300 set on it moves the right edge to x = 150 in the block. A block of the
+parameters and actions this section writes is worked out: a property of another kind (a polar or a lookup parameter), or
+of a block holding another parameter or action (an array, a polar stretch, a lookup), or an action that moves other
+parameters, is scaled or turned, or scales or turns about another point than its parameter's base point, is refused with
+`NotSupportedException`, and an INSERT scaled unlike along its axes with `InvalidOperationException`, as
 AutoCAD takes it as no dynamic block's; nothing is written then. A value is a number, a whole number taken as the distance
 it is, and a distance of nought or less after the value set is refused. Setting Width takes under a millisecond, and on
 each of 1 000 INSERTs of a drawing half a second to a second; setting again an INSERT that places an anonymous block
@@ -1314,6 +1319,109 @@ each state with the entities shown in it, its grip and the grip's two location c
 the evaluation graph, number for number. A block takes one visibility parameter, as AutoCAD's Block Editor gives it one, and
 may take linear parameters besides: its INSERTs keep the state and the distances together. Writing the parameter takes a
 fifth of a millisecond.
+
+The other parameters and actions of AutoCAD's Block Editor are made the same way, each written number for number as
+AutoCAD 2021 saved ACadSharp's sample of it, and each set on an INSERT as AutoCAD sets it. A stretch takes, besides lines
+and polylines, an arc with both its ends in the frame, a circle by its centre, a text by the point it is held by (its
+position, or its alignment point where it is not left on its baseline), a multiline text by its location and an INSERT by
+its insertion point; each moves whole. An arc with one end only in the frame, a text aligned or fitted between two points, an
+attribute definition and an INSERT of rows and columns are refused. Each kind in a few lines, added to the drawing above:
+
+```csharp
+// Each example adds a block to the drawing above; Block makes it, Place puts an INSERT of it in model space.
+DxfBlockTableRecord Block(string name)
+{
+    var block = new DxfBlockTableRecord { Name = name, Origin = new GeoPoint3(0, 0, 0) };
+    db.BlockTable.Add(block);
+    return block;
+}
+
+DxfBlockReference Place(DxfBlockTableRecord block, double x, double y)
+{
+    var placed = new DxfBlockReference(new GeoPoint3(x, y, 0), block);
+    db.ModelSpace.AppendEntity(placed);
+    return placed;
+}
+
+// Move: a tag circle follows the end point of Length; Length 200 puts its centre at (190, 25).
+DxfBlockTableRecord slide = Block("SLIDE");
+var tagCircle = new DxfCircle(new GeoPoint3(90, 25, 0), GeoVector3.ZAxis, 5);
+slide.AppendEntity(tagCircle);
+DxfBlockLinearParameter length = slide.AddLinearParameter("Length", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
+slide.AddMoveAction(length, new[] { tagCircle });
+
+// Scale: a disc of the radius 25 at (50, 25) scaled about the origin by Size over 100; Size 200 doubles it, about (100, 50).
+DxfBlockTableRecord disc = Block("DISC");
+var round = new DxfCircle(new GeoPoint3(50, 25, 0), GeoVector3.ZAxis, 25);
+disc.AppendEntity(round);
+DxfBlockLinearParameter size = disc.AddLinearParameter("Size", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
+disc.AddScaleAction(size, new[] { round });
+
+// Point and move: Tag X and Tag Y move the tag anywhere; Tag X 120 puts its centre at (120, 20).
+DxfBlockTableRecord tagged = Block("TAGGED");
+var tag = new DxfCircle(new GeoPoint3(80, 20, 0), GeoVector3.ZAxis, 5);
+tagged.AppendEntity(tag);
+DxfBlockPointParameter where = tagged.AddPointParameter("Tag", "Where the tag stands", new GeoPoint3(80, 20, 0));
+tagged.AddMoveAction(where, new[] { tag });
+
+// Rotation and rotate: Angle, in radians, turns the arrow about its tail; Math.PI / 2 makes it point along y, to (50, 55).
+DxfBlockTableRecord arrowBlock = Block("ARROW");
+var arrow = new DxfLine(new GeoPoint3(50, 25, 0), new GeoPoint3(80, 25, 0));
+arrowBlock.AppendEntity(arrow);
+DxfBlockRotationParameter angle = arrowBlock.AddRotationParameter("Angle", "Turn of the arrow", new GeoPoint3(50, 25, 0), 30, 0);
+arrowBlock.AddRotateAction(angle, new[] { arrow });
+
+// Flip and flip: Hand 1 mirrors the leaf about the y axis, from (0, 0)-(90, 0) to (0, 0)-(-90, 0).
+DxfBlockTableRecord door = Block("DOOR");
+var leaf = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(90, 0, 0));
+door.AppendEntity(leaf);
+DxfBlockFlipParameter hand = door.AddFlipParameter("Hand", "Which way the door opens", new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0));
+door.AddFlipAction(hand, new[] { leaf });
+
+// XY: Width and Depth move the top right corner of the plate and the hole on it both ways; 160 by 80 takes them to (160, 80).
+DxfBlockTableRecord plate = Block("PLATE");
+var outline = new DxfPolyline();
+outline.AddVertexAt(0, new GeoPoint2(0, 0), 0, 0, 0);
+outline.AddVertexAt(1, new GeoPoint2(100, 0), 0, 0, 0);
+outline.AddVertexAt(2, new GeoPoint2(100, 50), 0, 0, 0);
+outline.AddVertexAt(3, new GeoPoint2(0, 50), 0, 0, 0);
+outline.Closed = true;
+var hole = new DxfCircle(new GeoPoint3(100, 50, 0), GeoVector3.ZAxis, 4);
+plate.AppendEntity(outline);
+plate.AppendEntity(hole);
+DxfBlockXYParameter xy = plate.AddXYParameter("Width", null, "Depth", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 50, 0));
+plate.AddStretchAction(xy, new GeoPoint2(90, 40), new GeoPoint2(110, 60), new[] { outline });
+plate.AddMoveAction(xy, new[] { hole });
+
+Place(slide, 0, 150).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Length").Value = 200.0;
+Place(disc, 0, 300).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Size").Value = 200.0;
+Place(tagged, 300, 300).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Tag X").Value = 120.0;
+Place(arrowBlock, 600, 300).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Angle").Value = Math.PI / 2;
+Place(door, 900, 300).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Hand").Value = (short)1;
+DxfBlockReference sheet = Place(plate, 1200, 300);
+sheet.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Width").Value = 160.0;
+sheet.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Depth").Value = 80.0;
+db.Save("panel.dxf");
+```
+
+A point parameter gives two properties, its name with " X" and " Y" after it, the position in the block's coordinates (scaled
+as a length is); an XY parameter gives its distance along x and then along y, each measured the way its end point lies from
+its base point; a rotation parameter its angle in radians from the block's x axis, a value set taken into a turn, from nought
+up to 2 pi (-pi / 2 reads back as 3 pi / 2); a flip parameter 0 or 1, a `short`, a whole number set taken as the state. A move
+moves its entities whole by the change of the point it follows: the end point of a linear or an XY parameter, the position
+of a point parameter. A scale scales them alike about the base point of its linear parameter by the distance over the
+block's own; a rotate turns them about the base point of its rotation parameter by the angle less the block's own; a flip
+mirrors them about its reflection line while the state is 1. The actions are worked out in the order they were added, the
+stretches in a row summed point by point first. An entity a flip mirrors and another action moves is refused with
+NotSupportedException, either action given second: AutoCAD 2021 stretched the edges of a panel flipped about the y axis
+from where the last flip left them, to x = -250 for a Width of 150 set after 200, and would not flip the panel it
+stretched (check v20), so no value of the block tells its shape. A scale or a rotate turns about its parameter's base
+point as AutoCAD writes it, 1012 nought: AutoCAD 2021 adds 1012 to the base point, and turned an arrow about (100, 50) for
+a base point of (50, 25) when the library wrote that point there (check v20). The angle and the flip have no value set; a distance of an XY parameter is above the point
+tolerance. The block keeps its own values: an INSERT shows them until its property is set. Writing a point, a rotation, a flip
+and an XY parameter with their actions takes about a millisecond, and setting any of them on an INSERT of a drawing of 1 000
+INSERTs about half a millisecond under .NET 10 and one under .NET Framework 4.8. A polar parameter with its polar stretch is
+not written: AutoCAD's sample of it does not show how the entities it stretches are kept.
 
 `insert.ConvertToStaticBlock("BOLT_500")` makes the INSERT place a
 new block BOLT_500 holding copies of what it draws, the anonymous block's entities (or the dynamic block's, where it places

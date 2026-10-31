@@ -5,7 +5,10 @@ namespace GeometryHelper.Dxf
     /// <summary>
     /// A linear parameter of a dynamic block, as <see cref="DxfBlockTableRecord.AddLinearParameter"/> wrote it: the distance
     /// from its base point to its end point, shown on every INSERT of the block as the dynamic property of its name, and
-    /// changed by the actions tied to it (<see cref="DxfBlockTableRecord.AddStretchAction"/>).
+    /// changed by the actions tied to it
+    /// (<see cref="DxfBlockTableRecord.AddStretchAction(DxfBlockLinearParameter, GeoPoint2, GeoPoint2, System.Collections.Generic.IEnumerable{DxfEntity})"/>,
+    /// <see cref="DxfBlockTableRecord.AddMoveAction(DxfBlockLinearParameter, System.Collections.Generic.IEnumerable{DxfEntity})"/>,
+    /// <see cref="DxfBlockTableRecord.AddScaleAction"/>).
     /// </summary>
     /// <remarks>
     /// The parameter Width from (0, 0, 0) to (100, 0, 0) of a rectangle 100 by 50 gives each INSERT of the block the property

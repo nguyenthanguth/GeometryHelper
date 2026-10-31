@@ -338,29 +338,30 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AValueIsTakenToTheNearestOfAList_ATieToTheOneNearerTheValueItHad_AsAutoCadTookIt()
+        public void AValueIsTakenToTheNearestOfAList_ATieToTheOneFartherFromTheValueItHad_AsAutoCadTookMostTiesInV20()
         {
             DxfDatabase db = Stretched(DxfBlockParameterValueSet.List(new[] { 50.0, 100, 150, 200, 250, 300 }));
             DxfDynamicBlockReferenceProperty width = Property(TheInsert(db), "Width");
 
-            // From 100, AutoCAD 2021 took 75 (between 50 and 100) to 100, and 77 and 400 to 100 and 300 (plugins v17, v18).
+            // From 100, 75 (between 50 and 100) goes to 50, beyond it on the way down (AutoCAD 2021 took 100 in plugin v17, one
+            // of its ties against the rule of v20); 77 and 400 go to the nearest, 100 and 300 (plugins v17, v18).
             width.Value = 75.0;
-            Assert.Equal(100.0, (double)width.Value, Close);
+            Assert.Equal(50.0, (double)width.Value, Close);
             width.Value = 77.0;
             Assert.Equal(100.0, (double)width.Value, Close);
             width.Value = 400.0;
             Assert.Equal(300.0, (double)width.Value, Close);
 
-            // From 300, 175 (between 150 and 200) goes to 200, the nearer of the two to 300.
+            // From 300, 175 (between 150 and 200) goes to 150, the farther of the two from 300, as AutoCAD 2021 took it (v20).
             width.Value = 175.0;
-            Assert.Equal(200.0, (double)width.Value, Close);
+            Assert.Equal(150.0, (double)width.Value, Close);
 
-            // From 80, AutoCAD 2021 took 100 (between 80 and 120) to 80 (plugin v18, 24b-g).
+            // From 80, 100 (between 80 and 120) goes to 120 (AutoCAD 2021 took 80 in plugin v18, 24b-g, against the rule of v20).
             DxfDatabase two = WidthAndHeight();
             DxfDynamicBlockReferenceProperty height = Property(TheInsert(two), "Height");
             height.Value = 80.0;
             height.Value = 100.0;
-            Assert.Equal(80.0, (double)height.Value, Close);
+            Assert.Equal(120.0, (double)height.Value, Close);
             height.Value = 120.0;
             Assert.Equal(120.0, (double)height.Value, Close);
         }
