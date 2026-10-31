@@ -455,6 +455,16 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
+        /// The openings last cut into the body at once by the cells each opening's box reaches, as a boolean cuts them first;
+        /// see Boolean3.FirstCut.
+        /// </summary>
+        internal Boolean3.AtOnceCut AtOnce
+        {
+            get => _atOnce;
+            set => _atOnce = value;
+        }
+
+        /// <summary>
         /// Gets the region the gap to a face is measured with, made when first asked and kept for every query after it.
         /// </summary>
         /// <param name="index">The index of the face.</param>

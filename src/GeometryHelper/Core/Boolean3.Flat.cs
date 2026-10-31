@@ -550,6 +550,21 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Lays a face out in a frame, or gives null when nothing with an area is left of it there.
         /// </summary>
+        /// <remarks>
+        /// The plane merges corners within the global tolerance, a thousandth by default, whatever tolerance the work is asked
+        /// within, so a strip of a face thinner than that is nothing to it: where the cut of a body's openings glued its cells,
+        /// the strip of one cell's face between two walls 0.00095 apart neither took from the face against it nor was taken
+        /// from, and a plate 200 by 100 by 3 with two blind openings whose ceilings stood that far apart came out of the cut
+        /// open, 1.05 short. Laid out within the tolerance asked, every face, in every gluing, keeps corners the plane merged
+        /// within a thousandth, and that is worse: of 25 200 unions, common parts and differences of prisms with such openings
+        /// and boxes, between nought and a ten-thousandth, 37 that were right came out wrong or not worked out, a box less a
+        /// prism at nought by 26 860, the prism's openings lost; floored at a trillionth of the coordinates, the same. Laying
+        /// out again only a face the plane leaves nothing of, and only where a boolean's cut of openings came out open, at a
+        /// millionth and below within a million of the origin, closed that plate's cut the first time but moved no boolean of
+        /// those prisms from right, wrong or not worked out, the cut being cut again already
+        /// (see <see cref="CutOpenings(GeoSolid3, IReadOnlyList{GeoSolid3}, out GeoSolid3, Tolerance, out bool, bool)"/>);
+        /// further out it turned 15 not worked out into trusted and wrong. The layout is left as it was.
+        /// </remarks>
         private static GeoFace2 Flatten(GeoCoordinateSystem3 frame, GeoFace3 face)
         {
             try

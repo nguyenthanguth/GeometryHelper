@@ -969,13 +969,16 @@ namespace GeometryHelper.Core
             // The body carrying only the openings being cut, so that a cell is judged against exactly those, and
             // both as the cut works on them, wound outwards and flat; see ForWork and FlatForWork.
             tolerance = ForWork(tolerance);
-            GeoSolid3 owner = FlatForWork(new GeoSolid3(solid.Faces, openings), tolerance);
-            bool cut = CutOpenings(owner, out material, tolerance, out judgedWhole, int.MaxValue, out int cells);
+            AtOnceCut first = FirstCut(solid, openings, tolerance);
+            GeoSolid3 owner = first.Owner;
+            bool cut = first.Cut;
+            material = first.Material;
+            judgedWhole = first.JudgedWhole;
 
             // Cut again below a thousandth and within a million of the origin only; see the remarks.
             if (again && tolerance.EqualPoint < CutAgainBelow && Splition3.Rounding(owner) <= Splition3.RaisedBelow
                 && (judgedWhole || cut && !Shells3.Closes(material, tolerance))
-                && CutOpenings(owner, out GeoSolid3 everywhere, tolerance, out bool judgedAgain, MostCellsCutEverywhere * cells, out _)
+                && CutOpenings(owner, out GeoSolid3 everywhere, tolerance, out bool judgedAgain, MostCellsCutEverywhere * first.Cells, out _)
                 && !judgedAgain && Shells3.Closes(everywhere, tolerance))
             {
                 material = everywhere;
@@ -984,6 +987,77 @@ namespace GeometryHelper.Core
             }
 
             return cut;
+        }
+
+        /// <summary>
+        /// Cuts all the openings of a body, or some of them, into it at once by the cells each opening's box reaches, or, where
+        /// all were cut so within the same tolerance before, gives that cut as it came.
+        /// </summary>
+        /// <param name="solid">The body.</param>
+        /// <param name="openings">The openings to cut; a cut of all of them, the body's own list, is kept with the body.</param>
+        /// <param name="tolerance">The tolerance of the work.</param>
+        /// <remarks>
+        /// A boolean at a millionth and below cuts the openings of each operand at once, and then asks whether that cut came
+        /// out open (see <see cref="CutComesOutOpen"/>), which cut them again, the same way, within the same tolerance: the
+        /// second cut is the first, to the bit, and is read from the body. Of the four booleans of 60 prisms with openings and
+        /// boxes, at a millionth 308 of 549 such cuts were read so; at 1E-9, 303 of 621; at nought, 283 of 755. The booleans
+        /// gave what they gave, to the bit, in a quarter less time at a millionth and a sixth less at 1E-9.
+        /// </remarks>
+        private static AtOnceCut FirstCut(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, Tolerance tolerance)
+        {
+            bool all = ReferenceEquals(openings, solid.Openings);
+            AtOnceCut kept = all ? solid.AtOnce : null;
+
+            if (kept != null && kept.Tolerance == tolerance)
+            {
+                return kept;
+            }
+
+            GeoSolid3 owner = FlatForWork(new GeoSolid3(solid.Faces, openings), tolerance);
+            bool cut = CutOpenings(owner, out GeoSolid3 material, tolerance, out bool judgedWhole, int.MaxValue, out int cells);
+            var made = new AtOnceCut(tolerance, owner, cut, material, judgedWhole, cells);
+
+            if (all)
+            {
+                solid.AtOnce = made;
+            }
+
+            return made;
+        }
+
+        /// <summary>
+        /// The openings of a body cut into it at once by the cells each opening's box reaches, within one tolerance, kept whole
+        /// so that a reader sees one cut or none; see <see cref="FirstCut"/>.
+        /// </summary>
+        internal sealed class AtOnceCut
+        {
+            internal AtOnceCut(Tolerance tolerance, GeoSolid3 owner, bool cut, GeoSolid3 material, bool judgedWhole, int cells)
+            {
+                Tolerance = tolerance;
+                Owner = owner;
+                Cut = cut;
+                Material = material;
+                JudgedWhole = judgedWhole;
+                Cells = cells;
+            }
+
+            /// <summary>The tolerance of the work the openings were cut within.</summary>
+            internal Tolerance Tolerance { get; }
+
+            /// <summary>The body flat for the work, carrying the openings cut.</summary>
+            internal GeoSolid3 Owner { get; }
+
+            /// <summary>Whether some material was left.</summary>
+            internal bool Cut { get; }
+
+            /// <summary>The body with the openings cut in; null where none was left.</summary>
+            internal GeoSolid3 Material { get; }
+
+            /// <summary>Whether a piece was judged whole; see <see cref="Boolean3.JudgedWhole"/>.</summary>
+            internal bool JudgedWhole { get; }
+
+            /// <summary>How many cells the cut came to.</summary>
+            internal int Cells { get; }
         }
 
         /// <summary>

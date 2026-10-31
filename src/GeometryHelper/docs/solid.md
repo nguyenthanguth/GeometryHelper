@@ -1625,6 +1625,12 @@ of bodies so cut again came out right 1 700 times more but wrong 27 times where 
 tenths. At a thousandth and above nothing moved either: cut again at a hundredth, a plate 300 by 200 by 12 whose twelve
 openings stood the tolerance inside its faces, joined to a box at its corner, held 106 too much.
 
+**A body keeps the openings its boolean cut in at once.** Asked at a millionth and below, a boolean cuts the openings of
+each operand in at once and then asks whether that cut came out open, which cut them again the same way within the same
+tolerance; the body keeps the cut, so that the second is read from it. Of the four booleans of 60 of the prisms above
+and boxes, at a millionth 308 of 549 such cuts are read so, at 1E-9 303 of 621 and at nought 283 of 755: the booleans
+give what they gave, to the bit, in a quarter less time at a millionth and a sixth less at 1E-9.
+
 **Within a few roundings of the coordinates** a union, a common part or a difference reads a corner as on a plane within
 what rounding adds to the planar tolerance, a trillionth of the size of the coordinates, as the cut of openings does:
 where the planar tolerance is below that trillionth and the point tolerance no less than four tenths of the rounding, a

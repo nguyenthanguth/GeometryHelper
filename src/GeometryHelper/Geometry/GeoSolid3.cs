@@ -32,6 +32,11 @@ namespace GeometryHelper.Geometry
         // GetMaterial. Written whole or not at all, so a reader sees one cut or none.
         private volatile MaterialCut _material;
 
+        // The openings last cut into the body at once, each opening's planes cutting the cells its box reaches, kept so that
+        // a boolean asking whether that cut comes out open does not cut it again; see Boolean3.FirstCut. Written whole or not
+        // at all, as the material is.
+        private volatile Boolean3.AtOnceCut _atOnce;
+
         // The regions the gap to a face is measured with, one slot to a face, each made when first asked; see RegionOf.
         private Core.Gap3.Region[] _regions;
 

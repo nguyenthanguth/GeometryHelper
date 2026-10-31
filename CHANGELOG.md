@@ -433,6 +433,14 @@ time at 1E-4 and 1E-5, a sixth less at a millionth, an eighth less at 1E-9 and a
 and on .NET Framework 4.8, and the time they took at 1E-3 and 1E-2; those of a plate with twelve holes and a box take
 the time they took. 16 new tests.
 
+**CHANGED.** A union, a common part and a difference asked at a millionth and below of a body with openings are faster:
+the body keeps the openings the boolean cut in at once, so that asking afterwards whether that cut came out open reads
+it rather than cutting them again. Of the four booleans of 60 prisms with two or three openings and boxes, at a
+millionth 308 of 549 such cuts are read from the body, at 1E-9 303 of 621 and at nought 283 of 755; the booleans give
+what they gave, to the bit, and take a quarter less time at a millionth, a sixth less at 1E-9 and a twentieth to a
+tenth less at nought, on .NET 10 and on .NET Framework 4.8, and the time they took at 1E-5 and above; those of a plate
+with twelve holes and a box take a quarter less at a millionth and at 1E-9. 8 new tests.
+
 **FIXED.** A union, a common part and a difference of a body whose openings' walls stand apart within the tolerance of
 one plane keep each wall in its own plane, as `TryCutOpenings` keeps it. A boolean cut the openings of its bodies in at
 once within the tolerance, and the plane of one opening, cutting all it reached, took in the wall of another within the
