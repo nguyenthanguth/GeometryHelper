@@ -1656,24 +1656,32 @@ valid at the tolerance asked, where 17 489 differences, 11 373 common parts and 
 nothing and trusted. A body open at nought, a cube or a U with cracks up to 0.0001 wide in its faces, is as open within
 the rounding, and what a boolean of it gives is as a rule not valid, holding what an open body holds, which depends on
 where it is measured from. Nothing of it is checked on the way, as what two closed bodies give is, so it is taken only
-where it holds up, or where the boolean within the tolerance alone gives something too, and is not worked out
-otherwise. A difference or a union holds up where it adds up with the common part of the two, itself lying within the
-body that closes, the volumes read as `GetVolume` reads them, each from a corner of its own: read from anywhere in its
-box, an open body's volume moves by no more than its open area, the faces' areas summed with their normals, times
-the diagonal of the box, and that is what the volumes may miss by, with what their faces lying off flat move: a third
-of how far a corner of each face stands off its plane, times its area. A common part said to be nothing holds up only
-where the skin of neither body runs into the other, and a common part only where no corner of it lies outside the body
-that closes; of two bodies neither of which closes, each is read as though it did, and a common part holds up only
-where it has no corner outside either and leaves out no corner of one lying inside the other. At nought such a cube 10
-across, cracked along its top, its bottom and a side, less a box 3 across turned inside it, came back whole, 999.998,
-where 973 is left; turned and joined to a box through its corner it held 1 232.638, where the two hold 1 107.64; and its
-common part with a slab leaning through it was the whole cube, where they share 76.79. None of the three is worked out
-now. A U 30 by 10 by 10 and a box through its notch, both cracked 1.5E-5 wide, came out sharing 3.66 of the 34.02 they
-share, and their common part is not worked out now either. Joined to a slab a million long through it, its faces off
-flat by what rounding leaves where planes a millionth of a radian apart meet, the cube holds what the two do within
+where it holds up; where it does not, what the boolean within the tolerance alone gives is taken where that holds up by
+the same checks, and the boolean is not worked out otherwise. A difference or a union holds up where it adds up with
+the common part of the two, itself holding up as a common part does, the volumes read as `GetVolume` reads them, each
+from a corner of its own: read from anywhere in its box, an open body's volume moves by no more than a third of its open
+area, the faces' areas summed with their normals, times the diagonal of the box, and the result and the common part,
+which share its open faces, by as much again, and that is what the volumes may miss by, with what the faces lying off
+flat move the volumes that enter: a third of how far a corner of each face stands off its plane, times its area. A
+difference said to be nothing holds up only where the first body adds up with the common part so. A common part said
+to be nothing holds up only where the skin of neither body runs into the other, and a common part only where no corner
+of it lies outside the body that closes; of two bodies neither of which closes, each is read as though it did, and a
+common part holds up only where it has no corner outside either and leaves out no corner of one lying inside the other.
+At nought such a cube 10 across, cracked along its top, its bottom and a side, less a box 3 across turned inside it,
+came back whole, 999.998, where 973 is left; turned and joined to a box through its corner it held 1 232.638, where the
+two hold 1 107.64; and its common part with a slab leaning through it was the whole cube, where they share 76.79. None
+of the three is worked out now. Less a slab thousands long through it, sharing 249.85, the cube came back whole too,
+and was kept, the boolean within the tolerance alone giving something as wrong; it is not worked out now. A U 30 by 10
+by 10 and a box through its notch, both cracked 1.5E-5 wide, came out sharing 3.66 of the 34.02 they share, and their
+common part is not worked out now either; such a U less a box dipping 0.81 into its notch's floor was said to leave
+nothing, where it leaves 2 402.34, and is not worked out now. Joined to a slab a million long through it, its faces
+off flat by what rounding leaves where planes a millionth of a radian apart meet, the cube holds what the two do within
 0.01, 59 169 796.05, as it did before the check; the slab read whole is 0.57 short of what it holds. Of 17 178 booleans
-of such a cube and a body through it at nought, 9 unions are still made 0.0102 to 0.0125 from what the uncracked cube
-gives, against the 0.01 the cracks move, where 433 made so and 51 said to be nothing were wrong.
+of such a cube and a body through it at nought, 742 were made more than 0.01 from what the uncracked cube gives, the
+0.01 the cracks move, and 126 said to be nothing; 14 unions are still made so, with slabs thousands long whose faces
+off flat move the slab's own volume by more than they miss, and 4 of 15 698 made within 0.01 are not worked out now. Of
+36 000 of a U so cracked and a box, 5 381 were made wrong and 799 said to be nothing; 36 are still made wrong, and 231
+of 13 630 made within 0.01 of the uncracked U, none of them valid at nought, are not worked out now.
 
 **Exactly the tolerance into or apart counts as touching.** Two bodies whose faces lie the tolerance into or clear of
 each other, or nearer, lie so to a few bits either way once turned, and a boolean reads them as touching there, closed

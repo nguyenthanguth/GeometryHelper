@@ -6,6 +6,39 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `TrySubtract`, `TryIntersect` and `TryUnion` asked below four tenths of the rounding of the coordinates,
+nought among it, of a body that does not close within that rounding, as one with cracks in its faces does not, no
+longer keep what they give within the rounding where it does not hold up and the tolerance alone gives something too:
+what the tolerance alone gives is taken where it holds up by the same checks, and the boolean is not worked out
+otherwise. At nought a cube 10 across cracked 0.0001 wide, turned, less a slab thousands long through it, sharing
+249.85, came back whole, 999.998, where 750.15 is left. A difference or a union of two such bodies, neither of which
+closes, holds up only where the common part it is checked by has no corner outside either and leaves out no corner of
+one inside the other, as a common part of them does since the last change; a difference said to be nothing is checked
+as one holding nothing, and a common part said to be nothing holds up only where the skin of neither body runs into the
+other. A U 30 by 10 by 10 and a box through its notch, both cracked 2.7E-5 wide, came out each less the other and
+joined 25.6 over; such a U less a box dipping 0.81 into its notch's floor was said to leave nothing, where it leaves
+2 402.34; and the cube and a slab cutting 15.23 off its corner were said to share nothing. None is worked out now. The
+volumes a difference or a union is checked by may miss by twice a third of each open body's open area times the
+diagonal of its box, two thirds of what they could, as no reading of a volume moves by more than a third of it and the
+result and the common part, sharing the body's open faces, by as much again; and a difference no longer allows for the
+faces of the body taken away lying off flat, as that body's volume does not enter it. The cube joined to a box through
+its corner held 1 010.4075, 0.0115 short of the two, and less a slab five million long came back whole, 27.28 over; neither
+is worked out now. Of 17 178 booleans of such a cube and a body through it at nought, 742 made more than 0.01, what the
+cracks move, from what the uncracked cube gives and 126 said to be nothing were trusted: 14 unions with slabs thousands
+long still are, less wrong than the slab's faces off flat move its volume, and 4 of the 15 698 made within 0.01 are not
+worked out now. With the cube cracked 0.001 wide, of 715 made more than 0.1 off and 123 said to be nothing, 7 unions
+still are, one difference is right, and 29 of 15 880 within 0.1 are not worked out now. Of 36 000 of a U so cracked and
+a box, 5 381 made wrong and 799 said to be nothing were trusted, and 36 still are; 231 of 13 630 within 0.01 of the
+uncracked U, none of them valid at nought, are not worked out now, most because the common part they are checked by is
+not worked out within the rounding either. Nothing that was right comes out wrong, and every boolean of bodies that
+close, or asked at four tenths of the rounding and above, is worked out as it was, to the bit. Booleans that come out
+as they did take what they took, within the noise. Turned down, the cracked U less a box dipping into its floor takes
+2.8 milliseconds, where it took 4.0 to come out whole (7.9 and 11.2 on .NET Framework 4.8), and the cube less the slab
+6.3, where it took 5.1 (17.8 and 15.0). A difference said to be nothing is checked by the common part it should add up
+with: the U less a box in its notch takes 3.6 milliseconds, where it took 1.0 to be said to leave nothing (9.8 and
+3.0), and two closed bodies at nought whose common part or difference is nothing take 0.19, where they took 0.07 (0.054
+and 0.016), whether each closes being read once.
+
 **FIXED.** `TryIntersect` asked below four tenths of the rounding of the coordinates, nought among it, of two bodies
 neither of which closes within that rounding, as two with cracks in their faces do not, is not worked out where the
 common part it gives has a corner outside either, each read as though it closed, or leaves out a corner of one lying
