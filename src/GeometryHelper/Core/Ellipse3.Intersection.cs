@@ -118,6 +118,8 @@ namespace GeometryHelper.Core
         /// and (259.808, 50, 0.00075); the one from (300, 0, -10) to (300, 0, 10) at (300, 0, 0); one through the middle of
         /// the disc nowhere. A segment no longer than the point tolerance is read as its start where it does not truly cross
         /// the rim: it is given its start where that lies within the point tolerance of the rim, and nothing where it does not.
+        /// One shorter than the vector tolerance crosses where it truly does: the one from (300, 0, 0.000004) to
+        /// (300, 0, -0.000004) at (300, 0, 0), where it was given its start.
         /// </returns>
         public static GeoPoint3[] GetIntersections(GeoEllipse3 ellipse, GeoLine3 line, Tolerance tolerance)
             => Stub3.ReadsAsStart(line, tolerance) ? CrossingsOfStub(ellipse, line, tolerance) : Crossings(ellipse, line, tolerance);
@@ -1626,7 +1628,12 @@ namespace GeometryHelper.Core
         {
             var found = new List<GeoPoint3>();
 
-            if (direction.LengthSquared <= tolerance.EqualVector * tolerance.EqualVector)
+            // As a segment crossing another is read (Intersection3.IsPoint): no longer than the vector tolerance, or than the
+            // point tolerance where that is the finer, so that one longer than a fine point tolerance, or one read as it is,
+            // crosses where it truly does however short.
+            double least = Math.Min(tolerance.EqualVector, tolerance.EqualPoint);
+
+            if (direction.LengthSquared <= least * least)
             {
                 // No direction to follow. The one point there is counts if the rim reaches it.
                 if (OnRim(ellipse, origin, tolerance))

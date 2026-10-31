@@ -46,7 +46,9 @@ namespace GeometryHelper.Core
         /// thousandth, the segment from (5, 0, 0.0004) to (5, 0, -0.0005) meets the one from the origin to (10, 0, 0) at
         /// (5, 0, 0), where it crosses it; the one from (5, 0, 0.0008) to (5, 0, 0.0002) meets it at its start, which lies
         /// within the tolerance of it; and the one from (5, 0, 0.0015) to (5, 0, 0.0006) meets it nowhere, its start
-        /// 0.0015 off, where its end was read within the tolerance of it.
+        /// 0.0015 off, where its end was read within the tolerance of it. One shorter than the vector tolerance crosses
+        /// where it truly does too: the segment from (5, 0, 0.000004) to (5, 0, -0.000004) meets it at (5, 0, 0), where it was
+        /// given its start, too short for the vector tolerance to read a direction in.
         /// </para>
         /// </remarks>
         public static bool TryIntersectWith(GeoLine3 line1, GeoLine3 line2, out GeoPoint3 intersection, Tolerance tolerance)
@@ -73,7 +75,7 @@ namespace GeometryHelper.Core
         {
             intersection = GeoPoint3.Origin;
 
-            if (line1.IsDegenerate(tolerance) || line2.IsDegenerate(tolerance))
+            if (IsPoint(line1, tolerance) || IsPoint(line2, tolerance))
             {
                 return false;
             }
@@ -152,7 +154,7 @@ namespace GeometryHelper.Core
                 return TryCrossStub(line1, line2, out intersection, tolerance);
             }
 
-            if (line1.IsDegenerate(tolerance) || line2.IsDegenerate(tolerance))
+            if (IsPoint(line1, tolerance) || IsPoint(line2, tolerance))
             {
                 return false;
             }
@@ -195,6 +197,18 @@ namespace GeometryHelper.Core
         }
 
         #endregion
+
+        /// <summary>
+        /// Determines whether a segment is too short to cross another: no longer than the vector tolerance, or than the point
+        /// tolerance where that is the finer, so that a segment longer than a fine point tolerance, or one read as it is
+        /// (<see cref="Stub3.AsItIs(GeoLine3, Tolerance)"/>), crosses where it truly does however short.
+        /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private static bool IsPoint(GeoLine3 line, Tolerance tolerance)
+        {
+            double least = Math.Min(tolerance.EqualVector, tolerance.EqualPoint);
+            return line.Direction.LengthSquared <= least * least;
+        }
 
         /// <summary>
         /// Determines whether two segments are parallel as far as finding the one point where they cross goes:
@@ -1421,8 +1435,8 @@ namespace GeometryHelper.Core
                 && !kept.Exists(hit => hit.IsEqualTo(nearest, tolerance)))
             {
                 // In order along the segment: put before the first crossing that lies further along.
-                double along = Parametrization3.GetDistanceAtPoint(line, nearest);
-                int at = kept.FindIndex(hit => Parametrization3.GetDistanceAtPoint(line, hit) > along);
+                double along = DistanceAlong(line, nearest);
+                int at = kept.FindIndex(hit => DistanceAlong(line, hit) > along);
 
                 kept.Insert(at < 0 ? kept.Count : at, nearest);
             }
@@ -1711,6 +1725,9 @@ namespace GeometryHelper.Core
         /// on it is given that point, where 831 of 1 000 were given nothing though they touched the box. A segment no longer
         /// than the point tolerance is read as its start where it does not truly cross the surface: it is given its start
         /// where that lies within the point tolerance of the surface, in the material or out, and nothing where it does not.
+        /// A longer one is measured along itself as it is whatever the global tolerance: at a billionth, the segment from
+        /// (5, 5, 0.0004) to (5, 5, -0.0005), shorter than the global thousandth, crosses the top of the box 10 by 10 by 10
+        /// standing under the floor at (5, 5, 0), where it was given its start.
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoLine3 line, GeoSolid3 solid, Tolerance tolerance)
             => Stub3.ReadsAsStart(line, tolerance) ? CrossingsOfStub(line, solid, tolerance) : Crossings(line, solid, tolerance);
@@ -1727,8 +1744,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(solid));
             }
 
-            // Each face is crossed as the segment it is; the crossings are placed along it here, since the body places them by
-            // their distance along the segment, which reads one no longer than the global tolerance as its start.
+            // Each face is crossed as the segment it is, and the crossings are put in order along it here.
             GeoSolid3 material = Material3.Near(solid, line.GetAabb(), tolerance);
             Tolerance asItIs = Stub3.AsItIs(line, tolerance);
             var found = new List<GeoPoint3>();
@@ -1808,7 +1824,7 @@ namespace GeometryHelper.Core
 
             if (endOn && EndTouches(solid, cast.EndPoint, tolerance))
             {
-                distances.Add(Parametrization3.GetDistanceAtPoint(cast, cast.EndPoint));
+                distances.Add(DistanceAlong(cast, cast.EndPoint));
             }
 
             distances.Sort();
@@ -1821,7 +1837,7 @@ namespace GeometryHelper.Core
 
             foreach (double distance in distances)
             {
-                if (hits.Count > 0 && distance - Parametrization3.GetDistanceAtPoint(cast, hits[hits.Count - 1]) <= once)
+                if (hits.Count > 0 && distance - DistanceAlong(cast, hits[hits.Count - 1]) <= once)
                 {
                     continue;
                 }
@@ -1831,6 +1847,13 @@ namespace GeometryHelper.Core
 
             return hits.ToArray();
         }
+
+        /// <summary>
+        /// Gets how far along a segment the point on it nearest a point lies, the segment measured as it is however short,
+        /// where the global tolerance read one no longer than it as its start whatever tolerance was asked.
+        /// </summary>
+        private static double DistanceAlong(GeoLine3 line, GeoPoint3 point)
+            => Parametrization3.GetParameterAtPoint(line, point, default(Tolerance)) * line.Length;
 
         /// <summary>
         /// Gathers the arc lengths at which a segment meets the surface of a body and of its openings.
@@ -1855,7 +1878,7 @@ namespace GeometryHelper.Core
                 {
                     if (Gap3.Segment(region, line.StartPoint, line.EndPoint, true, tolerance, tolerance.EqualPoint) <= tolerance.EqualPoint)
                     {
-                        distances.Add(atStart ? 0.0 : Parametrization3.GetDistanceAtPoint(line, line.EndPoint));
+                        distances.Add(atStart ? 0.0 : DistanceAlong(line, line.EndPoint));
                     }
                     else
                     {
@@ -1865,7 +1888,7 @@ namespace GeometryHelper.Core
                 }
                 else if (CrossesFace(line, face, out GeoPoint3 hit, tolerance, holding))
                 {
-                    distances.Add(Parametrization3.GetDistanceAtPoint(line, hit));
+                    distances.Add(DistanceAlong(line, hit));
                 }
             }
 

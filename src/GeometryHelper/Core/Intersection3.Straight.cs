@@ -75,7 +75,9 @@ namespace GeometryHelper.Core
         /// A segment no longer than the point tolerance is read as its start where it does not truly cross the ray: at a
         /// thousandth, the segment from (5, 0, 0.0004) to (5, 0, -0.0005) crosses the ray from the origin along X at
         /// (5, 0, 0), the one from (5, 0, 0.0008) to (5, 0, 0.0002) meets it at its start, and the one from (5, 0, 0.0015)
-        /// to (5, 0, 0.0006) meets it nowhere, where it was given (5, 0, 0).
+        /// to (5, 0, 0.0006) meets it nowhere, where it was given (5, 0, 0). A longer one is measured along itself as it is
+        /// whatever the global tolerance: at a billionth, the segment from (5, 0, 0.0004) to (5, 0, -0.0005), shorter than the
+        /// global thousandth, crosses the ray at (5, 0, 0), where it was given nothing.
         /// </para>
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoLine3 line, GeoRay3 ray, Tolerance tolerance)
@@ -98,9 +100,9 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Gets where a segment crosses a ray as the sides of shapes cross one, a segment no longer than the point tolerance
-        /// read as one longer is.
+        /// read as one longer is, and points carried onto it as it is, not within the global tolerance.
         /// </summary>
-        internal static GeoPoint3[] Crossings(GeoLine3 line, GeoRay3 ray, Tolerance tolerance) => Crossings(line, ray, tolerance, Tolerance.Global);
+        internal static GeoPoint3[] Crossings(GeoLine3 line, GeoRay3 ray, Tolerance tolerance) => Crossings(line, ray, tolerance, default(Tolerance));
 
         /// <summary>
         /// Gets where a segment crosses a ray, points carried onto the segment within a tolerance of their own.

@@ -43,10 +43,10 @@ namespace GeometryHelper.Geometry
         /// edges' points, and another edge can still be nearer. The distance to the point is the exact one, so the line can be
         /// longer than it, by at most twice the foot's offset from the centre.
         /// <para>
-        /// A straight side no longer than the tolerance offers its start, as an edge on its own does, though the distance
-        /// measures it as it is, so beside it the line can be longer than the distance by up to the side's length: at a
-        /// tolerance of a thousandth, the loop (0, 0, 0), (10, 0, 0), (10, 0.0006, 0), (0, 10, 0), built within a
-        /// ten-thousandth, is 0.00098 from (10.00098, 0.0001, 0), and the closest point is (10, 0, 0), 0.000985 away.
+        /// A straight side offers its nearest point as the side it is however short, as the distance measures it, where an edge
+        /// on its own no longer than the tolerance is read as its start: at a tolerance of a thousandth, the loop (0, 0, 0),
+        /// (10, 0, 0), (10, 0.0006, 0), (0, 10, 0), built within a ten-thousandth, is 0.00098 from (10.00098, 0.0001, 0), and the
+        /// closest point is (10, 0.0001, 0), 0.00098 away, where it was (10, 0, 0), 0.000985 away.
         /// </para>
         /// </remarks>
         public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point, Tolerance tolerance)
@@ -70,8 +70,8 @@ namespace GeometryHelper.Geometry
         /// place to it is the nearest place to its shadow. That makes this exact without any coplanarity.
         /// The line leaves the point <see cref="GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/> gives, so near the centre
         /// of a bend it can be longer than <see cref="DistanceTo(GeoPoint3, Tolerance)"/>, by at most twice the foot's offset
-        /// from the centre, and beside a straight side no longer than the tolerance, by up to that side's length, as
-        /// <see cref="GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/> says.
+        /// from the centre, as <see cref="GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/> says; beside a straight side it is
+        /// as long as the distance however short the side.
         /// </remarks>
         public GeoLine3 GetShortestLineTo(GeoPoint3 point, Tolerance tolerance)
             => new GeoLine3(GetClosestPointOnBoundary(point, tolerance), point);

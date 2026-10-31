@@ -168,11 +168,12 @@ namespace GeometryHelper.UnitTest.Solid
         [Theory]
         [InlineData(1E-3)]
         [InlineData(1E-2)]
-        public void TheClosestPointBesideAStraightLegShorterThanTheTolerance_IsStillTheLegsStart(double equalPoint)
+        public void TheClosestPointBesideAStraightLegShorterThanTheTolerance_IsOnTheLegAsItIs(double equalPoint)
         {
-            // The projection keeps the snap, as in the plane: beside the end of the short leg of the chain the closest point is
-            // the leg's start (10, 0), 1.08 tolerances away, where the distance is 0.9 tolerances; 0.98 tolerances out beside the
-            // short side of the loop a sixth of the way up, it is (10, 0), 0.985 tolerances away, where the distance is 0.98.
+            // A side is measured as it is (G1wf), no longer snapped to its start: beside the end of the short leg of the chain
+            // the closest point is that end, (10, 0.6) tolerances, 0.9 tolerances away, as far as the distance; 0.98
+            // tolerances out beside the short side of the loop a sixth of the way up, it is the foot (10, 0.1) tolerances,
+            // 0.98 tolerances away, as far as the distance.
             Tolerance t = At(equalPoint);
             var chain = new GeoPolylineArc3(ChainEdges(equalPoint));
             GeoPolygonArc3 loop = Loop(equalPoint);
@@ -180,11 +181,11 @@ namespace GeometryHelper.UnitTest.Solid
             GeoPoint3 besideLow = At(10 + 0.98 * equalPoint, 0.1 * equalPoint);
             double slack = 1E-11;
 
-            Assert.InRange(chain.GetClosestPointOnBoundary(besideEnd, t).DistanceTo(At(10, 0)), 0.0, slack);
-            Assert.InRange(chain.GetShortestLineTo(besideEnd, t).Length, Math.Sqrt(1.17) * equalPoint - slack, Math.Sqrt(1.17) * equalPoint + slack);
+            Assert.InRange(chain.GetClosestPointOnBoundary(besideEnd, t).DistanceTo(At(10, 0.6 * equalPoint)), 0.0, slack);
+            Assert.InRange(chain.GetShortestLineTo(besideEnd, t).Length, 0.9 * equalPoint - slack, 0.9 * equalPoint + slack);
             Assert.InRange(loop.DistanceTo(besideLow, t), 0.98 * equalPoint - slack, 0.98 * equalPoint + slack);
-            Assert.InRange(loop.GetClosestPointOnBoundary(besideLow, t).DistanceTo(At(10, 0)), 0.0, slack);
-            Assert.InRange(loop.GetShortestLineTo(besideLow, t).Length, Math.Sqrt(0.9704) * equalPoint - slack, Math.Sqrt(0.9704) * equalPoint + slack);
+            Assert.InRange(loop.GetClosestPointOnBoundary(besideLow, t).DistanceTo(At(10, 0.1 * equalPoint)), 0.0, slack);
+            Assert.InRange(loop.GetShortestLineTo(besideLow, t).Length, 0.98 * equalPoint - slack, 0.98 * equalPoint + slack);
         }
 
         [Theory]

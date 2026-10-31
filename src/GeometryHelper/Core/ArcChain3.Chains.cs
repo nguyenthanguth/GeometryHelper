@@ -85,7 +85,9 @@ namespace GeometryHelper.Core
 
                 for (int i = 0; i < others.Count; i++)
                 {
-                    if (box.CollidesWith(boxes[i], tolerance) && edge.CollidesWith(others[i], tolerance))
+                    if (box.CollidesWith(boxes[i], tolerance) && (IsShortStraight(edge, tolerance) || IsShortStraight(others[i], tolerance)
+                        ? ShortTouches(edge, others[i], tolerance)
+                        : edge.CollidesWith(others[i], tolerance)))
                     {
                         return true;
                     }

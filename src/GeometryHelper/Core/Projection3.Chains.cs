@@ -331,7 +331,10 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The triangles each lie inside the polygon, as for the distance: the fan a polygon breaks into by default
         /// reaches across the notch of a concave one, and would join a chain passing through the notch to a surface that
-        /// is not there.
+        /// is not there. A polygon with a side no longer than the point tolerance, which its triangles lose, is joined as it
+        /// is, each edge to the polygon itself, a tie going to the first edge: at a hundredth, the polygon (-7, -7, 0),
+        /// (0, 0, 0), (0.008, 0, 0), (7, -7, 0) is joined to the chain (0.006, 0.02, -5), (0.006, 0.02, 5), (3, 3, 5) by a
+        /// segment 0.02 long, to its short side, where it was joined 0.0209 away.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polyline or the polygon is null.</exception>
         public static GeoLine3 GetShortestLineTo(GeoPolyline3 polyline, GeoPolygon3 polygon, Tolerance tolerance)
@@ -344,6 +347,12 @@ namespace GeometryHelper.Core
             if (polygon == null)
             {
                 throw new ArgumentNullException(nameof(polygon));
+            }
+
+            // The triangles lose a side no longer than the tolerance, so the chain is joined to the polygon itself there.
+            if (HasShortSide(polygon, tolerance))
+            {
+                return ClosestBySides(polyline, polygon, tolerance);
             }
 
             GeoTriangle3[] pieces = new GeoFace3(polygon).TriangulateSurface(tolerance);
@@ -364,6 +373,43 @@ namespace GeometryHelper.Core
 
                     Consider(ref best, ref shortest, Closest(edge, pieces[j], tolerance));
                 }
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// Determines whether a polygon has a side no longer than the point tolerance, which its triangles do not keep.
+        /// </summary>
+        private static bool HasShortSide(GeoPolygon3 polygon, Tolerance tolerance)
+        {
+            double near = tolerance.EqualPoint * tolerance.EqualPoint;
+
+            for (int i = 0; i < polygon.EdgeCount; i++)
+            {
+                GeoLine3 side = polygon.GetEdgeAt(i);
+
+                if (side.StartPoint.GetDistanceSquaredTo(side.EndPoint) <= near)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Gets the shortest segment joining a polyline to a polygon read filled, each edge joined to the polygon itself, its
+        /// sides the sides they are however short; a tie goes to the first edge.
+        /// </summary>
+        private static GeoLine3 ClosestBySides(GeoPolyline3 polyline, GeoPolygon3 polygon, Tolerance tolerance)
+        {
+            GeoLine3 best = Closest(polyline.GetEdgeAt(0), polygon, tolerance, Exactly);
+            double shortest = best.Length;
+
+            for (int i = 1; i < polyline.EdgeCount && shortest > 0.0; i++)
+            {
+                Consider(ref best, ref shortest, Closest(polyline.GetEdgeAt(i), polygon, tolerance, Exactly));
             }
 
             return best;

@@ -498,7 +498,9 @@ namespace GeometryHelper.Core
         /// one both shapes really hold whether or not the perpendicular falls where they live. A segment no longer than
         /// the point tolerance is read as its start where it does not truly meet the ray: at a thousandth, the one from
         /// (5, 0, 0.0015) down to (5, 0, 0.0006) is joined to the ray from the origin along X from its start, by a
-        /// segment 0.0015 long.
+        /// segment 0.0015 long. A longer one is measured as it is whatever the global tolerance: at a billionth, the one from
+        /// (5, 0, 0.0004) to (5, 0, -0.0005), shorter than the global thousandth, is joined to that ray by a segment of no
+        /// length where it crosses it, where it was joined 0.0004 long from its start.
         /// </remarks>
         public static GeoLine3 GetShortestLineTo(GeoRay3 ray, GeoLine3 line, Tolerance tolerance)
         {
@@ -519,9 +521,9 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Gets the shortest segment joining a ray to a segment by the search a side of a shape is joined by, the segment not
-        /// read as one you give.
+        /// read as one you give, and points projected onto it as it is, not within the global tolerance.
         /// </summary>
-        internal static GeoLine3 Closest(GeoRay3 ray, GeoLine3 line, Tolerance tolerance) => Closest(ray, line, tolerance, Tolerance.Global);
+        internal static GeoLine3 Closest(GeoRay3 ray, GeoLine3 line, Tolerance tolerance) => Closest(ray, line, tolerance, Exactly);
 
         /// <summary>
         /// Gets the shortest segment joining a ray to a segment by the search a side of a shape is joined by, the segment read

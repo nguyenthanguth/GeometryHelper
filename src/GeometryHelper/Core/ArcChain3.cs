@@ -85,21 +85,21 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Gets the point of a run of edges nearest another point, each edge offering the point
+        /// Gets the point of a run of edges nearest another point, each bend offering the point
         /// <see cref="GeoEdge3.GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/> gives at the tolerance, so the snap is kept:
-        /// a point whose foot falls within the tolerance of the centre of a bend is carried to the bend's start, and a
-        /// straight edge no longer than the tolerance offers its start, so the point can be further than
-        /// <see cref="DistanceTo(List{GeoEdge3}, GeoPoint3)"/>, by at most twice the foot's offset from the centre or the
-        /// edge's length.
+        /// a point whose foot falls within the tolerance of the centre of a bend is carried to the bend's start, and the point
+        /// can be further than <see cref="DistanceTo(List{GeoEdge3}, GeoPoint3)"/>, by at most twice the foot's offset from the
+        /// centre. A straight edge offers its nearest point as the edge it is however short, where one no longer than the
+        /// tolerance offered its start.
         /// </summary>
         internal static GeoPoint3 ClosestPoint(List<GeoEdge3> edges, GeoPoint3 point, Tolerance tolerance)
         {
-            GeoPoint3 best = edges[0].GetClosestPointOnBoundary(point, tolerance);
+            GeoPoint3 best = Nearest(edges[0], point, tolerance);
             double reach = point.DistanceTo(best);
 
             for (int i = 1; i < edges.Count; i++)
             {
-                GeoPoint3 candidate = edges[i].GetClosestPointOnBoundary(point, tolerance);
+                GeoPoint3 candidate = Nearest(edges[i], point, tolerance);
                 double distance = point.DistanceTo(candidate);
 
                 if (distance < reach)
@@ -111,6 +111,16 @@ namespace GeometryHelper.Core
 
             return best;
         }
+
+        /// <summary>
+        /// Gets the point of an edge nearest another point: on a bend the one found at the tolerance, the snap kept; on a
+        /// straight edge the one found at a tolerance of nought, the edge as it is however short.
+        /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private static GeoPoint3 Nearest(GeoEdge3 edge, GeoPoint3 point, Tolerance tolerance)
+            => edge.IsArc
+                ? edge.ToArc().GetClosestPointOnBoundary(point, tolerance)
+                : edge.GetPointAtParameter(edge.GetParameterAtPoint(point, Exactly));
 
         /// <summary>
         /// Gets the point of a run of edges its distance to another point is measured to: the nearest of the points

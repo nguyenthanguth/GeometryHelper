@@ -28,7 +28,7 @@ namespace GeometryHelper.Geometry
         /// The tolerance changes nothing in the distance: a point near the centre of a bend's arc is not carried to the bend's
         /// start, as <see cref="GeoEdge3.DistanceTo(GeoPoint3, Tolerance)"/> measures a bend, and a straight side shorter than
         /// the tolerance is the side it is, not read as its start. The line
-        /// <see cref="GetShortestLineTo(GeoPoint3, Tolerance)"/> gives can be longer than the distance there.
+        /// <see cref="GetShortestLineTo(GeoPoint3, Tolerance)"/> gives can be longer than the distance near the centre of a bend.
         /// </remarks>
         public double DistanceTo(GeoPoint3 point, Tolerance tolerance) => ArcChain3.DistanceTo(Edges(), point);
 

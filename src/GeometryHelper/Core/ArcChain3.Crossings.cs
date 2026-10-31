@@ -97,7 +97,9 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(chain));
             }
-            return Touches(chain.GetEdges(), edge => edge.CollidesWith(triangle, tolerance));
+            return Touches(chain.GetEdges(), edge => IsShortStraight(edge, tolerance)
+                ? ShortTouches(edge, triangle, tolerance)
+                : edge.CollidesWith(triangle, tolerance));
         }
 
         /// <summary>
@@ -140,7 +142,9 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(chain));
             }
-            return Touches(chain.GetEdges(), edge => edge.CollidesWith(polygon, tolerance));
+            return Touches(chain.GetEdges(), edge => IsShortStraight(edge, tolerance)
+                ? ShortTouches(edge, polygon, tolerance)
+                : edge.CollidesWith(polygon, tolerance));
         }
 
         /// <summary>
@@ -183,7 +187,9 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(chain));
             }
-            return Touches(chain.GetEdges(), edge => edge.CollidesWith(face, tolerance));
+            return Touches(chain.GetEdges(), edge => IsShortStraight(edge, tolerance)
+                ? ShortTouches(edge, face, tolerance)
+                : edge.CollidesWith(face, tolerance));
         }
 
         /// <summary>
@@ -226,7 +232,9 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(chain));
             }
-            return Touches(chain.GetEdges(), edge => edge.CollidesWith(box, tolerance));
+            return Touches(chain.GetEdges(), edge => IsShortStraight(edge, tolerance)
+                ? ShortTouches(edge, box, tolerance)
+                : edge.CollidesWith(box, tolerance));
         }
 
         /// <summary>
@@ -269,7 +277,9 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(chain));
             }
-            return Touches(chain.GetEdges(), edge => edge.CollidesWith(box, tolerance));
+            return Touches(chain.GetEdges(), edge => IsShortStraight(edge, tolerance)
+                ? ShortTouches(edge, box, tolerance)
+                : edge.CollidesWith(box, tolerance));
         }
 
         /// <summary>
@@ -312,7 +322,9 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(chain));
             }
-            return Touches(chain.GetEdges(), edge => edge.CollidesWith(solid, tolerance));
+            return Touches(chain.GetEdges(), edge => IsShortStraight(edge, tolerance)
+                ? ShortTouches(edge, solid, tolerance)
+                : edge.CollidesWith(solid, tolerance));
         }
 
         /// <summary>
@@ -355,7 +367,9 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(chain));
             }
-            return Touches(chain.GetEdges(), edge => edge.CollidesWith(arc, tolerance));
+            return Touches(chain.GetEdges(), edge => IsShortStraight(edge, tolerance)
+                ? ShortTouches(edge, arc, tolerance)
+                : edge.CollidesWith(arc, tolerance));
         }
 
         /// <summary>
@@ -398,7 +412,9 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(chain));
             }
-            return Touches(chain.GetEdges(), edge => edge.CollidesWith(circle, tolerance));
+            return Touches(chain.GetEdges(), edge => IsShortStraight(edge, tolerance)
+                ? ShortTouches(edge, circle, tolerance)
+                : edge.CollidesWith(circle, tolerance));
         }
 
         /// <summary>
@@ -484,7 +500,9 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(loop));
             }
-            return Touches(loop.GetEdges(), edge => edge.CollidesWith(triangle, tolerance));
+            return Touches(loop.GetEdges(), edge => IsShortStraight(edge, tolerance)
+                ? ShortTouches(edge, triangle, tolerance)
+                : edge.CollidesWith(triangle, tolerance));
         }
 
         /// <summary>
@@ -527,7 +545,9 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(loop));
             }
-            return Touches(loop.GetEdges(), edge => edge.CollidesWith(polygon, tolerance));
+            return Touches(loop.GetEdges(), edge => IsShortStraight(edge, tolerance)
+                ? ShortTouches(edge, polygon, tolerance)
+                : edge.CollidesWith(polygon, tolerance));
         }
 
         /// <summary>
@@ -570,7 +590,9 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(loop));
             }
-            return Touches(loop.GetEdges(), edge => edge.CollidesWith(face, tolerance));
+            return Touches(loop.GetEdges(), edge => IsShortStraight(edge, tolerance)
+                ? ShortTouches(edge, face, tolerance)
+                : edge.CollidesWith(face, tolerance));
         }
 
         /// <summary>
@@ -613,7 +635,9 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(loop));
             }
-            return Touches(loop.GetEdges(), edge => edge.CollidesWith(box, tolerance));
+            return Touches(loop.GetEdges(), edge => IsShortStraight(edge, tolerance)
+                ? ShortTouches(edge, box, tolerance)
+                : edge.CollidesWith(box, tolerance));
         }
 
         /// <summary>
@@ -656,7 +680,9 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(loop));
             }
-            return Touches(loop.GetEdges(), edge => edge.CollidesWith(box, tolerance));
+            return Touches(loop.GetEdges(), edge => IsShortStraight(edge, tolerance)
+                ? ShortTouches(edge, box, tolerance)
+                : edge.CollidesWith(box, tolerance));
         }
 
         /// <summary>
@@ -699,7 +725,9 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(loop));
             }
-            return Touches(loop.GetEdges(), edge => edge.CollidesWith(solid, tolerance));
+            return Touches(loop.GetEdges(), edge => IsShortStraight(edge, tolerance)
+                ? ShortTouches(edge, solid, tolerance)
+                : edge.CollidesWith(solid, tolerance));
         }
 
         /// <summary>
@@ -742,7 +770,9 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(loop));
             }
-            return Touches(loop.GetEdges(), edge => edge.CollidesWith(arc, tolerance));
+            return Touches(loop.GetEdges(), edge => IsShortStraight(edge, tolerance)
+                ? ShortTouches(edge, arc, tolerance)
+                : edge.CollidesWith(arc, tolerance));
         }
 
         /// <summary>
@@ -785,7 +815,9 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(loop));
             }
-            return Touches(loop.GetEdges(), edge => edge.CollidesWith(circle, tolerance));
+            return Touches(loop.GetEdges(), edge => IsShortStraight(edge, tolerance)
+                ? ShortTouches(edge, circle, tolerance)
+                : edge.CollidesWith(circle, tolerance));
         }
 
         /// <summary>

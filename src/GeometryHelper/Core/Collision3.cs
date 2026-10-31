@@ -544,7 +544,17 @@ namespace GeometryHelper.Core
         /// and so does the one from 1E-7 over the top of that box a thousand million out at nought, where the boxes were asked at
         /// the tolerance given and they touched nothing.
         /// </remarks>
-        public static bool CollidesWith(GeoLine3 line, GeoSolid3 solid, Tolerance tolerance)
+        public static bool CollidesWith(GeoLine3 line, GeoSolid3 solid, Tolerance tolerance) => CollidesWith(line, solid, true, tolerance);
+
+        /// <summary>
+        /// Determines whether a segment touches a solid, read as a segment you give or as a side of a shape, the side it is
+        /// however short.
+        /// </summary>
+        /// <param name="line">The segment.</param>
+        /// <param name="solid">The solid.</param>
+        /// <param name="readShortAsPoint">true for a segment a caller gave; false for a side of a shape.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        internal static bool CollidesWith(GeoLine3 line, GeoSolid3 solid, bool readShortAsPoint, Tolerance tolerance)
         {
             if (solid == null)
             {
@@ -565,7 +575,7 @@ namespace GeometryHelper.Core
             // The faces run straight across every opening; read the material the segment can reach instead.
             solid = Material3.Near(solid, reach, tolerance);
 
-            return Gap3.SurfaceSegment(solid, line.StartPoint, line.EndPoint, true, tolerance, Reach(tolerance), tolerance.EqualPoint) <= tolerance.EqualPoint
+            return Gap3.SurfaceSegment(solid, line.StartPoint, line.EndPoint, readShortAsPoint, tolerance, Reach(tolerance), tolerance.EqualPoint) <= tolerance.EqualPoint
                 || Gap3.Holds(solid, line.StartPoint) || Gap3.Holds(solid, line.EndPoint);
         }
 

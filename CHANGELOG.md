@@ -6,6 +6,42 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** In space, a segment you give is measured against the tolerance you ask for where the global one was read in
+its place: one longer than the tolerance asked and shorter than the global one was read as its start by the crossings of
+a body and a ray and by the shortest line to a ray. At a billionth, the segment from (5, 5, 0.0004) to
+(5, 5, -0.0005) crossed the top of a box at (5, 5, 0.0004), its start; it crosses it at (5, 5, 0). The one from
+(5, 0, 0.0004) to (5, 0, -0.0005) crossed the ray from the origin along X nowhere and was joined to it by a line 0.0004
+long; it crosses it at (5, 0, 0), joined by a line of no length. A segment shorter than the vector tolerance, 1E-5 by
+default, meets another segment and the rim of an ellipse where it truly crosses it, where it was given its start, or
+nothing at a tolerance finer than the vector one: at a thousandth, the segment from (5, 0, 0.000004) to
+(5, 0, -0.000004) meets the one from the origin to (10, 0, 0) at (5, 0, 0), where at (5, 0, 0.000004). Of 2 800 random
+segments a seed, longer than tolerances from 1E-9 to 1E-4 and shorter than the global one, crossing every shape in
+space, 2 162 and 2 058 answers broke for two seeds and 6 and 16 do, each a segment lying within the tolerance of a plane
+and refused as lying in it; of 5 600 stubs a seed shorter than the vector tolerance, the 1 208 and 956 answers that broke
+against segments, chains, loops and ellipses break no more. Every answer to a stub no shorter than the vector tolerance
+and to a segment longer than the global tolerance is as before, to the bit: none of 883 200 moved. Each takes the time
+it took. 4 new tests.
+
+**FIXED.** A curved chain or loop, `GeoPolylineArc3` or `GeoPolygonArc3`, touches a shape by the gap to each straight
+side as it is however short, as `DistanceTo` measures it, and gives its closest point to a point on such a side. A
+straight side no longer than the point tolerance was read as its start: at a hundredth, the chain from (-7, -7, 0) to the
+origin and on to (0.008, 0, 0) touched nothing standing on x = 0.017, 0.009 past its end, a square, a triangle, a face, a
+box, a body, a segment, a ray, an arc, a circle or another chain, its short side 0.017 off from its start; it touches
+each. The chain and the loop on to (7, -7, 0) gave the point (0.006, 0.02, 0) the closest point (0.008, 0, 0), 0.0201
+away, where it is 0.02 from (0.006, 0, 0) on the short side, which they give now, and their shortest lines run from it.
+A bend keeps its reading near the centre of its arc. Of 3 600 random chains and loops a seed with a straight side 1E-4 to
+1E-2 long beside 18 kinds of shape, 726 and 724 answers broke against the exact gap and none does. Chains whose sides are
+all longer than the tolerance touch and are joined as before, to the bit, in the time they took on .NET 10 but for a box,
+some 10 % longer, and up to 9 % longer on .NET Framework 4.8 against a polygon or a face, as each side is asked first
+whether it is short; the closest point 8 % longer there. 3 new tests.
+
+**FIXED.** `GeoPolyline3.GetShortestLineTo(GeoPolygon3)` and the reverse join the polyline to a polygon with a side no
+longer than the point tolerance as it is, each segment to the polygon itself, where its triangles lost that side: at a
+hundredth, the polygon (-7, -7, 0), (0, 0, 0), (0.008, 0, 0), (7, -7, 0) was joined to the polyline (0.006, 0.02, -5),
+(0.006, 0.02, 5), (3, 3, 5) by a line 0.0209 long, to its corner, and is joined by one 0.02 long, to its short side, as
+long as `DistanceTo` measures. A polygon whose sides are all longer is joined through its triangles as before, to the bit,
+in the time it took. 1 new test.
+
 **FIXED.** In space, `GetIntersections` and `TryIntersectWith` read a segment you give, a `GeoLine3` or a straight
 `GeoEdge3` no longer than the point tolerance, as `DistanceTo` and `GetShortestLineTo` read it: where it truly meets the
 shape, crossing a surface, a segment or a rim, it meets it there; otherwise it meets it at its start where that lies

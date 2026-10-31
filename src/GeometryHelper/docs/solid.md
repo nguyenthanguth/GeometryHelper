@@ -723,8 +723,14 @@ Seven things are read otherwise, on purpose:
   however short, and a shortest line is joined to such a side as it is: at a hundredth, the chain from (-7, -7, 0) to the
   origin, on to (0.008, 0, 0) and down to (7, -7, 0) is joined to the point (0.006, 0.02, 0) by a line 0.02 long, from its
   short side, where it was joined from the corner (0.008, 0, 0) by one 0.0201 long; so are a polygon, a face and a
-  triangle with such a side, and a segment, a ray or a ball beside it. A plane measures a segment exactly, by its nearer
-  end, as above, and a point is measured to a stub's start.
+  triangle with such a side, a segment, a ray, a ball or a polyline beside it, and the closest point of a curved chain or
+  loop. A curved chain or loop touches a shape by the gap to each straight side as it is: the chain from (-7, -7, 0) to the
+  origin and on to (0.008, 0, 0) touches the square, the box or the segment standing on x = 0.017, 0.009 past its end, where
+  it was read as touching nothing, its short side 0.017 off from its start. A plane measures a segment exactly, by its
+  nearer end, as above, and a point is measured to a stub's start. A stub shorter than the vector tolerance meets a segment
+  or the rim of an ellipse where it truly crosses it, as a longer one does, and a segment longer than the tolerance you ask
+  for is measured as it is however much shorter than the global one: at a billionth, the segment from (5, 5, 0.0004) to
+  (5, 5, -0.0005) crosses the top of a box at (5, 5, 0), where it was read as its start.
 * **A circle collides as its rim and a loop of arcs as its outline**, so a circle or a loop round a shape touches nothing:
   the circle of radius 40 about the origin does not touch the square 20 by 20 in its middle, and touches the segment from
   (40.0005, 0, 0) to (80, 0, 0). The distance from a point to a circle is to the filled disc, as it always was: nought at the
