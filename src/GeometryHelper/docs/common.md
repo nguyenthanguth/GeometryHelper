@@ -1171,8 +1171,28 @@ where either gives none. `GeometryExtentsBestFit()` is the box of the shapes pla
 `TreatAsBlockRefForExplode` false. A MINSERT is one by its subclass AcDbMInsertBlock, of one cell too, or by its counts in
 R12. A dynamic block is found as
 ezdxf finds it, by the extended data `AcDbDynamicBlockGUID` of its BLOCK_RECORD, or `AcDbBlockRepBTag` of the anonymous
-block that stands for it (`IsDynamicBlock`, `DynamicBlockTableRecord`, `AnonymousBlockTableRecord`); its dynamic properties
-are AutoCAD's engine's to work out, and are not given. `insert.ConvertToStaticBlock("BOLT_500")` makes the INSERT place a
+block that stands for it (`IsDynamicBlock`, `DynamicBlockTableRecord`, `AnonymousBlockTableRecord`). Its dynamic properties
+are read, not worked out: `DynamicBlockReferencePropertyCollection` gives, as AutoCAD's does, each property's
+`PropertyName`, `Value`, `PropertyTypeCode`, `UnitsType`, `ReadOnly`, `Description` and `GetAllowedValues()`, its value the one
+AutoCAD saved for the INSERT (the XRECORD of the parameter's node under AcDbBlockRepresentation, AppDataCache and
+ACAD_ENHANCEDBLOCKDATA of its extension dictionary), or the block's own where it saved none, as for an INSERT of the
+dynamic block itself. Each parameter of the block's evaluation graph gives its own, in the order of the graph: a linear
+parameter its distance, a polar one its distance and its angle, an XY one its distances along x and along y, a rotation one
+its angle from its base angle, a point one its position's x and y (`Anchor X`, `Anchor Y`), a flip one 0 or 1 (a `short`), a
+visibility one its state, the first of its states where none is saved, every state allowed, and a lookup one the value its
+table gives, read only where the table allows no reverse lookup. Lengths are scaled by the INSERT's scale and angles are in
+radians: the door whose linear parameter Width AutoCAD stretched from 900 to 1 000, inserted at a scale of 2, gives
+`Width = 2000.0`, `UnitsType` `Distance`. An INSERT scaled unlike along its axes gives none, as AutoCAD shows none;
+constraint parameters and a block properties table give none either, as they are not read.
+
+```csharp
+foreach (DxfDynamicBlockReferenceProperty p in insert.DynamicBlockReferencePropertyCollection)
+{
+    Console.WriteLine(p.PropertyName + " = " + p.Value + " (" + p.UnitsType + ")");
+}
+```
+
+`insert.ConvertToStaticBlock("BOLT_500")` makes the INSERT place a
 new block BOLT_500 holding copies of what it draws, the anonymous block's entities (or the dynamic block's, where it places
 that), its tie to the dynamic block (the entry AcDbBlockRepresentation of its extension dictionary) taken out;
 `ConvertToStaticBlock()` names the copy as AutoCAD names an anonymous block, `*U1` the first the drawing has not, and no
@@ -1736,9 +1756,12 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
   where a multileader's leaders meet its words, and the size of those words in its `GeometricExtents` are not worked out: a
   multileader made in code starts its leader's dogleg at the base point of its content (10 of the context data), at the
   origin where its block is placed after its leader line is added.
-- It gives no dynamic properties of a dynamic block: they are AutoCAD's engine's to work out. `ConvertToStaticBlock` copies
-  what the INSERT draws as it stands; `ResetBlock` is not there. `db.Insert` of another drawing brings a dynamic block of it
-  as a static one, without the data that makes it dynamic, which AutoCAD's own insert keeps.
+- It does not evaluate a dynamic block. `DynamicBlockReferencePropertyCollection` reads the values AutoCAD saved, and none
+  can be set: changing one is AutoCAD's engine's work, which moves, stretches and hides the block's entities. A block whose
+  entities another program changed keeps the values AutoCAD saved. Constraint parameters and a block properties table give
+  no properties. `ConvertToStaticBlock` copies what the INSERT draws as it stands; `ResetBlock` is not there. `db.Insert` of
+  another drawing brings a dynamic block of it as a static one, without the data that makes it dynamic, which AutoCAD's
+  own insert keeps.
 - It resolves no external reference: `AttachXref` writes the block that names the drawing, and reading that drawing into it
   is AutoCAD's work when it opens this one, so an INSERT of it places nothing here and `XrefStatus` is never `Unloaded`.
 - It does not explode every entity AutoCAD explodes. `Explode()` refuses with `NotSupportedException` a HATCH filled solid

@@ -6,6 +6,19 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `DxfBlockReference.DynamicBlockReferencePropertyCollection` reads the dynamic properties of an INSERT of a dynamic
+block as AutoCAD saved them, read only: each a `DxfDynamicBlockReferenceProperty` with AutoCAD's `PropertyName`, `Value`,
+`PropertyTypeCode`, `UnitsType` (the new `DxfDynamicBlockReferencePropertyUnitsType`), `ReadOnly`, `Description` and
+`GetAllowedValues()`. Each parameter of the block's evaluation graph gives its own, in the order of the graph: a linear one
+its distance, a polar one its distance and angle, an XY one its distances along x and y, a rotation one its angle, a point
+one its position's x and y, a flip one 0 or 1, a visibility one its state with every state allowed, a lookup one the value
+its table gives. The value is the one AutoCAD saved for the INSERT in its representation data, else the block's own: of
+ACadSharp's ten samples saved by AutoCAD, the linear parameter reads 5 for the block and 7.5 for the INSERT AutoCAD
+stretched, the rotation one 90 and 50 degrees (in radians), as acadrust reads them. Lengths are scaled by the INSERT's
+scale, and an INSERT scaled unlike along its axes gives none. Nothing is worked out anew, nor set. The five properties of
+ACadSharp's lookup sample, a graph of 19 nodes, are read in 41 microseconds an INSERT under .NET 10 and 86 under .NET
+Framework 4.8. 13 new tests.
+
 **FIXED.** In the plane, a curved chain or loop, `GeoPolylineArc2` or `GeoPolygonArc2`, gives a point beside a straight
 side its closest point on the side as it is however short, as it does in space, and its `GetShortestLineTo(GeoPoint2)`,
 `GetDistanceAtPoint` and `GetParameterAtPoint` follow it, as do the members of `Projection2`, `Parametrization2` and

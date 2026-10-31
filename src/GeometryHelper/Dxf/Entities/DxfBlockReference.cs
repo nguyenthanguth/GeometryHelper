@@ -432,10 +432,9 @@ namespace GeometryHelper.Dxf
         /// them and ezdxf reads them. An anonymous block whose tag names no block of the drawing is not.
         /// </summary>
         /// <remarks>
-        /// The dynamic properties themselves, AutoCAD's <c>DynamicBlockReferencePropertyCollection</c> and <c>ResetBlock</c>,
-        /// are not given: they are worked out by AutoCAD's engine of dynamic blocks from the evaluation graph of the block's
-        /// extension dictionary, which a file holds but does not evaluate. <see cref="ConvertToStaticBlock(string)"/> makes the
-        /// INSERT place a plain copy of what it draws.
+        /// <see cref="DynamicBlockReferencePropertyCollection"/> reads the dynamic properties as AutoCAD saved them; they are not
+        /// set, nor is AutoCAD's <c>ResetBlock</c> given, as the library does not evaluate the block's graph.
+        /// <see cref="ConvertToStaticBlock(string)"/> makes the INSERT place a plain copy of what it draws.
         /// </remarks>
         public bool IsDynamicBlock => Dynamic(out _) != null;
 
@@ -459,6 +458,32 @@ namespace GeometryHelper.Dxf
                 return anonymous;
             }
         }
+
+        /// <summary>
+        /// Gets the dynamic properties of the INSERT, as AutoCAD's <c>DynamicBlockReferencePropertyCollection</c>: read only, a
+        /// new list on each call, each property's value the one AutoCAD saved for this INSERT, or the dynamic block's own where
+        /// it saved none, as for an INSERT of the dynamic block itself. Empty where the INSERT places no dynamic block, or is
+        /// scaled unlike along its axes, as AutoCAD then shows none.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Each parameter of the block's evaluation graph (ACAD_EVALUATION_GRAPH under ACAD_ENHANCEDBLOCK of its BLOCK_RECORD's
+        /// extension dictionary) gives its properties, in the order of the graph's nodes; the value saved is the XRECORD named
+        /// by the parameter's node id under AcDbBlockRepresentation, AppDataCache and ACAD_ENHANCEDBLOCKDATA of the INSERT's
+        /// extension dictionary. A linear parameter gives its distance; a polar one its distance and its angle; an XY one its
+        /// distances along x and along y; a rotation one its angle from its base angle, in radians from nought up to a whole
+        /// turn; a point one its position's x and y; a flip one its state, 0 or 1; a visibility one its state, the first of its
+        /// states where none is saved; a lookup one the value its table gives. A length is scaled by the INSERT's scale, so that
+        /// the door of Width 1 000 inserted at a scale of 2 gives 2 000. Actions, grips, base point and alignment parameters
+        /// give none, nor do the parameters of constraints and of a block properties table, which the library does not read.
+        /// </para>
+        /// <para>
+        /// Nothing is worked out anew: the values are AutoCAD's, saved when it last evaluated the block, and a block whose
+        /// geometry was changed by another program keeps the values AutoCAD saved. A record of saved data too short to be read
+        /// gives the block's own value.
+        /// </para>
+        /// </remarks>
+        public IReadOnlyList<DxfDynamicBlockReferenceProperty> DynamicBlockReferencePropertyCollection => DxfDynamicProperties.Of(this, Dynamic(out _));
 
         /// <summary>
         /// Gets the box the shapes of the block take where the INSERT places them, as AutoCAD's <c>GeometryExtentsBestFit</c>:
