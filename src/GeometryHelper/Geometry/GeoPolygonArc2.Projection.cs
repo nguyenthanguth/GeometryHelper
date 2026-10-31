@@ -26,10 +26,10 @@ namespace GeometryHelper.Geometry
         /// -0.0009) and the arc of radius 50 about the origin from (-50, 0) to (50, 0) through (0, -50): the closest
         /// point is (-50, 0), 50.00000001 away, where the distance is 49.9991.
         /// <para>
-        /// A straight side no longer than the tolerance offers its start, as a segment that short does on its own, though
-        /// the distance measures the side as it is, so beside it the line can be longer than the distance by up to the
-        /// side's length: at a hundredth, the loop (0, 0), (10, 0), (10, 0.006), (0, 10) is 0.03 from (10.03, 0.003), and
-        /// the closest point is (10, 0), 0.0301496 away.
+        /// A straight side offers its nearest point as the side it is however short, as the distance measures it, where a
+        /// segment no longer than the tolerance on its own is read as its start: at a hundredth, the loop (0, 0), (10, 0),
+        /// (10, 0.006), (0, 10) is 0.03 from (10.03, 0.003), and the closest point is (10, 0.003), 0.03 away, where it was
+        /// (10, 0), 0.0301496 away.
         /// </para>
         /// </remarks>
         public GeoPoint2 GetClosestPointOnBoundary(GeoPoint2 point, Tolerance tolerance) => Projection2.ProjectToPolygonArc(this, point, tolerance);
@@ -41,7 +41,7 @@ namespace GeometryHelper.Geometry
         /// It starts where <see cref="GetClosestPointOnBoundary(GeoPoint2)"/> lands, even for a point inside, so inside
         /// it is as long as the depth to the outline; <see cref="DistanceTo(GeoPoint2)"/> reads the loop as filled and
         /// answers nought there. Outside, the two agree, but for a point within the tolerance of the centre of an arc, carried
-        /// to the arc's start, and a point beside a straight side no longer than the tolerance, carried to the side's start.
+        /// to the arc's start; beside a straight side they agree however short the side.
         /// </remarks>
         public GeoLine2 GetShortestLineTo(GeoPoint2 point) => Projection2.GetShortestLineTo(this, point);
 
@@ -55,10 +55,10 @@ namespace GeometryHelper.Geometry
         /// -0.0009) and the arc of radius 50 about the origin from (-50, 0) to (50, 0) through (0, -50): the closest
         /// point is (-50, 0), 50.00000001 away, where the distance is 49.9991.
         /// <para>
-        /// A straight side no longer than the tolerance offers its start, as a segment that short does on its own, though
-        /// the distance measures the side as it is, so beside it the line can be longer than the distance by up to the
-        /// side's length: at a hundredth, the loop (0, 0), (10, 0), (10, 0.006), (0, 10) is 0.03 from (10.03, 0.003), and
-        /// the closest point is (10, 0), 0.0301496 away.
+        /// A straight side is joined as the side it is however short, as the distance measures it, where a segment no longer
+        /// than the tolerance on its own is read as its start: at a hundredth, the loop (0, 0), (10, 0), (10, 0.006), (0, 10)
+        /// is 0.03 from (10.03, 0.003), and the line runs from (10, 0.003), 0.03 long, where it ran from (10, 0), 0.0301496
+        /// long.
         /// </para>
         /// </remarks>
         public GeoLine2 GetShortestLineTo(GeoPoint2 point, Tolerance tolerance) => Projection2.GetShortestLineTo(this, point, tolerance);

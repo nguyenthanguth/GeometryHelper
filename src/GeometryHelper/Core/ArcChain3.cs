@@ -149,7 +149,8 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Gets how far along a run of edges the point nearest another one sits.
+        /// Gets how far along a run of edges the point nearest another one sits, each edge read as
+        /// <see cref="ClosestPoint(List{GeoEdge3}, GeoPoint3, Tolerance)"/> reads it: a straight one as it is however short.
         /// </summary>
         internal static double DistanceAtPoint(List<GeoEdge3> edges, GeoPoint3 point, Tolerance tolerance)
         {
@@ -159,13 +160,26 @@ namespace GeometryHelper.Core
 
             foreach (GeoEdge3 edge in edges)
             {
-                GeoPoint3 candidate = edge.GetClosestPointOnBoundary(point, tolerance);
-                double distance = point.DistanceTo(candidate);
-
-                if (distance < best)
+                if (edge.IsArc)
                 {
-                    best = distance;
-                    bestWalk = walked + edge.GetParameterAtPoint(point, tolerance) * edge.Length;
+                    double distance = point.DistanceTo(edge.GetClosestPointOnBoundary(point, tolerance));
+
+                    if (distance < best)
+                    {
+                        best = distance;
+                        bestWalk = walked + edge.GetParameterAtPoint(point, tolerance) * edge.Length;
+                    }
+                }
+                else
+                {
+                    double at = edge.GetParameterAtPoint(point, Exactly);
+                    double distance = point.DistanceTo(edge.GetPointAtParameter(at));
+
+                    if (distance < best)
+                    {
+                        best = distance;
+                        bestWalk = walked + at * edge.Length;
+                    }
                 }
 
                 walked += edge.Length;

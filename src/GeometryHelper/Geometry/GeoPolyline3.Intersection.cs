@@ -297,6 +297,12 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets every point where this chain crosses a body, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// A straight segment is crossed as it is however short: at a hundredth, the chain from (2, 5, 0.054) down to (5, 5, 0.004),
+        /// through the top of the box 10 by 10 by 10 standing under the floor to (5, 5, -0.005) and on to (8, 5, -0.055)
+        /// crosses it at (5, 5, 0), where its segment 0.009 long, no longer than the tolerance, crossed nothing and it was given no
+        /// point.
+        /// </remarks>
         public GeoPoint3[] GetIntersections(GeoSolid3 solid, Tolerance tolerance)
             => Intersection3.GetIntersections(this, solid, tolerance);
 

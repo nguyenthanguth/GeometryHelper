@@ -747,6 +747,10 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets how far round the loop the point nearest a point lies, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// A straight side is the side it is however short: at a hundredth, the loop (0, 0), (10, 0), (10, 0.006), (0, 10) puts
+        /// (10.03, 0.003) 10.003 round, beside the middle of its side 0.006 long, where it put it 10 round, at that side's start.
+        /// </remarks>
         public double GetDistanceAtPoint(GeoPoint2 point, Tolerance tolerance) => Parametrization2.GetDistanceAtPoint(this, point, tolerance);
 
         /// <summary>

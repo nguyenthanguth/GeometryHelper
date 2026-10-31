@@ -97,6 +97,12 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets every point where this curved chain crosses a solid, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// A straight edge is crossed as it is however short: at a hundredth, the chain from (2, 5, 0.054) down to (5, 5, 0.004),
+        /// through the top of the box 10 by 10 by 10 standing under the floor to (5, 5, -0.005) and on to (8, 5, -0.055)
+        /// crosses it at (5, 5, 0), where its edge 0.009 long, no longer than the tolerance, crossed nothing and it was given no
+        /// point.
+        /// </remarks>
         /// <param name="solid">The solid.</param>
         /// <param name="tolerance">The tolerance.</param>
         public GeoPoint3[] GetIntersections(GeoSolid3 solid, Tolerance tolerance) => ArcChain3.GetIntersections(this, solid, tolerance);

@@ -125,16 +125,18 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Gets the point of a run of edges nearest a point.
+        /// Gets the point of a run of edges nearest a point: on an arc the one found at the tolerance, so a point within it of
+        /// the centre is carried to the arc's start; on a straight edge the one on the edge as it is however short, where one
+        /// no longer than the tolerance offered its start.
         /// </summary>
         internal static GeoPoint2 ClosestPoint(List<GeoEdge2> edges, GeoPoint2 point, Tolerance tolerance)
         {
-            GeoPoint2 nearest = edges[0].GetClosestPointOnBoundary(point, tolerance);
+            GeoPoint2 nearest = edges[0].GetClosestPointOnBoundary(point, edges[0].IsArc ? tolerance : Exactly);
             double best = point.GetDistanceSquaredTo(nearest);
 
             for (int i = 1; i < edges.Count; i++)
             {
-                GeoPoint2 candidate = edges[i].GetClosestPointOnBoundary(point, tolerance);
+                GeoPoint2 candidate = edges[i].GetClosestPointOnBoundary(point, edges[i].IsArc ? tolerance : Exactly);
                 double distance = point.GetDistanceSquaredTo(candidate);
 
                 if (distance < best)
@@ -148,7 +150,8 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Gets how far along a run of edges the point nearest a point lies.
+        /// Gets how far along a run of edges the point nearest a point lies, each edge read as <see cref="ClosestPoint"/>
+        /// reads it: a straight one as it is however short.
         /// </summary>
         internal static double DistanceAtPoint(List<GeoEdge2> edges, GeoPoint2 point, Tolerance tolerance)
         {
@@ -158,13 +161,14 @@ namespace GeometryHelper.Core
 
             foreach (GeoEdge2 edge in edges)
             {
-                GeoPoint2 candidate = edge.GetClosestPointOnBoundary(point, tolerance);
+                Tolerance side = edge.IsArc ? tolerance : Exactly;
+                GeoPoint2 candidate = edge.GetClosestPointOnBoundary(point, side);
                 double distance = point.GetDistanceSquaredTo(candidate);
 
                 if (distance < best)
                 {
                     best = distance;
-                    bestWalk = walked + edge.GetParameterAtPoint(point, tolerance) * edge.Length;
+                    bestWalk = walked + edge.GetParameterAtPoint(point, side) * edge.Length;
                 }
 
                 walked += edge.Length;

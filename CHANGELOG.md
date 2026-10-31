@@ -6,6 +6,33 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** In the plane, a curved chain or loop, `GeoPolylineArc2` or `GeoPolygonArc2`, gives a point beside a straight
+side its closest point on the side as it is however short, as it does in space, and its `GetShortestLineTo(GeoPoint2)`,
+`GetDistanceAtPoint` and `GetParameterAtPoint` follow it, as do the members of `Projection2`, `Parametrization2` and
+`GeoPoint2` that answer the same. A straight side no longer than the point tolerance offered its start: at a hundredth,
+the loop (0, 0), (10, 0), (10, 0.006), (0, 10) gave (10.03, 0.003) the closest point (10, 0), 0.0301496 away, and put it
+10 round; it gives (10, 0.003), 0.03 away, as far as `DistanceTo` measures, and puts it 10.003 round. In space
+`GetDistanceAtPoint` and `GetParameterAtPoint` of `GeoPolylineArc3` and `GeoPolygonArc3` read such a side as their
+closest point already did: the chain from (-7, -7, 0) to the origin, on to (0.008, 0, 0) and to (7, -7, 0) put
+(0.006, 0.02, 0) 9.9075 along, at the start of its last side, and puts it 9.9055 along, on its short side. A bend keeps
+its reading near the centre of its arc, and a polygon and a polyline in the plane keep carrying a point beside a short
+side to its start. Of 3 000 random chains and loops a seed with a straight side shorter than tolerances from 1E-6 to
+3E-2, 5 268 and 5 292 answers in the plane and 1 660 and 1 660 in space broke against the exact distance, and none does.
+Chains whose sides are all longer than the tolerance answer as before, to the bit, in the time they took. 4 new tests;
+1 test that pinned the start now expects the side.
+
+**FIXED.** In space, a side of a shape crosses the surface of a body as the side it is. A triangle, a polygon or a face
+with a side shorter than the global tolerance, asked at a finer one, crossed a body at that side's start: at a billionth,
+the triangle (5, 5, 0.0004), (5, 5, -0.0005), (45, 5, 10) crossed the top of the box 10 by 10 by 10 standing under the
+floor first at (5, 5, 0.0004); it crosses it at (5, 5, 0). A straight side of a `GeoPolylineArc3`, a `GeoPolygonArc3` or
+a `GeoPolyline3` no longer than the point tolerance crossed no face at all: at a hundredth, the chain from (2, 5, 0.054)
+down to (5, 5, 0.004), through that top to (5, 5, -0.005) and on to (8, 5, -0.055) crossed nothing and was not cut by the
+box; it crosses it, and `TrySplitBy` cuts it, at (5, 5, 0). Of 3 000 random regions a seed against a box, 597 and 633
+answers named the crossing of the short side further off than the tolerance, and none does; of 3 000 chains, loops and
+polylines a seed whose short side alone crosses the top of a box, 617 and 586 named nothing within the tolerance of it,
+and none does. Regions whose sides are all longer than the global tolerance, and chains whose sides are all longer than
+the point one, cross as before, to the bit, in the time they took. 4 new tests.
+
 **FIXED.** In space, a segment you give is measured against the tolerance you ask for where the global one was read in
 its place: one longer than the tolerance asked and shorter than the global one was read as its start by the crossings of
 a body and a ray and by the shortest line to a ray. At a billionth, the segment from (5, 5, 0.0004) to

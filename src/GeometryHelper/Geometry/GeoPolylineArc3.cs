@@ -322,6 +322,12 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the distance along the chain to the point on it nearest another point, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// A straight edge is the edge it is however short, as <see cref="GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/>
+        /// reads it: at a hundredth, the chain from (-7, -7, 0) to the origin, on to (0.008, 0, 0) and to (7, -7, 0) puts
+        /// (0.006, 0.02, 0) 9.9055 along, 0.006 along its edge 0.008 long, where it put it 9.9075 along, at the start of the next
+        /// edge.
+        /// </remarks>
         public double GetDistanceAtPoint(GeoPoint3 point, Tolerance tolerance)
             => ArcChain3.DistanceAtPoint(ArcChain3.EdgesOf(this), point, tolerance);
 

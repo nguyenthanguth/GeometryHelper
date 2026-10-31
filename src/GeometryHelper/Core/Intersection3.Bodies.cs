@@ -52,7 +52,10 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// A box 100 by 100 by 100 with a corner at the origin and the triangle with corners (-50, -50, 50),
         /// (300, -50, 50) and (-50, 300, 50) lying across it at half its height cross at (0, 0, 50), (100, 0, 50),
-        /// (100, 100, 50) and (0, 100, 50), where the upright edges of the box pass through it.
+        /// (100, 100, 50) and (0, 100, 50), where the upright edges of the box pass through it. A side shorter than the global
+        /// tolerance is measured along as it is at a finer one: at a billionth, the triangle (5, 5, 0.0004), (5, 5, -0.0005),
+        /// (45, 5, 10) crosses the top of the box 10 by 10 by 10 standing under the floor first at (5, 5, 0), where its side
+        /// 0.0009 long passes through; it was given that side's start, (5, 5, 0.0004).
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the solid is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoTriangle3 triangle, GeoSolid3 solid, Tolerance tolerance)
@@ -133,7 +136,8 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// A box 100 by 100 by 100 with a corner at the origin and the square 200 by 200 from (-50, -50, 50) to
         /// (150, 150, 50) lying across it at half its height cross at (0, 0, 50), (100, 0, 50), (100, 100, 50) and
-        /// (0, 100, 50), where the upright edges of the box pass through it.
+        /// (0, 100, 50), where the upright edges of the box pass through it. A side shorter than the global tolerance is
+        /// measured along as it is at a finer one, as <see cref="GetIntersections(GeoTriangle3, GeoSolid3, Tolerance)"/> says.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon or the solid is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoPolygon3 polygon, GeoSolid3 solid, Tolerance tolerance)
@@ -218,7 +222,9 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The square 200 by 200 from (-50, -50, 50) to (150, 150, 50) with a hole 150 by 150 in its middle, around a box
         /// 100 by 100 by 100 with a corner at the origin, crosses nothing: the box passes through the hole. Without the
-        /// hole the two cross at (0, 0, 50), (100, 0, 50), (100, 100, 50) and (0, 100, 50).
+        /// hole the two cross at (0, 0, 50), (100, 0, 50), (100, 100, 50) and (0, 100, 50). A side shorter than the global
+        /// tolerance is measured along as it is at a finer one, as <see cref="GetIntersections(GeoTriangle3, GeoSolid3, Tolerance)"/>
+        /// says.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face or the solid is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoFace3 face, GeoSolid3 solid, Tolerance tolerance)
@@ -302,7 +308,8 @@ namespace GeometryHelper.Core
         /// (<see cref="TryCrossEdge(GeoLine3, GeoFace3, out GeoPoint3, Tolerance)"/>), so a region lying across the
         /// top of a box a twentieth of a degree off level, its sides cut into 256 pieces none of which the segment test
         /// takes, crosses the top where its uncut form would. Two places closer than the point tolerance along the edge
-        /// are named once, as the segment's own crossings are.
+        /// are named once, as the segment's own crossings are. The places are measured along the edge as it is, however
+        /// much shorter than the global tolerance, where one no longer than it put every place at its start.
         /// </remarks>
         internal static GeoPoint3[] SurfaceCrossings(GeoLine3 edge, GeoSolid3 material, Tolerance tolerance)
         {
@@ -316,7 +323,7 @@ namespace GeometryHelper.Core
 
             foreach (double distance in distances)
             {
-                double last = hits.Count > 0 ? Parametrization3.GetDistanceAtPoint(edge, hits[hits.Count - 1]) : 0.0;
+                double last = hits.Count > 0 ? DistanceAlong(edge, hits[hits.Count - 1]) : 0.0;
 
                 if (hits.Count > 0 && distance - last <= tolerance.EqualPoint)
                 {
@@ -336,7 +343,7 @@ namespace GeometryHelper.Core
             {
                 if (TryCrossEdge(edge, face, out GeoPoint3 hit, tolerance))
                 {
-                    distances.Add(Parametrization3.GetDistanceAtPoint(edge, hit));
+                    distances.Add(DistanceAlong(edge, hit));
                 }
             }
 

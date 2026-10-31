@@ -133,13 +133,15 @@ apart in x and in y are joined at a thousandth by the line between the corners, 
 tolerance of the centre of an arc, which has no direction, is carried to the arc's start, so the segment can be longer
 than the distance, by at most twice the point's offset from the centre: from (0, -0.0009) to the arc of radius 50 about
 the origin from (-50, 0) to (50, 0) through (0, -50), it runs from (-50, 0) and is 50.00000001 long, where the distance
-is 49.9991. And a point beside a straight side no longer than the tolerance, of a polygon, a polyline, a chain or a
-loop, is carried to the side's start, as a segment that short carries it, so the line to the point can be longer than
-the distance by up to the side's length: at a hundredth, the loop (0, 0), (10, 0), (10, 0.006), (0, 10) is 0.03 from
-(10.03, 0.003), and its line to that point runs from (10, 0), 0.0301496 long, as does the polygon's on the same corners;
-a rectangle's runs from its side. Against anything else such a side is the side it is, for `GetShortestLineTo` as for
-`GetClosestEdge`: the loop's line to the segment from (10.03, 0.003) to (10.05, 0.003) runs from (10, 0.003) and is 0.03
-long. The closest edge of a polygon, a polyline or a rectangle takes no tolerance: it measures every side exactly, and
+is 49.9991. And a point beside a straight side no longer than the tolerance, of a polygon or a polyline, is carried to
+the side's start, as a segment that short carries it, so the line to the point can be longer than the distance by up to
+the side's length: at a hundredth, the polygon (0, 0), (10, 0), (10, 0.006), (0, 10) is 0.03 from (10.03, 0.003), and
+its line to that point runs from (10, 0), 0.0301496 long. A rectangle's runs from its side, and so does the line of a
+curved chain or loop: the loop on the same corners joins that point from (10, 0.003) by a line 0.03 long, as far as the
+distance, where it too ran from (10, 0), and `GetDistanceAtPoint` and `GetParameterAtPoint` put the point 10.003 round
+it, where they put it 10 round, at the side's start. Against anything else such a side is the side it is, for
+`GetShortestLineTo` as for `GetClosestEdge`: the loop's line to the segment from (10.03, 0.003) to (10.05, 0.003) runs
+from (10, 0.003) and is 0.03 long. The closest edge of a polygon, a polyline or a rectangle takes no tolerance: it measures every side exactly, and
 reads a segment you give no longer than the global tolerance as its start. `TryIntersectWith` and `GetIntersections`
 still accept a crossing up to the tolerance past a segment's end, because they place points for cutting and extending
 rather than test for contact; a segment you give no longer than the tolerance has no direction to reach along, and meets

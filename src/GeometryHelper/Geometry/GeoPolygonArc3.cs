@@ -459,6 +459,11 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the distance round the loop to the point on it nearest another point, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// A straight side is the side it is however short, as <see cref="GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/>
+        /// reads it: at a hundredth, the loop (-7, -7, 0), (0, 0, 0), (0.008, 0, 0), (7, -7, 0) puts (0.006, 0.02, 0) 9.9055
+        /// round, 0.006 along its side 0.008 long, where it put it 9.9075 round, at the start of the next side.
+        /// </remarks>
         public double GetDistanceAtPoint(GeoPoint3 point, Tolerance tolerance) => ArcChain3.DistanceAtPoint(Edges(), point, tolerance);
 
         /// <summary>

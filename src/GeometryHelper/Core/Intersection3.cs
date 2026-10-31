@@ -1730,7 +1730,7 @@ namespace GeometryHelper.Core
         /// standing under the floor at (5, 5, 0), where it was given its start.
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoLine3 line, GeoSolid3 solid, Tolerance tolerance)
-            => Stub3.ReadsAsStart(line, tolerance) ? CrossingsOfStub(line, solid, tolerance) : Crossings(line, solid, tolerance);
+            => Stub3.ReadsAsStart(line, tolerance) ? CrossingsOfStub(line, solid, tolerance) : Crossings(line, solid, true, tolerance);
 
         /// <summary>
         /// Gets where a segment no longer than the tolerance, read as its start unless it truly crosses the surface, meets a
@@ -1757,7 +1757,7 @@ namespace GeometryHelper.Core
             }
 
             GeoVector3 along = line.Direction;
-            found.Sort((a, b) => line.StartPoint.GetVectorTo(a).DotProduct(along).CompareTo(line.StartPoint.GetVectorTo(b).DotProduct(along)));
+            found.Sort((a, b) => Along(line.StartPoint, along, a, b));
 
             return found.ToArray();
         }
@@ -1783,10 +1783,38 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Finds every point where a segment crosses the surface of a solid as the sides of shapes cross it, a segment no
-        /// longer than the point tolerance read as one longer is.
+        /// Orders two points by how far along a direction from a start they lie, and two as far along by their coordinates, so
+        /// that the order never follows the order they were found in.
         /// </summary>
-        internal static GeoPoint3[] Crossings(GeoLine3 line, GeoSolid3 solid, Tolerance tolerance)
+        private static int Along(GeoPoint3 start, GeoVector3 along, GeoPoint3 a, GeoPoint3 b)
+        {
+            int order = start.GetVectorTo(a).DotProduct(along).CompareTo(start.GetVectorTo(b).DotProduct(along));
+
+            if (order == 0)
+            {
+                order = a.X.CompareTo(b.X);
+            }
+
+            if (order == 0)
+            {
+                order = a.Y.CompareTo(b.Y);
+            }
+
+            return order == 0 ? a.Z.CompareTo(b.Z) : order;
+        }
+
+        /// <summary>
+        /// Finds every point where a segment crosses the surface of a solid, read as a segment you give longer than the point
+        /// tolerance or as a side of a shape.
+        /// </summary>
+        /// <param name="line">The segment.</param>
+        /// <param name="solid">The solid.</param>
+        /// <param name="readShortAsPoint">
+        /// true for a segment a caller gave, longer than the point tolerance; false for a side of a shape, which crosses each
+        /// face as the side it is however short, where one no longer than the tolerance crossed none.
+        /// </param>
+        /// <param name="tolerance">The tolerance.</param>
+        internal static GeoPoint3[] Crossings(GeoLine3 line, GeoSolid3 solid, bool readShortAsPoint, Tolerance tolerance)
         {
             if (solid == null)
             {
@@ -1813,7 +1841,11 @@ namespace GeometryHelper.Core
             bool startOn = false;
             bool endOn = false;
             Tolerance holding = Holding(rounding, tolerance);
-            CollectSolidCrossings(cast, solid, tolerance, holding, !holding.Equals(tolerance), distances, ref startOn, ref endOn);
+
+            // A side no longer than the point tolerance, which crosses no plane at it, crosses each face where it truly does:
+            // the plane met to the rounding of the side, the place held to the face at the tolerance.
+            Tolerance crossing = !readShortAsPoint && cast.Length <= tolerance.EqualPoint ? AsSide(cast, tolerance) : tolerance;
+            CollectSolidCrossings(cast, solid, tolerance, crossing, holding, !holding.Equals(tolerance), readShortAsPoint, distances, ref startOn, ref endOn);
 
             // Below the rounding an end within it of a face meets the surface there where it touches the body as CollidesWith
             // reads it, and nowhere where it does not.
@@ -1856,6 +1888,17 @@ namespace GeometryHelper.Core
             => Parametrization3.GetParameterAtPoint(line, point, default(Tolerance)) * line.Length;
 
         /// <summary>
+        /// Gets the tolerance a side no longer than the point tolerance crosses a plane at: the one given, its point and planar
+        /// thresholds brought down to the rounding of the side's start, or the one given where that is finer still.
+        /// </summary>
+        private static Tolerance AsSide(GeoLine3 side, Tolerance tolerance)
+        {
+            Tolerance asItIs = Stub3.AsItIs(side, tolerance);
+
+            return asItIs.EqualPoint < tolerance.EqualPoint ? asItIs : tolerance;
+        }
+
+        /// <summary>
         /// Gathers the arc lengths at which a segment meets the surface of a body and of its openings.
         /// </summary>
         /// <remarks>
@@ -1864,8 +1907,8 @@ namespace GeometryHelper.Core
         /// marked, for the body to decide.
         /// </remarks>
         private static void CollectSolidCrossings(
-            GeoLine3 line, GeoSolid3 solid, Tolerance tolerance, Tolerance holding, bool below, List<double> distances,
-            ref bool startOn, ref bool endOn)
+            GeoLine3 line, GeoSolid3 solid, Tolerance tolerance, Tolerance crossing, Tolerance holding, bool below, bool readShortAsPoint,
+            List<double> distances, ref bool startOn, ref bool endOn)
         {
             IReadOnlyList<GeoFace3> faces = solid.Faces;
 
@@ -1876,7 +1919,7 @@ namespace GeometryHelper.Core
 
                 if (region != null && TryGetEndOn(line, region, holding, out bool atStart))
                 {
-                    if (Gap3.Segment(region, line.StartPoint, line.EndPoint, true, tolerance, tolerance.EqualPoint) <= tolerance.EqualPoint)
+                    if (Gap3.Segment(region, line.StartPoint, line.EndPoint, readShortAsPoint, tolerance, tolerance.EqualPoint) <= tolerance.EqualPoint)
                     {
                         distances.Add(atStart ? 0.0 : DistanceAlong(line, line.EndPoint));
                     }
@@ -1886,7 +1929,7 @@ namespace GeometryHelper.Core
                         endOn |= !atStart;
                     }
                 }
-                else if (CrossesFace(line, face, out GeoPoint3 hit, tolerance, holding))
+                else if (CrossesFace(line, face, out GeoPoint3 hit, crossing, holding))
                 {
                     distances.Add(DistanceAlong(line, hit));
                 }
@@ -1894,7 +1937,7 @@ namespace GeometryHelper.Core
 
             foreach (GeoSolid3 opening in solid.Openings)
             {
-                CollectSolidCrossings(line, opening, tolerance, holding, below, distances, ref startOn, ref endOn);
+                CollectSolidCrossings(line, opening, tolerance, crossing, holding, below, readShortAsPoint, distances, ref startOn, ref endOn);
             }
         }
 

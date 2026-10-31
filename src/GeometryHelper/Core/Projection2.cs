@@ -1408,7 +1408,7 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The answer lies on the arcs themselves, not on the chords that stand in for them elsewhere.
         /// A point within the tolerance of the centre of an arc is read as at the centre, which has no direction, and is carried to the arc's start; the distance to the point is the exact one, so the line can be longer than it, by at most twice the point's offset from the centre. At a tolerance of a thousandth, the point (0, -0.0009) and the arc of radius 50 about the origin from (-50, 0) to (50, 0) through (0, -50): the closest point is (-50, 0), 50.00000001 away, where the distance is 49.9991.
-        /// A straight edge no longer than the tolerance offers its start, though the distance measures it as it is, so beside it the closest point can be further than the distance by up to the edge's length: at a hundredth, the loop (0, 0), (10, 0), (10, 0.006), (0, 10) is 0.03 from (10.03, 0.003), and the closest point is (10, 0), 0.0301496 away.
+        /// A straight edge offers its nearest point as the edge it is however short, as the distance measures it: at a hundredth, the loop (0, 0), (10, 0), (10, 0.006), (0, 10) is 0.03 from (10.03, 0.003), and the closest point is (10, 0.003), 0.03 away, where its edge 0.006 long, no longer than the tolerance, offered its start (10, 0), 0.0301496 away.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static GeoPoint2 ProjectToPolylineArc(GeoPolylineArc2 chain, GeoPoint2 point, Tolerance tolerance)
@@ -1430,7 +1430,7 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The answer lies on the arcs themselves, not on the chords that stand in for them elsewhere.
         /// A point within the tolerance of the centre of an arc is read as at the centre, which has no direction, and is carried to the arc's start; the distance to the point is the exact one, so the line can be longer than it, by at most twice the point's offset from the centre. At a tolerance of a thousandth, the point (0, -0.0009) and the arc of radius 50 about the origin from (-50, 0) to (50, 0) through (0, -50): the closest point is (-50, 0), 50.00000001 away, where the distance is 49.9991.
-        /// A straight edge no longer than the tolerance offers its start, though the distance measures it as it is, so beside it the closest point can be further than the distance by up to the edge's length: at a hundredth, the loop (0, 0), (10, 0), (10, 0.006), (0, 10) is 0.03 from (10.03, 0.003), and the closest point is (10, 0), 0.0301496 away.
+        /// A straight edge offers its nearest point as the edge it is however short, as the distance measures it: at a hundredth, the loop (0, 0), (10, 0), (10, 0.006), (0, 10) is 0.03 from (10.03, 0.003), and the closest point is (10, 0.003), 0.03 away, where its edge 0.006 long, no longer than the tolerance, offered its start (10, 0), 0.0301496 away.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static GeoPoint2 ProjectToPolygonArc(GeoPolygonArc2 loop, GeoPoint2 point, Tolerance tolerance)

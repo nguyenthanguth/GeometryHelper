@@ -18,8 +18,9 @@ namespace GeometryHelper.UnitTest.Plane
     /// corners at (10, 0) and (10, 0.006) are 0.0301496 away.
     /// </para>
     /// <para>
-    /// The nearest point keeps its reading: a point beside a side no longer than the tolerance is carried to the side's start,
-    /// as it is carried to an arc's start near its centre, so the line to a point can be longer than the distance.
+    /// The nearest point reads the side as it is too (G1wg): a point beside a side no longer than the tolerance is no longer
+    /// carried to the side's start, so the line to a point is as long as the distance there; it is still carried to an arc's
+    /// start near its centre.
     /// </para>
     /// <para>
     /// No test sets the global tolerance; each passes its own.
@@ -138,17 +139,18 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         [Fact]
-        public void TheNearestPointBesideAShortSide_IsStillItsStart()
+        public void TheNearestPointBesideAShortSide_IsOnTheSideAsItIs()
         {
-            // Kept, as an arc keeps carrying a point near its centre to its start: the nearest point of the loop to
-            // (10.03, 0.003) is (10, 0), 0.0301496 away, and the line to the point runs from there, where the distance is 0.03.
+            // A side is measured as it is (G1wg), no longer snapped to its start: the nearest point of the loop to
+            // (10.03, 0.003) is the foot (10, 0.003), 0.03 away, and the line to the point runs from there, as long as the
+            // distance, where it ran from (10, 0), 0.0301496 long.
             GeoPolygonArc2 loop = Loop();
             var point = new GeoPoint2(10.03, 0.003);
             GeoPoint2 nearest = loop.GetClosestPointOnBoundary(point, Hundredth);
 
             Assert.Equal(10, nearest.X, 12);
-            Assert.Equal(0, nearest.Y, 12);
-            Assert.Equal(ToACorner, loop.GetShortestLineTo(point, Hundredth).Length, 12);
+            Assert.Equal(0.003, nearest.Y, 12);
+            Assert.Equal(0.03, loop.GetShortestLineTo(point, Hundredth).Length, 12);
             Assert.Equal(0.03, Hairpin().DistanceTo(point, Hundredth), 12);
         }
     }

@@ -43,7 +43,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets where a side meets the surface of a solid.
         /// </summary>
-        internal static GeoPoint3[] OfSide(GeoLine3 side, GeoSolid3 solid, Tolerance tolerance) => Crossings(side, solid, tolerance);
+        internal static GeoPoint3[] OfSide(GeoLine3 side, GeoSolid3 solid, Tolerance tolerance) => Crossings(side, solid, false, tolerance);
 
         /// <summary>
         /// Gets where a side meets a triangle.

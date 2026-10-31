@@ -730,7 +730,15 @@ Seven things are read otherwise, on purpose:
   nearer end, as above, and a point is measured to a stub's start. A stub shorter than the vector tolerance meets a segment
   or the rim of an ellipse where it truly crosses it, as a longer one does, and a segment longer than the tolerance you ask
   for is measured as it is however much shorter than the global one: at a billionth, the segment from (5, 5, 0.0004) to
-  (5, 5, -0.0005) crosses the top of a box at (5, 5, 0), where it was read as its start.
+  (5, 5, -0.0005) crosses the top of a box at (5, 5, 0), where it was read as its start. So does a side of a triangle, a
+  polygon or a face crossing a body: the triangle (5, 5, 0.0004), (5, 5, -0.0005), (45, 5, 10) crosses that top first at
+  (5, 5, 0), where it was given its short side's start. A straight side of a chain, a loop or a polyline crosses the
+  surface of a body as it is however short: at a hundredth, the chain from (2, 5, 0.054) down to (5, 5, 0.004), through
+  the top of the box 10 by 10 by 10 standing under the floor to (5, 5, -0.005) and on to (8, 5, -0.055) crosses it, and
+  is cut by it, at (5, 5, 0), where its side 0.009 long crossed nothing and the chain was given no point. And
+  `GetDistanceAtPoint` and `GetParameterAtPoint` of a curved chain or loop read a straight side as it is, as its closest
+  point does: the chain from (-7, -7, 0) to the origin, on to (0.008, 0, 0) and to (7, -7, 0) puts (0.006, 0.02, 0)
+  9.9055 along, 0.006 along its short side, where it put it 9.9075 along, at the start of the next.
 * **A circle collides as its rim and a loop of arcs as its outline**, so a circle or a loop round a shape touches nothing:
   the circle of radius 40 about the origin does not touch the square 20 by 20 in its middle, and touches the segment from
   (40.0005, 0, 0) to (80, 0, 0). The distance from a point to a circle is to the filled disc, as it always was: nought at the

@@ -567,6 +567,11 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets how far along the chain the point nearest a point lies, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// A straight edge is the edge it is however short: at a hundredth, the hairpin from (0, 0) to (10, 0), on to
+        /// (10, 0.006) and back to (0, 0.006) puts (10.03, 0.003) 10.003 along, beside the middle of its edge 0.006 long,
+        /// where it put it 10 along, at that edge's start.
+        /// </remarks>
         public double GetDistanceAtPoint(GeoPoint2 point, Tolerance tolerance) => Parametrization2.GetDistanceAtPoint(this, point, tolerance);
 
         /// <summary>
