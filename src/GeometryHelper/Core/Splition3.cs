@@ -78,9 +78,18 @@ namespace GeometryHelper.Core
         /// false when the point does not lie on the segment, or lies on one of its endpoints.
         /// </returns>
         /// <remarks>
+        /// <para>
         /// A point off the subject is refused rather than being projected onto it and cut at, because a
         /// caller who passed the wrong point would otherwise get a plausible answer to a question they did
         /// not ask.
+        /// </para>
+        /// <para>
+        /// The place is measured along the segment as it is however much shorter than the global tolerance, so are those
+        /// a plane, a polygon or a face cut it at, and those of the cuts by an oriented or axis-aligned box and of the cuts of
+        /// a polyline's legs by a plane, a box, a polygon or a face: at a billionth, the segment from (5, 5, 0.0004) to
+        /// (5, 5, -0.0005) is cut at (5, 5, 0), where the place was measured at the global thousandth, at its start, and the
+        /// segment came back whole.
+        /// </para>
         /// </remarks>
         public static bool TrySplitBy(GeoLine3 line, GeoPoint3 point, out GeoLine3[] pieces, Tolerance tolerance)
         {
@@ -91,7 +100,7 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            return TrySplitAtDistance(line, Parametrization3.GetDistanceAtPoint(line, point), out pieces, tolerance);
+            return TrySplitAtDistance(line, DistanceAlong(line, point), out pieces, tolerance);
         }
 
         /// <summary>
@@ -272,8 +281,19 @@ namespace GeometryHelper.Core
         /// Splits a polyline at several arc lengths at once, within a tolerance.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// A cut position that falls within tolerance of an existing vertex snaps onto it rather than
         /// adding a vertex beside it, so no edge comes back shorter than the tolerance either.
+        /// </para>
+        /// <para>
+        /// Every piece starts where the one before it ended, on the polyline: at a hundredth, the polyline from (0, 0, 0) to
+        /// (10, 0, 0) and on to (10, 10, 0) cut at 9.995 comes back as two pieces meeting at the corner, where the second
+        /// started at (10, -0.005, 0), the cut carried back along the next leg off the polyline, and cut at 10.005 the second
+        /// started 0.005 past the corner the first ended at. A cut on a leg no longer than the tolerance is made where the
+        /// piece before it ends. The pieces keep what the tolerance asked keeps, however much shorter than the global
+        /// tolerance: at a billionth, the polyline from (0, 0, 0) to (10, 0, 0) cut at 5 and 5.0005 gives a piece 0.0005
+        /// long, where it threw.
+        /// </para>
         /// </remarks>
         public static GeoPolyline3[] SplitAtDistances(GeoPolyline3 polyline, IEnumerable<double> distances, Tolerance tolerance)
         {
@@ -307,16 +327,25 @@ namespace GeometryHelper.Core
 
                 while (nextCut < cuts.Count && cuts[nextCut] < edgeEnd - tolerance.EqualPoint)
                 {
-                    GeoPoint3 cut = Parametrization3.GetPointAtDistance(segment, cuts[nextCut] - travelled);
+                    // A cut within the tolerance before the start of this leg, or on a short leg before it, is at the
+                    // start rather than carried back along this leg off the polyline; and one within the tolerance of
+                    // where the piece so far ends is there, so the next piece starts where this one ends.
+                    double along = cuts[nextCut] - travelled;
+                    GeoPoint3 cut = along > 0.0 ? Parametrization3.GetPointAtDistance(segment, along) : segment.StartPoint;
+                    GeoPoint3 last = current[current.Count - 1];
 
-                    if (!current[current.Count - 1].IsEqualTo(cut, tolerance))
+                    if (last.IsEqualTo(cut, tolerance))
+                    {
+                        cut = last;
+                    }
+                    else
                     {
                         current.Add(cut);
                     }
 
                     if (current.Count >= 2)
                     {
-                        pieces.Add(new GeoPolyline3(current));
+                        pieces.Add(new GeoPolyline3(current.ToArray(), true));
                     }
 
                     current = new List<GeoPoint3> { cut };
@@ -333,7 +362,7 @@ namespace GeometryHelper.Core
 
             if (current.Count >= 2)
             {
-                pieces.Add(new GeoPolyline3(current));
+                pieces.Add(new GeoPolyline3(current.ToArray(), true));
             }
 
             return pieces.Count == 0 ? new[] { polyline } : pieces.ToArray();
@@ -372,7 +401,7 @@ namespace GeometryHelper.Core
 
                 if (Intersection3.TryCross(segment, cutter, out GeoPoint3 hit, tolerance))
                 {
-                    cuts.Add(travelled + Parametrization3.GetDistanceAtPoint(segment, hit));
+                    cuts.Add(travelled + DistanceAlong(segment, hit));
                 }
 
                 travelled += segment.Length;
@@ -1976,7 +2005,7 @@ namespace GeometryHelper.Core
 
                 foreach (GeoPoint3 hit in Intersection3.CrossingsOf(edge, cutter, tolerance))
                 {
-                    cuts.Add(travelled + Parametrization3.GetDistanceAtPoint(edge, hit));
+                    cuts.Add(travelled + DistanceAlong(edge, hit));
                 }
 
                 travelled += edge.Length;
@@ -2007,7 +2036,7 @@ namespace GeometryHelper.Core
 
             foreach (GeoPoint3 hit in Intersection3.CrossingsOf(subject, cutter, tolerance))
             {
-                cuts.Add(Parametrization3.GetDistanceAtPoint(subject, hit));
+                cuts.Add(DistanceAlong(subject, hit));
             }
 
             return SortPieces(SplitAtDistances(subject, cuts, tolerance), point => Containment3.Contains(cutter, point, tolerance), out inside, out outside);
@@ -2123,7 +2152,7 @@ namespace GeometryHelper.Core
 
                     foreach (GeoPoint3 hit in Intersection3.CrossingsOf(edge, cutter, tolerance))
                     {
-                        cuts.Add(travelled + Parametrization3.GetDistanceAtPoint(edge, hit));
+                        cuts.Add(travelled + DistanceAlong(edge, hit));
                     }
                 }
 
@@ -2171,7 +2200,7 @@ namespace GeometryHelper.Core
 
                 foreach (GeoPoint3 hit in Intersection3.CrossingsOf(subject, cutter, tolerance))
                 {
-                    cuts.Add(Parametrization3.GetDistanceAtPoint(subject, hit));
+                    cuts.Add(DistanceAlong(subject, hit));
                 }
             }
 
@@ -2687,7 +2716,7 @@ namespace GeometryHelper.Core
 
                 if (test(edge, out GeoPoint3 hit))
                 {
-                    cuts.Add(travelled + Parametrization3.GetDistanceAtPoint(edge, hit));
+                    cuts.Add(travelled + DistanceAlong(edge, hit));
                 }
 
                 travelled += edge.Length;

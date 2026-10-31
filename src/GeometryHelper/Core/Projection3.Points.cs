@@ -111,8 +111,8 @@ namespace GeometryHelper.Core
         /// <returns>
         /// A segment from the point of the chain nearest <paramref name="point"/>, as long as
         /// <see cref="Distance3.DistanceTo(GeoPolyline3, GeoPoint3, Tolerance)"/>, each edge measured as it is however short,
-        /// where <see cref="ProjectToPolyline(GeoPolyline3, GeoPoint3, Tolerance)"/> carries a point to the start of an edge
-        /// no longer than the tolerance. Where two edges are equally near, the first of them along the chain is taken. From
+        /// as <see cref="ProjectToPolyline(GeoPolyline3, GeoPoint3, Tolerance)"/> measures it. Where two edges are equally
+        /// near, the first of them along the chain is taken. From
         /// the chain (0, 0, 0), (100, 0, 0), (100, 100, 0), the point (50, 30, 40) gets the segment from (50, 0, 0), 50 long.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>

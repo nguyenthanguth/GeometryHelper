@@ -3579,7 +3579,7 @@ namespace GeometryHelper.Core
             foreach (GeoFace3 face in body.Faces)
             {
                 if (face.GetAabb().DistanceTo(point) <= tolerance.EqualPoint
-                    && Distance3.DistanceTo(Projection3.ProjectToFace(face, point, tolerance), point) <= tolerance.EqualPoint)
+                    && Distance3.DistanceTo(Projection3.ProjectToFace(face, point, tolerance, tolerance), point) <= tolerance.EqualPoint)
                 {
                     return true;
                 }

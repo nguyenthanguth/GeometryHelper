@@ -37,6 +37,37 @@ worked out anew, nor set. The five properties of ACadSharp's lookup sample, a gr
 microseconds an INSERT under .NET 10 and 86 under .NET Framework 4.8. 16 new tests, 1 changed (an INSERT of BOLT scaled
 (1.5, -1.5, 2) is not `IsDynamicBlock`).
 
+**FIXED.** In space, a polyline, a polygon or a face gives a point beside a side its closest point on the side as it is
+however short, as its shortest line already did: `Projection3.ProjectToPolyline`, `ProjectToPolygonBoundary`,
+`ProjectToPolygon` and `ProjectToFace`, `GetClosestPointOnBoundary` of `GeoPolyline3`, `GeoPolygon3` and `GeoFace3`, and
+the members of `GeoPoint3` that answer the same. A side no longer than the tolerance offered its start: at a hundredth, the
+polygon (0, 0, 0), (10, 0, 0), (10, 0.006, 0), (0, 10, 0) gave (10.03, 0.003, 0) the closest point (10, 0, 0), 0.0301496
+away; it gives (10, 0.003, 0), 0.03 away. In the plane, `GeoBvh2.GetClosestPoint` and `DistanceTo(GeoPoint2)` read a
+straight edge so, as a curved chain does, and an arc within the tolerance as before: the index over the polygon (0, 0),
+(10, 0), (10, 0.006), (0, 10) gives (10.03, 0.003) the point (10, 0.003), 0.03 away, where it gave (10, 0). Of 10 824
+points beside a short side of a random polyline, polygon or face, 1 176 were given a closest point farther than the exact
+distance, and none is; of 12 988 beside a short edge of an index, 2 260, and none is. Whether a point lies on a face, which
+the booleans read, and the shortest line from a ray still take the side's start, to the bit, and so does
+`ProjectToSolid`, found within 3E-10 of the exact distance beside such sides. Shapes whose sides are all longer than the
+tolerance answer as before, to the bit; the index's closest point takes 3 to 6 % longer, one more look at each edge. 4 new
+tests.
+
+**FIXED.** In space, a polyline cut at distances starts every piece where the one before it ended, on the polyline, and
+the places of the cuts are measured along a segment or a leg as it is however much shorter than the global tolerance.
+`GeoPolyline3.SplitAtDistances`, and every cut of a polyline built on it, carried a cut within the tolerance before a
+corner back along the next leg: at a hundredth, the polyline from (0, 0, 0) to (10, 0, 0) and on to (10, 10, 0) cut at
+9.995 gave a second piece starting at (10, -0.005, 0), off the polyline, and cut at 10.005 one starting 0.005 past the
+corner the first ended at; both meet at the corner. A cut on a leg no longer than the tolerance is made where the piece
+before it ends, and the pieces keep what the tolerance asked keeps: at a billionth, a piece 0.0005 long between two cuts
+threw, rebuilt at the global thousandth. Cut by a point, a plane, a polygon, a face or a box, a segment or a leg no longer
+than the global tolerance was measured from its start: at a billionth, the segment from (5, 5, 0.0004) to
+(5, 5, -0.0005) came back whole from the top of the box 10 by 10 by 10 standing under the floor, and is cut at (5, 5, 0).
+Of 4 000 random polylines cut at a seed, 1 021 started a piece off the polyline, by up to 0.92 of the tolerance, 2 271
+left pieces apart, and 44 threw; none does. Of 1 803 segments and legs between the tolerance and the global one, 1 712
+were cut off the crossing or not at all, and none is. Pieces whose cuts lie further than the tolerance from every corner
+and whose legs are all longer than the global tolerance, and segments longer than it, answer as before, to the bit; `SplitAtDistances` takes 40 % less time, its pieces
+no longer rebuilt. 8 new tests.
+
 **FIXED.** In the plane, a straight polygon, polyline, face or triangle gives a point beside a side its closest point on
 the side as it is however short, as a curved chain or loop has since the entry below: `Projection2.ProjectToPolygon`,
 `ProjectToPolyline` and `ProjectToFace`, `GetClosestPointOnBoundary` and `GetShortestLineTo(GeoPoint2)` of `GeoPolygon2`,

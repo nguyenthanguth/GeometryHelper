@@ -508,6 +508,11 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Splits this segment at a point on it, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// The place is measured along the segment as it is however much shorter than the global tolerance: at a billionth,
+        /// the segment from (5, 5, 0.0004) to (5, 5, -0.0005) is cut at (5, 5, 0), where it came back whole. See
+        /// <see cref="Splition3.TrySplitBy(GeoLine3, GeoPoint3, out GeoLine3[], Tolerance)"/>.
+        /// </remarks>
         public bool TrySplitBy(GeoPoint3 point, out GeoLine3[] pieces, Tolerance tolerance) => Splition3.TrySplitBy(this, point, out pieces, tolerance);
 
         /// <summary>

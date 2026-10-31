@@ -561,6 +561,12 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Splits this polyline at several arc lengths at once, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// Every piece starts where the one before it ended, on the polyline: at a hundredth, the polyline from (0, 0, 0) to
+        /// (10, 0, 0) and on to (10, 10, 0) cut at 9.995 comes back as two pieces meeting at the corner, where the second
+        /// started at (10, -0.005, 0), off the polyline. See
+        /// <see cref="Splition3.SplitAtDistances(GeoPolyline3, IEnumerable{double}, Tolerance)"/>.
+        /// </remarks>
         public GeoPolyline3[] SplitAtDistances(IEnumerable<double> distances, Tolerance tolerance) => Splition3.SplitAtDistances(this, distances, tolerance);
 
         /// <summary>

@@ -463,7 +463,7 @@ namespace GeometryHelper.Core
 
                 // The foot of the point on the face is held up to the tolerance past its rim: this is where a point is on
                 // the surface, and it is read so, not as the exact gap Distance3.DistanceTo(GeoFace3, GeoPoint3) gives.
-                if (Distance3.DistanceTo(Projection3.ProjectToFace(face, point, tolerance), point) <= tolerance.EqualPoint)
+                if (Distance3.DistanceTo(Projection3.ProjectToFace(face, point, tolerance, tolerance), point) <= tolerance.EqualPoint)
                 {
                     return PointLocation.OnSide;
                 }
@@ -606,7 +606,7 @@ namespace GeometryHelper.Core
         /// </remarks>
         private static bool NearARim(GeoFace3 face, GeoPoint3 hit, double band, Tolerance tolerance)
         {
-            if (Distance3.DistanceTo(Projection3.ProjectToPolygonBoundary(face.Boundary, hit, tolerance), hit) <= band)
+            if (Distance3.DistanceTo(Projection3.ProjectToRim(face.Boundary, hit, tolerance), hit) <= band)
             {
                 return true;
             }

@@ -205,7 +205,7 @@ namespace GeometryHelper.Core
                 return new GeoLine3(through, through);
             }
 
-            var best = new GeoLine3(ray.Origin, ProjectToFace(face, ray.Origin, tolerance));
+            var best = new GeoLine3(ray.Origin, ProjectToFace(face, ray.Origin, tolerance, tolerance));
             double shortest = best.Length;
 
             foreach (GeoLine3 edge in Intersection3.EdgesOf(face))
@@ -249,7 +249,7 @@ namespace GeometryHelper.Core
                 return new GeoLine3(through, through);
             }
 
-            var best = new GeoLine3(ray.Origin, ProjectToPolygon(polygon, ray.Origin, tolerance));
+            var best = new GeoLine3(ray.Origin, ProjectToPolygon(polygon, ray.Origin, tolerance, tolerance));
             double shortest = best.Length;
 
             for (int i = 0; i < polygon.EdgeCount; i++)

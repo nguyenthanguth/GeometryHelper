@@ -943,7 +943,10 @@ sits in, not by the outline far away.
 shapes they were built from measure their sides: each the side it is however short, never a segment read as its
 start, and the tolerance changes nothing in the distance. At a thousandth, the index over the chain coming down from
 (5, 5) to (5, 0.0015) and on to (5, 0.0006) is 0.0006 from the one over the segment from the origin to (10, 0), and
-collides with it, as the two chains do.
+collides with it, as the two chains do. The closest point and the distance from a point read a straight edge so too,
+as a curved chain does, and an arc within the tolerance: at a hundredth, the index over the polygon (0, 0), (10, 0),
+(10, 0.006), (0, 10) gives (10.03, 0.003) the closest point (10, 0.003), 0.03 away, where its edge 0.006 long offered
+its start (10, 0), 0.0301496 away.
 
 ### Flattening
 

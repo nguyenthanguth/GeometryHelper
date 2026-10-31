@@ -457,6 +457,17 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Projects a point onto a polyline, clamped to the chain, within a tolerance.
         /// </summary>
+        /// <param name="polyline">The polyline.</param>
+        /// <param name="point">The point.</param>
+        /// <param name="tolerance">The tolerance; every leg is measured as it is, so it changes nothing here.</param>
+        /// <returns>The point of the polyline nearest the point.</returns>
+        /// <remarks>
+        /// A leg offers its nearest point as the leg it is however short, as the distance measures it: at a hundredth, the
+        /// polyline (0, 0, 0), (10, 0, 0), (10, 0.006, 0), (0, 0.006, 0) is 0.03 from (10.03, 0.003, 0), and the closest point
+        /// is (10, 0.003, 0), 0.03 away, where its leg 0.006 long, no longer than the tolerance, offered its start (10, 0, 0),
+        /// 0.0301496 away.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
         public static GeoPoint3 ProjectToPolyline(GeoPolyline3 polyline, GeoPoint3 point, Tolerance tolerance)
         {
             if (polyline == null)
@@ -469,7 +480,7 @@ namespace GeometryHelper.Core
 
             for (int i = 0; i < polyline.EdgeCount; i++)
             {
-                GeoPoint3 candidate = ProjectToLine(polyline.GetEdgeAt(i), point, tolerance);
+                GeoPoint3 candidate = ProjectToLine(polyline.GetEdgeAt(i), point, Exactly);
                 double distanceSquared = Distance3.GetDistanceSquaredTo(candidate, point);
 
                 if (distanceSquared < bestDistanceSquared)
@@ -490,7 +501,25 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Projects a point onto the boundary of a polygon, ignoring its interior, within a tolerance.
         /// </summary>
+        /// <param name="polygon">The polygon.</param>
+        /// <param name="point">The point.</param>
+        /// <param name="tolerance">The tolerance; every side is measured as it is, so it changes nothing here.</param>
+        /// <returns>The point of the outline nearest the point.</returns>
+        /// <remarks>
+        /// A side offers its nearest point as the side it is however short, as the distance measures it: at a hundredth, the
+        /// polygon (0, 0, 0), (10, 0, 0), (10, 0.006, 0), (0, 10, 0) is 0.03 from (10.03, 0.003, 0), and the closest point is
+        /// (10, 0.003, 0), 0.03 away, where its side 0.006 long, no longer than the tolerance, offered its start (10, 0, 0),
+        /// 0.0301496 away.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static GeoPoint3 ProjectToPolygonBoundary(GeoPolygon3 polygon, GeoPoint3 point, Tolerance tolerance)
+            => ProjectToRim(polygon, point, Exactly);
+
+        /// <summary>
+        /// Projects a point onto the boundary of a polygon, each side read within a tolerance: one no longer than it offers its
+        /// start, as a body's surface, the containment of a point and the shortest line from a ray still read it.
+        /// </summary>
+        internal static GeoPoint3 ProjectToRim(GeoPolygon3 polygon, GeoPoint3 point, Tolerance sides)
         {
             if (polygon == null)
             {
@@ -502,7 +531,7 @@ namespace GeometryHelper.Core
 
             for (int i = 0; i < polygon.EdgeCount; i++)
             {
-                GeoPoint3 candidate = ProjectToLine(polygon.GetEdgeAt(i), point, tolerance);
+                GeoPoint3 candidate = ProjectToLine(polygon.GetEdgeAt(i), point, sides);
                 double distanceSquared = Distance3.GetDistanceSquaredTo(candidate, point);
 
                 if (distanceSquared < bestDistanceSquared)
@@ -530,15 +559,17 @@ namespace GeometryHelper.Core
         /// on an edge. Whether the foot lands inside is read with the tolerance, so a foot within the point
         /// tolerance past the outline counts as inside and is kept, up to the point tolerance off the polygon:
         /// over the square 100 by 100 in the floor with a corner at the origin, the point (100.0005, 50, 30)
-        /// lands on (100.0005, 50, 0), 0.0005 past the edge.
+        /// lands on (100.0005, 50, 0), 0.0005 past the edge. A point beyond the outline lands on a side as it is however
+        /// short: at a hundredth, the polygon (0, 0, 0), (10, 0, 0), (10, 0.006, 0), (0, 10, 0) carries (10.03, 0.003, 0) to
+        /// (10, 0.003, 0), 0.03 away, where its side 0.006 long offered its start (10, 0, 0), 0.0301496 away.
         /// </remarks>
         public static GeoPoint3 ProjectToPolygon(GeoPolygon3 polygon, GeoPoint3 point, Tolerance tolerance)
-            => ProjectToPolygon(polygon, point, tolerance, tolerance);
+            => ProjectToPolygon(polygon, point, tolerance, Exactly);
 
         /// <summary>
         /// Projects a point onto a polygon, read as a filled surface, whether the foot lands inside read within one tolerance
-        /// and the point carried onto a side within another: nought for the shortest lines, which measure a side no longer
-        /// than the point tolerance as the side it is.
+        /// and the point carried onto a side within another: nought for the closest points and the shortest lines, which
+        /// measure a side no longer than the point tolerance as the side it is.
         /// </summary>
         internal static GeoPoint3 ProjectToPolygon(GeoPolygon3 polygon, GeoPoint3 point, Tolerance tolerance, Tolerance sides)
         {
@@ -554,7 +585,7 @@ namespace GeometryHelper.Core
                 return flat;
             }
 
-            return ProjectToPolygonBoundary(polygon, point, sides);
+            return ProjectToRim(polygon, point, sides);
         }
 
         /// <summary>
@@ -773,7 +804,7 @@ namespace GeometryHelper.Core
                     // the boundary, as the face is.
                     if (Containment3.LocateInPlane(hole, plane, ProjectToPlane(plane, point), tolerance) != PointLocation.OutSide)
                     {
-                        candidate = ProjectToPolygonBoundary(hole, point, sides);
+                        candidate = ProjectToRim(hole, point, sides);
                         break;
                     }
                 }

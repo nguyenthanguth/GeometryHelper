@@ -36,16 +36,20 @@ namespace GeometryHelper.Core
         /// tolerance outside the material. Over the square 100 by 100 in the floor with a corner at the origin
         /// and a hole 20 by 20 in its middle, the point (100.0005, 50, 30) keeps its foot (100.0005, 50, 0),
         /// 0.0005 past the outline, and the point (40.0005, 50, 30) its foot (40.0005, 50, 0), 0.0005 into the
-        /// hole; each is then 30 away, where the rim itself is 30.000000004 away.
+        /// hole; each is then 30 away, where the rim itself is 30.000000004 away. A point carried onto the outline or the rim
+        /// of a hole lands on a side as it is however short: at a hundredth, the face on the polygon (0, 0, 0), (10, 0, 0),
+        /// (10, 0.006, 0), (0, 10, 0) carries (10.03, 0.003, 0) to (10, 0.003, 0), 0.03 away, where its side 0.006 long
+        /// offered its start (10, 0, 0), 0.0301496 away.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static GeoPoint3 ProjectToFace(GeoFace3 face, GeoPoint3 point, Tolerance tolerance)
-            => ProjectToFace(face, point, tolerance, tolerance);
+            => ProjectToFace(face, point, tolerance, Exactly);
 
         /// <summary>
         /// Gets the point of a face nearest another point, whether the foot lands on the material read within one tolerance
-        /// and the point carried onto a side of a rim within another: nought for the shortest lines, which measure a side no
-        /// longer than the point tolerance as the side it is.
+        /// and the point carried onto a side of a rim within another: nought for the closest points and the shortest lines,
+        /// which measure a side no longer than the point tolerance as the side it is; the tolerance itself for the readings
+        /// of whether a point is on a face, which still carry it to the side's start.
         /// </summary>
         internal static GeoPoint3 ProjectToFace(GeoFace3 face, GeoPoint3 point, Tolerance tolerance, Tolerance sides)
         {
@@ -59,7 +63,7 @@ namespace GeometryHelper.Core
 
             if (!Containment3.Contains(face.Boundary, flat, tolerance))
             {
-                return ProjectToPolygonBoundary(face.Boundary, point, sides);
+                return ProjectToRim(face.Boundary, point, sides);
             }
 
             foreach (GeoPolygon3 hole in face.Holes)
@@ -69,7 +73,7 @@ namespace GeometryHelper.Core
                 // GeoFace3.Locate reads it: one standing a hair off that plane holds nothing of a point on it.
                 if (Containment3.LocateInPlane(hole, plane, flat, tolerance) == PointLocation.Inside)
                 {
-                    return ProjectToPolygonBoundary(hole, point, sides);
+                    return ProjectToRim(hole, point, sides);
                 }
             }
 

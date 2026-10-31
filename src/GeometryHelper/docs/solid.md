@@ -743,7 +743,18 @@ Seven things are read otherwise, on purpose:
   too: the chain lying level 0.004 over the top of that box from (2, 5, 0.004) to (5, 5, 0.004), down through it to
   (5, 5, -0.005) and on level to (8, 5, -0.005), as a curved chain or a polyline, meets the square of the top at (5, 5, 0),
   where it met nothing; a chain whose corner comes within the tolerance of the region is still given the corner, and a
-  place two sides name within the tolerance of each other is named once, by the first. And
+  place two sides name within the tolerance of each other is named once, by the first. A polyline cut at a distance, by
+  `SplitAtDistances` or by any of the cuts that use it, starts every piece where the one before it ended, on the polyline:
+  at a hundredth, the polyline from (0, 0, 0) to (10, 0, 0) and on to (10, 10, 0) cut at 9.995 comes back as two pieces
+  meeting at the corner, where the second started at (10, -0.005, 0), the cut carried back along the next leg off the
+  polyline, and cut at 10.005 the second started 0.005 past the corner the first ended at; and its pieces keep what the
+  tolerance asked keeps, where at a billionth a piece shorter than the global thousandth threw. The places of the cuts by a
+  point, a plane, a polygon, a face or a box are measured along a segment or a leg as it is however much shorter than the
+  global tolerance, as those of the cuts by a body are. The closest point of a polyline, a polygon or a face is on a side
+  as it is however short, as its shortest line is: at a hundredth, the polygon (0, 0, 0), (10, 0, 0), (10, 0.006, 0),
+  (0, 10, 0) gives (10.03, 0.003, 0) the closest point (10, 0.003, 0), 0.03 away, where it gave the side's start
+  (10, 0, 0), 0.0301496 away; the readings of whether a point lies on a face, and the shortest line from a ray, still take
+  the side's start. And
   `GetDistanceAtPoint` and `GetParameterAtPoint` of a curved chain or loop read a straight side as it is, as its closest
   point does: the chain from (-7, -7, 0) to the origin, on to (0.008, 0, 0) and to (7, -7, 0) puts (0.006, 0.02, 0)
   9.9055 along, 0.006 along its short side, where it put it 9.9075 along, at the start of the next.

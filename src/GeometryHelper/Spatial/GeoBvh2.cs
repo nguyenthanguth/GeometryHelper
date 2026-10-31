@@ -276,8 +276,16 @@ namespace GeometryHelper.Spatial
         /// Gets the point of the indexed edges nearest a point, within a tolerance.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// A branch whose box is further away than the best found so far cannot hold anything nearer, so
         /// it is not looked at. That is the whole of what the tree buys.
+        /// </para>
+        /// <para>
+        /// A straight edge offers its nearest point as the edge it is however short, as a chain that may curve offers it, and
+        /// an arc is read within the tolerance: at a hundredth, the index over the polygon (0, 0), (10, 0), (10, 0.006),
+        /// (0, 10) gives (10.03, 0.003) the closest point (10, 0.003), 0.03 away, where its edge 0.006 long, no longer than
+        /// the tolerance, offered its start (10, 0), 0.0301496 away; <see cref="DistanceTo(GeoPoint2, Tolerance)"/> follows it.
+        /// </para>
         /// </remarks>
         /// <exception cref="InvalidOperationException">Thrown when nothing was indexed.</exception>
         public GeoPoint2 GetClosestPoint(GeoPoint2 point, Tolerance tolerance)
@@ -287,7 +295,7 @@ namespace GeometryHelper.Spatial
                 throw new InvalidOperationException("Nothing was indexed, so there is no point to give.");
             }
 
-            GeoPoint2 nearest = _edges[0].GetClosestPointOnBoundary(point, tolerance);
+            GeoPoint2 nearest = _edges[0].GetClosestPointOnBoundary(point, _edges[0].IsArc ? tolerance : Exactly);
             double best = point.GetDistanceSquaredTo(nearest);
 
             Search(0, point, tolerance, ref nearest, ref best);
@@ -600,7 +608,8 @@ namespace GeometryHelper.Spatial
             {
                 for (int i = one.Start; i < one.Start + one.Count; i++)
                 {
-                    GeoPoint2 candidate = _edges[_order[i]].GetClosestPointOnBoundary(point, tolerance);
+                    int at = _order[i];
+                    GeoPoint2 candidate = _edges[at].GetClosestPointOnBoundary(point, _edges[at].IsArc ? tolerance : Exactly);
                     double distance = point.GetDistanceSquaredTo(candidate);
 
                     if (distance < best)
