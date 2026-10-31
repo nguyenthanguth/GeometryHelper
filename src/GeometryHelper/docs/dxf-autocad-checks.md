@@ -340,6 +340,32 @@ written as AutoCAD reads them now.
       Still to see (v14): whether a seam smooth in its direction but not in its bend (1067's curve given the flag 2048) is
       periodic, which tells the unclamping from the turn of the tangent; the tolerances of both, a seam turned by 0.01, 0.5
       and 2 degrees and moved by 1E-6, 1E-4 and 1E-2; and the library's after-d21 files.
+    - AutoCAD 2021 (plugin v14): 17p read periodic and closed, its 4 points AutoCAD's own periodic fit to 1.2E-13, its 5
+      fit points the points at its knots, saved 70 3115 with no group 11. 17q read closed, not periodic, its 5 fit points and
+      tangents as written; its control points are neither its own fit's (2.37 off) nor the library's (2.30 off), recorded.
+      17s, the curve of its 1067 given the flag 2048, read not periodic: AutoCAD reads the seam by the unclamping, not by
+      the tangent's direction. 17t: the 2059 of the control point 1 moved by 1E-6, 1E-4, 1E-3 and 1E-2, its seam off by
+      4.1E-6 to 4.1E-2, read not periodic, all four, where the library read the first two periodic. 17u: its 11 of the seam
+      turned by 0.01, 0.5 and 2 degrees, given its own NURBS data, saved 70 9 each, where the library wrote 11 for the first
+      two. 17v: fit data of degree 2 set periodic through (0, 0), (40, 0), (50, 30) and (10, 25), an even degree through an
+      even count of points, gave its periodic cubic, 70 3115, degree 3, its control points those of the same cubic asked a
+      degree 3, where the library fell back to the closed fit. `NurbsData.Periodic` read False on every spline not periodic
+      by `IsPeriodic`, the flag 2 set or not, and True on 17v's.
+    - Measured (D22), over every spline AutoCAD saved in `autocad-out`: the seams of its periodic ones unclamp to 1.3E-15 of
+      their size at most (7.9E-14 at 60.4), and 17t's least, off by 6.7E-8 of its size, it read as not periodic; its closed
+      splines of the flag 2 leave their start in the direction they reach their end to 4E-16 of a radian, and 17u's least
+      turn, a hundredth of a degree (1.75E-4 of a radian), lost the flag.
+    - Now (D22): `IsPeriodic` reads the seam within 1E-10 of the spline's size, one and its largest coordinate (6.2E-9 at
+      17t's 61.5), well inside both, so that a spline scaled to millions or moved far from the origin reads as before;
+      `SetNurbsData` writes the flag 2 where the seam turns by 1E-9 of a radian at most, whatever the size; and periodic fit
+      data of any degree give the periodic cubic, three points a quadratic and two a line, falling back to the closed fit
+      only where two points are one, within 1E-3. 17t, 17u and 17v are AutoCAD's answers now. Of 4 000 random rings of 3 to
+      60 points, degree 1 to 10 asked, sizes 0.01 to a million and up to a million from the origin, every one of distinct
+      points fitted the periodic cubic and read periodic, its fit points within 7.9E-16 of its size. Ripple over every DXF
+      of the checks folder: the readings of 17t's 1E-6 and 1E-4 and the flags written by edits of 17t and 17u, nothing else.
+      Still to see (v15, after-d22): where AutoCAD's own tolerances lie, the 2059 moved by 1E-12 to 1E-7 (17-w, the library
+      periodic up to 1E-9) and the 11 turned by 1E-8 to 1E-3 degrees (17-x, the library's flag 2 at 1E-8 alone); and the
+      library's periodic cubic of degree 1, 2, 4 and 5 asked through six points (17-y) against AutoCAD's own.
     - Degree 4, 5 and rational, parked: the tolerance the counts fit is the larger of 1 / M and the spline's length over
       10 000, over (p + 1)^2: the quartic (M 120, length 47.7) takes 1 / M, every one of its nine counts; the quintic Bezier
       (M 400, length 55.00), the quintic of two spans (M 223.6, length 70.085), the rational cubics 1, 2, 2, 1 (M 600, length
