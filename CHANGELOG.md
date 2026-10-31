@@ -28,16 +28,24 @@ to be turned down (17.5 and 41.1).
 
 **NEW.** The last kinds of AutoCAD's dynamic blocks are made in code, each written as AutoCAD 2021 saved ACadSharp's sample
 of it. `DxfBlockTableRecord.AddArrayAction(linear, entities, columnSpacing)` and `AddArrayAction(xy, entities,
-columnSpacing, rowSpacing)` copy entities as the distance grows, as many as the spacing goes whole into it: a post every 60
-of a fence shows four at a Length of 250, a bolt every 25 by 20 of a plate 4 by 3 at 100 by 70, as AutoCAD's sample drew four
-columns of 25 in 100.59 and five rows of 20 in 104.30. `AddLookupParameter(name, description, location, inputs, rows)`
-gives a lookup parameter and its table, the new `DxfBlockLookupInput` (the distance of a linear parameter, the x or the y of
-a point parameter) and `DxfBlockLookupRow` (a label and a value for each input): Size set to Large sets Width to 200 and
-Height to 80, and Width set to 150 then reads Custom. `AddAlignmentParameter(basePoint, endPoint)` and
-`AddBasePointParameter(location)` give the grips AutoCAD uses when the block is placed; they give no property.
-`DxfDynamicBlockReferenceProperty.Value` sets each as AutoCAD sets it: the copies of an array follow the block's entities,
-each keeping its tag; a lookup is set by a row's label, letters of either case the same. A lookup property was read only
-before.
+columnSpacing, rowSpacing)` copy entities as the distance grows, as many as the spacing goes whole into it: AutoCAD 2021
+read such blocks as dynamic and, setting the values itself, drew four posts every 60 of a fence at a Length of 250 and one
+at 119, one column of three rows of a plate's bolts every 25 by 20 at 40 by 70 and two bolts at 60 by 30 (check v21).
+`AddAlignmentParameter(basePoint, endPoint)` and `AddBasePointParameter(location)` give the grips AutoCAD uses when the
+block is placed; they give no property, and AutoCAD 2021 read them so (check v21). `AddLookupParameter(name, description,
+location, inputs, rows)` gives a lookup parameter and its table, the new `DxfBlockLookupInput` (the distance of a linear
+parameter, the x or the y of a point parameter) and `DxfBlockLookupRow` (a label and a value for each input): Size set to
+Large sets Width to 200 and Height to 80, and Width set to 150 then reads Custom; an INSERT of the block itself, of no saved
+label, reads the first row of the block's own values, Small for 100 by 50, else Custom, as AutoCAD 2021 read it (check
+v21b). The edges between a lookup action and its
+parameters are flagged 4, as AutoCAD's sample flags them: AutoCAD 2021 read a lookup block of edges flagged nought as no
+dynamic INSERT (check v21), and has yet to read one of the flags 4. `DxfDynamicBlockReferenceProperty.Value` sets each as
+AutoCAD sets it: the copies of an array follow the block's entities, each but the first tagged as AutoCAD tags its own
+(AcDbBlockArrayActionTag), and an XY array of a count of nought copies nothing, as AutoCAD 2021 drew the one circle of its
+sample at 80 by 5; it refused to set again an INSERT the library had set while the copies were untagged, which has yet to
+be checked since. A lookup is set by a row's label, letters of either case the same, and reads back as the table holds it,
+a space after it kept, as AutoCAD 2021 read "Size 6 " of its sample after the library set it (check v21). A lookup property
+was read only before.
 
 **NEW.** A stretch action takes an arc with one end only in its frame, numbered as AutoCAD numbers it (its start 0, its end
 1), lying flat in the block: that end moves and the arc is drawn anew through its ends, keeping the height of its middle off
@@ -46,15 +54,24 @@ becoming 522.13. It was refused before.
 
 **NEW.** `AddStretchAction` and `AddMoveAction` take a distance multiplier and an angle offset, AutoCAD's Distance
 Multiplier and Angle Offset (140 and 141 of the action): a mark moved of the multiplier 0.5 stays in the middle of a panel
-whose Width goes from 100 to 200, and an offset of Math.PI / 2 turns a move along x to one along y. The overloads without
-them write what they wrote before. `DxfDynamicBlockReferenceProperty.Value` works such actions out, and a move that lists
-its own parameter's grip among what it moves, as AutoCAD's point sample and drawings from AutoCAD do; both were refused
-before.
+whose Width goes from 100 to 200, and an offset of Math.PI / 2 turns a move along x to one along y, as AutoCAD 2021 read
+them, the offset in radians (check v21). The overloads without them write what they wrote before.
+`DxfDynamicBlockReferenceProperty.Value` works such actions out, keeping the offset in the INSERT's cache as AutoCAD keeps
+it (AutoCAD moved along x, unturned, a circle of an INSERT whose cache held nought), and a move that lists its own
+parameter's grip among what it moves, as AutoCAD's point sample and drawings from AutoCAD do, which AutoCAD 2021 read and
+set right after the library set it (check v21); both were refused before.
 
-**CHANGED.** A flip action is written in a block of no stretch, move, scale, rotate or array action, either given second
-refused with `NotSupportedException`, where before only an entity both flipped and moved was refused. AutoCAD 2021, given a
-panel whose flip and stretch held other entities, did not flip the INSERT of the block itself, reading its Hand back as 0,
-though it flipped an INSERT the library had set and one of a block of the flip alone (check v20b).
+**CHANGED.** A flip parameter is written alone in its block: `AddFlipParameter` in a block of any parameter, and any other
+`Add...Parameter` in a block of a flip parameter, are refused with `NotSupportedException`, where before only an entity
+both flipped and moved was refused. AutoCAD 2021 flipped a door of the flip alone both ways (check v20), but set Hand to 1
+on INSERTs of a door that also had a linear parameter of no action, and of a panel whose flip and stretch held other
+entities, it read 0 back each time and left the leaf as it was (checks v20b and v21).
+
+**CHANGED.** A rotate or a scale action and a stretch or a move action of one entity are refused with
+`NotSupportedException`, either given second, and `DxfDynamicBlockReferenceProperty.Value` refuses an INSERT of a block of
+such an entity: AutoCAD 2021 worked such an entity out from where its last set left it, stretching a shaft turned a quarter
+turn along x to (0, 155) for a Reach of 150 set after 200, where the block's values give (50, 105), and scaling a stretched
+line to (40, 20)-(180, 20) where they give (40, 20)-(200, 20) (check v21).
 
 **NEW.** The other dynamic blocks of AutoCAD's Block Editor are made in code, each written as AutoCAD 2021 saved
 ACadSharp's sample of it, its graph number for number. `DxfBlockTableRecord.AddPointParameter(name, description,

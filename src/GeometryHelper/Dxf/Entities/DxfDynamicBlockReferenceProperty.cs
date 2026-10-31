@@ -69,10 +69,11 @@ namespace GeometryHelper.Dxf
         /// them alike about the base point of its linear parameter by the distance over the block's own, a rotate turns them
         /// about the base point of its rotation parameter by the angle less the block's own, and a flip mirrors them about its
         /// reflection line while the state is 1. Then each array copies its entities, as many as its spacing goes whole into
-        /// the distance, one at least: a Length of 250 of a post every 60 shows four posts. A move listing its own parameter's
-        /// grip among what it moves, as AutoCAD's point sample does, moves its entities alone. A lookup set to a row's label
-        /// sets the properties of its input columns to the row's values; any property set, each lookup reads the label of the
-        /// first row of the values then, or its label of no match, Custom as the library writes it.
+        /// the distance, one at least: a Length of 250 of a post every 60 shows four posts; an array of an XY parameter copies
+        /// in rows and columns, and nothing where either count is nought, as AutoCAD 2021 drew it (plugin v21). A move listing
+        /// its own parameter's grip among what it moves, as AutoCAD's point sample does, moves its entities alone. A lookup set
+        /// to a row's label sets the properties of its input columns to the row's values; any property set, each lookup reads
+        /// the label of the first row of the values then, or its label of no match, Custom as the library writes it.
         /// </para>
         /// <para>
         /// A distance or a position is a number (a <see cref="double"/>, or a whole number taken as one); a linear distance is
@@ -85,7 +86,9 @@ namespace GeometryHelper.Dxf
         /// scaled by 2 is twice the block's, as it is read. A distance of an XY parameter is above the point tolerance. An angle
         /// is a number of radians, taken into a turn, from nought up to 2 pi. A flip state is a whole number, 0 or 1, and reads
         /// back as a <see cref="short"/>. A visibility state is one of the parameter's, by its name, letters of either case the
-        /// same, and reads back as the parameter names it; so is a lookup's label, one of a row of its table.
+        /// same, and reads back as the parameter names it; so is a lookup's label, one of a row of its table, a label given
+        /// exactly first, else trimmed, and reads back as the table holds it, a space after it kept, as AutoCAD 2021 read
+        /// "Size 6 " of its lookup sample (plugin v21).
         /// </para>
         /// <para>
         /// The INSERT is made to place an anonymous block of AutoCAD's (<c>*U1</c> and on, flagged anonymous) holding a copy of
@@ -113,9 +116,10 @@ namespace GeometryHelper.Dxf
         /// library does not work out: a stretch of an entity other than those above or of a tilted arc by one end, an action
         /// moving other parameters or grips of another parameter, a stretch or a move by a base point, a scale or a rotate about
         /// another point than its parameter's base point, a rotation or an XY parameter with a value set, an entity both flipped
-        /// and moved by other actions, an entity both copied by an array and worked on by another action, a lookup table of
-        /// columns other than a linear parameter's distance, a point parameter's x and y and lookups. Nothing is written
-        /// then.</exception>
+        /// and moved by other actions, an entity both turned or scaled and stretched or moved, as AutoCAD 2021 worked such an
+        /// entity out from the INSERT's last state (plugin v21), an entity both copied by an array and worked on by another
+        /// action, a lookup table of columns other than a linear parameter's distance, a point parameter's x and y and
+        /// lookups. Nothing is written then.</exception>
         public object Value
         {
             get => _value;

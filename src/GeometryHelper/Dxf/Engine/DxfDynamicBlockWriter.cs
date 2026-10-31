@@ -572,7 +572,7 @@ namespace GeometryHelper.Dxf
         /// those of ACadSharp's lookup sample: five nodes; the edges of the grip to the parameter and of the parameter to each
         /// component; then, for each parameter of an input column in the order of the columns and last for the lookup
         /// parameter, a pair of edges each way between it and the action, of as many connections as the table reads of it,
-        /// each edge naming its pair, as AutoCAD writes them.
+        /// each edge naming its pair and of the flags 4, as AutoCAD writes them.
         /// </summary>
         internal static void AddLookup(DxfBlockTableRecord block, string name, string description, GeoPoint3 location, List<DxfBlockLookupInput> inputs, List<DxfBlockLookupRow> rows)
         {
@@ -954,7 +954,10 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Whether the evaluation graph of a block holds a node of a type, read without writing anything.</summary>
-        private static bool Has(DxfBlockTableRecord block, string type)
+        private static bool Has(DxfBlockTableRecord block, string type) => Has(block, t => t == type);
+
+        /// <summary>Whether the evaluation graph of a block holds a node of the types given, read without writing anything.</summary>
+        internal static bool Has(DxfBlockTableRecord block, Func<string, bool> types)
         {
             DxfDBDictionary dictionary = block.ExtensionDictionary;
             DxfItem item = dictionary != null && dictionary.Contains("ACAD_ENHANCEDBLOCK") ? dictionary.GetAt("ACAD_ENHANCEDBLOCK")?.Item : null;
@@ -966,7 +969,9 @@ namespace GeometryHelper.Dxf
 
             foreach (DxfTypedValue group in item.Groups)
             {
-                if (group.TypeCode == 360 && item.File.ObjectItem(group.Value)?.Type == type)
+                string type = group.TypeCode == 360 ? item.File.ObjectItem(group.Value)?.Type : null;
+
+                if (type != null && types(type))
                 {
                     return true;
                 }
@@ -1280,15 +1285,17 @@ namespace GeometryHelper.Dxf
 
             /// <summary>
             /// Two edges between two nodes, by their ids, one each way, of a kind (the connections the action reads or sets), each
-            /// naming the other as its pair (its fifth link), as AutoCAD pairs the edges of a lookup action and its parameters.
+            /// naming the other as its pair (its fifth link) and of the flags 4 (93), as AutoCAD pairs and flags the edges of a
+            /// lookup action and its parameters: AutoCAD 2021 read a block whose pairs were of the flags nought as dynamic, but
+            /// no INSERT of it (plugin v21, 24e-e).
             /// </summary>
             internal void LinkPair(int from, int to, int kind)
             {
                 int k = _edges.Count;
                 int a = _nodes.FindIndex(n => n[1] == from);
                 int b = _nodes.FindIndex(n => n[1] == to);
-                _edges.Add(new[] { 0, kind, a, b, k + 1 });
-                _edges.Add(new[] { 0, kind, b, a, k });
+                _edges.Add(new[] { 4, kind, a, b, k + 1 });
+                _edges.Add(new[] { 4, kind, b, a, k });
             }
 
             /// <summary>Reads the nodes and edges the record holds, and the names of the elements of its nodes.</summary>

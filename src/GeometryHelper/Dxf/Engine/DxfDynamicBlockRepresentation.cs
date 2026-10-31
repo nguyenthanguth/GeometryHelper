@@ -105,7 +105,7 @@ namespace GeometryHelper.Dxf
             if (lookup != null)
             {
                 string label = value as string ?? throw new ArgumentException("A lookup property is set by the label of a row, a string; a " + value.GetType().Name + " is not one.", nameof(value));
-                lookup.Choose(label.Trim(), values, labels, dynamic.Name);
+                lookup.Choose(label, values, labels, dynamic.Name);
             }
             else if (asked is Linear linear)
             {
@@ -561,8 +561,11 @@ namespace GeometryHelper.Dxf
         /// anonymous block: along a linear parameter, a copy at each column spacing from the entity along the line from the
         /// base point to the end point, as many in all as the spacing goes whole into the distance, one at least; of an XY
         /// parameter, in rows and columns the way the end point lies, each count the distance along its axis over its spacing,
-        /// rounded down, one at least, as AutoCAD's save of ACadSharp's XY sample shows (four columns of 25 in 100.59, five rows
-        /// of 20 in 104.30). The entity itself is the first copy; the others follow the block's entities, row by row.
+        /// rounded down, as AutoCAD's save of ACadSharp's XY sample shows (four columns of 25 in 100.59, five rows of 20 in
+        /// 104.30), and none copied where a count is nought, as AutoCAD 2021 drew the one circle of that sample set to 80 by 5
+        /// (plugin v21, 24e-s2). The entity itself is the first copy; the others follow the block's entities, row by row, each
+        /// tagged as AutoCAD tags a copy of its arrays (AcDbBlockArrayActionTag, 1070 1, after the entity's own tag), without
+        /// which AutoCAD 2021 refused to set the INSERT again (eInvalidInput, plugin v21, 24e-c and 24e-d).
         /// </summary>
         private static void Copy(Block block, Dictionary<string, double[]> values, Dictionary<string, DxfEntity> copyOf, DxfDatabase database, DxfBlockTableRecord anonymous)
         {
@@ -591,8 +594,8 @@ namespace GeometryHelper.Dxf
                 else
                 {
                     double[] signs = ((Planar)parameter).Signs;
-                    int columns = Math.Max(1, (int)Math.Floor((now[0] + slack) / action.Columns));
-                    int rows = Math.Max(1, (int)Math.Floor((now[1] + slack) / action.Rows));
+                    int columns = (int)Math.Floor((now[0] + slack) / action.Columns);
+                    int rows = (int)Math.Floor((now[1] + slack) / action.Rows);
 
                     for (int j = 0; j < rows; j++)
                     {
@@ -615,7 +618,9 @@ namespace GeometryHelper.Dxf
 
                     foreach (GeoVector3 offset in offsets)
                     {
-                        database.WblockCloneObjects(new[] { copy }, anonymous)[0].TransformBy(GeoTransform3.Translation(offset));
+                        DxfEntity copied = database.WblockCloneObjects(new[] { copy }, anonymous)[0];
+                        copied.TransformBy(GeoTransform3.Translation(offset));
+                        copied.XData = new[] { new DxfTypedValue(1001, "AcDbBlockArrayActionTag"), new DxfTypedValue(1070, "1") };
                     }
                 }
             }
@@ -626,7 +631,9 @@ namespace GeometryHelper.Dxf
         /// the representation data (AcDbRepData) naming the dynamic block, and AppDataCache with a record for each parameter and
         /// action of the graph (ACAD_ENHANCEDBLOCKDATA, by the node's id, in the order of the ids as text), and for a flip
         /// parameter's grip as AutoCAD keeps one, and for each lookup parameter its label; none for an array or a lookup action,
-        /// as AutoCAD's samples keep none; the history and its data taken out.
+        /// as AutoCAD's samples keep none; the history and its data taken out. The record of a stretch or a move holds its angle
+        /// offset (40), as AutoCAD 2021 kept 1.5707963267948966 for a move of a quarter turn, and moved along x, unturned, the
+        /// circle of an INSERT whose record held nought (plugin v21, 24e-b).
         /// </summary>
         private static void Cache(DxfBlockReference insert, DxfBlockTableRecord dynamic, Block block, Dictionary<string, double[]> values, string state, Dictionary<string, string> labels)
         {
@@ -673,11 +680,11 @@ namespace GeometryHelper.Dxf
                 {
                     case ActionKind.Stretch:
                         groups = Head(StretchKey);
-                        groups.Add(new KeyValuePair<int, string>(40, Real(0.0)));
+                        groups.Add(new KeyValuePair<int, string>(40, Real(action.Offset)));
                         break;
                     case ActionKind.Move:
                         groups = Head(MoveKey);
-                        groups.Add(new KeyValuePair<int, string>(40, Real(0.0)));
+                        groups.Add(new KeyValuePair<int, string>(40, Real(action.Offset)));
                         break;
                     case ActionKind.Scale:
                         groups = Head(ScaleKey);
@@ -929,6 +936,19 @@ namespace GeometryHelper.Dxf
                     if (action.Kind != ActionKind.Flip && (action.Entities.Exists(flipped.Contains) || action.Held.Exists(h => flipped.Contains(h.Key))))
                     {
                         throw new NotSupportedException("The block " + dynamic.Name + " flips an entity another action moves, which AutoCAD 2021 worked out from the INSERT's last state rather than from the block: the library does not work it out.");
+                    }
+                }
+
+                // An entity a rotate or a scale works on and a stretch or a move holds is not worked out: AutoCAD 2021 stretched
+                // such an entity from where its last set left it (plugin v21, 24e-g).
+                var turned = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                block.Actions.FindAll(a => a.Kind == ActionKind.Rotate || a.Kind == ActionKind.Scale).ForEach(a => turned.UnionWith(a.Entities));
+
+                foreach (BlockAction action in block.Actions)
+                {
+                    if ((action.Kind == ActionKind.Stretch || action.Kind == ActionKind.Move) && (action.Entities.Exists(turned.Contains) || action.Held.Exists(h => turned.Contains(h.Key))))
+                    {
+                        throw new NotSupportedException("The block " + dynamic.Name + " turns or scales an entity a stretch or a move holds, which AutoCAD 2021 worked out from the INSERT's last state rather than from the block: the library does not work it out.");
                     }
                 }
 
@@ -1608,10 +1628,11 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// The table of a lookup action, as AutoCAD writes it: its cells row by row, and its columns, each of a parameter's node,
-        /// looked up (282 of 1) or an input, its label of no match (305) and its connection (304). The library works out input
-        /// columns of a linear parameter's distance (UpdatedDistance) and of a point parameter's x and y (UpdatedX, UpdatedY),
-        /// of reals in the block's units, and looked-up columns of a lookup parameter (lookupString).
+        /// The table of a lookup action, as AutoCAD writes it: its cells row by row, kept exactly as the file holds them
+        /// (AutoCAD's lookup sample labels a row "Size 6 ", which AutoCAD 2021 read back so, plugin v21), and its columns, each
+        /// of a parameter's node, looked up (282 of 1) or an input, its label of no match (305) and its connection (304). The
+        /// library works out input columns of a linear parameter's distance (UpdatedDistance) and of a point parameter's x and
+        /// y (UpdatedX, UpdatedY), of reals in the block's units, and looked-up columns of a lookup parameter (lookupString).
         /// </summary>
         private sealed class Table
         {
@@ -1629,7 +1650,7 @@ namespace GeometryHelper.Dxf
                 {
                     if (group.TypeCode == 302 && table._columns.Count == 0)
                     {
-                        cells.Add(DxfReader.Decode(group.Value ?? string.Empty).Trim());
+                        cells.Add(DxfReader.Decode(group.Value ?? string.Empty));
                     }
                     else if (group.TypeCode == 303)
                     {
@@ -1734,13 +1755,15 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>
-            /// Sets each input of the table to its cell of the first row whose cell of the lookup's column is the label given,
-            /// letters of either case the same, and each lookup of the table to its cell of that row; refuses a label of no row.
+            /// Sets each input of the table to its cell of the first row whose cell of the lookup's column is the label given, else
+            /// of the first whose cell is the label, both trimmed and letters of either case the same, and each lookup of the
+            /// table to its cell of that row, as the table holds it; refuses a label of no row.
             /// </summary>
             internal void Choose(Looked lookup, string label, Dictionary<string, double[]> values, Dictionary<string, string> labels, string block)
             {
                 int column = _columns.FindIndex(c => c.LookedUp && c.Node == lookup.Id);
-                string[] chosen = column < 0 ? null : _rows.Find(r => string.Equals(r[column], label, StringComparison.OrdinalIgnoreCase));
+                string[] chosen = column < 0 ? null : _rows.Find(r => string.Equals(r[column], label, StringComparison.Ordinal))
+                    ?? _rows.Find(r => string.Equals(r[column].Trim(), label.Trim(), StringComparison.OrdinalIgnoreCase));
 
                 if (chosen == null)
                 {

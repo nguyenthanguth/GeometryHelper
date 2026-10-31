@@ -625,18 +625,13 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // AutoCAD 2021 stretched the panel's edges, flipped about the y axis, to x = -250 for a Width of 150 set after 200,
             // and would not flip the panel it stretched (plugin v20, 24d-i): no value of such a block tells its shape.
-            DxfDatabase db = Panel(null, out DxfBlockTableRecord block, out DxfBlockLinearParameter width, out DxfLine[] lines);
-            DxfBlockFlipParameter hand = block.AddFlipParameter("Hand", null, new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0));
-            DxfCircle tag = Add(block, new DxfCircle(new GeoPoint3(50, 25, 0), GeoVector3.ZAxis, 5));
+            // Since D24e2 the flip parameter itself is refused beside the panel's Width: AutoCAD 2021 did not flip an INSERT of
+            // a block of a flip beside any other parameter (plugin v21, 24e-h), so no flip action of the panel can be written.
+            DxfDatabase db = Panel(null, out DxfBlockTableRecord block, out _, out _);
+            Add(block, new DxfCircle(new GeoPoint3(50, 25, 0), GeoVector3.ZAxis, 5));
             string before = db.ToText();
 
-            Assert.Throws<NotSupportedException>(() => block.AddFlipAction(hand, lines));
-            Assert.Throws<NotSupportedException>(() => block.AddFlipAction(hand, new[] { lines[3], lines[0] }));
-            Assert.Equal(before, db.ToText());
-
-            // The left edge and a circle held by no stretch are refused too since D24e: AutoCAD 2021 did not flip an INSERT of
-            // the block itself where the flip and the stretch held other entities (plugin v20b, 24d-i).
-            Assert.Throws<NotSupportedException>(() => block.AddFlipAction(hand, new DxfEntity[] { lines[3], tag }));
+            Assert.Throws<NotSupportedException>(() => block.AddFlipParameter("Hand", null, new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0)));
             Assert.Equal(before, db.ToText());
         }
 

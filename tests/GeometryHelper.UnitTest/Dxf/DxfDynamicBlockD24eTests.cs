@@ -690,34 +690,30 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // Plugin v20b, 24d-i: the stretch of the right edge and the flip of a mark and a circle the stretch does not hold;
             // AutoCAD flipped an INSERT the library had set, but set to 1 on the INSERT of the block itself it read back 0.
+            // Since D24e2 the flip parameter itself is refused beside another parameter, either way round, as AutoCAD 2021 did
+            // not flip a door of a linear parameter of no action beside the flip either (plugin v21, 24e-h).
             DxfDatabase db = Panel(out DxfBlockTableRecord block, out DxfBlockLinearParameter width, out DxfLine[] lines);
             block.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), lines.Take(3));
-            DxfLine mark = Add(block, new DxfLine(new GeoPoint3(20, 10, 0), new GeoPoint3(20, 40, 0)));
-            DxfBlockFlipParameter hand = block.AddFlipParameter("Hand", null, new GeoPoint3(50, 0, 0), new GeoPoint3(50, 50, 0));
+            Add(block, new DxfLine(new GeoPoint3(20, 10, 0), new GeoPoint3(20, 40, 0)));
             string before = db.ToText();
 
-            Assert.Throws<NotSupportedException>(() => block.AddFlipAction(hand, new[] { mark }));
+            Assert.Throws<NotSupportedException>(() => block.AddFlipParameter("Hand", null, new GeoPoint3(50, 0, 0), new GeoPoint3(50, 50, 0)));
             Assert.Equal(before, db.ToText());
 
             DxfDatabase door = Drawing("GH_DOOR", out DxfBlockTableRecord leafBlock);
             DxfLine leaf = Add(leafBlock, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(90, 0, 0)));
             DxfCircle knob = Add(leafBlock, new DxfCircle(new GeoPoint3(80, 5, 0), GeoVector3.ZAxis, 2));
-            leafBlock.AddFlipAction(leafBlock.AddFlipParameter("Hand", null, new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0)), new[] { leaf });
-            DxfBlockLinearParameter reach = leafBlock.AddLinearParameter("Reach", null, new GeoPoint3(0, 0, 0), new GeoPoint3(90, 0, 0), -10, null);
-            DxfBlockRotationParameter turn = leafBlock.AddRotationParameter("Turn", null, new GeoPoint3(80, 5, 0), 10, 0);
+            leafBlock.AddFlipAction(leafBlock.AddFlipParameter("Hand", null, new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0)), new DxfEntity[] { leaf, knob });
             string flipped = door.ToText();
 
-            Assert.Throws<NotSupportedException>(() => leafBlock.AddMoveAction(reach, new[] { knob }));
-            Assert.Throws<NotSupportedException>(() => leafBlock.AddStretchAction(reach, new GeoPoint2(70, -10), new GeoPoint2(100, 10), new[] { knob }));
-            Assert.Throws<NotSupportedException>(() => leafBlock.AddScaleAction(reach, new[] { knob }));
-            Assert.Throws<NotSupportedException>(() => leafBlock.AddRotateAction(turn, new[] { knob }));
-            Assert.Throws<NotSupportedException>(() => leafBlock.AddArrayAction(reach, new[] { knob }, 30));
+            Assert.Throws<NotSupportedException>(() => leafBlock.AddLinearParameter("Reach", null, new GeoPoint3(0, 0, 0), new GeoPoint3(90, 0, 0), -10, null));
+            Assert.Throws<NotSupportedException>(() => leafBlock.AddRotationParameter("Turn", null, new GeoPoint3(80, 5, 0), 10, 0));
+            Assert.Throws<NotSupportedException>(() => leafBlock.AddFlipParameter("Side", null, new GeoPoint3(0, 0, 0), new GeoPoint3(50, 0, 0)));
             Assert.Equal(flipped, door.ToText());
 
-            // A flip alone, as AutoCAD flipped both ways in v20 (24d-g), and a second flip beside it, are written.
-            leafBlock.AddFlipAction(leafBlock.AddFlipParameter("Side", null, new GeoPoint3(0, 0, 0), new GeoPoint3(50, 0, 0)), new[] { knob });
-            Property(TheInsert(door), "Side").Value = (short)1;
-            Assert.True(At(Assert.Single(Shown<DxfCircle>(TheInsert(Reopened(door)))).Center, 80, -5));
+            // A flip alone is written, as AutoCAD flipped it both ways in v20 (24d-g).
+            Property(TheInsert(door), "Hand").Value = (short)1;
+            Assert.True(At(Assert.Single(Shown<DxfCircle>(TheInsert(Reopened(door)))).Center, -80, 5));
         }
 
         // ---- the guide's examples ------------------------------------------------------------------------------------------

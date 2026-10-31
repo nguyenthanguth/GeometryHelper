@@ -368,9 +368,11 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.False(size.ReadOnly);
             Assert.Equal(new object[] { "Small", "Medium", "Large" }, size.GetAllowedValues());
 
-            DxfDynamicBlockReferenceProperty unmatched = Named(Insert(db, "1020"), "Size");
-            Assert.Equal("Custom", unmatched.Value);
-            Assert.Equal(new object[] { "Small", "Medium", "Large", "Custom" }, unmatched.GetAllowedValues());
+            // Since D24e2 an INSERT that saved no label reads the first row of the values it shows, the block's own Width 500
+            // the row Small's, as AutoCAD 2021 read the INSERTs of a lookup block itself (plugin v21b).
+            DxfDynamicBlockReferenceProperty unsaved = Named(Insert(db, "1020"), "Size");
+            Assert.Equal("Small", unsaved.Value);
+            Assert.Equal(new object[] { "Small", "Medium", "Large" }, unsaved.GetAllowedValues());
 
             nodes[2] = LookupAction("1033", 24, false);
             Assert.True(Named(Insert(Drawing(nodes, new KeyValuePair<int, string>[0]), "1020"), "Size").ReadOnly);

@@ -96,7 +96,7 @@ namespace GeometryHelper.Dxf
                         Bind(properties, before, insert, id);
                         break;
                     case "BLOCKLOOKUPPARAMETER":
-                        Lookup(groups, id, cache, nodes, properties);
+                        Lookup(groups, id, cache, nodes, saved, properties);
                         Bind(properties, before, insert, id);
                         break;
                 }
@@ -246,10 +246,11 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// A lookup parameter: the value the INSERT saved (1 of its data); its column of the lookup table of the action its 94
         /// names, the column whose node (94) is the parameter's, gives the values allowed, each once, in the order of the rows.
-        /// Where the INSERT saved none, a table with columns to look up from gives the column's label of no match (305), which
-        /// is then allowed too, a table of none its first value. Read only where the column allows no reverse lookup (281 of 0).
+        /// Where the INSERT saved none, a table with columns to look up from gives the cell of the first row whose inputs are
+        /// the values the INSERT shows, as <see cref="Matched"/> says, else the column's label of no match (305), which is then
+        /// allowed too; a table of none its first value. Read only where the column allows no reverse lookup (281 of 0).
         /// </summary>
-        private static void Lookup(IReadOnlyList<DxfTypedValue> groups, string id, IReadOnlyList<DxfTypedValue> cache, List<DxfItem> nodes, List<DxfDynamicBlockReferenceProperty> properties)
+        private static void Lookup(IReadOnlyList<DxfTypedValue> groups, string id, IReadOnlyList<DxfTypedValue> cache, List<DxfItem> nodes, Dictionary<string, DxfXrecord> saved, List<DxfDynamicBlockReferenceProperty> properties)
         {
             List<DxfTypedValue> own = Section(groups, "AcDbBlockLookUpParameter");
             string action = Text(own, 94)?.Trim();
@@ -309,7 +310,7 @@ namespace GeometryHelper.Dxf
 
             bool inputs = columns.Exists(c => !(c.TryGetValue(282, out string looked) && looked.Trim() == "1"));
             string unmatched = DxfReader.Decode(columns[column].TryGetValue(305, out string label) ? label : string.Empty);
-            string value = Saved(cache) ?? (inputs ? unmatched : allowed.Count > 0 ? (string)allowed[0] : string.Empty);
+            string value = Saved(cache) ?? (inputs ? Matched(cells, columns, width, column, nodes, saved) ?? unmatched : allowed.Count > 0 ? (string)allowed[0] : string.Empty);
 
             if (inputs && value == unmatched && !allowed.Contains(unmatched))
             {
@@ -318,6 +319,69 @@ namespace GeometryHelper.Dxf
 
             bool readOnly = !(columns[column].TryGetValue(281, out string reverse) && reverse.Trim() == "1");
             properties.Add(new DxfDynamicBlockReferenceProperty(Name(own, 303), Words(own, 304), value, 5, DxfDynamicBlockReferencePropertyUnitsType.NoUnits, readOnly, allowed.ToArray()));
+        }
+
+        /// <summary>
+        /// The cell of a lookup's column, by its index, of the first row whose input cells are the values the INSERT shows its
+        /// inputs at, within the point tolerance of <see cref="Tolerance.Default"/>, in the block's units: the distance of a
+        /// linear parameter (UpdatedDistance), the x or the y of a point parameter (UpdatedX, UpdatedY), each as the INSERT
+        /// saved it, else the block's own, as AutoCAD 2021 read Small on an INSERT of a lookup block itself whose Width 100 and
+        /// Height 50 were the row Small's (plugin v21b); null where no row holds them, or an input is of another kind.
+        /// </summary>
+        private static string Matched(List<string> cells, List<Dictionary<int, string>> columns, int width, int column, List<DxfItem> nodes, Dictionary<string, DxfXrecord> saved)
+        {
+            var inputs = new List<KeyValuePair<int, double>>();
+
+            for (int c = 0; c < width; c++)
+            {
+                if (c >= columns.Count)
+                {
+                    return null;
+                }
+
+                Dictionary<int, string> described = columns[c];
+
+                if (described.TryGetValue(282, out string looked) && looked.Trim() == "1")
+                {
+                    continue;
+                }
+
+                string node = described.TryGetValue(94, out string read) ? read.Trim() : null;
+                string connection = described.TryGetValue(304, out string named) ? named.Trim() : null;
+                DxfItem parameter = node == null ? null : nodes.Find(n => Text(Section(n.Groups, "AcDbEvalExpr"), 90)?.Trim() == node);
+                IReadOnlyList<DxfTypedValue> cache = node != null && saved.TryGetValue(node, out DxfXrecord record) ? record.Data : null;
+
+                if (parameter?.Type == "BLOCKLINEARPARAMETER" && connection == "UpdatedDistance" && TwoPoints(parameter.Groups, cache, out double[] from, out double[] to))
+                {
+                    inputs.Add(new KeyValuePair<int, double>(c, Distance(from, to)));
+                }
+                else if (parameter?.Type == "BLOCKPOINTPARAMETER" && (connection == "UpdatedX" || connection == "UpdatedY"))
+                {
+                    List<double[]> points = Points(cache);
+                    double[] at = points.Count >= 1 ? points[0] : PointOf(Section(parameter.Groups, "AcDbBlock1PtParameter"), 1010);
+
+                    if (at == null)
+                    {
+                        return null;
+                    }
+
+                    inputs.Add(new KeyValuePair<int, double>(c, connection == "UpdatedX" ? at[0] : at[1]));
+                }
+                else
+                {
+                    return null;
+                }
+            }
+
+            for (int row = 0; row + width <= cells.Count; row += width)
+            {
+                if (inputs.TrueForAll(i => Number(cells[row + i.Key], out double cell) && Math.Abs(cell - i.Value) <= Tolerance.Default.EqualPoint))
+                {
+                    return cells[row + column];
+                }
+            }
+
+            return null;
         }
 
         /// <summary>A length property of a label and a description of the codes given.</summary>

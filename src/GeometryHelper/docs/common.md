@@ -1413,11 +1413,15 @@ moves its entities whole by the change of the point it follows: the end point of
 of a point parameter. A scale scales them alike about the base point of its linear parameter by the distance over the
 block's own; a rotate turns them about the base point of its rotation parameter by the angle less the block's own; a flip
 mirrors them about its reflection line while the state is 1. The actions are worked out in the order they were added, the
-stretches in a row summed point by point first. A flip is written in a block of no stretch, move, scale, rotate or array:
-either given second is refused with NotSupportedException. AutoCAD 2021 stretched the edges of a panel flipped about the y
-axis from where the last flip left them, to x = -250 for a Width of 150 set after 200 (check v20), and, the flip and the
-stretch holding other entities, did not flip an INSERT of the block itself, reading its Hand back as 0, though it flipped
-one the library had set and flipped one of a block of the flip alone (check v20b). A scale or a rotate turns about its parameter's base
+stretches in a row summed point by point first. A flip parameter is written alone in its block: a flip parameter in a
+block of any other parameter, and any other parameter in a block of a flip, are refused with NotSupportedException.
+AutoCAD 2021 flipped a door of the flip alone both ways (check v20), but set Hand to 1 on INSERTs of a door that also had a
+linear parameter of no action, and of a panel whose stretch held other entities, it read 0 back each time and left the
+leaf as it was (checks v20b and v21). A rotate or a scale and a stretch or a move of one entity are refused the same way,
+either given second, and an INSERT of a block of such an entity from another writer is not set: AutoCAD 2021 worked such an
+entity out from where its last set left it, stretching a shaft turned a quarter turn along x to (0, 155) for a Reach of
+150 set after 200, where the block's values give (50, 105) (check v21). A turn and a stretch of different entities of one
+block are written and worked out. A scale or a rotate turns about its parameter's base
 point as AutoCAD writes it, 1012 nought: AutoCAD 2021 adds 1012 to the base point, and turned an arrow about (100, 50) for
 a base point of (50, 25) when the library wrote that point there (check v20). The angle and the flip have no value set; a distance of an XY parameter is above the point
 tolerance. The block keeps its own values: an INSERT shows them until its property is set. Writing a point, a rotation, a flip
@@ -1425,7 +1429,7 @@ and an XY parameter with their actions takes about a millisecond, and setting an
 INSERTs about half a millisecond under .NET 10 and one under .NET Framework 4.8. A polar parameter with its polar stretch is
 not written: AutoCAD's sample of it holds its entity to turn only, and does not show how the entities it stretches are kept.
 
-The last kinds, each in a few lines, added to the drawing above:
+The last kinds, each in a few lines, added to the drawing above; each is shown as AutoCAD 2021 read it (check v21):
 
 ```csharp
 // Stretch of an arc by one end: its start (100, 25) is in the frame, its end (90, 35) is not; Width 200 moves the start to
@@ -1448,33 +1452,19 @@ DxfBlockLinearParameter span = centred.AddLinearParameter("Span", null, new GeoP
 centred.AddStretchAction(span, new GeoPoint2(90, -10), new GeoPoint2(110, 60), new[] { right });
 centred.AddMoveAction(span, new[] { mark }, 0.5, 0);
 
-// Array of a linear parameter: a post every 60 along Length; Length 250 shows four, at x = 0, 60, 120 and 180.
+// Array of a linear parameter: a post every 60 along Length; AutoCAD set Length 250 and drew four, at x = 0, 60, 120 and 180.
 DxfBlockTableRecord fence = Block("FENCE");
 var post = new DxfCircle(new GeoPoint3(0, 0, 0), GeoVector3.ZAxis, 5);
 fence.AppendEntity(post);
 DxfBlockLinearParameter length = fence.AddLinearParameter("Length", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
 fence.AddArrayAction(length, new[] { post }, 60);
 
-// Array of an XY parameter: columns every 25 along x, rows every 20 along y; Width 100 and Depth 70 show 4 by 3 bolts.
+// Array of an XY parameter: columns every 25 along x, rows every 20 along y; AutoCAD set Depth 70 and drew 1 by 3 bolts.
 DxfBlockTableRecord plate = Block("PLATE");
 var bolt = new DxfCircle(new GeoPoint3(0, 0, 0), GeoVector3.ZAxis, 5);
 plate.AppendEntity(bolt);
 DxfBlockXYParameter grid = plate.AddXYParameter("Width", null, "Depth", null, new GeoPoint3(0, 0, 0), new GeoPoint3(40, 30, 0));
 plate.AddArrayAction(grid, new[] { bolt }, 25, 20);
-
-// Lookup: Size sets Width and Height by the row of its label; Large gives 200 by 80, and Width 150 then reads Custom.
-DxfBlockTableRecord sized = Block("SIZED");
-var top = new DxfLine(new GeoPoint3(0, 50, 0), new GeoPoint3(100, 50, 0));
-var side = new DxfLine(new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0));
-sized.AppendEntity(top);
-sized.AppendEntity(side);
-DxfBlockLinearParameter w = sized.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
-sized.AddStretchAction(w, new GeoPoint2(90, -10), new GeoPoint2(110, 60), new[] { top, side });
-DxfBlockLinearParameter h = sized.AddLinearParameter("Height", null, new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0), 20, null);
-sized.AddStretchAction(h, new GeoPoint2(-10, 40), new GeoPoint2(110, 60), new[] { top, side });
-sized.AddLookupParameter("Size", "Panel size", new GeoPoint3(50, -20, 0),
-    new[] { DxfBlockLookupInput.Distance(w), DxfBlockLookupInput.Distance(h) },
-    new[] { new DxfBlockLookupRow("Small", 100, 50), new DxfBlockLookupRow("Large", 200, 80) });
 
 // Alignment and base point: grips AutoCAD uses when the block is placed; they give no property.
 DxfBlockTableRecord pipe = Block("PIPE");
@@ -1484,11 +1474,8 @@ pipe.AddBasePointParameter(new GeoPoint3(0, 0, 0));
 
 Place(bend, 0, 0).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Width").Value = 200.0;
 Place(centred, 0, 200).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Span").Value = 200.0;
-Place(fence, 0, 400).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Length").Value = 250.0;
-DxfBlockReference sheet = Place(plate, 300, 400);
-sheet.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Width").Value = 100.0;
-sheet.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Depth").Value = 70.0;
-Place(sized, 600, 400).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Size").Value = "Large";
+Place(fence, 0, 400);
+Place(plate, 300, 400);
 Place(pipe, 900, 400);
 db.Save("panel.dxf");
 ```
@@ -1498,29 +1485,43 @@ middle off its chord, as AutoCAD 2021 stretched one (check v20): the arc of the 
 start moved to (150, 25) and then to (200, 25), kept its height of 2.929 as its radius grew to 159.37 and then 522.13. AutoCAD
 numbers an arc's start 0 and its end 1; an arc held by one end lies flat, its normal along z, and a tilted one is refused.
 A stretch and a move take a distance multiplier and an angle offset, AutoCAD's Distance Multiplier and Angle Offset: the
-change of the point they follow is multiplied by the one and turned counter-clockwise by the other, in radians; the
-overloads without them write 1 and nought. A move that lists its own parameter's grip among what it moves, as AutoCAD's
-point sample does and as drawings from AutoCAD often do, is worked out too, the grip following its parameter anyway.
+change of the point they follow is multiplied by the one and turned counter-clockwise by the other, in radians, as AutoCAD
+2021 read them (check v21); the overloads without them write 1 and nought. An INSERT whose value the library sets keeps the
+offset in its cache as AutoCAD keeps it: AutoCAD moved along x, unturned, the circle of an offset of a quarter turn on an
+INSERT whose cache held nought. A move that lists its own parameter's grip among what it moves, as AutoCAD's point sample
+does and as drawings from AutoCAD often do, is worked out too, the grip following its parameter anyway.
 
 An array copies its entities as its parameter's distance grows: along a linear parameter a copy at each column spacing
 from the base point towards the end point, of an XY parameter in columns along x and rows along y the way the end point
-lies; each count is the distance over its spacing, rounded down, one at least, as AutoCAD's save of ACadSharp's XY sample
-shows (four columns of 25 in 100.59, five rows of 20 in 104.30). The entity itself is the first copy, the others keep its
-tag. An entity an array copies is worked on by no other action, and a block's own distance that holds the spacing twice
-draws one copy still, as AutoCAD's block itself does. The linear parameter's array is written as the XY sample's with no
-rows (140 nought), which no sample of AutoCAD shows.
+lies; each count is the distance over its spacing, rounded down, as AutoCAD's save of ACadSharp's XY sample shows (four
+columns of 25 in 100.59, five rows of 20 in 104.30) and as AutoCAD 2021 drew the blocks above (four posts at 250, one at
+119; one column of three rows at 40 by 70, two bolts at 60 by 30). An XY array of a count of nought copies nothing, as
+AutoCAD drew the one circle of its sample at 80 by 5. The entity itself is the first copy; the others keep its tag and are
+tagged as AutoCAD tags the copies of its arrays (AcDbBlockArrayActionTag). An entity an array copies is worked on by no
+other action, and a block's own distance that holds the spacing twice draws one copy still, as AutoCAD's block itself does.
+The linear parameter's array is written as the XY sample's with no rows (140 nought). AutoCAD 2021 refused to set again an
+INSERT whose array the library had set while its copies were not tagged (eInvalidInput, check v21); with the tags, that is
+still to be checked, and the example above leaves the arrays' values to AutoCAD.
 
-A lookup parameter's table has input columns, each the distance of a linear parameter or the x or the y of a point
-parameter (`DxfBlockLookupInput.Distance`, `X`, `Y`), and rows of a label and a value for each column
-(`DxfBlockLookupRow`). Its property is set by a row's label, letters of either case the same, and sets the inputs to the
-row's values; set any input, it reads the label of the first row of the values then, or Custom where no row holds them.
-An INSERT of the block itself, of no cache, reads Custom, as such an INSERT of AutoCAD's sample is read. The parameter and
-its action are written as AutoCAD saved those of ACadSharp's lookup sample, each pair of edges between the action and a
-parameter naming each other. Values of the table are in the block's units.
+A lookup parameter is not in the example above: AutoCAD 2021 read the lookup blocks the library wrote before as dynamic,
+but none of their INSERTs (check v21), and the edges it lacked are written since and have yet to be checked. Its table has
+input columns, each the distance of a linear parameter or the x or the y of a point parameter
+(`DxfBlockLookupInput.Distance`, `X`, `Y`), and rows of a label and a value for each column (`DxfBlockLookupRow`), as
+`AddLookupParameter("Size", "Panel size", new GeoPoint3(50, -20, 0), new[] { DxfBlockLookupInput.Distance(w),
+DxfBlockLookupInput.Distance(h) }, new[] { new DxfBlockLookupRow("Small", 100, 50), new DxfBlockLookupRow("Large", 200,
+80) })` gives a panel of a Width w and a Height h. Its property is set by a row's label, letters of either case the same,
+and sets the inputs to the row's values; set any input, it reads the label of the first row of the values then, or Custom
+where no row holds them. A label reads back as the table holds it, a space after it kept: AutoCAD's lookup sample labels a
+row "Size 6 ", and AutoCAD read it so after the library set the sample's INSERT to it (check v21). An INSERT of the block
+itself, of no saved label, reads the first row of the block's own values, else Custom, as AutoCAD 2021 read Small for a
+panel's own Width 100 and Height 50 (check v21b). The parameter and its action are written
+as AutoCAD saved those of ACadSharp's lookup sample, each pair of edges between the action and a parameter naming each
+other and flagged 4 as the sample flags them. Values of the table are in the block's units.
 
 An alignment parameter and a base point parameter are written as AutoCAD saved ACadSharp's samples of them, and give no
-property; a block takes one of each. Where AutoCAD places an INSERT against its base point is not known; the library keeps
-the block's entities where they are.
+property; a block takes one of each, and AutoCAD 2021 read them so (check v21). AutoCAD drew an INSERT at (300, 0) of a
+panel 100 by 50 of a base point at (20, 10) over x 300 to 400, the block's entities where they are, as the library keeps
+them.
 
 `insert.ConvertToStaticBlock("BOLT_500")` makes the INSERT place a
 new block BOLT_500 holding copies of what it draws, the anonymous block's entities (or the dynamic block's, where it places
