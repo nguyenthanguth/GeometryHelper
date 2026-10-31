@@ -1196,6 +1196,49 @@ foreach (DxfDynamicBlockReferenceProperty p in insert.DynamicBlockReferencePrope
 }
 ```
 
+A dynamic block is made in code from a block of a drawing of R2010 or later: `AddLinearParameter` gives it a linear
+parameter, a distance from a base point to an end point that every INSERT of it shows as a property of the parameter's
+name, with the values it may take (`DxfBlockParameterValueSet.Increments(minimum, maximum, increment)`, `List(values)`, or
+null for any), and `AddStretchAction` ties the entities to it: as the distance grows by an amount, the points of the lines
+and polylines inside the stretch frame (a rectangle of two corners, in the block's coordinates) move by that amount from
+the base point towards the end point, so an entity across the frame stretches and one inside it moves whole. A rectangle
+100 by 50 given Width from (0, 0, 0) to (100, 0, 0), from 50 to 300 by 10, and the stretch of its right edge by the frame
+(90, -10)-(110, 60):
+
+```csharp
+DxfDatabase db = DxfDatabase.Open("empty-r2010.dxf");          // any drawing of R2010 (AC1024) or later
+var panel = new DxfBlockTableRecord { Name = "PANEL", Origin = new GeoPoint3(0, 0, 0) };
+db.BlockTable.Add(panel);
+var right = new DxfLine(new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0));
+var bottom = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0));
+var top = new DxfLine(new GeoPoint3(0, 50, 0), new GeoPoint3(100, 50, 0));
+var left = new DxfLine(new GeoPoint3(0, 50, 0), new GeoPoint3(0, 0, 0));
+foreach (DxfLine line in new[] { right, bottom, top, left })
+{
+    panel.AppendEntity(line);
+}
+
+DxfBlockLinearParameter width = panel.AddLinearParameter("Width", "Overall width", new GeoPoint3(0, 0, 0),
+    new GeoPoint3(100, 0, 0), -20, DxfBlockParameterValueSet.Increments(50, 300, 10));
+panel.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), new[] { right, bottom, top });
+db.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), panel));
+db.Save("panel.dxf");
+```
+
+The frame holds the right edge whole and the right ends of the bottom and the top; the left edge has no point in it and is
+not given (an entity given with none is refused, as is any type but a LINE and a LWPOLYLINE). The INSERT shows
+`Width = 100.0`; AutoCAD 2021, given the same block (plugin v17), set it to 200 and moved the right edge to x = 200, took
+75 to 70, 77 to 80 and 400 to 300 by the value set, and kept the values through a DXF and a DWG saved and opened again. The block is written as AutoCAD's Block
+Editor saves one: the extended data AcDbDynamicBlockTrueName, AcDbDynamicBlockGUID (a new GUID) and AcDbBlockRepETag on
+its BLOCK_RECORD, a tag on each of its entities, the evaluation graph and the purge preventer in its extension dictionary,
+each parameter with its two grips and their location components, and the classes listed; the graph of the block above is
+AutoCAD 2021's own save of it, number for number. A block may be given several parameters, each with its actions, named
+Linear, Linear1 and Stretch, Stretch1 and on as AutoCAD names them; a second parameter Height from (0, 0, 0) to (0, 50, 0)
+with the frame (-10, 40)-(110, 60) over the top gives each INSERT Width and then Height. The library writes the block and
+does not work it out: an INSERT shows the block's own distance until AutoCAD changes it. Writing the parameter and the
+stretch of the rectangle takes about half a millisecond, and tagging and stretching a block of 1 000 lines 16 milliseconds
+under .NET Framework 4.8 and 31 under .NET 10.
+
 `insert.ConvertToStaticBlock("BOLT_500")` makes the INSERT place a
 new block BOLT_500 holding copies of what it draws, the anonymous block's entities (or the dynamic block's, where it places
 that), its tie to the dynamic block (the entry AcDbBlockRepresentation of its extension dictionary) taken out;
@@ -1761,7 +1804,9 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
   multileader made in code starts its leader's dogleg at the base point of its content (10 of the context data), at the
   origin where its block is placed after its leader line is added.
 - It does not evaluate a dynamic block. `DynamicBlockReferencePropertyCollection` reads the values AutoCAD saved, and none
-  can be set: changing one is AutoCAD's engine's work, which moves, stretches and hides the block's entities. A block whose
+  can be set: changing one is AutoCAD's engine's work, which moves, stretches and hides the block's entities. A dynamic
+  block is written with linear parameters and stretch actions of lines and polylines only, its frame a rectangle; other
+  parameters, actions, entities and a frame of a polygon are not written. A block whose
   entities another program changed keeps the values AutoCAD saved. Constraint parameters and a block properties table give
   no properties. `ConvertToStaticBlock` copies what the INSERT draws as it stands; `ResetBlock` is not there. `db.Insert` of
   another drawing brings a dynamic block of it as a static one, without the data that makes it dynamic, which AutoCAD's

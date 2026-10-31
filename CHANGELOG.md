@@ -6,6 +6,20 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** A dynamic block is made in code. `DxfBlockTableRecord.AddLinearParameter(name, description, basePoint, endPoint,
+labelOffset, valueSet)` gives a block of a drawing of R2010 or later a linear parameter, the property of its name on every
+INSERT of the block, its values free or held by the new `DxfBlockParameterValueSet` (`Increments(minimum, maximum,
+increment)` or `List(values)`), and returns the new `DxfBlockLinearParameter`; `AddStretchAction(parameter, frameCorner,
+oppositeCorner, entities)` ties lines and polylines to it, the points inside the frame moving as the distance grows. The
+block is written as AutoCAD's Block Editor saves one, its extended data, entity tags, evaluation graph with both grips,
+purge preventer and classes; a block may hold several parameters, each with its actions. A rectangle 100 by 50 given Width
+from 50 to 300 by 10 and the stretch of its right edge comes out with the graph AutoCAD 2021 saved of the same block
+written by a script, number for number, which AutoCAD read as dynamic, stretched to x = 200 for a Width of 200, and kept
+through a DXF and a DWG saved and opened again (plugin v17); every INSERT reads `Width = 100.0` through
+`DynamicBlockReferencePropertyCollection`, and ezdxf 1.4.5 recovers and audits the files with no error. The library does not
+work the block out: an INSERT shows the block's own distance until AutoCAD changes it. Other parameters and actions, other
+entities and a frame of a polygon are not written. 11 new tests.
+
 **NEW.** `DxfBlockReference.DynamicBlockReferencePropertyCollection` reads the dynamic properties of an INSERT of a dynamic
 block as AutoCAD saved them, read only: each a `DxfDynamicBlockReferenceProperty` with AutoCAD's `PropertyName`, `Value`,
 `PropertyTypeCode`, `UnitsType` (the new `DxfDynamicBlockReferencePropertyUnitsType`), `ReadOnly`, `Description` and

@@ -300,6 +300,9 @@ namespace GeometryHelper.Dxf
         // BLOCK_RECORD (2), and the arrows of a dimension style of R12 (5, 6 and 7).
         private static readonly string[] Naming = { "TABLES", "ENTITIES", "BLOCKS" };
 
+        // The line breaks a label or a description of a dynamic parameter may not hold, which would end its group.
+        private static readonly char[] LineBreaks = { '\r', '\n' };
+
         private DxfFile _file;
         private DxfFileBlock _block;
         private DxfSpace _space;
@@ -738,6 +741,249 @@ namespace GeometryHelper.Dxf
             }
 
             return blocks.AsReadOnly();
+        }
+
+        /// <summary>
+        /// Makes the block dynamic, where it is not, and gives it a linear parameter: a distance from a base point to an end
+        /// point that each INSERT of the block shows as the dynamic property of its name, AutoCAD's Linear parameter of two grips
+        /// as its Block Editor makes one. Tie the parameter to the entities it moves with <see cref="AddStretchAction"/>.
+        /// </summary>
+        /// <param name="name">The label of the parameter, the name of the property, as Width.</param>
+        /// <param name="description">The description of the property; null or empty for none.</param>
+        /// <param name="basePoint">The point the distance is measured from, in the block's coordinates.</param>
+        /// <param name="endPoint">The point the distance is measured to, which the property moves.</param>
+        /// <param name="labelOffset">How far the label stands off the line, to its left looking from the base point to the end
+        /// point: -20 puts the label of a Width along x 20 below it.</param>
+        /// <param name="valueSet">The values the distance may take (<see cref="DxfBlockParameterValueSet.Increments"/>,
+        /// <see cref="DxfBlockParameterValueSet.List"/>); null for any.</param>
+        /// <returns>The parameter, as written.</returns>
+        /// <remarks>
+        /// <para>
+        /// A rectangle 100 by 50 from the origin given <c>AddLinearParameter("Width", "Overall width", new GeoPoint3(0, 0, 0),
+        /// new GeoPoint3(100, 0, 0), -20, DxfBlockParameterValueSet.Increments(50, 300, 10))</c> and a stretch of its right edge
+        /// is the block AutoCAD 2021 read as dynamic (plugin v17): every INSERT of it shows Width 100, and a Width set to 200
+        /// moves the right edge to x = 200; 75 goes to 70, 77 to 80 and 400 to 300 by the value set.
+        /// </para>
+        /// <para>
+        /// The first parameter makes the block dynamic, as AutoCAD's Block Editor saves it: its BLOCK_RECORD is given the
+        /// extended data AcDbDynamicBlockTrueName (its name), AcDbDynamicBlockGUID (a new GUID) and AcDbBlockRepETag, each of its
+        /// entities a tag of AcDbBlockRepETag, and its extension dictionary the evaluation graph (ACAD_ENHANCEDBLOCK) and the
+        /// purge preventer; the classes of the objects are listed in the CLASSES section. Each parameter is written as AutoCAD
+        /// writes one, with its end grip and base grip, each with its two location components: seven nodes of the graph and six
+        /// edges. Its element is named Linear, the next Linear1 and on, as AutoCAD names them. The block may be given several,
+        /// each a property of its INSERTs in the order they were added.
+        /// </para>
+        /// <para>
+        /// The library writes the block and does not work it out: an INSERT of it shows the block's own distance until AutoCAD
+        /// changes it, and <see cref="DxfBlockReference.DynamicBlockReferencePropertyCollection"/> reads that. An entity
+        /// appended after the last parameter or action has no tag, which AutoCAD 2021 did not need (plugin v17, 24a-c).
+        /// </para>
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the name or a point is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the name is empty, the name or the description holds a line break,
+        /// the base point and the end point are within the point tolerance of <see cref="Tolerance.Default"/>, or the value set
+        /// does not hold the distance between them, the block's own value.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the offset is not a finite number.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the block is in no file, is erased, is model space, paper
+        /// space or the block of a layout, is anonymous or of an external reference, or its drawing is older than R2010
+        /// (AC1024), the oldest AutoCAD was seen to read such a block of.</exception>
+        public DxfBlockLinearParameter AddLinearParameter(string name, string description, GeoPoint3 basePoint, GeoPoint3 endPoint, double labelOffset, DxfBlockParameterValueSet valueSet)
+        {
+            if (name == null)
+            {
+                throw new ArgumentNullException(nameof(name));
+            }
+
+            if (basePoint == null)
+            {
+                throw new ArgumentNullException(nameof(basePoint));
+            }
+
+            if (endPoint == null)
+            {
+                throw new ArgumentNullException(nameof(endPoint));
+            }
+
+            description = description ?? string.Empty;
+
+            if (name.Trim().Length == 0 || name.IndexOfAny(LineBreaks) >= 0)
+            {
+                throw new ArgumentException("A parameter is labelled by a name of one line at least one letter long.", nameof(name));
+            }
+
+            if (description.IndexOfAny(LineBreaks) >= 0)
+            {
+                throw new ArgumentException("The description of a parameter is of one line.", nameof(description));
+            }
+
+            Guard.Finite(labelOffset, nameof(labelOffset), "The offset of a label is a finite number.");
+            double distance = basePoint.GetVectorTo(endPoint).Length;
+
+            if (!(distance > Tolerance.Default.EqualPoint))
+            {
+                throw new ArgumentException("The end point of a linear parameter is apart from its base point, beyond the point tolerance.", nameof(endPoint));
+            }
+
+            if (valueSet != null && !valueSet.Holds(distance))
+            {
+                throw new ArgumentException("The value set " + (valueSet.IsList ? "lists" : "steps through") + " no distance of "
+                    + distance.ToString("R", CultureInfo.InvariantCulture) + ", the block's own between the base point and the end point.", nameof(valueSet));
+            }
+
+            Dynamic("be given a parameter");
+            return DxfDynamicBlockWriter.AddLinear(this, name.Trim(), description, basePoint, endPoint, labelOffset, valueSet);
+        }
+
+        /// <summary>
+        /// Gives the block a stretch action tied to a linear parameter of it, AutoCAD's Stretch action as its Block Editor makes
+        /// one: as the parameter's distance grows by an amount, the points of the entities inside the frame move by that amount
+        /// along the line from the parameter's base point to its end point and the points outside stay, so an entity across the
+        /// frame stretches and one inside it moves whole.
+        /// </summary>
+        /// <param name="parameter">The parameter of this block the action follows, by its end point.</param>
+        /// <param name="frameCorner">A corner of the stretch frame, a rectangle along the block's x and y.</param>
+        /// <param name="oppositeCorner">The corner across from it.</param>
+        /// <param name="entities">The entities of the block to stretch, each a LINE (<see cref="DxfLine"/>) or a LWPOLYLINE
+        /// (<see cref="DxfPolyline"/>) with one point in the frame at least: a line's start or end, a polyline's vertex.</param>
+        /// <remarks>
+        /// <para>
+        /// The rectangle 100 by 50 of the lines (100, 0)-(100, 50), (0, 0)-(100, 0), (0, 50)-(100, 50) and (0, 50)-(0, 0), its
+        /// Width from (0, 0, 0) to (100, 0, 0), given the frame from (90, -10) to (110, 60) and the first three lines, holds the
+        /// right edge whole and the right ends of the bottom and the top: AutoCAD 2021 set Width to 200 and moved them to
+        /// x = 200, the left edge staying at x = 0 (plugin v17). A point is in the frame within the point tolerance of
+        /// <see cref="Tolerance.Default"/>, on its border among them. The action is written as AutoCAD writes one: its frame
+        /// as two corners, the least first, each entity with the indices of its points in the frame (0 a line's start, 1 its
+        /// end, a polyline's vertex by its index), and the edge from the parameter in the evaluation graph; its element is
+        /// named Stretch, the next Stretch1 and on. A parameter may be followed by several actions.
+        /// </para>
+        /// <para>
+        /// Only lines and polylines are taken, whose points AutoCAD's files number as above; how AutoCAD numbers the points of
+        /// an arc, a circle, a text or an INSERT in a stretch action is not known yet. A polyline's vertices are taken in the
+        /// block's coordinates (<see cref="DxfPolyline.GetPoint3dAt"/>), their x and y. An entity given twice is taken once.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the parameter, a corner, the entities or one of them is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the parameter is of another block or no longer in its graph, the
+        /// frame is no wider or no higher than the point tolerance, there are no entities, or an entity is not of this block,
+        /// is erased, is neither a line nor a polyline, or has no point in the frame. Nothing is written then.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
+        public void AddStretchAction(DxfBlockLinearParameter parameter, GeoPoint2 frameCorner, GeoPoint2 oppositeCorner, IEnumerable<DxfEntity> entities)
+        {
+            if (parameter == null)
+            {
+                throw new ArgumentNullException(nameof(parameter));
+            }
+
+            if (frameCorner == null)
+            {
+                throw new ArgumentNullException(nameof(frameCorner));
+            }
+
+            if (oppositeCorner == null)
+            {
+                throw new ArgumentNullException(nameof(oppositeCorner));
+            }
+
+            if (entities == null)
+            {
+                throw new ArgumentNullException(nameof(entities));
+            }
+
+            if (parameter.Block != this)
+            {
+                throw new ArgumentException("The parameter " + parameter.Name + " is of the block " + parameter.Block.Name + ", not of " + Name + ".", nameof(parameter));
+            }
+
+            double slack = Tolerance.Default.EqualPoint;
+            var low = new GeoPoint2(Math.Min(frameCorner.X, oppositeCorner.X), Math.Min(frameCorner.Y, oppositeCorner.Y));
+            var high = new GeoPoint2(Math.Max(frameCorner.X, oppositeCorner.X), Math.Max(frameCorner.Y, oppositeCorner.Y));
+
+            if (!(high.X - low.X > slack) || !(high.Y - low.Y > slack))
+            {
+                throw new ArgumentException("A stretch frame is wider and higher than the point tolerance.", nameof(oppositeCorner));
+            }
+
+            Dynamic("be given an action");
+            var held = new List<KeyValuePair<DxfEntity, List<int>>>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (DxfEntity entity in entities)
+            {
+                if (entity == null)
+                {
+                    throw new ArgumentNullException(nameof(entities), "An entity to stretch is null.");
+                }
+
+                if (entity.IsErased || entity.Handle == null || !string.Equals(entity.OwnerHandle, Handle, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new ArgumentException("The entity " + (entity.Handle ?? string.Empty) + " to stretch is not of the block " + Name + ", or is erased.", nameof(entities));
+                }
+
+                var points = new List<GeoPoint3>();
+
+                if (entity is DxfLine line)
+                {
+                    points.Add(line.StartPoint);
+                    points.Add(line.EndPoint);
+                }
+                else if (entity is DxfPolyline polyline)
+                {
+                    for (int i = 0; i < polyline.NumberOfVertices; i++)
+                    {
+                        points.Add(polyline.GetPoint3dAt(i));
+                    }
+                }
+                else
+                {
+                    throw new ArgumentException("A stretch action takes lines and polylines; the entity " + entity.Handle + " is neither.", nameof(entities));
+                }
+
+                var inside = new List<int>();
+
+                for (int i = 0; i < points.Count; i++)
+                {
+                    if (points[i].X >= low.X - slack && points[i].X <= high.X + slack && points[i].Y >= low.Y - slack && points[i].Y <= high.Y + slack)
+                    {
+                        inside.Add(i);
+                    }
+                }
+
+                if (inside.Count == 0)
+                {
+                    throw new ArgumentException("The entity " + entity.Handle + " has no point in the stretch frame, so nothing of it would move.", nameof(entities));
+                }
+
+                if (seen.Add(entity.Handle))
+                {
+                    held.Add(new KeyValuePair<DxfEntity, List<int>>(entity, inside));
+                }
+            }
+
+            if (held.Count == 0)
+            {
+                throw new ArgumentException("A stretch action is given one entity at least.", nameof(entities));
+            }
+
+            DxfDynamicBlockWriter.AddStretch(parameter, low, high, held);
+        }
+
+        /// <summary>Refuses a block that cannot be made dynamic: one of no file, erased, a layout's, anonymous, of an external reference, or of a drawing older than R2010.</summary>
+        private void Dynamic(string what)
+        {
+            if (_file == null || Item == null || Item.Type != "BLOCK_RECORD" || IsErased)
+            {
+                throw new InvalidOperationException("The block " + Name + " is in no file of R2010 or later, or is erased, and cannot " + what + ".");
+            }
+
+            if (IsLayout || IsAnonymous || IsFromExternalReference)
+            {
+                throw new InvalidOperationException("The block " + Name + " is a layout's, anonymous or of an external reference, which AutoCAD does not make dynamic.");
+            }
+
+            if (!_file.Supports(1024))
+            {
+                throw new InvalidOperationException("A dynamic block is written in a DXF of R2010 (AC1024) or later, the oldest AutoCAD 2021 was seen to read one of; this drawing is " + (_file.Version ?? "of R12") + ".");
+            }
         }
 
         /// <summary>
