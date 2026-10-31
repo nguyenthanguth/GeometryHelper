@@ -1543,6 +1543,19 @@ more out, where the finer tolerance would come within eight trillionths of the s
 the tolerance of the plane of, as an opening's wall 0.0004 off an L's inner wall and 5 along it, is found standing apart
 too, by `TryCutOpenings`, `GetVolume`, `Section` and `Mesh3.ToCells` as well: that L measured 0.09 too little.
 
+**Openings that come out open cut in at once**, asked at a millionth or below, have the boolean worked out again on the
+material `TryCutOpenings` gives, which closes such a cut by a weld or takes the openings out one at a time. The planes of
+an opening cut only the pieces of the body its box reaches, and a piece beside one so cut kept a face the other's faces
+did not match: a plate 200 by 100 by 3 with two blind openings up from its floor whose ceilings stood 0.00095 apart came
+out of that cut open, and the plate less a box across both openings held 22 717.96, 1.05 short, and was not valid, and
+the two joined were not worked out. What the operation gives worked out again is taken where what came as before is not
+made, not valid, or holds another volume than it, beyond the planar tolerance and the rounding of the coordinates times
+its area. Of 12 000 such booleans of prisms with two or three openings whose walls stood 0.000 15 to 0.03 apart and
+boxes, between nought and a millionth, the 6 020 within a million of the origin held 221 wrong and trusted, 806 not
+worked out and 751 not valid, and hold 38, 55 and 21 now; none that was right moved. Further out, where rounding moves a
+corner off a plane by more than a millionth, only what came out made and valid is worked out again: worked out again
+wherever it was not, 106 came out wrong and trusted. Above a millionth a boolean is as it was, to the bit.
+
 **Within a few roundings of the coordinates** a union, a common part or a difference reads a corner as on a plane within
 what rounding adds to the planar tolerance, a trillionth of the size of the coordinates, as the cut of openings does:
 where the planar tolerance is below that trillionth and the point tolerance no less than four tenths of the rounding, a

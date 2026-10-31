@@ -50,7 +50,12 @@ namespace GeometryHelper.Core
     /// tolerance, as <see cref="TryCutOpenings(GeoSolid3, out GeoSolid3, Tolerance)"/> cuts such openings, where no wall of
     /// the other body lies within the tolerance of the plane of a wall of the one. An L 100 by 80 by 50 with two blind
     /// openings whose walls stood 0.0009 apart, less a box across both walls, within a thousandth, held 130 189.39 one way
-    /// round and 130 189.26 the other, where it holds 130 189.32, as it does now.
+    /// round and 130 189.26 the other, where it holds 130 189.32, as it does now. Asked at a millionth or below, where the
+    /// openings of a body cut in at once come out open, the operation is worked out again on the material
+    /// <see cref="TryCutOpenings(GeoSolid3, out GeoSolid3, Tolerance)"/> gives, and that is taken where what came as before
+    /// is not made, not valid, or holds another volume: a plate 200 by 100 by 3 with two blind openings whose ceilings stood
+    /// 0.00095 apart, less a box across both, at a millionth, held 1.05 too little and was not valid, and the two joined
+    /// were not worked out.
     /// </para>
     /// <para>
     /// A result of two closed bodies is closed as <see cref="GeoSolid3.Validate(Tolerance)"/> reads it, or not made: one
@@ -159,12 +164,13 @@ namespace GeometryHelper.Core
             }
 
             // Below a few roundings of the coordinates the union is worked out within the rounding; see BelowTheRounding.
-            if (BelowTheRounding(first, second, tolerance, out Tolerance within))
-            {
-                return WithinTheRounding(UnionAsAsked, "union", first, second, out result, tolerance, within, out outcome, out open);
-            }
+            bool made = BelowTheRounding(first, second, tolerance, out Tolerance within)
+                ? WithinTheRounding(UnionAsAsked, "union", first, second, out result, tolerance, within, out outcome, out open)
+                : UnionAsAsked(first, second, out result, tolerance, out outcome, out open);
 
-            return UnionAsAsked(first, second, out result, tolerance, out outcome, out open);
+            // Where the openings of a body come out open cut in at once, the operation is worked out again on the material
+            // TryCutOpenings gives; see WithOpeningsCut.
+            return WithOpeningsCut(Union, first, second, made, ref result, tolerance, ref outcome, ref open);
         }
 
         /// <summary>
@@ -564,12 +570,13 @@ namespace GeometryHelper.Core
             }
 
             // Below a few roundings of the coordinates the common part is worked out within the rounding; see BelowTheRounding.
-            if (BelowTheRounding(first, second, tolerance, out Tolerance within))
-            {
-                return WithinTheRounding(IntersectAsAsked, "intersection", first, second, out result, tolerance, within, out outcome, out open);
-            }
+            bool made = BelowTheRounding(first, second, tolerance, out Tolerance within)
+                ? WithinTheRounding(IntersectAsAsked, "intersection", first, second, out result, tolerance, within, out outcome, out open)
+                : IntersectAsAsked(first, second, out result, tolerance, out outcome, out open);
 
-            return IntersectAsAsked(first, second, out result, tolerance, out outcome, out open);
+            // Where the openings of a body come out open cut in at once, the operation is worked out again on the material
+            // TryCutOpenings gives; see WithOpeningsCut.
+            return WithOpeningsCut(Intersect, first, second, made, ref result, tolerance, ref outcome, ref open);
         }
 
         /// <summary>
@@ -903,12 +910,13 @@ namespace GeometryHelper.Core
             }
 
             // Below a few roundings of the coordinates the difference is worked out within the rounding; see BelowTheRounding.
-            if (BelowTheRounding(subject, tool, tolerance, out Tolerance within))
-            {
-                return WithinTheRounding(SubtractAsAsked, "difference", subject, tool, out result, tolerance, within, out outcome, out open);
-            }
+            bool made = BelowTheRounding(subject, tool, tolerance, out Tolerance within)
+                ? WithinTheRounding(SubtractAsAsked, "difference", subject, tool, out result, tolerance, within, out outcome, out open)
+                : SubtractAsAsked(subject, tool, out result, tolerance, out outcome, out open);
 
-            return SubtractAsAsked(subject, tool, out result, tolerance, out outcome, out open);
+            // Where the openings of a body come out open cut in at once, the operation is worked out again on the material
+            // TryCutOpenings gives; see WithOpeningsCut.
+            return WithOpeningsCut(Subtract, subject, tool, made, ref result, tolerance, ref outcome, ref open);
         }
 
         /// <summary>

@@ -73,6 +73,26 @@ indexes over polylines, polygons, chains, loops, faces and rings of edges with s
 thousandth and a hundredth, 3 486 distances and 445 collisions differed from the shapes' own, and none does now; no pair
 without such a side moved, to the bit, and the two take the time they took. 2 new tests.
 
+**FIXED.** A union, a common part and a difference of a body whose openings, cut in at once as a boolean cuts them, come
+out open are worked out again on the material `TryCutOpenings` gives, asked at a millionth or below. The planes of an
+opening cut only the pieces of the body its box reaches, and a piece beside one so cut kept a face the other's faces did
+not match: a plate 200 by 100 by 3 with two blind openings up from its floor whose ceilings stood 0.00095 apart, at the
+origin or a hundred thousand out, came out of that cut open at a millionth, at 1E-9 and at nought. The plate less a box
+across both openings held 22 717.96, 1.05 short, and was not valid, and the two joined were not worked out; both hold
+what they should now. What the operation gives worked out again is taken where what came as before is not made, not
+valid, or holds another volume than it, beyond the planar tolerance and the rounding of the coordinates times its area.
+Of 12 000 unions, common parts and differences of prisms with two or three openings whose walls stood 0.000 15 to 0.03
+apart and boxes, turned about in space or not, at nought, 1E-12, the rounding, 1E-9 and 1E-6, the 6 020 at the origin
+and up to a million out held 221 wrong and trusted, 806 not worked out and 751 not valid; 38, 55 and 21 do now, and none
+that was right came out otherwise. Further out, where rounding moves a corner off a plane by more than a millionth and
+the material cannot tell such walls apart, worked out again 106 that were not worked out or not valid came out wrong and
+trusted; there only what came out made and valid is worked out again, and 125 of 780 wrong and trusted are right. Asked
+above a millionth, the default tolerance among it, a boolean is worked out as it was, to the bit, in the time it took.
+At a millionth and below, a boolean of a body with openings takes two fifths to a half longer, on .NET 10 and on .NET
+Framework 4.8, its openings cut in at once to look: the four booleans of a plate with twelve holes and a box 18.5
+milliseconds at a millionth, 27 now. Of the prisms above, many of whose booleans are worked out again, they take half
+as long again at 1E-9 and 1E-6, and 2.3 to 2.4 times as long at nought. 24 new tests.
+
 **FIXED.** A union, a common part and a difference of a body whose openings' walls stand apart within the tolerance of
 one plane keep each wall in its own plane, as `TryCutOpenings` keeps it. A boolean cut the openings of its bodies in at
 once within the tolerance, and the plane of one opening, cutting all it reached, took in the wall of another within the

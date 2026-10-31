@@ -287,6 +287,154 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
+        /// Works out a union, a common part or a difference of two bodies again on the material of each whose openings, cut in
+        /// at once as the boolean cuts them, come out open, or with a piece of it judged whole part in an opening and part out
+        /// (see <see cref="JudgedWhole"/>): the openings of that body cut into it as
+        /// <see cref="TryCutOpenings(GeoSolid3, out GeoSolid3, Tolerance)"/> cuts them, and the operation worked out on what
+        /// that gives. What it gives, made and closed within the tolerance the boolean works within, is taken where what the
+        /// operation gave as before is not made, not valid as <see cref="GeoSolid3.Validate(Tolerance)"/> reads it, or holds
+        /// another volume, further from it than the planar tolerance and the rounding of the coordinates times its area; more
+        /// than a million out, only where it is made, valid and holds another volume. Asked above a millionth, the operation
+        /// is as it was.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The planes of an opening cut only the cells its box reaches, and a cell beside one that was cut kept a face the
+        /// other's faces did not match: a plate 200 by 100 by 3 with two blind openings up from its floor whose ceilings stood
+        /// 0.00095 apart, at the origin or a hundred thousand out, cut in at once at a millionth or below, came out open. The
+        /// plate less a box across both openings held 22 717.96, 1.05 short, and was not valid, and the two joined were not
+        /// worked out; <c>TryCutOpenings</c> closes the cut by a weld or takes the openings out one at a time, and on what it
+        /// gives both come out as they hold.
+        /// </para>
+        /// <para>
+        /// Of 12 000 unions, common parts and differences of prisms with two or three openings whose walls stood 0.000 15 to
+        /// 0.03 apart and boxes, turned about in space or not, at nought, 1E-12, the rounding, 1E-9 and 1E-6, the 6 020 within
+        /// a million of the origin held 221 trusted and wrong, 806 not worked out and 751 not valid; 38, 55 and 21 do now,
+        /// and none that was right came out otherwise. Worked out again on the material wherever it was not made or not valid,
+        /// the 5 980 further out, where rounding moves a corner off a plane by more than a millionth and the material cannot
+        /// tell such walls apart, turned 106 not worked out or not valid into trusted and wrong; there, only what came out
+        /// made, valid and holding another volume is taken worked out again, and 125 of 780 trusted and wrong are right.
+        /// Looked for at 1E-3 and 1E-2 too, it moved none of 7 200 such booleans but for one more warning logged, and made the
+        /// four booleans of a plate with twelve holes and a box a fifth to a half slower; above a millionth the operation is
+        /// left as it was (see <see cref="Splition3.RaisedBelow"/>). At a millionth and below they take that much longer
+        /// still, and the booleans above, many of them worked out again, half as long again at 1E-9 and 1E-6 and more than
+        /// twice as long at nought.
+        /// </para>
+        /// </remarks>
+        /// <param name="operation">The operation, as the public methods work it out.</param>
+        /// <param name="first">The first body; for a difference, the one material is taken from.</param>
+        /// <param name="second">The second body; for a difference, the one taken away.</param>
+        /// <param name="made">What the operation as before returned.</param>
+        /// <param name="result">What the operation as before gave; what it gives worked out again where that is taken.</param>
+        /// <param name="tolerance">The tolerance asked.</param>
+        /// <param name="outcome">How the operation as before came out; <see cref="BooleanOutcome.Made"/> where it is worked out again.</param>
+        /// <param name="open">What came out open as before; what came out open worked out again where that is taken.</param>
+        /// <returns>What the operation returns.</returns>
+        private static bool WithOpeningsCut(Operation operation, GeoSolid3 first, GeoSolid3 second, bool made, ref GeoSolid3 result, Tolerance tolerance, ref BooleanOutcome outcome, ref GeoSolid3 open)
+        {
+            // Above a millionth what came as before is kept, as it was, to the bit; further out than a million, where rounding
+            // moves a corner off a plane by more than a millionth, only what came as before made and valid is worked out
+            // again. See the remarks.
+            bool given = made && outcome == BooleanOutcome.Made && result != null;
+            bool far = !(Math.Max(Splition3.Rounding(first), Splition3.Rounding(second)) <= Splition3.RaisedBelow);
+
+            if (first.Openings.Count == 0 && second.Openings.Count == 0 || !(tolerance.EqualPoint <= Splition3.RaisedBelow) || far && !given)
+            {
+                return made;
+            }
+
+            Tolerance work = ForWork(BelowTheRounding(first, second, tolerance, out Tolerance within) ? within : tolerance);
+            bool firstOpen = CutComesOutOpen(first, work);
+            bool secondOpen = CutComesOutOpen(second, work);
+            GeoSolid3 a = first;
+            GeoSolid3 b = second;
+
+            if (!firstOpen && !secondOpen
+                || firstOpen && !MaterialToWork(first, tolerance, work, out a)
+                || secondOpen && !MaterialToWork(second, tolerance, work, out b)
+                || !operation(a, b, out GeoSolid3 again, tolerance, out BooleanOutcome againOutcome, out GeoSolid3 left)
+                || againOutcome != BooleanOutcome.Made || again == null || !Shells3.Closes(again, work))
+            {
+                return made;
+            }
+
+            // What came as before, valid and holding what worked out again holds, is kept as it came, and so, far out, is what
+            // came not valid.
+            if (given)
+            {
+                double reach = Splition3.OnPlaneWithinRounding(first, Splition3.OnPlaneWithinRounding(second, work)).EqualPlanar;
+                double v = VolumeOf(result, tolerance);
+                double w = VolumeOf(again, tolerance);
+                bool agrees = Math.Abs(v - w) <= reach * Math.Max(result.GrossSurfaceArea, again.GrossSurfaceArea) + 1E-9 * (Math.Abs(v) + Math.Abs(w));
+
+                if ((agrees || far) && (result.Validate(tolerance).IsValid ? agrees : far))
+                {
+                    return made;
+                }
+            }
+
+            result = again;
+            outcome = BooleanOutcome.Made;
+            open = left;
+            return true;
+        }
+
+        /// <summary>
+        /// The material of a body as <see cref="TryCutOpenings(GeoSolid3, out GeoSolid3, Tolerance)"/> cuts it, or where that
+        /// refuses, as <see cref="GeoSolid3.GetVolume(Tolerance)"/> measures it, every opening cut out; where it closes within
+        /// the tolerance of the work.
+        /// </summary>
+        /// <remarks>
+        /// Below the rounding of the coordinates <c>TryCutOpenings</c> refuses a turned plate with blind openings that the
+        /// volume, cut within a trillionth of the size of the coordinates, measures as it holds; see
+        /// <see cref="GeoSolid3.GetVolume(Tolerance)"/>.
+        /// </remarks>
+        private static bool MaterialToWork(GeoSolid3 solid, Tolerance tolerance, Tolerance work, out GeoSolid3 material)
+        {
+            if (!TryCutOpenings(solid, out material, tolerance, out _) || material == null)
+            {
+                material = solid.GetMaterial(tolerance, out bool whole);
+
+                if (!whole)
+                {
+                    material = null;
+                }
+            }
+
+            return material != null && Shells3.Closes(material, work);
+        }
+
+        /// <summary>
+        /// Whether the openings of a body that closes, with openings that close, cut into it at once within the tolerance of
+        /// the work, as a boolean cuts them, come out open or with a piece of it judged whole (see <see cref="JudgedWhole"/>).
+        /// </summary>
+        private static bool CutComesOutOpen(GeoSolid3 solid, Tolerance work)
+        {
+            if (solid.Openings.Count == 0)
+            {
+                return false;
+            }
+
+            GeoSolid3 flat = FlatForWork(solid, work);
+
+            if (!Shells3.Closes(flat, work))
+            {
+                return false;
+            }
+
+            foreach (GeoSolid3 opening in flat.Openings)
+            {
+                if (!Shells3.Closes(opening, work))
+                {
+                    return false;
+                }
+            }
+
+            bool cut = TryCutOpeningsAtOnce(flat, flat.Openings, out GeoSolid3 material, work, out _, out bool judgedWhole);
+            return judgedWhole || cut && material != null && !Shells3.Closes(material, work);
+        }
+
+        /// <summary>
         /// Whether the body and each opening that close within the tolerance asked close within the finer one too: one closed
         /// only within the tolerance, by a crack or corners further apart than the finer one, is not cut within it.
         /// </summary>
