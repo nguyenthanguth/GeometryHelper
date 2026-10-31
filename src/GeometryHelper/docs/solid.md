@@ -1575,7 +1575,23 @@ its area. Of 12 000 such booleans of prisms with two or three openings whose wal
 boxes, between nought and a millionth, the 6 020 within a million of the origin held 221 wrong and trusted, 806 not
 worked out and 751 not valid, and hold 38, 55 and 21 now; none that was right moved. Further out, where rounding moves a
 corner off a plane by more than a millionth, only what came out made and valid is worked out again: worked out again
-wherever it was not, 106 came out wrong and trusted. Above a millionth a boolean is as it was, to the bit.
+wherever it was not, 106 came out wrong and trusted. Above a millionth a boolean is not worked out again.
+
+**Openings cut in at once are cut again where they come out open.** Asked below a thousandth, within a million of the
+origin, where a boolean's own cut of an operand's openings, each opening cutting the pieces of the body its box reaches,
+comes out open or with a piece judged whole, the openings are cut in again with every plane of each opening carried
+through every piece it crosses, as the cut once was, so that the faces of pieces side by side match; that is taken
+where it closes with no piece judged whole, and given up where it comes to more than four times the pieces. The strip of
+a face between two walls a hair apart, the face beside it not cut there, was lost when the two were glued: the plate
+above, less the box at a ten-thousandth or a hundred-thousandth, where the boolean is not worked out again, held 1.05
+too little and was not valid, and the two joined held as much too little or were not worked out; they hold what they
+should now. Of 7 200 such booleans at 1E-5 and 1E-4, the 3 672 within a million of the origin held 96 wrong and
+trusted, 60 not worked out and 293 not valid, and hold 83, 4 and none; of 18 000 between nought and a millionth, the
+9 180 within a million held 218, 226 and 56, and hold 203, 210 and 29. One prism of each set, close to a million out,
+had booleans that were right come out wrong, by 6E-5 and 0.0034. Further out nothing moved, to the bit: there booleans
+of bodies so cut again came out right 1 700 times more but wrong 27 times where they were right, by as much as two
+tenths. At a thousandth and above nothing moved either: cut again at a hundredth, a plate 300 by 200 by 12 whose twelve
+openings stood the tolerance inside its faces, joined to a box at its corner, held 106 too much.
 
 **Within a few roundings of the coordinates** a union, a common part or a difference reads a corner as on a plane within
 what rounding adds to the planar tolerance, a trillionth of the size of the coordinates, as the cut of openings does:

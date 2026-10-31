@@ -288,8 +288,9 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Works out a union, a common part or a difference of two bodies again on the material of each whose openings, cut in
-        /// at once as the boolean cuts them, come out open, or with a piece of it judged whole part in an opening and part out
-        /// (see <see cref="JudgedWhole"/>): the openings of that body cut into it as
+        /// at once by the cells each opening reaches, come out open, or with a piece of it judged whole part in an opening and
+        /// part out (see <see cref="JudgedWhole"/>), whether or not the boolean's own cut, cut again, closes (see
+        /// <see cref="CutComesOutOpen"/>): the openings of that body cut into it as
         /// <see cref="TryCutOpenings(GeoSolid3, out GeoSolid3, Tolerance)"/> cuts them, and the operation worked out on what
         /// that gives. What it gives, made and closed within the tolerance the boolean works within, is taken where what the
         /// operation gave as before is not made, not valid as <see cref="GeoSolid3.Validate(Tolerance)"/> reads it, or holds
@@ -406,8 +407,16 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Whether the openings of a body that closes, with openings that close, cut into it at once within the tolerance of
-        /// the work, as a boolean cuts them, come out open or with a piece of it judged whole (see <see cref="JudgedWhole"/>).
+        /// the work, each opening's planes cutting the cells its box reaches, come out open or with a piece of it judged whole
+        /// (see <see cref="JudgedWhole"/>).
         /// </summary>
+        /// <remarks>
+        /// Read before a boolean cuts such a cut again (see
+        /// <see cref="CutOpenings(GeoSolid3, IReadOnlyList{GeoSolid3}, out GeoSolid3, Tolerance, out bool, bool)"/>): the
+        /// boolean of a body so cut again can still be off, and is worked out again on the material all the same. Read after,
+        /// of 18 000 unions, common parts and differences of prisms with such openings and boxes at nought to a millionth, 12
+        /// that were right within a million of the origin came out not worked out.
+        /// </remarks>
         private static bool CutComesOutOpen(GeoSolid3 solid, Tolerance work)
         {
             if (solid.Openings.Count == 0)
@@ -817,7 +826,7 @@ namespace GeometryHelper.Core
         /// </remarks>
         internal static bool TryCutOpeningsAtOnce(GeoSolid3 solid, out GeoSolid3 material, Tolerance tolerance)
         {
-            if (TryCutOpeningsAtOnce(solid, solid.Openings, out material, tolerance, out Exception failure, out bool judgedWhole))
+            if (TryCutOpeningsAtOnce(solid, solid.Openings, out material, tolerance, out Exception failure, out bool judgedWhole, true))
             {
                 if (judgedWhole)
                 {
@@ -844,8 +853,14 @@ namespace GeometryHelper.Core
         /// the piece was judged whole by one point of it (see <see cref="JudgedWhole"/>): the material is given as it was cut,
         /// and is not to be trusted.
         /// </param>
+        /// <param name="again">
+        /// Whether a cut that comes out open, or with a piece judged whole, is cut again with every plane carried through every
+        /// cell it crosses, as a boolean reads its operands; see
+        /// <see cref="CutOpenings(GeoSolid3, IReadOnlyList{GeoSolid3}, out GeoSolid3, Tolerance, out bool, bool)"/>. The cut of
+        /// openings closes such a cut its own ways.
+        /// </param>
         /// <returns>true when some material is left; false when the openings take all of it, or the cut cannot be worked out.</returns>
-        internal static bool TryCutOpeningsAtOnce(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, out GeoSolid3 material, Tolerance tolerance, out Exception failure, out bool judgedWhole)
+        internal static bool TryCutOpeningsAtOnce(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, out GeoSolid3 material, Tolerance tolerance, out Exception failure, out bool judgedWhole, bool again = false)
         {
             failure = null;
             judgedWhole = false;
@@ -858,7 +873,7 @@ namespace GeometryHelper.Core
 
             try
             {
-                return CutOpenings(solid, openings, out material, tolerance, out judgedWhole);
+                return CutOpenings(solid, openings, out material, tolerance, out judgedWhole, again);
             }
             catch (Exception exception) when (IsUnworkable(exception))
             {
@@ -926,19 +941,102 @@ namespace GeometryHelper.Core
         /// Whether a piece was left part in an opening and part out of it by a plane that would not cut it, and judged whole;
         /// see <see cref="JudgedWhole"/>. The material is given all the same, as it was cut.
         /// </param>
+        /// <param name="again">Whether a cut that comes out open, or with a piece judged whole, is cut again; see the remarks.</param>
         /// <returns>true when some material is left; false when the openings take all of it.</returns>
-        private static bool CutOpenings(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, out GeoSolid3 material, Tolerance tolerance, out bool judgedWhole)
+        /// <remarks>
+        /// <para>
+        /// The planes of an opening cut only the cells its box reaches, and a cell beside one so cut keeps a face the other's
+        /// faces do not match. Their gluing takes from each such face what the other shares, and where two walls stand a hair
+        /// apart, a strip of a face that thin was lost: a plate 200 by 100 by 3 with two blind openings up from its floor whose
+        /// ceilings stood 0.00095 apart, cut within a ten-thousandth to a thousand-millionth, came out open, 1.05 cubic
+        /// millimetres short. Where a boolean cuts its operands (<paramref name="again"/>) below a thousandth, a cut that comes
+        /// out open, or with a piece judged whole, is cut again with every plane of the openings carried through every cell it crosses, as the
+        /// cut once was, so that the faces of cells side by side match, and that is taken where it closes with no piece judged
+        /// whole; see <see cref="MostCellsCutEverywhere"/>.
+        /// </para>
+        /// <para>
+        /// Of 51 prisms with two or three openings whose walls stood 0.000 15 to 0.03 apart, within a million of the origin,
+        /// turned about in space or not, 14 came out of the cut open within a millionth, and none does now; 16 within a
+        /// hundred-thousandth and within a ten-thousandth, and 2 do now; 25 at nought, and 2 do now. More than a million out,
+        /// where rounding moves a corner off a plane by more than a millionth, the cut is not cut again: of 8 820 booleans of
+        /// such prisms so cut again and boxes, between nought and a millionth, 1 700 more came out right, but 27 that were
+        /// right came out wrong, by as much as two tenths. At a thousandth and above it is not cut again either; see
+        /// <see cref="CutAgainBelow"/>.
+        /// </para>
+        /// </remarks>
+        private static bool CutOpenings(GeoSolid3 solid, IReadOnlyList<GeoSolid3> openings, out GeoSolid3 material, Tolerance tolerance, out bool judgedWhole, bool again)
         {
             // The body carrying only the openings being cut, so that a cell is judged against exactly those, and
             // both as the cut works on them, wound outwards and flat; see ForWork and FlatForWork.
             tolerance = ForWork(tolerance);
             GeoSolid3 owner = FlatForWork(new GeoSolid3(solid.Faces, openings), tolerance);
+            bool cut = CutOpenings(owner, out material, tolerance, out judgedWhole, int.MaxValue, out int cells);
+
+            // Cut again below a thousandth and within a million of the origin only; see the remarks.
+            if (again && tolerance.EqualPoint < CutAgainBelow && Splition3.Rounding(owner) <= Splition3.RaisedBelow
+                && (judgedWhole || cut && !Shells3.Closes(material, tolerance))
+                && CutOpenings(owner, out GeoSolid3 everywhere, tolerance, out bool judgedAgain, MostCellsCutEverywhere * cells, out _)
+                && !judgedAgain && Shells3.Closes(everywhere, tolerance))
+            {
+                material = everywhere;
+                judgedWhole = false;
+                return true;
+            }
+
+            return cut;
+        }
+
+        /// <summary>
+        /// How many times as many cells as the first cut the cut again, every plane carried through every cell, may come to
+        /// before it is given up and the first cut kept: carried through every cell, each plane of each opening runs on across
+        /// the body, and the cells of a plate with many round holes, each a dozen facets or more, grow as the square of the
+        /// planes.
+        /// </summary>
+        /// <remarks>
+        /// Of 300 prisms with two or three openings, the cells carried through came to at most 3.8 times those of the first
+        /// cut, and 1.6 times on the whole.
+        /// </remarks>
+        private const int MostCellsCutEverywhere = 4;
+
+        /// <summary>
+        /// The point tolerance below which a boolean's cut of openings that comes out open is cut again (see
+        /// <see cref="CutOpenings(GeoSolid3, IReadOnlyList{GeoSolid3}, out GeoSolid3, Tolerance, out bool, bool)"/>): a
+        /// thousandth, the default.
+        /// </summary>
+        /// <remarks>
+        /// At a thousandth and above, walls a hair apart lie within the tolerance of one plane, and the cut that came out open
+        /// was read by the boolean as it came: a plate 300 by 200 by 12 a hundred thousand out, its twelve openings standing
+        /// the tolerance inside its faces, joined within a hundredth to a box at its corner, holds 722 622.74, and with its
+        /// openings cut again 722 728.78. Of 7 200 booleans of prisms with openings and boxes at 1E-3 and 1E-2, cut again,
+        /// three of one prism moved, nearer.
+        /// </remarks>
+        private const double CutAgainBelow = 1E-3;
+
+        /// <summary>
+        /// Cuts the openings of a body flat for the work into it at once, as
+        /// <see cref="CutOpenings(GeoSolid3, IReadOnlyList{GeoSolid3}, out GeoSolid3, Tolerance, out bool, bool)"/> does, the planes
+        /// of an opening cutting the cells its box reaches, or, where <paramref name="most"/> is not <see cref="int.MaxValue"/>,
+        /// every cell they cross, giving up once the cells come to more than that.
+        /// </summary>
+        /// <param name="owner">The body flat for the work, carrying the openings to cut.</param>
+        /// <param name="material">The body with the openings cut in; null when the method returns false.</param>
+        /// <param name="tolerance">The tolerance of the work.</param>
+        /// <param name="judgedWhole">Whether a piece was judged whole; see <see cref="JudgedWhole"/>.</param>
+        /// <param name="most">The most cells; <see cref="int.MaxValue"/> for the cut by reach.</param>
+        /// <param name="count">How many cells the cut came to.</param>
+        /// <returns>true when some material is left; false when the openings take all of it, or the cells came to too many.</returns>
+        private static bool CutOpenings(GeoSolid3 owner, out GeoSolid3 material, Tolerance tolerance, out bool judgedWhole, int most, out int count)
+        {
             GeoSolid3 gross = new GeoSolid3(owner.Faces);
-            openings = owner.Openings;
+            IReadOnlyList<GeoSolid3> openings = owner.Openings;
+            bool everywhere = most != int.MaxValue;
 
             List<GeoSolid3> cells = new List<GeoSolid3> { gross };
             List<(GeoPlane3 Plane, GeoSolid3 Opening)> uncut = null;
             bool? closed = null;
+            material = null;
+            judgedWhole = false;
+            count = 0;
 
             foreach (GeoSolid3 opening in openings)
             {
@@ -955,7 +1053,7 @@ namespace GeometryHelper.Core
                         // as on a plane within what rounding adds to the tolerance; see Splition3.OnPlaneWithinRounding.
                         bool reached = cell.GetAabb().CollidesWith(reach, tolerance);
 
-                        if (reached
+                        if ((reached || everywhere)
                             && Splition3.TrySplitCell(cell, plane, out GeoSolid3 above, out GeoSolid3 below, Splition3.OnPlaneWithinRounding(cell, tolerance)))
                         {
                             divided.Add(above);
@@ -977,9 +1075,15 @@ namespace GeometryHelper.Core
                     }
 
                     cells = divided;
+
+                    if (cells.Count > most)
+                    {
+                        return false;
+                    }
                 }
             }
 
+            count = cells.Count;
             List<GeoSolid3> pieces = OnePieceEach(cells, tolerance);
             judgedWhole = uncut != null && JudgedWhole(pieces, uncut, tolerance);
 

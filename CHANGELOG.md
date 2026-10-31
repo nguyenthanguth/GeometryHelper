@@ -199,6 +199,30 @@ Framework 4.8, its openings cut in at once to look: the four booleans of a plate
 milliseconds at a millionth, 27 now. Of the prisms above, many of whose booleans are worked out again, they take half
 as long again at 1E-9 and 1E-6, and 2.3 to 2.4 times as long at nought. 24 new tests.
 
+**FIXED.** A union, a common part and a difference of a body whose openings, cut in at once by the pieces of the body
+each opening's box reaches, come out open or with a piece judged whole cut the openings in again, asked below a
+thousandth and within a million of the origin, with every plane of each opening carried through every piece it
+crosses, as the cut once was, so that the faces of pieces side by side match. A piece beside one so cut kept a face the
+other's faces did not match, and where two walls stood a hair apart the strip of a face between them was lost when the
+two were glued: the plate 200 by 100 by 3 above, its ceilings 0.00095 apart, came out of that cut open at every
+tolerance from a ten-thousandth down, and less the box across both openings, at a ten-thousandth or a
+hundred-thousandth, where the boolean is not worked out again on the material, held 22 717.96, 1.05 short, and was not
+valid, and the two joined held as much too little or were not worked out; they hold what they should now. The cut
+again is taken where it closes with no piece judged whole, and given up where it comes to more than four times the
+pieces; at a millionth and below the boolean is still worked out again on the material where the cut came out open the
+first time. Of 7 200 unions, common parts and differences of prisms with two or three openings whose walls stood
+0.000 15 to 0.03 apart and boxes, at 1E-5 and 1E-4, the 3 672 within a million of the origin held 96 wrong and trusted,
+60 not worked out and 293 not valid, and hold 83, 4 and none; of 18 000 between nought and a millionth, the 9 180
+within a million held 218, 226 and 56, and hold 203, 210 and 29. Four that were right, of two prisms close to a million
+out, came out wrong, three by 6E-5 and one by 0.0034. Further out nothing moved, to the bit; cut again there, 1 700
+more came out right but 27 that were right came out wrong, by as much as two tenths. At 1E-3 and 1E-2 nothing moved,
+to the bit: cut again at a hundredth, a plate 300 by 200 by 12 a hundred thousand out whose twelve openings stood the
+tolerance inside its faces, joined to a box at its corner, held 106 too much. 176 sets of booleans of bodies with and
+without openings did not move. The booleans of 60 such prisms and boxes take a quarter less
+time at 1E-4 and 1E-5, a sixth less at a millionth, an eighth less at 1E-9 and a twentieth less at nought, on .NET 10
+and on .NET Framework 4.8, and the time they took at 1E-3 and 1E-2; those of a plate with twelve holes and a box take
+the time they took. 16 new tests.
+
 **FIXED.** A union, a common part and a difference of a body whose openings' walls stand apart within the tolerance of
 one plane keep each wall in its own plane, as `TryCutOpenings` keeps it. A boolean cut the openings of its bodies in at
 once within the tolerance, and the plane of one opening, cutting all it reached, took in the wall of another within the

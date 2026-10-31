@@ -55,7 +55,12 @@ namespace GeometryHelper.Core
     /// <see cref="TryCutOpenings(GeoSolid3, out GeoSolid3, Tolerance)"/> gives, and that is taken where what came as before
     /// is not made, not valid, or holds another volume: a plate 200 by 100 by 3 with two blind openings whose ceilings stood
     /// 0.00095 apart, less a box across both, at a millionth, held 1.05 too little and was not valid, and the two joined
-    /// were not worked out.
+    /// were not worked out. Asked below a thousandth, within a million of the origin, openings that come out open or with a
+    /// piece judged whole, cut in at once by the cells each opening reaches, are cut again with every plane of the openings
+    /// carried through every cell, so that the faces of cells side by side match: the plate less the box at a
+    /// ten-thousandth and a hundred-thousandth, where the operation is not worked out again, held the same 1.05 too little
+    /// and was not valid, and the two joined held as much too little or were not worked out; both hold what they should
+    /// now.
     /// </para>
     /// <para>
     /// A result of two closed bodies is closed as <see cref="GeoSolid3.Validate(Tolerance)"/> reads it, or not made: one
