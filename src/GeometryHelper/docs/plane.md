@@ -139,7 +139,11 @@ hundredth, the polygon (0, 0), (10, 0), (10, 0.006), (0, 10) is 0.03 from (10.03
 runs from (10, 0.003), 0.03 long, where it ran from the side's start (10, 0), 0.0301496 long, as a segment that short on
 its own is read. The closest point of a triangle reads its sides so too: the triangle (0, 0), (10, 0), (10, 0.0006) gives
 (10.03, 0.0003) the foot (10, 0.0003), where it gave the side's start. `GetDistanceAtPoint` and `GetParameterAtPoint` of
-the loop on the same corners put the point 10.003 round it, where they put it 10 round, at the side's start. Against
+the loop on the same corners put the point 10.003 round it, where they put it 10 round, at the side's start. Those of a
+polygon, a polyline, a triangle and a rectangle, which read the global tolerance, measure a side shorter than it as it
+is too: the triangle (0, 0), (10, 0), (10, 0.0006) puts (10.003, 0.0003) 10.0003 round, where it put it 10 round, at
+the start of the side 0.0006 long, and a polyline with such a leg is cut on it where a point on it or a line crossing
+it asks, where it was cut at the leg's start. Against
 anything else such a side is the side it is, for
 `GetShortestLineTo` as for `GetClosestEdge`: the loop's line to the segment from (10.03, 0.003) to (10.05, 0.003) runs
 from (10, 0.003) and is 0.03 long. The closest edge of a polygon, a polyline or a rectangle takes no tolerance: it measures every side exactly, and

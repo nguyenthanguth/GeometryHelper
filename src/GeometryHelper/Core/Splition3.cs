@@ -294,6 +294,14 @@ namespace GeometryHelper.Core
         /// tolerance: at a billionth, the polyline from (0, 0, 0) to (10, 0, 0) cut at 5 and 5.0005 gives a piece 0.0005
         /// long, where it threw.
         /// </para>
+        /// <para>
+        /// The last piece ends where the polyline does. A last leg no longer than the tolerance takes the corner before it, as
+        /// a first one is taken by the start: at a hundredth, the polyline from (0, 0, 0) to (10, 0, 0) and on to
+        /// (10, 0.006, 0) cut at 5 gives the pieces from (0, 0, 0) to (5, 0, 0) and from there to (10, 0.006, 0), where the
+        /// second ended at the corner (10, 0, 0) and the end was lost. Cut at 9.995, the cut lands on the corner and would
+        /// leave only that leg, 0.006 long, after it, so it is not made and the polyline comes back whole, where it came back
+        /// as one piece ending at the corner.
+        /// </para>
         /// </remarks>
         public static GeoPolyline3[] SplitAtDistances(GeoPolyline3 polyline, IEnumerable<double> distances, Tolerance tolerance)
         {
@@ -358,6 +366,10 @@ namespace GeometryHelper.Core
                 {
                     current.Add(segment.EndPoint);
                 }
+                else if (edge == polyline.EdgeCount - 1)
+                {
+                    EndAt(segment.EndPoint, current, pieces, tolerance);
+                }
             }
 
             if (current.Count >= 2)
@@ -365,7 +377,49 @@ namespace GeometryHelper.Core
                 pieces.Add(new GeoPolyline3(current.ToArray(), true));
             }
 
-            return pieces.Count == 0 ? new[] { polyline } : pieces.ToArray();
+            // Where no cut was made, the polyline comes back as it is, not a copy that took the corner before a short last leg.
+            return pieces.Count <= 1 ? new[] { polyline } : pieces.ToArray();
+        }
+
+        /// <summary>
+        /// Ends the last piece of a polyline cut at distances where the polyline ends, its end within the tolerance of where
+        /// the piece so far ends.
+        /// </summary>
+        /// <remarks>
+        /// A last leg no longer than the tolerance takes the corner before it, as a first one is taken by the start, unless
+        /// the point before that corner is itself within the tolerance of the end, where the polyline folds back: the leg is
+        /// then kept as it is, since without the corner the piece would be shorter than the tolerance. Where only the last
+        /// cut is left within the tolerance of the end, that cut is not made and the piece before it ends there.
+        /// </remarks>
+        private static void EndAt(GeoPoint3 end, List<GeoPoint3> current, List<GeoPolyline3> pieces, Tolerance tolerance)
+        {
+            if (current.Count >= 2)
+            {
+                if (current[current.Count - 2].IsEqualTo(end, tolerance))
+                {
+                    current.Add(end);
+                }
+                else
+                {
+                    current[current.Count - 1] = end;
+                }
+
+                return;
+            }
+
+            if (pieces.Count > 0)
+            {
+                GeoPolyline3 before = pieces[pieces.Count - 1];
+                GeoPoint3[] vertices = new GeoPoint3[before.VertexCount];
+
+                for (int i = 0; i < vertices.Length - 1; i++)
+                {
+                    vertices[i] = before[i];
+                }
+
+                vertices[vertices.Length - 1] = end;
+                pieces[pieces.Count - 1] = new GeoPolyline3(vertices, true);
+            }
         }
 
         /// <summary>

@@ -757,7 +757,14 @@ Seven things are read otherwise, on purpose:
   the side's start. And
   `GetDistanceAtPoint` and `GetParameterAtPoint` of a curved chain or loop read a straight side as it is, as its closest
   point does: the chain from (-7, -7, 0) to the origin, on to (0.008, 0, 0) and to (7, -7, 0) puts (0.006, 0.02, 0)
-  9.9055 along, 0.006 along its short side, where it put it 9.9075 along, at the start of the next.
+  9.9055 along, 0.006 along its short side, where it put it 9.9075 along, at the start of the next. So do those of a
+  polyline and a polygon: at a hundredth, the polyline (0, 0, 0), (10, 0, 0), (10, 0.006, 0), (0, 0.006, 0) puts
+  (10.03, 0.003, 0) 10.003 along, halfway, where it put it 10 along, at the start of the leg 0.006 long; and a polygon cut
+  by a chain that starts beside such a side meets its outline at the chain's foot on the side, where it met it at the
+  side's start. The last piece of a polyline cut at a distance ends where the polyline does: a last leg no longer than the
+  tolerance takes the corner before it, as a first one is taken by the start, so at a hundredth the polyline from
+  (0, 0, 0) to (10, 0, 0) and on to (10, 0.006, 0) cut at 5 ends its second piece at (10, 0.006, 0), where it ended at the
+  corner and the end was lost; cut at 9.995, which would leave only that leg after the cut, it comes back whole.
 * **A circle collides as its rim and a loop of arcs as its outline**, so a circle or a loop round a shape touches nothing:
   the circle of radius 40 about the origin does not touch the square 20 by 20 in its middle, and touches the segment from
   (40.0005, 0, 0) to (80, 0, 0). The distance from a point to a circle is to the filled disc, as it always was: nought at the
@@ -2143,8 +2150,9 @@ point, the chain comes apart at (0, 0.001, 0). `GetClosestPointOnBoundary` carri
 tolerance of a bend's centre to the bend's start, so its line can be longer than the distance there, by at most twice
 the foot's offset. A straight leg is measured as it is however short, as in the plane: the chain built of the straight
 edges from (0, 0, 0) to (10, 0, 0) and on to (10, 0.0006, 0) is 0.0009 from (10.0009, 0.0006, 0) at a thousandth, and
-the point is on it. `GetClosestPointOnBoundary` still carries a point to the start of a leg no longer than the
-tolerance, (10, 0, 0) here, 0.00108 away; a straight `GeoEdge3` on its own that short is read as its start.
+the point is on it. `GetClosestPointOnBoundary` and the shortest line from the point read that leg as it is too, and
+land on (10, 0.0006, 0), 0.0009 away, where they took its start (10, 0, 0), 0.00108 away; so do `GetDistanceAtPoint`
+and `GetParameterAtPoint`. A straight `GeoEdge3` on its own that short is still read as its start.
 
 A radius per corner works too, read the way the bulges are read: the entry at an index belongs to the vertex
 at that index, and nought leaves that corner square. `TryFilletAt` rounds one named corner. A bend with too

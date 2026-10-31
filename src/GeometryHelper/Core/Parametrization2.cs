@@ -262,6 +262,12 @@ namespace GeometryHelper.Core
         /// Gets the arc length from the first vertex to the point on the boundary of a polygon closest to
         /// the supplied point.
         /// </summary>
+        /// <remarks>
+        /// A side is the side it is however short, as the closest point reads it, where one no longer than the global
+        /// tolerance was read as its start. So are the sides of a triangle and a rectangle: the triangle (0, 0), (10, 0),
+        /// (10, 0.0006) puts (10.003, 0.0003) 10.0003 round, 0.0003 along its side 0.0006 long, where it put it 10 round, at
+        /// the start of that side.
+        /// </remarks>
         public static double GetDistanceAtPoint(GeoPolygon2 poly, GeoPoint2 point)
         {
             return DistanceAtPoint(Edges(poly), point);
@@ -327,6 +333,10 @@ namespace GeometryHelper.Core
         /// Gets the arc length from the first vertex to the point on a polyline closest to the supplied
         /// point.
         /// </summary>
+        /// <remarks>
+        /// A leg is the leg it is however short, as the closest point reads it, where one no longer than the global
+        /// tolerance was read as its start; so are the places a polyline is cut at by a point or where a line crosses it.
+        /// </remarks>
         public static double GetDistanceAtPoint(GeoPolyline2 polyline, GeoPoint2 point)
         {
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
@@ -428,6 +438,10 @@ namespace GeometryHelper.Core
         /// Finds the edge whose closest point to the supplied point is nearest overall, and returns the arc
         /// length from the start of the chain to that closest point.
         /// </summary>
+        /// <remarks>
+        /// Each edge is the edge it is however short, as the closest point reads it, not one no longer than the global
+        /// tolerance read as its start.
+        /// </remarks>
         private static double DistanceAtPoint(GeoLine2[] edges, GeoPoint2 point)
         {
             if (edges.Length == 0) return 0.0;
@@ -438,7 +452,7 @@ namespace GeometryHelper.Core
 
             foreach (GeoLine2 edge in edges)
             {
-                GeoPoint2 projected = Projection2.ProjectToLine(edge, point);
+                GeoPoint2 projected = Projection2.ProjectToLine(edge, point, default(Tolerance));
                 double distanceSquared = Distance2.GetDistanceSquaredTo(point, projected);
 
                 if (distanceSquared < bestDistanceSquared)

@@ -64,6 +64,28 @@ worked out anew, nor set. The five properties of ACadSharp's lookup sample, a gr
 microseconds an INSERT under .NET 10 and 86 under .NET Framework 4.8. 16 new tests, 1 changed (an INSERT of BOLT scaled
 (1.5, -1.5, 2) is not `IsDynamicBlock`).
 
+**FIXED.** A polyline cut at a distance in space, by `SplitAtDistances` or any cut that goes through it (by a point, a
+plane, a polygon, a face, a box or a body), ends its last piece where the polyline ends however short its last leg: a last
+leg no longer than the tolerance takes the corner before it, as a first one is taken by the start. At a hundredth, the
+polyline from (0, 0, 0) to (10, 0, 0) and on to (10, 0.006, 0) cut at 5 ended its second piece at the corner (10, 0, 0)
+and lost the end; it ends at (10, 0.006, 0). Cut at 9.995, which would leave only that leg after the cut, it came back as
+one piece ending at the corner, and comes back whole. Of 4 000 cuts of polylines with a leg shorter than the tolerance, 539
+lost the end; none does, no piece is shorter than the tolerance, and the answers with no short last leg are the same to
+the bit. 3 new tests.
+
+**FIXED.** `GetDistanceAtPoint` and `GetParameterAtPoint` of `GeoPolyline3` and `GeoPolygon3` (and of
+`Parametrization3`) read a side as it is however short, as the closest point does, where a side no longer than the
+tolerance was read as its start; so do those of `GeoPolyline2`, `GeoPolygon2`, `GeoTriangle2` and `GeoRectangle2`, which
+read a side shorter than the global tolerance so. At a hundredth, the polyline (0, 0, 0), (10, 0, 0), (10, 0.006, 0),
+(0, 0.006, 0) put (10.03, 0.003, 0) 10 along, at the start of the leg 0.006 long; it puts it 10.003 along, halfway. A
+polygon cut by a chain from beside such a side meets its outline at the chain's foot, where it met it at the side's start,
+and a 2D polyline is cut on such a leg where a point on it or a line crossing it asks, where it was cut at the leg's start.
+Against an exact oracle, 5 898 of 51 632 answers in space and 4 796 of 25 592 in the plane put the point farther than the
+nearest, and 1 830 of 2 116 cuts of a 2D polyline on a leg between the tolerance and the global one were made more than
+the tolerance off; none is. Of 4 796 polygons cut from beside a short side, 1 194 met the outline away from the foot, 15
+do, where the foot lies within the tolerance of a corner. The answers for sides longer than the tolerance are the same
+to the bit. 9 new tests.
+
 **FIXED.** In space, a polyline, a polygon or a face gives a point beside a side its closest point on the side as it is
 however short, as its shortest line already did: `Projection3.ProjectToPolyline`, `ProjectToPolygonBoundary`,
 `ProjectToPolygon` and `ProjectToFace`, `GetClosestPointOnBoundary` of `GeoPolyline3`, `GeoPolygon3` and `GeoFace3`, and

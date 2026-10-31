@@ -466,6 +466,10 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the arc length from the start of this polyline to the point on it closest to the supplied point.
         /// </summary>
+        /// <remarks>
+        /// A leg is the leg it is however short, never read as its start: see
+        /// <see cref="Parametrization3.GetDistanceAtPoint(GeoPolyline3, GeoPoint3, Tolerance)"/>.
+        /// </remarks>
         public double GetDistanceAtPoint(GeoPoint3 point) => Parametrization3.GetDistanceAtPoint(this, point);
 
         /// <summary>
@@ -564,7 +568,8 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// Every piece starts where the one before it ended, on the polyline: at a hundredth, the polyline from (0, 0, 0) to
         /// (10, 0, 0) and on to (10, 10, 0) cut at 9.995 comes back as two pieces meeting at the corner, where the second
-        /// started at (10, -0.005, 0), off the polyline. See
+        /// started at (10, -0.005, 0), off the polyline. The last piece ends where the polyline does: a last leg no longer
+        /// than the tolerance takes the corner before it, where the piece ended at that corner. See
         /// <see cref="Splition3.SplitAtDistances(GeoPolyline3, IEnumerable{double}, Tolerance)"/>.
         /// </remarks>
         public GeoPolyline3[] SplitAtDistances(IEnumerable<double> distances, Tolerance tolerance) => Splition3.SplitAtDistances(this, distances, tolerance);

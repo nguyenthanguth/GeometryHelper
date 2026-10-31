@@ -214,11 +214,23 @@ namespace GeometryHelper.Core
         /// Gets the arc length from the start of a polyline to the point on it closest to the supplied
         /// point, within a tolerance.
         /// </summary>
+        /// <param name="polyline">The polyline.</param>
+        /// <param name="point">The point.</param>
+        /// <param name="tolerance">The tolerance; every leg is measured as it is, so it changes nothing here.</param>
+        /// <returns>How far along the polyline its point nearest <paramref name="point"/> lies.</returns>
         /// <remarks>
+        /// <para>
         /// A polyline can pass near the same point more than once, so the closest edge is found first and
         /// the arc length is measured to that. Walking the chain and stopping at the first edge within
         /// tolerance would give a different answer depending on which end the chain was built from.
+        /// </para>
+        /// <para>
+        /// A leg is the leg it is however short, as <see cref="Projection3.ProjectToPolyline(GeoPolyline3, GeoPoint3, Tolerance)"/>
+        /// reads it: at a hundredth, the polyline (0, 0, 0), (10, 0, 0), (10, 0.006, 0), (0, 0.006, 0) puts (10.03, 0.003, 0)
+        /// 10.003 along, 0.003 along its leg 0.006 long, where it put it 10 along, at the start of that leg.
+        /// </para>
         /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
         public static double GetDistanceAtPoint(GeoPolyline3 polyline, GeoPoint3 point, Tolerance tolerance)
         {
             if (polyline == null)
@@ -233,7 +245,7 @@ namespace GeometryHelper.Core
             for (int i = 0; i < polyline.EdgeCount; i++)
             {
                 GeoLine3 edge = polyline.GetEdgeAt(i);
-                GeoPoint3 candidate = Projection3.ProjectToLine(edge, point, tolerance);
+                GeoPoint3 candidate = Projection3.ProjectToLine(edge, point, Exactly);
                 double distanceSquared = Distance3.GetDistanceSquaredTo(candidate, point);
 
                 if (distanceSquared < bestDistanceSquared)
@@ -257,6 +269,10 @@ namespace GeometryHelper.Core
         /// Gets the normalized parameter of the point on a polyline closest to the supplied point, within
         /// a tolerance.
         /// </summary>
+        /// <remarks>
+        /// A leg is the leg it is however short, as <see cref="GetDistanceAtPoint(GeoPolyline3, GeoPoint3, Tolerance)"/>
+        /// reads it.
+        /// </remarks>
         public static double GetParameterAtPoint(GeoPolyline3 polyline, GeoPoint3 point, Tolerance tolerance)
         {
             if (polyline == null)
@@ -268,6 +284,11 @@ namespace GeometryHelper.Core
 
             return length <= 0.0 ? 0.0 : GetDistanceAtPoint(polyline, point, tolerance) / length;
         }
+
+        /// <summary>
+        /// The tolerance of nought, which measures a leg or a side as it is however short.
+        /// </summary>
+        private static Tolerance Exactly => default(Tolerance);
 
         /// <summary>
         /// Clamps a normalized parameter into the [0, 1] range covering a curve.
@@ -368,10 +389,22 @@ namespace GeometryHelper.Core
         /// Gets the arc length from the first vertex of a polygon to the point on its boundary closest to
         /// the supplied point, within a tolerance.
         /// </summary>
+        /// <param name="polygon">The polygon.</param>
+        /// <param name="point">The point.</param>
+        /// <param name="tolerance">The tolerance; every side is measured as it is, so it changes nothing here.</param>
+        /// <returns>How far round the outline from the first vertex its point nearest <paramref name="point"/> lies.</returns>
         /// <remarks>
+        /// <para>
         /// This measures around the boundary, not across the interior: a point in the middle of a polygon
         /// still reports the position of the nearest place on its outline.
+        /// </para>
+        /// <para>
+        /// A side is the side it is however short, as <see cref="Projection3.ProjectToPolygonBoundary(GeoPolygon3, GeoPoint3, Tolerance)"/>
+        /// reads it: at a hundredth, the polygon (0, 0, 0), (10, 0, 0), (10, 0.006, 0), (0, 10, 0) puts (10.03, 0.003, 0)
+        /// 10.003 round, 0.003 along its side 0.006 long, where it put it 10 round, at the start of that side.
+        /// </para>
         /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static double GetDistanceAtPoint(GeoPolygon3 polygon, GeoPoint3 point, Tolerance tolerance)
         {
             if (polygon == null)
@@ -386,7 +419,7 @@ namespace GeometryHelper.Core
             for (int i = 0; i < polygon.EdgeCount; i++)
             {
                 GeoLine3 edge = polygon.GetEdgeAt(i);
-                GeoPoint3 candidate = Projection3.ProjectToLine(edge, point, tolerance);
+                GeoPoint3 candidate = Projection3.ProjectToLine(edge, point, Exactly);
                 double distanceSquared = Distance3.GetDistanceSquaredTo(candidate, point);
 
                 if (distanceSquared < bestDistanceSquared)
@@ -411,6 +444,10 @@ namespace GeometryHelper.Core
         /// Gets the normalized parameter of the point on the boundary of a polygon closest to the supplied
         /// point, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// A side is the side it is however short, as <see cref="GetDistanceAtPoint(GeoPolygon3, GeoPoint3, Tolerance)"/>
+        /// reads it.
+        /// </remarks>
         public static double GetParameterAtPoint(GeoPolygon3 polygon, GeoPoint3 point, Tolerance tolerance)
         {
             if (polygon == null)

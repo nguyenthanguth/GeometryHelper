@@ -313,10 +313,10 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// The segment leaves this point and lands on the chain, measured on the arcs, as long as
         /// <see cref="DistanceTo(GeoPolylineArc3)"/> for a point away from the centre of a bend. Near the centre it can be
-        /// longer, by at most twice the foot's offset from the centre, and beside a straight edge no longer than the
-        /// tolerance, by up to that edge's length, as <see cref="GeoPolylineArc3.GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/>
-        /// says: at a tolerance of a thousandth, (10.0009, 0.0006, 0) is 0.0009 from the chain built of the straight edges from
-        /// (0, 0, 0) to (10, 0, 0) and on to (10, 0.0006, 0), and its line lands on (10, 0, 0), 0.00108 long.
+        /// longer, by at most twice the foot's offset from the centre. A straight edge is measured as it is however short, as
+        /// <see cref="GeoPolylineArc3.GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/> says: (10.0009, 0.0006, 0) is 0.0009
+        /// from the chain built of the straight edges from (0, 0, 0) to (10, 0, 0) and on to (10, 0.0006, 0), and its line
+        /// lands on (10, 0.0006, 0), 0.0009 long, where at a tolerance of a thousandth it landed on (10, 0, 0), 0.00108 long.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public GeoLine3 GetShortestLineTo(GeoPolylineArc3 chain)
@@ -330,10 +330,11 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// The segment leaves this point and lands on the chain, measured on the arcs, as long as
         /// <see cref="DistanceTo(GeoPolylineArc3, Tolerance)"/> for a point away from the centre of a bend. Near the centre it
-        /// can be longer, by at most twice the foot's offset from the centre, and beside a straight edge no longer than the
-        /// tolerance, by up to that edge's length, as <see cref="GeoPolylineArc3.GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/>
-        /// says: at a tolerance of a thousandth, (10.0009, 0.0006, 0) is 0.0009 from the chain built of the straight edges from
-        /// (0, 0, 0) to (10, 0, 0) and on to (10, 0.0006, 0), and its line lands on (10, 0, 0), 0.00108 long.
+        /// can be longer, by at most twice the foot's offset from the centre. A straight edge is measured as it is however
+        /// short, as <see cref="GeoPolylineArc3.GetClosestPointOnBoundary(GeoPoint3, Tolerance)"/> says: at a tolerance of a
+        /// thousandth, (10.0009, 0.0006, 0) is 0.0009 from the chain built of the straight edges from (0, 0, 0) to (10, 0, 0)
+        /// and on to (10, 0.0006, 0), and its line lands on (10, 0.0006, 0), 0.0009 long, where it landed on (10, 0, 0),
+        /// 0.00108 long.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public GeoLine3 GetShortestLineTo(GeoPolylineArc3 chain, Tolerance tolerance)
