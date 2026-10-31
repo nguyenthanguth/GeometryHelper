@@ -91,7 +91,7 @@ namespace GeometryHelper.Geometry
         /// <param name="line">The segment.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <remarks>The same points as <see cref="GeoLine3.GetIntersections(GeoTriangle3, Tolerance)"/>: the crossing, or the point of a touch.</remarks>
-        public GeoPoint3[] GetIntersections(GeoLine3 line, Tolerance tolerance) => Intersection3.Meeting(line, this, true, tolerance);
+        public GeoPoint3[] GetIntersections(GeoLine3 line, Tolerance tolerance) => Intersection3.MeetingOfGiven(line, this, tolerance);
 
         /// <summary>
         /// Gets every point where an edge crosses this triangle.

@@ -206,10 +206,13 @@ namespace GeometryHelper.Geometry
         /// the one of it nearest the plane, as a triangle and a polygon give one: the segment from (-50, 0, 0.5)
         /// to (50, 0, 0.0005) touches the plane z = 0 at its end. A segment lying in the plane, both ends within
         /// the planar tolerance of it, meets it along its length and names no place.
+        /// A segment no longer than the point tolerance is read as its start unless it truly crosses the plane: at a thousandth,
+        /// the one from (5, 5, 0.0015) to (5, 5, 0.0006) meets the floor nowhere, where it was given its end, and the one from
+        /// (5, 5, 0.0008) to (5, 5, 0.0002) meets it at its start.
         /// </remarks>
         public GeoPoint3[] GetIntersections(GeoPlane3 plane, Tolerance tolerance)
         {
-            return Intersection3.Meeting(this, plane, tolerance, out _);
+            return Intersection3.MeetingOfGiven(this, plane, tolerance);
         }
 
         /// <summary>
@@ -230,8 +233,10 @@ namespace GeometryHelper.Geometry
         /// that touches the triangle within the point tolerance without crossing it is given the point of it nearest the triangle, and
         /// none where it lies level over the material, within the planar tolerance of its plane at both ends:
         /// the segment from (20, 20, 0.0005) to (20, 20, 5), ending 0.0005 over the triangle with corners (0, 0, 0), (100, 0, 0) and (0, 100, 0), is given (20, 20, 0.0005), where it collided and was given nothing.
+        /// A segment no longer than the point tolerance is read as its start unless it truly crosses: given its start where that
+        /// lies within the point tolerance, as a point lying that close meets the shape, and nothing where it does not.
         /// </remarks>
-        public GeoPoint3[] GetIntersections(GeoTriangle3 triangle, Tolerance tolerance) => Intersection3.Meeting(this, triangle, true, tolerance);
+        public GeoPoint3[] GetIntersections(GeoTriangle3 triangle, Tolerance tolerance) => Intersection3.MeetingOfGiven(this, triangle, tolerance);
 
         /// <summary>
         /// Gets every point where this segment crosses a polygon.
@@ -251,8 +256,10 @@ namespace GeometryHelper.Geometry
         /// that touches the polygon within the point tolerance without crossing it is given the point of it nearest the polygon, and
         /// none where it lies level over the material, within the planar tolerance of its plane at both ends:
         /// the segment from (20, 20, 0.0005) to (20, 20, 5), ending 0.0005 over the square 100 by 100 in the floor with a corner at the origin, is given (20, 20, 0.0005), where it collided and was given nothing.
+        /// A segment no longer than the point tolerance is read as its start unless it truly crosses: given its start where that
+        /// lies within the point tolerance, as a point lying that close meets the shape, and nothing where it does not.
         /// </remarks>
-        public GeoPoint3[] GetIntersections(GeoPolygon3 polygon, Tolerance tolerance) => Intersection3.Meeting(this, polygon, true, tolerance);
+        public GeoPoint3[] GetIntersections(GeoPolygon3 polygon, Tolerance tolerance) => Intersection3.MeetingOfGiven(this, polygon, tolerance);
 
         /// <summary>
         /// Gets every point where this segment crosses a face.
@@ -272,8 +279,10 @@ namespace GeometryHelper.Geometry
         /// that touches the face within the point tolerance without crossing it is given the point of it nearest the face, and
         /// none where it lies level over the material, within the planar tolerance of its plane at both ends:
         /// the segment from (20, 20, 0.0005) to (20, 20, 5), ending 0.0005 over the material of the square 100 by 100 in the floor with a hole 40 by 40 in its middle, is given (20, 20, 0.0005), where it collided and was given nothing.
+        /// A segment no longer than the point tolerance is read as its start unless it truly crosses: given its start where that
+        /// lies within the point tolerance, as a point lying that close meets the shape, and nothing where it does not.
         /// </remarks>
-        public GeoPoint3[] GetIntersections(GeoFace3 face, Tolerance tolerance) => Intersection3.Meeting(this, face, true, tolerance);
+        public GeoPoint3[] GetIntersections(GeoFace3 face, Tolerance tolerance) => Intersection3.MeetingOfGiven(this, face, tolerance);
 
         /// <summary>
         /// Gets where this segment crosses a segment, as a list.

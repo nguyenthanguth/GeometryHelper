@@ -966,7 +966,7 @@ namespace GeometryHelper.Spatial
 
                             if (line)
                             {
-                                GeoLine3 candidate = Projection3.GetShortestLineTo(_triangles[a], other._triangles[b], tolerance);
+                                GeoLine3 candidate = Projection3.Closest(_triangles[a], other._triangles[b], tolerance, tolerance);
                                 double length = candidate.Length;
 
                                 if (length < nearest)

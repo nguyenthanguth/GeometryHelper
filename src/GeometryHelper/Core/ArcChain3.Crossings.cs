@@ -76,7 +76,7 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(chain));
             }
-            return Crossings(chain.GetEdges(), edge => edge.GetIntersections(triangle, tolerance), tolerance);
+            return Crossings(chain.GetEdges(), edge => Intersection3.OfSide(edge, triangle, tolerance), tolerance);
         }
 
         /// <summary>
@@ -119,7 +119,7 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(chain));
             }
-            return Crossings(chain.GetEdges(), edge => edge.GetIntersections(polygon, tolerance), tolerance);
+            return Crossings(chain.GetEdges(), edge => Intersection3.OfSide(edge, polygon, tolerance), tolerance);
         }
 
         /// <summary>
@@ -162,7 +162,7 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(chain));
             }
-            return Crossings(chain.GetEdges(), edge => edge.GetIntersections(face, tolerance), tolerance);
+            return Crossings(chain.GetEdges(), edge => Intersection3.OfSide(edge, face, tolerance), tolerance);
         }
 
         /// <summary>
@@ -205,7 +205,7 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(chain));
             }
-            return Crossings(chain.GetEdges(), edge => edge.GetIntersections(box, tolerance), tolerance);
+            return Crossings(chain.GetEdges(), edge => Intersection3.OfSide(edge, box, tolerance), tolerance);
         }
 
         /// <summary>
@@ -248,7 +248,7 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(chain));
             }
-            return Crossings(chain.GetEdges(), edge => edge.GetIntersections(box, tolerance), tolerance);
+            return Crossings(chain.GetEdges(), edge => Intersection3.OfSide(edge, box, tolerance), tolerance);
         }
 
         /// <summary>
@@ -291,7 +291,7 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(chain));
             }
-            return Crossings(chain.GetEdges(), edge => edge.GetIntersections(solid, tolerance), tolerance);
+            return Crossings(chain.GetEdges(), edge => Intersection3.OfSide(edge, solid, tolerance), tolerance);
         }
 
         /// <summary>
@@ -334,7 +334,7 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(chain));
             }
-            return Crossings(chain.GetEdges(), edge => edge.GetIntersections(arc, tolerance), tolerance);
+            return Crossings(chain.GetEdges(), edge => Intersection3.OfSide(edge, arc, tolerance), tolerance);
         }
 
         /// <summary>
@@ -377,7 +377,7 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(chain));
             }
-            return Crossings(chain.GetEdges(), edge => edge.GetIntersections(circle, tolerance), tolerance);
+            return Crossings(chain.GetEdges(), edge => Intersection3.OfSide(edge, circle, tolerance), tolerance);
         }
 
         /// <summary>
@@ -463,7 +463,7 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(loop));
             }
-            return Crossings(loop.GetEdges(), edge => edge.GetIntersections(triangle, tolerance), tolerance);
+            return Crossings(loop.GetEdges(), edge => Intersection3.OfSide(edge, triangle, tolerance), tolerance);
         }
 
         /// <summary>
@@ -506,7 +506,7 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(loop));
             }
-            return Crossings(loop.GetEdges(), edge => edge.GetIntersections(polygon, tolerance), tolerance);
+            return Crossings(loop.GetEdges(), edge => Intersection3.OfSide(edge, polygon, tolerance), tolerance);
         }
 
         /// <summary>
@@ -549,7 +549,7 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(loop));
             }
-            return Crossings(loop.GetEdges(), edge => edge.GetIntersections(face, tolerance), tolerance);
+            return Crossings(loop.GetEdges(), edge => Intersection3.OfSide(edge, face, tolerance), tolerance);
         }
 
         /// <summary>
@@ -592,7 +592,7 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(loop));
             }
-            return Crossings(loop.GetEdges(), edge => edge.GetIntersections(box, tolerance), tolerance);
+            return Crossings(loop.GetEdges(), edge => Intersection3.OfSide(edge, box, tolerance), tolerance);
         }
 
         /// <summary>
@@ -635,7 +635,7 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(loop));
             }
-            return Crossings(loop.GetEdges(), edge => edge.GetIntersections(box, tolerance), tolerance);
+            return Crossings(loop.GetEdges(), edge => Intersection3.OfSide(edge, box, tolerance), tolerance);
         }
 
         /// <summary>
@@ -678,7 +678,7 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(loop));
             }
-            return Crossings(loop.GetEdges(), edge => edge.GetIntersections(solid, tolerance), tolerance);
+            return Crossings(loop.GetEdges(), edge => Intersection3.OfSide(edge, solid, tolerance), tolerance);
         }
 
         /// <summary>
@@ -721,7 +721,7 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(loop));
             }
-            return Crossings(loop.GetEdges(), edge => edge.GetIntersections(arc, tolerance), tolerance);
+            return Crossings(loop.GetEdges(), edge => Intersection3.OfSide(edge, arc, tolerance), tolerance);
         }
 
         /// <summary>
@@ -764,7 +764,7 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(loop));
             }
-            return Crossings(loop.GetEdges(), edge => edge.GetIntersections(circle, tolerance), tolerance);
+            return Crossings(loop.GetEdges(), edge => Intersection3.OfSide(edge, circle, tolerance), tolerance);
         }
 
         /// <summary>

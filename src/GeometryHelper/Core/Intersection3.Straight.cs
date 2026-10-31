@@ -71,10 +71,43 @@ namespace GeometryHelper.Core
         /// A ray is a value type and cannot be refused for being absent, so a ray with no direction is read as
         /// its own origin and nothing more: the question becomes whether the segment holds that point.
         /// </para>
+        /// <para>
+        /// A segment no longer than the point tolerance is read as its start where it does not truly cross the ray: at a
+        /// thousandth, the segment from (5, 0, 0.0004) to (5, 0, -0.0005) crosses the ray from the origin along X at
+        /// (5, 0, 0), the one from (5, 0, 0.0008) to (5, 0, 0.0002) meets it at its start, and the one from (5, 0, 0.0015)
+        /// to (5, 0, 0.0006) meets it nowhere, where it was given (5, 0, 0).
+        /// </para>
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoLine3 line, GeoRay3 ray, Tolerance tolerance)
+            => Stub3.ReadsAsStart(line, tolerance) ? CrossingsOfStub(line, ray, tolerance) : Crossings(line, ray, tolerance);
+
+        /// <summary>
+        /// Gets where a segment no longer than the tolerance, read as its start unless it truly crosses, meets a ray.
+        /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static GeoPoint3[] CrossingsOfStub(GeoLine3 line, GeoRay3 ray, Tolerance tolerance)
         {
-            GeoLine3 join = Projection3.Closest(ray, line, tolerance);
+            // Points are carried onto the segment as it is, not within the global tolerance, which reads it as its start.
+            Tolerance asItIs = Stub3.AsItIs(line, tolerance);
+
+            return Stub3.Meeting(
+                line,
+                Crossings(line, ray, asItIs, asItIs),
+                Projection3.ProjectToRay(ray, line.StartPoint).DistanceTo(line.StartPoint) <= tolerance.EqualPoint);
+        }
+
+        /// <summary>
+        /// Gets where a segment crosses a ray as the sides of shapes cross one, a segment no longer than the point tolerance
+        /// read as one longer is.
+        /// </summary>
+        internal static GeoPoint3[] Crossings(GeoLine3 line, GeoRay3 ray, Tolerance tolerance) => Crossings(line, ray, tolerance, Tolerance.Global);
+
+        /// <summary>
+        /// Gets where a segment crosses a ray, points carried onto the segment within a tolerance of their own.
+        /// </summary>
+        private static GeoPoint3[] Crossings(GeoLine3 line, GeoRay3 ray, Tolerance tolerance, Tolerance onLine)
+        {
+            GeoLine3 join = Projection3.Closest(ray, line, tolerance, onLine);
 
             if (join.Length > tolerance.EqualPoint || ray.IsParallelTo(line, tolerance))
             {

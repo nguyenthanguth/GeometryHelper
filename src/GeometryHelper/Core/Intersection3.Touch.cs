@@ -9,6 +9,74 @@ namespace GeometryHelper.Core
     public static partial class Intersection3
     {
         /// <summary>
+        /// Gets where a segment you give meets a plane, as a list: as <see cref="Meeting(GeoLine3, GeoPlane3, Tolerance, out bool)"/>
+        /// gives it, a segment no longer than the point tolerance read as its start unless it truly meets the plane.
+        /// </summary>
+        internal static GeoPoint3[] MeetingOfGiven(GeoLine3 line, GeoPlane3 plane, Tolerance tolerance)
+        {
+            if (Stub3.ReadsAsStart(line, tolerance))
+            {
+                return Stub3.Meeting(
+                    line,
+                    Meeting(line, plane, Stub3.AsItIs(line, tolerance), out _),
+                    System.Math.Abs(plane.SignedDistanceTo(line.StartPoint)) <= tolerance.EqualPlanar);
+            }
+
+            return Meeting(line, plane, tolerance, out _);
+        }
+
+        /// <summary>
+        /// Gets where a segment you give meets a triangle, as a list: as <see cref="Meeting(GeoLine3, GeoTriangle3, bool, Tolerance, bool)"/>
+        /// gives it, a segment no longer than the point tolerance read as its start unless it truly meets the triangle.
+        /// </summary>
+        internal static GeoPoint3[] MeetingOfGiven(GeoLine3 line, GeoTriangle3 triangle, Tolerance tolerance)
+        {
+            if (Stub3.ReadsAsStart(line, tolerance))
+            {
+                return Stub3.Meeting(
+                    line,
+                    Meeting(line, triangle, true, Stub3.AsItIs(line, tolerance)),
+                    Gap3.Region.Of(triangle).PointGap(line.StartPoint) <= tolerance.EqualPoint);
+            }
+
+            return Meeting(line, triangle, true, tolerance);
+        }
+
+        /// <summary>
+        /// Gets where a segment you give meets a polygon, as a list, a segment no longer than the point tolerance read as its
+        /// start unless it truly meets the polygon.
+        /// </summary>
+        internal static GeoPoint3[] MeetingOfGiven(GeoLine3 line, GeoPolygon3 polygon, Tolerance tolerance)
+        {
+            if (Stub3.ReadsAsStart(line, tolerance))
+            {
+                return Stub3.Meeting(
+                    line,
+                    Meeting(line, polygon, true, Stub3.AsItIs(line, tolerance)),
+                    Gap3.Region.Of(polygon).PointGap(line.StartPoint) <= tolerance.EqualPoint);
+            }
+
+            return Meeting(line, polygon, true, tolerance);
+        }
+
+        /// <summary>
+        /// Gets where a segment you give meets the material of a face, as a list, a segment no longer than the point tolerance
+        /// read as its start unless it truly meets the material.
+        /// </summary>
+        internal static GeoPoint3[] MeetingOfGiven(GeoLine3 line, GeoFace3 face, Tolerance tolerance)
+        {
+            if (Stub3.ReadsAsStart(line, tolerance))
+            {
+                return Stub3.Meeting(
+                    line,
+                    Meeting(line, face, true, Stub3.AsItIs(line, tolerance)),
+                    Gap3.Region.Of(face).PointGap(line.StartPoint) <= tolerance.EqualPoint);
+            }
+
+            return Meeting(line, face, true, tolerance);
+        }
+
+        /// <summary>
         /// Gets where a segment meets a triangle, as a list: the crossing, or the point of a touch.
         /// </summary>
         /// <param name="line">The segment.</param>
@@ -24,7 +92,7 @@ namespace GeometryHelper.Core
         /// </param>
         internal static GeoPoint3[] Meeting(GeoLine3 line, GeoTriangle3 triangle, bool readShortAsPoint, Tolerance tolerance, bool endless = false)
         {
-            bool crossed = TryIntersectWith(line, triangle, out GeoPoint3 crossing, tolerance);
+            bool crossed = TryCross(line, triangle, out GeoPoint3 crossing, tolerance);
 
             if (crossed && !triangle.IsDegenerate(tolerance) && OnPlaneAndPiece(crossing, triangle.GetPlane(), line))
             {
@@ -44,7 +112,7 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static GeoPoint3[] Meeting(GeoLine3 line, GeoPolygon3 polygon, bool readShortAsPoint, Tolerance tolerance, bool endless = false)
         {
-            bool crossed = TryIntersectWith(line, polygon, out GeoPoint3 crossing, tolerance);
+            bool crossed = TryCross(line, polygon, out GeoPoint3 crossing, tolerance);
 
             if (crossed && OnPlaneAndPiece(crossing, polygon.GetPlane(), line))
             {
@@ -64,7 +132,7 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static GeoPoint3[] Meeting(GeoLine3 line, GeoFace3 face, bool readShortAsPoint, Tolerance tolerance, bool endless = false)
         {
-            bool crossed = TryIntersectWith(line, face, out GeoPoint3 crossing, tolerance);
+            bool crossed = TryCross(line, face, out GeoPoint3 crossing, tolerance);
 
             if (crossed && OnPlaneAndPiece(crossing, face.GetPlane(), line))
             {

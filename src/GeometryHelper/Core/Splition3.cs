@@ -189,7 +189,7 @@ namespace GeometryHelper.Core
         {
             pieces = new[] { line };
 
-            if (!Intersection3.TryIntersectWith(line, cutter, out GeoPoint3 cut, tolerance))
+            if (!Intersection3.TryCross(line, cutter, out GeoPoint3 cut, tolerance))
             {
                 return false;
             }
@@ -370,7 +370,7 @@ namespace GeometryHelper.Core
             {
                 GeoLine3 segment = polyline.GetEdgeAt(edge);
 
-                if (Intersection3.TryIntersectWith(segment, cutter, out GeoPoint3 hit, tolerance))
+                if (Intersection3.TryCross(segment, cutter, out GeoPoint3 hit, tolerance))
                 {
                     cuts.Add(travelled + Parametrization3.GetDistanceAtPoint(segment, hit));
                 }
@@ -880,7 +880,7 @@ namespace GeometryHelper.Core
                 // Only a genuine crossing needs a new vertex. An edge that merely ends on the plane
                 // already has one there.
                 if (currentSide != 0 && nextSide != 0 && currentSide != nextSide &&
-                    Intersection3.TryIntersectWith(new GeoLine3(current, next), cutter, out GeoPoint3 hit, tolerance))
+                    Intersection3.TryCross(new GeoLine3(current, next), cutter, out GeoPoint3 hit, tolerance))
                 {
                     points.Add(hit);
                     sides.Add(0);
@@ -2426,7 +2426,7 @@ namespace GeometryHelper.Core
                     continue;
                 }
 
-                if (face.TryIntersectWith(edge, out GeoPoint3 hit, tolerance))
+                if (Intersection3.TryCross(edge, face, out GeoPoint3 hit, tolerance))
                 {
                     cuts.Add(offset + Parametrization3.GetDistanceAtPoint(edge, hit));
                 }
@@ -2548,7 +2548,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(cutter));
             }
 
-            return TryCutAtCrossings(subject, (GeoLine3 edge, out GeoPoint3 hit) => Intersection3.TryIntersectWith(edge, cutter, out hit, tolerance), out pieces, tolerance);
+            return TryCutAtCrossings(subject, (GeoLine3 edge, out GeoPoint3 hit) => Intersection3.TryCross(edge, cutter, out hit, tolerance), out pieces, tolerance);
         }
 
         /// <summary>
@@ -2578,7 +2578,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(cutter));
             }
 
-            return TryCutAtCrossings(subject, (GeoLine3 edge, out GeoPoint3 hit) => cutter.TryIntersectWith(edge, out hit, tolerance), out pieces, tolerance);
+            return TryCutAtCrossings(subject, (GeoLine3 edge, out GeoPoint3 hit) => Intersection3.TryCross(edge, cutter, out hit, tolerance), out pieces, tolerance);
         }
 
         /// <summary>
@@ -2601,7 +2601,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(cutter));
             }
 
-            if (!Intersection3.TryIntersectWith(subject, cutter, out GeoPoint3 hit, tolerance))
+            if (!Intersection3.TryCross(subject, cutter, out GeoPoint3 hit, tolerance))
             {
                 return false;
             }
@@ -2629,7 +2629,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(cutter));
             }
 
-            if (!cutter.TryIntersectWith(subject, out GeoPoint3 hit, tolerance))
+            if (!Intersection3.TryCross(subject, cutter, out GeoPoint3 hit, tolerance))
             {
                 return false;
             }

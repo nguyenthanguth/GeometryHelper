@@ -4,16 +4,18 @@ using GeometryHelper.Geometry;
 namespace GeometryHelper.Core
 {
     /// <summary>
-    /// How a segment you give in space, no longer than the point tolerance, is read by the shortest lines and by the
-    /// distances that do not go through <see cref="Gap3"/>: as the point at its start, too short to have a direction,
-    /// except where it truly meets the other shape, as it does passing through a surface or crossing a segment, where it
-    /// is in contact however short: as <see cref="Gap3"/> reads it, and as <see cref="Stub2"/> reads one in the plane.
+    /// How a segment you give in space, no longer than the point tolerance, is read by the shortest lines, by the
+    /// distances that do not go through <see cref="Gap3"/> and by the intersections: as the point at its start, too short
+    /// to have a direction, except where it truly meets the other shape, as it does passing through a surface or crossing a
+    /// segment, where it is in contact however short: as <see cref="Gap3"/> reads it, and as <see cref="Stub2"/> reads one
+    /// in the plane.
     /// </summary>
     /// <remarks>
     /// At a thousandth, a segment 0.0009 long pointing down at a square in the floor, its start 0.0015 above it and its end
-    /// 0.0006, is joined to it from its start, by a line 0.0015 long; one passing through it, its start 0.0004 above, is
-    /// joined to it by a line of no length where it passes through. A side of a shape is the side it is however short, and
-    /// is never read so.
+    /// 0.0006, is joined to it from its start, by a line 0.0015 long, and meets it nowhere; one passing through it, its start
+    /// 0.0004 above, is joined to it by a line of no length where it passes through, and meets it there; one pointing down at it
+    /// from 0.0008 above to 0.0002 above meets it at its start, which lies within the tolerance of it. A side of a shape is the side it is however short,
+    /// and is never read so.
     /// </remarks>
     internal static class Stub3
     {
@@ -76,6 +78,59 @@ namespace GeometryHelper.Core
         /// <param name="toStart">The shortest segment to its start, running the same way as <paramref name="asItIs"/>.</param>
         internal static GeoLine3 Nearest(GeoLine3 line, GeoLine3 asItIs, GeoLine3 toStart)
             => Meets(asItIs.Length, line) ? asItIs : toStart;
+
+        /// <summary>
+        /// Gets where a segment read as its start meets a shape: the points found with the segment as it is where it truly
+        /// meets the shape, otherwise its start where the start touches the shape, and none where it does neither.
+        /// </summary>
+        /// <param name="line">The segment read as its start.</param>
+        /// <param name="asItIs">The points found with the segment as it is, with <see cref="AsItIs(GeoLine3, Tolerance)"/>.</param>
+        /// <param name="startTouches">Whether its start lies within the tolerance of the shape, as a point touching it does.</param>
+        internal static GeoPoint3[] Meeting(GeoLine3 line, GeoPoint3[] asItIs, bool startTouches)
+            => asItIs.Length > 0 ? asItIs : startTouches ? new[] { line.StartPoint } : new GeoPoint3[0];
+
+        /// <summary>
+        /// Gives the start of a segment read as its start, which does not truly meet a shape, as the one point where the two
+        /// meet where the start touches the shape.
+        /// </summary>
+        internal static bool AtStart(GeoLine3 line, bool startTouches, out GeoPoint3 point)
+        {
+            point = startTouches ? line.StartPoint : GeoPoint3.Origin;
+            return startTouches;
+        }
+
+        /// <summary>
+        /// Gives where two segments meet that do not truly meet, one or both read as their starts: the start of the one read
+        /// so, where it lies within the point tolerance of the other, or, both read so, the point midway between their
+        /// starts, where those lie that close.
+        /// </summary>
+        internal static bool AtStart(GeoLine3 line, GeoLine3 other, Tolerance tolerance, out GeoPoint3 point)
+        {
+            bool first = ReadsAsStart(line, tolerance);
+            GeoPoint3 a = line.StartPoint;
+            GeoPoint3 b = other.StartPoint;
+            bool touches;
+
+            if (first && ReadsAsStart(other, tolerance))
+            {
+                point = new GeoPoint3((a.X + b.X) * 0.5, (a.Y + b.Y) * 0.5, (a.Z + b.Z) * 0.5);
+                touches = a.DistanceTo(b) <= tolerance.EqualPoint;
+            }
+            else
+            {
+                point = first ? a : b;
+                touches = first
+                    ? Gap3.PointToSegment(a, other.StartPoint, other.EndPoint) <= tolerance.EqualPoint
+                    : Gap3.PointToSegment(b, line.StartPoint, line.EndPoint) <= tolerance.EqualPoint;
+            }
+
+            if (!touches)
+            {
+                point = GeoPoint3.Origin;
+            }
+
+            return touches;
+        }
 
         private static Tolerance AsItIs(double rounding, Tolerance tolerance)
             => new Tolerance(rounding, tolerance.EqualVector, tolerance.EqualAngleRad, rounding);

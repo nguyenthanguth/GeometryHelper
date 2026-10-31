@@ -211,11 +211,13 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// A polyline is a curve and holds only the points on its path, so a chain tracing a square is
         /// measured to that path and reports a positive distance for a point in the middle of it. Call
-        /// <c>ToPolygon</c> when the enclosed area is what should count.
+        /// <c>ToPolygon</c> when the enclosed area is what should count. Each side is measured as it is, however short, as in
+        /// the plane: the chain from (-7, -7, 0) to the origin, on to (0.008, 0, 0) and down to (7, -7, 0) is 0.02 from the
+        /// point (0.006, 0.02, 0) at a hundredth, where its short side was read as its start and the point 0.0201 off.
         /// </remarks>
         public static double DistanceTo(GeoPolyline3 polyline, GeoPoint3 point, Tolerance tolerance)
         {
-            return DistanceTo(Projection3.ProjectToPolyline(polyline, point, tolerance), point);
+            return DistanceTo(Projection3.ProjectToPolyline(polyline, point, default(Tolerance)), point);
         }
 
         /// <summary>

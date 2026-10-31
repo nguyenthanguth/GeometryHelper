@@ -35,10 +35,23 @@ namespace GeometryHelper.Geometry
         /// <returns>The crossings, none where they do not meet or where the shape lies inside the ball.</returns>
         /// <remarks>
         /// The segment from (0, -100, 0) to (0, 100, 0) crosses the surface of the ball of radius 50 about the origin at (0, -50, 0) and (0, 50, 0), in that order. The segment from (-10, 0, 0) to (10, 0, 0) lies wholly inside, collides with the ball and crosses it nowhere; one that ends 0.0005 short of the surface touches it, at its end.
+        /// A segment no longer than the point tolerance is read as its start where it does not truly cross the surface: at a
+        /// thousandth, the one from (0, 0, 50.0004) to (0, 0, 49.9995) crosses it at (0, 0, 50), the one from (0, 0, 50.0008)
+        /// to (0, 0, 50.0002) meets it at its start, and the one from (0, 0, 50.0015) to (0, 0, 50.0006) meets it nowhere.
         /// </remarks>
         public GeoPoint3[] GetIntersections(GeoLine3 line, Tolerance tolerance)
         {
             var found = new List<GeoPoint3>();
+
+            if (Stub3.ReadsAsStart(line, tolerance))
+            {
+                Sphere3.Cross(found, this, line, Stub3.AsItIs(line, tolerance));
+
+                return Stub3.Meeting(
+                    line,
+                    found.ToArray(),
+                    found.Count == 0 && Math.Abs(Center.DistanceTo(line.StartPoint) - Radius) <= tolerance.EqualPoint);
+            }
 
             Sphere3.Cross(found, this, line, tolerance);
 
@@ -269,6 +282,12 @@ namespace GeometryHelper.Geometry
         /// <returns>The crossings, none where they do not meet or where the shape lies inside the ball.</returns>
         public GeoPoint3[] GetIntersections(GeoEdge3 edge, Tolerance tolerance)
         {
+            // A straight edge no longer than the point tolerance is read as a segment that short is.
+            if (Stub3.ReadsAsStart(edge, tolerance))
+            {
+                return GetIntersections(edge.ToLine(), tolerance);
+            }
+
             return Sphere3.Cross(this, edge, tolerance);
         }
 

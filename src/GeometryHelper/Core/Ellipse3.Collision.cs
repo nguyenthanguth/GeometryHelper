@@ -62,7 +62,7 @@ namespace GeometryHelper.Core
         /// the origin and touches nothing.
         /// </returns>
         public static bool CollidesWith(GeoEllipse3 ellipse, GeoLine3 line, Tolerance tolerance)
-            => GetIntersections(ellipse, line, tolerance).Length > 0;
+            => Crossings(ellipse, line, tolerance).Length > 0;
 
         /// <summary>
         /// Determines whether the rim of an ellipse in space touches a ray, using the default tolerance.

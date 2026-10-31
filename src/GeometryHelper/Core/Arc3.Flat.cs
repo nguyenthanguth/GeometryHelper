@@ -35,7 +35,7 @@ namespace GeometryHelper.Core
         {
             foreach (GeoLine3 edge in edges)
             {
-                foreach (GeoPoint3 crossing in GetIntersections(arc, edge, tolerance))
+                foreach (GeoPoint3 crossing in GetIntersections(arc, edge, tolerance, out _))
                 {
                     // Two edges share a corner, so an arc through a corner is found twice.
                     AddOnce(found, crossing, tolerance);

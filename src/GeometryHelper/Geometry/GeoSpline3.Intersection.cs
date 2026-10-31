@@ -62,9 +62,21 @@ namespace GeometryHelper.Geometry
         /// <returns>
         /// Every place where the two meet, once, as a point of the spline, in order along it from its start: where it crosses, where it touches
         /// without crossing, and where an end of the spline or of the shape comes within the point tolerance of the other. Where the spline runs
-        /// along the shape for a length it is not crossing it, and no point is given along that length.
+        /// along the shape for a length it is not crossing it, and no point is given along that length. A segment no longer than the point
+        /// tolerance is read as its start where it does not truly cross the spline: it is given its start where that lies within the point
+        /// tolerance of the spline, and nothing where it does not.
         /// </returns>
-        public GeoPoint3[] GetIntersections(GeoLine3 line, Tolerance tolerance) => Spline3.GetIntersections(this, Spline3.Of(this, line), tolerance);
+        public GeoPoint3[] GetIntersections(GeoLine3 line, Tolerance tolerance)
+        {
+            if (Stub3.ReadsAsStart(line, tolerance))
+            {
+                GeoPoint3[] asItIs = Spline3.GetIntersections(this, Spline3.Of(this, line), Stub3.AsItIs(line, tolerance));
+
+                return Stub3.Meeting(line, asItIs, asItIs.Length == 0 && DistanceTo(line.StartPoint, tolerance) <= tolerance.EqualPoint);
+            }
+
+            return Spline3.GetIntersections(this, Spline3.Of(this, line), tolerance);
+        }
 
         /// <summary>
         /// Tries to find where this spline crosses a line segment, using the default tolerance.
@@ -654,7 +666,10 @@ namespace GeometryHelper.Geometry
         /// without crossing, and where an end of the spline or of the shape comes within the point tolerance of the other. Where the spline runs
         /// along the shape for a length it is not crossing it, and no point is given along that length.
         /// </returns>
-        public GeoPoint3[] GetIntersections(GeoEdge3 edge, Tolerance tolerance) => Spline3.GetIntersections(this, Spline3.Of(this, edge), tolerance);
+        public GeoPoint3[] GetIntersections(GeoEdge3 edge, Tolerance tolerance)
+            => Stub3.ReadsAsStart(edge, tolerance)
+                ? GetIntersections(edge.ToLine(), tolerance)
+                : Spline3.GetIntersections(this, Spline3.Of(this, edge), tolerance);
 
         /// <summary>
         /// Tries to find where this spline crosses an edge, using the default tolerance.

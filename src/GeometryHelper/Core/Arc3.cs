@@ -464,9 +464,23 @@ namespace GeometryHelper.Core
         /// point nearest it, comes within the point tolerance of the arc, each point on its own: the segment from
         /// (0, 0, 0.0008) to (49.9992, 0, 0.0008) ends 0.00113 from that arc and is given nothing, where it was given
         /// (50, 0, 0.0008) and collided with nothing, and the one from (-60, 0, 0.0006) to (49.9994, 0, 0.0006), ending
-        /// 0.000849 from it, touches it at both rims.
+        /// 0.000849 from it, touches it at both rims. A segment no longer than the point tolerance is read as its start
+        /// where it does not truly cross the arc: it is given its start where that lies within the point tolerance of the
+        /// arc, and nothing where it does not.
         /// </returns>
-        public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoLine3 line, Tolerance tolerance) => GetIntersections(arc, line, tolerance, out _);
+        public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoLine3 line, Tolerance tolerance)
+            => Stub3.ReadsAsStart(line, tolerance) ? GetIntersectionsOfStub(arc, line, tolerance) : GetIntersections(arc, line, tolerance, out _);
+
+        /// <summary>
+        /// Gets where a segment no longer than the tolerance, read as its start unless it truly crosses, meets an arc.
+        /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static GeoPoint3[] GetIntersectionsOfStub(GeoArc3 arc, GeoLine3 line, Tolerance tolerance)
+        {
+            GeoPoint3[] asItIs = GetIntersections(arc, line, Stub3.AsItIs(line, tolerance), out _);
+
+            return Stub3.Meeting(line, asItIs, asItIs.Length == 0 && arc.DistanceTo(line.StartPoint) <= tolerance.EqualPoint);
+        }
 
         /// <summary>
         /// Gets every point where an arc crosses a segment, within a tolerance, and whether the one given is the point of a

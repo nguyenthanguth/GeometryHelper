@@ -6,6 +6,40 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** In space, `GetIntersections` and `TryIntersectWith` read a segment you give, a `GeoLine3` or a straight
+`GeoEdge3` no longer than the point tolerance, as `DistanceTo` and `GetShortestLineTo` read it: where it truly meets the
+shape, crossing a surface, a segment or a rim, it meets it there; otherwise it meets it at its start where that lies
+within the tolerance of the shape, and nowhere where it does not. At a thousandth, the segment from (5, 5, 0.0004) to
+(5, 5, -0.0005), passing through the square 10 by 10 in the floor, met it nowhere, nor a triangle, a face, a body or the
+floor itself; it meets each at (5, 5, 0). The one from (5, 5, 0.0015) down to (5, 5, 0.0006), stopping 0.0006 above the
+floor, met it at its end, as a ray and a spline so aimed did; it meets nothing. The one from (5, 5, 0.0008) to
+(5, 5, 0.0002), standing over the square, met it nowhere and met a segment, a ball or an arc at a point up to 0.0008 off
+its start; it meets each at its start. Of the 368 intersection queries in space that take a segment, asked about four
+stubs, 808 answers broke that rule and none does now; of 33 600 random stubs and segments a seed aimed at every shape in
+space, some 15 300 answers a seed broke it, and none does now. A segment longer than the tolerance, a line or a ray cut
+past a shape, and the sides of chains, polylines, boxes and bodies crossed inside the library, splitting and cutting
+among them, are read as before, to the bit: of 347 962 answers to longer segments none moved, nor any of 100 800
+intersections of shapes with a side shorter than the tolerance. Two segments longer than the tolerance are crossed in 0.10
+microseconds where 0.07 on .NET 10, and in the time they took on .NET Framework 4.8; every other longer segment in the
+time it took. A stub takes longer, as its true meeting is looked for first: against a polygon of 40 sides 0.46
+microseconds where 0.005 on .NET 10. 6 new tests.
+
+**FIXED.** In space, `GetShortestLineTo` joins a segment, a ray, a point or a ball to a side of a polygon, a triangle, a
+face, a polyline or a body, and two triangles' sides to each other, as the side it is however short, as `DistanceTo`
+measures it. A side no longer than the point tolerance was read as its start: at a hundredth, the chain from (-7, -7, 0)
+to the origin, on to (0.008, 0, 0) and down to (7, -7, 0) was joined to the point (0.006, 0.02, 0), and to the segment
+standing up through it, by a line 0.0201 long from the corner (0.008, 0, 0), where they are 0.02 from its short side; so
+were a polygon and a face with that side, and the triangle (0, 0, 0), (0.008, 0, 0), (0.004, -10, 0). They are joined by
+lines 0.02 long. `Distance3.DistanceTo(GeoPolyline3, GeoPoint3)`, and with it the distance of a point and of a ball to a
+polyline and `Containment3.IsPointOn(GeoPolyline3, GeoPoint3)`, measured the chain so too, and measures each side as it
+is, as the plane does. Of 10 500 random shapes with a side 1E-4 to 1E-2 long beside 15 kinds of shape, 2 692 lines and
+distances broke and 722 do, all of them read on purpose or left for later: a plane and a box reading a shape within the
+tolerance as on them, a foot kept within the tolerance past the rim of a face of a body, a polygon joined to a polyline
+through its triangles, and the closest point of a curved chain or loop. Shapes whose sides are all longer than the
+tolerance are joined as before, to the bit, and so are the triangles of a body's index, which the clash reads. Each line
+takes the time it took, but a polyline's to a ray: 2.35 microseconds where 2.0 on .NET 10, as it was on .NET Framework
+4.8. 2 new tests.
+
 **FIXED.** `DxfSpline.FitData` set on a closed spline keeps it closed, where fit data not periodic opened it, and gives
 it the flags 32 and 1024 of fit data, as AutoCAD 2021 does: its closed cubic of 70 1035 given fit data not periodic, a
 fit point moved, was saved 70 1067, closed, where the library wrote 70 8, open. Fit data set periodic give AutoCAD's

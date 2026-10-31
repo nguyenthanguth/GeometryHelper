@@ -56,7 +56,7 @@ namespace GeometryHelper.Core
                         continue;
                     }
 
-                    foreach (GeoPoint3 crossing in edge.GetIntersections(others[i], tolerance))
+                    foreach (GeoPoint3 crossing in Intersection3.OfSide(edge, others[i], tolerance))
                     {
                         Arc3.AddOnce(found, crossing, tolerance);
                     }

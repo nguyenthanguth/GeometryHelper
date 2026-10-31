@@ -46,29 +46,40 @@ namespace GeometryHelper.Core
             {
                 return Stub3.Nearest(
                     line,
-                    Closest(line, triangle, Stub3.AsItIs(line, tolerance)),
+                    Closest(line, triangle, Stub3.AsItIs(line, tolerance), Stub3.AsItIs(line, tolerance)),
                     new GeoLine3(line.StartPoint, ProjectToTriangle(triangle, line.StartPoint)));
             }
 
-            return Closest(line, triangle, tolerance);
+            return Closest(line, triangle, tolerance, Exactly);
         }
+
+        /// <summary>
+        /// Gets the shortest segment joining a segment to a triangle by the search a side of a shape is joined by, the segment
+        /// not read as one you give, a side no longer than the point tolerance read as its start: as the index of a body asks.
+        /// </summary>
+        internal static GeoLine3 Closest(GeoLine3 line, GeoTriangle3 triangle, Tolerance tolerance) => Closest(line, triangle, tolerance, tolerance);
 
         /// <summary>
         /// Gets the shortest segment joining a segment to a triangle by the search a side of a shape is joined by, the segment
         /// not read as one you give.
         /// </summary>
-        internal static GeoLine3 Closest(GeoLine3 line, GeoTriangle3 triangle, Tolerance tolerance)
+        /// <param name="line">The segment.</param>
+        /// <param name="triangle">The triangle.</param>
+        /// <param name="tolerance">The tolerance the crossing is read within.</param>
+        /// <param name="sides">The tolerance the segment is joined to each side within: nought, so a side no longer than the point
+        /// tolerance is measured as the side it is.</param>
+        internal static GeoLine3 Closest(GeoLine3 line, GeoTriangle3 triangle, Tolerance tolerance, Tolerance sides)
         {
-            if (Intersection3.TryIntersectWith(line, triangle, out GeoPoint3 through, tolerance))
+            if (Intersection3.TryCross(line, triangle, out GeoPoint3 through, tolerance))
             {
                 return new GeoLine3(through, through);
             }
 
-            GeoLine3 best = Closest(line, triangle.GetEdgeAt(0), tolerance);
+            GeoLine3 best = Closest(line, triangle.GetEdgeAt(0), sides);
 
             for (int i = 1; i < 3; i++)
             {
-                Consider(ref best, Closest(line, triangle.GetEdgeAt(i), tolerance));
+                Consider(ref best, Closest(line, triangle.GetEdgeAt(i), sides));
             }
 
             Consider(ref best, new GeoLine3(line.StartPoint, ProjectToTriangle(triangle, line.StartPoint)));
@@ -94,9 +105,17 @@ namespace GeometryHelper.Core
         /// the crossings of each edge with the other face are looked for first. Failing that the nearest
         /// pair is between two edges, or under a corner of one lying over the face of the other, which is
         /// the same set of candidates <see cref="Distance3.DistanceTo(GeoTriangle3, GeoTriangle3, Tolerance)"/>
-        /// weighs.
+        /// weighs. A side no longer than the point tolerance, of a sliver, is measured as the side it is.
         /// </remarks>
         public static GeoLine3 GetShortestLineTo(GeoTriangle3 first, GeoTriangle3 second, Tolerance tolerance)
+            => Closest(first, second, tolerance, Exactly);
+
+        /// <summary>
+        /// Gets the shortest segment joining two triangles, the crossings read within one tolerance and the sides joined
+        /// within another: nought for the triangles you give, the tolerance itself for those of the index of a body, which
+        /// reads a side no longer than it as its start.
+        /// </summary>
+        internal static GeoLine3 Closest(GeoTriangle3 first, GeoTriangle3 second, Tolerance tolerance, Tolerance sides)
         {
             // Two triangles one of which lies clear to one side of the other's plane have no crossing to find, and
             // saying so costs three distances rather than six crossings looked for in vain.
@@ -105,20 +124,20 @@ namespace GeometryHelper.Core
 
             for (int i = 0; i < 3 && !apart; i++)
             {
-                if (Intersection3.TryIntersectWith(first.GetEdgeAt(i), second, out GeoPoint3 through, tolerance) ||
-                    Intersection3.TryIntersectWith(second.GetEdgeAt(i), first, out through, tolerance))
+                if (Intersection3.TryCross(first.GetEdgeAt(i), second, out GeoPoint3 through, tolerance) ||
+                    Intersection3.TryCross(second.GetEdgeAt(i), first, out through, tolerance))
                 {
                     return new GeoLine3(through, through);
                 }
             }
 
-            GeoLine3 best = Closest(first.GetEdgeAt(0), second.GetEdgeAt(0), tolerance);
+            GeoLine3 best = Closest(first.GetEdgeAt(0), second.GetEdgeAt(0), sides);
 
             for (int i = 0; i < 3; i++)
             {
                 for (int j = 0; j < 3; j++)
                 {
-                    Consider(ref best, Closest(first.GetEdgeAt(i), second.GetEdgeAt(j), tolerance));
+                    Consider(ref best, Closest(first.GetEdgeAt(i), second.GetEdgeAt(j), sides));
                 }
             }
 
@@ -151,7 +170,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(solid));
             }
 
-            return new GeoLine3(ProjectToSolid(solid, point, tolerance), point);
+            return new GeoLine3(ProjectToSolid(solid, point, tolerance, true), point);
         }
 
         /// <summary>
@@ -320,7 +339,7 @@ namespace GeometryHelper.Core
             solid = Material3.Whole(solid, tolerance);
 
             GeoTriangle3[] faces = solid.TriangulateQuietly(tolerance);
-            GeoLine3 best = Closest(polyline.GetEdgeAt(0), faces[0], tolerance).Reverse();
+            GeoLine3 best = Closest(polyline.GetEdgeAt(0), faces[0], tolerance, Exactly).Reverse();
             double shortest = best.Length;
 
             for (int i = 0; i < faces.Length; i++)
@@ -332,7 +351,7 @@ namespace GeometryHelper.Core
                         return best;
                     }
 
-                    Consider(ref best, ref shortest, Closest(polyline.GetEdgeAt(j), faces[i], tolerance).Reverse());
+                    Consider(ref best, ref shortest, Closest(polyline.GetEdgeAt(j), faces[i], tolerance, Exactly).Reverse());
                 }
             }
 
@@ -502,18 +521,25 @@ namespace GeometryHelper.Core
         /// Gets the shortest segment joining a ray to a segment by the search a side of a shape is joined by, the segment not
         /// read as one you give.
         /// </summary>
-        internal static GeoLine3 Closest(GeoRay3 ray, GeoLine3 line, Tolerance tolerance)
+        internal static GeoLine3 Closest(GeoRay3 ray, GeoLine3 line, Tolerance tolerance) => Closest(ray, line, tolerance, Tolerance.Global);
+
+        /// <summary>
+        /// Gets the shortest segment joining a ray to a segment by the search a side of a shape is joined by, the segment read
+        /// within one tolerance where it is joined across and within another where points are projected onto it: both nought
+        /// for a side of a shape, measured as the side it is however short.
+        /// </summary>
+        internal static GeoLine3 Closest(GeoRay3 ray, GeoLine3 line, Tolerance tolerance, Tolerance onLine)
         {
             var best = new GeoLine3(ProjectToRay(ray, line.StartPoint), line.StartPoint);
 
             Consider(ref best, new GeoLine3(ProjectToRay(ray, line.EndPoint), line.EndPoint));
-            Consider(ref best, new GeoLine3(ray.Origin, ProjectToLine(line, ray.Origin)));
+            Consider(ref best, new GeoLine3(ray.Origin, ProjectToLine(line, ray.Origin, onLine)));
 
             GeoLine3 across = GetShortestLineTo(ray.ToLine(1.0), line, Enums.LineExtension.First, tolerance);
 
             Consider(ref best, new GeoLine3(
                 ProjectToRay(ray, across.StartPoint),
-                ProjectToLine(line, across.EndPoint)));
+                ProjectToLine(line, across.EndPoint, onLine)));
 
             return best;
         }
@@ -538,7 +564,7 @@ namespace GeometryHelper.Core
 
             for (int i = 0; i < 3; i++)
             {
-                Consider(ref best, Closest(ray, triangle.GetEdgeAt(i), tolerance));
+                Consider(ref best, Closest(ray, triangle.GetEdgeAt(i), Exactly, Exactly));
             }
 
             return best;

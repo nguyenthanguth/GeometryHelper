@@ -40,6 +40,14 @@ namespace GeometryHelper.Core
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static GeoPoint3 ProjectToFace(GeoFace3 face, GeoPoint3 point, Tolerance tolerance)
+            => ProjectToFace(face, point, tolerance, tolerance);
+
+        /// <summary>
+        /// Gets the point of a face nearest another point, whether the foot lands on the material read within one tolerance
+        /// and the point carried onto a side of a rim within another: nought for the shortest lines, which measure a side no
+        /// longer than the point tolerance as the side it is.
+        /// </summary>
+        internal static GeoPoint3 ProjectToFace(GeoFace3 face, GeoPoint3 point, Tolerance tolerance, Tolerance sides)
         {
             if (face == null)
             {
@@ -51,7 +59,7 @@ namespace GeometryHelper.Core
 
             if (!Containment3.Contains(face.Boundary, flat, tolerance))
             {
-                return ProjectToPolygonBoundary(face.Boundary, point, tolerance);
+                return ProjectToPolygonBoundary(face.Boundary, point, sides);
             }
 
             foreach (GeoPolygon3 hole in face.Holes)
@@ -61,7 +69,7 @@ namespace GeometryHelper.Core
                 // GeoFace3.Locate reads it: one standing a hair off that plane holds nothing of a point on it.
                 if (Containment3.LocateInPlane(hole, plane, flat, tolerance) == PointLocation.Inside)
                 {
-                    return ProjectToPolygonBoundary(hole, point, tolerance);
+                    return ProjectToPolygonBoundary(hole, point, sides);
                 }
             }
 

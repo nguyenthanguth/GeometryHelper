@@ -219,8 +219,8 @@ namespace GeometryHelper.Core
 
             for (int i = 0; i < 3; i++)
             {
-                if (Intersection3.TryIntersectWith(triangle1.GetEdgeAt(i), triangle2, out _, tolerance) ||
-                    Intersection3.TryIntersectWith(triangle2.GetEdgeAt(i), triangle1, out _, tolerance))
+                if (Intersection3.TryCross(triangle1.GetEdgeAt(i), triangle2, out _, tolerance) ||
+                    Intersection3.TryCross(triangle2.GetEdgeAt(i), triangle1, out _, tolerance))
                 {
                     return true;
                 }

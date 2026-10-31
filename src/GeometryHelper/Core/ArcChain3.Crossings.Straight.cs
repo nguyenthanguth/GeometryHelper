@@ -37,6 +37,14 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(chain));
             }
 
+            // A segment no longer than the tolerance is read as its start unless it truly meets the chain.
+            if (Stub3.ReadsAsStart(line, tolerance))
+            {
+                GeoPoint3[] asItIs = Meetings(chain.GetEdges(), false, edge => Meeting(edge, line, Stub3.AsItIs(line, tolerance)), Stub3.AsItIs(line, tolerance));
+
+                return Stub3.Meeting(line, asItIs, asItIs.Length == 0 && chain.DistanceTo(line.StartPoint, tolerance) <= tolerance.EqualPoint);
+            }
+
             return Meetings(chain.GetEdges(), false, edge => Meeting(edge, line, tolerance), tolerance);
         }
 
@@ -169,6 +177,14 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(loop));
             }
 
+            // A segment no longer than the tolerance is read as its start unless it truly meets the outline.
+            if (Stub3.ReadsAsStart(line, tolerance))
+            {
+                GeoPoint3[] asItIs = Meetings(loop.GetEdges(), true, edge => Meeting(edge, line, Stub3.AsItIs(line, tolerance)), Stub3.AsItIs(line, tolerance));
+
+                return Stub3.Meeting(line, asItIs, asItIs.Length == 0 && loop.DistanceTo(line.StartPoint, tolerance) <= tolerance.EqualPoint);
+            }
+
             return Meetings(loop.GetEdges(), true, edge => Meeting(edge, line, tolerance), tolerance);
         }
 
@@ -288,7 +304,7 @@ namespace GeometryHelper.Core
         {
             if (!edge.IsArc)
             {
-                return (edge.ToLine().GetIntersections(line, tolerance), false);
+                return (Intersection3.OfSide(edge.ToLine(), line, tolerance), false);
             }
 
             GeoPoint3[] points = Arc3.GetIntersections(edge.ToArc(), line, tolerance, out bool touch);
@@ -302,7 +318,7 @@ namespace GeometryHelper.Core
         {
             if (!edge.IsArc)
             {
-                return (edge.ToLine().GetIntersections(ray, tolerance), false);
+                return (Intersection3.OfSide(edge.ToLine(), ray, tolerance), false);
             }
 
             GeoPoint3[] points = Arc3.GetIntersections(edge.ToArc(), ray, tolerance, out bool touch);

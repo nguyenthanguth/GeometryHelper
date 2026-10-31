@@ -440,6 +440,11 @@ namespace GeometryHelper.Core
         /// </summary>
         private static double Clamp(double value) => Math.Max(0.0, Math.Min(1.0, value));
 
+        /// <summary>
+        /// A tolerance of nought, for joining to the sides of a shape as they are, however short.
+        /// </summary>
+        private static Tolerance Exactly => default(Tolerance);
+
         #endregion
 
         #region Point onto regions and volumes
@@ -528,6 +533,14 @@ namespace GeometryHelper.Core
         /// lands on (100.0005, 50, 0), 0.0005 past the edge.
         /// </remarks>
         public static GeoPoint3 ProjectToPolygon(GeoPolygon3 polygon, GeoPoint3 point, Tolerance tolerance)
+            => ProjectToPolygon(polygon, point, tolerance, tolerance);
+
+        /// <summary>
+        /// Projects a point onto a polygon, read as a filled surface, whether the foot lands inside read within one tolerance
+        /// and the point carried onto a side within another: nought for the shortest lines, which measure a side no longer
+        /// than the point tolerance as the side it is.
+        /// </summary>
+        internal static GeoPoint3 ProjectToPolygon(GeoPolygon3 polygon, GeoPoint3 point, Tolerance tolerance, Tolerance sides)
         {
             if (polygon == null)
             {
@@ -541,7 +554,7 @@ namespace GeometryHelper.Core
                 return flat;
             }
 
-            return ProjectToPolygonBoundary(polygon, point, tolerance);
+            return ProjectToPolygonBoundary(polygon, point, sides);
         }
 
         /// <summary>
@@ -646,6 +659,13 @@ namespace GeometryHelper.Core
         /// </para>
         /// </remarks>
         public static GeoPoint3 ProjectToSolid(GeoSolid3 solid, GeoPoint3 point, Tolerance tolerance)
+            => ProjectToSolid(solid, point, tolerance, false);
+
+        /// <summary>
+        /// Projects a point onto the surface of a solid, within a tolerance, a point carried onto a side of a face carried
+        /// there as the side is, however short, when asked: as the shortest lines measure one.
+        /// </summary>
+        internal static GeoPoint3 ProjectToSolid(GeoSolid3 solid, GeoPoint3 point, Tolerance tolerance, bool exactSides)
         {
             if (solid == null)
             {
@@ -653,8 +673,8 @@ namespace GeometryHelper.Core
             }
 
             return solid.Openings.Count == 0
-                ? ProjectToFaces(solid.Faces, point, tolerance)
-                : ProjectToMaterial(solid, point, tolerance);
+                ? ProjectToFaces(solid.Faces, point, tolerance, exactSides)
+                : ProjectToMaterial(solid, point, tolerance, exactSides);
         }
 
         /// <summary>
@@ -681,12 +701,20 @@ namespace GeometryHelper.Core
         /// </para>
         /// </remarks>
         internal static GeoPoint3 ProjectToMaterial(GeoSolid3 solid, GeoPoint3 point, Tolerance tolerance)
+            => ProjectToMaterial(solid, point, tolerance, false);
+
+        /// <summary>
+        /// Projects a point onto the surface of a body with openings, as
+        /// <see cref="ProjectToMaterial(GeoSolid3, GeoPoint3, Tolerance)"/> does, a point carried onto a side of a face carried
+        /// there as the side is when asked.
+        /// </summary>
+        private static GeoPoint3 ProjectToMaterial(GeoSolid3 solid, GeoPoint3 point, Tolerance tolerance, bool exactSides)
         {
             // A point tolerance below the rounding of the coordinates reads the faces within it, as the openings are cut.
             Tolerance within = Material3.ToRounding(solid, tolerance);
             Tolerance read = within.EqualPoint > tolerance.EqualPoint ? within : tolerance;
 
-            GeoPoint3 best = ProjectToFaces(solid.Faces, point, read);
+            GeoPoint3 best = ProjectToFaces(solid.Faces, point, read, exactSides);
             double reach = point.DistanceTo(best);
 
             var chosen = new List<GeoSolid3>();
@@ -715,25 +743,27 @@ namespace GeometryHelper.Core
 
                 if (material == null)
                 {
-                    return ProjectToFaces(solid.Faces, point, read);
+                    return ProjectToFaces(solid.Faces, point, read, exactSides);
                 }
 
-                best = ProjectToFaces(material.Faces, point, read);
+                best = ProjectToFaces(material.Faces, point, read, exactSides);
                 reach = point.DistanceTo(best);
             }
         }
 
         /// <summary>
-        /// Projects a point onto the nearest of a set of faces, stepping off any hole cut in a face onto its rim.
+        /// Projects a point onto the nearest of a set of faces, stepping off any hole cut in a face onto its rim, a point
+        /// carried onto a side carried there as the side is, however short, when asked.
         /// </summary>
-        private static GeoPoint3 ProjectToFaces(IReadOnlyList<GeoFace3> faces, GeoPoint3 point, Tolerance tolerance)
+        private static GeoPoint3 ProjectToFaces(IReadOnlyList<GeoFace3> faces, GeoPoint3 point, Tolerance tolerance, bool exactSides)
         {
             GeoPoint3 best = point;
             double bestDistanceSquared = double.MaxValue;
+            Tolerance sides = exactSides ? Exactly : tolerance;
 
             foreach (GeoFace3 face in faces)
             {
-                GeoPoint3 candidate = ProjectToPolygon(face.Boundary, point, tolerance);
+                GeoPoint3 candidate = ProjectToPolygon(face.Boundary, point, tolerance, sides);
                 GeoPlane3 plane = face.GetPlane();
 
                 foreach (GeoPolygon3 hole in face.Holes)
@@ -743,7 +773,7 @@ namespace GeometryHelper.Core
                     // the boundary, as the face is.
                     if (Containment3.LocateInPlane(hole, plane, ProjectToPlane(plane, point), tolerance) != PointLocation.OutSide)
                     {
-                        candidate = ProjectToPolygonBoundary(hole, point, tolerance);
+                        candidate = ProjectToPolygonBoundary(hole, point, sides);
                         break;
                     }
                 }

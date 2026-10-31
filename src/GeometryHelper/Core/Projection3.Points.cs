@@ -109,13 +109,14 @@ namespace GeometryHelper.Core
         /// <param name="point">The point the answer ends on.</param>
         /// <param name="tolerance">The tolerance a segment of no length is told by.</param>
         /// <returns>
-        /// A segment from the point <see cref="ProjectToPolyline(GeoPolyline3, GeoPoint3, Tolerance)"/> gives to
-        /// <paramref name="point"/>, as long as <see cref="Distance3.DistanceTo(GeoPolyline3, GeoPoint3, Tolerance)"/>.
-        /// Where two edges are equally near, the first of them along the chain is taken. From the chain (0, 0, 0),
-        /// (100, 0, 0), (100, 100, 0), the point (50, 30, 40) gets the segment from (50, 0, 0), 50 long.
+        /// A segment from the point of the chain nearest <paramref name="point"/>, as long as
+        /// <see cref="Distance3.DistanceTo(GeoPolyline3, GeoPoint3, Tolerance)"/>, each edge measured as it is however short,
+        /// where <see cref="ProjectToPolyline(GeoPolyline3, GeoPoint3, Tolerance)"/> carries a point to the start of an edge
+        /// no longer than the tolerance. Where two edges are equally near, the first of them along the chain is taken. From
+        /// the chain (0, 0, 0), (100, 0, 0), (100, 100, 0), the point (50, 30, 40) gets the segment from (50, 0, 0), 50 long.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
-        public static GeoLine3 GetShortestLineTo(GeoPolyline3 polyline, GeoPoint3 point, Tolerance tolerance) => new GeoLine3(ProjectToPolyline(polyline, point, tolerance), point);
+        public static GeoLine3 GetShortestLineTo(GeoPolyline3 polyline, GeoPoint3 point, Tolerance tolerance) => new GeoLine3(ProjectToPolyline(polyline, point, Exactly), point);
 
         /// <summary>
         /// Gets the shortest segment joining a polygon to a point.
@@ -136,10 +137,10 @@ namespace GeometryHelper.Core
         /// straight down from (50, 50, 0), 30 long, and the point (130, 50, 40) the one from the edge at (100, 50, 0),
         /// 50 long. The foot is taken inside with the tolerance, so the segment may leave up to the point tolerance past
         /// the outline: the point (100.0005, 50, 30) gets the segment from (100.0005, 50, 0), 30 long, where the edge is
-        /// 30.000000004 away.
+        /// 30.000000004 away. A point landing beyond the outline is carried onto an edge as the edge is, however short.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        public static GeoLine3 GetShortestLineTo(GeoPolygon3 polygon, GeoPoint3 point, Tolerance tolerance) => new GeoLine3(ProjectToPolygon(polygon, point, tolerance), point);
+        public static GeoLine3 GetShortestLineTo(GeoPolygon3 polygon, GeoPoint3 point, Tolerance tolerance) => new GeoLine3(ProjectToPolygon(polygon, point, tolerance, Exactly), point);
 
         /// <summary>
         /// Gets the shortest segment joining a face to a point.
@@ -161,10 +162,10 @@ namespace GeometryHelper.Core
         /// the hole, the one from its rim at (40, 50, 0), 5 across and 30 down, about 30.41 long. The foot is taken on
         /// the material with the tolerance, so the segment may leave up to the point tolerance past a rim: the point
         /// (40.0005, 50, 30) gets the segment from (40.0005, 50, 0), 0.0005 into the hole and 30 long, where the rim is
-        /// 30.000000004 away.
+        /// 30.000000004 away. A point landing off the material is carried onto a side of a rim as the side is, however short.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        public static GeoLine3 GetShortestLineTo(GeoFace3 face, GeoPoint3 point, Tolerance tolerance) => new GeoLine3(ProjectToFace(face, point, tolerance), point);
+        public static GeoLine3 GetShortestLineTo(GeoFace3 face, GeoPoint3 point, Tolerance tolerance) => new GeoLine3(ProjectToFace(face, point, tolerance, Exactly), point);
 
         /// <summary>
         /// Gets the shortest segment joining a circular disc to a point.

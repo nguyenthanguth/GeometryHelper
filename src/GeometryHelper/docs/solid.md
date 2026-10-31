@@ -711,13 +711,20 @@ Seven things are read otherwise, on purpose:
   5E-10 away. Further out than a million the billionth grows with the coordinates, to 1E-15 of the largest of the body
   and the point, past their rounding: a point 0.052 outside a U 5E7 out is outside it.
 * **A segment you give, no longer than the point tolerance, is read as its start** where it does not truly meet the other
-  shape, as it is in the plane, by `DistanceTo`, `CollidesWith` and `GetShortestLineTo` alike, and so is a straight
-  `GeoEdge3` that short. At a thousandth, the segment from (5, 5, 0.0015) down to (5, 5, 0.0006), stopping 0.0006 above
-  the square 10 by 10 in the floor, is 0.0015 from it and joined to it from its start, as it is to a triangle, a face, a
-  body, a ray, a ball and a spline so aimed; the one from (5, 5, 0.0004) to (5, 5, -0.0005), passing through the square,
-  is nought from it and joined to it by a line of no length at (5, 5, 0), as it is to a segment it crosses and to a ball
-  it reaches into. The sides of a shape are the sides they are however short. A plane measures a segment exactly, by its
-  nearer end, as above, and a point is measured to a stub's start.
+  shape, as it is in the plane, by `DistanceTo`, `CollidesWith`, `GetShortestLineTo`, `GetIntersections` and
+  `TryIntersectWith` alike, and so is a straight `GeoEdge3` that short. At a thousandth, the segment from (5, 5, 0.0015)
+  down to (5, 5, 0.0006), stopping 0.0006 above the square 10 by 10 in the floor, is 0.0015 from it, joined to it from its
+  start and meets it nowhere, as it is to a triangle, a face, a body, a ray, a ball and a spline so aimed; the one from
+  (5, 5, 0.0004) to (5, 5, -0.0005), passing through the square, is nought from it, joined to it by a line of no length at
+  (5, 5, 0) and meets it there, as it is to a segment it crosses, to the floor and to a ball it reaches into. One standing
+  within the tolerance of a shape without meeting it, from (5, 5, 0.0008) down to (5, 5, 0.0002), meets it at its start, as
+  a point lying that close does: the square, the floor, a segment, a box, an arc, a ball and every other shape; one lying in
+  the plane of the square across its rim, which meets it along a length, so too. The sides of a shape are the sides they are
+  however short, and a shortest line is joined to such a side as it is: at a hundredth, the chain from (-7, -7, 0) to the
+  origin, on to (0.008, 0, 0) and down to (7, -7, 0) is joined to the point (0.006, 0.02, 0) by a line 0.02 long, from its
+  short side, where it was joined from the corner (0.008, 0, 0) by one 0.0201 long; so are a polygon, a face and a
+  triangle with such a side, and a segment, a ray or a ball beside it. A plane measures a segment exactly, by its nearer
+  end, as above, and a point is measured to a stub's start.
 * **A circle collides as its rim and a loop of arcs as its outline**, so a circle or a loop round a shape touches nothing:
   the circle of radius 40 about the origin does not touch the square 20 by 20 in its middle, and touches the segment from
   (40.0005, 0, 0) to (80, 0, 0). The distance from a point to a circle is to the filled disc, as it always was: nought at the
@@ -725,8 +732,8 @@ Seven things are read otherwise, on purpose:
 * **Projections and intersections keep their readings.** `GetShortestLineTo` and `GetIntersections` ask where the shapes
   are, not whether they are near, so within the tolerance a shortest line can be of no length where the distance is the gap:
   the segment from (5, 5, 0.0004) to (5, 5, 9) over the square is joined at (5, 5, 0.0004) and is 0.0004 from it. Between
-  segments, the line can still differ by the order of the arguments. A segment no longer than the tolerance is joined as
-  the bullet above says; `GetIntersections` still reads one as it reads a longer segment.
+  segments, the line can still differ by the order of the arguments. A segment no longer than the tolerance is joined and
+  met as the bullet above says.
 * **One case is searched and not proved**: two partial arcs lying nearly on one axis whose distance stays almost constant
   just beyond the tolerance, which are walked finely with every low point polished.
 

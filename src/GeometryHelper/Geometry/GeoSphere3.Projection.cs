@@ -189,7 +189,7 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentNullException(nameof(polyline));
             }
 
-            return Sphere3.Join(this, Projection3.ProjectToPolyline(polyline, Center, tolerance), DistanceTo(polyline, tolerance));
+            return Sphere3.Join(this, Projection3.ProjectToPolyline(polyline, Center, default(Tolerance)), DistanceTo(polyline, tolerance));
         }
 
         /// <summary>
@@ -213,7 +213,7 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentNullException(nameof(polygon));
             }
 
-            return Sphere3.Join(this, Projection3.ProjectToPolygon(polygon, Center, tolerance), DistanceTo(polygon, tolerance));
+            return Sphere3.Join(this, Projection3.ProjectToPolygon(polygon, Center, tolerance, default(Tolerance)), DistanceTo(polygon, tolerance));
         }
 
         /// <summary>
@@ -301,7 +301,7 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentNullException(nameof(face));
             }
 
-            return Sphere3.Join(this, Projection3.ProjectToFace(face, Center, tolerance), DistanceTo(face, tolerance));
+            return Sphere3.Join(this, Projection3.ProjectToFace(face, Center, tolerance, default(Tolerance)), DistanceTo(face, tolerance));
         }
 
         /// <summary>
@@ -376,7 +376,7 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentNullException(nameof(solid));
             }
 
-            return Sphere3.Join(this, (Gap3.Holds(solid, Center) ? Center : Projection3.ProjectToSolid(solid, Center, tolerance)), DistanceTo(solid, tolerance));
+            return Sphere3.Join(this, (Gap3.Holds(solid, Center) ? Center : Projection3.ProjectToSolid(solid, Center, tolerance, true)), DistanceTo(solid, tolerance));
         }
 
         /// <summary>

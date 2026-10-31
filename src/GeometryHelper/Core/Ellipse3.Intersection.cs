@@ -116,9 +116,32 @@ namespace GeometryHelper.Core
         /// crosses the ellipse 300 by 100 lying in the plan about the origin at (-259.808, 50, 0), then at (259.808, 50, 0);
         /// the one from (-400, 50, -0.0009) to (400, 50, 0.0011), leaning a hair out of the plane, at (-259.808, 50, -0.00055)
         /// and (259.808, 50, 0.00075); the one from (300, 0, -10) to (300, 0, 10) at (300, 0, 0); one through the middle of
-        /// the disc nowhere.
+        /// the disc nowhere. A segment no longer than the point tolerance is read as its start where it does not truly cross
+        /// the rim: it is given its start where that lies within the point tolerance of the rim, and nothing where it does not.
         /// </returns>
         public static GeoPoint3[] GetIntersections(GeoEllipse3 ellipse, GeoLine3 line, Tolerance tolerance)
+            => Stub3.ReadsAsStart(line, tolerance) ? CrossingsOfStub(ellipse, line, tolerance) : Crossings(ellipse, line, tolerance);
+
+        /// <summary>
+        /// Gets where a segment no longer than the tolerance, read as its start unless it truly crosses, meets the rim of an
+        /// ellipse.
+        /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static GeoPoint3[] CrossingsOfStub(GeoEllipse3 ellipse, GeoLine3 line, Tolerance tolerance)
+        {
+            GeoPoint3[] asItIs = Crossings(ellipse, line, Stub3.AsItIs(line, tolerance));
+
+            return Stub3.Meeting(
+                line,
+                asItIs,
+                asItIs.Length == 0 && GetClosestPointOnBoundary(ellipse, line.StartPoint).DistanceTo(line.StartPoint) <= tolerance.EqualPoint);
+        }
+
+        /// <summary>
+        /// Gets every point where the rim of an ellipse crosses a segment, as the sides of shapes and the collision cross it, a
+        /// segment no longer than the point tolerance read as one longer is.
+        /// </summary>
+        internal static GeoPoint3[] Crossings(GeoEllipse3 ellipse, GeoLine3 line, Tolerance tolerance)
         {
             var found = new List<GeoPoint3>();
 
@@ -1792,7 +1815,7 @@ namespace GeometryHelper.Core
 
             foreach (GeoEdge3 edge in edges)
             {
-                foreach (GeoPoint3 crossing in GetIntersections(ellipse, edge, tolerance))
+                foreach (GeoPoint3 crossing in edge.IsArc ? GetIntersections(ellipse, edge.ToArc(), tolerance) : Crossings(ellipse, edge.ToLine(), tolerance))
                 {
                     // Two edges share a corner, so a crossing at a corner is found by both of them.
                     Arc3.AddOnce(found, crossing, tolerance);

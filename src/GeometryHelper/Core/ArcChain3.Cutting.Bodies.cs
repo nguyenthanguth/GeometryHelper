@@ -148,7 +148,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(cutters));
             }
 
-            var cuts = new List<GeoPoint3>(CrossingsOfAll(chain.GetEdges(), cutters, one => one == null, (edge, one) => edge.GetIntersections(one, tolerance), tolerance));
+            var cuts = new List<GeoPoint3>(CrossingsOfAll(chain.GetEdges(), cutters, one => one == null, (edge, one) => Intersection3.OfSide(edge, one, tolerance), tolerance));
 
             return Sorted(AsChains(CutRuns(chain.GetEdges(), cuts, tolerance)), point => InsideAny(cutters, point, one => one == null, (body, at) => Containment3.Contains(body, at, tolerance)), out inside, out outside);
         }
@@ -358,7 +358,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(cutters));
             }
 
-            var cuts = new List<GeoPoint3>(CrossingsOfAll(loop.GetEdges(), cutters, one => one == null, (edge, one) => edge.GetIntersections(one, tolerance), tolerance));
+            var cuts = new List<GeoPoint3>(CrossingsOfAll(loop.GetEdges(), cutters, one => one == null, (edge, one) => Intersection3.OfSide(edge, one, tolerance), tolerance));
 
             return Sorted(CutLoop(loop, cuts, tolerance), point => InsideAny(cutters, point, one => one == null, (body, at) => Containment3.Contains(body, at, tolerance)), out inside, out outside);
         }

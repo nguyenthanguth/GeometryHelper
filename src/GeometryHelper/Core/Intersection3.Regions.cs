@@ -1307,7 +1307,7 @@ namespace GeometryHelper.Core
         {
             foreach (GeoLine3 edge in edges)
             {
-                if (TryIntersectWith(edge, plane, out GeoPoint3 crossing, tolerance) ||
+                if (TryCross(edge, plane, out GeoPoint3 crossing, tolerance) ||
                     TryReachRefused(edge, plane, out crossing))
                 {
                     Arc3.AddOnce(found, crossing, tolerance);
@@ -1325,7 +1325,7 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         internal static bool TryCrossEdge(GeoLine3 edge, GeoTriangle3 triangle, out GeoPoint3 at, Tolerance tolerance)
         {
-            if (TryIntersectWith(edge, triangle, out at, tolerance))
+            if (TryCross(edge, triangle, out at, tolerance))
             {
                 return true;
             }
@@ -1347,7 +1347,7 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static bool TryCrossEdge(GeoLine3 edge, GeoPolygon3 polygon, out GeoPoint3 at, Tolerance tolerance)
         {
-            if (TryIntersectWith(edge, polygon, out at, tolerance))
+            if (TryCross(edge, polygon, out at, tolerance))
             {
                 return true;
             }
@@ -1364,7 +1364,7 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static bool TryCrossEdge(GeoLine3 edge, GeoFace3 face, out GeoPoint3 at, Tolerance tolerance)
         {
-            if (TryIntersectWith(edge, face, out at, tolerance))
+            if (TryCross(edge, face, out at, tolerance))
             {
                 return true;
             }

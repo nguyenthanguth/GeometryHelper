@@ -92,9 +92,38 @@ namespace GeometryHelper.Core
         /// <param name="line">The shape to cross with.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>Every place they meet, each named once.</returns>
+        /// <remarks>
+        /// A segment no longer than the point tolerance is read as its start where it does not truly cross the chain: it is
+        /// given its start where that lies within the point tolerance of the chain, and nothing where it does not. The sides
+        /// of the chain are the sides they are however short.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoLine3 line, Tolerance tolerance)
-            => CrossingsOfSegments(polyline, segment => segment.GetIntersections(line, tolerance), tolerance);
+            => Stub3.ReadsAsStart(line, tolerance) ? CrossingsOfStub(polyline, line, tolerance) : Crossings(polyline, line, tolerance);
+
+        /// <summary>
+        /// Gets where a segment no longer than the tolerance, read as its start unless it truly crosses, meets a straight chain.
+        /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static GeoPoint3[] CrossingsOfStub(GeoPolyline3 polyline, GeoLine3 line, Tolerance tolerance)
+        {
+            GeoPoint3[] asItIs = Crossings(polyline, line, Stub3.AsItIs(line, tolerance));
+            double gap = double.MaxValue;
+
+            for (int i = 0; i < polyline.EdgeCount && asItIs.Length == 0; i++)
+            {
+                GeoLine3 side = polyline.GetEdgeAt(i);
+                gap = Math.Min(gap, Gap3.PointToSegment(line.StartPoint, side.StartPoint, side.EndPoint));
+            }
+
+            return Stub3.Meeting(line, asItIs, gap <= tolerance.EqualPoint);
+        }
+
+        /// <summary>
+        /// Gets every point where a straight chain crosses a segment, each side met as the sides of shapes meet one.
+        /// </summary>
+        internal static GeoPoint3[] Crossings(GeoPolyline3 polyline, GeoLine3 line, Tolerance tolerance)
+            => CrossingsOfSegments(polyline, segment => OfSide(segment, line, tolerance), tolerance);
 
         /// <summary>
         /// Tries to find where a straight chain crosses a segment.
@@ -133,7 +162,7 @@ namespace GeometryHelper.Core
         /// <returns>Every place they meet, each named once.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoRay3 ray, Tolerance tolerance)
-            => CrossingsOfSegments(polyline, segment => segment.GetIntersections(ray, tolerance), tolerance);
+            => CrossingsOfSegments(polyline, segment => OfSide(segment, ray, tolerance), tolerance);
 
         /// <summary>
         /// Tries to find where a straight chain crosses a ray.
@@ -172,7 +201,7 @@ namespace GeometryHelper.Core
         /// <returns>Every place they meet, each named once.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoArc3 arc, Tolerance tolerance)
-            => CrossingsOfSegments(polyline, segment => segment.GetIntersections(arc, tolerance), tolerance);
+            => CrossingsOfSegments(polyline, segment => OfSide(segment, arc, tolerance), tolerance);
 
         /// <summary>
         /// Tries to find where a straight chain crosses an arc.
@@ -211,7 +240,7 @@ namespace GeometryHelper.Core
         /// <returns>Every place they meet, each named once.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoCircle3 circle, Tolerance tolerance)
-            => CrossingsOfSegments(polyline, segment => segment.GetIntersections(circle, tolerance), tolerance);
+            => CrossingsOfSegments(polyline, segment => OfSide(segment, circle, tolerance), tolerance);
 
         /// <summary>
         /// Tries to find where a straight chain crosses a circle.
@@ -382,7 +411,7 @@ namespace GeometryHelper.Core
         /// <returns>Every place they meet, each named once.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoObb3 box, Tolerance tolerance)
-            => CrossingsOfSegments(polyline, segment => segment.GetIntersections(box, tolerance), tolerance);
+            => CrossingsOfSegments(polyline, segment => OfSide(segment, box, tolerance), tolerance);
 
         /// <summary>
         /// Tries to find where a straight chain crosses a box.
@@ -421,7 +450,7 @@ namespace GeometryHelper.Core
         /// <returns>Every place they meet, each named once.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoPolyline3 polyline, GeoAabb3 box, Tolerance tolerance)
-            => CrossingsOfSegments(polyline, segment => segment.GetIntersections(box, tolerance), tolerance);
+            => CrossingsOfSegments(polyline, segment => OfSide(segment, box, tolerance), tolerance);
 
         /// <summary>
         /// Tries to find where a straight chain crosses a square box.
@@ -474,7 +503,7 @@ namespace GeometryHelper.Core
             // Cut the openings the chain can reach once, rather than once for every segment of it.
             GeoSolid3 material = Material3.Near(solid, polyline.GetAabb(), tolerance);
 
-            return CrossingsOfSegments(polyline, segment => segment.GetIntersections(material, tolerance), tolerance);
+            return CrossingsOfSegments(polyline, segment => OfSide(segment, material, tolerance), tolerance);
         }
 
         /// <summary>
@@ -545,7 +574,7 @@ namespace GeometryHelper.Core
                         continue;
                     }
 
-                    foreach (GeoPoint3 crossing in segment.GetIntersections(others[i], tolerance))
+                    foreach (GeoPoint3 crossing in OfSide(segment, others[i], tolerance))
                     {
                         Arc3.AddOnce(found, crossing, tolerance);
                     }
