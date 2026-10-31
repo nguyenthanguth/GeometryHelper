@@ -471,6 +471,27 @@ namespace GeometryHelper.Dxf
             return saved;
         }
 
+        /// <summary>
+        /// The base point the INSERT saved of each node it saved two points or more of, by the node's id: the first point of the
+        /// record of a linear, an XY, a rotation or a flip parameter; none where it saved none.
+        /// </summary>
+        internal static Dictionary<string, double[]> SavedBases(DxfBlockReference insert)
+        {
+            var bases = new Dictionary<string, double[]>(StringComparer.Ordinal);
+
+            foreach (KeyValuePair<string, DxfXrecord> saved in Saved(insert))
+            {
+                List<double[]> points = Points(saved.Value.Data);
+
+                if (points.Count >= 2)
+                {
+                    bases.Add(saved.Key, points[0]);
+                }
+            }
+
+            return bases;
+        }
+
         /// <summary>The object of a dictionary's entry; null where the dictionary is none or has no entry of the name.</summary>
         internal static DxfDBObject Entry(DxfDBDictionary dictionary, string name)
             => dictionary != null && dictionary.Contains(name) ? dictionary.GetAt(name) : null;

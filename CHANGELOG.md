@@ -39,11 +39,14 @@ Large sets Width to 200 and Height to 80, and Width set to 150 then reads Custom
 label, reads the first row of the block's own values, Small for 100 by 50, else Custom, as AutoCAD 2021 read it (check
 v21b). The edges between a lookup action and its
 parameters are flagged 4, as AutoCAD's sample flags them: AutoCAD 2021 read a lookup block of edges flagged nought as no
-dynamic INSERT (check v21), and has yet to read one of the flags 4. `DxfDynamicBlockReferenceProperty.Value` sets each as
-AutoCAD sets it: the copies of an array follow the block's entities, each but the first tagged as AutoCAD tags its own
-(AcDbBlockArrayActionTag), and an XY array of a count of nought copies nothing, as AutoCAD 2021 drew the one circle of its
-sample at 80 by 5; it refused to set again an INSERT the library had set while the copies were untagged, which has yet to
-be checked since. A lookup is set by a row's label, letters of either case the same, and reads back as the table holds it,
+dynamic INSERT (check v21), and read every INSERT of the blocks of edges flagged 4 as dynamic, setting Size to Small to
+give 100 by 50, to Large 200 by 80, and Width to 150 to read Custom, as the library sets them (check v21b).
+`DxfDynamicBlockReferenceProperty.Value` sets each as AutoCAD sets it: the copies of an array follow the block's entities,
+each but the first tagged as AutoCAD tags its own (AcDbBlockArrayActionTag), and an XY array of a count of nought copies
+nothing, as AutoCAD 2021 drew the one circle of its sample at 80 by 5. AutoCAD refused to set again an INSERT the library
+had set while the copies were untagged (eInvalidInput, check v21); with the tags it set each again, the fence of four posts
+at 250 to one at 119 and three at 222, the plate of 12 bolts at 100 by 70 to six at 60 by 70 (check v21b). A lookup is set
+by a row's label, letters of either case the same, and reads back as the table holds it,
 a space after it kept, as AutoCAD 2021 read "Size 6 " of its sample after the library set it (check v21). A lookup property
 was read only before.
 
@@ -72,6 +75,15 @@ entities, it read 0 back each time and left the leaf as it was (checks v20b and 
 such an entity: AutoCAD 2021 worked such an entity out from where its last set left it, stretching a shaft turned a quarter
 turn along x to (0, 155) for a Reach of 150 set after 200, where the block's values give (50, 105), and scaling a stretched
 line to (40, 20)-(180, 20) where they give (40, 20)-(200, 20) (check v21).
+
+**CHANGED.** `DxfDynamicBlockReferenceProperty.Value` refuses with `NotSupportedException`, writing nothing, an INSERT that
+keeps the base point of a linear, an XY, a rotation or a flip parameter away from the block's own, beyond the point
+tolerance of `Tolerance.Default`, as a grip moved it. AutoCAD's XY sample keeps such an INSERT, its base point taken from
+(0, 5) to (0, 104.30) and its end point at (100.59, 0), and draws its array from there, at y 99.30 down to 19.30; the
+library, which works a block out from its own base points, drew it at 0 down to -80. Of 844 properties of the INSERTs of
+AutoCAD's samples, of the files of checks v17 to v21b with AutoCAD's saves of them, and of a user's drawing, each set to the
+value it reads, the 16 of that INSERT, two in each of the eight files that hold it, are refused now, and the others draw
+what they drew or are refused as they were.
 
 **NEW.** The other dynamic blocks of AutoCAD's Block Editor are made in code, each written as AutoCAD 2021 saved
 ACadSharp's sample of it, its graph number for number. `DxfBlockTableRecord.AddPointParameter(name, description,

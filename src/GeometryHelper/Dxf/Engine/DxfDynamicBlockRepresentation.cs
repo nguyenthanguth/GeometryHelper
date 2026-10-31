@@ -56,6 +56,20 @@ namespace GeometryHelper.Dxf
             }
 
             Block block = Block.Of(dynamic);
+
+            // A base point a grip moved: AutoCAD keeps it where the INSERT saved it and works the actions from there, drawing the
+            // array of its XY sample's INSERT 2AE, whose base point a grip took from (0, 5) to (0, 104.30), at y 99.30 down to
+            // 19.30; the library works a parameter out from the block's own base point, and would draw it at 0 down to -80.
+            Dictionary<string, double[]> bases = DxfDynamicProperties.SavedBases(insert);
+
+            foreach (Param parameter in block.Parameters)
+            {
+                if (!(parameter is Spot) && bases.TryGetValue(parameter.Id, out double[] saved) && !new GeoPoint3(saved[0], saved[1], saved[2]).IsEqualTo(parameter.Base, Tolerance.Default))
+                {
+                    throw new NotSupportedException("The INSERT " + insert.Handle + " keeps a base point of a parameter of the block " + dynamic.Name + " away from the block's own, as a grip moved it: the library works a block out from its own base points, and does not set it.");
+                }
+            }
+
             GeoVector3 factors = insert.ScaleFactors;
             double scale = Math.Max(Math.Abs(factors.X), Math.Max(Math.Abs(factors.Y), Math.Abs(factors.Z)));
 

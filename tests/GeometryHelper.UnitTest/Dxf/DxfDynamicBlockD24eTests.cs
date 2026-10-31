@@ -12,9 +12,11 @@ namespace GeometryHelper.UnitTest.Dxf
     /// The last dynamic blocks made from code (D24e): a stretch of an arc held by one end, as AutoCAD 2021 stretched one in
     /// plugin v20; moves and stretches of a distance multiplier and an angle offset, and moves listing their own parameter's
     /// grip, as AutoCAD's point sample and the user's drawings do; array actions of a linear and an XY parameter; a lookup
-    /// parameter with its table; alignment and base point parameters; and a flip refused in a block of other actions, as
-    /// AutoCAD 2021 did not flip an INSERT of such a block itself in plugin v20b. Each written number for number as AutoCAD's
-    /// own saved samples (ACadSharp's samples saved by AutoCAD 2021), read back as a property and set on an INSERT.
+    /// parameter with its table; alignment and base point parameters; and a flip parameter refused beside any other
+    /// parameter, either given second, as AutoCAD 2021 did not flip an INSERT of a block of a flip and a stretch in plugin
+    /// v20b, nor of a flip and a linear parameter of no action in plugin v21 (since D24e2; D24e refused a flip beside other
+    /// actions only). Each written number for number as AutoCAD's own saved samples (ACadSharp's samples saved by AutoCAD
+    /// 2021), read back as a property and set on an INSERT.
     /// </summary>
     public class DxfDynamicBlockD24eTests
     {

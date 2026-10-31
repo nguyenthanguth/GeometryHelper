@@ -119,7 +119,11 @@ namespace GeometryHelper.Dxf
         /// and moved by other actions, an entity both turned or scaled and stretched or moved, as AutoCAD 2021 worked such an
         /// entity out from the INSERT's last state (plugin v21), an entity both copied by an array and worked on by another
         /// action, a lookup table of columns other than a linear parameter's distance, a point parameter's x and y and
-        /// lookups. Nothing is written then.</exception>
+        /// lookups; or when the INSERT keeps the base point of a linear, an XY, a rotation or a flip parameter away from the
+        /// block's own, beyond the point tolerance of <see cref="Tolerance.Default"/>, as a grip moved it: AutoCAD works such
+        /// an INSERT out from the base point it keeps, and drew the array of its XY sample's INSERT whose base point a grip
+        /// took from (0, 5) to (0, 104.30) at y 99.30 down to 19.30, where the library, working from the block's own base
+        /// point, would draw it at 0 down to -80. Nothing is written then.</exception>
         public object Value
         {
             get => _value;
