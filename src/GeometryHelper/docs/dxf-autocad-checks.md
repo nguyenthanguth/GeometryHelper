@@ -363,9 +363,15 @@ written as AutoCAD reads them now.
       60 points, degree 1 to 10 asked, sizes 0.01 to a million and up to a million from the origin, every one of distinct
       points fitted the periodic cubic and read periodic, its fit points within 7.9E-16 of its size. Ripple over every DXF
       of the checks folder: the readings of 17t's 1E-6 and 1E-4 and the flags written by edits of 17t and 17u, nothing else.
-      Still to see (v15, after-d22): where AutoCAD's own tolerances lie, the 2059 moved by 1E-12 to 1E-7 (17-w, the library
-      periodic up to 1E-9) and the 11 turned by 1E-8 to 1E-3 degrees (17-x, the library's flag 2 at 1E-8 alone); and the
-      library's periodic cubic of degree 1, 2, 4 and 5 asked through six points (17-y) against AutoCAD's own.
+    - AutoCAD 2021 (plugin v15, after-d22): 17w: the 2059 of size 61.5 with the control point 1 moved by 1E-12 and 1E-11
+      (the seam off by 4.1E-12 and 4.1E-11) it read as periodic, of 4 control points, and moved by 1E-10 to 1E-7 as not, of
+      7: its own point tolerance, 1E-10, where the library read up to 1E-9 as periodic. 17x: the 11 turned by 1E-8 degrees
+      (1.75E-10 of a radian) to 1E-3, given its NURBS data, it saved 70 9 each, where the library kept the flag 2 at 1E-8.
+      17y: fit data set periodic of degree 1, 2, 4 and 5 through six points it took, and wrote each its periodic cubic,
+      70 3115, 9 control points and 13 knots, the library's to 3.6E-14; the library's files it read periodic, of degree 3.
+    - Now (D22b): `IsPeriodic` reads the seam within 1E-10 and 1E-14 of the spline's size for rounding (1.006E-10 at 61.5),
+      and `SetNurbsData` writes the flag 2 where the seam turns by 1E-12 of a radian at most. 17w and 17x are AutoCAD's
+      answers now. The spline writers are parked from here.
     - Degree 4, 5 and rational, parked: the tolerance the counts fit is the larger of 1 / M and the spline's length over
       10 000, over (p + 1)^2: the quartic (M 120, length 47.7) takes 1 / M, every one of its nine counts; the quintic Bezier
       (M 400, length 55.00), the quintic of two spans (M 223.6, length 70.085), the rational cubics 1, 2, 2, 1 (M 600, length

@@ -956,13 +956,13 @@ A spline is periodic (`IsPeriodic`) by the flag 2048 of its group 70 on a curve 
 periodic cubic of 70 3115 being periodic and its closed cubic of 70 11 not, either turning into the other with the flag
 2048 alone taken out or put in; its 2059 with a control point beside the seam moved by 5, a corner there, is not periodic.
 The seam is read as AutoCAD's periodic form is made: the curve unclamped at its start and at its end, the first degree of
-its points the same as the degree a period on, within 1E-10 of the spline's size, one and its largest coordinate. AutoCAD's
-own periodic splines are so to 1.3E-15 of theirs, and stay so scaled to millions or moved far from the origin; its 2059
-with the control point beside the seam moved by a millionth, the seam off by 4.1E-6 at a size of 61.5, it read as not
-periodic. NURBS data whose curve ends where it starts make a closed spline, the flag 1, and one that leaves its start in
-the direction it reaches its end, within 1E-9 of a radian, the flag 2 too, whatever `closed` and `periodic` say, as
+its points the same as the degree a period on, within 1E-10, AutoCAD's own point tolerance, and 1E-14 of the spline's
+size, one and its largest coordinate, for rounding. AutoCAD's own periodic splines are so to 1.3E-15 of their size, and
+stay so scaled to millions or moved far from the origin; of its 2059 of size 61.5 with the control point beside the seam
+moved, it read the seam off by 4.1E-11 as periodic and off by 4.1E-10 as not. NURBS data whose curve ends where it starts make a closed spline, the flag 1, and one that leaves its start in
+the direction it reaches its end, within 1E-12 of a radian, the flag 2 too, whatever `closed` and `periodic` say, as
 AutoCAD writes them: its closed cubic of 70 11 given its own data not periodic, or not closed, was saved 70 11 and read
-closed, and with its seam turned by a hundredth of a degree saved 70 9. `periodic` puts the flag 2
+closed, and with its seam turned by a hundred-millionth of a degree saved 70 9. `periodic` puts the flag 2
 on any curve, as before, which `NurbsData.Periodic` and `FitData.Periodic` give back, and not the flag 2048, so that the
 library's own periodic spline of 70 3 reads as not periodic, as AutoCAD read it; NURBS data set not periodic take the flag
 2048 off. Where the record holds no fit points and the flag 1024 of its 70 is set, as AutoCAD saves a periodic spline it

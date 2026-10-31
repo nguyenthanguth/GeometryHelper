@@ -15,10 +15,13 @@ namespace GeometryHelper.Dxf
     /// </remarks>
     internal static class DxfNurbsEdit
     {
-        // How far, of a spline's size, the seam of a periodic form may be off: AutoCAD 2021's periodic splines it saved unclamp
-        // to 1.3E-15 of theirs, and a seam off by 6.7E-8 of its size it read as not periodic (its 17-t). AutoCAD's own point
-        // tolerance is 1E-10.
+        // How far the seam of a periodic form may be off: AutoCAD's own point tolerance, 1E-10, and SeamShare of the spline's
+        // size for the rounding of its unclamping. AutoCAD 2021's periodic splines it saved unclamp to 1.3E-15 of their size;
+        // of a 2059 of size 61.5 it read a seam off by 4.1E-11 as periodic and one off by 4.1E-10 as not (its 17-w).
         private const double SeamGap = 1E-10;
+
+        // The share of a spline's size its unclamped seam may be off by rounding alone, beyond SeamGap.
+        private const double SeamShare = 1E-14;
 
         /// <summary>The control points in homogeneous form: each point times its weight, then the weight.</summary>
         internal static List<double[]> Homogeneous(IReadOnlyList<GeoPoint3> points, IReadOnlyList<double> weights)
@@ -724,10 +727,10 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Whether a spline clamped at both ends has a periodic form, as AutoCAD 2021 gives one to a spline of the flag 2048:
         /// unclamped at its start and at its end (A12.1), the first degree of its control points the same as the degree a period
-        /// on, within <see cref="SeamGap"/> of its size (one and the largest of its coordinates), and of the same weights within
-        /// as much of the largest. AutoCAD's periodic splines it saved are so to 1.3E-15 of their size, its cubic of 7 control
+        /// on, within <see cref="SeamGap"/> and <see cref="SeamShare"/> of its size (one and the largest of its coordinates),
+        /// and of the same weights within <see cref="SeamGap"/> of the largest. AutoCAD's periodic splines it saved are so to 1.3E-15 of their size, its cubic of 7 control
         /// points and the knots 0, 0, 0, 0, 30, 45, 55, 80, 80, 80, 80 to 1E-13; its 2059 of a point beside its seam moved by
-        /// 1E-6, off by 4.1E-6 (6.7E-8 of its size of 61.5), it read as not periodic (its 17-t). False where the spline has
+        /// 1E-11, off by 4.1E-11, it read as periodic, and moved by 1E-10, off by 4.1E-10, as not (its 17-w). False where the spline has
         /// fewer points than twice the degree and one, or knots the unclamping cannot divide by.
         /// </summary>
         internal static bool IsPeriodicForm(int p, List<double> u, List<double[]> pw)
@@ -794,7 +797,7 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            var tolerance = new Tolerance(SeamGap * (1.0 + size), SeamGap);
+            var tolerance = new Tolerance(SeamGap + SeamShare * (1.0 + size), SeamGap);
 
             for (int i = 0; i < p; i++)
             {

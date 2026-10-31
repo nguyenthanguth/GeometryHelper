@@ -35,9 +35,9 @@ namespace GeometryHelper.Dxf
         private const int FitMade = 32;
 
         // The points of Tolerance.Default and the angle within which a seam runs on in one direction: AutoCAD 2021 wrote the
-        // flag 2 on its closed splines whose seams turn by 4E-16 of a radian at most, and not on one turned by a hundredth of a
-        // degree, 1.75E-4 (its 17-u).
-        private static readonly Tolerance SeamTurn = new Tolerance(Tolerance.Default.EqualPoint, Tolerance.Default.EqualVector, 1E-9, Tolerance.Default.EqualPlanar);
+        // flag 2 on its closed splines whose seams turn by 4E-16 of a radian at most, and not on one turned by a hundred-millionth
+        // of a degree, 1.75E-10 (its 17-x).
+        private static readonly Tolerance SeamTurn = new Tolerance(Tolerance.Default.EqualPoint, Tolerance.Default.EqualVector, 1E-12, Tolerance.Default.EqualPlanar);
 
         // The groups of AcDbSpline in the order AutoCAD writes them.
         private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 210, 220, 230, 70, 71, 72, 73, 74, 42, 43, 44, 12, 22, 32, 13, 23, 33, 40, 41, 10, 20, 30, 11, 21, 31 });
@@ -225,12 +225,12 @@ namespace GeometryHelper.Dxf
         /// </summary>
         /// <value>
         /// The seam is read as AutoCAD's periodic form is made: the curve clamped at its ends, then unclamped at its start and at
-        /// its end (The NURBS Book, A12.1), and its first degree of points set against those a period on, each within 1E-10 of
-        /// the spline's size, one and its largest coordinate, and of the same weight within 1E-10 of the largest. Such a curve
-        /// runs on across its seam as smoothly as along its knots (twice over for a cubic). AutoCAD's own periodic splines are
-        /// off by 1.3E-15 of their size at most, so that one scaled to millions or far from the origin stays periodic; its 2059
-        /// of the control point 1 moved by a millionth, off by 4.1E-6 at a size of 61.5, it read as not periodic (its 17-t),
-        /// as the library does. A spline of fewer control points than twice the degree and one has no such form, and is not
+        /// its end (The NURBS Book, A12.1), and its first degree of points set against those a period on, each within 1E-10,
+        /// AutoCAD's own point tolerance, and 1E-14 of the spline's size (one and its largest coordinate) for rounding, and of
+        /// the same weight within 1E-10 of the largest. Such a curve runs on across its seam as smoothly as along its knots
+        /// (twice over for a cubic). AutoCAD's own periodic splines are off by 1.3E-15 of their size at most, so that one scaled
+        /// to millions or far from the origin stays periodic; of its 2059 of size 61.5 with the control point 1 moved, it read
+        /// a seam off by 4.1E-11 as periodic and one off by 4.1E-10 as not (its 17-w), as the library does. A spline of fewer control points than twice the degree and one has no such form, and is not
         /// periodic.
         /// </value>
         public override bool IsPeriodic => (GetInt(70, 0) & PeriodicFlag) != 0 && Seamless();
@@ -376,10 +376,10 @@ namespace GeometryHelper.Dxf
         /// points, knots and weights, checked together and written in one go, its fit data (fit points and end tangents) taken
         /// out, as the spline is given by its control points from then on. A cubic of 4 points from (0, 0, 0) to (4, 0, 0) takes
         /// the knots 0, 0, 0, 0, 1, 1, 1, 1. A curve whose ends meet (within 1E-3) is written closed, the flag 1 of group 70, and
-        /// where it runs on across its seam in the one direction (within 1E-9 of a radian, whatever its size), with the flag 2
+        /// where it runs on across its seam in the one direction (within 1E-12 of a radian, whatever its size), with the flag 2
         /// as well, whatever <paramref name="closed"/> and <paramref name="periodic"/> say, as AutoCAD 2021 writes one: its
         /// closed cubic of 70 11 given its own data back not periodic, or not closed, was saved 70 11 and read closed (its
-        /// 17-k), and with its seam turned by a hundredth of a degree saved 70 9 (17-u); the flags 32 and 1024 of fit data go
+        /// 17-k), and with its seam turned by a hundred-millionth of a degree saved 70 9 (17-x); the flags 32 and 1024 of fit data go
         /// with the fit data, its periodic cubic of 70 3115 given its own data back being saved 70 2059.
         /// </summary>
         /// <param name="degree">The degree, 1 or more.</param>
@@ -461,7 +461,7 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Whether the curve of NURBS data checked as <see cref="CheckNurbs"/> checks them has its ends meet, within the point
         /// tolerance of <see cref="Tolerance.Default"/>, and runs on across its seam smoothly, leaving its start in the
-        /// direction it reaches its end (within 1E-9 of a radian, whatever its size); neither where its knots span nothing.
+        /// direction it reaches its end (within 1E-12 of a radian, whatever its size); neither where its knots span nothing.
         /// </summary>
         private static void Seam(int degree, List<double> knots, List<GeoPoint3> points, List<double> weights, out bool meet, out bool smooth)
         {

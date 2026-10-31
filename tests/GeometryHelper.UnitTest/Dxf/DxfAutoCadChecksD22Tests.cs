@@ -104,15 +104,34 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // AutoCAD's own periodic splines unclamp within 1E-15 of their size: the 2059 is periodic as it is, with its control
             // point 1 moved by 1E-12, and scaled by 100 000 to six million or moved a million along x, where rounding alone
-            // leaves its seam off by more than a ten-billionth, the moved point then 1E-7 off; scaled so, a move of a millionth
-            // (0.1 at its size) is not, nor moved a thousand along x.
+            // leaves its seam off by more than a ten-billionth; scaled so, a move of 1E-12 (1E-7 at its size, the seam 4E-7 off)
+            // is not, nor a move of a millionth, nor one moved a thousand along x.
             Assert.True(Clamped(2059).IsPeriodic);
             Assert.True(Clamped(2059, 1, 1E-12).IsPeriodic);
             Assert.True(Clamped(2059, scale: 1E5).IsPeriodic);
-            Assert.True(Clamped(2059, 1, 1E-12, 1E5).IsPeriodic);
+            Assert.False(Clamped(2059, 1, 1E-12, 1E5).IsPeriodic);
             Assert.True(Clamped(2059, shift: 1E6).IsPeriodic);
             Assert.False(Clamped(2059, 1, 1E-6, 1E5).IsPeriodic);
             Assert.False(Clamped(2059, 1, 1E-6, shift: 1E3).IsPeriodic);
+        }
+
+        [Fact]
+        public void ASplineOfTheFlag2048WhoseSeamIsOffByATenBillionth_IsNotPeriodic_AsAutoCadReadItInV15()
+        {
+            // Plugin v15, 17w: AutoCAD 2021's 2059, its control point 1 moved up by 1E-12 and 1E-11 (its seam off by 4.1E-12 and
+            // 4.1E-11) it read as periodic, of 4 control points; moved by 1E-10 to 1E-7 (off by 4.1E-10 to 4.1E-7) as not, of 7:
+            // the seam is read within AutoCAD's own point tolerance of 1E-10, whatever the size of a spline of 61.5.
+            foreach (double by in new[] { 1E-12, 1E-11 })
+            {
+                Assert.True(Clamped(2059, 1, by).IsPeriodic, "moved by " + by.ToString("R", CultureInfo.InvariantCulture));
+            }
+
+            foreach (double by in new[] { 1E-10, 1E-9, 1E-8, 1E-7 })
+            {
+                DxfSpline spline = ByHandle<DxfSpline>(DxfDatabase.Parse(ClampedDrawing(2059, 1, by).ToText()), "F00");
+                Assert.False(spline.IsPeriodic, "moved by " + by.ToString("R", CultureInfo.InvariantCulture));
+                Assert.Equal(7, spline.NumControlPoints);
+            }
         }
 
         #endregion
@@ -145,6 +164,20 @@ namespace GeometryHelper.UnitTest.Dxf
                     Assert.Equal("9", Flags(spline));
                     Assert.True(spline.Closed);
                 }
+            }
+        }
+
+        [Fact]
+        public void AClosedCubicWhoseSeamTurnsAHundredMillionthOfADegree_GivenNurbsData_IsWritten9_AsAutoCadSavedItInV15()
+        {
+            // Plugin v15, 17x: AutoCAD 2021's closed cubic of 70 11, its control point 1 turned by 1E-8, 1E-6, 1E-4 and 1E-3
+            // degrees (the least 1.75E-10 of a radian), given its NURBS data, saved 70 9 each.
+            foreach (double degrees in new[] { 1E-8, 1E-6, 1E-4, 1E-3 })
+            {
+                (DxfSpline spline, GeoPoint3[] points) = Turned(degrees);
+                spline.SetNurbsData(3, false, true, false, points, spline.Knots, null);
+
+                Assert.Equal("9", Flags(spline));
             }
         }
 

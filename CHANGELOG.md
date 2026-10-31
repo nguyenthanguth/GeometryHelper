@@ -23,10 +23,11 @@ milliseconds with the reading of the drawing on .NET Framework 4.8. 5 new tests.
 
 **CHANGED.** `DxfSpline.SetNurbsData`, `NurbsData` set and the constructor write the flags 1 and 2 of group 70 as
 AutoCAD 2021 writes them: a curve whose ends meet is closed, the flag 1, and one that leaves its start in the direction
-it reaches its end, within 1E-9 of a radian whatever its size, has the flag 2 as well, whatever `closed` and `periodic`
+it reaches its end, within 1E-12 of a radian whatever its size, has the flag 2 as well, whatever `closed` and `periodic`
 say; the flags 32 and 1024 of fit data go with the fit data. AutoCAD's closed cubic of 70 11 given its own NURBS data
 not periodic, or not closed, was saved 70 11 and read closed, where the library wrote 9 and 8, and with its seam turned
-by a hundredth of a degree saved 70 9: its closed splines of the flag 2 turn by 4E-16 of a radian at most. Its periodic
+by a hundredth of a degree, or by a hundred-millionth (1.75E-10 of a radian), saved 70 9: its closed splines of the flag
+2 turn by 4E-16 of a radian at most. Its periodic
 cubic of 70 3115 given its own data back was saved 70 2059, where the library wrote 2091. A curve closed round a corner
 is written 1, as AutoCAD wrote its 1065 of a corner at the seam. `periodic` still puts the flag 2 on any curve, and the
 flag 2048 is kept or taken off by it as before. What writes NURBS data anew (raising the degree, putting control points
@@ -37,9 +38,10 @@ bit. 5 new tests, 1 changed to AutoCAD's answers.
 seam, as AutoCAD 2021 reads it: its 2059 with the control point 1 moved down by 5, or the point 5 up by 5, a corner at
 the seam, read as not periodic, 7 control points and 11 knots, and so did its 2059 of a control point moved by a
 millionth. The seam is read as AutoCAD's periodic form is made, the curve unclamped at its start and at its end, the
-first degree of its points the same as the degree a period on, within 1E-10 of the spline's size, one and its largest
-coordinate: AutoCAD's periodic splines, a rational one among them, are so to 1.3E-15 of theirs, and stay so scaled to
-millions or moved far from the origin, where the point moved by a millionth is off by 6.7E-8 of its size, 4.1E-6.
+first degree of its points the same as the degree a period on, within 1E-10, AutoCAD's own point tolerance, and 1E-14 of
+the spline's size, one and its largest coordinate, for rounding: AutoCAD's periodic splines, a rational one among them,
+are so to 1.3E-15 of theirs, and stay so scaled to millions or moved far from the origin; of its 2059 of size 61.5 with
+a control point moved it read the seam off by 4.1E-11 as periodic and off by 4.1E-10 as not.
 `IsPeriodic` of a spline of the flag 2048 takes 5.7 microseconds where 1.5 on .NET Framework 4.8, and 2.6 where 0.6 on
 .NET 10; of any other spline, what it took. 4 new tests.
 
