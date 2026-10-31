@@ -147,6 +147,129 @@ namespace GeometryHelper.Dxf
             file.AddClass("BLOCKSTRETCHACTION", "AcDbBlockStretchAction", 1153);
         }
 
+        /// <summary>
+        /// Writes a visibility parameter with its grip and the grip's two location components: four nodes, and the three edges
+        /// AutoCAD writes for them (the grip to the parameter, the parameter to each component), as AutoCAD 2021 saved the
+        /// visibility parameter of ACadSharp's sample. The entities the states name are governed, in the order of the block;
+        /// each of them not shown in the first state is made invisible, as AutoCAD keeps the block in that state.
+        /// </summary>
+        internal static void AddVisibility(DxfBlockTableRecord block, string name, string description, GeoPoint3 location, List<DxfBlockVisibilityState> states)
+        {
+            if (Has(block, "BLOCKVISIBILITYPARAMETER"))
+            {
+                throw new InvalidOperationException("The block " + block.Name + " has a visibility parameter already, and AutoCAD's Block Editor gives a block one.");
+            }
+
+            var named = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            states.ForEach(s => named.UnionWith(Handles(s)));
+            var governed = new List<DxfEntity>();
+
+            foreach (DxfEntity entity in block)
+            {
+                if (named.Contains(entity.Handle))
+                {
+                    governed.Add(entity);
+                }
+            }
+
+            Graph graph = Graph.Of(block);
+            DxfFile file = graph.File;
+            int p = graph.NextId;
+            string element = graph.FreeName("Visibility State");
+            HashSet<string> first = Handles(states[0]);
+            governed.ForEach(e => e.Visible = first.Contains(e.Handle));
+
+            DxfItem parameter = file.AddObject("BLOCKVISIBILITYPARAMETER", null, b =>
+            {
+                Head(b, graph.Handle, p, element);
+                b.Group(100, "AcDbBlockParameter");
+                b.Group(280, "1");
+                b.Group(281, "0");
+                b.Group(100, "AcDbBlock1PtParameter");
+                Point(b, 1010, location);
+                b.Group(93, Int(p + 1));
+                b.Group(170, "0");
+                b.Group(171, "0");
+                b.Group(100, "AcDbBlockVisibilityParameter");
+                b.Group(281, "1");
+                b.Group(301, name);
+                b.Group(302, description);
+                b.Group(91, "0");
+                b.Group(93, Int(governed.Count));
+                governed.ForEach(e => b.Group(331, e.Handle));
+                b.Group(92, Int(states.Count));
+
+                foreach (DxfBlockVisibilityState state in states)
+                {
+                    HashSet<string> shown = Handles(state);
+                    List<DxfEntity> visible = governed.FindAll(e => shown.Contains(e.Handle));
+                    b.Group(303, state.Name);
+                    b.Group(94, Int(visible.Count));
+                    visible.ForEach(e => b.Group(332, e.Handle));
+                    b.Group(95, "0");
+                }
+            });
+
+            graph.Add(p, parameter.Handle);
+            DxfItem grip = file.AddObject("BLOCKVISIBILITYGRIP", null, b =>
+            {
+                Head(b, graph.Handle, p + 1, "Grip");
+                b.Group(100, "AcDbBlockGrip");
+                b.Group(91, Int(p + 2));
+                b.Group(92, Int(p + 3));
+                Point(b, 1010, location);
+                b.Group(280, "0");
+                b.Group(93, "-1");
+                b.Group(100, "AcDbBlockVisibilityGrip");
+            });
+
+            graph.Add(p + 1, grip.Handle);
+            Components(graph, p, p + 1, "0.0", "Updated");
+            graph.Link(p + 1, p, 1);
+            graph.Link(p, p + 2, 1);
+            graph.Link(p, p + 3, 1);
+            graph.Write();
+
+            file.AddClass("BLOCKVISIBILITYPARAMETER", "AcDbBlockVisibilityParameter", 1153);
+            file.AddClass("BLOCKVISIBILITYGRIP", "AcDbBlockVisibilityGrip", 1153);
+            file.AddClass("BLOCKGRIPLOCATIONCOMPONENT", "AcDbBlockGripExpr", 1153);
+        }
+
+        /// <summary>The handles of the entities a state shows.</summary>
+        private static HashSet<string> Handles(DxfBlockVisibilityState state)
+        {
+            var handles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (DxfEntity entity in state.Entities)
+            {
+                handles.Add(entity.Handle);
+            }
+
+            return handles;
+        }
+
+        /// <summary>Whether the evaluation graph of a block holds a node of a type, read without writing anything.</summary>
+        private static bool Has(DxfBlockTableRecord block, string type)
+        {
+            DxfDBDictionary dictionary = block.ExtensionDictionary;
+            DxfItem item = dictionary != null && dictionary.Contains("ACAD_ENHANCEDBLOCK") ? dictionary.GetAt("ACAD_ENHANCEDBLOCK")?.Item : null;
+
+            if (item == null || item.Type != "ACAD_EVALUATION_GRAPH")
+            {
+                return false;
+            }
+
+            foreach (DxfTypedValue group in item.Groups)
+            {
+                if (group.TypeCode == 360 && item.File.ObjectItem(group.Value)?.Type == type)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         /// <summary>A grip of a linear parameter and its two location components, the nodes after it.</summary>
         private static void Grip(Graph graph, int parameter, int id, string name, GeoPoint3 at, GeoVector3 direction, string value, string connection)
         {
@@ -166,7 +289,12 @@ namespace GeometryHelper.Dxf
             });
 
             graph.Add(id, grip.Handle);
+            Components(graph, parameter, id, value, connection);
+        }
 
+        /// <summary>The two location components of a grip, X and Y, the nodes after it: each of a value and of a connection with X or Y after it.</summary>
+        private static void Components(Graph graph, int parameter, int id, string value, string connection)
+        {
             for (int k = 1; k <= 2; k++)
             {
                 string axis = k == 1 ? "X" : "Y";

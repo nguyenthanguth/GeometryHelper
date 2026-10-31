@@ -2161,7 +2161,7 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A point of the world in the system of an extrusion; the point itself for the extrusion (0, 0, 1).</summary>
-        private protected static GeoPoint3 WorldToOcs(GeoVector3 normal, GeoPoint3 point)
+        internal static GeoPoint3 WorldToOcs(GeoVector3 normal, GeoPoint3 point)
         {
             if (normal.X == 0.0 && normal.Y == 0.0 && normal.Z == 1.0)
             {

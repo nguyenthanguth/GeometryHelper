@@ -774,9 +774,10 @@ namespace GeometryHelper.Dxf
         /// each a property of its INSERTs in the order they were added.
         /// </para>
         /// <para>
-        /// The library writes the block and does not work it out: an INSERT of it shows the block's own distance until AutoCAD
-        /// changes it, and <see cref="DxfBlockReference.DynamicBlockReferencePropertyCollection"/> reads that. An entity
-        /// appended after the last parameter or action has no tag, which AutoCAD 2021 did not need (plugin v17, 24a-c).
+        /// An INSERT of the block shows the block's own distance until its property is set, by AutoCAD or by
+        /// <see cref="DxfDynamicBlockReferenceProperty.Value"/>, which works the block out into an anonymous copy the INSERT
+        /// places; <see cref="DxfBlockReference.DynamicBlockReferencePropertyCollection"/> reads either. An entity appended
+        /// after the last parameter or action has no tag, which AutoCAD 2021 did not need (plugin v17, 24a-c).
         /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the name or a point is null.</exception>
@@ -965,6 +966,104 @@ namespace GeometryHelper.Dxf
             }
 
             DxfDynamicBlockWriter.AddStretch(parameter, low, high, held);
+        }
+
+        /// <summary>
+        /// Makes the block dynamic, where it is not, and gives it a visibility parameter: named states, each showing some of the
+        /// block's entities and hiding the others the states name, which each INSERT of the block shows as the dynamic property of
+        /// the parameter's name, AutoCAD's Visibility parameter as its Block Editor makes one. Each INSERT shows the first state
+        /// until its property is set (<see cref="DxfDynamicBlockReferenceProperty.Value"/>).
+        /// </summary>
+        /// <param name="name">The label of the parameter, the name of the property, as Mark.</param>
+        /// <param name="description">The description of the property; null or empty for none.</param>
+        /// <param name="location">Where the parameter's grip stands, in the block's coordinates.</param>
+        /// <param name="states">The states, the first the one the block is kept in; each a name and the entities of this block
+        /// shown in it (<see cref="DxfBlockVisibilityState"/>).</param>
+        /// <remarks>
+        /// <para>
+        /// A sign of a frame, a cross and a tick given <c>AddVisibilityParameter("Mark", "What the sign shows", new GeoPoint3(20,
+        /// -10, 0), ...)</c> with the states Cross (the cross), Tick (the tick) and Blank (nothing) gives every INSERT the property
+        /// Mark of the value Cross, allowed Cross, Tick and Blank. The entities a state names are those the parameter governs:
+        /// each is shown in the states that name it and hidden in the others; an entity named in no state, the frame, is not
+        /// governed and is shown in every state. The block itself is kept in its first state, as AutoCAD keeps it: each governed
+        /// entity not named in the first state is made invisible (<see cref="DxfEntity.Visible"/> false), the tick here.
+        /// </para>
+        /// <para>
+        /// The parameter is written as AutoCAD writes one, as AutoCAD 2021 saved the visibility parameter of ACadSharp's sample:
+        /// the parameter (its element named Visibility State) at the location, with the governed entities and each state with
+        /// the entities shown in it, its grip and the grip's two location components, four nodes of the evaluation graph and
+        /// three edges, the classes listed; the block is made dynamic as <see cref="AddLinearParameter"/> makes it. Linear
+        /// parameters and their stretches may come before or after it.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the name, the states or one of them is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the name is empty, the name or the description holds a line break,
+        /// a coordinate of the location is not a finite number, there are no states, two states have one name (letters of either case the same), or an entity of a state is not of
+        /// this block or is erased. Nothing is written then.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the block has a visibility parameter already, as AutoCAD's
+        /// Block Editor gives a block one, or cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
+        public void AddVisibilityParameter(string name, string description, GeoPoint3 location, IEnumerable<DxfBlockVisibilityState> states)
+        {
+            if (name == null)
+            {
+                throw new ArgumentNullException(nameof(name));
+            }
+
+            if (states == null)
+            {
+                throw new ArgumentNullException(nameof(states));
+            }
+
+            description = description ?? string.Empty;
+
+            if (name.Trim().Length == 0 || name.IndexOfAny(LineBreaks) >= 0)
+            {
+                throw new ArgumentException("A parameter is labelled by a name of one line at least one letter long.", nameof(name));
+            }
+
+            if (description.IndexOfAny(LineBreaks) >= 0)
+            {
+                throw new ArgumentException("The description of a parameter is of one line.", nameof(description));
+            }
+
+            if (!location.IsValid)
+            {
+                throw new ArgumentException("The location of a parameter is of finite numbers: " + location + " is not.", nameof(location));
+            }
+
+            var given = new List<DxfBlockVisibilityState>();
+            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (DxfBlockVisibilityState state in states)
+            {
+                if (state == null)
+                {
+                    throw new ArgumentNullException(nameof(states), "A visibility state is null.");
+                }
+
+                if (!names.Add(state.Name))
+                {
+                    throw new ArgumentException("Two visibility states are named " + state.Name + ", letters of either case the same.", nameof(states));
+                }
+
+                foreach (DxfEntity entity in state.Entities)
+                {
+                    if (entity.IsErased || entity.Handle == null || !string.Equals(entity.OwnerHandle, Handle, StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new ArgumentException("The entity " + (entity.Handle ?? string.Empty) + " of the state " + state.Name + " is not of the block " + Name + ", or is erased.", nameof(states));
+                    }
+                }
+
+                given.Add(state);
+            }
+
+            if (given.Count == 0)
+            {
+                throw new ArgumentException("A visibility parameter is given one state at least.", nameof(states));
+            }
+
+            Dynamic("be given a parameter");
+            DxfDynamicBlockWriter.AddVisibility(this, name.Trim(), description, location, given);
         }
 
         /// <summary>Refuses a block that cannot be made dynamic: one of no file, erased, a layout's, anonymous, of an external reference, or of a drawing older than R2010.</summary>

@@ -111,6 +111,9 @@ namespace GeometryHelper.Dxf
         private List<KeyValuePair<string, List<DxfTypedValue>>> _sunk;
         private bool _noLightweight;
 
+        /// <summary>The version the header names (<c>$ACADVER</c>): R2000 (AC1015), or a later one the new empty drawing of <see cref="DxfDatabase(string)"/> is of.</summary>
+        internal string Version { get; set; } = "AC1015";
+
         #region The plane
 
         /// <summary>
@@ -1485,7 +1488,7 @@ namespace GeometryHelper.Dxf
             file.Str(0, "SECTION");
             file.Str(2, "HEADER");
             file.Str(9, "$ACADVER");
-            file.Str(1, "AC1015");
+            file.Str(1, Version);
             file.Str(9, "$HANDSEED");
             file.Hex(5, _nextHandle);
             file.Str(9, "$INSUNITS");

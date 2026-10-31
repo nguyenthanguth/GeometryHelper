@@ -455,10 +455,13 @@ a layout is a `DxfLayout`, whose plot settings are a `DxfPlotSettings`. A type o
 an IMAGE, a REGION or a 3DSOLID among them, is a `DxfUnknownEntity`: kept as the file has it, its look editable, itself
 erasable and copied, its geometry not moved.
 
-There is no `new DxfDatabase()`. A drawing begins as a file, and one made from nothing begins as the drawing `DxfWriter`
-writes with no shape in it: `DxfDatabase.Parse(new DxfWriter().ToString())` is a drawing of R2000 in millimetres with model
-space and paper space, two layouts, the dimension style Standard and the named object dictionary, to which entities,
-blocks and layers are added as to any other.
+A drawing begins as a file, or new, of a version named: `new DxfDatabase("AC1024")` is a drawing of R2010 with nothing in
+it, the drawing `DxfWriter` writes with no shape, in millimetres, with model space and paper space, two layouts, the layer
+0, the text style and the dimension style Standard and the named object dictionary, its header naming AC1024; entities,
+blocks and layers are added to it as to any other. The versions are AC1015 (R2000), AC1018, AC1021, AC1024, AC1027 and
+AC1032 (R2018); `new DxfDatabase("AC1015")` is the very text of `DxfDatabase.Parse(new DxfWriter().ToString())`, and a
+version of R12 to R14, or one written otherwise, is refused (`ArgumentException`). ezdxf 1.4.5 recovers and audits each of
+the six with nothing to fix.
 
 ### AutoCAD and GeometryHelper
 
@@ -467,7 +470,8 @@ Dxf in front and their members' names.
 
 | AutoCAD | GeometryHelper | The difference |
 |---|---|---|
-| `new Database(false, true); db.DxfIn(path, log)` | `DxfDatabase.Open(path)`, `Open(stream)`, `Parse(text)` | A DXF file only, ASCII, R12 to R2018; no DWG and no binary DXF. No `new DxfDatabase()`: start from `Parse(new DxfWriter().ToString())`. |
+| `new Database(false, true); db.DxfIn(path, log)` | `DxfDatabase.Open(path)`, `Open(stream)`, `Parse(text)` | A DXF file only, ASCII, R12 to R2018; no DWG and no binary DXF. |
+| `new Database(true, true)` | `new DxfDatabase("AC1024")` | The version is named, AC1015 (R2000) to AC1032 (R2018); the drawing is in millimetres. |
 | `db.DxfOut(path, 16, version)`, `db.SaveAs(path, version)` | `db.Save(path)`, `Save(stream)`, `ToText()` | Saved in the version, code page and style it was read in; a drawing is not turned into another version. An entity appended from a drawing of another version is turned into this one's forms. |
 | `HostApplicationServices.WorkingDatabase`, `Document.LockDocument()` | none | No application and no document: the drawing is the object `Open` gave. |
 | `using (Transaction tr = db.TransactionManager.StartTransaction()) { ...; tr.Commit(); }` | none | Every change is written at once; nothing is rolled back. |
@@ -1196,17 +1200,21 @@ foreach (DxfDynamicBlockReferenceProperty p in insert.DynamicBlockReferencePrope
 }
 ```
 
-A dynamic block is made in code from a block of a drawing of R2010 or later: `AddLinearParameter` gives it a linear
-parameter, a distance from a base point to an end point that every INSERT of it shows as a property of the parameter's
+A dynamic block is made in code from a block of a drawing of R2010 or later, which `new DxfDatabase("AC1024")` makes from
+nothing: `AddLinearParameter` gives it a linear parameter, a distance from a base point to an end point that every INSERT of it shows as a property of the parameter's
 name, with the values it may take (`DxfBlockParameterValueSet.Increments(minimum, maximum, increment)`, `List(values)`, or
 null for any), and `AddStretchAction` ties the entities to it: as the distance grows by an amount, the points of the lines
 and polylines inside the stretch frame (a rectangle of two corners, in the block's coordinates) move by that amount from
 the base point towards the end point, so an entity across the frame stretches and one inside it moves whole. A rectangle
-100 by 50 given Width from (0, 0, 0) to (100, 0, 0), from 50 to 300 by 10, and the stretch of its right edge by the frame
-(90, -10)-(110, 60):
+100 by 50 given Width from (0, 0, 0) to (100, 0, 0), from 50 to 300 by 10, the stretch of its right edge by the frame
+(90, -10)-(110, 60), and an INSERT of it whose Width is set to 200:
 
 ```csharp
-DxfDatabase db = DxfDatabase.Open("empty-r2010.dxf");          // any drawing of R2010 (AC1024) or later
+using System.Linq;
+using GeometryHelper.Dxf;
+using GeometryHelper.Geometry;
+
+var db = new DxfDatabase("AC1024");                              // a new drawing of R2010, in millimetres
 var panel = new DxfBlockTableRecord { Name = "PANEL", Origin = new GeoPoint3(0, 0, 0) };
 db.BlockTable.Add(panel);
 var right = new DxfLine(new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0));
@@ -1221,23 +1229,87 @@ foreach (DxfLine line in new[] { right, bottom, top, left })
 DxfBlockLinearParameter width = panel.AddLinearParameter("Width", "Overall width", new GeoPoint3(0, 0, 0),
     new GeoPoint3(100, 0, 0), -20, DxfBlockParameterValueSet.Increments(50, 300, 10));
 panel.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), new[] { right, bottom, top });
-db.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), panel));
+var insert = new DxfBlockReference(new GeoPoint3(0, 0, 0), panel);
+db.ModelSpace.AppendEntity(insert);
+insert.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Width").Value = 200.0;
 db.Save("panel.dxf");
 ```
 
 The frame holds the right edge whole and the right ends of the bottom and the top; the left edge has no point in it and is
-not given (an entity given with none is refused, as is any type but a LINE and a LWPOLYLINE). The INSERT shows
-`Width = 100.0`; AutoCAD 2021, given the same block (plugin v17), set it to 200 and moved the right edge to x = 200, took
+not given (an entity given with none is refused, as is any type but a LINE and a LWPOLYLINE). An INSERT shows
+`Width = 100.0` until its property is set; AutoCAD 2021, given the same block (plugin v17), set it to 200 and moved the right edge to x = 200, took
 75 to 70, 77 to 80 and 400 to 300 by the value set, and kept the values through a DXF and a DWG saved and opened again. The block is written as AutoCAD's Block
 Editor saves one: the extended data AcDbDynamicBlockTrueName, AcDbDynamicBlockGUID (a new GUID) and AcDbBlockRepETag on
 its BLOCK_RECORD, a tag on each of its entities, the evaluation graph and the purge preventer in its extension dictionary,
 each parameter with its two grips and their location components, and the classes listed; the graph of the block above is
 AutoCAD 2021's own save of it, number for number. A block may be given several parameters, each with its actions, named
 Linear, Linear1 and Stretch, Stretch1 and on as AutoCAD names them; a second parameter Height from (0, 0, 0) to (0, 50, 0)
-with the frame (-10, 40)-(110, 60) over the top gives each INSERT Width and then Height. The library writes the block and
-does not work it out: an INSERT shows the block's own distance until AutoCAD changes it. Writing the parameter and the
-stretch of the rectangle takes about half a millisecond, and tagging and stretching a block of 1 000 lines 16 milliseconds
-under .NET Framework 4.8 and 31 under .NET 10.
+with the frame (-10, 40)-(110, 60) over the top gives each INSERT Width and then Height. Writing the parameter and the
+stretch of the rectangle takes about half a millisecond, and tagging and stretching a block of 1 000 lines 15 milliseconds
+under .NET Framework 4.8 and 30 under .NET 10.
+
+Setting `Value` works the block out as AutoCAD's `DynamicBlockReferenceProperty.Value` does. The value is taken to the
+value set as AutoCAD 2021 took it (plugins v17 and v18): to the nearest step of an increment, a tie to the even step from
+the minimum, then into the minimum and the maximum, so that 75 goes to 70, 77 to 80 and 400 to 300 of the set above; to the
+nearest of a list, a tie to the one nearer the value the property had, so that 75 goes to 100 from 100 of 50, 100 ... 300,
+and 100 to 80 from 80 of 50, 80, 120; and as given where there is no set. The INSERT is then made to place an anonymous
+block, `*U1` the first the drawing has not, holding a copy of each entity of the block with the points the stretches hold
+moved by the change: here the right edge at x = 200 and the right ends of the bottom and the top with it, the left edge at
+x = 0. The anonymous block names the dynamic one in its extended data AcDbBlockRepBTag, each copy keeps its source's tag
+with its own handle, and the INSERT's extension dictionary is given AcDbBlockRepresentation, with the representation data
+naming the dynamic block and the record of each parameter and action AutoCAD reads the values from
+(ACAD_ENHANCEDBLOCKDATA under AppDataCache), the end point of Width at (200, 0, 0). A history of grip edits
+(ACAD_ENHANCEDBLOCKHISTORY) is taken out, as AutoCAD 2021 took it out and kept none when it set a value. AutoCAD 2021 read
+such an INSERT, written by a script, as Width 150 with its stretched lines, and set it again (plugin v17).
+`DynamicBlockReferencePropertyCollection` reads 200 back; the dynamic block itself keeps 100. Set again, the INSERT's
+anonymous block is filled anew where no other INSERT places it, else the INSERT is given one of its own. A length of an
+INSERT scaled by 2 is twice the block's: 300 set on it moves the right edge to x = 150 in the block. Only a block of linear
+parameters with stretches of lines and polylines, and of a visibility parameter, is worked out: a property of another
+kind, or of a block holding another parameter or action, or a stretch that moves other parameters or is scaled or turned,
+is refused with `NotSupportedException`, and an INSERT scaled unlike along its axes with `InvalidOperationException`, as
+AutoCAD takes it as no dynamic block's; nothing is written then. A value is a number, a whole number taken as the distance
+it is, and a distance of nought or less after the value set is refused. Setting Width takes under a millisecond, and on
+each of 1 000 INSERTs of a drawing half a second to a second; setting again an INSERT that places an anonymous block
+already looks through the drawing for another INSERT of that block, and takes about a millisecond with 1 000 INSERTs and
+five with 4 000.
+
+`AddVisibilityParameter` gives a block a visibility parameter: named states, each a `DxfBlockVisibilityState` of a name and
+the entities of the block shown in it. The entities the states name are governed by it, each shown in the states that name
+it and hidden in the others; an entity named in no state is shown in every state. Every INSERT shows the first state until
+its property is set, and the block is kept in that state, as AutoCAD keeps it: a governed entity not named in the first
+state is made invisible. A sign of a frame, a cross and a tick, added to the drawing above, with an INSERT showing the tick:
+
+```csharp
+var sign = new DxfBlockTableRecord { Name = "SIGN", Origin = new GeoPoint3(0, 0, 0) };
+db.BlockTable.Add(sign);
+var frame = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(40, 0, 0));
+var cross = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(40, 40, 0));
+var tick = new DxfLine(new GeoPoint3(10, 20, 0), new GeoPoint3(20, 10, 0));
+foreach (DxfLine line in new[] { frame, cross, tick })
+{
+    sign.AppendEntity(line);
+}
+
+sign.AddVisibilityParameter("Mark", "What the sign shows", new GeoPoint3(20, -10, 0), new[]
+{
+    new DxfBlockVisibilityState("Cross", new DxfEntity[] { cross }),
+    new DxfBlockVisibilityState("Tick", new DxfEntity[] { tick }),
+    new DxfBlockVisibilityState("Blank", new DxfEntity[0]),
+});
+var mark = new DxfBlockReference(new GeoPoint3(200, 0, 0), sign);
+db.ModelSpace.AppendEntity(mark);
+mark.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Mark").Value = "Tick";
+db.Save("panel.dxf");
+```
+
+Each INSERT of SIGN gives `Mark = Cross` until set, its allowed values Cross, Tick and Blank; the one set shows the frame and
+the tick, the cross hidden in its anonymous block, and reads `Mark = Tick` back. A state is set by its name, letters of
+either case the same, and one the parameter has not is refused (`ArgumentException`). The parameter is written as AutoCAD
+2021 saved the visibility parameter of ACadSharp's sample: the parameter at the location with the governed entities and
+each state with the entities shown in it, its grip and the grip's two location components, four nodes and three edges of
+the evaluation graph, number for number. A block takes one visibility parameter, as AutoCAD's Block Editor gives it one, and
+may take linear parameters besides: its INSERTs keep the state and the distances together. Writing the parameter takes a
+fifth of a millisecond.
 
 `insert.ConvertToStaticBlock("BOLT_500")` makes the INSERT place a
 new block BOLT_500 holding copies of what it draws, the anonymous block's entities (or the dynamic block's, where it places
@@ -1803,10 +1875,12 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
   where a multileader's leaders meet its words, and the size of those words in its `GeometricExtents` are not worked out: a
   multileader made in code starts its leader's dogleg at the base point of its content (10 of the context data), at the
   origin where its block is placed after its leader line is added.
-- It does not evaluate a dynamic block. `DynamicBlockReferencePropertyCollection` reads the values AutoCAD saved, and none
-  can be set: changing one is AutoCAD's engine's work, which moves, stretches and hides the block's entities. A dynamic
-  block is written with linear parameters and stretch actions of lines and polylines only, its frame a rectangle; other
-  parameters, actions, entities and a frame of a polygon are not written. A block whose
+- It evaluates only the dynamic blocks it can write. `DynamicBlockReferencePropertyCollection` reads the values AutoCAD
+  saved, and sets those of linear parameters stretching lines and polylines and of a visibility parameter; the other kinds
+  (polar, XY, rotation, point, flip, lookup) and blocks holding them or other actions are read only, their working out
+  AutoCAD's engine's. A dynamic block is written with linear parameters and stretch actions of lines and polylines, its
+  frame a rectangle, and one visibility parameter; other parameters, actions, entities and a frame of a polygon are not
+  written. A block whose
   entities another program changed keeps the values AutoCAD saved. Constraint parameters and a block properties table give
   no properties. `ConvertToStaticBlock` copies what the INSERT draws as it stands; `ResetBlock` is not there. `db.Insert` of
   another drawing brings a dynamic block of it as a static one, without the data that makes it dynamic, which AutoCAD's
@@ -1821,8 +1895,8 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
   table's parts as their last picture, not as their data now, and AutoCAD 2021 draws a table anew before it explodes it;
   and it leaves out the vertex AutoCAD adds to an exploded leader where the words of its annotation end, and the lines
   under or over a multileader's words, whose length the width of the words decides.
-- It makes no drawing from nothing but `DxfWriter`'s, reads no DWG and no binary DXF, and saves a drawing in its own version
-  only.
+- It makes no drawing from nothing but `DxfWriter`'s, of R2000 or of a later version named (`new DxfDatabase("AC1024")`),
+  reads no DWG and no binary DXF, and saves a drawing in its own version only.
 - It has none of AutoCAD's members that need AutoCAD running: `ObjectId`, transactions, documents, drawing to the screen
   (`Draw`, `Highlight`), grips and object snaps, overrules, events and undo.
 

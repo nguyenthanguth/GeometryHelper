@@ -64,11 +64,13 @@ namespace GeometryHelper.Dxf
                 IReadOnlyList<DxfTypedValue> groups = node.Groups;
                 string id = Text(Section(groups, "AcDbEvalExpr"), 90)?.Trim();
                 IReadOnlyList<DxfTypedValue> cache = id != null && saved.TryGetValue(id, out DxfXrecord record) ? record.Data : null;
+                int before = properties.Count;
 
                 switch (node.Type)
                 {
                     case "BLOCKLINEARPARAMETER":
                         Linear(groups, cache, scale, properties);
+                        Bind(properties, before, insert, id);
                         break;
                     case "BLOCKPOLARPARAMETER":
                         Polar(groups, cache, scale, properties);
@@ -87,6 +89,7 @@ namespace GeometryHelper.Dxf
                         break;
                     case "BLOCKVISIBILITYPARAMETER":
                         Visibility(groups, cache, properties);
+                        Bind(properties, before, insert, id);
                         break;
                     case "BLOCKLOOKUPPARAMETER":
                         Lookup(groups, id, cache, nodes, properties);
@@ -95,6 +98,15 @@ namespace GeometryHelper.Dxf
             }
 
             return properties.AsReadOnly();
+        }
+
+        /// <summary>Ties the property a parameter gave, where it gave one, to the INSERT and the parameter's node, for its value to be set.</summary>
+        private static void Bind(List<DxfDynamicBlockReferenceProperty> properties, int at, DxfBlockReference insert, string id)
+        {
+            if (id != null && properties.Count > at)
+            {
+                properties[at].Bind(insert, id);
+            }
         }
 
         /// <summary>A linear parameter: its distance, the length from its base point to its end point (305 its label, 306 its description).</summary>
@@ -391,14 +403,14 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The object of a dictionary's entry; null where the dictionary is none or has no entry of the name.</summary>
-        private static DxfDBObject Entry(DxfDBDictionary dictionary, string name)
+        internal static DxfDBObject Entry(DxfDBDictionary dictionary, string name)
             => dictionary != null && dictionary.Contains(name) ? dictionary.GetAt(name) : null;
 
         /// <summary>
         /// The groups of a subclass of an object's record: those after its marker (100) up to the next marker or the
         /// extended data; none where the record has no such marker.
         /// </summary>
-        private static List<DxfTypedValue> Section(IReadOnlyList<DxfTypedValue> groups, string marker)
+        internal static List<DxfTypedValue> Section(IReadOnlyList<DxfTypedValue> groups, string marker)
         {
             var section = new List<DxfTypedValue>();
             bool inside = false;
@@ -426,7 +438,7 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The value of the first group of a code; null where there is none.</summary>
-        private static string Text(List<DxfTypedValue> groups, int code)
+        internal static string Text(List<DxfTypedValue> groups, int code)
         {
             foreach (DxfTypedValue group in groups)
             {
@@ -446,7 +458,7 @@ namespace GeometryHelper.Dxf
         private static string Words(List<DxfTypedValue> groups, int code) => DxfReader.Decode(Text(groups, code) ?? string.Empty);
 
         /// <summary>The point of a code and the two after it by ten (1010, 1020, 1030); null where it cannot be read.</summary>
-        private static double[] PointOf(List<DxfTypedValue> groups, int code)
+        internal static double[] PointOf(List<DxfTypedValue> groups, int code)
             => Number(Text(groups, code), out double x) && Number(Text(groups, code + 10), out double y) && Number(Text(groups, code + 20) ?? "0", out double z) ? new[] { x, y, z } : null;
 
         /// <summary>
@@ -485,7 +497,7 @@ namespace GeometryHelper.Dxf
             return values;
         }
 
-        private static bool Number(string text, out double value) => Numbers.TryRead(text?.Trim(), out value) && Guard.IsFinite(value);
+        internal static bool Number(string text, out double value) => Numbers.TryRead(text?.Trim(), out value) && Guard.IsFinite(value);
 
         private static double Distance(double[] from, double[] to)
         {

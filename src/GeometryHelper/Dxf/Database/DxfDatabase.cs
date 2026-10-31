@@ -35,6 +35,9 @@ namespace GeometryHelper.Dxf
     /// </remarks>
     public sealed partial class DxfDatabase
     {
+        // The versions a new drawing is made of: those of R2000 on, whose records are those the writer writes.
+        private static readonly string[] NewVersions = { "AC1015", "AC1018", "AC1021", "AC1024", "AC1027", "AC1032" };
+
         private readonly DxfBlockTableRecord _model;
         private readonly DxfBlockTableRecord _paper;
         private readonly DxfBlockTable _blockTable;
@@ -56,8 +59,44 @@ namespace GeometryHelper.Dxf
             _blockTable.Load();
         }
 
+        /// <summary>
+        /// Makes a new drawing with nothing in it, of a version, as AutoCAD's <c>new Database(true, true)</c> makes one of its
+        /// own: the drawing <see cref="DxfWriter"/> writes with no shape, in millimetres, with model space and paper space, two
+        /// layouts, the layer 0, the text style and the dimension style Standard and the named object dictionary, its header
+        /// naming the version given (<c>$ACADVER</c>). <c>new DxfDatabase("AC1024")</c> is a drawing of R2010, the oldest a
+        /// dynamic block is made in (<see cref="DxfBlockTableRecord.AddLinearParameter"/>); <c>"AC1015"</c> gives the very
+        /// text <c>new DxfWriter().ToString()</c> gives.
+        /// </summary>
+        /// <param name="version">The version, as <see cref="Version"/> names it: AC1015 (R2000), AC1018 (R2004), AC1021
+        /// (R2007), AC1024 (R2010), AC1027 (R2013) or AC1032 (R2018), letters of either case.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the version is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the version is none of those six: a drawing of R12 to R14 is not
+        /// made this way, its records not those of the writer's drawing.</exception>
+        public DxfDatabase(string version)
+            : this(DxfFile.Parse(Empty(version)))
+        {
+        }
+
         /// <summary>The file the drawing is kept in.</summary>
         internal DxfFile File { get; }
+
+        /// <summary>The text of the writer's drawing with no shape, its header naming a version from R2000 on.</summary>
+        private static string Empty(string version)
+        {
+            if (version == null)
+            {
+                throw new ArgumentNullException(nameof(version));
+            }
+
+            string named = version.Trim().ToUpperInvariant();
+
+            if (Array.IndexOf(NewVersions, named) < 0)
+            {
+                throw new ArgumentException("A new drawing is of AC1015 (R2000), AC1018, AC1021, AC1024, AC1027 or AC1032 (R2018); " + version + " is none of them.", nameof(version));
+            }
+
+            return new DxfWriter { Version = named }.ToString();
+        }
 
         #region Opening and saving
 

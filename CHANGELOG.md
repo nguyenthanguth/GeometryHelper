@@ -6,6 +6,33 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `new DxfDatabase(version)` makes a new drawing with nothing in it, of the version named as `Version` names one:
+AC1015 (R2000), AC1018, AC1021, AC1024 (R2010), AC1027 or AC1032 (R2018), as AutoCAD's `new Database(true, true)` makes one
+of its own. It is the drawing `DxfWriter` writes with no shape, in millimetres, its header naming the version, so that a
+dynamic block, which wants R2010 or later, is made from nothing: `new DxfDatabase("AC1024")`. `new DxfDatabase("AC1015")` is
+the very text of `DxfDatabase.Parse(new DxfWriter().ToString())`; a version of R12 to R14 is refused. ezdxf 1.4.5 recovers
+and audits each of the six with nothing to fix.
+
+**NEW.** `DxfDynamicBlockReferenceProperty.Value` is set, as AutoCAD's `DynamicBlockReferenceProperty.Value` sets it, on the
+distance of a linear parameter whose actions are stretches of lines and polylines and on the state of a visibility
+parameter. The value is taken to the value set as AutoCAD 2021 took it (plugins v17 and v18): of 50 to 300 by 10, 75 to 70,
+77 to 80 and 400 to 300; of the list 50, 100 ... 300, 75 to 100 from 100, a tie going to the value nearer the one the
+property had. The block is then worked out at the values of all its properties into an anonymous block of AutoCAD's (`*U1`
+and on) the INSERT places, the points each stretch holds moved and each entity a visibility parameter governs shown or
+hidden, and the INSERT's representation data and the cache AutoCAD reads the values from (ACAD_ENHANCEDBLOCKDATA) are
+written as AutoCAD writes them when it sets a value, with no history. A rectangle 100 by 50 whose Width is set to 200 places
+a copy with its right edge at x = 200 and reads Width 200 back; the dynamic block keeps 100. A property of another kind, or
+of a block holding other parameters or actions, is refused with `NotSupportedException`. Setting Width takes under a
+millisecond.
+
+**NEW.** `DxfBlockTableRecord.AddVisibilityParameter(name, description, location, states)` gives a block a visibility
+parameter, its states each a new `DxfBlockVisibilityState` of a name and the entities shown in it, as AutoCAD 2021 saved
+the visibility parameter of ACadSharp's sample, its graph of four nodes and three edges number for number. Each INSERT shows
+the first state until its property is set, and the block is kept in that state; an entity named in no state is shown in
+every state. A sign of a frame, a cross and a tick given the states Cross, Tick and Blank shows the cross in Cross, the
+tick in Tick and neither in Blank, the frame in all three. A block takes one visibility parameter, and linear parameters
+besides. 23 new tests (32 cases) in `DxfDynamicBlockD24cTests` for the three.
+
 **NEW.** A dynamic block is made in code. `DxfBlockTableRecord.AddLinearParameter(name, description, basePoint, endPoint,
 labelOffset, valueSet)` gives a block of a drawing of R2010 or later a linear parameter, the property of its name on every
 INSERT of the block, its values free or held by the new `DxfBlockParameterValueSet` (`Increments(minimum, maximum,
@@ -16,9 +43,9 @@ purge preventer and classes; a block may hold several parameters, each with its 
 from 50 to 300 by 10 and the stretch of its right edge comes out with the graph AutoCAD 2021 saved of the same block
 written by a script, number for number, which AutoCAD read as dynamic, stretched to x = 200 for a Width of 200, and kept
 through a DXF and a DWG saved and opened again (plugin v17); every INSERT reads `Width = 100.0` through
-`DynamicBlockReferencePropertyCollection`, and ezdxf 1.4.5 recovers and audits the files with no error. The library does not
-work the block out: an INSERT shows the block's own distance until AutoCAD changes it. Other parameters and actions, other
-entities and a frame of a polygon are not written. 11 new tests.
+`DynamicBlockReferencePropertyCollection`, and ezdxf 1.4.5 recovers and audits the files with no error. An INSERT shows the
+block's own distance until its property is set. Other parameters and actions, other entities and a frame of a polygon are
+not written. 11 new tests.
 
 **NEW.** `DxfBlockReference.DynamicBlockReferencePropertyCollection` reads the dynamic properties of an INSERT of a dynamic
 block as AutoCAD saved them, read only: each a `DxfDynamicBlockReferenceProperty` with AutoCAD's `PropertyName`, `Value`,

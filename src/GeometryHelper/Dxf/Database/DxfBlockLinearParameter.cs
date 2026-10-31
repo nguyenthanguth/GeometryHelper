@@ -9,8 +9,8 @@ namespace GeometryHelper.Dxf
     /// </summary>
     /// <remarks>
     /// The parameter Width from (0, 0, 0) to (100, 0, 0) of a rectangle 100 by 50 gives each INSERT of the block the property
-    /// Width of 100; AutoCAD set to 200 moves its end point to (200, 0, 0), and a stretch action tied to it moves the points in
-    /// its frame by 100 along x. What it holds is read once it is written: changing the block afterwards does not change it.
+    /// Width of 100; set to 200, by AutoCAD or by <see cref="DxfDynamicBlockReferenceProperty.Value"/>, it moves its end point to
+    /// (200, 0, 0), and a stretch action tied to it moves the points in its frame by 100 along x. What it holds is read once it is written: changing the block afterwards does not change it.
     /// </remarks>
     public sealed class DxfBlockLinearParameter
     {
@@ -57,7 +57,7 @@ namespace GeometryHelper.Dxf
         /// <summary>Gets the values the distance may take; null where it may take any.</summary>
         public DxfBlockParameterValueSet ValueSet { get; }
 
-        /// <summary>Gets the distance from the base point to the end point, the value every INSERT of the block shows until AutoCAD changes it.</summary>
+        /// <summary>Gets the distance from the base point to the end point, the value every INSERT of the block shows until its property is set.</summary>
         public double Distance => BasePoint.GetVectorTo(EndPoint).Length;
     }
 }

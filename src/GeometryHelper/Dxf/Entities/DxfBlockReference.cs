@@ -435,8 +435,9 @@ namespace GeometryHelper.Dxf
         /// <see cref="DynamicBlockReferencePropertyCollection"/>.
         /// </summary>
         /// <remarks>
-        /// <see cref="DynamicBlockReferencePropertyCollection"/> reads the dynamic properties as AutoCAD saved them; they are not
-        /// set, nor is AutoCAD's <c>ResetBlock</c> given, as the library does not evaluate the block's graph.
+        /// <see cref="DynamicBlockReferencePropertyCollection"/> reads the dynamic properties as AutoCAD saved them; a linear
+        /// property whose actions are stretches of lines and polylines, and a visibility state, is set by
+        /// <see cref="DxfDynamicBlockReferenceProperty.Value"/>, the others are not, nor is AutoCAD's <c>ResetBlock</c> given.
         /// <see cref="ConvertToStaticBlock(string)"/> makes the INSERT place a plain copy of what it draws.
         /// </remarks>
         public bool IsDynamicBlock => Dynamic(out _) != null && ScaledAlike();
@@ -472,9 +473,11 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Gets the dynamic properties of the INSERT, as AutoCAD's <c>DynamicBlockReferencePropertyCollection</c>: read only, a
-        /// new list on each call, each property's value the one AutoCAD saved for this INSERT, or the dynamic block's own where
-        /// it saved none, as for an INSERT of the dynamic block itself. Empty where the INSERT places no dynamic block.
+        /// Gets the dynamic properties of the INSERT, as AutoCAD's <c>DynamicBlockReferencePropertyCollection</c>: a new list on
+        /// each call, each property's value the one AutoCAD saved for this INSERT, or the dynamic block's own where it saved
+        /// none, as for an INSERT of the dynamic block itself. Empty where the INSERT places no dynamic block. The value of a
+        /// linear property and of a visibility state is set as AutoCAD sets it, where the block is one the library works out
+        /// (<see cref="DxfDynamicBlockReferenceProperty.Value"/>); the others are read only.
         /// </summary>
         /// <remarks>
         /// <para>
@@ -491,9 +494,9 @@ namespace GeometryHelper.Dxf
         /// give none, nor do the parameters of constraints and of a block properties table, which the library does not read.
         /// </para>
         /// <para>
-        /// Nothing is worked out anew: the values are AutoCAD's, saved when it last evaluated the block, and a block whose
-        /// geometry was changed by another program keeps the values AutoCAD saved. A record of saved data too short to be read
-        /// gives the block's own value.
+        /// Nothing is worked out anew when the values are read: they are those saved when the block was last evaluated, by
+        /// AutoCAD or by a value set here, and a block whose geometry was changed by another program keeps the values saved. A
+        /// record of saved data too short to be read gives the block's own value.
         /// </para>
         /// </remarks>
         public IReadOnlyList<DxfDynamicBlockReferenceProperty> DynamicBlockReferencePropertyCollection => DxfDynamicProperties.Of(this, Dynamic(out _));
