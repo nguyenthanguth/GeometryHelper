@@ -1,3 +1,4 @@
+using System.Linq;
 using GeometryHelper.Core;
 using GeometryHelper.Geometry;
 using Xunit;
@@ -113,19 +114,26 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Fact]
-        public void APolygonCutByAChainFromBesideAShortSide_MeetsItsOutlineAtTheFootOfTheChain()
+        public void APolygonCutByAChainFromBesideAShortSide_MeetsItsOutlineAtACornerOfTheSide()
         {
-            // The chain from (10.001, 0.003, 0) to (0, 5, 0) starts 0.001 beside the side 0.006 long; both pieces met the
-            // outline at the side's start (10, 0, 0), 0.003 from the foot.
+            // The chain from (10.001, 0.003, 0) to (0, 5, 0) starts 0.001 beside the side 0.006 long, at its foot (10, 0.003, 0)
+            // 0.003 from either corner of the side. An end within the tolerance of a corner is cut from the corner (G1wl), so
+            // both pieces meet the outline at the same one of the two, and neither at the foot.
             var chain = new GeoPolyline3(new GeoPoint3(10.001, 0.003, 0), new GeoPoint3(0, 5, 0));
 
             Assert.True(Polygon().TrySplitBy(chain, out GeoPolygon3[] pieces, Hundredth));
 
             Assert.Equal(2, pieces.Length);
+            GeoPoint3 start = new GeoPoint3(10, 0, 0);
+            if (!pieces[0].Vertices.Contains(start))
+            {
+                start = new GeoPoint3(10, 0.006, 0);
+            }
+
             foreach (GeoPolygon3 piece in pieces)
             {
-                Assert.Contains(piece.Vertices, corner => corner.DistanceTo(new GeoPoint3(10, 0.003, 0)) <= 1E-12);
-                Assert.DoesNotContain(piece.Vertices, corner => corner.DistanceTo(new GeoPoint3(10, 0, 0)) <= 1E-12);
+                Assert.Contains(start, piece.Vertices);
+                Assert.DoesNotContain(piece.Vertices, corner => corner.DistanceTo(new GeoPoint3(10, 0.003, 0)) <= 1E-12);
             }
         }
     }

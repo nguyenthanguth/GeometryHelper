@@ -446,7 +446,9 @@ plate.TrySplitBy(dogLeg, out GeoPolygon2[] pieces);
 Each side is an array because one cut can part a concave region into several pieces — a U cut across its
 prongs gives two above and one below. Both ends of a cut line have to sit on the boundary and everything
 between them has to stay inside: a chain that leaves and comes back would divide the region into more than
-two, so it is refused rather than answered in part.
+two, so it is refused rather than answered in part. An end that meets the boundary within the tolerance of a corner is
+cut from the corner, so both pieces keep it and they add up to the region: at a hundredth, the square 10 by 10 cut from
+(0.004, 0) to (10, 5) gives the triangle of 25 square units from (0, 0) and the rest, of 75, where the corner was cut off.
 
 ## Extending and trimming
 

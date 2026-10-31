@@ -1258,6 +1258,12 @@ plate.TrySplitBy(cutLine, out GeoPolygon3[] halves);              // cut along a
 plate.TrySplitBy(solid, out GeoPolygon3[] embedded, out GeoPolygon3[] clear);
 ```
 
+An end of the chain that meets the outline within the tolerance of a corner is cut from the corner, as a polyline cut
+within the tolerance of a vertex is, so both pieces keep the corner and they add up to the plate. At a hundredth, the
+square 10 by 10 cut from (0.004, 0, 0) to (10, 5, 0) gives the triangle of 25 square units from the corner (0, 0, 0) and
+the rest, of 75; the corner was cut off, and a sliver of 0.02 square units was in neither piece. Of two corners within
+the tolerance the nearer is taken, and a chain whose two ends land on one corner is refused.
+
 The second answers which part of a plate is embedded in a body. It works by cutting the plate with the
 plane of each face of the body in turn — the surface of the body never leaves those planes, so once that is
 done no piece can straddle the boundary — and then joining the pieces back up where they agree. What comes

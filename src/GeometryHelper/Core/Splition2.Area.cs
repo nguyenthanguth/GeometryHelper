@@ -153,6 +153,12 @@ namespace GeometryHelper.Core
         /// This is the bounded cutter: the chain gives the exact line of the cut, so a piece keeps the chain's
         /// own vertices rather than a straight line between its ends. A chain that leaves the loop and comes
         /// back would divide it into more than two, so it is refused rather than answered in part.
+        /// <para>
+        /// An end that meets the boundary within the tolerance of a corner is cut from the corner, so both pieces keep it
+        /// and nothing of the loop is lost: at a hundredth, the square 10 by 10 cut from (0.004, 0) to (10, 5) gives the
+        /// triangle of 25 square units from (0, 0) and the rest, of 75, where the rest lost a sliver of 0.02 square units
+        /// at the corner.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop or the chain is null.</exception>
         public static bool TrySplitBy(GeoPolygon2 subject, GeoPolyline2 cutLine, out GeoPolygon2[] pieces, Tolerance tolerance)

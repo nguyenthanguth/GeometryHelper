@@ -68,6 +68,21 @@ worked out anew, nor set. The five properties of ACadSharp's lookup sample, a gr
 microseconds an INSERT under .NET 10 and 86 under .NET Framework 4.8. 16 new tests, 1 changed (an INSERT of BOLT scaled
 (1.5, -1.5, 2) is not `IsDynamicBlock`).
 
+**FIXED.** A polygon cut along a chain by `Splition3.TrySplitBy` or the `TrySplitBy` of `GeoPolygon3`, and a loop in the
+plane by `Splition2.TrySplitBy` or the `TrySplitBy` of `GeoPolygon2`, is cut from a corner where an end of the chain meets
+the outline within the tolerance of it, as a polyline cut within the tolerance of a vertex is: both pieces keep the corner,
+and they add up to the polygon. The corner was cut off, and the two pieces could start the cut at different places. At a
+hundredth, the square 10 by 10 cut from (0.004, 0, 0) to (10, 5, 0) gives the triangle of 25 square units from the corner
+(0, 0, 0) and the rest, of 75, where the rest ran from (0, 10, 0) straight to (0.004, 0, 0) and a sliver of 0.02 square
+units was in neither piece. Of two corners within the tolerance the nearer is taken, and a chain whose two ends land on one
+corner is refused, as it meets the outline at one place. Of 12 000 polygons, in space and in the plane, cut from mid-side,
+beside a corner or on one at tolerances from a millionth to 0.03, 3 081 of the 3 222 cut beside a corner of sides longer
+than the tolerance lost more than a billionth of their area, and 15 cut beside a side shorter than the tolerance started
+the cut in the two pieces up to 1.3 tolerances apart; none does. An answer moves by the snap, at most the tolerance; cut
+from mid-side it is the same to the bit. One chain from beside a corner to the far end of a side shorter than the
+tolerance, running within the tolerance of the outline, is now refused. 9 new tests, 1 changed: a polygon cut from beside
+a side 0.006 long at a hundredth meets the outline at a corner of the side, not at the foot of the chain.
+
 **FIXED.** A segment in the plane shorter than the global tolerance, cut within a tolerance finer than that by
 `Splition2.TrySplitBy` or the `TrySplitBy` of `GeoLine2`, is cut where a point, a line, lines, a polyline, points or polygons
 cut it: the place was measured at the global tolerance, which reads a segment no longer than that as its start, so it came

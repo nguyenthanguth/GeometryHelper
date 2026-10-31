@@ -2816,6 +2816,14 @@ namespace GeometryHelper.Core
         /// orientation of the subject.
         /// </para>
         /// <para>
+        /// An end of the chain that meets the outline within the tolerance of a corner is cut from the corner, as a
+        /// polyline cut within the tolerance of a vertex is: both pieces keep the corner, and nothing of the region is
+        /// lost. At a hundredth, the square 10 by 10 cut from (0.004, 0, 0) to (10, 5, 0) comes back as the triangle of
+        /// 25 square units from the corner (0, 0, 0) and the rest, of 75, where the rest ran from (0, 10, 0) straight to
+        /// (0.004, 0, 0) and the sliver of 0.02 square units between was in neither piece. Of two corners within the
+        /// tolerance, the nearer is taken; two ends on one corner meet the outline at one place and are refused.
+        /// </para>
+        /// <para>
         /// A chain that wanders back out of the region and in again would cut it into more than two, which
         /// needs the crossings paired up the way a plane cut pairs them; that is not attempted here.
         /// </para>
@@ -2873,8 +2881,17 @@ namespace GeometryHelper.Core
             double startDistance = Parametrization3.GetDistanceAtPoint(subject, cutLine.StartPoint, tolerance);
             double endDistance = Parametrization3.GetDistanceAtPoint(subject, cutLine.EndPoint, tolerance);
 
-            List<GeoPoint3> first = BoundarySpan(subject, startDistance, endDistance, tolerance);
-            List<GeoPoint3> second = BoundarySpan(subject, endDistance, startDistance, tolerance);
+            GeoPoint3 start = PlaceOnOutline(subject, ref startDistance, tolerance);
+            GeoPoint3 end = PlaceOnOutline(subject, ref endDistance, tolerance);
+
+            // Both ends on one corner meet the outline at one place, which divides nothing.
+            if (start.IsEqualTo(end, tolerance))
+            {
+                return false;
+            }
+
+            List<GeoPoint3> first = BoundarySpan(subject, startDistance, endDistance, start, end, tolerance);
+            List<GeoPoint3> second = BoundarySpan(subject, endDistance, startDistance, end, start, tolerance);
 
             // Each span already ends where the chain begins, so only the vertices between the ends of the
             // chain are added; repeating its endpoints would leave a zero-length edge at each corner.
@@ -2901,20 +2918,75 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// Collects the run of a polygon outline from one arc length round to another, going forwards.
+        /// Places an end of a cut line on a polygon's outline: on the corner within the tolerance of where it lands, or
+        /// else where it lands.
+        /// </summary>
+        /// <param name="polygon">The polygon.</param>
+        /// <param name="distance">How far round the outline the end lands; set to the corner's distance where it snaps.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>The corner, the nearest where two are within the tolerance and the first of the polygon's of two as
+        /// near; or the place it lands.</returns>
+        /// <remarks>
+        /// A place beside a corner would leave the corner within the tolerance of the cut, which no piece can keep: the
+        /// piece round it ran straight past, and the sliver between was in neither piece.
+        /// </remarks>
+        private static GeoPoint3 PlaceOnOutline(GeoPolygon3 polygon, ref double distance, Tolerance tolerance)
+        {
+            GeoPoint3 place = Parametrization3.GetPointAtDistance(polygon, distance);
+
+            int nearest = -1;
+            double nearestSquared = double.MaxValue;
+
+            for (int i = 0; i < polygon.VertexCount; i++)
+            {
+                GeoPoint3 corner = polygon[i];
+
+                if (corner.IsEqualTo(place, tolerance))
+                {
+                    double squared = Distance3.GetDistanceSquaredTo(corner, place);
+
+                    if (squared < nearestSquared)
+                    {
+                        nearest = i;
+                        nearestSquared = squared;
+                    }
+                }
+            }
+
+            if (nearest < 0)
+            {
+                return place;
+            }
+
+            // The corner's distance round, summed as the outline's run is, so the run starts or ends on it exactly.
+            double travelled = 0.0;
+
+            for (int i = 0; i < nearest; i++)
+            {
+                travelled += polygon.GetEdgeAt(i).Length;
+            }
+
+            distance = travelled;
+            return polygon[nearest];
+        }
+
+        /// <summary>
+        /// Collects the run of a polygon outline from one arc length round to another, going forwards, from one given
+        /// point to another.
         /// </summary>
         /// <remarks>
         /// The outline is closed, so going forwards from the later position wraps past the first vertex and
         /// carries on. Measuring each vertex as how far round it is from the starting position turns that
-        /// wrap into a plain comparison.
+        /// wrap into a plain comparison. A corner within the tolerance of either end is left out, as a polygon
+        /// would drop the one or the other.
         /// </remarks>
-        private static List<GeoPoint3> BoundarySpan(GeoPolygon3 polygon, double from, double to, Tolerance tolerance)
+        private static List<GeoPoint3> BoundarySpan(GeoPolygon3 polygon, double from, double to, GeoPoint3 fromPoint, GeoPoint3 toPoint, Tolerance tolerance)
         {
             double perimeter = polygon.Length;
 
             List<GeoPoint3> span = new List<GeoPoint3>
             {
-                Parametrization3.GetPointAtDistance(polygon, from)
+                fromPoint
             };
 
             double reach = Ahead(to - from, perimeter);
@@ -2933,10 +3005,13 @@ namespace GeometryHelper.Core
                 // travelled is now the position of vertex i + 1 around the outline.
                 double ahead = Ahead(travelled - from, perimeter);
 
-                if (ahead > tolerance.EqualPoint && ahead < reach - tolerance.EqualPoint)
+                GeoPoint3 corner = polygon[(i + 1) % polygon.VertexCount];
+
+                if (ahead > tolerance.EqualPoint && ahead < reach - tolerance.EqualPoint &&
+                    !corner.IsEqualTo(fromPoint, tolerance) && !corner.IsEqualTo(toPoint, tolerance))
                 {
                     aheads.Add(ahead);
-                    candidates.Add(polygon[(i + 1) % polygon.VertexCount]);
+                    candidates.Add(corner);
                 }
             }
 
@@ -2946,14 +3021,18 @@ namespace GeometryHelper.Core
                 order[i] = i;
             }
 
-            Array.Sort(order, (x, y) => aheads[x].CompareTo(aheads[y]));
+            Array.Sort(order, (x, y) =>
+            {
+                int byAhead = aheads[x].CompareTo(aheads[y]);
+                return byAhead != 0 ? byAhead : x.CompareTo(y);
+            });
 
             foreach (int index in order)
             {
                 span.Add(candidates[index]);
             }
 
-            span.Add(Parametrization3.GetPointAtDistance(polygon, to));
+            span.Add(toPoint);
 
             return span;
         }

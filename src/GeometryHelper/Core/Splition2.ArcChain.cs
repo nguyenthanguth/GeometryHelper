@@ -41,7 +41,7 @@ namespace GeometryHelper.Core
 
             for (int i = 0; i < runs.Count; i++)
             {
-                pieces[i] = new GeoPolylineArc2(runs[i]);
+                pieces[i] = GeoPolylineArc2.FromEdges(runs[i], tolerance);
             }
 
             return pieces;
@@ -89,7 +89,7 @@ namespace GeometryHelper.Core
 
             for (int i = 0; i < runs.Count; i++)
             {
-                pieces[i] = new GeoPolylineArc2(runs[i]);
+                pieces[i] = GeoPolylineArc2.FromEdges(runs[i], tolerance);
             }
 
             return pieces;
