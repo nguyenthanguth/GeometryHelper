@@ -770,72 +770,81 @@ namespace GeometryHelper.UnitTest.Dxf
             panel.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), new[] { right });
 
             // The guide's example of each kind, as it stands there.
-            DxfBlockTableRecord Block(string name)
             {
-                var block = new DxfBlockTableRecord { Name = name, Origin = new GeoPoint3(0, 0, 0) };
-                db.BlockTable.Add(block);
-                return block;
+                // Each example adds a block to the drawing above; Block makes it, Place puts an INSERT of it in model space.
+                DxfBlockTableRecord Block(string name)
+                {
+                    var block = new DxfBlockTableRecord { Name = name, Origin = new GeoPoint3(0, 0, 0) };
+                    db.BlockTable.Add(block);
+                    return block;
+                }
+
+                DxfBlockReference Place(DxfBlockTableRecord block, double x, double y)
+                {
+                    var placed = new DxfBlockReference(new GeoPoint3(x, y, 0), block);
+                    db.ModelSpace.AppendEntity(placed);
+                    return placed;
+                }
+
+                // Move: a tag circle follows the end point of Length; Length 200 puts its centre at (190, 25).
+                DxfBlockTableRecord slide = Block("SLIDE");
+                var tagCircle = new DxfCircle(new GeoPoint3(90, 25, 0), GeoVector3.ZAxis, 5);
+                slide.AppendEntity(tagCircle);
+                DxfBlockLinearParameter length = slide.AddLinearParameter("Length", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
+                slide.AddMoveAction(length, new[] { tagCircle });
+
+                // Scale: a disc of the radius 25 at (50, 25) scaled about the origin by Size over 100; Size 200 doubles it, about (100, 50).
+                DxfBlockTableRecord disc = Block("DISC");
+                var round = new DxfCircle(new GeoPoint3(50, 25, 0), GeoVector3.ZAxis, 25);
+                disc.AppendEntity(round);
+                DxfBlockLinearParameter size = disc.AddLinearParameter("Size", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
+                disc.AddScaleAction(size, new[] { round });
+
+                // Point and move: Tag X and Tag Y move the tag anywhere; Tag X 120 puts its centre at (120, 20).
+                DxfBlockTableRecord tagged = Block("TAGGED");
+                var tag = new DxfCircle(new GeoPoint3(80, 20, 0), GeoVector3.ZAxis, 5);
+                tagged.AppendEntity(tag);
+                DxfBlockPointParameter where = tagged.AddPointParameter("Tag", "Where the tag stands", new GeoPoint3(80, 20, 0));
+                tagged.AddMoveAction(where, new[] { tag });
+
+                // Rotation and rotate: Angle, in radians, turns the arrow about its tail; Math.PI / 2 makes it point along y, to (50, 55).
+                DxfBlockTableRecord arrowBlock = Block("ARROW");
+                var arrow = new DxfLine(new GeoPoint3(50, 25, 0), new GeoPoint3(80, 25, 0));
+                arrowBlock.AppendEntity(arrow);
+                DxfBlockRotationParameter angle = arrowBlock.AddRotationParameter("Angle", "Turn of the arrow", new GeoPoint3(50, 25, 0), 30, 0);
+                arrowBlock.AddRotateAction(angle, new[] { arrow });
+
+                // Flip and flip: Hand 1 mirrors the leaf about the y axis, from (0, 0)-(90, 0) to (0, 0)-(-90, 0).
+                DxfBlockTableRecord door = Block("DOOR");
+                var leaf = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(90, 0, 0));
+                door.AppendEntity(leaf);
+                DxfBlockFlipParameter hand = door.AddFlipParameter("Hand", "Which way the door opens", new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0));
+                door.AddFlipAction(hand, new[] { leaf });
+
+                // XY: Width and Depth move the top right corner of the plate and the hole on it both ways; 160 by 80 takes them to (160, 80).
+                DxfBlockTableRecord plate = Block("PLATE");
+                var outline = new DxfPolyline();
+                outline.AddVertexAt(0, new GeoPoint2(0, 0), 0, 0, 0);
+                outline.AddVertexAt(1, new GeoPoint2(100, 0), 0, 0, 0);
+                outline.AddVertexAt(2, new GeoPoint2(100, 50), 0, 0, 0);
+                outline.AddVertexAt(3, new GeoPoint2(0, 50), 0, 0, 0);
+                outline.Closed = true;
+                var hole = new DxfCircle(new GeoPoint3(100, 50, 0), GeoVector3.ZAxis, 4);
+                plate.AppendEntity(outline);
+                plate.AppendEntity(hole);
+                DxfBlockXYParameter xy = plate.AddXYParameter("Width", null, "Depth", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 50, 0));
+                plate.AddStretchAction(xy, new GeoPoint2(90, 40), new GeoPoint2(110, 60), new[] { outline });
+                plate.AddMoveAction(xy, new[] { hole });
+
+                Place(slide, 0, 150).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Length").Value = 200.0;
+                Place(disc, 0, 300).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Size").Value = 200.0;
+                Place(tagged, 300, 300).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Tag X").Value = 120.0;
+                Place(arrowBlock, 600, 300).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Angle").Value = Math.PI / 2;
+                Place(door, 900, 300).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Hand").Value = (short)1;
+                DxfBlockReference sheet = Place(plate, 1200, 300);
+                sheet.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Width").Value = 160.0;
+                sheet.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Depth").Value = 80.0;
             }
-
-            DxfBlockReference Place(DxfBlockTableRecord block, double x, double y)
-            {
-                var placed = new DxfBlockReference(new GeoPoint3(x, y, 0), block);
-                db.ModelSpace.AppendEntity(placed);
-                return placed;
-            }
-
-            DxfBlockTableRecord slide = Block("SLIDE");
-            var tagCircle = new DxfCircle(new GeoPoint3(90, 25, 0), GeoVector3.ZAxis, 5);
-            slide.AppendEntity(tagCircle);
-            DxfBlockLinearParameter length = slide.AddLinearParameter("Length", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
-            slide.AddMoveAction(length, new[] { tagCircle });
-
-            DxfBlockTableRecord disc = Block("DISC");
-            var round = new DxfCircle(new GeoPoint3(50, 25, 0), GeoVector3.ZAxis, 25);
-            disc.AppendEntity(round);
-            DxfBlockLinearParameter size = disc.AddLinearParameter("Size", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
-            disc.AddScaleAction(size, new[] { round });
-
-            DxfBlockTableRecord tagged = Block("TAGGED");
-            var tag = new DxfCircle(new GeoPoint3(80, 20, 0), GeoVector3.ZAxis, 5);
-            tagged.AppendEntity(tag);
-            DxfBlockPointParameter where = tagged.AddPointParameter("Tag", "Where the tag stands", new GeoPoint3(80, 20, 0));
-            tagged.AddMoveAction(where, new[] { tag });
-
-            DxfBlockTableRecord arrowBlock = Block("ARROW");
-            var arrow = new DxfLine(new GeoPoint3(50, 25, 0), new GeoPoint3(80, 25, 0));
-            arrowBlock.AppendEntity(arrow);
-            DxfBlockRotationParameter angle = arrowBlock.AddRotationParameter("Angle", "Turn of the arrow", new GeoPoint3(50, 25, 0), 30, 0);
-            arrowBlock.AddRotateAction(angle, new[] { arrow });
-
-            DxfBlockTableRecord door = Block("DOOR");
-            var leaf = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(90, 0, 0));
-            door.AppendEntity(leaf);
-            DxfBlockFlipParameter hand = door.AddFlipParameter("Hand", "Which way the door opens", new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0));
-            door.AddFlipAction(hand, new[] { leaf });
-
-            DxfBlockTableRecord plate = Block("PLATE");
-            var outline = new DxfPolyline();
-            outline.AddVertexAt(0, new GeoPoint2(0, 0), 0, 0, 0);
-            outline.AddVertexAt(1, new GeoPoint2(100, 0), 0, 0, 0);
-            outline.AddVertexAt(2, new GeoPoint2(100, 50), 0, 0, 0);
-            outline.AddVertexAt(3, new GeoPoint2(0, 50), 0, 0, 0);
-            outline.Closed = true;
-            var hole = new DxfCircle(new GeoPoint3(100, 50, 0), GeoVector3.ZAxis, 4);
-            plate.AppendEntity(outline);
-            plate.AppendEntity(hole);
-            DxfBlockXYParameter xy = plate.AddXYParameter("Width", null, "Depth", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 50, 0));
-            plate.AddStretchAction(xy, new GeoPoint2(90, 40), new GeoPoint2(110, 60), new[] { outline });
-            plate.AddMoveAction(xy, new[] { hole });
-
-            Place(slide, 0, 150).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Length").Value = 200.0;
-            Place(disc, 0, 300).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Size").Value = 200.0;
-            Place(tagged, 300, 300).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Tag X").Value = 120.0;
-            Place(arrowBlock, 600, 300).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Angle").Value = Math.PI / 2;
-            Place(door, 900, 300).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Hand").Value = (short)1;
-            DxfBlockReference sheet = Place(plate, 1200, 300);
-            sheet.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Width").Value = 160.0;
-            sheet.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Depth").Value = 80.0;
 
             // What the guide says each shows, read back from the text of the drawing.
             DxfDatabase back = Reopened(db);

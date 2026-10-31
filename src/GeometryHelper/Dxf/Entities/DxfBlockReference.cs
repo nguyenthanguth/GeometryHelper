@@ -436,7 +436,8 @@ namespace GeometryHelper.Dxf
         /// </summary>
         /// <remarks>
         /// <see cref="DynamicBlockReferencePropertyCollection"/> reads the dynamic properties as AutoCAD saved them; a linear,
-        /// XY, point, rotation, flip or visibility property of a block of the actions the library writes is set by
+        /// XY, point, rotation, flip, visibility or lookup property of a block of the actions the library writes, or of the
+        /// stretches and moves AutoCAD's Block Editor writes besides, is set by
         /// <see cref="DxfDynamicBlockReferenceProperty.Value"/>, the others are not, nor is AutoCAD's <c>ResetBlock</c> given.
         /// <see cref="ConvertToStaticBlock(string)"/> makes the INSERT place a plain copy of what it draws.
         /// </remarks>

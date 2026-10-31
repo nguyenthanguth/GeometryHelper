@@ -218,26 +218,27 @@ namespace GeometryHelper.UnitTest.Dxf
             db.ModelSpace.AppendEntity(insert);
             insert.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Width").Value = 200.0;
 
-            var sign = new DxfBlockTableRecord { Name = "SIGN", Origin = new GeoPoint3(0, 0, 0) };
-            db.BlockTable.Add(sign);
-            var frame = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(40, 0, 0));
-            var cross = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(40, 40, 0));
-            var tick = new DxfLine(new GeoPoint3(10, 20, 0), new GeoPoint3(20, 10, 0));
-
-            foreach (DxfLine line in new[] { frame, cross, tick })
             {
-                sign.AppendEntity(line);
+                var sign = new DxfBlockTableRecord { Name = "SIGN", Origin = new GeoPoint3(0, 0, 0) };
+                db.BlockTable.Add(sign);
+                var frame = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(40, 0, 0));
+                var cross = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(40, 40, 0));
+                var tick = new DxfLine(new GeoPoint3(10, 20, 0), new GeoPoint3(20, 10, 0));
+                foreach (DxfLine signLine in new[] { frame, cross, tick })
+                {
+                    sign.AppendEntity(signLine);
+                }
+
+                sign.AddVisibilityParameter("Mark", "What the sign shows", new GeoPoint3(20, -10, 0), new[]
+                {
+                    new DxfBlockVisibilityState("Cross", new DxfEntity[] { cross }),
+                    new DxfBlockVisibilityState("Tick", new DxfEntity[] { tick }),
+                    new DxfBlockVisibilityState("Blank", new DxfEntity[0]),
+                });
+                var mark = new DxfBlockReference(new GeoPoint3(200, 0, 0), sign);
+                db.ModelSpace.AppendEntity(mark);
+                mark.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Mark").Value = "Tick";
             }
-
-            sign.AddVisibilityParameter("Mark", "What the sign shows", new GeoPoint3(20, -10, 0), new[]
-            {
-                new DxfBlockVisibilityState("Cross", new DxfEntity[] { cross }),
-                new DxfBlockVisibilityState("Tick", new DxfEntity[] { tick }),
-                new DxfBlockVisibilityState("Blank", new DxfEntity[0]),
-            });
-            var mark = new DxfBlockReference(new GeoPoint3(200, 0, 0), sign);
-            db.ModelSpace.AppendEntity(mark);
-            mark.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Mark").Value = "Tick";
 
             DxfDatabase again = Reopened(db);
             DxfBlockReference back = TheInsert(again);

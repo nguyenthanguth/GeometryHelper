@@ -1207,8 +1207,15 @@ new drawings of R2000 to R2018 and visibility in v19 (13 of 13), a move, a scale
 INSERTs, a point, a flip alone and an XY parameter in v20, a rotation in v20b, and distance multipliers and angle offsets,
 arrays along a distance and in rows and columns, lookups, a turn and a scale beside a stretch, a drawing of R2018 and
 AutoCAD's own XY and lookup samples set by the library in v21b (8 of 8). The examples below give one block of each kind as
-AutoCAD took it, to be copied as they stand; what is not written or not set is listed under
+AutoCAD took it, to be copied as they stand: the first is a whole program, and each after it a block of statements in braces
+whose names are its own and whose block names no other example uses, so that any of them, or all of them in any order, may
+be pasted after the first; what is not written or not set is listed under
 [What the model does not do](#what-the-model-does-not-do).
+
+A block drawn in AutoCAD's Block Editor often holds more than these calls write, and an INSERT of it is set too: a stretch
+or a move tied to a parameter's base grip, a move whose selection holds other linear parameters and carries them, and a
+point parameter's move holding attribute definitions, whose ATTRIBs on the INSERT follow. How each is worked out, and what
+is still refused, is set out after the examples.
 
 A dynamic block is found as
 ezdxf finds it, by the extended data `AcDbDynamicBlockGUID` of its BLOCK_RECORD, or `AcDbBlockRepBTag` of the anonymous
@@ -1231,9 +1238,13 @@ properties table give none, as they are not read. AutoCAD 2021 read the same nam
 types, units, read-only flags, descriptions and allowed values on ACadSharp's AutoCAD-saved samples.
 
 ```csharp
-foreach (DxfDynamicBlockReferenceProperty p in insert.DynamicBlockReferencePropertyCollection)
+// Every dynamic property of every INSERT in model space of a drawing on disk.
+foreach (DxfBlockReference reference in DxfDatabase.Open("panel.dxf").ModelSpace.OfType<DxfBlockReference>())
 {
-    Console.WriteLine(p.PropertyName + " = " + p.Value + " (" + p.UnitsType + ")");
+    foreach (DxfDynamicBlockReferenceProperty p in reference.DynamicBlockReferencePropertyCollection)
+    {
+        Console.WriteLine(reference.Handle + " " + p.PropertyName + " = " + p.Value + " (" + p.UnitsType + ")");
+    }
 }
 ```
 
@@ -1306,8 +1317,8 @@ such an INSERT, written by a script, as Width 150 with its stretched lines, and 
 anonymous block is filled anew where no other INSERT places it, else the INSERT is given one of its own. A length of an
 INSERT scaled by 2 is twice the block's: 300 set on it moves the right edge to x = 150 in the block. A block of the
 parameters and actions this section writes is worked out: a property of another kind (a polar parameter), or of a block
-holding another parameter or action (a polar stretch, a constraint), or an action that moves other parameters, or scales
-or turns about another point than its parameter's base point, is refused with
+holding another parameter or action (a polar stretch, a constraint), or an action that moves other parameters in a way
+refused below, or scales or turns about another point than its parameter's base point, is refused with
 `NotSupportedException`, and an INSERT scaled unlike along its axes with `InvalidOperationException`, as
 AutoCAD takes it as no dynamic block's; nothing is written then. A value is a number, a whole number taken as the distance
 it is, and a distance of nought or less after the value set is refused. Setting Width takes under a millisecond, and on
@@ -1319,29 +1330,33 @@ five with 4 000.
 the entities of the block shown in it. The entities the states name are governed by it, each shown in the states that name
 it and hidden in the others; an entity named in no state is shown in every state. Every INSERT shows the first state until
 its property is set, and the block is kept in that state, as AutoCAD keeps it: a governed entity not named in the first
-state is made invisible. A sign of a frame, a cross and a tick, added to the drawing above, with an INSERT showing the tick:
+state is made invisible. A sign of a frame, a cross and a tick, added to the drawing above, with an INSERT showing the tick
+(each example after the first is a block of statements of its own, its names its own, to be pasted after the first alone
+or with any of the others):
 
 ```csharp
-var sign = new DxfBlockTableRecord { Name = "SIGN", Origin = new GeoPoint3(0, 0, 0) };
-db.BlockTable.Add(sign);
-var frame = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(40, 0, 0));
-var cross = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(40, 40, 0));
-var tick = new DxfLine(new GeoPoint3(10, 20, 0), new GeoPoint3(20, 10, 0));
-foreach (DxfLine line in new[] { frame, cross, tick })
 {
-    sign.AppendEntity(line);
-}
+    var sign = new DxfBlockTableRecord { Name = "SIGN", Origin = new GeoPoint3(0, 0, 0) };
+    db.BlockTable.Add(sign);
+    var frame = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(40, 0, 0));
+    var cross = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(40, 40, 0));
+    var tick = new DxfLine(new GeoPoint3(10, 20, 0), new GeoPoint3(20, 10, 0));
+    foreach (DxfLine signLine in new[] { frame, cross, tick })
+    {
+        sign.AppendEntity(signLine);
+    }
 
-sign.AddVisibilityParameter("Mark", "What the sign shows", new GeoPoint3(20, -10, 0), new[]
-{
-    new DxfBlockVisibilityState("Cross", new DxfEntity[] { cross }),
-    new DxfBlockVisibilityState("Tick", new DxfEntity[] { tick }),
-    new DxfBlockVisibilityState("Blank", new DxfEntity[0]),
-});
-var mark = new DxfBlockReference(new GeoPoint3(200, 0, 0), sign);
-db.ModelSpace.AppendEntity(mark);
-mark.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Mark").Value = "Tick";
-db.Save("panel.dxf");
+    sign.AddVisibilityParameter("Mark", "What the sign shows", new GeoPoint3(20, -10, 0), new[]
+    {
+        new DxfBlockVisibilityState("Cross", new DxfEntity[] { cross }),
+        new DxfBlockVisibilityState("Tick", new DxfEntity[] { tick }),
+        new DxfBlockVisibilityState("Blank", new DxfEntity[0]),
+    });
+    var mark = new DxfBlockReference(new GeoPoint3(200, 0, 0), sign);
+    db.ModelSpace.AppendEntity(mark);
+    mark.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Mark").Value = "Tick";
+    db.Save("panel.dxf");
+}
 ```
 
 Each INSERT of SIGN gives `Mark = Cross` until set, its allowed values Cross, Tick and Blank; the one set shows the frame and
@@ -1362,80 +1377,82 @@ text aligned or fitted between two points, an attribute definition and an INSERT
 in a few lines, added to the drawing above:
 
 ```csharp
-// Each example adds a block to the drawing above; Block makes it, Place puts an INSERT of it in model space.
-DxfBlockTableRecord Block(string name)
 {
-    var block = new DxfBlockTableRecord { Name = name, Origin = new GeoPoint3(0, 0, 0) };
-    db.BlockTable.Add(block);
-    return block;
+    // Each example adds a block to the drawing above; Block makes it, Place puts an INSERT of it in model space.
+    DxfBlockTableRecord Block(string name)
+    {
+        var block = new DxfBlockTableRecord { Name = name, Origin = new GeoPoint3(0, 0, 0) };
+        db.BlockTable.Add(block);
+        return block;
+    }
+
+    DxfBlockReference Place(DxfBlockTableRecord block, double x, double y)
+    {
+        var placed = new DxfBlockReference(new GeoPoint3(x, y, 0), block);
+        db.ModelSpace.AppendEntity(placed);
+        return placed;
+    }
+
+    // Move: a tag circle follows the end point of Length; Length 200 puts its centre at (190, 25).
+    DxfBlockTableRecord slide = Block("SLIDE");
+    var tagCircle = new DxfCircle(new GeoPoint3(90, 25, 0), GeoVector3.ZAxis, 5);
+    slide.AppendEntity(tagCircle);
+    DxfBlockLinearParameter length = slide.AddLinearParameter("Length", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
+    slide.AddMoveAction(length, new[] { tagCircle });
+
+    // Scale: a disc of the radius 25 at (50, 25) scaled about the origin by Size over 100; Size 200 doubles it, about (100, 50).
+    DxfBlockTableRecord disc = Block("DISC");
+    var round = new DxfCircle(new GeoPoint3(50, 25, 0), GeoVector3.ZAxis, 25);
+    disc.AppendEntity(round);
+    DxfBlockLinearParameter size = disc.AddLinearParameter("Size", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
+    disc.AddScaleAction(size, new[] { round });
+
+    // Point and move: Tag X and Tag Y move the tag anywhere; Tag X 120 puts its centre at (120, 20).
+    DxfBlockTableRecord tagged = Block("TAGGED");
+    var tag = new DxfCircle(new GeoPoint3(80, 20, 0), GeoVector3.ZAxis, 5);
+    tagged.AppendEntity(tag);
+    DxfBlockPointParameter where = tagged.AddPointParameter("Tag", "Where the tag stands", new GeoPoint3(80, 20, 0));
+    tagged.AddMoveAction(where, new[] { tag });
+
+    // Rotation and rotate: Angle, in radians, turns the arrow about its tail; Math.PI / 2 makes it point along y, to (50, 55).
+    DxfBlockTableRecord arrowBlock = Block("ARROW");
+    var arrow = new DxfLine(new GeoPoint3(50, 25, 0), new GeoPoint3(80, 25, 0));
+    arrowBlock.AppendEntity(arrow);
+    DxfBlockRotationParameter angle = arrowBlock.AddRotationParameter("Angle", "Turn of the arrow", new GeoPoint3(50, 25, 0), 30, 0);
+    arrowBlock.AddRotateAction(angle, new[] { arrow });
+
+    // Flip and flip: Hand 1 mirrors the leaf about the y axis, from (0, 0)-(90, 0) to (0, 0)-(-90, 0).
+    DxfBlockTableRecord door = Block("DOOR");
+    var leaf = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(90, 0, 0));
+    door.AppendEntity(leaf);
+    DxfBlockFlipParameter hand = door.AddFlipParameter("Hand", "Which way the door opens", new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0));
+    door.AddFlipAction(hand, new[] { leaf });
+
+    // XY: Width and Depth move the top right corner of the plate and the hole on it both ways; 160 by 80 takes them to (160, 80).
+    DxfBlockTableRecord plate = Block("PLATE");
+    var outline = new DxfPolyline();
+    outline.AddVertexAt(0, new GeoPoint2(0, 0), 0, 0, 0);
+    outline.AddVertexAt(1, new GeoPoint2(100, 0), 0, 0, 0);
+    outline.AddVertexAt(2, new GeoPoint2(100, 50), 0, 0, 0);
+    outline.AddVertexAt(3, new GeoPoint2(0, 50), 0, 0, 0);
+    outline.Closed = true;
+    var hole = new DxfCircle(new GeoPoint3(100, 50, 0), GeoVector3.ZAxis, 4);
+    plate.AppendEntity(outline);
+    plate.AppendEntity(hole);
+    DxfBlockXYParameter xy = plate.AddXYParameter("Width", null, "Depth", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 50, 0));
+    plate.AddStretchAction(xy, new GeoPoint2(90, 40), new GeoPoint2(110, 60), new[] { outline });
+    plate.AddMoveAction(xy, new[] { hole });
+
+    Place(slide, 0, 150).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Length").Value = 200.0;
+    Place(disc, 0, 300).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Size").Value = 200.0;
+    Place(tagged, 300, 300).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Tag X").Value = 120.0;
+    Place(arrowBlock, 600, 300).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Angle").Value = Math.PI / 2;
+    Place(door, 900, 300).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Hand").Value = (short)1;
+    DxfBlockReference sheet = Place(plate, 1200, 300);
+    sheet.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Width").Value = 160.0;
+    sheet.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Depth").Value = 80.0;
+    db.Save("panel.dxf");
 }
-
-DxfBlockReference Place(DxfBlockTableRecord block, double x, double y)
-{
-    var placed = new DxfBlockReference(new GeoPoint3(x, y, 0), block);
-    db.ModelSpace.AppendEntity(placed);
-    return placed;
-}
-
-// Move: a tag circle follows the end point of Length; Length 200 puts its centre at (190, 25).
-DxfBlockTableRecord slide = Block("SLIDE");
-var tagCircle = new DxfCircle(new GeoPoint3(90, 25, 0), GeoVector3.ZAxis, 5);
-slide.AppendEntity(tagCircle);
-DxfBlockLinearParameter length = slide.AddLinearParameter("Length", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
-slide.AddMoveAction(length, new[] { tagCircle });
-
-// Scale: a disc of the radius 25 at (50, 25) scaled about the origin by Size over 100; Size 200 doubles it, about (100, 50).
-DxfBlockTableRecord disc = Block("DISC");
-var round = new DxfCircle(new GeoPoint3(50, 25, 0), GeoVector3.ZAxis, 25);
-disc.AppendEntity(round);
-DxfBlockLinearParameter size = disc.AddLinearParameter("Size", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
-disc.AddScaleAction(size, new[] { round });
-
-// Point and move: Tag X and Tag Y move the tag anywhere; Tag X 120 puts its centre at (120, 20).
-DxfBlockTableRecord tagged = Block("TAGGED");
-var tag = new DxfCircle(new GeoPoint3(80, 20, 0), GeoVector3.ZAxis, 5);
-tagged.AppendEntity(tag);
-DxfBlockPointParameter where = tagged.AddPointParameter("Tag", "Where the tag stands", new GeoPoint3(80, 20, 0));
-tagged.AddMoveAction(where, new[] { tag });
-
-// Rotation and rotate: Angle, in radians, turns the arrow about its tail; Math.PI / 2 makes it point along y, to (50, 55).
-DxfBlockTableRecord arrowBlock = Block("ARROW");
-var arrow = new DxfLine(new GeoPoint3(50, 25, 0), new GeoPoint3(80, 25, 0));
-arrowBlock.AppendEntity(arrow);
-DxfBlockRotationParameter angle = arrowBlock.AddRotationParameter("Angle", "Turn of the arrow", new GeoPoint3(50, 25, 0), 30, 0);
-arrowBlock.AddRotateAction(angle, new[] { arrow });
-
-// Flip and flip: Hand 1 mirrors the leaf about the y axis, from (0, 0)-(90, 0) to (0, 0)-(-90, 0).
-DxfBlockTableRecord door = Block("DOOR");
-var leaf = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(90, 0, 0));
-door.AppendEntity(leaf);
-DxfBlockFlipParameter hand = door.AddFlipParameter("Hand", "Which way the door opens", new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0));
-door.AddFlipAction(hand, new[] { leaf });
-
-// XY: Width and Depth move the top right corner of the plate and the hole on it both ways; 160 by 80 takes them to (160, 80).
-DxfBlockTableRecord plate = Block("PLATE");
-var outline = new DxfPolyline();
-outline.AddVertexAt(0, new GeoPoint2(0, 0), 0, 0, 0);
-outline.AddVertexAt(1, new GeoPoint2(100, 0), 0, 0, 0);
-outline.AddVertexAt(2, new GeoPoint2(100, 50), 0, 0, 0);
-outline.AddVertexAt(3, new GeoPoint2(0, 50), 0, 0, 0);
-outline.Closed = true;
-var hole = new DxfCircle(new GeoPoint3(100, 50, 0), GeoVector3.ZAxis, 4);
-plate.AppendEntity(outline);
-plate.AppendEntity(hole);
-DxfBlockXYParameter xy = plate.AddXYParameter("Width", null, "Depth", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 50, 0));
-plate.AddStretchAction(xy, new GeoPoint2(90, 40), new GeoPoint2(110, 60), new[] { outline });
-plate.AddMoveAction(xy, new[] { hole });
-
-Place(slide, 0, 150).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Length").Value = 200.0;
-Place(disc, 0, 300).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Size").Value = 200.0;
-Place(tagged, 300, 300).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Tag X").Value = 120.0;
-Place(arrowBlock, 600, 300).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Angle").Value = Math.PI / 2;
-Place(door, 900, 300).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Hand").Value = (short)1;
-DxfBlockReference sheet = Place(plate, 1200, 300);
-sheet.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Width").Value = 160.0;
-sheet.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Depth").Value = 80.0;
-db.Save("panel.dxf");
 ```
 
 A point parameter gives two properties, its name with " X" and " Y" after it, the position in the block's coordinates (scaled
@@ -1466,69 +1483,86 @@ The last kinds, each in a few lines, added to the drawing above; each is shown a
 and v21b):
 
 ```csharp
-// Stretch of an arc by one end: its start (100, 25) is in the frame, its end (90, 35) is not; Width 200 moves the start to
-// (200, 25) and the arc keeps the height of its middle off its chord, 2.929, its radius becoming 522.13.
-DxfBlockTableRecord bend = Block("BEND");
-var edge = new DxfLine(new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0));
-var swing = new DxfArc(new GeoPoint3(90, 25, 0), 10, 0, Math.PI / 2);
-bend.AppendEntity(edge);
-bend.AppendEntity(swing);
-DxfBlockLinearParameter width = bend.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
-bend.AddStretchAction(width, new GeoPoint2(95, -10), new GeoPoint2(130, 60), new DxfEntity[] { edge, swing });
+{
+    // This example's own helpers: AddBlock makes a block of the drawing above, PlaceAt puts an INSERT of it in model space.
+    DxfBlockTableRecord AddBlock(string name)
+    {
+        var made = new DxfBlockTableRecord { Name = name, Origin = new GeoPoint3(0, 0, 0) };
+        db.BlockTable.Add(made);
+        return made;
+    }
 
-// Distance multiplier: the mark moves half as far as the end point, staying in the middle; Span 200 puts it at (100, 25).
-DxfBlockTableRecord centred = Block("CENTRED");
-var right = new DxfLine(new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0));
-var mark = new DxfCircle(new GeoPoint3(50, 25, 0), GeoVector3.ZAxis, 5);
-centred.AppendEntity(right);
-centred.AppendEntity(mark);
-DxfBlockLinearParameter span = centred.AddLinearParameter("Span", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
-centred.AddStretchAction(span, new GeoPoint2(90, -10), new GeoPoint2(110, 60), new[] { right });
-centred.AddMoveAction(span, new[] { mark }, 0.5, 0);
+    DxfBlockReference PlaceAt(DxfBlockTableRecord block, double x, double y)
+    {
+        var placedAt = new DxfBlockReference(new GeoPoint3(x, y, 0), block);
+        db.ModelSpace.AppendEntity(placedAt);
+        return placedAt;
+    }
 
-// Array of a linear parameter: a post every 60 along Length; AutoCAD set Length 250 and drew four, at x = 0, 60, 120 and 180.
-DxfBlockTableRecord fence = Block("FENCE");
-var post = new DxfCircle(new GeoPoint3(0, 0, 0), GeoVector3.ZAxis, 5);
-fence.AppendEntity(post);
-DxfBlockLinearParameter length = fence.AddLinearParameter("Length", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
-fence.AddArrayAction(length, new[] { post }, 60);
+    // Stretch of an arc by one end: its start (100, 25) is in the frame, its end (90, 35) is not; Width 200 moves the start to
+    // (200, 25) and the arc keeps the height of its middle off its chord, 2.929, its radius becoming 522.13.
+    DxfBlockTableRecord bend = AddBlock("BEND");
+    var edge = new DxfLine(new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0));
+    var swing = new DxfArc(new GeoPoint3(90, 25, 0), 10, 0, Math.PI / 2);
+    bend.AppendEntity(edge);
+    bend.AppendEntity(swing);
+    DxfBlockLinearParameter bendWidth = bend.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
+    bend.AddStretchAction(bendWidth, new GeoPoint2(95, -10), new GeoPoint2(130, 60), new DxfEntity[] { edge, swing });
 
-// Array of an XY parameter: columns every 25 along x, rows every 20 along y; Width 100 and Depth 70 show 4 by 3 bolts.
-DxfBlockTableRecord plate = Block("PLATE");
-var bolt = new DxfCircle(new GeoPoint3(0, 0, 0), GeoVector3.ZAxis, 5);
-plate.AppendEntity(bolt);
-DxfBlockXYParameter grid = plate.AddXYParameter("Width", null, "Depth", null, new GeoPoint3(0, 0, 0), new GeoPoint3(40, 30, 0));
-plate.AddArrayAction(grid, new[] { bolt }, 25, 20);
+    // Distance multiplier: the mark moves half as far as the end point, staying in the middle; Span 200 puts it at (100, 25).
+    DxfBlockTableRecord centred = AddBlock("CENTRED");
+    var centredEdge = new DxfLine(new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0));
+    var centredMark = new DxfCircle(new GeoPoint3(50, 25, 0), GeoVector3.ZAxis, 5);
+    centred.AppendEntity(centredEdge);
+    centred.AppendEntity(centredMark);
+    DxfBlockLinearParameter span = centred.AddLinearParameter("Span", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
+    centred.AddStretchAction(span, new GeoPoint2(90, -10), new GeoPoint2(110, 60), new[] { centredEdge });
+    centred.AddMoveAction(span, new[] { centredMark }, 0.5, 0);
 
-// Lookup: Size sets Width and Height by the row of its label; Large gives 200 by 80, and Width 150 then reads Custom.
-DxfBlockTableRecord sized = Block("SIZED");
-var top = new DxfLine(new GeoPoint3(0, 50, 0), new GeoPoint3(100, 50, 0));
-var side = new DxfLine(new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0));
-sized.AppendEntity(top);
-sized.AppendEntity(side);
-DxfBlockLinearParameter w = sized.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
-sized.AddStretchAction(w, new GeoPoint2(90, -10), new GeoPoint2(110, 60), new[] { top, side });
-DxfBlockLinearParameter h = sized.AddLinearParameter("Height", null, new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0), 20, null);
-sized.AddStretchAction(h, new GeoPoint2(-10, 40), new GeoPoint2(110, 60), new[] { top, side });
-sized.AddLookupParameter("Size", "Panel size", new GeoPoint3(50, -20, 0),
-    new[] { DxfBlockLookupInput.Distance(w), DxfBlockLookupInput.Distance(h) },
-    new[] { new DxfBlockLookupRow("Small", 100, 50), new DxfBlockLookupRow("Large", 200, 80) });
+    // Array of a linear parameter: a post every 60 along Length; AutoCAD set Length 250 and drew four, at x = 0, 60, 120 and 180.
+    DxfBlockTableRecord fence = AddBlock("FENCE");
+    var post = new DxfCircle(new GeoPoint3(0, 0, 0), GeoVector3.ZAxis, 5);
+    fence.AppendEntity(post);
+    DxfBlockLinearParameter fenceLength = fence.AddLinearParameter("Length", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
+    fence.AddArrayAction(fenceLength, new[] { post }, 60);
 
-// Alignment and base point: grips AutoCAD uses when the block is placed; they give no property.
-DxfBlockTableRecord pipe = Block("PIPE");
-pipe.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(50, 0, 0)));
-pipe.AddAlignmentParameter(new GeoPoint3(0, 0, 0), new GeoPoint3(50, 0, 0));
-pipe.AddBasePointParameter(new GeoPoint3(0, 0, 0));
+    // Array of an XY parameter: columns every 25 along x, rows every 20 along y; Width 100 and Depth 70 show 4 by 3 bolts.
+    DxfBlockTableRecord bolted = AddBlock("BOLTS");
+    var bolt = new DxfCircle(new GeoPoint3(0, 0, 0), GeoVector3.ZAxis, 5);
+    bolted.AppendEntity(bolt);
+    DxfBlockXYParameter grid = bolted.AddXYParameter("Width", null, "Depth", null, new GeoPoint3(0, 0, 0), new GeoPoint3(40, 30, 0));
+    bolted.AddArrayAction(grid, new[] { bolt }, 25, 20);
 
-Place(bend, 0, 0).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Width").Value = 200.0;
-Place(centred, 0, 200).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Span").Value = 200.0;
-Place(fence, 0, 400).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Length").Value = 250.0;
-DxfBlockReference sheet = Place(plate, 300, 400);
-sheet.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Width").Value = 100.0;
-sheet.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Depth").Value = 70.0;
-Place(sized, 600, 400).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Size").Value = "Large";
-Place(pipe, 900, 400);
-db.Save("panel.dxf");
+    // Lookup: Size sets Width and Height by the row of its label; Large gives 200 by 80, and Width 150 then reads Custom.
+    DxfBlockTableRecord sized = AddBlock("SIZED");
+    var sizedTop = new DxfLine(new GeoPoint3(0, 50, 0), new GeoPoint3(100, 50, 0));
+    var sizedSide = new DxfLine(new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0));
+    sized.AppendEntity(sizedTop);
+    sized.AppendEntity(sizedSide);
+    DxfBlockLinearParameter w = sized.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
+    sized.AddStretchAction(w, new GeoPoint2(90, -10), new GeoPoint2(110, 60), new[] { sizedTop, sizedSide });
+    DxfBlockLinearParameter h = sized.AddLinearParameter("Height", null, new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0), 20, null);
+    sized.AddStretchAction(h, new GeoPoint2(-10, 40), new GeoPoint2(110, 60), new[] { sizedTop, sizedSide });
+    sized.AddLookupParameter("Size", "Panel size", new GeoPoint3(50, -20, 0),
+        new[] { DxfBlockLookupInput.Distance(w), DxfBlockLookupInput.Distance(h) },
+        new[] { new DxfBlockLookupRow("Small", 100, 50), new DxfBlockLookupRow("Large", 200, 80) });
+
+    // Alignment and base point: grips AutoCAD uses when the block is placed; they give no property.
+    DxfBlockTableRecord pipe = AddBlock("PIPE");
+    pipe.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(50, 0, 0)));
+    pipe.AddAlignmentParameter(new GeoPoint3(0, 0, 0), new GeoPoint3(50, 0, 0));
+    pipe.AddBasePointParameter(new GeoPoint3(0, 0, 0));
+
+    PlaceAt(bend, 0, 0).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Width").Value = 200.0;
+    PlaceAt(centred, 0, 200).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Span").Value = 200.0;
+    PlaceAt(fence, 0, 400).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Length").Value = 250.0;
+    DxfBlockReference boltedInsert = PlaceAt(bolted, 300, 400);
+    boltedInsert.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Width").Value = 100.0;
+    boltedInsert.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Depth").Value = 70.0;
+    PlaceAt(sized, 600, 400).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Size").Value = "Large";
+    PlaceAt(pipe, 900, 400);
+    db.Save("panel.dxf");
+}
 ```
 
 An arc held by one end has that end moved and the other kept, and is drawn anew through them keeping the height of its
@@ -1557,8 +1591,30 @@ bolts every 25 by 20 from 12 at 100 by 70 to six at 60 by 70. The INSERT of the 
 base point where a grip moved it, from (0, 5) to (0, 104.30), its end point at (100.59, 0), and AutoCAD draws its rows from
 there, at y 99.30 down to 19.30. The library works a block out from the block's own base points, and would draw them at 0
 down to -80: it sets no property of an INSERT that keeps the base point of a linear, an XY, a rotation or a flip parameter
-away from the block's own, beyond the point tolerance of `Tolerance.Default`, and refuses with NotSupportedException,
-writing nothing.
+away from the block's own, moved by the moves that carry the parameter (below), beyond the point tolerance of
+`Tolerance.Default`, and refuses with NotSupportedException, writing nothing.
+
+Blocks drawn in AutoCAD's Block Editor hold three things more that are set as well. A stretch or a move tied to a
+parameter's base grip (BaseXDelta and BaseYDelta) moves nothing when a value is set, as a value set moves the end point
+only: Depth from (40, 60) down to (40, 0) set to 100 takes the bottom corners of a frame 100 by 60 down to y -40 by the
+stretch of its end point, leaves the top corners its base point's stretch holds at 60, and moves a circle at (40, 30) to
+(40, 10) by a move of the multiplier 0.5 tied to the end point, the one tied to the base point leaving it. A move whose
+selection holds another linear parameter carries it (AutoCAD writes the parameters' node ids, 91, after the count 70 of the
+action's head, and the parameter and its grips among what it moves): the move by Depth's end point carries Bottom from
+(0, 0)-(100, 0) to (0, -40)-(100, -40), still 100 long, its grips with it, and Bottom's own stretches of the bottom corners
+do not follow its being carried, as Bottom chains no actions (281 of 0); Bottom then set to 150 takes the bottom right
+corner to (150, -40), and Depth set back to 80 carries it up to y -20, still 150. The base point the INSERT keeps of a
+parameter carried is where the moves took it, which is no grip edit. An attribute definition a move holds moves in the
+anonymous block, and each ATTRIB of the INSERT of its tag moves by the change of that move, carried by the INSERT's
+placing: Mark set from x 20 to 30 on an INSERT turned a quarter turn at the scale 2 moves the ATTRIB 20 along y in the
+world, keeping a place the user gave it, and setting Mark back takes it back. Still refused, with NotSupportedException and
+nothing written: a move carrying a parameter other than a linear one, or its own, or a parameter that chains its actions
+or that a scale or an array follows; a move holding a grip of a parameter it does not carry; a stretch, a scale, a rotate, a
+flip or an array holding other parameters; an attribute definition worked on by any action but a move; and attribute
+definitions of one tag that the actions move apart, where the INSERT has an ATTRIB of that tag. A block of three linear
+parameters, a point parameter, six stretches and five moves of these kinds, drawn in AutoCAD, is set this way, its
+anonymous block at the INSERT's own values the same, entity for entity to 1E-9, as the one AutoCAD saved; AutoCAD's own
+sets of such a block are yet to be checked (check v22).
 
 A lookup parameter's table has input columns, each the distance of a linear parameter or the x or the y of a point
 parameter (`DxfBlockLookupInput.Distance`, `X`, `Y`), and rows of a label and a value for each column
@@ -2159,12 +2215,17 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
   - Not written: a polar parameter and its polar stretch, as AutoCAD's sample of it holds its entity to turn only and does
     not show how the entities it stretches are kept; a value set of a rotation or an XY parameter, of which AutoCAD has no
     sample; a frame of a polygon; a text aligned or fitted between two points, an attribute definition and an INSERT of
-    rows and columns in a stretch.
+    rows and columns in a stretch; a stretch or a move tied to a base grip, a move carrying other parameters, and an
+    attribute definition in a move, which are set where AutoCAD's Block Editor wrote them.
+  - Set where another writer wrote them: stretches and moves tied to a parameter's base grip, moves carrying other linear
+    parameters, and attribute definitions in a move, the INSERT's ATTRIBs following.
   - Not set, with `NotSupportedException`, nothing written: an INSERT of a block of another writer holding what is not
-    written above or refused (a polar parameter, a constraint, a value set of a rotation or an XY parameter, an action
-    moving another parameter, a lookup column of another kind than a linear parameter's distance or a point parameter's x
-    or y), and an INSERT that keeps the base point of a linear, an XY, a rotation or a flip parameter
-    away from the block's own, as a grip moved that of AutoCAD's XY sample, which AutoCAD draws from there.
+    written above or refused (a polar parameter, a constraint, a value set of a rotation or an XY parameter, a move
+    carrying a parameter other than a linear one or one that chains its actions, any other action holding a parameter,
+    an attribute definition in an action other than a move, a lookup column of another kind than a linear parameter's
+    distance or a point parameter's x or y), and an INSERT that keeps the base point of a linear, an XY, a rotation or a
+    flip parameter away from the block's own, as the moves carrying it leave it, as a grip moved that of AutoCAD's XY
+    sample, which AutoCAD draws from there.
 
   A block whose entities another program changed keeps the values AutoCAD saved. `ConvertToStaticBlock` copies what the
   INSERT draws as it stands; `ResetBlock` is not there. `db.Insert` of another drawing brings a dynamic block of it as a

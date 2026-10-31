@@ -725,76 +725,86 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             var db = new DxfDatabase("AC1032");
 
-            DxfBlockTableRecord Block(string name)
+            // The guide's example, as it stands there, its db.Save left out.
             {
-                var block = new DxfBlockTableRecord { Name = name, Origin = new GeoPoint3(0, 0, 0) };
-                db.BlockTable.Add(block);
-                return block;
+                // This example's own helpers: AddBlock makes a block of the drawing above, PlaceAt puts an INSERT of it in model space.
+                DxfBlockTableRecord AddBlock(string name)
+                {
+                    var made = new DxfBlockTableRecord { Name = name, Origin = new GeoPoint3(0, 0, 0) };
+                    db.BlockTable.Add(made);
+                    return made;
+                }
+
+                DxfBlockReference PlaceAt(DxfBlockTableRecord block, double x, double y)
+                {
+                    var placedAt = new DxfBlockReference(new GeoPoint3(x, y, 0), block);
+                    db.ModelSpace.AppendEntity(placedAt);
+                    return placedAt;
+                }
+
+                // Stretch of an arc by one end: its start (100, 25) is in the frame, its end (90, 35) is not; Width 200 moves the start to
+                // (200, 25) and the arc keeps the height of its middle off its chord, 2.929, its radius becoming 522.13.
+                DxfBlockTableRecord bend = AddBlock("BEND");
+                var edge = new DxfLine(new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0));
+                var swing = new DxfArc(new GeoPoint3(90, 25, 0), 10, 0, Math.PI / 2);
+                bend.AppendEntity(edge);
+                bend.AppendEntity(swing);
+                DxfBlockLinearParameter bendWidth = bend.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
+                bend.AddStretchAction(bendWidth, new GeoPoint2(95, -10), new GeoPoint2(130, 60), new DxfEntity[] { edge, swing });
+
+                // Distance multiplier: the mark moves half as far as the end point, staying in the middle; Span 200 puts it at (100, 25).
+                DxfBlockTableRecord centred = AddBlock("CENTRED");
+                var centredEdge = new DxfLine(new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0));
+                var centredMark = new DxfCircle(new GeoPoint3(50, 25, 0), GeoVector3.ZAxis, 5);
+                centred.AppendEntity(centredEdge);
+                centred.AppendEntity(centredMark);
+                DxfBlockLinearParameter span = centred.AddLinearParameter("Span", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
+                centred.AddStretchAction(span, new GeoPoint2(90, -10), new GeoPoint2(110, 60), new[] { centredEdge });
+                centred.AddMoveAction(span, new[] { centredMark }, 0.5, 0);
+
+                // Array of a linear parameter: a post every 60 along Length; AutoCAD set Length 250 and drew four, at x = 0, 60, 120 and 180.
+                DxfBlockTableRecord fence = AddBlock("FENCE");
+                var post = new DxfCircle(new GeoPoint3(0, 0, 0), GeoVector3.ZAxis, 5);
+                fence.AppendEntity(post);
+                DxfBlockLinearParameter fenceLength = fence.AddLinearParameter("Length", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
+                fence.AddArrayAction(fenceLength, new[] { post }, 60);
+
+                // Array of an XY parameter: columns every 25 along x, rows every 20 along y; Width 100 and Depth 70 show 4 by 3 bolts.
+                DxfBlockTableRecord bolted = AddBlock("BOLTS");
+                var bolt = new DxfCircle(new GeoPoint3(0, 0, 0), GeoVector3.ZAxis, 5);
+                bolted.AppendEntity(bolt);
+                DxfBlockXYParameter grid = bolted.AddXYParameter("Width", null, "Depth", null, new GeoPoint3(0, 0, 0), new GeoPoint3(40, 30, 0));
+                bolted.AddArrayAction(grid, new[] { bolt }, 25, 20);
+
+                // Lookup: Size sets Width and Height by the row of its label; Large gives 200 by 80, and Width 150 then reads Custom.
+                DxfBlockTableRecord sized = AddBlock("SIZED");
+                var sizedTop = new DxfLine(new GeoPoint3(0, 50, 0), new GeoPoint3(100, 50, 0));
+                var sizedSide = new DxfLine(new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0));
+                sized.AppendEntity(sizedTop);
+                sized.AppendEntity(sizedSide);
+                DxfBlockLinearParameter w = sized.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
+                sized.AddStretchAction(w, new GeoPoint2(90, -10), new GeoPoint2(110, 60), new[] { sizedTop, sizedSide });
+                DxfBlockLinearParameter h = sized.AddLinearParameter("Height", null, new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0), 20, null);
+                sized.AddStretchAction(h, new GeoPoint2(-10, 40), new GeoPoint2(110, 60), new[] { sizedTop, sizedSide });
+                sized.AddLookupParameter("Size", "Panel size", new GeoPoint3(50, -20, 0),
+                    new[] { DxfBlockLookupInput.Distance(w), DxfBlockLookupInput.Distance(h) },
+                    new[] { new DxfBlockLookupRow("Small", 100, 50), new DxfBlockLookupRow("Large", 200, 80) });
+
+                // Alignment and base point: grips AutoCAD uses when the block is placed; they give no property.
+                DxfBlockTableRecord pipe = AddBlock("PIPE");
+                pipe.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(50, 0, 0)));
+                pipe.AddAlignmentParameter(new GeoPoint3(0, 0, 0), new GeoPoint3(50, 0, 0));
+                pipe.AddBasePointParameter(new GeoPoint3(0, 0, 0));
+
+                PlaceAt(bend, 0, 0).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Width").Value = 200.0;
+                PlaceAt(centred, 0, 200).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Span").Value = 200.0;
+                PlaceAt(fence, 0, 400).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Length").Value = 250.0;
+                DxfBlockReference boltedInsert = PlaceAt(bolted, 300, 400);
+                boltedInsert.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Width").Value = 100.0;
+                boltedInsert.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Depth").Value = 70.0;
+                PlaceAt(sized, 600, 400).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Size").Value = "Large";
+                PlaceAt(pipe, 900, 400);
             }
-
-            DxfBlockReference Place(DxfBlockTableRecord block, double x, double y)
-            {
-                var placed = new DxfBlockReference(new GeoPoint3(x, y, 0), block);
-                db.ModelSpace.AppendEntity(placed);
-                return placed;
-            }
-
-            // The guide's examples, as they stand there.
-            DxfBlockTableRecord bend = Block("BEND");
-            var edge = new DxfLine(new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0));
-            var swing = new DxfArc(new GeoPoint3(90, 25, 0), 10, 0, Math.PI / 2);
-            bend.AppendEntity(edge);
-            bend.AppendEntity(swing);
-            DxfBlockLinearParameter width = bend.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
-            bend.AddStretchAction(width, new GeoPoint2(95, -10), new GeoPoint2(130, 60), new DxfEntity[] { edge, swing });
-
-            DxfBlockTableRecord centred = Block("CENTRED");
-            var right = new DxfLine(new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0));
-            var mark = new DxfCircle(new GeoPoint3(50, 25, 0), GeoVector3.ZAxis, 5);
-            centred.AppendEntity(right);
-            centred.AppendEntity(mark);
-            DxfBlockLinearParameter span = centred.AddLinearParameter("Span", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
-            centred.AddStretchAction(span, new GeoPoint2(90, -10), new GeoPoint2(110, 60), new[] { right });
-            centred.AddMoveAction(span, new[] { mark }, 0.5, 0);
-
-            DxfBlockTableRecord fence = Block("FENCE");
-            var post = new DxfCircle(new GeoPoint3(0, 0, 0), GeoVector3.ZAxis, 5);
-            fence.AppendEntity(post);
-            DxfBlockLinearParameter length = fence.AddLinearParameter("Length", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
-            fence.AddArrayAction(length, new[] { post }, 60);
-
-            DxfBlockTableRecord plate = Block("PLATE");
-            var bolt = new DxfCircle(new GeoPoint3(0, 0, 0), GeoVector3.ZAxis, 5);
-            plate.AppendEntity(bolt);
-            DxfBlockXYParameter grid = plate.AddXYParameter("Width", null, "Depth", null, new GeoPoint3(0, 0, 0), new GeoPoint3(40, 30, 0));
-            plate.AddArrayAction(grid, new[] { bolt }, 25, 20);
-
-            DxfBlockTableRecord sized = Block("SIZED");
-            var top = new DxfLine(new GeoPoint3(0, 50, 0), new GeoPoint3(100, 50, 0));
-            var side = new DxfLine(new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0));
-            sized.AppendEntity(top);
-            sized.AppendEntity(side);
-            DxfBlockLinearParameter w = sized.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -20, null);
-            sized.AddStretchAction(w, new GeoPoint2(90, -10), new GeoPoint2(110, 60), new[] { top, side });
-            DxfBlockLinearParameter h = sized.AddLinearParameter("Height", null, new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0), 20, null);
-            sized.AddStretchAction(h, new GeoPoint2(-10, 40), new GeoPoint2(110, 60), new[] { top, side });
-            sized.AddLookupParameter("Size", "Panel size", new GeoPoint3(50, -20, 0),
-                new[] { DxfBlockLookupInput.Distance(w), DxfBlockLookupInput.Distance(h) },
-                new[] { new DxfBlockLookupRow("Small", 100, 50), new DxfBlockLookupRow("Large", 200, 80) });
-
-            DxfBlockTableRecord pipe = Block("PIPE");
-            pipe.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(50, 0, 0)));
-            pipe.AddAlignmentParameter(new GeoPoint3(0, 0, 0), new GeoPoint3(50, 0, 0));
-            pipe.AddBasePointParameter(new GeoPoint3(0, 0, 0));
-
-            Place(bend, 0, 0).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Width").Value = 200.0;
-            Place(centred, 0, 200).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Span").Value = 200.0;
-            Place(fence, 0, 400).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Length").Value = 250.0;
-            DxfBlockReference sheet = Place(plate, 300, 400);
-            sheet.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Width").Value = 100.0;
-            sheet.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Depth").Value = 70.0;
-            Place(sized, 600, 400).DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Size").Value = "Large";
-            Place(pipe, 900, 400);
 
             // What the guide says each shows, read back from the text of the drawing.
             DxfDatabase back = Reopened(db);

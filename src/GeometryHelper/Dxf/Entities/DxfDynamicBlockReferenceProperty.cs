@@ -6,7 +6,8 @@ namespace GeometryHelper.Dxf
     /// One dynamic property of an INSERT of a dynamic block, as AutoCAD's <c>DynamicBlockReferenceProperty</c> gives it: the
     /// name a parameter of the block shows it by, its value for this INSERT as AutoCAD saved it, and the values it may take.
     /// The value of a linear, XY, point, rotation, flip, visibility or lookup parameter, in a block of the actions the library
-    /// writes, is set as AutoCAD sets it (<see cref="Value"/>); the others are read only.
+    /// writes or of the stretches and moves AutoCAD's Block Editor writes besides, is set as AutoCAD sets it
+    /// (<see cref="Value"/>); the others are read only.
     /// </summary>
     /// <remarks>
     /// The INSERT of a door whose linear parameter Width AutoCAD stretched from 900 to 1 000 gives the property Width, of the
@@ -55,7 +56,8 @@ namespace GeometryHelper.Dxf
         /// visibility parameter and the label of a lookup parameter, in a block of those, of alignment and base point
         /// parameters, and of the stretch, move, scale, rotate, flip, array and lookup actions the library writes
         /// (<see cref="DxfBlockTableRecord.AddStretchAction(DxfBlockLinearParameter, GeometryHelper.Geometry.GeoPoint2, GeometryHelper.Geometry.GeoPoint2, System.Collections.Generic.IEnumerable{DxfEntity})"/>
-        /// and the others): the value taken to the parameter's value set, then the block worked out at the values of all its
+        /// and the others), and of the stretches and moves AutoCAD's Block Editor writes besides: tied to a parameter's base
+        /// grip, carrying other linear parameters, moving attribute definitions. The value is taken to the parameter's value set, then the block worked out at the values of all its
         /// properties, the copy written as AutoCAD writes it, and the value read back. A Width of the rectangle 100 by 50 set to
         /// 200 moves the right edge to x = 200 in the copy, as AutoCAD 2021 moved it; a Mark set to Tick shows the tick and hides
         /// the cross; an Angle set to Math.PI / 2 turns the entities of its rotate action a quarter turn about its base point.
@@ -71,7 +73,16 @@ namespace GeometryHelper.Dxf
         /// reflection line while the state is 1. Then each array copies its entities, as many as its spacing goes whole into
         /// the distance, one at least: a Length of 250 of a post every 60 shows four posts; an array of an XY parameter copies
         /// in rows and columns, and nothing where either count is nought, as AutoCAD 2021 drew it (plugin v21). A move listing
-        /// its own parameter's grip among what it moves, as AutoCAD's point sample does, moves its entities alone. A lookup set
+        /// its own parameter's grip among what it moves, as AutoCAD's point sample does, moves its entities alone. A stretch or
+        /// a move following a parameter's base point (BaseXDelta and BaseYDelta, tied to its base grip) moves nothing, as a
+        /// value set moves the end point only. A move holding another linear parameter carries it, as AutoCAD's Block Editor
+        /// writes such a move (the parameters' node ids after the count 70 of its head): the parameter's base point and end point
+        /// move by the move, its grips with them, its distance kept, and its own actions do not follow its being carried (it
+        /// chains none); a frame whose Depth of 60 from (40, 60) down to (40, 0) is set to 100 carries Bottom from
+        /// (0, 0)-(100, 0) to (0, -40)-(100, -40), still 100, and keeps it there when Bottom is set next. An attribute
+        /// definition a move holds moves in the copy, and each ATTRIB of the INSERT of its tag moves by the change of that
+        /// move, carried by the INSERT's placing, keeping a place the user gave it: Mark X set from 20 to 30 on an INSERT
+        /// turned a quarter turn at the scale 2 moves the ATTRIB 20 along y in the world. A lookup set
         /// to a row's label sets the properties of its input columns to the row's values; any property set, each lookup reads
         /// the label of the first row of the values then, or its label of no match, Custom as the library writes it.
         /// </para>
@@ -113,14 +124,17 @@ namespace GeometryHelper.Dxf
         /// drawing, or scaled unlike along its axes, which AutoCAD does not take as a dynamic block's.</exception>
         /// <exception cref="NotSupportedException">Thrown when the property is of a parameter the library does not work out (a
         /// polar parameter), or the block holds such a parameter, an action of another kind (a polar stretch), or an action the
-        /// library does not work out: a stretch of an entity other than those above or of a tilted arc by one end, an action
-        /// moving other parameters or grips of another parameter, a stretch or a move by a base point, a scale or a rotate about
+        /// library does not work out: a stretch of an entity other than those above or of a tilted arc by one end, a stretch,
+        /// a scale, a rotate, a flip or an array holding other parameters, a move holding grips of a parameter it does not
+        /// carry, a move carrying a parameter other than a linear one, or one that chains its actions or that a scale or an
+        /// array follows, attribute definitions of one tag moved apart where the INSERT has an ATTRIB of that tag, an
+        /// attribute definition worked on by an action other than a move, a scale or a rotate about
         /// another point than its parameter's base point, a rotation or an XY parameter with a value set, an entity both flipped
         /// and moved by other actions, an entity both turned or scaled and stretched or moved, as AutoCAD 2021 worked such an
         /// entity out from the INSERT's last state (plugin v21), an entity both copied by an array and worked on by another
         /// action, a lookup table of columns other than a linear parameter's distance, a point parameter's x and y and
         /// lookups; or when the INSERT keeps the base point of a linear, an XY, a rotation or a flip parameter away from the
-        /// block's own, beyond the point tolerance of <see cref="Tolerance.Default"/>, as a grip moved it: AutoCAD works such
+        /// block's own, as the moves carrying the parameter take it, beyond the point tolerance of <see cref="Tolerance.Default"/>, as a grip moved it: AutoCAD works such
         /// an INSERT out from the base point it keeps, and drew the array of its XY sample's INSERT whose base point a grip
         /// took from (0, 5) to (0, 104.30) at y 99.30 down to 19.30, where the library, working from the block's own base
         /// point, would draw it at 0 down to -80. Nothing is written then.</exception>

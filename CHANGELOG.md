@@ -26,6 +26,29 @@ fifth less: a plate and a slot 1E6 out sharing 3 000 at nought, 0.048 millisecon
 3.2 to come out wrong (16.3 and 8.0 on .NET Framework 4.8); the cube and the slab joined take 7.5, where they took 14.7
 to be turned down (17.5 and 41.1).
 
+**NEW.** `DxfDynamicBlockReferenceProperty.Value` sets INSERTs of dynamic blocks drawn in AutoCAD's Block Editor that hold
+more than the library writes, where it refused them before. A stretch or a move tied to a parameter's base grip
+(BaseXDelta and BaseYDelta) moves nothing when a value is set, as a value set moves the end point only. A move whose
+selection holds other linear parameters carries them: AutoCAD writes their node ids (91) after the count 70 of the
+action's head, which the library had read as a flag and refused; the parameter's base point and end point move by the
+move, its grips with it, its distance kept, and its own actions do not follow, as it chains none (281 of 0). A frame whose
+Depth from (40, 60) down to (40, 0) is set to 100 takes its bottom corners down to y -40 and carries Bottom from
+(0, 0)-(100, 0) to (0, -40)-(100, -40), still 100; Bottom set next to 150 takes the bottom right corner to (150, -40), and the
+INSERT's base point of Bottom, where the move took it, is not taken for a grip edit. An attribute definition a point
+parameter's move holds moves in the anonymous block, and each ATTRIB of the INSERT of its tag moves by the change of that
+move, carried by the INSERT's placing: Mark set from x 20 to 30 on an INSERT turned a quarter turn at the scale 2 moves
+the ATTRIB 20 along y in the world, keeping a place the user gave it. A block of three linear parameters, a point
+parameter, six stretches and five moves of these kinds, drawn in AutoCAD and refused before, is set now, in 2 to 4
+milliseconds a set, its anonymous block at the INSERT's own values the same as the one AutoCAD saved, entity for entity to
+1E-9; AutoCAD's own sets of it are yet to be checked (check v22). Still refused, nothing written: a move carrying a parameter other than a linear one, its own, or one that chains its
+actions or that a scale or an array follows; a move holding a grip of a parameter it does not carry; any other action
+holding a parameter; an attribute definition worked on by an action other than a move; attribute definitions of one tag
+moved apart where the INSERT has an ATTRIB of that tag; and, as before, a base point a grip moved. Every other set gives
+what it gave, to the bit: 839 sets of every property of every INSERT of the AutoCAD check files and samples to the value
+it reads draw the same, and a drawing of the kinds the library wrote before is the same 64 670 bytes. The guide's examples
+of dynamic blocks are each a block of statements of their own, of names and block names no other example uses, so that
+any of them may be pasted after the first together.
+
 **NEW.** The last kinds of AutoCAD's dynamic blocks are made in code, each written as AutoCAD 2021 saved ACadSharp's sample
 of it. `DxfBlockTableRecord.AddArrayAction(linear, entities, columnSpacing)` and `AddArrayAction(xy, entities,
 columnSpacing, rowSpacing)` copy entities as the distance grows, as many as the spacing goes whole into it: AutoCAD 2021

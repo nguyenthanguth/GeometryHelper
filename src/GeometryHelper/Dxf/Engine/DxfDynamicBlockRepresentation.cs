@@ -9,10 +9,11 @@ namespace GeometryHelper.Dxf
     /// <summary>
     /// Sets the value of a dynamic property of an INSERT as AutoCAD's <c>DynamicBlockReferenceProperty.Value</c> sets it, for a
     /// dynamic block of linear, XY, point, rotation, flip, visibility and lookup parameters with the stretch, move, scale,
-    /// rotate, flip, array and lookup actions the library writes: the value taken to its value set, the block worked out at
-    /// the values of all its properties into an anonymous block of AutoCAD's (*U) the INSERT places, and the INSERT's
-    /// representation data and cache (ACAD_ENHANCEDBLOCKDATA) written as AutoCAD 2021 wrote them when it set a value (plugins
-    /// v17, v18): no history.
+    /// rotate, flip, array and lookup actions the library writes, and the stretches and moves of a base grip, the moves
+    /// carrying linear parameters and the attribute definitions in a move that AutoCAD's Block Editor writes: the value taken
+    /// to its value set, the block worked out at the values of all its properties into an anonymous block of AutoCAD's (*U)
+    /// the INSERT places, the INSERT's ATTRIBs moved as their ATTDEFs' moves change, and the INSERT's representation data and
+    /// cache (ACAD_ENHANCEDBLOCKDATA) written as AutoCAD 2021 wrote them when it set a value (plugins v17, v18): no history.
     /// </summary>
     internal static class DxfDynamicBlockRepresentation
     {
@@ -56,20 +57,6 @@ namespace GeometryHelper.Dxf
             }
 
             Block block = Block.Of(dynamic);
-
-            // A base point a grip moved: AutoCAD keeps it where the INSERT saved it and works the actions from there, drawing the
-            // array of its XY sample's INSERT 2AE, whose base point a grip took from (0, 5) to (0, 104.30), at y 99.30 down to
-            // 19.30; the library works a parameter out from the block's own base point, and would draw it at 0 down to -80.
-            Dictionary<string, double[]> bases = DxfDynamicProperties.SavedBases(insert);
-
-            foreach (Param parameter in block.Parameters)
-            {
-                if (!(parameter is Spot) && bases.TryGetValue(parameter.Id, out double[] saved) && !new GeoPoint3(saved[0], saved[1], saved[2]).IsEqualTo(parameter.Base, Tolerance.Default))
-                {
-                    throw new NotSupportedException("The INSERT " + insert.Handle + " keeps a base point of a parameter of the block " + dynamic.Name + " away from the block's own, as a grip moved it: the library works a block out from its own base points, and does not set it.");
-                }
-            }
-
             GeoVector3 factors = insert.ScaleFactors;
             double scale = Math.Max(Math.Abs(factors.X), Math.Max(Math.Abs(factors.Y), Math.Abs(factors.Z)));
 
@@ -111,6 +98,28 @@ namespace GeometryHelper.Dxf
                         now[property.Part] = property.UnitsType == DxfDynamicBlockReferencePropertyUnitsType.Distance ? read / scale : read;
                     }
                 }
+            }
+
+            // A base point a grip moved: AutoCAD keeps it where the INSERT saved it and works the actions from there, drawing the
+            // array of its XY sample's INSERT 2AE, whose base point a grip took from (0, 5) to (0, 104.30), at y 99.30 down to
+            // 19.30; the library works a parameter out from the block's own base point, and would draw it at 0 down to -80. A
+            // base point a move carried, with the parameter, stands where the move took it from the block's own.
+            Dictionary<string, double[]> bases = DxfDynamicProperties.SavedBases(insert);
+            Dictionary<string, double[]> carried = Carried(block, values);
+
+            foreach (Param parameter in block.Parameters)
+            {
+                if (!(parameter is Spot) && bases.TryGetValue(parameter.Id, out double[] saved) && !new GeoPoint3(saved[0], saved[1], saved[2]).IsEqualTo(parameter.BaseNow(carried), Tolerance.Default))
+                {
+                    throw new NotSupportedException("The INSERT " + insert.Handle + " keeps a base point of a parameter of the block " + dynamic.Name + " away from the block's own, as a grip moved it: the library works a block out from its own base points, and does not set it.");
+                }
+            }
+
+            var before = new Dictionary<string, double[]>(StringComparer.Ordinal);
+
+            foreach (KeyValuePair<string, double[]> now in values)
+            {
+                before.Add(now.Key, (double[])now.Value.Clone());
             }
 
             Param asked = block.Parameters.Find(p => p.Id == node);
@@ -176,7 +185,13 @@ namespace GeometryHelper.Dxf
                 }
             }
 
+            List<KeyValuePair<DxfAttributeReference, GeoVector3>> follow = Followed(insert, dynamic, block, before, values);
             Write(insert, dynamic, block, values, state, labels);
+
+            foreach (KeyValuePair<DxfAttributeReference, GeoVector3> attribute in follow)
+            {
+                attribute.Key.TransformBy(GeoTransform3.Translation(attribute.Value));
+            }
 
             foreach (DxfDynamicBlockReferenceProperty property in DxfDynamicProperties.Of(insert, dynamic))
             {
@@ -268,6 +283,131 @@ namespace GeometryHelper.Dxf
             }
 
             return turned >= Turn ? 0.0 : turned;
+        }
+
+        /// <summary>
+        /// The move, in x and y, an action of a stretch or a move gives at the values given: the change of the point it follows
+        /// times its distance multiplier and turned by its angle offset; none for one following a base point, which a value set
+        /// does not move.
+        /// </summary>
+        private static double[] Change(Block block, BlockAction action, Dictionary<string, double[]> values)
+        {
+            if (action.ByBase)
+            {
+                return new double[2];
+            }
+
+            Param parameter = block.Parameters.Find(p => p.Id == action.Parameter);
+            return action.Factored(parameter.Moved(values[parameter.Id]));
+        }
+
+        /// <summary>
+        /// The move, in x and y, each parameter a move carries is given at the values given, by the parameter's id: the sum of
+        /// the moves of the actions carrying it, each as <see cref="Change"/> gives it. A parameter carried keeps its distance,
+        /// and its own actions do not follow its being carried (it does not chain them).
+        /// </summary>
+        private static Dictionary<string, double[]> Carried(Block block, Dictionary<string, double[]> values)
+        {
+            var carried = new Dictionary<string, double[]>(StringComparer.Ordinal);
+
+            foreach (BlockAction action in block.Actions)
+            {
+                if (action.Carried.Count == 0)
+                {
+                    continue;
+                }
+
+                double[] change = Change(block, action, values);
+
+                foreach (string id in action.Carried)
+                {
+                    if (!carried.TryGetValue(id, out double[] sum))
+                    {
+                        sum = new double[2];
+                        carried.Add(id, sum);
+                    }
+
+                    sum[0] += change[0];
+                    sum[1] += change[1];
+                }
+            }
+
+            return carried;
+        }
+
+        /// <summary>
+        /// The ATTRIBs of the INSERT that follow their ATTDEF, told by its tag, as a move takes it from where the values before
+        /// put it to where the values now put it, with the move each makes in the world: the change of the ATTDEF's place in
+        /// the block carried by the INSERT's placing. An ATTRIB keeps a place the user gave it and moves by the change only.
+        /// Refused with <see cref="NotSupportedException"/> where ATTDEFs of one tag the INSERT has an ATTRIB of move apart.
+        /// </summary>
+        private static List<KeyValuePair<DxfAttributeReference, GeoVector3>> Followed(DxfBlockReference insert, DxfBlockTableRecord dynamic, Block block, Dictionary<string, double[]> before, Dictionary<string, double[]> values)
+        {
+            var follow = new List<KeyValuePair<DxfAttributeReference, GeoVector3>>();
+
+            if (insert.AttributeCollection.Count == 0)
+            {
+                return follow;
+            }
+
+            // The change of each tag's ATTDEF, in the block; a tag of ATTDEFs that change apart holds null.
+            var changes = new Dictionary<string, double[]>(StringComparer.OrdinalIgnoreCase);
+            double slack = Tolerance.Default.EqualPoint;
+
+            foreach (DxfEntity entity in dynamic)
+            {
+                if (!(entity is DxfAttributeDefinition definition))
+                {
+                    continue;
+                }
+
+                var change = new double[2];
+
+                foreach (BlockAction action in block.Actions)
+                {
+                    if (action.Kind == ActionKind.Move && action.Entities.Exists(h => string.Equals(h, entity.Handle, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        double[] from = Change(block, action, before);
+                        double[] to = Change(block, action, values);
+                        change[0] += to[0] - from[0];
+                        change[1] += to[1] - from[1];
+                    }
+                }
+
+                string tag = definition.Tag ?? string.Empty;
+
+                if (!changes.TryGetValue(tag, out double[] seen))
+                {
+                    changes.Add(tag, change);
+                }
+                else if (seen != null && (Math.Abs(seen[0] - change[0]) > slack || Math.Abs(seen[1] - change[1]) > slack))
+                {
+                    changes[tag] = null;
+                }
+            }
+
+            GeoTransform3 placing = insert.BlockTransform;
+            GeoPoint3 origin = placing.Transform(new GeoPoint3(0, 0, 0));
+
+            foreach (DxfAttributeReference attribute in insert.AttributeCollection)
+            {
+                if (!changes.TryGetValue(attribute.Tag ?? string.Empty, out double[] change))
+                {
+                    continue;
+                }
+
+                if (change == null)
+                {
+                    throw new NotSupportedException("The block " + dynamic.Name + " has attribute definitions of the tag " + attribute.Tag + " that its actions move apart: the INSERT's attribute of that tag has no one move to follow, and is not set.");
+                }
+
+                if (change[0] != 0.0 || change[1] != 0.0)
+                {
+                    follow.Add(new KeyValuePair<DxfAttributeReference, GeoVector3>(attribute, origin.GetVectorTo(placing.Transform(new GeoPoint3(change[0], change[1], 0.0)))));
+                }
+            }
+
+            return follow;
         }
 
         /// <summary>
@@ -406,7 +546,7 @@ namespace GeometryHelper.Dxf
             switch (action.Kind)
             {
                 case ActionKind.Move:
-                    double[] move = action.Factored(parameter.Moved(now));
+                    double[] move = action.ByBase ? new double[2] : action.Factored(parameter.Moved(now));
                     return move[0] == 0.0 && move[1] == 0.0 ? null : GeoTransform3.Translation(new GeoVector3(move[0], move[1], 0.0));
                 case ActionKind.Scale:
                     double factor = now[0] / parameter.Own[0];
@@ -439,8 +579,7 @@ namespace GeometryHelper.Dxf
 
             foreach (BlockAction stretch in stretches)
             {
-                Param parameter = block.Parameters.Find(p => p.Id == stretch.Parameter);
-                double[] change = stretch.Factored(parameter.Moved(values[parameter.Id]));
+                double[] change = Change(block, stretch, values);
                 double dx = change[0];
                 double dy = change[1];
 
@@ -679,10 +818,11 @@ namespace GeometryHelper.Dxf
 
             DxfDBDictionary records = Child(cache, "ACAD_ENHANCEDBLOCKDATA");
             var written = new List<KeyValuePair<string, List<KeyValuePair<int, string>>>>();
+            Dictionary<string, double[]> carried = Carried(block, values);
 
             foreach (Param parameter in block.Parameters)
             {
-                written.AddRange(parameter.Records(values[parameter.Id]));
+                written.AddRange(parameter.Records(values[parameter.Id], carried.TryGetValue(parameter.Id, out double[] shift) ? shift : null));
             }
 
             foreach (BlockAction action in block.Actions)
@@ -906,6 +1046,8 @@ namespace GeometryHelper.Dxf
                     if (block.Parameters.Count > before)
                     {
                         block.Parameters[before].Grips = Param.GripsOf(groups);
+                        block.Parameters[before].Handle = node.Handle;
+                        block.Parameters[before].Chains = Param.FlagsOf(DxfDynamicProperties.Section(groups, "AcDbBlockParameter"), 281) != 0;
                     }
                 }
 
@@ -925,6 +1067,26 @@ namespace GeometryHelper.Dxf
                     if (action.Kind == ActionKind.Move && own != null)
                     {
                         action.Entities.RemoveAll(h => grips.TryGetValue(h, out string grip) && own.Contains(grip));
+                    }
+                }
+
+                // A move may carry other parameters, as a move drawn in AutoCAD's Block Editor over a parameter does: each a linear
+                // parameter other than its own, listed among what it moves, its grips following it and left out with it; a
+                // parameter that chains its actions (its own following its being carried), or that a scale or an array follows, is
+                // not worked out, as no sample of AutoCAD shows the order it takes.
+                foreach (BlockAction action in block.Actions)
+                {
+                    foreach (string id in action.Carried)
+                    {
+                        Param carried = block.Parameters.Find(p => p.Id == id);
+
+                        if (!(carried is Linear) || carried.Id == action.Parameter || carried.Chains || !action.Entities.Exists(h => string.Equals(h, carried.Handle, StringComparison.OrdinalIgnoreCase))
+                            || block.Actions.Exists(a => a.Parameter == id && a.Kind != ActionKind.Stretch && a.Kind != ActionKind.Move))
+                        {
+                            throw new NotSupportedException("A move of the block " + dynamic.Name + " carries a parameter the library does not work out carried: it works out a linear parameter, other than the move's own, held by the move, of no chained actions, followed by stretches and moves only.");
+                        }
+
+                        action.Entities.RemoveAll(h => string.Equals(h, carried.Handle, StringComparison.OrdinalIgnoreCase) || (grips.TryGetValue(h, out string grip) && carried.Grips.Contains(grip)));
                     }
                 }
 
@@ -999,6 +1161,16 @@ namespace GeometryHelper.Dxf
             /// <summary>The node ids of the parameter's grips.</summary>
             internal HashSet<string> Grips { get; set; }
 
+            /// <summary>The handle of the parameter's node.</summary>
+            internal string Handle { get; set; }
+
+            /// <summary>Whether the parameter chains its actions (281 of AcDbBlockParameter): moved by another action, its own follow.</summary>
+            internal bool Chains { get; set; }
+
+            /// <summary>The base point now: the block's own, moved by what the moves carrying the parameter give it.</summary>
+            internal GeoPoint3 BaseNow(Dictionary<string, double[]> carried)
+                => carried.TryGetValue(Id, out double[] shift) ? new GeoPoint3(Base.X + shift[0], Base.Y + shift[1], Base.Z) : Base;
+
             /// <summary>The node ids of the grips a parameter lists: the 91s of a parameter of two points, the 93 of one of one point; nought left out.</summary>
             internal static HashSet<string> GripsOf(IReadOnlyList<DxfTypedValue> groups)
             {
@@ -1013,8 +1185,8 @@ namespace GeometryHelper.Dxf
             /// <summary>The move, in x and y, of the point a stretch or a move follows, at the value given; none for a parameter no stretch or move follows.</summary>
             internal virtual double[] Moved(double[] now) => new double[2];
 
-            /// <summary>The records of the cache the parameter gives, at the value given.</summary>
-            internal abstract IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(double[] now);
+            /// <summary>The records of the cache the parameter gives, at the value given, carried by the move given (in x and y), or by none where it is null.</summary>
+            internal abstract IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(double[] now, double[] carried);
 
             /// <summary>The base point and the end point of a parameter of two points, read; refused where they cannot be read or its distance is measured from its middle.</summary>
             protected static void TwoPoints(Param parameter, IReadOnlyList<DxfTypedValue> groups, string id, string kind, string block)
@@ -1137,11 +1309,12 @@ namespace GeometryHelper.Dxf
                 return new[] { UnitX * change, UnitY * change };
             }
 
-            internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(double[] now)
+            internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(double[] now, double[] carried)
             {
                 double distance = now[0];
-                var end = new GeoPoint3(Base.X + UnitX * distance, Base.Y + UnitY * distance, Base.Z + UnitZ * distance);
-                yield return Record(Id, PointsRecord(LinearKey, Base, end));
+                GeoPoint3 from = carried == null ? Base : new GeoPoint3(Base.X + carried[0], Base.Y + carried[1], Base.Z);
+                var end = new GeoPoint3(from.X + UnitX * distance, from.Y + UnitY * distance, from.Z + UnitZ * distance);
+                yield return Record(Id, PointsRecord(LinearKey, from, end));
             }
 
             /// <summary>
@@ -1239,7 +1412,7 @@ namespace GeometryHelper.Dxf
             /// <summary>The move of the end point: each distance now less the block's own, the way the end point lies.</summary>
             internal override double[] Moved(double[] now) => new[] { _signX * (now[0] - Own[0]), _signY * (now[1] - Own[1]) };
 
-            internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(double[] now)
+            internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(double[] now, double[] carried)
             {
                 var end = new GeoPoint3(Base.X + _signX * now[0], Base.Y + _signY * now[1], End.Z);
                 yield return Record(Id, PointsRecord(XYKey, Base, end));
@@ -1265,7 +1438,7 @@ namespace GeometryHelper.Dxf
             /// <summary>The move of the position: where it is now less the block's own.</summary>
             internal override double[] Moved(double[] now) => new[] { now[0] - Own[0], now[1] - Own[1] };
 
-            internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(double[] now)
+            internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(double[] now, double[] carried)
             {
                 List<KeyValuePair<int, string>> groups = Head(PointKey);
                 Point(groups, new GeoPoint3(now[0], now[1], Base.Z));
@@ -1306,7 +1479,7 @@ namespace GeometryHelper.Dxf
                 return turning;
             }
 
-            internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(double[] now)
+            internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(double[] now, double[] carried)
             {
                 double angle = _from + now[0];
                 var end = new GeoPoint3(Base.X + _radius * Math.Cos(angle), Base.Y + _radius * Math.Sin(angle), End.Z);
@@ -1336,7 +1509,7 @@ namespace GeometryHelper.Dxf
                 return mirror;
             }
 
-            internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(double[] now)
+            internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(double[] now, double[] carried)
             {
                 string state = now[0] == 1.0 ? "1" : "0";
                 List<KeyValuePair<int, string>> groups = PointsRecord(FlipKey, Base, End);
@@ -1380,6 +1553,12 @@ namespace GeometryHelper.Dxf
 
             /// <summary>The row offset of an array (140).</summary>
             internal double Rows { get; private set; }
+
+            /// <summary>Whether a stretch or a move follows its parameter's base point (BaseXDelta, BaseYDelta) rather than its end point.</summary>
+            internal bool ByBase { get; private set; }
+
+            /// <summary>The node ids of the parameters a move carries (the 91s its 70 counts), in their order; none for the others.</summary>
+            internal List<string> Carried { get; } = new List<string>();
 
             /// <summary>A move in x and y times the multiplier and turned by the offset, counter-clockwise.</summary>
             internal double[] Factored(double[] move)
@@ -1456,10 +1635,11 @@ namespace GeometryHelper.Dxf
                 }
 
                 double slack = Tolerance.Default.EqualVector;
+                stretch.ByBase = stretch._xBy == "BaseXDelta" && stretch._yBy == "BaseYDelta";
 
-                if (id == null || stretch._x == null || stretch._x != stretch._y || stretch._xBy != "EndXDelta" || stretch._yBy != "EndYDelta" || parameters != 0)
+                if (id == null || stretch._x == null || stretch._x != stretch._y || !(stretch.ByBase || (stretch._xBy == "EndXDelta" && stretch._yBy == "EndYDelta")) || parameters != 0)
                 {
-                    throw new NotSupportedException("A stretch of the block " + block + " is not one the library works out: it works out a stretch by the end point of a linear or an XY parameter, moving no other parameter.");
+                    throw new NotSupportedException("A stretch of the block " + block + " is not one the library works out: it works out a stretch by the end point or the base point of a linear or an XY parameter, moving no other parameter.");
                 }
 
                 stretch.Parameter = stretch._x;
@@ -1468,18 +1648,26 @@ namespace GeometryHelper.Dxf
                 return stretch;
             }
 
-            /// <summary>A move, a scale, a rotate or a flip action: the parameter it follows, its connections, and the entities it works on.</summary>
+            /// <summary>
+            /// A move, a scale, a rotate or a flip action: the parameter it follows, its connections, the entities it works on,
+            /// and the parameters a move carries: the node ids (91) the count of its head (70) gives, as LibreDWG reads them,
+            /// each a parameter its entities (330) hold too, as AutoCAD's Block Editor writes a move whose selection holds one.
+            /// </summary>
             internal static BlockAction Of(string type, IReadOnlyList<DxfTypedValue> groups, string id, string block)
             {
                 var action = new BlockAction { Id = id };
                 List<DxfTypedValue> head = DxfDynamicProperties.Section(groups, "AcDbBlockAction");
-                bool chained = (DxfDynamicProperties.Text(head, 70)?.Trim() ?? "0") != "0";
+                int carried = Param.FlagsOf(head, 70);
 
                 foreach (DxfTypedValue group in head)
                 {
                     if (group.TypeCode == 330)
                     {
                         action.Entities.Add(group.Value?.Trim());
+                    }
+                    else if (group.TypeCode == 91)
+                    {
+                        action.Carried.Add(group.Value?.Trim());
                     }
                 }
 
@@ -1495,10 +1683,11 @@ namespace GeometryHelper.Dxf
                     action._xBy = DxfDynamicProperties.Text(own, 301)?.Trim();
                     action._yBy = DxfDynamicProperties.Text(own, 302)?.Trim();
                     action._xyType = Param.FlagsOf(own, 280);
+                    action.ByBase = action._xBy == "BaseXDelta" && action._yBy == "BaseYDelta";
                     double multiplier = Param.RealOf(own, 140, 1.0), angle = Param.RealOf(own, 141, 0.0);
                     action.Multiplier = Math.Abs(multiplier - 1.0) <= slack ? 1.0 : multiplier;
                     action.Offset = Math.Abs(angle) <= slack ? 0.0 : angle;
-                    known = true;
+                    known = carried == action.Carried.Count && !action.Carried.Contains(null);
                 }
                 else if (type == "BLOCKARRAYACTION")
                 {
@@ -1541,9 +1730,9 @@ namespace GeometryHelper.Dxf
                         && Param.FlagsOf(basis, 280) == 1 && offset != null && Math.Abs(offset[0]) + Math.Abs(offset[1]) + Math.Abs(offset[2]) <= slack;
                 }
 
-                if (id == null || action._x == null || action._x != action._y || chained || !known)
+                if (id == null || action._x == null || action._x != action._y || (action.Kind != ActionKind.Move && (carried != 0 || action.Carried.Count != 0)) || !known)
                 {
-                    throw new NotSupportedException("A " + type + " of the block " + block + " is not one the library works out: it works out a move, a scale and a rotate about the parameter's base point, a flip and an array of a column offset, each of entities only.");
+                    throw new NotSupportedException("A " + type + " of the block " + block + " is not one the library works out: it works out a move, a scale and a rotate about the parameter's base point, a flip and an array of a column offset, each of entities only, and a move carrying linear parameters.");
                 }
 
                 action.Parameter = action._x;
@@ -1554,8 +1743,9 @@ namespace GeometryHelper.Dxf
             /// Refuses an action whose parameter is not of the kind it follows, or that works on what is not an entity of the
             /// block the library works out: a stretch of a linear or an XY parameter, of lines, polylines and entities of one
             /// point by their points, and of arcs by both ends or, lying flat, by one; a move of a linear or an XY parameter by
-            /// its end point, of a point parameter by its position; a scale of a linear parameter, a rotate of a rotation
-            /// parameter, a flip of a flip parameter, an array of a linear parameter or of an XY parameter of a row offset.
+            /// its end point or its base point, of a point parameter by its position, the attribute definitions a move alone
+            /// may hold; a scale of a linear parameter, a rotate of a rotation parameter, a flip of a flip parameter, an array
+            /// of a linear parameter or of an XY parameter of a row offset.
             /// </summary>
             internal void Check(Block block, Dictionary<string, DxfEntity> entities, string name)
             {
@@ -1569,7 +1759,7 @@ namespace GeometryHelper.Dxf
                         fits = end && (_xyType == 0 || !(parameter is Planar));
                         break;
                     case ActionKind.Move:
-                        fits = _xyType == 0 && ((end && _xBy == "EndXDelta" && _yBy == "EndYDelta") || (parameter is Spot && _xBy == "XDelta" && _yBy == "YDelta"));
+                        fits = _xyType == 0 && ((end && ((_xBy == "EndXDelta" && _yBy == "EndYDelta") || ByBase)) || (parameter is Spot && _xBy == "XDelta" && _yBy == "YDelta"));
                         break;
                     case ActionKind.Scale:
                         fits = parameter is Linear;
@@ -1592,7 +1782,7 @@ namespace GeometryHelper.Dxf
 
                 foreach (string handle in Entities)
                 {
-                    if (Kind != ActionKind.Stretch && (!entities.TryGetValue(handle, out DxfEntity entity) || entity is DxfUnknownEntity || entity is DxfAttributeDefinition))
+                    if (Kind != ActionKind.Stretch && (!entities.TryGetValue(handle, out DxfEntity entity) || entity is DxfUnknownEntity || (entity is DxfAttributeDefinition && Kind != ActionKind.Move)))
                     {
                         throw new NotSupportedException("A " + Kind.ToString().ToLowerInvariant() + " action of the block " + name + " works on " + handle + ", which is not an entity of the block the library works out: it may be another parameter or a grip, moved with it.");
                     }
