@@ -45,6 +45,10 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets every point where this curved loop crosses a polygon, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// A straight side meets the polygon as it is however short, as
+        /// <see cref="GeoPolylineArc3.GetIntersections(GeoPolygon3, Tolerance)"/> says.
+        /// </remarks>
         /// <param name="polygon">The polygon.</param>
         /// <param name="tolerance">The tolerance.</param>
         public GeoPoint3[] GetIntersections(GeoPolygon3 polygon, Tolerance tolerance) => ArcChain3.GetIntersections(this, polygon, tolerance);

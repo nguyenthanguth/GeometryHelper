@@ -205,6 +205,12 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets every point where this chain crosses a polygon, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// A segment meets the polygon as it is however short: at a hundredth, the chain lying level 0.004 over the square
+        /// 10 by 10 in the floor with a corner at the origin from (2, 5, 0.004) to (5, 5, 0.004), down through it to
+        /// (5, 5, -0.005) and on level to (8, 5, -0.005) meets it at (5, 5, 0), where its segment 0.009 long, no longer than
+        /// the tolerance, met nothing. A triangle and a face are met the same way.
+        /// </remarks>
         public GeoPoint3[] GetIntersections(GeoPolygon3 polygon, Tolerance tolerance)
             => Intersection3.GetIntersections(this, polygon, tolerance);
 

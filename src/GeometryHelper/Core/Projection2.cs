@@ -30,7 +30,8 @@ namespace GeometryHelper.Core
     /// Against anything but a point, every side of a rectangle, a polygon or a polyline is joined as it is however short, as
     /// the distance measures it: at a hundredth, the polygon (0, 0), (10, 0), (10, 0.006), (0, 10) is joined to the segment
     /// from (10.03, 0.003) to (10.05, 0.003) by the line from (10, 0.003), 0.03 long, where read as its start its side 0.006
-    /// long gave one from a corner 0.0301496 long. A point beside such a side is still carried to the side's start. Where two
+    /// long gave one from a corner 0.0301496 long. A point is joined to such a side as it is too, and so is its closest
+    /// point found. Where two
     /// shapes come within the tolerance without meeting, the segment may be one of no length, a touch, and only there: two
     /// sides whose lines cross within the tolerance past the ends of both can be twice as far apart, and are joined by the
     /// gap. Two squares 100 by 100 whose corners are 0.00085 apart in x and in y are joined at a thousandth by the line
@@ -194,12 +195,13 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <param name="poly">The polygon.</param>
         /// <param name="point">The target point.</param>
-        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="tolerance">The tolerance; every side is measured as it is, so it changes nothing here.</param>
         /// <returns>The closest point on the polygon boundary.</returns>
         /// <remarks>
-        /// A side no longer than the tolerance offers its start, as a segment that short does on its own, so beside it the
-        /// closest point can be further than the distance by up to the side's length: at a hundredth, the polygon (0, 0),
-        /// (10, 0), (10, 0.006), (0, 10) is 0.03 from (10.03, 0.003), and the closest point is (10, 0), 0.0301496 away.
+        /// A side offers its nearest point as the side it is however short, as the distance measures it, where a segment no
+        /// longer than the tolerance on its own is read as its start: at a hundredth, the polygon (0, 0), (10, 0), (10, 0.006),
+        /// (0, 10) is 0.03 from (10.03, 0.003), and the closest point is (10, 0.003), 0.03 away, where its side 0.006 long, no
+        /// longer than the tolerance, offered its start (10, 0), 0.0301496 away.
         /// </remarks>
         public static GeoPoint2 ProjectToPolygon(GeoPolygon2 poly, GeoPoint2 point, Tolerance tolerance)
         {
@@ -207,11 +209,12 @@ namespace GeometryHelper.Core
 
             double minDistanceSq = double.MaxValue;
             GeoPoint2 closestPoint = poly[0];
+            Tolerance sides = Exactly;
 
             for (int i = 0; i < poly.EdgeCount; i++)
             {
                 GeoLine2 edge = poly.GetEdgeAt(i);
-                GeoPoint2 proj = ProjectToLine(edge, point, tolerance);
+                GeoPoint2 proj = ProjectToLine(edge, point, sides);
                 double dSq = Distance2.GetDistanceSquaredTo(point, proj);
                 if (dSq < minDistanceSq)
                 {
@@ -244,7 +247,8 @@ namespace GeometryHelper.Core
         /// The boundary of a face is its outline <b>and</b> the rim of every hole, so a point sitting in a
         /// hole is answered with a point of that rim. As with a polygon, the answer is always on the boundary,
         /// which is where this parts company with <see cref="Distance2"/>: that reads a face as filled and
-        /// calls a point on the material nought away.
+        /// calls a point on the material nought away. Every side of the outline and of a hole is measured as it is
+        /// however short, as <see cref="ProjectToPolygon(GeoPolygon2, GeoPoint2, Tolerance)"/> measures it.
         /// </remarks>
         public static GeoPoint2 ProjectToFace(GeoFace2 face, GeoPoint2 point, Tolerance tolerance)
         {
@@ -285,12 +289,13 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <param name="polyline">The polyline.</param>
         /// <param name="point">The target point.</param>
-        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="tolerance">The tolerance; every leg is measured as it is, so it changes nothing here.</param>
         /// <returns>The closest point on the polyline.</returns>
         /// <remarks>
-        /// A leg no longer than the tolerance offers its start, as a segment that short does on its own, so beside it the
-        /// closest point can be further than the distance by up to the leg's length: at a hundredth, the polyline (0, 0),
-        /// (10, 0), (10, 0.006), (0, 0.006) is 0.03 from (10.03, 0.003), and the closest point is (10, 0), 0.0301496 away.
+        /// A leg offers its nearest point as the leg it is however short, as the distance measures it, where a segment no
+        /// longer than the tolerance on its own is read as its start: at a hundredth, the polyline (0, 0), (10, 0), (10, 0.006),
+        /// (0, 0.006) is 0.03 from (10.03, 0.003), and the closest point is (10, 0.003), 0.03 away, where its leg 0.006 long, no
+        /// longer than the tolerance, offered its start (10, 0), 0.0301496 away.
         /// </remarks>
         public static GeoPoint2 ProjectToPolyline(GeoPolyline2 polyline, GeoPoint2 point, Tolerance tolerance)
         {
@@ -298,11 +303,12 @@ namespace GeometryHelper.Core
 
             double minDistanceSq = double.MaxValue;
             GeoPoint2 closestPoint = polyline[0];
+            Tolerance sides = Exactly;
 
             for (int i = 0; i < polyline.EdgeCount; i++)
             {
                 GeoLine2 edge = polyline.GetEdgeAt(i);
-                GeoPoint2 proj = ProjectToLine(edge, point, tolerance);
+                GeoPoint2 proj = ProjectToLine(edge, point, sides);
                 double dSq = Distance2.GetDistanceSquaredTo(point, proj);
                 if (dSq < minDistanceSq)
                 {
@@ -390,10 +396,11 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
         /// A <see cref="GeoLine2"/> from the point <see cref="ProjectToPolyline(GeoPolyline2, GeoPoint2, Tolerance)"/> gives to
-        /// <paramref name="point"/>, so it is as long as <see cref="Distance2.DistanceTo(GeoPolyline2, GeoPoint2)"/> but beside
-        /// a leg no longer than the tolerance, which carries the point to the leg's start: at a hundredth, the polyline (0, 0),
-        /// (10, 0), (10, 0.006), (0, 0.006) is 0.03 from (10.03, 0.003), and the line runs from (10, 0), 0.0301496 long. Only
-        /// the path counts: a point in the mouth of a horseshoe gets the line out to the nearest leg, never one of no length.
+        /// <paramref name="point"/>, so it is as long as <see cref="Distance2.DistanceTo(GeoPolyline2, GeoPoint2)"/>, beside a
+        /// leg no longer than the tolerance too: at a hundredth, the polyline (0, 0), (10, 0), (10, 0.006), (0, 0.006) is 0.03
+        /// from (10.03, 0.003), and the line runs from (10, 0.003), 0.03 long, where it ran from the leg's start (10, 0),
+        /// 0.0301496 long. Only the path counts: a point in the mouth of a horseshoe gets the line out to the nearest leg,
+        /// never one of no length.
         /// Where two legs are equally near, the first of them along the polyline is taken.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
@@ -1203,9 +1210,9 @@ namespace GeometryHelper.Core
         /// which takes a point within the tolerance outside as in; on the boundary it has no length.
         /// Where two edges are equally near, the first of them round the polygon is taken. Inside the square 100 by 100 on
         /// the origin, the point (50, 30) gets the segment from (50, 0), 30 long. Beside a side no longer than the tolerance
-        /// the point is carried to the side's start, so the segment can be longer than the distance by up to the side's
-        /// length: at a hundredth, the polygon (0, 0), (10, 0), (10, 0.006), (0, 10) is 0.03 from (10.03, 0.003), and the
-        /// segment runs from (10, 0), 0.0301496 long.
+        /// it runs from the side as it is: at a hundredth, the polygon (0, 0), (10, 0), (10, 0.006), (0, 10) is 0.03 from
+        /// (10.03, 0.003), and the segment runs from (10, 0.003), 0.03 long, where it ran from the side's start (10, 0),
+        /// 0.0301496 long.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static GeoLine2 GetShortestLineTo(GeoPolygon2 poly, GeoPoint2 point, Tolerance tolerance) => new GeoLine2(ProjectToPolygon(poly, point, tolerance), point);

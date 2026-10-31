@@ -6,7 +6,8 @@ namespace GeometryHelper.UnitTest.Plane
 {
     /// <summary>
     /// A side of a straight polygon, polyline or rectangle no longer than the point tolerance is the side it is to the
-    /// closest edge and the shortest line, as it already was to the distance and as it is for the curved loops and chains;
+    /// closest edge and the shortest line, as it already was to the distance and as it is for the curved loops and chains,
+    /// and since G1wh to the nearest point too;
     /// and the exact distance from a segment to an arc smaller than the tolerance weighs the point of the arc facing the
     /// segment however near the segment passes to the centre.
     /// </summary>
@@ -122,17 +123,19 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         [Fact]
-        public void TheNearestPointBesideAShortStraightSide_IsStillItsStart()
+        public void TheNearestPointBesideAShortStraightSide_IsOnTheSideAsItIs()
         {
-            // Kept, as for the curved loops: the line from the polygon and from the polyline to (10.03, 0.003) runs from
-            // (10, 0), 0.0301496 long, where the distance is 0.03. A rectangle measures its sides exactly, and keeps doing so.
+            // A side is measured as it is (G1wh), as for the curved loops since G1wg: the line from the polygon and from the
+            // polyline to (10.03, 0.003) runs from the foot (10, 0.003), as long as the distance, 0.03, where it ran from
+            // (10, 0), 0.0301496 long. A rectangle measures its sides exactly, and keeps doing so.
             var point = new GeoPoint2(10.03, 0.003);
             GeoLine2 fromPolygon = Polygon().GetShortestLineTo(point, Hundredth);
 
+            Assert.True(ToACorner - 0.03 > 1E-4);
             Assert.Equal(10, fromPolygon.StartPoint.X, 12);
-            Assert.Equal(0, fromPolygon.StartPoint.Y, 12);
-            Assert.Equal(ToACorner, fromPolygon.Length, 12);
-            Assert.Equal(ToACorner, Hairpin().GetShortestLineTo(point, Hundredth).Length, 12);
+            Assert.Equal(0.003, fromPolygon.StartPoint.Y, 12);
+            Assert.Equal(0.03, fromPolygon.Length, 12);
+            Assert.Equal(0.03, Hairpin().GetShortestLineTo(point, Hundredth).Length, 12);
             Assert.Equal(0.03, Hairpin().DistanceTo(point), 12);
             Assert.Equal(0.03, Strip().GetShortestLineTo(point, Hundredth).Length, 12);
         }

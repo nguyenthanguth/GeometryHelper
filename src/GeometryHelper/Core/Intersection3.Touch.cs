@@ -83,7 +83,8 @@ namespace GeometryHelper.Core
         /// <param name="triangle">The triangle.</param>
         /// <param name="readShortAsPoint">
         /// true for a segment a caller gave, read as <see cref="Collision3.CollidesWith(GeoLine3, GeoTriangle3, Tolerance)"/>
-        /// reads it; false for a side of a chain or a ray cut short, read as each side of a chain is.
+        /// reads it; false for a side of a chain or a ray cut short, read as each side of a chain is: one no longer than the
+        /// point tolerance meets the triangle where it truly does (see <see cref="IsShortSide"/>).
         /// </param>
         /// <param name="tolerance">The tolerance.</param>
         /// <param name="endless">
@@ -92,6 +93,16 @@ namespace GeometryHelper.Core
         /// </param>
         internal static GeoPoint3[] Meeting(GeoLine3 line, GeoTriangle3 triangle, bool readShortAsPoint, Tolerance tolerance, bool endless = false)
         {
+            if (!readShortAsPoint && IsShortSide(line, tolerance, out Tolerance asSide))
+            {
+                GeoPoint3[] met = Meeting(line, triangle, false, asSide, endless);
+
+                if (met.Length > 0)
+                {
+                    return met;
+                }
+            }
+
             bool crossed = TryCross(line, triangle, out GeoPoint3 crossing, tolerance);
 
             if (crossed && !triangle.IsDegenerate(tolerance) && OnPlaneAndPiece(crossing, triangle.GetPlane(), line))
@@ -112,6 +123,16 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static GeoPoint3[] Meeting(GeoLine3 line, GeoPolygon3 polygon, bool readShortAsPoint, Tolerance tolerance, bool endless = false)
         {
+            if (!readShortAsPoint && IsShortSide(line, tolerance, out Tolerance asSide))
+            {
+                GeoPoint3[] met = Meeting(line, polygon, false, asSide, endless);
+
+                if (met.Length > 0)
+                {
+                    return met;
+                }
+            }
+
             bool crossed = TryCross(line, polygon, out GeoPoint3 crossing, tolerance);
 
             if (crossed && OnPlaneAndPiece(crossing, polygon.GetPlane(), line))
@@ -132,6 +153,16 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static GeoPoint3[] Meeting(GeoLine3 line, GeoFace3 face, bool readShortAsPoint, Tolerance tolerance, bool endless = false)
         {
+            if (!readShortAsPoint && IsShortSide(line, tolerance, out Tolerance asSide))
+            {
+                GeoPoint3[] met = Meeting(line, face, false, asSide, endless);
+
+                if (met.Length > 0)
+                {
+                    return met;
+                }
+            }
+
             bool crossed = TryCross(line, face, out GeoPoint3 crossing, tolerance);
 
             if (crossed && OnPlaneAndPiece(crossing, face.GetPlane(), line))
@@ -144,6 +175,31 @@ namespace GeometryHelper.Core
             return Clear(line, box, crossed, tolerance)
                 ? new GeoPoint3[0]
                 : Meeting(line, Gap3.Region.Of(face), box, null, crossed, crossing, readShortAsPoint, tolerance, endless);
+        }
+
+        /// <summary>
+        /// Determines whether a side of a shape is no longer than the point tolerance, which crosses no plane at it, and gives
+        /// the tolerance it is asked at first, as the side it is: the one given, brought down to the rounding of its start
+        /// (<see cref="AsSide"/>). Where it truly passes through or touches a region at that, it meets it there, as a segment you
+        /// give that short does where it truly meets one; where it does not, it is read at the tolerance given.
+        /// </summary>
+        /// <remarks>
+        /// At a hundredth, the chain lying level 0.004 over a square, down through it by a leg 0.009 long and on level 0.005
+        /// under it meets it at the foot of that leg, where the leg crossed no plane and lay level over the square as its
+        /// neighbours do, and the chain met nothing.
+        /// </remarks>
+        private static bool IsShortSide(GeoLine3 side, Tolerance tolerance, out Tolerance asSide)
+        {
+            asSide = tolerance;
+
+            if (side.StartPoint.GetDistanceSquaredTo(side.EndPoint) > tolerance.EqualPoint * tolerance.EqualPoint)
+            {
+                return false;
+            }
+
+            asSide = AsSide(side, tolerance);
+
+            return asSide.EqualPoint < tolerance.EqualPoint;
         }
 
         /// <summary>

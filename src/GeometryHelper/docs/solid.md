@@ -735,7 +735,15 @@ Seven things are read otherwise, on purpose:
   (5, 5, 0), where it was given its short side's start. A straight side of a chain, a loop or a polyline crosses the
   surface of a body as it is however short: at a hundredth, the chain from (2, 5, 0.054) down to (5, 5, 0.004), through
   the top of the box 10 by 10 by 10 standing under the floor to (5, 5, -0.005) and on to (8, 5, -0.055) crosses it, and
-  is cut by it, at (5, 5, 0), where its side 0.009 long crossed nothing and the chain was given no point. And
+  is cut by it, at (5, 5, 0), where its side 0.009 long crossed nothing and the chain was given no point. A polyline is cut
+  so too, within the tolerance of (5, 5, 0), where it came back whole, a cut within the tolerance of a corner made at the
+  corner; and a segment you give is cut where it crosses however much shorter than the global tolerance: at a billionth,
+  the segment from (5, 5, 0.0004) to (5, 5, -0.0005) is cut at (5, 5, 0), where the place was measured along it at the
+  global thousandth, at its start, and it came back whole. A straight side meets a triangle, a polygon or a face as it is
+  too: the chain lying level 0.004 over the top of that box from (2, 5, 0.004) to (5, 5, 0.004), down through it to
+  (5, 5, -0.005) and on level to (8, 5, -0.005), as a curved chain or a polyline, meets the square of the top at (5, 5, 0),
+  where it met nothing; a chain whose corner comes within the tolerance of the region is still given the corner, and a
+  place two sides name within the tolerance of each other is named once, by the first. And
   `GetDistanceAtPoint` and `GetParameterAtPoint` of a curved chain or loop read a straight side as it is, as its closest
   point does: the chain from (-7, -7, 0) to the origin, on to (0.008, 0, 0) and to (7, -7, 0) puts (0.006, 0.02, 0)
   9.9055 along, 0.006 along its short side, where it put it 9.9075 along, at the start of the next.

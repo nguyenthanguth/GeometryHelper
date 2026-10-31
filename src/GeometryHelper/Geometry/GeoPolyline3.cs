@@ -572,6 +572,13 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Splits this polyline by a solid, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// A leg is crossed as it is however short: at a hundredth, the polyline from (2, 5, 0.054) down to (5, 5, 0.004),
+        /// through the top of the box 10 by 10 by 10 standing under the floor to (5, 5, -0.005) and on to (8, 5, -0.055) is
+        /// cut where its leg 0.009 long passes through the top, within the tolerance of (5, 5, 0), where that leg crossed no
+        /// face and the polyline came back whole. A cut within the tolerance of a corner is made at the corner, as
+        /// <see cref="SplitAtDistances(IEnumerable{double}, Tolerance)"/> makes it.
+        /// </remarks>
         public bool TrySplitBy(GeoSolid3 cutter, out GeoPolyline3[] inside, out GeoPolyline3[] outside, Tolerance tolerance) => Splition3.TrySplitBy(this, cutter, out inside, out outside, tolerance);
 
         /// <summary>
@@ -583,6 +590,10 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Splits this polyline by several solids taken together as their union, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// A leg is crossed as it is however short, as <see cref="TrySplitBy(GeoSolid3, out GeoPolyline3[], out GeoPolyline3[], Tolerance)"/>
+        /// crosses it.
+        /// </remarks>
         public bool TrySplitBy(GeoSolid3[] cutters, out GeoPolyline3[] inside, out GeoPolyline3[] outside, Tolerance tolerance) => Splition3.TrySplitBy(this, cutters, out inside, out outside, tolerance);
 
         /// <summary>

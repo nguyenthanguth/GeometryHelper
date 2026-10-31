@@ -1760,6 +1760,13 @@ namespace GeometryHelper.Core
         /// beyond rather than above and below. The chain is cut at every crossing of the surface, which is
         /// what makes each piece lie wholly on one side and lets a single sample decide which.
         /// <para>
+        /// A leg is crossed as it is however short, and the place is measured along it as it is: at a hundredth, the chain
+        /// from (2, 5, 0.054) down to (5, 5, 0.004), through the top of the box 10 by 10 by 10 standing under the floor to
+        /// (5, 5, -0.005) and on to (8, 5, -0.055) is cut within the tolerance of (5, 5, 0), where its leg 0.009 long crossed
+        /// no face and the chain came back whole. A cut within the tolerance of a corner is made at the corner, as
+        /// <see cref="SplitAtDistances(GeoPolyline3, IEnumerable{double}, Tolerance)"/> makes it.
+        /// </para>
+        /// <para>
         /// A piece lying on the surface counts as inside, following <c>Containment3.Contains</c>, which
         /// reads the boundary as part of the body. A chain running along a face is therefore reported as
         /// inside along its whole length.
@@ -2385,6 +2392,11 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Collects where a chain crosses the surface of a body, as arc lengths from the start of the chain.
         /// </summary>
+        /// <remarks>
+        /// A leg no longer than the point tolerance crosses no plane at it, so it is crossed as the side it is, as a leg of a
+        /// curved chain is (<see cref="Intersection3.OfSide(GeoLine3, GeoSolid3, Tolerance)"/>): where it truly passes through
+        /// the surface.
+        /// </remarks>
         private static List<double> CollectSurfaceCrossings(GeoPolyline3 subject, GeoSolid3 cutter, Tolerance tolerance)
         {
             List<double> cuts = new List<double>();
@@ -2393,12 +2405,32 @@ namespace GeometryHelper.Core
             for (int i = 0; i < subject.EdgeCount; i++)
             {
                 GeoLine3 edge = subject.GetEdgeAt(i);
-                cuts.AddRange(CollectSurfaceCrossings(edge, cutter, travelled, tolerance));
+
+                if (edge.StartPoint.GetDistanceSquaredTo(edge.EndPoint) <= tolerance.EqualPoint * tolerance.EqualPoint)
+                {
+                    foreach (GeoPoint3 hit in Intersection3.OfSide(edge, cutter, tolerance))
+                    {
+                        cuts.Add(travelled + DistanceAlong(edge, hit));
+                    }
+                }
+                else
+                {
+                    cuts.AddRange(CollectSurfaceCrossings(edge, cutter, travelled, tolerance));
+                }
+
                 travelled += edge.Length;
             }
 
             return cuts;
         }
+
+        /// <summary>
+        /// Gets how far along a segment the foot of a point lies, the segment measured as it is however short, where
+        /// <see cref="Parametrization3.GetDistanceAtPoint(GeoLine3, GeoPoint3)"/> reads one no longer than the global tolerance
+        /// as its start.
+        /// </summary>
+        private static double DistanceAlong(GeoLine3 line, GeoPoint3 point)
+            => Parametrization3.GetParameterAtPoint(line, point, default(Tolerance)) * line.Length;
 
         /// <summary>
         /// Collects where one segment crosses the surface of a body, as arc lengths offset by how far along
@@ -2428,7 +2460,7 @@ namespace GeometryHelper.Core
 
                 if (Intersection3.TryCross(edge, face, out GeoPoint3 hit, tolerance))
                 {
-                    cuts.Add(offset + Parametrization3.GetDistanceAtPoint(edge, hit));
+                    cuts.Add(offset + DistanceAlong(edge, hit));
                 }
             }
 

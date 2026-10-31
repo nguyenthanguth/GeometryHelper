@@ -74,8 +74,7 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// It starts where <see cref="GetClosestPointOnBoundary(GeoPoint2)"/> lands, even for a point inside, so inside
         /// it is as long as the depth to the nearest edge; <see cref="DistanceTo(GeoPoint2)"/> reads the polygon as filled and
-        /// answers nought there. Outside, the two agree, but beside a side no longer than the tolerance, which carries the
-        /// point to the side's start.
+        /// answers nought there. Outside, the two agree, beside a side no longer than the tolerance too.
         /// </remarks>
         public GeoLine2 GetShortestLineTo(GeoPoint2 point) => Projection2.GetShortestLineTo(this, point);
 

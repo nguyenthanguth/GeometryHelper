@@ -32,6 +32,10 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets every point where this curved chain crosses a triangle, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// A straight edge meets the triangle as it is however short, as <see cref="GetIntersections(GeoPolygon3, Tolerance)"/>
+        /// says.
+        /// </remarks>
         /// <param name="triangle">The triangle.</param>
         /// <param name="tolerance">The tolerance.</param>
         public GeoPoint3[] GetIntersections(GeoTriangle3 triangle, Tolerance tolerance) => ArcChain3.GetIntersections(this, triangle, tolerance);
@@ -45,6 +49,14 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets every point where this curved chain crosses a polygon, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// A straight edge meets the polygon as it is however short: at a hundredth, the chain lying level 0.004 over the
+        /// square 10 by 10 in the floor with a corner at the origin from (2, 5, 0.004) to (5, 5, 0.004), down through it to
+        /// (5, 5, -0.005) and on level to (8, 5, -0.005) meets it at (5, 5, 0), where its edge 0.009 long, no longer than the
+        /// tolerance, met nothing and the chain was given no point. A chain whose corner comes within the tolerance of the
+        /// polygon is given the corner, and a place named by two edges within the tolerance of each other is named once, by
+        /// the first.
+        /// </remarks>
         /// <param name="polygon">The polygon.</param>
         /// <param name="tolerance">The tolerance.</param>
         public GeoPoint3[] GetIntersections(GeoPolygon3 polygon, Tolerance tolerance) => ArcChain3.GetIntersections(this, polygon, tolerance);
@@ -58,6 +70,10 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets every point where this curved chain crosses a face, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// A straight edge meets the material as it is however short, as <see cref="GetIntersections(GeoPolygon3, Tolerance)"/>
+        /// says.
+        /// </remarks>
         /// <param name="face">The face.</param>
         /// <param name="tolerance">The tolerance.</param>
         public GeoPoint3[] GetIntersections(GeoFace3 face, Tolerance tolerance) => ArcChain3.GetIntersections(this, face, tolerance);

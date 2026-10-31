@@ -10,6 +10,10 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the point on the edges of this triangle closest to a point.
         /// </summary>
+        /// <remarks>
+        /// Each edge is measured as it is however short: the triangle (0, 0), (10, 0), (10, 0.0006) gives (10.03, 0.0003) the
+        /// foot (10, 0.0003) on its edge 0.0006 long, 0.03 away, where it gave that edge's start, 0.0300015 away.
+        /// </remarks>
         public GeoPoint2 GetClosestPointOnBoundary(GeoPoint2 point) => Triangle2.GetClosestPointOnBoundary(this, point);
 
         /// <summary>

@@ -72,9 +72,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <remarks>
         /// It starts where <see cref="GetClosestPointOnBoundary(GeoPoint2)"/> lands and is as long as
-        /// <see cref="DistanceTo(GeoPoint2)"/> but beside a leg no longer than the tolerance, which carries the point to the
-        /// leg's start. A polyline is a path, not a region, so a point in the mouth of a horseshoe gets the segment out to the
-        /// nearest leg.
+        /// <see cref="DistanceTo(GeoPoint2)"/>, beside a leg no longer than the tolerance too. A polyline is a path, not a
+        /// region, so a point in the mouth of a horseshoe gets the segment out to the nearest leg.
         /// </remarks>
         public GeoLine2 GetShortestLineTo(GeoPoint2 point) => Projection2.GetShortestLineTo(this, point);
 

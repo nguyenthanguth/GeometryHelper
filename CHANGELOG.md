@@ -23,6 +23,37 @@ worked out anew, nor set. The five properties of ACadSharp's lookup sample, a gr
 microseconds an INSERT under .NET 10 and 86 under .NET Framework 4.8. 16 new tests, 1 changed (an INSERT of BOLT scaled
 (1.5, -1.5, 2) is not `IsDynamicBlock`).
 
+**FIXED.** In the plane, a straight polygon, polyline, face or triangle gives a point beside a side its closest point on
+the side as it is however short, as a curved chain or loop has since the entry below: `Projection2.ProjectToPolygon`,
+`ProjectToPolyline` and `ProjectToFace`, `GetClosestPointOnBoundary` and `GetShortestLineTo(GeoPoint2)` of `GeoPolygon2`,
+`GeoPolyline2`, `GeoFace2` and `GeoTriangle2`, and the members of `GeoPoint2` that answer the same. A side no longer than
+the tolerance offered its start: at a hundredth, the polygon (0, 0), (10, 0), (10, 0.006), (0, 10) gave (10.03, 0.003)
+the closest point (10, 0), 0.0301496 away; it gives (10, 0.003), 0.03 away, as far as `DistanceTo` measures. The closest
+point of a triangle read the global tolerance so: the triangle (0, 0), (10, 0), (10, 0.0006) gave (10.03, 0.0003) the
+side's start, and gives the foot (10, 0.0003). Of 3 000 random polygons, polylines, faces and triangles with a side
+shorter than tolerances from 1E-6 to 3E-2, 4 246 answers broke against the exact distance, and none does; a segment you
+give no longer than the tolerance, joined from its start, is joined to such a side as it is, by a line no longer than it
+was. Shapes whose sides are all longer than the tolerance answer as before, to the bit, in the time they took. 4 new
+tests; 1 test that pinned the start now expects the side.
+
+**FIXED.** In space, a short leg of a polyline crosses a body where `TrySplitBy` cuts the polyline, and a short side of
+a chain or a polyline meets a triangle, a polygon or a face where it truly passes through it. A leg of a `GeoPolyline3` no
+longer than the point tolerance crossed no face: at a hundredth, the polyline from (2, 5, 0.054) down to (5, 5, 0.004),
+through the top of the box 10 by 10 by 10 standing under the floor to (5, 5, -0.005) and on to (8, 5, -0.055) came back
+whole from `TrySplitBy(GeoSolid3)` and `TrySplitBy(GeoSolid3[])`; it is cut within the tolerance of (5, 5, 0), a cut
+within the tolerance of a corner made at the corner, as `SplitAtDistances` makes it. The place of a crossing was measured
+along a leg, and along a `GeoLine3` cut by a body, at the global tolerance: at a billionth, the segment from
+(5, 5, 0.0004) to (5, 5, -0.0005) came back whole, and is cut at (5, 5, 0). A straight side of a `GeoPolylineArc3`,
+`GeoPolygonArc3` or `GeoPolyline3` no longer than the tolerance lying level over a region but for passing through it met
+nothing: at a hundredth, the chain from (2, 5, 0.004) to (5, 5, 0.004), down through the square 10 by 10 in the floor to
+(5, 5, -0.005) and on level to (8, 5, -0.005) met it nowhere, and meets it at (5, 5, 0). A chain whose corner comes
+within the tolerance of a region is still given the corner. Of 8 000 random chains, loops and polylines a seed against a
+box and its top, 956 of 956 whose short side alone passes through the region met nothing, and none does; 187 of 193
+polylines cut by a box through a leg no longer than the tolerance came back whole or cut further off than the tolerance,
+and none does; of those whose leg is between the tolerance and the global one, 120 of 140, and 7 do, each a piece within
+the tolerance of the surface, which counts as inside. Sides and segments longer than the global tolerance answer as
+before, to the bit, in the time they took. 4 new tests.
+
 **FIXED.** In the plane, a curved chain or loop, `GeoPolylineArc2` or `GeoPolygonArc2`, gives a point beside a straight
 side its closest point on the side as it is however short, as it does in space, and its `GetShortestLineTo(GeoPoint2)`,
 `GetDistanceAtPoint` and `GetParameterAtPoint` follow it, as do the members of `Projection2`, `Parametrization2` and
@@ -32,8 +63,7 @@ the loop (0, 0), (10, 0), (10, 0.006), (0, 10) gave (10.03, 0.003) the closest p
 `GetDistanceAtPoint` and `GetParameterAtPoint` of `GeoPolylineArc3` and `GeoPolygonArc3` read such a side as their
 closest point already did: the chain from (-7, -7, 0) to the origin, on to (0.008, 0, 0) and to (7, -7, 0) put
 (0.006, 0.02, 0) 9.9075 along, at the start of its last side, and puts it 9.9055 along, on its short side. A bend keeps
-its reading near the centre of its arc, and a polygon and a polyline in the plane keep carrying a point beside a short
-side to its start. Of 3 000 random chains and loops a seed with a straight side shorter than tolerances from 1E-6 to
+its reading near the centre of its arc; a polygon and a polyline in the plane follow in the entry above. Of 3 000 random chains and loops a seed with a straight side shorter than tolerances from 1E-6 to
 3E-2, 5 268 and 5 292 answers in the plane and 1 660 and 1 660 in space broke against the exact distance, and none does.
 Chains whose sides are all longer than the tolerance answer as before, to the bit, in the time they took. 4 new tests;
 1 test that pinned the start now expects the side.

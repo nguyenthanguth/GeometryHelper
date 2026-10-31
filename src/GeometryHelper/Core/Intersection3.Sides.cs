@@ -48,17 +48,17 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets where a side meets a triangle.
         /// </summary>
-        internal static GeoPoint3[] OfSide(GeoLine3 side, GeoTriangle3 triangle, Tolerance tolerance) => Meeting(side, triangle, true, tolerance);
+        internal static GeoPoint3[] OfSide(GeoLine3 side, GeoTriangle3 triangle, Tolerance tolerance) => Meeting(side, triangle, false, tolerance);
 
         /// <summary>
         /// Gets where a side meets a polygon.
         /// </summary>
-        internal static GeoPoint3[] OfSide(GeoLine3 side, GeoPolygon3 polygon, Tolerance tolerance) => Meeting(side, polygon, true, tolerance);
+        internal static GeoPoint3[] OfSide(GeoLine3 side, GeoPolygon3 polygon, Tolerance tolerance) => Meeting(side, polygon, false, tolerance);
 
         /// <summary>
         /// Gets where a side meets the material of a face.
         /// </summary>
-        internal static GeoPoint3[] OfSide(GeoLine3 side, GeoFace3 face, Tolerance tolerance) => Meeting(side, face, true, tolerance);
+        internal static GeoPoint3[] OfSide(GeoLine3 side, GeoFace3 face, Tolerance tolerance) => Meeting(side, face, false, tolerance);
 
         /// <summary>
         /// Gets where a side of a curved chain, straight or an arc, meets a triangle.

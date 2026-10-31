@@ -539,6 +539,11 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Splits this segment by a solid, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// The segment is measured as it is however much shorter than the global tolerance: at a billionth, the segment from
+        /// (5, 5, 0.0004) to (5, 5, -0.0005) is cut by the top of the box 10 by 10 by 10 standing under the floor at
+        /// (5, 5, 0), where the place was measured along it at the global thousandth, at its start, and it came back whole.
+        /// </remarks>
         public bool TrySplitBy(GeoSolid3 cutter, out GeoLine3[] inside, out GeoLine3[] outside, Tolerance tolerance) => Splition3.TrySplitBy(this, cutter, out inside, out outside, tolerance);
 
         /// <summary>
