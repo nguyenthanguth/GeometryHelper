@@ -613,6 +613,13 @@ What was skipped, and why, is written to `GeometryHelperLog`. `TryChamferAt` rep
 a caller who needs to know about one corner in particular. Every cut is measured on the shape as it came
 in, never on a shape half cut already, so the answer does not depend on which vertex the walk began at.
 
+The shape is put back together within the tolerance asked, as a curved one is, so a cut longer than the tolerance
+stays and one no longer than it is no edge, the shape turning where the cut starts. At a millionth, the chain (0, 0),
+(10, 0), (10, 10) cut by 0.0003 turns at (9.9997, 0) and (10, 0.0003), and the triangle through the same corners cut
+by 0.0003 has six corners, where they were put back together within the global tolerance of a thousandth, the two
+ends of each cut were one corner, and the chain turned at (9.9997, 0) alone and the triangle came back three. Within a
+tenth, the chain cut by 0.03 turns once, at (9.97, 0), where its cut 0.042 long was kept.
+
 **Rounding them instead.** A straight chain or a straight polygon can be rounded as well as chamfered. A
 rounded corner is an arc, so the answer is the curved type — `GeoPolylineArc2` for a chain,
 `GeoPolygonArc2` for a loop — and the rules for which corners are left alone are the chamfer's.
@@ -808,7 +815,10 @@ one chain, as the same chain a million times larger is within a thousandth, wher
 inside a miter smaller than the global tolerance. A side shorter than a hundredth of a millimetre moves with the rest: at
 a millionth, the square 10 by 10 at the origin with its corner (0, 0) cut off by a side 0.000007 long, grown by a half
 with miters, keeps that side, 0.41422 long now, where the side had no direction within the global vector tolerance of
-1E-5, stayed where it was, and the corner came out square.
+1E-5, stayed where it was, and the corner came out square. An offset by less than 1E-5 is squared off past the miter
+limit and cut by its chamfers as a larger one is: at a billionth, the square of side 0.00001 grown by 0.000002 with
+chamfers is cut 0.000002 from every corner, where the ways out from the corner to the moved ends had no direction
+within the vector tolerance and the corners were cut across their chords.
 
 What tells the folded-over parts from the real ones is the one thing an offset cannot break: every point
 of a valid offset stands **exactly** the offset distance from the shape it came from. Each piece is cut
@@ -1720,6 +1730,13 @@ chains that carry arcs.
 A bulge measures an arc against its own chord, so moving, turning and scaling evenly leave it untouched;
 mirroring changes its sign, because the arc then leans the other way against the same chord.
 
+A curved loop is copied, moved, turned and transformed edge for edge, every arc and side however small, by `Clone`,
+`Translate`, `RotateBy` and `TransformBy`: at a millionth, the rectangle 100 by 50 filleted at 0.0005 keeps its eight
+edges, four of them arcs 0.0007 across, and scaled to a tenth keeps arcs 0.00007 across, where it was put back
+together within the global tolerance of a thousandth and came back its four corners. A segment of any length carries
+the line `Mirror` reflects across: the segment from (0, 0) to (0.000007, 0.000007) mirrors (1, 0) to (0, 1), where it
+had no direction within the global vector tolerance of 1E-5 and was refused.
+
 **What a transformation cannot do.** A circle stays a circle only when every direction is stretched by the
 same amount: when the two axes come out so nearly equally long and square to each other that the circle moved lands
 within the global point tolerance of where the transformation puts each of its points, as a ball in space is read. A turn
@@ -1792,6 +1809,11 @@ polygon.Area;  polygon.SignedArea;  polygon.IsClockwise;  polygon.Centroid;
 face.Area;     face.Length;         face.Centroid;
 rectangle.Area;                     circle.Area;  circle.Length;
 ```
+
+A polygon's centroid weighs its area however small: the L 0.001 by 0.001 with legs 0.00025 wide, of 4.4E-7 square
+units, balances at (0.000339, 0.000339), where an area of a millionth or less was taken for none and its corners were
+averaged to (0.000417, 0.000417). Only corners on one line, whose area is lost in the rounding of their coordinates,
+have none, and are averaged.
 
 ## Flat shapes that live in space
 

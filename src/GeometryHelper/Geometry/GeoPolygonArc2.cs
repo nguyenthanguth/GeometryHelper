@@ -121,35 +121,24 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
-        /// Builds a loop from the start and bulge of each of its edges, in order, the last one closing it.
-        /// </summary>
-        /// <param name="starts">Where each edge starts.</param>
-        /// <param name="bulges">The bulge of each edge.</param>
-        /// <returns>The loop.</returns>
-        /// <remarks>
-        /// Every bulge here is its own edge's, so an edge too short to keep goes with its bulge, the last one as
-        /// well: a last edge starting within the global point tolerance of the first vanishes, and the edge coming
-        /// into it closes the loop with its own bulge. The public constructor reads a repeated first vertex as a
-        /// drawing does instead: a fillet of radius 0.0005 at the first corner of a rectangle 100 by 50 would turn
-        /// the straight side before it into an arc of radius 35.
-        /// </remarks>
-        /// <exception cref="ArgumentException">Thrown when fewer than three distinct starts are given.</exception>
-        internal static GeoPolygonArc2 FromEdges(IEnumerable<GeoPoint2> starts, IEnumerable<double> bulges)
-            => FromEdges(starts, bulges, Tolerance.Global);
-
-        /// <summary>
-        /// Builds a loop from the start and bulge of each of its edges, as
-        /// <see cref="FromEdges(IEnumerable{GeoPoint2}, IEnumerable{double})"/> does, an edge going only where it starts
-        /// within a given tolerance of the start kept before it.
+        /// Builds a loop from the start and bulge of each of its edges, in order, the last one closing it, an edge going
+        /// only where it starts within a given tolerance of the start kept before it.
         /// </summary>
         /// <param name="starts">Where each edge starts.</param>
         /// <param name="bulges">The bulge of each edge.</param>
         /// <param name="tolerance">The tolerance whose point threshold says when an edge is too short to keep.</param>
         /// <returns>The loop.</returns>
         /// <remarks>
+        /// Every bulge here is its own edge's, so an edge too short to keep goes with its bulge, the last one as
+        /// well: a last edge starting within the tolerance of the first vanishes, and the edge coming into it closes the
+        /// loop with its own bulge. The public constructor reads a repeated first vertex as a drawing does instead: a
+        /// fillet of radius 0.0005 at the first corner of a rectangle 100 by 50 would turn the straight side before it
+        /// into an arc of radius 35.
+        /// <para>
         /// For edges already kept within a tolerance of their own, as a loop in space laying itself out in its plane: at a
         /// tolerance of nought, only an edge whose ends land on the very same point goes, so the side 0.0006 long of the loop
         /// (0, 0), (10, 0), (10, 0.0006), (0, 10) stays, where the global tolerance of a thousandth would drop it.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentException">Thrown when fewer than three distinct starts are given.</exception>
         internal static GeoPolygonArc2 FromEdges(IEnumerable<GeoPoint2> starts, IEnumerable<double> bulges, Tolerance tolerance)
@@ -539,6 +528,11 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="vector">How far to move it.</param>
         /// <returns>The moved loop, its arcs unchanged.</returns>
+        /// <remarks>
+        /// The loop is moved edge for edge, every arc and side however small: at a millionth, the rectangle 100 by 50
+        /// filleted at 0.0005 moves with its eight edges, four of them arcs 0.0007 across, where it was put back together
+        /// within the global tolerance of a thousandth and came back its four corners.
+        /// </remarks>
         public GeoPolygonArc2 Translate(GeoVector2 vector)
         {
             var moved = new GeoPoint2[_vertices.Length];
@@ -548,7 +542,9 @@ namespace GeometryHelper.Geometry
                 moved[i] = _vertices[i].Add(vector);
             }
 
-            return new GeoPolygonArc2(moved, _bulges);
+            // The vertices stand apart already, however near; only one landing on the very same point as the one before
+            // it would go.
+            return FromEdges(moved, _bulges, default(Tolerance));
         }
 
         /// <summary>
@@ -557,6 +553,7 @@ namespace GeometryHelper.Geometry
         /// <param name="angleRad">How far to turn it, in radians, counter-clockwise.</param>
         /// <param name="center">The point to turn it about.</param>
         /// <returns>The turned loop, its arcs unchanged.</returns>
+        /// <remarks>The loop is turned edge for edge, as <see cref="Translate(GeoVector2)"/> moves it.</remarks>
         public GeoPolygonArc2 RotateBy(double angleRad, GeoPoint2 center)
         {
             var turned = new GeoPoint2[_vertices.Length];
@@ -566,7 +563,7 @@ namespace GeometryHelper.Geometry
                 turned[i] = _vertices[i].RotateBy(angleRad, center);
             }
 
-            return new GeoPolygonArc2(turned, _bulges);
+            return FromEdges(turned, _bulges, default(Tolerance));
         }
 
         /// <summary>
@@ -580,6 +577,11 @@ namespace GeometryHelper.Geometry
         /// transformation that skews the axes or scales them differently makes an arc part of an ellipse, and is
         /// refused where an edge would land further than the global point tolerance off it, as
         /// <see cref="GeoEdge2.TransformBy(GeoTransform2)"/> reads it.
+        /// <para>
+        /// Each edge is carried on its own and the loop kept edge for edge, every arc and side however small, as
+        /// <see cref="Translate(GeoVector2)"/> keeps it; a loop scaled down keeps the sides that come out shorter than the
+        /// global tolerance too.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the transformation would skew or stretch an arc into part of an ellipse it would land visibly off.</exception>
@@ -606,13 +608,16 @@ namespace GeometryHelper.Geometry
                 bulges.Add(edge.Bulge);
             }
 
-            return FromEdges(vertices, bulges);
+            return FromEdges(vertices, bulges, default(Tolerance));
         }
 
         /// <summary>
         /// Creates a copy of this loop holding its own arrays.
         /// </summary>
-        public GeoPolygonArc2 Clone() => new GeoPolygonArc2(_vertices, _bulges);
+        /// <remarks>
+        /// The copy holds every edge of the loop, however small, as <see cref="Translate(GeoVector2)"/> keeps it.
+        /// </remarks>
+        public GeoPolygonArc2 Clone() => FromEdges(_vertices, _bulges, default(Tolerance));
 
         /// <summary>
         /// Chamfers every corner that has room for it, cutting the same distance along both edges.

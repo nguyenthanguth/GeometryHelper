@@ -266,14 +266,47 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the geometric centroid of the polygon.
         /// </summary>
+        /// <remarks>
+        /// The centroid weighs the area however small: the L 0.001 by 0.001 with legs 0.00025 wide, of 4.4E-7 square units,
+        /// balances at (0.000339, 0.000339), where an area of a millionth or less was taken for none and the corners were
+        /// averaged to (0.000417, 0.000417). Only a polygon whose area is lost in the rounding of its coordinates, its
+        /// corners on one line, has none, and its corners are averaged.
+        /// </remarks>
         public GeoPoint2 Centroid
         {
             get
             {
                 double signedArea = SignedArea;
-                if (Math.Abs(signedArea) <= Tolerance.Global.EqualPoint * Tolerance.Global.EqualPoint)
+
+                // Measured from the first vertex, as the area is, so that coordinates far out cost no precision.
+                GeoPoint2 reference = _vertices[0];
+                double cx = 0.0;
+                double cy = 0.0;
+                double products = 0.0;
+                double run = 0.0;
+                int n = _vertices.Length;
+                for (int i = 0; i < n; i++)
                 {
-                    // Fallback: Calculate the average of vertex coordinates if the polygon is degenerate
+                    double x1 = _vertices[i].X - reference.X;
+                    double y1 = _vertices[i].Y - reference.Y;
+                    double x2 = _vertices[(i + 1) % n].X - reference.X;
+                    double y2 = _vertices[(i + 1) % n].Y - reference.Y;
+                    double across = x1 * y2;
+                    double back = x2 * y1;
+                    double factor = across - back;
+                    cx += (x1 + x2) * factor;
+                    cy += (y1 + y2) * factor;
+                    products += Math.Abs(across) + Math.Abs(back);
+                    run += Math.Abs(x2 - x1) + Math.Abs(y2 - y1);
+                }
+
+                // An area no larger than the rounding is none: that of the products the area sums, and that of the
+                // coordinates, which can stand corners meant to lie on one line a digit off it, every corner within the run
+                // round the polygon of the first. Such corners weigh nothing.
+                double far = Math.Max(Math.Abs(reference.X), Math.Abs(reference.Y)) + run;
+
+                if (!(Math.Abs(2.0 * signedArea) > HalfUlp * ((n + 4) * products + 4.0 * far * run)))
+                {
                     double sumX = 0.0;
                     double sumY = 0.0;
                     foreach (var v in _vertices)
@@ -284,26 +317,15 @@ namespace GeometryHelper.Geometry
                     return new GeoPoint2(sumX / _vertices.Length, sumY / _vertices.Length);
                 }
 
-                // Measured from the first vertex, as the area is, so that coordinates far out cost no precision.
-                GeoPoint2 reference = _vertices[0];
-                double cx = 0.0;
-                double cy = 0.0;
-                int n = _vertices.Length;
-                for (int i = 0; i < n; i++)
-                {
-                    double x1 = _vertices[i].X - reference.X;
-                    double y1 = _vertices[i].Y - reference.Y;
-                    double x2 = _vertices[(i + 1) % n].X - reference.X;
-                    double y2 = _vertices[(i + 1) % n].Y - reference.Y;
-                    double factor = x1 * y2 - x2 * y1;
-                    cx += (x1 + x2) * factor;
-                    cy += (y1 + y2) * factor;
-                }
-
                 double areaFactor = 1.0 / (6.0 * signedArea);
                 return new GeoPoint2(reference.X + cx * areaFactor, reference.Y + cy * areaFactor);
             }
         }
+
+        /// <summary>
+        /// The rounding of a double, half the gap between 1 and the next double up.
+        /// </summary>
+        private const double HalfUlp = 1.1102230246251565E-16;
 
         /// <summary>
         /// Creates a copy of this polygon holding its own vertex array.

@@ -162,16 +162,20 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="line">The segment, read as the infinite line carrying it.</param>
         /// <returns>The transformation that mirrors everything across that line.</returns>
-        /// <exception cref="InvalidOperationException">Thrown when the segment is too short to have a direction.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the segment has no length, its two ends one point.</exception>
         /// <remarks>
         /// A reflection turns a shape round: a polygon that ran counter-clockwise comes back clockwise, and
         /// its signed area changes sign while its area does not.
+        /// <para>
+        /// A segment of any length carries its line: the segment from (0, 0) to (0.000007, 0.000007) mirrors (1, 0) to
+        /// (0, 1), where it was read within the global vector tolerance of 1E-5 as having no direction and refused.
+        /// </para>
         /// </remarks>
         public static GeoTransform2 Mirror(GeoLine2 line)
         {
             GeoVector2 along = line.StartPoint.GetVectorTo(line.EndPoint);
 
-            if (!along.TryGetNormal(out GeoVector2 unit))
+            if (!along.TryGetNormal(out GeoVector2 unit, default(Tolerance)))
             {
                 throw new InvalidOperationException("A segment with no length carries no line to mirror across.");
             }

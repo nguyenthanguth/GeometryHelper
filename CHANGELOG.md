@@ -6,6 +6,56 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A curved loop is copied, moved, turned and transformed edge for edge, every arc and side however small, by
+`Clone`, `Translate`, `RotateBy` and `TransformBy` of `GeoPolygonArc2`, and `Clone`, `Translate` and `TransformBy` of
+`GeoPolygonArc3`, as its fillets, chamfers and offsets have kept it since the last fixes. The copy was put back together
+within the global tolerance of a thousandth: at a millionth, the rectangle 100 by 50 filleted at 0.0005 came back its
+four corners, where it keeps its eight edges, four of them arcs 0.0007 across, in the plane and
+standing in space; scaled to a tenth it keeps arcs 0.00007 across. Of 6 000 loops filleted at tolerances from a billionth
+to a ten-thousandth or with a side between ten tolerances and 0.0009 long, copied, moved, turned, mirrored and scaled in
+the plane and in space, 19 831 copies lost an edge; none does now. Loops with no edge shorter than a thousandth give the
+same bits, 10 918 copies of them; an offset by no more than the tolerance, which gives the loop back, gives it back
+whole. 9 new tests.
+
+**FIXED.** A straight chain or polygon cut by `Corner2.Chamfer` or `TryChamferAt` is put back together within the
+tolerance asked, as a curved one is and as a straight chain in space has been since the last fix, so a cut longer than
+the tolerance stays. It was put back together within the global tolerance: at a millionth, the chain (0, 0), (10, 0),
+(10, 10) cut by 0.0003 turned at (9.9997, 0) alone, the two ends of the cut 0.00042 apart taken for one corner, where it
+turns at (9.9997, 0) and (10, 0.0003); the triangle through the same corners came back three corners, where it has six.
+Within a coarser tolerance than the global one, a cut no longer than it is no edge and the shape turns where the cut
+starts: the chain cut by 0.03 at a tenth turns once, where it turned twice. Of 6 000 chains and polygons cut at
+tolerances from a billionth to a tenth, every corner at once and one corner alone, 6 489 of 24 000 came out unlike the
+same cut in space; none does now. At the global tolerance every cut is the same to the bit; 975 of the 6 016 cut at a
+hundredth or a tenth lose a cut no longer than the tolerance. 5 new tests.
+
+**FIXED.** An offset of a curved loop or chain by less than 1E-5, `Offset2.Offset` and the `Offset` of `GeoPolygonArc2`,
+`GeoPolylineArc2` and `GeoPolygonArc3`, is squared off past the miter limit and cut by its chamfers as a larger one is.
+The ways out from a corner to the moved ends, as long as the distance, were read within the vector tolerance of 1E-5 as
+having no direction: a corner past the limit was rounded and a chamfer cut across its chord. At a billionth, the square
+of side 0.00001 grown by 0.000002 with chamfers is cut 0.000002 from every corner, where it enclosed 1.88E-10 square
+units, short of 1.93255E-10; the triangle with a 10 degree tip a millionth the size grown by a millionth is squared off
+0.00001 from the tip. Of 6 000 stars and chains 0.0002 to 0.01 across offset with a miter limit of 1.5 or chamfers at
+tolerances from 1E-10 to 1E-7, 1 613 offsets by less than 1E-5 came out unlike the same shape scaled until the distance
+is 1; none does now, and one chain shrunk into two pieces where the scaled one stays whole still does, as it did.
+Offsets by 1E-5 or more give the same bits but one, beside a side shorter than 1E-5, now like the scaled shape too, and
+so does every one of 20 000 stars and wavy rings offset with miters, limited miters and chamfers, but for those offset by
+no more than the tolerance, which come back whole as the copy above. 2 new tests.
+
+**FIXED.** `GeoTransform2.Mirror` takes a segment of any length as the line to reflect across, where one shorter than
+1E-5 was read within the global vector tolerance as having no direction and refused: the segment from (0, 0) to
+(0.000007, 0.000007) mirrors (1, 0) to (0, 1). Of 4 531 segments between a billionth and 1E-5 long, every one was
+refused; none is now, and each mirrors as the line through its two ends does. Longer segments give the same bits. 1 new
+test.
+
+**FIXED.** `GeoPolygon2.Centroid` weighs the area however small. An area of a millionth or less, read against the global
+tolerance, was taken for none and the corners were averaged: the L 0.001 by 0.001 with legs 0.00025 wide, of 4.4E-7
+square units, balanced at (0.000417, 0.000417), where it balances at (0.000339, 0.000339). Only corners on one line,
+whose area is lost in the rounding of their coordinates, are averaged now, as they were. The centroid of a curved loop,
+`GeoPolygonArc2.Centroid`, which weighs the straight loop through its corners, is right for small loops with it. Of
+2 446 polygons enclosing a millionth or less, 1 950 had their centroid off, and of 1 165 curved loops less than a
+thousandth across, 867; none has now. Polygons enclosing more give the same bits, and so do 1 150 sets of corners on one line.
+2 new tests.
+
 **CHANGED.** `DxfDatabase.Insert` of another drawing keeps its dynamic blocks dynamic, as AutoCAD's own insert keeps them,
 where it brought them as static copies before. The extended data of a dynamic block's BLOCK_RECORD (its true name, its
 GUID and its tags) and the evaluation graph with its nodes and the purge preventer of its extension dictionary come with

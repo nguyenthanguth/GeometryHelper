@@ -148,16 +148,16 @@ namespace GeometryHelper.UnitTest.Plane
         }
 
         [Fact]
-        public void AChamferOfFiveHundredthsAtATenth_StillCutsAStraightChain()
+        public void AChamferOfFiveHundredthsAtATenth_LeavesNoCutShorterThanTheTolerance()
         {
-            // Guard: the straight chain was already cut, at (9.95, 0) and (10, 0.05).
+            // The cut from (9.95, 0) to (10, 0.05) is 0.0707 long, within a tenth no edge: the chain is built within the
+            // tolerance asked, as its curved twin and Corner3's are, and turns once at (9.95, 0).
             GeoPolyline2 chain = new GeoPolyline2(P(0, 0), P(10, 0), P(10, 10));
 
             GeoPolyline2 cut = Corner2.Chamfer(chain, 0.05, 0.05, Tenth);
 
-            Assert.Equal(4, cut.VertexCount);
+            Assert.Equal(3, cut.VertexCount);
             Assert.Equal(0.0, cut.Vertices[1].DistanceTo(P(9.95, 0)), 1E-12);
-            Assert.Equal(0.0, cut.Vertices[2].DistanceTo(P(10, 0.05)), 1E-12);
         }
 
         [Fact]

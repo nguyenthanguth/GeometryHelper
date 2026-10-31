@@ -686,11 +686,19 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Creates a copy of this loop.
         /// </summary>
-        public GeoPolygonArc3 Clone() => new GeoPolygonArc3(_vertices, _bulges, _normals);
+        /// <remarks>
+        /// The copy holds every edge of the loop, however small, as <see cref="Translate(GeoVector3)"/> keeps it.
+        /// </remarks>
+        public GeoPolygonArc3 Clone() => new GeoPolygonArc3(_vertices, _bulges, _normals, EdgeForEdge);
 
         /// <summary>
         /// Moves the loop by a vector.
         /// </summary>
+        /// <remarks>
+        /// The loop is moved edge for edge, every arc and side however small: at a millionth, the rectangle 100 by 50
+        /// standing in the plane x = 20 and filleted at 0.0005 moves with its eight edges, four of them arcs, where it was
+        /// put back together within the global tolerance of a thousandth and came back its four corners.
+        /// </remarks>
         public GeoPolygonArc3 Translate(GeoVector3 vector)
         {
             var moved = new GeoPoint3[_vertices.Length];
@@ -700,12 +708,16 @@ namespace GeometryHelper.Geometry
                 moved[i] = _vertices[i].Add(vector);
             }
 
-            return new GeoPolygonArc3(moved, _bulges, _normals);
+            return new GeoPolygonArc3(moved, _bulges, _normals, EdgeForEdge);
         }
 
         /// <summary>
         /// Applies a transformation to the loop.
         /// </summary>
+        /// <remarks>
+        /// Each edge is carried on its own and the loop kept edge for edge, every arc and side however small, as
+        /// <see cref="Translate(GeoVector3)"/> keeps it.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
         /// <exception cref="InvalidOperationException">
         /// Thrown when the transformation would skew or stretch an arc into part of an ellipse it would land visibly off, as
@@ -725,7 +737,7 @@ namespace GeometryHelper.Geometry
                 edges.Add(GetEdgeAt(i).TransformBy(transform));
             }
 
-            return new GeoPolygonArc3(edges);
+            return new GeoPolygonArc3(Walked(edges, out List<double> bulges, out List<GeoVector3> normals), bulges, normals, EdgeForEdge);
         }
 
         /// <summary>

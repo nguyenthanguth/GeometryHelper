@@ -56,6 +56,12 @@ namespace GeometryHelper.Core
         /// Which way round the two distances go follows the way the polygon runs, so reversing it swaps
         /// them. A corner is left alone when its cut would not fit, and what was skipped and why is written
         /// to <see cref="GeometryHelperLog"/>; see the class remarks for the rules.
+        /// <para>
+        /// The polygon is put back together within the tolerance asked, as a curved loop's cut corners are, so a cut longer
+        /// than the tolerance stays and one no longer than it is no edge: at a millionth, the triangle (0, 0), (10, 0),
+        /// (10, 10) cut by 0.0003 has six corners, where it was put back together within the global tolerance of a
+        /// thousandth, the two ends of each cut, 0.00023 to 0.00042 apart, were one corner, and it came back three.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when either distance is not a positive number.</exception>
@@ -68,7 +74,7 @@ namespace GeometryHelper.Core
 
             List<GeoPoint2> vertices = Build(polygon.Vertices, true, distance1, distance2, tolerance, "polygon");
 
-            return vertices == null ? polygon.Clone() : new GeoPolygon2(vertices);
+            return vertices == null ? polygon.Clone() : PolygonWithin(vertices, tolerance);
         }
 
         /// <summary>
@@ -98,6 +104,13 @@ namespace GeometryHelper.Core
         /// <returns>The chamfered chain, which keeps both of its end points exactly where they were.</returns>
         /// <remarks>
         /// A chain has corners only where it turns, so its two end points are never touched.
+        /// <para>
+        /// The chain is put back together within the tolerance asked, as a curved chain's cut corners are, so a cut longer
+        /// than the tolerance stays and one no longer than it is no edge, the chain turning where the cut starts: at a
+        /// millionth, the chain (0, 0), (10, 0), (10, 10) cut by 0.0003 turns at (9.9997, 0) and (10, 0.0003), where it was
+        /// put back together within the global tolerance of a thousandth, the two ends of the cut 0.00042 apart were one
+        /// corner, and it turned at (9.9997, 0) alone, as it still does within a thousandth.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when either distance is not a positive number.</exception>
@@ -110,7 +123,7 @@ namespace GeometryHelper.Core
 
             List<GeoPoint2> vertices = Build(polyline.Vertices, false, distance1, distance2, tolerance, "chain");
 
-            return vertices == null ? polyline.Clone() : new GeoPolyline2(vertices);
+            return vertices == null ? polyline.Clone() : ChainWithin(vertices, tolerance);
         }
 
         /// <summary>
@@ -131,6 +144,10 @@ namespace GeometryHelper.Core
         /// <param name="result">The chamfered polygon, or the polygon unchanged when the method returns false.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the corner had room for the cut; otherwise, false.</returns>
+        /// <remarks>
+        /// The polygon is put back together within the tolerance asked, as
+        /// <see cref="Chamfer(GeoPolygon2, double, double, Tolerance)"/> puts it, so a cut longer than the tolerance stays.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the index is outside the polygon or either distance is not a positive number.</exception>
         public static bool TryChamferAt(GeoPolygon2 polygon, int index, double distance1, double distance2, out GeoPolygon2 result, Tolerance tolerance)
@@ -167,7 +184,7 @@ namespace GeometryHelper.Core
                 }
             }
 
-            result = new GeoPolygon2(vertices);
+            result = PolygonWithin(vertices, tolerance);
             return true;
         }
 
@@ -189,6 +206,10 @@ namespace GeometryHelper.Core
         /// <param name="result">The chamfered chain, or the chain unchanged when the method returns false.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true if the corner had room for the cut; otherwise, false.</returns>
+        /// <remarks>
+        /// The chain is put back together within the tolerance asked, as
+        /// <see cref="Chamfer(GeoPolyline2, double, double, Tolerance)"/> puts it, so a cut longer than the tolerance stays.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the index is outside the chain or either distance is not a positive number.</exception>
         public static bool TryChamferAt(GeoPolyline2 polyline, int index, double distance1, double distance2, out GeoPolyline2 result, Tolerance tolerance)
@@ -231,7 +252,7 @@ namespace GeometryHelper.Core
                 }
             }
 
-            result = new GeoPolyline2(vertices);
+            result = ChainWithin(vertices, tolerance);
             return true;
         }
 
@@ -389,7 +410,7 @@ namespace GeometryHelper.Core
         /// itself: the square of side 10 chamfered by 5.04 at a tolerance of 0.1 kept stubs 0.08 long. The
         /// point is the edge's own end where only one of its corners was cut, so the end of a chain and a
         /// corner left alone never move, and midway between the two cuts where both were. The repeated
-        /// point this leaves is dropped by the constructor.
+        /// point this leaves is dropped when the shape is put back together.
         /// </remarks>
         private static void MeetWhereNothingIsLeft(
             IReadOnlyList<GeoPoint2> vertices,
@@ -516,6 +537,62 @@ namespace GeometryHelper.Core
             from = corner.Add(back.Multiply(distance1 / backLength));
             to = corner.Add(forward.Multiply(distance2 / forwardLength));
             return true;
+        }
+
+        /// <summary>
+        /// A chain of the vertices a cut leaves, built within the tolerance the cut was asked at, as a curved chain's are: a
+        /// vertex within it of the one kept before goes, so a cut no longer than the tolerance is no edge and its two ends
+        /// meet where it starts. The public constructor merged within the global tolerance, and with it the two ends of a
+        /// cut a finer tolerance keeps.
+        /// </summary>
+        private static GeoPolyline2 ChainWithin(List<GeoPoint2> vertices, Tolerance tolerance)
+        {
+            int count = KeepApart(vertices, tolerance, out GeoPoint2[] kept);
+
+            return new GeoPolyline2(kept, count);
+        }
+
+        /// <summary>
+        /// A polygon of the vertices a cut leaves, built within the tolerance the cut was asked at, as
+        /// <see cref="ChainWithin"/> builds a chain; a last vertex within it of the first goes too, as the public
+        /// constructor drops one within the global tolerance.
+        /// </summary>
+        /// <exception cref="ArgumentException">Thrown when fewer than three vertices stand apart within the tolerance.</exception>
+        private static GeoPolygon2 PolygonWithin(List<GeoPoint2> vertices, Tolerance tolerance)
+        {
+            int count = KeepApart(vertices, tolerance, out GeoPoint2[] kept);
+
+            while (count > 1 && kept[count - 1].IsEqualTo(kept[0], tolerance))
+            {
+                count--;
+            }
+
+            if (count < 3)
+            {
+                throw new ArgumentException("A polygon must have at least 3 distinct vertices.", nameof(vertices));
+            }
+
+            return new GeoPolygon2(kept, count);
+        }
+
+        /// <summary>
+        /// Keeps each vertex that stands further than the tolerance from the one kept before it, in order, and returns how
+        /// many were kept.
+        /// </summary>
+        private static int KeepApart(List<GeoPoint2> vertices, Tolerance tolerance, out GeoPoint2[] kept)
+        {
+            kept = new GeoPoint2[vertices.Count];
+            int count = 0;
+
+            foreach (GeoPoint2 vertex in vertices)
+            {
+                if (count == 0 || !kept[count - 1].IsEqualTo(vertex, tolerance))
+                {
+                    kept[count++] = vertex;
+                }
+            }
+
+            return count;
         }
 
         private static void RequirePositive(double value, string name)

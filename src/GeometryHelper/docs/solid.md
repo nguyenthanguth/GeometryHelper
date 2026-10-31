@@ -2232,6 +2232,9 @@ edge for edge. At a millionth, the rectangle 100 by 50 standing in the plane x =
 reversed to its four corners; with only its corner (20, 100, 50) rounded, its centroid is (20, 50, 25) to a billionth,
 where it was 0.00008 off. Within a tolerance coarser than an edge, the edges either side of it meet across it, so the
 filleted rectangle is simple within a millionth and not within a thousandth, as the same loop in the plane is.
+`Clone`, `Translate` and `TransformBy` keep the loop edge for edge as well: the filleted rectangle copied, moved, turned
+or mirrored keeps its eight edges, where it was put back together within the global tolerance and came back its four
+corners.
 
 The shaping works on the loop as it is too. `Fillet`, `Chamfer`, `TryFilletAt`, `TryChamferAt` and `Offset` lay it out
 corner for corner and lift what comes of it back edge for edge, so they keep what the same work keeps in the plane, every

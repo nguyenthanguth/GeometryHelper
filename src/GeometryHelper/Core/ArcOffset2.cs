@@ -825,12 +825,15 @@ namespace GeometryHelper.Core
 
             next = after;
 
+            // The ways out to the moved ends are as long as the distance, and the headings as the side or the radius: each
+            // has a direction at any length. Read within the vector tolerance, an offset by less than 1E-5 had none: a
+            // corner past the miter limit was rounded, and a chamfer cut across the chord, where both are squared off.
             if (IsPoint(before) ||
                 IsPoint(after) ||
-                !corner.GetVectorTo(from).TryGetNormal(out GeoVector2 outFirst, tolerance) ||
-                !corner.GetVectorTo(to).TryGetNormal(out GeoVector2 outSecond, tolerance) ||
-                !Heading(arriving, corner).TryGetNormal(out GeoVector2 onward, tolerance) ||
-                !Heading(leaving, corner).TryGetNormal(out GeoVector2 onwardAfter, tolerance))
+                !corner.GetVectorTo(from).TryGetNormal(out GeoVector2 outFirst, default(Tolerance)) ||
+                !corner.GetVectorTo(to).TryGetNormal(out GeoVector2 outSecond, default(Tolerance)) ||
+                !Heading(arriving, corner).TryGetNormal(out GeoVector2 onward, default(Tolerance)) ||
+                !Heading(leaving, corner).TryGetNormal(out GeoVector2 onwardAfter, default(Tolerance)))
             {
                 return false;
             }
