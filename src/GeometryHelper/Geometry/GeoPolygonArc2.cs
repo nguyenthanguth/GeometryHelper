@@ -171,28 +171,6 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
-        /// Builds a loop from the start and bulge of each of its edges, as
-        /// <see cref="FromEdges(IEnumerable{GeoPoint2}, IEnumerable{double})"/> does, unless fewer than three of the starts
-        /// would be left once those the constructor drops are gone.
-        /// </summary>
-        /// <param name="starts">Where each edge starts.</param>
-        /// <param name="bulges">The bulge of each edge.</param>
-        /// <param name="loop">The loop, when the method returns true.</param>
-        /// <returns>true when the starts hold a loop; otherwise, false.</returns>
-        internal static bool TryFromEdges(IReadOnlyList<GeoPoint2> starts, IReadOnlyList<double> bulges, out GeoPolygonArc2 loop)
-        {
-            loop = null;
-
-            if (!HoldsThreeCorners(starts, Tolerance.Global))
-            {
-                return false;
-            }
-
-            loop = FromEdges(starts, bulges);
-            return true;
-        }
-
-        /// <summary>
         /// Builds a loop from the start and bulge of each of its edges, every edge of any length kept, unless fewer than
         /// three of the starts stand apart within a tolerance.
         /// </summary>

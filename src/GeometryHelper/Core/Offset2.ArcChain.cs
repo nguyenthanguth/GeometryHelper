@@ -392,6 +392,12 @@ namespace GeometryHelper.Core
         /// (12, 2 - 2 sqrt 2) and on to (12, 10). Where there is neither a miter nor a square to cut, the corner is
         /// rounded off at the distance.
         /// </para>
+        /// <para>
+        /// What a miter fills is read within the tolerance given, however small the miter: a chain of nine corners some 0.005
+        /// across, grown by 0.00137 with miters at a billionth, is one chain, as the same chain a million times larger is
+        /// within a thousandth, where a miter smaller than the global tolerance went unread and a stray piece 0.00004 long
+        /// inside it was kept.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain or the options are null.</exception>
         public static GeoPolylineArc2[] Offset(GeoPolylineArc2 chain, double distance, OffsetOptions options, Tolerance tolerance)

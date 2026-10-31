@@ -304,11 +304,16 @@ namespace GeometryHelper.Geometry
         /// <param name="distance">How far back along each leg to cut.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>The loop with its corners mitred.</returns>
+        /// <remarks>
+        /// The loop keeps every cut the tolerance keeps, as the loop laid out in its plane does: at a millionth, the
+        /// rectangle 100 by 50 standing in the plane x = 20 and chamfered by 0.0003 is eight corners, where it was put back
+        /// together within the global tolerance of a thousandth and came back its four.
+        /// </remarks>
         public GeoPolygonArc3 Chamfer(double distance, Tolerance tolerance)
         {
             GeoCoordinateSystem3 frame = GetFrame();
 
-            return new GeoPolygonArc3(frame, ProjectToPolygonArc2(frame).Chamfer(distance, distance, tolerance));
+            return LiftAsItIs(frame, Flat(frame).Chamfer(distance, distance, tolerance));
         }
 
         /// <summary>
@@ -325,13 +330,19 @@ namespace GeometryHelper.Geometry
         /// <param name="result">The loop with that corner rounded, when it fitted.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when the corner had room for the radius; otherwise, false, and the loop is unchanged.</returns>
+        /// <remarks>
+        /// The loop is read corner for corner, a side shorter than the global tolerance and all, so the corner rounded is the
+        /// vertex at the index: at a millionth, the loop (0, 0, 0), (10, 0, 0), (10.0004, 0.0004, 0), (10.0004, 10, 0),
+        /// (0, 10, 0) rounded by 1 at vertex 3 turns at (10.0004, 10, 0), where it was laid out within the global tolerance of
+        /// a thousandth, lost its side 0.00057 long, and was rounded at (0, 10, 0).
+        /// </remarks>
         public bool TryFilletAt(int index, double radius, out GeoPolygonArc3 result, Tolerance tolerance)
         {
             GeoCoordinateSystem3 frame = GetFrame();
 
-            if (ProjectToPolygonArc2(frame).TryFilletAt(index, radius, out GeoPolygonArc2 rounded, tolerance))
+            if (Flat(frame).TryFilletAt(index, radius, out GeoPolygonArc2 rounded, tolerance))
             {
-                result = new GeoPolygonArc3(frame, rounded);
+                result = LiftAsItIs(frame, rounded);
                 return true;
             }
 
@@ -354,13 +365,17 @@ namespace GeometryHelper.Geometry
         /// <param name="result">The loop with that corner mitred, when it fitted.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when the corner had room; otherwise, false, and the loop is unchanged.</returns>
+        /// <remarks>
+        /// The loop is read corner for corner, as <see cref="TryFilletAt(int, double, out GeoPolygonArc3, Tolerance)"/> reads
+        /// it, and the cut stays however short.
+        /// </remarks>
         public bool TryChamferAt(int index, double distance1, double distance2, out GeoPolygonArc3 result, Tolerance tolerance)
         {
             GeoCoordinateSystem3 frame = GetFrame();
 
-            if (ProjectToPolygonArc2(frame).TryChamferAt(index, distance1, distance2, out GeoPolygonArc2 mitred, tolerance))
+            if (Flat(frame).TryChamferAt(index, distance1, distance2, out GeoPolygonArc2 mitred, tolerance))
             {
-                result = new GeoPolygonArc3(frame, mitred);
+                result = LiftAsItIs(frame, mitred);
                 return true;
             }
 

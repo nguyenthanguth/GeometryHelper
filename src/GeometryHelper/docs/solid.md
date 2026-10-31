@@ -2214,9 +2214,17 @@ tie.ToPolygonArc2();       // laid out in its own frame
 What is on the loop, inside it or nearest it in its plane, `Locate`, `Contains`, `SignedDistanceTo`, `GetClosestEdge`
 and the shortest line to a shape in its plane, is worked out on every side the loop has, as `IsPointOn` and
 `DistanceTo` measure them. A loop built within a finer tolerance than the global one keeps a side shorter than that,
-and `ToPolygonArc2`, built as a `GeoPolygonArc2` is, drops it, as the area and the shaping do. At a ten-thousandth, the
+and `ToPolygonArc2`, built as a `GeoPolygonArc2` is, drops it, as the area does. At a ten-thousandth, the
 loop (0, 0, 0), (10, 0, 0), (10, 0.0006, 0), (0, 10, 0), built within a billionth, has (10.00005, 0.0003, 0) on its
 side 0.0006 long and (9.9998, 0.0003, 0) inside it, 0.0002 deep, and that side is the edge nearest the first.
+
+The shaping works on the loop as it is too. `Fillet`, `Chamfer`, `TryFilletAt`, `TryChamferAt` and `Offset` lay it out
+corner for corner and lift what comes of it back edge for edge, so they keep what the same work keeps in the plane, every
+arc however small and a corner named by its vertex, and `Corner3.Fillet` and `TryFilletAt` read a `GeoPolygon3` the same
+way. At a millionth, the rectangle 100 by 50 standing in the plane x = 20 filleted at 0.0005 is eight edges, four of them
+arcs 0.0007 across, where it came back its four corners, 0.0625 square units short; and the loop (0, 0, 0), (10, 0, 0),
+(10.0004, 0.0004, 0), (10.0004, 10, 0), (0, 10, 0) rounded by 1 at vertex 3 turns at (10.0004, 10, 0), where it lost its
+side 0.00057 long and was rounded at (0, 10, 0).
 
 A loop in space cannot report its winding through `IsClockwise`, because it is laid out in a frame that turns
 with it. What reversing turns over is the plane the loop names.
@@ -2290,7 +2298,10 @@ stirrup.GetShortestLineTo(coplanarPlate);  // to a shape in the same plane
 **A point needs no coplanarity and every other shape does.** That is not a compromise: a point off the
 plane stands at the same height above every point of the boundary, so the nearest place to it is the
 nearest place to its shadow, and the answer is exact. Two shapes in different planes have no such
-shortcut, so they are refused. `GetClosestEdge` takes a primitive probe only — a point, a segment, an arc,
+shortcut, so they are refused. The plane is read within the planar tolerance, so at a tolerance of nought a shape is
+refused wherever the rounding of its coordinates leaves a corner off the loop's plane, which a tilted plane nearly always
+does: a polygon laid into the plane of a tilted loop through `PlanarMap` was refused 1 032 times in 1 032, and one in the
+plane z = 0 none of 968 times. `GetClosestEdge` takes a primitive probe only — a point, a segment, an arc,
 a circle or an edge — because the nearest edge of one many-edged shape to another is a *pair* of edges.
 A chain, a polygon, a face or another curved loop is laid out in the loop's plane corner for corner, as the loop is,
 so a side shorter than the global tolerance is measured to: at a millionth, the square 10 by 10 at the origin is 0.5

@@ -424,7 +424,9 @@ namespace GeometryHelper.Core
                     return null;
                 }
 
-                _mitreLoops[index] = GeoPolygonArc2.TryFromEdges(starts, bulges, out GeoPolygonArc2 loop) ? loop : null;
+                // Its corners are counted within the tolerance of the offset and its edges kept, so a miter smaller than the
+                // global tolerance still bounds the offset at a finer one.
+                _mitreLoops[index] = GeoPolygonArc2.TryFromEdges(starts, bulges, _tolerance, out GeoPolygonArc2 loop) ? loop : null;
 
                 return _mitreLoops[index];
             }

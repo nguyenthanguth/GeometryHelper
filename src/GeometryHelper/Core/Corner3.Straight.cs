@@ -340,6 +340,12 @@ namespace GeometryHelper.Core
         /// A rounded corner is an arc, so a straight loop cannot hold the answer and the return type is
         /// <see cref="GeoPolygonArc3"/>. A loop is flat, so this is the coplanar lift and not the per-corner
         /// frame an open chain needs.
+        /// <para>
+        /// The loop is rounded corner for corner, a side shorter than the global tolerance and all: at a millionth, the loop
+        /// (0, 0, 0), (10, 0, 0), (10.0004, 0.0004, 0), (10.0004, 10, 0), (0, 10, 0) filleted at 0.0001 is five arcs, two of
+        /// them at the ends of its side 0.00057 long, where it was read as a curved loop within the global tolerance of a
+        /// thousandth, lost that side and its arcs, and came back its four corners.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static GeoPolygonArc3 Fillet(GeoPolygon3 polygon, double radius, Tolerance tolerance)
@@ -349,7 +355,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(polygon));
             }
 
-            return new GeoPolygonArc3(polygon).Fillet(radius, tolerance);
+            return Widened(polygon).Fillet(radius, tolerance);
         }
 
         /// <summary>
@@ -372,7 +378,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(polygon));
             }
 
-            return new GeoPolygonArc3(polygon).Fillet(radii, tolerance);
+            return Widened(polygon).Fillet(radii, tolerance);
         }
 
         /// <summary>
@@ -390,6 +396,10 @@ namespace GeometryHelper.Core
         /// <param name="result">The rounded loop, or the loop unchanged where the corner would not take it.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when the corner was rounded; otherwise, false.</returns>
+        /// <remarks>
+        /// The loop is read corner for corner, a side shorter than the global tolerance and all, so the corner rounded is the
+        /// vertex at the index, as <see cref="Fillet(GeoPolygon3, double, Tolerance)"/> reads it.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static bool TryFilletAt(GeoPolygon3 polygon, int index, double radius, out GeoPolygonArc3 result, Tolerance tolerance)
         {
@@ -398,8 +408,18 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(polygon));
             }
 
-            return new GeoPolygonArc3(polygon).TryFilletAt(index, radius, out result, tolerance);
+            return Widened(polygon).TryFilletAt(index, radius, out result, tolerance);
         }
+
+        /// <summary>
+        /// The loop read as a curved one, corner for corner, every bulge at nought.
+        /// </summary>
+        /// <remarks>
+        /// The public constructor drops a side shorter than the global tolerance, which a loop built within a finer one
+        /// keeps; the corners after it would then be counted one short, and a fillet asked at one of them would round the
+        /// next.
+        /// </remarks>
+        private static GeoPolygonArc3 Widened(GeoPolygon3 polygon) => new GeoPolygonArc3(polygon.Vertices, null, null, GeoPolygonArc3.EdgeForEdge);
 
         #endregion
 

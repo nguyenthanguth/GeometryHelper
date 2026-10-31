@@ -280,7 +280,7 @@ namespace GeometryHelper.Geometry
         /// its side 0.0006 long. What the loop says about a point or a shape in its plane, as
         /// <see cref="Locate(GeoPoint3, Tolerance)"/>, <see cref="SignedDistanceTo(GeoPoint3, Tolerance)"/>,
         /// <see cref="GetClosestEdge(GeoPoint3, Tolerance)"/> and the shortest lines to shapes in its plane do, is worked
-        /// out on every side it has.
+        /// out on every side it has, and so are its fillets, chamfers and offsets.
         /// </remarks>
         public GeoPolygonArc2 ProjectToPolygonArc2(GeoCoordinateSystem3 frame) => LayOut(frame, Tolerance.Global);
 
@@ -503,11 +503,17 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Rounds every corner of the loop by the same radius, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// The loop is rounded as it is, a side shorter than the global tolerance and all, and keeps every arc however small,
+        /// as the loop laid out in its plane does: at a millionth, the rectangle 100 by 50 standing in the plane x = 20 and
+        /// filleted at 0.0005 is eight edges, four of them arcs 0.0007 across, where it was laid out and put back together
+        /// within the global tolerance of a thousandth and came back its four corners, 0.0625 square units short.
+        /// </remarks>
         public GeoPolygonArc3 Fillet(double radius, Tolerance tolerance)
         {
             GeoCoordinateSystem3 frame = GetFrame();
 
-            return new GeoPolygonArc3(frame, ProjectToPolygonArc2(frame).Fillet(radius, tolerance));
+            return LiftAsItIs(frame, Flat(frame).Fillet(radius, tolerance));
         }
 
         /// <summary>
@@ -518,11 +524,15 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Rounds the corners of the loop, each by its own radius, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// The loop is rounded as it is, corner for corner, so the radius at an index rounds the vertex at that index, and
+        /// every arc stays however small, as <see cref="Fillet(double, Tolerance)"/> keeps it.
+        /// </remarks>
         public GeoPolygonArc3 Fillet(IReadOnlyList<double> radii, Tolerance tolerance)
         {
             GeoCoordinateSystem3 frame = GetFrame();
 
-            return new GeoPolygonArc3(frame, ProjectToPolygonArc2(frame).Fillet(radii, tolerance));
+            return LiftAsItIs(frame, Flat(frame).Fillet(radii, tolerance));
         }
 
         /// <summary>
@@ -535,15 +545,21 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Moves the outline of the loop sideways in its own plane, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// The loop is moved as it is, a side shorter than the global tolerance and all, and what comes of it is kept edge
+        /// for edge, as the loop laid out in its plane keeps it: at a millionth, the square 10 by 10 with its corner (0, 0, 0)
+        /// cut off by a side 0.00057 long, grown by 0.1, keeps that side, 0.0834 long now, where it was laid out within the
+        /// global tolerance of a thousandth and the corner came out square.
+        /// </remarks>
         public GeoPolygonArc3[] Offset(double distance, Tolerance tolerance)
         {
             GeoCoordinateSystem3 frame = GetFrame();
-            GeoPolygonArc2[] moved = ProjectToPolygonArc2(frame).Offset(distance, tolerance);
+            GeoPolygonArc2[] moved = Flat(frame).Offset(distance, tolerance);
             var lifted = new GeoPolygonArc3[moved.Length];
 
             for (int i = 0; i < moved.Length; i++)
             {
-                lifted[i] = new GeoPolygonArc3(frame, moved[i]);
+                lifted[i] = LiftAsItIs(frame, moved[i]);
             }
 
             return lifted;
@@ -875,6 +891,32 @@ namespace GeometryHelper.Geometry
 
             return vertices;
         }
+
+        /// <summary>
+        /// Gets the tolerance a loop is built within edge for edge: no edge goes unless its ends land on the very same point,
+        /// and the plane and the arcs are checked within the global tolerance, as the constructors without one check them.
+        /// </summary>
+        internal static Tolerance EdgeForEdge
+        {
+            get
+            {
+                Tolerance global = Tolerance.Global;
+
+                return new Tolerance(0.0, global.EqualVector, global.EqualAngleRad, global.EqualPlanar);
+            }
+        }
+
+        /// <summary>
+        /// Lifts a loop the shaping gave back in the plane into the plane of a frame in space, edge for edge.
+        /// </summary>
+        /// <remarks>
+        /// The shaping has counted the loop's corners within the tolerance asked already, and keeps an arc however small, as
+        /// a chain does; the public constructor dropped every edge shorter than the global tolerance, and with it the arcs
+        /// and the cuts. A loop lifted out of a frame lies in its plane to the rounding of its coordinates, so the global
+        /// tolerance it was always checked within still passes it.
+        /// </remarks>
+        private static GeoPolygonArc3 LiftAsItIs(GeoCoordinateSystem3 frame, GeoPolygonArc2 loop)
+            => new GeoPolygonArc3(Lifted(frame, loop, out List<double> bulges, out List<GeoVector3> normals), bulges, normals, EdgeForEdge);
 
         /// <summary>
         /// Guards a polygon being widened, so the null check reads before the base call rather than after it.

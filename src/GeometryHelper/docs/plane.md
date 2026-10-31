@@ -798,7 +798,10 @@ shape can fall into several pieces or vanish, so the answer is an array. A growi
 around empty space gives that space as a hole wound the other way, so that signed areas add up, as the
 straight offsets do, however the hole's pieces meet. A loop is put together edge for edge, its corners counted within
 the tolerance asked: at a millionth, the rectangle 100 by 50 grown by 0.0004 with round joins keeps its four arcs, 0.00057
-across, where the global tolerance of a thousandth dropped them.
+across, where the global tolerance of a thousandth dropped them. What a miter fills is read within the tolerance asked
+too, however small the miter: a chain of nine corners some 0.005 across, grown by 0.00137 with miters at a billionth, is
+one chain, as the same chain a million times larger is within a thousandth, where a stray piece 0.00004 long was kept
+inside a miter smaller than the global tolerance.
 
 What tells the folded-over parts from the real ones is the one thing an offset cannot break: every point
 of a valid offset stands **exactly** the offset distance from the shape it came from. Each piece is cut

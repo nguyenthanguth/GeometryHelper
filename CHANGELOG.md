@@ -174,6 +174,34 @@ worked out anew, nor set. The five properties of ACadSharp's lookup sample, a gr
 microseconds an INSERT under .NET 10 and 86 under .NET Framework 4.8. 16 new tests, 1 changed (an INSERT of BOLT scaled
 (1.5, -1.5, 2) is not `IsDynamicBlock`).
 
+**FIXED.** A curved loop in space filleted, chamfered or moved sideways by `GeoPolygonArc3.Fillet`, `Chamfer`,
+`TryFilletAt`, `TryChamferAt` or `Offset` keeps what the same work keeps on the loop in its plane: every arc however
+small, every cut and side the tolerance keeps, and a corner named by its vertex. The loop was laid out in its plane and
+put back together within the global tolerance, which dropped a side shorter than a thousandth that the loop kept within
+a finer tolerance, and the arcs and cuts the plane now keeps: at a millionth, the rectangle 100 by 50 standing in the
+plane x = 20 filleted at 0.0005 came back its four corners, 0.0625 square units short, and the loop (0, 0, 0), (10, 0, 0),
+(10.0004, 0.0004, 0), (10.0004, 10, 0), (0, 10, 0) asked to round vertex 3 rounded (0, 10, 0). Of 7 982 convex loops
+standing in planes at random, half with a corner cut off by a side between six tolerances and 0.0009 long, worked at
+tolerances from a billionth to a tenth, 3 192 came out other than the same work in the plane and 139 threw; none does
+now, and those off the area the corners give went from 2 030 to 125 (offsets of a distance about the tolerance, and
+sides lost inside the offset in the plane). Loops whose work leaves nothing shorter than the global tolerance are the
+same to the bit, and so is every offset of a loop of long sides; a fillet or a cut below a thousandth is kept at the
+global and coarser tolerances, as in the plane. 6 new tests.
+
+**FIXED.** A straight loop in space rounded by `Corner3.Fillet` or `TryFilletAt` into a `GeoPolygonArc3` is read corner
+for corner, a side shorter than the global tolerance and all, so a corner is named by its vertex. It was read through
+the constructor, which drops such a side first: at a millionth, the loop (0, 0, 0), (10, 0, 0), (10.0004, 0.0004, 0),
+(10.0004, 10, 0), (0, 10, 0) filleted at 0.0001 came back its four corners, the side 0.00057 long and its two arcs gone.
+Of 2 404 such loops, 1 187 came out other than the same work in the plane and 64 threw; none does now. 2 new tests.
+
+**FIXED.** A chain or loop that may curve, grown or shrunk by `Offset2.Offset` with miters or chamfers, reads what a
+miter fills within the tolerance given, however small the miter. A miter smaller than the global tolerance went unread,
+and a piece inside it was kept: a chain of nine corners some 0.005 across, grown by 0.00137 at a billionth, came out with
+a stray piece 0.00004 long beside the chain the same shape a million times larger gives within a thousandth. Of 62 000
+stars and wavy rings, open and closed, grown and shrunk with miters, limited miters and chamfers at tolerances from
+nought to a tenth, 2 answers changed, both at a finer tolerance than a thousandth and both now as the larger shape; none
+changed at the global tolerance or a coarser one. 1 new test.
+
 **FIXED.** A loop in the plane filleted or chamfered by `Corner2.Fillet`, `Chamfer`, `TryFilletAt` or `TryChamferAt`, or
 the members of `GeoPolygonArc2` that call them, and a loop grown or shrunk by `Offset2.Offset` keeping its arcs, keeps
 every arc and every cut the work leaves, as a chain does, and every side the tolerance keeps; only its corners are
