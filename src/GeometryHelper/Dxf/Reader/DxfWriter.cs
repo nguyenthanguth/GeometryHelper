@@ -114,6 +114,9 @@ namespace GeometryHelper.Dxf
         /// <summary>The version the header names (<c>$ACADVER</c>): R2000 (AC1015), or a later one the new empty drawing of <see cref="DxfDatabase(string)"/> is of.</summary>
         internal string Version { get; set; } = "AC1015";
 
+        /// <summary>Whether the version is the one named or a later one, so that the records carry the groups it brought.</summary>
+        private bool Since(string version) => string.CompareOrdinal(Version, version) >= 0;
+
         #region The plane
 
         /// <summary>
@@ -1501,25 +1504,33 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// The classes of the objects below that are not plain DICTIONARYs, as AutoCAD lists them for R2000.
+        /// The classes of the objects below that are not plain DICTIONARYs, as AutoCAD lists them for R2000; from R2004 on with
+        /// how many objects of each there are (91), without which AutoCAD 2021 opens no drawing of those versions.
         /// </summary>
-        private static void Classes(Groups file)
+        private void Classes(Groups file)
         {
+            bool counted = Since("AC1018");
             file.Str(0, "SECTION");
             file.Str(2, "CLASSES");
-            Class(file, "ACDBDICTIONARYWDFLT", "AcDbDictionaryWithDefault");
-            Class(file, "ACDBPLACEHOLDER", "AcDbPlaceHolder");
-            Class(file, "LAYOUT", "AcDbLayout");
+            Class(file, "ACDBDICTIONARYWDFLT", "AcDbDictionaryWithDefault", counted ? 1 : (int?)null);
+            Class(file, "ACDBPLACEHOLDER", "AcDbPlaceHolder", counted ? 1 : (int?)null);
+            Class(file, "LAYOUT", "AcDbLayout", counted ? 2 : (int?)null);
             file.Str(0, "ENDSEC");
         }
 
-        private static void Class(Groups file, string name, string cppName)
+        private static void Class(Groups file, string name, string cppName, int? count)
         {
             file.Str(0, "CLASS");
             file.Str(1, name);
             file.Str(2, cppName);
             file.Str(3, "ObjectDBX Classes");
             file.Int(90, 0);
+
+            if (count.HasValue)
+            {
+                file.Int(91, count.Value);
+            }
+
             file.Int(280, 0);
             file.Int(281, 0);
         }
@@ -1634,11 +1645,26 @@ namespace GeometryHelper.Dxf
             Table(file, "BLOCK_RECORD", BlockRecordTable, 2);
             Record(file, "BLOCK_RECORD", ModelSpace, BlockRecordTable, "AcDbBlockTableRecord", "*Model_Space");
             file.Hex(340, ModelLayout);
+            SpaceSettings(file);
             Record(file, "BLOCK_RECORD", PaperSpace, BlockRecordTable, "AcDbBlockTableRecord", "*Paper_Space");
             file.Hex(340, PaperLayout);
+            SpaceSettings(file);
             file.Str(0, "ENDTAB");
 
             file.Str(0, "ENDSEC");
+        }
+
+        /// <summary>
+        /// From R2007 on, a space's unit, none (70), that it may be exploded (280) and scaled any way (281), as AutoCAD writes them.
+        /// </summary>
+        private void SpaceSettings(Groups file)
+        {
+            if (Since("AC1021"))
+            {
+                file.Int(70, 0);
+                file.Int(280, 1);
+                file.Int(281, 0);
+            }
         }
 
         private static void Table(Groups file, string name, int handle, int entries)
@@ -1713,7 +1739,7 @@ namespace GeometryHelper.Dxf
             file.Str(100, "AcDbBlockEnd");
         }
 
-        private static void Objects(Groups file)
+        private void Objects(Groups file)
         {
             file.Str(0, "SECTION");
             file.Str(2, "OBJECTS");
@@ -1745,8 +1771,8 @@ namespace GeometryHelper.Dxf
             file.Str(3, "Model");
             file.Hex(350, ModelLayout);
 
-            Layout(file, ModelLayout, "Model", 0, ModelSpace, 1024);
-            Layout(file, PaperLayout, "Layout1", 1, PaperSpace, 688);
+            Layout(file, ModelLayout, "Model", 0, ModelSpace, 1024, Since("AC1018"));
+            Layout(file, PaperLayout, "Layout1", 1, PaperSpace, 688, Since("AC1018"));
 
             file.Str(0, "ENDSEC");
         }
@@ -1767,9 +1793,10 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// A layout with the page set-up left at nothing, which is all AutoCAD needs of one to show the model and a sheet.
+        /// A layout with the page set-up left at nothing, which is all AutoCAD needs of one to show the model and a sheet; from
+        /// R2004 on with its shade plot as displayed (76), at normal quality (77) and 300 dots an inch (78), as AutoCAD writes it.
         /// </summary>
-        private static void Layout(Groups file, int handle, string name, int tab, int record, int plotFlags)
+        private static void Layout(Groups file, int handle, string name, int tab, int record, int plotFlags, bool shadePlot)
         {
             file.Str(0, "LAYOUT");
             file.Hex(5, handle);
@@ -1794,6 +1821,14 @@ namespace GeometryHelper.Dxf
             file.Str(7, string.Empty);
             file.Int(75, 16);
             file.Real(147, 1.0);
+
+            if (shadePlot)
+            {
+                file.Int(76, 0);
+                file.Int(77, 2);
+                file.Int(78, 300);
+            }
+
             file.Real(148, 0.0);
             file.Real(149, 0.0);
             file.Str(100, "AcDbLayout");

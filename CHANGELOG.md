@@ -10,8 +10,12 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 AC1015 (R2000), AC1018, AC1021, AC1024 (R2010), AC1027 or AC1032 (R2018), as AutoCAD's `new Database(true, true)` makes one
 of its own. It is the drawing `DxfWriter` writes with no shape, in millimetres, its header naming the version, so that a
 dynamic block, which wants R2010 or later, is made from nothing: `new DxfDatabase("AC1024")`. `new DxfDatabase("AC1015")` is
-the very text of `DxfDatabase.Parse(new DxfWriter().ToString())`; a version of R12 to R14 is refused. ezdxf 1.4.5 recovers
-and audits each of the six with nothing to fix.
+the very text of `DxfDatabase.Parse(new DxfWriter().ToString())`; a version of R12 to R14 is refused. A later version gives
+its records what that version added to them, as AutoCAD's own saves give them: from R2004 on each class says how many
+objects of it there are (91), without which AutoCAD 2021 opens no drawing of R2004 or later ("Group 91 (db instance count)
+expected", which it gave for the five such drawings and for every dynamic block made in them before this was written), and
+each layout gives its shade plot (76 to 78); from R2007 on model space and paper space give their unit, explodability and
+scaling (70, 280, 281). ezdxf 1.4.5 recovers and audits each of the six with nothing to fix.
 
 **NEW.** `DxfDynamicBlockReferenceProperty.Value` is set, as AutoCAD's `DynamicBlockReferenceProperty.Value` sets it, on the
 distance of a linear parameter whose actions are stretches of lines and polylines and on the state of a visibility

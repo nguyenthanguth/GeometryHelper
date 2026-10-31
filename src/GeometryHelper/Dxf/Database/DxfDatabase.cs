@@ -63,7 +63,10 @@ namespace GeometryHelper.Dxf
         /// Makes a new drawing with nothing in it, of a version, as AutoCAD's <c>new Database(true, true)</c> makes one of its
         /// own: the drawing <see cref="DxfWriter"/> writes with no shape, in millimetres, with model space and paper space, two
         /// layouts, the layer 0, the text style and the dimension style Standard and the named object dictionary, its header
-        /// naming the version given (<c>$ACADVER</c>). <c>new DxfDatabase("AC1024")</c> is a drawing of R2010, the oldest a
+        /// naming the version given (<c>$ACADVER</c>) and its records giving what that version added to them, as AutoCAD
+        /// writes them: from R2004 on how many objects of each class there are, without which AutoCAD opens no drawing of those
+        /// versions, and the layouts' shade plot; from R2007 on the unit, explodability and scaling of model space and paper
+        /// space. <c>new DxfDatabase("AC1024")</c> is a drawing of R2010, the oldest a
         /// dynamic block is made in (<see cref="DxfBlockTableRecord.AddLinearParameter"/>); <c>"AC1015"</c> gives the very
         /// text <c>new DxfWriter().ToString()</c> gives.
         /// </summary>

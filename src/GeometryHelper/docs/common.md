@@ -460,7 +460,11 @@ it, the drawing `DxfWriter` writes with no shape, in millimetres, with model spa
 0, the text style and the dimension style Standard and the named object dictionary, its header naming AC1024; entities,
 blocks and layers are added to it as to any other. The versions are AC1015 (R2000), AC1018, AC1021, AC1024, AC1027 and
 AC1032 (R2018); `new DxfDatabase("AC1015")` is the very text of `DxfDatabase.Parse(new DxfWriter().ToString())`, and a
-version of R12 to R14, or one written otherwise, is refused (`ArgumentException`). ezdxf 1.4.5 recovers and audits each of
+version of R12 to R14, or one written otherwise, is refused (`ArgumentException`). A later version gives its records what
+that version added to them, as AutoCAD's own saves of each version give them: from R2004 on each of the three classes says
+how many objects of it there are (one, one and two), without which AutoCAD 2021 opens no drawing of R2004 or later
+("Group 91 (db instance count) expected"), and each layout gives its shade plot; from R2007 on model space and paper space
+give their unit (none), that they may be exploded and that they scale any way. ezdxf 1.4.5 recovers and audits each of
 the six with nothing to fix.
 
 ### AutoCAD and GeometryHelper
