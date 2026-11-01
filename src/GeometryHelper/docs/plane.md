@@ -1101,7 +1101,11 @@ A corner where an edge is already an arc is rounded too, by the one circle of th
 edges on the inside of the corner, the arc moved in by the radius standing in for the straight edge's
 parallel line. The arc always runs the way the shape runs and touches each edge on the edge itself, never past the
 corner: the chain (0, 0), (10, 0), (3, 5) filleted at 0.002 is cut back 0.0062 along both edges by an
-arc of 144.5°.
+arc of 144.5°. A radius at which the straight edge's parallel line only touches the arc's moved circle, or misses it,
+would round the corner by half a circle, and the corner is left square alike at any size: the cap of the circle of
+radius 12 above a chord 4 from its centre is rounded where the chord runs into the arc at 3.5, and left square at
+4.000025 within 1E-4, as the same cap 1 000 times smaller is within 1E-7, where the small one was rounded by a half
+circle.
 
 Exactly enough is enough: a square of side 100 filleted at 50 loses every straight edge and comes back
 four quarter turns — a circle. Chamfered at 50 it comes back the diamond through the four midpoints. So is
@@ -1759,7 +1763,12 @@ cut. `TransformBy` of a polygon, a chain or a face, and `GeoTransform2.Transform
 whatever the transformation: the cut triangle turned, moved or mirrored keeps its six corners, and the square 10 by 10
 scaled by 1E-5 is the square 0.0001 across, where it was refused as having fewer than three corners; only a corner the
 transformation lands on the very same point as the one before it goes. `Reverse` of a polygon or a chain turns it round
-corner for corner: the cut triangle reverses to its six corners, where it came back three.
+corner for corner: the cut triangle reverses to its six corners, where it came back three. `ToPolyline` of a polygon
+writes it out side for side, the cut triangle a chain of seven vertices, where it came back four, and `ToPolygon` of a
+chain closes it corner for corner: the chain round the cut triangle is the polygon of its six corners, where it came back
+three. A last vertex on the first, or off it by no more than the rounding of its coordinates, 1E-12 of the largest of
+them and of one at the least, is the chain written closed, and goes: the chain round the square 10 across from
+(100, 100) ending 1E-12 off its start is that square, where one ending 0.0001 off keeps the side back to its start.
 
 **What a transformation cannot do.** A circle stays a circle only when every direction is stretched by the
 same amount: when the two axes come out so nearly equally long and square to each other that the circle moved lands

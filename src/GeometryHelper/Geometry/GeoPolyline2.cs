@@ -282,7 +282,26 @@ namespace GeometryHelper.Geometry
         /// The chain is closed by connecting the last vertex back to the first.
         /// </summary>
         /// <returns>A new GeoPolygon2 instance.</returns>
-        public GeoPolygon2 ToPolygon() => new GeoPolygon2(_vertices);
+        /// <remarks>
+        /// The polygon has the chain's vertices, however short a leg; a last vertex on the first, or off it by no more than
+        /// the rounding of its coordinates, 1E-12 of the largest of them and of one at the least, is the chain written
+        /// closed, and goes. At a millionth, the chain round the triangle (0, 0), (10, 0), (10, 10) with every corner cut by
+        /// 0.0003 is the polygon of its six corners, where it was put back together within the global tolerance of a
+        /// thousandth and came back three. The chain round the square 10 across from (100, 100) ending 1E-12 off its
+        /// start is that square, and ending 0.0001 off, a polygon of five corners.
+        /// </remarks>
+        public GeoPolygon2 ToPolygon()
+        {
+            int count = _vertices.Length;
+
+            // A chain closed by arithmetic lands a rounding off its start, where there is no side.
+            if (_vertices[count - 1].DistanceTo(_vertices[0]) <= Core.Stub2.Rounding(_vertices[0]))
+            {
+                count--;
+            }
+
+            return new GeoPolygon2(new ArraySegment<GeoPoint2>(_vertices, 0, count), default(Tolerance));
+        }
 
         /// <summary>
         /// Checks whether a point lies on this polyline using default tolerance.

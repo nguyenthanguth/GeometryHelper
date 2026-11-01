@@ -80,7 +80,12 @@ namespace GeometryHelper.Core
         /// <summary>
         /// The rounding of a segment's start: 1E-12 of its largest coordinate, and of one at the least.
         /// </summary>
-        private static double Rounding(GeoLine2 line)
-            => 1E-12 * Math.Max(1.0, Math.Max(Math.Abs(line.StartPoint.X), Math.Abs(line.StartPoint.Y)));
+        private static double Rounding(GeoLine2 line) => Rounding(line.StartPoint);
+
+        /// <summary>
+        /// The rounding of a point: 1E-12 of its largest coordinate, and of one at the least.
+        /// </summary>
+        internal static double Rounding(GeoPoint2 point)
+            => 1E-12 * Math.Max(1.0, Math.Max(Math.Abs(point.X), Math.Abs(point.Y)));
     }
 }

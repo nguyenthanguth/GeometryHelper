@@ -378,12 +378,19 @@ namespace GeometryHelper.Geometry
         /// The boundary is closed by repeating the first vertex at the end of the chain.
         /// </summary>
         /// <returns>A new GeoPolyline2 instance representing the polygon boundary.</returns>
+        /// <remarks>
+        /// The chain runs side for side, however short a side: at a millionth, the triangle (0, 0), (10, 0), (10, 10) with
+        /// every corner cut by 0.0003 is a chain of seven vertices, where it was put back together within the global
+        /// tolerance of a thousandth and came back four.
+        /// </remarks>
         public GeoPolyline2 ToPolyline()
         {
             var polylineVertices = new GeoPoint2[_vertices.Length + 1];
             Array.Copy(_vertices, polylineVertices, _vertices.Length);
             polylineVertices[_vertices.Length] = _vertices[0];
-            return new GeoPolyline2(polylineVertices);
+
+            // The polygon's own sides, every one apart already.
+            return new GeoPolyline2(polylineVertices, polylineVertices.Length);
         }
 
         /// <summary>

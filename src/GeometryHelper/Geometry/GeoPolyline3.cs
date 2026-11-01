@@ -55,6 +55,19 @@ namespace GeometryHelper.Geometry
         /// segment with no usable direction in the middle of the chain.
         /// </remarks>
         public GeoPolyline3(IEnumerable<GeoPoint3> vertices)
+            : this(vertices, Tolerance.Global)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a chain from a sequence of vertices, a vertex going only where it lands within a tolerance of the
+        /// one kept before it.
+        /// </summary>
+        /// <remarks>
+        /// For a chain transformed, whose vertices stand apart already: at a tolerance of nought only a vertex on the very
+        /// same point as the one before it goes, so a leg shorter than the global tolerance stays.
+        /// </remarks>
+        internal GeoPolyline3(IEnumerable<GeoPoint3> vertices, Tolerance tolerance)
         {
             if (vertices == null)
             {
@@ -65,7 +78,7 @@ namespace GeometryHelper.Geometry
 
             foreach (GeoPoint3 vertex in vertices)
             {
-                if (kept.Count == 0 || !kept[kept.Count - 1].IsEqualTo(vertex))
+                if (kept.Count == 0 || !kept[kept.Count - 1].IsEqualTo(vertex, tolerance))
                 {
                     kept.Add(vertex);
                 }
@@ -279,7 +292,27 @@ namespace GeometryHelper.Geometry
         /// Thrown when the chain has fewer than three distinct vertices or is not planar, since a polygon
         /// requires both.
         /// </exception>
-        public GeoPolygon3 ToPolygon() => new GeoPolygon3(_vertices);
+        /// <remarks>
+        /// The polygon has the chain's vertices, however short a leg; a last vertex on the first, or off it by no more than
+        /// the rounding of its coordinates, 1E-12 of the largest of them and of one at the least, is the chain written
+        /// closed, and goes. At a millionth, the chain round the triangle (0, 0, 0), (10, 0, 0), (10, 0, 10) with every
+        /// corner cut by 0.0003 is the polygon of its six corners, where it was put back together within the global
+        /// tolerance of a thousandth and came back three. The chain round the square 10 across from (100, 100, 0) ending
+        /// 1E-12 off its start is that square, and ending 0.0001 off, a polygon of five corners. The polygon is still
+        /// checked flat and enclosing an area within the global tolerance.
+        /// </remarks>
+        public GeoPolygon3 ToPolygon()
+        {
+            int count = _vertices.Length;
+
+            // A chain closed by arithmetic lands a rounding off its start, where there is no side.
+            if (_vertices[count - 1].DistanceTo(_vertices[0]) <= Stub3.Rounding(_vertices[0]))
+            {
+                count--;
+            }
+
+            return new GeoPolygon3(new ArraySegment<GeoPoint3>(_vertices, 0, count), default(Tolerance), Tolerance.Global);
+        }
 
         /// <summary>
         /// Gets the axis-aligned bounding box enclosing this polyline.
@@ -297,6 +330,12 @@ namespace GeometryHelper.Geometry
         /// Applies a transformation to every vertex.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
+        /// <remarks>
+        /// The chain is transformed leg for leg, however short a leg: at a millionth, the chain (0, 0, 0), (10, 0, 0),
+        /// (10, 0, 10) with its corner cut by 0.0003 turns at both ends of the cut turned and moved, where it was put back
+        /// together within the global tolerance of a thousandth and came back turning once. Only a vertex the
+        /// transformation lands on the very same point as the one before it goes, so no leg is left with no length.
+        /// </remarks>
         public GeoPolyline3 TransformBy(GeoTransform3 transform)
         {
             if (transform == null)
@@ -311,10 +350,9 @@ namespace GeometryHelper.Geometry
                 moved[i] = transform.Transform(_vertices[i]);
             }
 
-            // The public constructor is right here rather than the private one: a transformation that
-            // scales down can bring two vertices within tolerance of each other, and the result should
-            // then be a shorter chain rather than one carrying a zero-length segment.
-            return new GeoPolyline3(moved);
+            // The vertices stand apart already, however near; a transformation keeps them apart unless it lands two on the
+            // very same point, which would leave a leg of no length.
+            return new GeoPolyline3(moved, default(Tolerance));
         }
 
         #region Planarity

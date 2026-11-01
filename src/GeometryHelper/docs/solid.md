@@ -2209,6 +2209,20 @@ corner is kept, however short a side: at a millionth, the filleted chain flatten
 0.0007 apart, and the rectangle 100 by 50 standing in the plane x = 20 filleted at 0.0005 to its eight corners, where
 both were put back together within the global tolerance, the chain turning once and the rectangle with four corners.
 
+A straight polygon or chain in space is turned round, written out and transformed side for side too. `Reverse` of a
+`GeoPolygon3` keeps every corner: at a millionth, the triangle (0, 0, 0), (10, 0, 0), (10, 0, 10) with every corner cut
+by 0.0003 reverses to its six corners, where it came back three, and a square 100 across built at a hundredth with one
+corner 0.005 off the plane of the others reverses, where it was checked flat within the global tolerance again and
+refused. `ToPolyline` writes the cut triangle out as a chain of seven vertices, where it came back four, and `ToPolygon`
+closes the chain round it into the polygon of its six corners, where it came back three; a last vertex on the first, or
+off it by no more than the rounding of its coordinates, 1E-12 of the largest of them, goes, and one further off keeps
+the side back to the start. `TransformBy` of a chain,
+however it moves it, and of a polygon or a face under a scaling, a stretch or a shear keeps them side for side: the cut
+triangle scaled by 2 or sheared keeps its six corners, and the chain (0, 0, 0), (10, 0, 0), (10, 0, 10) scaled by 1E-5 is
+the chain 0.0002 long, where it was refused as having fewer than two vertices. Only a corner the transformation lands on
+the very same point as the one before it goes. A polygon is still checked flat and enclosing an area within the global
+tolerance, so one shrunk to under about a thousandth across is still refused as having no width.
+
 A radius per corner works too, read the way the bulges are read: the entry at an index belongs to the vertex
 at that index, and nought leaves that corner square. `TryFilletAt` rounds one named corner. A bend with too
 little straight run either side to fit its radius is left square rather than forced, and where two bends want

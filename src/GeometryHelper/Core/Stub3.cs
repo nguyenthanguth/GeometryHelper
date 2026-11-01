@@ -138,7 +138,7 @@ namespace GeometryHelper.Core
         /// <summary>
         /// The rounding of a point: 1E-12 of its largest coordinate, and of one at the least.
         /// </summary>
-        private static double Rounding(GeoPoint3 point)
+        internal static double Rounding(GeoPoint3 point)
             => 1E-12 * Math.Max(1.0, Math.Max(Math.Abs(point.X), Math.Max(Math.Abs(point.Y), Math.Abs(point.Z))));
 
         private static double Far(GeoPoint3 a, GeoPoint3 b)

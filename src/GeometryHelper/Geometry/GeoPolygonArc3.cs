@@ -618,7 +618,13 @@ namespace GeometryHelper.Geometry
         /// Gets the loop as a straight one following its arcs to a given accuracy.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is not a positive number, or needs more than 1 048 576 pieces for one arc, as <see cref="GeoPolylineArc3.ToPolyline3(double)"/>.</exception>
-        public GeoPolygon3 ToPolygon3(double chordTolerance) => ToPolylineArc3().ToPolyline3(chordTolerance).ToPolygon();
+        public GeoPolygon3 ToPolygon3(double chordTolerance)
+        {
+            // Built within the global tolerance, as the chain is: the last arc's last chord can end further off the first
+            // corner than the rounding of its coordinates, 1.8E-10 at coordinates near 50, and is closed onto it rather than
+            // kept as a side next to nothing.
+            return new GeoPolygon3(ToPolylineArc3().ToPolyline3(chordTolerance).Vertices);
+        }
 
         /// <summary>
         /// Breaks the loop into faces of a kind, its grid level, using the default tolerance. A grid needs the size of its

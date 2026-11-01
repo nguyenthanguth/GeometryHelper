@@ -183,7 +183,7 @@ namespace GeometryHelper.Core
                     return;
                 }
 
-                Meet(found, one.Center, radius, Moved(second, moveSecond), tolerance);
+                Meet(found, one.Center, radius, Moved(second, moveSecond));
                 return;
             }
 
@@ -194,7 +194,7 @@ namespace GeometryHelper.Core
 
                 if (radius > tolerance.EqualPoint)
                 {
-                    Meet(found, other.Center, radius, Moved(first, moveFirst), tolerance);
+                    Meet(found, other.Center, radius, Moved(first, moveFirst));
                 }
 
                 return;
@@ -267,7 +267,18 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Adds where a circle crosses an endless line.
         /// </summary>
-        private static void Meet(List<GeoPoint2> found, GeoPoint2 centre, double radius, GeoLine2 line, Tolerance tolerance)
+        /// <remarks>
+        /// A line that only touches the circle, or misses it, gives no centre. The one it would give is the point of the
+        /// line nearest the circle's centre, square to the line from it, so the arc about it touches the line and the
+        /// curved piece on that one square: it sweeps half a turn, which <see cref="TryFillet"/> never takes. Such a centre
+        /// was let in where the difference of the squared radius and the squared distance, an area, was within the
+        /// tolerance, a length, and its arc was then taken or not as the rounding of its sweep fell: the cap of the circle
+        /// of radius 12 above a chord 4 from its centre, turned by half a radian and moved to (30, 40), filleted where the
+        /// chord runs into the arc by 4.000025 within 1E-4,
+        /// a quarter of the tolerance more than the largest circle in it, was left square, and the same cap 1 000 times
+        /// smaller, within 1E-7, was rounded by a half circle.
+        /// </remarks>
+        private static void Meet(List<GeoPoint2> found, GeoPoint2 centre, double radius, GeoLine2 line)
         {
             GeoVector2 along = line.StartPoint.GetVectorTo(line.EndPoint);
 
@@ -281,12 +292,12 @@ namespace GeometryHelper.Core
 
             double square = radius * radius - closest.GetDistanceSquaredTo(centre);
 
-            if (square < -tolerance.EqualPoint)
+            if (square <= 0.0)
             {
                 return;
             }
 
-            double across = square <= 0.0 ? 0.0 : Math.Sqrt(square);
+            double across = Math.Sqrt(square);
 
             found.Add(closest.Add(unit.Multiply(across)));
             found.Add(closest.Add(unit.Multiply(-across)));

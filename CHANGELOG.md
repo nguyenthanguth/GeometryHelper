@@ -6,6 +6,49 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `Reverse` of a `GeoPolygon3` turns it round corner for corner, `ToPolyline` of a `GeoPolygon2` and of a
+`GeoPolygon3` writes it out side for side, and `ToPolygon` of a `GeoPolyline2` and of a `GeoPolyline3` closes it corner
+for corner, however short a side, as the reversals in the plane do since the last fix. They were put back together within
+the global tolerance of a thousandth: at a millionth, the triangle (0, 0, 0), (10, 0, 0), (10, 0, 10) with every corner cut
+by 0.0003 reversed or closed from its chain came back three corners, where it keeps six, and written out a chain of four
+vertices, where it is seven; and a reversed polygon was checked flat within the global tolerance again, so a square 100
+across built at a hundredth with one corner 0.005 off the plane of the others was refused. A last vertex of a chain on the
+first, or off it by no more than the rounding of its coordinates, 1E-12 of the largest of them and of one at the least,
+is the chain written closed and goes: the chain round the square 10 across from (100, 100) ending 1E-12 off its start
+is that square, and one ending 0.0001 off keeps the side back to its start, which the global tolerance dropped. Of 4 950
+polygons in space, chamfered at tolerances from a billionth to a ten-thousandth,
+with a side between ten tolerances and 0.0009 long, built at a hundredth up to 0.009 off flat, or plain, 3 791 reversals
+lost a corner or were refused; of the same shapes in the plane and in space, 4 808 of 7 944 chains written out and
+14 814 of 23 944 polygons closed from chains lost a corner; none does now, but for 4 open chains that, closed, enclose no
+area within the global tolerance. Plain shapes give the same bits, and so does `ToPolygon3` of a `GeoPolygonArc3`, which
+still closes its last chord onto the first corner within the global tolerance: sampled, it can end further off than the
+rounding, 1.8E-10 at coordinates near 50. 13 new tests, three of them guards.
+
+**FIXED.** `TransformBy` of a `GeoPolyline3`, and of a `GeoPolygon3` and a `GeoFace3` under a transformation that does not
+keep lengths, a scaling, a stretch or a shear, transform side for side, however short a side, as a rigid move of a polygon
+or a face carried them already: at a millionth, the triangle (0, 0, 0), (10, 0, 0), (10, 0, 10) with every corner cut by
+0.0003 keeps its six corners scaled by 2 or sheared, where it came back three, the chain (0, 0, 0), (10, 0, 0),
+(10, 0, 10) with its corner cut by 0.0003 turns at both ends of the cut turned and moved, where it turned once, and the
+same chain uncut scaled by 1E-5 is 0.0002 long, where it was refused as having fewer than two vertices. Only a corner
+the transformation lands on the very same point as the one before it goes. A polygon is still checked flat and enclosing
+an area within the global tolerance, so one shrunk under about a thousandth across is still refused as having no width.
+Of the chains of the survey above, 15 883 of 24 438 transforms lost a leg or were refused, 5 184 of 8 146 of them turns,
+moves and mirrors; none does now. Of the polygons and of the faces with them for holes, 6 243 of 11 781 scaled by a half
+to two, stretched or sheared lost a corner, each; none does now, and of 3 927 shrunk by a millionth to a hundredth 3 494
+lost a corner or were refused, where 2 598 are, every one for having no width. Rigid moves of polygons and faces, and
+plain shapes, give the same bits. 6 new tests, one a guard.
+
+**FIXED.** A corner where a straight piece runs into an arc is filleted alike at any size by a radius at which the straight
+piece's parallel line only touches the arc's moved circle, or misses it: it is left square. The circle about the point
+of touching would round the corner by half a circle, which a fillet never draws; it was let in where the difference of the
+squared radius and the squared distance, an area, was within the tolerance, a length, and its arc then drawn or not as the
+rounding of its sweep fell. The cap of the circle of radius 12 above a chord 4 from its centre, turned by half a radian
+and moved to (30, 40), filleted where the chord runs into the arc by 4.000025 within 1E-4 was left square, and the same
+cap 1 000 times smaller within 1E-7 rounded by a half circle. Of 1 335 such caps filleted by up to half a tolerance more
+than the largest circle in them, each at a thousandth, the whole and a thousand times the size, 588 were rounded at one
+size and not at another; none is now, and 6 665 filleted by a radius that fits or by more give the same bits. 2 new
+tests, one a guard.
+
 **FIXED.** `DxfMText.Contents` reads a letter written as its escape as the letter, as AutoCAD 2021 reads the MTEXT of a
 drawing of R2004 or older, which writes so each letter its code page has not: `a\U+0110b` is aĐb, and the escapes of the
 two halves of a letter beyond U+FFFF, `\U+D83D\U+DE00`, are that letter, U+1F600. It gave the escapes, so that an MTEXT of

@@ -89,6 +89,20 @@ namespace GeometryHelper.Geometry
         /// <param name="vertices">The vertices, in order around the loop.</param>
         /// <param name="tolerance">The tolerance deciding duplicate vertices and flatness.</param>
         public GeoPolygon3(IEnumerable<GeoPoint3> vertices, Tolerance tolerance)
+            : this(vertices, tolerance, tolerance)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a polygon whose vertices go only where they land within one tolerance of the one kept before them,
+        /// or of the first at the end, checked flat and enclosing an area within another.
+        /// </summary>
+        /// <remarks>
+        /// For the corners of a shape that stand apart already, a chain closed or a polygon transformed: at a merging
+        /// tolerance of nought only a vertex on the very same point as the one before it goes, so a side shorter than the
+        /// global tolerance stays, while the loop is still refused where it is not flat or encloses no area.
+        /// </remarks>
+        internal GeoPolygon3(IEnumerable<GeoPoint3> vertices, Tolerance merge, Tolerance tolerance)
         {
             if (vertices == null)
             {
@@ -99,13 +113,13 @@ namespace GeometryHelper.Geometry
 
             foreach (GeoPoint3 vertex in vertices)
             {
-                if (kept.Count == 0 || !kept[kept.Count - 1].IsEqualTo(vertex, tolerance))
+                if (kept.Count == 0 || !kept[kept.Count - 1].IsEqualTo(vertex, merge))
                 {
                     kept.Add(vertex);
                 }
             }
 
-            while (kept.Count > 1 && kept[kept.Count - 1].IsEqualTo(kept[0], tolerance))
+            while (kept.Count > 1 && kept[kept.Count - 1].IsEqualTo(kept[0], merge))
             {
                 kept.RemoveAt(kept.Count - 1);
             }
@@ -541,13 +555,19 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the boundary of this polygon as an open chain, with the closing vertex written out.
         /// </summary>
+        /// <remarks>
+        /// The chain runs side for side, however short a side: at a millionth, the triangle (0, 0, 0), (10, 0, 0),
+        /// (10, 0, 10) with every corner cut by 0.0003 is a chain of seven vertices, where it was put back together within
+        /// the global tolerance of a thousandth and came back four.
+        /// </remarks>
         public GeoPolyline3 ToPolyline()
         {
             GeoPoint3[] chain = new GeoPoint3[_vertices.Length + 1];
             Array.Copy(_vertices, chain, _vertices.Length);
             chain[_vertices.Length] = _vertices[0];
 
-            return new GeoPolyline3(chain);
+            // The polygon's own sides, every one apart already.
+            return new GeoPolyline3(chain, true);
         }
 
         /// <summary>
@@ -564,6 +584,14 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentException">
         /// Thrown when the transformation flattens the polygon so that it no longer encloses an area.
         /// </exception>
+        /// <remarks>
+        /// The polygon is transformed side for side, however short a side: at a millionth, the triangle (0, 0, 0),
+        /// (10, 0, 0), (10, 0, 10) with every corner cut by 0.0003 keeps its six corners scaled by 2 or sheared, where it was
+        /// put back together within the global tolerance of a thousandth and came back three. Only a corner the
+        /// transformation lands on the very same point as the one before it goes. A transformation that stretches or
+        /// shears still has the polygon checked flat and enclosing an area within the global tolerance, as the constructor
+        /// checks it.
+        /// </remarks>
         public GeoPolygon3 TransformBy(GeoTransform3 transform)
         {
             if (transform == null)
@@ -590,10 +618,11 @@ namespace GeometryHelper.Geometry
                 return new GeoPolygon3(moved, area.Divide(area.Length), Area);
             }
 
-            // Anything else the public constructor revalidates, which is what is wanted there: a projection onto a
-            // plane can collapse the polygon to a line, and a scaling can merge vertices, and both should be
-            // reported rather than carried forward as a polygon with a stale normal.
-            return new GeoPolygon3(moved);
+            // Anything else is measured again, which is what is wanted there: a projection onto a plane can collapse the
+            // polygon to a line, and that should be reported rather than carried forward as a polygon with a stale normal.
+            // The corners stand apart already, however near; only two the transformation lands on the very same point
+            // become one.
+            return new GeoPolygon3(moved, default(Tolerance), Tolerance.Global);
         }
 
         #region Queries
@@ -915,6 +944,13 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// Which way a loop runs is what tells its inside from its outside to anything that reads winding,
         /// and it is what decides which way round a pair of chamfer distances goes.
+        /// <para>
+        /// The polygon is reversed corner for corner, however short a side, and however far off flat the tolerance it was
+        /// built within let it lie: at a millionth, the triangle (0, 0, 0), (10, 0, 0), (10, 0, 10) with every corner cut by
+        /// 0.0003 reverses to its six corners, where it was put back together within the global tolerance of a thousandth
+        /// and came back three, and a square 100 across built at a hundredth with one corner 0.005 off the plane of the
+        /// others reverses, where it was refused as not flat.
+        /// </para>
         /// </remarks>
         public GeoPolygon3 Reverse()
         {
@@ -925,7 +961,15 @@ namespace GeometryHelper.Geometry
                 turned[i] = this[VertexCount - 1 - i];
             }
 
-            return new GeoPolygon3(turned);
+            // The same corners, walked the other way: there is nothing to merge and nothing to check. The normal and the
+            // area are those of the corners walked this way, as the constructor measures them; a loop that measures no
+            // area keeps its own, turned over.
+            GeoVector3 areaVector = Newell.GetAreaVector(turned);
+            double area = areaVector.Length;
+
+            return area > 0.0
+                ? new GeoPolygon3(turned, areaVector.Divide(area), area)
+                : new GeoPolygon3(turned, Normal.Negate(), Area);
         }
 
     }
