@@ -74,6 +74,7 @@ namespace GeometryHelper.Dxf
                         break;
                     case "BLOCKPOLARPARAMETER":
                         Polar(groups, cache, scale, properties);
+                        Bind(properties, before, insert, id);
                         break;
                     case "BLOCKXYPARAMETER":
                         Xy(groups, cache, scale, properties);
@@ -473,7 +474,7 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// The base point the INSERT saved of each node it saved two points or more of, by the node's id: the first point of the
-        /// record of a linear, an XY, a rotation or a flip parameter; none where it saved none.
+        /// record of a linear, an XY, a polar, a rotation or a flip parameter; none where it saved none.
         /// </summary>
         internal static Dictionary<string, double[]> SavedBases(DxfBlockReference insert)
         {

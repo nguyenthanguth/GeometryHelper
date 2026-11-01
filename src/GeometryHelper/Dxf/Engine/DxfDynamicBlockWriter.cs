@@ -139,9 +139,9 @@ namespace GeometryHelper.Dxf
         /// Writes a rotation parameter with its grip at the end point and the grip's two location components: four nodes, and
         /// the three edges AutoCAD writes for them, as AutoCAD saved the rotation parameter of ACadSharp's sample: the end point
         /// at the radius and the angle from the base point, the base angle point at the radius along the block's x axis, the
-        /// angle's set of none (flags 3, nought to a whole turn).
+        /// angle's value set (96, 141 to 144, 175), of none the flags 3, nought to a whole turn.
         /// </summary>
-        internal static DxfBlockRotationParameter AddRotation(DxfBlockTableRecord block, string name, string description, GeoPoint3 basePoint, double radius, double angle)
+        internal static DxfBlockRotationParameter AddRotation(DxfBlockTableRecord block, string name, string description, GeoPoint3 basePoint, double radius, double angle, DxfBlockParameterValueSet valueSet)
         {
             Graph graph = Graph.Of(block);
             DxfFile file = graph.File;
@@ -175,11 +175,7 @@ namespace GeometryHelper.Dxf
                 Point(b, 1011, baseAngle);
                 b.Group(140, "0.0");
                 b.Group(307, string.Empty);
-                b.Group(96, "3");
-                b.Group(141, "0.0");
-                b.Group(142, Real(2.0 * Math.PI));
-                b.Group(143, "0.0");
-                b.Group(175, "0");
+                Values(b, 96, 141, 175, valueSet, "3", "0.0", Real(2.0 * Math.PI));
             });
 
             Environ(parameter, baseAngle);
@@ -194,7 +190,7 @@ namespace GeometryHelper.Dxf
             file.AddClass("BLOCKROTATIONPARAMETER", "AcDbBlockRotationParameter", 1153);
             file.AddClass("BLOCKROTATIONGRIP", "AcDbBlockRotationGrip", 1153);
             file.AddClass("BLOCKGRIPLOCATIONCOMPONENT", "AcDbBlockGripExpr", 1153);
-            return new DxfBlockRotationParameter(block, p, parameter.Handle, name, description, basePoint, radius, angle);
+            return new DxfBlockRotationParameter(block, p, parameter.Handle, name, description, basePoint, radius, angle, valueSet);
         }
 
         /// <summary>
@@ -280,9 +276,10 @@ namespace GeometryHelper.Dxf
         /// Writes an XY parameter with its four grips (the end, the base, base x with end y, end x with base y), each with its
         /// two location components: thirteen nodes, and the twelve edges AutoCAD writes for them, as AutoCAD saved the XY
         /// parameter of ACadSharp's sample: the labels of y and x at 305 and 306, their descriptions at 307 and 308, the label
-        /// offsets nought, the sets of none.
+        /// offsets nought, the value set of y (97, 146 to 149, 176) and then of x (96, 142 to 145, 175), of none the flags 1.
         /// </summary>
-        internal static DxfBlockXYParameter AddXY(DxfBlockTableRecord block, string xName, string xDescription, string yName, string yDescription, GeoPoint3 basePoint, GeoPoint3 endPoint)
+        internal static DxfBlockXYParameter AddXY(DxfBlockTableRecord block, string xName, string xDescription, string yName, string yDescription, GeoPoint3 basePoint, GeoPoint3 endPoint,
+            DxfBlockParameterValueSet xValueSet, DxfBlockParameterValueSet yValueSet)
         {
             Graph graph = Graph.Of(block);
             DxfFile file = graph.File;
@@ -316,17 +313,9 @@ namespace GeometryHelper.Dxf
                 b.Group(141, "0.0");
                 b.Group(140, "0.0");
                 b.Group(309, string.Empty);
-                b.Group(97, "1");
-                b.Group(146, "0.0");
-                b.Group(147, "0.0");
-                b.Group(148, "0.0");
-                b.Group(176, "0");
+                Values(b, 97, 146, 176, yValueSet, "1", "0.0", "0.0");
                 b.Group(410, string.Empty);
-                b.Group(96, "1");
-                b.Group(142, "0.0");
-                b.Group(143, "0.0");
-                b.Group(144, "0.0");
-                b.Group(175, "0");
+                Values(b, 96, 142, 175, xValueSet, "1", "0.0", "0.0");
             });
 
             Environ(parameter, endPoint);
@@ -353,7 +342,138 @@ namespace GeometryHelper.Dxf
             file.AddClass("BLOCKXYPARAMETER", "AcDbBlockXYParameter", 1153);
             file.AddClass("BLOCKXYGRIP", "AcDbBlockXYGrip", 1153);
             file.AddClass("BLOCKGRIPLOCATIONCOMPONENT", "AcDbBlockGripExpr", 1153);
-            return new DxfBlockXYParameter(block, p, parameter.Handle, xName, xDescription, yName, yDescription, basePoint, endPoint);
+            return new DxfBlockXYParameter(block, p, parameter.Handle, xName, xDescription, yName, yDescription, basePoint, endPoint, xValueSet, yValueSet);
+        }
+
+        /// <summary>
+        /// Writes a polar parameter with its two grips, each with its two location components: seven nodes, and the six edges
+        /// AutoCAD writes for them, as AutoCAD saved the polar parameter of ACadSharp's sample: the grips and their connections
+        /// as a linear parameter's, the label of the distance and of the angle at 305 and 307, their descriptions at 306 and 308,
+        /// the label offset (140), the distance's value set (96, 141 to 144, 175), of none the flags 1, and the angle's (97, 145
+        /// to 148, 176), of none the flags 3, nought to a whole turn.
+        /// </summary>
+        internal static DxfBlockPolarParameter AddPolar(DxfBlockTableRecord block, string distanceName, string distanceDescription, string angleName, string angleDescription,
+            GeoPoint3 basePoint, GeoPoint3 endPoint, double labelOffset, DxfBlockParameterValueSet distanceValueSet, DxfBlockParameterValueSet angleValueSet)
+        {
+            Graph graph = Graph.Of(block);
+            DxfFile file = graph.File;
+            int p = graph.NextId;
+            string element = graph.FreeName("Polar");
+            GeoVector3 along = basePoint.GetVectorTo(endPoint);
+
+            DxfItem parameter = file.AddObject("BLOCKPOLARPARAMETER", null, b =>
+            {
+                Head(b, graph.Handle, p, element);
+                b.Group(100, "AcDbBlockParameter");
+                b.Group(280, "1");
+                b.Group(281, "0");
+                b.Group(100, "AcDbBlock2PtParameter");
+                Point(b, 1010, basePoint);
+                Point(b, 1011, endPoint);
+                b.Group(170, "4");
+                b.Group(91, Int(p + 4));
+                b.Group(91, Int(p + 1));
+                b.Group(91, "0");
+                b.Group(91, "0");
+                Connection(b, 171, 92, p + 4, "DisplacementX");
+                Connection(b, 172, 93, p + 4, "DisplacementY");
+                Connection(b, 173, 94, p + 1, "DisplacementX");
+                Connection(b, 174, 95, p + 1, "DisplacementY");
+                b.Group(177, "0");
+                b.Group(100, "AcDbBlockPolarParameter");
+                b.Group(305, distanceName);
+                b.Group(306, distanceDescription);
+                b.Group(307, angleName);
+                b.Group(308, angleDescription);
+                b.Group(140, Real(labelOffset));
+                b.Group(309, string.Empty);
+                Values(b, 96, 141, 175, distanceValueSet, "1", "0.0", "0.0");
+                b.Group(410, string.Empty);
+                Values(b, 97, 145, 176, angleValueSet, "3", "0.0", Real(2.0 * Math.PI));
+            });
+
+            // The label stands off the middle of the line to its left, looking from the base to the end, by the offset.
+            double flat = Math.Sqrt(along.X * along.X + along.Y * along.Y);
+            GeoPoint3 middle = basePoint.GetMiddlePoint(endPoint);
+            Environ(parameter, new GeoPoint3(middle.X - along.Y / flat * labelOffset, middle.Y + along.X / flat * labelOffset, middle.Z));
+            graph.Add(p, parameter.Handle);
+            GripOf(graph, "BLOCKPOLARGRIP", "AcDbBlockPolarGrip", p + 1, "End Grip", endPoint, "1", null);
+            Components(graph, p, p + 1, Unset, "UpdatedEnd");
+            GripOf(graph, "BLOCKPOLARGRIP", "AcDbBlockPolarGrip", p + 4, "Base Grip", basePoint, "1", null);
+            Components(graph, p, p + 4, "0.0", "UpdatedBase");
+            graph.Link(p, p + 2, 1);
+            graph.Link(p, p + 3, 1);
+            graph.Link(p + 1, p, 2);
+            graph.Link(p, p + 5, 1);
+            graph.Link(p, p + 6, 1);
+            graph.Link(p + 4, p, 2);
+            graph.Write();
+
+            file.AddClass("BLOCKPOLARPARAMETER", "AcDbBlockPolarParameter", 1153);
+            file.AddClass("BLOCKPOLARGRIP", "AcDbBlockPolarGrip", 1153);
+            file.AddClass("BLOCKGRIPLOCATIONCOMPONENT", "AcDbBlockGripExpr", 1153);
+            return new DxfBlockPolarParameter(block, p, parameter.Handle, distanceName, distanceDescription, angleName, angleDescription, basePoint, endPoint, labelOffset, distanceValueSet, angleValueSet);
+        }
+
+        /// <summary>
+        /// Writes a polar stretch action driven by the end point of a polar parameter, as AutoCAD saved the polar stretch of
+        /// ACadSharp's sample and of AutoCAD's own Annotation sample: the entities it stretches (330), its six connections
+        /// (EndXDelta, EndYDelta, Base, End, UpdatedBase, UpdatedEnd), its frame of two corners (73, 1011), the entities it turns
+        /// only (72, 331), each entity it stretches with the indices of its points inside the frame (74, 332, 75, 76), no codes
+        /// (78), the distance multiplier 1 (141) and the angle offset nought (140), and 77 nought; one node, and the edge from the
+        /// parameter (of six connections). An entity to turn only is not among the 330s: AutoCAD 2021 turned and moved a tick
+        /// named there too, and turned it alone named among the 331s only (plugin D25).
+        /// </summary>
+        internal static void AddPolarStretch(DxfBlockPolarParameter parameter, GeoPoint2 low, GeoPoint2 high, List<KeyValuePair<DxfEntity, List<int>>> held, List<DxfEntity> turned)
+        {
+            Graph graph = Graph.Of(parameter.Block);
+            Known(graph, parameter.Block, parameter.Node, parameter.DistanceName);
+            int s = graph.NextId;
+            string element = graph.FreeName("Polar Stretch");
+            int p = parameter.Node;
+            List<DxfEntity> selected = held.ConvertAll(h => h.Key);
+            DxfItem action = graph.File.AddObject("BLOCKPOLARSTRETCHACTION", null, b =>
+            {
+                ActionHead(b, graph, s, element, selected, new GeoPoint3((low.X + high.X) / 2.0, (low.Y + high.Y) / 2.0, 0.0));
+                b.Group(100, "AcDbBlockPolarStretchAction");
+                b.Group(92, Int(p));
+                b.Group(301, "EndXDelta");
+                b.Group(93, Int(p));
+                b.Group(302, "EndYDelta");
+                b.Group(94, Int(p));
+                b.Group(303, "Base");
+                b.Group(95, Int(p));
+                b.Group(304, "End");
+                b.Group(96, Int(p));
+                b.Group(305, "UpdatedBase");
+                b.Group(97, Int(p));
+                b.Group(306, "UpdatedEnd");
+                b.Group(73, "2");
+                b.Group(1011, Real(high.X));
+                b.Group(1021, Real(high.Y));
+                b.Group(1011, Real(low.X));
+                b.Group(1021, Real(low.Y));
+                b.Group(72, Int(turned.Count));
+                turned.ForEach(e => b.Group(331, e.Handle));
+                b.Group(74, Int(held.Count));
+
+                foreach (KeyValuePair<DxfEntity, List<int>> entity in held)
+                {
+                    b.Group(332, entity.Key.Handle);
+                    b.Group(75, Int(entity.Value.Count));
+                    entity.Value.ForEach(i => b.Group(76, Int(i)));
+                }
+
+                b.Group(78, "0");
+                b.Group(141, "1.0");
+                b.Group(140, "0.0");
+                b.Group(77, "0");
+            });
+
+            graph.Add(s, action.Handle);
+            graph.Link(p, s, 6);
+            graph.Write();
+            graph.File.AddClass("BLOCKPOLARSTRETCHACTION", "AcDbBlockPolarStretchAction", 1153);
         }
 
         /// <summary>
@@ -920,8 +1040,9 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// The handles of the entities the actions of a block's evaluation graph work on (the 330s of each AcDbBlockAction), of
-        /// the actions of the types given; read without writing anything, none where the block has no graph.
+        /// The handles of the entities the actions of a block's evaluation graph work on (the 330s of each AcDbBlockAction, and
+        /// the 331s of a polar stretch), of the actions of the types given; read without writing anything, none where the block
+        /// has no graph.
         /// </summary>
         internal static HashSet<string> ActedOn(DxfBlockTableRecord block, Func<string, bool> types)
         {
@@ -943,6 +1064,15 @@ namespace GeometryHelper.Dxf
                     foreach (DxfTypedValue acted in DxfDynamicProperties.Section(node.Groups, "AcDbBlockAction"))
                     {
                         if (acted.TypeCode == 330)
+                        {
+                            handles.Add(acted.Value?.Trim());
+                        }
+                    }
+
+                    // A polar stretch names the entities it turns only (331) apart from its selection too.
+                    foreach (DxfTypedValue acted in DxfDynamicProperties.Section(node.Groups, "AcDbBlockPolarStretchAction"))
+                    {
+                        if (acted.TypeCode == 331)
                         {
                             handles.Add(acted.Value?.Trim());
                         }
@@ -1089,18 +1219,36 @@ namespace GeometryHelper.Dxf
         /// The value set of a distance: its flags (96), minimum, maximum and increment (141 to 143), and the list counted by 175;
         /// the flags 1 and noughts where there is none, as AutoCAD writes a set of None.
         /// </summary>
-        private static void Values(DxfFile.Builder b, DxfBlockParameterValueSet set)
+        private static void Values(DxfFile.Builder b, DxfBlockParameterValueSet set) => Values(b, 96, 141, 175, set, "1", "0", "0");
+
+        /// <summary>
+        /// A value set as AutoCAD writes one: its flags (of the code given), minimum, maximum and increment (the three codes from
+        /// the one given) and the list counted by its code, each of the code after the increment's; an increment of the flags 7
+        /// and a list of the flags 8, of a distance or an angle. Where there is none, the flags, the minimum and the maximum given,
+        /// as AutoCAD's samples write a set of None: 1 and noughts for a distance, 3 from nought to a whole turn for an angle.
+        /// </summary>
+        private static void Values(DxfFile.Builder b, int flags, int first, int count, DxfBlockParameterValueSet set, string none, string least, string most)
         {
-            b.Group(96, set == null ? "1" : set.IsList ? "8" : "7");
-            b.Group(141, Real(set?.Minimum ?? 0.0));
-            b.Group(142, Real(set?.Maximum ?? 0.0));
-            b.Group(143, Real(set?.Increment ?? 0.0));
-            IReadOnlyList<double> list = set?.Values ?? new double[0];
-            b.Group(175, Int(list.Count));
+            if (set == null)
+            {
+                b.Group(flags, none);
+                b.Group(first, least);
+                b.Group(first + 1, most);
+                b.Group(first + 2, least);
+                b.Group(count, "0");
+                return;
+            }
+
+            b.Group(flags, set.IsList ? "8" : "7");
+            b.Group(first, Real(set.Minimum));
+            b.Group(first + 1, Real(set.Maximum));
+            b.Group(first + 2, Real(set.Increment));
+            IReadOnlyList<double> list = set.Values;
+            b.Group(count, Int(list.Count));
 
             foreach (double value in list)
             {
-                b.Group(144, Real(value));
+                b.Group(first + 3, Real(value));
             }
         }
 

@@ -4,7 +4,8 @@ using GeometryHelper.Geometry;
 namespace GeometryHelper.Dxf
 {
     /// <summary>
-    /// An XY parameter of a dynamic block, as <see cref="DxfBlockTableRecord.AddXYParameter"/> wrote it: the distances along x
+    /// An XY parameter of a dynamic block, as
+    /// <see cref="DxfBlockTableRecord.AddXYParameter(string, string, string, string, GeoPoint3, GeoPoint3, DxfBlockParameterValueSet, DxfBlockParameterValueSet)"/> wrote it: the distances along x
     /// and along y from a base point to an end point, shown on every INSERT of the block as two dynamic properties, and
     /// followed by the stretch, move and array actions tied to it, which follow its end point both ways.
     /// </summary>
@@ -16,8 +17,11 @@ namespace GeometryHelper.Dxf
     /// </remarks>
     public sealed class DxfBlockXYParameter
     {
-        internal DxfBlockXYParameter(DxfBlockTableRecord block, int node, string handle, string xName, string xDescription, string yName, string yDescription, GeoPoint3 basePoint, GeoPoint3 endPoint)
+        internal DxfBlockXYParameter(DxfBlockTableRecord block, int node, string handle, string xName, string xDescription, string yName, string yDescription, GeoPoint3 basePoint, GeoPoint3 endPoint,
+            DxfBlockParameterValueSet xValueSet, DxfBlockParameterValueSet yValueSet)
         {
+            XValueSet = xValueSet;
+            YValueSet = yValueSet;
             Block = block;
             Node = node;
             Handle = handle;
@@ -61,5 +65,11 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Gets the distance along y from the base point to the end point, the value every INSERT shows until its property is set.</summary>
         public double YDistance => Math.Abs(EndPoint.Y - BasePoint.Y);
+
+        /// <summary>Gets the values the distance along x may take; null where it may take any.</summary>
+        public DxfBlockParameterValueSet XValueSet { get; }
+
+        /// <summary>Gets the values the distance along y may take; null where it may take any.</summary>
+        public DxfBlockParameterValueSet YValueSet { get; }
     }
 }

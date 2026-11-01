@@ -5,7 +5,7 @@ namespace GeometryHelper.Dxf
     /// <summary>
     /// One dynamic property of an INSERT of a dynamic block, as AutoCAD's <c>DynamicBlockReferenceProperty</c> gives it: the
     /// name a parameter of the block shows it by, its value for this INSERT as AutoCAD saved it, and the values it may take.
-    /// The value of a linear, XY, point, rotation, flip, visibility or lookup parameter, in a block of the actions the library
+    /// The value of a linear, XY, polar, point, rotation, flip, visibility or lookup parameter, in a block of the actions the library
     /// writes or of the stretches and moves AutoCAD's Block Editor writes besides, is set as AutoCAD sets it
     /// (<see cref="Value"/>); the others are read only.
     /// </summary>
@@ -52,9 +52,10 @@ namespace GeometryHelper.Dxf
         /// <value>
         /// <para>
         /// Set, as AutoCAD's <c>Value</c> sets it, on the distance of a linear parameter, the distances of an XY parameter, the
-        /// position of a point parameter, the angle of a rotation parameter, the state of a flip parameter, the state of a
-        /// visibility parameter and the label of a lookup parameter, in a block of those, of alignment and base point
-        /// parameters, and of the stretch, move, scale, rotate, flip, array and lookup actions the library writes
+        /// distance and the angle of a polar parameter, the position of a point parameter, the angle of a rotation parameter,
+        /// the state of a flip parameter, the state of a visibility parameter and the label of a lookup parameter, in a block of
+        /// those, of alignment and base point parameters, and of the stretch, polar stretch, move, scale, rotate, flip, array and
+        /// lookup actions the library writes
         /// (<see cref="DxfBlockTableRecord.AddStretchAction(DxfBlockLinearParameter, GeometryHelper.Geometry.GeoPoint2, GeometryHelper.Geometry.GeoPoint2, System.Collections.Generic.IEnumerable{DxfEntity})"/>
         /// and the others), and of the stretches and moves AutoCAD's Block Editor writes besides: tied to a parameter's base
         /// grip, carrying other linear parameters, moving attribute definitions. The value is taken to the parameter's value set, then the block worked out at the values of all its
@@ -70,7 +71,12 @@ namespace GeometryHelper.Dxf
         /// the position of a point parameter), each times its distance multiplier and turned by its angle offset; a scale scales
         /// them alike about the base point of its linear parameter by the distance over the block's own, a rotate turns them
         /// about the base point of its rotation parameter by the angle less the block's own, and a flip mirrors them about its
-        /// reflection line while the state is 1. Then each array copies its entities, as many as its spacing goes whole into
+        /// reflection line while the state is 1. A polar stretch turns its entities about the base point of its polar parameter
+        /// by the angle less the block's own, and moves the points it holds in its frame besides along the parameter's line by
+        /// the distance less the block's own, as AutoCAD 2021 drew it (plugin D25): a pointer from (0, 0) to (100, 0) held by
+        /// its tip, set to 150 and a quarter turn, runs to (0, 150), and an entity it turns only turns alone; an entity of one
+        /// point held, an arc held by both ends and an entity its selection names holding no point turn and move whole. Then
+        /// each array copies its entities, as many as its spacing goes whole into
         /// the distance, one at least: a Length of 250 of a post every 60 shows four posts; an array of an XY parameter copies
         /// in rows and columns, and nothing where either count is nought, as AutoCAD 2021 drew it (plugin v21). A move listing
         /// its own parameter's grip among what it moves, as AutoCAD's point sample does, moves its entities alone. A stretch or
@@ -93,9 +99,19 @@ namespace GeometryHelper.Dxf
         /// nearest of a list, a tie to the one farther from the value the property had, beyond the value asked in the way it
         /// changes (125 to 100 from 300 and 225 to 250 from 50 of 50, 100 ... 300), as AutoCAD 2021 took 8 of the 11 ties of
         /// plugin v20, its choice in the other three and in three of the four of earlier rounds being the other one; and is
-        /// kept as given where the parameter has no set. A distance or a position of an INSERT
-        /// scaled by 2 is twice the block's, as it is read. A distance of an XY parameter is above the point tolerance. An angle
-        /// is a number of radians, taken into a turn, from nought up to 2 pi. A flip state is a whole number, 0 or 1, and reads
+        /// kept as given where the parameter has no set. A distance of an XY or a polar parameter is taken so too, but for a
+        /// tie of a list, which goes to the value nearer the block's own, then to the least, as AutoCAD 2021 took all 18 such
+        /// ties of plugin D25 from every value before: 65 to 50 and 100 to 80 of 50, 80 and 120 for an own 50, 75 and 125 to
+        /// 100 of 50, 100, 150 and 200 for an own 100; in that round AutoCAD 2021 took the ties of a linear list so too, 10 of
+        /// 10. A distance or a position of an INSERT
+        /// scaled by 2 is twice the block's, as it is read. A distance of an XY or a polar parameter is above the point
+        /// tolerance. An angle is a number of radians, taken into a turn, from nought up to 2 pi, and to the value set of a
+        /// rotation or a polar parameter round the circle, as AutoCAD 2021 took it (plugin D25): to the nearest of a list, 338
+        /// degrees to 0 of 0, 90, 180 and 270; outside a minimum and a maximum to the one nearer round the circle, 300 degrees to
+        /// 0 of 0 to 90; within them to the nearest step of an increment, 40 to 45 of steps of 15. A tie goes to the value
+        /// behind the angle asked, clockwise, 22.5 degrees to 15 and 315 to 270: AutoCAD's own choice followed its rounding, the
+        /// step behind in 26 of 58 ties of steps of 15 degrees, and the value behind in 23 of 32 of the list above, 135 degrees
+        /// going to 180 each time. A flip state is a whole number, 0 or 1, and reads
         /// back as a <see cref="short"/>. A visibility state is one of the parameter's, by its name, letters of either case the
         /// same, and reads back as the parameter names it; so is a lookup's label, one of a row of its table, a label given
         /// exactly first, else trimmed, and reads back as the table holds it, a space after it kept, as AutoCAD 2021 read
@@ -122,18 +138,18 @@ namespace GeometryHelper.Dxf
         /// tolerance of <see cref="Tolerance.Default"/>, or a flip state is neither 0 nor 1.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the property is read only, or its INSERT is erased, in no
         /// drawing, or scaled unlike along its axes, which AutoCAD does not take as a dynamic block's.</exception>
-        /// <exception cref="NotSupportedException">Thrown when the property is of a parameter the library does not work out (a
-        /// polar parameter), or the block holds such a parameter, an action of another kind (a polar stretch), or an action the
-        /// library does not work out: a stretch of an entity other than those above or of a tilted arc by one end, a stretch,
-        /// a scale, a rotate, a flip or an array holding other parameters, a move holding grips of a parameter it does not
-        /// carry, a move carrying a parameter other than a linear one, or one that chains its actions or that a scale or an
-        /// array follows, attribute definitions of one tag moved apart where the INSERT has an ATTRIB of that tag, an
-        /// attribute definition worked on by an action other than a move, a scale or a rotate about
-        /// another point than its parameter's base point, a rotation or an XY parameter with a value set, an entity both flipped
-        /// and moved by other actions, an entity both turned or scaled and stretched or moved, as AutoCAD 2021 worked such an
-        /// entity out from the INSERT's last state (plugin v21), an entity both copied by an array and worked on by another
-        /// action, a lookup table of columns other than a linear parameter's distance, a point parameter's x and y and
-        /// lookups; or when the INSERT keeps the base point of a linear, an XY, a rotation or a flip parameter away from the
+        /// <exception cref="NotSupportedException">Thrown when the block holds a parameter or an action of a kind the library does
+        /// not work out (a constraint parameter, a block properties table), or an action it does not work out: a stretch of an entity other than those above or of a tilted arc by one end, a stretch, a scale, a rotate, a
+        /// flip or an array holding other parameters, a move holding grips of a parameter it does not carry, a move carrying a
+        /// parameter other than a linear one, or one that chains its actions or that a scale or an array follows, attribute
+        /// definitions of one tag moved apart where the INSERT has an ATTRIB of that tag, an attribute definition worked on by
+        /// an action other than a move, a scale or a rotate about another point than its parameter's base point, a polar
+        /// stretch tied to its parameter's base point, of a distance multiplier other than 1 or an angle offset other than
+        /// nought, or holding an arc by one end, an entity both flipped and moved by other actions, an entity both turned or
+        /// scaled and stretched or moved, as AutoCAD 2021 worked such an entity out from the INSERT's last state (plugin v21),
+        /// an entity both copied by an array or turned by a polar stretch and worked on by another action, a lookup table of
+        /// columns other than a linear parameter's distance, a point parameter's x and y and lookups; or when the INSERT keeps
+        /// the base point of a linear, an XY, a polar, a rotation or a flip parameter away from the
         /// block's own, as the moves carrying the parameter take it, beyond the point tolerance of <see cref="Tolerance.Default"/>, as a grip moved it: AutoCAD works such
         /// an INSERT out from the base point it keeps, and drew the array of its XY sample's INSERT whose base point a grip
         /// took from (0, 5) to (0, 104.30) at y 99.30 down to 19.30, where the library, working from the block's own base
@@ -151,7 +167,7 @@ namespace GeometryHelper.Dxf
 
                 if (_insert == null)
                 {
-                    throw new NotSupportedException("The property " + PropertyName + " is of a parameter the library does not work out: it sets those of linear, XY, point, rotation, flip, visibility and lookup parameters.");
+                    throw new NotSupportedException("The property " + PropertyName + " is of a parameter the library does not work out: it sets those of linear, XY, polar, point, rotation, flip, visibility and lookup parameters.");
                 }
 
                 _value = DxfDynamicBlockRepresentation.Set(_insert, _node, _part, value);

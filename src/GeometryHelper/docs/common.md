@@ -1263,8 +1263,11 @@ as AutoCAD 2021 read and set it:
   `AddArrayAction(linear, entities, columnSpacing)`;
 - a distance along x and one along y: `AddXYParameter`, with `AddStretchAction`, `AddMoveAction` or
   `AddArrayAction(xy, entities, columnSpacing, rowSpacing)`;
+- a distance and an angle: `AddPolarParameter`, with `AddPolarStretchAction`;
 - a position: `AddPointParameter`, with `AddMoveAction`;
 - an angle: `AddRotationParameter`, with `AddRotateAction`;
+- the values a distance or an angle may take: a `DxfBlockParameterValueSet` given to `AddLinearParameter`,
+  `AddPolarParameter`, and the overloads of `AddXYParameter` and `AddRotationParameter` that take one;
 - a mirror: `AddFlipParameter`, with `AddFlipAction`;
 - the entities shown: `AddVisibilityParameter`, each state a `DxfBlockVisibilityState`;
 - named sizes: `AddLookupParameter`, its inputs `DxfBlockLookupInput` and its rows `DxfBlockLookupRow`, the parameter and
@@ -1280,7 +1283,8 @@ again: a linear parameter and its stretch written by a script in v17 (11 files o
 new drawings of R2000 to R2018 and visibility in v19 (13 of 13), a move, a scale, stretches of arcs, circles, texts and
 INSERTs, a point, a flip alone and an XY parameter in v20, a rotation in v20b, and distance multipliers and angle offsets,
 arrays along a distance and in rows and columns, lookups, a turn and a scale beside a stretch, a drawing of R2018 and
-AutoCAD's own XY and lookup samples set by the library in v21b (8 of 8). The examples below give one block of each kind as
+AutoCAD's own XY and lookup samples set by the library in v21b (8 of 8), and a polar parameter with its polar stretch and
+the value sets of a rotation, an XY and a polar parameter in D25. The examples below give one block of each kind as
 AutoCAD took it, to be copied as they stand: the first is a whole program, and each after it a block of statements in braces
 whose names are its own and whose block names no other example uses, so that any of them, or all of them in any order, may
 be pasted after the first; what is not written or not set is listed under
@@ -1390,8 +1394,8 @@ such an INSERT, written by a script, as Width 150 with its stretched lines, and 
 `DynamicBlockReferencePropertyCollection` reads 200 back; the dynamic block itself keeps 100. Set again, the INSERT's
 anonymous block is filled anew where no other INSERT places it, else the INSERT is given one of its own. A length of an
 INSERT scaled by 2 is twice the block's: 300 set on it moves the right edge to x = 150 in the block. A block of the
-parameters and actions this section writes is worked out: a property of another kind (a polar parameter), or of a block
-holding another parameter or action (a polar stretch, a constraint), or an action that moves other parameters in a way
+parameters and actions this section writes is worked out: a property of a block holding another parameter or action (a
+constraint, a block properties table), or an action that moves other parameters in a way
 refused below, or scales or turns about another point than its parameter's base point, is refused with
 `NotSupportedException`, and an INSERT scaled unlike along its axes with `InvalidOperationException`, as
 AutoCAD takes it as no dynamic block's; nothing is written then. A value is a number, a whole number taken as the distance
@@ -1547,11 +1551,11 @@ entity out from where its last set left it, stretching a shaft turned a quarter 
 150 set after 200, where the block's values give (50, 105) (check v21). A turn and a stretch of different entities of one
 block are written and worked out. A scale or a rotate turns about its parameter's base
 point as AutoCAD writes it, 1012 nought: AutoCAD 2021 adds 1012 to the base point, and turned an arrow about (100, 50) for
-a base point of (50, 25) when the library wrote that point there (check v20). The angle and the flip have no value set; a distance of an XY parameter is above the point
+a base point of (50, 25) when the library wrote that point there (check v20). The flip has no value set; a distance of an XY parameter is above the point
 tolerance. The block keeps its own values: an INSERT shows them until its property is set. Writing a point, a rotation, a flip
 and an XY parameter with their actions takes about a millisecond, and setting any of them on an INSERT of a drawing of 1 000
-INSERTs about half a millisecond under .NET 10 and one under .NET Framework 4.8. A polar parameter with its polar stretch is
-not written: AutoCAD's sample of it holds its entity to turn only, and does not show how the entities it stretches are kept.
+INSERTs about half a millisecond under .NET 10 and one under .NET Framework 4.8. A polar parameter and its polar stretch,
+and the value sets of a rotation and an XY parameter, are set out after the last kinds below.
 
 The last kinds, each in a few lines, added to the drawing above; each is shown as AutoCAD 2021 read and set it (checks v21
 and v21b):
@@ -1708,6 +1712,95 @@ An alignment parameter and a base point parameter are written as AutoCAD saved A
 property; a block takes one of each, and AutoCAD 2021 read them so (check v21). AutoCAD drew an INSERT at (300, 0) of a
 panel 100 by 50 of a base point at (20, 10) over x 300 to 400, the block's entities where they are, as the library keeps
 them.
+
+A polar parameter (`AddPolarParameter`) gives every INSERT two properties, its distance and then its angle, from its base
+point to its end point, and a polar stretch (`AddPolarStretchAction`) turns and stretches with it: as the angle turns and
+the distance grows, every entity it holds turns about the base point by the change of the angle, the points inside its
+frame move besides along the new line by the change of the distance, and the entities given to turn only turn whole. A
+rotation, an XY and a polar parameter take value sets as a linear one does, an angle's in radians within a turn. Each in a
+few lines, added to the drawing above, as AutoCAD 2021 read and set the library's blocks (check D25):
+
+```csharp
+{
+    // Polar and polar stretch: a pointer turned and stretched by its tip; Length 150 and Angle a quarter turn point it up the
+    // y axis, its tip at (0, 150), the tick by its foot turned alone to (0, 20)-(-10, 20).
+    var pointer = new DxfBlockTableRecord { Name = "POINTER", Origin = new GeoPoint3(0, 0, 0) };
+    db.BlockTable.Add(pointer);
+    var shaft = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0));
+    var head = new DxfCircle(new GeoPoint3(100, 0, 0), GeoVector3.ZAxis, 5);
+    var foot = new DxfLine(new GeoPoint3(20, 0, 0), new GeoPoint3(20, 10, 0));
+    foreach (DxfEntity pointerPart in new DxfEntity[] { shaft, head, foot })
+    {
+        pointer.AppendEntity(pointerPart);
+    }
+
+    DxfBlockPolarParameter reach = pointer.AddPolarParameter("Length", null, "Angle", null, new GeoPoint3(0, 0, 0),
+        new GeoPoint3(100, 0, 0), -20, DxfBlockParameterValueSet.Increments(50, 300, 10), null);
+    pointer.AddPolarStretchAction(reach, new GeoPoint2(90, -10), new GeoPoint2(110, 10), new DxfEntity[] { shaft, head }, new[] { foot });
+
+    // Rotation of a value set: a needle turns in steps of 15 degrees; 40 degrees turns it 45.
+    var dial = new DxfBlockTableRecord { Name = "DIAL", Origin = new GeoPoint3(0, 0, 0) };
+    db.BlockTable.Add(dial);
+    var needle = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(30, 0, 0));
+    dial.AppendEntity(needle);
+    DxfBlockRotationParameter dialAngle = dial.AddRotationParameter("Angle", null, new GeoPoint3(0, 0, 0), 30, 0,
+        DxfBlockParameterValueSet.Increments(0, 2 * Math.PI, Math.PI / 12));
+    dial.AddRotateAction(dialAngle, new[] { needle });
+
+    // XY of value sets: Width by 10 from 50 to 300, Depth one of 50, 80 and 120; 77 by 100 gives a sheet 80 by 80.
+    var sheet = new DxfBlockTableRecord { Name = "SHEET", Origin = new GeoPoint3(0, 0, 0) };
+    db.BlockTable.Add(sheet);
+    var sheetEdge = new DxfPolyline();
+    sheetEdge.AddVertexAt(0, new GeoPoint2(0, 0), 0, 0, 0);
+    sheetEdge.AddVertexAt(1, new GeoPoint2(100, 0), 0, 0, 0);
+    sheetEdge.AddVertexAt(2, new GeoPoint2(100, 50), 0, 0, 0);
+    sheetEdge.AddVertexAt(3, new GeoPoint2(0, 50), 0, 0, 0);
+    sheetEdge.Closed = true;
+    sheet.AppendEntity(sheetEdge);
+    DxfBlockXYParameter sheetSize = sheet.AddXYParameter("Width", null, "Depth", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 50, 0),
+        DxfBlockParameterValueSet.Increments(50, 300, 10), DxfBlockParameterValueSet.List(new[] { 50.0, 80, 120 }));
+    sheet.AddStretchAction(sheetSize, new GeoPoint2(90, 40), new GeoPoint2(110, 60), new[] { sheetEdge });
+
+    var pointed = new DxfBlockReference(new GeoPoint3(0, 600, 0), pointer);
+    var dialled = new DxfBlockReference(new GeoPoint3(300, 600, 0), dial);
+    var sheeted = new DxfBlockReference(new GeoPoint3(600, 600, 0), sheet);
+    db.ModelSpace.AppendEntity(pointed);
+    db.ModelSpace.AppendEntity(dialled);
+    db.ModelSpace.AppendEntity(sheeted);
+    pointed.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Length").Value = 150.0;
+    pointed.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Angle").Value = Math.PI / 2;
+    dialled.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Angle").Value = 40 * Math.PI / 180;
+    sheeted.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Width").Value = 77.0;
+    sheeted.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Depth").Value = 100.0;
+    db.Save("panel.dxf");
+}
+```
+
+A polar stretch holds each entity by its points in the frame, as a stretch does: a point held turns about the base point by
+the angle less the block's own and then moves along the parameter's line by the distance less the block's own, as the end
+point does, and every other point of the entity turns alone. AutoCAD 2021 drew the pointer so, its line's start kept at the
+base point, a polyline from (50, -5) to (100, -5) whose end alone was in the frame going to (5, 50)-(5, 150), a text and an
+arc held whole turning and moving with the tip, and worked each set out from the block's own values, not from the last
+set. An entity of one point is held whole by it, and an arc by both its ends; an arc with one end only in the frame is
+refused, as AutoCAD's way with it is not known. The entities to turn only are written apart from the action's selection
+(the 331s, not among the 330s): named in the selection too, AutoCAD 2021 turned the tick and moved it as well, to (70, 0)
+for a Length of 150, and the library works such a block of another writer out the same way, as it leaves out a grip of
+the parameter named in the selection, as AutoCAD's Annotation sample names one. An entity a polar stretch turns is worked on
+by no other action, either way round. The parameter and the action are written as AutoCAD saved ACadSharp's polar sample,
+code for code, and the INSERT's cache keeps the parameter's base point, end point, the normal down and the base point 10
+along x, as AutoCAD 2021 wrote it.
+
+A value set is taken as AutoCAD 2021 took it. A distance of an XY or a polar parameter goes to the nearest step, a tie to
+the step below (75 to 70 of 50 to 300 by 10, as AutoCAD took all 18 such ties of check D25), and to the nearest of a list,
+a tie to the value nearer the block's own: 65 to 50 and 100 to 80 of 50, 80 and 120 for a Depth of its own 50, from every
+value before, as AutoCAD took all 18 such ties. An angle goes round the circle: of the steps of 15 degrees, 40 to 45, 370
+to 15 and -10 to 345; of steps from 0 to 90 degrees, 120 to 90, 300 to 0 and 200 to 90, the bound nearer round the circle;
+of the list 0, 90, 180 and 270, 338 to 0. A tie of angles goes to the value behind the one asked, clockwise, 22.5 degrees
+to 15 and 315 to 270; AutoCAD's own choice in such a tie followed its rounding rather than a rule, the step behind in 26 of
+58 ties of steps of 15 degrees and the value behind in 23 of 32 of the list above, 135 going to 180 each time. AutoCAD 2021
+took the ties of a linear parameter's list, which the library takes to the value farther from the one before (check v20,
+8 of 11), to the value nearer the block's own in check D25, 10 of 10. A list of angles may hold nought; a set of angles
+reaching beyond a turn, or a set that does not hold the block's own value, is refused.
 
 `insert.ConvertToStaticBlock("BOLT_500")` makes the INSERT place a
 new block BOLT_500 holding copies of what it draws, the anonymous block's entities (or the dynamic block's, where it places
@@ -2310,29 +2403,30 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
   saved of every parameter but constraint parameters and a block properties table, which are not read and give no
   properties.
   - Written and set: linear parameters with stretch, move, scale and array actions; XY parameters with stretch, move and
-    array actions; point parameters with move actions; rotation parameters with rotate actions; flip parameters with flip
-    actions; one visibility parameter; lookup parameters with their tables; and one alignment and one base point
-    parameter, which give no property. A stretch holds lines and polylines by their points, arcs by both ends or, lying
-    flat, by one, and circles, texts, multiline texts and INSERTs by their one point, in a frame of a rectangle; a stretch
-    and a move take a distance multiplier and an angle offset.
+    array actions; polar parameters with polar stretch actions; point parameters with move actions; rotation parameters
+    with rotate actions; flip parameters with flip actions; one visibility parameter; lookup parameters with their tables;
+    and one alignment and one base point parameter, which give no property. Linear, XY, polar and rotation parameters take
+    value sets. A stretch holds lines and polylines by their points, arcs by both ends or, lying flat, by one, and circles,
+    texts, multiline texts and INSERTs by their one point, in a frame of a rectangle; a stretch and a move take a distance
+    multiplier and an angle offset. A polar stretch holds them so but an arc by one end, and turns other entities only.
   - Refused when written, with `NotSupportedException`, as AutoCAD 2021 worked them out from where an INSERT's last set left
     it rather than from its values: a flip parameter beside any other parameter (checks v20b and v21), and a rotate or a
-    scale of an entity a stretch or a move holds (check v21). An entity both copied by an array and worked on by another
-    action is refused too, an order no sample of AutoCAD shows.
-  - Not written: a polar parameter and its polar stretch, as AutoCAD's sample of it holds its entity to turn only and does
-    not show how the entities it stretches are kept; a value set of a rotation or an XY parameter, of which AutoCAD has no
-    sample; a frame of a polygon; a text aligned or fitted between two points, an attribute definition and an INSERT of
-    rows and columns in a stretch; a stretch or a move tied to a base grip, a move carrying other parameters, and an
-    attribute definition in a move, which are set where AutoCAD's Block Editor wrote them.
+    scale of an entity a stretch or a move holds (check v21). An entity both copied by an array, or turned by a polar
+    stretch, and worked on by another action is refused too, an order no sample of AutoCAD shows.
+  - Not written: a frame of a polygon; a text aligned or fitted between two points, an attribute definition and an INSERT of
+    rows and columns in a stretch; an arc held by one end in a polar stretch; a polar stretch of a distance multiplier or
+    an angle offset, or tied to the base grip; a stretch or a move tied to a base grip, a move carrying other parameters,
+    and an attribute definition in a move, which are set where AutoCAD's Block Editor wrote them.
   - Set where another writer wrote them: stretches and moves tied to a parameter's base grip, moves carrying other linear
-    parameters, and attribute definitions in a move, the INSERT's ATTRIBs following.
+    parameters, and attribute definitions in a move, the INSERT's ATTRIBs following; a polar stretch naming an entity to
+    turn only in its selection too, or its parameter's grip.
   - Not set, with `NotSupportedException`, nothing written: an INSERT of a block of another writer holding what is not
-    written above or refused (a polar parameter, a constraint, a value set of a rotation or an XY parameter, a move
+    written above or refused (a constraint, a polar stretch tied to the base grip or of a multiplier or an offset, a move
     carrying a parameter other than a linear one or one that chains its actions, any other action holding a parameter,
     an attribute definition in an action other than a move, a lookup column of another kind than a linear parameter's
-    distance or a point parameter's x or y), and an INSERT that keeps the base point of a linear, an XY, a rotation or a
-    flip parameter away from the block's own, as the moves carrying it leave it, as a grip moved that of AutoCAD's XY
-    sample, which AutoCAD draws from there.
+    distance or a point parameter's x or y), and an INSERT that keeps the base point of a linear, an XY, a polar, a
+    rotation or a flip parameter away from the block's own, as the moves carrying it leave it, as a grip moved that of
+    AutoCAD's XY sample, which AutoCAD draws from there.
 
   A block whose entities another program changed keeps the values AutoCAD saved. `ConvertToStaticBlock` copies what the
   INSERT draws as it stands; `ResetBlock` is not there. `db.Insert` of another drawing keeps a dynamic block dynamic, as

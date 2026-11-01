@@ -8,8 +8,8 @@ namespace GeometryHelper.Dxf
 {
     /// <summary>
     /// Sets the value of a dynamic property of an INSERT as AutoCAD's <c>DynamicBlockReferenceProperty.Value</c> sets it, for a
-    /// dynamic block of linear, XY, point, rotation, flip, visibility and lookup parameters with the stretch, move, scale,
-    /// rotate, flip, array and lookup actions the library writes, and the stretches and moves of a base grip, the moves
+    /// dynamic block of linear, XY, polar, point, rotation, flip, visibility and lookup parameters with the stretch, polar
+    /// stretch, move, scale, rotate, flip, array and lookup actions the library writes, and the stretches and moves of a base grip, the moves
     /// carrying linear parameters and the attribute definitions in a move that AutoCAD's Block Editor writes: the value taken
     /// to its value set, the block worked out at the values of all its properties into an anonymous block of AutoCAD's (*U)
     /// the INSERT places, the INSERT's ATTRIBs moved as their ATTDEFs' moves change, and the INSERT's representation data and
@@ -32,6 +32,8 @@ namespace GeometryHelper.Dxf
         private static readonly string[] ScaleKey = { "2551693", "3435815" };
         private static readonly string[] RotateKey = { "4195796", "5656503" };
         private static readonly string[] LookupKey = { "18605567", "25317787" };
+        private static readonly string[] PolarKey = { "11323277", "15401870" };
+        private static readonly string[] PolarStretchKey = { "82519608", "111249311" };
 
         /// <summary>
         /// Sets the value of a property of a node of the INSERT's dynamic block (its part: 0, else 1 for the y of a point or of
@@ -142,24 +144,42 @@ namespace GeometryHelper.Dxf
 
                 values[node][0] = taken / scale;
             }
-            else if (asked is Planar)
+            else if (asked is Planar planar)
             {
-                double distance = Number(value);
+                double distance = planar.Take(part, Number(value), values[node][part] * scale, scale);
 
                 if (!(distance / scale > Tolerance.Default.EqualPoint))
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "A distance of an XY parameter is above the point tolerance.");
+                    throw new ArgumentOutOfRangeException(nameof(value), value, "A distance of an XY parameter is above the point tolerance once taken to its value set.");
                 }
 
                 values[node][part] = distance / scale;
+            }
+            else if (asked is Polar polar)
+            {
+                if (part == 0)
+                {
+                    double distance = polar.Take(0, Number(value), values[node][0] * scale, scale);
+
+                    if (!(distance / scale > Tolerance.Default.EqualPoint))
+                    {
+                        throw new ArgumentOutOfRangeException(nameof(value), value, "A distance of a polar parameter is above the point tolerance once taken to its value set.");
+                    }
+
+                    values[node][0] = distance / scale;
+                }
+                else
+                {
+                    values[node][1] = polar.Take(1, Normal(Number(value)), values[node][1], scale);
+                }
             }
             else if (asked is Spot)
             {
                 values[node][part] = Number(value) / scale;
             }
-            else if (asked is Turning)
+            else if (asked is Turning turning)
             {
-                values[node][0] = Normal(Number(value));
+                values[node][0] = turning.Take(Normal(Number(value)));
             }
             else if (asked is Mirror)
             {
@@ -514,6 +534,13 @@ namespace GeometryHelper.Dxf
 
                 Stretch(block, stretches, values, copyOf);
                 stretches.Clear();
+
+                if (action.Kind == ActionKind.PolarStretch)
+                {
+                    PolarStretch((Polar)block.Parameters.Find(p => p.Id == action.Parameter), action, values, copyOf);
+                    continue;
+                }
+
                 GeoTransform3 transform = Transform(block.Parameters.Find(p => p.Id == action.Parameter), action, values);
 
                 if (transform == null)
@@ -653,6 +680,83 @@ namespace GeometryHelper.Dxf
 
                         break;
                     }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Works a polar stretch out on the copies at the values given, as AutoCAD 2021 worked out the library's (plugin D25):
+        /// each point the stretch holds (a line's start or end, a polyline's vertex) turns about the parameter's base point by
+        /// the angle less the block's own and then moves along the parameter's line by the distance less the block's own, as
+        /// the end point does; the other points of the entities it holds turn alone, so a line from the base point to the end
+        /// point keeps its start and follows with its end. An entity of one point held, or an arc held by both ends, and an
+        /// entity of its selection holding no point (a grip of AutoCAD's own sample) are turned and moved whole; an entity it
+        /// turns only (331) and does not select is turned whole: AutoCAD 2021 turned a tick it named so about the base point,
+        /// and turned and moved it too when the selection named it besides.
+        /// </summary>
+        private static void PolarStretch(Polar parameter, BlockAction action, Dictionary<string, double[]> values, Dictionary<string, DxfEntity> copyOf)
+        {
+            double[] now = values[parameter.Id];
+            GeoTransform3 full = parameter.Turned(now, false);
+            GeoTransform3 turn = parameter.Turned(now, true);
+
+            if (full == null)
+            {
+                return;
+            }
+
+            var held = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (KeyValuePair<string, List<int>> entity in action.Held)
+            {
+                held.Add(entity.Key);
+
+                if (!copyOf.TryGetValue(entity.Key, out DxfEntity copy))
+                {
+                    continue;
+                }
+
+                if (copy is DxfLine line)
+                {
+                    GeoTransform3 start = entity.Value.Contains(0) ? full : turn;
+                    GeoTransform3 end = entity.Value.Contains(1) ? full : turn;
+                    GeoPoint3 from = line.StartPoint, to = line.EndPoint;
+                    line.StartPoint = start == null ? from : start.Transform(from);
+                    line.EndPoint = end == null ? to : end.Transform(to);
+                }
+                else if (copy is DxfPolyline polyline)
+                {
+                    for (int i = 0; i < polyline.NumberOfVertices; i++)
+                    {
+                        GeoTransform3 move = entity.Value.Contains(i) ? full : turn;
+
+                        if (move != null)
+                        {
+                            GeoPoint3 inPlane = DxfEntity.WorldToOcs(polyline.Normal, move.Transform(polyline.GetPoint3dAt(i)));
+                            polyline.SetPointAt(i, new GeoPoint2(inPlane.X, inPlane.Y));
+                        }
+                    }
+                }
+                else
+                {
+                    copy.TransformBy(full);
+                }
+            }
+
+            foreach (string handle in action.Entities)
+            {
+                if (!held.Contains(handle) && copyOf.TryGetValue(handle, out DxfEntity copy))
+                {
+                    copy.TransformBy(full);
+                    held.Add(handle);
+                }
+            }
+
+            foreach (string handle in action.Turned)
+            {
+                if (turn != null && !held.Contains(handle) && copyOf.TryGetValue(handle, out DxfEntity copy))
+                {
+                    copy.TransformBy(turn);
                 }
             }
         }
@@ -848,6 +952,10 @@ namespace GeometryHelper.Dxf
                         groups = Head(RotateKey);
                         Point(groups, parameter.Base);
                         break;
+                    case ActionKind.PolarStretch:
+                        groups = Head(PolarStretchKey);
+                        groups.Add(new KeyValuePair<int, string>(40, Real(action.Offset)));
+                        break;
                     default:
                         continue;
                 }
@@ -943,6 +1051,7 @@ namespace GeometryHelper.Dxf
             Rotate,
             Flip,
             Array,
+            PolarStretch,
         }
 
         /// <summary>
@@ -1003,8 +1112,14 @@ namespace GeometryHelper.Dxf
                         case "BLOCKFLIPPARAMETER":
                             block.Parameters.Add(Mirror.Of(groups, id, dynamic.Name));
                             break;
+                        case "BLOCKPOLARPARAMETER":
+                            block.Parameters.Add(Polar.Of(groups, id, dynamic.Name));
+                            break;
                         case "BLOCKSTRETCHACTION":
                             block.Actions.Add(BlockAction.Stretched(groups, id, dynamic.Name));
+                            break;
+                        case "BLOCKPOLARSTRETCHACTION":
+                            block.Actions.Add(BlockAction.PolarStretched(groups, id, dynamic.Name));
                             break;
                         case "BLOCKMOVEACTION":
                         case "BLOCKSCALEACTION":
@@ -1029,6 +1144,7 @@ namespace GeometryHelper.Dxf
                         case "BLOCKVISIBILITYGRIP":
                         case "BLOCKLOOKUPGRIP":
                         case "BLOCKALIGNMENTGRIP":
+                        case "BLOCKPOLARGRIP":
                             if (id != null)
                             {
                                 grips[node.Handle] = id;
@@ -1040,7 +1156,7 @@ namespace GeometryHelper.Dxf
                         case "BLOCKBASEPOINTPARAMETER":
                             break;
                         default:
-                            throw new NotSupportedException("The block " + dynamic.Name + " holds a " + node.Type + ", which the library does not work out: it works out linear, XY, point, rotation, flip, visibility and lookup parameters with stretch, move, scale, rotate, flip, array and lookup actions, and alignment and base point parameters.");
+                            throw new NotSupportedException("The block " + dynamic.Name + " holds a " + node.Type + ", which the library does not work out: it works out linear, XY, polar, point, rotation, flip, visibility and lookup parameters with stretch, polar stretch, move, scale, rotate, flip, array and lookup actions, and alignment and base point parameters.");
                     }
 
                     if (block.Parameters.Count > before)
@@ -1058,13 +1174,13 @@ namespace GeometryHelper.Dxf
                         ?? Table.Of(table.Value ?? throw new NotSupportedException("A lookup parameter of the block " + dynamic.Name + " names no lookup action of it."), block, dynamic.Name);
                 }
 
-                // A move may list its own parameter's grips among what it moves, as AutoCAD's point sample does: the grips follow
-                // the parameter anyway, and are left out.
+                // A move or a polar stretch may list its own parameter's grips among what it moves, as AutoCAD's point sample and
+                // its Annotation sample's polar stretch do: the grips follow the parameter anyway, and are left out.
                 foreach (BlockAction action in block.Actions)
                 {
                     HashSet<string> own = block.Parameters.Find(p => p.Id == action.Parameter)?.Grips;
 
-                    if (action.Kind == ActionKind.Move && own != null)
+                    if ((action.Kind == ActionKind.Move || action.Kind == ActionKind.PolarStretch) && own != null)
                     {
                         action.Entities.RemoveAll(h => grips.TryGetValue(h, out string grip) && own.Contains(grip));
                     }
@@ -1140,6 +1256,22 @@ namespace GeometryHelper.Dxf
                     }
                 }
 
+                // An entity a polar stretch turns and another action works on is not worked out: no sample shows the order they take.
+                foreach (BlockAction polar in block.Actions.FindAll(a => a.Kind == ActionKind.PolarStretch))
+                {
+                    var own = new HashSet<string>(polar.Entities, StringComparer.OrdinalIgnoreCase);
+                    own.UnionWith(polar.Turned);
+                    polar.Held.ForEach(h => own.Add(h.Key));
+
+                    foreach (BlockAction action in block.Actions)
+                    {
+                        if (action != polar && (action.Entities.Exists(own.Contains) || action.Turned.Exists(own.Contains) || action.Held.Exists(h => own.Contains(h.Key))))
+                        {
+                            throw new NotSupportedException("The block " + dynamic.Name + " turns by a polar stretch an entity another action works on, an order no sample of AutoCAD shows: the library does not work it out.");
+                        }
+                    }
+                }
+
                 return block;
             }
         }
@@ -1206,13 +1338,6 @@ namespace GeometryHelper.Dxf
                 parameter.End = new GeoPoint3(to[0], to[1], to[2]);
             }
 
-            /// <summary>Whether a value set of flags, a minimum and a maximum is of none: no increment, no list, a minimum of nought or less and a maximum of the bound or more where they are given.</summary>
-            protected static bool None(int flags, double minimum, double maximum, double bound)
-            {
-                double slack = Tolerance.Default.EqualVector;
-                return (flags & 12) == 0 && ((flags & 1) == 0 || minimum <= slack) && ((flags & 2) == 0 || maximum >= bound - slack);
-            }
-
             /// <summary>A whole number of a code of a subclass; nought where there is none.</summary>
             internal static int FlagsOf(List<DxfTypedValue> own, int code)
                 => int.TryParse(DxfDynamicProperties.Text(own, code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int flags) ? flags : 0;
@@ -1225,11 +1350,7 @@ namespace GeometryHelper.Dxf
         /// <summary>A linear parameter: its node's id, its base point, the unit direction to its end point, its distance and its value set.</summary>
         private sealed class Linear : Param
         {
-            private int _flags;
-            private double _minimum;
-            private double _maximum;
-            private double _increment;
-            private List<double> _list = new List<double>();
+            private Allowed _set;
 
             internal double Distance { get; private set; }
 
@@ -1264,41 +1385,7 @@ namespace GeometryHelper.Dxf
                     Id = id, Base = new GeoPoint3(from[0], from[1], from[2]), End = new GeoPoint3(to[0], to[1], to[2]), Distance = length, UnitX = dx / length, UnitY = dy / length, UnitZ = dz / length,
                     Own = new[] { length },
                 };
-                List<DxfTypedValue> own = DxfDynamicProperties.Section(groups, "AcDbBlockLinearParameter");
-                int count = -1;
-
-                foreach (DxfTypedValue group in own)
-                {
-                    double number;
-
-                    switch (group.TypeCode)
-                    {
-                        case 96:
-                            int.TryParse(group.Value?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out linear._flags);
-                            break;
-                        case 141:
-                            linear._minimum = DxfDynamicProperties.Number(group.Value, out number) ? number : 0.0;
-                            break;
-                        case 142:
-                            linear._maximum = DxfDynamicProperties.Number(group.Value, out number) ? number : 0.0;
-                            break;
-                        case 143:
-                            linear._increment = DxfDynamicProperties.Number(group.Value, out number) ? number : 0.0;
-                            break;
-                        case 175:
-                            int.TryParse(group.Value?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out count);
-                            break;
-                        case 144:
-                            if (count > linear._list.Count && DxfDynamicProperties.Number(group.Value, out number))
-                            {
-                                linear._list.Add(number);
-                            }
-
-                            break;
-                    }
-                }
-
-                linear._list.Sort();
+                linear._set = Allowed.Of(DxfDynamicProperties.Section(groups, "AcDbBlockLinearParameter"), 96, 141, 175);
                 return linear;
             }
 
@@ -1317,15 +1404,81 @@ namespace GeometryHelper.Dxf
                 yield return Record(Id, PointsRecord(LinearKey, from, end));
             }
 
+            /// <summary>A value, in the INSERT's units (the block's scaled), taken to the value set, as <see cref="Allowed.Distance(double, double, double)"/> says.</summary>
+            internal double Take(double value, double now, double scale) => _set.Distance(value, now, scale);
+        }
+
+        /// <summary>
+        /// A value set of a parameter, as AutoCAD keeps one: its flags (1 a minimum, 2 a maximum, 4 an increment, 8 a list), its
+        /// minimum, maximum and increment (three codes in a row) and its list (counted by a code of its own, each of the code
+        /// after the increment's), kept from the least up.
+        /// </summary>
+        private sealed class Allowed
+        {
+            private int _flags;
+            private double _minimum;
+            private double _maximum;
+            private double _increment;
+            private readonly List<double> _list = new List<double>();
+
+            /// <summary>The set of a subclass of a parameter, of the codes of its flags, its minimum and its count.</summary>
+            internal static Allowed Of(List<DxfTypedValue> own, int flags, int first, int count)
+            {
+                var set = new Allowed();
+                int listed = -1;
+
+                foreach (DxfTypedValue group in own)
+                {
+                    double number;
+
+                    if (group.TypeCode == flags)
+                    {
+                        int.TryParse(group.Value?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out set._flags);
+                    }
+                    else if (group.TypeCode == first)
+                    {
+                        set._minimum = DxfDynamicProperties.Number(group.Value, out number) ? number : 0.0;
+                    }
+                    else if (group.TypeCode == first + 1)
+                    {
+                        set._maximum = DxfDynamicProperties.Number(group.Value, out number) ? number : 0.0;
+                    }
+                    else if (group.TypeCode == first + 2)
+                    {
+                        set._increment = DxfDynamicProperties.Number(group.Value, out number) ? number : 0.0;
+                    }
+                    else if (group.TypeCode == count)
+                    {
+                        int.TryParse(group.Value?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out listed);
+                    }
+                    else if (group.TypeCode == first + 3 && listed > set._list.Count && DxfDynamicProperties.Number(group.Value, out number))
+                    {
+                        set._list.Add(number);
+                    }
+                }
+
+                set._list.Sort();
+                return set;
+            }
+
             /// <summary>
-            /// A value, in the INSERT's units (the block's scaled), taken to the value set as AutoCAD 2021 took it: a list (flags
-            /// 8) to its nearest value, a tie to the one farther from the value the property had, beyond the value asked in the
-            /// way it changes, then to the least (AutoCAD 2021 took 8 of the 11 ties of plugin v20 so, 125 to 100 from 300 and 225
-            /// to 250 from 50, and was not consistent over the rounds before); else to the nearest step of the increment from
-            /// the minimum (flags 4), a tie to the step below, then into the minimum (flags 1) and the maximum (flags 2). Ties
-            /// within the point tolerance of <see cref="Tolerance.Default"/>.
+            /// A distance of a linear parameter, in the INSERT's units (the block's scaled), taken to the value set as AutoCAD 2021
+            /// took it: a list (flags 8) to its nearest value, a tie to the one farther from the value the property had, beyond the
+            /// value asked in the way it changes, then to the least (AutoCAD 2021 took 8 of the 11 ties of plugin v20 so, 125 to
+            /// 100 from 300 and 225 to 250 from 50, and was not consistent over the rounds before); else to the nearest step of the
+            /// increment from the minimum (flags 4), a tie to the step below, then into the minimum (flags 1) and the maximum (flags
+            /// 2). Ties within the point tolerance of <see cref="Tolerance.Default"/>.
             /// </summary>
-            internal double Take(double value, double now, double scale)
+            internal double Distance(double value, double now, double scale) => Distance(value, now, scale, double.NaN);
+
+            /// <summary>
+            /// A distance, in the INSERT's units, taken to the value set as <see cref="Distance(double, double, double)"/> says; a
+            /// tie between two values of a list, where the block's own distance (in the INSERT's units) is given, to the one nearer
+            /// it, then to the least, as AutoCAD 2021 took the 18 ties of the lists of an XY and a polar parameter, from every value
+            /// before (plugin D25): 75 and 125 to 100 and 175 to 150 of 50, 100, 150 and 200 for an own 100, 65 to 50 and 100 to 80
+            /// of 50, 80 and 120 for an own 50.
+            /// </summary>
+            internal double Distance(double value, double now, double scale, double own)
             {
                 double slack = Tolerance.Default.EqualPoint;
 
@@ -1337,8 +1490,10 @@ namespace GeometryHelper.Dxf
                     {
                         double candidate = _list[i] * scale;
                         double nearer = Math.Abs(value - best) - Math.Abs(value - candidate);
+                        bool tie = Math.Abs(nearer) <= slack;
 
-                        if (nearer > slack || (Math.Abs(nearer) <= slack && Math.Abs(now - candidate) > Math.Abs(now - best) + slack))
+                        if (nearer > slack || (tie && double.IsNaN(own) && Math.Abs(now - candidate) > Math.Abs(now - best) + slack)
+                            || (tie && !double.IsNaN(own) && Math.Abs(own - candidate) < Math.Abs(own - best) - slack))
                         {
                             best = candidate;
                         }
@@ -1375,6 +1530,85 @@ namespace GeometryHelper.Dxf
 
                 return taken;
             }
+
+            /// <summary>
+            /// An angle, taken into a turn, taken to the value set round the circle, as AutoCAD 2021 took the angles of a rotation
+            /// and a polar parameter (plugin D25): a list (flags 8) to the value nearest round the circle, 338 degrees to 0 of 0, 90,
+            /// 180 and 270; else an angle outside the minimum (flags 1) and the maximum (flags 2) to the one of them nearer round
+            /// the circle, 300 degrees to 0 and 200 to 90 of 0 to 90, and one within them to the nearest step of the increment from
+            /// the minimum (flags 4), 40 to 45 of steps of 15, and into them; a tie, within the vector tolerance of
+            /// <see cref="Tolerance.Default"/>, to the one behind the angle asked, clockwise, as <see cref="Tie"/> says. Read into
+            /// a turn.
+            /// </summary>
+            internal double Angle(double value)
+            {
+                double slack = Tolerance.Default.EqualVector;
+
+                if ((_flags & 8) != 0 && _list.Count > 0)
+                {
+                    double best = _list[0];
+
+                    for (int i = 1; i < _list.Count; i++)
+                    {
+                        double nearer = Round(value, best) - Round(value, _list[i]);
+
+                        if (nearer > slack || (Math.Abs(nearer) <= slack && Tie(best, _list[i], value) == _list[i]))
+                        {
+                            best = _list[i];
+                        }
+                    }
+
+                    return Normal(best);
+                }
+
+                double low = (_flags & 1) != 0 ? _minimum : 0.0;
+                double high = (_flags & 2) != 0 ? _maximum : Turn;
+
+                if (value < low - slack || value > high + slack)
+                {
+                    double off = Round(value, low) - Round(value, high);
+                    return Normal(off < -slack ? low : off > slack ? high : Tie(low, high, value));
+                }
+
+                double taken = value;
+
+                if ((_flags & 4) != 0 && _increment > 0.0)
+                {
+                    double steps = (value - _minimum) / _increment;
+                    double below = _minimum + Math.Floor(steps) * _increment;
+                    double above = below + _increment;
+                    double gap = (value - below) - (above - value);
+                    taken = gap < -slack ? below : gap > slack ? above : Tie(below, above, value);
+                }
+
+                return Normal(Math.Min(Math.Max(taken, low), high));
+            }
+
+            /// <summary>
+            /// Of two angles as near to the angle asked round the circle, the one behind it, clockwise, as the step below a
+            /// distance is taken; of two half a turn away either way, the lesser. AutoCAD 2021's own choice followed its rounding
+            /// rather than a rule (plugin D25): of 58 ties of steps of 15 degrees, from nought and from 180, it took the step behind
+            /// in 26 and the one ahead in 32, 52.5 to 45 and 7.5 to 15; of 32 ties of the list 0, 90, 180 and 270 it took the one
+            /// behind in 23, 45 to 0, 225 to 180 and 315 to 270, and 135 to 180 each time, the list's 180 read a bit below pi.
+            /// </summary>
+            private static double Tie(double first, double second, double value)
+            {
+                double behind = Normal(value - first), other = Normal(value - second);
+
+                if (Math.Abs(behind - other) <= Tolerance.Default.EqualVector)
+                {
+                    return Math.Min(first, second);
+                }
+
+                return behind <= Math.PI ? first : second;
+            }
+
+            /// <summary>How far apart two angles are round the circle, from nought to pi.</summary>
+            private static double Round(double a, double b)
+            {
+                double apart = Math.Abs(a - b) % Turn;
+                return apart > Math.PI ? Turn - apart : apart;
+            }
         }
 
         /// <summary>An XY parameter: its distances along x and along y, each measured from the base point the way the end point lies.</summary>
@@ -1382,6 +1616,8 @@ namespace GeometryHelper.Dxf
         {
             private double _signX;
             private double _signY;
+            private Allowed _x;
+            private Allowed _y;
 
             internal static Planar Of(IReadOnlyList<DxfTypedValue> groups, string id, string block)
             {
@@ -1389,11 +1625,8 @@ namespace GeometryHelper.Dxf
                 TwoPoints(planar, groups, id, "XY", block);
                 List<DxfTypedValue> own = DxfDynamicProperties.Section(groups, "AcDbBlockXYParameter");
                 double dx = planar.End.X - planar.Base.X, dy = planar.End.Y - planar.Base.Y;
-
-                if (!None(FlagsOf(own, 96), RealOf(own, 142, 0.0), 0.0, double.PositiveInfinity) || !None(FlagsOf(own, 97), RealOf(own, 146, 0.0), 0.0, double.PositiveInfinity))
-                {
-                    throw new NotSupportedException("An XY parameter of the block " + block + " has a value set, which the library does not work out.");
-                }
+                planar._x = Allowed.Of(own, 96, 142, 175);
+                planar._y = Allowed.Of(own, 97, 146, 176);
 
                 if (!(Math.Abs(dx) > 0.0) || !(Math.Abs(dy) > 0.0))
                 {
@@ -1408,6 +1641,9 @@ namespace GeometryHelper.Dxf
 
             /// <summary>The way the end point lies from the base point along x and along y, 1 or -1 each.</summary>
             internal double[] Signs => new[] { _signX, _signY };
+
+            /// <summary>A distance along x (part 0) or y (part 1), in the INSERT's units, taken to its value set, as <see cref="Allowed.Distance(double, double, double, double)"/> says.</summary>
+            internal double Take(int part, double value, double now, double scale) => (part == 0 ? _x : _y).Distance(value, now, scale, Own[part] * scale);
 
             /// <summary>The move of the end point: each distance now less the block's own, the way the end point lies.</summary>
             internal override double[] Moved(double[] now) => new[] { _signX * (now[0] - Own[0]), _signY * (now[1] - Own[1]) };
@@ -1452,6 +1688,7 @@ namespace GeometryHelper.Dxf
             private double _radius;
             private double _from;
             private GeoPoint3 _baseAngle;
+            private Allowed _set;
 
             internal static Turning Of(IReadOnlyList<DxfTypedValue> groups, string id, string block)
             {
@@ -1459,10 +1696,11 @@ namespace GeometryHelper.Dxf
                 TwoPoints(turning, groups, id, "rotation", block);
                 List<DxfTypedValue> own = DxfDynamicProperties.Section(groups, "AcDbBlockRotationParameter");
                 double[] basis = DxfDynamicProperties.PointOf(own, 1011);
+                turning._set = Allowed.Of(own, 96, 141, 175);
 
-                if (basis == null || !None(FlagsOf(own, 96), RealOf(own, 141, 0.0), RealOf(own, 142, 0.0), Turn))
+                if (basis == null)
                 {
-                    throw new NotSupportedException("A rotation parameter of the block " + block + " is not one the library works out: its base angle cannot be read, or it has a value set.");
+                    throw new NotSupportedException("A rotation parameter of the block " + block + " is not one the library works out: its base angle cannot be read.");
                 }
 
                 double dx = turning.End.X - turning.Base.X, dy = turning.End.Y - turning.Base.Y;
@@ -1479,12 +1717,75 @@ namespace GeometryHelper.Dxf
                 return turning;
             }
 
+            /// <summary>An angle taken to the value set, as <see cref="Allowed.Angle"/> says.</summary>
+            internal double Take(double value) => _set.Angle(value);
+
             internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(double[] now, double[] carried)
             {
                 double angle = _from + now[0];
                 var end = new GeoPoint3(Base.X + _radius * Math.Cos(angle), Base.Y + _radius * Math.Sin(angle), End.Z);
                 List<KeyValuePair<int, string>> groups = PointsRecord(RotationKey, Base, end);
                 Point(groups, _baseAngle);
+                yield return Record(Id, groups);
+            }
+        }
+
+        /// <summary>
+        /// A polar parameter: the distance from its base point to its end point and the angle of that line from the block's x
+        /// axis, each with its value set.
+        /// </summary>
+        private sealed class Polar : Param
+        {
+            private Allowed _distance;
+            private Allowed _angle;
+
+            internal static Polar Of(IReadOnlyList<DxfTypedValue> groups, string id, string block)
+            {
+                var polar = new Polar();
+                TwoPoints(polar, groups, id, "polar", block);
+                List<DxfTypedValue> own = DxfDynamicProperties.Section(groups, "AcDbBlockPolarParameter");
+                double dx = polar.End.X - polar.Base.X, dy = polar.End.Y - polar.Base.Y;
+
+                if (!(Math.Abs(dx) + Math.Abs(dy) > 0.0))
+                {
+                    throw new NotSupportedException("A polar parameter of the block " + block + " has its end point over its base point.");
+                }
+
+                polar._distance = Allowed.Of(own, 96, 141, 175);
+                polar._angle = Allowed.Of(own, 97, 145, 176);
+                polar.Own = new[] { polar.Base.GetVectorTo(polar.End).Length, Normal(Math.Atan2(dy, dx)) };
+                return polar;
+            }
+
+            /// <summary>A distance (part 0), in the INSERT's units, or an angle (part 1), taken to its value set, as <see cref="Allowed"/> says.</summary>
+            internal double Take(int part, double value, double now, double scale) => part == 0 ? _distance.Distance(value, now, scale, Own[0] * scale) : _angle.Angle(value);
+
+            /// <summary>The end point at the distance and the angle given, level with the block's own along z.</summary>
+            internal GeoPoint3 EndAt(double[] now) => new GeoPoint3(Base.X + now[0] * Math.Cos(now[1]), Base.Y + now[0] * Math.Sin(now[1]), End.Z);
+
+            /// <summary>
+            /// What a polar stretch does at the values given: to a point it holds, the turn about the base point by the angle less
+            /// the block's own, then the move along the line by the distance less the block's own (<paramref name="turnOnly"/>
+            /// false); to a point it does not hold and an entity it turns only, the turn alone. Null where it changes nothing.
+            /// </summary>
+            internal GeoTransform3 Turned(double[] now, bool turnOnly)
+            {
+                double angle = now[1] - Own[1];
+                double change = turnOnly ? 0.0 : now[0] - Own[0];
+
+                if (angle == 0.0 && change == 0.0)
+                {
+                    return null;
+                }
+
+                GeoTransform3 turn = GeoTransform3.RotationAxis(Base, new GeoVector3(0, 0, 1), angle);
+                return change == 0.0 ? turn : GeoTransform3.Translation(new GeoVector3(change * Math.Cos(now[1]), change * Math.Sin(now[1]), 0.0)).Multiply(turn);
+            }
+
+            internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(double[] now, double[] carried)
+            {
+                List<KeyValuePair<int, string>> groups = PointsRecord(PolarKey, Base, EndAt(now));
+                Point(groups, new GeoPoint3(Base.X + 10.0, Base.Y, Base.Z));
                 yield return Record(Id, groups);
             }
         }
@@ -1559,6 +1860,93 @@ namespace GeometryHelper.Dxf
 
             /// <summary>The node ids of the parameters a move carries (the 91s its 70 counts), in their order; none for the others.</summary>
             internal List<string> Carried { get; } = new List<string>();
+
+            /// <summary>The handles of the entities a polar stretch turns only (its 331s); none for the others.</summary>
+            internal List<string> Turned { get; } = new List<string>();
+
+            /// <summary>
+            /// A polar stretch action: the polar parameter it follows by its end point (the six connections EndXDelta,
+            /// EndYDelta, Base, End, UpdatedBase and UpdatedEnd of one node), its selection (330), the entities it turns only
+            /// (331 counted by 72), each entity it stretches with the indices of its points in the frame (332, the count 75 and
+            /// the indices 76, counted by 74), as AutoCAD saved those of ACadSharp's sample and of its Annotation sample;
+            /// refused where it follows the base point, has codes (78) or a distance multiplier or an angle offset other than 1
+            /// and nought, whose working AutoCAD's samples do not show.
+            /// </summary>
+            internal static BlockAction PolarStretched(IReadOnlyList<DxfTypedValue> groups, string id, string block)
+            {
+                var stretch = new BlockAction { Id = id, Kind = ActionKind.PolarStretch };
+                DxfDynamicProperties.Section(groups, "AcDbBlockAction").FindAll(g => g.TypeCode == 330).ForEach(g => stretch.Entities.Add(g.Value?.Trim()));
+                List<DxfTypedValue> own = DxfDynamicProperties.Section(groups, "AcDbBlockPolarStretchAction");
+                var nodes = new List<string>();
+                var connections = new List<string>();
+                int codes = 0;
+                double multiplier = 1.0, angle = 0.0;
+                bool held = false;
+
+                foreach (DxfTypedValue group in own)
+                {
+                    string text = group.Value?.Trim();
+
+                    switch (group.TypeCode)
+                    {
+                        case 92:
+                        case 93:
+                        case 94:
+                        case 95:
+                        case 96:
+                        case 97:
+                            nodes.Add(text);
+                            break;
+                        case 301:
+                        case 302:
+                        case 303:
+                        case 304:
+                        case 305:
+                        case 306:
+                            connections.Add(text);
+                            break;
+                        case 331:
+                            stretch.Turned.Add(text);
+                            break;
+                        case 74:
+                            held = true;
+                            break;
+                        case 332:
+                            stretch.Held.Add(new KeyValuePair<string, List<int>>(text, new List<int>()));
+                            break;
+                        case 76:
+                            if (held && stretch.Held.Count > 0 && int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index))
+                            {
+                                stretch.Held[stretch.Held.Count - 1].Value.Add(index);
+                            }
+
+                            break;
+                        case 78:
+                            int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out codes);
+                            held = false;
+                            break;
+                        case 141:
+                            DxfDynamicProperties.Number(text, out multiplier);
+                            break;
+                        case 140:
+                            DxfDynamicProperties.Number(text, out angle);
+                            break;
+                    }
+                }
+
+                double slack = Tolerance.Default.EqualVector;
+
+                if (id == null || nodes.Count != 6 || nodes.Exists(n => n == null || n != nodes[0]) || connections.Count != 6 || connections[0] != "EndXDelta" || connections[1] != "EndYDelta"
+                    || codes != 0 || Math.Abs(multiplier - 1.0) > slack || Math.Abs(angle) > slack)
+                {
+                    throw new NotSupportedException("A polar stretch of the block " + block + " is not one the library works out: it works out a polar stretch by the end point of a polar parameter, of the distance multiplier 1 and the angle offset nought.");
+                }
+
+                stretch.Parameter = nodes[0];
+                stretch._x = nodes[0];
+                stretch._y = nodes[0];
+                return stretch;
+            }
 
             /// <summary>A move in x and y times the multiplier and turned by the offset, counter-clockwise.</summary>
             internal double[] Factored(double[] move)
@@ -1745,7 +2133,8 @@ namespace GeometryHelper.Dxf
             /// point by their points, and of arcs by both ends or, lying flat, by one; a move of a linear or an XY parameter by
             /// its end point or its base point, of a point parameter by its position, the attribute definitions a move alone
             /// may hold; a scale of a linear parameter, a rotate of a rotation parameter, a flip of a flip parameter, an array
-            /// of a linear parameter or of an XY parameter of a row offset.
+            /// of a linear parameter or of an XY parameter of a row offset; a polar stretch of a polar parameter, of the points
+            /// a stretch holds but an arc by one end, and of entities to turn only.
             /// </summary>
             internal void Check(Block block, Dictionary<string, DxfEntity> entities, string name)
             {
@@ -1770,6 +2159,9 @@ namespace GeometryHelper.Dxf
                     case ActionKind.Array:
                         fits = parameter is Linear || (parameter is Planar && Rows > Tolerance.Default.EqualPoint);
                         break;
+                    case ActionKind.PolarStretch:
+                        fits = parameter is Polar;
+                        break;
                     default:
                         fits = parameter is Mirror;
                         break;
@@ -1780,7 +2172,10 @@ namespace GeometryHelper.Dxf
                     throw new NotSupportedException("A " + Kind.ToString().ToLowerInvariant() + " action of the block " + name + " follows a parameter or a connection the library does not work out for it.");
                 }
 
-                foreach (string handle in Entities)
+                var acted = new List<string>(Entities);
+                acted.AddRange(Turned);
+
+                foreach (string handle in acted)
                 {
                     if (Kind != ActionKind.Stretch && (!entities.TryGetValue(handle, out DxfEntity entity) || entity is DxfUnknownEntity || (entity is DxfAttributeDefinition && Kind != ActionKind.Move)))
                     {
@@ -1793,11 +2188,12 @@ namespace GeometryHelper.Dxf
                     entities.TryGetValue(held.Key, out DxfEntity entity);
                     List<GeoPoint3> points = entity == null ? null : DxfBlockTableRecord.StretchPoints(entity);
                     int count = points?.Count ?? 0;
-                    bool whole = entity is DxfLine || entity is DxfPolyline || held.Value.Count == count || (entity is DxfArc arc && DxfBlockTableRecord.Flat(arc.Normal));
+                    bool whole = entity is DxfLine || entity is DxfPolyline || held.Value.Count == count || (Kind == ActionKind.Stretch && entity is DxfArc arc && DxfBlockTableRecord.Flat(arc.Normal));
 
                     if (count == 0 || held.Value.Exists(i => i < 0 || i >= count) || !whole)
                     {
-                        throw new NotSupportedException("A stretch of the block " + name + " holds the entity " + held.Key + ", which is not one the library works out with the points it names: lines and polylines by their points, arcs by both ends or, lying flat, by one, circles, texts, multiline texts and INSERTs by their one point.");
+                        throw new NotSupportedException("A " + (Kind == ActionKind.Stretch ? "stretch" : "polar stretch") + " of the block " + name + " holds the entity " + held.Key + ", which is not one the library works out with the points it names: lines and polylines by their points, arcs by both ends"
+                            + (Kind == ActionKind.Stretch ? " or, lying flat, by one" : string.Empty) + ", circles, texts, multiline texts and INSERTs by their one point.");
                     }
                 }
             }

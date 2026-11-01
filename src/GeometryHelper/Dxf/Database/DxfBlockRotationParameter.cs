@@ -3,7 +3,8 @@ using GeometryHelper.Geometry;
 namespace GeometryHelper.Dxf
 {
     /// <summary>
-    /// A rotation parameter of a dynamic block, as <see cref="DxfBlockTableRecord.AddRotationParameter"/> wrote it: an angle
+    /// A rotation parameter of a dynamic block, as
+    /// <see cref="DxfBlockTableRecord.AddRotationParameter(string, string, GeoPoint3, double, double, DxfBlockParameterValueSet)"/> wrote it: an angle
     /// about a base point, shown on every INSERT of the block as the dynamic property of its name, in radians, and followed by
     /// the rotate actions tied to it (<see cref="DxfBlockTableRecord.AddRotateAction"/>).
     /// </summary>
@@ -15,8 +16,9 @@ namespace GeometryHelper.Dxf
     /// </remarks>
     public sealed class DxfBlockRotationParameter
     {
-        internal DxfBlockRotationParameter(DxfBlockTableRecord block, int node, string handle, string name, string description, GeoPoint3 basePoint, double radius, double angle)
+        internal DxfBlockRotationParameter(DxfBlockTableRecord block, int node, string handle, string name, string description, GeoPoint3 basePoint, double radius, double angle, DxfBlockParameterValueSet valueSet)
         {
+            ValueSet = valueSet;
             Block = block;
             Node = node;
             Handle = handle;
@@ -53,5 +55,8 @@ namespace GeometryHelper.Dxf
         /// point, which every INSERT of the block shows, taken into a turn, until its property is set.
         /// </summary>
         public double Angle { get; }
+
+        /// <summary>Gets the values the angle may take, in radians; null where it may take any.</summary>
+        public DxfBlockParameterValueSet ValueSet { get; }
     }
 }

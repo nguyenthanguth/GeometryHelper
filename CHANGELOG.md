@@ -6,6 +6,19 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** A dynamic block takes a polar parameter and its polar stretch, as AutoCAD saved ACadSharp's sample of them:
+`AddPolarParameter` gives every INSERT a distance and an angle, and `AddPolarStretchAction` turns the entities it holds
+about the base point as the angle turns, moving the points inside its frame along the line as the distance grows, and
+turns the entities given to turn only. A pointer from (0, 0) to (100, 0) set to 150 and a quarter turn runs to (0, 150),
+its polyline (50, -5)-(100, -5) held by its end going to (5, 50)-(5, 150), as AutoCAD 2021 drew it; AutoCAD read and set
+every INSERT of such a block, and the library sets one as AutoCAD does, the anonymous block the same to 1E-9 in every set
+that was not a tie. `AddRotationParameter` and `AddXYParameter` take value sets in new overloads, and `AddPolarParameter`
+one for the distance and one for the angle, taken as AutoCAD 2021 took them: an angle round the circle, 300 degrees to 0
+of 0 to 90 and 338 to 0 of 0, 90, 180 and 270, and a tie of a list of distances of an XY or a polar parameter to the
+value nearer the block's own, as AutoCAD took all 18 such ties. `DxfBlockParameterValueSet.List` takes nought, for an
+angle. A rotation, an XY or a polar parameter of a value set from another writer is set too, where it was refused. 50 new
+tests.
+
 **FIXED.** `DxfTable.InsertRows`, `InsertRowsAndInherit`, `DeleteRows`, `InsertColumns`, `InsertColumnsAndInherit`,
 `DeleteColumns` and `SetSize` put the rows and columns in and take them out of the table's TABLECONTENT too, as AutoCAD
 2021's own do, where they left it as it was. AutoCAD reads a table's links, the style of each row and the borders of its

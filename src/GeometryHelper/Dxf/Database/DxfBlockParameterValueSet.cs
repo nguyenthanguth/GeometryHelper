@@ -4,15 +4,20 @@ using System.Collections.Generic;
 namespace GeometryHelper.Dxf
 {
     /// <summary>
-    /// The values a linear parameter of a dynamic block may take, as AutoCAD's Block Editor sets them in its Value Set: from a
-    /// minimum to a maximum in steps of an increment, or one of a list. A parameter given none takes any distance.
+    /// The values a distance or an angle of a dynamic block's parameter may take, as AutoCAD's Block Editor sets them in its
+    /// Value Set: from a minimum to a maximum in steps of an increment, or one of a list. A parameter given none takes any
+    /// value. An angle's set is in radians, within a turn: <c>Increments(0, 2 * Math.PI, Math.PI / 12)</c> lets an angle of 0,
+    /// 15, 30 ... 360 degrees.
     /// </summary>
     /// <remarks>
     /// AutoCAD keeps the set in the parameter's flags (96): 1 a minimum, 2 a maximum, 4 an increment, 8 a list. An increment
     /// set is written with the flags 7, a list with 8, as AutoCAD 2021 read them (plugin v17): of the set from 50 to 300 by 10,
     /// a Width set to 75 became 70, 77 became 80 and 400 became 300; of the list 50, 100 ... 300, 75 and 77 became 100 and 400
     /// became 300. Only a list is given back by
-    /// <see cref="DxfDynamicBlockReferenceProperty.GetAllowedValues"/>, as AutoCAD gives back only a list.
+    /// <see cref="DxfDynamicBlockReferenceProperty.GetAllowedValues"/>, as AutoCAD gives back only a list. A set is given to a
+    /// linear parameter, to either distance of an XY parameter, to the angle of a rotation parameter, and to the distance and
+    /// the angle of a polar parameter; an angle's is taken round the circle, as AutoCAD 2021 took it (plugin D25): of the
+    /// steps of 15 degrees from 0 to 90, 300 degrees became 0 and 200 became 90.
     /// </remarks>
     public sealed class DxfBlockParameterValueSet
     {
@@ -48,13 +53,14 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Makes a set of the distances listed, as AutoCAD's Value Set of the type List: <c>List(new[] { 300.0, 50, 100 })</c>
         /// lets a Width of 50, 100 or 300, a value between them going to the nearest. The list is kept from the least up, a
-        /// value within the point tolerance of <see cref="Tolerance.Default"/> of the one before it left out.
+        /// value within the point tolerance of <see cref="Tolerance.Default"/> of the one before it left out. An angle's list
+        /// may hold nought: <c>List(new[] { 0.0, Math.PI / 2, Math.PI })</c> lets an arrow point along x, along y or back.
         /// </summary>
-        /// <param name="values">The distances, each above nought.</param>
+        /// <param name="values">The distances or the angles, each nought or more.</param>
         /// <returns>The set.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the values are null.</exception>
         /// <exception cref="ArgumentException">Thrown when there are none.</exception>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when a value is not a finite number above nought.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when a value is not a finite number of nought or more.</exception>
         public static DxfBlockParameterValueSet List(IEnumerable<double> values)
         {
             if (values == null)
@@ -66,7 +72,7 @@ namespace GeometryHelper.Dxf
 
             foreach (double value in values)
             {
-                Guard.Positive(value, nameof(values), "A distance of a list is a finite number above nought.");
+                Guard.NonNegative(value, nameof(values), "A value of a list is a finite number of nought or more.");
                 sorted.Add(value);
             }
 
@@ -108,10 +114,11 @@ namespace GeometryHelper.Dxf
         /// Whether a distance is one of the set, within the point tolerance of <see cref="Tolerance.Default"/>: listed, or
         /// between the minimum and the maximum on a step from the minimum.
         /// </summary>
-        internal bool Holds(double distance)
-        {
-            double slack = Tolerance.Default.EqualPoint;
+        internal bool Holds(double distance) => Holds(distance, Tolerance.Default.EqualPoint);
 
+        /// <summary>Whether a value is one of the set within the slack given: listed, or between the minimum and the maximum on a step from the minimum.</summary>
+        internal bool Holds(double distance, double slack)
+        {
             if (IsList)
             {
                 return Array.Exists(_values, v => Math.Abs(v - distance) <= slack);
