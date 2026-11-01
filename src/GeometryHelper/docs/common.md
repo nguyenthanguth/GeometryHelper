@@ -1308,6 +1308,14 @@ or a move tied to a parameter's base grip, a move whose selection holds other li
 attribute definitions in a stretch, a move, a scale or a rotate, whose ATTRIBs on the INSERT follow. How each is worked out,
 and what is still refused, is set out after the examples.
 
+Constraint parameters of such a block (AutoCAD's horizontal, vertical and radial ones) are set too, by solving the block's
+geometric and dimensional constraints, which the library reads from the block's associative network and does not write:
+`Property(insert, "Width").Value = 1200.0` on AutoCAD's Fluorescent sample, a rectangle 1 000 by 500 fixed at its corner,
+moves its right side to x = 1 200 as AutoCAD 2021 did, to 3E-13 (check D27). A value the constraints cannot meet without
+moving geometry they leave free is refused with `NotSupportedException`, nothing written, as AutoCAD moved such geometry by
+rules of its own, and so is a block of a constraint or an expression the library does not solve, as the paragraph on
+constraint parameters after the block properties tables below sets out.
+
 A dynamic block is found as
 ezdxf finds it, by the extended data `AcDbDynamicBlockGUID` of its BLOCK_RECORD, or `AcDbBlockRepBTag` of the anonymous
 block that stands for it (`DynamicBlockTableRecord`, `AnonymousBlockTableRecord`); it is dynamic (`IsDynamicBlock`) where its
@@ -1335,7 +1343,8 @@ AutoCAD's Door sample, own 750, allows 600, 700, 750, 800, 900 and 1 000, a list
 value an INSERT shows off the list is not added.
 AutoCAD's hidden `Origin` points (not shown in its properties) are left out. A block properties table gives the index of
 the row the INSERT matches (`Block Table1`, a `short`, -1 for none), a user parameter its text or real, and a horizontal, a
-vertical, an aligned or a radial constraint parameter its distance, read only, as set out below. AutoCAD 2021 read the same names, values (to 1E-9, most to the bit),
+vertical, an aligned or a radial constraint parameter its distance, set by solving the block's constraints but for an
+aligned one, as set out below. AutoCAD 2021 read the same names, values (to 1E-9, most to the bit),
 types, units, read-only flags, descriptions and allowed values on ACadSharp's AutoCAD-saved samples.
 
 ```csharp
@@ -1772,9 +1781,33 @@ to 120 then reads -1; a row of -1, or the one after the last, it refused (eInval
 `ArgumentOutOfRangeException`. The block's `BlockPropertiesTable` reads a table back: its name, its columns' names and its
 rows. AutoCAD's own tables are read too: their user parameters, a text or a real a column sets (Spaces of AutoCAD's Parking
 sample, read and set as AutoCAD 2021 set it, a Width set off the rows giving Spaces its value of no match, Custom), and the
-horizontal, vertical, aligned and radial constraint parameters most of them are of, whose distances are read and not set,
-as the library does not solve constraints. AutoCAD 2021 read the same row, user parameters and constraint distances as the
-library on every INSERT of its thirteen sample drawings.
+horizontal, vertical, aligned and radial constraint parameters most of them are of, whose distances are read, and set as
+the next paragraph says. AutoCAD 2021 read the same row, user parameters and constraint distances as the library on every
+INSERT of its thirteen sample drawings. A row that would change a constraint parameter is refused, as AutoCAD 2021 left the
+constraints of its Hex Head Bolt as they were when a row set DIA from 10 to 6, though it solved them at DIA 6 set alone
+(check D27).
+
+A horizontal, a vertical or a radial constraint parameter is set by solving the block's constraints, which AutoCAD keeps in
+the associative network of its BLOCK_RECORD (`ACAD_ASSOCNETWORK`): the distance is taken to its value set, given to the
+variable of the dimensional constraint the parameter drives, the variables of expressions of it worked out (numbers, the
+names of variables, + - * / ^ and brackets, as `width-W3*2` of the Fluorescent sample), and the lines, arcs, circles and
+polyline edges the constraints hold moved from the block's own by Newton's method, each step the least that meets them,
+before any action works on what they give. The constraints read are those of AutoCAD's samples: coincident points, a point
+on a curve, parallel, perpendicular, horizontal (to a datum line), colinear, tangent, a middle, a centre, fixed, equal
+lengths and radii, a distance along x or y, an angle and a radius. Geometry the constraints leave free is held where the
+block has it, and a value that cannot be met without moving it is refused: AutoCAD 2021 moved such geometry by rules of
+its own, keeping the left side of its Door Elevation, fixed nowhere, at a new Width where the least change moves both
+sides by half, and the fillets of its Hex Head Bolt whole at a new HdCr where the least change shrinks them to nothing.
+AutoCAD 2021 solved its samples so once `AssocManager.EvaluateTopLevelNetwork` ran, and the library's 51 values of its
+Fluorescent, Window, Channel, Concrete Pipe, Hex Head Bolt (Length and DIA) and WF Beam (W) samples, metric and imperial,
+came out within 4E-11 of AutoCAD's; the 27 others it refused, Door Elevation, the beams' flanges and the bolt's head among
+them (check D27). A table whose properties must match a row leaves a constraint parameter at the value set and the others
+at theirs, no row matched, as AutoCAD set Fluorescent's Width 1 200; a constraint parameter of no column leaves the
+table's user parameters as they are, as AutoCAD kept the bolt's Size 1 at Length 80; a flip carrying a constraint
+parameter, as the Window sample's carries DoorWidth, mirrors its points with the rest. Setting one takes from 5 to 100
+milliseconds. AutoCAD 2021 read every INSERT the library set as the library drew it, to 1E-13, with no audit error of its
+own, and flipped it again; but it did not solve it again at another value until the block was reset (`RESETBLOCK`), as
+the anonymous block the library writes holds no network of its own, where AutoCAD's holds a copy of the block's.
 
 A row is read within 1E-7: AutoCAD 2021 read the row of 200 at 200.00000001 and none at 200.0000002 (check D26b). A column
 of the visibility state (`DxfBlockPropertiesTableColumn.Visibility(block)`, the connection VisibilityState as AutoCAD's own
@@ -2663,7 +2696,7 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
 - It evaluates only the dynamic blocks it can write. `DynamicBlockReferencePropertyCollection` reads the values AutoCAD
   saved of every parameter but the angular and diametric constraint parameters and user parameters other than of a text
   or a real, which give no properties; the horizontal, vertical, aligned and radial constraint parameters give their
-  distances, which are not set.
+  distances, set but for an aligned one's by solving the block's constraints (check D27).
   - Written and set: linear parameters with stretch, move, scale and array actions; XY parameters with stretch, move and
     array actions; polar parameters with polar stretch, stretch and move actions; point parameters with move actions;
     rotation parameters with rotate actions; flip parameters with flip actions; one visibility parameter; lookup parameters
@@ -2691,9 +2724,15 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
   - Set where another writer wrote them: stretches and moves tied to a parameter's base grip and moves carrying other
     linear parameters; attribute definitions not locked in their block, which a move, a scale and a rotate leave where they
     are and a stretch moves without their ATTRIBs, as AutoCAD 2021 did (check D30); a polar stretch naming an entity to
-    turn only in its selection too, or its parameter's grip.
+    turn only in its selection too, or its parameter's grip; horizontal, vertical and radial constraint parameters, by
+    solving the block's constraints, and a flip carrying them (check D27). The constraints and their network are read,
+    never written: the anonymous block holds none, so AutoCAD 2021 solved such an INSERT again only once it was reset.
   - Not set, with `NotSupportedException`, nothing written: an INSERT of a block of another writer holding what is not
-    written above or refused (a constraint, a polar stretch tied to the base grip or of a multiplier or an offset, a move
+    written above or refused (an aligned, angular or diametric constraint parameter; a constraint other than those of
+    AutoCAD's samples, geometry other than lines, arcs, circles and polyline edges flat in the block, an expression of a
+    function, or a value the constraints cannot meet without moving geometry they leave free, as of AutoCAD's Door
+    Elevation, the flanges of its beams and the head of its Hex Head Bolt; a row of a table that would change a constraint
+    parameter; a polar stretch tied to the base grip or of a multiplier or an offset, a move
     carrying a parameter other than a linear one or one that chains its actions, any other action holding a parameter,
     an attribute definition in a polar stretch, a flip or an array, a lookup column of another kind than those written above, as
     a visibility state's, a block properties table column of another kind, or a lookup or a user parameter of a block

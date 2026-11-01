@@ -86,8 +86,11 @@ namespace GeometryHelper.Dxf
                         break;
                     case "BLOCKHORIZONTALCONSTRAINTPARAMETER":
                     case "BLOCKVERTICALCONSTRAINTPARAMETER":
-                    case "BLOCKALIGNEDCONSTRAINTPARAMETER":
                     case "BLOCKRADIALCONSTRAINTPARAMETER":
+                        Constraint(node.Type, groups, cache, scale, properties);
+                        Bind(properties, before, insert, id);
+                        break;
+                    case "BLOCKALIGNEDCONSTRAINTPARAMETER":
                         Constraint(node.Type, groups, cache, scale, properties);
                         break;
                     case "BLOCKLINEARPARAMETER":
@@ -362,7 +365,8 @@ namespace GeometryHelper.Dxf
         /// A constraint parameter a block properties table reads: its distance (305 its label, 306 its description), the length
         /// between its two points along x of a horizontal one, along y of a vertical one, and straight of an aligned or a radial
         /// one, as AutoCAD 2021 read Width and Height of its Fluorescent sample (plugin D26); of no allowed value, as AutoCAD
-        /// read them. It is read only: the library does not solve a block's constraints.
+        /// read them. A horizontal, a vertical or a radial one is set by solving the block's constraints
+        /// (<see cref="DxfBlockConstraints"/>, plugin D27); an aligned one is not set, as no sample showed its working.
         /// </summary>
         private static void Constraint(string type, IReadOnlyList<DxfTypedValue> groups, IReadOnlyList<DxfTypedValue> cache, double scale, List<DxfDynamicBlockReferenceProperty> properties)
         {

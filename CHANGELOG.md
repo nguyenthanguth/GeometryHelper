@@ -6,6 +6,25 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** A horizontal, a vertical or a radial constraint parameter of a dynamic block AutoCAD's Block Editor wrote is set,
+where the library read its distance only: `DxfDynamicBlockReferenceProperty.Value` solves the block's geometric and
+dimensional constraints, read from the associative network of its BLOCK_RECORD (`ACAD_ASSOCNETWORK`), by Newton's method
+from the block's own geometry, the variables of expressions of it worked out, and writes the lines, arcs, circles and
+polyline edges they hold into the INSERT's anonymous block before any action works on them (check D27). Width 1 200 of
+AutoCAD's Fluorescent sample, a rectangle 1 000 by 500 fixed at its corner, moves its right side to x = 1 200; of its
+Fluorescent, Window, Channel, Concrete Pipe, Hex Head Bolt and WF Beam samples, metric and imperial, the 51 values set
+came out within 4E-11 of AutoCAD 2021's, which solved them once `AssocManager.EvaluateTopLevelNetwork` ran, and AutoCAD read
+every INSERT so set as the library drew it, with no audit error of its own. A value that cannot be met without moving
+geometry the constraints leave free is refused with `NotSupportedException`, nothing written, as AutoCAD moved such
+geometry by rules of its own (the left side of its Door Elevation kept at a new Width, its Hex Head Bolt's fillets kept
+whole at a new HdCr; 27 sets of its samples refused so), and so is a constraint or an expression of a kind no sample holds,
+and a row of a table that would change a constraint parameter, as AutoCAD left the constraints as they were at a row. A flip
+carrying a constraint parameter, as the Window sample's carries DoorWidth, is worked out, and mirrors its points; a table
+whose properties must match a row keeps a constraint parameter at the value set, and one of no column leaves the table's
+user parameters, as AutoCAD 2021 set them. Setting one takes 5 to 100 ms. The network is read, not written: AutoCAD 2021
+solved an INSERT the library set again only after `RESETBLOCK`, and did not solve a minimal network written by hand. 10 new
+tests.
+
 **FIXED.** A row a table puts in or takes out leaves the kinds of its rows as AutoCAD 2021 keeps them: by the style of
 each row in the TABLECONTENT, which the library now reads (check D28e, rounds E1, E2). The first row put into a table of
 one row is the header, the rest data: `SetSize(3, 2)` or `InsertRows(1, 9.0, 2)` of a table of its title alone gives it a

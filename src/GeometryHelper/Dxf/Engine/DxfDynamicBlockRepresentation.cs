@@ -15,7 +15,9 @@ namespace GeometryHelper.Dxf
     /// anonymous block of AutoCAD's (*U) the INSERT places, the INSERT's ATTRIBs changed as their ATTDEFs' places change, and the INSERT's representation data and
     /// cache (ACAD_ENHANCEDBLOCKDATA) written as AutoCAD 2021 wrote them when it set a value (plugins v17, v18), a history of
     /// grip edits the INSERT keeps given the value set after it and none made where it keeps none (plugin D26). A block
-    /// properties table sets its row, its user parameters and the INSERT's attributes of its columns.
+    /// properties table sets its row, its user parameters and the INSERT's attributes of its columns. A horizontal, a vertical
+    /// or a radial constraint parameter AutoCAD's Block Editor wrote is set by solving the block's constraints
+    /// (<see cref="DxfBlockConstraints"/>) before the actions work, as AutoCAD 2021 solved its samples (plugin D27).
     /// </summary>
     internal static class DxfDynamicBlockRepresentation
     {
@@ -37,6 +39,9 @@ namespace GeometryHelper.Dxf
         private static readonly string[] PolarKey = { "11323277", "15401870" };
         private static readonly string[] PolarStretchKey = { "82519608", "111249311" };
         private static readonly string[] UserKey = { "6894073", "9375021" };
+        private static readonly string[] HorizontalKey = { "105960582", "676247459" };
+        private static readonly string[] VerticalKey = { "758938381", "1206874891" };
+        private static readonly string[] RadialKey = { "517989848", "1481701003" };
 
         // A tolerance of nought: two transformations agree only to the bit.
         private static readonly Tolerance Exactly = new Tolerance(0.0, 0.0);
@@ -127,7 +132,8 @@ namespace GeometryHelper.Dxf
 
             foreach (Param parameter in block.Parameters)
             {
-                if (!(parameter is Spot) && bases.TryGetValue(parameter.Id, out double[] saved) && !new GeoPoint3(saved[0], saved[1], saved[2]).IsEqualTo(parameter.BaseNow(carried), Tolerance.Default))
+                // A constraint parameter's base point is where the block's constraints put it, which a value set may move.
+                if (!(parameter is Spot) && !(parameter is Dimensional) && bases.TryGetValue(parameter.Id, out double[] saved) && !new GeoPoint3(saved[0], saved[1], saved[2]).IsEqualTo(parameter.BaseNow(carried), Tolerance.Default))
                 {
                     throw new NotSupportedException("The INSERT " + insert.Handle + " keeps a base point of a parameter of the block " + dynamic.Name + " away from the block's own, as a grip moved it: the library works a block out from its own base points, and does not set it.");
                 }
@@ -148,7 +154,9 @@ namespace GeometryHelper.Dxf
 
             // A table to match takes a parameter set to a row, as Sheet.Match says; a lookup or a user parameter set, or a
             // table of a column of a user parameter or of the visibility state, is not worked out so.
-            bool matched = block.Sheet != null && block.Sheet.MustMatch && !row;
+            // A constraint parameter set keeps its value and the others theirs, no row matched, as AutoCAD 2021 set Width 1200
+            // and Height 600 of its Fluorescent sample, whose table its properties must match (plugin D27).
+            bool matched = block.Sheet != null && block.Sheet.MustMatch && !row && !(asked is Dimensional);
 
             if (matched && (lookup != null || given != null || block.Sheet.HasUsers))
             {
@@ -216,6 +224,17 @@ namespace GeometryHelper.Dxf
                     values[node][1] = polar.Take(1, Normal(Number(value)), scale);
                 }
             }
+            else if (asked is Dimensional dimensional)
+            {
+                double distance = dimensional.Take(Number(value), scale);
+
+                if (!(distance / scale > Tolerance.Default.EqualPoint))
+                {
+                    throw new ArgumentOutOfRangeException(nameof(value), value, "A distance of a constraint parameter is above the point tolerance once taken to its value set.");
+                }
+
+                values[node][0] = distance / scale;
+            }
             else if (asked is Spot)
             {
                 values[node][part] = Number(value) / scale;
@@ -244,10 +263,22 @@ namespace GeometryHelper.Dxf
                 block.Sheet.Match(node, part, values);
             }
 
+            // A table that changes a constraint parameter is not worked out: AutoCAD 2021 left the constraints of its Hex Head
+            // Bolt sample as they were when a row set its DIA from 10 to 6, though it solved them at DIA 6 set alone (plugin
+            // D27), so the library was not shown what a row does to them.
+            foreach (Param parameter in block.Parameters)
+            {
+                if (parameter is Dimensional && parameter.Id != node && !Dimensional.Same(before[parameter.Id][0], values[parameter.Id][0]))
+                {
+                    throw new NotSupportedException("A block properties table of the block " + dynamic.Name + " sets a constraint parameter, which AutoCAD 2021 did not work the block's constraints out for: the library sets a constraint parameter by itself.");
+                }
+            }
+
             // A property set leaving no row of the table matched gives each user parameter of a column its value of no match, as
             // AutoCAD 2021 read Spaces Custom once Width was set off the rows of its Parking sample (plugin D26); a user parameter
-            // set keeps the value given.
-            if (block.Sheet != null && !row && given == null)
+            // set keeps the value given. A constraint parameter of no column leaves them, as AutoCAD 2021 kept Size 1 of its Hex
+            // Head Bolt sample at Length 80, and read Size Custom at DIA 12, DIA a column (plugin D27).
+            if (block.Sheet != null && !row && given == null && !(asked is Dimensional && !block.Sheet.Holds(node)))
             {
                 block.Sheet.Unmatch(values, users, state);
             }
@@ -264,7 +295,8 @@ namespace GeometryHelper.Dxf
             }
 
             List<KeyValuePair<DxfAttributeReference, GeoTransform3>> follow = Followed(insert, dynamic, block, before, values);
-            Write(insert, dynamic, block, values, state, labels, users);
+            DxfBlockConstraints.Solution solution = Solve(block, values, dynamic);
+            Write(insert, dynamic, block, values, state, labels, users, solution);
 
             foreach (KeyValuePair<DxfAttributeReference, GeoTransform3> attribute in follow)
             {
@@ -451,7 +483,7 @@ namespace GeometryHelper.Dxf
 
             foreach (BlockAction action in block.Actions)
             {
-                if (action.Carried.Count == 0)
+                if (action.Carried.Count == 0 || action.Kind != ActionKind.Move)
                 {
                     continue;
                 }
@@ -656,9 +688,10 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Makes the INSERT place the block worked out at the values given: its anonymous block filled anew where no other INSERT
-        /// places it, else a new one; then its representation data and cache written.
+        /// places it, else a new one, the solution of its constraints written into it where there is one; then its
+        /// representation data and cache written.
         /// </summary>
-        private static void Write(DxfBlockReference insert, DxfBlockTableRecord dynamic, Block block, Dictionary<string, double[]> values, string state, Dictionary<string, string> labels, Dictionary<string, object> users)
+        private static void Write(DxfBlockReference insert, DxfBlockTableRecord dynamic, Block block, Dictionary<string, double[]> values, string state, Dictionary<string, string> labels, Dictionary<string, object> users, DxfBlockConstraints.Solution solution)
         {
             DxfFile file = insert.Item.File;
             DxfDatabase database = file.Database;
@@ -708,6 +741,9 @@ namespace GeometryHelper.Dxf
                 copyOf[sources[i].Handle] = copies[i];
             }
 
+            // The constraints are solved first and the actions worked on what they give, as AutoCAD 2021 gave its Window sample
+            // the same lines for DoorWidth 1200 set before Flip Window and after it (plugin D27).
+            solution?.Write(Own(dynamic), copyOf);
             Act(block, values, copyOf);
 
             // A dimension that names no block is a dimension of the block's constraints, which AutoCAD keeps hidden in its own
@@ -742,6 +778,66 @@ namespace GeometryHelper.Dxf
             }
 
             Cache(insert, dynamic, block, values, state, labels, users);
+        }
+
+        /// <summary>The block's own entities, by their handles.</summary>
+        private static Dictionary<string, DxfEntity> Own(DxfBlockTableRecord dynamic)
+        {
+            var own = new Dictionary<string, DxfEntity>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (DxfEntity entity in dynamic)
+            {
+                own[entity.Handle] = entity;
+            }
+
+            return own;
+        }
+
+        /// <summary>
+        /// Solves the block's constraints at the distances its constraint parameters have now, as
+        /// <see cref="DxfBlockConstraints.Solve"/> says, before anything is written, its ties to the block's entities checked;
+        /// each parameter given its two points as the solution places them. Null where every constraint parameter keeps the
+        /// block's own distance, the copies then left as the block has them.
+        /// </summary>
+        private static DxfBlockConstraints.Solution Solve(Block block, Dictionary<string, double[]> values, DxfBlockTableRecord dynamic)
+        {
+            List<Param> dimensions = block.Parameters.FindAll(p => p is Dimensional);
+
+            if (!dimensions.Exists(p => !Dimensional.Same(p.Own[0], values[p.Id][0])))
+            {
+                return null;
+            }
+
+            if (block.Constraints == null || dimensions.Exists(p => ((Dimensional)p).Dimension == null))
+            {
+                throw new NotSupportedException("A constraint parameter of the block " + dynamic.Name + " drives no dimensional constraint the library reads in the block's associative network.");
+            }
+
+            var given = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (Param parameter in dimensions)
+            {
+                given[((Dimensional)parameter).Dimension.Variable] = values[parameter.Id][0];
+            }
+
+            DxfBlockConstraints.Solution solution = block.Constraints.Solve(given);
+
+            if (solution == null)
+            {
+                return null;
+            }
+
+            solution.Write(Own(dynamic), null);
+
+            foreach (Param parameter in dimensions)
+            {
+                var dimensional = (Dimensional)parameter;
+                block.Constraints.Places(dimensional.Dimension, solution, dimensional.Base, dimensional.End, out GeoPoint3 basePoint, out GeoPoint3 endPoint);
+                dimensional.PlacedBase = basePoint;
+                dimensional.PlacedEnd = endPoint;
+            }
+
+            return solution;
         }
 
         /// <summary>
@@ -1157,6 +1253,25 @@ namespace GeometryHelper.Dxf
             var written = new List<KeyValuePair<string, List<KeyValuePair<int, string>>>>();
             Dictionary<string, double[]> carried = Carried(block, values);
 
+            // A constraint parameter a flip carries is mirrored with what it mirrors.
+            foreach (Param parameter in block.Parameters)
+            {
+                if (parameter is Dimensional dimensional)
+                {
+                    foreach (BlockAction flip in dimensional.Flips)
+                    {
+                        GeoTransform3 mirror = Transform(block.Parameters.Find(p => p.Id == flip.Parameter), flip, values);
+
+                        if (mirror != null)
+                        {
+                            dimensional.PlacedBase = (dimensional.PlacedBase ?? dimensional.Base).TransformBy(mirror);
+                            dimensional.PlacedEnd = (dimensional.PlacedEnd ?? dimensional.End).TransformBy(mirror);
+                            dimensional.Mirrored = !dimensional.Mirrored;
+                        }
+                    }
+                }
+            }
+
             foreach (Param parameter in block.Parameters)
             {
                 written.AddRange(parameter.Records(values[parameter.Id], carried.TryGetValue(parameter.Id, out double[] shift) ? shift : null));
@@ -1316,6 +1431,9 @@ namespace GeometryHelper.Dxf
             /// <summary>The block properties table; null where the block has none.</summary>
             internal Sheet Sheet { get; private set; }
 
+            /// <summary>The constraints of the block's associative network, where it has constraint parameters and a network; else null.</summary>
+            internal DxfBlockConstraints Constraints { get; private set; }
+
             internal static Block Of(DxfBlockTableRecord dynamic)
             {
                 var block = new Block();
@@ -1364,6 +1482,11 @@ namespace GeometryHelper.Dxf
                             break;
                         case "BLOCKPOLARPARAMETER":
                             block.Parameters.Add(Polar.Of(groups, id, dynamic.Name));
+                            break;
+                        case "BLOCKHORIZONTALCONSTRAINTPARAMETER":
+                        case "BLOCKVERTICALCONSTRAINTPARAMETER":
+                        case "BLOCKRADIALCONSTRAINTPARAMETER":
+                            block.Parameters.Add(Dimensional.Of(node.Type, groups, id, dynamic.Name));
                             break;
                         case "BLOCKSTRETCHACTION":
                             block.Actions.Add(BlockAction.Stretched(groups, id, dynamic.Name));
@@ -1414,7 +1537,7 @@ namespace GeometryHelper.Dxf
                         case "ACDB_DYNAMICBLOCKPROXYNODE":
                             break;
                         default:
-                            throw new NotSupportedException("The block " + dynamic.Name + " holds a " + node.Type + ", which the library does not work out: it works out linear, XY, polar, point, rotation, flip, visibility and lookup parameters with stretch, polar stretch, move, scale, rotate, flip, array and lookup actions, alignment and base point parameters, and a block properties table with the user parameters it makes.");
+                            throw new NotSupportedException("The block " + dynamic.Name + " holds a " + node.Type + ", which the library does not work out: it works out linear, XY, polar, point, rotation, flip, visibility and lookup parameters with stretch, polar stretch, move, scale, rotate, flip, array and lookup actions, alignment and base point parameters, horizontal, vertical and radial constraint parameters, and a block properties table with the user parameters it makes.");
                     }
 
                     if (block.Parameters.Count > before)
@@ -1422,6 +1545,20 @@ namespace GeometryHelper.Dxf
                         block.Parameters[before].Grips = Param.GripsOf(groups);
                         block.Parameters[before].Handle = node.Handle;
                         block.Parameters[before].Chains = Param.FlagsOf(DxfDynamicProperties.Section(groups, "AcDbBlockParameter"), 281) != 0;
+                    }
+                }
+
+                // The constraint parameters drive dimensional constraints of the block's associative network.
+                if (block.Parameters.Exists(p => p is Dimensional))
+                {
+                    block.Constraints = DxfBlockConstraints.Of(dynamic);
+
+                    foreach (Param parameter in block.Parameters)
+                    {
+                        if (parameter is Dimensional dimensional)
+                        {
+                            dimensional.Dimension = block.Constraints?.DimensionOf(parameter.Handle);
+                        }
                     }
                 }
 
@@ -1448,11 +1585,25 @@ namespace GeometryHelper.Dxf
                 // parameter other than its own, listed among what it moves, its grips following it and left out with it; a
                 // parameter that chains its actions (its own following its being carried), or that a scale or an array follows, is
                 // not worked out, as no sample of AutoCAD shows the order it takes.
+                // A flip may carry constraint parameters it holds, as its Window sample's carries DoorWidth: the parameter's
+                // points are mirrored with what the flip mirrors, as AutoCAD 2021 wrote DoorWidth's flipped (plugin D27).
                 foreach (BlockAction action in block.Actions)
                 {
                     foreach (string id in action.Carried)
                     {
                         Param carried = block.Parameters.Find(p => p.Id == id);
+
+                        if (action.Kind == ActionKind.Flip)
+                        {
+                            if (!(carried is Dimensional dimensional) || !action.Entities.Exists(h => string.Equals(h, carried.Handle, StringComparison.OrdinalIgnoreCase)))
+                            {
+                                throw new NotSupportedException("A flip of the block " + dynamic.Name + " carries a parameter the library does not work out carried: it works out a constraint parameter held by the flip.");
+                            }
+
+                            dimensional.Flips.Add(action);
+                            action.Entities.RemoveAll(h => string.Equals(h, carried.Handle, StringComparison.OrdinalIgnoreCase) || (grips.TryGetValue(h, out string grip) && carried.Grips.Contains(grip)));
+                            continue;
+                        }
 
                         if (!(carried is Linear) || carried.Id == action.Parameter || carried.Chains || !action.Entities.Exists(h => string.Equals(h, carried.Handle, StringComparison.OrdinalIgnoreCase))
                             || block.Actions.Exists(a => a.Parameter == id && a.Kind != ActionKind.Stretch && a.Kind != ActionKind.Move))
@@ -1670,6 +1821,60 @@ namespace GeometryHelper.Dxf
                 GeoPoint3 from = carried == null ? Base : new GeoPoint3(Base.X + carried[0], Base.Y + carried[1], Base.Z);
                 var end = new GeoPoint3(from.X + UnitX * distance, from.Y + UnitY * distance, from.Z + UnitZ * distance);
                 yield return Record(Id, PointsRecord(LinearKey, from, end));
+            }
+
+            /// <summary>A value, in the INSERT's units (the block's scaled), taken to the value set, as <see cref="Allowed.Distance"/> says.</summary>
+            internal double Take(double value, double scale) => _set.Distance(value, scale, Own[0] * scale);
+        }
+
+        /// <summary>
+        /// A horizontal, a vertical or a radial constraint parameter: its node's id, its two points, its distance (along x, along
+        /// y, or the radius from its base point, the centre) and its value set; the dimensional constraint of the block's
+        /// network it drives; and its two points as the last solution of the constraints placed them, where one did.
+        /// </summary>
+        private sealed class Dimensional : Param
+        {
+            private Allowed _set;
+            private string[] _key;
+
+            internal DxfBlockConstraints.Dimension Dimension { get; set; }
+
+            internal GeoPoint3? PlacedBase { get; set; }
+
+            internal GeoPoint3? PlacedEnd { get; set; }
+
+            /// <summary>The flips that carry the parameter.</summary>
+            internal List<BlockAction> Flips { get; } = new List<BlockAction>();
+
+            /// <summary>Whether a flip has mirrored the parameter's points: its record's normal is then up (0, 0, 1), as AutoCAD 2021 wrote DoorWidth's flipped.</summary>
+            internal bool Mirrored { get; set; }
+
+            internal static Dimensional Of(string type, IReadOnlyList<DxfTypedValue> groups, string id, string block)
+            {
+                var dimensional = new Dimensional();
+                TwoPoints(dimensional, groups, id, "constraint", block);
+                GeoPoint3 from = dimensional.Base;
+                GeoPoint3 to = dimensional.End;
+                bool radial = type == "BLOCKRADIALCONSTRAINTPARAMETER";
+                dimensional._key = radial ? RadialKey : type == "BLOCKHORIZONTALCONSTRAINTPARAMETER" ? HorizontalKey : VerticalKey;
+                dimensional.Own = new[] { radial ? from.DistanceTo(to) : type == "BLOCKHORIZONTALCONSTRAINTPARAMETER" ? Math.Abs(to.X - from.X) : Math.Abs(to.Y - from.Y) };
+                dimensional._set = Allowed.Of(DxfDynamicProperties.Section(groups, radial ? "AcDbBlockRadialConstraintParameter" : "AcDbBlockLinearConstraintParameter"), 96, 141, 175);
+                return dimensional;
+            }
+
+            /// <summary>Whether two distances are the same, to 1E-12 of the larger or of 1: a constraint parameter at such a distance keeps the block's own geometry.</summary>
+            internal static bool Same(double a, double b) => Math.Abs(a - b) <= 1E-12 * Math.Max(1.0, Math.Max(Math.Abs(a), Math.Abs(b)));
+
+            internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(double[] now, double[] carried)
+            {
+                List<KeyValuePair<int, string>> groups = PointsRecord(_key, PlacedBase ?? Base, PlacedEnd ?? End);
+
+                if (Mirrored)
+                {
+                    groups[groups.Count - 1] = new KeyValuePair<int, string>(30, Real(1.0));
+                }
+
+                yield return Record(Id, groups);
             }
 
             /// <summary>A value, in the INSERT's units (the block's scaled), taken to the value set, as <see cref="Allowed.Distance"/> says.</summary>
@@ -2385,7 +2590,7 @@ namespace GeometryHelper.Dxf
                     action._x = DxfDynamicProperties.Text(own, 92)?.Trim();
                     action._y = DxfDynamicProperties.Text(own, 93)?.Trim();
                     action._xBy = DxfDynamicProperties.Text(own, 301)?.Trim();
-                    known = action._xBy == "Flip";
+                    known = action._xBy == "Flip" && carried == action.Carried.Count && !action.Carried.Contains(null);
                 }
                 else
                 {
@@ -2406,9 +2611,9 @@ namespace GeometryHelper.Dxf
                         && Param.FlagsOf(basis, 280) == 1 && offset != null && Math.Abs(offset[0]) + Math.Abs(offset[1]) + Math.Abs(offset[2]) <= slack;
                 }
 
-                if (id == null || action._x == null || action._x != action._y || (action.Kind != ActionKind.Move && (carried != 0 || action.Carried.Count != 0)) || !known)
+                if (id == null || action._x == null || action._x != action._y || (action.Kind != ActionKind.Move && action.Kind != ActionKind.Flip && (carried != 0 || action.Carried.Count != 0)) || !known)
                 {
-                    throw new NotSupportedException("A " + type + " of the block " + block + " is not one the library works out: it works out a move, a scale and a rotate about the parameter's base point, a flip and an array of a column offset, each of entities only, and a move carrying linear parameters.");
+                    throw new NotSupportedException("A " + type + " of the block " + block + " is not one the library works out: it works out a move, a scale and a rotate about the parameter's base point, a flip and an array of a column offset, each of entities only, a move carrying linear parameters and a flip carrying constraint parameters.");
                 }
 
                 action.Parameter = action._x;
@@ -2751,9 +2956,10 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// A block properties table: its node's id and its table (<see cref="DxfPropertiesTable"/>), each column of a parameter
-        /// the library works out (a linear or a polar parameter's distance, an XY parameter's distances, a polar or a rotation
-        /// parameter's angle, a point parameter's x and y), of a user parameter (UserVariable), of the visibility state
-        /// (VisibilityState, plugin D26b) or of an attribute definition of the block, as AutoCAD 2021 set them (plugin D26).
+        /// the library works out (a linear, a polar or a constraint parameter's distance, an XY parameter's distances, a polar or
+        /// a rotation parameter's angle, a point parameter's x and y), of a user parameter (UserVariable), of the visibility state
+        /// (VisibilityState, plugin D26b) or of an attribute definition of the block, as AutoCAD 2021 set them (plugin D26); a
+        /// row that changes a constraint parameter's distance is refused (plugin D27).
         /// </summary>
         private sealed class Sheet
         {
@@ -2802,12 +3008,12 @@ namespace GeometryHelper.Dxf
                     }
 
                     bool known = column.IsAttribute ? tag != null : user || shown
-                        || ((parameter is Linear || parameter is Polar) && connection == "UpdatedDistance") || (parameter is Spot && (connection == "UpdatedX" || connection == "UpdatedY"))
+                        || ((parameter is Linear || parameter is Polar || parameter is Dimensional) && connection == "UpdatedDistance") || (parameter is Spot && (connection == "UpdatedX" || connection == "UpdatedY"))
                         || (parameter is Planar && (connection == "UpdatedDistanceX" || connection == "UpdatedDistanceY")) || ((parameter is Polar || parameter is Turning) && connection == "UpdatedAngle");
 
                     if (!known)
                     {
-                        throw new NotSupportedException("The block properties table of the block " + name + " has a column the library does not work out: it works out a linear or a polar parameter's distance, an XY parameter's distances, a polar or a rotation parameter's angle, a point parameter's x and y, user parameters, the visibility state and attribute definitions.");
+                        throw new NotSupportedException("The block properties table of the block " + name + " has a column the library does not work out: it works out a linear, a polar or a constraint parameter's distance, an XY parameter's distances, a polar or a rotation parameter's angle, a point parameter's x and y, user parameters, the visibility state and attribute definitions.");
                     }
 
                     bool angle = connection == "UpdatedAngle";
@@ -2961,6 +3167,9 @@ namespace GeometryHelper.Dxf
 
                 return true;
             }
+
+            /// <summary>Whether a column of the table is of the node given.</summary>
+            internal bool Holds(string node) => _nodes.Contains(node);
 
             /// <summary>Whether the table has a column of a user parameter or of the visibility state, which a table to match does not work out.</summary>
             internal bool HasUsers => _users.Contains(true) || _states.Contains(true);

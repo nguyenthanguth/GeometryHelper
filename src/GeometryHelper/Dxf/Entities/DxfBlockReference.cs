@@ -509,7 +509,8 @@ namespace GeometryHelper.Dxf
         /// Spaces of 1 that no row holds. The table is read after the properties of its columns, in its place in the graph's
         /// order. A user parameter the table made gives its value, a <see cref="string"/> (type 5) or a <see cref="double"/> of
         /// no units (type 1), named as its variable; a horizontal, a vertical, an aligned or a radial constraint parameter its
-        /// distance, which is not set: the library does not solve a block's constraints.
+        /// distance, which is set, but for an aligned one, by solving the block's constraints, as
+        /// <see cref="DxfDynamicBlockReferenceProperty.Value"/> says.
         /// </para>
         /// <para>
         /// Nothing is worked out anew when the values are read: they are those saved when the block was last evaluated, by
