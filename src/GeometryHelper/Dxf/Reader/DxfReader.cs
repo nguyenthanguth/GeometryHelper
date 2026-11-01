@@ -1427,11 +1427,14 @@ namespace GeometryHelper.Dxf
         /// The letter of a multibyte code where one begins, <c>\M+</c>, the number of its code page (1 Shift-JIS, 2 Big5,
         /// 3 Wansung, 4 Johab, 5 GB 2312) and two bytes in four hexadecimal digits of either case, as AutoCAD 2021 reads it in
         /// every text and name of a DXF of any version: the letter of the two bytes where the first opens a letter of two,
-        /// <c>\M+182A0</c> the Japanese letter a, and of the second alone where the first is 00, <c>\M+10041</c> an A. None
-        /// where the first is a letter alone, as A4 is in Shift-JIS, which AutoCAD keeps as written but for the plain words of
-        /// an MTEXT, which take that letter, U+FF64 of <c>\M+1A4A1</c>; nor where the bytes are no letter of the page (AutoCAD
-        /// gives a letter of its own, U+E800 and on), nor where the runtime has not the page, as .NET (Core) has not until the
-        /// caller registers <c>CodePagesEncodingProvider.Instance</c>.
+        /// <c>\M+182A0</c> the Japanese letter a, of the second alone where the first is 00, <c>\M+10041</c> an A, and of the
+        /// first alone where it is a letter alone and the second 00, <c>\M+1A400</c> U+FF64. None where the first is a letter
+        /// alone and the second another, as A4 and A1 are in Shift-JIS, which AutoCAD keeps as written but for the plain words
+        /// of an MTEXT, which take the first, U+FF64 of <c>\M+1A4A1</c>; nor where a byte, or the two, are no letter of the
+        /// page, a letter of private use alone counted as none (A0, FD, FE and FF of Shift-JIS), as <c>\M+100FF</c> and
+        /// <c>\M+18200</c>: AutoCAD makes of each such code a letter of its own, U+E800 and on, in the order it meets them in
+        /// all it has read since it started, and so different from one session to the next; nor where the runtime has not the page, as .NET (Core) has
+        /// not until the caller registers <c>CodePagesEncodingProvider.Instance</c>.
         /// </summary>
         private static bool TryMultibyte(string text, int at, bool plain, out char letter)
         {
@@ -1455,16 +1458,25 @@ namespace GeometryHelper.Dxf
 
             if (first == 0)
             {
-                return second != 0 && TryLetter(page, new[] { (byte)second }, out letter);
+                return second != 0 && TryAlone(page, second, out letter);
             }
 
-            if (TryLetter(page, new[] { (byte)first }, out letter))
+            if (TryAlone(page, first, out letter))
             {
-                return plain;
+                // A letter alone and nought is that letter; a letter alone and another its first in the plain words; a letter
+                // alone and a byte that is none, nor a letter at all.
+                return second == 0 || (plain && TryAlone(page, second, out _));
             }
 
             return TryLetter(page, new[] { (byte)first, (byte)second }, out letter);
         }
+
+        /// <summary>
+        /// Whether a byte is a letter alone of a code page, and that letter: not a byte that opens a letter of two, nor one the
+        /// page maps to a letter of private use, as Shift-JIS maps A0, FD, FE and FF, which AutoCAD takes for no letter.
+        /// </summary>
+        private static bool TryAlone(Encoding page, int value, out char letter)
+            => TryLetter(page, new[] { (byte)value }, out letter) && (letter < '' || letter > '');
 
         /// <summary>The code page of a multibyte code, from nought; null where the runtime has not got it.</summary>
         private static Encoding MultibytePage(int index)

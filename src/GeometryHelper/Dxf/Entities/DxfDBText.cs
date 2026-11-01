@@ -78,12 +78,14 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets or sets the words of the text (group 1), as AutoCAD's <c>TextString</c>: as the file writes them, its special
-        /// characters such as <c>%%d</c> kept, but a letter written as its escape, <c>\U+00E9</c>, read as the letter; empty
-        /// where the record gives none. Those of an ATTRIB or ATTDEF of several lines are the words of the lines of its MTEXT
-        /// joined by spaces, as AutoCAD 2021 reads both whatever their group 1 holds: the definition whose MTEXT reads
+        /// characters such as <c>%%d</c> kept, but a letter written as its escape, <c>\U+00E9</c>, read as the letter, and a
+        /// caret and the character after it as AutoCAD reads them, <c>a^Ib</c> a, a tab and b, <c>a^ b</c> a^b, <c>a^@b</c>
+        /// ending at a; empty where the record gives none. Those of an ATTRIB or ATTDEF of several lines are the words of the
+        /// lines of its MTEXT joined by spaces, as AutoCAD 2021 reads both whatever their group 1 holds: the definition whose MTEXT reads
         /// <c>LINE ONE\PLINE TWO\PLINE THREE</c> gives <c>LINE ONE LINE TWO LINE THREE</c>.
         /// </summary>
-        /// <value>Set, one line of words; a letter the file's code page lacks is written as its escape. Set on an attribute of
+        /// <value>Set, one line of words; a letter the file's code page lacks is written as its escape, a caret as ^ and a space
+        /// and a tab as ^I, as AutoCAD writes them, so that m^2 reads back as m^2. Set on an attribute of
         /// several lines, the words of its MTEXT, which keeps its place and look, its backslashes and braces written as the codes
         /// <c>\\</c>, <c>\{</c> and <c>\}</c>, its group 1 made to agree as <see cref="DxfAttributeReference.MTextAttribute"/>
         /// and <see cref="DxfAttributeDefinition.MTextAttributeDefinition"/> make it.</value>
@@ -96,7 +98,7 @@ namespace GeometryHelper.Dxf
             {
                 if (!IsAttribute)
                 {
-                    return DxfReader.Decode(GetString(1) ?? string.Empty);
+                    return DxfReader.Decode(DxfReader.Carets(GetString(1) ?? string.Empty));
                 }
 
                 // An attribute of several lines reads the words of its MTEXT (101 on), whatever its group 1 holds.
@@ -110,7 +112,7 @@ namespace GeometryHelper.Dxf
                     }
                 }
 
-                return DxfReader.Decode(TextValue(own, 1) ?? string.Empty);
+                return DxfReader.Decode(DxfReader.Carets(TextValue(own, 1) ?? string.Empty));
             }
 
             set
@@ -133,7 +135,7 @@ namespace GeometryHelper.Dxf
 
                 if (!IsAttribute || !Embedded)
                 {
-                    SetText(Pair(1, value));
+                    SetText(Pair(1, DxfReader.InCaretForm(value)));
                     return;
                 }
 
@@ -144,6 +146,21 @@ namespace GeometryHelper.Dxf
                 embedded.AddRange(DxfMText.OwnOf(words));
                 Rewrite(Pair(1, ValueOfLines(words)), null, embedded);
             }
+        }
+
+        /// <summary>
+        /// Sets the words of a text of one line (group 1) as the file writes them, carets and all; those of an attribute of
+        /// several lines as <see cref="TextString"/> sets them.
+        /// </summary>
+        internal void SetWrittenText(string written)
+        {
+            if (IsAttribute && Embedded)
+            {
+                TextString = written;
+                return;
+            }
+
+            SetText(Pair(1, written));
         }
 
         /// <summary>
@@ -776,7 +793,7 @@ namespace GeometryHelper.Dxf
         /// The value (group 1) of an attribute of several lines of the MTEXT it is made of: of an ATTRIB the words of every line
         /// joined by spaces, which AutoCAD 2021 reads as its own and other readers take for the attribute's words.
         /// </summary>
-        private protected virtual string ValueOfLines(DxfMText value) => Joined(value);
+        private protected virtual string ValueOfLines(DxfMText value) => DxfReader.InCaretForm(Joined(value));
 
         /// <summary>The words of every line of an MTEXT joined by spaces, as AutoCAD 2021 gives the <c>TextString</c> of an attribute of several lines.</summary>
         private static string Joined(DxfMText value) => value.Text.Replace('\n', ' ');

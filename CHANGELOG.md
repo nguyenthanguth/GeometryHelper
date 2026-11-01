@@ -19,6 +19,26 @@ where every polygon read it again: the box 100 by 70 by 40 sheared takes 3.0 mic
 it took 5.0, and 1.1 on .NET 10, where it took 1.7, as before an uneven transformation was checked at a loosened
 tolerance. The results are the same to the bit. 2 new tests.
 
+**FIXED.** A caret in the words of an MTEXT, a TEXT, an ATTRIB or ATTDEF and a MULTILEADER's MTEXT is read as AutoCAD
+2021 reads it, in `Contents`, `Text`, `TextString` and `ContentsRTF`: `^J` a line feed, `^I` a tab, `^M` a carriage
+return, `^` and a space a caret, and a caret and any other character the one 64 below it, `^a` an exclamation mark and
+`^?` U+FFFF; `^@` ends the words there, so `x^Iy^@z` is x, a tab and y. `Contents` and `TextString` kept `x^Jy` as
+written, and `Text` read only `^@` to `^_` and dropped the character nought, going on to z. 4 new tests.
+
+**CHANGED.** `DxfMText.Contents` and `DxfDBText.TextString` write a caret set as `^` and a space and a tab as `^I`, as
+AutoCAD writes them, so that `m^2` and `\S1^2;` read back as set: they were written as given, which AutoCAD and the
+library now read as m and U+FFF2. `SetContentsRtf` gives the length of the words as `Contents` gives them. 1 new test.
+
+**FIXED.** `DxfMText.ContentsRTF` keeps %% and what follows it as written, `x%%%y`, `x%%248y`, `x%%cy` and `x%%d`
+among them, as AutoCAD 2021's `ContentsRTF` keeps them; it made them a per cent sign, ø, ∅ and the degree sign. A line
+feed read from `^J` is `\line`, as AutoCAD writes it, where it was `\par`. 8 new tests.
+
+**FIXED.** A multibyte code `\M+` whose first byte is a letter alone and whose second is 00 is that letter, as AutoCAD
+2021 reads it: `\M+1A400` is U+FF64 and `\M+58000` the euro sign, where they were kept as written. One with a byte that
+is no letter of its page, a letter of private use alone counted as none, is kept as written in `Text` too: `\M+100FF`
+was U+F8F3 in every text, and `\M+180FF` U+0080 in `Text`. AutoCAD gives such a code a letter of its own from U+E800 on,
+numbered in the order it meets them in a session, which no reader of one file can give. 4 new tests.
+
 ## 13.2.0 (2026-11-01)
 
 A minor release: 126 public members are added, all in `GeometryHelper.Dxf`, and none is removed or changed. Of its

@@ -104,9 +104,11 @@ namespace GeometryHelper.Dxf
         /// (<c>\L</c>, <c>\l</c>, <c>\K</c>, <c>\k</c>) as <c>\ul</c>, <c>\ulnone</c>, <c>\strike</c> and <c>\strike0</c>, a font
         /// <c>\F</c> or <c>\f</c> as <c>\f</c> of its entry, with <c>\b</c> and <c>\i</c> where a TrueType font gives them, a colour
         /// <c>\C</c> of AutoCAD's index as <c>\cf</c> of its red, green and blue, BYLAYER and BYBLOCK the automatic colour, a tab
-        /// <c>^I</c> as <c>\tab</c>, a letter's escape <c>\U+00E9</c>, %%d, %%c and %%p as the letters, and a letter beyond ASCII as
-        /// <c>\u</c>. A stack <c>\S1/2;</c> is the text 1/2, as <see cref="Text"/> reads it. Left out: the heights, widths, slants,
-        /// tracking and alignments of the letters (<c>\H</c>, <c>\W</c>, <c>\Q</c>, <c>\T</c>, <c>\A</c>), the paragraph's settings
+        /// <c>^I</c> as <c>\tab</c>, a line feed <c>^J</c> as <c>\line</c>, a letter's escape <c>\U+00E9</c> and a letter beyond
+        /// ASCII as <c>\u</c>; the carets are read as <see cref="Contents"/> reads them, so that <c>^@</c> ends the words. %%
+        /// and what follows it are kept as written, %%d, %%c, %%% and %%248 among them, as AutoCAD 2021 keeps them. A stack
+        /// <c>\S1/2;</c> is the text 1/2, as <see cref="Text"/> reads it. Left out: the heights, widths, slants, tracking and
+        /// alignments of the letters (<c>\H</c>, <c>\W</c>, <c>\Q</c>, <c>\T</c>, <c>\A</c>), the paragraph's settings
         /// (<c>\p</c>), the line over the letters (<c>\O</c>, <c>\o</c>), a true colour (<c>\c</c>) and every other code. The MTEXT
         /// <c>B-12\P{\C1;\LM16\l}</c> in the style Standard of the font txt is
         /// <c>{\rtf1\ansi\deff0{\fonttbl{\f0{\*\ghfontfile}txt;}}{\colortbl ;\red255\green0\blue0;}B-12\par {\cf1 \ul M16\ulnone }\par}</c>.
@@ -132,7 +134,7 @@ namespace GeometryHelper.Dxf
         /// <remarks>
         /// <para>
         /// Read: <c>\par</c>, <c>\line</c>, <c>\sect</c> and <c>\page</c> as a paragraph <c>\P</c>, the last of the document left
-        /// out; <c>\column</c> as <c>\N</c>; <c>\tab</c> as <c>^I</c>; <c>\~</c> as <c>\~</c>; <c>\ul</c> and its kinds and
+        /// out; <c>\column</c> as <c>\N</c>; <c>\tab</c> as a tab, written <c>^I</c>; <c>\~</c> as <c>\~</c>; <c>\ul</c> and its kinds and
         /// <c>\strike</c> as <c>\L</c> and <c>\K</c>, <c>\ulnone</c>, <c>\ul0</c> and <c>\strike0</c> as <c>\l</c> and <c>\k</c>; a
         /// font <c>\f</c> of the font table, with <c>\b</c> and <c>\i</c>, as <c>\fArial|b1|i0;</c>, or <c>\F</c> of its file for a
         /// font whose name ends in .shx or whose entry is marked <c>{\*\ghfontfile}</c>, as <see cref="ContentsRTF"/> marks one, and
@@ -148,7 +150,7 @@ namespace GeometryHelper.Dxf
         /// </para>
         /// </remarks>
         /// <param name="value">The RTF.</param>
-        /// <returns>How many characters the words written have, codes among them.</returns>
+        /// <returns>How many characters the words have, codes among them, as <see cref="Contents"/> gives them.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the RTF is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the MTEXT is erased.</exception>
         public int SetContentsRtf(string value)
@@ -160,8 +162,8 @@ namespace GeometryHelper.Dxf
 
             string font = StyleFont(out bool isFile);
             string words = DxfRtf.FromRtf(value, font, isFile);
-            Contents = words;
-            return words.Length;
+            SetWritten(words);
+            return Contents.Length;
         }
 
         /// <summary>The font of the MTEXT's text style: its typeface, else its font's file, which it says it is; txt where the MTEXT has no style of the drawing.</summary>

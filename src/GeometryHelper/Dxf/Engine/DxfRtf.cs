@@ -30,10 +30,13 @@ namespace GeometryHelper.Dxf
         /// The RTF of the words of an MTEXT: a document of the font table, the style's font first (<c>\f0</c>) and every font
         /// the words name after it in the order they name them, a font's file marked so by the ignored group <c>{\*\ghfontfile}</c>,
         /// the colour table where the words have colours, then the words, closed by a paragraph's mark, which
-        /// <see cref="FromRtf"/> leaves out of the last paragraph.
+        /// <see cref="FromRtf"/> leaves out of the last paragraph. The carets of the words are read first, as
+        /// <see cref="DxfMText.Contents"/> reads them, a line feed then written <c>\line</c>, and %% and what follows it kept
+        /// as written, as AutoCAD 2021's <c>ContentsRTF</c> keeps it.
         /// </summary>
         internal static string ToRtf(string contents, string styleFont, bool styleIsFile)
         {
+            contents = DxfReader.Carets(contents);
             var fonts = new List<string> { styleFont };
             var files = new List<bool> { styleIsFile };
 
@@ -54,18 +57,10 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                if (c == '^' && i + 1 < contents.Length && (contents[i + 1] == ' ' || (contents[i + 1] >= '@' && contents[i + 1] <= '_')))
+                if (c == '\n')
                 {
-                    char caret = contents[i + 1];
-                    body.Append(caret == ' ' ? "^" : caret == 'I' ? @"\tab " : caret == 'J' ? @"\par " : string.Empty);
-                    i += 2;
-                    continue;
-                }
-
-                if (c == '%' && i + 2 < contents.Length && contents[i + 1] == '%' && TrySign(contents, i, out char sign, out int length))
-                {
-                    Letter(body, sign);
-                    i += length;
+                    body.Append(@"\line ");
+                    i++;
                     continue;
                 }
 
@@ -246,36 +241,6 @@ namespace GeometryHelper.Dxf
                     return;
             }
         }
-
-        /// <summary>
-        /// A special character of AutoCAD at an index, as the words read without their codes read it: %%c, %%d and %%p, of either
-        /// case, the diameter, degree and plus-minus signs, %%% a per cent sign, %%nnn the character of that code.
-        /// </summary>
-        private static bool TrySign(string text, int at, out char sign, out int length)
-        {
-            char code = char.ToLowerInvariant(text[at + 2]);
-            length = 3;
-
-            switch (code)
-            {
-                case 'c': sign = '\u2205'; return true;
-                case 'd': sign = '\u00B0'; return true;
-                case 'p': sign = '\u00B1'; return true;
-                case '%': sign = '%'; return true;
-            }
-
-            if (at + 4 < text.Length && IsDigit(text[at + 2]) && IsDigit(text[at + 3]) && IsDigit(text[at + 4]))
-            {
-                sign = (char)(((text[at + 2] - '0') * 100) + ((text[at + 3] - '0') * 10) + (text[at + 4] - '0'));
-                length = 5;
-                return true;
-            }
-
-            sign = '\0';
-            return false;
-        }
-
-        private static bool IsDigit(char c) => c >= '0' && c <= '9';
 
         /// <summary>A letter as RTF writes it: a backslash and a brace after a backslash, a tab as <c>\tab</c>, a letter beyond ASCII as <c>\u</c> of its code and a question mark, a control character left out.</summary>
         private static void Letter(StringBuilder rtf, char c)

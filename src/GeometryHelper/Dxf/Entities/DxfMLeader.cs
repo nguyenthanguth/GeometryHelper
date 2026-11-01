@@ -161,14 +161,13 @@ namespace GeometryHelper.Dxf
                 }
 
                 List<KeyValuePair<int, string>> m = ctx.Head.GetRange(from, to - from);
-                var mtext = new DxfMText
-                {
-                    Contents = Text(m, 304) ?? string.Empty,
-                    Location = PointOf(m, 12, new GeoPoint3(0.0, 0.0, 0.0)),
-                    TextHeight = Positive(Num(Text(ctx.Head, 41), 4.0), 4.0),
-                    Width = Math.Max(0.0, Num(Text(m, 43), 0.0)),
-                    Attachment = (DxfAttachmentPoint)Math.Max(1, Math.Min(3, Whole(Text(m, 171), 1))),
-                };
+                // The words as the record writes them, carets and all.
+                var mtext = new DxfMText();
+                mtext.SetWritten(Text(m, 304) ?? string.Empty);
+                mtext.Location = PointOf(m, 12, new GeoPoint3(0.0, 0.0, 0.0));
+                mtext.TextHeight = Positive(Num(Text(ctx.Head, 41), 4.0), 4.0);
+                mtext.Width = Math.Max(0.0, Num(Text(m, 43), 0.0));
+                mtext.Attachment = (DxfAttachmentPoint)Math.Max(1, Math.Min(3, Whole(Text(m, 171), 1)));
 
                 GeoPoint3 normal = PointOf(m, 11, new GeoPoint3(0.0, 0.0, 1.0));
                 GeoPoint3 direction = PointOf(m, 13, new GeoPoint3(1.0, 0.0, 0.0));
@@ -697,11 +696,19 @@ namespace GeometryHelper.Dxf
 
             List<KeyValuePair<int, string>> after = Read().After;
             int at = AttributeAt(after, attDefId.Handle);
-            return new DxfAttributeReference
+            var attribute = new DxfAttributeReference { Tag = attDefId.Tag };
+
+            if (at >= 0)
             {
-                Tag = attDefId.Tag,
-                TextString = at >= 0 ? Text(after, 302, at) ?? string.Empty : attDefId.TextString,
-            };
+                // The value as the entry writes it, carets and all.
+                attribute.SetWrittenText(Text(after, 302, at) ?? string.Empty);
+            }
+            else
+            {
+                attribute.TextString = attDefId.TextString;
+            }
+
+            return attribute;
         }
 
         /// <summary>

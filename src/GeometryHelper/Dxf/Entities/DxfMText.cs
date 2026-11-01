@@ -84,14 +84,16 @@ namespace GeometryHelper.Dxf
         /// digits read as the letter it stands for before the formatting, as AutoCAD 2021 reads it in a file of any version:
         /// <c>a\U+0110b</c> gives aĐb, <c>\U+D83D\U+DE00</c> the letter beyond U+FFFF of those two halves, <c>\U+0041</c> an A,
         /// <c>\\U+0110</c> a backslash and Đ, and <c>\U+005CP</c> the code of a new paragraph. <c>\U+0000</c> and an escape of
-        /// fewer digits are kept as written. Empty where the record gives none. Before R2018 an MTEXT whose later columns are
-        /// MTEXTs of their own holds only the words of its first: those of the others are in their MTEXTs, as AutoCAD and ezdxf
-        /// keep them.
+        /// fewer digits are kept as written. A caret and the character after it are read first, as AutoCAD reads them:
+        /// <c>a^Jb</c> gives a, a line feed and b, <c>a^ b</c> gives a^b, and <c>a^@b</c> ends at a. Empty where the record
+        /// gives none. Before R2018 an MTEXT whose later columns are MTEXTs of their own holds only the words of its first:
+        /// those of the others are in their MTEXTs, as AutoCAD and ezdxf keep them.
         /// </summary>
         /// <value>Set, words with their formatting codes, with no line break: written in pieces of 250 characters, the last in
         /// group 1, a piece not ending between a caret and the character it goes with, nor between the two halves of a letter
-        /// beyond U+FFFF. In a file of R2007 or later every letter is written as it is but one beyond U+FFFF, written as the
-        /// escapes of its two halves, as AutoCAD 2021 opens no DXF that holds its four bytes of UTF-8; in an older one a letter
+        /// beyond U+FFFF, a caret written ^ and a space and a tab ^I, as AutoCAD writes them, so that <c>\S1^2;</c> is written
+        /// <c>\S1^ 2;</c> and <c>m^2</c> reads back as m^2. In a file of R2007 or later every letter is written as it is but
+        /// one beyond U+FFFF, written as the escapes of its two halves, as AutoCAD 2021 opens no DXF that holds its four bytes of UTF-8; in an older one a letter
         /// the file's code page lacks is written as its escape, as AutoCAD writes it. Each reads back as the letter. The words
         /// it has, as they are written or as they read, a line break read from an escape among them, change nothing.</value>
         /// <exception cref="ArgumentNullException">Thrown when the words set are null.</exception>
@@ -99,7 +101,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the MTEXT is erased.</exception>
         public string Contents
         {
-            get => DxfReader.Decode(Written);
+            get => DxfReader.Decode(DxfReader.Carets(Written));
 
             set
             {
@@ -111,7 +113,7 @@ namespace GeometryHelper.Dxf
                 // The words it has, as the file writes them or as they read, a line break read from an escape among them, change nothing.
                 string written = Written;
 
-                if (string.Equals(value, written, StringComparison.Ordinal) || string.Equals(value, DxfReader.Decode(written), StringComparison.Ordinal))
+                if (string.Equals(value, written, StringComparison.Ordinal) || string.Equals(value, Contents, StringComparison.Ordinal))
                 {
                     return;
                 }
@@ -121,19 +123,34 @@ namespace GeometryHelper.Dxf
                     throw new ArgumentException("The words of an MTEXT have no line break in them: a new paragraph is written \\P.", nameof(value));
                 }
 
-                var groups = new List<KeyValuePair<int, string>>();
-                int from = 0;
-
-                while (value.Length - from > 250)
-                {
-                    int piece = value[from + 249] == '^' || char.IsHighSurrogate(value[from + 249]) ? 249 : 250;
-                    groups.Add(new KeyValuePair<int, string>(3, value.Substring(from, piece)));
-                    from += piece;
-                }
-
-                groups.Add(new KeyValuePair<int, string>(1, value.Substring(from)));
-                ReplaceGroups(0, Words, groups.ToArray());
+                SetWritten(DxfReader.InCaretForm(value));
             }
+        }
+
+        /// <summary>
+        /// Sets the words of the MTEXT as the file writes them, carets and all, in pieces of 250 characters, the last in group
+        /// 1, a piece not ending between a caret and the character it goes with, nor between the two halves of a letter beyond
+        /// U+FFFF; the words it has written so change nothing.
+        /// </summary>
+        internal void SetWritten(string written)
+        {
+            if (string.Equals(written, Written, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            var groups = new List<KeyValuePair<int, string>>();
+            int from = 0;
+
+            while (written.Length - from > 250)
+            {
+                int piece = written[from + 249] == '^' || char.IsHighSurrogate(written[from + 249]) ? 249 : 250;
+                groups.Add(new KeyValuePair<int, string>(3, written.Substring(from, piece)));
+                from += piece;
+            }
+
+            groups.Add(new KeyValuePair<int, string>(1, written.Substring(from)));
+            ReplaceGroups(0, Words, groups.ToArray());
         }
 
         /// <summary>The words of the MTEXT with their formatting as the file writes them (groups 3 and 1), escapes and all; empty where the record gives none.</summary>
@@ -1301,7 +1318,7 @@ namespace GeometryHelper.Dxf
             string contents = Written;
             string scaled = Math.Abs(oldHeight) > 1E-12 && !Close(oldHeight, newHeight) ? ScaledHeights(contents, newHeight / oldHeight) : contents;
             Set(groups.ToArray());
-            Contents = scaled;
+            SetWritten(scaled);
 
             if (inColumns)
             {
@@ -1751,7 +1768,7 @@ namespace GeometryHelper.Dxf
             List<DxfTypedValue> data = GetXDataForApplication("ACAD").Skip(1).ToList();
             Cut(data, "ACAD_MTEXT_COLUMNS");
             XData = new[] { new DxfTypedValue(1001, "ACAD") }.Concat(data).ToList();
-            Contents = string.Concat(words);
+            SetWritten(string.Concat(words));
         }
 
         /// <summary>The text style of an MTEXT as its group 7 writes it, escapes and all; Standard where it gives none.</summary>

@@ -422,7 +422,7 @@ namespace GeometryHelper.Dxf
                 {
                     var attribute = new DxfAttributeReference();
                     attribute.SetAttributeFromBlock(definition, insert.BlockTransform);
-                    attribute.TextString = Text(rec.After, 302, AttributeAt(rec.After, definition.Handle)) ?? string.Empty;
+                    attribute.SetWrittenText(Text(rec.After, 302, AttributeAt(rec.After, definition.Handle)) ?? string.Empty);
                     insert.AttributeCollection.AppendAttribute(attribute);
                 }
             }

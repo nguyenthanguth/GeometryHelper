@@ -242,10 +242,12 @@ namespace GeometryHelper.Dxf
         private static bool IsDigit(char c) => c >= '0' && c <= '9';
 
         /// <summary>
-        /// A text with AutoCAD's caret form of a control character read as the character: ^J a line feed, ^M a carriage
-        /// return, ^I a tab, a caret and any letter of @ to _ the code 64 below it, and ^ followed by a space a caret.
+        /// A text with AutoCAD's caret form of a control character read as the character, as AutoCAD 2021 reads it in a text
+        /// of a DXF: ^ followed by a space a caret, and a caret and any other character the code 64 below it, ^J a line feed,
+        /// ^M a carriage return, ^I a tab, ^a an exclamation mark and ^? U+FFFF. ^@, the character nought, ends the text, as
+        /// AutoCAD ends it there: <c>x^Iy^@z</c> is x, a tab and y. A caret that ends the text is kept.
         /// </summary>
-        private static string Carets(string text)
+        internal static string Carets(string text)
         {
             if (text.IndexOf('^') < 0)
             {
@@ -258,10 +260,16 @@ namespace GeometryHelper.Dxf
             {
                 char c = text[i];
 
-                if (c == '^' && i + 1 < text.Length && (text[i + 1] == ' ' || (text[i + 1] >= '@' && text[i + 1] <= '_')))
+                if (c == '^' && i + 1 < text.Length)
                 {
                     char next = text[++i];
-                    read.Append(next == ' ' ? '^' : (char)(next - 64));
+
+                    if (next == '@')
+                    {
+                        break;
+                    }
+
+                    read.Append(next == ' ' ? '^' : unchecked((char)(next - 64)));
                     continue;
                 }
 
@@ -269,6 +277,45 @@ namespace GeometryHelper.Dxf
             }
 
             return read.ToString();
+        }
+
+        /// <summary>
+        /// Words as a text of a DXF holds them, the inverse of <see cref="Carets"/>, as AutoCAD writes them: a caret as ^ and a
+        /// space and a control character in caret form, a tab as ^I.
+        /// </summary>
+        internal static string InCaretForm(string words)
+        {
+            bool plain = true;
+
+            foreach (char c in words)
+            {
+                plain &= c != '^' && c >= ' ';
+            }
+
+            if (plain)
+            {
+                return words;
+            }
+
+            var written = new StringBuilder(words.Length + 8);
+
+            foreach (char c in words)
+            {
+                if (c == '^')
+                {
+                    written.Append("^ ");
+                }
+                else if (c < ' ')
+                {
+                    written.Append('^').Append((char)(c + 64));
+                }
+                else
+                {
+                    written.Append(c);
+                }
+            }
+
+            return written.ToString();
         }
 
         /// <summary>The words of a TEXT on one line: a line feed a space, a carriage return left out.</summary>

@@ -1092,12 +1092,19 @@ beyond U+FFFF, is that letter, U+1F600. Every escape of four digits is read so, 
 that `\\U+0110` is a backslash and Đ, `\U+0041` an A and `\U+005CP` a new paragraph, as AutoCAD reads them; only
 `\U+0000` and an escape of fewer digits are kept as written. A multibyte code, `\M+`, the number of a code page (1 Shift-JIS,
 2 Big5, 3 Wansung, 4 Johab, 5 GB 2312) and two bytes in four digits, is read as AutoCAD 2021 reads it, in every text and
-name: `\M+182A0` is the Japanese letter あ and `\M+10041` an A; one whose first byte is a letter alone, as `\M+1A4A1`,
-one of bytes that are no letter, and one of a code page the runtime has not (.NET without CodePagesEncodingProvider) are
-kept as written. A TEXT's and an attribute's `TextString`, a dimension's
+name: `\M+182A0` is the Japanese letter あ, `\M+10041` an A and `\M+1A400`, a letter alone and nought, that letter,
+U+FF64; one whose two bytes are letters alone, as `\M+1A4A1`, one with a byte that is no letter of the page (a letter of
+private use alone, as FF in Shift-JIS, counted as none), and one of a code page the runtime has not (.NET without
+CodePagesEncodingProvider) are kept as written. AutoCAD gives each code of bytes that are no letter a letter of its own,
+U+E800 and on, in the order it meets them in all it has read since it started, `\M+1FFFF` U+E800 in one session and
+U+E809 in another, so the library cannot give the same and keeps the code. A caret and the character after it are read
+before the escapes, as AutoCAD reads them in every text: `^J` a line feed, `^I` a tab, `^` and a space a caret, any other
+the character 64 below it (`^a` an exclamation mark, `^4` U+FFF4), and `^@` ends the words, so `x^Iy^@z` is x, a tab and
+y. A TEXT's and an attribute's `TextString`, a dimension's
 `DimensionText`, a MULTILEADER's words and a table cell's `TextString` and `Value` read them the same way. `Text` leaves
 `\U+0000` out, a backslash before it with it, and reads a code kept as written whose first byte is a letter alone as that
-letter, U+FF64 of `\M+1A4A1`, as AutoCAD's `Text` does. Set, the letters
+letter, U+FF64 of `\M+1A4A1`, as AutoCAD's `Text` does. Set, a caret is written `^` and a space and a tab `^I`, as
+AutoCAD writes them, so `\S1^2;` is written `\S1^ 2;` and `m^2` reads back as m^2; the letters
 are written as they are from R2007 on, but one beyond U+FFFF written as the escapes of its halves, and as escapes before,
 as `TextString` writes those of a TEXT. Words that hold the seven characters `\U+0110` themselves cannot be kept in any
 DXF: every reader reads them as Đ, and AutoCAD's own writer writes them as they are too. `LineSpaceDistance` is the spacing factor
@@ -1183,7 +1190,9 @@ up of the sheet from the extended data AcadAnnoPO, a reading of AutoCAD's that i
 `DxfMText` names the codes of an MTEXT as AutoCAD's `MText` does: `ParagraphBreak` and `LineBreak` are `\P`, `UnderlineOn` is
 `\L`, `HeightChange` `\H`, `BlockBegin` `{`, and so the 19 of them. `ContentsRTF` gives its words as RTF, the style's font
 first in the font table, and `SetContentsRtf` reads RTF into them: paragraphs, columns, groups, fonts with bold and italic,
-colours of AutoCAD's index, the lines under and through, tabs, spaces that do not break and letters are carried over; the
+colours of AutoCAD's index, the lines under and through, tabs, line feeds (as `\line`), spaces that do not break and
+letters are carried over, %% and what follows it kept as written, `x%%dy` and `x%%%y` as they are, as AutoCAD 2021's
+`ContentsRTF` keeps them; the
 heights, widths, slants, tracking and alignments of the letters, the paragraph's settings and the line over them are left
 out, and a stack is its two parts with a slash between. `B-12\P{\C1;\LM16\l}` in the style Standard of the font txt is
 `{\rtf1\ansi\deff0{\fonttbl{\f0{\*\ghfontfile}txt;}}{\colortbl ;\red255\green0\blue0;}B-12\par {\cf1 \ul M16\ulnone }\par}`,
@@ -2460,8 +2469,8 @@ that does not read each byte of ASCII alone as itself, UTF-16 (1200, 1201), EBCD
 refused with a `FormatException` that names the code page and no line; AutoCAD writes none of them. A name or a text
 written with escapes (`\U+00E9`, or `\u+00e9`) is read as its letters, in a file of any version, as AutoCAD 2021 reads
 them; `\U+0000` and an escape of fewer than four digits are kept as written. A multibyte code, `\M+182A0`, the number of a
-code page and two bytes, is read as the letter of those bytes where they are one letter of two bytes, as AutoCAD reads
-it. A number is read from its first 19 digits and checked in integers,
+code page and two bytes, is read as the letter of those bytes where they are one letter of two bytes, or a letter alone
+and nought, as AutoCAD reads it. A number is read from its first 19 digits and checked in integers,
 the digits past 800 counting only as whether any is not nought: a number of 300 000 digits takes 2.2 ms on .NET 10.
 
 The numbers are kept as the file has them unless `ToMillimeters` is set, which scales points, radii, elevations,
@@ -2526,7 +2535,8 @@ and any other are kept as written. A letter written as an
 escape, `\U+00E9`, is the letter, as in a name, and so is the text `\U+0041` written in the words, which reads as an A: the
 file cannot tell the two apart. An MTEXT's escapes are read before its formatting, as AutoCAD 2021 reads them: `\\U+0110`
 is a backslash and Đ, and `\U+005CP` a new line. A control character in AutoCAD's caret form is the character, `^J` a line feed, `^M` a
-carriage return and `^I` a tab, and `^` followed by a space a caret. A TEXT is one line, so a line feed in its words,
+carriage return and `^I` a tab, `^` followed by a space a caret, a caret and any other character the one 64 below it, and
+`^@` ends the words, as AutoCAD 2021 reads them. A TEXT is one line, so a line feed in its words,
 however written, is a space, and a carriage return is left out of either kind: `a^Jb` is `a b` in a TEXT and `a` and `b`
 on two lines in an MTEXT.
 

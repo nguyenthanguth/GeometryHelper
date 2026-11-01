@@ -45,9 +45,9 @@ namespace GeometryHelper.UnitTest.Dxf
             var mtext = new DxfMText { Contents = @"B-12\P{\C1;\LM16\l}" };
             Assert.Equal(@"{\rtf1\ansi\deff0{\fonttbl{\f0{\*\ghfontfile}txt;}}{\colortbl ;\red255\green0\blue0;}B-12\par {\cf1 \ul M16\ulnone }\par}", mtext.ContentsRTF);
 
-            mtext.Contents = @"{\fArial|b1|i0|c0|p34;Bold} {\Fromans.shx;shx} {\fArial|b0|i1;it} \S1^2; %%d %%C \U+00E9 a\~b \H2x;\W0.8;\Q15;\T1.2;\A1;\pxqc;big \Oover\o \Kgone\k ^Itab \\ \{x\} \C256;\X\Nnext \M+1A4A1";
+            mtext.Contents = @"{\fArial|b1|i0|c0|p34;Bold} {\Fromans.shx;shx} {\fArial|b0|i1;it} \S1^2; %%d %%C \U+00E9 a\~b \H2x;\W0.8;\Q15;\T1.2;\A1;\pxqc;big \Oover\o \Kgone\k " + "\t" + @"tab \\ \{x\} \C256;\X\Nnext \M+1A4A1";
             Assert.Equal(
-                @"{\rtf1\ansi\deff0{\fonttbl{\f0{\*\ghfontfile}txt;}{\f1 Arial;}{\f2{\*\ghfontfile}romans.shx;}}{\f1\b\i0 Bold} {\f2 shx} {\f1\b0\i it} 1/2 \u176? \u8709? \u233? a\~b big over \strike gone\strike0  \tab tab \\ \{x\} \cf0 \line \column next \\M+1A4A1\par}",
+                @"{\rtf1\ansi\deff0{\fonttbl{\f0{\*\ghfontfile}txt;}{\f1 Arial;}{\f2{\*\ghfontfile}romans.shx;}}{\f1\b\i0 Bold} {\f2 shx} {\f1\b0\i it} 1/2 %%d %%C \u233? a\~b big over \strike gone\strike0  \tab tab \\ \{x\} \cf0 \line \column next \\M+1A4A1\par}",
                 mtext.ContentsRTF);
         }
 
@@ -133,7 +133,7 @@ namespace GeometryHelper.UnitTest.Dxf
             int length = mtext.SetContentsRtf(rtf);
 
             string expected = @"\fCalibri|b0|i0;Plain \fCalibri|b1|i0;bold\fCalibri|b0|i0; \fCalibri|b0|i1;italic\fCalibri|b0|i0; \Lunder\l \Kstrike\P"
-                + @"\C1;\kred\C256; \C5;blue\C256; \fArial|b0|i0;arial\fCalibri|b0|i0; café € € —\~x^Iy \{z\} \\ a^ b\Pend";
+                + @"\C1;\kred\C256; \C5;blue\C256; \fArial|b0|i0;arial\fCalibri|b0|i0; café € € —\~x" + "\t" + @"y \{z\} \\ a^b\Pend";
             Assert.Equal(expected, mtext.Contents);
             Assert.Equal(expected.Length, length);
             Assert.Equal("Plain bold italic under strike\nred blue arial café € € —\u00A0x\ty {z} \\ a^b\nend", mtext.Text);

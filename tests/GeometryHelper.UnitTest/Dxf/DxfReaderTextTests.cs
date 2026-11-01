@@ -95,7 +95,7 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData("\\pxi-3,l3;item", "item")]
         [InlineData("1\\~2", "1\u00A02")]
         [InlineData("\\\\ \\{ \\}", "\\ { }")]
-        [InlineData("\\S1/2; and \\S3^4;", "1/2 and 3/4")]
+        [InlineData("\\S1/2; and \\S3^ 4;", "1/2 and 3/4")]
         [InlineData("x\\U+00E9", "x\u00E9")]
         [InlineData("a\\", "a\\")]
         [InlineData("45%%d", "45\u00B0")]
