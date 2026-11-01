@@ -1990,8 +1990,9 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Keeps the records of the tables by name, the objects by handle and where the names AutoCAD gives blocks itself are
-        /// free from, until <see cref="ReleaseTableNames"/>, as <c>DxfDatabase.Insert</c> and <c>WblockCloneObjects</c> keep them
+        /// Keeps the records of the tables by name, the objects by handle, where the names AutoCAD gives blocks itself are free
+        /// from and the copies of the blocks AutoCAD names itself made so far (<see cref="_anonymousCopies"/>), until
+        /// <see cref="ReleaseTableNames"/>, as <c>DxfDatabase.Insert</c> and <c>WblockCloneObjects</c> keep them
         /// for the length of one call: so that the layer of each of 10 000 entities copied is found without reading every record
         /// of the tables, 10 000 BLOCK_RECORDs among them, each time, nor the objects read again for each pointer.
         /// </summary>
@@ -2002,6 +2003,7 @@ namespace GeometryHelper.Dxf
                 _tableNames = new Dictionary<string, TableNames>(StringComparer.Ordinal);
                 _anonymousFrom = new Dictionary<string, int>(StringComparer.Ordinal);
                 _copiedFrom = new Dictionary<DxfFile, CopiedDrawing>();
+                _anonymousCopies = new Dictionary<DxfFileBlock, string>();
             }
         }
 
@@ -2014,6 +2016,7 @@ namespace GeometryHelper.Dxf
                 _objects = null;
                 _anonymousFrom = null;
                 _copiedFrom = null;
+                _anonymousCopies = null;
                 SayDangling();
             }
         }

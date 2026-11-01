@@ -457,11 +457,17 @@ erasable and copied, its geometry not moved.
 
 A drawing begins as a file, or new, of a version named: `new DxfDatabase("AC1024")` is a drawing of R2010 with nothing in
 it, the drawing `DxfWriter` writes with no shape, in millimetres, with model space and paper space, two layouts, the layer
-0, the text style and the dimension style Standard and the named object dictionary, its header naming AC1024; entities,
+0, the text style and the dimension style Standard and the named object dictionary, its header naming AC1024 and, after it,
+the code page ANSI_1252 (`$DWGCODEPAGE`), as AutoCAD's own empty drawings of each of these versions name it; entities,
 blocks and layers are added to it as to any other. The versions are AC1015 (R2000), AC1018, AC1021, AC1024, AC1027 and
-AC1032 (R2018); `new DxfDatabase("AC1015")` is the very text of `DxfDatabase.Parse(new DxfWriter().ToString())`, and a
-version of R12 to R14, or one written otherwise, is refused (`ArgumentException`). A later version gives its records what
-that version added to them, as AutoCAD's own saves of each version give them: from R2004 on each of the three classes says
+AC1032 (R2018); `new DxfDatabase("AC1015")` is the very text of `DxfDatabase.Parse(new DxfWriter().ToString())` but for that
+code page, and a version of R12 to R14, or one written otherwise, is refused (`ArgumentException`). Text of R2007 or later
+is written in UTF-8 whatever the code page says, and before R2007 a letter the code page has not as its escape: Korean
+text copied into a new drawing of R2018 is written as its letters, and into one of R2004 as `\U+CCA0` and on. A reader
+that takes the code page from the header with the version, as ezdxf does, read such a drawing of R2018 as ANSI_1252 while
+it named none, and its recover said "Fixed unicode decoding error" for each line of Korean; it reads it as UTF-8 now. A
+later version gives its records what that version added to them, as AutoCAD's own saves of each version give them: from
+R2004 on each of the three classes says
 how many objects of it there are (one, one and two), without which AutoCAD 2021 opens no drawing of R2004 or later
 ("Group 91 (db instance count) expected"), and each layout gives its shade plot; from R2007 on model space and paper space
 give their unit (none), that they may be exploded and that they scale any way. ezdxf 1.4.5 recovers and audits each of
@@ -803,11 +809,14 @@ space is not inserted, nor its external references but one an INSERT of its mode
 an external reference still, its BLOCK flagged 4 (12 overlaid) and naming its drawing as before. A dynamic block stays
 dynamic, as AutoCAD's own insert keeps it: the extended data of its BLOCK_RECORD (AcDbDynamicBlockTrueName,
 AcDbDynamicBlockGUID, AcDbBlockRepETag) and the evaluation graph with its nodes and the purge preventer of its extension
-dictionary come with it, each anonymous block standing for it keeps its AcDbBlockRepBTag (a block placed by two INSERTs is
-copied for each, as the copy has always brought it), and each INSERT its representation data, the values it keeps and any
-history of grip edits. Every object is copied under a handle of its own, and every handle among them names the copy of what
-it named, an entity of the block, a node of the graph or the block itself, so that nothing points back into the other
-drawing; the classes of the objects are listed and the applications of their extended data registered. A block GH_PANEL of
+dictionary come with it, each anonymous block standing for it keeps its AcDbBlockRepBTag, and each INSERT its
+representation data, the values it keeps and any history of grip edits. A block AutoCAD names itself is copied once for the
+whole insert, however many INSERTs place it, dynamic or not: two INSERTs of one `*U` come as two INSERTs of one copy, as
+AutoCAD's own insert keeps one `*U` for both (AutoCAD's saves of the checks 24d-d and 24d-g, inserted by AutoCAD in its
+check v23), where the copy brought one for each; a block placed by one INSERT comes as before, to the bit. Every object
+is copied under a handle of its own, and every handle among them names the copy of what it named, an entity of the block,
+a node of the graph or the block itself, so that nothing points back into the other drawing; the classes of the objects are
+listed and the applications of their extended data registered. A block GH_PANEL of
 a Width of 100 with an INSERT of it set to 200 comes as GH_PANEL, dynamic, with an INSERT that reads Width 200, can be set
 again, and stretches as the one it was copied from. A dynamic block of a name this drawing has is this drawing's own, as any
 block of the name is: the INSERTs copied stand for it where it is dynamic, and are static copies otherwise. A drawing older
@@ -2152,7 +2161,19 @@ block the set brings gives of a block neither drawing has: a DIMENSION here nami
 copy of another's `*D1` to come as `*D2`, rather than drawing by it. An INSERT in a block brought that names a block its
 drawing has not is copied as it is, naming it, and the set says how many there were, and their names, in one Debug line of
 `GeometryHelperLog`. A rectangle of four LINEs with a HATCH that follows them, copied together into another drawing, comes
-out as four LINEs and a HATCH that follows those four, each LINE listing the HATCH among its reactors.
+out as four LINEs and a HATCH that follows those four, each LINE listing the HATCH among its reactors. A block AutoCAD
+names itself that several of the entities draw by is copied once for the call, as AutoCAD's map of ids keeps one: two
+INSERTs of one `*U1` copied together place one copy; copied by two calls, they place a copy each, as two calls of
+AutoCAD's do.
+
+A dynamic INSERT copied into another drawing of R2010 or later stays dynamic, as `db.Insert` keeps it: the dynamic block
+it places comes with it, or the one its anonymous block stands for where it places a `*U`, which AutoCAD's deep clone brings
+by the pointer of the INSERT's representation; then what makes them dynamic, as `db.Insert` copies it. An INSERT of
+GH_PANEL set to a Width of 200, copied alone into a new drawing, brings `*U1` and GH_PANEL, reads Width 200 and is set again
+as the one it was copied from. A drawing that has a block of the name keeps its own, as for any block: the copies stand for
+it where it is dynamic, and are static otherwise; and a drawing older than R2010 takes a static copy of the INSERT's block
+alone, as before. Within `db.Insert` the drawing's blocks are merged first, so it brings nothing more. Copied one by one,
+4 000 INSERTs of GH_PANEL of which 2 000 are set take about 0.6 seconds under .NET 10 and 1.1 under .NET Framework 4.8.
 
 What a copy by `Clone()` and `AppendEntity` leaves behind: a copy of an associative HATCH, in its own drawing or another,
 leaves its boundary objects, each path counting the pointers it keeps (97 of 0 where it keeps none), and is no longer

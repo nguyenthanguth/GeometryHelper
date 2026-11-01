@@ -114,6 +114,13 @@ namespace GeometryHelper.Dxf
         /// <summary>The version the header names (<c>$ACADVER</c>): R2000 (AC1015), or a later one the new empty drawing of <see cref="DxfDatabase(string)"/> is of.</summary>
         internal string Version { get; set; } = "AC1015";
 
+        /// <summary>
+        /// The code page the header names after the version (<c>$DWGCODEPAGE</c>), as AutoCAD names it in every drawing of
+        /// R2000 on, for the new empty drawing of <see cref="DxfDatabase(string)"/>; none where null, as the writer's own file,
+        /// all ASCII, needs none.
+        /// </summary>
+        internal string CodePage { get; set; }
+
         /// <summary>Whether the version is the one named or a later one, so that the records carry the groups it brought.</summary>
         private bool Since(string version) => string.CompareOrdinal(Version, version) >= 0;
 
@@ -1492,6 +1499,13 @@ namespace GeometryHelper.Dxf
             file.Str(2, "HEADER");
             file.Str(9, "$ACADVER");
             file.Str(1, Version);
+
+            if (CodePage != null)
+            {
+                file.Str(9, "$DWGCODEPAGE");
+                file.Str(3, CodePage);
+            }
+
             file.Str(9, "$HANDSEED");
             file.Hex(5, _nextHandle);
             file.Str(9, "$INSUNITS");

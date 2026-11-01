@@ -68,7 +68,10 @@ namespace GeometryHelper.Dxf
         /// versions, and the layouts' shade plot; from R2007 on the unit, explodability and scaling of model space and paper
         /// space. <c>new DxfDatabase("AC1024")</c> is a drawing of R2010, the oldest a
         /// dynamic block is made in (<see cref="DxfBlockTableRecord.AddLinearParameter"/>); <c>"AC1015"</c> gives the very
-        /// text <c>new DxfWriter().ToString()</c> gives.
+        /// text <c>new DxfWriter().ToString()</c> gives, but for the code page its header names after the version
+        /// (<c>$DWGCODEPAGE</c> ANSI_1252), as AutoCAD's own empty drawings of every version from R2000 name it: so that a reader
+        /// that goes by it, as ezdxf does, takes the text of a drawing of R2007 or later, Korean text copied into it among it, for
+        /// the UTF-8 it is written in, which it took for ANSI_1252 without it.
         /// </summary>
         /// <param name="version">The version, as <see cref="Version"/> names it: AC1015 (R2000), AC1018 (R2004), AC1021
         /// (R2007), AC1024 (R2010), AC1027 (R2013) or AC1032 (R2018), letters of either case.</param>
@@ -98,7 +101,7 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentException("A new drawing is of AC1015 (R2000), AC1018, AC1021, AC1024, AC1027 or AC1032 (R2018); " + version + " is none of them.", nameof(version));
             }
 
-            return new DxfWriter { Version = named }.ToString();
+            return new DxfWriter { Version = named, CodePage = "ANSI_1252" }.ToString();
         }
 
         #region Opening and saving

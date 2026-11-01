@@ -304,9 +304,9 @@ namespace GeometryHelper.Dxf
                     CopyRecords(origin, needs.DimStyles, "DIMSTYLE");
                 }
 
-                DxfFileBlock drawn = foreign && _blockCopies != null ? origin.BlockDrawnBy(records[0]) : null;
+                DxfFileBlock drawn = foreign && (_blockCopies != null || _anonymousCopies != null) ? origin.BlockDrawnBy(records[0]) : null;
 
-                if (drawn != null && _blockCopies.TryGetValue(drawn, out string copied) && source.WithGroup(records[0], 2, copied, false, out Rec renamed))
+                if (drawn != null && CopiedAs(drawn, out string copied) && source.WithGroup(records[0], 2, copied, false, out Rec renamed))
                 {
                     records[0] = renamed;
                 }
@@ -548,6 +548,22 @@ namespace GeometryHelper.Dxf
         // The blocks of another drawing being copied into this one by the entity being added, each with the name it is given here.
         private Dictionary<DxfFileBlock, string> _blockCopies;
 
+        // While a call holds the records of the tables by name, each block AutoCAD names itself it copied, with the name of its
+        // copy here: a *U two INSERTs place is copied once for the call, and the second INSERT places the first's copy, as
+        // AutoCAD's map of ids keeps one *U for both. Null at any other time.
+        private Dictionary<DxfFileBlock, string> _anonymousCopies;
+
+        /// <summary>
+        /// The name here of the copy of a block of another drawing: the one the entity being added brings it under, else that
+        /// of the copy the call made before, of a block AutoCAD names itself (<see cref="_anonymousCopies"/>); false where it
+        /// was not copied.
+        /// </summary>
+        private bool CopiedAs(DxfFileBlock block, out string name)
+        {
+            name = null;
+            return (_blockCopies != null && _blockCopies.TryGetValue(block, out name)) || (_anonymousCopies != null && _anonymousCopies.TryGetValue(block, out name));
+        }
+
         /// <summary>
         /// While <c>DxfDatabase.Insert</c> merges the named blocks of another drawing into this one, the blocks found, by the walk
         /// of an INSERT appended to a block merged, to insert none merged at any depth and to change no more while the merge
@@ -644,10 +660,20 @@ namespace GeometryHelper.Dxf
         /// (<see cref="Collect(DxfFile, Rec, List{DxfFileBlock})"/>), as AutoCAD's deep clone follows hard pointers: a
         /// MULTILEADER's content (341 of its context data, 344) and arrows (342, 345), an ACAD_TABLE's picture (343) and the
         /// block of a cell (340). So that an entity copied alone, or before an INSERT of its block, brings that block with it.
-        /// The entities of the other types are not read for it: they name their blocks (an INSERT's or a dimension's group 2).
+        /// The entities of the other types are not read for it: they name their blocks (an INSERT's or a dimension's group 2);
+        /// but an INSERT copied by <c>WblockCloneObjects</c> into a drawing that keeps dynamic blocks brings the dynamic block its
+        /// anonymous block stands for (<see cref="DynamicBlockPlaced"/>), as AutoCAD's deep clone follows the pointer of its
+        /// representation to it.
         /// </summary>
         private void CollectPlaced(DxfFile origin, Rec record, List<DxfFileBlock> order, RecordsToCopy needs)
         {
+            // An INSERT copied by WblockCloneObjects brings the dynamic block its anonymous block stands for.
+            if (record.Type == "INSERT" && Copies != null && Copies.BringsDynamicBlocks)
+            {
+                Collect(DynamicBlockPlaced(origin, record), order);
+                return;
+            }
+
             // The other types point to no block by handle: reading each of them cost 4 % of a copy of 22 000 lines (.NET Framework).
             if (record.Type != "MULTILEADER" && record.Type != "ACAD_TABLE")
             {
@@ -687,14 +713,14 @@ namespace GeometryHelper.Dxf
         /// <summary>Adds a block of the origin to the blocks to copy, where it is to be copied, as <see cref="BlocksToCopy"/> says.</summary>
         private void Collect(DxfFileBlock block, List<DxfFileBlock> order)
         {
-            if (block == null || order.Contains(block) || (_blockCopies != null && _blockCopies.ContainsKey(block)))
+            if (block == null || order.Contains(block) || (_blockCopies != null && _blockCopies.ContainsKey(block)) || (_anonymousCopies != null && _anonymousCopies.ContainsKey(block)))
             {
                 return;
             }
 
-            // A block AutoCAD names itself is copied under a name of its own; a named one where this drawing has none of its
-            // name, the INSERT copied placing it among them, as AutoCAD's WblockCloneObjects brings it; one this drawing has of
-            // the name is this drawing's own.
+            // A block AutoCAD names itself is copied under a name of its own, once for the call; a named one where this drawing
+            // has none of its name, the INSERT copied placing it among them, as AutoCAD's WblockCloneObjects brings it; one this
+            // drawing has of the name is this drawing's own.
             if (IsAnonymous(block.Name) || !Blocks.ContainsKey(block.Name))
             {
                 order.Add(block);
@@ -722,6 +748,11 @@ namespace GeometryHelper.Dxf
             {
                 _blockCopies[block] = IsAnonymous(block.Name) ? FreeAnonymousName(block.Name, kept = kept ?? AnonymousNamesKept(origin, blocks, AnonymousKept), ref now) : block.Name;
                 Copies?.Block(block.Name, _blockCopies[block]);
+
+                if (_anonymousCopies != null && IsAnonymous(block.Name))
+                {
+                    _anonymousCopies[block] = _blockCopies[block];
+                }
             }
 
             NoteDangling(origin, blocks);
@@ -920,7 +951,15 @@ namespace GeometryHelper.Dxf
 
             // The node of the block an INSERT of the origin names: its copy, where it is brought, else the block of the name here.
             int OfOrigin(string name)
-                => origin.Blocks.TryGetValue(name, out DxfFileBlock block) && byBlock.TryGetValue(block, out int at) ? at : Named(name);
+            {
+                if (!origin.Blocks.TryGetValue(name, out DxfFileBlock block))
+                {
+                    return Named(name);
+                }
+
+                // A block AutoCAD names itself the call copied before is that copy here.
+                return byBlock.TryGetValue(block, out int at) ? at : Named(_anonymousCopies != null && _anonymousCopies.TryGetValue(block, out string copy) ? copy : name);
+            }
 
             void Visit(int at)
             {
@@ -2270,7 +2309,7 @@ namespace GeometryHelper.Dxf
             // A block being copied with the entity is named so though it is written after it.
             bool coming = false;
 
-            if (_blockCopies != null && origin.Blocks.TryGetValue(name, out DxfFileBlock copied) && _blockCopies.TryGetValue(copied, out string given))
+            if (origin.Blocks.TryGetValue(name, out DxfFileBlock copied) && CopiedAs(copied, out string given))
             {
                 name = given;
                 coming = true;
@@ -2680,7 +2719,7 @@ namespace GeometryHelper.Dxf
                 return null;
             }
 
-            if (_blockCopies != null && origin.Blocks.TryGetValue(name, out DxfFileBlock copied) && _blockCopies.TryGetValue(copied, out string given))
+            if (origin.Blocks.TryGetValue(name, out DxfFileBlock copied) && CopiedAs(copied, out string given))
             {
                 name = given;
             }
@@ -2844,8 +2883,7 @@ namespace GeometryHelper.Dxf
                 string name = DxfReader.NameOf(origin.Record(record).Text(2) ?? string.Empty);
 
                 // A block copied with the entity, as a table's *T, is pointed at by the name of its copy.
-                if (record.Type == "BLOCK_RECORD" && _blockCopies != null && origin.Blocks.TryGetValue(name, out DxfFileBlock copiedBlock)
-                    && _blockCopies.TryGetValue(copiedBlock, out string copiedName))
+                if (record.Type == "BLOCK_RECORD" && origin.Blocks.TryGetValue(name, out DxfFileBlock copiedBlock) && CopiedAs(copiedBlock, out string copiedName))
                 {
                     name = copiedName;
                 }

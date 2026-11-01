@@ -21,7 +21,9 @@ namespace GeometryHelper.Dxf
         /// A drawing of a line from (0, 0, 0) to (10, 0, 0) on the layer steel, inserted by
         /// <c>GeoTransform3.Translation(new GeoVector3(100, 0, 0))</c> into one that has no layer steel, gives this drawing the
         /// line from (100, 0, 0) to (110, 0, 0) and the layer steel as the other drawing has it. A block AutoCAD names itself, a
-        /// dimension's <c>*D</c>, comes under a name of its own, as <see cref="DxfBlockTableRecord.AppendEntity"/> says; the
+        /// dimension's <c>*D</c>, comes under a name of its own, as <see cref="DxfBlockTableRecord.AppendEntity"/> says, once
+        /// however many entities draw by it: two INSERTs of one <c>*U</c> come as two INSERTs of one copy, as AutoCAD's own
+        /// insert keeps one for both; the
         /// external references of the other drawing and what they brought (a name with a | in it) are not merged, but one an
         /// INSERT of its model space places comes with the INSERT, an external reference still: its BLOCK flagged 4, or 12
         /// overlaid, naming its drawing in its 1, with no entities.

@@ -44,7 +44,19 @@ namespace GeometryHelper.Dxf
         /// nothing, as where it came from. INSERTs of blocks their drawing has not, in the blocks the set brings, are copied as
         /// they are and said in one Debug line for the set. An MTEXT added to a drawing of R12 is written as TEXTs,
         /// as <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/> writes it, and its place in the list given back is the
-        /// MTEXT itself, in no file.
+        /// MTEXT itself, in no file. A block AutoCAD names itself that several of the entities draw by is copied once for the
+        /// call, as AutoCAD's map of ids keeps one: two INSERTs of one *U1 copied together place one copy, and copied by two
+        /// calls a copy each.
+        /// </para>
+        /// <para>
+        /// A dynamic INSERT copied into another drawing of R2010 (AC1024) or later stays dynamic, as
+        /// <see cref="Insert(GeometryHelper.Geometry.GeoTransform3, DxfDatabase, bool)"/> keeps it: the dynamic block it places
+        /// comes with it, or the one its anonymous block stands for where it places a *U, as AutoCAD's deep clone brings it by
+        /// the pointer of the INSERT's representation, and then what makes them dynamic, as that <c>Insert</c> copies it. An
+        /// INSERT of GH_PANEL set to a Width of 200, copied alone into a new drawing, brings *U1 and GH_PANEL, reads Width 200
+        /// and is set again as the one it was copied from. A block of the name the drawing has is its own: the copies stand for
+        /// it where it is dynamic, and are static otherwise; a drawing older than R2010 takes a static copy of the INSERT's block
+        /// alone, as before.
         /// </para>
         /// <para>
         /// A rectangle of four LINEs with a HATCH that follows them, copied together into another drawing, comes out as four
@@ -60,7 +72,36 @@ namespace GeometryHelper.Dxf
         /// <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/> says; or when a block the copies bring would insert itself,
         /// or make the block insert itself, at any depth, which AutoCAD's AUDIT takes out. Nothing is added then.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the block is in no drawing.</exception>
-        public IReadOnlyList<DxfEntity> WblockCloneObjects(IEnumerable<DxfEntity> source, DxfBlockTableRecord owner) => CloneObjects(source, owner, false);
+        public IReadOnlyList<DxfEntity> WblockCloneObjects(IEnumerable<DxfEntity> source, DxfBlockTableRecord owner)
+        {
+            DxfFile target = owner?.File;
+
+            // Within Insert, which copies what makes its blocks dynamic once it ends, or into a drawing that keeps none dynamic.
+            if (target == null || target == File || target.Copies != null || !target.KeepsDynamicBlocks)
+            {
+                return CloneObjects(source, owner, false);
+            }
+
+            var copied = new DxfFile.InsertCopies { BringsDynamicBlocks = true };
+            IReadOnlyList<DxfEntity> copies;
+            target.Copies = copied;
+
+            try
+            {
+                copies = CloneObjects(source, owner, false);
+            }
+            finally
+            {
+                target.Copies = null;
+            }
+
+            if (copied.Dynamic.Count > 0)
+            {
+                target.CopyDynamicBlocks(File, copied);
+            }
+
+            return copies;
+        }
 
         /// <summary>
         /// Copies entities together as <see cref="WblockCloneObjects"/> does; with <paramref name="groups"/>, as

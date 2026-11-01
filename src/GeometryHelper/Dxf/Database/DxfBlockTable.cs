@@ -31,6 +31,10 @@ namespace GeometryHelper.Dxf
         // a block erased that alone had its name is taken out of them, not all of them made again.
         private HashSet<string> _twice;
 
+        // The blocks by the handle of their record, letters of either case the same: made when a block is first looked up by
+        // handle, and again after a block is added or erased.
+        private Dictionary<string, DxfBlockTableRecord> _byHandle;
+
         internal DxfBlockTable(DxfDatabase database, DxfItem item)
             : base(item)
         {
@@ -100,6 +104,36 @@ namespace GeometryHelper.Dxf
             return named;
         }
 
+        /// <summary>
+        /// The block whose record has a handle, the first of the table where two have it; null where none has. The blocks are
+        /// read by handle once, as by name, so that the dynamic block each of 4 000 INSERTs copied one by one stands for is found
+        /// without reading every record of the table each time.
+        /// </summary>
+        internal DxfBlockTableRecord ByHandle(string handle)
+        {
+            Dictionary<string, DxfBlockTableRecord> byHandle = Volatile.Read(ref _byHandle);
+
+            if (byHandle == null)
+            {
+                // Filled whole before it is kept, as the blocks by name are.
+                byHandle = new Dictionary<string, DxfBlockTableRecord>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (DxfBlockTableRecord record in Read())
+                {
+                    string own = record.Handle;
+
+                    if (own != null && !byHandle.ContainsKey(own))
+                    {
+                        byHandle.Add(own, record);
+                    }
+                }
+
+                Volatile.Write(ref _byHandle, byHandle);
+            }
+
+            return handle != null && byHandle.TryGetValue(handle.Trim(), out DxfBlockTableRecord block) ? block : null;
+        }
+
         /// <summary>Takes a block last in the order of the table into the blocks by name, where none before it has its name; its name among those of more than one where one has.</summary>
         private static void Index(Dictionary<string, DxfBlockTableRecord> named, HashSet<string> twice, DxfBlockTableRecord record)
         {
@@ -126,6 +160,7 @@ namespace GeometryHelper.Dxf
             block.AddTo(_database.File);
             records.Add(block);
             Index(_named, _twice, block);
+            _byHandle = null;
         }
 
         /// <summary>Reads the table as the drawing is opened, so that model space and paper space stand for their records from the first.</summary>
@@ -143,12 +178,14 @@ namespace GeometryHelper.Dxf
             var adopted = new DxfBlockTableRecord(_database.File, record, block);
             _records.Add(adopted);
             Index(_named, _twice, adopted);
+            _byHandle = null;
         }
 
         /// <summary>A block erased, no longer of the table.</summary>
         internal void Forget(DxfBlockTableRecord block)
         {
             Read().Remove(block);
+            _byHandle = null;
             Dictionary<string, DxfBlockTableRecord> named = _named;
             HashSet<string> twice = _twice;
             string name = block.Name;

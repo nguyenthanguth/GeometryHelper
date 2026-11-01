@@ -200,9 +200,10 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AnAnonymousBlockPlacedByTwoInserts_IsCopiedForEach_AndBothStayDynamic()
+        public void AnAnonymousBlockPlacedByTwoInserts_IsCopiedOnce_AndBothStayDynamic()
         {
-            // As AutoCAD's own save of 24a-d holds it: two INSERTs of one *U, which the copy brings once for each INSERT.
+            // As AutoCAD's own save of 24a-d holds it: two INSERTs of one *U, which the copy brings once for both (D23d), as
+            // AutoCAD's own Insert keeps it.
             DxfDatabase source = Source();
             DxfBlockReference set = Panels(source.ModelSpace)[1];
             source.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 400, 0), set.AnonymousBlockTableRecord));

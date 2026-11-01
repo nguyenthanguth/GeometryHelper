@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
 namespace GeometryHelper.Dxf
 {
@@ -18,17 +19,78 @@ namespace GeometryHelper.Dxf
         private static readonly string[] RepresentationData = { "AcDbBlockRepBTag" };
 
         /// <summary>
-        /// While <c>DxfDatabase.Insert</c> copies another drawing into this one, the entities and blocks it copied, for
-        /// <see cref="CopyDynamicBlocks(DxfFile, InsertCopies)"/>; null at any other time.
+        /// While <c>DxfDatabase.Insert</c> copies another drawing into this one, or <c>WblockCloneObjects</c> copies entities of
+        /// another into it, the entities and blocks it copied, for <see cref="CopyDynamicBlocks(DxfFile, InsertCopies)"/>; null
+        /// at any other time.
         /// </summary>
         internal InsertCopies Copies { get; set; }
 
+        /// <summary>Whether this drawing keeps a dynamic block copied into it dynamic: one of R2010 (AC1024) or later, with objects and handles.</summary>
+        internal bool KeepsDynamicBlocks => Supports(1024) && HoldsObjects && UsesHandles();
+
         /// <summary>
-        /// Copies what makes the dynamic blocks of another drawing dynamic into this one, after <c>DxfDatabase.Insert</c> copied
-        /// its entities and blocks (<paramref name="copies"/>), as AutoCAD's insert keeps it: the extended data of each dynamic
-        /// block copied (its true name, GUID and tags) and the entries ACAD_ENHANCEDBLOCK (the evaluation graph with its nodes)
-        /// and AcDbDynamicBlockRoundTripPurgePreventer of its extension dictionary; the extended data AcDbBlockRepBTag and the
-        /// entry AcDbBlockRepresentation of each copy of an anonymous block that stands for one; and the entry
+        /// The dynamic block of the other drawing an INSERT of it places through an anonymous block standing for it, the 1005 of
+        /// that block's AcDbBlockRepBTag naming its record, as <c>DxfBlockReference.DynamicBlockTableRecord</c> finds it; null
+        /// where the INSERT places a named block or a block that stands for none. The dynamic block an INSERT places, itself or
+        /// so, is noted in <see cref="Copies"/> (<see cref="InsertCopies.Dynamic"/>). The blocks are found by name and by handle
+        /// through the other drawing's block table, which reads them once, not once for each call.
+        /// </summary>
+        private DxfFileBlock DynamicBlockPlaced(DxfFile origin, Rec insert)
+        {
+            DxfFileBlock block = origin.BlockDrawnBy(insert);
+            DxfBlockTable table = origin.Database?.BlockTable;
+
+            if (block == null || table == null || !table.Has(block.Name))
+            {
+                return null;
+            }
+
+            DxfBlockTableRecord record = table[block.Name];
+
+            if (record.IsDynamicBlock)
+            {
+                Placed(record.Name);
+                return null;
+            }
+
+            IReadOnlyList<DxfTypedValue> tags = IsAnonymous(block.Name) ? record.GetXDataForApplication("AcDbBlockRepBTag") : null;
+            string tag = null;
+
+            foreach (DxfTypedValue group in tags ?? new DxfTypedValue[0])
+            {
+                if (group.TypeCode == 1005)
+                {
+                    tag = group.Value;
+                    break;
+                }
+            }
+
+            DxfBlockTableRecord dynamic = tag == null ? null : table.ByHandle(tag);
+
+            if (dynamic == null || !dynamic.IsDynamicBlock || !origin.Blocks.TryGetValue(dynamic.Name, out DxfFileBlock brought))
+            {
+                return null;
+            }
+
+            Placed(dynamic.Name);
+            return brought;
+
+            void Placed(string name)
+            {
+                if (!Copies.Dynamic.Exists(n => string.Equals(n, name, StringComparison.OrdinalIgnoreCase)))
+                {
+                    Copies.Dynamic.Add(name);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Copies what makes the dynamic blocks of another drawing dynamic into this one, after <c>DxfDatabase.Insert</c> or
+        /// <c>WblockCloneObjects</c> copied its entities and blocks (<paramref name="copies"/>), as AutoCAD's insert keeps it:
+        /// the extended data of each dynamic block copied (its true name, GUID and tags) and the entries ACAD_ENHANCEDBLOCK (the
+        /// evaluation graph with its nodes) and AcDbDynamicBlockRoundTripPurgePreventer of its extension dictionary; the
+        /// extended data AcDbBlockRepBTag and the entry AcDbBlockRepresentation of each copy of an anonymous block that stands
+        /// for one; and the entry
         /// AcDbBlockRepresentation (the representation data and the cache of the values) of each INSERT copied that stands for
         /// one. Each object comes with every object it owns, given a handle of its own here, in the order the other drawing owns
         /// them, once for each owner here; every handle among them names the copy of what it named: an object copied with it,
@@ -43,14 +105,17 @@ namespace GeometryHelper.Dxf
             DxfDatabase source = origin.Database;
             DxfDatabase target = Database;
 
-            if (source == null || target == null || !Supports(1024) || !HoldsObjects || !UsesHandles())
+            if (source == null || target == null || !KeepsDynamicBlocks)
             {
                 return;
             }
 
-            // The block records of the other drawing by handle, each with the record here its pointers name (the first copy of
-            // an anonymous block copied more than once); and those of its dynamic blocks with the record here dynamic in its place.
-            var blocks = new List<DxfBlockTableRecord>(source.BlockTable);
+            // The block records of the other drawing by handle, each with the record here its pointers name (the copy of an
+            // anonymous block, which the call copies once); and those of its dynamic blocks with the record here dynamic in its place.
+            // WblockCloneObjects, which may copy one INSERT at a time from a drawing of thousands of blocks, gives those its
+            // copies brought and the dynamic blocks they place, in the order of their handles; a pointer to any other block is
+            // taken to the block of its name here, as a record of a table is.
+            List<DxfBlockTableRecord> blocks = copies.BringsDynamicBlocks ? Named(source, copies) : new List<DxfBlockTableRecord>(source.BlockTable);
 
             if (!blocks.Exists(b => b.IsDynamicBlock))
             {
@@ -95,6 +160,34 @@ namespace GeometryHelper.Dxf
             {
                 ReleaseTableNames();
             }
+        }
+
+        /// <summary>
+        /// The blocks of the other drawing <c>WblockCloneObjects</c> copied and the dynamic blocks its INSERTs place
+        /// (<see cref="InsertCopies.Dynamic"/>), each once, in the order of their handles, then of their names.
+        /// </summary>
+        private static List<DxfBlockTableRecord> Named(DxfDatabase source, InsertCopies copies)
+        {
+            var blocks = new List<DxfBlockTableRecord>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (string name in copies.Blocks.Keys.Concat(copies.Dynamic))
+            {
+                if (source.BlockTable.Has(name) && seen.Add(name))
+                {
+                    blocks.Add(source.BlockTable[name]);
+                }
+            }
+
+            blocks.Sort((a, b) =>
+            {
+                TryHex(a.Handle ?? string.Empty, out ulong x);
+                TryHex(b.Handle ?? string.Empty, out ulong y);
+                int byHandle = x.CompareTo(y);
+                return byHandle != 0 ? byHandle : string.CompareOrdinal(a.Name, b.Name);
+            });
+
+            return blocks;
         }
 
         /// <summary>
@@ -484,7 +577,7 @@ namespace GeometryHelper.Dxf
             internal Dictionary<ulong, string> Made { get; } = new Dictionary<ulong, string>();
         }
 
-        /// <summary>The entities and blocks <c>DxfDatabase.Insert</c> copied from another drawing into this one, while it lasts.</summary>
+        /// <summary>The entities and blocks <c>DxfDatabase.Insert</c> or <c>WblockCloneObjects</c> copied from another drawing into this one, while it lasts.</summary>
         internal sealed class InsertCopies
         {
             private readonly Dictionary<ulong, string> _entities = new Dictionary<ulong, string>();
@@ -510,9 +603,21 @@ namespace GeometryHelper.Dxf
 
             /// <summary>
             /// The name there of each block copied, letters of either case the same, with the names of its copies here in the
-            /// order they were made: an anonymous block placed by two INSERTs copied one by one is copied for each.
+            /// order they were made: an anonymous block placed by two INSERTs is copied once for the call, as AutoCAD keeps one.
             /// </summary>
             internal Dictionary<string, List<string>> Blocks { get; } = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+
+            /// <summary>
+            /// Whether an INSERT copied brings the dynamic block its anonymous block stands for, as <c>WblockCloneObjects</c>
+            /// copies into a drawing that keeps dynamic blocks; <c>DxfDatabase.Insert</c> merges every named block it needs.
+            /// </summary>
+            internal bool BringsDynamicBlocks { get; set; }
+
+            /// <summary>
+            /// The names there of the dynamic blocks the INSERTs copied place, itself or by an anonymous block standing for it, as
+            /// found while <see cref="BringsDynamicBlocks"/> lasts, each once.
+            /// </summary>
+            internal List<string> Dynamic { get; } = new List<string>();
 
             /// <summary>Notes the copy of an entity, by the two handles.</summary>
             internal void Entity(string was, string copy)

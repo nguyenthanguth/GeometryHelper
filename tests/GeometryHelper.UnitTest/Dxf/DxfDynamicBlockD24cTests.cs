@@ -191,9 +191,10 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void ANewDrawingOfR2000_IsTheDrawingTheWriterWrites()
+        public void ANewDrawingOfR2000_IsTheDrawingTheWriterWrites_ItsCodePageNamed()
         {
-            Assert.Equal(new DxfWriter().ToString(), new DxfDatabase("AC1015").ToText());
+            // D23d: the header names the code page after the version, as AutoCAD's own empty drawings do.
+            Assert.Equal(new DxfWriter().ToString().Replace("  9\n$ACADVER\n  1\nAC1015\n", "  9\n$ACADVER\n  1\nAC1015\n  9\n$DWGCODEPAGE\n  3\nANSI_1252\n"), new DxfDatabase("AC1015").ToText());
         }
 
         [Fact]

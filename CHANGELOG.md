@@ -6,6 +6,37 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** `DxfDatabase.Insert` and `WblockCloneObjects` copy a block AutoCAD names itself once for the call, however
+many INSERTs place it, as AutoCAD's own insert keeps one `*U` for two INSERTs that share it (AutoCAD's saves of the checks
+24d-d and 24d-g, inserted by AutoCAD in its check v23), where they copied it once for each INSERT: two INSERTs of one `*U`
+come as two INSERTs of one copy, dynamic or not, and each is set as the INSERT it was copied from. Two calls of
+`WblockCloneObjects` copy it once each, as two calls of AutoCAD's do. 31 of the 226 drawings of dynamic blocks of the
+checks hold such a pair; each copy of them now has as many `*U` as its source. A block placed by one INSERT comes as
+before, to the bit: 11 700 copies of the 492 drawings without dynamic blocks of the checks, three ways by `Insert` and two
+by `WblockCloneObjects` into five drawings each, write the same but for the code page of a new drawing below, and 600 more
+are refused alike.
+
+**CHANGED.** `WblockCloneObjects` of a dynamic INSERT into another drawing of R2010 or later keeps it dynamic, as `Insert`
+does since the last change, where it brought a static copy: the dynamic block it places comes with it, or the one its
+anonymous block stands for where it places a `*U`, which AutoCAD's deep clone brings by the pointer of the INSERT's
+representation, and then what makes them dynamic, as `Insert` copies it. An INSERT of GH_PANEL set to a Width of 200,
+copied alone into a new drawing, brings `*U1` and GH_PANEL, reads Width 200 and is set again as the one it was copied
+from. A drawing that has a block of the name keeps its own, the copies standing for it where it is dynamic and static
+otherwise; a drawing older than R2010 takes a static copy of the INSERT's block alone, as before. The 226 drawings of
+dynamic blocks, their model space copied by one call and by a call for each entity into new drawings of R2018 and R2010,
+give every INSERT the dynamic properties, values and drawing it had, no handle naming what the drawing has not, and
+nothing for ezdxf's recover and audit to fix; the sets of a value on those copies give what they give on the originals.
+Copied one by one, 4 000 INSERTs of GH_PANEL of which 2 000 are set take about 0.6 seconds under .NET 10 and 1.1 under
+.NET Framework 4.8, where their static copies took 0.4 and 0.7; the dynamic block an INSERT stands for is found through
+the block table, which reads the blocks by handle once, not once for each call.
+
+**FIXED.** A new drawing, `new DxfDatabase(version)`, names its code page in its header after its version,
+`$DWGCODEPAGE` ANSI_1252, as AutoCAD's own empty drawings of R2000 to R2018 name it. Without it, ezdxf took a drawing of
+R2007 or later for one in ANSI_1252, though its text is UTF-8, so that Korean text copied into it read as other letters
+and its recover said "Fixed unicode decoding error" for each line of it; it reads the letters written now, with nothing
+to fix. The text is written as before: in UTF-8 from R2007, and as its escapes (`\U+CCA0`) before. `new
+DxfDatabase("AC1015")` is the drawing `DxfWriter` writes but for that variable.
+
 **FIXED.** A curved loop is copied, moved, turned and transformed edge for edge, every arc and side however small, by
 `Clone`, `Translate`, `RotateBy` and `TransformBy` of `GeoPolygonArc2`, and `Clone`, `Translate` and `TransformBy` of
 `GeoPolygonArc3`, as its fillets, chamfers and offsets have kept it since the last fixes. The copy was put back together
