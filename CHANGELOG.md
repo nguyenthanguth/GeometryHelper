@@ -6,6 +6,46 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `TransformBy` of a `GeoPolygon2`, a `GeoPolyline2` and a `GeoFace2`, and `GeoTransform2.Transform` of them,
+transform side for side, however short a side and however small the transformation leaves it, and `Reverse` of a
+`GeoPolygon2` and of a `GeoPolyline2` turns it round corner for corner, as `Translate` and `RotateBy` move it since the
+last fix. They were put back together within the global tolerance of a thousandth: at a millionth, the triangle (0, 0),
+(10, 0), (10, 10) with every corner cut by 0.0003, turned, moved, mirrored or reversed, came back three corners, where it
+keeps six, and the square 10 by 10 scaled by 1E-5 was refused for having fewer than three corners, where it is the square
+0.0001 across. Only a corner the transformation lands on the very same point as the one before it goes. Of 8 000
+polygons and chains, two in three chamfered at tolerances from a billionth to a ten-thousandth or with a side between ten
+tolerances and 0.0009 long, and of the faces with the polygons for holes, each turned and moved, mirrored, scaled by a
+half to two and shrunk by a millionth to a hundredth, 31 989 of 47 820 transforms lost a corner or were refused, and
+4 966 of 8 000 reversals lost one; none does now. Shapes the merge left whole give the same bits. 7 new tests.
+
+**FIXED.** `Flatten` of a `GeoPolygonArc3` and of a `GeoPolylineArc3` keeps every corner, however short a side: at a
+millionth, the rectangle 100 by 50 standing in the plane x = 20 filleted at 0.0005 flattens to its eight corners, where it
+was put back together within the global tolerance of a thousandth and came back four, and the chain (0, 0, 0),
+(10, 0, 0), (10, 0, 10) filleted at 0.0005 turns at both ends of its arc, where it turned once. They keep the chords, each
+arc the straight side between its ends, as they always did, where `Flatten` of their twins in the plane cuts each arc
+into pieces; `ToPolygon3(chordTolerance)` and `ToPolyline3(chordTolerance)` follow the arcs. Of 8 000 loops and chains in
+space, two in three filleted at tolerances from a billionth to a ten-thousandth or with a side between ten tolerances and
+0.0009 long, 4 808 lost a corner; none does now. Loops and chains with no side under a thousandth give the same bits.
+2 new tests.
+
+**FIXED.** `GeoCoordinateSystem3` and `GeoCoordinateSystem2` take an X axis of any length but none: (0, 6E-7, 8E-7)
+points the X axis in space along (0, 0.6, 0.8), and (6E-7, 8E-7) the one in the plane along (0.6, 0.8), where an axis
+shorter than the global vector tolerance of 1E-5, read as a length, was refused as having none. Of 3 949 X axes from
+1E-150 to 1E-5 long, each tried in space and in the plane, every one was refused; none is now, and axes of unit length
+give the same frames to the bit. So `TransformBy` of a `GeoCoordinateSystem3` follows a scaling however small: 4 688 of
+5 349 scalings from 1E-12 to 1E-4 were refused; none is now. 5 new tests.
+
+**FIXED.** A curved chain or loop offset with miters meets a straight piece and an arc's moved circle where they cross,
+or where the line misses the circle by no more than the tolerance, alike at any size. The miss was read as the difference
+of the squared radius and the squared distance from the centre, an area, against the tolerance, a length, so a small
+drawing took a line for touching a circle it missed by many tolerances: the chain (-0.001165, -0.002711),
+(0.00062, -0.001059), (0.002589, 0.00029), (0.000415, 0.000801), (-0.00214, 0.003174), (-0.001103, 0.000257), its third
+and fourth edges bowed by 0.24 and -0.24, offset by -0.0000702 with miters at 1.5 within 2E-6, met at its fifth corner a
+line that missed the moved arc by 0.00014, seventy times the tolerance, and broke in two, where it is one chain of eight
+corners, as the same chain 64 times larger is. Of 9 000 chains and loops 0.0002 to 0.01 across offset by 1E-7 to 3E-5
+within a ten-billionth to a ten-millionth, 3 broke apart where the same shape scaled up did not; none does now, and the
+other 8 997 give the same bits. 1 new test.
+
 **FIXED.** A boolean welded closed no longer tilts a face round a corner the face lies round, a hole's corner, one where
 its edge turns back into a notch or one part way along a straight edge, where a weld that keeps the face flat closes it
 moving the volume less. A weld takes each group of corners within the tolerance of each other to the one of them that

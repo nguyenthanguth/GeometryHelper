@@ -2202,6 +2202,13 @@ and `GetParameterAtPoint`. A straight `GeoEdge3` on its own that short is still 
 (0, 0, 0), (10, 0, 0), (10, 0, 10) filleted at 0.0005 is copied and moved with its arc 0.0007 across, where it was put
 back together within the global tolerance of a thousandth and came back turning at a corner.
 
+`Flatten` of a chain or a loop in space throws the arcs away and keeps the chords, each arc the straight side between its
+ends, so it keeps the corners and no others, where `Flatten` of a curved chain or loop in the plane cuts each arc into
+pieces; `ToPolyline3(chordTolerance)` and `ToPolygon3(chordTolerance)` follow the arcs to the accuracy asked. Every
+corner is kept, however short a side: at a millionth, the filleted chain flattens turning at both ends of its arc,
+0.0007 apart, and the rectangle 100 by 50 standing in the plane x = 20 filleted at 0.0005 to its eight corners, where
+both were put back together within the global tolerance, the chain turning once and the rectangle with four corners.
+
 A radius per corner works too, read the way the bulges are read: the entry at an index belongs to the vertex
 at that index, and nought leaves that corner square. `TryFilletAt` rounds one named corner. A bend with too
 little straight run either side to fit its radius is left square rather than forced, and where two bends want
@@ -3106,7 +3113,9 @@ orthonormal whatever is passed in. `ToLocal` and `ToGlobal` are exact inverses o
 Two directions span a frame by the angle between them, whatever their lengths: they are parallel where the sine of it
 is within the global vector tolerance of 1E-5. Two directions 0.002 long and square to each other span a frame, where
 the length of their cross product, 4E-6, was read against that tolerance and they were refused; two 10 long and 5E-6 of
-a radian apart are parallel, where their cross product of 5E-4 let them through.
+a radian apart are parallel, where their cross product of 5E-4 let them through. An X direction of any length but none
+is taken: (0, 6E-7, 8E-7) points the X axis along (0, 0.6, 0.8), where one shorter than 1E-5 was refused as having no
+length, and so `TransformBy` follows a scaling however small, where one by less than 1E-5 was refused.
 
 ```csharp
 var frame = new GeoCoordinateSystem3(

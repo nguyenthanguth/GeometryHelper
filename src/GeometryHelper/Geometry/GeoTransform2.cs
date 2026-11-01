@@ -465,6 +465,10 @@ namespace GeometryHelper.Geometry
         /// Transforms a chain.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        /// <remarks>
+        /// The chain is transformed leg for leg, however short a leg, as <see cref="Transform(GeoPolygon2)"/> transforms a
+        /// polygon side for side.
+        /// </remarks>
         public GeoPolyline2 Transform(GeoPolyline2 polyline)
         {
             if (polyline == null)
@@ -472,7 +476,7 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentNullException(nameof(polyline));
             }
 
-            return new GeoPolyline2(TransformAll(polyline.Vertices));
+            return new GeoPolyline2(TransformAll(polyline.Vertices), default(Tolerance));
         }
 
         /// <summary>
@@ -482,6 +486,14 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// A transformation that turns shapes round, a mirror or a negative scaling, reverses the winding:
         /// a polygon that ran counter-clockwise comes back clockwise.
+        /// <para>
+        /// The polygon is transformed side for side, however short a side, and however small the transformation leaves
+        /// it: at a millionth, the triangle (0, 0), (10, 0), (10, 10) with every corner cut by 0.0003 keeps its six
+        /// corners turned, moved or mirrored, where it was put back together within the global tolerance of a thousandth
+        /// and came back three, and the square 10 by 10 scaled by 1E-5 is the square 0.0001 across, where it was refused
+        /// as having fewer than three corners. Only a corner the transformation lands on the very same point as the one
+        /// before it goes.
+        /// </para>
         /// </remarks>
         public GeoPolygon2 Transform(GeoPolygon2 polygon)
         {
@@ -490,13 +502,19 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentNullException(nameof(polygon));
             }
 
-            return new GeoPolygon2(TransformAll(polygon.Vertices));
+            // The corners stand apart already, however near; a transformation keeps them apart unless it lands two on the
+            // very same point.
+            return new GeoPolygon2(TransformAll(polygon.Vertices), default(Tolerance));
         }
 
         /// <summary>
         /// Transforms a face and its holes.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        /// <remarks>
+        /// The boundary and each hole are transformed side for side, as <see cref="Transform(GeoPolygon2)"/> transforms
+        /// a polygon.
+        /// </remarks>
         public GeoFace2 Transform(GeoFace2 face)
         {
             if (face == null)

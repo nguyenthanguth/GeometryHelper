@@ -481,9 +481,12 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// This is the one operation here that loses something, and it loses it in the obvious way: each
         /// arc becomes the straight line between its ends. <see cref="ToPolyline3(double)"/> keeps the shape
-        /// to whatever accuracy is asked for instead.
+        /// to whatever accuracy is asked for instead, as <see cref="GeoPolylineArc2.Flatten()"/> cuts each arc into pieces.
+        /// Every vertex is kept, however short a leg: at a millionth, the chain (0, 0, 0), (10, 0, 0), (10, 0, 10) filleted
+        /// at 0.0005 flattens turning at both ends of its arc, 0.0007 apart, where it was put back together within the
+        /// global tolerance of a thousandth and came back turning once.
         /// </remarks>
-        public GeoPolyline3 Flatten() => new GeoPolyline3(_vertices);
+        public GeoPolyline3 Flatten() => new GeoPolyline3(_vertices, false);
 
         /// <summary>
         /// Gets the chain as a straight one following its arcs to a given accuracy.

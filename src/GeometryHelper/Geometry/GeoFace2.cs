@@ -473,6 +473,10 @@ namespace GeometryHelper.Geometry
         /// <param name="transform">The transformation to apply.</param>
         /// <returns>The transformed face.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
+        /// <remarks>
+        /// The boundary and each hole are transformed side for side, however short a side, as
+        /// <see cref="GeoTransform2.Transform(GeoPolygon2)"/> transforms a polygon.
+        /// </remarks>
         public GeoFace2 TransformBy(GeoTransform2 transform)
         {
             if (transform == null)

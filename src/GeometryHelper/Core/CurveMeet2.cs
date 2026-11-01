@@ -152,6 +152,16 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Adds where a circle crosses an endless line.
         /// </summary>
+        /// <remarks>
+        /// A line that misses the circle by no more than the point tolerance touches it, at the point of the line nearest
+        /// the centre. The miss was read off the difference of the squared radius and the squared distance from the centre,
+        /// an area, against the tolerance, a length, so how near a miss touched changed with the size of the drawing: the
+        /// chain (-0.001165, -0.002711), (0.00062, -0.001059), (0.002589, 0.00029), (0.000415, 0.000801), (-0.00214, 0.003174),
+        /// (-0.001103, 0.000257), its third and fourth edges bowed by 0.24 and -0.24, offset by -0.0000702 with miters at 1.5
+        /// within 2E-6, met at its fifth corner a line that missed the moved arc by 0.00014, seventy times the tolerance, and
+        /// broke in two, where the same chain 64 times larger, offset and read 64 times further, is one chain of eight corners,
+        /// as this one is now.
+        /// </remarks>
         internal static void CircleAndLine(List<GeoPoint2> found, GeoPoint2 centre, double radius, GeoLine2 line, Tolerance tolerance)
         {
             GeoVector2 along = line.StartPoint.GetVectorTo(line.EndPoint);
@@ -164,9 +174,12 @@ namespace GeometryHelper.Core
             double reach = line.StartPoint.GetVectorTo(centre).DotProduct(unit);
             GeoPoint2 closest = line.StartPoint.Add(unit.Multiply(reach));
 
-            double square = radius * radius - closest.GetDistanceSquaredTo(centre);
+            double apartSquared = closest.GetDistanceSquaredTo(centre);
+            double square = radius * radius - apartSquared;
 
-            if (square < -tolerance.EqualPoint)
+            // The square is the miss times the radius and the distance added, so it is the miss that is read against the
+            // tolerance.
+            if (square < -tolerance.EqualPoint * (radius + Math.Sqrt(apartSquared)))
             {
                 return;
             }

@@ -590,7 +590,14 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the loop with its arcs thrown away, leaving the chords.
         /// </summary>
-        public GeoPolygon3 Flatten() => new GeoPolygon3(_vertices);
+        /// <remarks>
+        /// Each arc becomes the straight side between its ends, so the polygon has the loop's corners and no others,
+        /// where <see cref="GeoPolygonArc2.Flatten()"/> cuts each arc into pieces; <see cref="ToPolygon3(double)"/> follows
+        /// the arcs to an accuracy asked for. Every corner is kept, however short a side: at a millionth, the rectangle
+        /// 100 by 50 standing in the plane x = 20 and filleted at 0.0005 flattens to its eight corners, where it was put
+        /// back together within the global tolerance of a thousandth and came back four.
+        /// </remarks>
+        public GeoPolygon3 Flatten() => new GeoPolygon3(_vertices, EdgeForEdge);
 
         /// <summary>
         /// Gets the loop as an open chain running once round it.

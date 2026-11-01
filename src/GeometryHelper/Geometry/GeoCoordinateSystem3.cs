@@ -55,10 +55,16 @@ namespace GeometryHelper.Geometry
         /// within the global vector tolerance of 1E-5. Two directions 0.002 long and square to each other span a
         /// system, where the length of their cross product, 4E-6, was read against that tolerance and they were refused
         /// as parallel; two 10 long and 5E-6 of a radian apart are parallel, where their cross product of 5E-4 passed.
+        /// <para>
+        /// The X direction is taken however short, only one of no length refused: (0, 6E-7, 8E-7) points the X axis along
+        /// (0, 0.6, 0.8), where the global vector tolerance of 1E-5, read as a length, refused it as having none. So a
+        /// scaling however small keeps a system's axes through <see cref="TransformBy(GeoTransform3)"/>.
+        /// </para>
         /// </remarks>
         public GeoCoordinateSystem3(GeoPoint3 origin, GeoVector3 xAxis, GeoVector3 yAxis)
         {
-            if (!xAxis.TryGetNormal(out GeoVector3 unitX))
+            // A direction however short has one: only one of no length has none.
+            if (!xAxis.TryGetNormal(out GeoVector3 unitX, default(Tolerance)))
             {
                 throw new ArgumentException("A coordinate system needs an X direction of non-zero length.", nameof(xAxis));
             }

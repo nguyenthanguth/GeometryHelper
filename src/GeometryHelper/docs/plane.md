@@ -818,7 +818,12 @@ with miters, keeps that side, 0.41422 long now, where the side had no direction 
 1E-5, stayed where it was, and the corner came out square. An offset by less than 1E-5 is squared off past the miter
 limit and cut by its chamfers as a larger one is: at a billionth, the square of side 0.00001 grown by 0.000002 with
 chamfers is cut 0.000002 from every corner, where the ways out from the corner to the moved ends had no direction
-within the vector tolerance and the corners were cut across their chords.
+within the vector tolerance and the corners were cut across their chords. A miter meets a straight piece and an arc's
+circle where they cross, or where the line misses the circle by no more than the tolerance, alike at any size: the chain
+(-0.001165, -0.002711), (0.00062, -0.001059), (0.002589, 0.00029), (0.000415, 0.000801), (-0.00214, 0.003174),
+(-0.001103, 0.000257), its third and fourth edges bowed by 0.24 and -0.24, offset by -0.0000702 with miters at 1.5 within
+2E-6, is one chain of eight corners, as the same chain 64 times larger is, where its line missed the moved arc by 0.00014,
+seventy times the tolerance, and was taken to touch it, the miss read as an area, and the chain broke in two.
 
 What tells the folded-over parts from the real ones is the one thing an offset cannot break: every point
 of a valid offset stands **exactly** the offset distance from the shape it came from. Each piece is cut
@@ -1162,7 +1167,8 @@ new GeoRectangle2(frame, 80.0, 40.0);                  // and can be built from 
 ```
 
 A frame follows a transformation however small its scaling: scaled by a millionth, it keeps its axes, where a scaling
-by 1E-5 or less was refused as leaving it none.
+by 1E-5 or less was refused as leaving it none. It is built along an X axis of any length but none the same way:
+(6E-7, 8E-7) points it along (0.6, 0.8), where an axis shorter than the global vector tolerance of 1E-5 was refused.
 
 `GeoRectangle2` is the rotated rectangle — the OBB of the plane — so it carries a frame exactly as
 `GeoObb3` does in space.
@@ -1749,7 +1755,11 @@ millionth, the chain (0, 0), (10, 0), (10, 10) filleted at 0.0005 keeps its arc 
 together within the global tolerance and came back turning at a corner. A straight polygon or chain is moved and turned
 side for side by `Translate` and `RotateBy`: the triangle (0, 0), (10, 0), (10, 10) with every corner cut by 0.0003 at a
 millionth keeps its six corners, where it came back three, and the chain through the same corners keeps both ends of its
-cut.
+cut. `TransformBy` of a polygon, a chain or a face, and `GeoTransform2.Transform` of them, keep them side for side too,
+whatever the transformation: the cut triangle turned, moved or mirrored keeps its six corners, and the square 10 by 10
+scaled by 1E-5 is the square 0.0001 across, where it was refused as having fewer than three corners; only a corner the
+transformation lands on the very same point as the one before it goes. `Reverse` of a polygon or a chain turns it round
+corner for corner: the cut triangle reverses to its six corners, where it came back three.
 
 **What a transformation cannot do.** A circle stays a circle only when every direction is stretched by the
 same amount: when the two axes come out so nearly equally long and square to each other that the circle moved lands

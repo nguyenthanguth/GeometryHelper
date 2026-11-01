@@ -44,11 +44,16 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// The Y axis follows from the X axis, a quarter turn counter-clockwise from it, so a system in the
         /// plane can never come out skewed: unlike in space, there is nothing to correct.
+        /// <para>
+        /// The axis is taken however short, only one of no length refused: (6E-7, 8E-7) points the X axis along
+        /// (0.6, 0.8), where the global vector tolerance of 1E-5, read as a length, refused it as having none.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentException">Thrown when the axis has no length.</exception>
         public GeoCoordinateSystem2(GeoPoint2 origin, GeoVector2 xAxis)
         {
-            if (!xAxis.TryGetNormal(out GeoVector2 unit))
+            // An axis however short has a direction: only one of no length has none.
+            if (!xAxis.TryGetNormal(out GeoVector2 unit, default(Tolerance)))
             {
                 throw new ArgumentException("A coordinate system needs an X axis with a length.", nameof(xAxis));
             }

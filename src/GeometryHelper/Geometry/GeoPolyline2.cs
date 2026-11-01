@@ -218,12 +218,17 @@ namespace GeometryHelper.Geometry
         /// Reverses the direction of the polyline.
         /// </summary>
         /// <returns>A new reversed GeoPolyline2.</returns>
+        /// <remarks>
+        /// The chain is reversed vertex for vertex, however short a leg: at a millionth, the chain (0, 0), (10, 0),
+        /// (10, 10) with its corner cut by 0.0003 reverses turning at both ends of the cut, where it was put back together
+        /// within the global tolerance of a thousandth and came back turning once.
+        /// </remarks>
         public GeoPolyline2 Reverse()
         {
             GeoPoint2[] rev = new GeoPoint2[_vertices.Length];
             Array.Copy(_vertices, rev, _vertices.Length);
             Array.Reverse(rev);
-            return new GeoPolyline2(rev);
+            return new GeoPolyline2(rev, rev.Length);
         }
 
         /// <summary>
@@ -621,6 +626,11 @@ namespace GeometryHelper.Geometry
         /// <param name="transform">The transformation to apply.</param>
         /// <returns>The transformed chain.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
+        /// <remarks>
+        /// The chain is transformed leg for leg, however short a leg: at a millionth, the chain (0, 0), (10, 0), (10, 10)
+        /// with its corner cut by 0.0003 turns at both ends of the cut turned and moved, where it was put back together
+        /// within the global tolerance of a thousandth and came back turning once.
+        /// </remarks>
         public GeoPolyline2 TransformBy(GeoTransform2 transform)
         {
             if (transform == null)

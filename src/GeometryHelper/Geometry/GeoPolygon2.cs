@@ -676,6 +676,10 @@ namespace GeometryHelper.Geometry
         /// <param name="transform">The transformation to apply.</param>
         /// <returns>The transformed polygon.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
+        /// <remarks>
+        /// The polygon is transformed side for side, however short a side, as
+        /// <see cref="GeoTransform2.Transform(GeoPolygon2)"/> transforms it.
+        /// </remarks>
         public GeoPolygon2 TransformBy(GeoTransform2 transform)
         {
             if (transform == null)
@@ -845,6 +849,11 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// Which way a loop runs is what tells its inside from its outside to anything that reads winding,
         /// and it is what decides which way round a pair of chamfer distances goes.
+        /// <para>
+        /// The polygon is reversed corner for corner, however short a side: at a millionth, the triangle (0, 0), (10, 0),
+        /// (10, 10) with every corner cut by 0.0003 reverses to its six corners, where it was put back together within the
+        /// global tolerance of a thousandth and came back three.
+        /// </para>
         /// </remarks>
         public GeoPolygon2 Reverse()
         {
@@ -855,7 +864,8 @@ namespace GeometryHelper.Geometry
                 turned[i] = this[VertexCount - 1 - i];
             }
 
-            return new GeoPolygon2(turned);
+            // The same corners, walked the other way: there is nothing to merge.
+            return new GeoPolygon2(turned, turned.Length);
         }
         /// <summary>
         /// Builds a spatial index over the edges of this polygon, for asking it many questions.
