@@ -2960,7 +2960,7 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private Rec? RootDictionary()
         {
-            WholeReadings++;
+            Interlocked.Increment(ref _wholeReadings);
 
             foreach (Section section in _sections)
             {

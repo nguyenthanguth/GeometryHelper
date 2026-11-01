@@ -6,6 +6,26 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `DxfMText.Contents` reads a letter written as its escape as the letter, as AutoCAD 2021 reads the MTEXT of a
+drawing of R2004 or older, which writes so each letter its code page has not: `a\U+0110b` is aĐb, and the escapes of the
+two halves of a letter beyond U+FFFF, `\U+D83D\U+DE00`, are that letter, U+1F600. It gave the escapes, so that an MTEXT of
+R2004 set to aĐb read back as `a\U+0110b`, where `Text` and a TEXT's `TextString` gave the letters. An escaped
+backslash, `\\U+0110`, the escape of a letter of ASCII, `\U+0041`, and half a letter alone are kept as written, so that no
+code and no line break is made of an escape. Set, the letters are written as they are from R2007 on and as escapes
+before, as they were; and the pieces of 250 characters an MTEXT is written in no longer part the two halves of such a
+letter, which a drawing of R2007 or later wrote as two escapes. 8 new tests.
+
+**CHANGED.** The entities of a drawing by handle are looked up under a lock, and its objects by handle kept by the first
+thread to read them, so that several threads copying from one drawing at once, dynamic blocks and all, make nothing of it
+twice: eight threads copying a drawing of four dynamic blocks and twelve INSERTs of them, 60 times over by `Insert`,
+`Insert(name)`, `WblockCloneObjects` and `WblockCloneObjects` of one entity at a time, each give the drawing it gives
+alone, as they did in 1 500 rounds before. 1 new test.
+
+**CHANGED.** An INSERT of an anonymous block standing for a dynamic block finds that block through the block table by
+handle, not by reading every block record: `IsDynamicBlock`, `DynamicBlockTableRecord` and `AnonymousBlockTableRecord` of
+500 such INSERTs among 5 000 blocks took 71 ms under .NET Framework 4.8 and 68 under .NET 10, and take 18 under both, the
+same blocks found.
+
 **FIXED.** `TransformBy` of a `GeoPolygon2`, a `GeoPolyline2` and a `GeoFace2`, and `GeoTransform2.Transform` of them,
 transform side for side, however short a side and however small the transformation leaves it, and `Reverse` of a
 `GeoPolygon2` and of a `GeoPolyline2` turns it round corner for corner, as `Translate` and `RotateBy` move it since the

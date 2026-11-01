@@ -565,7 +565,7 @@ namespace GeometryHelper.Dxf
                 return found;
             }
 
-            WholeReadings++;
+            _wholeReadings++;
 
             foreach (Section section in _sections)
             {

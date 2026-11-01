@@ -700,9 +700,12 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// How many times the records of a section were read whole, for what points at a handle or for the root dictionary,
-        /// for the tests of the cost of erasing fields.
+        /// for the tests of the cost of erasing fields. Counted one by one, as threads copying from the drawing at once read its
+        /// root dictionary.
         /// </summary>
-        internal int WholeReadings { get; private set; }
+        internal int WholeReadings => System.Threading.Volatile.Read(ref _wholeReadings);
+
+        private int _wholeReadings;
 
         private List<DxfReader.Record> LayerRecords()
         {

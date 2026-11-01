@@ -120,7 +120,7 @@ namespace GeometryHelper.Dxf
             get
             {
                 string font = StyleFont(out bool isFile);
-                return DxfRtf.ToRtf(Contents, font, isFile);
+                return DxfRtf.ToRtf(Written, font, isFile);
             }
             set => SetContentsRtf(value);
         }

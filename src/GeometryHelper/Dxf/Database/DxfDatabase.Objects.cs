@@ -13,6 +13,7 @@ namespace GeometryHelper.Dxf
     {
         private Dictionary<string, DxfItem> _entities;
         private int _entitiesAt = -1;
+        private readonly object _entitiesMade = new object();
 
         // The records of the tables and the tables (their objects), and the records that follow an entity (their records), by
         // handle, as at an edit count.
@@ -435,7 +436,11 @@ namespace GeometryHelper.Dxf
             return item == null ? null : DxfEntity.Of(item);
         }
 
-        /// <summary>The record of the entity of a handle, as <see cref="EntityByHandle"/> finds it; null where there is none.</summary>
+        /// <summary>
+        /// The record of the entity of a handle, as <see cref="EntityByHandle"/> finds it; null where there is none. Looked up
+        /// under a lock, as the entities by handle are made and taken in as they are asked for, and several threads copying from
+        /// the drawing at once look up the entities a copy names.
+        /// </summary>
         internal DxfItem ItemByHandle(string handle)
         {
             if (handle == null)
@@ -445,40 +450,43 @@ namespace GeometryHelper.Dxf
 
             string key = handle.Trim();
 
-            if (_entities == null)
+            lock (_entitiesMade)
             {
-                IndexEntities();
-            }
-            else
-            {
-                foreach (DxfItem joined in File.TakeJoined())
+                if (_entities == null)
                 {
-                    string own = joined.Handle;
-
-                    if (own != null)
+                    IndexEntities();
+                }
+                else
+                {
+                    foreach (DxfItem joined in File.TakeJoined())
                     {
-                        _entities[own] = joined;
+                        string own = joined.Handle;
+
+                        if (own != null)
+                        {
+                            _entities[own] = joined;
+                        }
                     }
                 }
-            }
 
-            if (!_entities.TryGetValue(key, out DxfItem found))
-            {
-                return null;
-            }
+                if (!_entities.TryGetValue(key, out DxfItem found))
+                {
+                    return null;
+                }
 
-            if (!found.IsRemoved)
-            {
-                return found;
-            }
+                if (!found.IsRemoved)
+                {
+                    return found;
+                }
 
-            if (_entitiesAt == File.EditCount)
-            {
-                return null;
-            }
+                if (_entitiesAt == File.EditCount)
+                {
+                    return null;
+                }
 
-            IndexEntities();
-            return _entities.TryGetValue(key, out found) && !found.IsRemoved ? found : null;
+                IndexEntities();
+                return _entities.TryGetValue(key, out found) && !found.IsRemoved ? found : null;
+            }
         }
 
         /// <summary>Finds every entity of the drawing by its handle, in one walk; the first of a handle kept.</summary>

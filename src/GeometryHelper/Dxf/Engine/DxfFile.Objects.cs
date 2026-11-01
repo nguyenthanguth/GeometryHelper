@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Threading;
 
 namespace GeometryHelper.Dxf
 {
@@ -47,12 +48,18 @@ namespace GeometryHelper.Dxf
             return count;
         }
 
-        /// <summary>The items of the objects by handle, those of the file as read made once, those added put in as they are added.</summary>
+        /// <summary>
+        /// The items of the objects by handle, those of the file as read made once, those added put in as they are added. Made
+        /// whole before it is kept, and the first made kept, so that threads reading a drawing copied from at once find one item
+        /// for each object.
+        /// </summary>
         private Dictionary<ulong, DxfItem> ObjectIndex()
         {
-            if (_objectItems != null)
+            Dictionary<ulong, DxfItem> made = Volatile.Read(ref _objectItems);
+
+            if (made != null)
             {
-                return _objectItems;
+                return made;
             }
 
             var items = new Dictionary<ulong, DxfItem>();
@@ -68,8 +75,7 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            _objectItems = items;
-            return items;
+            return Interlocked.CompareExchange(ref _objectItems, items, null) ?? items;
         }
 
         /// <summary>

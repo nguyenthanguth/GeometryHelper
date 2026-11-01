@@ -217,7 +217,7 @@ namespace GeometryHelper.Dxf
         /// The default value of a definition of several lines: the MTEXT's contents, its lines apart by <c>\P</c>, as AutoCAD 2021
         /// writes the group 1 of the ATTDEF of three lines it makes, <c>LINE ONE\PLINE TWO\PLINE THREE</c>.
         /// </summary>
-        private protected override string ValueOfLines(DxfMText value) => value.Contents;
+        private protected override string ValueOfLines(DxfMText value) => value.Written;
 
         /// <summary>The default value of the definition made one of one line: the first line of the words of its MTEXT.</summary>
         private protected override KeyValuePair<int, string>[] ValueOfOneLine()

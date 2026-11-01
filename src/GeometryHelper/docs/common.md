@@ -824,8 +824,9 @@ than R2010 (AC1024), into which the library writes no dynamic block, takes them 
 dynamic takes about a tenth of a millisecond for each INSERT that keeps values of its own: a drawing of 1 000 INSERTs of
 GH_PANEL, 500 of them set, takes 30 milliseconds more to insert under .NET 10 and 65 more under .NET Framework 4.8. A
 drawing of 10 000 blocks nested one inside the next is inserted in about a second, and 3 000 dimensions each drawn by a
-block of its own are copied in under half a second; nothing of the drawing copied from is written,
-so that several threads may copy from it at once. The walks down nested blocks keep no limit of depth, but exploding and the reader's placing stop at 64
+block of its own are copied in under half a second; nothing of the drawing copied from is written
+but what is read of it once, under a lock or kept by the first thread to read it, its entities and objects by handle among
+them, so that several threads may copy from it at once, its dynamic blocks and all. The walks down nested blocks keep no limit of depth, but exploding and the reader's placing stop at 64
 deep, as they did.
 
 `db.AttachXref("column.dwg", "COLUMN")` attaches a drawing as an external reference: a block whose BLOCK is flagged 4 (12
@@ -1076,7 +1077,12 @@ joined into a LWPOLYLINE in 0.23 s and into a SPLINE in 0.19 s, all on .NET 10.
 
 A TEXT is a `DxfDBText` (`TextString`, `Position`, `AlignmentPoint`, `Height`, `Rotation`, `WidthFactor`, `Oblique`,
 `HorizontalMode`, `VerticalMode`, `IsMirroredInX` and the rest of AutoCAD's) and an MTEXT a `DxfMText` (`Contents` with
-its codes, `Text` without them, `Location`, `TextHeight`, `Width`, `Attachment`). `LineSpaceDistance` is the spacing factor
+its codes, `Text` without them, `Location`, `TextHeight`, `Width`, `Attachment`). `Contents` reads a letter written as its
+escape as the letter, as AutoCAD 2021 reads the MTEXT of a drawing of R2004 or older, where each letter the code page has
+not is written so: `a\U+0110b` is aĐb, and `\U+D83D\U+DE00`, the escapes of the two halves of a letter beyond U+FFFF, is
+that letter, U+1F600. An escaped backslash, `\\U+0110`, the escape of a letter of ASCII, `\U+0041`, and half a letter
+alone are kept as written, so that no code and no line break is made of an escape. Set, the letters are written as they
+are from R2007 on and as escapes before, as `TextString` writes those of a TEXT. `LineSpaceDistance` is the spacing factor
 times single spacing, 5/3 of the letters' height: 5 for letters 3 high. `SetAttachmentMovingLocation` holds the MTEXT by
 another of its points where it stands, by its width and the height of its words (43): the MTEXT 40 wide at (20, 40, 0) held at
 its top centre stands at (40, 40, 0). `ShowBorders` draws its text frame, and `BackgroundTransparency` is a

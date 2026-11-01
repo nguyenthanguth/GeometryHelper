@@ -230,7 +230,7 @@ namespace GeometryHelper.Dxf
 
                 Section(ctx.Head, 290, MTextCodes, out int from, out int to);
                 List<KeyValuePair<int, string>> m = ctx.Head.GetRange(from, to - from);
-                Put(m, 304, value.Contents, ContextOrder);
+                Put(m, 304, value.Written, ContextOrder);
                 PutPoint(m, 12, value.Location, ContextOrder);
                 PutPoint(m, 13, new GeoPoint3(value.Direction.X, value.Direction.Y, value.Direction.Z), ContextOrder);
                 PutPoint(m, 11, new GeoPoint3(value.Normal.X, value.Normal.Y, value.Normal.Z), ContextOrder);

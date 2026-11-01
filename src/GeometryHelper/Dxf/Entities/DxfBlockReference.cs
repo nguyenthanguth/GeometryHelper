@@ -1079,6 +1079,17 @@ namespace GeometryHelper.Dxf
                 return null;
             }
 
+            // The block record of the handle found through the block table, which reads them by handle once, rather than by
+            // reading every record of the table for each INSERT.
+            DxfItem found = block.File.Database?.BlockTable.ByHandle(handle)?.Item;
+
+            if (found != null && found.Type == "BLOCK_RECORD")
+            {
+                DxfBlockTableRecord dynamic = Resolve(block.File, DxfReader.NameOf(found.File.ValueOf(found, 2) ?? string.Empty));
+                anonymous = dynamic == null ? null : block;
+                return dynamic;
+            }
+
             foreach (DxfItem item in block.File.TableItems("BLOCK_RECORD"))
             {
                 if (string.Equals(item.Handle, handle, StringComparison.OrdinalIgnoreCase))
