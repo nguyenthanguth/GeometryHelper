@@ -396,14 +396,10 @@ namespace GeometryHelper.Geometry
         {
             areaScale = 0.0;
 
-            double[] square = new double[3];
-
-            for (int a = 0; a < 3; a++)
-            {
-                square[a] = _m[0, a] * _m[0, a] + _m[1, a] * _m[1, a] + _m[2, a] * _m[2, a];
-            }
-
-            double mean = (square[0] + square[1] + square[2]) / 3.0;
+            double x = _m[0, 0] * _m[0, 0] + _m[1, 0] * _m[1, 0] + _m[2, 0] * _m[2, 0];
+            double y = _m[0, 1] * _m[0, 1] + _m[1, 1] * _m[1, 1] + _m[2, 1] * _m[2, 1];
+            double z = _m[0, 2] * _m[0, 2] + _m[1, 2] * _m[1, 2] + _m[2, 2] * _m[2, 2];
+            double mean = (x + y + z) / 3.0;
 
             // Written as what an even scaling has to be, so that one to nought, or of NaNs, is none.
             if (!(mean > 0.0) || double.IsInfinity(mean))
@@ -416,7 +412,9 @@ namespace GeometryHelper.Geometry
 
             for (int a = 0; a < 3; a++)
             {
-                if (!(Math.Abs(square[a] - mean) <= 2.0 * slack))
+                double square = a == 0 ? x : a == 1 ? y : z;
+
+                if (!(Math.Abs(square - mean) <= 2.0 * slack))
                 {
                     return false;
                 }
@@ -482,6 +480,49 @@ namespace GeometryHelper.Geometry
             }
 
             return new Tolerance(tolerance.EqualPoint * Math.Min(1.0, stretch), tolerance.EqualVector, tolerance.EqualAngleRad, tolerance.EqualPlanar * Math.Max(1.0, stretch));
+        }
+
+        /// <summary>
+        /// Reads once how the transformation carries a polygon, so that a face or a body hands the reading to every polygon
+        /// it holds rather than each polygon reading the matrix again: a box's six faces read it once, not twelve times.
+        /// </summary>
+        internal Carrying ReadCarrying()
+        {
+            if (KeepsLengths())
+            {
+                return new Carrying(Carrying.Rigid, 1.0, default(Tolerance));
+            }
+
+            if (KeepsShapes(out double areaScale))
+            {
+                return new Carrying(Carrying.Even, areaScale, default(Tolerance));
+            }
+
+            return new Carrying(Carrying.Other, 0.0, Stretched(Tolerance.Global));
+        }
+
+        /// <summary>
+        /// How a transformation carries a polygon: as a move, as an even scaling with the factor it multiplies areas by, or
+        /// as anything else, measured again within the stretched global tolerance.
+        /// </summary>
+        internal readonly struct Carrying
+        {
+            internal const int Rigid = 0;
+            internal const int Even = 1;
+            internal const int Other = 2;
+
+            internal Carrying(int kind, double areaScale, Tolerance stretched)
+            {
+                Kind = kind;
+                AreaScale = areaScale;
+                Stretched = stretched;
+            }
+
+            internal int Kind { get; }
+
+            internal double AreaScale { get; }
+
+            internal Tolerance Stretched { get; }
         }
 
         /// <summary>

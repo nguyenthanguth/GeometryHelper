@@ -332,11 +332,18 @@ namespace GeometryHelper.Core
         /// <returns>The polygon in space, on the plane of the frame.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the polygon encloses no area, which no plane of space can carry.</exception>
+        /// <remarks>
+        /// The polygon is laid in side for side, however short a side: the triangle (0, 0), (10, 0), (10, 10) with every
+        /// corner cut by 0.3 and shrunk in the plane by a thousandth keeps its six corners, 0.0003 apart, where the global
+        /// tolerance of a thousandth put it back together as three. It is still checked enclosing an area within the
+        /// global tolerance.
+        /// </remarks>
         public static GeoPolygon3 ToPolygon3(GeoCoordinateSystem3 frame, GeoPolygon2 polygon)
         {
             if (polygon == null) throw new ArgumentNullException(nameof(polygon));
 
-            return new GeoPolygon3(Lift(frame, polygon.Vertices));
+            // The corners of a polygon stand apart already; only two laid on the very same point become one.
+            return new GeoPolygon3(Lift(frame, polygon.Vertices), default(Tolerance), Tolerance.Global);
         }
 
         /// <summary>
@@ -435,6 +442,11 @@ namespace GeometryHelper.Core
         /// <param name="face">The face in the plane.</param>
         /// <returns>The face in space, on the plane of the frame.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        /// <remarks>
+        /// The boundary and every hole are laid in side for side, as <see cref="ToPolygon3(GeoCoordinateSystem3, GeoPolygon2)"/>
+        /// lays a polygon: a square hole 2 across with a corner cut by 0.3, shrunk in the plane by a thousandth, keeps its
+        /// five corners.
+        /// </remarks>
         public static GeoFace3 ToFace3(GeoCoordinateSystem3 frame, GeoFace2 face)
         {
             if (face == null) throw new ArgumentNullException(nameof(face));

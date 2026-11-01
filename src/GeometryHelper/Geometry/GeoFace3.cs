@@ -342,28 +342,38 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentNullException(nameof(transform));
             }
 
+            return TransformBy(transform, transform.ReadCarrying());
+        }
+
+        /// <summary>
+        /// Applies a transformation whose carrying is read already, as a body reads it once for all its faces.
+        /// </summary>
+        internal GeoFace3 TransformBy(GeoTransform3 transform, in GeoTransform3.Carrying carrying)
+        {
             GeoPolygon3[] moved = new GeoPolygon3[_holes.Length];
 
             for (int i = 0; i < _holes.Length; i++)
             {
-                moved[i] = _holes[i].TransformBy(transform);
+                moved[i] = _holes[i].TransformBy(transform, carrying);
             }
 
             // A move that keeps every length keeps the holes on the boundary's plane as they were; asked again, one at
             // the edge of the tolerance could land past it. An even scaling keeps them there too, within the tolerance
             // scaled with it. Anything else asks within the global tolerance stretched as the polygons are measured. See
             // GeoPolygon3.TransformBy.
-            if (transform.KeepsLengths())
+            GeoPolygon3 boundary = Boundary.TransformBy(transform, carrying);
+
+            if (carrying.Kind == GeoTransform3.Carrying.Rigid)
             {
-                return new GeoFace3(Boundary.TransformBy(transform), moved, Area);
+                return new GeoFace3(boundary, moved, Area);
             }
 
-            if (transform.KeepsShapes(out double areaScale))
+            if (carrying.Kind == GeoTransform3.Carrying.Even)
             {
-                return new GeoFace3(Boundary.TransformBy(transform), moved, Area * areaScale);
+                return new GeoFace3(boundary, moved, Area * carrying.AreaScale);
             }
 
-            return new GeoFace3(Boundary.TransformBy(transform), moved, transform.Stretched(Tolerance.Global));
+            return new GeoFace3(boundary, moved, carrying.Stretched);
         }
 
         /// <summary>

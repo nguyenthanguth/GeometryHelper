@@ -944,16 +944,24 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentNullException(nameof(transform));
             }
 
+            return TransformBy(transform, transform.ReadCarrying());
+        }
+
+        /// <summary>
+        /// Applies a transformation whose carrying is read already, once for the body, its faces and its openings.
+        /// </summary>
+        private GeoSolid3 TransformBy(GeoTransform3 transform, in GeoTransform3.Carrying carrying)
+        {
             GeoFace3[] faces = new GeoFace3[_faces.Length];
             for (int i = 0; i < _faces.Length; i++)
             {
-                faces[i] = _faces[i].TransformBy(transform);
+                faces[i] = _faces[i].TransformBy(transform, carrying);
             }
 
             GeoSolid3[] openings = new GeoSolid3[_openings.Length];
             for (int i = 0; i < _openings.Length; i++)
             {
-                openings[i] = _openings[i].TransformBy(transform);
+                openings[i] = _openings[i].TransformBy(transform, carrying);
             }
 
             return new GeoSolid3(faces, openings);

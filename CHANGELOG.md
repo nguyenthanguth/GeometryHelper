@@ -4,6 +4,21 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 release only, and a link here for the rest. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
+## Unreleased
+
+**FIXED.** `ToPolygon3` and `ToFace3` of a `GeoPolygon2` or a `GeoFace2`, and of `PlanarMap`, lay the polygon, its
+holes too, into the frame side for side, however short a side, as `TransformBy` carries one in space: the triangle
+(0, 0), (10, 0), (10, 10) with every corner cut by 0.3, shrunk in the plane by a thousandth, keeps its six corners 0.0003
+apart, where the global tolerance of a thousandth put it back together as three. Of 500 random polygons with cut
+corners, shrunk in the plane by a tenth to a ten-thousandth, 68, 410, 500 and 445 lost corners laid into a frame, and
+none do now; faces with a hole likewise. A polygon still has to enclose an area within the global tolerance: shrunk by
+a ten-thousandth, 38 of them, under a thousandth across, are refused, where 55 were. 3 new tests.
+
+**CHANGED.** `TransformBy` of a `GeoFace3` or a `GeoSolid3` reads the transformation once and hands it to every polygon,
+where every polygon read it again: the box 100 by 70 by 40 sheared takes 3.0 microseconds on .NET Framework 4.8, where
+it took 5.0, and 1.1 on .NET 10, where it took 1.7, as before an uneven transformation was checked at a loosened
+tolerance. The results are the same to the bit. 2 new tests.
+
 ## 13.2.0 (2026-11-01)
 
 A minor release: 126 public members are added, all in `GeometryHelper.Dxf`, and none is removed or changed. Of its

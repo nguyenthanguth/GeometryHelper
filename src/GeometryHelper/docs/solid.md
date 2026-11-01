@@ -2236,7 +2236,10 @@ line is still refused. A body follows its faces: the box 100 by 70 by 40 with a 
 at a millionth, scaled by a half or by 10 and sheared by a thousandth, stays closed within the millionth scaled with it,
 every corner kept and its volume the volume times the cube of the scale, and the block whose top is 0.0009 off flat
 stays closed scaled by 1 000, or stretched ten times upwards with its volume ten times. It is refused where a face of it
-comes out narrower, or further off flat, than the loosened tolerance allows, as a polygon is.
+comes out narrower, or further off flat, than the loosened tolerance allows, as a polygon is. `ToPolygon3` and
+`ToFace3` lay a polygon or a face of the plane into a frame side for side too: the triangle (0, 0), (10, 0), (10, 10)
+with every corner cut by 0.3, shrunk in the plane by a thousandth, keeps its six corners 0.0003 apart, where it was put
+back together as three. It is still refused where it encloses no area within the global tolerance.
 
 A radius per corner works too, read the way the bulges are read: the entry at an index belongs to the vertex
 at that index, and nought leaves that corner square. `TryFilletAt` rounds one named corner. A bend with too

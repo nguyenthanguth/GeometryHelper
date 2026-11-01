@@ -604,6 +604,14 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentNullException(nameof(transform));
             }
 
+            return TransformBy(transform, transform.ReadCarrying());
+        }
+
+        /// <summary>
+        /// Applies a transformation whose carrying is read already, as a face or a body reads it once for all its polygons.
+        /// </summary>
+        internal GeoPolygon3 TransformBy(GeoTransform3 transform, in GeoTransform3.Carrying carrying)
+        {
             GeoPoint3[] moved = new GeoPoint3[_vertices.Length];
 
             for (int i = 0; i < _vertices.Length; i++)
@@ -616,7 +624,7 @@ namespace GeometryHelper.Geometry
             // very edge of the planar tolerance, as a modeller's cut leaves one, could land a rounding past it at
             // its new place and be refused, and the body it belongs to with it. A girder's face a hundredth off
             // flat was, moved 600 m out.
-            if (transform.KeepsLengths())
+            if (carrying.Kind == GeoTransform3.Carrying.Rigid)
             {
                 GeoVector3 area = Newell.GetAreaVector(moved);
 
@@ -627,11 +635,11 @@ namespace GeometryHelper.Geometry
             // tolerance and had width lies flat and has width within the tolerance scaled with it, so it is carried as a move
             // is, its area scaled. Measured again within the global tolerance, a top 0.0009 off flat scaled by 10 was refused
             // as not flat, and a sliver 0.00005 wide built at a millionth and scaled by 0.1 as enclosing no area.
-            if (transform.KeepsShapes(out double areaScale))
+            if (carrying.Kind == GeoTransform3.Carrying.Even)
             {
                 GeoVector3 area = Newell.GetAreaVector(moved);
 
-                return new GeoPolygon3(moved, area.Divide(area.Length), Area * areaScale);
+                return new GeoPolygon3(moved, area.Divide(area.Length), Area * carrying.AreaScale);
             }
 
             // Anything else is measured again, which is what is wanted there: a projection onto a plane can collapse the
@@ -639,7 +647,7 @@ namespace GeometryHelper.Geometry
             // It is measured within the global tolerance stretched as far as the transformation stretches any direction,
             // as far as it can carry a corner off the plane. The corners stand apart already, however near; only two the
             // transformation lands on the very same point become one.
-            return new GeoPolygon3(moved, default(Tolerance), transform.Stretched(Tolerance.Global));
+            return new GeoPolygon3(moved, default(Tolerance), carrying.Stretched);
         }
 
         #region Queries

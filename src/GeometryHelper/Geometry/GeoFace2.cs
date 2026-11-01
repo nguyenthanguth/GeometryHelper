@@ -421,6 +421,10 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="frame">The frame it was laid out in.</param>
         /// <returns>The face in space.</returns>
+        /// <remarks>
+        /// Laid in side for side, as <see cref="PlanarMap.ToFace3(GeoCoordinateSystem3, GeoFace2)"/> lays it: a side of the
+        /// boundary or of a hole shorter than the global tolerance stays.
+        /// </remarks>
         public GeoFace3 ToFace3(GeoCoordinateSystem3 frame) => PlanarMap.ToFace3(frame, this);
 
         /// <summary>

@@ -674,6 +674,10 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="frame">The frame it was laid out in.</param>
         /// <returns>The polygon in space.</returns>
+        /// <remarks>
+        /// Laid in side for side, as <see cref="PlanarMap.ToPolygon3(GeoCoordinateSystem3, GeoPolygon2)"/> lays it: a side
+        /// shorter than the global tolerance stays.
+        /// </remarks>
         public GeoPolygon3 ToPolygon3(GeoCoordinateSystem3 frame) => PlanarMap.ToPolygon3(frame, this);
 
         /// <summary>
