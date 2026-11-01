@@ -5,8 +5,9 @@ namespace GeometryHelper.Dxf
 {
     /// <summary>
     /// A row of the block properties table of a dynamic block, AutoCAD's row of its Block Properties Table: a value for each
-    /// column of the table, in the order of the columns, a number for a parameter's column and a text for an attribute
-    /// definition's. See <see cref="DxfBlockTableRecord.AddBlockPropertiesTable"/>.
+    /// column of the table, in the order of the columns, a number for a parameter's column, the name of a state for the
+    /// visibility's and a text, or null for an empty cell, for an attribute definition's. See
+    /// <see cref="DxfBlockTableRecord.AddBlockPropertiesTable"/>.
     /// </summary>
     /// <remarks>
     /// <c>new DxfBlockPropertiesTableRow(200.0, 80.0, "P200")</c>, in a table of the columns Width, Height and the attribute
@@ -20,9 +21,11 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Makes a row of a value for each column.</summary>
         /// <param name="values">The value of each column, in the order of the columns: a finite <see cref="double"/> for a
-        /// parameter's column, a <see cref="string"/> of one line for an attribute definition's.</param>
-        /// <exception cref="ArgumentNullException">Thrown when the values or one of them are null.</exception>
-        /// <exception cref="ArgumentException">Thrown when a value is neither a finite <see cref="double"/> nor a
+        /// parameter's column, a <see cref="string"/> of one line for the visibility's or an attribute definition's, or null
+        /// for an empty cell, which only an attribute definition's column takes
+        /// (<see cref="DxfBlockTableRecord.AddBlockPropertiesTable"/> refuses another).</param>
+        /// <exception cref="ArgumentNullException">Thrown when the values are null.</exception>
+        /// <exception cref="ArgumentException">Thrown when a value is neither null, a finite <see cref="double"/> nor a
         /// <see cref="string"/> of one line.</exception>
         public DxfBlockPropertiesTableRow(params object[] values)
         {
@@ -33,12 +36,7 @@ namespace GeometryHelper.Dxf
 
             foreach (object value in values)
             {
-                if (value == null)
-                {
-                    throw new ArgumentNullException(nameof(values), "A value of a row of a block properties table is null.");
-                }
-
-                if (!(value is double number && Guard.IsFinite(number)) && !(value is string text && text.IndexOfAny(LineBreaks) < 0))
+                if (value != null && !(value is double number && Guard.IsFinite(number)) && !(value is string text && text.IndexOfAny(LineBreaks) < 0))
                 {
                     throw new ArgumentException("A value of a row of a block properties table is a finite double or a string of one line; a " + value.GetType().Name + " " + value + " is not.", nameof(values));
                 }

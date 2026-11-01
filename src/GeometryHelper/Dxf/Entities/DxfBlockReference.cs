@@ -426,11 +426,14 @@ namespace GeometryHelper.Dxf
         public bool TreatAsBlockRefForExplode => !(this is DxfMInsertBlock);
 
         /// <summary>
-        /// Gets whether the INSERT places a dynamic block, as AutoCAD's <c>IsDynamicBlock</c>: its block is one (its
-        /// BLOCK_RECORD has the extended data <c>AcDbDynamicBlockGUID</c>), or is the anonymous block that stands for one, whose
-        /// extended data <c>AcDbBlockRepBTag</c> names the dynamic block's BLOCK_RECORD by its handle (1005), as AutoCAD writes
-        /// them and ezdxf reads them. An anonymous block whose tag names no block of the drawing is not, nor is an INSERT scaled
-        /// unlike along its axes (by more than 1E-9 of the largest, a mirror alike), as AutoCAD 2021 read its INSERTs scaled
+        /// Gets whether the INSERT places a dynamic block, as AutoCAD's <c>IsDynamicBlock</c>: its block is one (its extension
+        /// dictionary holds an evaluation graph, <see cref="DxfBlockTableRecord.IsDynamicBlock"/>), or is the anonymous block
+        /// that stands for one, whose extended data <c>AcDbBlockRepBTag</c> names the dynamic block's BLOCK_RECORD by its handle
+        /// (1005), as AutoCAD writes them and ezdxf reads them. An INSERT of a block of the extended data
+        /// <c>AcDbDynamicBlockGUID</c> and no graph is not, nor one of its anonymous copy, though it keeps its
+        /// <see cref="DynamicBlockTableRecord"/> and <see cref="AnonymousBlockTableRecord"/>, as AutoCAD 2021 read the INSERTs
+        /// of Bore, PVI, Station and Valve of its samples (plugin D26b). An anonymous block whose tag names no block of the
+        /// drawing is not, nor is an INSERT scaled unlike along its axes (by more than 1E-9 of the largest, a mirror alike), as AutoCAD 2021 read its INSERTs scaled
         /// (2, 3, 2) and (2, 2, 1) as not dynamic though they keep their <see cref="DynamicBlockTableRecord"/> and their
         /// <see cref="DynamicBlockReferencePropertyCollection"/>.
         /// </summary>
@@ -441,7 +444,7 @@ namespace GeometryHelper.Dxf
         /// <see cref="DxfDynamicBlockReferenceProperty.Value"/>, the others are not, nor is AutoCAD's <c>ResetBlock</c> given.
         /// <see cref="ConvertToStaticBlock(string)"/> makes the INSERT place a plain copy of what it draws.
         /// </remarks>
-        public bool IsDynamicBlock => Dynamic(out _) != null && ScaledAlike();
+        public bool IsDynamicBlock => Dynamic(out _) is DxfBlockTableRecord dynamic && dynamic.IsDynamicBlock && ScaledAlike();
 
         /// <summary>Whether the INSERT is scaled alike along its axes, within 1E-9 of the largest; a mirror is scaled alike.</summary>
         private bool ScaledAlike()
@@ -492,14 +495,16 @@ namespace GeometryHelper.Dxf
         /// states where none is saved; a lookup one the value its table gives. A length is scaled by the largest of the INSERT's
         /// scale factors, so that the door of Width 1 000 inserted at a scale of 2 gives 2 000, and a distance of 7.5 along x
         /// at the scale (2, 3, 2) 22.5, as AutoCAD 2021 read it. A value set's list is given where its flags hold 8, a list, as AutoCAD gave
-        /// none of a list under the flags 1, 2 or 4. Actions, grips, base point and alignment parameters
+        /// none of a list under the flags 1, 2 or 4, with the block's own value where the list was written without it, and
+        /// a value set is taken to that list (plugin D26b). Actions, grips, base point and alignment parameters
         /// give none.
         /// </para>
         /// <para>
         /// A block properties table gives the property of its name, Block Table1 as AutoCAD names it, a <see cref="short"/>: the
         /// index of the first row whose every parameter's column holds the value the INSERT shows, in the block's units, a
-        /// distance within the point tolerance of <see cref="Tolerance.Default"/>, an angle within its vector tolerance, a text
-        /// alike; -1 where no row does; a column of an attribute definition is not matched; nothing allowed. AutoCAD 2021 read
+        /// distance or an angle within 1E-7, as AutoCAD 2021 read 200.00000001 as 200 and 200.0000002 as not (plugin D26b), a
+        /// text alike, the visibility state among them; -1 where no row does; a column of an attribute definition is not
+        /// matched; nothing allowed. AutoCAD 2021 read
         /// so the library's tables and its own samples (plugin D26): Fluorescent at 1 000 by 500 the row 4, Parking -1 for its
         /// Spaces of 1 that no row holds. The table is read after the properties of its columns, in its place in the graph's
         /// order. A user parameter the table made gives its value, a <see cref="string"/> (type 5) or a <see cref="double"/> of
@@ -1057,8 +1062,10 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// The dynamic block the INSERT places, as ezdxf's <c>get_dynamic_block_definition</c> finds it: its own block where its
-        /// BLOCK_RECORD has the extended data AcDbDynamicBlockGUID, else the block whose BLOCK_RECORD the extended data
-        /// AcDbBlockRepBTag of its block names by handle (1005), that block then the anonymous one; null for neither.
+        /// BLOCK_RECORD has the extended data AcDbDynamicBlockGUID or an evaluation graph, else the block whose BLOCK_RECORD the
+        /// extended data AcDbBlockRepBTag of its block names by handle (1005), that block then the anonymous one; null for
+        /// neither. The block found need not be dynamic: AutoCAD 2021 named DYNB, of a GUID and no graph, the dynamic block of
+        /// an INSERT of its anonymous copy, which it read as not dynamic (plugin D26b).
         /// </summary>
         private DxfBlockTableRecord Dynamic(out DxfBlockTableRecord anonymous)
         {
@@ -1070,7 +1077,7 @@ namespace GeometryHelper.Dxf
                 return null;
             }
 
-            if (block.GetXDataForApplication("AcDbDynamicBlockGUID") != null)
+            if (block.KeepsDynamicData)
             {
                 return block;
             }

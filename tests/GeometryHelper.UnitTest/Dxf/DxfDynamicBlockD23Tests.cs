@@ -423,6 +423,8 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfBlockTableRecord bolt = db.BlockTable["BOLT"];
             bolt.XData = new[] { new DxfTypedValue(1001, "AcDbDynamicBlockGUID"), new DxfTypedValue(1000, "{0D23D23D-0000-4000-8000-00000000D024}") };
+            bolt.CreateExtensionDictionary();
+            bolt.ExtensionDictionary.SetAt("ACAD_ENHANCEDBLOCK", new DxfDBDictionary());
             var dynamic = new DxfBlockReference(new Geometry.GeoPoint3(0, 0, 0), bolt);
             db.ModelSpace.AppendEntity(dynamic);
             Assert.True(dynamic.IsDynamicBlock);

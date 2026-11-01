@@ -26,8 +26,13 @@ namespace GeometryHelper.Dxf
         public string Name { get; }
 
         /// <summary>
-        /// Gets whether the block's properties must match a row, as AutoCAD's <c>MustMatch</c>; a property other than the
-        /// table's is then not set by the library.
+        /// Gets whether the block's properties must match a row, as AutoCAD's <c>MustMatch</c>. A distance or an angle of a
+        /// column set then takes the INSERT to the first row that holds it beside the first row's values in the other columns,
+        /// else, where its column holds no value twice, to the row that holds it; else it stands beside the first row's values
+        /// and no row matches, as AutoCAD 2021 set the library's tables made to match (plugin D26b): of the rows 100 x 50,
+        /// 200 x 80 and 150 x 60, Width 200 takes the row 1, Width 120 stands beside Height 50. A lookup or a user parameter
+        /// of such a block, and the parameters of a table of a column of a user parameter or of the visibility state, are not
+        /// set by the library.
         /// </summary>
         public bool MustMatch { get; }
 

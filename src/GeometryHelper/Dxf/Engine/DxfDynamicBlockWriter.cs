@@ -825,7 +825,7 @@ namespace GeometryHelper.Dxf
                     b.Group(290, "0");
                     b.Group(291, "1");
                     b.Group(292, "1");
-                    b.Group(293, "0");
+                    b.Group(293, column.IsAngle ? "1" : "0");
                     b.Group(294, column.Definition != null ? "1" : "0");
                     b.Group(302, string.Empty);
                     b.Group(340, "0");
@@ -839,7 +839,11 @@ namespace GeometryHelper.Dxf
 
                     foreach (object value in rows[r].Values)
                     {
-                        if (value is string text)
+                        if (value == null)
+                        {
+                            b.Group(170, "-9999");
+                        }
+                        else if (value is string text)
                         {
                             b.Group(170, "1");
                             b.Group(300, text);
@@ -1216,27 +1220,33 @@ namespace GeometryHelper.Dxf
         private static bool Has(DxfBlockTableRecord block, string type) => Has(block, t => t == type);
 
         /// <summary>Whether the evaluation graph of a block holds a node of the types given, read without writing anything.</summary>
-        internal static bool Has(DxfBlockTableRecord block, Func<string, bool> types)
+        internal static bool Has(DxfBlockTableRecord block, Func<string, bool> types) => NodeOf(block, types) != null;
+
+        /// <summary>The first node of the block's evaluation graph of a type; null where it has none.</summary>
+        internal static DxfItem NodeOf(DxfBlockTableRecord block, string type) => NodeOf(block, t => t == type);
+
+        /// <summary>The first node of the block's evaluation graph whose type is one asked; null where it has none.</summary>
+        private static DxfItem NodeOf(DxfBlockTableRecord block, Func<string, bool> types)
         {
             DxfDBDictionary dictionary = block.ExtensionDictionary;
             DxfItem item = dictionary != null && dictionary.Contains("ACAD_ENHANCEDBLOCK") ? dictionary.GetAt("ACAD_ENHANCEDBLOCK")?.Item : null;
 
             if (item == null || item.Type != "ACAD_EVALUATION_GRAPH")
             {
-                return false;
+                return null;
             }
 
             foreach (DxfTypedValue group in item.Groups)
             {
-                string type = group.TypeCode == 360 ? item.File.ObjectItem(group.Value)?.Type : null;
+                DxfItem node = group.TypeCode == 360 ? item.File.ObjectItem(group.Value) : null;
 
-                if (type != null && types(type))
+                if (node != null && types(node.Type))
                 {
-                    return true;
+                    return node;
                 }
             }
 
-            return false;
+            return null;
         }
 
         /// <summary>A grip of a linear parameter and its two location components, the nodes after it.</summary>

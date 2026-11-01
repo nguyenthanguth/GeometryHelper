@@ -47,7 +47,7 @@ namespace GeometryHelper.Dxf
 
             DxfBlockTableRecord record = table[block.Name];
 
-            if (record.IsDynamicBlock)
+            if (record.KeepsDynamicData)
             {
                 Placed(record.Name);
                 return null;
@@ -67,7 +67,7 @@ namespace GeometryHelper.Dxf
 
             DxfBlockTableRecord dynamic = tag == null ? null : table.ByHandle(tag);
 
-            if (dynamic == null || !dynamic.IsDynamicBlock || !origin.Blocks.TryGetValue(dynamic.Name, out DxfFileBlock brought))
+            if (dynamic == null || !dynamic.KeepsDynamicData || !origin.Blocks.TryGetValue(dynamic.Name, out DxfFileBlock brought))
             {
                 return null;
             }
@@ -117,7 +117,7 @@ namespace GeometryHelper.Dxf
             // taken to the block of its name here, as a record of a table is.
             List<DxfBlockTableRecord> blocks = copies.BringsDynamicBlocks ? Named(source, copies) : new List<DxfBlockTableRecord>(source.BlockTable);
 
-            if (!blocks.Exists(b => b.IsDynamicBlock))
+            if (!blocks.Exists(b => b.KeepsDynamicData))
             {
                 return;
             }
@@ -138,7 +138,7 @@ namespace GeometryHelper.Dxf
                 DxfBlockTableRecord here = target.BlockTable[name];
                 records[handle] = here.Handle;
 
-                if (block.IsDynamicBlock && (copied || here.IsDynamicBlock))
+                if (block.KeepsDynamicData && (copied || here.KeepsDynamicData))
                 {
                     dynamic[handle] = here.Handle;
                 }

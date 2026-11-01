@@ -16,6 +16,13 @@ namespace GeometryHelper.Dxf
     {
         private const double Turn = 2.0 * Math.PI;
 
+        /// <summary>
+        /// The tolerance a cell holds a value within, 1E-7, distances and angles alike: AutoCAD 2021 read the row of 200 at
+        /// Width 200.00000001 and 199.9999999 and of 20 000 at 20 000.00000001, and no row at 200.0000002, 200.000001, 199.9999
+        /// and 20 000.0000001 (plugin D26b).
+        /// </summary>
+        internal static readonly Tolerance Held = new Tolerance(1E-7, 1E-7);
+
         internal string Name { get; private set; }
 
         internal string Description { get; private set; }
@@ -100,8 +107,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// The index of the first row whose every cell of a parameter's column holds the value the column reads now, as AutoCAD
-        /// 2021 read the row of an INSERT (plugin D26): a number within the point tolerance of <see cref="Tolerance.Default"/>,
-        /// an angle, taken into a turn, within its vector tolerance; a text alike, letters of either case apart. A column of an
+        /// 2021 read the row of an INSERT (plugin D26): a number, an angle taken into a turn, within <see cref="Held"/>; a text
+        /// alike, letters of either case apart. A column of an
         /// attribute definition is not matched: AutoCAD read the row 1 of an INSERT whose attribute was another row's text. -1
         /// where no row holds them, or a value now cannot be read (<paramref name="now"/> gives null).
         /// </summary>
@@ -138,8 +145,8 @@ namespace GeometryHelper.Dxf
             return -1;
         }
 
-        /// <summary>Whether a cell holds a value: numbers within the tolerance of their kind, texts alike; an empty cell holds nothing.</summary>
-        private static bool Same(object cell, object value, bool angle)
+        /// <summary>Whether a cell holds a value: numbers within <see cref="Held"/>, texts alike; an empty cell holds nothing.</summary>
+        internal static bool Same(object cell, object value, bool angle)
         {
             if (cell is string text)
             {
@@ -151,7 +158,7 @@ namespace GeometryHelper.Dxf
                 return false;
             }
 
-            return angle ? Math.Abs(Normal(number) - Normal(now)) <= Tolerance.Default.EqualVector : Math.Abs(number - now) <= Tolerance.Default.EqualPoint;
+            return angle ? Math.Abs(Normal(number) - Normal(now)) <= Held.EqualVector : Math.Abs(number - now) <= Held.EqualPoint;
         }
 
         private static double Normal(double angle)

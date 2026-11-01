@@ -217,7 +217,8 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<ArgumentException>(() => block.AddBlockPropertiesTable(new GeoPoint3(0, 0, 0), columns, new[] { new DxfBlockPropertiesTableRow(100.0, 50.0, "P"), new DxfBlockPropertiesTableRow(100.0, 50.0, "P") }));
             Assert.Throws<ArgumentException>(() => block.AddBlockPropertiesTable(new GeoPoint3(0, 0, 0), new[] { columns[0], columns[0] }, new[] { new DxfBlockPropertiesTableRow(100.0, 100.0) }));
             Assert.Throws<ArgumentException>(() => block.AddBlockPropertiesTable(new GeoPoint3(0, 0, 0), columns, new DxfBlockPropertiesTableRow[0]));
-            Assert.Throws<ArgumentNullException>(() => new DxfBlockPropertiesTableRow(100.0, null));
+            Assert.Throws<ArgumentException>(() => block.AddBlockPropertiesTable(new GeoPoint3(0, 0, 0), columns, new[] { new DxfBlockPropertiesTableRow(100.0, null, "P") }));
+            Assert.Throws<ArgumentNullException>(() => new DxfBlockPropertiesTableRow(null));
             Assert.Throws<ArgumentException>(() => new DxfBlockPropertiesTableRow(100, 50.0));
             Assert.DoesNotContain(Nodes(block), n => n.Type == "BLOCKPROPERTIESTABLE");
         }

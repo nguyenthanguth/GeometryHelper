@@ -1,12 +1,14 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 
 namespace GeometryHelper.Dxf
 {
     /// <summary>
     /// A column of the block properties table of a dynamic block, AutoCAD's column of its Block Properties Table: the
     /// property of a parameter of the block that a row sets, the distance of a linear parameter, the distance along x or
-    /// along y of an XY parameter, the distance or the angle of a polar parameter or the angle of a rotation parameter; or
-    /// an attribute definition of the block, whose attribute a row fills in. See
+    /// along y of an XY parameter, the distance or the angle of a polar parameter, the angle of a rotation parameter or the
+    /// state of the visibility parameter; or an attribute definition of the block, whose attribute a row fills in. See
     /// <see cref="DxfBlockTableRecord.AddBlockPropertiesTable"/>.
     /// </summary>
     /// <remarks>
@@ -16,8 +18,9 @@ namespace GeometryHelper.Dxf
     /// </remarks>
     public sealed class DxfBlockPropertiesTableColumn
     {
-        private DxfBlockPropertiesTableColumn(DxfBlockTableRecord block, int node, string handle, string name, string connection, DxfBlockParameterValueSet valueSet, bool isAngle, DxfAttributeDefinition attribute)
+        private DxfBlockPropertiesTableColumn(DxfBlockTableRecord block, int node, string handle, string name, string connection, DxfBlockParameterValueSet valueSet, bool isAngle, DxfAttributeDefinition attribute, IReadOnlyList<string> states = null)
         {
+            States = states;
             Block = block;
             Node = node;
             Handle = handle;
@@ -51,6 +54,9 @@ namespace GeometryHelper.Dxf
 
         /// <summary>The attribute definition of the column, whose cells are texts; null for a parameter's column, of numbers.</summary>
         internal DxfAttributeDefinition Definition { get; }
+
+        /// <summary>The names of the states of the visibility parameter of the column, whose cells name one; null for another column.</summary>
+        internal IReadOnlyList<string> States { get; }
 
         /// <summary>
         /// Makes the column of the distance of a linear parameter, its connection UpdatedDistance as AutoCAD writes it: each row
@@ -153,6 +159,46 @@ namespace GeometryHelper.Dxf
             }
 
             return new DxfBlockPropertiesTableColumn(parameter.Block, parameter.Node, parameter.Handle, parameter.Name, "UpdatedAngle", parameter.ValueSet, true, null);
+        }
+
+        /// <summary>
+        /// Makes the column of the visibility state of a block, its connection VisibilityState as AutoCAD 2021 wrote the column
+        /// its <c>AddItem</c> gave a visibility parameter (plugin D26b): each row gives the name of one of the states, which the
+        /// row shows. A block of the states Open and Closed given the rows (100, "Open") and (200, "Closed") of Width and this
+        /// column shows Closed at the row 1.
+        /// </summary>
+        /// <param name="block">The dynamic block, given its visibility parameter by
+        /// <see cref="DxfBlockTableRecord.AddVisibilityParameter"/>.</param>
+        /// <returns>The column.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the block is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the block has no visibility parameter.</exception>
+        public static DxfBlockPropertiesTableColumn Visibility(DxfBlockTableRecord block)
+        {
+            if (block == null)
+            {
+                throw new ArgumentNullException(nameof(block));
+            }
+
+            DxfItem node = block.IsResident ? DxfDynamicBlockWriter.NodeOf(block, "BLOCKVISIBILITYPARAMETER") : null;
+
+            if (node == null || !int.TryParse(DxfDynamicProperties.Text(DxfDynamicProperties.Section(node.Groups, "AcDbEvalExpr"), 90)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int id))
+            {
+                throw new ArgumentException("The block " + block.Name + " has no visibility parameter.", nameof(block));
+            }
+
+            List<DxfTypedValue> own = DxfDynamicProperties.Section(node.Groups, "AcDbBlockVisibilityParameter");
+            var states = new List<string>();
+
+            foreach (DxfTypedValue state in own)
+            {
+                if (state.TypeCode == 303)
+                {
+                    states.Add(DxfReader.Decode(state.Value ?? string.Empty));
+                }
+            }
+
+            string name = DxfReader.NameOf(DxfDynamicProperties.Text(own, 301) ?? string.Empty);
+            return new DxfBlockPropertiesTableColumn(block, id, node.Handle, name, "VisibilityState", null, false, null, states.AsReadOnly());
         }
 
         /// <summary>

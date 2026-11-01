@@ -633,10 +633,12 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void ADynamicBlock_IsFoundByItsGuid_OrByTheRepresentationTagOfItsAnonymousBlock_AsEzdxfFindsIt()
+        public void ADynamicBlock_IsFoundByItsEvaluationGraph_OrByTheRepresentationTagOfItsAnonymousBlock_AsEzdxfFindsIt()
         {
-            // BOLT made a dynamic block by its AcDbDynamicBlockGUID, and FRAME the anonymous block that stands for it by its
-            // AcDbBlockRepBTag naming BOLT's BLOCK_RECORD 32, as AutoCAD writes them and ezdxf's dynblkhelper reads them.
+            // BOLT made a dynamic block by its AcDbDynamicBlockGUID and the entry ACAD_ENHANCEDBLOCK of its extension dictionary,
+            // its evaluation graph, which AutoCAD 2021 read as what makes a block dynamic (plugin D26b), and FRAME the anonymous
+            // block that stands for it by its AcDbBlockRepBTag naming BOLT's BLOCK_RECORD 32, as AutoCAD writes them and ezdxf's
+            // dynblkhelper reads them.
             foreach (string text in new[] { DxfFileEzdxfDrawings.R2000, DxfFileEzdxfDrawings.R2018 })
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
@@ -648,6 +650,8 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Null(bolt.AnonymousBlockTableRecord);
 
                 db.BlockTable["BOLT"].XData = new[] { new DxfTypedValue(1001, "AcDbDynamicBlockGUID"), new DxfTypedValue(1000, "{4E1F21B3-8C4E-4F6B-9A39-3F0F2B9B6A11}") };
+                db.BlockTable["BOLT"].CreateExtensionDictionary();
+                db.BlockTable["BOLT"].ExtensionDictionary.SetAt("ACAD_ENHANCEDBLOCK", new DxfDBDictionary());
                 db.BlockTable["FRAME"].XData = new[] { new DxfTypedValue(1001, "AcDbBlockRepBTag"), new DxfTypedValue(1070, "1"), new DxfTypedValue(1005, db.BlockTable["BOLT"].Handle) };
                 DxfDatabase again = DxfDatabase.Parse(db.ToText());
                 bolt = Bolt(again);

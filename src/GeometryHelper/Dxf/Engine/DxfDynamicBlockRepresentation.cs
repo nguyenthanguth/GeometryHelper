@@ -143,9 +143,13 @@ namespace GeometryHelper.Dxf
             bool row = block.Sheet != null && block.Sheet.Id == node;
             var texts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-            if (block.Sheet != null && block.Sheet.MustMatch && !row)
+            // A table to match takes a parameter set to a row, as Sheet.Match says; a lookup or a user parameter set, or a
+            // table of a column of a user parameter or of the visibility state, is not worked out so.
+            bool matched = block.Sheet != null && block.Sheet.MustMatch && !row;
+
+            if (matched && (lookup != null || given != null || block.Sheet.HasUsers))
             {
-                throw new NotSupportedException("The block " + dynamic.Name + " has a block properties table its properties must match: the library sets its row, not another property of it, whose working AutoCAD's samples do not show.");
+                throw new NotSupportedException("The block " + dynamic.Name + " has a block properties table its properties must match: the library sets its row and the parameters of its columns, not a lookup or a user parameter of it, nor a table of a column of a user parameter or of the visibility state, whose working the library was not shown.");
             }
 
             if (row)
@@ -157,7 +161,7 @@ namespace GeometryHelper.Dxf
                     throw new ArgumentOutOfRangeException(nameof(value), value, "A block properties table is set to the index of one of its rows, from 0 up to " + (block.Sheet.Count - 1).ToString(CultureInfo.InvariantCulture) + ", as AutoCAD 2021 refused any other (eInvalidInput).");
                 }
 
-                block.Sheet.Choose((int)index, values, users, texts);
+                block.Sheet.Choose((int)index, values, users, texts, block.Visibility, ref state);
             }
             else if (given != null)
             {
@@ -232,12 +236,17 @@ namespace GeometryHelper.Dxf
                 throw new NotSupportedException("The property's parameter is not one the library works out.");
             }
 
+            if (matched)
+            {
+                block.Sheet.Match(node, part, values);
+            }
+
             // A property set leaving no row of the table matched gives each user parameter of a column its value of no match, as
             // AutoCAD 2021 read Spaces Custom once Width was set off the rows of its Parking sample (plugin D26); a user parameter
             // set keeps the value given.
             if (block.Sheet != null && !row && given == null)
             {
-                block.Sheet.Unmatch(values, users);
+                block.Sheet.Unmatch(values, users, state);
             }
 
             // Each lookup shows the label of the first row of the values now, or its label of no match, the lookup set too, as
@@ -592,6 +601,17 @@ namespace GeometryHelper.Dxf
             }
 
             Act(block, values, copyOf);
+
+            // A dimension that names no block is a dimension of the block's constraints, which AutoCAD keeps hidden in its own
+            // anonymous copies (Parking's six read as hidden, plugin D26b): its copy, which keeps no tie to the constraint, is
+            // hidden, as AutoCAD 2021 then read it, where it drew one left shown.
+            foreach (DxfEntity copy in copies)
+            {
+                if (copy is DxfDimension dimension && dimension.PictureName.Length == 0)
+                {
+                    copy.Visible = false;
+                }
+            }
 
             if (block.Visibility != null)
             {
@@ -1606,7 +1626,9 @@ namespace GeometryHelper.Dxf
             /// the lesser of a list written from the least up, as AutoCAD 2021 took all 358 ties of lists of 3 to 6 values of
             /// plugin D25b (278 of linear parameters, 47 of an XY and 33 of polar ones), from every value before and in two
             /// sessions alike: 75 to 100, 125 to 100 and 175 to 150 of 50, 100 ... 300 for an own 100, 125 to 100 and 225 to 250
-            /// for an own 250, and 125 to 150 of the same list written from 300 down for an own 200; else to the nearest step of
+            /// for an own 250, and 125 to 150 of the same list written from 300 down for an own 200; the block's own value is
+            /// one of the list where the list was written without it, as AutoCAD 2021 took 120, 125 and 75 to the own 100 of the
+            /// list 50, 150, 200, and 250 to 300 of the list written 300, 200, 50 (plugin D26b); else to the nearest step of
             /// the increment from the minimum (flags 4), a tie to the step below, 95 to 90 for an own 100 as AutoCAD took all 100
             /// such ties, then into the minimum (flags 1) and the maximum (flags 2). Ties within the point tolerance of
             /// <see cref="Tolerance.Default"/>.
@@ -1617,10 +1639,10 @@ namespace GeometryHelper.Dxf
 
                 if ((_flags & 8) != 0 && _written.Count > 0)
                 {
-                    // AutoCAD starts from the block's own value and takes a value of the list, in the order it is written, only
-                    // where it is nearer the value asked.
+                    // AutoCAD starts from the block's own value, listed or not, and takes a value of the list, in the order it is
+                    // written, only where it is nearer the value asked.
                     int start = _written.FindIndex(v => Math.Abs(v * scale - own) <= slack);
-                    double best = _written[start < 0 ? 0 : start] * scale;
+                    double best = start < 0 ? own : _written[start] * scale;
 
                     foreach (double listed in _written)
                     {
@@ -1670,24 +1692,33 @@ namespace GeometryHelper.Dxf
             /// 180 and 270; else an angle outside the minimum (flags 1) and the maximum (flags 2) to the one of them nearer round
             /// the circle, 300 degrees to 0 and 200 to 90 of 0 to 90, and one within them to the nearest step of the increment from
             /// the minimum (flags 4), 40 to 45 of steps of 15, and into them; a tie, within the vector tolerance of
-            /// <see cref="Tolerance.Default"/>, to the one behind the angle asked, clockwise, as <see cref="Tie"/> says. Read into
-            /// a turn.
+            /// <see cref="Tolerance.Default"/>, to the one behind the angle asked, clockwise, as <see cref="Tie"/> says. The block's
+            /// own angle is one of a list written without it, as AutoCAD 2021 took 0.3 and 315 degrees to the own 0 of the list 90,
+            /// 180 (plugin D26b). Read into a turn.
             /// </summary>
-            internal double Angle(double value)
+            internal double Angle(double value, double own)
             {
                 double slack = Tolerance.Default.EqualVector;
 
                 if ((_flags & 8) != 0 && _list.Count > 0)
                 {
-                    double best = _list[0];
+                    List<double> list = _list;
 
-                    for (int i = 1; i < _list.Count; i++)
+                    if (!_list.Exists(v => Round(v, own) <= slack))
                     {
-                        double nearer = Round(value, best) - Round(value, _list[i]);
+                        list = new List<double>(_list) { own };
+                        list.Sort();
+                    }
 
-                        if (nearer > slack || (Math.Abs(nearer) <= slack && Tie(best, _list[i], value) == _list[i]))
+                    double best = list[0];
+
+                    for (int i = 1; i < list.Count; i++)
+                    {
+                        double nearer = Round(value, best) - Round(value, list[i]);
+
+                        if (nearer > slack || (Math.Abs(nearer) <= slack && Tie(best, list[i], value) == list[i]))
                         {
-                            best = _list[i];
+                            best = list[i];
                         }
                     }
 
@@ -1851,7 +1882,7 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>An angle taken to the value set, as <see cref="Allowed.Angle"/> says.</summary>
-            internal double Take(double value) => _set.Angle(value);
+            internal double Take(double value) => _set.Angle(value, Own[0]);
 
             internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(double[] now, double[] carried)
             {
@@ -1891,7 +1922,7 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>A distance (part 0), in the INSERT's units, or an angle (part 1), taken to its value set, as <see cref="Allowed"/> says.</summary>
-            internal double Take(int part, double value, double scale) => part == 0 ? _distance.Distance(value, scale, Own[0] * scale) : _angle.Angle(value);
+            internal double Take(int part, double value, double scale) => part == 0 ? _distance.Distance(value, scale, Own[0] * scale) : _angle.Angle(value, Own[1]);
 
             /// <summary>The end point at the distance and the angle given, level with the block's own along z.</summary>
             internal GeoPoint3 EndAt(double[] now) => new GeoPoint3(Base.X + now[0] * Math.Cos(now[1]), Base.Y + now[0] * Math.Sin(now[1]), End.Z);
@@ -2609,8 +2640,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// A block properties table: its node's id and its table (<see cref="DxfPropertiesTable"/>), each column of a parameter
         /// the library works out (a linear or a polar parameter's distance, an XY parameter's distances, a polar or a rotation
-        /// parameter's angle, a point parameter's x and y), of a user parameter (UserVariable) or of an attribute definition of
-        /// the block, as AutoCAD 2021 set them (plugin D26).
+        /// parameter's angle, a point parameter's x and y), of a user parameter (UserVariable), of the visibility state
+        /// (VisibilityState, plugin D26b) or of an attribute definition of the block, as AutoCAD 2021 set them (plugin D26).
         /// </summary>
         private sealed class Sheet
         {
@@ -2623,6 +2654,7 @@ namespace GeometryHelper.Dxf
             private readonly List<bool> _angles = new List<bool>();
             private readonly List<string> _tags = new List<string>();
             private readonly List<bool> _users = new List<bool>();
+            private readonly List<bool> _states = new List<bool>();
 
             internal string Id { get; private set; }
 
@@ -2646,6 +2678,7 @@ namespace GeometryHelper.Dxf
                     string connection = column.Connection;
                     string tag = null;
                     bool user = false;
+                    bool shown = !column.IsAttribute && connection == "VisibilityState" && block.Visibility != null && block.Visibility.Id == column.Node;
 
                     if (column.IsAttribute)
                     {
@@ -2656,13 +2689,13 @@ namespace GeometryHelper.Dxf
                         user = block.Users.Exists(u => u.Id == column.Node);
                     }
 
-                    bool known = column.IsAttribute ? tag != null : user
+                    bool known = column.IsAttribute ? tag != null : user || shown
                         || ((parameter is Linear || parameter is Polar) && connection == "UpdatedDistance") || (parameter is Spot && (connection == "UpdatedX" || connection == "UpdatedY"))
                         || (parameter is Planar && (connection == "UpdatedDistanceX" || connection == "UpdatedDistanceY")) || ((parameter is Polar || parameter is Turning) && connection == "UpdatedAngle");
 
                     if (!known)
                     {
-                        throw new NotSupportedException("The block properties table of the block " + name + " has a column the library does not work out: it works out a linear or a polar parameter's distance, an XY parameter's distances, a polar or a rotation parameter's angle, a point parameter's x and y, user parameters and attribute definitions.");
+                        throw new NotSupportedException("The block properties table of the block " + name + " has a column the library does not work out: it works out a linear or a polar parameter's distance, an XY parameter's distances, a polar or a rotation parameter's angle, a point parameter's x and y, user parameters, the visibility state and attribute definitions.");
                     }
 
                     bool angle = connection == "UpdatedAngle";
@@ -2671,25 +2704,27 @@ namespace GeometryHelper.Dxf
                     sheet._angles.Add(angle);
                     sheet._tags.Add(tag);
                     sheet._users.Add(user);
+                    sheet._states.Add(shown);
                 }
 
                 return sheet;
             }
 
-            /// <summary>The index of the first row of the values given, as <see cref="DxfPropertiesTable.Row"/> says; -1 where none holds them.</summary>
-            internal int Row(Dictionary<string, double[]> values, Dictionary<string, object> users) => _table.Row(column =>
+            /// <summary>The index of the first row of the values and the visibility state given, as <see cref="DxfPropertiesTable.Row"/> says; -1 where none holds them.</summary>
+            internal int Row(Dictionary<string, double[]> values, Dictionary<string, object> users, string state) => _table.Row(column =>
             {
                 int c = _table.Columns.IndexOf(column);
-                return _users[c] ? (users.TryGetValue(_nodes[c], out object user) ? user : null) : (object)values[_nodes[c]][_parts[c]];
+                return _states[c] ? state : _users[c] ? (users.TryGetValue(_nodes[c], out object user) ? user : null) : (object)values[_nodes[c]][_parts[c]];
             });
 
             /// <summary>
             /// Sets each column to its cell of a row, as AutoCAD 2021 set the library's table and its Parking sample's (plugin
-            /// D26): a parameter's value (an angle taken into a turn), a user parameter's value, and the text of the attribute
-            /// of an attribute definition's tag; an empty cell leaves its column as it is, and so does a cell not of its column's
-            /// kind.
+            /// D26): a parameter's value (an angle taken into a turn), a user parameter's value, the visibility state the cell
+            /// names (letters of either case the same), and the text of the attribute of an attribute definition's tag; an empty
+            /// cell of an attribute definition's column gives its attribute an empty text, as AutoCAD 2021 gave MARK (plugin
+            /// D26b); another empty cell leaves its column as it is, and so does a cell not of its column's kind.
             /// </summary>
-            internal void Choose(int row, Dictionary<string, double[]> values, Dictionary<string, object> users, Dictionary<string, string> texts)
+            internal void Choose(int row, Dictionary<string, double[]> values, Dictionary<string, object> users, Dictionary<string, string> texts, Visible visibility, ref string state)
             {
                 object[] cells = _table.Rows[row];
 
@@ -2699,10 +2734,20 @@ namespace GeometryHelper.Dxf
 
                     if (cell == null)
                     {
+                        if (_tags[c] != null)
+                        {
+                            texts[_tags[c]] = string.Empty;
+                        }
+
                         continue;
                     }
 
-                    if (_tags[c] != null)
+                    if (_states[c])
+                    {
+                        State named = cell is string text ? visibility.States.Find(s => string.Equals(s.Name, text.Trim(), StringComparison.OrdinalIgnoreCase)) : null;
+                        state = named?.Name ?? state;
+                    }
+                    else if (_tags[c] != null)
                     {
                         texts[_tags[c]] = cell as string ?? Convert.ToString(cell, CultureInfo.InvariantCulture);
                     }
@@ -2720,10 +2765,98 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            /// <summary>Gives each user parameter of a column its value of no match where no row holds the values given.</summary>
-            internal void Unmatch(Dictionary<string, double[]> values, Dictionary<string, object> users)
+            /// <summary>
+            /// Takes the values of a table whose properties must match a row to a row after the property of a column, by its
+            /// node and part, was set, as AutoCAD 2021 took them (plugin D26b): to the first row that holds the value set and
+            /// the first row's values in the other columns; else, where the column holds no value twice, to the row that holds
+            /// the value set; else the value set stays, beside the first row's values in the other columns, and no row matches.
+            /// Of the rows 100 x 50, 200 x 80 and 150 x 60, Width 200 took the row 1 and Width 120 stood beside Height 50; of the
+            /// rows 100 x 50, 200 x 80, 200 x 50 and 150 x 60, Width 200 took 200 x 50, and Height 60 stood beside Width 100.
+            /// Values within <see cref="DxfPropertiesTable.Held"/>; a column of an attribute definition is left as it is, as
+            /// AutoCAD left the attribute; a property of no column changes nothing here.
+            /// </summary>
+            internal void Match(string node, int part, Dictionary<string, double[]> values)
             {
-                if (Row(values, users) >= 0)
+                int set = -1;
+
+                for (int c = 0; c < _nodes.Count; c++)
+                {
+                    if (_tags[c] == null && !_users[c] && !_states[c] && _nodes[c] == node && _parts[c] == part)
+                    {
+                        set = c;
+                        break;
+                    }
+                }
+
+                if (set < 0 || _table.Rows.Count == 0)
+                {
+                    return;
+                }
+
+                double asked = values[node][part];
+                object[] first = _table.Rows[0];
+                int chosen = -1;
+
+                for (int r = 0; r < _table.Rows.Count && chosen < 0; r++)
+                {
+                    bool all = true;
+
+                    for (int c = 0; c < _nodes.Count && all; c++)
+                    {
+                        if (_tags[c] == null && first[c] != null)
+                        {
+                            all = DxfPropertiesTable.Same(_table.Rows[r][c], c == set ? (object)asked : first[c], _angles[c]);
+                        }
+                    }
+
+                    chosen = all ? r : -1;
+                }
+
+                if (chosen < 0 && Unique(set))
+                {
+                    chosen = _table.Rows.FindIndex(cells => DxfPropertiesTable.Same(cells[set], asked, _angles[set]));
+                }
+
+                object[] taken = chosen < 0 ? first : _table.Rows[chosen];
+
+                for (int c = 0; c < _nodes.Count; c++)
+                {
+                    if (_tags[c] == null && c != set && taken[c] is double number)
+                    {
+                        values[_nodes[c]][_parts[c]] = _angles[c] ? Normal(number) : number;
+                    }
+                }
+
+                if (chosen >= 0 && _table.Rows[chosen][set] is double cell)
+                {
+                    values[node][part] = _angles[set] ? Normal(cell) : cell;
+                }
+            }
+
+            /// <summary>Whether no two rows hold the same value in a column.</summary>
+            private bool Unique(int column)
+            {
+                for (int a = 0; a < _table.Rows.Count; a++)
+                {
+                    for (int b = a + 1; b < _table.Rows.Count; b++)
+                    {
+                        if (_table.Rows[a][column] != null && DxfPropertiesTable.Same(_table.Rows[a][column], _table.Rows[b][column], _angles[column]))
+                        {
+                            return false;
+                        }
+                    }
+                }
+
+                return true;
+            }
+
+            /// <summary>Whether the table has a column of a user parameter or of the visibility state, which a table to match does not work out.</summary>
+            internal bool HasUsers => _users.Contains(true) || _states.Contains(true);
+
+            /// <summary>Gives each user parameter of a column its value of no match where no row holds the values given.</summary>
+            internal void Unmatch(Dictionary<string, double[]> values, Dictionary<string, object> users, string state)
+            {
+                if (Row(values, users, state) >= 0)
                 {
                     return;
                 }

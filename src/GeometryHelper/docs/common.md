@@ -1302,7 +1302,10 @@ is still refused, is set out after the examples.
 
 A dynamic block is found as
 ezdxf finds it, by the extended data `AcDbDynamicBlockGUID` of its BLOCK_RECORD, or `AcDbBlockRepBTag` of the anonymous
-block that stands for it (`IsDynamicBlock`, `DynamicBlockTableRecord`, `AnonymousBlockTableRecord`). Its dynamic properties
+block that stands for it (`DynamicBlockTableRecord`, `AnonymousBlockTableRecord`); it is dynamic (`IsDynamicBlock`) where its
+extension dictionary holds its evaluation graph (ACAD_ENHANCEDBLOCK), as AutoCAD 2021 read it: the Bore, PVI, Station and
+Valve blocks of its samples keep the GUID over an empty extension dictionary and are not, nor are their INSERTs, and a
+block whose GUID was taken out and its graph kept is (check D26b). Its dynamic properties
 are read, not worked out: `DynamicBlockReferencePropertyCollection` gives, as AutoCAD's does, each property's
 `PropertyName`, `Value`, `PropertyTypeCode`, `UnitsType`, `ReadOnly`, `Description` and `GetAllowedValues()`, its value the one
 AutoCAD saved for the INSERT (the XRECORD of the parameter's node under AcDbBlockRepresentation, AppDataCache and
@@ -1311,11 +1314,17 @@ dynamic block itself. Each parameter of the block's evaluation graph gives its o
 parameter its distance, a polar one its distance and its angle, an XY one its distances along x and along y, a rotation one
 its angle from its base angle, a point one its position's x and y (`Anchor X`, `Anchor Y`), a flip one 0 or 1 (a `short`), a
 visibility one its state, the first of its states where none is saved, every state allowed, and a lookup one the value its
-table gives, read only where the table allows no reverse lookup. Lengths are scaled by the largest of the INSERT's scale
+table gives, read only where the table allows no reverse lookup, and then of its label of no match allowed last, as
+AutoCAD 2021 gave Custom last to Ball Count and the other read-only lookups of its Roller Bearing; a lookup of a visibility
+state reads the row of the state shown, as AutoCAD read Part Number SSI-4 of its Shoulder Screw (check D26b). Lengths are scaled by the largest of the INSERT's scale
 factors and angles are in radians: the door whose linear parameter Width AutoCAD stretched from 900 to 1 000, inserted at a
 scale of 2, gives `Width = 2000.0`, `UnitsType` `Distance`; AutoCAD 2021 read a distance of 7.5 along x as 22.5 at the
 scale (2, 3, 2), and as 15 at (2, 2, 1), where `IsDynamicBlock` is false, as it read such INSERTs. A value set's list is
-allowed where its flags (96, or 97 for the second set) hold 8; AutoCAD gave none of a list under the flags 1, 2 or 4.
+allowed where its flags (96, or 97 for the second set) hold 8; AutoCAD gave none of a list under the flags 1, 2 or 4. The
+block's own value is one of the list where the list was written without it, after the last value below it: Door Size of
+AutoCAD's Door sample, own 750, allows 600, 700, 750, 800, 900 and 1 000, a list written 300, 200, 50 of an own 100 allows
+300, 200, 50, 100, and a value set is taken to it, 760 and the tie 725 to 750, as AutoCAD 2021 took them (check D26b); a
+value an INSERT shows off the list is not added.
 AutoCAD's hidden `Origin` points (not shown in its properties) are left out. A block properties table gives the index of
 the row the INSERT matches (`Block Table1`, a `short`, -1 for none), a user parameter its text or real, and a horizontal, a
 vertical, an aligned or a radial constraint parameter its distance, read only, as set out below. AutoCAD 2021 read the same names, values (to 1E-9, most to the bit),
@@ -1746,6 +1755,20 @@ sample, read and set as AutoCAD 2021 set it, a Width set off the rows giving Spa
 horizontal, vertical, aligned and radial constraint parameters most of them are of, whose distances are read and not set,
 as the library does not solve constraints. AutoCAD 2021 read the same row, user parameters and constraint distances as the
 library on every INSERT of its thirteen sample drawings.
+
+A row is read within 1E-7: AutoCAD 2021 read the row of 200 at 200.00000001 and none at 200.0000002 (check D26b). A column
+of the visibility state (`DxfBlockPropertiesTableColumn.Visibility(block)`, the connection VisibilityState as AutoCAD's own
+`AddItem` wrote it) gives each row the name of a state, which the row shows and the row is matched by; an attribute
+definition's cell may be empty (null), which gives the attribute an empty text, as AutoCAD 2021 gave MARK, its audit finding
+no fault; an empty cell of a parameter, which AutoCAD's audit refused, and two rows the same, which it refused too and whose
+property it took away once a row was set, are refused. A table whose properties must match a row (`MustMatch`, as AutoCAD's
+Block Editor sets it) takes a distance or an angle of a column set to the first row that holds it beside the first row's
+values in the other columns; else, where the column holds no value twice, to the row that holds it; else the value stands
+beside the first row's values and no row matches. Of the rows 100 x 50, 200 x 80 and 150 x 60, Width 200 takes the row 1
+and Width 120 stands beside Height 50; of the rows 100 x 50, 200 x 80, 200 x 50 and 150 x 60, Width 200 takes 200 x 50 and
+Height 60 stands beside Width 100, as AutoCAD 2021 set them (check D26b); the attributes are left as they are. A dimension
+that names no block, as those of the constraints of AutoCAD's Parking sample, is copied into the anonymous block hidden, as
+AutoCAD keeps them, so that Parking as AutoCAD ships it is set.
 
 ```csharp
 {
@@ -2620,7 +2643,8 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
     rows and columns in a stretch; an arc held by one end in a polar stretch; a polar stretch of a distance multiplier or
     an angle offset, or tied to the base grip; a stretch or a move tied to a base grip, a move carrying other parameters,
     and an attribute definition in a move, which are set where AutoCAD's Block Editor wrote them; a user parameter, a
-    constraint, and a block properties table whose properties must match a row, or of empty cells or values of no match.
+    constraint, and a block properties table whose properties must match a row, or of columns of a point, a lookup or a
+    user parameter (AutoCAD's `AddItem` refused the first two), or of empty cells of a parameter or values of no match.
   - Set where another writer wrote them: stretches and moves tied to a parameter's base grip, moves carrying other linear
     parameters, and attribute definitions in a move, the INSERT's ATTRIBs following; a polar stretch naming an entity to
     turn only in its selection too, or its parameter's grip.
@@ -2628,8 +2652,9 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
     written above or refused (a constraint, a polar stretch tied to the base grip or of a multiplier or an offset, a move
     carrying a parameter other than a linear one or one that chains its actions, any other action holding a parameter,
     an attribute definition in an action other than a move, a lookup column of another kind than those written above, as
-    a visibility state's, a block properties table column of another kind, or a property other than the row of a table
-    the properties must match), and an INSERT that keeps the base point of a linear, an XY, a polar, a
+    a visibility state's, a block properties table column of another kind, or a lookup or a user parameter of a block
+    whose table its properties must match, or a parameter of such a table of a column of a user parameter or of the
+    visibility state), and an INSERT that keeps the base point of a linear, an XY, a polar, a
     rotation or a flip parameter away from the block's own, as the moves carrying it leave it, as a grip moved that of
     AutoCAD's XY sample, which AutoCAD draws from there.
 

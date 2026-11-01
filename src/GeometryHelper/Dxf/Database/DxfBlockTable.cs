@@ -663,8 +663,23 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        /// <summary>Gets whether the block is a dynamic block, as AutoCAD's <c>IsDynamicBlock</c>: its BLOCK_RECORD has the extended data of the application <c>AcDbDynamicBlockGUID</c>, as AutoCAD gives a dynamic block.</summary>
-        public bool IsDynamicBlock => Item != null && Item.Type == "BLOCK_RECORD" && GetXDataForApplication("AcDbDynamicBlockGUID") != null;
+        /// <summary>
+        /// Gets whether the block is a dynamic block, as AutoCAD's <c>IsDynamicBlock</c>: its extension dictionary holds the
+        /// evaluation graph of its parameters and actions (the entry ACAD_ENHANCEDBLOCK). The extended data
+        /// <c>AcDbDynamicBlockGUID</c> does not make it one: AutoCAD 2021 read the Bore, PVI, Station and Valve blocks of its
+        /// Dynamic Blocks samples, which keep the GUID over an empty extension dictionary, as not dynamic, and a block whose GUID
+        /// was taken out and its graph kept as dynamic (plugin D26b).
+        /// </summary>
+        public bool IsDynamicBlock => Item != null && Item.Type == "BLOCK_RECORD" && HasEvaluationGraph;
+
+        /// <summary>Whether the block's extension dictionary has the entry ACAD_ENHANCEDBLOCK, its evaluation graph.</summary>
+        private bool HasEvaluationGraph => ExtensionDictionary?.Contains("ACAD_ENHANCEDBLOCK") == true;
+
+        /// <summary>
+        /// Whether the block keeps what a dynamic block is written with, its extended data <c>AcDbDynamicBlockGUID</c> or its
+        /// evaluation graph: a copy brings that with it, whether or not it makes the block dynamic, as a copy keeps any data.
+        /// </summary>
+        internal bool KeepsDynamicData => Item != null && Item.Type == "BLOCK_RECORD" && (GetXDataForApplication("AcDbDynamicBlockGUID") != null || HasEvaluationGraph);
 
         /// <summary>
         /// Gets the hyperlinks of the block, as AutoCAD's <c>Hyperlinks</c>: those of the extended data of the application
@@ -2090,10 +2105,12 @@ namespace GeometryHelper.Dxf
         /// </summary>
         /// <param name="location">Where the table's grip stands, in the block's coordinates.</param>
         /// <param name="columns">The columns of the table, each the property of a parameter of this block
-        /// (<see cref="DxfBlockPropertiesTableColumn.Distance(DxfBlockLinearParameter)"/> and the others) or an attribute
-        /// definition of it (<see cref="DxfBlockPropertiesTableColumn.Attribute"/>), each once.</param>
+        /// (<see cref="DxfBlockPropertiesTableColumn.Distance(DxfBlockLinearParameter)"/> and the others), its visibility state
+        /// (<see cref="DxfBlockPropertiesTableColumn.Visibility"/>) or an attribute definition of it
+        /// (<see cref="DxfBlockPropertiesTableColumn.Attribute"/>), each once.</param>
         /// <param name="rows">The rows, each a value for each column (<see cref="DxfBlockPropertiesTableRow"/>): a number for a
-        /// parameter's column, a text for an attribute definition's; no two rows the same.</param>
+        /// parameter's column, the name of a state for the visibility's, a text or null, an empty cell, for an attribute
+        /// definition's; no two rows the same.</param>
         /// <remarks>
         /// <para>
         /// A plate of a Width and a Height and the attribute MARK given <c>AddBlockPropertiesTable(new GeoPoint3(0, -20, 0),
@@ -2110,13 +2127,19 @@ namespace GeometryHelper.Dxf
         /// each component; a pair of edges each way between the table and each parameter of a column, of the flags 4, the table
         /// first; the graph's extended data AcadBPTGraphNodeId naming the table. Each column names its parameter's node, or the
         /// attribute definition, of no connection; each cell is a real, a text, of the type 40 and 1 as AutoCAD writes them.
-        /// The rows need not match, and no column is constant.
+        /// The rows need not match, and no column is constant. An empty cell, of an attribute definition's column only, is
+        /// written of the type -9999 as AutoCAD writes one; set to its row, the INSERT's attribute reads an empty text, as
+        /// AutoCAD 2021 gave MARK, and its audit of the table found no fault, where it refused one of an empty cell of a
+        /// parameter's column (eNotApplicable) and took the property Block Table1 away once a row was set (plugin D26b). A
+        /// column of the visibility state is written as AutoCAD 2021's <c>AddItem</c> wrote one, its cells texts; a column of an
+        /// angle is flagged so (293 of 1), as AutoCAD wrote the one it added of a rotation parameter (plugin D26b).
         /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the columns, the rows or one of them is null.</exception>
         /// <exception cref="ArgumentException">Thrown when a coordinate of the location is not a finite number, there are no
         /// columns or no rows, a column is of another block or given twice, an attribute definition is erased or constant, a
-        /// row has not one value for each column or a value not of its column's kind, a distance is not above the point
+        /// row has not one value for each column or a value not of its column's kind (an empty cell outside an attribute
+        /// definition's column, a text naming no state of the visibility parameter among them), a distance is not above the point
         /// tolerance of <see cref="Tolerance.Default"/> or not of its parameter's value set, an angle is not of its parameter's
         /// value set, or two rows are the same. Nothing is written then.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the block has a block properties table already, as AutoCAD's
@@ -2201,12 +2224,27 @@ namespace GeometryHelper.Dxf
 
                     if (column.Definition != null)
                     {
-                        if (!(value is string))
+                        if (value is double)
                         {
                             throw new ArgumentException(at + " gives the attribute " + column.Name + " a number, not a text.", nameof(rows));
                         }
 
                         continue;
+                    }
+
+                    if (column.States != null)
+                    {
+                        if (!(value is string state) || !new List<string>(column.States).Contains(state))
+                        {
+                            throw new ArgumentException(at + " gives the visibility parameter " + column.Name + " no name of one of its states.", nameof(rows));
+                        }
+
+                        continue;
+                    }
+
+                    if (value == null)
+                    {
+                        throw new ArgumentException(at + " leaves " + column.Name + " empty, which AutoCAD's audit of a table refuses.", nameof(rows));
                     }
 
                     if (!(value is double number))
@@ -2260,14 +2298,14 @@ namespace GeometryHelper.Dxf
         /// </remarks>
         public DxfBlockPropertiesTable BlockPropertiesTable => _file == null || Item == null || IsErased ? null : DxfDynamicProperties.Table(this);
 
-        /// <summary>Whether two rows of a block properties table give each column the same: numbers within the tolerance of their kind, texts alike.</summary>
+        /// <summary>Whether two rows of a block properties table give each column the same: numbers within the tolerance of their kind, texts alike, empty cells alike.</summary>
         private static bool Same(DxfBlockPropertiesTableRow a, DxfBlockPropertiesTableRow b, List<DxfBlockPropertiesTableColumn> columns)
         {
             for (int i = 0; i < columns.Count; i++)
             {
-                if (a.Values[i] is string text)
+                if (!(a.Values[i] is double) || !(b.Values[i] is double))
                 {
-                    if (!string.Equals(text, (string)b.Values[i], StringComparison.Ordinal))
+                    if (!string.Equals(a.Values[i] as string, b.Values[i] as string, StringComparison.Ordinal))
                     {
                         return false;
                     }

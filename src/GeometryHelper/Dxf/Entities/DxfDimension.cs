@@ -49,7 +49,9 @@ namespace GeometryHelper.Dxf
     /// <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/> takes it. A copy added to another drawing brings a copy of its
     /// block where AutoCAD names the block itself (<c>*D1</c>), and needs one of the same name there where it does not. A copy
     /// added to the drawing it came from shares its original's block, and loses flag 32, so that moving the one leaves the
-    /// other's picture where it is; one made in code is written without it.
+    /// other's picture where it is; one made in code is written without it. A copy of a dimension that names no block, as
+    /// the dimensions of the constraints of AutoCAD's Parking sample name none in the block and in its anonymous copies,
+    /// names none, so that an INSERT of such a dynamic block is set.
     /// </para>
     /// </remarks>
     public abstract class DxfDimension : DxfEntity
@@ -1358,7 +1360,8 @@ namespace GeometryHelper.Dxf
         /// Refuses a dimension whose drawing has no block of the name of the one that draws it, as one made in code and given
         /// none: AutoCAD has nothing to draw it with until it draws it anew, and ezdxf's audit takes such a dimension out. A copy
         /// of another drawing whose block is one AutoCAD names itself (<c>*D7</c>) brings a copy of it, as the file's adopting
-        /// makes one, and needs none here. The blocks, linetypes and text styles set as overrides while the
+        /// makes one, and needs none here; a copy of one of a drawing that names no block, as the dimensions of the constraints
+        /// of AutoCAD's Parking sample name none, names none. The blocks, linetypes and text styles set as overrides while the
         /// dimension was in no drawing are written as the records of their names: in this drawing for one made in code or copied
         /// in it, refused where it has none of a name; in the drawing a copy comes from for a copy of another, whose overrides the
         /// copying takes to the records of their names here, as AutoCAD's deep clone maps them, refused where that drawing has none.
@@ -1371,7 +1374,11 @@ namespace GeometryHelper.Dxf
             bool otherDrawing = origin != null && origin != owner.File && origin.Database != null;
             bool brought = otherDrawing && name.StartsWith("*", StringComparison.Ordinal) && origin.Database.BlockTable.Has(name);
 
-            if (name.Length == 0 || database == null || (!brought && !database.BlockTable.Has(name)))
+            // A copy of a dimension of a drawing that names no block names none, as AutoCAD keeps the dimensions of the
+            // constraints of its Parking sample in the block and in each anonymous copy of it.
+            bool none = name.Length == 0 && origin != null && origin.Database != null;
+
+            if (database == null || (!none && (name.Length == 0 || (!brought && !database.BlockTable.Has(name)))))
             {
                 throw new ArgumentException("The drawing has no block " + (name.Length == 0 ? "named by the dimension" : name) + " to draw the dimension with: give it its DimBlock, a block of the drawing.", "entity");
             }

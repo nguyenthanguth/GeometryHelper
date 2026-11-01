@@ -163,8 +163,9 @@ namespace GeometryHelper.Dxf
         /// an entity both copied by an array or turned by a polar stretch and worked on by another action, a lookup table of
         /// columns other than a linear or a polar parameter's distance, a point parameter's x and y, an XY parameter's
         /// distances, a polar or a rotation parameter's angle and lookups, a block properties table of columns other than those or of
-        /// user parameters and attribute definitions, a property other than its row of a table its properties must match (290
-        /// of 1), a user parameter of another kind than a text or a real, or of an expression; or when the INSERT keeps
+        /// user parameters, the visibility state and attribute definitions, a lookup or a user parameter of a block whose table
+        /// its properties must match (290 of 1), or a parameter of such a table of a column of a user parameter or of the
+        /// visibility state, a user parameter of another kind than a text or a real, or of an expression; or when the INSERT keeps
         /// the base point of a linear, an XY, a polar, a rotation or a flip parameter away from the
         /// block's own, as the moves carrying the parameter take it, beyond the point tolerance of <see cref="Tolerance.Default"/>, as a grip moved it: AutoCAD works such
         /// an INSERT out from the base point it keeps, and drew the array of its XY sample's INSERT whose base point a grip
@@ -210,8 +211,11 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets the values the property may take, as AutoCAD's <c>GetAllowedValues</c>: the list of a parameter's value set,
-        /// lengths scaled as <see cref="Value"/> is; every visibility state by name; 0 and 1 for a flip; the values a lookup
-        /// table gives. Empty where the parameter keeps no list, as for a value set of an increment or of none.
+        /// lengths scaled as <see cref="Value"/> is, with the block's own value where the list was written without it, after
+        /// the last value below it, as AutoCAD 2021 gave Door Size of its Door sample, own 750, the values 600, 700, 750, 800,
+        /// 900 and 1 000 (plugin D26b); every visibility state by name; 0 and 1 for a flip; the values a lookup table gives,
+        /// and its label of no match last for a lookup that is read only, Custom of AutoCAD's Roller Bearing. Empty where the
+        /// parameter keeps no list, as for a value set of an increment or of none.
         /// </summary>
         /// <returns>A new array on each call, its values of the type of <see cref="Value"/>.</returns>
         public object[] GetAllowedValues() => (object[])_allowed.Clone();

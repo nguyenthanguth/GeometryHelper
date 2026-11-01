@@ -134,6 +134,8 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
             DxfBlockTableRecord bolt = db.BlockTable["BOLT"];
             bolt.XData = new[] { new DxfTypedValue(1001, "AcDbDynamicBlockGUID"), new DxfTypedValue(1000, "{3C8E1F3B-7D44-4C93-9F53-5E1C3C2B1A10}") };
+            bolt.CreateExtensionDictionary();
+            bolt.ExtensionDictionary.SetAt("ACAD_ENHANCEDBLOCK", new DxfDBDictionary());
             DxfBlockTableRecord anonymous = db.BlockTable["*D1"];
             anonymous.XData = new[] { new DxfTypedValue(1001, "AcDbBlockRepBTag"), new DxfTypedValue(1070, "1"), new DxfTypedValue(1005, bolt.Handle) };
             insert = new DxfBlockReference(new GeoPoint3(500, 0, 0), anonymous);

@@ -6,6 +6,34 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** A block properties table takes a column of the visibility state, `DxfBlockPropertiesTableColumn.Visibility(block)`,
+written as AutoCAD 2021's own `AddItem` wrote one (connection VisibilityState, text cells): each row names a state, which
+the row shows and is matched by; and an empty cell (null) in an attribute definition's column, which gives the attribute an
+empty text. AutoCAD 2021 read the library's table of Width, the visibility, a rotation's angle and MARK with no audit fault
+and set and matched it as the library does, MARK of the empty cell reading an empty text (check D26b, 0 lines apart). An
+angle's column is written flagged (293 of 1), as AutoCAD wrote the one it added. An empty cell of a parameter's column, which
+AutoCAD's audit refused, is refused with `ArgumentException`; `new DxfBlockPropertiesTableRow(100.0, null)` is no longer
+refused itself. A table whose properties must match a row is now set, as AutoCAD 2021 set it (check D26b, rounds a1 to a3):
+a distance or an angle of a column takes the first row holding it beside the first row's other values, else, where its
+column holds no value twice, the row holding it, else stands beside the first row's values; the library refused it.
+
+**FIXED.** A block is dynamic where its extension dictionary holds its evaluation graph, not where it keeps the extended
+data AcDbDynamicBlockGUID: the INSERTs of Bore, PVI, Station and Valve of AutoCAD's samples, of a GUID over an empty
+dictionary, read as dynamic and AutoCAD 2021 read them as not (check D26b); a block of a graph and no GUID read as not. A
+copy keeps such data as before. A list value set allows the block's own value where the list was written without it,
+after the last value below it, and a value set is taken to it: Door Size of the Door sample, own 750, allowed 600, 700, 800
+... and took 760 to 800, where AutoCAD 2021 allows 750 and took 760 to 750; an angle list too. A read-only lookup allows its
+label of no match last (Custom of Roller Bearing), and a lookup of a visibility state reads the row of the state shown
+(Part Number SSI-4 of Shoulder Screw, read Invalid Size). A table's row is read within 1E-7, as AutoCAD 2021 read it, not
+within 1E-3. On AutoCAD's thirteen sample drawings the library now reads the INSERTs as AutoCAD 2021 does but for the
+attributes of two annotative blocks (178 lines apart before, 12 now). An INSERT of AutoCAD's Parking sample is set: a copy
+of a dimension that names no block, as its constraints' do, names none and is hidden, as AutoCAD keeps them, where every
+set was refused ("no block named by the dimension"); AutoCAD read the library's Parking with the six hidden. An empty
+attribute cell of a table read from a file gives the attribute an empty text when its row is set. 30 new tests.
+
+**CHANGED.** Five tests that made a block dynamic by its GUID alone give it an evaluation graph too; the test of a row of a
+null value now checks `AddBlockPropertiesTable` refuses it.
+
 **NEW.** Block properties tables of dynamic blocks, AutoCAD's Block Properties Table. `AddBlockPropertiesTable` gives a
 block a table of columns, each a property of one of its parameters (`DxfBlockPropertiesTableColumn.Distance`, `X`, `Y`,
 `Angle`, as a lookup's inputs) or an attribute definition (`DxfBlockPropertiesTableColumn.Attribute`), and of rows

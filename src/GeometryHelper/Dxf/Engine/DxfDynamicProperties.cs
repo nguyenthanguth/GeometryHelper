@@ -161,7 +161,8 @@ namespace GeometryHelper.Dxf
         /// gives it: the first node of the kind; each column named after the property it sets (the label of a linear, a
         /// rotation or a constraint parameter's distance, 305; of an XY parameter's x, 306, and y, 305; of a polar parameter's
         /// distance, 305, and angle, 307; of a point parameter's x and y, 303 with " X" and " Y"; the name of a user parameter's
-        /// variable) or the tag of its attribute definition; null where the block has none or it cannot be read whole.
+        /// variable; the label of the visibility parameter, 301) or the tag of its attribute definition; null where the block
+        /// has none or it cannot be read whole.
         /// </summary>
         internal static DxfBlockPropertiesTable Table(DxfBlockTableRecord block)
         {
@@ -236,6 +237,8 @@ namespace GeometryHelper.Dxf
                     return Name(Section(groups, "AcDbBlockLinearParameter"), 305);
                 case "BLOCKROTATIONPARAMETER":
                     return Name(Section(groups, "AcDbBlockRotationParameter"), 305);
+                case "BLOCKVISIBILITYPARAMETER":
+                    return Name(Section(groups, "AcDbBlockVisibilityParameter"), 301);
                 case "BLOCKRADIALCONSTRAINTPARAMETER":
                     return Name(Section(groups, "AcDbBlockRadialConstraintParameter"), 305);
                 case "BLOCKUSERPARAMETER":
@@ -252,7 +255,7 @@ namespace GeometryHelper.Dxf
         /// its node gave: the distance of a linear, a polar or a constraint parameter (UpdatedDistance), the distance along x or
         /// along y of an XY parameter (UpdatedDistanceX, UpdatedDistanceY), the angle of a polar or a rotation parameter
         /// (UpdatedAngle), the x or the y of a point parameter (UpdatedX, UpdatedY), the text of a user parameter
-        /// (UserVariable); null where the parameter gave none.
+        /// (UserVariable), the state of the visibility parameter (VisibilityState); null where the parameter gave none.
         /// </summary>
         private static object Now(DxfPropertiesTable.Column column, Dictionary<string, List<DxfDynamicBlockReferenceProperty>> given, List<DxfItem> nodes, double scale)
         {
@@ -277,6 +280,7 @@ namespace GeometryHelper.Dxf
                 case "UpdatedDistanceX":
                 case "UpdatedX":
                 case "UserVariable":
+                case "VisibilityState":
                     part = 0;
                     break;
                 default:
@@ -392,7 +396,7 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            properties.Add(Length(own, 305, 306, Distance(from, to) * scale, List(own, 175, scale)));
+            properties.Add(Length(own, 305, 306, Distance(from, to) * scale, List(own, 175, scale, Own(groups, Distance), false)));
         }
 
         /// <summary>
@@ -408,8 +412,8 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            properties.Add(Length(own, 305, 306, Distance(from, to) * scale, List(own, 175, scale)));
-            properties.Add(Angle(own, 307, 308, Normal(Math.Atan2(to[1] - from[1], to[0] - from[0])), List(own, 176, 1.0)));
+            properties.Add(Length(own, 305, 306, Distance(from, to) * scale, List(own, 175, scale, Own(groups, Distance), false)));
+            properties.Add(Angle(own, 307, 308, Normal(Math.Atan2(to[1] - from[1], to[0] - from[0])), List(own, 176, 1.0, Own(groups, (f, t) => Normal(Math.Atan2(t[1] - f[1], t[0] - f[0]))), true)));
         }
 
         /// <summary>
@@ -425,8 +429,8 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            properties.Add(Length(own, 306, 308, Math.Abs(to[0] - from[0]) * scale, List(own, 175, scale)));
-            properties.Add(Length(own, 305, 307, Math.Abs(to[1] - from[1]) * scale, List(own, 176, scale)));
+            properties.Add(Length(own, 306, 308, Math.Abs(to[0] - from[0]) * scale, List(own, 175, scale, Own(groups, (f, t) => Math.Abs(t[0] - f[0])), false)));
+            properties.Add(Length(own, 305, 307, Math.Abs(to[1] - from[1]) * scale, List(own, 176, scale, Own(groups, (f, t) => Math.Abs(t[1] - f[1])), false)));
         }
 
         /// <summary>
@@ -451,7 +455,9 @@ namespace GeometryHelper.Dxf
             }
 
             double angle = Math.Atan2(to[1] - from[1], to[0] - from[0]) - Math.Atan2(basis[1] - from[1], basis[0] - from[0]);
-            properties.Add(Angle(own, 305, 306, Normal(angle), List(own, 175, 1.0)));
+            double[] ownBasis = PointOf(own, 1011) ?? basis;
+            double ownAngle = Own(groups, (f, t) => Normal(Math.Atan2(t[1] - f[1], t[0] - f[0]) - Math.Atan2(ownBasis[1] - f[1], ownBasis[0] - f[0])));
+            properties.Add(Angle(own, 305, 306, Normal(angle), List(own, 175, 1.0, ownAngle, true)));
         }
 
         /// <summary>A point parameter: its position's x and y, the label (303) with " X" and " Y" after it, both of its description (304).</summary>
@@ -516,7 +522,10 @@ namespace GeometryHelper.Dxf
         /// names, the column whose node (94) is the parameter's, gives the values allowed, each once, in the order of the rows.
         /// Where the INSERT saved none, a table with columns to look up from gives the cell of the first row whose inputs are
         /// the values the INSERT shows, as <see cref="Matched"/> says, else the column's label of no match (305), which is then
-        /// allowed too; a table of none its first value. Read only where the column allows no reverse lookup (281 of 0).
+        /// allowed too; a table of none its first value. Read only where the column allows no reverse lookup (281 of 0), and
+        /// then of its label of no match allowed last whatever it reads, as AutoCAD 2021 gave Custom last of the values of each
+        /// read-only lookup of its samples, Bore Tolerance, Ball Count and Static Load of Roller Bearing among them (plugin
+        /// D26b).
         /// </summary>
         private static void Lookup(IReadOnlyList<DxfTypedValue> groups, string id, IReadOnlyList<DxfTypedValue> cache, List<DxfItem> nodes, Dictionary<string, DxfXrecord> saved, List<DxfDynamicBlockReferenceProperty> properties)
         {
@@ -580,12 +589,13 @@ namespace GeometryHelper.Dxf
             string unmatched = DxfReader.Decode(columns[column].TryGetValue(305, out string label) ? label : string.Empty);
             string value = Saved(cache) ?? (inputs ? Matched(cells, columns, width, column, nodes, saved) ?? unmatched : allowed.Count > 0 ? (string)allowed[0] : string.Empty);
 
-            if (inputs && value == unmatched && !allowed.Contains(unmatched))
+            bool readOnly = !(columns[column].TryGetValue(281, out string reverse) && reverse.Trim() == "1");
+
+            if (inputs && (value == unmatched || readOnly) && !allowed.Contains(unmatched))
             {
                 allowed.Add(unmatched);
             }
 
-            bool readOnly = !(columns[column].TryGetValue(281, out string reverse) && reverse.Trim() == "1");
             properties.Add(new DxfDynamicBlockReferenceProperty(Name(own, 303), Words(own, 304), value, 5, DxfDynamicBlockReferencePropertyUnitsType.NoUnits, readOnly, allowed.ToArray()));
         }
 
@@ -596,12 +606,15 @@ namespace GeometryHelper.Dxf
         /// y of a point parameter (UpdatedX, UpdatedY), the distance along x or along y of an XY parameter (UpdatedDistanceX,
         /// UpdatedDistanceY), the angle of a polar or a rotation parameter (UpdatedAngle), each as the INSERT saved it, else the
         /// block's own, as AutoCAD 2021 read Small on an INSERT of a lookup block itself whose Width 100 and Height 50 were the
-        /// row Small's (plugin v21b); null where no row holds them, or an input is of another kind.
+        /// row Small's (plugin v21b); the state a visibility parameter shows (VisibilityState), the text alike, as AutoCAD read
+        /// Part Number SSI-4 of its Shoulder Screw sample by its length and its state 4-40 (plugin D26b); null where no row
+        /// holds them, or an input is of another kind.
         /// </summary>
         private static string Matched(List<string> cells, List<Dictionary<int, string>> columns, int width, int column, List<DxfItem> nodes, Dictionary<string, DxfXrecord> saved)
         {
             var inputs = new List<KeyValuePair<int, double>>();
             var angles = new HashSet<int>();
+            var states = new List<KeyValuePair<int, string>>();
 
             for (int c = 0; c < width; c++)
             {
@@ -648,6 +661,12 @@ namespace GeometryHelper.Dxf
                     inputs.Add(new KeyValuePair<int, double>(c, (double)turned[0].Value));
                     angles.Add(c);
                 }
+                else if (parameter?.Type == "BLOCKVISIBILITYPARAMETER" && connection == "VisibilityState")
+                {
+                    var shown = new List<DxfDynamicBlockReferenceProperty>();
+                    Visibility(parameter.Groups, cache, shown);
+                    states.Add(new KeyValuePair<int, string>(c, (string)shown[0].Value));
+                }
                 else if (parameter?.Type == "BLOCKPOINTPARAMETER" && (connection == "UpdatedX" || connection == "UpdatedY"))
                 {
                     List<double[]> points = Points(cache);
@@ -668,7 +687,8 @@ namespace GeometryHelper.Dxf
 
             for (int row = 0; row + width <= cells.Count; row += width)
             {
-                if (inputs.TrueForAll(i => Number(cells[row + i.Key], out double cell) && Math.Abs(cell - i.Value) <= (angles.Contains(i.Key) ? Tolerance.Default.EqualVector : Tolerance.Default.EqualPoint)))
+                if (inputs.TrueForAll(i => Number(cells[row + i.Key], out double cell) && Math.Abs(cell - i.Value) <= (angles.Contains(i.Key) ? Tolerance.Default.EqualVector : Tolerance.Default.EqualPoint))
+                    && states.TrueForAll(s => string.Equals(cells[row + s.Key], s.Value, StringComparison.Ordinal)))
                 {
                     return cells[row + column];
                 }
@@ -705,6 +725,10 @@ namespace GeometryHelper.Dxf
             to = PointOf(two, 1011);
             return from != null && to != null;
         }
+
+        /// <summary>A measure of the block's own two points of a parameter (1010 and 1011 of AcDbBlock2PtParameter); not a number where they cannot be read.</summary>
+        private static double Own(IReadOnlyList<DxfTypedValue> groups, Func<double[], double[], double> measure)
+            => TwoPoints(groups, null, out double[] from, out double[] to) ? measure(from, to) : double.NaN;
 
         /// <summary>The points of an INSERT's data of a node (10, 20, 30 each), in order; none where it has none.</summary>
         private static List<double[]> Points(IReadOnlyList<DxfTypedValue> cache)
@@ -848,9 +872,13 @@ namespace GeometryHelper.Dxf
         /// The list of a value set: the reals after the group of a code that counts them (175 or 176), each scaled, where the
         /// flags of the set (96 before 175, 97 before 176) hold 8, a list; none where they do not, as AutoCAD 2021 gave none
         /// of a list of three under the flags 1, 2 and 4, and the three under 8; none where the count is nought, or the list
-        /// cannot be read whole.
+        /// cannot be read whole. The block's own value is one of the list where it was written without it, put after the last
+        /// value below it (the first where none is), as AutoCAD 2021 gave Door Size of its Door sample, own 750, the values
+        /// 600, 700, 750, 800, 900, 1000 of the list written without 750, and the own 100 of the list written 300, 200, 50 last
+        /// (plugin D26b); a value the INSERT shows off the list is not added. A distance within the point tolerance of
+        /// <see cref="Tolerance.Default"/> of the own one, an angle within its vector tolerance round the circle, is it.
         /// </summary>
-        private static object[] List(List<DxfTypedValue> groups, int countCode, double scale)
+        private static object[] List(List<DxfTypedValue> groups, int countCode, double scale, double own = double.NaN, bool angle = false)
         {
             int at = groups.FindIndex(g => g.TypeCode == countCode);
             int flags = groups.FindIndex(g => g.TypeCode == (countCode == 175 ? 96 : 97));
@@ -865,7 +893,7 @@ namespace GeometryHelper.Dxf
                 return None;
             }
 
-            var values = new object[count];
+            var values = new List<double>(count + 1);
 
             for (int i = 0; i < count; i++)
             {
@@ -874,10 +902,22 @@ namespace GeometryHelper.Dxf
                     return None;
                 }
 
-                values[i] = value * scale;
+                values.Add(value);
             }
 
-            return values;
+            if (!double.IsNaN(own) && !values.Exists(v => angle ? Round(v, own) <= Tolerance.Default.EqualVector : Math.Abs(v - own) <= Tolerance.Default.EqualPoint))
+            {
+                values.Insert(values.FindLastIndex(v => v < own) + 1, own);
+            }
+
+            return values.ConvertAll(v => (object)(v * scale)).ToArray();
+        }
+
+        /// <summary>How far apart two angles are round the circle, from nought to pi.</summary>
+        private static double Round(double a, double b)
+        {
+            double apart = Math.Abs(a - b) % Turn;
+            return apart > Math.PI ? Turn - apart : apart;
         }
 
         internal static bool Number(string text, out double value) => Numbers.TryRead(text?.Trim(), out value) && Guard.IsFinite(value);
