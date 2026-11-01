@@ -463,7 +463,10 @@ blocks and layers are added to it as to any other. The versions are AC1015 (R200
 AC1032 (R2018); `new DxfDatabase("AC1015")` is the very text of `DxfDatabase.Parse(new DxfWriter().ToString())` but for that
 code page, and a version of R12 to R14, or one written otherwise, is refused (`ArgumentException`). Text of R2007 or later
 is written in UTF-8 whatever the code page says, and before R2007 a letter the code page has not as its escape: Korean
-text copied into a new drawing of R2018 is written as its letters, and into one of R2004 as `\U+CCA0` and on. A reader
+text copied into a new drawing of R2018 is written as its letters, and into one of R2004 as `\U+CCA0` and on. A letter
+beyond U+FFFF, such as the face U+1F600, is written as the escapes of its two halves, `\U+D83D\U+DE00`, in a drawing of
+R2018 too: AutoCAD 2021 refuses a DXF that holds its four bytes of UTF-8 ("DXF read error" on the line after it) and
+reads the escapes as the letter. A reader
 that takes the code page from the header with the version, as ezdxf does, read such a drawing of R2018 as ANSI_1252 while
 it named none, and its recover said "Fixed unicode decoding error" for each line of Korean; it reads it as UTF-8 now. A
 later version gives its records what that version added to them, as AutoCAD's own saves of each version give them: from
@@ -1078,11 +1081,14 @@ joined into a LWPOLYLINE in 0.23 s and into a SPLINE in 0.19 s, all on .NET 10.
 A TEXT is a `DxfDBText` (`TextString`, `Position`, `AlignmentPoint`, `Height`, `Rotation`, `WidthFactor`, `Oblique`,
 `HorizontalMode`, `VerticalMode`, `IsMirroredInX` and the rest of AutoCAD's) and an MTEXT a `DxfMText` (`Contents` with
 its codes, `Text` without them, `Location`, `TextHeight`, `Width`, `Attachment`). `Contents` reads a letter written as its
-escape as the letter, as AutoCAD 2021 reads the MTEXT of a drawing of R2004 or older, where each letter the code page has
-not is written so: `a\U+0110b` is aĐb, and `\U+D83D\U+DE00`, the escapes of the two halves of a letter beyond U+FFFF, is
-that letter, U+1F600. An escaped backslash, `\\U+0110`, the escape of a letter of ASCII, `\U+0041`, and half a letter
-alone are kept as written, so that no code and no line break is made of an escape. Set, the letters are written as they
-are from R2007 on and as escapes before, as `TextString` writes those of a TEXT. `LineSpaceDistance` is the spacing factor
+escape as the letter, as AutoCAD 2021 reads it in a drawing of any version, where a drawing of R2004 or older writes so
+each letter the code page has not: `a\U+0110b` is aĐb, and `\U+D83D\U+DE00`, the escapes of the two halves of a letter
+beyond U+FFFF, is that letter, U+1F600. Every escape of four digits is read so, before the formatting, `\u+0110` too, so
+that `\\U+0110` is a backslash and Đ, `\U+0041` an A and `\U+005CP` a new paragraph, as AutoCAD reads them; only
+`\U+0000` and an escape of fewer digits are kept as written. A TEXT's and an attribute's `TextString`, a dimension's
+`DimensionText`, a MULTILEADER's words and a table cell's `TextString` and `Value` read them the same way. Set, the letters
+are written as they are from R2007 on, but one beyond U+FFFF written as the escapes of its halves, and as escapes before,
+as `TextString` writes those of a TEXT. `LineSpaceDistance` is the spacing factor
 times single spacing, 5/3 of the letters' height: 5 for letters 3 high. `SetAttachmentMovingLocation` holds the MTEXT by
 another of its points where it stands, by its width and the height of its words (43): the MTEXT 40 wide at (20, 40, 0) held at
 its top centre stands at (40, 40, 0). `ShowBorders` draws its text frame, and `BackgroundTransparency` is a
@@ -2416,8 +2422,9 @@ end of a line does not take the line feed after it; and a file with letters beyo
 that does not read each byte of ASCII alone as itself, UTF-16 (1200, 1201), EBCDIC (37), ISO-2022 (50220 to 50229), HZ
 (52936) or UTF-7, which read an escape, a shift or a sign as a change of state and leave it out, or one of the national
 7-bit pages (20105 to 20108, 20261, 20269) or x-mac-thai (10021), which read a few signs of ASCII as other letters, is
-refused with a `FormatException` that names the code page and no line; AutoCAD writes none of them. A name written with the
-escapes of R2000 (`\U+00E9`) is read as its letters. A number is read from its first 19 digits and checked in integers,
+refused with a `FormatException` that names the code page and no line; AutoCAD writes none of them. A name or a text
+written with escapes (`\U+00E9`, or `\u+00e9`) is read as its letters, in a file of any version, as AutoCAD 2021 reads
+them; `\U+0000` and an escape of fewer than four digits are kept as written. A number is read from its first 19 digits and checked in integers,
 the digits past 800 counting only as whether any is not nought: a number of 300 000 digits takes 2.2 ms on .NET 10.
 
 The numbers are kept as the file has them unless `ToMillimeters` is set, which scales points, radii, elevations,
@@ -2477,7 +2484,8 @@ characters are read from the left as AutoCAD reads them: %%c, %%d and %%p, in ei
 plus-minus signs, so `%%c20 at 45%%d` is `⌀20 at 45°`, %%% is a per cent sign, so `50%%%d` is `50%d`, and %%nnn, three
 digits, the character of that code, `%%065` an A; %%u, %%o and any other are kept as written. A letter written as an
 escape, `\U+00E9`, is the letter, as in a name, and so is the text `\U+0041` written in the words, which reads as an A: the
-file cannot tell the two apart. A control character in AutoCAD's caret form is the character, `^J` a line feed, `^M` a
+file cannot tell the two apart. An MTEXT's escapes are read before its formatting, as AutoCAD 2021 reads them: `\\U+0110`
+is a backslash and Đ, and `\U+005CP` a new line. A control character in AutoCAD's caret form is the character, `^J` a line feed, `^M` a
 carriage return and `^I` a tab, and `^` followed by a space a caret. A TEXT is one line, so a line feed in its words,
 however written, is a space, and a carriage return is left out of either kind: `a^Jb` is `a b` in a TEXT and `a` and `b`
 on two lines in an MTEXT.

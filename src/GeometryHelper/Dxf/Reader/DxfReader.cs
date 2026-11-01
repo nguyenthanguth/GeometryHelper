@@ -228,7 +228,9 @@ namespace GeometryHelper.Dxf
             /// The bytes a text is written as, for <see cref="DxfFile"/>, so that this decoding reads it back: in UTF-8 where the
             /// text is read as UTF-8, else in the code page it is read in, a letter the page cannot hold written as its escape
             /// (<c>\U+00E9</c>), as AutoCAD reads one in any page; and every letter beyond ASCII as its escape where the text is
-            /// read in no page of the file's own: a file all ASCII, or one in a page the runtime has not, read as Latin-1.
+            /// read in no page of the file's own: a file all ASCII, or one in a page the runtime has not, read as Latin-1. A letter
+            /// beyond U+FFFF is written as the escapes of its two halves in UTF-8 too, as AutoCAD 2021 opens no DXF that holds its
+            /// four bytes (a DXF read error on the line after it) and reads the escapes as the letter.
             /// </summary>
             internal byte[] Encode(string text)
             {
@@ -266,7 +268,7 @@ namespace GeometryHelper.Dxf
                         int at = c >= ' ' && c <= 'ÿ' ? c : Array.IndexOf(High1252, c) >= 0 ? 0x80 + Array.IndexOf(High1252, c) : -1;
                         letter = at >= 0 ? new[] { (byte)at } : null;
                     }
-                    else if (strict != null)
+                    else if (strict != null && !(units == 2 && CodePage == "UTF-8"))
                     {
                         try
                         {
@@ -1279,11 +1281,14 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// A name with the escapes of R2000 read as the letters they stand for: <c>\U+00E9</c> is an e acute.
+        /// A name or a text with its escapes read as the letters they stand for, as AutoCAD 2021 reads a DXF of any version:
+        /// <c>\U+00E9</c> or <c>\u+00e9</c> is an e acute wherever it stands, a backslash before it kept, so that
+        /// <c>\\U+0110</c> is a backslash and D with stroke; the escape of half a letter is that half. <c>\U+0000</c> and an
+        /// escape of fewer than four digits are kept as written.
         /// </summary>
         internal static string Decode(string name)
         {
-            int at = name.IndexOf("\\U+", StringComparison.Ordinal);
+            int at = EscapeAt(name, 0);
 
             if (at < 0)
             {
@@ -1295,7 +1300,7 @@ namespace GeometryHelper.Dxf
 
             while (at >= 0)
             {
-                if (at + 7 <= name.Length && int.TryParse(name.Substring(at + 3, 4), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out int letter))
+                if (at + 7 <= name.Length && int.TryParse(name.Substring(at + 3, 4), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out int letter) && letter != 0)
                 {
                     plain.Append(name, from, at - from).Append((char)letter);
                     from = at + 7;
@@ -1306,10 +1311,24 @@ namespace GeometryHelper.Dxf
                     from = at + 3;
                 }
 
-                at = name.IndexOf("\\U+", from, StringComparison.Ordinal);
+                at = EscapeAt(name, from);
             }
 
             return plain.Append(name, from, name.Length - from).ToString();
+        }
+
+        /// <summary>Where the next <c>\U+</c> or <c>\u+</c> of a text begins, from a place on; -1 where none does.</summary>
+        private static int EscapeAt(string text, int from)
+        {
+            for (int at = text.IndexOf('\\', from); at >= 0 && at + 2 < text.Length; at = text.IndexOf('\\', at + 1))
+            {
+                if ((text[at + 1] == 'U' || text[at + 1] == 'u') && text[at + 2] == '+')
+                {
+                    return at;
+                }
+            }
+
+            return -1;
         }
     }
 }

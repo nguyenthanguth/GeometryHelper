@@ -158,9 +158,10 @@ namespace GeometryHelper.Dxf
         /// Gets the words: a TEXT's as written, an MTEXT's with its formatting taken out and its paragraphs (\P) a line feed
         /// apart. In both, %%c, %%d and %%p (either case) are the diameter, degree and plus-minus signs, %%% a per cent sign
         /// and %%nnn the character of the code nnn; a letter written as an escape, <c>\U+00E9</c>, is the letter, and so is
-        /// the text <c>\U+0041</c> written in the words, which reads as A; a control character in AutoCAD's caret form, ^J,
-        /// ^M or ^I, is the character, and <c>^ </c> a caret. A TEXT is one line, so a line feed in its words is a space; a
-        /// carriage return is left out of either.
+        /// the text <c>\U+0041</c> written in the words, which reads as A, an MTEXT's escapes read before its formatting, as
+        /// AutoCAD 2021 reads them: <c>\\U+0110</c> is a backslash and Đ, <c>\U+005CP</c> a new line; a control character in
+        /// AutoCAD's caret form, ^J, ^M or ^I, is the character, and <c>^ </c> a caret. A TEXT is one line, so a line feed in its
+        /// words is a space; a carriage return is left out of either.
         /// </summary>
         public string Value { get; }
 

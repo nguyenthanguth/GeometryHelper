@@ -113,14 +113,15 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets or sets the text the dimension writes (group 1), as AutoCAD's <c>DimensionText</c>: empty or <c>&lt;&gt;</c> for the
-        /// measurement, <c>&lt;&gt; TYP</c> for the measurement and TYP after it, a single space for none; empty where the record
-        /// gives none.
+        /// measurement, <c>&lt;&gt; TYP</c> for the measurement and TYP after it, a single space for none; each escape of four
+        /// digits read as the letter it stands for, as AutoCAD 2021 reads it, <c>&lt;&gt; \U+0110</c> giving &lt;&gt; Đ; empty
+        /// where the record gives none.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the text set is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
         public string DimensionText
         {
-            get => Own().Text(1, Own().Base) ?? string.Empty;
+            get => DxfReader.Decode(Own().Text(1, Own().Base) ?? string.Empty);
 
             set
             {

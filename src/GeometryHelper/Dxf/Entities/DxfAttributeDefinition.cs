@@ -79,7 +79,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the definition is erased.</exception>
         public string Prompt
         {
-            get => Unescaped(TextValue(3) ?? string.Empty);
+            get => DxfReader.Decode(TextValue(3) ?? string.Empty);
 
             set
             {

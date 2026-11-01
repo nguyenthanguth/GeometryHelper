@@ -52,17 +52,31 @@ tests, one a guard.
 **FIXED.** `DxfMText.Contents` reads a letter written as its escape as the letter, as AutoCAD 2021 reads the MTEXT of a
 drawing of R2004 or older, which writes so each letter its code page has not: `a\U+0110b` is aĐb, and the escapes of the
 two halves of a letter beyond U+FFFF, `\U+D83D\U+DE00`, are that letter, U+1F600. It gave the escapes, so that an MTEXT of
-R2004 set to aĐb read back as `a\U+0110b`, where `Text` and a TEXT's `TextString` gave the letters. An escaped
-backslash, `\\U+0110`, the escape of a letter of ASCII, `\U+0041`, and half a letter alone are kept as written, so that no
-code and no line break is made of an escape. Set, the letters are written as they are from R2007 on and as escapes
-before, as they were; and the pieces of 250 characters an MTEXT is written in no longer part the two halves of such a
-letter, which a drawing of R2007 or later wrote as two escapes. 8 new tests.
+R2004 set to aĐb read back as `a\U+0110b`, where `Text` and a TEXT's `TextString` gave the letters. Set, the letters are
+written as they are from R2007 on and as escapes before, as they were; and the pieces of 250 characters an MTEXT is
+written in no longer part the two halves of such a letter, which a drawing of R2007 or later wrote as two escapes. 8 new
+tests.
+
+**FIXED.** Every text reads its escapes as AutoCAD 2021 reads them, checked headless on drawings of R2004 and R2018 the
+library wrote: each escape of four digits is the letter it stands for, in a drawing of any version, `\u+0110` as well as
+`\U+0110`, and before an MTEXT's formatting, so that `\\U+0110` is a backslash and Đ, `\U+0041` an A, `\U+005CP` a new
+paragraph and `\U+D83D` that half alone; `\U+0000` and an escape of fewer digits are kept as written. `DxfMText.Contents`
+kept the escaped backslash, the escape of a letter of ASCII and half a letter alone as written; a dimension's
+`DimensionText`, a table cell's `TextString` and `Value` and the value `GetBlockAttributeValue` gives kept every escape;
+a MULTILEADER's words were read as `Contents`; an MTEXT's `Text` read `\\U+0110` as Đ; a TEXT's `TextString` read
+`\U+0000` as a null character and kept `\u+0110`. Of 320 readings of 20 kinds of escape in seven texts, the library gave
+what AutoCAD gives in 172 and gives it in 310; the ten left are a cell AutoCAD reads empty, a line break AutoCAD's `Text`
+gives as a carriage return and line feed, `\M+` codes and `\U+0000` in an MTEXT's `Text`. 5 new tests, 1 changed.
+
+**FIXED.** A letter beyond U+FFFF, such as the face U+1F600, is written into a drawing of R2007 or later as the escapes
+of its two halves, `\U+D83D\U+DE00`, as before R2007: AutoCAD 2021 opened no drawing of R2018 the library wrote with such
+a letter in it ("DXF read error" on the line after it), and reads the escapes as the letter. 1 new test, 4 changed.
 
 **CHANGED.** The entities of a drawing by handle are looked up under a lock, and its objects by handle kept by the first
 thread to read them, so that several threads copying from one drawing at once, dynamic blocks and all, make nothing of it
 twice: eight threads copying a drawing of four dynamic blocks and twelve INSERTs of them, 60 times over by `Insert`,
 `Insert(name)`, `WblockCloneObjects` and `WblockCloneObjects` of one entity at a time, each give the drawing it gives
-alone, as they did in 1 500 rounds before. 1 new test.
+alone, as they did in 1 500 rounds before. `ApproxNumObjects` counts the entities under the same lock. 2 new tests.
 
 **CHANGED.** An INSERT of an anonymous block standing for a dynamic block finds that block through the block table by
 handle, not by reading every block record: `IsDynamicBlock`, `DynamicBlockTableRecord` and `AnonymousBlockTableRecord` of

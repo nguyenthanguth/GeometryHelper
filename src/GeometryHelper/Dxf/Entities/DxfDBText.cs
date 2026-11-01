@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text;
 using GeometryHelper.Export;
 using GeometryHelper.Geometry;
 
@@ -97,7 +96,7 @@ namespace GeometryHelper.Dxf
             {
                 if (!IsAttribute)
                 {
-                    return Unescaped(GetString(1) ?? string.Empty);
+                    return DxfReader.Decode(GetString(1) ?? string.Empty);
                 }
 
                 // An attribute of several lines reads the words of its MTEXT (101 on), whatever its group 1 holds.
@@ -111,7 +110,7 @@ namespace GeometryHelper.Dxf
                     }
                 }
 
-                return Unescaped(TextValue(own, 1) ?? string.Empty);
+                return DxfReader.Decode(TextValue(own, 1) ?? string.Empty);
             }
 
             set
@@ -1394,38 +1393,6 @@ namespace GeometryHelper.Dxf
                 NumberGroup(51, oblique, TextDouble(51, 0.0)),
                 thickness != 0.0 ? NumberGroup(39, ocs.TransformThickness(thickness), thickness) : new KeyValuePair<int, string>[0],
                 TextNormalGroups(ocs.NewExtrusion));
-        }
-
-        /// <summary>A text with its escapes of R2000 read as the letters they stand for, <c>\U+00E9</c> an e acute, the rest as written.</summary>
-        internal static string Unescaped(string text)
-        {
-            int at = text.IndexOf("\\U+", StringComparison.Ordinal);
-
-            if (at < 0)
-            {
-                return text;
-            }
-
-            var plain = new StringBuilder(text.Length);
-            int from = 0;
-
-            while (at >= 0)
-            {
-                if (at + 7 <= text.Length && int.TryParse(text.Substring(at + 3, 4), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out int letter))
-                {
-                    plain.Append(text, from, at - from).Append((char)letter);
-                    from = at + 7;
-                }
-                else
-                {
-                    plain.Append(text, from, at + 3 - from);
-                    from = at + 3;
-                }
-
-                at = text.IndexOf("\\U+", from, StringComparison.Ordinal);
-            }
-
-            return plain.Append(text, from, text.Length - from).ToString();
         }
 
         private static GeoVector3 FromDegrees(double degrees)

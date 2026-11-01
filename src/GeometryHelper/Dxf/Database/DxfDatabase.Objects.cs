@@ -334,30 +334,34 @@ namespace GeometryHelper.Dxf
         /// handle, the entities of every space and block with their vertices and attributes, the objects of the OBJECTS section,
         /// and the five tables it reads with their records; those erased left out. AutoCAD counts the records of the tables the
         /// library has no class for as well (APPID, VPORT, VIEW, UCS) and the BLOCK and ENDBLK of each block, so its number is
-        /// somewhat higher. A drawing of R12 that writes no handles counts none. The drawing is walked once for each question.
+        /// somewhat higher. A drawing of R12 that writes no handles counts none. The drawing is walked once for each question, its
+        /// entities under the lock <see cref="ItemByHandle"/> takes, so that it may be asked while other threads copy from it.
         /// </summary>
         public int ApproxNumObjects
         {
             get
             {
-                IndexEntities();
+                int count = 0;
+
+                lock (_entitiesMade)
+                {
+                    IndexEntities();
+
+                    foreach (DxfItem entity in _entities.Values)
+                    {
+                        if (!entity.IsRemoved)
+                        {
+                            count++;
+                        }
+                    }
+                }
 
                 if (_others == null || _othersAt != File.EditCount)
                 {
                     IndexOthers();
                 }
 
-                int count = _others.Count + (File.HoldsObjects ? File.ObjectCount() : 0);
-
-                foreach (DxfItem entity in _entities.Values)
-                {
-                    if (!entity.IsRemoved)
-                    {
-                        count++;
-                    }
-                }
-
-                return count;
+                return count + _others.Count + (File.HoldsObjects ? File.ObjectCount() : 0);
             }
         }
 

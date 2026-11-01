@@ -249,13 +249,14 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets the text of a cell, as AutoCAD's <c>TextString</c>: from R2007 on the text of its value (302), before R2007 its
-        /// groups 2 and 1 one after another; empty for a cell of no text, as a block cell.
+        /// groups 2 and 1 one after another, each escape of four digits read as the letter it stands for, as AutoCAD 2021 reads
+        /// it, <c>B\U+0110</c> giving BĐ; empty for a cell of no text, as a block cell.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="col">The column, from nought.</param>
         /// <returns>The text, with its codes, as <c>\P</c> for a new line.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the cell is not one of the table's.</exception>
-        public string TextString(int row, int col) => Cell(row, col).Text();
+        public string TextString(int row, int col) => DxfReader.Decode(Cell(row, col).Text());
 
         /// <summary>Gets the text of a cell as the file holds it, as AutoCAD's <c>TextStringConst</c>: the same as <see cref="TextString(int, int)"/>.</summary>
         /// <param name="row">The row, from nought.</param>
@@ -278,13 +279,18 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets the value of a cell, as AutoCAD's <c>Value</c>: from R2007 on of the kind its value says (90: 1 a long, 2 a
-        /// double, 4 a text), an <see cref="int"/>, a <see cref="double"/> or a <see cref="string"/>; before R2007 its text.
+        /// double, 4 a text), an <see cref="int"/>, a <see cref="double"/> or a <see cref="string"/>; before R2007 its text. A
+        /// text is read as <see cref="TextString(int, int)"/> reads it, its escapes as letters.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="col">The column, from nought.</param>
         /// <returns>The value.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the cell is not one of the table's.</exception>
-        public object Value(int row, int col) => Cell(row, col).Value();
+        public object Value(int row, int col)
+        {
+            object value = Cell(row, col).Value();
+            return value is string text ? DxfReader.Decode(text) : value;
+        }
 
         /// <summary>Gets the value of a content of a cell, as AutoCAD's <c>GetValue(row, column, contentIndex)</c>: of its one content, nought.</summary>
         /// <param name="row">The row, from nought.</param>
@@ -502,7 +508,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets the value a block cell gives an attribute of its block, as AutoCAD's <c>GetBlockAttributeValue</c>: the 300 after
-        /// the 331 that points at the definition; null where the cell gives it none.
+        /// the 331 that points at the definition, its escapes read as letters as <see cref="TextString(int, int)"/> reads them;
+        /// null where the cell gives it none.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="col">The column, from nought.</param>
@@ -524,7 +531,7 @@ namespace GeometryHelper.Dxf
             {
                 if (cell.Groups.List[i].Key == 331 && string.Equals(cell.Groups.List[i].Value.Trim(), handle, StringComparison.OrdinalIgnoreCase) && cell.Groups.List[i + 1].Key == 300)
                 {
-                    return cell.Groups.List[i + 1].Value;
+                    return DxfReader.Decode(cell.Groups.List[i + 1].Value);
                 }
             }
 

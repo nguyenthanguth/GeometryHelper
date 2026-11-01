@@ -69,28 +69,29 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void LettersSetOnAnMTextOfR2018_AreWrittenAsTheyAre_AndReadBackTheSame()
+        public void LettersSetOnAnMTextOfR2018_AreWrittenAsTheyAre_AFaceAsTheEscapesOfItsHalves_AndReadBackTheSame()
         {
+            // D23f: AutoCAD 2021 opens no DXF of R2018 that holds the four bytes of UTF-8 of a letter beyond U+FFFF.
             var db = new DxfDatabase("AC1032");
             db.ModelSpace.AppendEntity(new DxfMText { Contents = Letters });
             string text = db.ToText();
 
-            Assert.Contains("\n" + Letters + "\n", text);
-            Assert.DoesNotContain("\\U+", text);
+            Assert.Contains("\naĐb보\\U+D83D\\U+DE00cé\n", text);
+            Assert.DoesNotContain("\\U+0110", text);
             Assert.Equal(Letters, DxfDatabase.Parse(text).ModelSpace.OfType<DxfMText>().Single().Contents);
         }
 
         [Theory]
         [InlineData("AC1018")]
         [InlineData("AC1032")]
-        public void AnEscapedBackslash_TheEscapeOfALetterOfAscii_AndHalfALetterAlone_AreKeptAsWritten(string version)
+        public void AnEscapedBackslash_TheEscapeOfALetterOfAscii_AndHalfALetterAlone_AreReadAsAutoCad2021ReadsThem(string version)
         {
-            // \\U+0110 is a backslash and the words U+0110; \U+0041 an escape that would read as A, \U+005C one that would
-            // make a code and \U+000A a line break; \U+D83D a half with no other half after it.
+            // D23f, as AutoCAD 2021 reads them: \\U+0110 is a backslash and D with stroke, \U+0041 an A, \U+005C a backslash
+            // that makes a code, \U+000A a line break and \U+D83D a half with no other half after it; too few digits are kept.
             const string Written = "x\\\\U+0110 \\U+0041 \\U+005CP \\U+000A \\U+D83Dy \\U+DE00 \\U+00e9 \\U+00G1 \\U+01";
             DxfMText mtext = Holding(version, Written).ModelSpace.OfType<DxfMText>().Single();
 
-            Assert.Equal("x\\\\U+0110 \\U+0041 \\U+005CP \\U+000A \\U+D83Dy \\U+DE00 é \\U+00G1 \\U+01", mtext.Contents);
+            Assert.Equal("x\\Đ A \\P \n \uD83Dy \uDE00 é \\U+00G1 \\U+01", mtext.Contents);
         }
 
         [Fact]
@@ -102,9 +103,9 @@ namespace GeometryHelper.UnitTest.Dxf
             db.ModelSpace.AppendEntity(new DxfMText { Contents = words });
             string text = db.ToText();
 
+            // D23f: the face written as the escapes of its halves, as AutoCAD 2021 opens no DXF of R2018 holding its UTF-8.
             Assert.Contains("\n" + new string('x', 249) + "\n", text);
-            Assert.Contains("\n" + Face + "end\n", text);
-            Assert.DoesNotContain("\\U+", text);
+            Assert.Contains("\n\\U+D83D\\U+DE00end\n", text);
             Assert.Equal(words, DxfDatabase.Parse(text).ModelSpace.OfType<DxfMText>().Single().Contents);
         }
 
@@ -137,8 +138,9 @@ namespace GeometryHelper.UnitTest.Dxf
             string text = db.ToText();
             DxfDatabase read = DxfDatabase.Parse(text);
 
+            // D23f: in R2018 too the face is written as the escapes of its halves.
             Assert.Equal(escaped, text.Contains("a\\U+0110b\\U+BCF4\\U+D83D\\U+DE00cé"));
-            Assert.Equal(!escaped, text.Contains(Letters));
+            Assert.Equal(!escaped, text.Contains("aĐb보\\U+D83D\\U+DE00cé"));
             Assert.Equal(Letters, read.ModelSpace.OfType<DxfDBText>().Single().TextString);
             Assert.Equal(Letters, read.ModelSpace.OfType<DxfBlockReference>().Single().AttributeCollection.Cast<DxfAttributeReference>().Single().TextString);
         }

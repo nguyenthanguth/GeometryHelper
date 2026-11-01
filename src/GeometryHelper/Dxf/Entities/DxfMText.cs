@@ -80,24 +80,26 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets or sets the words of the MTEXT with their formatting (groups 3 and 1), as AutoCAD's <c>Contents</c>: as the file
-        /// writes them, <c>\P</c> a new paragraph, <c>{\H1.5x;Big}</c> letters half as high again, but a letter beyond ASCII
-        /// written as its escape read as the letter, as AutoCAD 2021 reads the escapes of a file of R2004 or older:
-        /// <c>a\U+0110b</c> gives aĐb, and the escapes <c>\U+D83D\U+DE00</c> of the two halves of a letter beyond U+FFFF give
-        /// that letter. An escaped backslash, <c>\\U+0110</c>, the escape of a letter of ASCII, <c>\U+0041</c>, and that of half
-        /// a letter alone are kept as they are written. Empty where the record gives none. Before R2018 an MTEXT whose later
-        /// columns are MTEXTs of their own holds only the words of its first: those of the others are in their MTEXTs, as
-        /// AutoCAD and ezdxf keep them.
+        /// writes them, <c>\P</c> a new paragraph, <c>{\H1.5x;Big}</c> letters half as high again, but each escape of four
+        /// digits read as the letter it stands for before the formatting, as AutoCAD 2021 reads it in a file of any version:
+        /// <c>a\U+0110b</c> gives aĐb, <c>\U+D83D\U+DE00</c> the letter beyond U+FFFF of those two halves, <c>\U+0041</c> an A,
+        /// <c>\\U+0110</c> a backslash and Đ, and <c>\U+005CP</c> the code of a new paragraph. <c>\U+0000</c> and an escape of
+        /// fewer digits are kept as written. Empty where the record gives none. Before R2018 an MTEXT whose later columns are
+        /// MTEXTs of their own holds only the words of its first: those of the others are in their MTEXTs, as AutoCAD and ezdxf
+        /// keep them.
         /// </summary>
         /// <value>Set, words with their formatting codes, with no line break: written in pieces of 250 characters, the last in
         /// group 1, a piece not ending between a caret and the character it goes with, nor between the two halves of a letter
-        /// beyond U+FFFF. In a file of R2007 or later every letter is written as it is; in an older one a letter the file's code
-        /// page lacks is written as its escape, as AutoCAD writes it, and reads back as the letter.</value>
+        /// beyond U+FFFF. In a file of R2007 or later every letter is written as it is but one beyond U+FFFF, written as the
+        /// escapes of its two halves, as AutoCAD 2021 opens no DXF that holds its four bytes of UTF-8; in an older one a letter
+        /// the file's code page lacks is written as its escape, as AutoCAD writes it. Each reads back as the letter. The words
+        /// it has, as they are written or as they read, a line break read from an escape among them, change nothing.</value>
         /// <exception cref="ArgumentNullException">Thrown when the words set are null.</exception>
         /// <exception cref="ArgumentException">Thrown when the words set have a line break in them: a new paragraph is <c>\P</c>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the MTEXT is erased.</exception>
         public string Contents
         {
-            get => Letters(Written);
+            get => DxfReader.Decode(Written);
 
             set
             {
@@ -106,17 +108,17 @@ namespace GeometryHelper.Dxf
                     throw new ArgumentNullException(nameof(value));
                 }
 
+                // The words it has, as the file writes them or as they read, a line break read from an escape among them, change nothing.
+                string written = Written;
+
+                if (string.Equals(value, written, StringComparison.Ordinal) || string.Equals(value, DxfReader.Decode(written), StringComparison.Ordinal))
+                {
+                    return;
+                }
+
                 if (value.IndexOf('\n') >= 0 || value.IndexOf('\r') >= 0)
                 {
                     throw new ArgumentException("The words of an MTEXT have no line break in them: a new paragraph is written \\P.", nameof(value));
-                }
-
-                // The words it has, as the file writes them or as they read, change nothing.
-                string written = Written;
-
-                if (string.Equals(value, written, StringComparison.Ordinal) || string.Equals(value, Letters(written), StringComparison.Ordinal))
-                {
-                    return;
                 }
 
                 var groups = new List<KeyValuePair<int, string>>();
@@ -161,64 +163,6 @@ namespace GeometryHelper.Dxf
 
                 return text.Append(last ?? string.Empty).ToString();
             }
-        }
-
-        /// <summary>
-        /// Words of an MTEXT with each escape of a letter beyond ASCII (<c>\U+0110</c>) read as the letter, two escapes of the
-        /// halves of a letter beyond U+FFFF as that letter; an escaped backslash (<c>\\</c>), the escape of a letter of ASCII and
-        /// that of half a letter alone kept as they are written, so that no code and no line break is made of an escape.
-        /// </summary>
-        private static string Letters(string words)
-        {
-            if (words.IndexOf("\\U+", StringComparison.Ordinal) < 0)
-            {
-                return words;
-            }
-
-            var letters = new StringBuilder(words.Length);
-
-            for (int i = 0; i < words.Length; i++)
-            {
-                if (words[i] != '\\' || i + 1 >= words.Length)
-                {
-                    letters.Append(words[i]);
-                    continue;
-                }
-
-                if (words[i + 1] == '\\')
-                {
-                    letters.Append("\\\\");
-                    i++;
-                    continue;
-                }
-
-                int letter = Escaped(words, i);
-                int low = letter >= 0 && char.IsHighSurrogate((char)letter) ? Escaped(words, i + 7) : -1;
-
-                if (letter >= 0x80 && !char.IsSurrogate((char)letter))
-                {
-                    letters.Append((char)letter);
-                    i += 6;
-                }
-                else if (low >= 0 && char.IsLowSurrogate((char)low))
-                {
-                    letters.Append((char)letter).Append((char)low);
-                    i += 13;
-                }
-                else
-                {
-                    letters.Append('\\');
-                }
-            }
-
-            return letters.ToString();
-        }
-
-        /// <summary>The code of the letter an escape <c>\U+XXXX</c> at a place of the words stands for; -1 where none begins there.</summary>
-        private static int Escaped(string words, int at)
-        {
-            return at + 7 <= words.Length && string.CompareOrdinal(words, at, "\\U+", 0, 3) == 0
-                && int.TryParse(words.Substring(at + 3, 4), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out int letter) ? letter : -1;
         }
 
         /// <summary>

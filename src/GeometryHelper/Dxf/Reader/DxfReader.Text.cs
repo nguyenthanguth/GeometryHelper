@@ -165,7 +165,10 @@ namespace GeometryHelper.Dxf
                 Add(record, DxfText.Read(at, normal, height, DxfText.Turn(rotation), value, multiline, widthFactor, width));
             }
 
-            /// <summary>The words of an MTEXT: its pieces of 250 characters (3) and its last (1), its formatting taken out.</summary>
+            /// <summary>
+            /// The words of an MTEXT: its pieces of 250 characters (3) and its last (1), its escapes read as letters, then its
+            /// formatting taken out, as AutoCAD 2021 reads them: <c>\\U+0110</c> is a backslash and Đ, <c>\U+005CP</c> a new line.
+            /// </summary>
             private static string MText(Record r)
             {
                 var text = new StringBuilder();
@@ -179,7 +182,7 @@ namespace GeometryHelper.Dxf
                 }
 
                 text.Append(r.Text(1) ?? string.Empty);
-                return Signs(Decode(PlainMText(Carets(text.ToString())))).Replace("\r", string.Empty);
+                return Signs(PlainMText(Decode(Carets(text.ToString())))).Replace("\r", string.Empty);
             }
 
             #endregion
@@ -274,7 +277,7 @@ namespace GeometryHelper.Dxf
         /// codes that end in a semicolon (font, height, colour, width, stacking, paragraph and the rest) go with their
         /// arguments, those that stand alone (<c>\L</c>, <c>\l</c>, <c>\O</c>, <c>\o</c>, <c>\K</c>, <c>\k</c>) go alone,
         /// <c>\~</c> is a space, <c>\\</c>, <c>\{</c> and <c>\}</c> are the character, a stack <c>\S1/2;</c> is read as 1/2, a
-        /// <c>\U+</c> escape is left for the decoding that follows, and the braces that group are taken off. A code with no
+        /// <c>\U+</c> escape the decoding before it kept is kept as written, and the braces that group are taken off. A code with no
         /// semicolon after it is kept as written, as ezdxf keeps it, <c>\M+1A4A1</c> among them, unless a later
         /// semicolon ends it, as it ends it in ezdxf too.
         /// </summary>
@@ -329,7 +332,7 @@ namespace GeometryHelper.Dxf
                         break;
 
                     case 'U':
-                        // \U+00E9 is a character, decoded afterwards with the other escapes of a name.
+                        // An escape the decoding before kept, \U+0000 or one of fewer digits, is kept as written.
                         plain.Append('\\').Append('U');
                         break;
 

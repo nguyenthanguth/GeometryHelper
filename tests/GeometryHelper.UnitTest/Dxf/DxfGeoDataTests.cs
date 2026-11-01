@@ -196,7 +196,8 @@ namespace GeometryHelper.UnitTest.Dxf
             // No value ends on the first half, as a letter or as its escape, which a reader takes for a letter of its own.
             string record = Records(db.ToText()).Single(r => HandleOf(r) == geo.Handle);
             Assert.DoesNotContain(record.Split('\n'), line => (line.Length > 0 && char.IsHighSurrogate(line[line.Length - 1])) || Regex.IsMatch(line, @"\\U\+D[89AB][0-9A-F]{2}$"));
-            Assert.Contains("143\n0.0\n303\n" + new string('a', 254) + "\n301\n\U0001F600tail\n 93\n0\n", record, StringComparison.Ordinal);
+            // D23f: the letter written as the escapes of its halves, as AutoCAD 2021 opens no DXF of R2018 holding its UTF-8.
+            Assert.Contains("143\n0.0\n303\n" + new string('a', 254) + "\n301\n\\U+D83D\\U+DE00tail\n 93\n0\n", record, StringComparison.Ordinal);
 
             using (var stream = new MemoryStream())
             {
