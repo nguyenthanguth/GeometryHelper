@@ -6,6 +6,15 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `DxfTextSymbols`, the symbols of AutoCAD's text editor as constants, for the words of a TEXT, an MTEXT, an
+attribute or a dimension: the 21 letters its Symbol menu enters and its help lists, from `Degree` (°) and `Diameter` (∅,
+U+2205, not the Latin letter Ø) to `Subscript2`, `Squared`, `Cubed` and `NonBreakingSpace`, and the menu's control codes
+`DegreeCode` (`%%d`), `PlusMinusCode` (`%%p`) and `DiameterCode` (`%%c`). The writer is as it was:
+`DxfTextSymbols.Diameter + "20"` in an MTEXT of R2004 is written `\U+220520`, and in one of R2018 as the letter. Checked
+headless against AutoCAD 2021: each of the 21, written by the library into an MTEXT, a TEXT, an attribute and a dimension
+of R2004 and of R2018, was read back as the same letter in all 210 readings, and AutoCAD wrote its own texts of them in
+the same bytes. 8 new tests.
+
 **FIXED.** A table cell of R2000 or R2004 longer than 250 letters is written in pieces of 250 letters in groups 3, the last
 in 1, as AutoCAD 2021 writes it: written in groups 2, as the DXF reference has it, AutoCAD read the cell as empty, 251
 letters as well as 600. A letter the code page lacks is written as its escape within its piece, and an escape given counts

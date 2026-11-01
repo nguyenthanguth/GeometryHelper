@@ -1191,6 +1191,26 @@ a font's file marked by the group `{\*\ghfontfile}` other readers pass over and 
 `SetContentsRtf` leaves out; that RTF comes back as `B-12\P\C1;\LM16`, the same words in the same look, `abc\P` as `abc\P`
 and `\Fromans;abc` as `\Fromans;abc`.
 
+**Symbols.** `DxfTextSymbols` holds the symbols of AutoCAD's text editor, so that the words of a TEXT, an MTEXT, an
+attribute or a dimension, written by hand or by an AI, take one without its code: the 21 letters its Symbol menu enters
+and its help lists, each the letter itself, `Degree` °, `PlusMinus` ±, `Diameter` ∅ (U+2205, not the Latin letter Ø),
+`AlmostEqual`, `Angle`, `BoundaryLine`, `CenterLine`, `Delta`, `ElectricalPhase`, `FlowLine`, `Identity`,
+`InitialLength`, `MonumentLine`, `NotEqual`, `Ohm`, `Omega`, `PropertyLine`, `Subscript2`, `Squared`, `Cubed` and
+`NonBreakingSpace`, and the menu's control codes `DegreeCode` (`%%d`), `PlusMinusCode` (`%%p`) and `DiameterCode`
+(`%%c`), which the words keep as written and AutoCAD draws as the signs:
+
+```csharp
+var label = new DxfMText { Contents = DxfTextSymbols.Diameter + "20", Location = new GeoPoint3(0, 0, 0), TextHeight = 2.5 };
+```
+
+A letter is written as AutoCAD writes it: as it is from R2007 on, and before as itself where the code page has it (°, ±,
+², ³ and the space that does not break, in ANSI_1252) and as its escape where it has not, so that ∅20 in an MTEXT of R2004
+is `\U+220520`. Each of the 21, written by the library into an MTEXT, a TEXT, an attribute and a dimension of R2004 and of
+R2018, was read back by AutoCAD 2021 as the same letter in all 210 readings, and AutoCAD wrote its own texts of them in the
+same bytes. The four of the private range, `BoundaryLine`, `FlowLine`, `InitialLength` and `MonumentLine`, show only in
+AutoCAD's own fonts. `%%c` is read as ⌀ (U+2300) by `Text` and `DxfReader`, where AutoCAD 2021 gives it in an MTEXT's
+`Text` as ∅.
+
 ### Blocks and attributes
 
 An INSERT is a `DxfBlockReference`. The INSERT of BOLT at (50, 60, 0) turned by 45 degrees and scaled by (1.5, -1.5, 2) has
