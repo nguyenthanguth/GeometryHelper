@@ -2239,7 +2239,8 @@ stays closed scaled by 1 000, or stretched ten times upwards with its volume ten
 comes out narrower, or further off flat, than the loosened tolerance allows, as a polygon is. `ToPolygon3` and
 `ToFace3` lay a polygon or a face of the plane into a frame side for side too: the triangle (0, 0), (10, 0), (10, 10)
 with every corner cut by 0.3, shrunk in the plane by a thousandth, keeps its six corners 0.0003 apart, where it was put
-back together as three. It is still refused where it encloses no area within the global tolerance.
+back together as three. It is still refused where it encloses no area within the global tolerance. `ToPolyline3` lays
+a chain in leg for leg the same way.
 
 A radius per corner works too, read the way the bulges are read: the entry at an index belongs to the vertex
 at that index, and nought leaves that corner square. `TryFilletAt` rounds one named corner. A bend with too
@@ -3140,6 +3141,13 @@ away than `Tolerance.EqualPlanar`, which is how to check that geometry really is
 point.TryToPoint2(frame, out GeoPoint2 flat);   // false when the point is off the plane
 point.ProjectToPoint2(frame);                   // always answers, by projecting
 ```
+
+**Short sides.** A chain, a polygon or a face goes out and comes back side for side, however short a side: the
+square 10 by 10 with a corner cut by 0.0005, laid out in a frame tilted 60 degrees to it, keeps its five corners,
+where the global tolerance of a thousandth put the cut corner back, and a chain with a step of 0.0004 keeps the step
+both ways. Only a side seen end-on, along the Z axis of the frame, goes. A polygon or a face seen edge-on is refused,
+as one that encloses no area is when it is built, where it came out as a line of corners; one a ten-thousandth of a
+radian off edge-on comes out as a sliver. A chain seen end-on, a point in the frame, is refused as it was.
 
 **Winding.** A frame whose Z axis agrees with the shape's normal keeps the shape running the way it did;
 one that opposes it mirrors the plan view, so a counter-clockwise polygon comes out clockwise. A frame

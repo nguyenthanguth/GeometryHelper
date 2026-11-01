@@ -19,6 +19,26 @@ where every polygon read it again: the box 100 by 70 by 40 sheared takes 3.0 mic
 it took 5.0, and 1.1 on .NET 10, where it took 1.7, as before an uneven transformation was checked at a loosened
 tolerance. The results are the same to the bit. 2 new tests.
 
+**FIXED.** `ToPolyline3` of a `GeoPolyline2`, and of `PlanarMap`, lays the chain into the frame leg for leg, however
+short a leg: (0, 0), (10, 0), (10, 0.0004), (20, 0.0004) keeps its four vertices, where the global tolerance of a
+thousandth took the step out. Of 2 000 random chains with legs down to 0.0002, 1 211 lost a vertex laid into a frame,
+and none do now.
+
+**FIXED.** `ProjectToPolygon2`, `ProjectToFace2` and `ProjectToPolyline2` of a polygon, a face or a chain in space, and
+of `PlanarMap`, lay it out side for side, however short a side; only a side seen end-on, along the Z axis of the frame,
+goes. The square 10 by 10 with a corner cut by 0.0005, laid out in a frame tilted 60 degrees to it, keeps its five
+corners, where the cut corner was put back. Of 2 000 random polygons with cut corners down to 0.0001, laid out in frames
+tilted 0.3, 1.2 and 1.5 radians, 36, 569 and 860 lost corners, and none do now; of 2 000 chains, 1 198 lost a leg that
+had a length, and none do. **CHANGED.** A polygon or a face seen edge-on is refused, as one that encloses no area is
+when it is built, where it came out as a line of corners: of the 2 000 polygons laid out exactly edge-on all were
+returned and all are refused now, and a ten-thousandth of a radian off edge-on all are kept as slivers. The results
+that kept every corner before are the same to the bit. The booleans of flat faces lay faces out as they did. 8 new tests.
+
+**CHANGED.** `TransformBy` of polygons one by one with the same `GeoTransform3` reads the transformation once: the
+transformation keeps its reading, read again for a shear or a stretch only when the global tolerance changes. A polygon
+of eight corners sheared takes 0.59 microseconds on .NET Framework 4.8, where it took 0.71, and 0.25 on .NET 10, where
+it took 0.35; moved or scaled evenly, a little less. The results are the same to the bit.
+
 **FIXED.** A caret in the words of an MTEXT, a TEXT, an ATTRIB or ATTDEF and a MULTILEADER's MTEXT is read as AutoCAD
 2021 reads it, in `Contents`, `Text`, `TextString` and `ContentsRTF`: `^J` a line feed, `^I` a tab, `^M` a carriage
 return, `^` and a space a caret, and a caret and any other character the one 64 below it, `^a` an exclamation mark and

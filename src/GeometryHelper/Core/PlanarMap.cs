@@ -286,11 +286,25 @@ namespace GeometryHelper.Core
         /// <param name="polyline">The chain.</param>
         /// <returns>The chain in the plane of the frame.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the chain, seen along the Z axis of the frame, is a point within the global tolerance.</exception>
+        /// <remarks>
+        /// The chain is laid out leg for leg, however short a leg: only a leg seen end-on, along the Z axis of the frame,
+        /// goes. A chain 10 long with a step of 0.0004 in the plane keeps the step, where the global tolerance of a
+        /// thousandth took it out. A chain that lands within the global tolerance of its start, a leg 10 long seen end-on,
+        /// is still refused.
+        /// </remarks>
         public static GeoPolyline2 ProjectToPolyline2(GeoCoordinateSystem3 frame, GeoPolyline3 polyline)
         {
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
 
-            return new GeoPolyline2(Flatten(frame, polyline.Vertices));
+            List<GeoPoint2> kept = FlattenSideForSide(frame, polyline.Vertices, false);
+
+            if (kept.Count < 2 || !ReachesOut(kept, Tolerance.Global))
+            {
+                throw new ArgumentException("A polyline must have at least 2 distinct vertices; this one is a point in the frame.", nameof(polyline));
+            }
+
+            return new GeoPolyline2(kept.ToArray(), kept.Count);
         }
 
         /// <summary>
@@ -300,11 +314,17 @@ namespace GeometryHelper.Core
         /// <param name="polyline">The chain in the plane.</param>
         /// <returns>The chain in space, on the plane of the frame.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        /// <remarks>
+        /// The chain is laid in leg for leg, however short a leg, as <see cref="ToPolygon3(GeoCoordinateSystem3, GeoPolygon2)"/>
+        /// lays a polygon: a chain (0, 0), (10, 0), (10, 0.0004), (20, 0.0004) keeps its four vertices, where the global
+        /// tolerance of a thousandth took the step out.
+        /// </remarks>
         public static GeoPolyline3 ToPolyline3(GeoCoordinateSystem3 frame, GeoPolyline2 polyline)
         {
             if (polyline == null) throw new ArgumentNullException(nameof(polyline));
 
-            return new GeoPolyline3(Lift(frame, polyline.Vertices));
+            // The vertices of a chain stand apart already; only two laid on the very same point become one.
+            return new GeoPolyline3(Lift(frame, polyline.Vertices), default(Tolerance));
         }
 
         /// <summary>
@@ -317,10 +337,48 @@ namespace GeometryHelper.Core
         /// the polygon normal, and clockwise when it opposes it.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the polygon, seen along the Z axis of the frame, encloses no area within the global tolerance: seen
+        /// edge-on, it is a line.
+        /// </exception>
+        /// <remarks>
+        /// The polygon is laid out side for side, however short a side: only a side seen end-on, along the Z axis of the
+        /// frame, goes. A square 10 by 10 with a corner cut by 0.0005, tilted 60 degrees to the frame, keeps its five
+        /// corners, where the global tolerance of a thousandth put the cut corner back. A polygon seen edge-on is refused,
+        /// as one that encloses no area is when it is built, where it came out as a line of corners; one seen a hair off
+        /// edge-on, the square tilted a ten-thousandth of a radian short of it and laid out as a strip 10 by 0.001, is kept.
+        /// </remarks>
         public static GeoPolygon2 ProjectToPolygon2(GeoCoordinateSystem3 frame, GeoPolygon3 polygon)
         {
             if (polygon == null) throw new ArgumentNullException(nameof(polygon));
 
+            List<GeoPoint2> kept = FlattenSideForSide(frame, polygon.Vertices, true);
+
+            if (kept.Count < 3)
+            {
+                throw new ArgumentException("A polygon must have at least 3 distinct vertices.", nameof(polygon));
+            }
+
+            var flat = new GeoPolygon2(kept.ToArray(), kept.Count);
+
+            if (!EnclosesArea(flat, Tolerance.Global))
+            {
+                throw new ArgumentException("A polygon must enclose an area; seen in the frame its vertices are collinear.", nameof(polygon));
+            }
+
+            return flat;
+        }
+
+        /// <summary>
+        /// Lays a polygon out in a frame merging corners within the global tolerance, as
+        /// <see cref="ProjectToPolygon2(GeoCoordinateSystem3, GeoPolygon3)"/> did before it laid one out side for side.
+        /// </summary>
+        /// <remarks>
+        /// For the work in a plane whose results were weighed with that layout; see
+        /// <see cref="ProjectToFace2WithinGlobal(GeoCoordinateSystem3, GeoFace3)"/>.
+        /// </remarks>
+        internal static GeoPolygon2 ProjectToPolygon2WithinGlobal(GeoCoordinateSystem3 frame, GeoPolygon3 polygon)
+        {
             return new GeoPolygon2(Flatten(frame, polygon.Vertices));
         }
 
@@ -353,6 +411,11 @@ namespace GeometryHelper.Core
         /// <param name="face">The face.</param>
         /// <returns>The face in the plane of the frame, holes and all.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the boundary or a hole, seen along the Z axis of the frame, encloses no area within the global tolerance.</exception>
+        /// <remarks>
+        /// The boundary and every hole are laid out side for side, as <see cref="ProjectToPolygon2(GeoCoordinateSystem3, GeoPolygon3)"/>
+        /// lays out a polygon.
+        /// </remarks>
         public static GeoFace2 ProjectToFace2(GeoCoordinateSystem3 frame, GeoFace3 face)
         {
             if (face == null) throw new ArgumentNullException(nameof(face));
@@ -365,6 +428,26 @@ namespace GeometryHelper.Core
             }
 
             return new GeoFace2(ProjectToPolygon2(frame, face.Boundary), holes);
+        }
+
+        /// <summary>
+        /// Lays a face and its holes out in a frame merging corners within the global tolerance, as
+        /// <see cref="ProjectToFace2(GeoCoordinateSystem3, GeoFace3)"/> did before it laid one out side for side.
+        /// </summary>
+        /// <remarks>
+        /// The booleans of flat faces were weighed with this layout (see <c>Boolean3.Flatten</c>), and laid out side for
+        /// side they come out otherwise; the splitting of faces and the booleans of a loop with arcs keep it too.
+        /// </remarks>
+        internal static GeoFace2 ProjectToFace2WithinGlobal(GeoCoordinateSystem3 frame, GeoFace3 face)
+        {
+            var holes = new List<GeoPolygon2>(face.Holes.Count);
+
+            foreach (GeoPolygon3 hole in face.Holes)
+            {
+                holes.Add(ProjectToPolygon2WithinGlobal(frame, hole));
+            }
+
+            return new GeoFace2(ProjectToPolygon2WithinGlobal(frame, face.Boundary), holes);
         }
 
         /// <summary>
@@ -541,6 +624,116 @@ namespace GeometryHelper.Core
             }
 
             return flat;
+        }
+
+        /// <summary>
+        /// Lays points out in a frame side for side: a point goes only where it lands on the one kept before it, or, closing
+        /// a loop, on the first, within the rounding of laying it out, as the ends of a side seen along the Z axis of the
+        /// frame do. A leg 5 long along that axis, 300 from the origin, lands 1E-13 from its start, not on it.
+        /// </summary>
+        private static List<GeoPoint2> FlattenSideForSide(GeoCoordinateSystem3 frame, IReadOnlyList<GeoPoint3> points, bool closed)
+        {
+            var kept = new List<GeoPoint2>(points.Count);
+            var reach = new List<double>(points.Count);
+            double origin = Reach(frame.Origin);
+
+            for (int i = 0; i < points.Count; i++)
+            {
+                GeoPoint2 flat = ProjectToPoint2(frame, points[i]);
+                double scale = Math.Max(origin, Reach(points[i]));
+
+                if (kept.Count == 0 || !LandsOn(kept[kept.Count - 1], reach[reach.Count - 1], flat, scale))
+                {
+                    kept.Add(flat);
+                    reach.Add(scale);
+                }
+            }
+
+            while (closed && kept.Count > 1 && LandsOn(kept[kept.Count - 1], reach[reach.Count - 1], kept[0], reach[0]))
+            {
+                kept.RemoveAt(kept.Count - 1);
+                reach.RemoveAt(reach.Count - 1);
+            }
+
+            return kept;
+        }
+
+        /// <summary>
+        /// The largest coordinate of a point, which the rounding of laying it out in a frame is a share of.
+        /// </summary>
+        private static double Reach(GeoPoint3 point) => Math.Max(Math.Abs(point.X), Math.Max(Math.Abs(point.Y), Math.Abs(point.Z)));
+
+        /// <summary>
+        /// Whether two points laid out land on each other within the rounding of laying out points that reach so far.
+        /// </summary>
+        private static bool LandsOn(GeoPoint2 one, double oneReach, GeoPoint2 other, double otherReach)
+        {
+            double rounding = LayoutRounding * Math.Max(oneReach, otherReach);
+
+            return one.GetDistanceSquaredTo(other) <= rounding * rounding;
+        }
+
+        /// <summary>
+        /// The share of the coordinates within which two points laid out in a frame are the rounding of one point: a
+        /// thousand times the few units in the last place that a difference and a dot product leave.
+        /// </summary>
+        private const double LayoutRounding = 1E-12;
+
+        /// <summary>
+        /// Whether a loop encloses an area within a tolerance, read as <see cref="GeoPolygon3"/> reads it: an area beyond
+        /// the vector tolerance, or a width beyond the point tolerance, twice the area over the span.
+        /// </summary>
+        private static bool EnclosesArea(GeoPolygon2 loop, Tolerance tolerance)
+        {
+            double area = loop.Area;
+
+            if (area > tolerance.EqualVector && !double.IsInfinity(area))
+            {
+                return true;
+            }
+
+            double spanSquared;
+
+            if (loop.VertexCount == 3)
+            {
+                spanSquared = Math.Max(loop[0].GetDistanceSquaredTo(loop[1]), Math.Max(loop[1].GetDistanceSquaredTo(loop[2]), loop[2].GetDistanceSquaredTo(loop[0])));
+            }
+            else
+            {
+                double minX = double.PositiveInfinity, minY = double.PositiveInfinity;
+                double maxX = double.NegativeInfinity, maxY = double.NegativeInfinity;
+
+                foreach (GeoPoint2 vertex in loop.Vertices)
+                {
+                    minX = Math.Min(minX, vertex.X);
+                    minY = Math.Min(minY, vertex.Y);
+                    maxX = Math.Max(maxX, vertex.X);
+                    maxY = Math.Max(maxY, vertex.Y);
+                }
+
+                spanSquared = (maxX - minX) * (maxX - minX) + (maxY - minY) * (maxY - minY);
+            }
+
+            // Written as what the loop has to have, so that one of NaNs has no width; the last share is the rounding.
+            return 2.0 * area > tolerance.EqualPoint * Math.Sqrt(spanSquared) && area > 1E-15 * spanSquared && !double.IsInfinity(area);
+        }
+
+        /// <summary>
+        /// Whether a chain reaches farther than the point tolerance from its start.
+        /// </summary>
+        private static bool ReachesOut(List<GeoPoint2> chain, Tolerance tolerance)
+        {
+            GeoPoint2 start = chain[0];
+
+            for (int i = 1; i < chain.Count; i++)
+            {
+                if (!start.IsEqualTo(chain[i], tolerance))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static List<GeoPoint3> Lift(GeoCoordinateSystem3 frame, IReadOnlyList<GeoPoint2> points)

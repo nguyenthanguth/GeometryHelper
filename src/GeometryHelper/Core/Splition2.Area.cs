@@ -312,7 +312,7 @@ namespace GeometryHelper.Core
 
             for (int i = 0; i < faces.Length; i++)
             {
-                result[i] = PlanarMap.ProjectToFace2(frame, faces[i]);
+                result[i] = PlanarMap.ProjectToFace2WithinGlobal(frame, faces[i]);
             }
 
             return result;

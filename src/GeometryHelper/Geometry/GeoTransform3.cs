@@ -18,6 +18,9 @@ namespace GeometryHelper.Geometry
     {
         private readonly double[,] _m;
 
+        // The last reading of how the transformation carries a polygon (ReadCarrying); replaced whole, never changed.
+        private volatile CarryingRead _carrying;
+
         /// <summary>
         /// Initializes an identity transformation.
         /// </summary>
@@ -486,19 +489,55 @@ namespace GeometryHelper.Geometry
         /// Reads once how the transformation carries a polygon, so that a face or a body hands the reading to every polygon
         /// it holds rather than each polygon reading the matrix again: a box's six faces read it once, not twelve times.
         /// </summary>
+        /// <remarks>
+        /// The reading is kept, with the global tolerance it was read within, so that a list of polygons transformed one by
+        /// one pays for one reading; a move or an even scaling does not depend on that tolerance, anything else is read
+        /// again once it changes. The matrix never changes once the transformation is handed out, and the kept reading is
+        /// replaced whole, so a thread sees an old reading or a new one, never a mix.
+        /// </remarks>
         internal Carrying ReadCarrying()
         {
+            Tolerance global = Tolerance.Global;
+            CarryingRead read = _carrying;
+
+            if (read != null && (read.Value.Kind != Carrying.Other || read.Global == global))
+            {
+                return read.Value;
+            }
+
+            Carrying value;
+
             if (KeepsLengths())
             {
-                return new Carrying(Carrying.Rigid, 1.0, default(Tolerance));
+                value = new Carrying(Carrying.Rigid, 1.0, default(Tolerance));
             }
-
-            if (KeepsShapes(out double areaScale))
+            else if (KeepsShapes(out double areaScale))
             {
-                return new Carrying(Carrying.Even, areaScale, default(Tolerance));
+                value = new Carrying(Carrying.Even, areaScale, default(Tolerance));
+            }
+            else
+            {
+                value = new Carrying(Carrying.Other, 0.0, Stretched(global));
             }
 
-            return new Carrying(Carrying.Other, 0.0, Stretched(Tolerance.Global));
+            _carrying = new CarryingRead(value, global);
+            return value;
+        }
+
+        /// <summary>
+        /// A reading of how the transformation carries a polygon, with the global tolerance it was read within.
+        /// </summary>
+        private sealed class CarryingRead
+        {
+            internal CarryingRead(Carrying value, Tolerance global)
+            {
+                Value = value;
+                Global = global;
+            }
+
+            internal Carrying Value { get; }
+
+            internal Tolerance Global { get; }
         }
 
         /// <summary>

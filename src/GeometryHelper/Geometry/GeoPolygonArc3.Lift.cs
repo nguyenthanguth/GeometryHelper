@@ -111,7 +111,7 @@ namespace GeometryHelper.Geometry
                     name);
             }
 
-            return PlanarMap.ProjectToPolygon2(frame, other);
+            return PlanarMap.ProjectToPolygon2WithinGlobal(frame, other);
         }
 
         /// <summary>

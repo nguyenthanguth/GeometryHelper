@@ -1773,6 +1773,9 @@ chain closes it corner for corner: the chain round the cut triangle is the polyg
 three. A last vertex on the first, or off it by no more than the rounding of its coordinates, 1E-12 of the largest of
 them and of one at the least, is the chain written closed, and goes: the chain round the square 10 across from
 (100, 100) ending 1E-12 off its start is that square, where one ending 0.0001 off keeps the side back to its start.
+A chain, a polygon or a face goes into a frame in space and comes out of one side for side as well, by `ToPolyline3`,
+`ToPolygon3`, `ToFace3` and the `ProjectTo…2` of space: a chain with a step of 0.0004 keeps the step, and only a side
+seen end-on, along the Z axis of the frame, goes ([Between the plane and space](solid.md#between-the-plane-and-space)).
 
 **What a transformation cannot do.** A circle stays a circle only when every direction is stretched by the
 same amount: when the two axes come out so nearly equally long and square to each other that the circle moved lands

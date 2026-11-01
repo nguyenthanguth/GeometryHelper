@@ -569,7 +569,7 @@ namespace GeometryHelper.Core
         {
             try
             {
-                return PlanarMap.ProjectToFace2(frame, face);
+                return PlanarMap.ProjectToFace2WithinGlobal(frame, face);
             }
             catch (ArgumentException)
             {
