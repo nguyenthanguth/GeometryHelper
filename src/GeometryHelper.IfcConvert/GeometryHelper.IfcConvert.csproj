@@ -19,6 +19,11 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 13.2.0
+      - GeometryHelper.IfcConvert is released at 13.2.0 with GeometryHelper, which makes and sets dynamic DXF blocks
+        in code, carries polygons, faces and solids through an even scaling as a move does, and fixes short
+        sides, small arcs and booleans of bodies with openings at fine tolerances; nothing in IfcConvert changes.
+
       NEW IN 13.1.0
       - GeometryHelper.IfcConvert is released at 13.1.0 with GeometryHelper, which no longer takes minutes over the
         booleans and take-offs of curved bodies faceted at different stations, and fixes booleans, openings,

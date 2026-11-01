@@ -14,37 +14,38 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement bin-packing sheet-layout cad autocad tekla bim drawing</PackageTags>
     <PackageReleaseNotes>
-      NEW IN 13.1.0
+      NEW IN 13.2.0
 
-      FIXED, speed of curved booleans and take-offs
-      - The booleans of two curved bodies faceted at different stations, and VolumeTakeoff of them, no longer run for
-        minutes. Once a body is cut into more than 4 096 cells, and where both bodies and their openings close, a plane
-        of the other cuts a cell only near the faces lying on that plane. A spiral ramp and a spiral girder faceted 56
-        and 66 times were cut into 263 911 cells and took 91 seconds on .NET Framework 4.8; they are cut into 18 345
-        and take 3.3, and their take-off 3.0 where it took 90, at the volume slicing gives. Booleans of bodies cut into
-        no more than 4 096 cells give what they gave, to the bit.
-      - A difference or union whose one body, cut only near the planes, came out open and did not add up sealed is no
-        longer taken welded closed all the same: a ramp less a girder whose top lay 0.002 over the ramp's floor came
-        out an eighth of their common part short and trusted; it is not worked out now, and the take-off slices it.
+      A minor release: 126 public members added in GeometryHelper.Dxf, none removed or changed.
 
-      FIXED, booleans and queries
-      - A difference could leave a concave cell whole where planes of the other ran through it and trust what it
-        gave; such cells are read by the parts every crossing plane makes together.
-      - TryCutOpenings at a tolerance below the rounding of the coordinates no longer returns true with a body left
-        open or wrong.
-      - At a tolerance of nought, a segment or a line without ends finds its crossing of a triangle or a face turned
-        about in space, and of every face of a body it passes through.
-      - The distance from a curved chain or loop in space to a point is measured to each straight edge as it is,
-        however short, as it is in the plane.
+      NEW, DXF
+      - Dynamic blocks made in code: DxfBlockTableRecord.AddLinearParameter, AddXYParameter, AddPointParameter,
+        AddRotationParameter, AddFlipParameter, AddVisibilityParameter, AddLookupParameter, AddAlignmentParameter and
+        AddBasePointParameter, with AddStretchAction, AddMoveAction, AddScaleAction, AddRotateAction, AddFlipAction and
+        AddArrayAction, each written as AutoCAD 2021 saved ACadSharp's sample of it.
+      - DxfBlockReference.DynamicBlockReferencePropertyCollection reads the dynamic properties of an INSERT, and
+        DxfDynamicBlockReferenceProperty.Value sets them as AutoCAD sets them: of 50 to 300 by 10, 77 goes to 80.
+      - new DxfDatabase(version) makes an empty drawing of AC1015 to AC1032; DxfTable.SetDataLink links cells to a
+        DATALINK; DxfTextSymbols holds the symbols of AutoCAD's text editor; DxfGeoData.NorthDirection and
+        DxfLayerStateManager.GetLayerStateNames as AutoCAD's.
 
-      FIXED, DXF
-      - DxfDatabase.WblockCloneObjects, and an INSERT of another drawing copied by AppendEntity, are refused with an
-        ArgumentException, writing nothing, where the copy would come to insert itself.
+      FIXED, geometry
+      - TransformBy of a polygon, a face or a solid under an even scaling carries the shape as a move does, and a
+        stretch checks it at a tolerance loosened as far as it stretches: of 9 600 random bodies transformed, 1 460
+        were refused or came back open, and none now.
+      - Fillets, chamfers, offsets, cuts, closest points and shortest lines read each short side and small arc as it
+        is, in the plane and in space; two arcs whose centres stand a few tenths of a millionth apart cross on both.
+      - Booleans and the measures of bodies with openings, asked at or below the rounding of the coordinates, no
+        longer trust a wrong or open result. Welds that close a crack between two bodies weigh a corner a face lies round
+        by the whole face: of 8 000 unions and cuts at 1E-3 to 0.05, wrong or refused results fell from 24 to 4.
 
-      CHANGED
-      - IsClosed reads a body as Validate reads it, so the two agree on every body but a speck.
-      - Offsetting a curved loop cut at its crossings into many loops no longer slows with the square of them.
-        Results are the same to the bit.
+      FIXED and CHANGED, DXF
+      - Texts read their escapes, %%c, %%d, %%p and \M+ codes as AutoCAD 2021 reads them, and a drawing before R2007
+        is saved in its code page.
+      - Dimensions, dimension styles, layers, polyface faces, MTEXT backgrounds, hatch patterns and polyline vertices
+        no longer make files AutoCAD 2021 will not open.
+      - Explode, splines, tables, viewports, groups and MTEXT columns give what AutoCAD 2021 gives; Explode of a
+        MINSERT throws NotSupportedException, as AutoCAD's does.
 
       Details in CHANGELOG.md.
 

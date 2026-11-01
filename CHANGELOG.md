@@ -4,7 +4,22 @@ The release notes of the GeometryHelper package in full, newest first. The packa
 release only, and a link here for the rest. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
-## Unreleased
+## 13.2.0 (2026-11-01)
+
+A minor release: 126 public members are added, all in `GeometryHelper.Dxf`, and none is removed or changed. Of its
+176 entries, 15 NEW, 111 FIXED and 50 CHANGED, about half are DXF and half geometry. Dynamic blocks are made in code and
+set as AutoCAD sets them: linear, XY, point, rotation, flip, visibility, lookup, alignment and base point parameters,
+with stretch, move, scale, rotate, flip and array actions, each written as AutoCAD 2021 saved ACadSharp's sample of it,
+and `DxfDynamicBlockReferenceProperty.Value` reads and sets their properties on an INSERT. `new DxfDatabase(version)`
+makes an empty drawing, `DxfTable.SetDataLink` links cells, and `DxfTextSymbols` holds the symbols of AutoCAD's text
+editor. Texts read their escapes and `%%` codes as AutoCAD 2021 reads them, and a few more drawings no longer make files
+AutoCAD will not open. On the geometry side, `TransformBy` of a polygon, a face or a solid under an even scaling carries
+the shape as a move does: of 9 600 random bodies scaled, stretched or mirrored, 1 460 were refused or came back open,
+and none now. Fillets, chamfers, offsets, cuts and shortest lines read each short side and small arc as it is, in the
+plane and in space, and booleans and the measures of bodies with openings, asked at or below the rounding of the
+coordinates, no longer trust a wrong or open result. Welds that close a crack between two bodies weigh a corner a face
+lies round by the whole face: of 8 000 unions and cuts at tolerances 1E-3 to 0.05, wrong or refused results fell from 24
+to 4, and none that was right turned wrong.
 
 **FIXED.** `TransformBy` of a `GeoPolygon3`, a `GeoFace3` and a `GeoSolid3` under an even scaling, turned, moved or
 mirrored besides, carries the shape as a move does, its area scaled, and checks nothing again: the block 100 by 70 by 40
