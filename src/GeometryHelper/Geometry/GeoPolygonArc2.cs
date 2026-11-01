@@ -193,6 +193,30 @@ namespace GeometryHelper.Geometry
         /// </summary>
         private static bool HoldsThreeCorners(IReadOnlyList<GeoPoint2> starts, Tolerance tolerance)
         {
+            // Three kept, the third apart from the first, stay three: the starts at the end that go are those in the same
+            // place as the first, and the third is not. Most loops say so within their first few starts.
+            int second = -1;
+
+            for (int i = 1; i < starts.Count; i++)
+            {
+                if (second < 0)
+                {
+                    if (!starts[i].IsEqualTo(starts[0], tolerance))
+                    {
+                        second = i;
+                    }
+                }
+                else if (!starts[i].IsEqualTo(starts[second], tolerance))
+                {
+                    if (!starts[i].IsEqualTo(starts[0], tolerance))
+                    {
+                        return true;
+                    }
+
+                    break;
+                }
+            }
+
             // Counted the way the constructor keeps them: a start in the same place as the one kept before it
             // goes, and so do starts at the end in the same place as the first.
             var kept = new List<GeoPoint2>(starts.Count);
@@ -405,6 +429,11 @@ namespace GeometryHelper.Geometry
         /// strayed 2.94E-7. Merged chords of up to twice the point tolerance can stray up to (2E-3)² / 8 r from an arc of radius r,
         /// 5E-7 on a radius of 1, further than a coarser cut that kept its corners. The writers (<c>ObjWriter</c>, <c>Wkt</c>,
         /// <c>DxfWriter</c>) keep every chord.
+        /// <para>
+        /// A loop so small that the merge would leave it fewer than three corners keeps every corner of its chords
+        /// instead: the square 0.0005 by 0.0005 flattens to its four corners, and with its sides bowed by a bulge of
+        /// 0.2 to the corners of their chords, where both were refused as having fewer than three corners.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number, or needs more than 1 048 576 pieces for one arc.</exception>
         public GeoPolygon2 Flatten(double chordTolerance)
@@ -422,7 +451,12 @@ namespace GeometryHelper.Geometry
                 points.RemoveAt(points.Count - 1);
             }
 
-            return new GeoPolygon2(points);
+            // The polygon merges corners within the global point tolerance. A loop smaller than that across has nothing
+            // left to merge into, and keeps its corners however near, only one on the very same point as the one before
+            // it going.
+            return HoldsThreeCorners(points, Tolerance.Global)
+                ? new GeoPolygon2(points)
+                : new GeoPolygon2(points, default(Tolerance));
         }
 
         /// <summary>

@@ -430,6 +430,12 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// A face whose holes cancel its boundary has no centroid to give, and its boundary centroid is
         /// returned instead rather than a division by zero.
+        /// <para>
+        /// The holes are weighed however small the face: the square 0.001 by 0.001 with a hole 0.0004 by 0.0004 in its
+        /// corner, of 8.4E-7 square units, balances at (0.000538, 0.000538), where an area of a millionth or less was
+        /// taken for none and the boundary's centroid, (0.0005, 0.0005), given. Only a face whose area is lost in the
+        /// rounding of the areas it is worked out from has none.
+        /// </para>
         /// </remarks>
         public GeoPoint2 Centroid
         {
@@ -438,6 +444,8 @@ namespace GeometryHelper.Geometry
                 double area = Boundary.Area;
                 double x = Boundary.Centroid.X * area;
                 double y = Boundary.Centroid.Y * area;
+                double rounding = Boundary.GetAreaRounding();
+                double whole = area;
 
                 foreach (GeoPolygon2 hole in Holes)
                 {
@@ -445,9 +453,12 @@ namespace GeometryHelper.Geometry
                     area -= holeArea;
                     x -= hole.Centroid.X * holeArea;
                     y -= hole.Centroid.Y * holeArea;
+                    rounding += hole.GetAreaRounding();
+                    whole += holeArea;
                 }
 
-                if (Math.Abs(area) <= Tolerance.Global.EqualPoint * Tolerance.Global.EqualPoint)
+                // An area no larger than the rounding is none: that of each loop's area and of taking the holes off.
+                if (Math.Abs(area) <= rounding + GeoPolygon2.HalfUlp * (Holes.Count + 1) * whole)
                 {
                     return Boundary.Centroid;
                 }

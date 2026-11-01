@@ -384,19 +384,70 @@ namespace GeometryHelper.Geometry
                     z += center.Z * weight;
                 }
 
-                // The weight is an area, so the threshold it is judged against has to be one too: a
-                // length tolerance squared. Comparing against double.Epsilon instead would only catch a
-                // weight of exactly zero, and a loop that doubles back on itself can leave one around
-                // 1e-300 � small enough that dividing by it overflows, large enough to pass the test.
-                double areaEpsilon = Tolerance.Global.EqualPoint * Tolerance.Global.EqualPoint;
-
-                if (Math.Abs(totalWeight) <= areaEpsilon)
+                // The weight is an area, so the threshold it is judged against has to be one too: the rounding of the
+                // sums an area comes from. Comparing against double.Epsilon instead would only catch a weight of
+                // exactly zero, and a loop that doubles back on itself can leave one around 1e-300, small enough that
+                // dividing by it overflows, large enough to pass the test.
+                if (Math.Abs(totalWeight) <= GetAreaRoundingAtMost() && Math.Abs(totalWeight) <= GetAreaRounding())
                 {
                     return _vertices[0];
                 }
 
                 return new GeoPoint3(x / totalWeight, y / totalWeight, z / totalWeight);
             }
+        }
+
+        /// <summary>
+        /// Gets how far the area can stand off by the rounding of the sums it comes from, the fan of
+        /// <see cref="Centroid"/> and the Newell sum of <see cref="Area"/> alike: an area no larger than this is none.
+        /// </summary>
+        internal double GetAreaRounding()
+        {
+            GeoPoint3 reference = _vertices[0];
+            double products = 0.0;
+            double run = 0.0;
+            int n = _vertices.Length;
+
+            for (int i = 0; i < n; i++)
+            {
+                GeoPoint3 from = _vertices[i];
+                GeoPoint3 to = _vertices[(i + 1) % n];
+                double x1 = from.X - reference.X;
+                double y1 = from.Y - reference.Y;
+                double z1 = from.Z - reference.Z;
+                double x2 = to.X - reference.X;
+                double y2 = to.Y - reference.Y;
+                double z2 = to.Z - reference.Z;
+                products += Math.Abs(y1 * z2) + Math.Abs(z1 * y2) + Math.Abs(z1 * x2) + Math.Abs(x1 * z2)
+                    + Math.Abs(x1 * y2) + Math.Abs(y1 * x2);
+                run += Math.Abs(x2 - x1) + Math.Abs(y2 - y1) + Math.Abs(z2 - z1);
+            }
+
+            // The Newell sum works from the coordinates themselves, so their rounding counts once a corner, every
+            // corner within the run round the polygon of the first.
+            double far = Math.Max(Math.Abs(reference.X), Math.Max(Math.Abs(reference.Y), Math.Abs(reference.Z))) + run;
+
+            return 0.5 * GeoPolygon2.HalfUlp * (n + 4) * (products + 2.0 * far * run);
+        }
+
+        /// <summary>
+        /// Gets no less than <see cref="GetAreaRounding"/>, read from the box rather than from every corner: an area
+        /// larger than this is more than rounding, and the corners need not be walked to say so.
+        /// </summary>
+        internal double GetAreaRoundingAtMost()
+        {
+            double span = Math.Max(_box.Max.X - _box.Min.X, Math.Max(_box.Max.Y - _box.Min.Y, _box.Max.Z - _box.Min.Z));
+            double far = Math.Max(
+                Math.Max(Math.Abs(_box.Min.X), Math.Abs(_box.Max.X)),
+                Math.Max(Math.Max(Math.Abs(_box.Min.Y), Math.Abs(_box.Max.Y)), Math.Max(Math.Abs(_box.Min.Z), Math.Abs(_box.Max.Z))));
+            int n = _vertices.Length;
+
+            // No coordinate measured from the first corner is longer than the span, so no product is larger than its
+            // square and no side longer than three spans; twice that over, so the rounding of the box's own sums is
+            // covered too.
+            double run = 3.0 * n * span;
+
+            return GeoPolygon2.HalfUlp * (n + 4) * (6.0 * n * span * span + 2.0 * (far + run) * run);
         }
 
         /// <summary>

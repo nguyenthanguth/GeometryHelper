@@ -124,6 +124,12 @@ consistently, under the even-odd rule, but its `Area` no longer means what it sa
 cancel exactly, a symmetric bow tie, is refused at construction all the same — with no net area it has no
 normal, and without a normal there is no plane to be flat in.
 
+A polygon's centroid weighs its area however small, and a face's its holes: the triangle (10, 20, 30),
+(10.0009, 20, 30), (10, 20, 30.0009), of 4.05E-7 square units, built within a millionth, balances at
+(10.0003, 20, 30.0003), where an area of a millionth or less was taken for none and its first corner given; the square
+0.001 by 0.001 standing in the plane y = 0 with a hole 0.0004 by 0.0004 in its corner balances at
+(0.000538, 0, 0.000538). Only an area lost in the rounding of the sums it comes from is none.
+
 ### Two kinds of box
 
 `GeoAabb3` is an axis-aligned bound — the cheap test that comes before the expensive one.
@@ -2180,6 +2186,10 @@ the point is on it. `GetClosestPointOnBoundary` and the shortest line from the p
 land on (10, 0.0006, 0), 0.0009 away, where they took its start (10, 0, 0), 0.00108 away; so do `GetDistanceAtPoint`
 and `GetParameterAtPoint`. A straight `GeoEdge3` on its own that short is still read as its start.
 
+`Clone` and `Translate` keep a chain edge for edge, every arc and leg however small: at a millionth, the chain
+(0, 0, 0), (10, 0, 0), (10, 0, 10) filleted at 0.0005 is copied and moved with its arc 0.0007 across, where it was put
+back together within the global tolerance of a thousandth and came back turning at a corner.
+
 A radius per corner works too, read the way the bulges are read: the entry at an index belongs to the vertex
 at that index, and nought leaves that corner square. `TryFilletAt` rounds one named corner. A bend with too
 little straight run either side to fit its radius is left square rather than forced, and where two bends want
@@ -3080,6 +3090,11 @@ taken from the shape itself always agrees.
 
 `GeoCoordinateSystem3` moves geometry between world coordinates and a local frame, and its axes are always
 orthonormal whatever is passed in. `ToLocal` and `ToGlobal` are exact inverses of each other.
+
+Two directions span a frame by the angle between them, whatever their lengths: they are parallel where the sine of it
+is within the global vector tolerance of 1E-5. Two directions 0.002 long and square to each other span a frame, where
+the length of their cross product, 4E-6, was read against that tolerance and they were refused; two 10 long and 5E-6 of
+a radian apart are parallel, where their cross product of 5E-4 let them through.
 
 ```csharp
 var frame = new GeoCoordinateSystem3(

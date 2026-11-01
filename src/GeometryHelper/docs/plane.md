@@ -1013,6 +1013,10 @@ pieces straying 2.94E-7. So where the chords fall under the point tolerance the 
 coarser cut that kept its corners: merged chords of up to twice the point tolerance stray up to (2E-3)² / 8 r from an arc of
 radius r, 5E-7 on a radius of 1. The writers (`ObjWriter`, `Wkt`, `DxfWriter`) keep every chord.
 
+A loop or a chain so small that the merge would leave too few corners to be a polygon or a chain keeps every corner of
+its chords instead: the square 0.0005 by 0.0005 flattens to its four corners, and with its sides bowed by a bulge of 0.2
+to the corners of their chords, where both were refused for having fewer than three.
+
 ## A polygon that crosses itself
 
 A `GeoPolygon2` is taken as it is drawn, and one that crosses itself is still a polygon: `IsSimple()`
@@ -1156,6 +1160,9 @@ GeoTransform2.ToCoordinateSystem(frame);               // and the reading back, 
 plate.CoordinateSystem.ToLocal(point);                 // a rotated rectangle carries its own frame
 new GeoRectangle2(frame, 80.0, 40.0);                  // and can be built from one
 ```
+
+A frame follows a transformation however small its scaling: scaled by a millionth, it keeps its axes, where a scaling
+by 1E-5 or less was refused as leaving it none.
 
 `GeoRectangle2` is the rotated rectangle — the OBB of the plane — so it carries a frame exactly as
 `GeoObb3` does in space.
@@ -1737,6 +1744,13 @@ together within the global tolerance of a thousandth and came back its four corn
 the line `Mirror` reflects across: the segment from (0, 0) to (0.000007, 0.000007) mirrors (1, 0) to (0, 1), where it
 had no direction within the global vector tolerance of 1E-5 and was refused.
 
+A curved chain is copied, moved and turned edge for edge as well, by `Clone`, `Translate` and `RotateBy`: at a
+millionth, the chain (0, 0), (10, 0), (10, 10) filleted at 0.0005 keeps its arc 0.0007 across, where it was put back
+together within the global tolerance and came back turning at a corner. A straight polygon or chain is moved and turned
+side for side by `Translate` and `RotateBy`: the triangle (0, 0), (10, 0), (10, 10) with every corner cut by 0.0003 at a
+millionth keeps its six corners, where it came back three, and the chain through the same corners keeps both ends of its
+cut.
+
 **What a transformation cannot do.** A circle stays a circle only when every direction is stretched by the
 same amount: when the two axes come out so nearly equally long and square to each other that the circle moved lands
 within the global point tolerance of where the transformation puts each of its points, as a ball in space is read. A turn
@@ -1813,7 +1827,9 @@ rectangle.Area;                     circle.Area;  circle.Length;
 A polygon's centroid weighs its area however small: the L 0.001 by 0.001 with legs 0.00025 wide, of 4.4E-7 square
 units, balances at (0.000339, 0.000339), where an area of a millionth or less was taken for none and its corners were
 averaged to (0.000417, 0.000417). Only corners on one line, whose area is lost in the rounding of their coordinates,
-have none, and are averaged.
+have none, and are averaged. A face's centroid weighs its holes the same way: the square 0.001 by 0.001 with a hole
+0.0004 by 0.0004 in its corner, of 8.4E-7 square units, balances at (0.000538, 0.000538), where the boundary's centroid,
+(0.0005, 0.0005), was given.
 
 ## Flat shapes that live in space
 

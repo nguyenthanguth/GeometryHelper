@@ -72,13 +72,26 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="vertices">The sequence of vertices.</param>
         public GeoPolyline2(IEnumerable<GeoPoint2> vertices)
+            : this(vertices, Tolerance.Global)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a chain from a collection of vertices, a vertex going only where it lands within a tolerance of
+        /// the one kept before it.
+        /// </summary>
+        /// <remarks>
+        /// For the copies, whose vertices stand apart already, and for a chain flattened: at a tolerance of nought only
+        /// a vertex on the very same point as the one before it goes, so a leg shorter than the global tolerance stays.
+        /// </remarks>
+        internal GeoPolyline2(IEnumerable<GeoPoint2> vertices, Tolerance tolerance)
         {
             if (vertices == null) throw new ArgumentNullException(nameof(vertices));
 
             List<GeoPoint2> list = new List<GeoPoint2>();
             foreach (var pt in vertices)
             {
-                if (list.Count == 0 || !list[list.Count - 1].IsEqualTo(pt))
+                if (list.Count == 0 || !list[list.Count - 1].IsEqualTo(pt, tolerance))
                 {
                     list.Add(pt);
                 }
@@ -224,6 +237,11 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="vector">The displacement vector.</param>
         /// <returns>A new translated GeoPolyline2.</returns>
+        /// <remarks>
+        /// The chain is moved leg for leg, however short a leg: at a millionth, the chain (0, 0), (10, 0), (10, 10)
+        /// with its corner cut by 0.0003 moves turning at both ends of the cut, where it was put back together within
+        /// the global tolerance of a thousandth and came back turning once.
+        /// </remarks>
         public GeoPolyline2 Translate(GeoVector2 vector)
         {
             GeoPoint2[] moved = new GeoPoint2[_vertices.Length];
@@ -231,7 +249,10 @@ namespace GeometryHelper.Geometry
             {
                 moved[i] = _vertices[i].Add(vector);
             }
-            return new GeoPolyline2(moved);
+
+            // The vertices stand apart already, however near; only one landing on the very same point as the one before
+            // it would go.
+            return new GeoPolyline2(moved, default(Tolerance));
         }
 
         /// <summary>
@@ -240,6 +261,7 @@ namespace GeometryHelper.Geometry
         /// <param name="angleRad">Rotation angle in radians.</param>
         /// <param name="center">Center of rotation.</param>
         /// <returns>A new rotated GeoPolyline2.</returns>
+        /// <remarks>The chain is turned leg for leg, as <see cref="Translate(GeoVector2)"/> moves it.</remarks>
         public GeoPolyline2 RotateBy(double angleRad, GeoPoint2 center)
         {
             GeoPoint2[] rotated = new GeoPoint2[_vertices.Length];
@@ -247,7 +269,7 @@ namespace GeometryHelper.Geometry
             {
                 rotated[i] = _vertices[i].RotateBy(angleRad, center);
             }
-            return new GeoPolyline2(rotated);
+            return new GeoPolyline2(rotated, default(Tolerance));
         }
 
         /// <summary>

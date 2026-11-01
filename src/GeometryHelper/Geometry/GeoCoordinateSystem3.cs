@@ -50,6 +50,12 @@ namespace GeometryHelper.Geometry
         /// Thrown when either direction has zero length, or when the two are parallel, since parallel
         /// directions do not span a plane and leave the third axis undefined.
         /// </exception>
+        /// <remarks>
+        /// Two directions are parallel by the angle between them, whatever their lengths: where the sine of it is
+        /// within the global vector tolerance of 1E-5. Two directions 0.002 long and square to each other span a
+        /// system, where the length of their cross product, 4E-6, was read against that tolerance and they were refused
+        /// as parallel; two 10 long and 5E-6 of a radian apart are parallel, where their cross product of 5E-4 passed.
+        /// </remarks>
         public GeoCoordinateSystem3(GeoPoint3 origin, GeoVector3 xAxis, GeoVector3 yAxis)
         {
             if (!xAxis.TryGetNormal(out GeoVector3 unitX))
@@ -57,7 +63,12 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentException("A coordinate system needs an X direction of non-zero length.", nameof(xAxis));
             }
 
-            if (!xAxis.CrossProduct(yAxis).TryGetNormal(out GeoVector3 unitZ))
+            // The cross product is as long as the two directions times the sine of the angle between them, so it is the
+            // sine that is read against the vector tolerance.
+            GeoVector3 across = xAxis.CrossProduct(yAxis);
+
+            if (!(across.Length > Tolerance.Global.EqualVector * xAxis.Length * yAxis.Length)
+                || !across.TryGetNormal(out GeoVector3 unitZ, default(Tolerance)))
             {
                 throw new ArgumentException("The X and Y directions must not be parallel.", nameof(yAxis));
             }

@@ -932,8 +932,9 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
-        /// Gets the tolerance a loop is built within edge for edge: no edge goes unless its ends land on the very same point,
-        /// and the plane and the arcs are checked within the global tolerance, as the constructors without one check them.
+        /// Gets the tolerance a loop or a chain is built within edge for edge: no edge goes unless its ends land on the
+        /// very same point, and the plane and the arcs are checked within the global tolerance, as the constructors
+        /// without one check them.
         /// </summary>
         internal static Tolerance EdgeForEdge
         {

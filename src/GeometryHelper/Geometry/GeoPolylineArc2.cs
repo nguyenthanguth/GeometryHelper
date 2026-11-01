@@ -57,6 +57,19 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentNullException">Thrown when the vertices are null.</exception>
         /// <exception cref="ArgumentException">Thrown when fewer than two distinct vertices are given.</exception>
         public GeoPolylineArc2(IEnumerable<GeoPoint2> vertices, IEnumerable<double> bulges)
+            : this(vertices, bulges, Tolerance.Global)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a chain whose pieces may be arcs, a vertex going only where it lands within a tolerance of the
+        /// one kept before it.
+        /// </summary>
+        /// <remarks>
+        /// For the copies, whose vertices stand apart already: at a tolerance of nought only a vertex on the very same
+        /// point as the one before it goes, so a leg or an arc shorter than the global tolerance stays.
+        /// </remarks>
+        private GeoPolylineArc2(IEnumerable<GeoPoint2> vertices, IEnumerable<double> bulges, Tolerance tolerance)
         {
             if (vertices == null) throw new ArgumentNullException(nameof(vertices));
 
@@ -75,7 +88,7 @@ namespace GeometryHelper.Geometry
                 // can be drawn along; the later one goes, as GeoPolyline2 drops it too. The edge that vanishes
                 // is the one between them, so the vertex kept takes the bulge of the edge running on from the
                 // one dropped, which still has its length.
-                if (kept.Count > 0 && kept[kept.Count - 1].IsEqualTo(vertex))
+                if (kept.Count > 0 && kept[kept.Count - 1].IsEqualTo(vertex, tolerance))
                 {
                     keptBulges[keptBulges.Count - 1] = bulge;
                     continue;
@@ -322,6 +335,11 @@ namespace GeometryHelper.Geometry
         /// strayed 2.94E-7. Merged chords of up to twice the point tolerance can stray up to (2E-3)² / 8 r from an arc of radius r,
         /// 5E-7 on a radius of 1, further than a coarser cut that kept its corners. The writers (<c>ObjWriter</c>, <c>Wkt</c>,
         /// <c>DxfWriter</c>) keep every chord.
+        /// <para>
+        /// A chain so small that the merge would leave it one corner keeps every corner of its chords instead: the
+        /// chain (0, 0), (0.0005, 0), (0.0005, 0.0005) with its second leg bowed by a bulge of 0.4 flattens to the
+        /// corners of the chords of that leg, where it was refused as having fewer than two corners.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number, or needs more than 1 048 576 pieces for one arc.</exception>
         public GeoPolyline2 Flatten(double chordTolerance)
@@ -333,7 +351,20 @@ namespace GeometryHelper.Geometry
                 GetEdgeAt(i).AppendFlattened(points, chordTolerance);
             }
 
-            return new GeoPolyline2(points);
+            // The chain merges corners within the global point tolerance, which keeps a second corner only where one
+            // stands further than that from the first. A chain smaller than that has nothing left to merge into, and
+            // keeps its corners however near, only one on the very same point as the one before it going.
+            Tolerance global = Tolerance.Global;
+
+            for (int i = 1; i < points.Count; i++)
+            {
+                if (!points[i].IsEqualTo(points[0], global))
+                {
+                    return new GeoPolyline2(points);
+                }
+            }
+
+            return new GeoPolyline2(points, default(Tolerance));
         }
 
         /// <summary>
@@ -356,6 +387,11 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="vector">How far to move it.</param>
         /// <returns>The moved chain, its arcs unchanged.</returns>
+        /// <remarks>
+        /// The chain is moved edge for edge, every arc and leg however small: at a millionth, the chain (0, 0),
+        /// (10, 0), (10, 10) filleted at 0.0005 moves with its arc 0.0007 across, where it was put back together within
+        /// the global tolerance of a thousandth and came back turning at a corner.
+        /// </remarks>
         public GeoPolylineArc2 Translate(GeoVector2 vector)
         {
             var moved = new GeoPoint2[_vertices.Length];
@@ -365,7 +401,9 @@ namespace GeometryHelper.Geometry
                 moved[i] = _vertices[i].Add(vector);
             }
 
-            return new GeoPolylineArc2(moved, _bulges);
+            // The vertices stand apart already, however near; only one landing on the very same point as the one before
+            // it would go.
+            return new GeoPolylineArc2(moved, _bulges, default(Tolerance));
         }
 
         /// <summary>
@@ -374,6 +412,7 @@ namespace GeometryHelper.Geometry
         /// <param name="angleRad">How far to turn it, in radians, counter-clockwise.</param>
         /// <param name="center">The point to turn it about.</param>
         /// <returns>The turned chain, its arcs unchanged.</returns>
+        /// <remarks>The chain is turned edge for edge, as <see cref="Translate(GeoVector2)"/> moves it.</remarks>
         public GeoPolylineArc2 RotateBy(double angleRad, GeoPoint2 center)
         {
             var turned = new GeoPoint2[_vertices.Length];
@@ -383,7 +422,7 @@ namespace GeometryHelper.Geometry
                 turned[i] = _vertices[i].RotateBy(angleRad, center);
             }
 
-            return new GeoPolylineArc2(turned, _bulges);
+            return new GeoPolylineArc2(turned, _bulges, default(Tolerance));
         }
 
         /// <summary>
@@ -419,7 +458,10 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Creates a copy of this chain holding its own arrays.
         /// </summary>
-        public GeoPolylineArc2 Clone() => new GeoPolylineArc2(_vertices, _bulges);
+        /// <remarks>
+        /// The copy holds every edge of the chain, however small, as <see cref="Translate(GeoVector2)"/> keeps it.
+        /// </remarks>
+        public GeoPolylineArc2 Clone() => new GeoPolylineArc2(_vertices, _bulges, default(Tolerance));
 
         /// <summary>
         /// Chamfers every corner that has room for it, cutting the same distance along both edges.

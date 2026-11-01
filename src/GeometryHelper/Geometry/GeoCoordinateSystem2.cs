@@ -149,6 +149,11 @@ namespace GeometryHelper.Geometry
         /// <returns>The system where the transformation puts it.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the transformation leaves the axes with no length.</exception>
+        /// <remarks>
+        /// A scaling however small leaves the axes their directions: scaled by a millionth, the system keeps its axes
+        /// and its origin comes a millionth as far out, where the global vector tolerance of 1E-5, read as a length,
+        /// refused a scaling by 1E-5 or less as leaving no axes.
+        /// </remarks>
         public GeoCoordinateSystem2 TransformBy(GeoTransform2 transform)
         {
             if (transform == null)
@@ -158,7 +163,8 @@ namespace GeometryHelper.Geometry
 
             GeoVector2 moved = transform.Transform(XAxis);
 
-            if (!moved.TryGetNormal(out GeoVector2 unit))
+            // The axis keeps a direction however short the transformation leaves it: only one of no length has none.
+            if (!moved.TryGetNormal(out GeoVector2 unit, default(Tolerance)))
             {
                 throw new InvalidOperationException("This transformation leaves the coordinate system with no axes.");
             }

@@ -59,6 +59,20 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="vertices">List of vertices.</param>
         public GeoPolygon2(IEnumerable<GeoPoint2> vertices)
+            : this(vertices, Tolerance.Global)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a polygon from a list of vertices, a vertex going only where it lands within a tolerance of the
+        /// one kept before it, or of the first at the end.
+        /// </summary>
+        /// <remarks>
+        /// For the copies, whose vertices stand apart already, and for a loop flattened: at a tolerance of nought only
+        /// a vertex on the very same point as the one before it goes, so a side shorter than the global tolerance
+        /// stays.
+        /// </remarks>
+        internal GeoPolygon2(IEnumerable<GeoPoint2> vertices, Tolerance tolerance)
         {
             if (vertices == null) throw new ArgumentNullException(nameof(vertices));
 
@@ -68,14 +82,14 @@ namespace GeometryHelper.Geometry
             List<GeoPoint2> list = new List<GeoPoint2>();
             foreach (var vertex in vertices)
             {
-                if (list.Count == 0 || !list[list.Count - 1].IsEqualTo(vertex))
+                if (list.Count == 0 || !list[list.Count - 1].IsEqualTo(vertex, tolerance))
                 {
                     list.Add(vertex);
                 }
             }
 
             // Remove duplicate last vertex if it closes the loop back onto the first vertex
-            while (list.Count > 1 && list[list.Count - 1].IsEqualTo(list[0]))
+            while (list.Count > 1 && list[list.Count - 1].IsEqualTo(list[0], tolerance))
             {
                 list.RemoveAt(list.Count - 1);
             }
@@ -325,7 +339,33 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// The rounding of a double, half the gap between 1 and the next double up.
         /// </summary>
-        private const double HalfUlp = 1.1102230246251565E-16;
+        internal const double HalfUlp = 1.1102230246251565E-16;
+
+        /// <summary>
+        /// Gets how far the area can stand off by the rounding of the sums it comes from, as <see cref="Centroid"/>
+        /// reads it: an area no larger than this is none.
+        /// </summary>
+        internal double GetAreaRounding()
+        {
+            GeoPoint2 reference = _vertices[0];
+            double products = 0.0;
+            double run = 0.0;
+            int n = _vertices.Length;
+
+            for (int i = 0; i < n; i++)
+            {
+                double x1 = _vertices[i].X - reference.X;
+                double y1 = _vertices[i].Y - reference.Y;
+                double x2 = _vertices[(i + 1) % n].X - reference.X;
+                double y2 = _vertices[(i + 1) % n].Y - reference.Y;
+                products += Math.Abs(x1 * y2) + Math.Abs(x2 * y1);
+                run += Math.Abs(x2 - x1) + Math.Abs(y2 - y1);
+            }
+
+            double far = Math.Max(Math.Abs(reference.X), Math.Abs(reference.Y)) + run;
+
+            return 0.5 * HalfUlp * ((n + 4) * products + 4.0 * far * run);
+        }
 
         /// <summary>
         /// Creates a copy of this polygon holding its own vertex array.
@@ -382,6 +422,11 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="vector">The displacement vector.</param>
         /// <returns>A new translated GeoPolygon2.</returns>
+        /// <remarks>
+        /// The polygon is moved side for side, however short a side: at a millionth, the triangle (0, 0), (10, 0),
+        /// (10, 10) with every corner cut by 0.0003 moves with its six corners, where it was put back together within
+        /// the global tolerance of a thousandth and came back three.
+        /// </remarks>
         public GeoPolygon2 Translate(GeoVector2 vector)
         {
             GeoPoint2[] moved = new GeoPoint2[_vertices.Length];
@@ -389,7 +434,10 @@ namespace GeometryHelper.Geometry
             {
                 moved[i] = _vertices[i].Add(vector);
             }
-            return new GeoPolygon2(moved);
+
+            // The vertices stand apart already, however near; only one landing on the very same point as the one before
+            // it would go.
+            return new GeoPolygon2(moved, default(Tolerance));
         }
 
         /// <summary>
@@ -398,6 +446,7 @@ namespace GeometryHelper.Geometry
         /// <param name="angleRad">Rotation angle in radians.</param>
         /// <param name="center">Center of rotation.</param>
         /// <returns>A new rotated GeoPolygon2.</returns>
+        /// <remarks>The polygon is turned side for side, as <see cref="Translate(GeoVector2)"/> moves it.</remarks>
         public GeoPolygon2 RotateBy(double angleRad, GeoPoint2 center)
         {
             GeoPoint2[] rotated = new GeoPoint2[_vertices.Length];
@@ -405,7 +454,7 @@ namespace GeometryHelper.Geometry
             {
                 rotated[i] = _vertices[i].RotateBy(angleRad, center);
             }
-            return new GeoPolygon2(rotated);
+            return new GeoPolygon2(rotated, default(Tolerance));
         }
 
         /// <summary>

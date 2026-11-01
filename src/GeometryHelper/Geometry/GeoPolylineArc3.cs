@@ -667,11 +667,19 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Creates a copy of this chain.
         /// </summary>
-        public GeoPolylineArc3 Clone() => new GeoPolylineArc3(_vertices, _bulges, _normals);
+        /// <remarks>
+        /// The copy holds every edge of the chain, however small, as <see cref="Translate(GeoVector3)"/> keeps it.
+        /// </remarks>
+        public GeoPolylineArc3 Clone() => new GeoPolylineArc3(_vertices, _bulges, _normals, GeoPolygonArc3.EdgeForEdge);
 
         /// <summary>
         /// Moves the chain by a vector.
         /// </summary>
+        /// <remarks>
+        /// The chain is moved edge for edge, every arc and leg however small: at a millionth, the chain (0, 0, 0),
+        /// (10, 0, 0), (10, 0, 10) filleted at 0.0005 moves with its arc 0.0007 across, where it was put back together
+        /// within the global tolerance of a thousandth and came back turning at a corner.
+        /// </remarks>
         public GeoPolylineArc3 Translate(GeoVector3 vector)
         {
             var moved = new GeoPoint3[_vertices.Length];
@@ -681,7 +689,7 @@ namespace GeometryHelper.Geometry
                 moved[i] = _vertices[i].Add(vector);
             }
 
-            return new GeoPolylineArc3(moved, _bulges, _normals);
+            return new GeoPolylineArc3(moved, _bulges, _normals, GeoPolygonArc3.EdgeForEdge);
         }
 
         /// <summary>

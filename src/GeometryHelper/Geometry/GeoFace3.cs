@@ -565,6 +565,12 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// A face whose holes cancel its boundary has no centroid to give, and its boundary centroid is
         /// returned instead rather than a division by zero.
+        /// <para>
+        /// The holes are weighed however small the face: the square 0.001 by 0.001 standing in the plane y = 0 with a
+        /// hole 0.0004 by 0.0004 in its corner, of 8.4E-7 square units, balances at (0.000538, 0, 0.000538), where an
+        /// area of a millionth or less was taken for none and the boundary's centroid given. Only a face whose area is
+        /// lost in the rounding of the areas it is worked out from has none.
+        /// </para>
         /// </remarks>
         public GeoPoint3 Centroid
         {
@@ -575,6 +581,8 @@ namespace GeometryHelper.Geometry
                 double x = boundaryCentroid.X * area;
                 double y = boundaryCentroid.Y * area;
                 double z = boundaryCentroid.Z * area;
+                double roundingAtMost = Boundary.GetAreaRoundingAtMost();
+                double whole = area;
 
                 foreach (GeoPolygon3 hole in Holes)
                 {
@@ -584,9 +592,15 @@ namespace GeometryHelper.Geometry
                     x -= holeCentroid.X * holeArea;
                     y -= holeCentroid.Y * holeArea;
                     z -= holeCentroid.Z * holeArea;
+                    roundingAtMost += hole.GetAreaRoundingAtMost();
+                    whole += holeArea;
                 }
 
-                if (Math.Abs(area) <= Tolerance.Global.EqualPoint * Tolerance.Global.EqualPoint)
+                // An area no larger than the rounding is none: that of each loop's area and of taking the holes off. The
+                // rounding is worked out from the corners only for an area within what the boxes allow it.
+                double taking = GeoPolygon2.HalfUlp * (Holes.Count + 1) * whole;
+
+                if (Math.Abs(area) <= roundingAtMost + taking && Math.Abs(area) <= GetAreaRounding() + taking)
                 {
                     return boundaryCentroid;
                 }
@@ -594,6 +608,21 @@ namespace GeometryHelper.Geometry
                 return new GeoPoint3(x / area, y / area, z / area);
             }
         }
+        /// <summary>
+        /// Gets how far the area of the boundary and of each hole can stand off by the rounding of the sums it comes from.
+        /// </summary>
+        private double GetAreaRounding()
+        {
+            double rounding = Boundary.GetAreaRounding();
+
+            foreach (GeoPolygon3 hole in Holes)
+            {
+                rounding += hole.GetAreaRounding();
+            }
+
+            return rounding;
+        }
+
         /// <summary>
         /// Builds a spatial index over the surface of this face, for asking it many questions.
         /// </summary>

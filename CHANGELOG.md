@@ -6,6 +6,45 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A curved chain is copied, moved and turned edge for edge, every arc and leg however small, by `Clone`,
+`Translate` and `RotateBy` of `GeoPolylineArc2` and `Clone` and `Translate` of `GeoPolylineArc3`, as a curved loop has
+been since the last fix; a straight polygon or chain is moved and turned side for side by `Translate` and `RotateBy` of
+`GeoPolygon2` and `GeoPolyline2`, and so of `GeoFace2` and by the `+` and `-` operators. They were put back together
+within the global tolerance of a thousandth: at a millionth, the chain (0, 0), (10, 0), (10, 10) filleted at 0.0005, in
+the plane or standing in space, came back turning at a corner, where it keeps its arc 0.0007 across, and the triangle
+through the same corners with every corner cut by 0.0003 came back three corners, where it keeps six. Of 8 000 chains,
+two in three filleted at tolerances from a billionth to a ten-thousandth or with a leg between ten tolerances and 0.0009
+long, 12 536 copies lost an edge, and of 8 000 polygons and chains, two in three chamfered or with a side as short,
+10 046 moves and turns lost a corner; none does now. `TransformBy` of a curved chain went edge for edge already. Shapes
+with no edge shorter than a thousandth give the same bits. 9 new tests.
+
+**FIXED.** The centroid of a `GeoFace2`, a `GeoFace3` and a `GeoPolygon3` weighs the area however small, as that of a
+`GeoPolygon2` has since the last fix: an area of a millionth or less was taken for none, so a face gave its boundary's
+centroid, its holes left out, and a polygon in space its first corner. The square 0.001 by 0.001 with a hole 0.0004 by
+0.0004 in its corner, of 8.4E-7 square units, balances at (0.000538, 0.000538), where it gave (0.0005, 0.0005); the
+triangle (10, 20, 30), (10.0009, 20, 30), (10, 20, 30.0009) balances at (10.0003, 20, 30.0003), where it gave
+(10, 20, 30). Only an area lost in the rounding of the sums it comes from is none. Of the centroids of 8 000 faces
+0.00001 to 10 across, with up to two holes, in the plane and in space, and of their boundaries in space, 7 236 stood off
+the same face scaled up; none does now. Those over a millionth in area give the same bits, and a face with no holes
+under it gives its boundary's centroid to the last digit, as it did. 4 new tests.
+
+**FIXED.** `GeoCoordinateSystem3` judges its two directions parallel by the angle between them, the sine of it within
+the global vector tolerance of 1E-5, where it read the length of their cross product against that tolerance: two
+directions 0.002 long and square to each other span a frame, where they were refused as parallel, and two 10 long and
+5E-6 of a radian apart are parallel, where they spanned a frame. Of 8 000 pairs of directions 0.0001 to 10 long, 1 259
+short ones were refused and 12 long ones taken; none is now. Directions of unit length give the same frame to the bit.
+So `TransformBy` of a `GeoCoordinateSystem3` follows a scaling down to 1E-5, where one by less than 0.0032, which leaves
+its axes as short, was refused as leaving them parallel. `GeoCoordinateSystem2.TransformBy` keeps the axes under a
+scaling however small, where it refused one by 1E-5 or less as leaving no axes: 4 608 of 5 266 scalings from 1E-12 to
+1E-4 were refused; none is now. 5 new tests.
+
+**FIXED.** `Flatten` of a `GeoPolygonArc2` and of a `GeoPolylineArc2` flattens a loop or a chain too small for the merge
+of its corners within the point tolerance to leave a polygon or a chain: it keeps every corner of its chords, where it
+was refused for having too few. The square 0.0005 by 0.0005 flattens to its four corners, and with its sides bowed by a
+bulge of 0.2 to the corners of their chords. Of 8 000 loops 0.000002 to 200 across, 4 220 could not be flattened, and of
+4 072 chains under a thousandth 4 042; none now. Loops and chains the merge leaves a polygon or a chain give the same
+bits. 3 new tests.
+
 **CHANGED.** `DxfDatabase.Insert` and `WblockCloneObjects` copy a block AutoCAD names itself once for the call, however
 many INSERTs place it, as AutoCAD's own insert keeps one `*U` for two INSERTs that share it (AutoCAD's saves of the checks
 24d-d and 24d-g, inserted by AutoCAD in its check v23), where they copied it once for each INSERT: two INSERTs of one `*U`
