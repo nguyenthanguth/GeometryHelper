@@ -6,6 +6,35 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A TEXT, an attribute definition or an attribute not aligned left on its baseline always writes its alignment
+point (11, 21, 31), the origin too, as AutoCAD 2021 wrote `11 0 21 0 31 0` for its own TEXT centred on its middle (check
+D30): an attribute definition centred on (0, 0) gave the attribute `SetAttributeFromBlock` filled for an INSERT at (6000,
+1000) no 11, and AutoCAD put it at the world's origin; it is now held by (6000, 1000), as AutoCAD's own was. `Justify`,
+`HorizontalMode` and `VerticalMode` give a text of no alignment point the origin as one, `AlignmentPoint` set to the origin
+writes it, and a justified text of no 11 from another writer is moved, turned and placed from the origin, as AutoCAD reads
+it. An attribute of several lines made of such a definition stands its MTEXT at the origin, not at its first point.
+
+**FIXED.** The copies of an array come cell by cell, row by row, each cell's entities in the order the array was given
+them, as AutoCAD 2021 drew them (check D30): the seat and the back of a chair arrayed every 600 came as seat 0, seat 600,
+seat 1200 ... back 0, back 600 ..., and now as seat 0, back 0, seat 600, back 600. The entities are the same; their order
+and so their indices in the INSERT's block are AutoCAD's. Of D29's eight sample drawings, remade with attributes in
+actions, AutoCAD 2021's 304 sets and the library's are 0 lines apart, entity by entity, where the three holding arrays were
+2 008 lines apart, and AutoCAD's audit finds no error in them (check D30).
+
+**NEW.** A stretch, a move, a scale and a rotate take attribute definitions locked in their block
+(`LockPositionInBlock`), and the ATTRIB of each INSERT follows its definition as AutoCAD 2021 moved, scaled and turned the
+library's (check D30): Width set from 200 to 150 on an INSERT turned a quarter turn at the scale 2 takes an ATTRIB a scale
+holds from (480, 200), 10 high, to (485, 150), 7.5 high. An attribute definition not locked in its block is refused with
+`ArgumentException`, as AutoCAD's Block Editor refuses it: AutoCAD left an unlocked one of the library's move, scale and
+rotate where it was. A flip parameter beside other parameters stays refused: AutoCAD read Hand back as 0 again on the
+library's door of a flip beside a Width, with or without its stretch, though the library now keeps an INSERT's history.
+
+**CHANGED.** An INSERT of another writer's block whose move, scale or rotate holds an attribute definition not locked in its
+block leaves the definition and its ATTRIB where they are, and a stretch moves the definition but not the ATTRIB, as AutoCAD
+2021 did (check D30); the library moved both in a move. Such a block's scales, rotates and stretches of locked attribute
+definitions, which the library did not set, are set. The look-alike of a Block Editor drawing in the tests of D24g locks its
+two attribute definitions, as AutoCAD's Block Editor would have. 17 new tests.
+
 **NEW.** A block properties table takes a column of the visibility state, `DxfBlockPropertiesTableColumn.Visibility(block)`,
 written as AutoCAD 2021's own `AddItem` wrote one (connection VisibilityState, text cells): each row names a state, which
 the row shows and is matched by; and an empty cell (null) in an attribute definition's column, which gives the attribute an

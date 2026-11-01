@@ -10,9 +10,9 @@ namespace GeometryHelper.Dxf
     /// Sets the value of a dynamic property of an INSERT as AutoCAD's <c>DynamicBlockReferenceProperty.Value</c> sets it, for a
     /// dynamic block of linear, XY, polar, point, rotation, flip, visibility and lookup parameters with the stretch, polar
     /// stretch, move, scale, rotate, flip, array and lookup actions the library writes, and the stretches and moves of a base grip, the moves
-    /// carrying linear parameters and the attribute definitions in a move that AutoCAD's Block Editor writes: the value taken
-    /// to its value set, the block worked out at the values of all its properties into an anonymous block of AutoCAD's (*U)
-    /// the INSERT places, the INSERT's ATTRIBs moved as their ATTDEFs' moves change, and the INSERT's representation data and
+    /// carrying linear parameters and the attribute definitions in a stretch, a move, a scale and a rotate that AutoCAD's Block
+    /// Editor writes: the value taken to its value set, the block worked out at the values of all its properties into an
+    /// anonymous block of AutoCAD's (*U) the INSERT places, the INSERT's ATTRIBs changed as their ATTDEFs' places change, and the INSERT's representation data and
     /// cache (ACAD_ENHANCEDBLOCKDATA) written as AutoCAD 2021 wrote them when it set a value (plugins v17, v18), a history of
     /// grip edits the INSERT keeps given the value set after it and none made where it keeps none (plugin D26). A block
     /// properties table sets its row, its user parameters and the INSERT's attributes of its columns.
@@ -37,6 +37,9 @@ namespace GeometryHelper.Dxf
         private static readonly string[] PolarKey = { "11323277", "15401870" };
         private static readonly string[] PolarStretchKey = { "82519608", "111249311" };
         private static readonly string[] UserKey = { "6894073", "9375021" };
+
+        // A tolerance of nought: two transformations agree only to the bit.
+        private static readonly Tolerance Exactly = new Tolerance(0.0, 0.0);
 
         /// <summary>
         /// Sets the value of a property of a node of the INSERT's dynamic block (its part: 0, else 1 for the y of a point or of
@@ -260,12 +263,12 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            List<KeyValuePair<DxfAttributeReference, GeoVector3>> follow = Followed(insert, dynamic, block, before, values);
+            List<KeyValuePair<DxfAttributeReference, GeoTransform3>> follow = Followed(insert, dynamic, block, before, values);
             Write(insert, dynamic, block, values, state, labels, users);
 
-            foreach (KeyValuePair<DxfAttributeReference, GeoVector3> attribute in follow)
+            foreach (KeyValuePair<DxfAttributeReference, GeoTransform3> attribute in follow)
             {
-                attribute.Key.TransformBy(GeoTransform3.Translation(attribute.Value));
+                attribute.Key.TransformBy(attribute.Value);
             }
 
             // A row sets the attribute of each attribute definition of a column to its text, as AutoCAD 2021 gave MARK P200.
@@ -472,22 +475,28 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// The ATTRIBs of the INSERT that follow their ATTDEF, told by its tag, as a move takes it from where the values before
-        /// put it to where the values now put it, with the move each makes in the world: the change of the ATTDEF's place in
-        /// the block carried by the INSERT's placing. An ATTRIB keeps a place the user gave it and moves by the change only.
-        /// Refused with <see cref="NotSupportedException"/> where ATTDEFs of one tag the INSERT has an ATTRIB of move apart.
+        /// The ATTRIBs of the INSERT that follow their ATTDEF, told by its tag, as the actions take it from where the values
+        /// before put it to where the values now put it, with what each is given in the world: the change of the ATTDEF's place
+        /// in the block carried by the INSERT's placing. A move or a stretch moves it; a scale or a rotate scales or turns it
+        /// about the parameter's base point, as AutoCAD 2021 scaled and turned the ATTRIBs of the library's (plugin D30, x2). An
+        /// ATTRIB keeps a place the user gave it and changes by the change only. An ATTDEF not locked in the block takes no ATTRIB
+        /// along, as AutoCAD 2021 left them (x1). Refused with <see cref="NotSupportedException"/> where ATTDEFs of one tag the
+        /// INSERT has an ATTRIB of change apart.
         /// </summary>
-        private static List<KeyValuePair<DxfAttributeReference, GeoVector3>> Followed(DxfBlockReference insert, DxfBlockTableRecord dynamic, Block block, Dictionary<string, double[]> before, Dictionary<string, double[]> values)
+        private static List<KeyValuePair<DxfAttributeReference, GeoTransform3>> Followed(DxfBlockReference insert, DxfBlockTableRecord dynamic, Block block, Dictionary<string, double[]> before, Dictionary<string, double[]> values)
         {
-            var follow = new List<KeyValuePair<DxfAttributeReference, GeoVector3>>();
+            var follow = new List<KeyValuePair<DxfAttributeReference, GeoTransform3>>();
 
             if (insert.AttributeCollection.Count == 0)
             {
                 return follow;
             }
 
-            // The change of each tag's ATTDEF, in the block; a tag of ATTDEFs that change apart holds null.
+            // The change of each tag's ATTDEF, in the block: a move along x and y, or, where a scale or a rotate holds it, a
+            // transformation (turned); a tag of ATTDEFs that change apart holds neither.
             var changes = new Dictionary<string, double[]>(StringComparer.OrdinalIgnoreCase);
+            var turns = new Dictionary<string, GeoTransform3>(StringComparer.OrdinalIgnoreCase);
+            var apart = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             double slack = Tolerance.Default.EqualPoint;
 
             foreach (DxfEntity entity in dynamic)
@@ -498,27 +507,55 @@ namespace GeometryHelper.Dxf
                 }
 
                 var change = new double[2];
+                GeoTransform3 turned = null;
+                bool locked = definition.LockPositionInBlock;
 
-                foreach (BlockAction action in block.Actions)
+                if (locked && block.Actions.Exists(a => (a.Kind == ActionKind.Scale || a.Kind == ActionKind.Rotate) && Holds(a, entity.Handle)))
                 {
-                    if (action.Kind == ActionKind.Move && action.Entities.Exists(h => string.Equals(h, entity.Handle, StringComparison.OrdinalIgnoreCase)))
+                    GeoTransform3 now = Placed(block, entity.Handle, values);
+                    GeoTransform3 then = Placed(block, entity.Handle, before);
+                    turned = now.IsEqualTo(then, Exactly) ? GeoTransform3.Identity : now.Multiply(then.Inverse(Tolerance.Default));
+                }
+                else if (locked)
+                {
+                    foreach (BlockAction action in block.Actions)
                     {
-                        double[] from = Change(block, action, before);
-                        double[] to = Change(block, action, values);
-                        change[0] += to[0] - from[0];
-                        change[1] += to[1] - from[1];
+                        if ((action.Kind == ActionKind.Move || action.Kind == ActionKind.Stretch) && Holds(action, entity.Handle))
+                        {
+                            double[] from = Change(block, action, before);
+                            double[] to = Change(block, action, values);
+                            change[0] += to[0] - from[0];
+                            change[1] += to[1] - from[1];
+                        }
                     }
                 }
 
                 string tag = definition.Tag ?? string.Empty;
 
-                if (!changes.TryGetValue(tag, out double[] seen))
+                if (!changes.ContainsKey(tag) && !turns.ContainsKey(tag) && !apart.Contains(tag))
                 {
-                    changes.Add(tag, change);
+                    if (turned != null)
+                    {
+                        turns.Add(tag, turned);
+                    }
+                    else
+                    {
+                        changes.Add(tag, change);
+                    }
                 }
-                else if (seen != null && (Math.Abs(seen[0] - change[0]) > slack || Math.Abs(seen[1] - change[1]) > slack))
+                else if (!apart.Contains(tag))
                 {
-                    changes[tag] = null;
+                    GeoTransform3 seen = turns.TryGetValue(tag, out GeoTransform3 kept) ? kept : null;
+                    bool agree = turned == null && seen == null
+                        ? Math.Abs(changes[tag][0] - change[0]) <= slack && Math.Abs(changes[tag][1] - change[1]) <= slack
+                        : Agree(seen ?? GeoTransform3.Translation(new GeoVector3(changes[tag][0], changes[tag][1], 0.0)), turned ?? GeoTransform3.Translation(new GeoVector3(change[0], change[1], 0.0)));
+
+                    if (!agree)
+                    {
+                        changes.Remove(tag);
+                        turns.Remove(tag);
+                        apart.Add(tag);
+                    }
                 }
             }
 
@@ -527,23 +564,94 @@ namespace GeometryHelper.Dxf
 
             foreach (DxfAttributeReference attribute in insert.AttributeCollection)
             {
-                if (!changes.TryGetValue(attribute.Tag ?? string.Empty, out double[] change))
-                {
-                    continue;
-                }
+                string tag = attribute.Tag ?? string.Empty;
 
-                if (change == null)
+                if (apart.Contains(tag))
                 {
                     throw new NotSupportedException("The block " + dynamic.Name + " has attribute definitions of the tag " + attribute.Tag + " that its actions move apart: the INSERT's attribute of that tag has no one move to follow, and is not set.");
                 }
 
-                if (change[0] != 0.0 || change[1] != 0.0)
+                if (turns.TryGetValue(tag, out GeoTransform3 turned))
                 {
-                    follow.Add(new KeyValuePair<DxfAttributeReference, GeoVector3>(attribute, origin.GetVectorTo(placing.Transform(new GeoPoint3(change[0], change[1], 0.0)))));
+                    if (!turned.IsIdentity(Exactly))
+                    {
+                        follow.Add(new KeyValuePair<DxfAttributeReference, GeoTransform3>(attribute, placing.Multiply(turned).Multiply(placing.Inverse(Tolerance.Default))));
+                    }
+                }
+                else if (changes.TryGetValue(tag, out double[] change) && (change[0] != 0.0 || change[1] != 0.0))
+                {
+                    follow.Add(new KeyValuePair<DxfAttributeReference, GeoTransform3>(attribute, GeoTransform3.Translation(origin.GetVectorTo(placing.Transform(new GeoPoint3(change[0], change[1], 0.0))))));
                 }
             }
 
             return follow;
+        }
+
+        /// <summary>Whether an action works on an entity of the block: among its entities, or, of a stretch, among those it holds.</summary>
+        private static bool Holds(BlockAction action, string handle)
+            => action.Entities.Exists(h => string.Equals(h, handle, StringComparison.OrdinalIgnoreCase))
+            || (action.Kind == ActionKind.Stretch && action.Held.Exists(h => string.Equals(h.Key, handle, StringComparison.OrdinalIgnoreCase)));
+
+        /// <summary>
+        /// What the actions of the block give an entity of one point at the values given, in the order of the graph, as
+        /// <see cref="Act"/> works them out: a stretch and a move move it, a scale scales it and a rotate turns it about the
+        /// parameter's base point.
+        /// </summary>
+        private static GeoTransform3 Placed(Block block, string handle, Dictionary<string, double[]> values)
+        {
+            GeoTransform3 placed = GeoTransform3.Identity;
+
+            foreach (BlockAction action in block.Actions)
+            {
+                if (!Holds(action, handle))
+                {
+                    continue;
+                }
+
+                GeoTransform3 step;
+
+                if (action.Kind == ActionKind.Stretch)
+                {
+                    double[] change = Change(block, action, values);
+                    step = GeoTransform3.Translation(new GeoVector3(change[0], change[1], 0.0));
+                }
+                else if (action.Kind == ActionKind.Move || action.Kind == ActionKind.Scale || action.Kind == ActionKind.Rotate)
+                {
+                    step = Transform(block.Parameters.Find(p => p.Id == action.Parameter), action, values);
+                }
+                else
+                {
+                    step = null;
+                }
+
+                if (step != null)
+                {
+                    placed = step.Multiply(placed);
+                }
+            }
+
+            return placed;
+        }
+
+        /// <summary>Whether two transformations agree: the origin carried within the point tolerance, the axes within the vector tolerance of <see cref="Tolerance.Default"/>.</summary>
+        private static bool Agree(GeoTransform3 a, GeoTransform3 b)
+        {
+            var origin = new GeoPoint3(0, 0, 0);
+
+            if (!a.Transform(origin).IsEqualTo(b.Transform(origin), Tolerance.Default))
+            {
+                return false;
+            }
+
+            foreach (GeoVector3 axis in new[] { GeoVector3.XAxis, GeoVector3.YAxis, GeoVector3.ZAxis })
+            {
+                if (!a.Transform(axis).IsEqualTo(b.Transform(axis), Tolerance.Default))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -638,9 +746,9 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Works the actions out on the copies, in the order of the graph: the stretches in a row first summed point by point
-        /// and then applied, as <see cref="Stretch"/> says; a move, a scale, a rotation and a flip applied to each entity whole.
-        /// An action whose parameter keeps the block's own value leaves its entities as they are. Arrays are worked out after
-        /// them all (<see cref="Copy"/>).
+        /// and then applied, as <see cref="Stretch"/> says; a move, a scale, a rotation and a flip applied to each entity whole,
+        /// but an attribute definition not locked in the block, which a stretch alone moves. An action whose parameter keeps
+        /// the block's own value leaves its entities as they are. Arrays are worked out after them all (<see cref="Copy"/>).
         /// </summary>
         private static void Act(Block block, Dictionary<string, double[]> values, Dictionary<string, DxfEntity> copyOf)
         {
@@ -675,9 +783,11 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
+                // An attribute definition not locked in the block stays, as AutoCAD 2021 left one of a move, a scale and a rotate
+                // (plugin D30, x1).
                 foreach (string handle in action.Entities)
                 {
-                    if (copyOf.TryGetValue(handle, out DxfEntity copy))
+                    if (copyOf.TryGetValue(handle, out DxfEntity copy) && !(copy is DxfAttributeDefinition definition && !definition.LockPositionInBlock))
                     {
                         copy.TransformBy(transform);
                     }
@@ -947,9 +1057,11 @@ namespace GeometryHelper.Dxf
         /// parameter, in rows and columns the way the end point lies, each count the distance along its axis over its spacing,
         /// rounded down, as AutoCAD's save of ACadSharp's XY sample shows (four columns of 25 in 100.59, five rows of 20 in
         /// 104.30), and none copied where a count is nought, as AutoCAD 2021 drew the one circle of that sample set to 80 by 5
-        /// (plugin v21, 24e-s2). The entity itself is the first copy; the others follow the block's entities, row by row, each
-        /// tagged as AutoCAD tags a copy of its arrays (AcDbBlockArrayActionTag, 1070 1, after the entity's own tag), without
-        /// which AutoCAD 2021 refused to set the INSERT again (eInvalidInput, plugin v21, 24e-c and 24e-d).
+        /// (plugin v21, 24e-s2). The entity itself is the first copy; the others follow the block's entities cell by cell, row
+        /// by row, each cell's in the order of the action's selection, and the arrays in the order of the graph, as AutoCAD 2021
+        /// drew them (C0 L0 C60 L60 ..., not C0 L0 C60 C120 ... L60, plugin D30), each tagged as AutoCAD tags a copy of its
+        /// arrays (AcDbBlockArrayActionTag, 1070 1, after the entity's own tag), without which AutoCAD 2021 refused to set the
+        /// INSERT again (eInvalidInput, plugin v21, 24e-c and 24e-d).
         /// </summary>
         private static void Copy(Block block, Dictionary<string, double[]> values, Dictionary<string, DxfEntity> copyOf, DxfDatabase database, DxfBlockTableRecord anonymous)
         {
@@ -993,15 +1105,15 @@ namespace GeometryHelper.Dxf
                     }
                 }
 
-                foreach (string handle in action.Entities)
+                foreach (GeoVector3 offset in offsets)
                 {
-                    if (!copyOf.TryGetValue(handle, out DxfEntity copy))
+                    foreach (string handle in action.Entities)
                     {
-                        continue;
-                    }
+                        if (!copyOf.TryGetValue(handle, out DxfEntity copy))
+                        {
+                            continue;
+                        }
 
-                    foreach (GeoVector3 offset in offsets)
-                    {
                         DxfEntity copied = database.WblockCloneObjects(new[] { copy }, anonymous)[0];
                         copied.TransformBy(GeoTransform3.Translation(offset));
                         copied.XData = new[] { new DxfTypedValue(1001, "AcDbBlockArrayActionTag"), new DxfTypedValue(1070, "1") };
@@ -2307,8 +2419,8 @@ namespace GeometryHelper.Dxf
             /// Refuses an action whose parameter is not of the kind it follows, or that works on what is not an entity of the
             /// block the library works out: a stretch of a linear, an XY or a polar parameter, of lines, polylines and entities of
             /// one point by their points, and of arcs by both ends or, lying flat, by one; a move of a linear, an XY or a polar
-            /// parameter by its end point or its base point, of a point parameter by its position, the attribute definitions a move alone
-            /// may hold; a scale of a linear parameter, a rotate of a rotation parameter, a flip of a flip parameter, an array
+            /// parameter by its end point or its base point, of a point parameter by its position, the attribute definitions a
+            /// stretch, a move, a scale and a rotate alone may hold; a scale of a linear parameter, a rotate of a rotation parameter, a flip of a flip parameter, an array
             /// of a linear parameter or of an XY parameter of a row offset; a polar stretch of a polar parameter, of the points
             /// a stretch holds but an arc by one end, and of entities to turn only.
             /// </summary>
@@ -2353,7 +2465,7 @@ namespace GeometryHelper.Dxf
 
                 foreach (string handle in acted)
                 {
-                    if (Kind != ActionKind.Stretch && (!entities.TryGetValue(handle, out DxfEntity entity) || entity is DxfUnknownEntity || (entity is DxfAttributeDefinition && Kind != ActionKind.Move)))
+                    if (Kind != ActionKind.Stretch && (!entities.TryGetValue(handle, out DxfEntity entity) || entity is DxfUnknownEntity || (entity is DxfAttributeDefinition && Kind != ActionKind.Move && Kind != ActionKind.Scale && Kind != ActionKind.Rotate)))
                     {
                         throw new NotSupportedException("A " + Kind.ToString().ToLowerInvariant() + " action of the block " + name + " works on " + handle + ", which is not an entity of the block the library works out: it may be another parameter or a grip, moved with it.");
                     }
@@ -2362,7 +2474,7 @@ namespace GeometryHelper.Dxf
                 foreach (KeyValuePair<string, List<int>> held in Held)
                 {
                     entities.TryGetValue(held.Key, out DxfEntity entity);
-                    List<GeoPoint3> points = entity == null ? null : DxfBlockTableRecord.StretchPoints(entity);
+                    List<GeoPoint3> points = entity == null ? null : DxfBlockTableRecord.StretchPoints(entity, Kind == ActionKind.Stretch);
                     int count = points?.Count ?? 0;
                     bool whole = entity is DxfLine || entity is DxfPolyline || held.Value.Count == count || (Kind == ActionKind.Stretch && entity is DxfArc arc && DxfBlockTableRecord.Flat(arc.Normal));
 

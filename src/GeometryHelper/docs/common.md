@@ -1121,6 +1121,14 @@ drawing that has no style of that name, by `AppendEntity`, by `AppendAttribute`,
 appended; a copy of a drawing that has the style brings it instead. In a drawing of R12 an MTEXT of a style the drawing has not
 is refused before it would become TEXTs.
 
+A TEXT, an attribute definition or an attribute not aligned left on its baseline is held by its `AlignmentPoint`, the
+origin where its record gives none, and always writes it, as AutoCAD 2021 wrote `11 0 21 0 31 0` for the TEXT it made
+centred on its middle with no alignment point given (check D30): `Justify`, `HorizontalMode` and `VerticalMode` give the
+origin to a text of none, and `AlignmentPoint` set to the origin writes it. Moved or placed, such a text carries its
+alignment point, the origin among them: an attribute definition centred on (0, 0) gives the attribute
+`SetAttributeFromBlock` fills for an INSERT at (6000, 1000) the alignment point (6000, 1000), where the library wrote none
+and AutoCAD put the attribute at the world's origin.
+
 An MTEXT is set in columns as AutoCAD sets one: `SetStaticColumns(12.5, 2.5, 3)` is three columns 12.5 wide with gutters of
 2.5, 42.5 across, the MTEXT's group 41 (and 40 of its embedded object) made 42.5 from R2018 and 12.5, the width of a
 column, before it, as AutoCAD 2021 wrote two columns 50 wide with a gutter of 10 as 110 in R2018 and 50 in R2000, and so
@@ -1296,9 +1304,9 @@ be pasted after the first; what is not written or not set is listed under
 [What the model does not do](#what-the-model-does-not-do).
 
 A block drawn in AutoCAD's Block Editor often holds more than these calls write, and an INSERT of it is set too: a stretch
-or a move tied to a parameter's base grip, a move whose selection holds other linear parameters and carries them, and a
-point parameter's move holding attribute definitions, whose ATTRIBs on the INSERT follow. How each is worked out, and what
-is still refused, is set out after the examples.
+or a move tied to a parameter's base grip, a move whose selection holds other linear parameters and carries them, and
+attribute definitions in a stretch, a move, a scale or a rotate, whose ATTRIBs on the INSERT follow. How each is worked out,
+and what is still refused, is set out after the examples.
 
 A dynamic block is found as
 ezdxf finds it, by the extended data `AcDbDynamicBlockGUID` of its BLOCK_RECORD, or `AcDbBlockRepBTag` of the anonymous
@@ -1469,8 +1477,10 @@ AutoCAD 2021 saved ACadSharp's sample of it, and each set on an INSERT as AutoCA
 and polylines, an arc with both its ends in the frame, a circle by its centre, a text by the point it is held by (its
 position, or its alignment point where it is not left on its baseline), a multiline text by its location and an INSERT by
 its insertion point; each moves whole. An arc with one end only in the frame is stretched as AutoCAD stretches it, below. A
-text aligned or fitted between two points, an attribute definition and an INSERT of rows and columns are refused. Each kind
-in a few lines, added to the drawing above:
+text aligned or fitted between two points and an INSERT of rows and columns are refused. A stretch, a move, a scale and a
+rotate take an attribute definition locked in its block (`LockPositionInBlock`), a stretch by its point as a text, and the
+ATTRIB of its tag on each INSERT follows it, below; one not locked is refused. Each kind in a few lines, added to the
+drawing above:
 
 ```csharp
 {
@@ -1563,7 +1573,8 @@ stretches in a row summed point by point first. A flip parameter is written alon
 block of any other parameter, and any other parameter in a block of a flip, are refused with NotSupportedException.
 AutoCAD 2021 flipped a door of the flip alone both ways (check v20), but set Hand to 1 on INSERTs of a door that also had a
 linear parameter of no action, and of a panel whose stretch held other entities, it read 0 back each time and left the
-leaf as it was (checks v20b and v21). A rotate or a scale and a stretch or a move of one entity are refused the same way,
+leaf as it was (checks v20b and v21), and did again once the library kept an INSERT's history (check D30). A rotate or a
+scale and a stretch or a move of one entity are refused the same way,
 either given second, and an INSERT of a block of such an entity from another writer is not set: AutoCAD 2021 worked such an
 entity out from where its last set left it, stretching a shaft turned a quarter turn along x to (0, 155) for a Reach of
 150 set after 200, where the block's values give (50, 105) (check v21). A turn and a stretch of different entities of one
@@ -1677,7 +1688,10 @@ from the base point towards the end point, of an XY parameter in columns along x
 lies; each count is the distance over its spacing, rounded down, as AutoCAD's save of ACadSharp's XY sample shows (four
 columns of 25 in 100.59, five rows of 20 in 104.30) and as AutoCAD 2021 drew the blocks above (four posts at 250, one at
 119; one column of three rows at 40 by 70, two bolts at 60 by 30). An XY array of a count of nought copies nothing, as
-AutoCAD drew the one circle of its sample at 80 by 5. The entity itself is the first copy; the others keep its tag and are
+AutoCAD drew the one circle of its sample at 80 by 5. The entity itself is the first copy; the others follow the block's
+entities cell by cell, row by row, each cell's in the order the array was given them, and one array's after another's, as
+AutoCAD 2021 drew them (check D30): the seat and the back of a chair arrayed every 600 come as seat 0, back 0, seat 600,
+back 600 and on, where the library drew every seat and then every back. The copies keep the entity's tag and are
 tagged as AutoCAD tags the copies of its arrays (AcDbBlockArrayActionTag). An entity an array copies is worked on by no
 other action, and a block's own distance that holds the spacing twice draws one copy still, as AutoCAD's block itself does.
 The linear parameter's array is written as the XY sample's with no rows (140 nought). AutoCAD 2021 refused to set again an
@@ -1700,14 +1714,20 @@ action's head, and the parameter and its grips among what it moves): the move by
 (0, 0)-(100, 0) to (0, -40)-(100, -40), still 100 long, its grips with it, and Bottom's own stretches of the bottom corners
 do not follow its being carried, as Bottom chains no actions (281 of 0); Bottom then set to 150 takes the bottom right
 corner to (150, -40), and Depth set back to 80 carries it up to y -20, still 150. The base point the INSERT keeps of a
-parameter carried is where the moves took it, which is no grip edit. An attribute definition a move holds moves in the
-anonymous block, and each ATTRIB of the INSERT of its tag moves by the change of that move, carried by the INSERT's
-placing: Mark set from x 20 to 30 on an INSERT turned a quarter turn at the scale 2 moves the ATTRIB 20 along y in the
-world, keeping a place the user gave it, and setting Mark back takes it back. Still refused, with NotSupportedException and
-nothing written: a move carrying a parameter other than a linear one, or its own, or a parameter that chains its actions
-or that a scale or an array follows; a move holding a grip of a parameter it does not carry; a stretch, a scale, a rotate, a
-flip or an array holding other parameters; an attribute definition worked on by any action but a move; and attribute
-definitions of one tag that the actions move apart, where the INSERT has an ATTRIB of that tag. A block of three linear
+parameter carried is where the moves took it, which is no grip edit. An attribute definition locked in its block that a
+stretch, a move, a scale or a rotate holds moves, scales or turns with the rest in the anonymous block, and each ATTRIB of
+the INSERT of its tag changes as its definition's place changes, carried by the INSERT's placing: Mark set from x 20 to 30
+on an INSERT turned a quarter turn at the scale 2 moves the ATTRIB 20 along y in the world, keeping a place the user gave
+it, and setting Mark back takes it back; a scale of Width from 200 to 150 on that INSERT takes an ATTRIB at (480, 200), 10
+high, to (485, 150), 7.5 high, as AutoCAD 2021 scaled the library's (check D30). AutoCAD's Block Editor takes into an
+action only an attribute locked so, and every one an action holds in AutoCAD's Dynamic Blocks samples is; AutoCAD 2021
+left an unlocked one of the library's move, scale and rotate where it was, and moved one a stretch held in the anonymous
+block but not its ATTRIB, and the library works such a block of another writer out the same way (check D30). Still
+refused, with NotSupportedException and nothing written: a move carrying a parameter other than a linear one, or its own,
+or a parameter that chains its actions or that a scale or an array follows; a move holding a grip of a parameter it does
+not carry; a stretch, a scale, a rotate, a flip or an array holding other parameters; an attribute definition in a polar
+stretch, a flip or an array; and attribute definitions of one tag that the actions change apart, where the INSERT has an
+ATTRIB of that tag. A block of three linear
 parameters, a point parameter, six stretches and five moves of these kinds, drawn in AutoCAD, is set this way, its
 anonymous block at the INSERT's own values the same, entity for entity to 1E-9, as the one AutoCAD saved; AutoCAD 2021's
 own sets of such a block, each of its five properties alone, all five, two set back, an ATTRIB dragged first, and three
@@ -2634,24 +2654,29 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
     and one alignment and one base point parameter, which give no property. Linear, XY, polar and rotation parameters take
     value sets. A stretch holds lines and polylines by their points, arcs by both ends or, lying flat, by one, and circles,
     texts, multiline texts and INSERTs by their one point, in a frame of a rectangle; a stretch and a move take a distance
-    multiplier and an angle offset. A polar stretch holds them so but an arc by one end, and turns other entities only.
+    multiplier and an angle offset. A polar stretch holds them so but an arc by one end, and turns other entities only. A
+    stretch, a move, a scale and a rotate take attribute definitions locked in their block, the INSERTs' ATTRIBs following
+    (check D30).
   - Refused when written, with `NotSupportedException`, as AutoCAD 2021 worked them out from where an INSERT's last set left
-    it rather than from its values: a flip parameter beside any other parameter (checks v20b and v21), and a rotate or a
+    it rather than from its values: a flip parameter beside any other parameter (checks v20b and v21; AutoCAD 2021 read
+    Hand back as 0 again on the library's door of a flip beside a Width, stretching or not, check D30), and a rotate or a
     scale of an entity a stretch or a move holds (check v21). An entity both copied by an array, or turned by a polar
     stretch, and worked on by another action is refused too, an order no sample of AutoCAD shows.
-  - Not written: a frame of a polygon; a text aligned or fitted between two points, an attribute definition and an INSERT of
-    rows and columns in a stretch; an arc held by one end in a polar stretch; a polar stretch of a distance multiplier or
-    an angle offset, or tied to the base grip; a stretch or a move tied to a base grip, a move carrying other parameters,
-    and an attribute definition in a move, which are set where AutoCAD's Block Editor wrote them; a user parameter, a
+  - Not written: a frame of a polygon; a text aligned or fitted between two points and an INSERT of rows and columns in a
+    stretch; an attribute definition not locked in its block in any action, or in a polar stretch, a flip or an array; an
+    arc held by one end in a polar stretch; a polar stretch of a distance multiplier or
+    an angle offset, or tied to the base grip; a stretch or a move tied to a base grip and a move carrying other
+    parameters, which are set where AutoCAD's Block Editor wrote them; a user parameter, a
     constraint, and a block properties table whose properties must match a row, or of columns of a point, a lookup or a
     user parameter (AutoCAD's `AddItem` refused the first two), or of empty cells of a parameter or values of no match.
-  - Set where another writer wrote them: stretches and moves tied to a parameter's base grip, moves carrying other linear
-    parameters, and attribute definitions in a move, the INSERT's ATTRIBs following; a polar stretch naming an entity to
+  - Set where another writer wrote them: stretches and moves tied to a parameter's base grip and moves carrying other
+    linear parameters; attribute definitions not locked in their block, which a move, a scale and a rotate leave where they
+    are and a stretch moves without their ATTRIBs, as AutoCAD 2021 did (check D30); a polar stretch naming an entity to
     turn only in its selection too, or its parameter's grip.
   - Not set, with `NotSupportedException`, nothing written: an INSERT of a block of another writer holding what is not
     written above or refused (a constraint, a polar stretch tied to the base grip or of a multiplier or an offset, a move
     carrying a parameter other than a linear one or one that chains its actions, any other action holding a parameter,
-    an attribute definition in an action other than a move, a lookup column of another kind than those written above, as
+    an attribute definition in a polar stretch, a flip or an array, a lookup column of another kind than those written above, as
     a visibility state's, a block properties table column of another kind, or a lookup or a user parameter of a block
     whose table its properties must match, or a parameter of such a table of a column of a user parameter or of the
     visibility state), and an INSERT that keeps the base point of a linear, an XY, a polar, a

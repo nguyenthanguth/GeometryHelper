@@ -210,6 +210,8 @@ namespace GeometryHelper.Dxf
         /// coordinates, the point a text not aligned left on its baseline is held by; the origin where the record gives none,
         /// as for such a text.
         /// </summary>
+        /// <value>Set, the point; a text not aligned left on its baseline writes it always, the origin as 11 0 21 0 31 0, as
+        /// AutoCAD 2021 wrote one centred on (0, 0) (check D30).</value>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the text is erased.</exception>
         public GeoPoint3 AlignmentPoint
@@ -220,9 +222,9 @@ namespace GeometryHelper.Dxf
             {
                 CheckPoint(value);
 
-                if (!SamePoint(value, AlignmentPoint))
+                if (!SamePoint(value, AlignmentPoint) || (!IsDefaultAlignment && TextPoint(11) == null))
                 {
-                    SetText(TextPointGroups(11, WorldToOcs(Normal, value)));
+                    SetText(AlignmentGroups(WorldToOcs(Normal, value)));
                 }
             }
         }
@@ -307,6 +309,8 @@ namespace GeometryHelper.Dxf
         /// Gets or sets how the text stands across its point (group 72), as AutoCAD's <c>HorizontalMode</c>;
         /// <see cref="DxfTextHorizontalMode.TextLeft"/> where the record gives none.
         /// </summary>
+        /// <value>Set, the mode; a text made other than left on its baseline is given the origin as its second point where it
+        /// has none, as <see cref="Justify"/> says.</value>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the mode set is not one of AutoCAD's.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the text is erased.</exception>
         public DxfTextHorizontalMode HorizontalMode
@@ -325,7 +329,7 @@ namespace GeometryHelper.Dxf
                     throw new ArgumentOutOfRangeException(nameof(value), value, "A horizontal mode is one of AutoCAD's, 0 to 5.");
                 }
 
-                SetText(WholeGroup(72, (int)value, (int)HorizontalMode));
+                SetText(Join(WholeGroup(72, (int)value, (int)HorizontalMode), Aligned((int)value, TextInt(VerticalCode, 0))));
             }
         }
 
@@ -333,6 +337,8 @@ namespace GeometryHelper.Dxf
         /// Gets or sets how the text stands up and down from its point (group 73 of a TEXT, 74 of an ATTRIB or ATTDEF), as
         /// AutoCAD's <c>VerticalMode</c>; <see cref="DxfTextVerticalMode.TextBase"/> where the record gives none.
         /// </summary>
+        /// <value>Set, the mode; a text made other than left on its baseline is given the origin as its second point where it
+        /// has none, as <see cref="Justify"/> says.</value>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the mode set is not one of AutoCAD's.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the text is erased.</exception>
         public DxfTextVerticalMode VerticalMode
@@ -351,7 +357,7 @@ namespace GeometryHelper.Dxf
                     throw new ArgumentOutOfRangeException(nameof(value), value, "A vertical mode is one of AutoCAD's, 0 to 3.");
                 }
 
-                SetText(WholeGroup(VerticalCode, (int)value, (int)VerticalMode));
+                SetText(Join(WholeGroup(VerticalCode, (int)value, (int)VerticalMode), Aligned(TextInt(72, 0), (int)value)));
             }
         }
 
@@ -360,6 +366,9 @@ namespace GeometryHelper.Dxf
         /// <see cref="VerticalMode"/> taken together, a text centred on its middle <see cref="DxfAttachmentPoint.MiddleCenter"/>;
         /// <see cref="DxfAttachmentPoint.BaseLeft"/> where the record gives neither.
         /// </summary>
+        /// <value>Set, the modes; a text made other than left on its baseline whose record has no <see cref="AlignmentPoint"/>
+        /// is given the origin as one, written 11 0 21 0 31 0, as AutoCAD 2021 wrote the TEXT at (500, 500) it made centred on
+        /// its middle (check D30). <see cref="HorizontalMode"/> and <see cref="VerticalMode"/> set write it so too.</value>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the justification set is not one a text has, 1 to 24.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the text is erased.</exception>
         public DxfAttachmentPoint Justify
@@ -385,7 +394,7 @@ namespace GeometryHelper.Dxf
                     {
                         if (Justifications[horizontal, vertical] == (int)value)
                         {
-                            SetText(Join(WholeGroup(72, horizontal, TextInt(72, 0)), WholeGroup(VerticalCode, vertical, TextInt(VerticalCode, 0))));
+                            SetText(Join(WholeGroup(72, horizontal, TextInt(72, 0)), WholeGroup(VerticalCode, vertical, TextInt(VerticalCode, 0)), Aligned(horizontal, vertical)));
                             return;
                         }
                     }
@@ -492,11 +501,11 @@ namespace GeometryHelper.Dxf
                 }
 
                 GeoPoint3 position = Position;
-                bool aligned = TextPoint(11) != null;
+                bool aligned = TextPoint(11) != null || !IsDefaultAlignment;
                 GeoPoint3 alignment = AlignmentPoint;
                 SetText(Join(
                     TextPointGroups(10, WorldToOcs(unit, position)),
-                    aligned ? TextPointGroups(11, WorldToOcs(unit, alignment)) : new KeyValuePair<int, string>[0],
+                    aligned ? AlignmentGroups(WorldToOcs(unit, alignment)) : new KeyValuePair<int, string>[0],
                     TextNormalGroups(unit)));
             }
         }
@@ -871,7 +880,7 @@ namespace GeometryHelper.Dxf
                 Join(
                     text.Length > 0 ? Pair(1, ValueOfLines(value)) : new KeyValuePair<int, string>[0],
                     TextPointGroups(10, location),
-                    TextPointGroups(11, location),
+                    AlignmentGroups(location),
                     NumberGroup(50, degrees, TextDouble(50, 0.0)),
                     TextNormalGroups(normal),
                     WholeGroup(72, horizontal, TextInt(72, 0)),
@@ -953,7 +962,7 @@ namespace GeometryHelper.Dxf
             double angle = Rotation;
             GeoPoint3 along = OcsToWorld(normal, new GeoPoint3(Math.Cos(angle), Math.Sin(angle), 0.0));
             mtext.Normal = normal;
-            mtext.Location = (horizontal != 0 || vertical != 0) && TextPoint(11).HasValue ? AlignmentPoint : Position;
+            mtext.Location = horizontal != 0 || vertical != 0 ? AlignmentPoint : Position;
             mtext.Direction = new GeoVector3(along.X, along.Y, along.Z);
             mtext.TextHeight = Height;
             mtext.Attachment = (DxfAttachmentPoint)(down * 3 + across + 1);
@@ -1334,6 +1343,30 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// The groups that set the second point of the text's part, in the system of its plane: as <see cref="TextPointGroups"/>
+        /// gives them where the record has the point, all three where it has none, the origin among them, as AutoCAD writes the
+        /// 11 of every text not aligned left on its baseline (11 0 21 0 31 0 for one centred on the origin, check D30).
+        /// </summary>
+        private protected KeyValuePair<int, string>[] AlignmentGroups(GeoPoint3 value)
+        {
+            if (TextPoint(11).HasValue)
+            {
+                return TextPointGroups(11, value);
+            }
+
+            CheckPoint(value);
+            return Join(Pair(11, Numbers.Exact(value.X + 0.0)), Pair(21, Numbers.Exact(value.Y + 0.0)), Pair(31, Numbers.Exact(value.Z + 0.0)));
+        }
+
+        /// <summary>
+        /// The second point a text given the modes is written with where its record has none: the origin, which AutoCAD reads
+        /// for it, where the modes are not both nought; none for a text aligned left on its baseline, of which AutoCAD writes
+        /// none, or one that has the point.
+        /// </summary>
+        private KeyValuePair<int, string>[] Aligned(int horizontal, int vertical)
+            => (horizontal != 0 || vertical != 0) && !TextPoint(11).HasValue ? AlignmentGroups(Origin) : new KeyValuePair<int, string>[0];
+
+        /// <summary>
         /// The groups that set the normal of the text's part: none where it is the normal read, to the bit; else each group that
         /// differs from the number the record holds, as one not of unit length, (1, 2, 3), is read made so.
         /// </summary>
@@ -1365,7 +1398,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// The groups a transformation gives the text, as ezdxf's <c>Text.transform()</c> gives them: through the system of its
-        /// plane, the second point carried where the record has one.
+        /// plane, the second point carried where the record has one or the text is not aligned left on its baseline, the origin
+        /// then, as AutoCAD reads it.
         /// </summary>
         private protected KeyValuePair<int, string>[] TransformGroups(GeoTransform3 transform)
         {
@@ -1378,7 +1412,10 @@ namespace GeometryHelper.Dxf
             }
 
             GeoPoint3 insert = ocs.TransformVertex(TextPoint(10) ?? Origin);
-            GeoPoint3? aligned = TextPoint(11);
+
+            // A text not aligned left on its baseline is held by the origin where its record gives no second point, as AutoCAD
+            // reads it, and carries it (check D30).
+            GeoPoint3? aligned = TextPoint(11) ?? (IsDefaultAlignment ? (GeoPoint3?)null : Origin);
             double oldRotation = TextDouble(50, 0.0);
             double newRotation = ocs.TransformDegrees(oldRotation);
             double xScale = ocs.TransformLength(FromDegrees(oldRotation));
@@ -1403,7 +1440,7 @@ namespace GeometryHelper.Dxf
 
             return Join(
                 TextPointGroups(10, insert),
-                aligned.HasValue ? TextPointGroups(11, ocs.TransformVertex(aligned.Value)) : new KeyValuePair<int, string>[0],
+                aligned.HasValue ? AlignmentGroups(ocs.TransformVertex(aligned.Value)) : new KeyValuePair<int, string>[0],
                 NumberGroup(40, height, TextDouble(40, 2.5)),
                 NumberGroup(50, newRotation, oldRotation),
                 NumberGroup(41, width, TextDouble(41, 1.0)),

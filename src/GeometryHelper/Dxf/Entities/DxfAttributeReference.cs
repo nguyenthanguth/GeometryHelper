@@ -174,7 +174,9 @@ namespace GeometryHelper.Dxf
         /// <see cref="DxfBlockReference.BlockTransform"/>. Its prompt is not an attribute's and is left out. A definition of
         /// several lines gives its embedded MTEXT and makes the attribute one of several lines, its type (71) 2 where the
         /// definition's is 4, as ezdxf writes them, its value the words of every line of that MTEXT joined by spaces, as
-        /// AutoCAD 2021 writes it.
+        /// AutoCAD 2021 writes it. A definition not aligned left on its baseline gives its alignment point placed, the origin
+        /// where its record has none: centred on (0, 0) in a block an INSERT places at (6000, 1000), it gives an attribute held
+        /// by (6000, 1000), written 11 6000 21 1000, as AutoCAD 2021 gave it (check D30).
         /// </summary>
         /// <param name="definition">The definition, of the block the INSERT places.</param>
         /// <param name="blockTransform">The transformation that places the block.</param>
@@ -285,6 +287,14 @@ namespace GeometryHelper.Dxf
 
             ReplaceGroups(0, codes, run.ToArray());
             SetPropertiesFrom(definition);
+
+            // A justified definition of no second point is held by the origin, as AutoCAD reads it; its attribute is held by
+            // the origin placed, written as AutoCAD 2021 wrote the 11 of the ATTRIB of one centred on (0, 0) (check D30).
+            if (!IsDefaultAlignment && !TextPoint(11).HasValue)
+            {
+                SetText(AlignmentGroups(new GeoPoint3(0.0, 0.0, 0.0)));
+            }
+
             TransformBy(blockTransform);
         }
 

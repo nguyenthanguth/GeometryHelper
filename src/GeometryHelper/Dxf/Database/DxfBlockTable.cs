@@ -926,15 +926,19 @@ namespace GeometryHelper.Dxf
         /// end moves and the other stays, the arc keeping the height of its middle off its chord, as AutoCAD 2021 kept 2.929
         /// for the arc of the radius 10 from (100, 25) to (90, 35) whose start went to (150, 25) and then to (200, 25), its
         /// radius becoming 159.37 and then 522.13. An arc held by one end lies flat in the block, its normal along z. A text
-        /// aligned or fitted between two points, an attribute definition and an INSERT of rows and columns are refused. An
-        /// entity given twice is taken once.
+        /// aligned or fitted between two points and an INSERT of rows and columns are refused. An attribute definition
+        /// (<see cref="DxfAttributeDefinition"/>) locked in the block (<see cref="DxfAttributeDefinition.LockPositionInBlock"/>)
+        /// is held by its point as a text is, and each INSERT's ATTRIB of its tag moves with it: MARK at (100, 10) stands at
+        /// (150, 10) when Width is set from 100 to 150, as AutoCAD 2021 moved it (check D30); AutoCAD moved one not locked in
+        /// the block but left its ATTRIB, and such a one is refused, as AutoCAD's Block Editor refuses it. An entity given twice
+        /// is taken once.
         /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the parameter, a corner, the entities or one of them is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the parameter is of another block or no longer in its graph, the
         /// frame is no wider or no higher than the point tolerance, there are no entities, or an entity is not of this block,
-        /// is erased, is of a kind not taken, has no point in the frame, or is an arc with one end only in it whose normal is
-        /// not along z. Nothing is written then.</exception>
+        /// is erased, is of a kind not taken, is an attribute definition not locked in the block, has no point in the frame,
+        /// or is an arc with one end only in it whose normal is not along z. Nothing is written then.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
         /// <exception cref="NotSupportedException">Thrown when the block has a flip action, or an entity is also copied by an
         /// array action or turned by a polar stretch, or turned or scaled by a rotate or a scale action: AutoCAD 2021 worked a flip with a stretch out from
@@ -1155,8 +1159,9 @@ namespace GeometryHelper.Dxf
                     throw new ArgumentException("The entity " + (entity.Handle ?? string.Empty) + " to stretch is not of the block " + Name + ", or is erased.", nameof(entities));
                 }
 
-                List<GeoPoint3> points = StretchPoints(entity)
-                    ?? throw new ArgumentException("A stretch action takes lines, polylines, arcs, circles, texts held by one point, multiline texts and INSERTs; the entity " + entity.Handle + " is a " + entity.GetType().Name + " of none of those.", nameof(entities));
+                List<GeoPoint3> points = StretchPoints(entity, true)
+                    ?? throw new ArgumentException("A stretch action takes lines, polylines, arcs, circles, texts and attribute definitions held by one point, multiline texts and INSERTs; the entity " + entity.Handle + " is a " + entity.GetType().Name + " of none of those.", nameof(entities));
+                Locked(entity, "stretch");
                 var inside = new List<int>();
 
                 for (int i = 0; i < points.Count; i++)
@@ -1208,9 +1213,10 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// The points a stretch action numbers of an entity, in AutoCAD's order where its files show it: a line's start and end,
         /// a polyline's vertices, an arc's two ends, the centre of a circle, the point a text is held by, the location of a
-        /// multiline text, the insertion point of an INSERT; null for a kind not taken.
+        /// multiline text, the insertion point of an INSERT, and that of an attribute definition, as a text's, where attributes
+        /// are taken (a stretch's, not a polar stretch's); null for a kind not taken.
         /// </summary>
-        internal static List<GeoPoint3> StretchPoints(DxfEntity entity)
+        internal static List<GeoPoint3> StretchPoints(DxfEntity entity, bool attributes)
         {
             switch (entity)
             {
@@ -1229,7 +1235,7 @@ namespace GeometryHelper.Dxf
                     return new List<GeoPoint3> { arc.StartPoint, arc.EndPoint };
                 case DxfCircle circle:
                     return new List<GeoPoint3> { circle.Center };
-                case DxfAttributeDefinition _:
+                case DxfAttributeDefinition _ when !attributes:
                     return null;
                 case DxfDBText text:
                     if (text.HorizontalMode == DxfTextHorizontalMode.TextAlign || text.HorizontalMode == DxfTextHorizontalMode.TextFit)
@@ -1858,7 +1864,7 @@ namespace GeometryHelper.Dxf
                     throw new ArgumentException("The entity " + (entity.Handle ?? string.Empty) + " to stretch is not of the block " + Name + ", or is erased.", nameof(entities));
                 }
 
-                List<GeoPoint3> points = StretchPoints(entity)
+                List<GeoPoint3> points = StretchPoints(entity, false)
                     ?? throw new ArgumentException("A polar stretch takes lines, polylines, arcs, circles, texts held by one point, multiline texts and INSERTs; the entity " + entity.Handle + " is a " + entity.GetType().Name + " of none of those.", nameof(entities));
                 var inside = new List<int>();
 
@@ -2393,12 +2399,17 @@ namespace GeometryHelper.Dxf
         /// the circle to (190, 25) as Width is set to 200, while a stretch of the right edge takes the edge to x = 200. The
         /// action is written as AutoCAD writes one: the entities it moves, its connections EndXDelta and EndYDelta, the distance
         /// multiplier 1 and the angle offset nought, and the edge from the parameter in the evaluation graph; its element is
-        /// named Move, the next Move1 and on. An entity given twice is taken once.
+        /// named Move, the next Move1 and on. An entity given twice is taken once. An attribute definition locked in the block
+        /// (<see cref="DxfAttributeDefinition.LockPositionInBlock"/>) moves with the rest, and each INSERT's ATTRIB of its tag
+        /// with it, by the move its INSERT's placing gives: MARK at (100, 10) stands at (150, 10) as Width is set from 100 to
+        /// 150, and an INSERT turned a quarter turn at the scale 2, whose Width reads 200, takes its MARK 50 down along y as
+        /// Width is set to 150, as AutoCAD 2021 moved them (check D30).
+        /// AutoCAD left one not locked where it was, and the library refuses it, as AutoCAD's Block Editor does.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the parameter, the entities or one of them is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the parameter is of another block or no longer in its graph, there
-        /// are no entities, or an entity is not of this block, is erased, is an attribute definition or is of a type the
-        /// library keeps as it is (<see cref="DxfUnknownEntity"/>). Nothing is written then.</exception>
+        /// are no entities, or an entity is not of this block, is erased, is an attribute definition not locked in the block, or
+        /// is of a type the library keeps as it is (<see cref="DxfUnknownEntity"/>). Nothing is written then.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
         /// <exception cref="NotSupportedException">Thrown when the block has a flip action, or an entity is also copied by an
         /// array action or turned by a polar stretch, or turned or scaled by a rotate or a scale action: AutoCAD 2021 worked a flip with a stretch out from
@@ -2611,7 +2622,10 @@ namespace GeometryHelper.Dxf
         /// origin as Size is set to 200: its centre goes to (100, 50) and its radius to 50. The action is written as AutoCAD
         /// saved the scale of ACadSharp's linear sample: the entities it scales, its base the parameter's base point (dependent,
         /// of no offset), its connections Scale, XScale and YScale; its element named Scale. An entity given twice is taken once;
-        /// one a stretch or a move holds is not scaled, either way round.
+        /// one a stretch or a move holds is not scaled, either way round. An attribute definition locked in the block
+        /// (<see cref="DxfAttributeDefinition.LockPositionInBlock"/>) is scaled too, its height with it, and each INSERT's
+        /// ATTRIB of its tag: LEFT at (100, 10), 5 high, stands at (150, 15), 7.5 high, as Size is set from 100 to 150, as
+        /// AutoCAD 2021 scaled it (check D30); one not locked is refused, as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/> says.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the parameter, the entities or one of them is null.</exception>
         /// <exception cref="ArgumentException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
@@ -2642,7 +2656,11 @@ namespace GeometryHelper.Dxf
         /// An arrow from (50, 25) to (80, 25) whose Angle turns about (50, 25) from nought runs to (50, 55) as Angle is set to
         /// Math.PI / 2. The action is written as AutoCAD saved the rotate of ACadSharp's rotation sample: the entities it turns,
         /// its base the parameter's base point (dependent, of no offset), its connection AngleDelta; its element named Rotate.
-        /// An entity given twice is taken once; one a stretch or a move holds is not turned, either way round.
+        /// An entity given twice is taken once; one a stretch or a move holds is not turned, either way round. An attribute
+        /// definition locked in the block (<see cref="DxfAttributeDefinition.LockPositionInBlock"/>) turns too, and each
+        /// INSERT's ATTRIB of its tag: LEFT at (100, 10), turned about the origin by a quarter turn, stands at (-10, 100),
+        /// turned a quarter turn, as AutoCAD 2021 turned it (check D30); one not locked is refused, as
+        /// <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/> says.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the parameter, the entities or one of them is null.</exception>
         /// <exception cref="ArgumentException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
@@ -2681,7 +2699,7 @@ namespace GeometryHelper.Dxf
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the parameter, the entities or one of them is null.</exception>
         /// <exception cref="ArgumentException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
-        /// says. Nothing is written then.</exception>
+        /// says, and when an entity is an attribute definition, locked or not. Nothing is written then.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
         /// <exception cref="NotSupportedException">Thrown when the block has a stretch, polar stretch, move, scale, rotate or array
         /// action. Nothing is written then.</exception>
@@ -2726,7 +2744,7 @@ namespace GeometryHelper.Dxf
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the parameter, the entities or one of them is null.</exception>
         /// <exception cref="ArgumentException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
-        /// says. Nothing is written then.</exception>
+        /// says, and when an entity is an attribute definition, locked or not. Nothing is written then.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the spacing is not a finite number above the point tolerance.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
         /// <exception cref="NotSupportedException">Thrown when the block has a flip action, or an entity is also moved, stretched,
@@ -2774,7 +2792,7 @@ namespace GeometryHelper.Dxf
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the parameter, the entities or one of them is null.</exception>
         /// <exception cref="ArgumentException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
-        /// says. Nothing is written then.</exception>
+        /// says, and when an entity is an attribute definition, locked or not. Nothing is written then.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when a spacing is not a finite number above the point tolerance.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
         /// <exception cref="NotSupportedException">Thrown as
@@ -2835,7 +2853,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// The entities an action works on, each once in the order given, once the parameter is found of this block and the block
-        /// able to be dynamic: each of this block, not erased, not an attribute definition, nor of a type kept as it is.
+        /// able to be dynamic: each of this block, not erased, nor of a type kept as it is, and an attribute definition only one
+        /// locked in the block, of a move, a scale or a turn.
         /// </summary>
         private List<DxfEntity> Acted(DxfBlockTableRecord block, string name, IEnumerable<DxfEntity> entities, string what)
         {
@@ -2861,10 +2880,13 @@ namespace GeometryHelper.Dxf
                     throw new ArgumentException("The entity " + (entity.Handle ?? string.Empty) + " to " + what + " is not of the block " + Name + ", or is erased.", nameof(entities));
                 }
 
-                if (entity is DxfAttributeDefinition || entity is DxfUnknownEntity)
+                // A move, a scale and a rotate take an attribute definition locked in the block, as AutoCAD's Block Editor does.
+                if ((entity is DxfAttributeDefinition && what != "move" && what != "scale" && what != "turn") || entity is DxfUnknownEntity)
                 {
                     throw new ArgumentException("The entity " + entity.Handle + " to " + what + " is an attribute definition or of a type the library keeps as it is, which an action of the library does not take.", nameof(entities));
                 }
+
+                Locked(entity, what);
 
                 if (seen.Add(entity.Handle))
                 {
@@ -2890,10 +2912,26 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Refuses an attribute definition whose position is not locked in the block
+        /// (<see cref="DxfAttributeDefinition.LockPositionInBlock"/>): AutoCAD's Block Editor takes into an action only an
+        /// attribute locked so, as are all those an action holds in AutoCAD's Dynamic Blocks samples, and AutoCAD 2021 left an unlocked one
+        /// of the library's move, scale and rotate where it was, and the ATTRIB of one a stretch moved (check D30).
+        /// </summary>
+        private static void Locked(DxfEntity entity, string what)
+        {
+            if (entity is DxfAttributeDefinition definition && !definition.LockPositionInBlock)
+            {
+                throw new ArgumentException("The attribute definition " + definition.Tag + " (" + entity.Handle + ") to " + what + " is not locked in its block: lock its position (LockPositionInBlock), as AutoCAD's Block Editor asks, for AutoCAD 2021 left an unlocked one where it was.", "entities");
+            }
+        }
+
+        /// <summary>
         /// Refuses a flip parameter in a block of any other parameter, either way round: AutoCAD 2021 did not flip an INSERT of
         /// a door whose block held a linear parameter of no action beside the flip, reading its Hand back as 0 each time it was
         /// set to 1 (plugin v21, 24e-h), nor an INSERT of a panel whose stretch held other entities (plugins v20b and v21, 24d-i,
-        /// and AutoCAD's own save of it), though it flipped a door of the flip alone both ways (plugin v20, 24d-g).
+        /// and AutoCAD's own save of it), though it flipped a door of the flip alone both ways (plugin v20, 24d-g). It read Hand
+        /// back as 0 again on the library's door of a flip beside a Width, stretching a jamb or of no action, once the library
+        /// kept an INSERT's history (plugin D30, x1).
         /// </summary>
         private void Alone(bool flip)
         {

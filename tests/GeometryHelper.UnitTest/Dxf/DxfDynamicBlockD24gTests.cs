@@ -144,15 +144,16 @@ namespace GeometryHelper.UnitTest.Dxf
 
         /// <summary>
         /// A note: Mark at (20, 30), whose move holds its own grip, a text, a line and two attribute definitions, NOTE at
-        /// (25, 35) on its baseline and SIZE centred on (20, 40); a third, KEEP at (0, -10), no action holds.
+        /// (25, 35) on its baseline and SIZE centred on (20, 40), locked in the block as AutoCAD's Block Editor asks of an
+        /// attribute an action holds; a third, KEEP at (0, -10), no action holds.
         /// </summary>
         private static DxfDatabase Note(out DxfBlockTableRecord block)
         {
             DxfDatabase db = Drawing("GH_NOTE", out block);
             DxfDBText text = Add(block, new DxfDBText { Position = new GeoPoint3(20, 25, 0), Height = 2.5, TextString = "M" });
             DxfLine line = Add(block, new DxfLine(new GeoPoint3(15, 30, 0), new GeoPoint3(25, 30, 0)));
-            DxfAttributeDefinition note = Add(block, new DxfAttributeDefinition(new GeoPoint3(25, 35, 0), "-", "NOTE", "Note", null) { Height = 2.5 });
-            DxfAttributeDefinition size = Add(block, new DxfAttributeDefinition(new GeoPoint3(20, 40, 0), "100", "SIZE", "Size", null) { Height = 2.5 });
+            DxfAttributeDefinition note = Add(block, new DxfAttributeDefinition(new GeoPoint3(25, 35, 0), "-", "NOTE", "Note", null) { Height = 2.5, LockPositionInBlock = true });
+            DxfAttributeDefinition size = Add(block, new DxfAttributeDefinition(new GeoPoint3(20, 40, 0), "100", "SIZE", "Size", null) { Height = 2.5, LockPositionInBlock = true });
             size.HorizontalMode = DxfTextHorizontalMode.TextCenter;
             size.AlignmentPoint = new GeoPoint3(20, 40, 0);
             Add(block, new DxfAttributeDefinition(new GeoPoint3(0, -10, 0), "K", "KEEP", "Keep", null) { Height = 2.5 });
