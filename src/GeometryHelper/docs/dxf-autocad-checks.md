@@ -605,11 +605,14 @@ written as AutoCAD reads them now.
     - Found making the files: a multileader made in code starts its leader's dogleg at the base point of its content, which
       is the words' own point, and at the origin for the block placed after its leader line was added. Where AutoCAD lands
       it, and whether it lands it anew on opening, is to be seen in this point's answer.
-    - Still open: no file AutoCAD saved holds a MULTILEADER yet, so the landing is left as it is. ezdxf 1.4.5's builder
+    - Was open: no file AutoCAD saved held a MULTILEADER, so the landing was left as it was. ezdxf 1.4.5's builder
       (`render/mleader.py`, `_build_leader`) lands a leader at the connection point of the side of the content it comes to,
       the landing gap within it, less the dogleg: `connection_point - dogleg_direction * dogleg_length`, the dogleg pointing
-      at the content. To settle it, save from AutoCAD a multileader it made and this point's file opened and moved, and read
-      each leader's 10 against the content's.
+      at the content.
+    - AutoCAD 2021 (D31, headless, plugin GHD31 rounds A, B, D, G and H): ezdxf's reading. AutoCAD keeps a file's landing
+      as it is on opening, and lands a leader it adds (`AddLeaderLine(point)`) the gap and the dogleg short of the side of the
+      content facing the point, chosen by the content's middle; the words' side is as wide as its font makes them, so only
+      the left side of words held at their top left is known without a font. See point 80.
 
 ## Dimensions and tables
 
@@ -915,6 +918,14 @@ written as AutoCAD reads them now.
     - AutoCAD 2021 (plugin v4): the splined line's SPLINE has three fit points, the arrow's back, the vertex and the last
       point, and its tangents at the ends; the library's had none.
     - Now: the SPLINE keeps them, its control points and knots as they were.
+    - AutoCAD 2021 (D31, 137 multileaders it made, exploded by its API against the library's `Explode()` of its own files):
+      the same to 1E-6 but for five things, all now as AutoCAD gives them: a multileader whose leader lines are splined has
+      no dogleg drawn, and its SPLINEs run to the end the dogleg would have (c15, d19); a dogleg of no length is a LINE of no
+      length (c08); the words and the block are in the multileader's own linetype and lineweight (d17, h2), the SOLID of an
+      arrow in its own linetype (all), an INSERT of an arrow block in its own linetype and the line's lineweight, turned by
+      an angle from nought to a whole turn (d18, g1); and the words are as wide as the record's 43, which the scale has
+      scaled already (h1c), where the library scaled them again. What remains apart is the line AutoCAD draws under, over
+      or round the words (attachments 5, 6 and 8, the vertical lined centre, the frame), as long as its font makes them.
 
 62. **A leader exploded in the look of its dimension style.**
     - Try: EXPLODE in AutoCAD a leader of colour 3 whose style has DIMCLRD BYBLOCK, one with DIMCLRD 1 and DIMLWD 0.35 as
@@ -1224,3 +1235,51 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       only touches another side, both its own sides on one side of it, is no crossing, and a polyline that only touches
       itself, or an open one that crosses itself, is offset as before. `Offset2.Offset` of the library's own loops is not
       changed.
+
+## Multileader landings
+
+80. **Where a multileader's leader lands, read and made.**
+    - Try (D31, headless, plugin GHD31): multileaders made by AutoCAD's API on a Standard of words 4 high, arrows 4, a gap of
+      2 and doglegs of 8, words "ABC" or three lines held at (100, 50): leaders from (0, 0), (250, 0), (50, 100), (103, 0)
+      and (108, 0); every attachment of the sides; no dogleg, no landing, a gap of 5 and a dogleg of 15; words moved, the
+      gap, dogleg, height, attachment and scale set after the leader; leaders splined; blocks met at their extents and base;
+      words met at their top and bottom; `SetLastVertex`, `AddLastVertex`, `TransformBy` and `Scale`; each dumped through the
+      API (`GetVertex`, `GetDogleg`, `GetDoglegLength`, `TextLocation`, `Explode`) and saved by DXFOUT, and read and exploded
+      by the library. Then the library's own multileaders made the same way, read by DXFIN.
+    - AutoCAD 2021: from a point on the left of the words, the dogleg along x ends the gap short of their left edge (90 to 98
+      at y 48 for one line met at the middle of its top line), as far below their top as the attachment says: 0, h/2 and h
+      for the top of the top line, its middle and bottom, 1.2h under it (attachments 6 and 8), and for the whole words of
+      height H (lines 5/3 h apart) H/2, H - h/2, H and H + 0.2h (attachments 2 to 5); with a gap of 5 and a dogleg of 15
+      from 80. On the right, as far right as its font makes the words wide (from 120.67 for words 10.67 wide); the side is
+      chosen by the middle of the words (a point at x 103 under words from 100 to 110.67 lands left, one at 108 right). A
+      block met at its extents or base is met at the side of its extents, with no gap. Words met at their top or bottom have
+      no dogleg (`GetDoglegLength` 0). Words moved move the doglegs with them (to 110, 78 for words moved to 120, 80); a gap,
+      dogleg, height, attachment or scale set after the leader, and `SetLastVertex`, move the words and keep the landing.
+      Without a dogleg (`EnableDogleg` false, or the leader lines splined, which makes it false), `GetLastVertex` is the end
+      the dogleg would have, and `SetLastVertex` puts the dogleg's start a dogleg short of the point. The multileader's own
+      dogleg (41) and arrows (42) are unscaled: `Scale` 2 keeps 41 at 8 and draws the dogleg 16 (40 of the leader), and
+      `GetDoglegLength` gives 8; `DoglegLength` 3 writes 41 of 3 and 40 of 6; `SetDoglegLength(0, 1)` 40 of 2. `TransformBy`
+      by 2 leaves the scale (40 of the context, 45), 41, 42 and a line's own arrow size, and scales the rest, the words' width
+      (43) among them. AutoCAD reads the library's files as their records say, landings and all, and keeps them so.
+    - Now: the library reads and explodes AutoCAD's multileaders so, to 1E-6, but for the lines under, over and round the
+      words; `AddLeaderLine(point)` lands a new leader on the left of words held at their top left as AutoCAD does;
+      `TextLocation` moves the doglegs; the dogleg lengths and `TransformBy` are written as AutoCAD writes them. Of 30
+      multileaders the library made as AutoCAD's plugin made them, AutoCAD read every one as the library reads it.
+    - Still apart: a leader on the right of the words, or under them between their left edge and middle, which needs the
+      font; a block's landing; words turned, held otherwise, or met at their top or bottom; the words AutoCAD moves after a
+      property set or `SetLastVertex`; and the underline AutoCAD writes into the words for attachment 8 (`\L`).
+
+## Inserting a drawing
+
+81. **An INSERT of a block its own drawing has not, inserted with the drawing.**
+    - Try (D31, plugin GHD31 rounds C, E and F): DXFIN of a drawing of R12 holding an INSERT of a block Z it has not, in model
+      space, in a named block M and in an anonymous one; then, made in AutoCAD's API by erasing Z's record under its INSERT,
+      `Insert(transform)`, `Insert(name)` and `WblockCloneObjects` of each, into a drawing with and without a Z of its own.
+    - AutoCAD 2021: DXFIN refuses each file (`eInvalidBlockName`, "Block "Z" was not defined"). `Insert`, both ways, copies
+      such an INSERT wherever it stands, in model space, in M and in the anonymous block, as an INSERT of no block, even where
+      the drawing has a Z; DXFOUT then refuses the drawing (`eNullObjectId`). `WblockCloneObjects` refuses a set holding or
+      reaching one (`eWasErased`).
+    - Before: `Insert` refused one in model space or in a block it merged ("The drawing has no block Z for the INSERT to
+      place"), and copied one in a block a copy brings.
+    - Now: `Insert` copies each as it is, naming Z, and says so in one Debug line; where the drawing has a Z the copy places
+      it, as a DXF names its block by name. `WblockCloneObjects` refuses one given among the entities, as before.

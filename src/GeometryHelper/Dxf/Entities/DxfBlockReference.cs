@@ -887,6 +887,15 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
+            // An INSERT of a block its own drawing has not, copied by DxfDatabase.Insert, comes as it is, naming it, as AutoCAD's
+            // Insert copies it, placing nothing.
+            if (block == null && owner.File != null && owner.File.CopiesDangling && origin != null && origin != owner.File && Item.OriginBlock == null)
+            {
+                _record = null;
+                DropEmbeddedBefore(owner);
+                return;
+            }
+
             if (block == null)
             {
                 throw new ArgumentException("The drawing has no block " + Name + " for the INSERT to place.", "entity");

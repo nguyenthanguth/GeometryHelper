@@ -311,7 +311,20 @@ namespace GeometryHelper.Dxf
                     records[0] = renamed;
                 }
 
-                return Write(space, from, source, records, foreign ? origin : null, marking, unmarking);
+                DxfItem written = Write(space, from, source, records, foreign ? origin : null, marking, unmarking);
+
+                // An INSERT of a block its drawing has not, copied as it is (CopiesDangling), is said with the rest as the call ends.
+                if (foreign && type == "INSERT" && originBlock == null)
+                {
+                    string name = DxfReader.NameOf(source.ValueOf(from, 2) ?? string.Empty);
+
+                    if (!origin.Blocks.ContainsKey(name))
+                    {
+                        (_danglingCopied = _danglingCopied ?? new List<string>()).Add(name);
+                    }
+                }
+
+                return written;
             }
             finally
             {
@@ -755,8 +768,6 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            NoteDangling(origin, blocks);
-
             foreach (DxfFileBlock block in blocks)
             {
                 // A named block keeps what its record says of it; one AutoCAD names itself is written as before. An external
@@ -1059,36 +1070,22 @@ namespace GeometryHelper.Dxf
         /// <summary>Lets go of the names <see cref="KeepAnonymousNames"/> kept.</summary>
         internal void ReleaseAnonymousNames() => AnonymousKept = null;
 
-        // The names of the INSERTs in the blocks copied by the call under way that name a block their drawing has not, said in
-        // one line once the call ends (SayDangling).
+        // The names of the INSERTs of another drawing copied in by the call under way that name a block their drawing has not,
+        // as a drawing read from a file may hold, copied as they are (Adopt): said in one line once the call ends (SayDangling).
         private List<string> _danglingCopied;
 
         /// <summary>
-        /// Notes the INSERTs of blocks of another drawing being copied in that name a block that drawing has not, as a drawing
-        /// read from a file may hold: they are copied as they are, naming it, for <see cref="SayDangling"/> to say.
+        /// Whether an INSERT of another drawing that names a block that drawing has not is copied into this one as it is, naming
+        /// it, rather than refused: while <c>DxfDatabase.Insert</c> copies a drawing, its model space and the blocks it merges,
+        /// as AutoCAD 2021's <c>Insert</c> copies such an INSERT wherever it stands. One in a block a copy brings is copied so
+        /// whatever this says.
         /// </summary>
-        private void NoteDangling(DxfFile origin, List<DxfFileBlock> blocks)
-        {
-            foreach (DxfFileBlock block in blocks)
-            {
-                foreach (DxfItem item in block.Items.Snapshot())
-                {
-                    if (!item.IsRemoved && item.Type == "INSERT")
-                    {
-                        string name = DxfReader.NameOf(origin.ValueOf(item, 2) ?? string.Empty);
-
-                        if (!origin.Blocks.ContainsKey(name))
-                        {
-                            (_danglingCopied = _danglingCopied ?? new List<string>()).Add(name);
-                        }
-                    }
-                }
-            }
-        }
+        internal bool CopiesDangling { get; set; }
 
         /// <summary>
-        /// Says in one Debug line the INSERTs <see cref="NoteDangling"/> noted for the call that ends: how many, the names they
-        /// give (ten at most), and how many of them place a block this drawing has of their name, the rest placing nothing.
+        /// Says in one Debug line the INSERTs <see cref="Adopt"/> copied in for the call that ends that name a block their drawing
+        /// has not, in the blocks the copies bring or, where <see cref="CopiesDangling"/> lets them in, alone: how many, the names
+        /// they give (ten at most), and how many of them place a block this drawing has of their name, the rest placing nothing.
         /// </summary>
         private void SayDangling()
         {
@@ -1117,7 +1114,7 @@ namespace GeometryHelper.Dxf
             string listed = string.Join(", ", distinct.GetRange(0, Math.Min(10, distinct.Count)))
                 + (distinct.Count > 10 ? " and " + (distinct.Count - 10).ToString(CultureInfo.InvariantCulture) + " more" : string.Empty);
             GeometryHelperLog.Debug("DxfDatabase: " + names.Count.ToString(CultureInfo.InvariantCulture) + (names.Count == 1 ? " INSERT" : " INSERTs")
-                + " of the blocks copied in name a block their drawing has not (" + listed + ") and were copied as they are, naming it: "
+                + " copied in, in the blocks copied or alone, name a block their drawing has not (" + listed + ") and were copied as they are, naming it: "
                 + (placing == 0 ? "none" : placing.ToString(CultureInfo.InvariantCulture)) + " of them places a block this drawing has of its name, the rest nothing.");
         }
 

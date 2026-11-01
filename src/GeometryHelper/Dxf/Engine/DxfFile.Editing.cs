@@ -2229,6 +2229,27 @@ namespace GeometryHelper.Dxf
             return now.Contains(name);
         }
 
+        /// <summary>
+        /// Whether an INSERT of the file, or a dimension or a table, may name a block the file has not, as the names they give,
+        /// kept from now on, say (a name of a record taken out among them): where none does, no block of the file inserts one
+        /// it has not, so that a block brought into it under a name of its own cannot come back to itself through the file's
+        /// blocks, as <see cref="CheckRounds"/> walks them.
+        /// </summary>
+        internal bool MayNameMissingBlock()
+        {
+            KeepInsertNames();
+
+            foreach (string name in _insertNames)
+            {
+                if (!Blocks.TryGetValue(name, out DxfFileBlock block) || (block.Head != null && block.Head.IsRemoved) || (Database != null && !Database.BlockTable.Has(name)))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         /// <summary>Keeps the names the INSERTs of the file give from now on, read in one walk of the file where they are not kept.</summary>
         internal void KeepInsertNames()
         {

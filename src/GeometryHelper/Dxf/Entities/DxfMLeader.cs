@@ -35,8 +35,9 @@ namespace GeometryHelper.Dxf
     /// vertex on the one before it left out, along the path <see cref="Explode"/> draws with the line and its dogleg; splined,
     /// a <see cref="GeoSpline3"/> fitted through those points, leaving along the first segment and reaching along the dogleg.
     /// Both start at the arrow's point, where <see cref="Explode"/> starts its line at the back of the arrow, and the spline
-    /// runs on through the dogleg, where the spline exploded ends at the dogleg's start, so that the two part near the arrow
-    /// and near the words. The line above is met by the line y = -3 from (780, -3, 0)
+    /// of a line splined of its own runs on through the dogleg, where the spline exploded ends at the dogleg's start, so that
+    /// the two part near the arrow and near the words; a multileader whose leader lines are all splined has no dogleg drawn,
+    /// and its splines run to the end the dogleg would have, exploded too. The line above is met by the line y = -3 from (780, -3, 0)
     /// to (795, -3, 0) at (788, -3, 0), on its way up to the dogleg. Its words or block, its arrowheads and the lines AutoCAD
     /// draws under the words are not among them, and invisible lines give none.
     /// </para>
@@ -254,6 +255,10 @@ namespace GeometryHelper.Dxf
         /// Gets or sets where the words are held (group 12 of the context's MTEXT), as AutoCAD's <c>TextLocation</c>, in the
         /// world; the base point of the content (10 of the context data) where the MULTILEADER holds no words.
         /// </summary>
+        /// <value>Set, the words moved there, and the base point of the content and the point each leader's dogleg starts at
+        /// (10 of the context data and of each leader) moved with them, as AutoCAD 2021 moves them: words moved from
+        /// (100, 50, 0) to (120, 80, 0) move a dogleg from (90, 48, 0) to (110, 78, 0), the leader lines' own vertices
+        /// staying.</value>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when another place is set on a MULTILEADER that holds no words, or one that is erased.</exception>
         public GeoPoint3 TextLocation
@@ -277,7 +282,18 @@ namespace GeometryHelper.Dxf
                     throw NoWords();
                 }
 
+                GeoPoint3 was = PointOf(ctx.Head.GetRange(from, to - from), 12, new GeoPoint3(0.0, 0.0, 0.0));
                 PutPoint(ctx.Head, 12, value, ContextOrder, from, to);
+
+                // The landings and the base point move with the words, as AutoCAD 2021 moves them.
+                GeoPoint3 Moved(GeoPoint3 p) => new GeoPoint3(p.X + (value.X - was.X), p.Y + (value.Y - was.Y), p.Z + (value.Z - was.Z));
+                MovePoint(ctx.Head, 10, Moved, ContextOrder, 0, -1);
+
+                foreach (LeaderPart leader in ctx.Leaders)
+                {
+                    MovePoint(leader.Head, 10, Moved, LeaderOrder, 0, -1);
+                }
+
                 Write(rec);
             }
         }
@@ -787,8 +803,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gets or sets the size of the arrows (group 42), as AutoCAD's <c>ArrowSize</c>; 4 where the record gives none. Set, the
         /// size is written both in 42 and as the size the arrows are drawn with (140 of the context data); <see cref="Scale"/>
-        /// scales 140 alone (<see cref="DxfEntity.TransformBy"/> scales both), so that at a scale other than 1 the two differ, 42
-        /// unscaled, until the size is set again.
+        /// and <see cref="DxfEntity.TransformBy"/> scale 140 alone, as AutoCAD 2021 scales it, so that once scaled the two
+        /// differ, 42 unscaled, until the size is set again.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the size set is below nought or not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the MULTILEADER is erased.</exception>
@@ -854,7 +870,11 @@ namespace GeometryHelper.Dxf
             set => SetTopFlag(290, value, EnableLanding, 4);
         }
 
-        /// <summary>Gets or sets whether the leaders have doglegs (group 291), as AutoCAD's <c>EnableDogleg</c>.</summary>
+        /// <summary>
+        /// Gets or sets whether the leaders have doglegs (group 291), as AutoCAD's <c>EnableDogleg</c>, as the record says it. A
+        /// multileader whose leader lines are splined (<see cref="LeaderLineType"/>) draws none whatever this says, as AutoCAD
+        /// 2021 draws none, its own <c>EnableDogleg</c> reading false for it.
+        /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the MULTILEADER is erased.</exception>
         public bool EnableDogleg
         {
@@ -863,9 +883,11 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Gets or sets how long the doglegs are (group 41), as AutoCAD's <c>DoglegLength</c>; 8 where the record gives none.
+        /// Gets or sets how long the doglegs are (group 41), as AutoCAD's <c>DoglegLength</c>; 8 where the record gives none. It is
+        /// unscaled, as AutoCAD 2021 writes it, and drawn times the <see cref="Scale"/>.
         /// </summary>
-        /// <value>Set, written as the MULTILEADER's and as each leader's (40), the bit of the overrides set.</value>
+        /// <value>Set, written as the MULTILEADER's, and as each leader's (40) times the scale, as AutoCAD 2021 writes them: 3 at a
+        /// scale of 2 gives 41 of 3 and doglegs of 6 (40); the bit of the overrides set.</value>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the length set is below nought or not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the MULTILEADER is erased.</exception>
         public double DoglegLength
@@ -884,9 +906,12 @@ namespace GeometryHelper.Dxf
                 PutNumber(rec.After, 41, value, 8.0, TopOrder);
                 SetBit(rec, 7);
 
-                foreach (LeaderPart leader in Context(rec).Leaders)
+                Ctx ctx = Context(rec);
+                double scale = Num(Text(ctx.Head, 40), 1.0);
+
+                foreach (LeaderPart leader in ctx.Leaders)
                 {
-                    PutNumber(leader.Head, 40, value, 8.0, LeaderOrder);
+                    PutNumber(leader.Head, 40, value * scale, 8.0, LeaderOrder);
                 }
 
                 Write(rec);
@@ -926,13 +951,30 @@ namespace GeometryHelper.Dxf
             Write(rec);
         }
 
-        /// <summary>Gets how long a leader's dogleg is (group 40 of the leader), as AutoCAD's <c>GetDoglegLength</c>; 1 where the leader gives none, as ezdxf reads one.</summary>
+        /// <summary>
+        /// Gets how long a leader's dogleg is, as AutoCAD's <c>GetDoglegLength</c>: its length as drawn (group 40 of the leader, 1
+        /// where the leader gives none, as ezdxf reads one) over the <see cref="Scale"/>, as AutoCAD 2021 gives it, 8 for a
+        /// dogleg drawn 16 at a scale of 2; nought for a leader that meets the words at their top or bottom, which has none.
+        /// </summary>
         /// <param name="leaderIndex">The index of the leader.</param>
         /// <returns>The length.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the MULTILEADER has no leader of the index.</exception>
-        public double GetDoglegLength(int leaderIndex) => Num(Text(FindLeader(Read(), leaderIndex).Head, 40), 1.0);
+        public double GetDoglegLength(int leaderIndex)
+        {
+            Rec rec = Read();
+            LeaderPart leader = FindLeader(rec, leaderIndex);
 
-        /// <summary>Gives a leader's dogleg its length, as AutoCAD's <c>SetDoglegLength</c>.</summary>
+            if (Whole(Text(leader.Head, 271) ?? Text(leader.Tail, 271), 0) != 0)
+            {
+                return 0.0;
+            }
+
+            double length = Num(Text(leader.Head, 40), 1.0);
+            double scale = Num(Text(Context(rec).Head, 40), 1.0);
+            return Math.Abs(scale) > 1E-9 ? length / scale : length;
+        }
+
+        /// <summary>Gives a leader's dogleg its length, as AutoCAD's <c>SetDoglegLength</c>: drawn times the <see cref="Scale"/> (group 40 of the leader), as AutoCAD 2021 writes it, 2 for 1 at a scale of 2.</summary>
         /// <param name="leaderIndex">The index of the leader.</param>
         /// <param name="doglegLength">The length, nought or more.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the MULTILEADER has no leader of the index, or the length is below nought or not finite.</exception>
@@ -941,7 +983,7 @@ namespace GeometryHelper.Dxf
         {
             Guard.NonNegative(doglegLength, nameof(doglegLength), "A dogleg's length has to be a finite number, nought or more.");
             Rec rec = Read();
-            PutNumber(FindLeader(rec, leaderIndex).Head, 40, doglegLength, double.NaN, LeaderOrder);
+            PutNumber(FindLeader(rec, leaderIndex).Head, 40, doglegLength * Num(Text(Context(rec).Head, 40), 1.0), double.NaN, LeaderOrder);
             Write(rec);
         }
 
@@ -1037,9 +1079,11 @@ namespace GeometryHelper.Dxf
         /// 1 where the record gives none.
         /// </summary>
         /// <value>Set, a finite number above nought: the height of the words, the size of the arrows and the landing gap of the
-        /// context data scaled by the new over the old, as ezdxf's <c>set_scale</c> scales them, and past it the length of the
-        /// doglegs, the MULTILEADER's (41) and each leader's as drawn (40), which ezdxf leaves, so that they keep their size
-        /// against the words.</value>
+        /// context data scaled by the new over the old, as ezdxf's <c>set_scale</c> scales them, the width of the words (43 of its
+        /// MTEXT) with them, as AutoCAD 2021 scales it, and past it the length of each
+        /// leader's dogleg as drawn (40), which ezdxf leaves, so that it keeps its size against the words; the MULTILEADER's own
+        /// length of the doglegs (41) is left unscaled, as AutoCAD 2021 leaves it: Standard's 8 at a scale of 2 is still 8,
+        /// drawn 16.</value>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the scale set is not a finite number above nought.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the MULTILEADER is erased.</exception>
         public double Scale
@@ -1068,9 +1112,13 @@ namespace GeometryHelper.Dxf
                     }
                 }
 
-                if (Text(rec.After, 41) != null)
+                // The width of the words, as AutoCAD 2021 scales it: 60 at a scale of 1 is 120 at 2.
+                Section(ctx.Head, 290, MTextCodes, out int from, out int to);
+                int width = from < 0 ? -1 : ctx.Head.FindIndex(from, to - from, g => g.Key == 43);
+
+                if (width >= 0)
                 {
-                    PutNumber(rec.After, 41, Num(Text(rec.After, 41), 8.0) * factor, 8.0, TopOrder);
+                    PutNumber(ctx.Head, 43, Num(ctx.Head[width].Value, 0.0) * factor, 0.0, ContextOrder, from, to);
                 }
 
                 foreach (LeaderPart leader in ctx.Leaders)
@@ -1219,15 +1267,15 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Gets how many vertices a leader line has, as AutoCAD's <c>VerticesCount</c>: its own (10 of the line), then the point
-        /// of its leader the dogleg starts at (10 of the leader), which every line of the leader ends at.
+        /// Gets how many vertices a leader line has, as AutoCAD's <c>VerticesCount</c>: its own (10 of the line), then the end of
+        /// its leader's landing (<see cref="GetLastVertex"/>), which every line of the leader ends at.
         /// </summary>
         /// <param name="leaderLineIndex">The index of the line.</param>
         /// <returns>The count.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the MULTILEADER has no line of the index.</exception>
         public int VerticesCount(int leaderLineIndex) => Vertices(Read(), leaderLineIndex, out _, out _).Count;
 
-        /// <summary>Gets a vertex of a leader line, as AutoCAD's <c>GetVertex</c>, in the world: the last the point of its leader the dogleg starts at.</summary>
+        /// <summary>Gets a vertex of a leader line, as AutoCAD's <c>GetVertex</c>, in the world: the last the end of its leader's landing, as <see cref="GetLastVertex"/> gives it.</summary>
         /// <param name="leaderLineIndex">The index of the line.</param>
         /// <param name="index">The index of the vertex, from nought.</param>
         /// <returns>The vertex.</returns>
@@ -1245,15 +1293,21 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the MULTILEADER has no line of the index.</exception>
         public GeoPoint3 GetFirstVertex(int leaderLineIndex) => GetVertex(leaderLineIndex, 0);
 
-        /// <summary>Gets the last vertex of a leader line, the point of its leader the dogleg starts at, as AutoCAD's <c>GetLastVertex</c>.</summary>
+        /// <summary>
+        /// Gets the last vertex of a leader line, as AutoCAD's <c>GetLastVertex</c>: the point of its leader the dogleg starts at
+        /// (10 of the leader); where the leader meets the words on their left or right and its dogleg is not drawn (no
+        /// <see cref="EnableDogleg"/>, or its leader lines splined), the end the dogleg would have, which the line runs on to, as
+        /// AutoCAD 2021 gives it: a line from (0, 0, 0) whose leader's dogleg of 8 starts at (90, 48, 0) ends at (98, 48, 0) once
+        /// the dogleg is taken away.
+        /// </summary>
         /// <param name="leaderLineIndex">The index of the line.</param>
         /// <returns>The vertex.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the MULTILEADER has no line of the index.</exception>
         public GeoPoint3 GetLastVertex(int leaderLineIndex) => GetVertex(leaderLineIndex, VerticesCount(leaderLineIndex) - 1);
 
         /// <summary>
-        /// Moves a vertex of a leader line, as AutoCAD's <c>SetVertex</c>: one of its own; the last, the point of its leader the
-        /// dogleg starts at, which moves the end of every line of the leader with it.
+        /// Moves a vertex of a leader line, as AutoCAD's <c>SetVertex</c>: one of its own; the last, the end of its leader's
+        /// landing (<see cref="GetLastVertex"/>), which moves the end of every line of the leader with it.
         /// </summary>
         /// <param name="leaderLineIndex">The index of the line.</param>
         /// <param name="index">The index of the vertex, from nought.</param>
@@ -1279,7 +1333,12 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the MULTILEADER is erased.</exception>
         public void SetFirstVertex(int leaderLineIndex, GeoPoint3 point) => SetVertex(leaderLineIndex, 0, point);
 
-        /// <summary>Moves the last vertex of a leader line, the point of its leader the dogleg starts at, as AutoCAD's <c>SetLastVertex</c>.</summary>
+        /// <summary>
+        /// Moves the last vertex of a leader line, as AutoCAD's <c>SetLastVertex</c>: the point of its leader the dogleg starts
+        /// at, or, where the dogleg is not drawn, that point so that the end the dogleg would have is there (<see cref="GetLastVertex"/>):
+        /// (98, 48, 0) set to (50, 60, 0) puts the dogleg's start at (42, 60, 0), as AutoCAD 2021 puts it. AutoCAD moves the
+        /// words or block with the landing too; the library leaves them where they are.
+        /// </summary>
         /// <param name="leaderLineIndex">The index of the line.</param>
         /// <param name="point">Where it is to be, in the world.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the MULTILEADER has no line of the index.</exception>
@@ -1303,8 +1362,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Adds a vertex after the last of a leader line, as AutoCAD's <c>AddLastVertex</c>: it becomes the point of the leader
-        /// the dogleg starts at, the old one a vertex of the line, and every line of the leader ends at it.
+        /// Adds a vertex after the last of a leader line, as AutoCAD's <c>AddLastVertex</c>: it becomes the end of the leader's
+        /// landing (<see cref="GetLastVertex"/>), the old one a vertex of the line, and every line of the leader ends at it.
         /// </summary>
         /// <param name="leaderLineIndex">The index of the line.</param>
         /// <param name="point">The vertex, in the world.</param>
@@ -1327,8 +1386,8 @@ namespace GeometryHelper.Dxf
         public void RemoveFirstVertex(int leaderLineIndex) => RemoveVertex(leaderLineIndex, true);
 
         /// <summary>
-        /// Takes the last vertex of a leader line out, as AutoCAD's <c>RemoveLastVertex</c>: the vertex before it becomes the point
-        /// of the leader the dogleg starts at; a line keeps two vertices.
+        /// Takes the last vertex of a leader line out, as AutoCAD's <c>RemoveLastVertex</c>: the vertex before it becomes the end
+        /// of the leader's landing (<see cref="GetLastVertex"/>); a line keeps two vertices.
         /// </summary>
         /// <param name="leaderLineIndex">The index of the line.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the MULTILEADER has no line of the index.</exception>
@@ -1338,7 +1397,7 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Adds a leader of no lines, as AutoCAD's <c>AddLeader</c>: its index (90) one above every leader's, its dogleg starting
         /// at the base point of the content (10 of the context data) along the x axis of the plane, as long as
-        /// <see cref="DoglegLength"/>, written as ezdxf writes a leader.
+        /// <see cref="DoglegLength"/> times the <see cref="Scale"/>, written as ezdxf writes a leader.
         /// </summary>
         /// <returns>The index of the leader.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the MULTILEADER is erased.</exception>
@@ -1346,6 +1405,17 @@ namespace GeometryHelper.Dxf
         {
             Rec rec = Read();
             Ctx ctx = Context(rec);
+            int index = AddLeaderAt(rec, ctx, PointOf(ctx.Head, 10, new GeoPoint3(0.0, 0.0, 0.0)));
+            Write(rec);
+            return index;
+        }
+
+        /// <summary>
+        /// Adds to the context data a leader of no lines whose dogleg starts at a point, along the x axis of the plane, as long as
+        /// <see cref="DoglegLength"/> times the scale, its index (90) one above every leader's, written as ezdxf writes a leader.
+        /// </summary>
+        private int AddLeaderAt(Rec rec, Ctx ctx, GeoPoint3 start)
+        {
             int index = 0;
 
             foreach (LeaderPart other in ctx.Leaders)
@@ -1353,22 +1423,20 @@ namespace GeometryHelper.Dxf
                 index = Math.Max(index, other.Index + 1);
             }
 
-            GeoPoint3 start = PointOf(ctx.Head, 10, new GeoPoint3(0.0, 0.0, 0.0));
             GeoPoint3 along = PointOf(ctx.Head, 111, new GeoPoint3(1.0, 0.0, 0.0));
             var head = new List<KeyValuePair<int, string>> { G(290, "1"), G(291, "1") };
             head.AddRange(PointGroups(10, start));
             head.AddRange(PointGroups(11, along));
             head.Add(G(90, index));
-            head.Add(G(40, DoglegLength));
+            head.Add(G(40, Num(Text(rec.After, 41), 8.0) * Num(Text(ctx.Head, 40), 1.0)));
             var tail = new List<KeyValuePair<int, string>>();
 
             if (Item.File.Supports(1024))
             {
-                tail.Add(G(271, (int)TextAttachmentDirection));
+                tail.Add(G(271, Whole(Text(rec.After, 271), 0)));
             }
 
             ctx.Leaders.Add(LeaderPart.Made(head, tail));
-            Write(rec);
             return index;
         }
 
@@ -1393,8 +1461,19 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Adds a leader line from a point, as AutoCAD's <c>AddLeaderLine</c> of a point: the point its first vertex, where its
-        /// arrow is, the line added to the first leader whose dogleg runs from the point's side towards the content, the first
-        /// leader where none does, a new leader where there is none.
+        /// arrow is, the line added to the first leader whose dogleg runs from the point's side towards the content. Where none
+        /// does and the point is on the left of words held at their top left and met on their sides, along the plane, the line
+        /// is added to a new leader landed as AutoCAD 2021 lands it: its dogleg along the x axis of the plane, as long as
+        /// <see cref="DoglegLength"/> times the <see cref="Scale"/>, ending the <see cref="LandingGap"/> short of the words' left
+        /// edge, as far below their top as the attachment of the left side (<see cref="TextAttachmentType"/>) says: nought at the
+        /// top of the top line, half the height of the words at its middle, all of it at its bottom and a fifth more under it;
+        /// the middle of the words, the middle of the bottom line, its bottom and a fifth more under it as the lines of the words
+        /// stand, each 5/3 of their height times their spacing below the one above, the lines counted by their breaks (<c>\P</c>),
+        /// as words that do not wrap. Words "ABC" 4 high held at (100, 50, 0), met at the middle of their top line with a gap of
+        /// 2 and a dogleg of 8, are met by a leader from (0, 0, 0) whose dogleg runs from (90, 48, 0) to (98, 48, 0); three lines
+        /// met at their middle, from (90, 41.33, 0). Elsewhere, the line goes to the first leader, one made at the base point of
+        /// the content where there is none: on the right of the words, which AutoCAD lands as far right as its font makes them
+        /// wide; for a block, or words turned, held otherwise or met at their top or bottom.
         /// </summary>
         /// <param name="point">The point, in the world.</param>
         /// <returns>The index of the line.</returns>
@@ -1403,17 +1482,11 @@ namespace GeometryHelper.Dxf
         public int AddLeaderLine(GeoPoint3 point)
         {
             Finite(point, nameof(point));
-
-            if (LeaderCount == 0)
-            {
-                AddLeader();
-            }
-
             Rec rec = Read();
-            List<LeaderPart> leaders = Context(rec).Leaders;
-            LeaderPart chosen = leaders[0];
+            Ctx ctx = Context(rec);
+            LeaderPart chosen = null;
 
-            foreach (LeaderPart leader in leaders)
+            foreach (LeaderPart leader in ctx.Leaders)
             {
                 GeoVector3 dogleg = PointOf(leader.Head, 11, new GeoPoint3(1.0, 0.0, 0.0)).ToVector();
                 GeoPoint3 start = PointOf(leader.Head, 10, new GeoPoint3(0.0, 0.0, 0.0));
@@ -1425,12 +1498,99 @@ namespace GeometryHelper.Dxf
                 }
             }
 
+            if (chosen == null)
+            {
+                // A new leader on the left of the words, landed as AutoCAD 2021 lands it; else the first, made at the base point.
+                if (LeftLanding(rec, ctx, point, out GeoPoint3 landing))
+                {
+                    AddLeaderAt(rec, ctx, landing);
+                    chosen = ctx.Leaders[ctx.Leaders.Count - 1];
+                }
+                else
+                {
+                    if (ctx.Leaders.Count == 0)
+                    {
+                        AddLeaderAt(rec, ctx, PointOf(ctx.Head, 10, new GeoPoint3(0.0, 0.0, 0.0)));
+                    }
+
+                    chosen = ctx.Leaders[0];
+                }
+            }
+
             int index = NextLine(rec);
             var line = LinePart.Made(new[] { G(91, index), G(92, ByBlock) });
             line.SetVertices(new List<GeoPoint3> { point });
             chosen.Lines.Add(line);
             Write(rec);
             return index;
+        }
+
+        /// <summary>
+        /// Where AutoCAD 2021 lands a new leader from a point on the left of the words (<see cref="AddLeaderLine(GeoPoint3)"/>):
+        /// the point its dogleg starts at, where the words are held at their top left (171 of 1) along the plane's x axis, met on
+        /// their sides (271 of nought) at a point of the left side the words' height and lines give (173 of 0 to 8), and the
+        /// point is on their left; false elsewhere.
+        /// </summary>
+        private static bool LeftLanding(Rec rec, Ctx ctx, GeoPoint3 point, out GeoPoint3 landing)
+        {
+            landing = point;
+            Section(ctx.Head, 290, MTextCodes, out int from, out int to);
+
+            if (from < 0 || Whole(Text(rec.After, 271), 0) != 0)
+            {
+                return false;
+            }
+
+            List<KeyValuePair<int, string>> m = ctx.Head.GetRange(from, to - from);
+            GeoVector3 x = Unit(PointOf(ctx.Head, 111, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
+            GeoVector3 y = Unit(PointOf(ctx.Head, 112, new GeoPoint3(0.0, 1.0, 0.0)).ToVector());
+            GeoVector3 along = Unit(PointOf(m, 13, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
+            GeoPoint3 words = PointOf(m, 12, new GeoPoint3(0.0, 0.0, 0.0));
+
+            if (Whole(Text(m, 171), 1) != 1 || !(x.Length > 0.0) || !(y.Length > 0.0) || along.Subtract(x).Length > 1E-9
+                || !(point.GetVectorTo(words).DotProduct(x) > 0.0))
+            {
+                return false;
+            }
+
+            double height = Num(Text(ctx.Head, 41), 4.0);
+            double whole = height + (Breaks(Text(m, 304)) * 5.0 / 3.0 * height * Num(Text(m, 45), 1.0));
+            double below;
+
+            switch (Whole(Text(rec.After, 173), 1))
+            {
+                case 0: below = 0.0; break;
+                case 1: below = height / 2.0; break;
+                case 2: below = whole / 2.0; break;
+                case 3: below = whole - (height / 2.0); break;
+                case 4: below = whole; break;
+                case 5: below = whole + (height / 5.0); break;
+                case 6: below = height + (height / 5.0); break;
+                case 7: below = height; break;
+                case 8: below = height + (height / 5.0); break;
+                default: return false;
+            }
+
+            double back = Num(Text(ctx.Head, 145), 2.0) + (Num(Text(rec.After, 41), 8.0) * Num(Text(ctx.Head, 40), 1.0));
+            landing = words.Add(x.Multiply(-back)).Add(y.Multiply(-below));
+            return true;
+        }
+
+        /// <summary>How many paragraph breaks (<c>\P</c>) the words of an MTEXT hold as written, an escaped backslash (<c>\\</c>) none.</summary>
+        private static int Breaks(string written)
+        {
+            int breaks = 0;
+
+            for (int i = 0; written != null && i + 1 < written.Length; i++)
+            {
+                if (written[i] == '\\')
+                {
+                    breaks += written[i + 1] == 'P' ? 1 : 0;
+                    i++;
+                }
+            }
+
+            return breaks;
         }
 
         /// <summary>Takes a leader out with its lines, as AutoCAD's <c>RemoveLeader</c>; the arrows of its lines (94 and 345) with them.</summary>

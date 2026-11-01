@@ -175,8 +175,8 @@ namespace GeometryHelper.UnitTest.Dxf
         public void AMultileaderSetFromAStyleOfScaleTwo_HasTheStylesSizesScaledOnce()
         {
             // Standard scaled 2: words 4 high, a gap of 2, arrows 4 and doglegs 8, unscaled in the style. B4 is drawn with words
-            // 8 high, a gap of 4, arrows 8 and doglegs 16; its own arrow size (42) is the style's, unscaled, its own dogleg (41)
-            // scaled, as each leader's (40).
+            // 8 high, a gap of 4, arrows 8 and doglegs 16; its own arrow size (42) and dogleg (41) are the style's, unscaled, as
+            // AutoCAD 2021 writes them (D31, d12), each leader's (40) scaled, read back unscaled as AutoCAD reads it.
             string text = Edited(DxfHatchLeaderDrawings.R2018, "2C", r => r.Replace("\n142\n1.0\n", "\n142\n2.0\n"));
             DxfDatabase db = DxfDatabase.Parse(text);
             DxfMLeader words = ByHandle<DxfMLeader>(db, "B4");
@@ -193,9 +193,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(8.0, back.MText.TextHeight);
             Assert.Equal(4.0, back.LandingGap);
             Assert.Equal(4.0, back.ArrowSize);
-            Assert.Equal(16.0, back.DoglegLength);
-            Assert.Equal(16.0, back.GetDoglegLength(0));
-            Assert.Equal(16.0, back.GetDoglegLength(1));
+            Assert.Equal(8.0, back.DoglegLength);
+            Assert.Equal(8.0, back.GetDoglegLength(0));
+            Assert.Equal(8.0, back.GetDoglegLength(1));
+            Assert.Equal(16.0, back.Explode().OfType<DxfLine>().First().Length);
 
             // Again: the sizes are the style's scaled already, and nothing changes.
             Assert.True(words.SetFromStyle());

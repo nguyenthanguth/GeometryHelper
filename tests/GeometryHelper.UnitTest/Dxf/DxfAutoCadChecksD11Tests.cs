@@ -364,6 +364,9 @@ namespace GeometryHelper.UnitTest.Dxf
             var mleader = new DxfMLeader { MText = new DxfMText { Contents = "TWO LEADERS", Location = P(30, 12), TextHeight = 2.5 } };
             int first = mleader.AddLeaderLine(P(0, 0));
             db.ModelSpace.AppendEntity(mleader);
+
+            // The dogleg where the file 61-a had it: AddLeaderLine lands it short of the words now, as AutoCAD lands it (D31).
+            mleader.SetLastVertex(first, P(30, 12));
             int second = mleader.AddLeaderLine(mleader.GetLeaderIndex(first));
             mleader.AddFirstVertex(second, P(10, 26));
             mleader.AddFirstVertex(second, P(0, 22));

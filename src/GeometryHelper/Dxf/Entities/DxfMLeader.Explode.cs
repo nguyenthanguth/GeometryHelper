@@ -13,20 +13,28 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets the entities the multileader breaks into, as AutoCAD 2021's <c>Explode</c> gives them from its context data: its
-        /// content first, an MTEXT of its words (<see cref="MText"/>, as wide as the context's scale makes it, in its text style
-        /// and colour) or an INSERT of its block (<see cref="BlockContent"/> at <see cref="BlockPosition"/>, scaled, turned and
-        /// coloured so, its attributes given the values the multileader holds); then, leader by leader, its dogleg, a LINE from
-        /// the last point of the leader along its direction, where the multileader has one and the leader runs left or right of
-        /// the words; then line by line, unless the line is invisible, an LWPOLYLINE through the vertices to the last point of
-        /// the leader, and the arrowhead at the first vertex. A splined line is one SPLINE fitted through the same points,
-        /// leaving along its first segment and reaching along its dogleg, its knots the lengths of the chords, as AutoCAD's.
-        /// Without a dogleg, a line on the left or right of the words runs on to the end the dogleg would have. The arrowhead is
-        /// drawn where the first segment is more than twice as long as the arrow, as AutoCAD draws it: an INSERT of the line's or
-        /// the multileader's arrow block, turned to point away from the line and scaled to the arrow's size, or AutoCAD's closed
-        /// filled arrow as a SOLID a third as wide as long, its corners the one on the right of the line, the tip and the one on
-        /// its left; the line then starts at the back of the arrow. Each part is on the multileader's layer, and a colour of
-        /// BYBLOCK, as the style Standard gives the words and the lines, is the multileader's own colour, as AutoCAD 2021 gives
-        /// it; the arrowhead has the multileader's own lineweight.
+        /// content first, an MTEXT of its words (<see cref="MText"/>, as wide as the context data says, which the scale has
+        /// scaled already, as AutoCAD 2021 writes it, in its text style and colour) or an INSERT of its block
+        /// (<see cref="BlockContent"/> at <see cref="BlockPosition"/>, scaled, turned and coloured so, its attributes given the
+        /// values the multileader holds), either in the multileader's own linetype and lineweight, as AutoCAD 2021 gives them;
+        /// then, leader by leader, its dogleg, a LINE from the last point of the leader along its direction, of no length where
+        /// the dogleg has none, as AutoCAD 2021 draws it, where the multileader has one, its leader lines are not splined and
+        /// the leader runs left or right of the words; then line by line, unless the line is invisible, an LWPOLYLINE
+        /// through the vertices to the last point of the leader, and the arrowhead at the first vertex. A splined line is one
+        /// SPLINE fitted through the same points, leaving along its first segment and reaching along its dogleg, its knots the
+        /// lengths of the chords, as AutoCAD's. Without a dogleg, a line on the left or right of the words runs on to the end the
+        /// dogleg would have; so does every line of a multileader whose leader lines are splined (<see cref="LeaderLineType"/>),
+        /// which AutoCAD 2021 draws with no dogleg: two lines splined from (0, 0) and (0, 100) to a dogleg from (90, 48) to
+        /// (98, 48) give two SPLINEs fitted from the backs of their arrows to (98, 48) and no LINE. The arrowhead is drawn where
+        /// the first segment is more than twice as long as the arrow, as AutoCAD draws it: an INSERT of the line's or the
+        /// multileader's arrow block, turned to point away from the line, by an angle from nought to a whole turn, and scaled to
+        /// the arrow's size, or AutoCAD's closed filled arrow as a SOLID a third as wide as long, its corners the one on the
+        /// right of the line, the tip and the one on its left; the line then starts at the back of the arrow. Each part is on
+        /// the multileader's layer, and a colour of BYBLOCK, as the style Standard gives the words and the lines, is the
+        /// multileader's own colour, as AutoCAD 2021 gives it; the arrowhead has the multileader's own linetype, and the SOLID its
+        /// own lineweight, the INSERT the lineweight of its line, as AutoCAD 2021 gives them: a multileader of lineweight 0.30
+        /// and linetype Continuous of its own, its leader lines 0.50, gives a SOLID of 0.30 or an INSERT of 0.50, both
+        /// Continuous.
         /// A line is drawn with the type, colour, linetype, lineweight and arrow size of its own where its flags (93) say it has
         /// them, BYBLOCK among them, and its colour where it has no flags and its colour is not BYBLOCK, as ezdxf writes one;
         /// else with the multileader's (<see cref="GetLeaderLineType"/>, <see cref="GetLeaderLineColor"/>,
@@ -61,10 +69,11 @@ namespace GeometryHelper.Dxf
 
             // A copy in no file reads what its record names in the drawing it was copied from.
             DxfDatabase database = IsResident ? Database() : Item.File.IsDetached ? Item.File.NamingDrawing?.Database : null;
-            Content(rec, ctx, scale, layer, database, parts);
+            Content(rec, ctx, layer, database, parts);
             int ownColour = ColorIndex;
             int? ownTrueColour = TrueColor;
             DxfLineWeight entityWeight = LineWeight;
+            string entityLinetype = Linetype;
             DxfLeaderType type = LeaderLineType;
 
             if (type == DxfLeaderType.InVisibleLeader && !ctx.Leaders.Exists(l => l.Lines.Exists(line => LineType(line.Groups, type) != DxfLeaderType.InVisibleLeader)))
@@ -85,10 +94,10 @@ namespace GeometryHelper.Dxf
             foreach (LeaderPart leader in ctx.Leaders)
             {
                 Landing(leader, out GeoPoint3 last, out bool horizontal, out GeoVector3 along);
-                bool landed = EnableDogleg && horizontal;
+                bool landed = Doglegged(rec.After) && horizontal;
 
-                // The dogleg, once for the leader, in the multileader's look, where a line of it is drawn.
-                if (landed && along.Length > tolerance && leader.Lines.Exists(l => LineType(l.Groups, type) != DxfLeaderType.InVisibleLeader))
+                // The dogleg, once for the leader, in the multileader's look, where a line of it is drawn: of no length too.
+                if (landed && leader.Lines.Exists(l => LineType(l.Groups, type) != DxfLeaderType.InVisibleLeader))
                 {
                     var dogleg = new DxfLine(last, last.Add(along)) { Layer = layer };
                     Colour(dogleg, leaderColour, ownColour, ownTrueColour);
@@ -191,7 +200,9 @@ namespace GeometryHelper.Dxf
 
                     if (head != null)
                     {
-                        Give(head, entityWeight);
+                        // The multileader's own linetype; a SOLID of its own lineweight, an INSERT of its line's, as AutoCAD 2021 gives them.
+                        Give(head, head is DxfSolid ? entityWeight : lineWeight);
+                        head.Linetype = entityLinetype;
                     }
                 }
             }
@@ -212,6 +223,13 @@ namespace GeometryHelper.Dxf
             handle = handle?.Trim();
             return handle != null && database != null && database.TryGetObject(handle, out DxfDBObject found) && found is DxfLinetypeTableRecord record ? record.Name : null;
         }
+
+        /// <summary>
+        /// Whether the doglegs of a multileader are drawn, as AutoCAD 2021 draws them: where it has them (291) and its leader lines
+        /// are not splined (170), which AutoCAD draws with none, its <c>EnableDogleg</c> false.
+        /// </summary>
+        private static bool Doglegged(List<KeyValuePair<int, string>> after)
+            => Whole(Text(after, 291), 1) != 0 && Whole(Text(after, 170), 1) != (int)DxfLeaderType.SplineLeader;
 
         /// <summary>
         /// Where the lines of a leader end, as <see cref="Explode"/> draws them: the last point of the leader (10), whether its
@@ -268,7 +286,7 @@ namespace GeometryHelper.Dxf
                 return lines;
             }
 
-            bool landed = Whole(Text(rec.After, 291), 1) != 0;
+            bool landed = Doglegged(rec.After);
 
             foreach (LeaderPart leader in ctx.Leaders)
             {
@@ -375,15 +393,18 @@ namespace GeometryHelper.Dxf
         /// The content of the multileader as <see cref="Explode"/> gives it: its MTEXT or its INSERT, on its layer; none where it
         /// has neither. Its text style and block are read in the drawing given, the one a copy in no file was copied from.
         /// </summary>
-        private void Content(Rec rec, Ctx ctx, double scale, string layer, DxfDatabase database, List<DxfEntity> parts)
+        private void Content(Rec rec, Ctx ctx, string layer, DxfDatabase database, List<DxfEntity> parts)
         {
             if (HasSection(ctx, 290, MTextCodes))
             {
                 DxfMText mtext = MText;
                 Section(ctx.Head, 290, MTextCodes, out int from, out int to);
                 List<KeyValuePair<int, string>> m = ctx.Head.GetRange(from, to - from);
-                mtext.Width *= scale;
                 mtext.Layer = layer;
+
+                // The multileader's own linetype and lineweight, as AutoCAD 2021 gives its words.
+                mtext.Linetype = Linetype;
+                mtext.LineWeight = LineWeight;
                 Colour(mtext, Text(m, 90) ?? ByBlock, ColorIndex, TrueColor);
                 string style = Text(m, 340)?.Trim();
 
@@ -415,6 +436,10 @@ namespace GeometryHelper.Dxf
 
             insert.Layer = layer;
             Colour(insert, Text(b, 93) ?? ByBlock, ColorIndex, TrueColor);
+
+            // The multileader's own linetype and lineweight, as AutoCAD 2021 gives its block.
+            insert.Linetype = Linetype;
+            insert.LineWeight = LineWeight;
 
             foreach (DxfEntity entity in block)
             {
@@ -467,7 +492,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// An arrowhead at a point, pointing away from a direction, of a size: an INSERT of its block on the normal, turned so,
+        /// An arrowhead at a point, pointing away from a direction, of a size: an INSERT of its block on the normal, turned so by
+        /// an angle from nought to a whole turn, as AutoCAD 2021 turns it,
         /// or, of no block, AutoCAD's closed filled arrow as a SOLID a third as wide as long, as a straight LEADER's: its corner
         /// on the right of the line, the tip, and its corner on the left, as AutoCAD 2021 gives them.
         /// </summary>
@@ -482,7 +508,8 @@ namespace GeometryHelper.Dxf
 
             OcsAxes(normal, out GeoVector3 x, out GeoVector3 y);
             GeoVector3 away = direction.Negate();
-            return new DxfBlockReference(tip, block) { Normal = normal, ScaleFactors = new GeoVector3(size, size, size), Rotation = Math.Atan2(away.DotProduct(y), away.DotProduct(x)) };
+            double angle = Math.Atan2(away.DotProduct(y), away.DotProduct(x));
+            return new DxfBlockReference(tip, block) { Normal = normal, ScaleFactors = new GeoVector3(size, size, size), Rotation = angle < 0.0 ? angle + 2.0 * Math.PI : angle };
         }
 
         /// <summary>

@@ -444,22 +444,23 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void ASplinedMultileaderExploded_GivesItsDogleg_ThenOneSplineFromTheBackOfItsArrowToTheStartOfTheDogleg()
+        public void ASplinedMultileaderExploded_GivesNoDogleg_ButOneSplineFromTheBackOfItsArrowToWhereTheDoglegWouldEnd()
         {
-            // As AutoCAD 2021's Explode gives it: the leader 8A splined runs from 4 back from (-20, 20) towards (-10, 18) and
-            // arrives there along its dogleg, (1, 0), its knots the length of its chord; the dogleg a LINE of its own.
+            // As AutoCAD 2021's Explode gives a multileader whose leader lines are splined (D31, c15 and d19): no dogleg, the
+            // leader 8A splined running from 4 back from (-20, 20) towards (-2, 18), the end of its dogleg of 8 from (-10, 18),
+            // and arriving there along the dogleg, (1, 0), its knots the length of its chord.
             DxfDatabase db = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
             DxfMLeader leader = ByHandle<DxfMLeader>(db, "8A");
             leader.LeaderLineType = DxfLeaderType.SplineLeader;
 
             DxfEntity[] parts = leader.Explode().ToArray();
 
-            Assert.Equal(new[] { "DxfMText", "DxfLine", "DxfSpline", "DxfSolid" }, parts.Select(p => p.GetType().Name));
-            DxfNurbsData nurbs = ((DxfSpline)parts[2]).NurbsData;
-            GeoVector3 along = new GeoVector3(10, -2, 0).Normalize();
+            Assert.Equal(new[] { "DxfMText", "DxfSpline", "DxfSolid" }, parts.Select(p => p.GetType().Name));
+            DxfNurbsData nurbs = ((DxfSpline)parts[1]).NurbsData;
+            GeoVector3 along = new GeoVector3(18, -2, 0).Normalize();
             GeoPoint3 back = new GeoPoint3(-20, 20, 0).Add(along.Multiply(4.0));
-            double chord = back.DistanceTo(new GeoPoint3(-10, 18, 0));
-            GeoPoint3[] expected = { back, back.Add(along.Multiply(chord / 3.0)), new GeoPoint3(-10 - chord / 3.0, 18, 0), new GeoPoint3(-10, 18, 0) };
+            double chord = back.DistanceTo(new GeoPoint3(-2, 18, 0));
+            GeoPoint3[] expected = { back, back.Add(along.Multiply(chord / 3.0)), new GeoPoint3(-2 - chord / 3.0, 18, 0), new GeoPoint3(-2, 18, 0) };
             Assert.Equal(4, nurbs.GetControlPoints().Count);
             Assert.All(expected.Zip(nurbs.GetControlPoints(), (e, a) => e.DistanceTo(a)), d => Assert.True(d < 1E-8, d.ToString()));
             Assert.Equal(new[] { 0.0, 0, 0, 0, chord, chord, chord, chord }.Select(k => Math.Round(k, 9)), nurbs.GetKnots().Select(k => Math.Round(k, 9)));

@@ -394,10 +394,11 @@ namespace GeometryHelper.UnitTest.Dxf
         #region Moved
 
         [Fact]
-        public void AMultileaderMoved_HasItsContentLeadersAndSizesMovedAsEzdxfMovesThem()
+        public void AMultileaderMoved_HasItsContentLeadersAndSizesMovedAsAutoCadMovesThem()
         {
             // Turned 30 degrees, scaled 2 and moved by (5, -7, 3), as ezdxf's transform() moves it (cmptransform.py: every group
-            // the same); scaled unlike along its axes, refused, as ezdxf refuses it.
+            // the same), but its scale and its own sizes of the arrows and doglegs, which AutoCAD 2021's TransformBy leaves as they
+            // are (D31, g5 and h1): scale 1, arrows 4 (42), drawn 8; scaled unlike along its axes, refused, as ezdxf refuses it.
             double c = Math.Sqrt(3.0);
             var transform = new GeoTransform3(new double[,] { { c, -1, 0, 5 }, { 1, c, 0, -7 }, { 0, 0, 2, 3 }, { 0, 0, 0, 1 } });
 
@@ -413,8 +414,9 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.True(words.TextLocation.IsEqualTo(transform.Transform(new GeoPoint3(800, 0, 0)), Tol));
                 Assert.True(words.GetFirstVertex(0).IsEqualTo(transform.Transform(new GeoPoint3(780, -10, 0)), Tol));
                 Assert.Equal(5.0, words.TextHeight, 12);
-                Assert.Equal(8.0, words.ArrowSize, 12);
-                Assert.Equal(2.0, words.Scale, 12);
+                Assert.Equal(4.0, words.ArrowSize, 12);
+                Assert.Equal(8.0, ArrowSizes(db, "B4")[0], 12);
+                Assert.Equal(1.0, words.Scale, 12);
                 Assert.Equal(16.0, words.GetDoglegLength(0), 12);
                 Assert.True(words.GetDogleg(0).IsEqualTo(new GeoVector3(c / 2, 0.5, 0), Tol));
 
@@ -454,8 +456,8 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void TheSizeOfTheArrows_IsWrittenTheSameInTheMultileaderAndItsContext_SetAndMoved()
         {
-            // Set to 6, both groups 6; scaled 2 with a turn of 30 degrees, both the same 12 to the rounding, and read back so;
-            // set to 6 again, both 6.
+            // Set to 6, both groups 6; scaled 2 with a turn of 30 degrees, the arrows drawn 12 to the rounding (140) and the
+            // multileader's own 6 (42), as AutoCAD 2021's TransformBy leaves it (D31, g5), and read back so; set to 5, both 5.
             double c = Math.Sqrt(3.0);
             var transform = new GeoTransform3(new double[,] { { c, -1, 0, 5 }, { 1, c, 0, -7 }, { 0, 0, 2, 3 }, { 0, 0, 0, 1 } });
 
@@ -468,14 +470,14 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 words.TransformBy(transform);
                 double[] moved = ArrowSizes(db, "B4");
-                Assert.Equal(moved[0], moved[1]);
                 Assert.Equal(12.0, moved[0], 12);
-                Assert.Equal(12.0, ByHandle<DxfMLeader>(DxfDatabase.Parse(db.ToText()), "B4").ArrowSize, 12);
+                Assert.Equal(6.0, moved[1]);
+                Assert.Equal(6.0, ByHandle<DxfMLeader>(DxfDatabase.Parse(db.ToText()), "B4").ArrowSize, 12);
 
-                // Set again once scaled, as AutoCAD's ArrowSize is: 6 in both, not 6 in one and 12 in the other.
-                words.ArrowSize = 6.0;
-                Assert.Equal(new[] { 6.0, 6.0 }, ArrowSizes(db, "B4"));
-                Assert.Equal(6.0, ByHandle<DxfMLeader>(DxfDatabase.Parse(db.ToText()), "B4").ArrowSize);
+                // Set again once scaled, as AutoCAD's ArrowSize is: 5 in both, not 5 in one and 12 in the other.
+                words.ArrowSize = 5.0;
+                Assert.Equal(new[] { 5.0, 5.0 }, ArrowSizes(db, "B4"));
+                Assert.Equal(5.0, ByHandle<DxfMLeader>(DxfDatabase.Parse(db.ToText()), "B4").ArrowSize);
             }
         }
 
@@ -526,17 +528,21 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void TheScale_ScalesTheDoglegOfEachLeaderWithThatOfTheMultileader()
+        public void TheScale_ScalesTheDrawnDoglegOfEachLeader_ItsLengthReadUnscaled()
         {
+            // Scale doubled, the dogleg is drawn twice as long, and GetDoglegLength gives it unscaled, as AutoCAD 2021 gives it
+            // (D31, d12).
             DxfDatabase db = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
             DxfMLeader words = ByHandle<DxfMLeader>(db, "B4");
             double dogleg = words.GetDoglegLength(0);
             double scale = words.Scale;
+            double drawn = words.Explode().OfType<DxfLine>().First().Length;
 
             words.Scale = 2.0 * scale;
             DxfMLeader back = ByHandle<DxfMLeader>(DxfDatabase.Parse(db.ToText()), "B4");
             Assert.Equal(2.0 * scale, back.Scale, 12);
-            Assert.Equal(2.0 * dogleg, back.GetDoglegLength(0), 12);
+            Assert.Equal(dogleg, back.GetDoglegLength(0), 12);
+            Assert.Equal(2.0 * drawn, back.Explode().OfType<DxfLine>().First().Length, 12);
         }
 
         /// <summary>The size of the arrows a multileader's record gives in its context data (140), then in its own groups (42).</summary>

@@ -6,6 +6,72 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A MULTILEADER is exploded as AutoCAD 2021 explodes the ones it makes (check D31: 137 multileaders AutoCAD made,
+exploded by its API and by `Explode()`, the same to 1E-6 but for the lines AutoCAD draws under, over or round the words as
+long as its font makes them). A multileader whose leader lines are splined has no dogleg drawn, as AutoCAD's `EnableDogleg`
+reads false for it though its 291 says 1, and its splines run to the end the dogleg would have: two lines splined from
+(0, 0) and (0, 100) to a dogleg of 8 from (90, 48) give two SPLINEs fitted from the backs of their arrows to (98, 48) and no
+LINE, where the library drew the dogleg and splines to (90, 48); `GetGeometry` reads them so too. A dogleg of no length is a
+LINE of no length, where it gave none. The words and the block are in the multileader's own linetype and lineweight, the
+SOLID of an arrow in its own linetype (it had the leader lines'), and an INSERT of an arrow block in its own linetype and
+its line's lineweight, turned by an angle from nought to a whole turn (3.63, not -2.65). The words are as wide as the
+record's 43 says, which the scale has scaled already: words 60 wide at a scale of 2 are written and exploded 120 wide, where
+the library gave 240. 5 new tests; 2 tests changed: a splined multileader exploded gives no dogleg, and the multileader of
+check 61 is given the landing of the file it came from.
+
+**FIXED.** The last vertex of a leader line is read and written as AutoCAD 2021's `GetLastVertex` and `SetLastVertex` do
+where the dogleg is not drawn (`EnableDogleg` false, or the leader lines splined): the end the dogleg would have, which the
+line runs on to. A dogleg of 8 from (90, 48) taken away leaves the line ending at (98, 48), where the library gave (90, 48);
+`SetLastVertex(0, (50, 60))` then puts the dogleg's start at (42, 60), as AutoCAD did, and `AddLastVertex(0, (70, 30))` gives
+the vertices (0, 0), (98, 48) and (70, 30). A vertex moved elsewhere leaves the dogleg's start as it was, to the bit. 2 new
+tests.
+
+**FIXED.** The length of the doglegs and the scale of a MULTILEADER are written and read as AutoCAD 2021 writes and reads
+them: the multileader's own length (`DoglegLength`, 41) and size of the arrows (42) unscaled, each leader's dogleg (40)
+times the scale. `Scale` set to 2 leaves 41 at 8, where the library made it 16, draws the dogleg 16 and scales the width of
+the words with the rest; `DoglegLength` 3 at a scale of 2 writes 41 of 3 and doglegs of 6, `SetDoglegLength(0, 1)` a dogleg
+of 2, where the library wrote 3 and 1 drawn; `GetDoglegLength` gives the length over the scale, 8 for a dogleg drawn 16, and
+nought for a leader that meets the words at their top or bottom. `TransformBy` scaling by 2 leaves the scale of the context
+data and the multileader (40 and 45), its own 41 and 42 and the arrow sizes leader lines have of their own as they are, as
+AutoCAD's does, and scales the rest: a multileader of scale 1 is still of scale 1, its doglegs drawn 16 and its arrows 8,
+`ArrowSize` 4, where the library made it of scale 2 and wrote 41 of 16 and 42 of 8. `SetFromStyle` writes 41 unscaled too.
+4 new tests; 4 tests changed: Standard scaled 2 gives `DoglegLength` 8 drawn 16, a multileader moved and scaled 2 keeps its
+scale 1 and `ArrowSize`, and `Scale` doubled draws the dogleg twice as long and reads it as before.
+
+**CHANGED.** `DxfMLeader.AddLeaderLine(point)` lands a new leader as AutoCAD 2021 lands it where that needs no font: from a
+point on the left of words held at their top left and met on their sides, its dogleg runs along the plane's x axis to the
+landing gap short of the words' left edge, as far below their top as the attachment of the left side says, the lines of the
+words counted by their breaks. Words "ABC" 4 high at (100, 50), with a gap of 2 and a dogleg of 8 met at the middle of their
+top line, are met by a leader from (0, 0) whose dogleg runs from (90, 48) to (98, 48), where the library started it at the
+words' place, (100, 50), running into them; three lines met at their middle from (90, 41.33); with a gap of 5 and a dogleg
+of 15, from (80, 48). Every attachment of the side, from the top of the top line to the underline of the whole, lands where
+AutoCAD landed it (check D31, d04). A point on the left with only a leader on the right gets a leader of its own, as in
+AutoCAD, where it joined the one on the right. On the right of the words, which AutoCAD lands as far right as its font
+makes them wide, for a block, and for words turned, held otherwise or met at their top or bottom, the leader is made as
+before. `TextLocation` set moves the doglegs and the base point of the content with the words, as AutoCAD moves them: the
+words moved from (100, 50) to (120, 80) move the dogleg to (110, 78). Of 30 multileaders made so by the library, AutoCAD
+read every one as the library reads it. 3 new tests, of 11 cases.
+
+**CHANGED.** `DxfDatabase.Insert`, of either form, copies an INSERT of the other drawing that names a block that drawing
+has not wherever it stands, as AutoCAD 2021's `Insert` copies one, placing nothing (check D31, rounds C, E, F): in its model
+space and in a block it merges, where the library refused the whole drawing ("The drawing has no block Z for the INSERT to
+place"), as in a block a copy brings, which it copied. The other's M holding a line and an INSERT of Z, which it has not,
+inserted, gives this drawing M with its INSERT of Z; where this drawing has a Z the copy places it, as a DXF names its block
+by name. The Debug line of `GeometryHelperLog` that said those in the blocks brought says these too, with how many place a
+block of the name. An INSERT so copied that names the block `Insert(name, ...)` makes is walked for a round and refused, as
+it would place that block inside itself. `WblockCloneObjects` still refuses one given among the entities, as AutoCAD's
+refuses a set holding or reaching one (`eWasErased`); AutoCAD's DXFIN refuses a file holding one at all. 5 new tests.
+
+**CHANGED.** `DxfDatabase.Insert`, of either form, no longer walks the blocks it merges and brings for one that would come to
+insert itself where none can: where no INSERT, dimension or table of this drawing names a block it has not, and none of
+the other drawing's names the block `Insert(name, ...)` makes, those blocks reach this drawing's and stop there. What it
+writes is the same to the byte, and it refuses what it refused: the differential probes of D8, D7b and D10 (13 drawings
+saved again, 91 copied and inserted, 60 000 merges of which 110 325 inserts went through, 6 000, 3 000 and 2 x 20 000
+drawings fuzzed) give the same lines with the walk always made and with it left out. A drawing of 3 000 blocks nested one
+inside the next is inserted in 401 milliseconds where it took 406 with the walk (.NET 10) and 321 where 331 (.NET Framework
+4.8), made a block in 388 where 414 and 295 where 293, and 10 000 nested inserted in 910 where 921 and 956 where 976, the
+least of 11 runs taken in turn.
+
 **NEW.** A horizontal, a vertical or a radial constraint parameter of a dynamic block AutoCAD's Block Editor wrote is set,
 where the library read its distance only: `DxfDynamicBlockReferenceProperty.Value` solves the block's geometric and
 dimensional constraints, read from the associative network of its BLOCK_RECORD (`ACAD_ASSOCNETWORK`), by Newton's method

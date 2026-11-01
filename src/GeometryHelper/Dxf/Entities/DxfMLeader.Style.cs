@@ -242,9 +242,9 @@ namespace GeometryHelper.Dxf
         /// no arrow block. Each is read as the multileader writes it, as <c>MLeaderStyleOverride</c> reads it: the height of
         /// the words (bit 16) and the landing gap (bit 5) from the context data, scaled (its 41 and 145, as
         /// <see cref="TextHeight"/> and <see cref="LandingGap"/> read them); the size of the arrows (bit 9) from the
-        /// multileader's own 42, unscaled, as the style holds it; the length of the doglegs (bit 7) from its own 41, which is
-        /// scaled, as each leader's dogleg is. A multileader of scale 2 with words 8 high, arrows 4 and doglegs 16 of its own
-        /// gives a style of words 8 high, arrows 4 and doglegs 16, whose scale is the multileader's 2 where it overrides that
+        /// multileader's own 42, unscaled, as the style holds it; the length of the doglegs (bit 7) from its own 41, unscaled
+        /// too, as AutoCAD 2021 writes it. A multileader of scale 2 with words 8 high, arrows 4 and doglegs 8 of its own, drawn
+        /// 16, gives a style of words 8 high, arrows 4 and doglegs 8, whose scale is the multileader's 2 where it overrides that
         /// too (bit 24).
         /// </summary>
         /// <param name="mleaderStyle">The style, made in code by <c>new DxfMLeaderStyle()</c>; given these values in place of any it had.</param>
@@ -295,9 +295,9 @@ namespace GeometryHelper.Dxf
         /// (343, and 340 of its words) by the style's handles; then its overrides (90) set to nought. A multileader of the style
         /// Standard, its words 2.5 high of its own, has words 4 high, as the style. The sizes, unscaled in the style, are scaled
         /// once by the scale the multileader then has: the height of the words, the landing gap and the size of the arrows of
-        /// the context data (41, 145 and 140), the multileader's own length of the doglegs (41) and each leader's (40) are the
-        /// style's times the scale, and the multileader's own size of the arrows (42) the style's, unscaled; Standard scaled 2
-        /// gives words 8 high, a gap of 4, arrows 8 drawn (42 of 4) and doglegs 16. A value the style gives that the multileader
+        /// the context data (41, 145 and 140) and each leader's length of the dogleg (40) are the style's times the scale, and
+        /// the multileader's own size of the arrows (42) and length of the doglegs (41) the style's, unscaled, as AutoCAD 2021
+        /// writes them; Standard scaled 2 gives words 8 high, a gap of 4, arrows 8 drawn (42 of 4) and doglegs 16 drawn (41 of 8). A value the style gives that the multileader
         /// cannot take keeps the multileader's own and its bit: a content (172) or a block (344) it does not hold, a size or a type out of AutoCAD's range, a linetype or a text
         /// style the style names none of or one its drawing has not, an arrow block or a block a copy in no drawing cannot be
         /// given (it keeps its own arrow, and takes the rest), and the attachments of the top and bottom and their direction in a
@@ -515,9 +515,9 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Writes the sizes of the style, unscaled in it, scaled once: the height of the words, the landing gap and the size of
-        /// the arrows of the context data (41, 145 and 140), the multileader's length of the doglegs (41) and each leader's (40)
-        /// the style's times the scale of the context data (40); the multileader's size of the arrows (42) the style's,
-        /// unscaled. Each is written where it differs from the one read; a size out of range keeps the multileader's own and its
+        /// the arrows of the context data (41, 145 and 140) and each leader's length of the dogleg (40) the style's times the
+        /// scale of the context data (40); the multileader's size of the arrows (42) and length of the doglegs (41) the style's,
+        /// unscaled, as AutoCAD 2021 writes them. Each is written where it differs from the one read; a size out of range keeps the multileader's own and its
         /// bit.
         /// </summary>
         private void TakeSizes(DxfMLeaderStyle style, Action<int> keep)
@@ -562,7 +562,7 @@ namespace GeometryHelper.Dxf
             if (Size(style.DoglegLength, false))
             {
                 double dogleg = style.DoglegLength;
-                PutSize(rec.After, 41, dogleg * scale, 8.0, TopOrder);
+                PutSize(rec.After, 41, dogleg, 8.0, TopOrder);
 
                 foreach (LeaderPart leader in ctx.Leaders)
                 {

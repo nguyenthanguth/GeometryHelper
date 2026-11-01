@@ -84,7 +84,12 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Moves, turns, scales or mirrors the MULTILEADER, as AutoCAD's <c>TransformBy</c>, as ezdxf carries one: the base point,
         /// the plane, the leaders' points, doglegs and breaks, the lines' vertices, the MTEXT's place, direction and normal and the
-        /// block's place, normal, scale, turn and matrix; the sizes of the words, arrows, landing and doglegs scaled with it.
+        /// block's place, normal, scale, turn and matrix; the sizes the words, arrows, landing and doglegs are drawn with scaled
+        /// with it (41, 140 and 145 of the context data, 40 of each leader, and the widths of the words), and the scale of the
+        /// context data (40), the MULTILEADER's own scale (45), length of the doglegs (41) and size of the arrows (42), and the
+        /// arrow sizes leader lines have of their own, left as they are, as AutoCAD 2021's <c>TransformBy</c> leaves them: a
+        /// multileader of scale 1, its doglegs 8, scaled by 2 is still of scale 1, its doglegs drawn 16 and 41 still 8, its
+        /// words 60 wide then 120 wide, and a line's own arrows of 2 still drawn 2.
         /// </summary>
         /// <param name="transform">The transformation.</param>
         /// <exception cref="ArgumentException">Thrown when it scales the MULTILEADER more one way than another, which ezdxf and AutoCAD refuse, or shears it, keeping its axes as long as each other but not square, which AutoCAD refuses too.</exception>
@@ -116,8 +121,7 @@ namespace GeometryHelper.Dxf
 
             double scale = x.Length;
 
-            // The context data: its scale, base point, sizes and plane.
-            ScaleNumber(ctx.Head, 40, scale, ContextOrder);
+            // The context data: its base point, sizes and plane; its scale (40) left as it is, as AutoCAD 2021 leaves it.
             MovePoint(ctx.Head, 10, transform.Transform, ContextOrder, 0, -1);
 
             foreach (int code in new[] { 41, 140, 145 })
@@ -236,16 +240,8 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            // The MULTILEADER's own copies of what its context data holds.
-            PutNumber(rec.After, 42, Num(Text(ctx.Head, 140), 4.0), 4.0, TopOrder);
-
-            if (Text(rec.After, 45) != null)
-            {
-                PutNumber(rec.After, 45, Num(Text(ctx.Head, 40), 1.0), 1.0, TopOrder);
-            }
-
-            ScaleNumber(rec.After, 41, scale, TopOrder);
-
+            // The MULTILEADER's own block scale and turn; its own sizes (41, 42) and scale (45) left as they are, as AutoCAD 2021
+            // leaves them.
             if (blockScale.HasValue)
             {
                 PutNumber(rec.After, 43, blockTurn.Value, 0.0, TopOrder);
@@ -758,13 +754,29 @@ namespace GeometryHelper.Dxf
             return index;
         }
 
-        /// <summary>The vertices of a leader line: its own, then the point of its leader the dogleg starts at.</summary>
+        /// <summary>The vertices of a leader line: its own, then the end of its leader's landing (<see cref="LastOf"/>).</summary>
         private static List<GeoPoint3> Vertices(Rec rec, int index, out LinePart line, out LeaderPart leader)
         {
             line = FindLine(rec, index, out leader);
             List<GeoPoint3> vertices = line.Vertices();
-            vertices.Add(PointOf(leader.Head, 10, new GeoPoint3(0.0, 0.0, 0.0)));
+            vertices.Add(LastOf(rec, leader));
             return vertices;
+        }
+
+        /// <summary>
+        /// The last vertex of the lines of a leader, as AutoCAD 2021's <c>GetLastVertex</c> gives it: the point the dogleg starts
+        /// at (10 of the leader), or, where the leader meets the words on a side and its dogleg is not drawn, the end the dogleg
+        /// would have, which its lines run on to (<see cref="Path"/>).
+        /// </summary>
+        private static GeoPoint3 LastOf(Rec rec, LeaderPart leader)
+        {
+            if (Doglegged(rec.After))
+            {
+                return PointOf(leader.Head, 10, new GeoPoint3(0.0, 0.0, 0.0));
+            }
+
+            Landing(leader, out GeoPoint3 last, out bool horizontal, out GeoVector3 along);
+            return horizontal ? last.Add(along) : last;
         }
 
         private static void VertexIndex(List<GeoPoint3> vertices, int index, string parameter)
@@ -775,11 +787,20 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        /// <summary>Writes the vertices of a leader line: all but the last its own, the last the point of its leader the dogleg starts at.</summary>
+        /// <summary>
+        /// Writes the vertices of a leader line: all but the last its own, the last the end of its leader's landing, as
+        /// <see cref="LastOf"/> reads it, the point the dogleg starts at written so; left as it is where the last is.
+        /// </summary>
         private void WriteVertices(Rec rec, LinePart line, LeaderPart leader, List<GeoPoint3> vertices)
         {
             GeoPoint3 last = vertices[vertices.Count - 1];
-            PutPoint(leader.Head, 10, last, LeaderOrder);
+
+            if (Text(leader.Head, 10) == null || !SamePoint(last, LastOf(rec, leader)))
+            {
+                Landing(leader, out _, out bool horizontal, out GeoVector3 along);
+                PutPoint(leader.Head, 10, horizontal && !Doglegged(rec.After) ? last.Add(along.Negate()) : last, LeaderOrder);
+            }
+
             line.SetVertices(vertices.GetRange(0, vertices.Count - 1));
             Write(rec);
         }

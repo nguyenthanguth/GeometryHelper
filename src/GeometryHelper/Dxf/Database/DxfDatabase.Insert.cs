@@ -26,7 +26,11 @@ namespace GeometryHelper.Dxf
         /// insert keeps one for both; the
         /// external references of the other drawing and what they brought (a name with a | in it) are not merged, but one an
         /// INSERT of its model space places comes with the INSERT, an external reference still: its BLOCK flagged 4, or 12
-        /// overlaid, naming its drawing in its 1, with no entities.
+        /// overlaid, naming its drawing in its 1, with no entities. An INSERT of the other drawing that names a block it has not,
+        /// as a drawing read from a file may hold, is copied as it is, naming that block, wherever it stands, in its model space
+        /// or in a block merged or brought, as AutoCAD 2021's <c>Insert</c> copies one, placing nothing; where this drawing has
+        /// a block of the name, the copy places it. One Debug line of <see cref="GeometryHelperLog"/> says how many there were.
+        /// The other's M holding a line and an INSERT of Z, which it has not, gives this drawing M with its INSERT of Z.
         /// </para>
         /// <para>
         /// A dynamic block stays dynamic, as AutoCAD's own insert keeps it: its record's extended data
@@ -89,6 +93,7 @@ namespace GeometryHelper.Dxf
 
             try
             {
+                File.CopiesDangling = true;
                 keeping = File.KeepAnonymousNames(dataBase.File, CheckCopies(dataBase, entities, null));
                 File.Copies = copied;
                 MergeTables(dataBase);
@@ -100,6 +105,7 @@ namespace GeometryHelper.Dxf
             finally
             {
                 File.Copies = null;
+                File.CopiesDangling = false;
 
                 if (keeping)
                 {
@@ -156,8 +162,9 @@ namespace GeometryHelper.Dxf
         /// <remarks>
         /// A drawing of a circle of radius 5 about (20, 0), its base point (20, 0, 0), made the block PLATE, gives this drawing
         /// the block PLATE drawn about (20, 0, 0) with the circle in it; nothing is added to model space. Every entity is checked
-        /// before anything is written, as the other <c>Insert</c> checks it, and external references and dynamic blocks come as
-        /// that one says.
+        /// before anything is written, as the other <c>Insert</c> checks it, and external references, dynamic blocks and INSERTs
+        /// of blocks the other drawing has not come as that one says; an INSERT of the other's that names the new block, which it
+        /// has not, would place that block inside itself, and is refused so.
         /// </remarks>
         /// <param name="blockName">The name of the new block.</param>
         /// <param name="dataBase">The drawing to insert, another than this one.</param>
@@ -200,6 +207,7 @@ namespace GeometryHelper.Dxf
 
             try
             {
+                File.CopiesDangling = true;
                 keeping = File.KeepAnonymousNames(dataBase.File, CheckCopies(dataBase, entities, blockName));
                 File.Copies = copied;
                 MergeTables(dataBase);
@@ -216,6 +224,7 @@ namespace GeometryHelper.Dxf
             finally
             {
                 File.Copies = null;
+                File.CopiesDangling = false;
 
                 if (keeping)
                 {
@@ -304,7 +313,13 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            File.CheckRounds(source.File, brought, made, placed, "dataBase");
+            // No round can close where no INSERT of this drawing names a block it has not and none of the other's names the block
+            // to be made: the blocks brought then reach this drawing's and stop there, and are walked for nothing.
+            if (File.MayNameMissingBlock() || (made != null && !source.File.InsertsNone(made)))
+            {
+                File.CheckRounds(source.File, brought, made, placed, "dataBase");
+            }
+
             return brought;
         }
 
