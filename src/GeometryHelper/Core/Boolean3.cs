@@ -107,10 +107,9 @@ namespace GeometryHelper.Core
     /// or the two and the gap filled, within the tolerance times the area where they lie face to face either way, each face
     /// within the tolerance of where it belongs. A column 300 by 300 by 1 000 and a beam 386.7 wide and 364.8 high running
     /// exactly 0.001 into its side, turned, joined within a thousandth, hold the two less 125.26, the overlap being 109.45 and
-    /// the beam's whole end 141.07.
-    /// A weld that closes a union at a tolerance coarser than the default can move it further, as far as tilting a face by
-    /// the tolerance does: a beam 160.1 by 160.8 standing exactly 0.01 clear of such a column, joined within a hundredth, holds
-    /// 661 more than the two and the gap, 257 being the tolerance times the area where they face each other.
+    /// the beam's whole end 141.07. A beam 160.1 by 160.8 standing exactly 0.01 clear of such a column, joined within a
+    /// hundredth, holds the two and 214.5, filling the gap holding 257.4; closed at the default tolerance by a weld tilting
+    /// the column's face by the tolerance, it held 661 more than the two and the gap.
     /// </para>
     /// </summary>
     public static partial class Boolean3
@@ -224,7 +223,8 @@ namespace GeometryHelper.Core
                     // Where that does not either, the union as it came is kept only where it holds such a volume itself, as
                     // before such a result was turned down; see CombineCuttingOne. Otherwise it is not worked out: such a
                     // column and a beam 377.4 wide and 107.5 high running exactly 0.01 into it, joined within a hundredth, came
-                    // out so, and worked out once more held 573.26 less than the two, where the beam's whole end is 405.6.
+                    // out so, and worked out once more held 573.26 less than the two, where the beam's whole end is 405.6; it
+                    // holds 364.0 less since the weld closing it is made otherwise where it tilts a face (see Weld3).
                     if (!Shells3.ClosesAlike(result.Faces, tolerance) && Shells3.ClosesAlike(first.Faces, tolerance) && Shells3.ClosesAlike(second.Faces, tolerance))
                     {
                         if (Unite(first, second, out GeoSolid3 flush, tolerance, out _, out _, null, true)

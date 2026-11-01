@@ -1455,11 +1455,20 @@ the corners its faces turn at either side, past any their edges run straight on 
 faces came in 200 to 1 000 strips, joined within a hundredth to a beam framing 0.002 into its flange, had a corner of
 the flange taken off the flange's plane to the beam's, weighed by the sliver it made with the corners a strip apart,
 and held the two less 25.72 to 374.81 cubic millimetres, closed and valid, where their overlap is 17.04; it holds the
-two less 18.96 now, as with the column in one piece. What comes of it is kept where it closes within the
-default and within its own tolerance, and holds its volume within the tolerance times its area. Of 10 314 cuts within
-0.05 of the parts of a Tekla model by the parts they meet, 14 came out open within 0.01 that way; they close now. A
-result open within its own tolerance is welded too, where that closes it, and one closed within the default is left
-as it is. `Validate()` shows where a body is open, and why.
+two less 18.96 now, as with the column in one piece. A corner a face lies round, at a hole or a notch in it or part way
+along a straight edge, makes no such triangle of the face, and weighs next to nothing. Where the weld tilts faces by
+more than a hundredth of the tolerance and moves the volume by more than a tenth of the tolerance times their area, or
+tilts one and does not close, it is made again with such a corner weighed by the whole face, each group taken to the
+corner that takes the most of it, and again to the corner that moves the volume least; of those that close wound alike
+and tilt less of the faces than the first, the one moving the volume less is taken where it moves it less than the
+tilt, or, where the first does not close and it lays no face over another, in its place. A column 300 by 300 by 1 000 joined within a hundredth to a beam 160.1 by
+160.8 whose end stands exactly 0.01 clear of its side had two corners of the hole in the column's face, 274 255 square
+millimetres, taken 0.01 off it to the beam's, and held the two and 918.9 cubic millimetres where filling the gap holds
+257.4; it holds the two and 214.5 now, the beam's corners taken onto the column's face. What comes of it is kept where
+it closes within the default and within its own tolerance, and holds its volume within the tolerance times its area.
+Of 10 314 cuts within 0.05 of the parts of a Tekla model by the parts they meet, 14 came out open within 0.01 that way;
+they close now. A result open within its own tolerance is welded too, where that closes it, and one closed within the
+default is left as it is. `Validate()` shows where a body is open, and why.
 
 A weld that would take a corner off the plane of a face it is a corner of keeps the face on its plane instead, where
 that closes: the face keeps its corner, a face beside it moving the corner along its own plane keeps it as well, and
@@ -1574,7 +1583,10 @@ the slab where they overlap being 109.45 and the beam's whole end 141.07. The sa
 running exactly 0.001 into its top at the corner, which came out so holding 1 080 003.21, more than the two, holds
 1 080 000.8, the block's foot being 1.6. One wound against itself that holds no such volume any way is not worked out:
 a beam 377.4 wide and 107.5 high running exactly 0.01 into the column, joined within a hundredth, came out so, and
-worked out once more held 573.26 less than the two, less than the column and the beam beyond its face, 405.6 less.
+worked out once more held 573.26 less than the two, less than the column and the beam beyond its face, 405.6 less. The
+weld that closed it tilted a part of the column's face, 133 880 square millimetres, by the tolerance; welded with each
+group taken to the corner that moves the volume least (see above), it holds the two less 364.0, the slab where they
+overlap being 322.4.
 A difference or a common part of two closed bodies that makes a closed body enclosing no more than a slab the tolerance thick, as `Validate` reads it (`SolidIssueKind.NoVolume`),
 and nothing else wrong with it than such a slab has, leaves nothing, and says so, `false` with `BooleanOutcome.Empty`: the
 common part of that cube and such a slab inside it was the slab, 1.2 cubic millimetres enclosing nothing, and a plate 10
@@ -1697,14 +1709,14 @@ area where they lie face to face either way, since each face of it is within the
 in that band it falls is left to the rounding. Further into each other than the tolerance, the two are cut as they
 are, within the same band. Of 1 600 columns 300 by 300 by 1 000 joined by beams 100 to 400 wide and high running 0.8
 to 2 tolerances into or clear of their sides, turned at random and as far as 700 metres from the origin, every union,
-difference and common part at tolerances of 0.001 and 0.05 holds so, 24 and 138 of the 8 000 of each within the band
-rather than the exact reading, and at 0.01 all but five. The union of the beam 377.4 wide running exactly 0.01 into
-the column, either way round, is not worked out, as above. A beam 160.1 wide and 160.8 high standing exactly 0.01 clear
-of the column holds 661 more than the two and the gap, 2.6 times the tolerance times the area where they face each
-other, and one 129.2 wide and 366.7 high running exactly 0.01 into it, joined beam first, 605 less than the two less
-the slab, 1.3 times. A weld closed each of the three at the default tolerance, a tenth as fine, by tilting a face, as
-it may: a body a boolean gives at a tolerance coarser than the default is welded to close at the default too where
-that can be done, and a weld moves no corner further than the tolerance.
+difference and common part at tolerances of 0.001, 0.01 and 0.05 holds so, 24, 133 and 132 of the 8 000 of each within
+the band rather than the exact reading. A body a boolean gives at a tolerance coarser than the default is welded to
+close at the default too where that can be done, and a weld moves no corner further than the tolerance; a weld that
+tilted the column's face by the tolerance had a beam 160.1 wide and 160.8 high standing exactly 0.01 clear of the
+column hold 661 more than the two and the gap, 2.6 times the tolerance times the area where they face each other, and
+one 129.2 wide and 366.7 high running exactly 0.01 into it, joined beam first, 605 less than the two less the slab, 1.3
+times. Welded with the corners the column's face lies round weighed by the face (see above), they hold the two and
+214.5, the gap filled holding 257.4, and the two less 394.9, the slab being 473.9.
 
 **Parts drawn against each other.** The tolerance says how exact a boolean is; how near two faces of two parts
 have to be to touch is a question of the model. Tekla Structures draws parts against each other a few thousandths

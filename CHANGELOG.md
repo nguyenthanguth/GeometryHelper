@@ -6,6 +6,43 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A boolean welded closed no longer tilts a face round a corner the face lies round, a hole's corner, one where
+its edge turns back into a notch or one part way along a straight edge, where a weld that keeps the face flat closes it
+moving the volume less. A weld takes each group of corners within the tolerance of each other to the one of them that
+takes the most of the group and, of those, moves the volume least, each corner weighed by the triangle it makes with the
+corners its faces turn at; such a corner makes no triangle of the face and weighed next to nothing taken off it. A column
+300 by 300 by 1 000 and a beam 160.1 by 160.8 whose end stood exactly 0.01 clear of its side, turned and joined within a
+hundredth, had two corners of the hole in the column's face taken 0.01 off it to the beam's: the face, 274 255 square
+millimetres, came out tilted, and the union held the two and 918.9 cubic millimetres, closed and valid, where filling the
+gap holds 257.4. It holds the two and 214.5 now, the beam's corners taken onto the column's face along its sides. Where a
+weld tilts faces by more than a hundredth of the tolerance and moves the volume by more than a tenth of the tolerance
+times their area, or tilts one and does not close, it is made again with such a corner, taken off the face's plane
+further than a hundredth of the tolerance, weighed by the whole face, once taking each group to the corner that takes the
+most of it and once to the corner that moves the volume least; of those that close wound alike and tilt less of the faces
+than the first, the one moving the volume less is taken where it moves it less than the tilt, or, laying no face over
+another, where the first did not close. A
+beam 141.8 by 164.8 running exactly 0.01 into the column came out 1 216.9 short of the two less their overlap and holds
+the two; and unions only such a tilt closed, refused as moving the volume too far or coming out open as `Validate`
+reads it, are made: the beam 377.4 wide and 107.5 high running exactly 0.01 into the column holds the two less 364.0,
+the slab where they overlap being 322.4, and one 245.9 by 327.5 running exactly 0.001 into it, joined within a
+thousandth, the two. A weld whose corners go where they went is made as before: the column whose faces come in 1 to 1 000
+strips, joined to a beam framing 0.002 into its flange, holds the two less 18.96 at every count, to the bit.
+
+Of 8 000 columns 300 by 300 by 1 000 joined to beams their end 0.8 to 2 tolerances into or clear of them, turned and
+moved, the 8 unions wrong at 0.01 are right and the 3 refused made, at 0.05 the 4 wrong are right and one of 3 refused
+is made, and at 0.001 the 4 refused are made; 17 unions within the band come out on the exact reading, and none right
+moved out of it. Of 5 400 booleans of a cube and boxes exactly the tolerance into, onto or beside it, 6 unions wrong
+are right and one refused is made, and 13 right moved within the band, 7 of them nearer the exact volume and the rest
+to the two read as touching; within half, 0.8, 1.25, 1.5 and 2 times the tolerance none moved. 600 plates with twelve
+openings cut in at once, 400 bands, 70 bent bars, the columns in strips, 150 000 bodies with openings, prisms and bodies
+far from the origin, 216 000 booleans near the rounding of the coordinates, and the cracked bodies worked out at a
+tolerance of nought are the same to the bit; of 70 252 booleans and cuts of cubes, tilted and tapered bodies and boxes,
+45 moved within the class each was in, 37 nearer the exact volume and 8 further, the furthest by 1.7, and of 72 000 of
+U bodies 127, 114 nearer, the furthest by 1.2. On .NET Framework 4.8 the union of the beam 160.1 by 160.8 and the column
+takes 1.07 milliseconds where it took 0.85, welded twice more, and the one 245.9 by 327.5 3.6 where it took 7.3; the
+column in 150 and 300 strips takes 4 % more, and twelve openings cut out of a plate at once up to 7 % more. Booleans
+that weld nothing take what they took.
+
 **FIXED.** A curved chain is copied, moved and turned edge for edge, every arc and leg however small, by `Clone`,
 `Translate` and `RotateBy` of `GeoPolylineArc2` and `Clone` and `Translate` of `GeoPolylineArc3`, as a curved loop has
 been since the last fix; a straight polygon or chain is moved and turned side for side by `Translate` and `RotateBy` of
