@@ -108,6 +108,28 @@ namespace GeometryHelper.Dxf
             Data = all;
         }
 
+        /// <summary>
+        /// Adds groups at the end of the data of an XRECORD in a file as AutoCAD writes those of its own records, the codes of
+        /// extended data it keeps there (1070, 1071) among them, as the history of grip edits of an INSERT holds them.
+        /// </summary>
+        internal void AppendKept(IEnumerable<DxfTypedValue> data)
+        {
+            DxfFile file = InFile("be given data");
+            var groups = new List<KeyValuePair<int, string>>();
+
+            foreach (DxfTypedValue group in Data)
+            {
+                groups.Add(new KeyValuePair<int, string>(group.TypeCode, group.Value));
+            }
+
+            foreach (DxfTypedValue group in data)
+            {
+                groups.Add(new KeyValuePair<int, string>(group.TypeCode, group.Value));
+            }
+
+            file.ReplaceTail(Item, DataStart(), groups);
+        }
+
         /// <summary>Gets an enumerator over the groups of the data, as AutoCAD's <c>GetEnumerator</c>.</summary>
         /// <returns>The enumerator, over the data as it is when it is asked for.</returns>
         public IEnumerator<DxfTypedValue> GetEnumerator() => Data.GetEnumerator();

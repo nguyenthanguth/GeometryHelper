@@ -1273,6 +1273,9 @@ as AutoCAD 2021 read and set it:
 - named sizes: `AddLookupParameter`, its inputs `DxfBlockLookupInput` (a linear or a polar distance, the x or the y of a
   point, the distances of an XY parameter, the angle of a polar or a rotation parameter) and its rows `DxfBlockLookupRow`,
   the parameter and its action in one call;
+- several properties and attributes set at once by rows: `AddBlockPropertiesTable`, its columns
+  `DxfBlockPropertiesTableColumn` (the properties a lookup input takes, and `Attribute(definition)`) and its rows
+  `DxfBlockPropertiesTableRow`, read back by the block's `BlockPropertiesTable`;
 - grips for placing the block, of no property: `AddAlignmentParameter` and `AddBasePointParameter`.
 
 Two things are refused with `NotSupportedException` before anything is written, either given second: a flip parameter
@@ -1286,7 +1289,7 @@ INSERTs, a point, a flip alone and an XY parameter in v20, a rotation in v20b, a
 arrays along a distance and in rows and columns, lookups, a turn and a scale beside a stretch, a drawing of R2018 and
 AutoCAD's own XY and lookup samples set by the library in v21b (8 of 8), a polar parameter with its polar stretch and
 the value sets of a rotation, an XY and a polar parameter in D25, and the ties of value sets, a stretch and a move of a
-polar parameter and lookups of an XY, a polar and a rotation parameter in D25b. The examples below give one block of each kind as
+polar parameter and lookups of an XY, a polar and a rotation parameter in D25b, and block properties tables in D26. The examples below give one block of each kind as
 AutoCAD took it, to be copied as they stand: the first is a whole program, and each after it a block of statements in braces
 whose names are its own and whose block names no other example uses, so that any of them, or all of them in any order, may
 be pasted after the first; what is not written or not set is listed under
@@ -1313,8 +1316,9 @@ factors and angles are in radians: the door whose linear parameter Width AutoCAD
 scale of 2, gives `Width = 2000.0`, `UnitsType` `Distance`; AutoCAD 2021 read a distance of 7.5 along x as 22.5 at the
 scale (2, 3, 2), and as 15 at (2, 2, 1), where `IsDynamicBlock` is false, as it read such INSERTs. A value set's list is
 allowed where its flags (96, or 97 for the second set) hold 8; AutoCAD gave none of a list under the flags 1, 2 or 4.
-AutoCAD's hidden `Origin` points (not shown in its properties) are left out, and constraint parameters and a block
-properties table give none, as they are not read. AutoCAD 2021 read the same names, values (to 1E-9, most to the bit),
+AutoCAD's hidden `Origin` points (not shown in its properties) are left out. A block properties table gives the index of
+the row the INSERT matches (`Block Table1`, a `short`, -1 for none), a user parameter its text or real, and a horizontal, a
+vertical, an aligned or a radial constraint parameter its distance, read only, as set out below. AutoCAD 2021 read the same names, values (to 1E-9, most to the bit),
 types, units, read-only flags, descriptions and allowed values on ACadSharp's AutoCAD-saved samples.
 
 ```csharp
@@ -1391,8 +1395,10 @@ moved by the change: here the right edge at x = 200 and the right ends of the bo
 x = 0. The anonymous block names the dynamic one in its extended data AcDbBlockRepBTag, each copy keeps its source's tag
 with its own handle, and the INSERT's extension dictionary is given AcDbBlockRepresentation, with the representation data
 naming the dynamic block and the record of each parameter and action AutoCAD reads the values from
-(ACAD_ENHANCEDBLOCKDATA under AppDataCache), the end point of Width at (200, 0, 0). A history of grip edits
-(ACAD_ENHANCEDBLOCKHISTORY) is taken out, as AutoCAD 2021 took it out and kept none when it set a value. AutoCAD 2021 read
+(ACAD_ENHANCEDBLOCKDATA under AppDataCache), the end point of Width at (200, 0, 0). A history of grip edits the INSERT
+keeps (ACAD_ENHANCEDBLOCKHISTORY) is kept, the value set added after it (its node's id, the property's name and the value
+read back), as AutoCAD 2021 kept the history of its Parking sample's INSERT and added each value it set; an INSERT of none
+is given none, as AutoCAD gave none to the library's INSERTs it set (check D26). AutoCAD 2021 read
 such an INSERT, written by a script, as Width 150 with its stretched lines, and set it again (plugin v17).
 `DynamicBlockReferencePropertyCollection` reads 200 back; the dynamic block itself keeps 100. Set again, the INSERT's
 anonymous block is filled anew where no other INSERT places it, else the INSERT is given one of its own. A length of an
@@ -1697,8 +1703,8 @@ parameters, a point parameter, six stretches and five moves of these kinds, draw
 anonymous block at the INSERT's own values the same, entity for entity to 1E-9, as the one AutoCAD saved; AutoCAD 2021's
 own sets of such a block, each of its five properties alone, all five, two set back, an ATTRIB dragged first, and three
 sets continued (check v22), are the library's: its values, its 44 entities and its 15 ATTRIBs within 2E-12 (check D25b).
-AutoCAD kept the INSERT's history of grip edits when it set a value, where the library takes it out; AutoCAD's sets
-continued on the library's INSERTs, of no history, drew the same.
+AutoCAD kept the INSERT's history of grip edits when it set a value, and so does the library, adding the value set after
+it (check D26); AutoCAD's sets continued on the library's INSERTs drew the same.
 
 A lookup parameter's table has input columns, each the distance of a linear parameter or the x or the y of a point
 parameter (`DxfBlockLookupInput.Distance`, `X`, `Y`), and rows of a label and a value for each column
@@ -1722,6 +1728,57 @@ quarter turn, a needle's Way North a quarter turn, Angle pi then reading West, a
 into a turn and matched within the vector tolerance, not round the circle: a row of 2 pi sets nought and reads Custom, as
 AutoCAD read it. A lookup set reads, as every other, the label of the first row of the values then: set to Twin, a row of
 the values of Small above it, it reads Small, as AutoCAD 2021 read it (check D25b).
+
+A block properties table (`AddBlockPropertiesTable`, AutoCAD's Block Properties Table) sets several properties and
+attributes at once: its columns are properties of the block's parameters, as a lookup's inputs are
+(`DxfBlockPropertiesTableColumn.Distance`, `X`, `Y`, `Angle`), or attribute definitions of the block
+(`DxfBlockPropertiesTableColumn.Attribute`), and each row (`DxfBlockPropertiesTableRow`) gives a number to each parameter's
+column, in the block's units, and a text to each attribute's. Every INSERT shows the property Block Table1, a `short`: the
+index of the first row whose parameters' values it shows, -1 where none does; set to a row's index, it sets each parameter
+to the row's value and the INSERT's attribute of each column's tag to its text. The attributes are not matched: an INSERT
+whose MARK is another row's text still reads the row of its distances. AutoCAD 2021 read the library's tables with no
+audit error through its own `BlockPropertiesTable`, and read and set them as the library does (check D26, 0 lines apart):
+the plate below set to the row 1 is 200 by 80 and its MARK reads P200, and twice that on an INSERT scaled by 2; Width set
+to 120 then reads -1; a row of -1, or the one after the last, it refused (eInvalidInput), as the library refuses it with
+`ArgumentOutOfRangeException`. The block's `BlockPropertiesTable` reads a table back: its name, its columns' names and its
+rows. AutoCAD's own tables are read too: their user parameters, a text or a real a column sets (Spaces of AutoCAD's Parking
+sample, read and set as AutoCAD 2021 set it, a Width set off the rows giving Spaces its value of no match, Custom), and the
+horizontal, vertical, aligned and radial constraint parameters most of them are of, whose distances are read and not set,
+as the library does not solve constraints. AutoCAD 2021 read the same row, user parameters and constraint distances as the
+library on every INSERT of its thirteen sample drawings.
+
+```csharp
+{
+    // Block properties table: Width, Height and the attribute MARK in rows; the row 1 gives 200 by 80 and MARK P200.
+    var plate = new DxfBlockTableRecord { Name = "PLATE", Origin = new GeoPoint3(0, 0, 0) };
+    db.BlockTable.Add(plate);
+    var plateBottom = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0));
+    var plateRight = new DxfLine(new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0));
+    var plateTop = new DxfLine(new GeoPoint3(100, 50, 0), new GeoPoint3(0, 50, 0));
+    var plateLeft = new DxfLine(new GeoPoint3(0, 50, 0), new GeoPoint3(0, 0, 0));
+    var mark = new DxfAttributeDefinition(new GeoPoint3(10, 10, 0), "P100", "MARK", "Mark", null) { Height = 5 };
+    foreach (DxfEntity platePart in new DxfEntity[] { plateBottom, plateRight, plateTop, plateLeft, mark })
+    {
+        plate.AppendEntity(platePart);
+    }
+
+    DxfBlockLinearParameter plateWidth = plate.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), -10, null);
+    plate.AddStretchAction(plateWidth, new GeoPoint2(90, -5), new GeoPoint2(110, 55), new DxfEntity[] { plateBottom, plateRight, plateTop });
+    DxfBlockLinearParameter plateHeight = plate.AddLinearParameter("Height", null, new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0), 10, null);
+    plate.AddStretchAction(plateHeight, new GeoPoint2(-5, 40), new GeoPoint2(105, 55), new DxfEntity[] { plateRight, plateTop, plateLeft });
+    plate.AddBlockPropertiesTable(new GeoPoint3(0, -20, 0),
+        new[] { DxfBlockPropertiesTableColumn.Distance(plateWidth), DxfBlockPropertiesTableColumn.Distance(plateHeight), DxfBlockPropertiesTableColumn.Attribute(mark) },
+        new[] { new DxfBlockPropertiesTableRow(100.0, 50.0, "P100"), new DxfBlockPropertiesTableRow(200.0, 80.0, "P200") });
+
+    var plateInsert = new DxfBlockReference(new GeoPoint3(0, -300, 0), plate);
+    db.ModelSpace.AppendEntity(plateInsert);
+    plateInsert.AttributeCollection.AppendAttribute(new DxfAttributeReference(new GeoPoint3(10, 10, 0), "P100", "MARK", null) { Height = 5 });
+    plateInsert.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Block Table1").Value = (short)1;
+    Console.WriteLine(plate.BlockPropertiesTable.Rows.Count + " rows; MARK reads "
+        + plateInsert.AttributeCollection.Cast<DxfAttributeReference>().First().TextString);   // 2 rows; MARK reads P200
+    db.Save("panel.dxf");
+}
+```
 
 An alignment parameter and a base point parameter are written as AutoCAD saved ACadSharp's samples of them, and give no
 property; a block takes one of each, and AutoCAD 2021 read them so (check v21). AutoCAD drew an INSERT at (300, 0) of a
@@ -2527,13 +2584,15 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
   multileader made in code starts its leader's dogleg at the base point of its content (10 of the context data), at the
   origin where its block is placed after its leader line is added.
 - It evaluates only the dynamic blocks it can write. `DynamicBlockReferencePropertyCollection` reads the values AutoCAD
-  saved of every parameter but constraint parameters and a block properties table, which are not read and give no
-  properties.
+  saved of every parameter but the angular and diametric constraint parameters and user parameters other than of a text
+  or a real, which give no properties; the horizontal, vertical, aligned and radial constraint parameters give their
+  distances, which are not set.
   - Written and set: linear parameters with stretch, move, scale and array actions; XY parameters with stretch, move and
     array actions; polar parameters with polar stretch, stretch and move actions; point parameters with move actions;
     rotation parameters with rotate actions; flip parameters with flip actions; one visibility parameter; lookup parameters
     with their tables, of the distances of linear, XY and polar parameters, the x and y of point parameters and the angles
-    of polar and rotation parameters;
+    of polar and rotation parameters; one block properties table of those columns and of attribute definitions, set by
+    its row, its user parameters set where AutoCAD wrote them;
     and one alignment and one base point parameter, which give no property. Linear, XY, polar and rotation parameters take
     value sets. A stretch holds lines and polylines by their points, arcs by both ends or, lying flat, by one, and circles,
     texts, multiline texts and INSERTs by their one point, in a frame of a rectangle; a stretch and a move take a distance
@@ -2545,7 +2604,8 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
   - Not written: a frame of a polygon; a text aligned or fitted between two points, an attribute definition and an INSERT of
     rows and columns in a stretch; an arc held by one end in a polar stretch; a polar stretch of a distance multiplier or
     an angle offset, or tied to the base grip; a stretch or a move tied to a base grip, a move carrying other parameters,
-    and an attribute definition in a move, which are set where AutoCAD's Block Editor wrote them.
+    and an attribute definition in a move, which are set where AutoCAD's Block Editor wrote them; a user parameter, a
+    constraint, and a block properties table whose properties must match a row, or of empty cells or values of no match.
   - Set where another writer wrote them: stretches and moves tied to a parameter's base grip, moves carrying other linear
     parameters, and attribute definitions in a move, the INSERT's ATTRIBs following; a polar stretch naming an entity to
     turn only in its selection too, or its parameter's grip.
@@ -2553,7 +2613,8 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
     written above or refused (a constraint, a polar stretch tied to the base grip or of a multiplier or an offset, a move
     carrying a parameter other than a linear one or one that chains its actions, any other action holding a parameter,
     an attribute definition in an action other than a move, a lookup column of another kind than those written above, as
-    a visibility state's), and an INSERT that keeps the base point of a linear, an XY, a polar, a
+    a visibility state's, a block properties table column of another kind, or a property other than the row of a table
+    the properties must match), and an INSERT that keeps the base point of a linear, an XY, a polar, a
     rotation or a flip parameter away from the block's own, as the moves carrying it leave it, as a grip moved that of
     AutoCAD's XY sample, which AutoCAD draws from there.
 

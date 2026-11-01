@@ -477,7 +477,8 @@ namespace GeometryHelper.Dxf
         /// Gets the dynamic properties of the INSERT, as AutoCAD's <c>DynamicBlockReferencePropertyCollection</c>: a new list on
         /// each call, each property's value the one AutoCAD saved for this INSERT, or the dynamic block's own where it saved
         /// none, as for an INSERT of the dynamic block itself. Empty where the INSERT places no dynamic block. The value of a
-        /// linear, XY, point, rotation, flip or visibility property is set as AutoCAD sets it, where the block is one the library works out
+        /// linear, XY, polar, point, rotation, flip, visibility, lookup, user parameter or block properties table property is set
+        /// as AutoCAD sets it, where the block is one the library works out
         /// (<see cref="DxfDynamicBlockReferenceProperty.Value"/>); the others are read only.
         /// </summary>
         /// <remarks>
@@ -492,7 +493,18 @@ namespace GeometryHelper.Dxf
         /// scale factors, so that the door of Width 1 000 inserted at a scale of 2 gives 2 000, and a distance of 7.5 along x
         /// at the scale (2, 3, 2) 22.5, as AutoCAD 2021 read it. A value set's list is given where its flags hold 8, a list, as AutoCAD gave
         /// none of a list under the flags 1, 2 or 4. Actions, grips, base point and alignment parameters
-        /// give none, nor do the parameters of constraints and of a block properties table, which the library does not read.
+        /// give none.
+        /// </para>
+        /// <para>
+        /// A block properties table gives the property of its name, Block Table1 as AutoCAD names it, a <see cref="short"/>: the
+        /// index of the first row whose every parameter's column holds the value the INSERT shows, in the block's units, a
+        /// distance within the point tolerance of <see cref="Tolerance.Default"/>, an angle within its vector tolerance, a text
+        /// alike; -1 where no row does; a column of an attribute definition is not matched; nothing allowed. AutoCAD 2021 read
+        /// so the library's tables and its own samples (plugin D26): Fluorescent at 1 000 by 500 the row 4, Parking -1 for its
+        /// Spaces of 1 that no row holds. The table is read after the properties of its columns, in its place in the graph's
+        /// order. A user parameter the table made gives its value, a <see cref="string"/> (type 5) or a <see cref="double"/> of
+        /// no units (type 1), named as its variable; a horizontal, a vertical, an aligned or a radial constraint parameter its
+        /// distance, which is not set: the library does not solve a block's constraints.
         /// </para>
         /// <para>
         /// Nothing is worked out anew when the values are read: they are those saved when the block was last evaluated, by

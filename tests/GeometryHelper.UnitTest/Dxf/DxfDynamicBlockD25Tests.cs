@@ -568,7 +568,7 @@ namespace GeometryHelper.UnitTest.Dxf
         [Theory]
         [InlineData(80.0)]
         [InlineData(120.0)]
-        public void ATieOfAnXYList_GoesToTheValueNearerTheBlocksOwn_FromAnyValueBefore(double before)
+        public void ATieOfAnXYList_GoesToTheBlocksOwnValueElseToTheOneWrittenFirst_FromAnyValueBefore(double before)
         {
             Assert.Equal(50.0, DistanceAfter(Plate(out _), "Depth", before, 65), Close);
             Assert.Equal(80.0, DistanceAfter(Plate(out _), "Depth", before, 100), Close);
@@ -613,7 +613,7 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData(50.0, 125.0, 100.0)]
         [InlineData(200.0, 175.0, 150.0)]
         [InlineData(150.0, 25.0, 50.0)]
-        public void APolarParameterOfAList_TakesATieToTheDistanceNearerTheBlocksOwn_AsAutoCad2021Did(double before, double asked, double taken)
+        public void APolarParameterOfAList_TakesATieToItsOwnDistanceElseToTheOneWrittenFirst_AsAutoCad2021Did(double before, double asked, double taken)
         {
             DxfDatabase db = Pointer(DxfBlockParameterValueSet.List(new[] { 50.0, 100, 150, 200 }), DxfBlockParameterValueSet.List(new[] { 0, Math.PI / 2, Math.PI, 1.5 * Math.PI }), out _, out _, out _);
 

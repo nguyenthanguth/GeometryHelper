@@ -2082,6 +2082,206 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Makes the block dynamic, where it is not, and gives it a block properties table: rows of values, each setting several
+        /// properties of the block's parameters and attributes at once, which each INSERT of the block shows as the dynamic
+        /// property Block Table1, the index of its row, AutoCAD's Block Properties Table as its Block Editor makes one. Set to a
+        /// row's index, the property sets each column to the row's value; it reads the index of the first row of the values
+        /// the INSERT shows, else -1.
+        /// </summary>
+        /// <param name="location">Where the table's grip stands, in the block's coordinates.</param>
+        /// <param name="columns">The columns of the table, each the property of a parameter of this block
+        /// (<see cref="DxfBlockPropertiesTableColumn.Distance(DxfBlockLinearParameter)"/> and the others) or an attribute
+        /// definition of it (<see cref="DxfBlockPropertiesTableColumn.Attribute"/>), each once.</param>
+        /// <param name="rows">The rows, each a value for each column (<see cref="DxfBlockPropertiesTableRow"/>): a number for a
+        /// parameter's column, a text for an attribute definition's; no two rows the same.</param>
+        /// <remarks>
+        /// <para>
+        /// A plate of a Width and a Height and the attribute MARK given <c>AddBlockPropertiesTable(new GeoPoint3(0, -20, 0),
+        /// new[] { DxfBlockPropertiesTableColumn.Distance(width), DxfBlockPropertiesTableColumn.Distance(height),
+        /// DxfBlockPropertiesTableColumn.Attribute(mark) }, new[] { new DxfBlockPropertiesTableRow(100.0, 50.0, "P100"), new
+        /// DxfBlockPropertiesTableRow(200.0, 80.0, "P200") })</c> gives every INSERT the property Block Table1, a
+        /// <see cref="short"/>; set to 1, Width goes to 200 and Height to 80, stretching what they stretch, and the INSERT's
+        /// attribute MARK reads P200. Width set to 150 afterwards, Block Table1 reads -1.
+        /// </para>
+        /// <para>
+        /// The table is written as AutoCAD 2021 keeps one (plugin D26, AutoCAD's Parking sample and a column added through its
+        /// <c>BlockPropertiesTable</c>): its element named Block Table and its property Block Table1, its grip and the grip's
+        /// two location components, four nodes of the evaluation graph; the edge of the grip to the table and of the table to
+        /// each component; a pair of edges each way between the table and each parameter of a column, of the flags 4, the table
+        /// first; the graph's extended data AcadBPTGraphNodeId naming the table. Each column names its parameter's node, or the
+        /// attribute definition, of no connection; each cell is a real, a text, of the type 40 and 1 as AutoCAD writes them.
+        /// The rows need not match, and no column is constant.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the columns, the rows or one of them is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when a coordinate of the location is not a finite number, there are no
+        /// columns or no rows, a column is of another block or given twice, an attribute definition is erased or constant, a
+        /// row has not one value for each column or a value not of its column's kind, a distance is not above the point
+        /// tolerance of <see cref="Tolerance.Default"/> or not of its parameter's value set, an angle is not of its parameter's
+        /// value set, or two rows are the same. Nothing is written then.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the block has a block properties table already, as AutoCAD's
+        /// Block Editor gives a block one, or cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
+        /// <exception cref="NotSupportedException">Thrown when the block has a flip parameter, as <see cref="AddLinearParameter"/>
+        /// says. Nothing is written then.</exception>
+        public void AddBlockPropertiesTable(GeoPoint3 location, IEnumerable<DxfBlockPropertiesTableColumn> columns, IEnumerable<DxfBlockPropertiesTableRow> rows)
+        {
+            Placed(location, nameof(location));
+
+            if (columns == null)
+            {
+                throw new ArgumentNullException(nameof(columns));
+            }
+
+            if (rows == null)
+            {
+                throw new ArgumentNullException(nameof(rows));
+            }
+
+            var given = new List<DxfBlockPropertiesTableColumn>();
+
+            foreach (DxfBlockPropertiesTableColumn column in columns)
+            {
+                if (column == null)
+                {
+                    throw new ArgumentNullException(nameof(columns), "A column of a block properties table is null.");
+                }
+
+                if (column.Definition != null)
+                {
+                    DxfAttributeDefinition definition = column.Definition;
+
+                    if (definition.IsErased || definition.Handle == null || !string.Equals(definition.OwnerHandle, Handle, StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new ArgumentException("The attribute definition " + column.Name + " is not of the block " + Name + ", or is erased.", nameof(columns));
+                    }
+
+                    if (definition.Constant)
+                    {
+                        throw new ArgumentException("The attribute definition " + column.Name + " is constant, and its attribute takes no value from a row.", nameof(columns));
+                    }
+                }
+                else if (column.Block != this)
+                {
+                    throw new ArgumentException("The column " + column.Name + " is of the block " + column.Block.Name + ", not of " + Name + ".", nameof(columns));
+                }
+
+                if (given.Exists(c => string.Equals(c.Handle, column.Handle, StringComparison.OrdinalIgnoreCase) && c.Connection == column.Connection))
+                {
+                    throw new ArgumentException("The column " + column.Name + " is given twice.", nameof(columns));
+                }
+
+                given.Add(column);
+            }
+
+            if (given.Count == 0)
+            {
+                throw new ArgumentException("A block properties table has one column at least.", nameof(columns));
+            }
+
+            var table = new List<DxfBlockPropertiesTableRow>();
+
+            foreach (DxfBlockPropertiesTableRow row in rows)
+            {
+                if (row == null)
+                {
+                    throw new ArgumentNullException(nameof(rows), "A row of a block properties table is null.");
+                }
+
+                string at = "The row " + table.Count.ToString(CultureInfo.InvariantCulture);
+
+                if (row.Values.Count != given.Count)
+                {
+                    throw new ArgumentException(at + " has " + row.Values.Count.ToString(CultureInfo.InvariantCulture) + " values for " + given.Count.ToString(CultureInfo.InvariantCulture) + " columns.", nameof(rows));
+                }
+
+                for (int i = 0; i < given.Count; i++)
+                {
+                    DxfBlockPropertiesTableColumn column = given[i];
+                    object value = row.Values[i];
+
+                    if (column.Definition != null)
+                    {
+                        if (!(value is string))
+                        {
+                            throw new ArgumentException(at + " gives the attribute " + column.Name + " a number, not a text.", nameof(rows));
+                        }
+
+                        continue;
+                    }
+
+                    if (!(value is double number))
+                    {
+                        throw new ArgumentException(at + " gives " + column.Name + " a text, not a number.", nameof(rows));
+                    }
+
+                    if (!column.IsAngle && (!(number > Tolerance.Default.EqualPoint) || (column.ValueSet != null && !column.ValueSet.Holds(number))))
+                    {
+                        throw new ArgumentException(at + " gives " + column.Name + " a distance not above the point tolerance, or not of its value set.", nameof(rows));
+                    }
+
+                    if (column.IsAngle && column.ValueSet != null && !HoldsAngle(column.ValueSet, number))
+                    {
+                        throw new ArgumentException(at + " gives " + column.Name + " an angle not of its value set.", nameof(rows));
+                    }
+                }
+
+                if (table.Exists(r => Same(r, row, given)))
+                {
+                    throw new ArgumentException(at + " is the same as a row before it.", nameof(rows));
+                }
+
+                table.Add(row);
+            }
+
+            if (table.Count == 0)
+            {
+                throw new ArgumentException("A block properties table has one row at least.", nameof(rows));
+            }
+
+            if (DxfDynamicBlockWriter.Has(this, type => type == "BLOCKPROPERTIESTABLE"))
+            {
+                throw new InvalidOperationException("The block " + Name + " has a block properties table already, and AutoCAD's Block Editor gives a block one.");
+            }
+
+            Dynamic("be given a block properties table");
+            Alone(false);
+            DxfDynamicBlockWriter.AddPropertiesTable(this, location, given, table);
+        }
+
+        /// <summary>
+        /// Gets the block properties table of the dynamic block, as the drawing keeps it: the name of its property, the name of
+        /// each column and the rows (<see cref="DxfBlockPropertiesTable"/>), read anew on each call; null where the block has
+        /// none, or one the library cannot read whole (a cell of a kind other than a real or a text).
+        /// </summary>
+        /// <remarks>
+        /// The table <see cref="AddBlockPropertiesTable"/> wrote of the columns Width, Height and the attribute MARK reads back
+        /// as Block Table1 of the columns Width, Height and MARK and its rows, P200 the text of the row 1. AutoCAD's Fluorescent
+        /// sample reads Block Table1 of Width and Height and nine rows from 500 by 250 to 2000 by 1000.
+        /// </remarks>
+        public DxfBlockPropertiesTable BlockPropertiesTable => _file == null || Item == null || IsErased ? null : DxfDynamicProperties.Table(this);
+
+        /// <summary>Whether two rows of a block properties table give each column the same: numbers within the tolerance of their kind, texts alike.</summary>
+        private static bool Same(DxfBlockPropertiesTableRow a, DxfBlockPropertiesTableRow b, List<DxfBlockPropertiesTableColumn> columns)
+        {
+            for (int i = 0; i < columns.Count; i++)
+            {
+                if (a.Values[i] is string text)
+                {
+                    if (!string.Equals(text, (string)b.Values[i], StringComparison.Ordinal))
+                    {
+                        return false;
+                    }
+                }
+                else if (Math.Abs((double)a.Values[i] - (double)b.Values[i]) > (columns[i].IsAngle ? Tolerance.Default.EqualVector : Tolerance.Default.EqualPoint))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Makes the block dynamic, where it is not, and gives it an alignment parameter, AutoCAD's Alignment parameter as its
         /// Block Editor makes one: a grip at the base point that turns an INSERT dragged by it in AutoCAD to lie along the
         /// entity it is dragged over, along the line from the base point to the end point. It gives no property.

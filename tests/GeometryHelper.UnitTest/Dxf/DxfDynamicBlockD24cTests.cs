@@ -439,7 +439,7 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AHistoryTheInsertKept_IsTakenOut_AsAutoCadTookItOut()
+        public void AHistoryTheInsertKept_IsKeptWithTheValueSetAfterIt_AsAutoCadKeptIt()
         {
             DxfDatabase db = Stretched(DxfBlockParameterValueSet.Increments(50, 300, 10));
             DxfBlockReference insert = TheInsert(db);
@@ -461,7 +461,11 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Property(insert, "Width").Value = 200.0;
 
-            Assert.Equal(new[] { "ACAD_ENHANCEDBLOCKDATA" }, cache.Select(e => e.Key));
+            // AutoCAD 2021 kept its Parking sample's history and added each value it set after it (plugin D26).
+            Assert.Equal(new[] { "ACAD_ENHANCEDBLOCKDATA", "ACAD_ENHANCEDBLOCKHISTORY" }, cache.Select(e => e.Key));
+            var history = (DxfXrecord)cache.GetAt("ACAD_ENHANCEDBLOCKHISTORY");
+            Assert.Equal(new[] { "3", "1", "Width", "150.0", "1", "Width" }, history.Data.Take(6).Select(g => g.Value.Trim()));
+            Assert.Equal(200.0, double.Parse(history.Data[6].Value, System.Globalization.CultureInfo.InvariantCulture));
             Assert.Equal(200.0, ValueOf(TheInsert(Reopened(db)), "Width"), Close);
         }
 

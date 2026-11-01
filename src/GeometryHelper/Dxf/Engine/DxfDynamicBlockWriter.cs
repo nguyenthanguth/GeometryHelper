@@ -780,6 +780,134 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Writes a block properties table with its grip and the grip's two location components, as AutoCAD 2021 keeps one
+        /// (plugin D26): four nodes; the edge of the grip to the table and of the table to each component; then, for each
+        /// parameter of a column in the order of the columns, a pair of edges each way between the table and it, the table's
+        /// first, of as many connections as the table reads of it and of the flags 4; and the graph's extended data
+        /// AcadBPTGraphNodeId naming the table. Each attribute definition of a column has the table among its reactors, as
+        /// AutoCAD writes it, and so has each parameter.
+        /// </summary>
+        internal static void AddPropertiesTable(DxfBlockTableRecord block, GeoPoint3 location, List<DxfBlockPropertiesTableColumn> columns, List<DxfBlockPropertiesTableRow> rows)
+        {
+            Graph graph = Graph.Of(block);
+            columns.FindAll(c => c.Definition == null).ForEach(c => Known(graph, block, c.Node, c.Name));
+            DxfFile file = graph.File;
+            int t = graph.NextId;
+            string element = graph.FreeName("Block Table");
+
+            DxfItem table = file.AddObject("BLOCKPROPERTIESTABLE", null, b =>
+            {
+                Head(b, graph.Handle, t, element);
+                b.Group(100, "AcDbBlockParameter");
+                b.Group(280, "1");
+                b.Group(281, "0");
+                b.Group(100, "AcDbBlock1PtParameter");
+                Point(b, 1010, location);
+                b.Group(93, Int(t + 1));
+                b.Group(170, "0");
+                b.Group(171, "0");
+                b.Group(100, "AcDbBlockPropertiesTable");
+                b.Group(90, "2");
+                b.Group(300, element + "1");
+                b.Group(301, string.Empty);
+                b.Group(91, Int(columns.Count));
+
+                foreach (DxfBlockPropertiesTableColumn column in columns)
+                {
+                    b.Group(340, column.Handle);
+                    b.Group(170, "0");
+                    b.Group(171, "-1");
+                    b.Group(300, string.Empty);
+                    b.Group(301, column.Connection);
+                    b.Group(90, Int(column.Node));
+                    b.Group(170, "-9999");
+                    b.Group(170, "-9999");
+                    b.Group(290, "0");
+                    b.Group(291, "1");
+                    b.Group(292, "1");
+                    b.Group(293, "0");
+                    b.Group(294, column.Definition != null ? "1" : "0");
+                    b.Group(302, string.Empty);
+                    b.Group(340, "0");
+                }
+
+                b.Group(92, Int(rows.Count));
+
+                for (int r = 0; r < rows.Count; r++)
+                {
+                    b.Group(90, Int(r));
+
+                    foreach (object value in rows[r].Values)
+                    {
+                        if (value is string text)
+                        {
+                            b.Group(170, "1");
+                            b.Group(300, text);
+                        }
+                        else
+                        {
+                            b.Group(170, "40");
+                            b.Group(140, Real((double)value));
+                        }
+                    }
+                }
+
+                b.Group(93, Int(rows.Count));
+                b.Group(290, "0");
+                b.Group(291, "1");
+                b.Group(292, "0");
+            });
+
+            graph.Add(t, table.Handle);
+            DxfItem grip = file.AddObject("BLOCKPROPERTIESTABLEGRIP", null, b =>
+            {
+                Head(b, graph.Handle, t + 1, "Grip");
+                b.Group(100, "AcDbBlockGrip");
+                b.Group(91, Int(t + 2));
+                b.Group(92, Int(t + 3));
+                Point(b, 1010, location);
+                b.Group(280, "0");
+                b.Group(93, "-1");
+            });
+
+            graph.Add(t + 1, grip.Handle);
+            Components(graph, t, t + 1, "0.0", "Updated");
+            graph.Link(t + 1, t, 1);
+            graph.Link(t, t + 2, 1);
+            graph.Link(t, t + 3, 1);
+            var read = new List<int>();
+            columns.ForEach(c =>
+            {
+                if (c.Definition == null && !read.Contains(c.Node))
+                {
+                    read.Add(c.Node);
+                }
+            });
+
+            foreach (int node in read)
+            {
+                graph.LinkPair(t, node, columns.FindAll(c => c.Definition == null && c.Node == node).Count);
+            }
+
+            graph.Write();
+            graph.Name("AcadBPTGraphNodeId", t);
+
+            foreach (DxfBlockPropertiesTableColumn column in columns)
+            {
+                DxfItem target = column.Definition != null ? column.Definition.Item : file.ObjectItem(column.Handle);
+
+                if (target != null)
+                {
+                    file.SetReactor(target, table.Handle, true);
+                }
+            }
+
+            file.AddClass("BLOCKPROPERTIESTABLE", "AcDbBlockPropertiesTable", 1153);
+            file.AddClass("BLOCKPROPERTIESTABLEGRIP", "AcDbBlockPropertiesTableGrip", 1153);
+            file.AddClass("BLOCKGRIPLOCATIONCOMPONENT", "AcDbBlockGripExpr", 1153);
+        }
+
+        /// <summary>
         /// A column of a lookup table, as AutoCAD writes one: its node, the type of its cells (40 a real, 1 a text) and the
         /// units of its values (96: 2 a distance, 1 an angle, nought none, as AutoCAD's samples write a distance and a text),
         /// whether it is looked up (282), its label of no match, whether it looks back (281), its connection.
@@ -1408,6 +1536,9 @@ namespace GeometryHelper.Dxf
 
             /// <summary>Whether a node of the id is in the graph.</summary>
             internal bool HasNode(int id) => _nodes.Exists(n => n[1] == id);
+
+            /// <summary>Gives the graph's record the extended data of an application naming a node by its id (1071), as AutoCAD names its block properties table (AcadBPTGraphNodeId).</summary>
+            internal void Name(string application, int id) => DxfDBObject.OfObject(_item).XData = new[] { new DxfTypedValue(1001, application), new DxfTypedValue(1071, Int(id)) };
 
             /// <summary>The first of a name, then of the name with 1, 2 and on after it, that no element of the graph has, as AutoCAD names its parameters and actions.</summary>
             internal string FreeName(string name)

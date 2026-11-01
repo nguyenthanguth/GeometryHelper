@@ -53,10 +53,15 @@ namespace GeometryHelper.Dxf
 
             Dictionary<string, DxfXrecord> saved = Saved(insert);
 
+            // The properties each parameter gave, by its node's id, for a block properties table to read; and each table, by
+            // the place of its property.
+            var given = new Dictionary<string, List<DxfDynamicBlockReferenceProperty>>(StringComparer.Ordinal);
+            var tables = new List<KeyValuePair<int, DxfItem>>();
+
             foreach (DxfItem node in nodes)
             {
                 // Actions and grips give no property: their groups are not read.
-                if (!node.Type.StartsWith("BLOCK", StringComparison.Ordinal) || !node.Type.EndsWith("PARAMETER", StringComparison.Ordinal))
+                if (node.Type != "BLOCKPROPERTIESTABLE" && (!node.Type.StartsWith("BLOCK", StringComparison.Ordinal) || !node.Type.EndsWith("PARAMETER", StringComparison.Ordinal)))
                 {
                     continue;
                 }
@@ -68,6 +73,23 @@ namespace GeometryHelper.Dxf
 
                 switch (node.Type)
                 {
+                    case "BLOCKPROPERTIESTABLE":
+                        tables.Add(new KeyValuePair<int, DxfItem>(properties.Count, node));
+                        properties.Add(null);
+                        break;
+                    case "BLOCKUSERPARAMETER":
+                        if (User(groups, cache, file, properties))
+                        {
+                            Bind(properties, before, insert, id);
+                        }
+
+                        break;
+                    case "BLOCKHORIZONTALCONSTRAINTPARAMETER":
+                    case "BLOCKVERTICALCONSTRAINTPARAMETER":
+                    case "BLOCKALIGNEDCONSTRAINTPARAMETER":
+                    case "BLOCKRADIALCONSTRAINTPARAMETER":
+                        Constraint(node.Type, groups, cache, scale, properties);
+                        break;
                     case "BLOCKLINEARPARAMETER":
                         Linear(groups, cache, scale, properties);
                         Bind(properties, before, insert, id);
@@ -101,9 +123,254 @@ namespace GeometryHelper.Dxf
                         Bind(properties, before, insert, id);
                         break;
                 }
+
+                if (id != null && properties.Count > before && properties[before] != null && !given.ContainsKey(id))
+                {
+                    given.Add(id, properties.GetRange(before, properties.Count - before));
+                }
+            }
+
+            // Each table reads the values the other properties show, so it is read last, in its place; one that cannot be read
+            // whole gives no property.
+            for (int t = tables.Count - 1; t >= 0; t--)
+            {
+                int at = tables[t].Key;
+                DxfPropertiesTable table = DxfPropertiesTable.Of(tables[t].Value.Groups);
+
+                if (table == null)
+                {
+                    properties.RemoveAt(at);
+                    continue;
+                }
+
+                string id = Text(Section(tables[t].Value.Groups, "AcDbEvalExpr"), 90)?.Trim();
+                short row = (short)table.Row(column => Now(column, given, nodes, scale));
+                properties[at] = new DxfDynamicBlockReferenceProperty(table.Name, table.Description, row, 3, DxfDynamicBlockReferencePropertyUnitsType.NoUnits, false, None);
+
+                if (id != null)
+                {
+                    properties[at].Bind(insert, id, 0);
+                }
             }
 
             return properties.AsReadOnly();
+        }
+
+        /// <summary>
+        /// The block properties table of a block's evaluation graph, as <see cref="DxfBlockTableRecord.BlockPropertiesTable"/>
+        /// gives it: the first node of the kind; each column named after the property it sets (the label of a linear, a
+        /// rotation or a constraint parameter's distance, 305; of an XY parameter's x, 306, and y, 305; of a polar parameter's
+        /// distance, 305, and angle, 307; of a point parameter's x and y, 303 with " X" and " Y"; the name of a user parameter's
+        /// variable) or the tag of its attribute definition; null where the block has none or it cannot be read whole.
+        /// </summary>
+        internal static DxfBlockPropertiesTable Table(DxfBlockTableRecord block)
+        {
+            DxfDBObject graph = Entry(block.ExtensionDictionary, "ACAD_ENHANCEDBLOCK");
+
+            if (graph?.Item == null || graph.Item.Type != "ACAD_EVALUATION_GRAPH")
+            {
+                return null;
+            }
+
+            DxfFile file = graph.Item.File;
+            var nodes = new List<DxfItem>();
+
+            foreach (DxfTypedValue group in graph.Item.Groups)
+            {
+                if (group.TypeCode == 360 && file.ObjectItem(group.Value) is DxfItem node)
+                {
+                    nodes.Add(node);
+                }
+            }
+
+            DxfItem found = nodes.Find(n => n.Type == "BLOCKPROPERTIESTABLE");
+            DxfPropertiesTable table = found == null ? null : DxfPropertiesTable.Of(found.Groups);
+
+            if (table == null)
+            {
+                return null;
+            }
+
+            var names = new List<string>();
+
+            foreach (DxfPropertiesTable.Column column in table.Columns)
+            {
+                if (column.IsAttribute)
+                {
+                    DxfEntity entity = null;
+
+                    foreach (DxfEntity e in block)
+                    {
+                        if (string.Equals(e.Handle, column.Handle, StringComparison.OrdinalIgnoreCase))
+                        {
+                            entity = e;
+                            break;
+                        }
+                    }
+
+                    names.Add((entity as DxfAttributeDefinition)?.Tag ?? string.Empty);
+                    continue;
+                }
+
+                DxfItem node = nodes.Find(n => Text(Section(n.Groups, "AcDbEvalExpr"), 90)?.Trim() == column.Node);
+                names.Add(node == null ? string.Empty : ColumnName(node, column.Connection, file));
+            }
+
+            return new DxfBlockPropertiesTable(table.Name, table.MustMatch, names, table.Rows.ConvertAll(DxfBlockPropertiesTableRow.Read));
+        }
+
+        /// <summary>The name of the property a column of a block properties table sets, of its parameter's node and connection.</summary>
+        private static string ColumnName(DxfItem node, string connection, DxfFile file)
+        {
+            IReadOnlyList<DxfTypedValue> groups = node.Groups;
+
+            switch (node.Type)
+            {
+                case "BLOCKXYPARAMETER":
+                    return Name(Section(groups, "AcDbBlockXYParameter"), connection == "UpdatedDistanceY" ? 305 : 306);
+                case "BLOCKPOLARPARAMETER":
+                    return Name(Section(groups, "AcDbBlockPolarParameter"), connection == "UpdatedAngle" ? 307 : 305);
+                case "BLOCKPOINTPARAMETER":
+                    return Name(Section(groups, "AcDbBlockPointParameter"), 303) + (connection == "UpdatedY" ? " Y" : " X");
+                case "BLOCKLINEARPARAMETER":
+                    return Name(Section(groups, "AcDbBlockLinearParameter"), 305);
+                case "BLOCKROTATIONPARAMETER":
+                    return Name(Section(groups, "AcDbBlockRotationParameter"), 305);
+                case "BLOCKRADIALCONSTRAINTPARAMETER":
+                    return Name(Section(groups, "AcDbBlockRadialConstraintParameter"), 305);
+                case "BLOCKUSERPARAMETER":
+                    DxfItem variable = file.ObjectItem(Text(Section(groups, "AcDbBlockUserParameter"), 330));
+                    List<DxfTypedValue> held = variable == null ? new List<DxfTypedValue>() : Section(variable.Groups, "AcDbAssocVariable");
+                    return held.Count > 1 && held[1].TypeCode == 1 ? DxfReader.NameOf(held[1].Value ?? string.Empty) : string.Empty;
+                default:
+                    return Name(Section(groups, "AcDbBlockLinearConstraintParameter"), 305);
+            }
+        }
+
+        /// <summary>
+        /// The value a column of a block properties table reads now, in the block's units, of the properties the parameter of
+        /// its node gave: the distance of a linear, a polar or a constraint parameter (UpdatedDistance), the distance along x or
+        /// along y of an XY parameter (UpdatedDistanceX, UpdatedDistanceY), the angle of a polar or a rotation parameter
+        /// (UpdatedAngle), the x or the y of a point parameter (UpdatedX, UpdatedY), the text of a user parameter
+        /// (UserVariable); null where the parameter gave none.
+        /// </summary>
+        private static object Now(DxfPropertiesTable.Column column, Dictionary<string, List<DxfDynamicBlockReferenceProperty>> given, List<DxfItem> nodes, double scale)
+        {
+            if (!given.TryGetValue(column.Node, out List<DxfDynamicBlockReferenceProperty> read))
+            {
+                return null;
+            }
+
+            string type = nodes.Find(n => Text(Section(n.Groups, "AcDbEvalExpr"), 90)?.Trim() == column.Node)?.Type;
+            int part;
+
+            switch (column.Connection)
+            {
+                case "UpdatedDistanceY":
+                case "UpdatedY":
+                    part = 1;
+                    break;
+                case "UpdatedAngle":
+                    part = type == "BLOCKPOLARPARAMETER" ? 1 : 0;
+                    break;
+                case "UpdatedDistance":
+                case "UpdatedDistanceX":
+                case "UpdatedX":
+                case "UserVariable":
+                    part = 0;
+                    break;
+                default:
+                    return null;
+            }
+
+            if (part >= read.Count)
+            {
+                return null;
+            }
+
+            DxfDynamicBlockReferenceProperty property = read[part];
+
+            if (property.Value is double number)
+            {
+                return property.UnitsType == DxfDynamicBlockReferencePropertyUnitsType.Distance ? number / scale : number;
+            }
+
+            return property.Value as string;
+        }
+
+        /// <summary>
+        /// A user parameter, as a block properties table makes one, of text (170 of 5) or of a real (170 of 3): its name and its
+        /// description, the first and the fourth text of the ACDBASSOCVARIABLE it names (330) after its count, and its value,
+        /// the one the INSERT saved (1 or 40 of its data) else the variable's (the group after those four texts), a
+        /// <see cref="string"/> or a <see cref="double"/> of no units, nothing allowed, as AutoCAD 2021 read Spaces of its
+        /// Parking sample and Size of its Concrete Pipe (plugin D26). A user parameter of another kind gives no property;
+        /// false then.
+        /// </summary>
+        private static bool User(IReadOnlyList<DxfTypedValue> groups, IReadOnlyList<DxfTypedValue> cache, DxfFile file, List<DxfDynamicBlockReferenceProperty> properties)
+        {
+            List<DxfTypedValue> own = Section(groups, "AcDbBlockUserParameter");
+            string type = Text(own, 170)?.Trim();
+            int code = type == "5" ? 1 : type == "3" ? 40 : 0;
+
+            if (code == 0 || !(file.ObjectItem(Text(own, 330)) is DxfItem variable) || variable.Type != "ACDBASSOCVARIABLE")
+            {
+                return false;
+            }
+
+            List<DxfTypedValue> held = Section(variable.Groups, "AcDbAssocVariable");
+
+            if (held.Count < 6 || held[0].TypeCode != 90 || held.GetRange(1, 4).Exists(g => g.TypeCode != 1) || held[5].TypeCode != code)
+            {
+                return false;
+            }
+
+            string name = DxfReader.NameOf(held[1].Value ?? string.Empty);
+            string description = DxfReader.Decode(held[4].Value ?? string.Empty);
+
+            if (code == 1)
+            {
+                string text = Saved(cache) ?? DxfReader.Decode(held[5].Value ?? string.Empty);
+                properties.Add(new DxfDynamicBlockReferenceProperty(name, description, text, 5, DxfDynamicBlockReferencePropertyUnitsType.NoUnits, false, None));
+                return true;
+            }
+
+            string kept = held[5].Value;
+
+            foreach (DxfTypedValue group in cache ?? (IReadOnlyList<DxfTypedValue>)new DxfTypedValue[0])
+            {
+                if (group.TypeCode == 40)
+                {
+                    kept = group.Value;
+                    break;
+                }
+            }
+
+            if (!Number(kept, out double real))
+            {
+                return false;
+            }
+
+            properties.Add(new DxfDynamicBlockReferenceProperty(name, description, real, 1, DxfDynamicBlockReferencePropertyUnitsType.NoUnits, false, None));
+            return true;
+        }
+
+        /// <summary>
+        /// A constraint parameter a block properties table reads: its distance (305 its label, 306 its description), the length
+        /// between its two points along x of a horizontal one, along y of a vertical one, and straight of an aligned or a radial
+        /// one, as AutoCAD 2021 read Width and Height of its Fluorescent sample (plugin D26); of no allowed value, as AutoCAD
+        /// read them. It is read only: the library does not solve a block's constraints.
+        /// </summary>
+        private static void Constraint(string type, IReadOnlyList<DxfTypedValue> groups, IReadOnlyList<DxfTypedValue> cache, double scale, List<DxfDynamicBlockReferenceProperty> properties)
+        {
+            List<DxfTypedValue> own = Section(groups, type == "BLOCKRADIALCONSTRAINTPARAMETER" ? "AcDbBlockRadialConstraintParameter" : "AcDbBlockLinearConstraintParameter");
+
+            if (!TwoPoints(groups, cache, out double[] from, out double[] to))
+            {
+                return;
+            }
+
+            double distance = type == "BLOCKHORIZONTALCONSTRAINTPARAMETER" ? Math.Abs(to[0] - from[0]) : type == "BLOCKVERTICALCONSTRAINTPARAMETER" ? Math.Abs(to[1] - from[1]) : Distance(from, to);
+            properties.Add(Length(own, 305, 306, distance * scale, List(own, 175, scale)));
         }
 
         /// <summary>Ties each property a parameter gave, where it gave one, to the INSERT, the parameter's node and its place among them, for its value to be set.</summary>

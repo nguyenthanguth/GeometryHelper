@@ -6,6 +6,26 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** Block properties tables of dynamic blocks, AutoCAD's Block Properties Table. `AddBlockPropertiesTable` gives a
+block a table of columns, each a property of one of its parameters (`DxfBlockPropertiesTableColumn.Distance`, `X`, `Y`,
+`Angle`, as a lookup's inputs) or an attribute definition (`DxfBlockPropertiesTableColumn.Attribute`), and of rows
+(`DxfBlockPropertiesTableRow`); `BlockPropertiesTable` reads a block's table back (`DxfBlockPropertiesTable`: its name, its
+columns' names, its rows). Every INSERT shows the property Block Table1, a `short`, the index of the first row whose
+parameters' values it shows, -1 for none; set to a row, it sets the parameters and the INSERT's attributes of the row: a
+plate of Width, Height and MARK set to the row (200, 80, P200) is 200 by 80 and reads MARK P200. AutoCAD 2021 read the
+library's tables with no audit error and read and set them as the library does, on INSERTs scaled by 2 too, 0 lines apart
+(check D26). AutoCAD's own tables are read and, where their columns are of the parameters the library works out, set:
+their user parameters of a text or a real are read and set, Spaces of AutoCAD's Parking sample taking Custom once Width is
+set off its rows as AutoCAD 2021 gave it; their horizontal, vertical, aligned and radial constraint parameters give their
+distances, read only. On the INSERTs of AutoCAD's thirteen sample drawings the library now reads every table's row, user
+parameter and constraint distance as AutoCAD 2021 does (152 lines apart before, none now). 15 new tests.
+
+**CHANGED.** A value set on an INSERT keeps the history of grip edits the INSERT keeps (ACAD_ENHANCEDBLOCKHISTORY), the
+value set added after it (the node's id, the property's name and the value read back), as AutoCAD 2021 kept its Parking
+sample's history and added each value it set; the library took the history out. An INSERT of no history is given none,
+as AutoCAD gave none to the library's INSERTs it set (check D26). The test that the history is taken out now checks it is
+kept.
+
 **FIXED.** A line between two table cells is read as AutoCAD 2021 reads it: as the top or left edge of the cell below or
 right of it where that cell holds the edge (its edge flag in 172 and one of the edge's overrides at least), else as the
 bottom or right edge of the other, each property of the line from the edge that holds it. `GetGridColor`,

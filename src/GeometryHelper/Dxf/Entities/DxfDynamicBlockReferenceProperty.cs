@@ -118,6 +118,16 @@ namespace GeometryHelper.Dxf
         /// "Size 6 " of its lookup sample (plugin v21).
         /// </para>
         /// <para>
+        /// A block properties table (Block Table1) is set to the index of a row, a whole number, as AutoCAD 2021 set it (plugin
+        /// D26): each parameter's column takes the row's value, in the block's units (twice it on an INSERT scaled by 2), an
+        /// angle taken into a turn; each user parameter's column its value; the INSERT's attribute of each attribute
+        /// definition's column its text, the plate's MARK P200 for the row 1; an empty cell leaves its column as it is. It reads
+        /// back the index of the first row of the values then. A user parameter of text is set to a string, one of a real to a
+        /// number. Any other property set leaving no row matched gives each user parameter of a column its value of no match,
+        /// as AutoCAD read Spaces Custom once Width was set off the rows of its Parking sample; a user parameter set keeps the
+        /// value given.
+        /// </para>
+        /// <para>
         /// The INSERT is made to place an anonymous block of AutoCAD's (<c>*U1</c> and on, flagged anonymous) holding a copy of
         /// each entity of the dynamic block: moved, stretched, scaled, turned or mirrored by the actions, a governed entity
         /// shown or hidden by the state; the block's extended data AcDbBlockRepBTag names the dynamic block, and each copy keeps its
@@ -126,20 +136,23 @@ namespace GeometryHelper.Dxf
         /// v17). The INSERT's extension dictionary is given
         /// AcDbBlockRepresentation, with the representation data naming the dynamic block and, in AppDataCache, the record of
         /// each parameter and action AutoCAD reads the values from (ACAD_ENHANCEDBLOCKDATA); a history of grip edits it kept
-        /// (ACAD_ENHANCEDBLOCKHISTORY) is taken out, as AutoCAD took it out when it set a value. The INSERT keeps its place,
+        /// (ACAD_ENHANCEDBLOCKHISTORY) is kept, the node's id, the property's name and its value read back added after it, as
+        /// AutoCAD 2021 added Block Table1 2, Spaces 5 Spaces and Width 5400 to its Parking sample's (plugin D26); an INSERT of no
+        /// history is given none, as AutoCAD gave none to the library's INSERTs it set. The INSERT keeps its place,
         /// scale, attributes and look; the dynamic block is not changed.
         /// </para>
         /// </value>
         /// <exception cref="ArgumentNullException">Thrown when the value set is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the value set is not a finite number for a distance, a position or an
-        /// angle, not a whole number for a flip state, not the name of a state of a visibility parameter, or not the label of
-        /// a row of a lookup's table.</exception>
+        /// angle, not a whole number for a flip state or a block properties table, not the name of a state of a visibility
+        /// parameter, not the label of a row of a lookup's table, or not a string for a user parameter of text.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when a distance, taken to the value set, is not above the point
-        /// tolerance of <see cref="Tolerance.Default"/>, or a flip state is neither 0 nor 1.</exception>
+        /// tolerance of <see cref="Tolerance.Default"/>, a flip state is neither 0 nor 1, or a row is not one of the block
+        /// properties table's, as AutoCAD 2021 refused -1 and the row after the last (eInvalidInput).</exception>
         /// <exception cref="InvalidOperationException">Thrown when the property is read only, or its INSERT is erased, in no
         /// drawing, or scaled unlike along its axes, which AutoCAD does not take as a dynamic block's.</exception>
         /// <exception cref="NotSupportedException">Thrown when the block holds a parameter or an action of a kind the library does
-        /// not work out (a constraint parameter, a block properties table), or an action it does not work out: a stretch of an entity other than those above or of a tilted arc by one end, a stretch, a scale, a rotate, a
+        /// not work out (a constraint parameter, whose distance is read only), or an action it does not work out: a stretch of an entity other than those above or of a tilted arc by one end, a stretch, a scale, a rotate, a
         /// flip or an array holding other parameters, a move holding grips of a parameter it does not carry, a move carrying a
         /// parameter other than a linear one, or one that chains its actions or that a scale or an array follows, attribute
         /// definitions of one tag moved apart where the INSERT has an ATTRIB of that tag, an attribute definition worked on by
@@ -149,7 +162,9 @@ namespace GeometryHelper.Dxf
         /// scaled and stretched or moved, as AutoCAD 2021 worked such an entity out from the INSERT's last state (plugin v21),
         /// an entity both copied by an array or turned by a polar stretch and worked on by another action, a lookup table of
         /// columns other than a linear or a polar parameter's distance, a point parameter's x and y, an XY parameter's
-        /// distances, a polar or a rotation parameter's angle and lookups; or when the INSERT keeps
+        /// distances, a polar or a rotation parameter's angle and lookups, a block properties table of columns other than those or of
+        /// user parameters and attribute definitions, a property other than its row of a table its properties must match (290
+        /// of 1), a user parameter of another kind than a text or a real, or of an expression; or when the INSERT keeps
         /// the base point of a linear, an XY, a polar, a rotation or a flip parameter away from the
         /// block's own, as the moves carrying the parameter take it, beyond the point tolerance of <see cref="Tolerance.Default"/>, as a grip moved it: AutoCAD works such
         /// an INSERT out from the base point it keeps, and drew the array of its XY sample's INSERT whose base point a grip
@@ -168,7 +183,7 @@ namespace GeometryHelper.Dxf
 
                 if (_insert == null)
                 {
-                    throw new NotSupportedException("The property " + PropertyName + " is of a parameter the library does not work out: it sets those of linear, XY, polar, point, rotation, flip, visibility and lookup parameters.");
+                    throw new NotSupportedException("The property " + PropertyName + " is of a parameter the library does not work out: it sets those of linear, XY, polar, point, rotation, flip, visibility, lookup and user parameters and of block properties tables.");
                 }
 
                 _value = DxfDynamicBlockRepresentation.Set(_insert, _node, _part, value);
