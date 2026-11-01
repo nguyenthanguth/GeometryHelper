@@ -25,16 +25,16 @@ namespace GeometryHelper.Dxf
     /// before; AutoCAD reads no link from it, and reads the cells after such a run awry (its 74-a, saved again, had them a
     /// cell along). Only a text cell (171 of 1) names a link so: a block cell's 340 names its block, whatever its 92, and a
     /// range whose top left cell comes to be a block cell, by rows or columns taken out before it, loses its link. Those
-    /// links are moved and copied with their cells; a link of the TABLECONTENT is not: rows or columns put in or taken out
-    /// leave the TABLECONTENT as it was, as before. A link the drawing has no DATALINK of is read as none.
+    /// links are moved and copied with their cells; a link of the TABLECONTENT moves with its cell as rows and columns are
+    /// put in and taken out, the TABLECONTENT's rows and columns with them, as AutoCAD 2021 writes them. A link the drawing
+    /// has no DATALINK of is read as none.
     /// </para>
     /// <para>
     /// Links are taken away as AutoCAD's <c>RemoveDataLink</c> takes them, the TABLECONTENT's cell made unlinked in place, its
     /// 92 even, its run out, and the flag 4 cleared from it and from every other cell of its range; and put in as AutoCAD's
     /// <c>SetDataLink</c> puts them, into the cell of the TABLECONTENT, to a DATALINK the drawing has
-    /// (<see cref="SetDataLink(DxfCellRange, DxfDataLink)"/>). A table of no
-    /// TABLECONTENT, as a program other than AutoCAD writes one, is not linked: AutoCAD writes the whole of it, every cell's
-    /// content and format and the table's geometry, when it links such a table, which the library does not make.
+    /// (<see cref="SetDataLink(DxfCellRange, DxfDataLink)"/>). A table of no TABLECONTENT, as a program other than AutoCAD
+    /// writes one, is given one from R2007 on, as AutoCAD 2021 gave one to the ezdxf table it linked.
     /// </para>
     /// </remarks>
     public sealed partial class DxfTable
@@ -228,8 +228,8 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentNullException">Thrown when the link is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the cell is not one of the table's.</exception>
         /// <exception cref="ArgumentException">Thrown when the link is not one of the table's drawing, or is erased.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when the table is erased, has no TABLECONTENT with the cell, or the
-        /// cell is in a range linked otherwise.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the table is erased, is of a drawing before R2007, has a
+        /// TABLECONTENT with no such cell, or the cell is in a range linked otherwise.</exception>
         public void SetDataLink(int row, int column, DxfDataLink dataLink)
         {
             Read().CellOf(row, column);
@@ -246,16 +246,23 @@ namespace GeometryHelper.Dxf
         /// <c>94 1</c>, <c>96 1</c>, and the DATALINK 142 of <c>94 2</c>, <c>330 F6</c>, <c>330 187</c>; it took the cells of
         /// the ACAD_TABLE where the checksum of the TABLECONTENT's did not agree with them, and kept the link (its 73-d). The
         /// cells keep what they hold: the library does not read the link's source, so its data come in when AutoCAD updates the
-        /// link, as <c>update</c> asks AutoCAD to. Nothing where the range is linked so already.
+        /// link, as <c>update</c> asks AutoCAD to. Nothing where the range is linked so already. A table of no TABLECONTENT, as a
+        /// program other than AutoCAD writes one, is given one first, as AutoCAD 2021 gave the ezdxf table of its 73 one when
+        /// it linked it: an XRECORD of ACAD_ROUNDTRIP_2008_TABLE_ENTITY under ACAD_XREC_ROUNDTRIP in its extension dictionary,
+        /// the TABLECONTENT of its columns and rows, each cell of no content, the table and its style listed in
+        /// ACDB_RECOMPOSE_DATA, without which AutoCAD reads no TABLECONTENT, and the class TABLECONTENT; AutoCAD 2021 read the
+        /// library's link of (1, 0) so made, in R2018 and R2007. A range of several cells so linked AutoCAD reads linked at every
+        /// cell, where <see cref="IsLinked"/> is true at its top left alone.
         /// </summary>
         /// <param name="range">The cells, within the table.</param>
         /// <param name="dataLink">The link, one of the table's drawing.</param>
         /// <exception cref="ArgumentNullException">Thrown when the range or the link is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the range reaches past the table's rows or columns.</exception>
         /// <exception cref="ArgumentException">Thrown when the link is not one of the table's drawing, or is erased.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when the table is erased; when it has no TABLECONTENT, as a table no
-        /// AutoCAD saved from R2007 on has none, or one with no cell at the range's top left; or when the range meets a range
-        /// linked otherwise, which is to be taken away first (<see cref="RemoveDataLink(int, int)"/>).</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the table is erased; when it is of a drawing before R2007,
+        /// which holds no TABLECONTENT, or its record does not hold its cells, heights and widths; when its TABLECONTENT has no
+        /// cell at the range's top left; or when the range meets a range linked otherwise, which is to be taken away first
+        /// (<see cref="RemoveDataLink(int, int)"/>).</exception>
         public void SetDataLink(DxfCellRange range, DxfDataLink dataLink)
         {
             CheckRange(range, Read(), nameof(range));
@@ -287,7 +294,7 @@ namespace GeometryHelper.Dxf
                 throw new InvalidOperationException("The cells " + range + " meet the cells " + link.Range + " linked already: take that link away first, with RemoveDataLink.");
             }
 
-            DxfItem content = ContentItem() ?? throw new InvalidOperationException("The table " + Handle + " has no TABLECONTENT, which AutoCAD keeps for a table it saved from R2007 on, to name a link in.");
+            DxfItem content = ContentItem() ?? NewContent();
             IReadOnlyList<DxfTypedValue> groups = Item.File.GroupsOf(content);
             int begin = ContentCellAt(groups, range.TopRow, range.LeftColumn);
             int end = begin + 1;

@@ -1879,8 +1879,11 @@ own instead as 0.18 in every cell, so none is written there. Its rows are still 
 A cell's value has its kind, `DataType` (`Long`, `Double` or `String`, the value's 90 from R2007 on), what its number
 measures, `UnitType`, and its format, `Format` (`%lu2%pr2`), each in the cell's `301 CELL_VALUE`.
 `SetValue(row, col, 12.5)` writes a number of the kind `Double`, its text 12.5, its unit and format kept, and
-`SetValue(row, col, 42)` a whole number; `SetFormat`, `SetDataType` (the text 12 turned into the whole number 12, the
-text Parts refused as a number, a unit of several flags as `Angle | AngleNotTransformed`, 65 538, written as it is) and
+`SetValue(row, col, 42)` a whole number. A value of the flag 1 (93 of 1, 5 or 7, as AutoCAD writes a block cell's, a
+formula's and an empty cell's) AutoCAD 2021 reads as none, whatever text it holds, so a text or value given to such a cell
+takes the flags 6 AutoCAD writes for one it is given: the block cell made a text cell and given M16 read empty before.
+`SetFormat`, `SetDataType` (the text 12 turned into the whole number 12, the text Parts refused as a number, a unit of
+several flags as `Angle | AngleNotTransformed`, 65 538, written as it is) and
 `ResetValue` write the rest, in the cell's value: none of them sets a flag of the cell's overrides, so `GetOverrides`
 gives what it gave. The library does not format a value: AutoCAD writes its text by the format when it draws the table
 anew. A cell of a file before R2007 holds its text alone, so a value set there is written as its text and reads back as
@@ -1977,13 +1980,29 @@ linked over (1, 0) to (2, 1), which it read back as (1, 0) alone, gives (1, 0) t
 table. `SetDataLink(row, column, link)` and `SetDataLink(range, link)` put a link in as AutoCAD 2021's does, to a DATALINK
 of the drawing: the range's top left cell of the TABLECONTENT given the flag 4, its 92 made odd and `340` link, `93` rows,
 `94` columns, `96 1` after it, and the DATALINK tied to the table and its TABLECONTENT (`94 2`, `330 F6`, `330 187`). The
-cells keep what they hold until AutoCAD updates the link; a table of no TABLECONTENT, as a program other than AutoCAD writes
-one, and a range that meets a linked one are refused. `RemoveDataLink` takes the links
+cells keep what they hold until AutoCAD updates the link; a range that meets a linked one is refused. A table of no
+TABLECONTENT, as a program other than AutoCAD writes one, is given one from R2007 on, as AutoCAD 2021 gave the ezdxf table
+of its 73 one: an XRECORD of ACAD_ROUNDTRIP_2008_TABLE_ENTITY under ACAD_XREC_ROUNDTRIP in the table's extension
+dictionary, the TABLECONTENT of the table's columns and rows, each cell of no content and of the checksum of its text, its
+merged cells and its style, the table and its style listed in ACDB_RECOMPOSE_DATA, without which AutoCAD reads no
+TABLECONTENT at all, and the class TABLECONTENT; no TABLEGEOMETRY, as AutoCAD read its own 73 without one. AutoCAD 2021
+read the library's link of (1, 0) so made, in R2018 and R2007; a range of more cells it read linked at every cell of no
+content in the TABLECONTENT, where the library reads its top left alone. A drawing before R2007 holds no TABLECONTENT,
+and its table is not linked. `RemoveDataLink` takes the links
 away as AutoCAD 2021's does: the TABLECONTENT's cell made unlinked in place (92 even, the run out, the flag 4 cleared from
 it and from every other cell of its range, as AutoCAD read a cell of the range left with it as linked with no range and
 saved it so; a cell of the flag 4 outside every range is left as it is), the DATALINK left in the drawing, named or `Anonymous`, the table and what it owns taken out of the objects it lists
-itself tied to (`94 2`, `330 F6`, `330 149` comes out `94 0`). Rows and columns put in or taken out leave the TABLECONTENT
-as it was, so a link of AutoCAD's stays at its cell, as AutoCAD reads it, and one past the table's last row or column names
+itself tied to (`94 2`, `330 F6`, `330 149` comes out `94 0`). Rows and columns put in or taken out are put in and taken
+out of the TABLECONTENT too, as AutoCAD 2021's own `InsertRows`, `DeleteRows`, `InsertColumns`, `DeleteColumns` and
+`SetSize` write them: AutoCAD reads the links, the style of each row (title, header or data) and the borders of the cells
+from the TABLECONTENT, cell by cell, so a row put in above AutoCAD's link at (1, 0) left in a TABLECONTENT of the old rows
+was read linked at the new row, and a row of data moved up into the header's place read as a header. Each new row is one
+of data of empty cells (of the style of the row whose look it takes with `InsertRowsAndInherit`), each new column of the
+width given; a link moves with its cell and grows or shrinks as the table's merged cells do, and goes with its cell, its
+DATALINK then no longer tied to the TABLECONTENT, the table kept among its targets, as AutoCAD wrote it (`94 1`,
+`330 F6`). The merged cells the TABLECONTENT lists move with its rows, and `MergeCells` and `UnmergeCells` list them so,
+though AutoCAD reads a table's merges, as its text, values and formats, from the ACAD_TABLE. A TABLECONTENT of fewer rows
+than its table, as a program left one, gets no row past its last, and one past the table's last row or column names
 none. The library reads no
 spreadsheet: the cells keep what they hold, and `UpdateDataLink` is not there.
 
@@ -1996,9 +2015,8 @@ whose rows or columns are all taken out goes with them, and its DATALINK, with w
 `Anonymous` and nothing else of the file points at it (another table, a copy of this one), the dictionary that holds it
 aside.
 
-Linking a table of no TABLECONTENT is not there ([Checking against AutoCAD](dxf-autocad-checks.md), points 73 to 78), as
-AutoCAD writes the whole of it, every cell's content and format and the table's geometry, when it links one; and a
-`DxfDataLink` is neither made in code nor has its groups set. The DXF reference describes no DATALINK and ezdxf keeps one as it reads it; the groups read
+A `DxfDataLink` is neither made in code nor has its groups set ([Checking against AutoCAD](dxf-autocad-checks.md),
+points 73 to 78). The DXF reference describes no DATALINK and ezdxf keeps one as it reads it; the groups read
 are those LibreDWG and AutoCAD 2021 give, which have no 70, the count of the objects the link is tied to (94) with a 330
 each, what it owns (360) and its custom data between `305 CUSTOMDATA`, `1 DATAMAP_BEGIN` and `309 DATAMAP_END`. An `UpdateOption` of 1 179 649, as LibreDWG's example gives
 it, is SkipFormat (0x20000) and AllowSourceUpdate (0x100000), which make 1 179 648, and a 0x1 no flag of AutoCAD's

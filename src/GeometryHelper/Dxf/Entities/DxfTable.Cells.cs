@@ -313,8 +313,9 @@ namespace GeometryHelper.Dxf
         /// <see cref="int"/>, <see cref="short"/>, <see cref="byte"/> or a <see cref="long"/> within the 32 bits AutoCAD's whole
         /// number holds a <see cref="DxfDataType.Long"/>, a <see cref="double"/> or <see cref="float"/> a
         /// <see cref="DxfDataType.Double"/>. From R2007 on the value is written of its kind (90), in 91, 140 or 1, its text
-        /// (302) the number as the invariant culture writes it, 12.5, its unit (94) and format (300) kept: the library does not
-        /// format a value, AutoCAD does when it draws the table anew. Before R2007 a cell holds a text alone, and the value is
+        /// (302) the number as the invariant culture writes it, 12.5, its unit (94) and format (300) kept, its flags (93) made 6
+        /// where they had the flag 1 of no value, as AutoCAD writes a value it is given: the library does not format a value,
+        /// AutoCAD does when it draws the table anew. Before R2007 a cell holds a text alone, and the value is
         /// written as its text, as <see cref="SetTextString(int, int, string)"/> writes one. A pointer to a field (344) is taken
         /// out, its field erased where the table owns it and nothing else of the file points at it. The value the cell has, a
         /// text as the file writes it or as it reads, changes nothing. The block AutoCAD drew the table with is not drawn anew.
@@ -356,7 +357,7 @@ namespace GeometryHelper.Dxf
 
             CheckEditable();
             string field = cell.Head(344);
-            cell.WriteValue(((int)written.Kind).ToString(CultureInfo.InvariantCulture), written.Data, written.Text, null, null);
+            cell.WriteValue(((int)written.Kind).ToString(CultureInfo.InvariantCulture), written.Data, written.Text, null, null, true);
             cell.DropField();
             cell.Groups.Write(Order);
             EraseFields(new[] { field });

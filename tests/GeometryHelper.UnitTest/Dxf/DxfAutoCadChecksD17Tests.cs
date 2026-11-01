@@ -193,9 +193,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<ArgumentNullException>(() => table.SetDataLink(null, link));
             Assert.Equal(text, db.ToText());
 
-            // A table of no TABLECONTENT, as a program other than AutoCAD writes one.
+            // A table of no TABLECONTENT, as a program other than AutoCAD writes one, is given one (D28, DxfTableD28Tests).
             DxfDatabase bare = DxfDatabase.Parse(text.Replace("  0\nACAD_TABLE\n  5\nF6\n102\n{ACAD_XDICTIONARY\n360\nB01\n102\n}\n", "  0\nACAD_TABLE\n  5\nF6\n"));
-            Assert.Throws<InvalidOperationException>(() => Table(bare).SetDataLink(2, 1, (DxfDataLink)bare.DataLinkDictionary["GH_PARTS"]));
+            Table(bare).SetDataLink(2, 1, (DxfDataLink)bare.DataLinkDictionary["GH_PARTS"]);
+            Assert.True(Table(bare).IsLinked(2, 1));
         }
 
         #endregion

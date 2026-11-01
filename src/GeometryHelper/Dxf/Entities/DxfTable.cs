@@ -760,10 +760,11 @@ namespace GeometryHelper.Dxf
         /// written as its escape within its piece and an escape given counted as its one letter, so that 300 D with stroke,
         /// given as letters or as escapes, are a 3 of 250 escapes and a 1 of 50 (AutoCAD reads a cell in groups 2 as empty, and
         /// the escapes of each piece alone); from R2007 on its value written as a text (90 of 4), in pieces of 2 and a last 1, and
-        /// its text in pieces of 303 and a last 302. A pointer to a field (344) is taken out, the text being the cell's own
-        /// now, and the field erased with its children where the table owns it and nothing else of the file points at it, a
-        /// copy of the table among them. The words the cell has, as they are written or as they read, change nothing. The
-        /// block AutoCAD drew the table with is not drawn anew.
+        /// its text in pieces of 303 and a last 302, the value's flags (93) made 6 where they had the flag 1 of no value, which
+        /// AutoCAD 2021 reads as none whatever the text (a block cell made a text cell and given M16 read empty). A pointer to a
+        /// field (344) is taken out, the text being the cell's own now, and the field erased with its children where the table
+        /// owns it and nothing else of the file points at it, a copy of the table among them. The words the cell has, as they
+        /// are written or as they read, change nothing. The block AutoCAD drew the table with is not drawn anew.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="col">The column, from nought.</param>
@@ -1775,7 +1776,7 @@ namespace GeometryHelper.Dxf
             {
                 if (ValueFrom >= 0)
                 {
-                    WriteValue("4", Pieces(text, 2, 1), text, null, null);
+                    WriteValue("4", Pieces(text, 2, 1), text, null, null, true);
                 }
                 else
                 {
@@ -1831,11 +1832,11 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>
-            /// Writes the cell's value of R2007 anew, from its 301 to its 304: its flags (93) kept, its kind (90), its data, its
-            /// unit (94) and format (300), each kept where null is given, and its text in pieces of 303 and a last 302, as
-            /// AutoCAD 2021 writes a text longer than 250 letters.
+            /// Writes the cell's value of R2007 anew, from its 301 to its 304: its flags (93) kept, or made 6 for a value given
+            /// where they have the flag 1 of no value, its kind (90), its data, its unit (94) and format (300), each kept where
+            /// null is given, and its text in pieces of 303 and a last 302, as AutoCAD 2021 writes a text longer than 250 letters.
             /// </summary>
-            internal void WriteValue(string kind, IEnumerable<KeyValuePair<int, string>> data, string text, string unit, string format)
+            internal void WriteValue(string kind, IEnumerable<KeyValuePair<int, string>> data, string text, string unit, string format, bool given = false)
             {
                 int end = ValueTo >= 0 ? ValueTo : To - 1;
                 var value = new List<KeyValuePair<int, string>> { Groups.List[ValueFrom] };
@@ -1851,7 +1852,9 @@ namespace GeometryHelper.Dxf
                     formatNow = code == 300 && formatNow == null ? Groups.List[i].Value : formatNow;
                 }
 
-                value.Add(new KeyValuePair<int, string>(93, flags ?? "6"));
+                // A value given where the cell held one of the flag 1, which AutoCAD reads as no value whatever it holds, takes the flags 6 AutoCAD writes for a value it is given.
+                bool none = flags != null && int.TryParse(flags.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int read) && (read & 1) != 0;
+                value.Add(new KeyValuePair<int, string>(93, given && none ? "6" : flags ?? "6"));
                 value.Add(new KeyValuePair<int, string>(90, kind));
                 value.AddRange(data);
                 value.Add(new KeyValuePair<int, string>(94, unit ?? unitNow ?? "0"));

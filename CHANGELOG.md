@@ -6,6 +6,27 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `DxfTable.InsertRows`, `InsertRowsAndInherit`, `DeleteRows`, `InsertColumns`, `InsertColumnsAndInherit`,
+`DeleteColumns` and `SetSize` put the rows and columns in and take them out of the table's TABLECONTENT too, as AutoCAD
+2021's own do, where they left it as it was. AutoCAD reads a table's links, the style of each row and the borders of its
+cells from the TABLECONTENT cell by cell: a row put in above AutoCAD's link at (1, 0) took the link to the new row, and
+a row of data moved up into the header's place read as a header, centred. Each new row is one of data of empty cells, a
+link moves and grows with its cells and goes with them, its DATALINK then no longer tied to the TABLECONTENT, the table
+kept among its targets, as AutoCAD wrote it; `MergeCells` and `UnmergeCells` list the merges there too. AutoCAD read
+the library's edits of rows and columns as it reads its own. 8 new tests.
+
+**NEW.** `DxfTable.SetDataLink` links a table of no TABLECONTENT, as a program other than AutoCAD writes one, from R2007
+on, where it refused it: the table is given a TABLECONTENT as AutoCAD 2021 gave the ezdxf table of its 73 one, with the
+XRECORD of ACAD_ROUNDTRIP_2008_TABLE_ENTITY, the table and its style listed in ACDB_RECOMPOSE_DATA, without which AutoCAD
+reads no TABLECONTENT, and the class TABLECONTENT. AutoCAD read the link of (1, 0) so made in R2018 and R2007; a range
+of several cells it reads linked at every cell, where the library reads its top left alone. A drawing before R2007 is
+still refused. 2 new tests; one test of D17 changed from the refusal to the link.
+
+**FIXED.** A text or value given to a table cell whose value has the flag 1 (93 of 1, 5 or 7, as AutoCAD writes a block
+cell's, a formula's and an empty one's) is written with the flags 6 AutoCAD writes for a value it is given: AutoCAD
+2021 read such a value as none, whatever its text, so a block cell made a text cell and given M16, or AutoCAD's formula
+cell given Plain or 5, showed nothing. 1 new test.
+
 **FIXED.** `ToPolygon3` and `ToFace3` of a `GeoPolygon2` or a `GeoFace2`, and of `PlanarMap`, lay the polygon, its
 holes too, into the frame side for side, however short a side, as `TransformBy` carries one in space: the triangle
 (0, 0), (10, 0), (10, 10) with every corner cut by 0.3, shrunk in the plane by a thousandth, keeps its six corners 0.0003

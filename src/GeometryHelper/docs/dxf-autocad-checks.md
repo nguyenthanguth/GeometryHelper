@@ -934,7 +934,7 @@ written as AutoCAD reads them now.
 ## Data links of tables
 
 The library reads the data links of a table, takes them away and puts them in, in the table's TABLECONTENT, where AutoCAD
-keeps them (points 73 to 78); a table of no TABLECONTENT is not linked, as the library would have to write one whole.
+keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007 on (D28).
 
 73. **Where a table's cell names its data link.**
     - Try: link the cells (1, 0) to (2, 1) of a table to a spreadsheet with DATALINK, save as DXF of R2007 and of R2018, and
@@ -1011,6 +1011,26 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is not linked, as the l
       and (2, 1), and (2, 1) of 73-n and of AutoCAD's save of it, read linked; every other cell as before, no byte moved.
       The library writes the state as it is (no 12). Still to see (v14): `RemoveDataLink()` on 73-r, whether AutoCAD clears
       the flag 4 of (0, 0) and (2, 1), cells of no range it reads linked, which the library leaves as they are.
+    - AutoCAD 2021 (D28, headless, the library's edits of its 50 and 73 read, and its own edits saved): a cell's text, value,
+      format, the heights and widths and the merged cells are read from the ACAD_TABLE whatever the TABLECONTENT holds (Ntz
+      of Qty's checksum 676 read as Ntz; a merge taken out of either alone read as the ACAD_TABLE has it); the links, the
+      style of each row (90 of TABLEROW: 1 title, 2 header, 3 data) and a cell's borders from the TABLECONTENT, cell by cell:
+      a row put in by the library above AutoCAD's link, the TABLECONTENT left as it was, read linked at the new row (c07), a
+      row taken out left the next row the header's style (e21). AutoCAD's own row and column edits write the TABLECONTENT in
+      step (b01 to b15: a new row of data of empty cells, a link and a border moving with their cells, a link taken out with
+      its row and the TABLECONTENT out of the DATALINK's targets, `94 1`, `330 F6`). The TABLECONTENT is read only for a
+      table ACDB_RECOMPOSE_DATA lists (`90 1`, then a 330 for each table and table style, by handle); its 73 read its link
+      without its TABLEGEOMETRY or any cell's content (d01 to d04), and none without that record (d05). A value of the flag 1
+      (93 of 1, 5 or 7) reads as none whatever its text (v, e19, c03, c04).
+    - Now (D28): rows and columns put in and taken out (`InsertRows`, `InsertRowsAndInherit`, `DeleteRows`, the columns'
+      alike, `SetSize`) are put in and taken out of the TABLECONTENT as AutoCAD writes them, its links and merged ranges with
+      them; `MergeCells` and `UnmergeCells` list the merges there too. `SetDataLink` of a table of no TABLECONTENT gives it
+      one as AutoCAD gave its 73 one, with the XRECORD, ACDB_RECOMPOSE_DATA and the class, no TABLEGEOMETRY and no content:
+      AutoCAD read the link of (1, 0) so made in R2018 and R2007 (p1, p3, p4), and the library's edits of rows and columns as
+      it reads its own (n1 to n11). A range of more cells (p2) it read linked at every cell of no content, where the library
+      reads its top left alone: a cell of a range whose TABLECONTENT cell holds no content, or a content of a text, reads
+      linked, one of an empty value (93 7) not (s1 to s4); the library's reading is left as it was, to be settled. A text or
+      value given to a cell of the flag 1 takes the flags 6 (q1 to q3 read M16, Plain and 5).
 
 74. **The groups of a DATALINK.**
     - Try: read the DATALINK of the drawing of point 73; then open in AutoCAD, with AUDIT, a drawing whose DATALINK has no 70

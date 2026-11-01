@@ -79,9 +79,11 @@ namespace GeometryHelper.Dxf
         /// Puts rows in, as AutoCAD's <c>InsertRows</c>: as many rows as asked, of the height given, before a row (after the
         /// last for <see cref="NumRows"/>), each of empty text cells that take their look from the table style; the count of rows
         /// (91) and their heights (141) are written with them. A block of merged cells the rows go into grows by them, one they
-        /// go above moves down with its rows, and so does a range of cells linked to data. The record is written once, its
-        /// cells anew, so that 16 000 rows go in in time linear in its groups; the block AutoCAD drew the table with is not drawn
-        /// anew. The table of rows 10, 8 and 8 given two rows 6 high before its row 2 has rows 10, 8, 6, 6 and 8, its cell B-12
+        /// go above moves down with its rows, and so does a range of cells linked to data. The rows go into the table's
+        /// TABLECONTENT too, where it has one, as AutoCAD 2021's <c>InsertRows</c> writes them: rows of data of empty cells,
+        /// a link the TABLECONTENT names moving and growing with its cells, as AutoCAD reads it there, and the merged ranges it
+        /// lists alike. The record is written once, its cells anew, so that 16 000 rows go in in time linear in its groups; the
+        /// block AutoCAD drew the table with is not drawn anew. The table of rows 10, 8 and 8 given two rows 6 high before its row 2 has rows 10, 8, 6, 6 and 8, its cell B-12
         /// now in row 4.
         /// </summary>
         /// <param name="row">The row the new ones go before, from nought; <see cref="NumRows"/> for after the last.</param>
@@ -103,7 +105,8 @@ namespace GeometryHelper.Dxf
         /// Puts rows in that take the look of another, as AutoCAD's <c>InsertRowsAndInherit</c>: as <see cref="InsertRows"/>, the
         /// rows of the height of the row given, and each cell of them an empty text cell with the look the cell of that row in
         /// its column holds of its own: its overrides with their flags (177, or 91 from R2007 on), its turn (145), and from
-        /// R2007 on the unit (94) and format (300) of its value; not its content, nor its merging.
+        /// R2007 on the unit (94) and format (300) of its value; not its content, nor its merging. In the TABLECONTENT the new
+        /// rows take that row's style, a row of data from a row of data, as AutoCAD 2021 wrote them.
         /// </summary>
         /// <param name="index">The row the new ones go before, from nought; <see cref="NumRows"/> for after the last.</param>
         /// <param name="inheritFrom">The row whose look they take, one of the table's as it stands before they go in.</param>
@@ -126,8 +129,10 @@ namespace GeometryHelper.Dxf
         /// the content and look of its top left cell go to the first cell of it left, as AutoCAD keeps a merged cell's text. A
         /// block below the rows moves up. A range of cells linked to data shrinks and moves alike, its link named by its new top
         /// left cell, and goes where none of it is left, its DATALINK erased as <see cref="RemoveDataLink()"/> erases one: where it
-        /// is anonymous and nothing else of the file points at it. The record is written once, its cells anew; the block AutoCAD
-        /// drew the table with is not drawn anew. The table of rows 10, 8 and 8 that loses its row 1 has rows 10 and 8, its cell
+        /// is anonymous and nothing else of the file points at it. The rows are taken out of the table's TABLECONTENT too, as
+        /// AutoCAD 2021's <c>DeleteRows</c> takes them out: a link the TABLECONTENT names goes with its cell, its DATALINK kept and
+        /// no longer tied to the TABLECONTENT (<c>94 1</c>, <c>330 F6</c>). The record is written once, its cells anew; the block
+        /// AutoCAD drew the table with is not drawn anew. The table of rows 10, 8 and 8 that loses its row 1 has rows 10 and 8, its cell
         /// B-12 now in row 1.
         /// </summary>
         /// <param name="row">The first row taken out, from nought.</param>
@@ -200,8 +205,9 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gives the table a number of rows and of columns, as AutoCAD's <c>SetSize</c>: rows and columns taken out from the
         /// bottom and the right, or put in there, each new row as high as the last row and each new column as wide as the last
-        /// column, of empty text cells; blocks of merged cells and ranges linked to data cut where they reach past the new size.
-        /// Nothing is written where the table is of that size. The table of 3 rows and 2 columns given 5 and 2 has two more rows
+        /// column, of empty text cells; blocks of merged cells and ranges linked to data cut where they reach past the new size,
+        /// in the TABLECONTENT too, as <see cref="InsertRows"/> and <see cref="DeleteRows"/> write it. Nothing is written where
+        /// the table is of that size. The table of 3 rows and 2 columns given 5 and 2 has two more rows
         /// 8 high.
         /// </summary>
         /// <param name="numRows">The number of rows, one or more.</param>
@@ -246,6 +252,30 @@ namespace GeometryHelper.Dxf
             }
 
             Rebuild(layout, numRows, numCols, heights, widths, cells, blocks, LinksCut(layout, numRows, numCols));
+
+            if (numRows != rows)
+            {
+                if (numRows < rows)
+                {
+                    ContentDeleted(true, numRows, rows - numRows);
+                }
+                else
+                {
+                    ContentInserted(true, rows, numRows - rows, heights[rows], -1);
+                }
+            }
+
+            if (numCols != columns)
+            {
+                if (numCols < columns)
+                {
+                    ContentDeleted(false, numCols, columns - numCols);
+                }
+                else
+                {
+                    ContentInserted(false, columns, numCols - columns, widths[columns], -1);
+                }
+            }
         }
 
         /// <summary>Puts rows (or columns) in at a place, new or taking the look of a row (or column), and writes the record anew.</summary>
@@ -310,6 +340,7 @@ namespace GeometryHelper.Dxf
             }
 
             Rebuild(layout, newRows, newColumns, heights, widths, cells, blocks, LinksInserted(layout, rowsOf, at, count));
+            ContentInserted(rowsOf, at, count, size, inheritFrom);
         }
 
         /// <summary>Takes rows (or columns) out from a place, and writes the record anew.</summary>
@@ -379,6 +410,7 @@ namespace GeometryHelper.Dxf
             }
 
             Rebuild(layout, newRows, newColumns, heights, widths, cells, blocks, LinksDeleted(layout, rowsOf, at, count));
+            ContentDeleted(rowsOf, at, count);
         }
 
         #endregion
@@ -390,8 +422,10 @@ namespace GeometryHelper.Dxf
         /// left cell given the block's width and height in cells (175, 176), the others 0 and 0, as <see cref="GetMergeRange"/>
         /// reads them; the content of its top left cell is the block's, the others' kept in the file as they are, unseen. A
         /// block of merged cells within the range becomes part of it. The title of the table of 3 rows and 2 columns, merged with
-        /// the row below it, (0, 0) to (1, 1), gives that range from each of its four cells. Nothing is written for a range of
-        /// one cell, or one merged so already; the block AutoCAD drew the table with is not drawn anew.
+        /// the row below it, (0, 0) to (1, 1), gives that range from each of its four cells. The table's TABLECONTENT lists the
+        /// range among its merged ranges, those it meets taken out, as AutoCAD 2021 lists a merge, though AutoCAD reads a table's
+        /// merges from its ACAD_TABLE. Nothing is written for a range of one cell, or one merged so already; the block AutoCAD
+        /// drew the table with is not drawn anew.
         /// </summary>
         /// <param name="range">The block of cells, within the table.</param>
         /// <exception cref="ArgumentNullException">Thrown when the range is null.</exception>
@@ -433,13 +467,14 @@ namespace GeometryHelper.Dxf
             if (changed)
             {
                 Rebuild(layout, layout.Rows, layout.Columns, null, null, AllSlices(layout), blocks, Links(layout));
+                ContentMerged(range, true);
             }
         }
 
         /// <summary>
         /// Unmerges the blocks of merged cells a range meets, as AutoCAD's <c>UnmergeCells</c>: each cell of them marked
-        /// unmerged (173, 175 and 176 of 0), each showing its own content again; nothing where the range meets no block. The
-        /// block AutoCAD drew the table with is not drawn anew.
+        /// unmerged (173, 175 and 176 of 0), each showing its own content again, and taken out of the merged ranges the table's
+        /// TABLECONTENT lists; nothing where the range meets no block. The block AutoCAD drew the table with is not drawn anew.
         /// </summary>
         /// <param name="range">The cells, within the table.</param>
         /// <exception cref="ArgumentNullException">Thrown when the range is null.</exception>
@@ -467,6 +502,7 @@ namespace GeometryHelper.Dxf
             if (changed)
             {
                 Rebuild(layout, layout.Rows, layout.Columns, null, null, AllSlices(layout), blocks, Links(layout));
+                ContentMerged(range, false);
             }
         }
 
