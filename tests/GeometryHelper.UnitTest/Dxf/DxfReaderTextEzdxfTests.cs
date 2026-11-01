@@ -172,7 +172,7 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDocument read = Read(false);
 
-            Assert.All(read.Shapes.Where(e => e.Handle == "D1"), e => Assert.Equal("⌀20 at 45°", ((DxfText)e.Shape).Value));
+            Assert.All(read.Shapes.Where(e => e.Handle == "D1"), e => Assert.Equal("∅20 at 45°", ((DxfText)e.Shape).Value));
             Assert.All(read.Shapes.Where(e => e.Handle == "D7"), e => Assert.Equal("Bold\nline", ((DxfText)e.Shape).Value));
             Assert.Equal(9, read.Shapes.Count(e => e.Handle == "D1"));
         }

@@ -33,7 +33,7 @@ namespace GeometryHelper.Dxf
         /// The control code of the diameter sign, <c>%%c</c>, which AutoCAD draws as the diameter sign where
         /// <see cref="DegreeCode"/> draws a degree, kept in the words as written in the same way: a TEXT's <c>TextString</c>
         /// of <c>%%c20</c> is <c>%%c20</c>. AutoCAD 2021 gives the <c>Text</c> of an MTEXT of <c>%%c20</c> as ∅20, the letter
-        /// <see cref="Diameter"/>; <see cref="DxfMText.Text"/> and <see cref="DxfReader"/> read it as ⌀20, the sign U+2300.
+        /// <see cref="Diameter"/>, and <see cref="DxfMText.Text"/> and <see cref="DxfReader"/> read it so too, in an MTEXT and a TEXT.
         /// </summary>
         public const string DiameterCode = "%%c";
 
@@ -109,8 +109,8 @@ namespace GeometryHelper.Dxf
         /// The space a line is not broken at, U+00A0, which AutoCAD's menu enters with Ctrl+Shift+Space: <c>"M16" +
         /// NonBreakingSpace + "x 40"</c> keeps M16 with its length. A letter of ANSI_1252, so a new drawing of any version holds it
         /// as it is, in a TEXT as in an MTEXT. In an MTEXT the code <see cref="DxfMText.NonBreakSpace"/>, <c>\~</c>, is one too,
-        /// which AutoCAD 2021 gives as this letter in an MTEXT's <c>Text</c>;
-        /// <see cref="DxfMText.Text"/> and <see cref="DxfReader"/> read it as a plain space.
+        /// which AutoCAD 2021 gives as this letter in an MTEXT's <c>Text</c>, and <see cref="DxfMText.Text"/> and
+        /// <see cref="DxfReader"/> read it so too.
         /// </summary>
         public const string NonBreakingSpace = " ";
     }

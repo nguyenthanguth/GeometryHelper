@@ -121,7 +121,7 @@ namespace GeometryHelper.Dxf
                     rotation = r.Real(50, 0.0) * Math.PI / 180.0;
                     double given = r.Real(41, 1.0);
                     widthFactor = given > 0.0 ? given : 1.0;
-                    value = OneLine(Signs(Decode(Carets(r.Text(1) ?? string.Empty))));
+                    value = OneLine(Signs(Decode(Carets(r.Text(1) ?? string.Empty)), false));
                 }
 
                 if (_place != null)
@@ -184,7 +184,7 @@ namespace GeometryHelper.Dxf
                 }
 
                 text.Append(r.Text(1) ?? string.Empty);
-                return Signs(PlainMText(Decode(Carets(text.ToString()), true))).Replace("\r", string.Empty).Replace("\0", string.Empty);
+                return Signs(PlainMText(Decode(Carets(text.ToString()), true)), true).Replace("\r", string.Empty).Replace("\0", string.Empty);
             }
 
             #endregion
@@ -192,10 +192,11 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// A text with its special characters read as AutoCAD reads them, from the left: %%c, %%d and %%p, of either case, the
-        /// diameter, degree and plus-minus signs, %%% a per cent sign, and %%nnn, three digits, the character of that code;
-        /// any other %% is kept as written, with the letter after it.
+        /// diameter sign U+2205, the degree and the plus-minus signs; in a TEXT, %%% a per cent sign and %%nnn, three digits,
+        /// the character of that code, where an MTEXT keeps both as written, as AutoCAD 2021 reads and draws them; any other
+        /// %% is kept as written, with the letter after it.
         /// </summary>
-        private static string Signs(string text)
+        private static string Signs(string text, bool multiline)
         {
             if (text.IndexOf("%%", StringComparison.Ordinal) < 0)
             {
@@ -218,13 +219,13 @@ namespace GeometryHelper.Dxf
 
                 switch (char.ToLowerInvariant(code))
                 {
-                    case 'c': read.Append('\u2300'); i += 3; continue;
+                    case 'c': read.Append('\u2205'); i += 3; continue;
                     case 'd': read.Append('\u00B0'); i += 3; continue;
                     case 'p': read.Append('\u00B1'); i += 3; continue;
-                    case '%': read.Append('%'); i += 3; continue;
+                    case '%' when !multiline: read.Append('%'); i += 3; continue;
                 }
 
-                if (i + 4 < text.Length && IsDigit(code) && IsDigit(text[i + 3]) && IsDigit(text[i + 4]))
+                if (!multiline && i + 4 < text.Length && IsDigit(code) && IsDigit(text[i + 3]) && IsDigit(text[i + 4]))
                 {
                     read.Append((char)(((code - '0') * 100) + ((text[i + 3] - '0') * 10) + (text[i + 4] - '0')));
                     i += 5;
@@ -278,8 +279,8 @@ namespace GeometryHelper.Dxf
         /// The words of an MTEXT without its formatting: <c>\P</c> is a new line and <c>\N</c>, a new column, a space, the
         /// codes that end in a semicolon (font, height, colour, width, stacking, paragraph and the rest) go with their
         /// arguments, those that stand alone (<c>\L</c>, <c>\l</c>, <c>\O</c>, <c>\o</c>, <c>\K</c>, <c>\k</c>) go alone,
-        /// <c>\~</c> is a space, <c>\\</c>, <c>\{</c> and <c>\}</c> are the character, a stack <c>\S1/2;</c> is read as 1/2, a
-        /// <c>\U+</c> escape or a <c>\M+</c> code the decoding before it kept is kept as written, as AutoCAD 2021 keeps
+        /// <c>\~</c> is the no-break space U+00A0, as AutoCAD 2021's <c>MText.Text</c> reads it, <c>\\</c>, <c>\{</c> and
+        /// <c>\}</c> are the character, a stack <c>\S1/2;</c> is read as 1/2, a <c>\U+</c> escape or a <c>\M+</c> code the decoding before it kept is kept as written, as AutoCAD 2021 keeps
         /// <c>\M+1824;</c>, and the braces that group are taken off. A code with no semicolon after it is kept as written, as
         /// ezdxf keeps it, unless a later semicolon ends it, as it ends it in ezdxf too.
         /// </summary>
@@ -316,7 +317,7 @@ namespace GeometryHelper.Dxf
                         break;
 
                     case '~':
-                        plain.Append(' ');
+                        plain.Append(' ');
                         break;
 
                     case '\\':

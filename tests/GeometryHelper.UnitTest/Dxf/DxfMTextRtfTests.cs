@@ -47,7 +47,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
             mtext.Contents = @"{\fArial|b1|i0|c0|p34;Bold} {\Fromans.shx;shx} {\fArial|b0|i1;it} \S1^2; %%d %%C \U+00E9 a\~b \H2x;\W0.8;\Q15;\T1.2;\A1;\pxqc;big \Oover\o \Kgone\k ^Itab \\ \{x\} \C256;\X\Nnext \M+1A4A1";
             Assert.Equal(
-                @"{\rtf1\ansi\deff0{\fonttbl{\f0{\*\ghfontfile}txt;}{\f1 Arial;}{\f2{\*\ghfontfile}romans.shx;}}{\f1\b\i0 Bold} {\f2 shx} {\f1\b0\i it} 1/2 \u176? \u8960? \u233? a\~b big over \strike gone\strike0  \tab tab \\ \{x\} \cf0 \line \column next \\M+1A4A1\par}",
+                @"{\rtf1\ansi\deff0{\fonttbl{\f0{\*\ghfontfile}txt;}{\f1 Arial;}{\f2{\*\ghfontfile}romans.shx;}}{\f1\b\i0 Bold} {\f2 shx} {\f1\b0\i it} 1/2 \u176? \u8709? \u233? a\~b big over \strike gone\strike0  \tab tab \\ \{x\} \cf0 \line \column next \\M+1A4A1\par}",
                 mtext.ContentsRTF);
         }
 
@@ -136,7 +136,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 + @"\C1;\kred\C256; \C5;blue\C256; \fArial|b0|i0;arial\fCalibri|b0|i0; café € € —\~x^Iy \{z\} \\ a^ b\Pend";
             Assert.Equal(expected, mtext.Contents);
             Assert.Equal(expected.Length, length);
-            Assert.Equal("Plain bold italic under strike\nred blue arial café € € — x\ty {z} \\ a^b\nend", mtext.Text);
+            Assert.Equal("Plain bold italic under strike\nred blue arial café € € —\u00A0x\ty {z} \\ a^b\nend", mtext.Text);
 
             // The style's font is written by no code; a font's file by \F.
             mtext.SetContentsRtf(@"{\rtf1{\fonttbl{\f0 txt;}{\f1 romans.shx;}}\f0 one {\f1 two} {\b three}}");

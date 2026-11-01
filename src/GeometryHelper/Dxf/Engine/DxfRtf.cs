@@ -258,7 +258,7 @@ namespace GeometryHelper.Dxf
 
             switch (code)
             {
-                case 'c': sign = '\u2300'; return true;
+                case 'c': sign = '\u2205'; return true;
                 case 'd': sign = '\u00B0'; return true;
                 case 'p': sign = '\u00B1'; return true;
                 case '%': sign = '%'; return true;

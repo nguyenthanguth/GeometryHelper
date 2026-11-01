@@ -79,7 +79,7 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfText text = Only(Read(R2000(G(0, "TEXT", 8, "0", 10, "0", 20, "0", 40, "1", 1, "%%c25 %%C %%d%%D %%p%%P Caf\\U+00E9 50%"))));
 
-            Assert.Equal("\u230025 \u2300 \u00B0\u00B0 \u00B1\u00B1 Caf\u00E9 50%", text.Value);
+            Assert.Equal("\u220525 \u2205 \u00B0\u00B0 \u00B1\u00B1 Caf\u00E9 50%", text.Value);
             Assert.Equal(1.0, text.WidthFactor);
             Assert.Equal(0.0, text.Width);
             Assert.Equal(0.0, text.Rotation);
@@ -93,7 +93,7 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData("{\\fArial|b1;first}\\Psecond", "first\nsecond")]
         [InlineData("\\H2.5x;tall \\C1;red \\W0.8;wide \\T2;spaced \\Q15;slant", "tall red wide spaced slant")]
         [InlineData("\\pxi-3,l3;item", "item")]
-        [InlineData("1\\~2", "1 2")]
+        [InlineData("1\\~2", "1\u00A02")]
         [InlineData("\\\\ \\{ \\}", "\\ { }")]
         [InlineData("\\S1/2; and \\S3^4;", "1/2 and 3/4")]
         [InlineData("x\\U+00E9", "x\u00E9")]
@@ -124,7 +124,7 @@ namespace GeometryHelper.UnitTest.Dxf
         public void APerCentSignAndACharacterByItsCode_AreReadAsAutoCadReadsThem(string written, string expected)
         {
             Assert.Equal(expected, Only(Read(R2000(G(0, "TEXT", 8, "0", 10, "0", 20, "0", 40, "1", 1, written)))).Value);
-            Assert.Equal(expected, Only(Read(R2000(G(0, "MTEXT", 8, "0", 10, "0", 20, "0", 40, "1", 1, written)))).Value);
+            Assert.Equal(written, Only(Read(R2000(G(0, "MTEXT", 8, "0", 10, "0", 20, "0", 40, "1", 1, written)))).Value);
         }
 
         [Fact]

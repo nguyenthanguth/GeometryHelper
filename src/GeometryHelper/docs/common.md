@@ -1208,8 +1208,8 @@ A letter is written as AutoCAD writes it: as it is from R2007 on, and before as 
 is `\U+220520`. Each of the 21, written by the library into an MTEXT, a TEXT, an attribute and a dimension of R2004 and of
 R2018, was read back by AutoCAD 2021 as the same letter in all 210 readings, and AutoCAD wrote its own texts of them in the
 same bytes. The four of the private range, `BoundaryLine`, `FlowLine`, `InitialLength` and `MonumentLine`, show only in
-AutoCAD's own fonts. `%%c` is read as ⌀ (U+2300) by `Text` and `DxfReader`, where AutoCAD 2021 gives it in an MTEXT's
-`Text` as ∅.
+AutoCAD's own fonts. `%%c` is read as ∅, `Diameter`, by `Text` and `DxfReader`, as AutoCAD 2021 gives it in an MTEXT's
+`Text`.
 
 ### Blocks and attributes
 
@@ -2512,15 +2512,17 @@ turned -90 degrees is turned 3 pi / 2. A TEXT at (3, 4, 5) on the extrusion (0, 
 (0, 0, -1): it reads mirrored seen from above.
 
 `Value` holds the words. A TEXT's are as written; an MTEXT's with its formatting taken out: `\P` is a new paragraph, a
-line feed in `Value`, `\N`, a new column, a space, `\~` a space, the codes that end in a semicolon (font, height, colour,
+line feed in `Value`, `\N`, a new column, a space, `\~` the space that does not break (U+00A0), the codes that end in a semicolon (font, height, colour,
 width, tracking, slant, stacking, paragraph) go with their arguments, `\L`, `\O` and `\K` go alone, `\\`, `\{` and `\}`
 are the characters, a stack `\S1/2;` is 1/2, and the braces that group are taken off, so `{\fArial|b1;Bold}\Pline` is
 `Bold` and `line` on two lines; a code with no semicolon after it is kept as written, as ezdxf keeps it; `\U+0000` is
 left out, and `\M+1A4A1`, kept as written in a TEXT, is the letter of its first byte, U+FF64, as AutoCAD's `Text` reads
 it. The pieces of 250 characters an MTEXT is written in (group 3) run on into its last (1). In both, the special
-characters are read from the left as AutoCAD reads them: %%c, %%d and %%p, in either case, are the diameter, degree and
-plus-minus signs, so `%%c20 at 45%%d` is `⌀20 at 45°`, %%% is a per cent sign, so `50%%%d` is `50%d`, and %%nnn, three
-digits, the character of that code, `%%065` an A; %%u, %%o and any other are kept as written. A letter written as an
+characters are read from the left as AutoCAD reads them: %%c, %%d and %%p, in either case, are the diameter (∅, U+2205),
+degree and plus-minus signs, so `%%c20 at 45%%d` is `∅20 at 45°`; in a TEXT %%% is a per cent sign, so `50%%%d` is `50%d`,
+and %%nnn, three digits, the character of that code, `%%065` an A, where an MTEXT keeps both as written, as AutoCAD 2021's
+`Text` gives them and draws them (an MTEXT `x%%%y` 10 high is 46.7 wide, a TEXT of it 26.7, as wide as `x%y`); %%u, %%o
+and any other are kept as written. A letter written as an
 escape, `\U+00E9`, is the letter, as in a name, and so is the text `\U+0041` written in the words, which reads as an A: the
 file cannot tell the two apart. An MTEXT's escapes are read before its formatting, as AutoCAD 2021 reads them: `\\U+0110`
 is a backslash and Đ, and `\U+005CP` a new line. A control character in AutoCAD's caret form is the character, `^J` a line feed, `^M` a
@@ -2548,7 +2550,7 @@ that keep them, no piece of it ending on a caret; `Add(entity)` writes one with 
 its words, height, width factor, width and normal to the bit, its position too where the normal is (0, 0, 1) or
 (0, 0, -1) or the text an MTEXT, a TEXT on a tilted normal to the rounding of its plane's system (within 1E-13 at 30 mm),
 and its rotation to the last place, through degrees or a direction. What is not kept: the alignment and attachment of a
-text read from a file, which is written where it stands, and a %%c, %%d, %%p, %%% or %%nnn or the text `\U+0041` in the
+text read from a file, which is written where it stands, and a %%c, %%d or %%p, a %%% or %%nnn of a TEXT, or the text `\U+0041` in the
 words, which comes back as the character it stands for. ezdxf recovers and audits such a file with no error.
 
 ### The layer table

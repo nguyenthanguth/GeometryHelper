@@ -1481,7 +1481,11 @@ namespace GeometryHelper.Dxf
         [DxfType("DIMENSION")]
         internal static DxfEntity Create(DxfItem item)
         {
-            if (!int.TryParse(item.File.ValueOf(item, 70)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int kind))
+            // A dimension written without its 70, as AutoCAD 2021's DxfOut writes a rotated one on a named block, is rotated.
+            string written = item.File.ValueOf(item, 70);
+            int kind = 0;
+
+            if (written != null && !int.TryParse(written.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out kind))
             {
                 return null;
             }

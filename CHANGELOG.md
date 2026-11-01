@@ -24,6 +24,14 @@ crossing at a ten-millionth. The line is laid in the plane now: of 9 000 random 
 now. Every crossing of two arcs in one plane moves by its last digits as a result, onto the arcs: the furthest off was
 0.998 of the point tolerance, and is now 1E-5 of it. 1 new test.
 
+**FIXED.** The words of a text are read as AutoCAD 2021 reads them, checked headless on its own MTEXT and TEXT: `%%c` is
+the diameter sign ∅ (U+2205, `DxfTextSymbols.Diameter`), not ⌀ (U+2300), in `DxfMText.Text`, `DxfReader` and the RTF of
+an MTEXT; an MTEXT's `%%%` and `%%nnn` are kept as written, as AutoCAD's `Text` gives them and draws them (an MTEXT
+`x%%%y` 10 high is 46.7 wide, against 26.7 for `x%y`), where a TEXT still reads them as a per cent sign and the character
+of that code; and an MTEXT's `\~` is the space that does not break, U+00A0, not a plain space. A DIMENSION written without
+its group 70, as AutoCAD 2021's DxfOut writes a rotated dimension on a named block, is opened as a rotated dimension, its
+missing 50 an angle of 0, not as a `DxfUnknownEntity`. 8 new tests, 6 changed.
+
 **NEW.** `DxfTextSymbols`, the symbols of AutoCAD's text editor as constants, for the words of a TEXT, an MTEXT, an
 attribute or a dimension: the 21 letters its Symbol menu enters and its help lists, from `Degree` (°) and `Diameter` (∅,
 U+2205, not the Latin letter Ø) to `Subscript2`, `Squared`, `Cubed` and `NonBreakingSpace`, and the menu's control codes
