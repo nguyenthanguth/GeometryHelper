@@ -167,7 +167,9 @@ namespace GeometryHelper.Dxf
 
             /// <summary>
             /// The words of an MTEXT: its pieces of 250 characters (3) and its last (1), its escapes read as letters, then its
-            /// formatting taken out, as AutoCAD 2021 reads them: <c>\\U+0110</c> is a backslash and Đ, <c>\U+005CP</c> a new line.
+            /// formatting taken out, as AutoCAD 2021 reads them: <c>\\U+0110</c> is a backslash and Đ, <c>\U+005CP</c> a new line,
+            /// <c>\U+0000</c> nothing, a backslash before it gone with it, and <c>\M+1A4A1</c>, whose first byte is a letter alone
+            /// in Shift-JIS, that letter, U+FF64.
             /// </summary>
             private static string MText(Record r)
             {
@@ -182,7 +184,7 @@ namespace GeometryHelper.Dxf
                 }
 
                 text.Append(r.Text(1) ?? string.Empty);
-                return Signs(PlainMText(Decode(Carets(text.ToString())))).Replace("\r", string.Empty);
+                return Signs(PlainMText(Decode(Carets(text.ToString()), true))).Replace("\r", string.Empty).Replace("\0", string.Empty);
             }
 
             #endregion
@@ -277,9 +279,9 @@ namespace GeometryHelper.Dxf
         /// codes that end in a semicolon (font, height, colour, width, stacking, paragraph and the rest) go with their
         /// arguments, those that stand alone (<c>\L</c>, <c>\l</c>, <c>\O</c>, <c>\o</c>, <c>\K</c>, <c>\k</c>) go alone,
         /// <c>\~</c> is a space, <c>\\</c>, <c>\{</c> and <c>\}</c> are the character, a stack <c>\S1/2;</c> is read as 1/2, a
-        /// <c>\U+</c> escape the decoding before it kept is kept as written, and the braces that group are taken off. A code with no
-        /// semicolon after it is kept as written, as ezdxf keeps it, <c>\M+1A4A1</c> among them, unless a later
-        /// semicolon ends it, as it ends it in ezdxf too.
+        /// <c>\U+</c> escape or a <c>\M+</c> code the decoding before it kept is kept as written, as AutoCAD 2021 keeps
+        /// <c>\M+1824;</c>, and the braces that group are taken off. A code with no semicolon after it is kept as written, as
+        /// ezdxf keeps it, unless a later semicolon ends it, as it ends it in ezdxf too.
         /// </summary>
         internal static string PlainMText(string text)
         {
@@ -332,9 +334,20 @@ namespace GeometryHelper.Dxf
                         break;
 
                     case 'U':
-                        // An escape the decoding before kept, \U+0000 or one of fewer digits, is kept as written.
+                        // An escape the decoding before kept, one of fewer digits, is kept as written.
                         plain.Append('\\').Append('U');
                         break;
+
+                    case 'M':
+                    case 'm':
+                        // A multibyte code the decoding before kept is kept as written; \M with no + is a code as any other.
+                        if (i + 1 < text.Length && text[i + 1] == '+')
+                        {
+                            plain.Append('\\').Append(code);
+                            break;
+                        }
+
+                        goto default;
 
                     case 'S':
                     {

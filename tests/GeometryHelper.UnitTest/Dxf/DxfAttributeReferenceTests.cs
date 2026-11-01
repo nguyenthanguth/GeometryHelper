@@ -82,7 +82,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 }
 
                 Assert.Equal(before, Saved(db));
-                Assert.Equal(new UTF8Encoding(false).GetBytes(text), before);
+                Assert.Equal(text, TextOf(before));
             }
         }
 
@@ -302,7 +302,7 @@ namespace GeometryHelper.UnitTest.Dxf
                     a.MTextAttribute = a.MTextAttribute;
                 }
 
-                Assert.Equal(new UTF8Encoding(false).GetBytes(text), Saved(db));
+                Assert.Equal(text, TextOf(Saved(db)));
             }
         }
 

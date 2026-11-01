@@ -6,6 +6,35 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A table cell of R2000 or R2004 longer than 250 letters is written in pieces of 250 letters in groups 3, the last
+in 1, as AutoCAD 2021 writes it: written in groups 2, as the DXF reference has it, AutoCAD read the cell as empty, 251
+letters as well as 600. A letter the code page lacks is written as its escape within its piece, and an escape given counts
+as its one letter, as AutoCAD reads the escapes of each piece alone: 300 D with stroke, given as letters or as escapes, are
+a 3 of 250 escapes, 1 750 characters, and a 1 of 50, where 250 escapes cut at 250 characters read as 286 letters. From
+R2007 on a long text is written in 303 and a last 302 as well as in the value's 2 and 1, and read whole: the library read
+only the last piece of AutoCAD's own cells of 600 letters, 100 of them. `SetTextString` and `SetValue` given the words a
+cell has as they read, `xĐy` for a cell written `x\U+0110y`, change nothing, as `Contents` of an MTEXT does. 5 new tests,
+1 changed.
+
+**FIXED.** `DxfDatabase.Parse` of a drawing before R2007 with letters beyond ASCII keeps it in the code page its header
+names, ANSI_1252 where it names none, each letter the page lacks as its escape, as AutoCAD would have saved it, and writes
+what is changed so too: a string of R2004 with an MTEXT café Đ on a layer Thép é Đ is saved as caf, the byte E9 and
+`\U+0110`, which AutoCAD 2021 reads as café Đ. It kept the UTF-8 of the string, which AutoCAD read as cafÃ© and refused
+outright for the name of the layer (eInvalidSymbolTableName). A string of R2007 or later, or one all ASCII, is kept as
+UTF-8 as before. Saving such a string costs more: 6 MB of R2004 with 20 000 letters é parsed and saved in 30 ms where
+21 ms on .NET Framework 4.8, and 18 ms where 12 on .NET 10. 4 new tests, one a guard; the 47 tests that saved a parsed
+drawing of R2000 with the layer Wand€Außen and compared the UTF-8 of its text compare the text now.
+
+**FIXED.** A multibyte code, `\M+`, the number of a code page (1 Shift-JIS, 2 Big5, 3 Wansung, 4 Johab, 5 GB 2312) and
+two bytes, is read as the letter of those bytes in every text and name, as AutoCAD 2021 reads it in a drawing of R2004 or
+R2018: `\M+182A0` is あ, `\M+2A440` 一 and `\M+10041` an A, in an MTEXT, a TEXT, an attribute, a dimension, a MULTILEADER,
+a table cell and a layer's name. One whose first byte is a letter alone, as `\M+1A4A1`, of bytes that are no letter, or of
+a code page the runtime has not is kept as written. An MTEXT's `Text` leaves `\U+0000` out, as AutoCAD's does, and reads
+`\M+1A4A1` as the letter of its first byte, U+FF64. 4 new tests, one a guard, 1 changed.
+
+**CHANGED.** `ApproxNumObjects` and `GetObject` find the records of the tables by handle under the lock the entities by
+handle take, so that several threads looking objects up at once walk the drawing once. 1 new test, a guard.
+
 **FIXED.** An arc in space meets a segment, and another arc, where they cross however short the segment or however near
 the two centres, below the vector tolerance of 1E-5 too. The points of an arc on a line were taken for the one point the
 line starts from wherever its direction was no longer than the vector tolerance, read as a length: at a millionth, the

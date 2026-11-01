@@ -409,7 +409,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 made.ModelSpace.AppendEntity(polyline);
                 made.ModelSpace.AppendEntity(line);
                 made.ModelSpace.AppendEntity(arc);
-                string before = Encoding.UTF8.GetString(Saved(made));
+                string before = TextOf(Saved(made));
 
                 DxfDatabase db = DxfDatabase.Parse(before);
                 var source = ByHandle<DxfPolyline2d>(db, polyline.Handle);
@@ -424,7 +424,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 Near(new GeoPoint3(10, 10, 0), vertices[2].Position);
 
                 // The triangle (0, 0), (10, 0), (10, 10) and the half circle of radius 5 outside its upright side.
-                string after = Encoding.UTF8.GetString(Saved(db));
+                string after = TextOf(Saved(db));
                 OnlyTheseChanged(before, after, old.Concat(vertices.Select(v => v.Handle)).Append(source.Handle).ToArray());
                 var again = ByHandle<DxfPolyline2d>(DxfDatabase.Parse(after), polyline.Handle);
                 Assert.Equal(source.Area, again.Area, 12);
@@ -443,13 +443,13 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfPolyline other = Light(0, 10, 10, 10);
                 made.ModelSpace.AppendEntity(polyline);
                 made.ModelSpace.AppendEntity(other);
-                string before = Encoding.UTF8.GetString(Saved(made));
+                string before = TextOf(Saved(made));
 
                 DxfDatabase db = DxfDatabase.Parse(before);
                 DxfPolyline source = ByHandle<DxfPolyline>(db, polyline.Handle);
                 source.JoinEntity(ByHandle<DxfPolyline>(db, other.Handle));
 
-                string after = Encoding.UTF8.GetString(Saved(db));
+                string after = TextOf(Saved(db));
                 OnlyTheseChanged(before, after, polyline.Handle);
                 DxfPolyline again = ByHandle<DxfPolyline>(DxfDatabase.Parse(after), polyline.Handle);
                 Assert.Equal(4, again.NumberOfVertices);

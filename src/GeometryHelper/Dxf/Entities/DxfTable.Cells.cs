@@ -316,8 +316,8 @@ namespace GeometryHelper.Dxf
         /// (302) the number as the invariant culture writes it, 12.5, its unit (94) and format (300) kept: the library does not
         /// format a value, AutoCAD does when it draws the table anew. Before R2007 a cell holds a text alone, and the value is
         /// written as its text, as <see cref="SetTextString(int, int, string)"/> writes one. A pointer to a field (344) is taken
-        /// out, its field erased where the table owns it and nothing else of the file points at it. The block AutoCAD drew the table with
-        /// is not drawn anew.
+        /// out, its field erased where the table owns it and nothing else of the file points at it. The value the cell has, a
+        /// text as the file writes it or as it reads, changes nothing. The block AutoCAD drew the table with is not drawn anew.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="col">The column, from nought.</param>
@@ -334,7 +334,7 @@ namespace GeometryHelper.Dxf
 
             if (cell.ValueFrom < 0)
             {
-                if (string.Equals(written.Text, cell.Text(), StringComparison.Ordinal) && cell.Head(344) == null)
+                if (cell.Holds(written.Text) && cell.Head(344) == null)
                 {
                     return;
                 }
@@ -347,7 +347,9 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            if (KindOf(cell) == written.Kind && SameValue(cell.Value(), written.Value) && cell.Head(344) == null)
+            object now = cell.Value();
+
+            if (KindOf(cell) == written.Kind && (SameValue(now, written.Value) || (now is string text && SameValue(DxfReader.Decode(text), written.Value))) && cell.Head(344) == null)
             {
                 return;
             }
@@ -552,7 +554,7 @@ namespace GeometryHelper.Dxf
                         throw new ArgumentException("A cell's text is written on one line: a new line is \\P.", parameter);
                     }
 
-                    return new Written(DxfDataType.String, text, CellView.Pieces(text), text);
+                    return new Written(DxfDataType.String, text, CellView.Pieces(text, 2, 1), text);
                 case int whole:
                     return Whole(whole);
                 case short whole:
@@ -598,7 +600,7 @@ namespace GeometryHelper.Dxf
             switch (kind)
             {
                 case DxfDataType.String:
-                    return new Written(DxfDataType.String, text, CellView.Pieces(text), text);
+                    return new Written(DxfDataType.String, text, CellView.Pieces(text, 2, 1), text);
                 case DxfDataType.Long:
                     if (now is int whole)
                     {

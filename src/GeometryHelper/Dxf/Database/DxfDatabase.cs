@@ -136,12 +136,17 @@ namespace GeometryHelper.Dxf
         /// Opens a DXF file from its text, as <see cref="ToText"/> or <see cref="DxfWriter.ToString"/> gives it.
         /// </summary>
         /// <param name="text">The text of the file.</param>
-        /// <returns>The drawing, its text kept as the bytes of UTF-8.</returns>
+        /// <returns>The drawing, its text kept as the bytes AutoCAD would have saved it in.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the text is null.</exception>
         /// <exception cref="FormatException">Thrown when the text is not a DXF, is binary, or is cut short; the message names the line.</exception>
         /// <remarks>
-        /// A file of R2007 or later is UTF-8, and one of an earlier version all ASCII is the same in any code page; one of an
-        /// earlier version with letters beyond ASCII is best opened from its bytes, which are kept as they are.
+        /// A text of R2007 or later, or one all ASCII, is kept as UTF-8. A string is text already read, so one of an earlier
+        /// version with letters beyond ASCII is kept in the code page its header names (<c>$DWGCODEPAGE</c>, ANSI_1252 where it
+        /// names none), as AutoCAD would have saved it, each letter the page lacks as its escape, and what is changed is written
+        /// so too: an MTEXT café Đ in a text of R2004 of the page ANSI_1252 is saved as caf, the byte E9 and <c>\U+0110</c>,
+        /// which AutoCAD 2021 reads as café Đ. Saved as the UTF-8 of the string, as the library did before, AutoCAD 2021 read
+        /// é as Ã© and refused a drawing with a layer of such a name. A file is best opened from its bytes all the same, which
+        /// are kept as they are.
         /// </remarks>
         public static DxfDatabase Parse(string text) => new DxfDatabase(DxfFile.Parse(text));
 

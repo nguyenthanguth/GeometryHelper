@@ -87,7 +87,7 @@ namespace GeometryHelper.UnitTest.Dxf
             point.Thickness = 2.5;
             point.EcsRotation = Math.PI / 2;
 
-            string saved = Encoding.UTF8.GetString(Saved(db));
+            string saved = TextOf(Saved(db));
             OnlyTheseChanged(text, saved, "41");
             DxfDBPoint again = ByHandle<DxfDBPoint>(DxfDatabase.Parse(saved), "41");
             Assert.Equal(Bits(new GeoPoint3(7.5, -8.25, 9.0)), Bits(again.Position));

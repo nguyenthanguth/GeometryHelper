@@ -141,7 +141,7 @@ namespace GeometryHelper.UnitTest.Dxf
             arc.Radius = 12.5;
             arc.Center = new GeoPoint3(1.0, 2.0, -3.0);
 
-            string saved = Encoding.UTF8.GetString(Saved(db));
+            string saved = TextOf(Saved(db));
             OnlyTheseChanged(text, saved, "40");
             DxfArc again = ByHandle<DxfArc>(DxfDatabase.Parse(saved), "40");
             Assert.Equal(0.75, again.StartAngle, 15);

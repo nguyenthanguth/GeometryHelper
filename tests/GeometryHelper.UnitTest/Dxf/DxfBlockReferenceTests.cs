@@ -333,7 +333,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfBlockReference bolt = Bolt(db);
 
                 Assert.Throws<ArgumentException>(() => bolt.TransformBy(GeoTransform3.Scaling(2.0, 1.0, 1.0)));
-                Assert.Equal(new UTF8Encoding(false).GetBytes(text), Saved(db));
+                Assert.Equal(text, TextOf(Saved(db)));
             }
         }
 
@@ -421,7 +421,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 inFrame.BlockTableRecord = inFrame.BlockTableRecord;
 
-                Assert.Equal(new UTF8Encoding(false).GetBytes(cyclic), Saved(db));
+                Assert.Equal(cyclic, TextOf(Saved(db)));
 
                 // BOLT's BLOCK renamed NUT: the INSERTs of BOLT place a block the drawing has not.
                 int blocks = text.IndexOf("\nBLOCKS\n", StringComparison.Ordinal);
@@ -432,7 +432,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 Assert.Null(bolt.BlockTableRecord);
                 bolt.BlockTableRecord = bolt.BlockTableRecord;
-                Assert.Equal(new UTF8Encoding(false).GetBytes(orphaned), Saved(other));
+                Assert.Equal(orphaned, TextOf(Saved(other)));
             }
         }
 

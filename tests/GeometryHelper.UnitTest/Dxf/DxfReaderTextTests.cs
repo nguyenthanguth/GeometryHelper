@@ -101,7 +101,7 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData("45%%d", "45\u00B0")]
         [InlineData("Col one\\NCol two", "Col one Col two")]
         [InlineData("A\\NB\\H2;C", "A BC")]
-        [InlineData("big\\M+1A4A1end", "big\\M+1A4A1end")]
+        [InlineData("big\\M+1A4A1end", "big､end")]
         [InlineData("\\H2.5x tall", "\\H2.5x tall")]
         [InlineData("\\S1/2 open", "\\S1/2 open")]
         [InlineData("line^Jcaret", "line\ncaret")]

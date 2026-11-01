@@ -118,7 +118,7 @@ namespace GeometryHelper.UnitTest.Dxf
             line.Normal = normal;
             line.Thickness = 12.5;
 
-            string saved = Encoding.UTF8.GetString(Saved(db));
+            string saved = TextOf(Saved(db));
             OnlyTheseChanged(text, saved, "3E");
 
             DxfLine again = ByHandle<DxfLine>(DxfDatabase.Parse(saved), "3E");

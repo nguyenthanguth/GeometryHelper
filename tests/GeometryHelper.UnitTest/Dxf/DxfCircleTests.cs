@@ -152,7 +152,7 @@ namespace GeometryHelper.UnitTest.Dxf
             circle.Normal = normal;
             circle.Thickness = 0.5;
 
-            string saved = Encoding.UTF8.GetString(Saved(db));
+            string saved = TextOf(Saved(db));
             OnlyTheseChanged(text, saved, "3F");
             DxfCircle again = ByHandle<DxfCircle>(DxfDatabase.Parse(saved), "3F");
             Assert.True(again.Center.IsEqualTo(centre, new Tolerance(1E-12, 1E-12)));

@@ -176,7 +176,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
             closed.Extend(3.5);
 
-            string saved = Encoding.UTF8.GetString(Saved(db));
+            string saved = TextOf(Saved(db));
             OnlyTheseChanged(text, saved, "6C");
             DxfPolyline again = ByHandle<DxfPolyline>(DxfDatabase.Parse(saved), "6C");
             Assert.True(again.EndPoint.IsEqualTo(new GeoPoint3(-5, 10, 0), Tight), again.EndPoint.ToString());
@@ -207,7 +207,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(triangle.EndPoint.IsEqualTo(new GeoPoint3(5, 7.5, 0), Tight));
             Assert.Equal(handles, triangle.Select(v => v.Handle).ToArray());
 
-            string saved = Encoding.UTF8.GetString(Saved(db));
+            string saved = TextOf(Saved(db));
             OnlyTheseChanged(text, saved, "49", "4D");
             Assert.True(ByHandle<DxfPolyline2d>(DxfDatabase.Parse(saved), "49").EndPoint.IsEqualTo(new GeoPoint3(5, 7.5, 0), Tight));
         }

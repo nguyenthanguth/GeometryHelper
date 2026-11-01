@@ -156,7 +156,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 Assert.True(shaped >= 2);
                 Assert.Equal(before, Saved(file));
-                Assert.Equal(Encoding.UTF8.GetBytes(text), before);
+                Assert.Equal(text, DxfModel.TextOf(before));
             }
         }
 
@@ -188,7 +188,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
             // One record differs besides the header, the line's; in the header, no handle given, ezdxf's extents, unset (1E+20
             // above -1E+20), become the line's box and nothing else changes.
-            string saved = Encoding.UTF8.GetString(Saved(file));
+            string saved = DxfModel.TextOf(Saved(file));
             Differ(text, saved, out List<string> gone, out List<string> come);
             Assert.Equal("3E", HandleOf(Assert.Single(gone, r => !r.Contains("\nHEADER\n"))));
             Assert.Equal("3E", HandleOf(Assert.Single(come, r => !r.Contains("\nHEADER\n"))));

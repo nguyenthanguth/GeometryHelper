@@ -121,7 +121,7 @@ namespace GeometryHelper.UnitTest.Dxf
             polyline.Elevation = 2.0;
             polyline.Closed = false;
 
-            string saved = Encoding.UTF8.GetString(Saved(db));
+            string saved = TextOf(Saved(db));
             OnlyTheseChanged(text, saved, "49", "4C");
             DxfPolyline2d again = ByHandle<DxfPolyline2d>(DxfDatabase.Parse(saved), "49");
             DxfVertex2d read = again.ToList()[1];

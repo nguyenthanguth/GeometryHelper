@@ -109,7 +109,7 @@ namespace GeometryHelper.UnitTest.Dxf
             spline.SetControlPointAt(2, new GeoPoint3(6.5, 5.5, -1.5));
             spline.SetWeightAt(1, 2.5);
 
-            string saved = Encoding.UTF8.GetString(Saved(db));
+            string saved = TextOf(Saved(db));
             OnlyTheseChanged(text, saved, "70");
             DxfSpline again = ByHandle<DxfSpline>(DxfDatabase.Parse(saved), "70");
             Assert.Equal(Bits(new GeoPoint3(6.5, 5.5, -1.5)), Bits(again.GetControlPointAt(2)));

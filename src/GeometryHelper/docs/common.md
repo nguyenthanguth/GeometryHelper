@@ -542,7 +542,12 @@ objects and entities the library does not read (CLASSES, IMAGE, objects of a typ
 reactors and extension dictionaries; and whatever follows the EOF. A file is read as `DxfReader` reads it (see [Reading
 DXF](#reading-dxf)), and one it refuses is refused the same way, with the same message: a binary DXF, one cut short, one whose
 header names a code page that does not read each byte of ASCII as itself. `Warnings` says what was said of reading its text,
-a file before R2007 whose text is UTF-8 or one in a code page the runtime has not; it is empty for most files.
+a file before R2007 whose text is UTF-8 or one in a code page the runtime has not; it is empty for most files. A string
+given to `Parse` is text already read, so one of R2007 or later, or one all ASCII, is kept as UTF-8, and one of an earlier
+version with letters beyond ASCII in the code page its header names (ANSI_1252 where it names none), each letter the page
+lacks as its escape, as AutoCAD would have saved it, and what is changed after is written the same way: an MTEXT café Đ
+in a string of R2004 is saved as caf, the byte E9 and `\U+0110`, which AutoCAD 2021 reads as café Đ. Saved as the UTF-8
+of the string, as before, AutoCAD read é as Ã© and refused the drawing outright where a layer was named so.
 
 What is written is in the file's own style: its line end, its padding, the numbers as `DxfWriter` prints them, and the text
 in its encoding, a letter the page cannot hold, or whose bytes would read back as UTF-8, written as its escape (`\U+00E9`).
@@ -1085,10 +1090,17 @@ escape as the letter, as AutoCAD 2021 reads it in a drawing of any version, wher
 each letter the code page has not: `a\U+0110b` is aĐb, and `\U+D83D\U+DE00`, the escapes of the two halves of a letter
 beyond U+FFFF, is that letter, U+1F600. Every escape of four digits is read so, before the formatting, `\u+0110` too, so
 that `\\U+0110` is a backslash and Đ, `\U+0041` an A and `\U+005CP` a new paragraph, as AutoCAD reads them; only
-`\U+0000` and an escape of fewer digits are kept as written. A TEXT's and an attribute's `TextString`, a dimension's
-`DimensionText`, a MULTILEADER's words and a table cell's `TextString` and `Value` read them the same way. Set, the letters
+`\U+0000` and an escape of fewer digits are kept as written. A multibyte code, `\M+`, the number of a code page (1 Shift-JIS,
+2 Big5, 3 Wansung, 4 Johab, 5 GB 2312) and two bytes in four digits, is read as AutoCAD 2021 reads it, in every text and
+name: `\M+182A0` is the Japanese letter あ and `\M+10041` an A; one whose first byte is a letter alone, as `\M+1A4A1`,
+one of bytes that are no letter, and one of a code page the runtime has not (.NET without CodePagesEncodingProvider) are
+kept as written. A TEXT's and an attribute's `TextString`, a dimension's
+`DimensionText`, a MULTILEADER's words and a table cell's `TextString` and `Value` read them the same way. `Text` leaves
+`\U+0000` out, a backslash before it with it, and reads a code kept as written whose first byte is a letter alone as that
+letter, U+FF64 of `\M+1A4A1`, as AutoCAD's `Text` does. Set, the letters
 are written as they are from R2007 on, but one beyond U+FFFF written as the escapes of its halves, and as escapes before,
-as `TextString` writes those of a TEXT. `LineSpaceDistance` is the spacing factor
+as `TextString` writes those of a TEXT. Words that hold the seven characters `\U+0110` themselves cannot be kept in any
+DXF: every reader reads them as Đ, and AutoCAD's own writer writes them as they are too. `LineSpaceDistance` is the spacing factor
 times single spacing, 5/3 of the letters' height: 5 for letters 3 high. `SetAttachmentMovingLocation` holds the MTEXT by
 another of its points where it stands, by its width and the height of its words (43): the MTEXT 40 wide at (20, 40, 0) held at
 its top centre stands at (40, 40, 0). `ShowBorders` draws its text frame, and `BackgroundTransparency` is a
@@ -1813,8 +1825,11 @@ An ACAD_TABLE is a `DxfTable`: its `NumRows`, `NumColumns`, `RowHeight(row)`, `C
 `TextString`, `Value`, `CellType`, merging (`IsMergedCell`, `GetMergeRange`), corners (`GetCellExtents`), block and
 attribute values, and the look it holds of its own, `Alignment`, `TextHeight`, `TextStyle` and the colours, null where it
 has none and takes its table style's, which the library does not read. Its record is read once while it stands, every cell
-of 1 000 rows in milliseconds. Its cells are written in the form of R2000 (text in 2 and 1) or of R2007 on (between
-`301 CELL_VALUE` and `304 ACVALUE_END`, the text in 302), and `SetTextString`, `SetRowHeight`, `SetColumnWidth`,
+of 1 000 rows in milliseconds. Its cells are written in the form of R2000 (text in 3 and 1) or of R2007 on (between
+`301 CELL_VALUE` and `304 ACVALUE_END`, the value in 2 and 1 and its text in 303 and 302), a text longer than 250 letters
+cut into pieces of 250 letters as AutoCAD 2021 cuts it, an escape given counted as its one letter: AutoCAD reads a cell of
+R2000 in pieces of 2 as empty, and the escapes of each piece alone. `SetTextString` and `SetValue` given the words a cell
+has, as written or as read, change nothing. `SetTextString`, `SetRowHeight`, `SetColumnWidth`,
 `SetBlockScale`, `SetBlockRotation` and `SetBlockAttributeValue` write that data, the table's block (`*T12`) left for
 AutoCAD to draw anew. Scaled alike by `TransformBy`, a table scales the heights of its rows, the widths of its columns, its
 cell margins and the text heights and block scales it and its cells override: a table of rows 10, 8 and 8 high scaled by 2
@@ -2424,7 +2439,9 @@ that does not read each byte of ASCII alone as itself, UTF-16 (1200, 1201), EBCD
 7-bit pages (20105 to 20108, 20261, 20269) or x-mac-thai (10021), which read a few signs of ASCII as other letters, is
 refused with a `FormatException` that names the code page and no line; AutoCAD writes none of them. A name or a text
 written with escapes (`\U+00E9`, or `\u+00e9`) is read as its letters, in a file of any version, as AutoCAD 2021 reads
-them; `\U+0000` and an escape of fewer than four digits are kept as written. A number is read from its first 19 digits and checked in integers,
+them; `\U+0000` and an escape of fewer than four digits are kept as written. A multibyte code, `\M+182A0`, the number of a
+code page and two bytes, is read as the letter of those bytes where they are one letter of two bytes, as AutoCAD reads
+it. A number is read from its first 19 digits and checked in integers,
 the digits past 800 counting only as whether any is not nought: a number of 300 000 digits takes 2.2 ms on .NET 10.
 
 The numbers are kept as the file has them unless `ToMillimeters` is set, which scales points, radii, elevations,
@@ -2478,8 +2495,9 @@ turned -90 degrees is turned 3 pi / 2. A TEXT at (3, 4, 5) on the extrusion (0, 
 line feed in `Value`, `\N`, a new column, a space, `\~` a space, the codes that end in a semicolon (font, height, colour,
 width, tracking, slant, stacking, paragraph) go with their arguments, `\L`, `\O` and `\K` go alone, `\\`, `\{` and `\}`
 are the characters, a stack `\S1/2;` is 1/2, and the braces that group are taken off, so `{\fArial|b1;Bold}\Pline` is
-`Bold` and `line` on two lines; a code with no semicolon after it is kept as written, as ezdxf keeps it, `\M+1A4A1` among
-them. The pieces of 250 characters an MTEXT is written in (group 3) run on into its last (1). In both, the special
+`Bold` and `line` on two lines; a code with no semicolon after it is kept as written, as ezdxf keeps it; `\U+0000` is
+left out, and `\M+1A4A1`, kept as written in a TEXT, is the letter of its first byte, U+FF64, as AutoCAD's `Text` reads
+it. The pieces of 250 characters an MTEXT is written in (group 3) run on into its last (1). In both, the special
 characters are read from the left as AutoCAD reads them: %%c, %%d and %%p, in either case, are the diameter, degree and
 plus-minus signs, so `%%c20 at 45%%d` is `⌀20 at 45°`, %%% is a per cent sign, so `50%%%d` is `50%d`, and %%nnn, three
 digits, the character of that code, `%%065` an A; %%u, %%o and any other are kept as written. A letter written as an

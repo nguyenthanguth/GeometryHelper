@@ -16,7 +16,7 @@ namespace GeometryHelper.Dxf
         private readonly object _entitiesMade = new object();
 
         // The records of the tables and the tables (their objects), and the records that follow an entity (their records), by
-        // handle, as at an edit count.
+        // handle, as at an edit count; made under the lock the entities by handle are made under.
         private Dictionary<string, object> _others;
         private int _othersAt = -1;
 
@@ -335,7 +335,8 @@ namespace GeometryHelper.Dxf
         /// and the five tables it reads with their records; those erased left out. AutoCAD counts the records of the tables the
         /// library has no class for as well (APPID, VPORT, VIEW, UCS) and the BLOCK and ENDBLK of each block, so its number is
         /// somewhat higher. A drawing of R12 that writes no handles counts none. The drawing is walked once for each question, its
-        /// entities under the lock <see cref="ItemByHandle"/> takes, so that it may be asked while other threads copy from it.
+        /// entities and its records under the lock <see cref="ItemByHandle"/> takes, so that it may be asked while other threads
+        /// copy from it or look objects up by handle.
         /// </summary>
         public int ApproxNumObjects
         {
@@ -354,29 +355,42 @@ namespace GeometryHelper.Dxf
                             count++;
                         }
                     }
+
+                    if (_others == null || _othersAt != File.EditCount)
+                    {
+                        IndexOthers();
+                    }
+
+                    count += _others.Count;
                 }
 
-                if (_others == null || _othersAt != File.EditCount)
-                {
-                    IndexOthers();
-                }
-
-                return count + _others.Count + (File.HoldsObjects ? File.ObjectCount() : 0);
+                return count + (File.HoldsObjects ? File.ObjectCount() : 0);
             }
         }
 
         /// <summary>
         /// A record of a table of the drawing, or the table, or a record that follows an entity (a VERTEX or an ATTRIB), of a
-        /// handle; null where there is none. They are found by handle in one walk, made again once the records change.
+        /// handle; null where there is none. They are found by handle in one walk, made again once the records change, under
+        /// the lock <see cref="ItemByHandle"/> takes, as several threads may look them up at once.
         /// </summary>
         private DxfDBObject OtherByHandle(string handle)
         {
-            if (_others == null || _othersAt != File.EditCount)
+            object found;
+
+            lock (_entitiesMade)
             {
-                IndexOthers();
+                if (_others == null || _othersAt != File.EditCount)
+                {
+                    IndexOthers();
+                }
+
+                if (!_others.TryGetValue(handle, out found))
+                {
+                    return null;
+                }
             }
 
-            return !_others.TryGetValue(handle, out object found) ? null : found as DxfDBObject ?? DxfEntity.Of((DxfItem)found);
+            return found as DxfDBObject ?? DxfEntity.Of((DxfItem)found);
         }
 
         /// <summary>

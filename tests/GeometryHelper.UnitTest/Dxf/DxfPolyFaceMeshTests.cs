@@ -103,7 +103,7 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase db = DxfDatabase.Parse(text);
             ByHandle<DxfPolyFaceMesh>(db, "4E").TransformBy(DxfPolylineTests.Turn());
 
-            string saved = Encoding.UTF8.GetString(Saved(db));
+            string saved = TextOf(Saved(db));
             OnlyTheseChanged(text, saved, "50", "51", "52", "53", "55", "56", "57", "58");
             DxfPolyFaceMesh again = ByHandle<DxfPolyFaceMesh>(DxfDatabase.Parse(saved), "4E");
             DxfPolylineTests.Near(new GeoPoint3(10.693449687866613, -3.689245134938883, 3.395013527337051), again.OfType<DxfPolyFaceMeshVertex>().ElementAt(6).Position);

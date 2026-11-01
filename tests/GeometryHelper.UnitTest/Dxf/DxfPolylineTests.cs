@@ -181,7 +181,7 @@ namespace GeometryHelper.UnitTest.Dxf
             polyline.Elevation = 2.5;
             polyline.Closed = false;
 
-            string saved = Encoding.UTF8.GetString(Saved(db));
+            string saved = TextOf(Saved(db));
             OnlyTheseChanged(text, saved, "6C");
             DxfPolyline again = ByHandle<DxfPolyline>(DxfDatabase.Parse(saved), "6C");
 

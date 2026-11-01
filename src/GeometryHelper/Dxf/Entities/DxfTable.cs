@@ -20,8 +20,8 @@ namespace GeometryHelper.Dxf
     /// </para>
     /// <para>
     /// The file holds the cells one after another, row by row, each from its group 171: its kind, flags, merging (173, 175,
-    /// 176), the overrides it has of its own (177, or 91 from R2007 on), and its text in groups 2 and 1 in a file before R2007,
-    /// or between <c>301 CELL_VALUE</c> and <c>304 ACVALUE_END</c> from R2007 on, its text in 302. A cell's look AutoCAD takes
+    /// 176), the overrides it has of its own (177, or 91 from R2007 on), and its text in groups 3 and 1 in a file before R2007,
+    /// or between <c>301 CELL_VALUE</c> and <c>304 ACVALUE_END</c> from R2007 on, its text in 303 and 302. A cell's look AutoCAD takes
     /// from the table style, which the library does not read: <see cref="Alignment(int, int)"/>, <see cref="TextHeight(int, int)"/>
     /// and the other reads of a cell's look give its own override, null where it has none.
     /// </para>
@@ -248,9 +248,10 @@ namespace GeometryHelper.Dxf
         public DxfTableCellType CellType(int row, int col) => (DxfTableCellType)Cell(row, col).Whole(171, 0);
 
         /// <summary>
-        /// Gets the text of a cell, as AutoCAD's <c>TextString</c>: from R2007 on the text of its value (302), before R2007 its
-        /// groups 2 and 1 one after another, each escape of four digits read as the letter it stands for, as AutoCAD 2021 reads
-        /// it, <c>B\U+0110</c> giving BĐ; empty for a cell of no text, as a block cell.
+        /// Gets the text of a cell, as AutoCAD's <c>TextString</c>: from R2007 on the text of its value, its pieces (303) and its
+        /// last (302) one after another, before R2007 its groups 3 or 2 and 1, each escape of four digits read as the letter it
+        /// stands for, as AutoCAD 2021 reads it, <c>B\U+0110</c> giving BĐ, and each multibyte code of a letter of two bytes
+        /// (<c>\M+</c>) that letter; empty for a cell of no text, as a block cell.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="col">The column, from nought.</param>
@@ -754,10 +755,15 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Sets the text of a cell, as AutoCAD's <c>SetTextString</c>: before R2007 its groups 2 and 1 written anew, the text in
-        /// pieces of 250 letters, the last in 1; from R2007 on its value written as a text (90 of 4) in 1 and 302. A pointer to a
-        /// field (344) is taken out, the text being the cell's own now, and the field erased with its children where the table
-        /// owns it and nothing else of the file points at it, a copy of the table among them. The block AutoCAD drew the table with is not drawn anew.
+        /// Sets the text of a cell, as AutoCAD's <c>SetTextString</c>: before R2007 its groups written anew, as AutoCAD 2021
+        /// writes them, the text in pieces of 250 letters in groups 3, the last in 1, a letter the file's code page lacks
+        /// written as its escape within its piece and an escape given counted as its one letter, so that 300 D with stroke,
+        /// given as letters or as escapes, are a 3 of 250 escapes and a 1 of 50 (AutoCAD reads a cell in groups 2 as empty, and
+        /// the escapes of each piece alone); from R2007 on its value written as a text (90 of 4), in pieces of 2 and a last 1, and
+        /// its text in pieces of 303 and a last 302. A pointer to a field (344) is taken out, the text being the cell's own
+        /// now, and the field erased with its children where the table owns it and nothing else of the file points at it, a
+        /// copy of the table among them. The words the cell has, as they are written or as they read, change nothing. The
+        /// block AutoCAD drew the table with is not drawn anew.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="col">The column, from nought.</param>
@@ -785,7 +791,7 @@ namespace GeometryHelper.Dxf
                 throw new InvalidOperationException("The cell (" + row.ToString(CultureInfo.InvariantCulture) + ", " + col.ToString(CultureInfo.InvariantCulture) + ") holds a block, not a text.");
             }
 
-            if (string.Equals(value, cell.Text(), StringComparison.Ordinal) && cell.Head(344) == null)
+            if (cell.Holds(value) && cell.Head(344) == null)
             {
                 return;
             }
@@ -1685,18 +1691,25 @@ namespace GeometryHelper.Dxf
                 return null;
             }
 
-            /// <summary>The cell's text: the 302 of its value from R2007 on, else its 2s and 1 one after another.</summary>
+            /// <summary>The cell's text: the 303s and 302 of its value from R2007 on, else its 3s or 2s and 1 one after another.</summary>
             internal string Text()
             {
                 if (ValueFrom >= 0)
                 {
                     int end = ValueTo >= 0 ? ValueTo : To;
+                    string pieces = null;
 
                     for (int i = ValueFrom; i < end; i++)
                     {
-                        if (Groups.List[i].Key == 302)
+                        int code = Groups.List[i].Key;
+
+                        if (code == 303)
                         {
-                            return Groups.List[i].Value;
+                            pieces += Groups.List[i].Value;
+                        }
+                        else if (code == 302)
+                        {
+                            return pieces == null ? Groups.List[i].Value : pieces + Groups.List[i].Value;
                         }
                     }
 
@@ -1704,6 +1717,13 @@ namespace GeometryHelper.Dxf
                 }
 
                 return Joined(From, To);
+            }
+
+            /// <summary>Whether the cell's text is the one given, as the file writes it or as it reads, its escapes as letters.</summary>
+            internal bool Holds(string text)
+            {
+                string now = Text();
+                return string.Equals(text, now, StringComparison.Ordinal) || string.Equals(text, DxfReader.Decode(now), StringComparison.Ordinal);
             }
 
             /// <summary>The cell's value: of the kind its value says from R2007 on, else its text.</summary>
@@ -1750,14 +1770,12 @@ namespace GeometryHelper.Dxf
                 return Text();
             }
 
-            /// <summary>Writes the cell's text into the list: its value as a text from R2007 on, else its 2s and 1; a 344 taken out.</summary>
+            /// <summary>Writes the cell's text into the list: its value as a text from R2007 on, else its 3s and 1; a 344 taken out.</summary>
             internal void SetText(string text)
             {
-                List<KeyValuePair<int, string>> pieces = Pieces(text);
-
                 if (ValueFrom >= 0)
                 {
-                    WriteValue("4", pieces, text, null, null);
+                    WriteValue("4", Pieces(text, 2, 1), text, null, null);
                 }
                 else
                 {
@@ -1788,6 +1806,8 @@ namespace GeometryHelper.Dxf
                         }
                     }
 
+                    List<KeyValuePair<int, string>> pieces = Pieces(text, 3, 1);
+
                     for (int k = 0; k < pieces.Count; k++)
                     {
                         Groups.Insert(at + k, pieces[k]);
@@ -1812,7 +1832,8 @@ namespace GeometryHelper.Dxf
 
             /// <summary>
             /// Writes the cell's value of R2007 anew, from its 301 to its 304: its flags (93) kept, its kind (90), its data, its
-            /// unit (94) and format (300), each kept where null is given, and its text (302).
+            /// unit (94) and format (300), each kept where null is given, and its text in pieces of 303 and a last 302, as
+            /// AutoCAD 2021 writes a text longer than 250 letters.
             /// </summary>
             internal void WriteValue(string kind, IEnumerable<KeyValuePair<int, string>> data, string text, string unit, string format)
             {
@@ -1835,7 +1856,7 @@ namespace GeometryHelper.Dxf
                 value.AddRange(data);
                 value.Add(new KeyValuePair<int, string>(94, unit ?? unitNow ?? "0"));
                 value.Add(new KeyValuePair<int, string>(300, format ?? formatNow ?? string.Empty));
-                value.Add(new KeyValuePair<int, string>(302, text));
+                value.AddRange(Pieces(text, 303, 302));
 
                 for (int i = end - 1; i >= ValueFrom; i--)
                 {
@@ -1864,7 +1885,7 @@ namespace GeometryHelper.Dxf
                 return null;
             }
 
-            /// <summary>The groups of the cell's value of R2007 that carry its data: all but its flags, kind, unit, format and text.</summary>
+            /// <summary>The groups of the cell's value of R2007 that carry its data: all but its flags, kind, unit, format and text (303 and 302).</summary>
             internal List<KeyValuePair<int, string>> ValueData()
             {
                 var data = new List<KeyValuePair<int, string>>();
@@ -1874,7 +1895,7 @@ namespace GeometryHelper.Dxf
                 {
                     int code = Groups.List[i].Key;
 
-                    if (code != 93 && code != 90 && code != 94 && code != 300 && code != 302)
+                    if (code != 93 && code != 90 && code != 94 && code != 300 && code != 302 && code != 303)
                     {
                         data.Add(Groups.List[i]);
                     }
@@ -2042,20 +2063,69 @@ namespace GeometryHelper.Dxf
                 SetHead(code, text);
             }
 
-            /// <summary>A text in pieces of 250 letters, as the DXF reference writes a long one: 2 for each but the last, 1 for that.</summary>
-            internal static List<KeyValuePair<int, string>> Pieces(string text)
+            /// <summary>
+            /// A text in pieces of 250 letters, as AutoCAD 2021 writes a long one: a group of the one code for each but the last,
+            /// of the other for that; 3 and 1 for a cell before R2007, 2 and 1 for the data of a value, 303 and 302 for its text.
+            /// An escape (<c>\U+0110</c>) or a multibyte code (<c>\M+182A0</c>) counts as the one letter it stands for and is
+            /// never cut, as AutoCAD cuts the letters before it writes their escapes and reads the escapes of each piece of a cell
+            /// alone: 250 escapes given are one 1 of 1 750 characters, as AutoCAD writes 250 letters its code page lacks.
+            /// </summary>
+            internal static List<KeyValuePair<int, string>> Pieces(string text, int code, int last)
             {
                 var pieces = new List<KeyValuePair<int, string>>();
                 int at = 0;
 
-                while (text.Length - at > 250)
+                while (true)
                 {
-                    pieces.Add(new KeyValuePair<int, string>(2, text.Substring(at, 250)));
-                    at += 250;
+                    int end = at;
+
+                    for (int letters = 0; letters < 250 && end < text.Length; letters++)
+                    {
+                        end += LetterLength(text, end);
+                    }
+
+                    if (end >= text.Length)
+                    {
+                        break;
+                    }
+
+                    pieces.Add(new KeyValuePair<int, string>(code, text.Substring(at, end - at)));
+                    at = end;
                 }
 
-                pieces.Add(new KeyValuePair<int, string>(1, text.Substring(at)));
+                pieces.Add(new KeyValuePair<int, string>(last, text.Substring(at)));
                 return pieces;
+            }
+
+            /// <summary>How many characters the letter at a place of a text is written in: 7 for an escape, 8 for a multibyte code, else 1.</summary>
+            private static int LetterLength(string text, int at)
+            {
+                if (text[at] != '\\' || at + 7 > text.Length || text[at + 2] != '+')
+                {
+                    return 1;
+                }
+
+                char kind = text[at + 1];
+
+                if ((kind == 'U' || kind == 'u') && Hex(text, at + 3, 4))
+                {
+                    return 7;
+                }
+
+                return (kind == 'M' || kind == 'm') && at + 8 <= text.Length && text[at + 3] >= '1' && text[at + 3] <= '5' && Hex(text, at + 4, 4) ? 8 : 1;
+            }
+
+            private static bool Hex(string text, int from, int count)
+            {
+                for (int i = from; i < from + count; i++)
+                {
+                    if (!Uri.IsHexDigit(text[i]))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
             }
 
             private string Joined(int from, int to)

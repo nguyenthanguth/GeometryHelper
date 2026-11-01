@@ -95,7 +95,7 @@ namespace GeometryHelper.UnitTest.Dxf
             polyline.ToList()[2].Position = new GeoPoint3(6.5, 7.5, -2.5);
             polyline.Closed = true;
 
-            string saved = Encoding.UTF8.GetString(Saved(db));
+            string saved = TextOf(Saved(db));
             OnlyTheseChanged(text, saved, "44", "48");
             DxfPolyline3d again = ByHandle<DxfPolyline3d>(DxfDatabase.Parse(saved), "44");
             Assert.True(again.Closed);

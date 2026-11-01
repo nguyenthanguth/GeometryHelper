@@ -123,7 +123,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
             grid.TextString = grid.TextString;
 
-            Assert.Equal(new UTF8Encoding(false).GetBytes(text), Saved(db));
+            Assert.Equal(text, TextOf(Saved(db)));
             Assert.Throws<ArgumentException>(() => grid.TextString = "Grid\nthree");
         }
 

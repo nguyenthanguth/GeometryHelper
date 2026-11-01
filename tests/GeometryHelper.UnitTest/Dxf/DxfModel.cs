@@ -26,6 +26,12 @@ namespace GeometryHelper.UnitTest.Dxf
             }
         }
 
+        /// <summary>
+        /// The text of saved bytes, as a file of them reads: a drawing before R2007 given as a string with letters beyond ASCII,
+        /// as the R2000 of <see cref="DxfFileEzdxfDrawings"/> with its layer Wand€Außen, is saved in its code page, not in UTF-8.
+        /// </summary>
+        internal static string TextOf(byte[] saved) => Opened(saved).ToText();
+
         /// <summary>A drawing opened from bytes.</summary>
         internal static DxfDatabase Opened(byte[] bytes)
         {
@@ -128,7 +134,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.True(seen > 0, "The drawing has no " + typeof(T).Name + ".");
             Assert.Equal(before, Saved(db));
-            Assert.Equal(new UTF8Encoding(false).GetBytes(text), before);
+            Assert.Equal(text, TextOf(before));
         }
 
         /// <summary>

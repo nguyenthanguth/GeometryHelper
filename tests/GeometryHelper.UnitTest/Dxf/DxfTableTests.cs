@@ -106,7 +106,8 @@ namespace GeometryHelper.UnitTest.Dxf
                     Assert.Contains("145\n0.0\n  1\nCount\n171\n", record, StringComparison.Ordinal);
                 }
 
-                Assert.Contains("\n  2\n" + new string('x', 250) + "\n  1\n" + new string('x', 50) + "\n", record, StringComparison.Ordinal);
+                // AutoCAD 2021 writes the pieces of a cell's text in 3 before R2007 and of its value in 2 from R2007 on.
+                Assert.Contains("\n  " + (text == DxfDimensionDrawings.R2018 ? "2" : "3") + "\n" + new string('x', 250) + "\n  1\n" + new string('x', 50) + "\n", record, StringComparison.Ordinal);
 
                 DxfTable read = Table(DxfDatabase.Parse(saved));
                 Assert.Equal("Count", read.TextString(1, 1));

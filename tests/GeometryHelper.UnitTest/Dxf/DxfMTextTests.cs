@@ -609,7 +609,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 mtext.Rotation = mtext.Rotation;
                 mtext.Normal = mtext.Normal;
 
-                Assert.Equal(new UTF8Encoding(false).GetBytes(tilted), Saved(db));
+                Assert.Equal(tilted, TextOf(Saved(db)));
                 Near(Math.PI / 4.0, mtext.Rotation);
             }
         }

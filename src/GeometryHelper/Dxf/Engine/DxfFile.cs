@@ -57,7 +57,7 @@ namespace GeometryHelper.Dxf
         private IReadOnlyList<KeyValuePair<string, IReadOnlyList<DxfTypedValue>>> _headerInOrder;
         private string _namedPage;
 
-        private DxfFile(byte[] bytes, int length, string source)
+        private DxfFile(byte[] bytes, int length, string source, DxfReader.TextDecoding decoding = null)
         {
             if (StartsWith(bytes, 0, length, "AutoCAD Binary DXF"))
             {
@@ -67,7 +67,7 @@ namespace GeometryHelper.Dxf
             var warnings = new List<string>();
             _bytes = bytes;
             _length = length;
-            _decoding = DxfReader.TextDecoding.Of(bytes, length, warnings);
+            _decoding = decoding ?? DxfReader.TextDecoding.Of(bytes, length, warnings);
             Warnings = warnings.AsReadOnly();
 
             if (StartsWith(bytes, _decoding.Start, length, "AutoCAD Binary DXF"))
@@ -155,16 +155,17 @@ namespace GeometryHelper.Dxf
         /// Opens a DXF file from its text.
         /// </summary>
         /// <param name="text">The text of the file, as <see cref="ToText"/> or <see cref="DxfWriter.ToString"/> gives it.</param>
-        /// <returns>The file, its text kept as the bytes of UTF-8.</returns>
+        /// <returns>The file, its text kept as the bytes AutoCAD would have saved it in.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the text is null.</exception>
         /// <exception cref="FormatException">Thrown when the text is not a DXF, is binary, or is cut short; the message names the line.</exception>
         /// <remarks>
-        /// The text is kept as UTF-8, a byte order mark at its start as the mark of UTF-8, so <see cref="ToText"/> gives it
-        /// back, the mark left out as it leaves out that of a file, and <see cref="Save(string)"/> writes it so, the mark as
-        /// the three bytes of UTF-8's: a file of R2007 or later is UTF-8 as it should be, and one of an
-        /// earlier version whose text is all ASCII, as <see cref="DxfWriter"/> writes it, is the same in any code page. One of
-        /// an earlier version with letters beyond ASCII is read back so by <see cref="DxfReader"/>, which says so in a warning,
-        /// but AutoCAD reads such a file in its code page: open it from its bytes to keep them as they are.
+        /// A text all ASCII, as <see cref="DxfWriter"/> writes one, or one of R2007 or later, or one that begins with a byte
+        /// order mark, is kept as UTF-8, the mark as the mark of UTF-8, so <see cref="ToText"/> gives it back, the mark left out
+        /// as it leaves out that of a file, and <see cref="Save(string)"/> writes it so. One of an earlier version with letters
+        /// beyond ASCII is kept in the code page its header names (<c>$DWGCODEPAGE</c>, ANSI_1252 where it names none), as
+        /// AutoCAD reads it, each letter the page lacks as its escape, and every letter beyond ASCII as its escape where the
+        /// runtime has not the page: the text of R2004 of an MTEXT café Đ, its page ANSI_1252, is kept as caf, the byte E9
+        /// and <c>\U+0110</c>, which every reader reads as café Đ, and <see cref="ToText"/> gives it with the escape.
         /// </remarks>
         public static DxfFile Parse(string text)
         {
@@ -173,8 +174,8 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(text));
             }
 
-            byte[] bytes = new UTF8Encoding(false).GetBytes(text);
-            return new DxfFile(bytes, bytes.Length, "a text");
+            byte[] bytes = DxfReader.TextDecoding.OfText(text, out DxfReader.TextDecoding decoding);
+            return new DxfFile(bytes, bytes.Length, "a text", decoding);
         }
 
         /// <summary>

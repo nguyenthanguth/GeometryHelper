@@ -118,7 +118,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
             xline.SecondPoint = new GeoPoint3(3.0, 9.0, 0.0);
 
-            string saved = Encoding.UTF8.GetString(Saved(db));
+            string saved = TextOf(Saved(db));
             OnlyTheseChanged(text, saved, "72");
             DxfXline again = ByHandle<DxfXline>(DxfDatabase.Parse(saved), "72");
             Assert.Equal(Bits(new GeoVector3(3.0 / 5.0, 4.0 / 5.0, 0.0)), Bits(again.UnitDir));

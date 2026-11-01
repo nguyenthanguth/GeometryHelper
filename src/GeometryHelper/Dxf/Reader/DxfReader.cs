@@ -225,6 +225,75 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>
+            /// The bytes of a file given as its text, for <see cref="DxfFile"/>, as AutoCAD would have saved them: UTF-8 where it
+            /// is all ASCII, has the mark of UTF-8 at its start or is of R2007 or later; else in the code page its header names,
+            /// ANSI_1252 where it names none, a letter the page lacks written as its escape (<c>\U+0110</c>), and every letter
+            /// beyond ASCII as its escape where the runtime has not the page. The decoding that reads them back is given where
+            /// the bytes are in a page, null where <see cref="Of"/> finds it from them.
+            /// </summary>
+            internal static byte[] OfText(string text, out TextDecoding decoding)
+            {
+                decoding = null;
+                byte[] utf8 = new UTF8Encoding(false).GetBytes(text);
+
+                // As many bytes as letters: all ASCII.
+                if (utf8.Length == text.Length || text[0] == '\uFEFF')
+                {
+                    return utf8;
+                }
+
+                Header(text, out string version, out string codePage);
+
+                if (string.CompareOrdinal(version ?? string.Empty, "AC1021") >= 0)
+                {
+                    return utf8;
+                }
+
+                var none = new TextDecoding(0, Latin1, false, null);
+                TextDecoding page = none.WithLetters(version, codePage) ?? none;
+                var bytes = new MemoryStream(text.Length + 16);
+                var chunk = new byte[4096];
+                int at = 0;
+                bool beyond = false;
+
+                // The runs of ASCII copied as they are, each run of other letters encoded as one: a file is mostly ASCII.
+                while (at < text.Length)
+                {
+                    int end = at;
+
+                    while (end < text.Length && text[end] < 0x80)
+                    {
+                        end++;
+                    }
+
+                    for (int from = at; from < end; from += chunk.Length)
+                    {
+                        int count = Math.Min(chunk.Length, end - from);
+                        Encoding.ASCII.GetBytes(text, from, count, chunk, 0);
+                        bytes.Write(chunk, 0, count);
+                    }
+
+                    at = end;
+
+                    while (end < text.Length && text[end] >= 0x80)
+                    {
+                        end++;
+                    }
+
+                    if (end > at)
+                    {
+                        byte[] letters = page.Encode(text.Substring(at, end - at));
+                        beyond |= Array.Exists(letters, b => b >= 0x80);
+                        bytes.Write(letters, 0, letters.Length);
+                        at = end;
+                    }
+                }
+
+                decoding = page.CodePage != null && beyond ? page : null;
+                return bytes.ToArray();
+            }
+
+            /// <summary>
             /// The bytes a text is written as, for <see cref="DxfFile"/>, so that this decoding reads it back: in UTF-8 where the
             /// text is read as UTF-8, else in the code page it is read in, a letter the page cannot hold written as its escape
             /// (<c>\U+00E9</c>), as AutoCAD reads one in any page; and every letter beyond ASCII as its escape where the text is
@@ -1284,9 +1353,18 @@ namespace GeometryHelper.Dxf
         /// A name or a text with its escapes read as the letters they stand for, as AutoCAD 2021 reads a DXF of any version:
         /// <c>\U+00E9</c> or <c>\u+00e9</c> is an e acute wherever it stands, a backslash before it kept, so that
         /// <c>\\U+0110</c> is a backslash and D with stroke; the escape of half a letter is that half. <c>\U+0000</c> and an
-        /// escape of fewer than four digits are kept as written.
+        /// escape of fewer than four digits are kept as written. A multibyte code, <c>\M+</c> or <c>\m+</c>, the number of a
+        /// code page and two bytes in four digits, is read as <see cref="TryMultibyte"/> reads it: <c>\M+182A0</c> is the
+        /// Japanese letter a (U+3042).
         /// </summary>
-        internal static string Decode(string name)
+        internal static string Decode(string name) => Decode(name, false);
+
+        /// <summary>
+        /// A text with its escapes read as <see cref="Decode(string)"/> reads them, or, plain, as AutoCAD 2021's
+        /// <c>MText.Text</c> reads them before the formatting: <c>\U+0000</c> then the character nought, which the plain words
+        /// leave out, and a multibyte code whose first byte is a letter alone that letter.
+        /// </summary>
+        internal static string Decode(string name, bool plain)
         {
             int at = EscapeAt(name, 0);
 
@@ -1295,40 +1373,143 @@ namespace GeometryHelper.Dxf
                 return name;
             }
 
-            var plain = new StringBuilder(name.Length);
+            var read = new StringBuilder(name.Length);
             int from = 0;
 
             while (at >= 0)
             {
-                if (at + 7 <= name.Length && int.TryParse(name.Substring(at + 3, 4), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out int letter) && letter != 0)
+                bool escape = name[at + 1] == 'U' || name[at + 1] == 'u';
+
+                if (escape && at + 7 <= name.Length && int.TryParse(name.Substring(at + 3, 4), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out int letter) && (letter != 0 || plain))
                 {
-                    plain.Append(name, from, at - from).Append((char)letter);
+                    read.Append(name, from, at - from).Append((char)letter);
                     from = at + 7;
+                }
+                else if (!escape && TryMultibyte(name, at, plain, out char multibyte))
+                {
+                    read.Append(name, from, at - from).Append(multibyte);
+                    from = at + 8;
                 }
                 else
                 {
-                    plain.Append(name, from, at + 3 - from);
+                    read.Append(name, from, at + 3 - from);
                     from = at + 3;
                 }
 
                 at = EscapeAt(name, from);
             }
 
-            return plain.Append(name, from, name.Length - from).ToString();
+            return read.Append(name, from, name.Length - from).ToString();
         }
 
-        /// <summary>Where the next <c>\U+</c> or <c>\u+</c> of a text begins, from a place on; -1 where none does.</summary>
+        /// <summary>Where the next <c>\U+</c>, <c>\u+</c>, <c>\M+</c> or <c>\m+</c> of a text begins, from a place on; -1 where none does.</summary>
         private static int EscapeAt(string text, int from)
         {
             for (int at = text.IndexOf('\\', from); at >= 0 && at + 2 < text.Length; at = text.IndexOf('\\', at + 1))
             {
-                if ((text[at + 1] == 'U' || text[at + 1] == 'u') && text[at + 2] == '+')
+                char kind = text[at + 1];
+
+                if ((kind == 'U' || kind == 'u' || kind == 'M' || kind == 'm') && text[at + 2] == '+')
                 {
                     return at;
                 }
             }
 
             return -1;
+        }
+
+        // The code pages of a multibyte code by its number, 1 to 5: Shift-JIS, Big5, Wansung, Johab and GB 2312; each made
+        // once the runtime has it.
+        private static readonly int[] MultibytePages = { 932, 950, 949, 1361, 936 };
+        private static readonly Encoding[] MultibyteEncodings = new Encoding[5];
+
+        /// <summary>
+        /// The letter of a multibyte code where one begins, <c>\M+</c>, the number of its code page (1 Shift-JIS, 2 Big5,
+        /// 3 Wansung, 4 Johab, 5 GB 2312) and two bytes in four hexadecimal digits of either case, as AutoCAD 2021 reads it in
+        /// every text and name of a DXF of any version: the letter of the two bytes where the first opens a letter of two,
+        /// <c>\M+182A0</c> the Japanese letter a, and of the second alone where the first is 00, <c>\M+10041</c> an A. None
+        /// where the first is a letter alone, as A4 is in Shift-JIS, which AutoCAD keeps as written but for the plain words of
+        /// an MTEXT, which take that letter, U+FF64 of <c>\M+1A4A1</c>; nor where the bytes are no letter of the page (AutoCAD
+        /// gives a letter of its own, U+E800 and on), nor where the runtime has not the page, as .NET (Core) has not until the
+        /// caller registers <c>CodePagesEncodingProvider.Instance</c>.
+        /// </summary>
+        private static bool TryMultibyte(string text, int at, bool plain, out char letter)
+        {
+            letter = '\0';
+
+            if (at + 8 > text.Length || text[at + 3] < '1' || text[at + 3] > '5'
+                || !int.TryParse(text.Substring(at + 4, 4), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out int code))
+            {
+                return false;
+            }
+
+            Encoding page = MultibytePage(text[at + 3] - '1');
+
+            if (page == null)
+            {
+                return false;
+            }
+
+            int first = code >> 8;
+            int second = code & 0xFF;
+
+            if (first == 0)
+            {
+                return second != 0 && TryLetter(page, new[] { (byte)second }, out letter);
+            }
+
+            if (TryLetter(page, new[] { (byte)first }, out letter))
+            {
+                return plain;
+            }
+
+            return TryLetter(page, new[] { (byte)first, (byte)second }, out letter);
+        }
+
+        /// <summary>The code page of a multibyte code, from nought; null where the runtime has not got it.</summary>
+        private static Encoding MultibytePage(int index)
+        {
+            Encoding page = System.Threading.Volatile.Read(ref MultibyteEncodings[index]);
+
+            if (page != null)
+            {
+                return page;
+            }
+
+            try
+            {
+                page = Encoding.GetEncoding(MultibytePages[index], EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
+            }
+            catch (Exception e) when (e is ArgumentException || e is NotSupportedException)
+            {
+                return null;
+            }
+
+            System.Threading.Volatile.Write(ref MultibyteEncodings[index], page);
+            return page;
+        }
+
+        /// <summary>Whether bytes are one letter of a code page, and that letter.</summary>
+        private static bool TryLetter(Encoding page, byte[] bytes, out char letter)
+        {
+            letter = '\0';
+
+            try
+            {
+                string read = page.GetString(bytes);
+
+                if (read.Length != 1)
+                {
+                    return false;
+                }
+
+                letter = read[0];
+                return true;
+            }
+            catch (DecoderFallbackException)
+            {
+                return false;
+            }
         }
     }
 }
