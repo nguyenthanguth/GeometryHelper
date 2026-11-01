@@ -321,7 +321,7 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets whether a cell is one of a block of cells merged into one, as AutoCAD's <c>IsMergedCell</c>, and that block: the
-        /// cell whose 175 and 176 (merged 173) span it, columns and rows, its top left.
+        /// cell whose 175 and 176 span it, columns and rows, its top left, as <see cref="GetMergeRange(int, int)"/> reads it.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="col">The column, from nought.</param>
@@ -334,7 +334,12 @@ namespace GeometryHelper.Dxf
             return range.TopRow != range.BottomRow || range.LeftColumn != range.RightColumn;
         }
 
-        /// <summary>Gets the block of merged cells a cell is in, as AutoCAD's <c>GetMergeRange</c>: the title of two columns, (0, 0) to (0, 1), whose cell <c>range[0, 0]</c> is the table's; the cell alone where it is merged with none.</summary>
+        /// <summary>
+        /// Gets the block of merged cells a cell is in, as AutoCAD's <c>GetMergeRange</c>: the title of two columns, (0, 0) to (0,
+        /// 1), whose cell <c>range[0, 0]</c> is the table's; the cell alone where it is merged with none. A block is read from the
+        /// width and height in cells (175, 176) of its top left cell alone, as AutoCAD 2021 reads it: AutoCAD writes that cell
+        /// 173 0 and the others of the block 173 1, and read a 173 of 1 in a cell of no spans as no merge.
+        /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="column">The column, from nought.</param>
         /// <returns>The range.</returns>
@@ -343,20 +348,14 @@ namespace GeometryHelper.Dxf
         {
             Layout layout = Read();
             layout.CellOf(row, column);
+            int[] spans = layout.Spans();
 
             for (int r = 0; r <= row; r++)
             {
                 for (int c = 0; c <= column; c++)
                 {
-                    CellView cell = layout.CellAt(r, c);
-
-                    if (cell.Whole(173, 0) == 0)
-                    {
-                        continue;
-                    }
-
-                    int width = cell.Whole(175, 0);
-                    int height = cell.Whole(176, 0);
+                    int width = spans[2 * (r * layout.Columns + c)];
+                    int height = spans[2 * (r * layout.Columns + c) + 1];
 
                     if ((width > 1 || height > 1) && row < r + Math.Max(1, height) && column < c + Math.Max(1, width))
                     {
@@ -1144,17 +1143,7 @@ namespace GeometryHelper.Dxf
         private double[] StyleTextHeights()
         {
             DxfFile file = Item.File;
-            DxfDimGroups own = Own();
-            string handle = own.Text(342, own.Sub)?.Trim();
-            DxfItem style = handle == null ? null : file.ObjectItem(handle);
-
-            if (style == null)
-            {
-                string root = file.RootDictionaryHandle();
-                string styles = root == null ? null : Entry(file, root, e => string.Equals(e.Key, "ACAD_TABLESTYLE", StringComparison.OrdinalIgnoreCase));
-                string standard = styles == null ? null : Entry(file, styles, e => string.Equals(e.Key, "Standard", StringComparison.OrdinalIgnoreCase));
-                style = standard == null ? null : file.ObjectItem(standard);
-            }
+            DxfItem style = StyleItem();
 
             if (style == null)
             {
@@ -1183,6 +1172,119 @@ namespace GeometryHelper.Dxf
             }
 
             return new[] { found[1], found[2], found[0] };
+        }
+
+        /// <summary>The TABLESTYLE of the table: the one it names (342), else the drawing's Standard; null where there is none.</summary>
+        private DxfItem StyleItem()
+        {
+            DxfFile file = Item.File;
+            DxfDimGroups own = Own();
+            string handle = own.Text(342, own.Sub)?.Trim();
+            DxfItem style = handle == null ? null : file.ObjectItem(handle);
+
+            if (style == null)
+            {
+                string root = file.RootDictionaryHandle();
+                string styles = root == null ? null : Entry(file, root, e => string.Equals(e.Key, "ACAD_TABLESTYLE", StringComparison.OrdinalIgnoreCase));
+                string standard = styles == null ? null : Entry(file, styles, e => string.Equals(e.Key, "Standard", StringComparison.OrdinalIgnoreCase));
+                style = standard == null ? null : file.ObjectItem(standard);
+            }
+
+            return style;
+        }
+
+        /// <summary>
+        /// The width AutoCAD 2021's <c>SetSize</c> gives each column it puts in: the text height of the first row whose new cell
+        /// is merged with none, and the margin either side of a cell's content. The title merged across the table takes the
+        /// new cell in, so that is the header: 4.5 and twice 1.5 of AutoCAD's Standard, 7.5, whatever the widths of the other
+        /// columns or the text heights of the title and the data (D28b s1 to s12); 12 for a header of 9, its own or its style's
+        /// (s16, s9); 10.5 for margins of 3 (s3); the data's 4.5 where the header is left out (s15); and the title's 6, 9 wide,
+        /// where the title is unmerged (s14). The height of a kind of row is the table's own (its 140 after its last cell,
+        /// flagged in 93), else its style's, as <see cref="ScaleStyleHeights"/> reads them; the margin the table's own (its 40,
+        /// before its heights where AutoCAD 2021 writes it, or after its last cell), else its style's first 40, else AutoCAD's
+        /// own Standard's, 1.5 in a drawing of millimetres and 0.06 in one of inches. Null where they give no width above
+        /// nought, or the table is in no drawing.
+        /// </summary>
+        private string NewColumnWidth(Layout layout, bool titleAcross)
+        {
+            if (!IsResident)
+            {
+                return null;
+            }
+
+            DxfDimGroups g = layout.Groups;
+            int headTo = layout.CellStart.Count > 0 ? layout.CellStart[0] : layout.CellsEnd;
+            int looks = g.Whole(93, new DxfDimGroups.Range(g.Sub.From, headTo), 0);
+            int[] ranks = TailRanks(g, headTo, layout.CellsEnd, out int to);
+            DxfRowType type = RowType(titleAcross && layout.Rows > 1 ? 1 : 0);
+            int rowKind = type == DxfRowType.TitleRow ? 0 : type == DxfRowType.HeaderRow ? 1 : 2;
+            int bit = RowLooks[140] + rowKind;
+            double text = double.NaN;
+            int firstSize = headTo;
+            var headHeights = new List<string>();
+
+            // The table's own before its heights, where AutoCAD 2021 writes them (93 2097152, 140 9.0 for a header of 9), the
+            // heights of the kinds of rows its flags name in their order; after its last cell, where the library reads them.
+            for (int i = g.Sub.From; i < headTo; i++)
+            {
+                firstSize = firstSize == headTo && (g.List[i].Key == 141 || g.List[i].Key == 142) ? i : firstSize;
+
+                if (firstSize == headTo && g.List[i].Key == 140)
+                {
+                    headHeights.Add(g.List[i].Value);
+                }
+            }
+
+            for (int b = RowLooks[140], n = 0; b <= bit; b++)
+            {
+                n += (looks & (1 << b)) != 0 ? 1 : 0;
+
+                if (b == bit && (looks & (1 << b)) != 0 && n <= headHeights.Count && Numbers.TryRead(headHeights[n - 1], out double first) && Guard.IsFinite(first) && first > 0.0)
+                {
+                    text = first;
+                }
+            }
+
+            for (int i = layout.CellsEnd; (looks & (1 << bit)) != 0 && i < to; i++)
+            {
+                if (g.List[i].Key == 140 && ranks[i - layout.CellsEnd] == bit && Numbers.TryRead(g.List[i].Value, out double own) && Guard.IsFinite(own) && own > 0.0)
+                {
+                    text = own;
+                }
+            }
+
+            text = double.IsNaN(text) ? StyleTextHeights()[rowKind] : text;
+            double margin = double.NaN;
+
+            if (!(Numbers.TryRead(g.Text(40, new DxfDimGroups.Range(g.Sub.From, firstSize)), out margin) && Guard.IsFinite(margin) && margin >= 0.0))
+            {
+                margin = TableReal(40, double.NaN);
+            }
+
+            DxfItem style = double.IsNaN(margin) ? StyleItem() : null;
+
+            if (double.IsNaN(margin) && style == null)
+            {
+                margin = Item.File.Database == null || Item.File.Database.Measurement == DxfMeasurementValue.Metric ? 1.5 : 0.06;
+            }
+            else if (double.IsNaN(margin))
+            {
+                bool inStyle = false;
+
+                foreach (DxfTypedValue group in Item.File.ObjectGroupsOf(style))
+                {
+                    inStyle = group.TypeCode == 100 ? group.Value.Trim() == "AcDbTableStyle" : inStyle;
+
+                    if (inStyle && group.TypeCode == 40)
+                    {
+                        margin = Numbers.TryRead(group.Value, out double read) && Guard.IsFinite(read) && read >= 0.0 ? read : double.NaN;
+                        break;
+                    }
+                }
+            }
+
+            double width = text + 2.0 * margin;
+            return Guard.IsFinite(width) && width > 0.0 ? Numbers.Exact(width + 0.0) : null;
         }
 
         #endregion
@@ -1573,6 +1675,29 @@ namespace GeometryHelper.Dxf
 
             internal List<int> CellStart { get; } = new List<int>();
 
+            private int[] _spans;
+
+            /// <summary>
+            /// The width and height in cells (175, 176) of each cell the record holds, row by row, two to a cell, nought where it
+            /// gives none: read once for the layout, as the layout is kept while the record is the same.
+            /// </summary>
+            internal int[] Spans()
+            {
+                if (_spans == null)
+                {
+                    var spans = new int[2 * CellStart.Count];
+
+                    for (int k = 0; k < CellStart.Count; k++)
+                    {
+                        new CellView(Groups, CellStart[k], k + 1 < CellStart.Count ? CellStart[k + 1] : CellsEnd).Spans(out spans[2 * k], out spans[2 * k + 1]);
+                    }
+
+                    _spans = spans;
+                }
+
+                return _spans;
+            }
+
             /// <summary>A cell of the table, its row and column checked.</summary>
             /// <exception cref="ArgumentOutOfRangeException">Thrown when the cell is not one of the table's.</exception>
             internal CellView CellOf(int row, int col)
@@ -1670,6 +1795,24 @@ namespace GeometryHelper.Dxf
 
             internal int Whole(int code, int fallback)
                 => int.TryParse(Head(code)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : fallback;
+
+            /// <summary>The width and height in cells of the block the cell is the top left of (its 175 and 176, nought where it gives none), read in one pass of its head.</summary>
+            internal void Spans(out int width, out int height)
+            {
+                int end = ValueFrom >= 0 ? ValueFrom : To;
+                string wide = null;
+                string high = null;
+
+                for (int i = From; i < end && (wide == null || high == null); i++)
+                {
+                    int key = Groups.List[i].Key;
+                    wide = key == 175 && wide == null ? Groups.List[i].Value : wide;
+                    high = key == 176 && high == null ? Groups.List[i].Value : high;
+                }
+
+                width = int.TryParse(wide?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int w) ? w : 0;
+                height = int.TryParse(high?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int h) ? h : 0;
+            }
 
             /// <summary>The cell's own override of a code, outside its value; null where its flags say it has none, or it has no such group.</summary>
             internal string Override(int code, int bit)
@@ -1964,9 +2107,10 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>
-            /// Gives the cell an override of its own: its group written in place, or put in among its overrides in the order of
-            /// the DXF reference, and its flag set; a cell of no flags given the flags of the overrides it holds, in a group of
-            /// the code given (91 from R2007 on, 177 before).
+            /// Gives the cell an override of its own: its group written in place, wherever it stands outside the cell's value
+            /// (AutoCAD 2021 writes a cell's overrides before its 92, the library after its value), or put in among its overrides
+            /// in the order of the DXF reference, and its flag set; a cell of no flags given the flags of the overrides it holds,
+            /// in a group of the code given (91 from R2007 on, 177 before).
             /// </summary>
             internal void SetOverride(int code, string text, int flagsCode)
             {
@@ -1977,6 +2121,12 @@ namespace GeometryHelper.Dxf
                 int rank = Array.IndexOf(OverrideOrder, code);
                 int at = -1;
                 int after = -1;
+
+                // The group the cell reads its override from, as Override finds it: the first of its code outside its value.
+                for (int i = From + 1; i < start && at < 0; i++)
+                {
+                    at = Groups.List[i].Key == code && (ValueFrom < 0 || i < ValueFrom || i > ValueTo) ? i : at;
+                }
 
                 for (int i = start; i < To; i++)
                 {

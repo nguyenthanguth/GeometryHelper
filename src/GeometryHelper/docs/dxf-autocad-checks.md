@@ -624,6 +624,19 @@ written as AutoCAD reads them now.
     - Now: the cells between `301 CELL_VALUE` and `304 ACVALUE_END`, the overrides in groups 177 and 91, bit k of the flags the
       property 130 + k, grouped by property.
     - AutoCAD 2021: agrees: the cell reads SET, 4 high, red, held at its middle centre.
+    - AutoCAD 2021 (D28b, headless): it writes a cell's overrides before its 92 (`170 5`, `7 GH_TXT`, `140 3.5`) and reads
+      one written after its value too, the last of two (D28 e14); a merge's top left cell `173 0` and its spans (175, 176),
+      the others `173 1`, and reads a merge by the spans alone (g2), not by a `173 1` of no spans (g3); a line of a cell
+      only where the cell's edge flags (172: 1 top, 2 right, 4 bottom, 8 left) name its edge, wherever its group stands,
+      with or without a TABLECONTENT (G1 to G10), and a line between two cells as the top or left of the one below or right
+      (x3, x4). Its new cells of `InsertRows`, `InsertColumns` and `SetSize` it writes `93 7`, `90 0`, read as of no value,
+      those of `InsertRowsAndInherit` `93 5`, `90 4`; the title merged across the table it grows over columns put in first,
+      last or among them, and over those of `SetSize`, a merge of another row moved on (c1 to c8, s1, s2); a column of
+      `SetSize` as wide as the text height of the first row whose new cell is merged with none and the margins either side
+      (7.5 of the header's 4.5 and 1.5; 12 for a header of 9, its own or its style's; 10.5 for margins of 3; 9 of the
+      title's 6 where it is unmerged; s1 to s16); the heights and widths of its TABLECONTENT as reals (`10.0`); a formula's
+      field of a row it takes out out of the TABLECONTENT's list (`92 1`, `360 192` to `92 0`, d1, d2).
+    - Now (D28b): the library writes and reads so; AutoCAD read its files of each (v01 to v14) as its own.
 
 44. **The arrow block of a dimension style.**
     - Try: set `Dimtxsty` and `Dimblk` on a dimension style read from a file and on one made in code, open the drawing and run
@@ -1031,6 +1044,17 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       reads its top left alone: a cell of a range whose TABLECONTENT cell holds no content, or a content of a text, reads
       linked, one of an empty value (93 7) not (s1 to s4); the library's reading is left as it was, to be settled. A text or
       value given to a cell of the flag 1 takes the flags 6 (q1 to q3 read M16, Plain and 5).
+    - AutoCAD 2021 (D28b, headless, hand-made files read and its own edits saved): a cell of a range other than its top left,
+      of the state 0, read linked where its TABLECONTENT cell held no content (p2, s3, L8: no such cell at all), or a
+      content whose checksum disagreed with the cell's text in the ACAD_TABLE (L10, L11, L14), and not linked where it held
+      a content of an agreeing checksum, or of none (L1 to L7, L9, L12: an empty value of 93 1, 5 or 7, a text, an empty
+      text, a number): AutoCAD lays a cell out from the ACAD_TABLE, and links it, where it cannot take the TABLECONTENT's.
+      A cell of the state 4 outside every range read linked with a content whatever its checksum (L13). The record
+      ACDB_RECOMPOSE_DATA listing the table style alone, or nothing, AutoCAD read no link of its 73; listing the table
+      alone, its link (R1 to R3).
+    - Now (D28b): `IsLinked` follows that; the D18 to D21 tests whose fixtures held no content in the range's other cells
+      read them linked. A table ACDB_RECOMPOSE_DATA does not list has no link of its TABLECONTENT, and `SetDataLink` lists it
+      (v11 read linked at both its links).
 
 74. **The groups of a DATALINK.**
     - Try: read the DATALINK of the drawing of point 73; then open in AutoCAD, with AUDIT, a drawing whose DATALINK has no 70

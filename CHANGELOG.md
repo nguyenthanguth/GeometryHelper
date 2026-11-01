@@ -6,6 +6,38 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `DxfTable.IsLinked` reads a cell of a linked range as AutoCAD 2021 does: linked where AutoCAD lays it out
+from the ACAD_TABLE, its TABLECONTENT cell holding no content or one whose checksum disagrees with the cell's text, and
+not where it holds a content of an agreeing checksum. The library's own link over (1, 0) to (2, 1), its cells of no
+content, AutoCAD read linked at all four, where the library read (1, 0) alone; AutoCAD's own, its other cells holding an
+empty value of the checksum of their text, at (1, 0) alone, as before. **CHANGED.** A table the drawing's
+ACDB_RECOMPOSE_DATA does not list has no link of its TABLECONTENT, as AutoCAD read none of its own linked table with
+that record listing its style alone or nothing; `SetDataLink` lists such a table. 4 new tests; 4 tests of D18, D19 and
+D21 whose fixtures held no content read those cells linked now, and the D16 fixture of AutoCAD's linked table lists the
+table in ACDB_RECOMPOSE_DATA, as AutoCAD's did.
+
+**FIXED.** A table's merged cells are read by the spans (175, 176) of each block's top left cell alone, as AutoCAD reads
+them: AutoCAD writes that cell `173 0`, so `GetMergeRange` and `IsMergedCell` read AutoCAD's own title of Parts as no
+merge, and `MergeCells` and the row and column edits did not see it. `GetMergeRange` of every cell of a table of 403
+rows takes 1.7 ms on .NET Framework 4.8, where it took 24. 1 new test.
+
+**FIXED.** An override set on a table cell that has one is written in its place, before the cell's 92 where AutoCAD
+2021 writes its own: `SetTextStyle` of AutoCAD's cell (1, 0) of `7 GH_TXT` wrote a second 7 after its value, which
+AutoCAD read and the library did not, and `SetTextHeight` alike. **FIXED.** `SetGridColor`, `SetGridLineWeight`,
+`SetGridVisibility` and `SetGridProperty` name the edge in the cell's edge flags (172: 1 top, 2 right, 4 bottom, 8 left),
+without which AutoCAD reads no line of a cell, wherever it stands: the bottom of (1, 1) set red read as none, and reads
+red now. 2 new tests.
+
+**CHANGED.** The rows, columns and cells a table's edits make take AutoCAD 2021's forms: a new cell of `InsertRows`,
+`InsertColumns` and `SetSize` holds no value (`93 7`, `90 0`), which AutoCAD reads as none, where it held an empty text;
+one of `InsertRowsAndInherit` the empty value `93 5` of the kind of the cell it inherits. The title merged across the
+table grows over the columns `InsertColumns` puts in first or last, and those of `SetSize`, Parts kept in (0, 0); a merge
+of another row moves on, as before. A column of `SetSize` is as wide as the text height of the first row whose new cell
+is merged with none and the margins either side, 7.5 for AutoCAD's Standard, where it was as wide as the last. The
+TABLECONTENT's heights and widths are written as reals, 10.0, and a formula's field of a row or column taken out goes
+out of its list after the rows and is erased. AutoCAD read the library's file of each as its own. 4 new tests; 4 tests
+of D28 and 4 of `DxfTableStructureTests` changed to these forms.
+
 **NEW.** A dynamic block takes a polar parameter and its polar stretch, as AutoCAD saved ACadSharp's sample of them:
 `AddPolarParameter` gives every INSERT a distance and an angle, and `AddPolarStretchAction` turns the entities it holds
 about the base point as the angle turns, moving the points inside its frame along the line as the distance grows, and

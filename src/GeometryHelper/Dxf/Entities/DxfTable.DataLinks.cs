@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using GeometryHelper.Export;
 
 namespace GeometryHelper.Dxf
 {
@@ -18,7 +19,8 @@ namespace GeometryHelper.Dxf
     /// <c>340 142</c>, <c>93 1</c>, <c>94 1</c>, <c>96 1</c>, and in its ACAD_TABLE no link at all, <c>92 0</c> in every
     /// cell. That is read here, each cell of the TABLECONTENT taken as the table's of its row and column, whatever rows the
     /// TABLECONTENT has: AutoCAD 2021 read the link of (1, 0) of a table given a fourth row by a program that left its
-    /// TABLECONTENT of three as it was (its 73-e), and wrote a TABLECONTENT of four rows when it saved it.
+    /// TABLECONTENT of three as it was (its 73-e), and wrote a TABLECONTENT of four rows when it saved it. A TABLECONTENT is
+    /// read only for a table the drawing's ACDB_RECOMPOSE_DATA lists, as AutoCAD 2021 reads it.
     /// </para>
     /// <para>
     /// The same run straight after the 92 of a cell of the ACAD_TABLE, which the library first guessed, is read as well, as
@@ -45,9 +47,10 @@ namespace GeometryHelper.Dxf
         private List<LinkedRange> _links;
 
         // The cells of the TABLECONTENT whose state has the flag 4 of a linked cell, read with the links: where each state stands;
-        // and those of them that hold a content.
+        // and those of them that hold a content; and where each cell of the TABLECONTENT begins, row by row.
         private Dictionary<(int, int), int> _flagged;
         private HashSet<(int, int)> _filled;
+        private ContentCells _cells;
 
         #region Data links
 
@@ -103,15 +106,19 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets whether a cell is linked to data, as AutoCAD's <c>IsLinked</c>: for a range the TABLECONTENT names, its top left
-        /// cell, which names the link, whatever its state, and any other cell of it whose state in the TABLECONTENT (its 90) has
-        /// the flag 4 of a linked cell; for one named in the cells of the ACAD_TABLE, which AutoCAD reads no link from, every cell
-        /// of it, as <see cref="GetDataLinkRange"/> finds it. AutoCAD 2021 read a range linked over (1, 0) to (2, 1) in the
-        /// TABLECONTENT as linked at (1, 0) and not at (1, 1), (2, 0) or (2, 1), though each of them gave the range and the link
-        /// (its 73-h); with the state 4 given to (2, 1) as well, as linked at (1, 0) and (2, 1) (73-k); and with the state 0 at
-        /// (1, 0), still as linked there (73-l). A cell of the state 4 in no range is linked where it holds a content (its 95
-        /// above nought), with no range and no link: AutoCAD read the title (0, 0) of Parts and (2, 1), a cell of data of no
-        /// text, given it beside a range over (1, 0) to (1, 1) as linked (73-r), and (0, 1), of no content, given it beside the
-        /// range of 73-k, as not (73-m).
+        /// cell, which names the link, whatever its state; any other cell of it whose state in the TABLECONTENT (its 90) has the
+        /// flag 4 of a linked cell; and any other that AutoCAD lays out from the ACAD_TABLE, its cell of the TABLECONTENT holding
+        /// no content (its 95 of nought), or one whose checksum in its custom data (ACAD_ROUNDTRIP_2008_CELL_CHECKSUM) does not
+        /// agree with the cell's text in the ACAD_TABLE, or the TABLECONTENT having no such cell. For a range named in the cells
+        /// of the ACAD_TABLE, which AutoCAD reads no link from, every cell of it, as <see cref="GetDataLinkRange"/> finds it.
+        /// AutoCAD 2021 read the library's link over (1, 0) to (2, 1), its cells of no content, as linked at all four (D28 p2),
+        /// and AutoCAD's own, whose cells (1, 1), (2, 0) and (2, 1) held an empty value of the checksum of their text, as linked
+        /// at (1, 0) alone (73-h); a text, a number or an empty value there, its checksum agreeing, as not linked, and
+        /// disagreeing, as linked (D28b L1 to L14); a cell of the state 4 as linked (73-k), and (1, 0) of the state 0 still as
+        /// linked (73-l). A cell of the state 4 in no range is linked where it holds a content, whatever its checksum, with no
+        /// range and no link: AutoCAD read the title (0, 0) of Parts and (2, 1), a cell of data of no text, given it beside a
+        /// range over (1, 0) to (1, 1) as linked (73-r, L13), and (0, 1), of no content, given it beside the range of 73-k, as
+        /// not (73-m). A table the drawing's ACDB_RECOMPOSE_DATA does not list has no link of its TABLECONTENT.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="column">The column, from nought.</param>
@@ -124,10 +131,54 @@ namespace GeometryHelper.Dxf
 
             if (link != null)
             {
-                return link.Cell == null || (link.TopRow == row && link.LeftColumn == column) || _flagged.ContainsKey((row, column));
+                return link.Cell == null || (link.TopRow == row && link.LeftColumn == column) || _flagged.ContainsKey((row, column)) || !HeldAsWritten(row, column);
             }
 
             return _filled.Contains((row, column));
+        }
+
+        /// <summary>
+        /// Whether AutoCAD takes a cell of the TABLECONTENT as it is written, read with the links: it holds a content, and its
+        /// checksum, where its custom data has one, agrees with the cell's text in the ACAD_TABLE (that of a block cell nought).
+        /// </summary>
+        private bool HeldAsWritten(int row, int column)
+        {
+            if (_cells == null || row >= _cells.At.Count || column >= _cells.At[row].Count)
+            {
+                return false;
+            }
+
+            IReadOnlyList<DxfTypedValue> groups = _cells.Groups;
+            int at = _cells.At[row][column] + 1;
+            string checksum = null;
+
+            while (at < groups.Count && !(groups[at].TypeCode == 309 && (groups[at].Value.Trim() == "DATAMAP_END" || groups[at].Value.Trim() == "LINKEDTABLEDATACELL_END")))
+            {
+                if (groups[at].TypeCode == 300 && groups[at].Value.Trim() == "ACAD_ROUNDTRIP_2008_CELL_CHECKSUM")
+                {
+                    for (int k = at + 1; k < groups.Count && groups[k].TypeCode != 304 && checksum == null; k++)
+                    {
+                        checksum = groups[k].TypeCode == 140 ? groups[k].Value : null;
+                    }
+                }
+
+                at++;
+            }
+
+            if (!HoldsContent(groups, _cells.At[row][column] + 1))
+            {
+                return false;
+            }
+
+            if (checksum == null)
+            {
+                return true;
+            }
+
+            Layout layout = Read();
+            int index = row * layout.Columns + column;
+            string text = index < layout.CellStart.Count && IsTextCell(layout.Groups.List, layout.CellStart[index]) ? DxfReader.Decode(layout.CellAt(row, column).Text()) : string.Empty;
+            return Numbers.TryRead(checksum, out double read) && read == ChecksumOf(text);
         }
 
         /// <summary>
@@ -251,8 +302,10 @@ namespace GeometryHelper.Dxf
         /// it linked it: an XRECORD of ACAD_ROUNDTRIP_2008_TABLE_ENTITY under ACAD_XREC_ROUNDTRIP in its extension dictionary,
         /// the TABLECONTENT of its columns and rows, each cell of no content, the table and its style listed in
         /// ACDB_RECOMPOSE_DATA, without which AutoCAD reads no TABLECONTENT, and the class TABLECONTENT; AutoCAD 2021 read the
-        /// library's link of (1, 0) so made, in R2018 and R2007. A range of several cells so linked AutoCAD reads linked at every
-        /// cell, where <see cref="IsLinked"/> is true at its top left alone.
+        /// library's link of (1, 0) so made, in R2018 and R2007. A range of several cells so linked, its cells of no content,
+        /// AutoCAD reads linked at every cell, as <see cref="IsLinked"/> does. A table whose TABLECONTENT the drawing's
+        /// ACDB_RECOMPOSE_DATA does not list is listed there, the record made where it has none, as AutoCAD reads no link of
+        /// another; the links its TABLECONTENT names read from then on, and a range that meets one is refused.
         /// </summary>
         /// <param name="range">The cells, within the table.</param>
         /// <param name="dataLink">The link, one of the table's drawing.</param>
@@ -279,7 +332,10 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentException("The data link " + dataLink + " is not one of the table's drawing, or is erased.", nameof(dataLink));
             }
 
-            foreach (LinkedRange link in CurrentLinks())
+            // A TABLECONTENT ACDB_RECOMPOSE_DATA does not list is listed with the link, and the links it names then read with it.
+            bool listed = ContentItem() == null || Listed();
+
+            foreach (LinkedRange link in listed ? CurrentLinks() : AllLinks(Read(), unlisted: true))
             {
                 if (LinkObject(link.Handle) == null || !Meets(link.Range, range))
                 {
@@ -339,6 +395,11 @@ namespace GeometryHelper.Dxf
 
             Item.File.ReplaceTail(content, from, tail);
             TieTo(dataLink.Handle, content.Handle);
+
+            if (!listed)
+            {
+                Recompose(StyleHandle());
+            }
         }
 
         /// <summary>
@@ -449,9 +510,11 @@ namespace GeometryHelper.Dxf
             {
                 var flagged = new Dictionary<(int, int), int>();
                 var filled = new HashSet<(int, int)>();
-                _links = AllLinks(layout, flagged, filled);
+                var cells = new ContentCells();
+                _links = AllLinks(layout, flagged, filled, cells);
                 _flagged = flagged;
                 _filled = filled;
+                _cells = cells;
                 _linksOf = layout;
                 _linksEdits = edits;
             }
@@ -463,11 +526,13 @@ namespace GeometryHelper.Dxf
         /// The links of the table, those its TABLECONTENT names and those its cells name, by their top left cells row by row, a
         /// link of the TABLECONTENT before one of the cells at the same cell, then by their bottom right cells and handles; the
         /// cells of the TABLECONTENT whose state has the flag 4 of a linked cell put, with where their states stand, in a
-        /// dictionary where one is given, and those of them holding a content in a set where one is given.
+        /// dictionary where one is given, those of them holding a content in a set where one is given, and where each cell of
+        /// the TABLECONTENT begins in the cells given. The TABLECONTENT of a table ACDB_RECOMPOSE_DATA does not list names none,
+        /// unless asked for whatever it lists.
         /// </summary>
-        private List<LinkedRange> AllLinks(Layout layout, Dictionary<(int, int), int> flagged = null, HashSet<(int, int)> filled = null)
+        private List<LinkedRange> AllLinks(Layout layout, Dictionary<(int, int), int> flagged = null, HashSet<(int, int)> filled = null, ContentCells cells = null, bool unlisted = false)
         {
-            List<LinkedRange> links = ContentLinks(layout, flagged, filled);
+            List<LinkedRange> links = ContentLinks(layout, flagged, filled, cells, unlisted);
             links.AddRange(Links(layout));
             links.Sort((a, b) =>
             {
@@ -785,14 +850,17 @@ namespace GeometryHelper.Dxf
         /// whose TABLECONTENT had three (its 73-e); one past the table's last row or column names none. Each cell whose state
         /// (the 90 after its LINKEDTABLEDATACELL_BEGIN) has the flag 4 of a linked cell is put in <paramref name="flagged"/>, where
         /// it is not null, with where its state stands among the record's groups, and in <paramref name="filled"/> too, where it
-        /// is not null, where it holds a content.
+        /// is not null, where it holds a content; where each cell begins is put in <paramref name="places"/>, where it is not
+        /// null. A table the drawing's ACDB_RECOMPOSE_DATA does not list has none, as AutoCAD 2021 read no link of its own 73
+        /// with that record taken out, or listing its table style alone, or nothing, and read it listing the table alone (D28
+        /// d05, D28b R1 to R3); <paramref name="unlisted"/> reads them whatever the record lists.
         /// </summary>
-        private List<LinkedRange> ContentLinks(Layout layout, Dictionary<(int, int), int> flagged, HashSet<(int, int)> filled = null)
+        private List<LinkedRange> ContentLinks(Layout layout, Dictionary<(int, int), int> flagged, HashSet<(int, int)> filled = null, ContentCells places = null, bool unlisted = false)
         {
             var links = new List<LinkedRange>();
             DxfItem content = IsResident ? ContentItem() : null;
 
-            if (content == null)
+            if (content == null || (!unlisted && !Listed()))
             {
                 return links;
             }
@@ -800,6 +868,11 @@ namespace GeometryHelper.Dxf
             IReadOnlyList<DxfTypedValue> groups = Item.File.GroupsOf(content);
             var cells = new List<ContentCell>();
             var widths = new List<int>();
+
+            if (places != null)
+            {
+                places.Groups = groups;
+            }
 
             for (int i = 0; i < groups.Count; i++)
             {
@@ -813,11 +886,13 @@ namespace GeometryHelper.Dxf
                 if (marker == "LINKEDTABLEDATAROW_BEGIN")
                 {
                     widths.Add(0);
+                    places?.At.Add(new List<int>());
                 }
                 else if (marker == "LINKEDTABLEDATACELL_BEGIN" && widths.Count > 0)
                 {
                     int row = widths.Count - 1;
                     int column = widths[row]++;
+                    places?.At[row].Add(i);
 
                     if (flagged != null && i + 1 < groups.Count && groups[i + 1].TypeCode == 90
                         && int.TryParse(groups[i + 1].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int state) && (state & 4) != 0)
@@ -945,6 +1020,46 @@ namespace GeometryHelper.Dxf
             long wide = wideAt < next && groups[wideAt].TypeCode == 94 ? Count(groups[wideAt].Value) : 1;
             cells.Add(new ContentCell(row, column, flagAt, at, next - at - 1, groups[at + 1].Value.Trim(), rows, wide));
             return end;
+        }
+
+        /// <summary>
+        /// Whether the drawing's ACDB_RECOMPOSE_DATA, an XRECORD of its named object dictionary, lists the table among its 330s,
+        /// as AutoCAD 2021 lists every table it keeps a TABLECONTENT for and reads the TABLECONTENT of no other.
+        /// </summary>
+        private bool Listed()
+        {
+            DxfFile file = Item.File;
+            DxfDBDictionary root = file.Database?.NamedObjectsDictionary;
+            DxfDBObject held = root != null && root.Contains("ACDB_RECOMPOSE_DATA") ? root.GetAt("ACDB_RECOMPOSE_DATA") : null;
+
+            if (held == null || held.Item.Type != "XRECORD")
+            {
+                return false;
+            }
+
+            bool own = false;
+
+            foreach (DxfTypedValue group in file.GroupsOf(held.Item))
+            {
+                if (group.TypeCode == 100)
+                {
+                    own = group.Value.Trim() == "AcDbXrecord";
+                }
+                else if (own && group.TypeCode == 330 && string.Equals(group.Value.Trim(), Handle, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>The cells of a TABLECONTENT as read with its links: its groups, and where each cell begins, row by row.</summary>
+        private sealed class ContentCells
+        {
+            internal IReadOnlyList<DxfTypedValue> Groups { get; set; }
+
+            internal List<List<int>> At { get; } = new List<List<int>>();
         }
 
         /// <summary>

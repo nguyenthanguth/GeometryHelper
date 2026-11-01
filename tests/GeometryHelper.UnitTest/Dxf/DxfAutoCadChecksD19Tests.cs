@@ -61,14 +61,15 @@ namespace GeometryHelper.UnitTest.Dxf
         public void ACellOfALinkedRangeWithTheFlag4InItsState_IsLinked_ThoughNotTheRangesTopLeft()
         {
             // Plugin v11, 73k: AutoCAD 2021 read the library's link over (1, 0) to (2, 1), its TABLECONTENT's cell (2, 1) given the
-            // state 4 too, as linked at (1, 0) and (2, 1), not at (1, 1) or (2, 0); every cell of the range gave it and the link 142.
+            // state 4 too, as linked at (1, 0) and (2, 1), not at (1, 1) or (2, 0), which held an empty value of the checksum of
+            // their text; every cell of the range gave it and the link 142. Here (1, 1) and (2, 0) hold no content: linked (D28b).
             DxfDatabase db = LinkedWithState(2, 1, "4");
 
             foreach (DxfTable read in new[] { Table(db), Table(DxfDatabase.Parse(db.ToText())) })
             {
                 Assert.True(read.IsLinked(1, 0));
-                Assert.False(read.IsLinked(1, 1));
-                Assert.False(read.IsLinked(2, 0));
+                Assert.True(read.IsLinked(1, 1));
+                Assert.True(read.IsLinked(2, 0));
                 Assert.True(read.IsLinked(2, 1));
                 Assert.False(read.IsLinked(0, 0));
 
@@ -84,14 +85,15 @@ namespace GeometryHelper.UnitTest.Dxf
         public void TheTopLeftCellOfALinkedRange_IsLinked_WithNoFlag4InItsState()
         {
             // Plugin v11, 73l: the range's top left cell (1, 0) of the state 0, its link run kept, AutoCAD 2021 still read as
-            // linked, and (1, 0) alone; every cell of the range gave it.
+            // linked, and (1, 0) alone, the others holding an empty value of the checksum of their text; every cell of the range
+            // gave it. Here the others hold no content: linked (D28b).
             DxfDatabase db = LinkedWithState(1, 0, "0");
             DxfTable table = Table(db);
 
             Assert.True(table.IsLinked(1, 0));
-            Assert.False(table.IsLinked(1, 1));
-            Assert.False(table.IsLinked(2, 0));
-            Assert.False(table.IsLinked(2, 1));
+            Assert.True(table.IsLinked(1, 1));
+            Assert.True(table.IsLinked(2, 0));
+            Assert.True(table.IsLinked(2, 1));
             Assert.Equal(new DxfCellRange(1, 0, 2, 1), table.GetDataLinkRange(2, 1));
         }
 

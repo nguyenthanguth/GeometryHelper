@@ -157,7 +157,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
             string saved = db.ToText();
             var rows = new List<string>(before.Rows);
-            rows.Insert(1, Row(3, "10", Cell(), Cell()));
+            rows.Insert(1, Row(3, "10.0", Cell(), Cell()));
             Assert.Equal(Content(before.Head, before.Columns, rows, Tail("126", new[] { 0, 0, 0, 1 })), Record(saved, "B03"));
             DxfTable again = Table(DxfDatabase.Parse(saved));
             Assert.False(again.IsLinked(1, 0));
@@ -177,7 +177,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Table(below).InsertRows(2, 10.0, 1);
 
             var rows = new List<string>(before.Rows);
-            rows.Insert(2, Row(3, "10", Cell(), Cell()));
+            rows.Insert(2, Row(3, "10.0", Cell(), Cell()));
             Assert.Equal(Content(before.Head, before.Columns, rows, Tail("126", new[] { 0, 0, 0, 1 })), Record(below.ToText(), "B03"));
             Assert.True(Table(below).IsLinked(1, 0));
 
@@ -185,7 +185,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Table(above).InsertRows(0, 10.0, 1);
 
             rows = new List<string>(before.Rows);
-            rows.Insert(0, Row(3, "10", Cell(), Cell()));
+            rows.Insert(0, Row(3, "10.0", Cell(), Cell()));
             Assert.Equal(Content(before.Head, before.Columns, rows, Tail("126", new[] { 1, 0, 1, 1 })), Record(above.ToText(), "B03"));
             Assert.True(Table(above).IsLinked(2, 0));
         }
@@ -211,7 +211,8 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AColumnPutInBeforeTheLinkedCell_MovesTheLinkAColumnOn_AndAColumnTakenOutTakesItsCells()
         {
-            // D28 b15: InsertColumns(0, 20, 1), a column 20 wide first, an empty cell first in every row, the link in (1, 1);
+            // D28 b15: InsertColumns(0, 20, 1), a column 20.0 wide first, an empty cell first in every row, the link in (1, 1),
+            // the title grown over the three columns (D28b c1);
             // b05: DeleteColumns(0, 1), the first cell of every row gone, and with it the link of (1, 0).
             string text = Linked();
             var before = Parts(Record(text, "B03"));
@@ -220,9 +221,9 @@ namespace GeometryHelper.UnitTest.Dxf
 
             string saved = db.ToText();
             var after = Parts(Record(saved, "B03"));
-            Assert.Equal(new[] { Column("20") }.Concat(before.Columns), after.Columns);
+            Assert.Equal(new[] { Column("20.0") }.Concat(before.Columns), after.Columns);
             Assert.All(after.Rows, r => Assert.StartsWith(G(301, "ROW") + G(1, "LINKEDTABLEDATAROW_BEGIN") + G(90, "3") + Cell(), r, StringComparison.Ordinal));
-            Assert.Equal(Tail("126", new[] { 0, 1, 0, 2 }), after.Tail);
+            Assert.Equal(Tail("126", new[] { 0, 0, 0, 2 }), after.Tail);
             DxfTable again = Table(DxfDatabase.Parse(saved));
             Assert.True(again.IsLinked(1, 1));
             Assert.False(again.IsLinked(1, 0));
@@ -240,7 +241,7 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void ATableGivenAnotherSize_HasATableContentOfThatSize()
         {
-            // D28 b11: AutoCAD 2021's SetSize(4, 3) wrote a fourth row of data as high as the last and a third column.
+            // D28 b11: AutoCAD 2021's SetSize(4, 3) wrote a fourth row of data as high as the last and a third column, 7.5 wide.
             string text = Linked();
             var before = Parts(Record(text, "B03"));
             DxfDatabase db = DxfDatabase.Parse(text);
@@ -248,7 +249,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
             var after = Parts(Record(db.ToText(), "B03"));
             Assert.Equal(3, after.Columns.Count);
-            Assert.Equal(Column("30.0"), after.Columns[2]);
+            Assert.Equal(Column("7.5"), after.Columns[2]);
             Assert.Equal(4, after.Rows.Count);
             Assert.Equal(Row(3, "8.0", Cell(), Cell(), Cell()), after.Rows[3]);
             Assert.True(Table(db).IsLinked(1, 0));

@@ -136,9 +136,12 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Sets the colour of lines of a cell, as AutoCAD's <c>SetGridColor(row, column, gridLineType, color)</c>: the cell's own
         /// of each edge the lines name (top 69, right 65, bottom 66, left 68), of the index, its flag (0x40 to 0x200) set in its
-        /// 177 (91 from R2007 on); <see cref="DxfGridLineType.OuterGridLines"/> gives all four, the lines inside, a block's,
-        /// none of a cell alone. The edge of the cell beside it, which AutoCAD draws on the same line, is left as it is. The
-        /// block AutoCAD drew the table with is not drawn anew.
+        /// 177 (91 from R2007 on), and the edge in the cell's edge flags (172: 1 top, 2 right, 4 bottom, 8 left), without which
+        /// AutoCAD 2021 reads no line of a cell, wherever its group stands: the bottom of (1, 1) set red, 172 4 and 66 1;
+        /// <see cref="DxfGridLineType.OuterGridLines"/> gives all four, the lines inside, a block's, none of a cell alone. The
+        /// edge of the cell beside it, which AutoCAD draws on the same line, is left as it is: AutoCAD writes a line between two
+        /// cells as the top or the left of the cell below or right of it, and reads it from either. The block AutoCAD drew the
+        /// table with is not drawn anew.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="column">The column, from nought.</param>
@@ -169,7 +172,7 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Sets whether lines of a cell are drawn, as AutoCAD's <c>SetGridVisibility(row, column, gridLineType, visibility)</c>:
         /// the cell's own of each edge the lines name (top 289, right 285, bottom 286, left 288), 1 drawn and 0 not, its flag
-        /// (0x4000 to 0x20000) set.
+        /// (0x4000 to 0x20000) set and the edge in the cell's edge flags (172), as <see cref="SetGridColor(int, int, DxfGridLineType, DxfColor)"/>.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="column">The column, from nought.</param>
@@ -444,8 +447,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Writes the edges of the cells of a block that its lines name: each the cell's own override of each property given
-        /// (its colour, lineweight, showing; null for one not given) with its flag, where it differs; every cell changed copied
-        /// apart and the record written once.
+        /// (its colour, lineweight, showing; null for one not given) with its flag, where it differs, and the edge in the cell's
+        /// edge flags (172), where they do not name it; every cell changed copied apart and the record written once.
         /// </summary>
         private void SetLines(DxfCellRange range, DxfGridLineType lines, string[] texts, string parameter, string rangeParameter)
         {
@@ -490,18 +493,38 @@ namespace GeometryHelper.Dxf
                         }
 
                         applies = true;
+                        int edgeBit = 1 << edge;
 
                         for (int kind = 0; kind < 3; kind++)
                         {
                             int code = EdgeCodes[kind][edge];
 
-                            if (texts[kind] == null || SameWhole(cell.Override(code, Layout.CellOverrides[code]), texts[kind]))
+                            if (texts[kind] == null)
+                            {
+                                continue;
+                            }
+
+                            bool same = SameWhole(cell.Override(code, Layout.CellOverrides[code]), texts[kind]);
+
+                            if (same && (cell.Whole(172, 0) & edgeBit) != 0)
                             {
                                 continue;
                             }
 
                             apart = apart ?? View(Slice(cell));
-                            apart.SetOverride(code, texts[kind], flagsCode);
+
+                            if (!same)
+                            {
+                                apart.SetOverride(code, texts[kind], flagsCode);
+                            }
+
+                            // AutoCAD reads a line of a cell only where the cell's edge flags (172) name its edge.
+                            int edgeFlags = apart.Whole(172, 0);
+
+                            if ((edgeFlags & edgeBit) == 0)
+                            {
+                                apart.SetHead(172, (edgeFlags | edgeBit).ToString(CultureInfo.InvariantCulture));
+                            }
                         }
                     }
 

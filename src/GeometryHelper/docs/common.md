@@ -1986,7 +1986,9 @@ override with its flag in the cell's 177 (91 from R2007 on), in the order the DX
 `SetTextHeight`, `SetTextStyle`, `SetContentColor`, `SetBackgroundColor` (a colour of the index, BYLAYER or BYBLOCK; a
 true colour refused) and `SetBackgroundColorNone`; `SetTextRotation` and `SetRotation` write a cell's turn (145),
 `SetAutoScale` a block cell's fitting (174), and `SetCellType` makes a block cell a text cell, its block and attribute
-values taken out. `GetOverrides` gives what a cell holds of its own as AutoCAD's `CellProperties`, `SetOverrides` keeps
+values taken out. An override the cell has already is written in its place, before the cell's 92 where AutoCAD 2021
+writes its own (`170 5`, `7 GH_TXT`, `140 3.5`): `SetTextStyle` of such a cell wrote a second 7 after its value, which
+AutoCAD read and the library did not. `GetOverrides` gives what a cell holds of its own as AutoCAD's `CellProperties`, `SetOverrides` keeps
 those given and takes the rest away, so that the cell takes them from its table style, `RemoveAllOverrides` takes them
 all, both keeping the cell's own kind of value (its flag 0x40000), for which the library knows no groups; and
 `TableStyleOverrides` and `ClearTableStyleOverrides` read and take away the table's own (its flags 93 to 96 and the
@@ -2009,21 +2011,30 @@ groups after the last cell the DXF reference lists without their order.
 
 A table's structure changes as AutoCAD's does, each change written in one writing of its record, its block left for
 AutoCAD to draw anew. `InsertRows(row, height, rows)` and `InsertColumns(col, width, columns)` put in rows and columns
-of empty text cells, written in the form of the file (text in 1 before R2007, in a `301 CELL_VALUE` from R2007 on), with
+of empty text cells, written in the form of the file (text in 1 before R2007, from R2007 on a `301 CELL_VALUE` of no
+value, `93 7` and `90 0`, as AutoCAD 2021 writes a new cell and reads as of no value), with
 their counts (91, 92) and heights and widths (141, 142): the table of rows 10, 8 and 8 given two rows 6 high before its
 row 2 has rows 10, 8, 6, 6 and 8, and a column 25 wide put in before its column 1 grows the title merged across it to
-three columns. `InsertRowsAndInherit` and `InsertColumnsAndInherit` give the new cells the look of a row or column (the
-overrides with their flags, the turn, and from R2007 on the unit and format of the value), not its content. `DeleteRows`
+three columns; so does one put in before column 0 or after the last, Parts kept in (0, 0), as AutoCAD 2021 grows a
+title merged across the table, where a merge of another row moves on with its columns. `InsertRowsAndInherit` and
+`InsertColumnsAndInherit` give the new cells the look of a row or column (the overrides with their flags, the turn, and
+from R2007 on the kind, unit and format of the value, its empty value `93 5` as AutoCAD writes it), not its content. `DeleteRows`
 and `DeleteColumns` take them out, a block of merged cells shrunk to what is left of it and unmerged where one cell is
 left, its top left cell's content and look moved to the first cell of it left where its top row or first column goes,
 and `SetSize(numRows, numCols)` cuts or carries on the table from its bottom and right, the new rows as high as the
-last; `CanInsertRow`, `CanInsertColumn`, `CanDeleteRows` and `CanDeleteColumns` say whether they can, one row and one
+last and the new columns as wide as AutoCAD 2021 makes them, the text height of the first row whose new cell is merged
+with none and the margins either side: the header's 4.5 and 1.5 of AutoCAD's Standard, 7.5, under a title merged across
+the table, which grows over them; the title's 6, 9 wide, where it is unmerged; `CanInsertRow`, `CanInsertColumn`, `CanDeleteRows` and `CanDeleteColumns` say whether they can, one row and one
 column at least kept. 16 000 rows go in or out in about 0.3 s on .NET 10, as one setter of a cell takes.
 `MergeCells(range)` marks each cell of the range merged (173 of 1) and gives its top left cell the width and height of
 the block (175, 176), a block within the range taken into it and one across its edge refused, and `UnmergeCells` takes
-back each block the range meets. The edges of a cell are its own overrides: `SetGridColor(row, column, gridLineType,
+back each block the range meets. A block is read from those spans of its top left cell alone, as AutoCAD 2021 reads
+it: AutoCAD writes that cell `173 0` and the others of the block `173 1`, and read a `173 1` in a cell of no spans as no
+merge. The edges of a cell are its own overrides: `SetGridColor(row, column, gridLineType,
 color)`, `SetGridLineWeight`, `SetGridVisibility` and `SetGridProperty` write its top, right, bottom and left colours
-(69, 65, 66, 68), lineweights (279, 275, 276, 278) and showing (289, 285, 286, 288) with their flags, and
+(69, 65, 66, 68), lineweights (279, 275, 276, 278) and showing (289, 285, 286, 288) with their flags, and the edge in
+the cell's edge flags (172: 1 top, 2 right, 4 bottom, 8 left), without which AutoCAD 2021 reads no line of a cell
+wherever its group stands, and
 `SetGridProperty(range, ...)` the lines of a block, those inside on the cells either side of each line; the cell beside
 one is left as it is. `GetGridColor`, `GetGridLineWeight`, `GetGridVisibility`, `GetGridProperty` and `GridColor(row,
 col, edge)` read a cell's own, null where it has none. `GridColor(gridlineType, rowType)` and its setter
@@ -2061,9 +2072,14 @@ which the table's extension dictionary holds under ACAD_XREC_ROUNDTRIP through a
 ACAD_ROUNDTRIP_2008_TABLE_ENTITY: the range's top left cell there has its 92 odd after its custom data, then the
 DATALINK's handle (340), the range's rows (93) and columns (94) and a 96, and its state (90) the flag 4 of a linked cell;
 the ACAD_TABLE's own cells name no link. `GetDataLink` and `GetDataLinkRange` read it from every cell of the range, and
-`IsLinked` is true at its top left cell, whatever its state, and at any other cell of it whose state in the TABLECONTENT
-has the flag 4, as AutoCAD 2021 read the library's range (1, 0) to (2, 1) linked at (1, 0) and not at (1, 1), (2, 0) or
-(2, 1), each of which gave the range and the link, and linked at (2, 1) too once its state was given the flag 4; a cell of
+`IsLinked` is true at its top left cell, whatever its state, at any other cell of it whose state in the TABLECONTENT
+has the flag 4, and at any other AutoCAD lays out from the ACAD_TABLE: its cell of the TABLECONTENT holding no content,
+or one whose checksum disagrees with the cell's text in the ACAD_TABLE. AutoCAD 2021 read its own range (1, 0) to (2, 1),
+whose other cells held an empty value of the checksum of their text, linked at (1, 0) alone, each cell giving the range
+and the link, and at (2, 1) too once its state was given the flag 4; the library's range of cells of no content it read
+linked at all four; a text, a number or an empty value of an agreeing checksum not linked, of a disagreeing one linked. A
+table the drawing's ACDB_RECOMPOSE_DATA does not list has no link of its TABLECONTENT, as AutoCAD read none of its own
+73 with that record listing its style alone or nothing, and `SetDataLink` lists it; a cell of
 the flag 4 in no range is linked where it holds a content (its 95 above nought), with no range and no link, as AutoCAD read
 the title (0, 0) of Parts and a cell of data (2, 1) of no text given it beside a range over (1, 0) to (1, 1), and not
 where it holds none, as AutoCAD read (0, 1) given it beside the range of (1, 0) to (2, 1); a cell of the TABLECONTENT is taken as the
@@ -2079,8 +2095,8 @@ of its 73 one: an XRECORD of ACAD_ROUNDTRIP_2008_TABLE_ENTITY under ACAD_XREC_RO
 dictionary, the TABLECONTENT of the table's columns and rows, each cell of no content and of the checksum of its text, its
 merged cells and its style, the table and its style listed in ACDB_RECOMPOSE_DATA, without which AutoCAD reads no
 TABLECONTENT at all, and the class TABLECONTENT; no TABLEGEOMETRY, as AutoCAD read its own 73 without one. AutoCAD 2021
-read the library's link of (1, 0) so made, in R2018 and R2007; a range of more cells it read linked at every cell of no
-content in the TABLECONTENT, where the library reads its top left alone. A drawing before R2007 holds no TABLECONTENT,
+read the library's link of (1, 0) so made, in R2018 and R2007, and a range of more cells linked at every cell, as the
+library reads it. A drawing before R2007 holds no TABLECONTENT,
 and its table is not linked. `RemoveDataLink` takes the links
 away as AutoCAD 2021's does: the TABLECONTENT's cell made unlinked in place (92 even, the run out, the flag 4 cleared from
 it and from every other cell of its range, as AutoCAD read a cell of the range left with it as linked with no range and
@@ -2091,9 +2107,11 @@ out of the TABLECONTENT too, as AutoCAD 2021's own `InsertRows`, `DeleteRows`, `
 from the TABLECONTENT, cell by cell, so a row put in above AutoCAD's link at (1, 0) left in a TABLECONTENT of the old rows
 was read linked at the new row, and a row of data moved up into the header's place read as a header. Each new row is one
 of data of empty cells (of the style of the row whose look it takes with `InsertRowsAndInherit`), each new column of the
-width given; a link moves with its cell and grows or shrinks as the table's merged cells do, and goes with its cell, its
-DATALINK then no longer tied to the TABLECONTENT, the table kept among its targets, as AutoCAD wrote it (`94 1`,
-`330 F6`). The merged cells the TABLECONTENT lists move with its rows, and `MergeCells` and `UnmergeCells` list them so,
+width given, the heights and widths written as reals (`40 10.0`) as AutoCAD writes them; a link moves with its cell and
+grows or shrinks as the table's merged cells do, and goes with its cell, its DATALINK then no longer tied to the
+TABLECONTENT, the table kept among its targets, as AutoCAD wrote it (`94 1`, `330 F6`); a field a cell taken out held
+(AutoCAD's formula of a linked cell) goes out of the list after the rows (`92 1`, `360 192` comes out `92 0`) and is
+erased where nothing left holds it. The merged cells the TABLECONTENT lists move with its rows, and `MergeCells` and `UnmergeCells` list them so,
 though AutoCAD reads a table's merges, as its text, values and formats, from the ACAD_TABLE. A TABLECONTENT of fewer rows
 than its table, as a program left one, gets no row past its last, and one past the table's last row or column names
 none. The library reads no

@@ -105,7 +105,8 @@ namespace GeometryHelper.Dxf
         /// Puts rows in that take the look of another, as AutoCAD's <c>InsertRowsAndInherit</c>: as <see cref="InsertRows"/>, the
         /// rows of the height of the row given, and each cell of them an empty text cell with the look the cell of that row in
         /// its column holds of its own: its overrides with their flags (177, or 91 from R2007 on), its turn (145), and from
-        /// R2007 on the unit (94) and format (300) of its value; not its content, nor its merging. In the TABLECONTENT the new
+        /// R2007 on the kind (90), unit (94) and format (300) of its value, the value the empty one of the flags 5 AutoCAD 2021
+        /// wrote; not its content, nor its merging. In the TABLECONTENT the new
         /// rows take that row's style, a row of data from a row of data, as AutoCAD 2021 wrote them.
         /// </summary>
         /// <param name="index">The row the new ones go before, from nought; <see cref="NumRows"/> for after the last.</param>
@@ -149,8 +150,10 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Puts columns in, as AutoCAD's <c>InsertColumns</c>: as many columns as asked, of the width given, before a column
         /// (after the last for <see cref="NumColumns"/>), as <see cref="InsertRows"/> puts rows in, the count (92) and the
-        /// widths (142) written with them; the title merged across the columns grows by those put in among them. The table of
-        /// columns 40 and 30 given one 25 wide before its column 1 has columns 40, 25 and 30, its title merged across the three.
+        /// widths (142) written with them; the title merged across every column grows by those put in, first, last or among
+        /// them, its text kept in its first cell, as AutoCAD 2021's <c>InsertColumns</c> grew it, where a merge of another row
+        /// moves on with its columns. The table of columns 40 and 30 given one 25 wide before its column 1 has columns 40, 25
+        /// and 30, its title merged across the three; given one before its column 0, Parts still in (0, 0) across the three.
         /// </summary>
         /// <param name="col">The column the new ones go before, from nought; <see cref="NumColumns"/> for after the last.</param>
         /// <param name="width">The width of each, a finite number above nought.</param>
@@ -204,11 +207,14 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gives the table a number of rows and of columns, as AutoCAD's <c>SetSize</c>: rows and columns taken out from the
-        /// bottom and the right, or put in there, each new row as high as the last row and each new column as wide as the last
-        /// column, of empty text cells; blocks of merged cells and ranges linked to data cut where they reach past the new size,
-        /// in the TABLECONTENT too, as <see cref="InsertRows"/> and <see cref="DeleteRows"/> write it. Nothing is written where
-        /// the table is of that size. The table of 3 rows and 2 columns given 5 and 2 has two more rows
-        /// 8 high.
+        /// bottom and the right, or put in there, each new row as high as the last row and each new column as wide as AutoCAD
+        /// 2021 made one, the text height of its first row whose new cell is merged with none (the header, where the title is
+        /// merged across the table) and the margins either side of a cell's content (7.5 for AutoCAD's Standard, 4.5 and 1.5;
+        /// 9 where the title is unmerged, its 6), of empty text cells; the title merged across every column grows over the new ones; blocks
+        /// of merged cells and ranges linked to data cut where they reach past the new size, in the TABLECONTENT too, as
+        /// <see cref="InsertRows"/> and <see cref="DeleteRows"/> write it. Nothing is written where the table is of that size.
+        /// The table of 3 rows and 2 columns given 5 and 2 has two more rows 8 high; given 3 and 3, a column 7.5 wide, its title
+        /// across the three.
         /// </summary>
         /// <param name="numRows">The number of rows, one or more.</param>
         /// <param name="numCols">The number of columns, one or more.</param>
@@ -230,6 +236,15 @@ namespace GeometryHelper.Dxf
             int columns = layout.Columns;
             List<string> heights = Sizes(layout, layout.RowAt, numRows);
             List<string> widths = Sizes(layout, layout.ColumnAt, numCols);
+            List<DxfCellRange> found = Blocks(layout);
+            bool title = numCols > columns && TitleAcross(found, columns);
+            string width = numCols > columns ? NewColumnWidth(layout, title) : null;
+
+            for (int c = columns; width != null && c < numCols; c++)
+            {
+                widths[c] = width;
+            }
+
             bool valued = Item.File.Supports(1021);
             var cells = new List<KeyValuePair<int, string>>[numRows * numCols];
 
@@ -243,11 +258,11 @@ namespace GeometryHelper.Dxf
 
             var blocks = new List<DxfCellRange>();
 
-            foreach (DxfCellRange b in Blocks(layout))
+            foreach (DxfCellRange b in found)
             {
                 if (b.TopRow < numRows && b.LeftColumn < numCols)
                 {
-                    AddBlock(blocks, b.TopRow, b.LeftColumn, Math.Min(b.BottomRow, numRows - 1), Math.Min(b.RightColumn, numCols - 1));
+                    AddBlock(blocks, b.TopRow, b.LeftColumn, Math.Min(b.BottomRow, numRows - 1), title && IsTitle(b, columns) ? numCols - 1 : Math.Min(b.RightColumn, numCols - 1));
                 }
             }
 
@@ -273,7 +288,7 @@ namespace GeometryHelper.Dxf
                 }
                 else
                 {
-                    ContentInserted(false, columns, numCols - columns, widths[columns], -1);
+                    ContentInserted(false, columns, numCols - columns, widths[columns], -1, title ? columns : 0);
                 }
             }
         }
@@ -329,9 +344,18 @@ namespace GeometryHelper.Dxf
             }
 
             var blocks = new List<DxfCellRange>();
+            List<DxfCellRange> found = Blocks(layout);
+            bool title = !rowsOf && TitleAcross(found, columns);
 
-            foreach (DxfCellRange b in Blocks(layout))
+            foreach (DxfCellRange b in found)
             {
+                // The title merged across the table grows by the columns put in wherever they go, its text kept first.
+                if (title && IsTitle(b, columns))
+                {
+                    AddBlock(blocks, 0, 0, 0, newColumns - 1);
+                    continue;
+                }
+
                 int first = rowsOf ? b.TopRow : b.LeftColumn;
                 int last = rowsOf ? b.BottomRow : b.RightColumn;
                 int newFirst = at <= first ? first + count : first;
@@ -339,9 +363,25 @@ namespace GeometryHelper.Dxf
                 AddBlock(blocks, rowsOf ? newFirst : b.TopRow, rowsOf ? b.LeftColumn : newFirst, rowsOf ? newLast : b.BottomRow, rowsOf ? b.RightColumn : newLast);
             }
 
+            if (title && at == 0)
+            {
+                List<KeyValuePair<int, string>> put = cells[0];
+                cells[0] = cells[count];
+                cells[count] = put;
+            }
+
             Rebuild(layout, newRows, newColumns, heights, widths, cells, blocks, LinksInserted(layout, rowsOf, at, count));
-            ContentInserted(rowsOf, at, count, size, inheritFrom);
+            ContentInserted(rowsOf, at, count, size, inheritFrom, title ? columns : 0);
         }
+
+        /// <summary>
+        /// Whether the table's title is merged across all its columns, one of its blocks given over its first row: a title AutoCAD 2021 grew
+        /// by the columns its <c>InsertColumns</c> put in first, last or among them, and its <c>SetSize</c> put in, where a merge
+        /// of another row it moved on (D28b c1 to c8, s1, s2); a title unmerged it left so.
+        /// </summary>
+        private bool TitleAcross(List<DxfCellRange> blocks, int columns) => blocks.Exists(b => IsTitle(b, columns)) && !IsTitleSuppressed;
+
+        private static bool IsTitle(DxfCellRange b, int columns) => b.TopRow == 0 && b.BottomRow == 0 && b.LeftColumn == 0 && b.RightColumn == columns - 1;
 
         /// <summary>Takes rows (or columns) out from a place, and writes the record anew.</summary>
         private void DeleteLines(Layout layout, bool rowsOf, int at, int count)
@@ -1353,17 +1393,18 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// A cell's groups with its merging as asked: merged or not (173), and as the top left of a block its width and height in
         /// cells (175, 176), 0 and 0 for the rest; the groups as they are where the cell reads so already, a cell of 173 of 1 and
-        /// 175 and 176 of 1 among a block's cells as AutoCAD's own as one of 0 and 0.
+        /// 175 and 176 of 1 among a block's cells as AutoCAD's own as one of 0 and 0, and a top left cell of the spans asked
+        /// whatever its 173, as AutoCAD writes its own 173 0.
         /// </summary>
         private static List<KeyValuePair<int, string>> Merged(List<KeyValuePair<int, string>> groups, int merged, int width, int height)
         {
             int nowMerged = HeadWhole(groups, 173);
             int nowWidth = HeadWhole(groups, 175);
             int nowHeight = HeadWhole(groups, 176);
-            bool cornerNow = nowMerged != 0 && (nowWidth > 1 || nowHeight > 1);
+            bool cornerNow = nowWidth > 1 || nowHeight > 1;
             bool corner = width > 1 || height > 1;
 
-            if (corner ? nowMerged != 0 && Math.Max(1, nowWidth) == width && Math.Max(1, nowHeight) == height : !cornerNow && (nowMerged != 0) == (merged != 0))
+            if (corner ? Math.Max(1, nowWidth) == width && Math.Max(1, nowHeight) == height : !cornerNow && (nowMerged != 0) == (merged != 0))
             {
                 return groups;
             }
@@ -1404,9 +1445,9 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// The blocks of merged cells of the table, row by row by their top left cells: each cell merged (173) of a width or a
-        /// height (175, 176) above one, as <see cref="GetMergeRange"/> reads it, cut at the table's last row and column; one that
-        /// meets a block found before it is left out.
+        /// The blocks of merged cells of the table, row by row by their top left cells: each cell of a width or a height (175,
+        /// 176) above one, whatever its 173, as <see cref="GetMergeRange"/> reads it, cut at the table's last row and column; one
+        /// that meets a block found before it is left out.
         /// </summary>
         private static List<DxfCellRange> Blocks(Layout layout)
         {
@@ -1417,15 +1458,14 @@ namespace GeometryHelper.Dxf
             {
                 for (int c = 0; c < layout.Columns; c++)
                 {
-                    CellView cell = layout.CellAt(r, c);
-
-                    if (covered[r * layout.Columns + c] || cell.Whole(173, 0) == 0)
+                    if (covered[r * layout.Columns + c])
                     {
                         continue;
                     }
 
-                    int width = Math.Max(1, cell.Whole(175, 0));
-                    int height = Math.Max(1, cell.Whole(176, 0));
+                    layout.CellAt(r, c).Spans(out int wide, out int high);
+                    int width = Math.Max(1, wide);
+                    int height = Math.Max(1, high);
                     int bottom = (int)Math.Min(layout.Rows - 1, (long)r + height - 1);
                     int right = (int)Math.Min(layout.Columns - 1, (long)c + width - 1);
 
@@ -1521,7 +1561,9 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// An empty text cell that takes its look from the table style, as AutoCAD writes one: before R2007 its text in 1, from
-        /// R2007 on its value of an empty text between <c>301 CELL_VALUE</c> and <c>304 ACVALUE_END</c>.
+        /// R2007 on its value of none between <c>301 CELL_VALUE</c> and <c>304 ACVALUE_END</c>, of the flags 7 and the kind 0 and
+        /// no data, as AutoCAD 2021 wrote the new cells of its <c>InsertRows</c>, <c>InsertColumns</c> and <c>SetSize</c>, which it
+        /// reads as of no value, where it read an empty text the library wrote as a value of an empty text.
         /// </summary>
         private static List<KeyValuePair<int, string>> NewCell(bool valued)
         {
@@ -1546,9 +1588,8 @@ namespace GeometryHelper.Dxf
 
             cell.Add(new KeyValuePair<int, string>(92, "0"));
             cell.Add(new KeyValuePair<int, string>(301, "CELL_VALUE"));
-            cell.Add(new KeyValuePair<int, string>(93, "6"));
-            cell.Add(new KeyValuePair<int, string>(90, "4"));
-            cell.Add(new KeyValuePair<int, string>(1, string.Empty));
+            cell.Add(new KeyValuePair<int, string>(93, "7"));
+            cell.Add(new KeyValuePair<int, string>(90, "0"));
             cell.Add(new KeyValuePair<int, string>(94, "0"));
             cell.Add(new KeyValuePair<int, string>(300, string.Empty));
             cell.Add(new KeyValuePair<int, string>(302, string.Empty));
@@ -1558,7 +1599,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// An empty text cell with the look a cell holds of its own: its overrides with their flags, its turn (145), and from
-        /// R2007 on the unit (94) and format (300) of its value.
+        /// R2007 on its value the empty one AutoCAD 2021's <c>InsertRowsAndInherit</c> wrote, of the flags 5, the kind of the
+        /// cell's value (4 where it has none) and no data, with the unit (94) and format (300) of the cell's value.
         /// </summary>
         private static List<KeyValuePair<int, string>> Inherited(CellView source, bool valued)
         {
@@ -1570,13 +1612,16 @@ namespace GeometryHelper.Dxf
                 cell[8] = new KeyValuePair<int, string>(145, turn);
             }
 
-            if (valued && source.ValueFrom >= 0)
+            if (valued)
             {
-                string unit = source.InValue(94);
-                string format = source.InValue(300);
-                int at = cell.FindIndex(g => g.Key == 94);
-                cell[at] = new KeyValuePair<int, string>(94, unit ?? "0");
-                cell[at + 1] = new KeyValuePair<int, string>(300, format ?? string.Empty);
+                string kind = source.ValueFrom >= 0 ? source.InValue(90)?.Trim() : null;
+                string unit = source.ValueFrom >= 0 ? source.InValue(94) : null;
+                string format = source.ValueFrom >= 0 ? source.InValue(300) : null;
+                int at = cell.FindIndex(g => g.Key == 93);
+                cell[at] = new KeyValuePair<int, string>(93, "5");
+                cell[at + 1] = new KeyValuePair<int, string>(90, string.IsNullOrEmpty(kind) ? "4" : kind);
+                cell[at + 2] = new KeyValuePair<int, string>(94, unit ?? "0");
+                cell[at + 3] = new KeyValuePair<int, string>(300, format ?? string.Empty);
             }
 
             List<KeyValuePair<int, string>> inherited = WithLook(cell, source);

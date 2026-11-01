@@ -68,7 +68,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 bool r2000 = text == DxfDimensionDrawings.R2000;
                 string fresh = r2000
                     ? "171\n1\n172\n0\n173\n0\n174\n0\n175\n0\n176\n0\n177\n0\n178\n0\n145\n0.0\n  1\n\n171\n"
-                    : "171\n1\n172\n0\n173\n0\n174\n0\n175\n0\n176\n0\n 91\n0\n178\n0\n145\n0.0\n 92\n0\n301\nCELL_VALUE\n 93\n6\n 90\n4\n  1\n\n 94\n0\n300\n\n302\n\n304\nACVALUE_END\n171\n";
+                    : "171\n1\n172\n0\n173\n0\n174\n0\n175\n0\n176\n0\n 91\n0\n178\n0\n145\n0.0\n 92\n0\n301\nCELL_VALUE\n 93\n7\n 90\n0\n 94\n0\n300\n\n302\n\n304\nACVALUE_END\n171\n";
                 Assert.Contains(fresh, TableRecord(saved), StringComparison.Ordinal);
 
                 // Rows put in after the last, and before the first, which becomes the title.
@@ -105,12 +105,12 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(DxfTableCellType.BlockCell, read.CellType(2, 2));
                 Assert.Contains("175\n3\n176\n1\n", TableRecord(readDb.ToText()), StringComparison.Ordinal);
 
-                // Put in after the last, the title is left as it was.
+                // Put in after the last, the title merged across the table grows over them, as AutoCAD 2021's (D28b c2).
                 read.InsertColumns(3, 15.0, 2);
                 DxfTable again = Reread(readDb);
                 Assert.Equal(new[] { 40.0, 25.0, 30.0, 15.0, 15.0 }, Widths(again));
-                Assert.Equal(new DxfCellRange(0, 0, 0, 2), again.GetMergeRange(0, 0));
-                Assert.False(again.IsMergedCell(0, 3, out _));
+                Assert.Equal(new DxfCellRange(0, 0, 0, 4), again.GetMergeRange(0, 0));
+                Assert.True(again.IsMergedCell(0, 3, out _));
             }
         }
 
@@ -396,8 +396,9 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(DxfCellAlignment.MiddleCenter, read.Alignment(1, 2));
                 Assert.Equal(string.Empty, read.TextString(1, 2));
                 Assert.Equal(DxfTableCellType.TextCell, read.CellType(3, 2));
-                Assert.False(read.IsMergedCell(0, 2, out _));
-                Assert.Equal(new DxfCellRange(0, 0, 0, 1), read.GetMergeRange(0, 0));
+                // The title merged across the table grows over the column put in last (D28b c2).
+                Assert.True(read.IsMergedCell(0, 2, out _));
+                Assert.Equal(new DxfCellRange(0, 0, 0, 2), read.GetMergeRange(0, 0));
 
                 Refused<ArgumentOutOfRangeException>(() => read.InsertRowsAndInherit(0, 4, 1), "rows");
             }
@@ -416,8 +417,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 table.SetSize(5, 3);
                 DxfTable grown = Reread(db);
                 Assert.Equal(new[] { 10.0, 8.0, 8.0, 8.0, 8.0 }, Heights(grown));
-                Assert.Equal(new[] { 40.0, 30.0, 30.0 }, Widths(grown));
-                Assert.Equal(new DxfCellRange(0, 0, 0, 1), grown.GetMergeRange(0, 0));
+                // The new column as wide as AutoCAD 2021 makes one, the header's 4.5 and the margins of 1.5 of its Standard, and
+                // the title across it (D28b s1).
+                Assert.Equal(new[] { 40.0, 30.0, 7.5 }, Widths(grown));
+                Assert.Equal(new DxfCellRange(0, 0, 0, 2), grown.GetMergeRange(0, 0));
                 Assert.Equal("B-12", grown.TextString(2, 0));
 
                 table.SetSize(2, 1);

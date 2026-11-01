@@ -85,7 +85,9 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.True(read.IsLinked(0, 0));
                 Assert.False(read.IsLinked(0, 1));
                 Assert.True(read.IsLinked(1, 0));
-                Assert.False(read.IsLinked(1, 1));
+
+                // (1, 1) of the range holds no content here, which AutoCAD lays out from the ACAD_TABLE, linked (D28b).
+                Assert.True(read.IsLinked(1, 1));
                 Assert.False(read.IsLinked(2, 0));
                 Assert.True(read.IsLinked(2, 1));
                 Assert.Null(read.GetDataLinkRange(0, 0));

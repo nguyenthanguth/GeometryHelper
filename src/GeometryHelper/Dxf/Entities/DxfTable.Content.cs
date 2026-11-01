@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using GeometryHelper.Export;
 
 namespace GeometryHelper.Dxf
 {
@@ -36,10 +37,16 @@ namespace GeometryHelper.Dxf
         /// of empty cells as AutoCAD 2021 writes a cell of no content, a row of data (style 3) or of the style of the row it
         /// takes the look of, of the height (or width) given; the links and merged ranges after them moved on and those they go
         /// into grown, as the table's own. Nothing where the table has no TABLECONTENT, or the place is past its last row (or
-        /// column), as a TABLECONTENT of fewer rows than its table AutoCAD read has.
+        /// column), as a TABLECONTENT of fewer rows than its table AutoCAD read has. The height (or width) is written as a real,
+        /// 10.0, as AutoCAD writes it. Where the title of a table of the columns given (more than none) is merged across them all,
+        /// the range of the title, (0, 0) to (0, last), grows by the columns put in wherever they go, as AutoCAD 2021 listed it.
         /// </summary>
-        private void ContentInserted(bool rowsOf, int at, int count, string size, int inheritFrom)
+        private void ContentInserted(bool rowsOf, int at, int count, string size, int inheritFrom, int titleColumns = 0)
         {
+            size = ContentNumber(size);
+            Func<int[], int[]> title = titleColumns <= 0 || rowsOf ? (Func<int[], int[]>)null
+                : m => m[0] == 0 && m[1] == 0 && m[2] == 0 && m[3] == titleColumns - 1 ? new[] { 0, 0, 0, m[3] + count } : null;
+
             EditContent(rowsOf, (first, last) => new[] { at <= first ? first + count : first, at <= last ? last + count : last }, grid =>
             {
                 if (rowsOf)
@@ -78,7 +85,7 @@ namespace GeometryHelper.Dxf
                 }
 
                 grid.Changed = true;
-            });
+            }, title);
         }
 
         /// <summary>
@@ -101,6 +108,7 @@ namespace GeometryHelper.Dxf
                     for (int r = Math.Min(at + count, grid.Rows.Count) - 1; r >= at; r--)
                     {
                         grid.Rows[r].Cells.ForEach(c => c.Gone = true);
+                        grid.Rows[r].Cells.ForEach(c => grid.Dropped.AddRange(FieldsOf(c.Groups)));
                         grid.Rows.RemoveAt(r);
                         grid.Changed = true;
                     }
@@ -119,6 +127,7 @@ namespace GeometryHelper.Dxf
                     for (int c = Math.Min(at + count, row.Cells.Count) - 1; c >= at; c--)
                     {
                         row.Cells[c].Gone = true;
+                        grid.Dropped.AddRange(FieldsOf(row.Cells[c].Groups));
                         row.Cells.RemoveAt(c);
                         grid.Changed = true;
                     }
@@ -156,11 +165,14 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Edits the TABLECONTENT of the table, read as rows of cells: the edit given made, then each merged range and each link
         /// a cell names taken through the lines given (rows or columns: a range's first and last line to their new ones, null
-        /// where none is left), the links of cells taken out let go of as <see cref="ContentDeleted"/> says; written in one
-        /// writing of the record where anything changed. Nothing where the table has no TABLECONTENT, or one not in the form
-        /// AutoCAD writes, which is left as it is.
+        /// where none is left), or through the map given, where it gives a range, the links of cells taken out let go of as
+        /// <see cref="ContentDeleted"/> says; the fields the cells taken out held (a content of the kind 2, its 340) taken out of
+        /// the list of fields after the rows (92 and its 360s) and erased where the TABLECONTENT owns them and no cell left holds
+        /// them, as AutoCAD 2021's <c>DeleteRows</c> and <c>DeleteColumns</c> of its 78 left <c>92 0</c>; written in one writing
+        /// of the record where anything changed. Nothing where the table has no TABLECONTENT, or one not in the form AutoCAD
+        /// writes, which is left as it is.
         /// </summary>
-        private void EditContent(bool rowsOf, Func<int, int, int[]> lines, Action<ContentGrid> edit)
+        private void EditContent(bool rowsOf, Func<int, int, int[]> lines, Action<ContentGrid> edit, Func<int[], int[]> map = null)
         {
             DxfItem content = IsResident ? ContentItem() : null;
             ContentGrid grid = content == null ? null : ContentGrid.Read(Item.File, content);
@@ -197,6 +209,14 @@ namespace GeometryHelper.Dxf
 
                     foreach (int[] m in grid.Merges)
                     {
+                        int[] mapped = map?.Invoke(m);
+
+                        if (mapped != null)
+                        {
+                            moved.Add(mapped);
+                            continue;
+                        }
+
                         int[] span = lines(rowsOf ? m[0] : m[1], rowsOf ? m[2] : m[3]);
 
                         if (span != null)
@@ -225,6 +245,17 @@ namespace GeometryHelper.Dxf
                 }
             }
 
+            // The fields of the cells taken out that no cell left holds.
+            var fields = new List<string>();
+
+            if (grid.Dropped.Count > 0)
+            {
+                var held = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                grid.Rows.ForEach(r => r.Cells.ForEach(c => held.UnionWith(FieldsOf(c.Groups))));
+                fields = grid.Dropped.FindAll(h => !held.Contains(h));
+                grid.Changed |= grid.DropFields(fields);
+            }
+
             if (!grid.Changed)
             {
                 return;
@@ -240,6 +271,39 @@ namespace GeometryHelper.Dxf
                     Untie(handle, content.Handle);
                 }
             }
+
+            var owned = new List<DxfItem>();
+
+            foreach (string handle in fields)
+            {
+                DxfItem field = Item.File.ObjectItem(handle);
+
+                if (field != null && !field.IsRemoved && field.Type == "FIELD" && string.Equals(Item.File.OwnerOf(field), content.Handle, StringComparison.OrdinalIgnoreCase) && !owned.Contains(field))
+                {
+                    owned.Add(field);
+                }
+            }
+
+            if (owned.Count > 0)
+            {
+                DxfField.Erase(Item.File, owned);
+            }
+        }
+
+        /// <summary>The fields a cell of the TABLECONTENT holds: the 340 of each of its contents of the kind 2 (<c>1 CELLCONTENT_BEGIN</c>, <c>90 2</c>, <c>340</c>).</summary>
+        private static List<string> FieldsOf(List<KeyValuePair<int, string>> cell)
+        {
+            var fields = new List<string>();
+
+            for (int i = 0; i + 2 < cell.Count; i++)
+            {
+                if (cell[i].Key == 1 && cell[i].Value.Trim() == "CELLCONTENT_BEGIN" && cell[i + 1].Key == 90 && cell[i + 1].Value.Trim() == "2" && cell[i + 2].Key == 340)
+                {
+                    fields.Add(cell[i + 2].Value.Trim());
+                }
+            }
+
+            return fields;
         }
 
         /// <summary>The style of a row of the TABLECONTENT: the 90 after its TABLEROW_BEGIN; null where it has none.</summary>
@@ -522,7 +586,7 @@ namespace GeometryHelper.Dxf
 
             foreach (int place in layout.ColumnAt)
             {
-                groups.AddRange(ColumnGroups(layout.Groups.List[place].Value));
+                groups.AddRange(ColumnGroups(ContentNumber(layout.Groups.List[place].Value)));
             }
 
             groups.Add(G(91, layout.Rows));
@@ -548,7 +612,7 @@ namespace GeometryHelper.Dxf
 
                 DxfRowType type = RowType(r);
                 string kind = type == DxfRowType.TitleRow ? "1" : type == DxfRowType.HeaderRow ? "2" : "3";
-                var row = new ContentRow(new List<KeyValuePair<int, string>> { new KeyValuePair<int, string>(301, "ROW"), new KeyValuePair<int, string>(1, "LINKEDTABLEDATAROW_BEGIN") }, null, cells, RowTail(kind, layout.Groups.List[layout.RowAt[r]].Value));
+                var row = new ContentRow(new List<KeyValuePair<int, string>> { new KeyValuePair<int, string>(301, "ROW"), new KeyValuePair<int, string>(1, "LINKEDTABLEDATAROW_BEGIN") }, null, cells, RowTail(kind, ContentNumber(layout.Groups.List[layout.RowAt[r]].Value)));
                 row.AddTo(groups);
             }
 
@@ -667,7 +731,25 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The checksum AutoCAD 2021 keeps for a cell's text in its TABLECONTENT: the sum of each letter's code times its place from one, as a real (Parts 1 655.0).</summary>
-        private static string Checksum(string text)
+        private static string Checksum(string text) => ChecksumOf(text).ToString(CultureInfo.InvariantCulture) + ".0";
+
+        /// <summary>
+        /// A height or a width as AutoCAD 2021 writes one in a TABLECONTENT, a real: 10 written 10.0, 7.5 as it is; a text that
+        /// reads as no finite number as it is.
+        /// </summary>
+        private static string ContentNumber(string text)
+        {
+            if (!Numbers.TryRead(text, out double value) || !Guard.IsFinite(value))
+            {
+                return text;
+            }
+
+            string exact = Numbers.Exact(value + 0.0);
+            return exact.IndexOf('.') >= 0 || exact.IndexOf('E') >= 0 || exact.IndexOf('e') >= 0 ? exact : exact + ".0";
+        }
+
+        /// <summary>The checksum of a cell's text, as <see cref="Checksum"/> writes it, as a number (Parts 1 655).</summary>
+        private static long ChecksumOf(string text)
         {
             long sum = 0;
 
@@ -676,7 +758,7 @@ namespace GeometryHelper.Dxf
                 sum += text[k] * (long)(k + 1);
             }
 
-            return sum.ToString(CultureInfo.InvariantCulture) + ".0";
+            return sum;
         }
 
         #endregion
@@ -810,6 +892,43 @@ namespace GeometryHelper.Dxf
             internal List<int[]> Merges { get; set; }
 
             internal bool Changed { get; set; }
+
+            /// <summary>The fields the cells taken out held, by their handles, as they were taken out.</summary>
+            internal List<string> Dropped { get; } = new List<string>();
+
+            /// <summary>
+            /// Takes fields out of the list after the rows, a count (92) and a 360 for each, the count made to agree; whether
+            /// anything was taken out. Nothing where what follows the rows starts with no such list.
+            /// </summary>
+            internal bool DropFields(List<string> fields)
+            {
+                if (fields.Count == 0 || _tail.Count == 0 || _tail[0].Key != 92)
+                {
+                    return false;
+                }
+
+                int end = 1;
+
+                while (end < _tail.Count && _tail[end].Key == 360)
+                {
+                    end++;
+                }
+
+                var kept = _tail.GetRange(1, end - 1).FindAll(g => !fields.Exists(f => string.Equals(f, g.Value.Trim(), StringComparison.OrdinalIgnoreCase)));
+
+                if (kept.Count == end - 1)
+                {
+                    return false;
+                }
+
+                kept.Insert(0, new KeyValuePair<int, string>(92, kept.Count.ToString(CultureInfo.InvariantCulture)));
+                _tail.RemoveRange(0, end);
+                _tail.InsertRange(0, kept);
+                int shift = end - kept.Count;
+                _mergesFrom -= Merges == null ? 0 : shift;
+                _mergesTo -= Merges == null ? 0 : shift;
+                return true;
+            }
 
             /// <summary>The TABLECONTENT read; null where it is not in the form AutoCAD writes.</summary>
             internal static ContentGrid Read(DxfFile file, DxfItem content)

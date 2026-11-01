@@ -114,15 +114,20 @@ namespace GeometryHelper.UnitTest.Dxf
         /// both) as AutoCAD 2021 wrote it linked: its extension dictionary B01 holding ACAD_XREC_ROUNDTRIP, the XRECORD B02 of
         /// ACAD_ROUNDTRIP_2008_TABLE_ENTITY pointing at its TABLECONTENT B03 and its TABLEGEOMETRY B04, the TABLECONTENT naming
         /// the DATALINK GH_PARTS (B06, in ACAD_DATALINK B05) from the cell (1, 0); the DATALINK tied to the table and its
-        /// TABLECONTENT (94 2, 330 F6, 330 B03), its groups as AutoCAD's 142; the cells of the ACAD_TABLE naming no link.
+        /// TABLECONTENT (94 2, 330 F6, 330 B03), its groups as AutoCAD's 142; the cells of the ACAD_TABLE naming no link; and the
+        /// XRECORD ACDB_RECOMPOSE_DATA (B0A) listing the table and its style, as AutoCAD's 18D.
         /// </summary>
         internal static string LinkedByAutoCad(string version, int rows = 3, bool formula = false)
         {
             string text = version
                 .Replace("$HANDSEED\n  5\n10A\n", "$HANDSEED\n  5\nB10\n")
                 .Replace("  0\nACAD_TABLE\n  5\nF6\n330\n17\n", "  0\nACAD_TABLE\n  5\nF6\n102\n{ACAD_XDICTIONARY\n360\nB01\n102\n}\n330\n17\n")
-                .Replace("  3\nEZDXF_META\n350\n2D\n", "  3\nACAD_DATALINK\n350\nB05\n  3\nEZDXF_META\n350\n2D\n");
+                .Replace("  3\nEZDXF_META\n350\n2D\n", "  3\nACAD_DATALINK\n350\nB05\n  3\nACDB_RECOMPOSE_DATA\n350\nB0A\n  3\nEZDXF_META\n350\n2D\n");
             var objects = new StringBuilder();
+
+            // ACDB_RECOMPOSE_DATA listing the table and its style, as AutoCAD's 18D: without it AutoCAD reads no TABLECONTENT (D28b).
+            objects.Append(G(0, "XRECORD")).Append(G(5, "B0A")).Append(G(102, "{ACAD_REACTORS")).Append(G(330, "A")).Append(G(102, "}")).Append(G(330, "A"))
+                .Append(G(100, "AcDbXrecord")).Append(G(280, "1")).Append(G(90, "1")).Append(G(330, "F6")).Append(G(330, "126"));
             objects.Append(G(0, "DICTIONARY")).Append(G(5, "B01")).Append(G(330, "F6")).Append(G(100, "AcDbDictionary")).Append(G(280, "1")).Append(G(281, "1"))
                 .Append(G(3, "ACAD_XREC_ROUNDTRIP")).Append(G(360, "B02"));
             objects.Append(G(0, "XRECORD")).Append(G(5, "B02")).Append(G(102, "{ACAD_REACTORS")).Append(G(330, "B01")).Append(G(102, "}")).Append(G(330, "B01"))

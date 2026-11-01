@@ -26,10 +26,11 @@ namespace GeometryHelper.UnitTest.Dxf
         #region Point 73h: a range linked in the TABLECONTENT
 
         [Fact]
-        public void ARangeLinkedInTheTableContent_IsLinkedAtItsTopLeftCellAlone_ThoughEveryCellGivesTheRange()
+        public void ARangeLinkedInTheTableContent_IsLinkedAtEveryCellOfNoContent_EachGivingTheRange()
         {
             // Plugin v10, 73h: AutoCAD 2021 read the library's link over (1, 0) to (2, 1) with IsLinked True at (1, 0) alone and
-            // False at (1, 1), (2, 0) and (2, 1), each of which gave the range (1, 0)-(2, 1) and the link 142.
+            // False at (1, 1), (2, 0) and (2, 1), each of which gave the range (1, 0)-(2, 1) and the link 142: those cells held
+            // an empty value of the checksum of their text. D28 p2 and D28b: cells of no content, as here, AutoCAD read linked.
             DxfDatabase db = DxfDatabase.Parse(DxfAutoCadChecksD16Tests.LinkedByAutoCad(DxfDimensionDrawings.R2018));
             DxfTable table = Table(db);
             var link = (DxfDataLink)db.DataLinkDictionary["GH_PARTS"];
@@ -40,9 +41,9 @@ namespace GeometryHelper.UnitTest.Dxf
             foreach (DxfTable read in new[] { table, Table(DxfDatabase.Parse(db.ToText())) })
             {
                 Assert.True(read.IsLinked(1, 0));
-                Assert.False(read.IsLinked(1, 1));
-                Assert.False(read.IsLinked(2, 0));
-                Assert.False(read.IsLinked(2, 1));
+                Assert.True(read.IsLinked(1, 1));
+                Assert.True(read.IsLinked(2, 0));
+                Assert.True(read.IsLinked(2, 1));
                 Assert.False(read.IsLinked(0, 0));
 
                 foreach (var (row, column) in new[] { (1, 0), (1, 1), (2, 0), (2, 1) })

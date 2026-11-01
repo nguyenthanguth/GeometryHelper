@@ -744,8 +744,10 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Sets the text style of a cell's text, as AutoCAD's <c>SetTextStyle(row, col, id)</c> takes its id: the cell's own (7,
-        /// by name), its flag 0x10 set; <c>table.SetTextStyle(1, 0, db.TextStyleTable["GH_TXT"])</c> writes 7 GH_TXT. The block
-        /// AutoCAD drew the table with is not drawn anew.
+        /// by name), its flag 0x10 set; <c>table.SetTextStyle(1, 0, db.TextStyleTable["GH_TXT"])</c> writes 7 GH_TXT. A cell that
+        /// has a 7 already has it written in its place, as each override of a cell is, before its 92 where AutoCAD 2021 writes
+        /// one, so that the cell holds one 7: a second after its value AutoCAD read, and the library the first. The block AutoCAD
+        /// drew the table with is not drawn anew.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="col">The column, from nought.</param>
