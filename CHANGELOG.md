@@ -6,6 +6,48 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A line between two table cells is read as AutoCAD 2021 reads it: as the top or left edge of the cell below or
+right of it where that cell holds the edge (its edge flag in 172 and one of the edge's overrides at least), else as the
+bottom or right edge of the other, each property of the line from the edge that holds it. `GetGridColor`,
+`GetGridLineWeight`, `GetGridVisibility`, `GetGridProperty` and `GridColor(row, col, edge)` read the bottom of (1, 1)
+of AutoCAD's own table, which AutoCAD writes as the top of (2, 1), as none, and read an override of no edge flag as a
+line; AutoCAD read the bottom of (1, 1) red and the top of (2, 1) green as green either side, and the top of (2, 1) of a
+colour alone with the bottom of (1, 1) of a lineweight alone as no lineweight. The bottom or right of a cell set is set
+on the cell that holds the line too, and a top or left set takes first the properties of the line the cell above or
+left of it gives, so that a line set reads as set and keeps what was not set. Reading every line of a table of 403 rows
+takes 2.2 ms where it took 1.9; `SetGridProperty` of every line of 4 003 rows 125 ms on .NET 10 where it took 90 to
+112, 160 to 177 on .NET Framework 4.8 where it took 134 to 141. 2 new tests.
+
+**FIXED.** `RemoveAllOverrides` and `ClearTableStyleOverrides` take a cell's overrides out wherever they stand outside its
+value, as AutoCAD 2021's `RemoveAllOverrides` took `170 5`, `7 GH_TXT` and `140 3.5` out from before the 92 of its cell
+(1, 0), where the library cleared their flags and left the groups, and take the edges of its lines out of its edge flags
+(172 9 to 0). 1 new test.
+
+**FIXED.** `InsertRowsAndInherit` and `InsertColumnsAndInherit` give the new cells the overrides of the cell whose look
+they take wherever they stand, AutoCAD's text style and height before its 92 among them, which the library left out, and
+the edges of its lines (172), as AutoCAD 2021 wrote them; an empty value of the kind 512 for a value of no kind. In the
+TABLECONTENT each new cell of `InsertRowsAndInherit` takes that cell's format, its margins and lines, and an empty value
+of the flags 5 with the format of its content where it holds one, as AutoCAD wrote them, where the library wrote cells
+of no content and no format; `InsertColumnsAndInherit` alike. AutoCAD read the library's files of `InsertRowsAndInherit`
+as its own edits; the lines of `InsertColumnsAndInherit` it copied but for the top of a cell under its merged title,
+which the library copies, a difference left for later.
+On AutoCAD's own table, whose TABLECONTENT cells are of full formats, 200 rows put in so take 0.9 to 1.6 s on .NET 10
+where they took 0.56 to 0.6, the TABLECONTENT written being as large as AutoCAD's. 2 new tests.
+
+**FIXED.** Each new cell of a column `InsertColumns` or `SetSize` puts in takes as its own the looks the table gives of its
+own to its kind of row (alignment, text style, background, colour, text height), as AutoCAD 2021 gave the new header cell
+of a table of its own header of 9 `140 9.0` with its flag 0x20: AutoCAD reads a cell without them by its table style
+alone, 4.5. A new row's cells take none, as AutoCAD's took none. 1 new test.
+
+**FIXED.** The table's own overrides AutoCAD 2021 writes in the table's head, after its flags (93 to 96) and before its
+heights, are read: `HorizontalCellMargin` and `VerticalCellMargin` (`93 8`, `40 3.0`), `IsTitleSuppressed` and
+`IsHeaderSuppressed` (`93 2`, `281 1`), `GridColor(gridlineType, rowType)` and its kin, and the text heights of the
+kinds of rows, which a table scaled now scales and gives its cells, and `SetSize` reads for the width of a new column;
+`ClearTableStyleOverrides` takes them out, and `SetGridColor(color, borders, rows)` writes in their place there. A
+column `SetSize` puts in a table of one row, its title merged across it, is 1 wide, as AutoCAD made it, where it was the
+title's 9; a title merged across some of the columns and a column merged down to the last row grow only by what goes in
+among them, as before and as AutoCAD left them. 2 new tests.
+
 **FIXED.** A distance set on a dynamic INSERT halfway between two values of a list goes to the block's own value where it
 is one of the two, else to the one written first, the lesser of a list written from the least up, whatever the value
 before, as AutoCAD 2021 took all 358 such ties of lists of 3 to 6 values of a linear, an XY and a polar parameter, from

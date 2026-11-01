@@ -34,8 +34,9 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Puts rows (or columns) into the TABLECONTENT as they are put into the table: before the row (or column) given, each
-        /// of empty cells as AutoCAD 2021 writes a cell of no content, a row of data (style 3) or of the style of the row it
-        /// takes the look of, of the height (or width) given; the links and merged ranges after them moved on and those they go
+        /// of empty cells as AutoCAD 2021 writes a cell of no content, or of cells that take the look of those of the row (or
+        /// column) given (<see cref="InheritedCellGroups"/>), a row of data (style 3) or of the style of the row it takes the
+        /// look of, of the height (or width) given; the links and merged ranges after them moved on and those they go
         /// into grown, as the table's own. Nothing where the table has no TABLECONTENT, or the place is past its last row (or
         /// column), as a TABLECONTENT of fewer rows than its table AutoCAD read has. The height (or width) is written as a real,
         /// 10.0, as AutoCAD writes it. Where the title of a table of the columns given (more than none) is merged across them all,
@@ -56,11 +57,19 @@ namespace GeometryHelper.Dxf
                         return;
                     }
 
-                    string style = inheritFrom >= 0 && inheritFrom < grid.Rows.Count ? StyleOf(grid.Rows[inheritFrom]) ?? "3" : "3";
+                    ContentRow source = inheritFrom >= 0 && inheritFrom < grid.Rows.Count ? grid.Rows[inheritFrom] : null;
+                    string style = source != null ? StyleOf(source) ?? "3" : "3";
 
                     for (int k = 0; k < count; k++)
                     {
-                        grid.Rows.Insert(at, NewRow(grid.Columns.Count, style, size));
+                        ContentRow row = NewRow(grid.Columns.Count, style, size);
+
+                        for (int c = 0; source != null && c < row.Cells.Count && c < source.Cells.Count; c++)
+                        {
+                            row.Cells[c] = new ContentGridCell(InheritedCellGroups(source.Cells[c].Groups, true));
+                        }
+
+                        grid.Rows.Insert(at, row);
                     }
                 }
                 else
@@ -75,11 +84,15 @@ namespace GeometryHelper.Dxf
                         grid.Columns.Insert(at, ColumnGroups(size));
                     }
 
-                    foreach (ContentRow row in grid.Rows)
+                    for (int r = 0; r < grid.Rows.Count; r++)
                     {
+                        ContentRow row = grid.Rows[r];
+                        List<KeyValuePair<int, string>> source = inheritFrom >= 0 && inheritFrom < row.Cells.Count ? row.Cells[inheritFrom].Groups : null;
+
                         for (int k = 0; at <= row.Cells.Count && k < count; k++)
                         {
-                            row.Cells.Insert(at, new ContentGridCell(CellGroups("0.0")));
+                            // A cell the title merged across the table takes in holds no content, as AutoCAD 2021 wrote it.
+                            row.Cells.Insert(at, new ContentGridCell(source == null ? CellGroups("0.0") : InheritedCellGroups(source, r > 0 || titleColumns <= 0)));
                         }
                     }
                 }
@@ -800,6 +813,65 @@ namespace GeometryHelper.Dxf
             new KeyValuePair<int, string>(309, "FORMATTEDTABLEDATACELL_END"), new KeyValuePair<int, string>(1, "TABLECELL_BEGIN"), G(90, 0), G(91, 0),
             new KeyValuePair<int, string>(309, "TABLECELL_END"),
         };
+
+        /// <summary>
+        /// A cell of a TABLECONTENT as AutoCAD 2021's <c>InsertRowsAndInherit</c> and <c>InsertColumnsAndInherit</c> write one
+        /// that takes the look of another (D28c i1 to i7, D28 b03 and b06): of the state 0, its checksum 0.0 and no link; where
+        /// the other holds a content and the cell is to, an empty value of the flags 5 (93 5, the kind of the other's value,
+        /// <see cref="InheritedKind"/>, 4 for one of a block or a field) with the format of the other's content
+        /// (FORMATTEDCELLCONTENT), else no content; the other's format (FORMATTEDTABLEDATACELL), its margins and lines, as it
+        /// stands. A cell of no format in the form AutoCAD writes gives a cell of no content (<see cref="CellGroups"/>).
+        /// </summary>
+        private static List<KeyValuePair<int, string>> InheritedCellGroups(List<KeyValuePair<int, string>> other, bool content)
+        {
+            int formatFrom = other.FindIndex(g => g.Key == 1 && g.Value.Trim() == "FORMATTEDTABLEDATACELL_BEGIN");
+            int formatTo = formatFrom < 0 ? -1 : other.FindIndex(formatFrom, g => g.Key == 309 && g.Value.Trim() == "FORMATTEDTABLEDATACELL_END");
+
+            if (formatTo < 0)
+            {
+                return CellGroups("0.0");
+            }
+
+            int contentAt = other.FindIndex(0, formatFrom, g => g.Key == 1 && g.Value.Trim() == "CELLCONTENT_BEGIN");
+            List<KeyValuePair<int, string>> cell = CellGroups("0.0");
+            int ownFormat = cell.FindIndex(g => g.Key == 1 && g.Value.Trim() == "FORMATTEDTABLEDATACELL_BEGIN");
+            int ownFormatTo = cell.FindIndex(g => g.Key == 309 && g.Value.Trim() == "FORMATTEDTABLEDATACELL_END");
+            cell.RemoveRange(ownFormat, ownFormatTo + 1 - ownFormat);
+            cell.InsertRange(ownFormat, other.GetRange(formatFrom, formatTo + 1 - formatFrom));
+
+            if (!content || contentAt < 0)
+            {
+                return cell;
+            }
+
+            // The kind of the other's value, where its content is one (90 1, 300 VALUE, 93, 90 its kind).
+            string kind = "4";
+
+            if (contentAt + 5 < formatFrom && other[contentAt + 1].Value.Trim() == "1" && other[contentAt + 2].Value.Trim() == "VALUE" && other[contentAt + 4].Key == 90)
+            {
+                kind = InheritedKind(other[contentAt + 4].Value.Trim());
+            }
+
+            int lookFrom = other.FindIndex(contentAt, formatFrom - contentAt, g => g.Key == 1 && g.Value.Trim() == "FORMATTEDCELLCONTENT_BEGIN");
+            int lookTo = lookFrom < 0 ? -1 : other.FindIndex(lookFrom, formatFrom - lookFrom, g => g.Key == 309 && g.Value.Trim() == "FORMATTEDCELLCONTENT_END");
+            var made = new List<KeyValuePair<int, string>>
+            {
+                G(95, 1), new KeyValuePair<int, string>(302, "CONTENT"), new KeyValuePair<int, string>(1, "CELLCONTENT_BEGIN"), G(90, 1),
+                new KeyValuePair<int, string>(300, "VALUE"), G(93, 5), new KeyValuePair<int, string>(90, kind), G(94, 0),
+                new KeyValuePair<int, string>(300, string.Empty), new KeyValuePair<int, string>(302, string.Empty),
+                new KeyValuePair<int, string>(304, "ACVALUE_END"), G(91, 0), new KeyValuePair<int, string>(309, "CELLCONTENT_END"),
+            };
+
+            if (lookTo >= 0)
+            {
+                made.AddRange(other.GetRange(lookFrom, lookTo + 1 - lookFrom));
+            }
+
+            int none = cell.FindIndex(g => g.Key == 95);
+            cell.RemoveAt(none);
+            cell.InsertRange(none, made);
+            return cell;
+        }
 
         /// <summary>The end of a row of a TABLECONTENT as AutoCAD 2021 writes it, after its cells: no custom data, its format of nought, its style and height.</summary>
         private static List<KeyValuePair<int, string>> RowTail(string style, string height) => new List<KeyValuePair<int, string>>

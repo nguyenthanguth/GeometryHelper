@@ -637,6 +637,29 @@ written as AutoCAD reads them now.
       title's 6 where it is unmerged; s1 to s16); the heights and widths of its TABLECONTENT as reals (`10.0`); a formula's
       field of a row it takes out out of the TABLECONTENT's list (`92 1`, `360 192` to `92 0`, d1, d2).
     - Now (D28b): the library writes and reads so; AutoCAD read its files of each (v01 to v14) as its own.
+    - AutoCAD 2021 (D28c, headless): a line between two cells is the edge of one of them: it read the top of (2, 1) green
+      and the bottom of (1, 1) red as green either side, and the right of a cell red and the left of the one right of it
+      green as green (B1, B2, B8 of R2000); the top of (2, 1) of a colour alone and the bottom of (1, 1) of a lineweight
+      alone as the colour and no lineweight (B12, B15); an edge flag with no override, or an override with no flag or no
+      edge flag, as no line (B3, B10, B13, B14); a showing of 0 hidden, 1 and 2 drawn (B5 to B7), though its own DXF writes
+      1 for a line it hides and reads it back drawn (x4 written, s17 read). Its `RemoveAllOverrides` took a cell's overrides
+      out from before its 92 and its edge flags to 0 (x1 to x3). Its `InsertRowsAndInherit` gave each new cell the
+      overrides of the cell above it was given, before its 92, and its edge flags (172 9), an empty value of the kind 512
+      for one of no kind, and in the TABLECONTENT that cell's format and an empty value of the flags 5 with the format of
+      its content (i1 to i7). Its `InsertColumns` and `SetSize` gave each new cell of a column the table's own looks of its
+      row's kind as its own (the header `63 3`, `283 0`, `140 9.0`, 91 38), and a new row's cells none, which it read by the
+      style alone (o1 to o7); it wrote the table's own looks in its head, after 96 and before its heights (`93 6886016`,
+      `7 GH_TXT`, `140 9.0`, `170 1`, `63 3`, `64 1`, `140 9.0`, `283 0`). A table of one row, its title merged across it,
+      it gave a column 1 wide (w1); a title merged across some columns and a column merged down to the last row it grew
+      only by what went in among them (w2, w3, w7, m1 to m7).
+    - Now (D28c): the library reads and writes so; AutoCAD read its files of each (v01 to v14) as its own edits, but for
+      what is listed under "Not yet".
+    - Not yet (D28c): the height of a row `SetSize` puts in, which AutoCAD made 9 under rows of 15 (o1: the data's 4.5
+      times 4/3 and two margins of 1.5, it seems), where the library takes the last row's; the rows put in by
+      `InsertRows(0)` or `InsertRows(1)`, which AutoCAD read as data while the title or header moved down kept its look by
+      cell overrides (m7, o7), where the library reads the kind of a row by its place; `InsertRowsAndInherit` from the
+      title, which AutoCAD merged as the title is and left the header out of (i3); and the lines of
+      `InsertColumnsAndInherit`, which AutoCAD copied but for the top of a cell under the merged title (i5).
 
 44. **The arrow block of a dimension style.**
     - Try: set `Dimtxsty` and `Dimblk` on a dimension style read from a file and on one made in code, open the drawing and run

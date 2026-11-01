@@ -104,10 +104,12 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Puts rows in that take the look of another, as AutoCAD's <c>InsertRowsAndInherit</c>: as <see cref="InsertRows"/>, the
         /// rows of the height of the row given, and each cell of them an empty text cell with the look the cell of that row in
-        /// its column holds of its own: its overrides with their flags (177, or 91 from R2007 on), its turn (145), and from
-        /// R2007 on the kind (90), unit (94) and format (300) of its value, the value the empty one of the flags 5 AutoCAD 2021
-        /// wrote; not its content, nor its merging. In the TABLECONTENT the new
-        /// rows take that row's style, a row of data from a row of data, as AutoCAD 2021 wrote them.
+        /// its column holds of its own: its overrides with their flags (177, or 91 from R2007 on), wherever they stand outside
+        /// its value, and the edges of its lines (172), its turn (145), and from R2007 on the kind (90, 512 for a value of no
+        /// kind), unit (94) and format (300) of its value, the value the empty one of the flags 5 AutoCAD 2021 wrote; not its
+        /// content, nor its merging. In the TABLECONTENT the new rows take that row's style, a row of data from a row of data,
+        /// and each cell the format of that row's cell in its column as it stands, its margins and lines, and an empty value of
+        /// the flags 5 with the format of that cell's content where it holds one, as AutoCAD 2021 wrote them (D28c i1 to i7).
         /// </summary>
         /// <param name="index">The row the new ones go before, from nought; <see cref="NumRows"/> for after the last.</param>
         /// <param name="inheritFrom">The row whose look they take, one of the table's as it stands before they go in.</param>
@@ -152,8 +154,11 @@ namespace GeometryHelper.Dxf
         /// (after the last for <see cref="NumColumns"/>), as <see cref="InsertRows"/> puts rows in, the count (92) and the
         /// widths (142) written with them; the title merged across every column grows by those put in, first, last or among
         /// them, its text kept in its first cell, as AutoCAD 2021's <c>InsertColumns</c> grew it, where a merge of another row
-        /// moves on with its columns. The table of columns 40 and 30 given one 25 wide before its column 1 has columns 40, 25
-        /// and 30, its title merged across the three; given one before its column 0, Parts still in (0, 0) across the three.
+        /// moves on with its columns. Each new cell takes as its own the looks the table gives of its own to its kind of row
+        /// (its alignment, text style, background, colour and text height), as AutoCAD 2021 gave the new header cell of a table
+        /// of its own header of 9 <c>140 9.0</c> with the flag 0x20, and reads a cell without them by its table style alone
+        /// (D28c o3). The table of columns 40 and 30 given one 25 wide before its column 1 has columns 40, 25 and 30, its title
+        /// merged across the three; given one before its column 0, Parts still in (0, 0) across the three.
         /// </summary>
         /// <param name="col">The column the new ones go before, from nought; <see cref="NumColumns"/> for after the last.</param>
         /// <param name="width">The width of each, a finite number above nought.</param>
@@ -210,7 +215,10 @@ namespace GeometryHelper.Dxf
         /// bottom and the right, or put in there, each new row as high as the last row and each new column as wide as AutoCAD
         /// 2021 made one, the text height of its first row whose new cell is merged with none (the header, where the title is
         /// merged across the table) and the margins either side of a cell's content (7.5 for AutoCAD's Standard, 4.5 and 1.5;
-        /// 9 where the title is unmerged, its 6), of empty text cells; the title merged across every column grows over the new ones; blocks
+        /// 9 where the title is unmerged, its 6; 1 in a table of one row, its title merged across it, D28c w1), of empty text
+        /// cells, those of the new columns in the rows the table had given its own looks of their kind of row, as
+        /// <see cref="InsertColumns"/> gives them; the title merged across every column grows over the new ones, and no other
+        /// block grows, a column merged down to the last row nor a title merged across some of the columns (D28c w3, m1); blocks
         /// of merged cells and ranges linked to data cut where they reach past the new size, in the TABLECONTENT too, as
         /// <see cref="InsertRows"/> and <see cref="DeleteRows"/> write it. Nothing is written where the table is of that size.
         /// The table of 3 rows and 2 columns given 5 and 2 has two more rows 8 high; given 3 and 3, a column 7.5 wide, its title
@@ -247,12 +255,13 @@ namespace GeometryHelper.Dxf
 
             bool valued = Item.File.Supports(1021);
             var cells = new List<KeyValuePair<int, string>>[numRows * numCols];
+            List<KeyValuePair<int, string>>[] looks = numCols > columns ? RowKindLooks(layout) : null;
 
             for (int r = 0; r < numRows; r++)
             {
                 for (int c = 0; c < numCols; c++)
                 {
-                    cells[r * numCols + c] = r < rows && c < columns ? Slice(layout, r * columns + c) : NewCell(valued);
+                    cells[r * numCols + c] = r < rows && c < columns ? Slice(layout, r * columns + c) : r < rows ? NewCell(valued, looks, r) : NewCell(valued);
                 }
             }
 
@@ -316,6 +325,7 @@ namespace GeometryHelper.Dxf
 
             (rowsOf ? heights : widths).InsertRange(at, Repeat(size, count));
             var cells = new List<KeyValuePair<int, string>>[newRows * newColumns];
+            List<KeyValuePair<int, string>>[] looks = !rowsOf && inheritFrom < 0 ? RowKindLooks(layout) : null;
 
             for (int r = 0; r < newRows; r++)
             {
@@ -336,7 +346,7 @@ namespace GeometryHelper.Dxf
                     }
                     else
                     {
-                        cell = NewCell(valued);
+                        cell = NewCell(valued, looks, r);
                     }
 
                     cells[r * newColumns + c] = cell;
@@ -1598,9 +1608,86 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// An empty text cell with the look a cell holds of its own: its overrides with their flags, its turn (145), and from
-        /// R2007 on its value the empty one AutoCAD 2021's <c>InsertRowsAndInherit</c> wrote, of the flags 5, the kind of the
-        /// cell's value (4 where it has none) and no data, with the unit (94) and format (300) of the cell's value.
+        /// The table's own looks of the kind of each of its rows, the title's, the header's or the data's, as overrides of a
+        /// cell, row by row: its alignment (170), text style (7), background (63, 283), colour (64) and text height (140) of
+        /// that kind, after its last cell or in its head (their flags in 93), in the order AutoCAD 2021 writes them in a cell;
+        /// null where it gives none.
+        /// AutoCAD 2021 gave each new cell of the columns its <c>InsertColumns</c> and <c>SetSize</c> put in those of its row's
+        /// kind as its own, and read a cell without them by its table style alone: the table of its own header of 9 and data
+        /// of 9, GH_TXT, red and top left, given a column, wrote the new header cell <c>63 3</c>, <c>283 0</c>, <c>140 9.0</c>
+        /// (91 38) and the new data cell <c>170 1</c>, <c>7 GH_TXT</c>, <c>64 1</c>, <c>140 9.0</c> (91 57); the cells of a row
+        /// put in it gave none (D28c o1 to o6).
+        /// </summary>
+        private List<KeyValuePair<int, string>>[] RowKindLooks(Layout layout)
+        {
+            var looks = new List<KeyValuePair<int, string>>[3];
+            bool any = false;
+
+            for (int rowKind = 0; rowKind < 3; rowKind++)
+            {
+                looks[rowKind] = new List<KeyValuePair<int, string>>();
+
+                foreach (int code in new[] { 170, 7, 63, 283, 64, 140 })
+                {
+                    string text = OwnText(layout, RowLooks[code] + rowKind);
+
+                    if (text != null)
+                    {
+                        looks[rowKind].Add(new KeyValuePair<int, string>(code, text));
+                        any = true;
+                    }
+                }
+            }
+
+            if (!any)
+            {
+                return null;
+            }
+
+            // Those of each row, by its kind.
+            var rows = new List<KeyValuePair<int, string>>[layout.Rows];
+
+            for (int row = 0; row < layout.Rows; row++)
+            {
+                DxfRowType type = RowType(row);
+                rows[row] = looks[type == DxfRowType.TitleRow ? 0 : type == DxfRowType.HeaderRow ? 1 : 2];
+            }
+
+            return rows;
+        }
+
+        /// <summary>A new cell (<see cref="NewCell(bool)"/>) of a row of the table as it stands, given the table's own looks of the row's kind (<see cref="RowKindLooks"/>) as its own.</summary>
+        private static List<KeyValuePair<int, string>> NewCell(bool valued, List<KeyValuePair<int, string>>[] looks, int row)
+        {
+            List<KeyValuePair<int, string>> cell = NewCell(valued);
+
+            if (looks == null || looks[row].Count == 0)
+            {
+                return cell;
+            }
+
+            CellView view = View(cell);
+
+            foreach (KeyValuePair<int, string> look in looks[row])
+            {
+                view.SetOverride(look.Key, look.Value, valued ? 91 : 177);
+            }
+
+            return view.Groups.List;
+        }
+
+        /// <summary>
+        /// The kind of the empty value AutoCAD 2021's <c>InsertRowsAndInherit</c> gave a cell that takes the look of one of a
+        /// value of the kind given: that kind; 4, a text, where it has none; 512 for a value of no kind (0), as it wrote the
+        /// rows it put in below the linked row of its 73 (D28c i4).
+        /// </summary>
+        private static string InheritedKind(string kind) => string.IsNullOrEmpty(kind) ? "4" : kind == "0" ? "512" : kind;
+
+        /// <summary>
+        /// An empty text cell with the look a cell holds of its own: its overrides with their flags and the edges of its lines,
+        /// its turn (145), and from R2007 on its value the empty one AutoCAD 2021's <c>InsertRowsAndInherit</c> wrote, of the
+        /// flags 5, the kind of the cell's value (<see cref="InheritedKind"/>) and no data, with the unit (94) and format (300)
+        /// of the cell's value.
         /// </summary>
         private static List<KeyValuePair<int, string>> Inherited(CellView source, bool valued)
         {
@@ -1619,7 +1706,7 @@ namespace GeometryHelper.Dxf
                 string format = source.ValueFrom >= 0 ? source.InValue(300) : null;
                 int at = cell.FindIndex(g => g.Key == 93);
                 cell[at] = new KeyValuePair<int, string>(93, "5");
-                cell[at + 1] = new KeyValuePair<int, string>(90, string.IsNullOrEmpty(kind) ? "4" : kind);
+                cell[at + 1] = new KeyValuePair<int, string>(90, InheritedKind(kind));
                 cell[at + 2] = new KeyValuePair<int, string>(94, unit ?? "0");
                 cell[at + 3] = new KeyValuePair<int, string>(300, format ?? string.Empty);
             }
@@ -1638,8 +1725,9 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// A cell's groups with the look of another: its own overrides and their flags taken out, the other's put in after its
-        /// content with their flags, its flags of nothing else (as its kind of value, 0x40000) kept.
+        /// A cell's groups with the look of another: its own overrides and their flags taken out, the other's, wherever they
+        /// stand outside its value, put in after its content with their flags and the edges of its lines (172), its flags of
+        /// nothing else (as its kind of value, 0x40000) kept.
         /// </summary>
         private static List<KeyValuePair<int, string>> WithLook(List<KeyValuePair<int, string>> groups, CellView look)
         {
@@ -1656,7 +1744,8 @@ namespace GeometryHelper.Dxf
 
             var taken = new HashSet<int>();
 
-            for (int i = look.OverridesFrom; i < look.To; i++)
+            // Its overrides wherever they stand outside its value: AutoCAD 2021 writes them before its 92.
+            for (int i = look.From + 1; i < look.To; i++)
             {
                 KeyValuePair<int, string> group = look.Groups.List[i];
 
@@ -1672,6 +1761,22 @@ namespace GeometryHelper.Dxf
             {
                 cell = new CellView(cell.Groups, 0, cell.Groups.List.Count);
                 cell.SetHead(cell.Head(91) != null ? 91 : cell.Head(177) != null ? 177 : cell.ValueFrom >= 0 ? 91 : 177, wanted.ToString(CultureInfo.InvariantCulture));
+            }
+
+            // The edges of its lines in the edge flags (172), as AutoCAD 2021's InsertRowsAndInherit copied 172 9 with the top and
+            // left of the cell (2, 1) (D28c i1, i2).
+            int edges = 0;
+
+            for (int edge = 0; edge < 4; edge++)
+            {
+                edges |= (look.Whole(172, 0) & (1 << edge)) != 0 && (lookFlags & CellView.EdgeFlags(edge)) != 0 ? 1 << edge : 0;
+            }
+
+            cell = new CellView(cell.Groups, 0, cell.Groups.List.Count);
+
+            if (cell.Whole(172, 0) != edges)
+            {
+                cell.SetHead(172, edges.ToString(CultureInfo.InvariantCulture));
             }
 
             return cell.Groups.List;

@@ -2074,9 +2074,12 @@ values taken out. An override the cell has already is written in its place, befo
 writes its own (`170 5`, `7 GH_TXT`, `140 3.5`): `SetTextStyle` of such a cell wrote a second 7 after its value, which
 AutoCAD read and the library did not. `GetOverrides` gives what a cell holds of its own as AutoCAD's `CellProperties`, `SetOverrides` keeps
 those given and takes the rest away, so that the cell takes them from its table style, `RemoveAllOverrides` takes them
-all, both keeping the cell's own kind of value (its flag 0x40000), for which the library knows no groups; and
+all, wherever they stand outside the cell's value, and the edges of its lines from its edge flags (172), as AutoCAD
+2021's own took `170 5`, `7 GH_TXT` and `140 3.5` out from before the 92 of its cell (1, 0) and wrote a cell of `172 9`
+as `172 0`, both keeping the cell's own kind of value (its flag 0x40000), for which the library knows no groups; and
 `TableStyleOverrides` and `ClearTableStyleOverrides` read and take away the table's own (its flags 93 to 96 and the
-groups after its last cell), in one pass over the table's groups: the cells of a table of 16 001 rows of 2 columns, half
+groups after its last cell, or in its head after those flags and before its heights, where AutoCAD 2021 writes them),
+in one pass over the table's groups: the cells of a table of 16 001 rows of 2 columns, half
 of them of three overrides, are cleared in 0.19 s, where taking each group out on its own took 6.6 s. The cells are
 walked row by row (`foreach (DxfCell cell in table)`), and `table.Cells[1, 0]` is a `DxfCell` that reads and sets one,
 `cell.TextString = "Count"`, `cell.Alignment = DxfCellAlignment.MiddleCenter`; `table.Rows[0].Height` and
@@ -2102,13 +2105,22 @@ row 2 has rows 10, 8, 6, 6 and 8, and a column 25 wide put in before its column 
 three columns; so does one put in before column 0 or after the last, Parts kept in (0, 0), as AutoCAD 2021 grows a
 title merged across the table, where a merge of another row moves on with its columns. `InsertRowsAndInherit` and
 `InsertColumnsAndInherit` give the new cells the look of a row or column (the overrides with their flags, the turn, and
-from R2007 on the kind, unit and format of the value, its empty value `93 5` as AutoCAD writes it), not its content. `DeleteRows`
+from R2007 on the kind, unit and format of the value, its empty value `93 5` as AutoCAD writes it, of the kind 512 for
+a value of no kind), wherever its overrides stand, with the edges of its lines (172): the row put in under a cell whose
+top and left are red has its top and left red, so that the line between them reads red, as AutoCAD 2021 wrote it; not
+its content. A new cell of a column `InsertColumns` or `SetSize` puts in takes as its own the looks the table gives of its
+own to its kind of row (alignment, text style, background, colour, text height): AutoCAD 2021 gave the new header cell of
+a table of its own header of 9 `140 9.0` with its flag 0x20, and read a cell without them by its table style alone,
+4.5; a new row's cells it gave none. `DeleteRows`
 and `DeleteColumns` take them out, a block of merged cells shrunk to what is left of it and unmerged where one cell is
 left, its top left cell's content and look moved to the first cell of it left where its top row or first column goes,
 and `SetSize(numRows, numCols)` cuts or carries on the table from its bottom and right, the new rows as high as the
 last and the new columns as wide as AutoCAD 2021 makes them, the text height of the first row whose new cell is merged
 with none and the margins either side: the header's 4.5 and 1.5 of AutoCAD's Standard, 7.5, under a title merged across
-the table, which grows over them; the title's 6, 9 wide, where it is unmerged; `CanInsertRow`, `CanInsertColumn`, `CanDeleteRows` and `CanDeleteColumns` say whether they can, one row and one
+the table, which grows over them; the title's 6, 9 wide, where it is unmerged; 1 wide in a table of one row under its
+title merged across it, which has no row whose new cell is merged with none. No other block grows with columns or rows
+put in after it: a title merged across some of the columns, or a column merged down to the last row, stays as it is, and
+grows only by rows or columns put in among it, as AutoCAD 2021 left them; `CanInsertRow`, `CanInsertColumn`, `CanDeleteRows` and `CanDeleteColumns` say whether they can, one row and one
 column at least kept. 16 000 rows go in or out in about 0.3 s on .NET 10, as one setter of a cell takes.
 `MergeCells(range)` marks each cell of the range merged (173 of 1) and gives its top left cell the width and height of
 the block (175, 176), a block within the range taken into it and one across its edge refused, and `UnmergeCells` takes
@@ -2119,12 +2131,23 @@ color)`, `SetGridLineWeight`, `SetGridVisibility` and `SetGridProperty` write it
 (69, 65, 66, 68), lineweights (279, 275, 276, 278) and showing (289, 285, 286, 288) with their flags, and the edge in
 the cell's edge flags (172: 1 top, 2 right, 4 bottom, 8 left), without which AutoCAD 2021 reads no line of a cell
 wherever its group stands, and
-`SetGridProperty(range, ...)` the lines of a block, those inside on the cells either side of each line; the cell beside
-one is left as it is. `GetGridColor`, `GetGridLineWeight`, `GetGridVisibility`, `GetGridProperty` and `GridColor(row,
-col, edge)` read a cell's own, null where it has none. `GridColor(gridlineType, rowType)` and its setter
-`SetGridColor(color, borders, rows)`, with the lineweights and showing alike, read and write the table's own lines of
-the title, the header or the data after its last cell, with their flags in 94, 95 and 96, the groups of a code in the
-order of their flags and after the table's colours of its rows. `SetFormula(row, column, 0, "=A2+B2")`, from R2004 on,
+`SetGridProperty(range, ...)` the lines of a block, those inside on the cells either side of each line. A line between
+two cells is one line, the edge of one cell: AutoCAD 2021 writes it as the top or left of the cell below or right of it,
+and reads it from that cell where the cell holds the edge (its edge flag and one of the edge's overrides at least), else
+from the bottom or right of the other where that one holds it, each property of the line from the edge that holds it.
+So `GetGridColor`, `GetGridLineWeight`, `GetGridVisibility`, `GetGridProperty` and `GridColor(row, col, edge)` read the
+bottom of (1, 1) as the top of (2, 1) where (2, 1) holds its top, green there and red in (1, 1) reading green, and the
+top of (2, 1) of a colour alone with the bottom of (1, 1) of a lineweight alone reading no lineweight; null where no edge
+holds the line. The bottom or right of a cell set is set on the cell below or right of it too where that one holds the
+line, and a top or left set that the cell does not hold takes first the properties the cell above or left of it gives
+the line, so that a line set reads as set and keeps what was not set. The showing is 0 hidden and any other drawn, as
+AutoCAD 2021 read it (its own DXF writes 1 for a line it hides, which it reads back drawn). `GridColor(gridlineType,
+rowType)` and its setter `SetGridColor(color, borders, rows)`, with the lineweights and showing alike, read and write
+the table's own lines of the title, the header or the data after its last cell, or in its head where AutoCAD 2021
+writes the table's own overrides, with their flags in 94, 95 and 96, the groups of a code in the order of their flags
+and after the table's colours of its rows; `HorizontalCellMargin`, `VerticalCellMargin`, `IsTitleSuppressed`,
+`IsHeaderSuppressed` and `FlowDirection` read the table's own there too (`93 8` ... `96 0`, `40 3.0` before its
+heights), and a table scaled scales the text heights it gives its rows there. `SetFormula(row, column, 0, "=A2+B2")`, from R2004 on,
 adds a FIELD of AutoCAD's expressions (AcExpr, field code `\AcExpr (A2+B2)`) owned by the table, written as `DxfField`
 writes one with the class FIELD listed, and points the cell's 344 at it, after its turn (145) and before its 92, as
 AutoCAD 2021 wrote one, its value left for AutoCAD to work out; a field
@@ -2190,7 +2213,9 @@ out of the TABLECONTENT too, as AutoCAD 2021's own `InsertRows`, `DeleteRows`, `
 `SetSize` write them: AutoCAD reads the links, the style of each row (title, header or data) and the borders of the cells
 from the TABLECONTENT, cell by cell, so a row put in above AutoCAD's link at (1, 0) left in a TABLECONTENT of the old rows
 was read linked at the new row, and a row of data moved up into the header's place read as a header. Each new row is one
-of data of empty cells (of the style of the row whose look it takes with `InsertRowsAndInherit`), each new column of the
+of data of empty cells (of the style of the row whose look it takes with `InsertRowsAndInherit`, each cell then of the
+format of that row's cell, its margins and lines, and of an empty value of the flags 5 where that cell holds a content,
+as AutoCAD 2021 wrote them), each new column of the
 width given, the heights and widths written as reals (`40 10.0`) as AutoCAD writes them; a link moves with its cell and
 grows or shrinks as the table's merged cells do, and goes with its cell, its DATALINK then no longer tied to the
 TABLECONTENT, the table kept among its targets, as AutoCAD wrote it (`94 1`, `330 F6`); a field a cell taken out held

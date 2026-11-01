@@ -1147,8 +1147,11 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Takes away all a cell holds of its own over its table style, as AutoCAD's <c>RemoveAllOverrides</c>: its alignment,
         /// background, colours, text style and height, and the colours, lineweights and showing of its borders, their groups
-        /// and their 18 flags; a flag the file gives no groups for, as that of its kind of value (0x40000), is kept. The block
-        /// AutoCAD drew the table with is not drawn anew.
+        /// wherever they stand outside its value (AutoCAD 2021 writes them before its 92, the library after its value), their
+        /// 18 flags and the edges of its edge flags (172), as AutoCAD 2021's own wrote the cell (1, 0) of 170 5, 7 GH_TXT and
+        /// 140 3.5 before its 92 as 91 262144 and nothing else, and a cell of 172 9 as 172 0 (D28c x1 to x3); a flag the file
+        /// gives no groups for, as that of its kind of value (0x40000), is kept. The block AutoCAD drew the table with is not
+        /// drawn anew.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="column">The column, from nought.</param>
@@ -1206,9 +1209,9 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Takes away what the table and its cells hold of their own over the table style, as AutoCAD's
         /// <c>ClearTableStyleOverrides(options)</c>: 0 both, 1 the table's alone, 2 its cells' alone. The table's are the groups
-        /// after its last cell the DXF reference lists as its overrides (70, 40, 41, 280, 281, the looks by row and borders, 97,
-        /// 98 and 4), and its flags 93 to 96 set to nought; a cell's are those <see cref="RemoveAllOverrides(int, int)"/> takes
-        /// away. The block AutoCAD drew the table with is not drawn anew.
+        /// the DXF reference lists as its overrides (70, 40, 41, 280, 281, the looks by row and borders, 97, 98 and 4), after its
+        /// last cell where the library writes them or in its head after its flags where AutoCAD 2021 writes them, and its flags
+        /// 93 to 96 set to nought; a cell's are those <see cref="RemoveAllOverrides(int, int)"/> takes away. The block AutoCAD drew the table with is not drawn anew.
         /// </summary>
         /// <param name="options">0, 1 or 2.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the options are none of 0, 1 and 2.</exception>
@@ -1270,6 +1273,21 @@ namespace GeometryHelper.Dxf
                 }
 
                 g.RemoveMarked(marked);
+            }
+
+            // The table's own in its head after its flags, where AutoCAD 2021 writes them, taken out last: the cells after them
+            // are read by the places of the layout until then.
+            if (options != 2)
+            {
+                HeadOwn(g, layout.CellStart.Count > 0 ? layout.CellStart[0] : g.Sub.To, out int ownFrom, out int ownTo);
+
+                for (int i = ownTo - 1; i >= ownFrom; i--)
+                {
+                    if (TableOverrides.Contains(g.List[i].Key))
+                    {
+                        g.RemoveAt(i);
+                    }
+                }
             }
 
             if (!g.Same())

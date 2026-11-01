@@ -38,8 +38,14 @@ namespace GeometryHelper.Dxf
         #region The edges of a cell
 
         /// <summary>
-        /// Gets the colour of a line of a cell, as AutoCAD's <c>GetGridColor(row, column, gridLineType)</c>: the cell's own of
-        /// its top (69), right (65), bottom (66) or left (68) edge, of the index; null where it has none, its table's then.
+        /// Gets the colour of a line of a cell, as AutoCAD's <c>GetGridColor(row, column, gridLineType)</c>: the own of the edge
+        /// that holds the line, its top (69), right (65), bottom (66) or left (68), of the index; null where it has none, its
+        /// table's then. AutoCAD 2021 reads a line between two cells as the top or left edge of the one below or right of it
+        /// where that cell holds the edge, its edge flag (172: 1 top, 2 right, 4 bottom, 8 left) set and one of the edge's
+        /// overrides at least given with its flag, else as the bottom or right edge of the other where it holds it: the top
+        /// of (2, 1) green reads as the bottom of (1, 1), whatever (1, 1) gives; the top of (2, 1) of a colour alone and the
+        /// bottom of (1, 1) of a lineweight alone read no lineweight (D28c B1 to B15). A cell's own override without its edge
+        /// flag, or its flag, holds no line.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="column">The column, from nought.</param>
@@ -50,7 +56,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets the lineweight of a line of a cell, as AutoCAD's <c>GetGridLineWeight(row, column, gridLineType)</c>: the cell's
-        /// own of its top (279), right (275), bottom (276) or left (278) edge; null where it has none.
+        /// own of the edge that holds the line, its top (279), right (275), bottom (276) or left (278), as
+        /// <see cref="GetGridColor(int, int, DxfGridLineType)"/> reads it; null where it has none.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="column">The column, from nought.</param>
@@ -61,7 +68,9 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets whether a line of a cell is drawn, as AutoCAD's <c>GetGridVisibility(row, column, gridLineType)</c>: the cell's
-        /// own of its top (289), right (285), bottom (286) or left (288) edge, 1 drawn and 0 not; null where it has none.
+        /// own of the edge that holds the line, its top (289), right (285), bottom (286) or left (288), as
+        /// <see cref="GetGridColor(int, int, DxfGridLineType)"/> reads it, 0 not drawn and any other drawn (AutoCAD 2021 read 0
+        /// hidden, 1 and 2 drawn, D28c B5 to B7); null where it has none.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="column">The column, from nought.</param>
@@ -72,7 +81,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets what a line of a cell holds of its own, as AutoCAD's <c>GetGridProperty(row, column, gridLineType)</c>: its
-        /// colour, lineweight and showing where it has them, each named in the mask; the mask
+        /// colour, lineweight and showing where the edge that holds the line (<see cref="GetGridColor(int, int, DxfGridLineType)"/>)
+        /// has them, each named in the mask; the mask
         /// <see cref="DxfGridProperties.Invalid"/> for a line of none, which takes all from its table.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
@@ -138,10 +148,12 @@ namespace GeometryHelper.Dxf
         /// of each edge the lines name (top 69, right 65, bottom 66, left 68), of the index, its flag (0x40 to 0x200) set in its
         /// 177 (91 from R2007 on), and the edge in the cell's edge flags (172: 1 top, 2 right, 4 bottom, 8 left), without which
         /// AutoCAD 2021 reads no line of a cell, wherever its group stands: the bottom of (1, 1) set red, 172 4 and 66 1;
-        /// <see cref="DxfGridLineType.OuterGridLines"/> gives all four, the lines inside, a block's, none of a cell alone. The
-        /// edge of the cell beside it, which AutoCAD draws on the same line, is left as it is: AutoCAD writes a line between two
-        /// cells as the top or the left of the cell below or right of it, and reads it from either. The block AutoCAD drew the
-        /// table with is not drawn anew.
+        /// <see cref="DxfGridLineType.OuterGridLines"/> gives all four, the lines inside, a block's, none of a cell alone. AutoCAD
+        /// writes a line between two cells as the top or the left of the cell below or right of it, and reads it from that cell
+        /// where it holds the line (<see cref="GetGridColor(int, int, DxfGridLineType)"/>): the bottom or right of a cell set is
+        /// set on that cell too where it holds the line, so that the bottom of (1, 1) set red reads red beside a top of (2, 1)
+        /// green; and a top or left the cell does not hold takes first the properties of the line the cell above or left of it
+        /// holds, so that it keeps those not set. The block AutoCAD drew the table with is not drawn anew.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="column">The column, from nought.</param>
@@ -230,7 +242,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets the colour of a line of the rows of a kind, as AutoCAD's <c>GridColor(gridlineType, type)</c>: the table's own,
-        /// after its last cell, of the index (64, 65, 66, 63, 68, 69 for the lines across top, inside and bottom and down left,
+        /// after its last cell, or in its head after its flags and before its heights where AutoCAD 2021 writes the table's own
+        /// overrides, of the index (64, 65, 66, 63, 68, 69 for the lines across top, inside and bottom and down left,
         /// inside and right), its flag in 94; null where it has none, its table style's then. The groups of one code are read
         /// in the order of their flags, the title's, the header's, then the data's, and after the table's colours of its rows
         /// (64 and 63 with their flags in 93), as AutoCAD writes them.
@@ -312,11 +325,39 @@ namespace GeometryHelper.Dxf
             return new DxfCellRange(row, column, row, column);
         }
 
-        /// <summary>The cell's own override of an edge: its colour (0), lineweight (1) or showing (2).</summary>
+        /// <summary>
+        /// A property of a line of a cell, its colour (0), lineweight (1) or showing (2), as AutoCAD 2021 reads it: the line
+        /// between two cells is the top or left edge of the one below or right of it where that cell holds the edge (its edge
+        /// flag in 172 and one of the edge's overrides at least), else the bottom or right edge of the other where it holds
+        /// it, each property of the edge that holds the line, null for one it does not give.
+        /// </summary>
         private string EdgeOverride(int row, int column, int edge, int kind)
         {
-            int code = EdgeCodes[kind][edge];
-            return Cell(row, column).Override(code, Layout.CellOverrides[code]);
+            Layout layout = Read();
+            CellView own = layout.CellOf(row, column);
+            CellView beside = Beside(layout, row, column, edge);
+
+            // The cell below or right of the line first: the cell itself for its top and left, the one beside it for its
+            // bottom and right.
+            CellView first = edge == 0 || edge == 3 ? own : beside;
+            CellView then = edge == 0 || edge == 3 ? beside : own;
+            int firstEdge = first == own ? edge : (edge + 2) % 4;
+            int thenEdge = then == own ? edge : (edge + 2) % 4;
+
+            if (first != null && first.HoldsEdge(firstEdge))
+            {
+                return first.EdgeText(firstEdge, kind);
+            }
+
+            return then != null && then.HoldsEdge(thenEdge) ? then.EdgeText(thenEdge, kind) : null;
+        }
+
+        /// <summary>The cell across an edge of a cell, top (0), right, bottom or left, from the layout given; null at the table's rim.</summary>
+        private static CellView Beside(Layout layout, int row, int column, int edge)
+        {
+            int r = row + (edge == 0 ? -1 : edge == 2 ? 1 : 0);
+            int c = column + (edge == 3 ? -1 : edge == 1 ? 1 : 0);
+            return r >= 0 && r < layout.Rows && c >= 0 && c < layout.Columns && (long)r * layout.Columns + c < layout.CellStart.Count ? layout.CellAt(r, c) : null;
         }
 
         /// <summary>The edge of a cell a line is, top, right, bottom or left: one of the cell's four alone.</summary>
@@ -482,9 +523,6 @@ namespace GeometryHelper.Dxf
                         c == range.LeftColumn ? DxfGridLineType.VerticalLeft : DxfGridLineType.VerticalInside,
                     };
 
-                    CellView cell = layout.CellAt(r, c);
-                    CellView apart = null;
-
                     for (int edge = 0; edge < 4; edge++)
                     {
                         if ((lines & edges[edge]) == 0)
@@ -493,45 +531,27 @@ namespace GeometryHelper.Dxf
                         }
 
                         applies = true;
-                        int edgeBit = 1 << edge;
+                        int nr = r + (edge == 0 ? -1 : edge == 2 ? 1 : 0);
+                        int nc = c + (edge == 3 ? -1 : edge == 1 ? 1 : 0);
+                        int across = (edge + 2) % 4;
+                        bool beside = Beside(layout, r, c, edge) != null;
 
-                        for (int kind = 0; kind < 3; kind++)
+                        // AutoCAD reads the line from the cell below or right of it where that cell holds it: the bottom or
+                        // right of a cell is set on that cell too where it does, so that the line reads as set.
+                        if (beside && (edge == 1 || edge == 2) && Now(layout, made, nr, nc).HoldsEdge(across))
                         {
-                            int code = EdgeCodes[kind][edge];
-
-                            if (texts[kind] == null)
-                            {
-                                continue;
-                            }
-
-                            bool same = SameWhole(cell.Override(code, Layout.CellOverrides[code]), texts[kind]);
-
-                            if (same && (cell.Whole(172, 0) & edgeBit) != 0)
-                            {
-                                continue;
-                            }
-
-                            apart = apart ?? View(Slice(cell));
-
-                            if (!same)
-                            {
-                                apart.SetOverride(code, texts[kind], flagsCode);
-                            }
-
-                            // AutoCAD reads a line of a cell only where the cell's edge flags (172) name its edge.
-                            int edgeFlags = apart.Whole(172, 0);
-
-                            if ((edgeFlags & edgeBit) == 0)
-                            {
-                                apart.SetHead(172, (edgeFlags | edgeBit).ToString(CultureInfo.InvariantCulture));
-                            }
+                            any |= PutEdge(layout, made, nr, nc, across, texts, flagsCode);
                         }
-                    }
 
-                    if (apart != null)
-                    {
-                        made[r * layout.Columns + c] = apart.Groups.List;
-                        any = true;
+                        // A top or left the cell does not hold, read from the cell above or left of it, takes that line's
+                        // properties first, so that it keeps those not set.
+                        if (beside && (edge == 0 || edge == 3) && !Now(layout, made, r, c).HoldsEdge(edge) && Now(layout, made, nr, nc).HoldsEdge(across))
+                        {
+                            CellView held = Now(layout, made, nr, nc);
+                            any |= PutEdge(layout, made, r, c, edge, new[] { held.EdgeText(across, 0), held.EdgeText(across, 1), held.EdgeText(across, 2) }, flagsCode);
+                        }
+
+                        any |= PutEdge(layout, made, r, c, edge, texts, flagsCode);
                     }
                 }
             }
@@ -546,6 +566,66 @@ namespace GeometryHelper.Dxf
                 CheckEditable();
                 Splice(layout, made);
             }
+        }
+
+        /// <summary>A cell as it stands in the edit: its groups changed so far, else the record's.</summary>
+        private static CellView Now(Layout layout, List<KeyValuePair<int, string>>[] made, int row, int column)
+        {
+            List<KeyValuePair<int, string>> groups = made[row * layout.Columns + column];
+            return groups != null ? View(groups) : layout.CellAt(row, column);
+        }
+
+        /// <summary>
+        /// Gives an edge of a cell the properties given (its colour, lineweight, showing; null for one not given), each its own
+        /// override with its flag where it differs, and the edge in the cell's edge flags (172), where they do not name it;
+        /// the cell copied apart into the edit where it changes. Whether it changed.
+        /// </summary>
+        private static bool PutEdge(Layout layout, List<KeyValuePair<int, string>>[] made, int row, int column, int edge, string[] texts, int flagsCode)
+        {
+            int index = row * layout.Columns + column;
+            CellView cell = Now(layout, made, row, column);
+            CellView apart = null;
+            int edgeBit = 1 << edge;
+
+            for (int kind = 0; kind < 3; kind++)
+            {
+                int code = EdgeCodes[kind][edge];
+
+                if (texts[kind] == null)
+                {
+                    continue;
+                }
+
+                bool same = SameWhole((apart ?? cell).Override(code, Layout.CellOverrides[code]), texts[kind]);
+
+                if (same && ((apart ?? cell).Whole(172, 0) & edgeBit) != 0)
+                {
+                    continue;
+                }
+
+                apart = apart ?? (made[index] != null ? cell : View(Slice(cell)));
+
+                if (!same)
+                {
+                    apart.SetOverride(code, texts[kind], flagsCode);
+                }
+
+                // AutoCAD reads a line of a cell only where the cell's edge flags (172) name its edge.
+                int edgeFlags = apart.Whole(172, 0);
+
+                if ((edgeFlags & edgeBit) == 0)
+                {
+                    apart.SetHead(172, (edgeFlags | edgeBit).ToString(CultureInfo.InvariantCulture));
+                }
+            }
+
+            if (apart == null)
+            {
+                return false;
+            }
+
+            made[index] = apart.Groups.List;
+            return true;
         }
 
         private static bool SameWhole(string now, string text)
@@ -592,9 +672,16 @@ namespace GeometryHelper.Dxf
         /// <summary>The text of the table's own group of a line of the rows of a kind: its colour (0), lineweight (1) or showing (2); null where it has none.</summary>
         private string TableLine(int kind, int line, int rowKind)
         {
-            Layout layout = Read();
+            return OwnText(Read(), (kind + 1) * 100 + rowKind * 6 + line);
+        }
+
+        /// <summary>
+        /// The text of the table's own group of a rank (<see cref="TailRanks"/>): after its last cell, where the library writes
+        /// it, else in its head, where AutoCAD 2021 writes it; null where it has none.
+        /// </summary>
+        private static string OwnText(Layout layout, int wanted)
+        {
             int headTo = layout.CellStart.Count > 0 ? layout.CellStart[0] : layout.CellsEnd;
-            int wanted = (kind + 1) * 100 + rowKind * 6 + line;
             int[] ranks = TailRanks(layout.Groups, headTo, layout.CellsEnd, out int to);
 
             for (int i = layout.CellsEnd; i < to; i++)
@@ -605,7 +692,9 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            return null;
+            int[] inHead = HeadRanks(layout.Groups, headTo, out int from, out _);
+            int at = Array.IndexOf(inHead, wanted);
+            return at < 0 ? null : layout.Groups.List[from + at].Value;
         }
 
         /// <summary>
@@ -644,19 +733,26 @@ namespace GeometryHelper.Dxf
                     int wanted = (kind + 1) * 100 + bit;
                     int code = LineCodes[kind][line];
                     int[] ranks = TailRanks(g, headTo, cellsEnd, out int to);
+                    int[] headRanks = HeadRanks(g, headTo, out int ownFrom, out int ownTo);
                     int at = Array.IndexOf(ranks, wanted);
+                    int inHead = Array.IndexOf(headRanks, wanted);
+                    at = at >= 0 ? cellsEnd + at : inHead >= 0 ? ownFrom + inHead : -1;
 
                     if (at >= 0)
                     {
-                        if (!SameWhole(g.List[cellsEnd + at].Value, text))
+                        if (!SameWhole(g.List[at].Value, text))
                         {
-                            g.List[cellsEnd + at] = new KeyValuePair<int, string>(code, text);
+                            g.List[at] = new KeyValuePair<int, string>(code, text);
                         }
 
                         continue;
                     }
 
-                    g.Insert(PlaceOf(g, ranks, cellsEnd, to, code, wanted), new KeyValuePair<int, string>(code, text));
+                    // In the head where the table holds its own there, as AutoCAD 2021 writes them, else after its last cell.
+                    bool headPlaced = ownTo > ownFrom;
+                    g.Insert(headPlaced ? PlaceOf(g, headRanks, ownFrom, ownTo, code, wanted) : PlaceOf(g, ranks, cellsEnd, to, code, wanted), new KeyValuePair<int, string>(code, text));
+                    headTo += headPlaced ? 1 : 0;
+                    cellsEnd += headPlaced ? 1 : 0;
                     var head = new DxfDimGroups.Range(g.Sub.From, headTo);
                     int flagsCode = 94 + kind;
                     bool had = g.Find(flagsCode, head) >= 0;
@@ -724,11 +820,56 @@ namespace GeometryHelper.Dxf
                 to++;
             }
 
+            var seen = new Dictionary<int, int>();
+            HeadOwn(g, headTo, out int ownFrom, out int ownTo);
+            Ranks(g, headTo, ownFrom, ownTo, seen);
+            return Ranks(g, headTo, from, to, seen);
+        }
+
+        /// <summary>
+        /// The rank of each of the table's own groups in its head, where AutoCAD 2021 writes them (<see cref="HeadOwn"/>), as
+        /// <see cref="TailRanks"/> ranks those after its last cell: the groups of a code in the head read before those after
+        /// the cells.
+        /// </summary>
+        private static int[] HeadRanks(DxfDimGroups g, int headTo, out int from, out int to)
+        {
+            HeadOwn(g, headTo, out from, out to);
+            return Ranks(g, headTo, from, to, new Dictionary<int, int>());
+        }
+
+        /// <summary>
+        /// Where the table's own groups stand in its head, as AutoCAD 2021 writes them: after its flags (93 to 96) and before its
+        /// heights and widths (141, 142), the table's own header of 9 <c>93 2097152</c> ... <c>96 0</c>, <c>140 9.0</c>,
+        /// <c>141 ...</c>; an empty range where its head gives no flags.
+        /// </summary>
+        private static void HeadOwn(DxfDimGroups g, int headTo, out int from, out int to)
+        {
+            from = -1;
+            to = headTo;
+
+            for (int i = g.Sub.From; i < headTo; i++)
+            {
+                int key = g.List[i].Key;
+
+                if (key == 141 || key == 142)
+                {
+                    to = i;
+                    break;
+                }
+
+                from = key >= 93 && key <= 96 ? i + 1 : from;
+            }
+
+            from = from < 0 ? to : from;
+        }
+
+        /// <summary>The ranks of the groups of a range of the table's own, by the flags of its head, the groups of each code counted on from those seen.</summary>
+        private static int[] Ranks(DxfDimGroups g, int headTo, int from, int to, Dictionary<int, int> seen)
+        {
             var head = new DxfDimGroups.Range(g.Sub.From, headTo);
             int looks = g.Whole(93, head, 0);
             int[] lineFlags = { g.Whole(94, head, 0), g.Whole(95, head, 0), g.Whole(96, head, 0) };
             var ranks = new int[to - from];
-            var seen = new Dictionary<int, int>();
 
             for (int i = from; i < to; i++)
             {
