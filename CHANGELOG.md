@@ -6,6 +6,48 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A row a table puts in or takes out leaves the kinds of its rows as AutoCAD 2021 keeps them: by the style of
+each row in the TABLECONTENT, which the library now reads (check D28e, rounds E1, E2). The first row put into a table of
+one row is the header, the rest data: `SetSize(3, 2)` or `InsertRows(1, 9.0, 2)` of a table of its title alone gives it a
+header shown again (`93 0`, no `281`), whether the header was left out by the rows taken or by `IsHeaderSuppressed`, where
+the library kept it out; a row after a lone row of data is a header out of its place, read as data with the header's
+`170 5`. `DeleteRows` of the title leaves it out (`93 1`, `280 1`) and of the header the header (`93 2`, `281 1`), where
+the library wrote neither and read the header as the title; a title moved down by `InsertRows(0)` is the title again once
+that row is taken out. The table's own looks of a kind of which no row is left go from its head with their flags, the
+header's background and height with the header (`93 4784258`), the data's with the last row of data. A block of merged
+cells whose top left cell goes leaves the cell left its own content, as AutoCAD 2021 left it, where the library moved the
+top left cell's there: the title of two columns that loses its first keeps an empty text, not Parts. 5 new tests; 2 tests
+of the old moves now read the cell left's own content.
+
+**FIXED.** `MergeCells` empties the other cells of the block, as AutoCAD 2021 empties them: text cells of no value (`91 0`,
+`93 7`, `90 0`), their block taken out, their text style, height and colour of their own taken away unless they are the
+table's own looks of their row's kind, their alignment and background kept, and in the TABLECONTENT of no content
+(`95 0`); the library kept them unseen, so that a cell unmerged showed Qty again. The edges of the block take the lines of
+its corners, its top and left the top left cell's, its right the top right cell's, its bottom the bottom left cell's, as
+AutoCAD drew them: a green line over Qty goes where the line over Mark is red. 2 new tests; 2 tests that read a merged
+cell's text after merging now read it empty.
+
+**FIXED.** `ResetValue` and `SetCellType(TextCell)` leave a value of none (`93 7`, `90 0`, the cell's flag 0x40000 taken
+out), as AutoCAD 2021 wrote them and read them as of no kind, where the library wrote an empty text. A number set by
+`SetValue` from R2007 on is written with the text AutoCAD 2021 writes and shows, 12.500000 for 12.5 and 12.500 under the
+format `%lu2%pr3`, and `SetFormat` of a decimal writes the text anew, where the library wrote 12.5, which AutoCAD showed as
+it was; before R2007 the text is all a cell holds and stays the number whole, 12.5. 2 new tests; 3 tests that read 12.5,
+12.50 or 12 now read the text of six, three or two places, and 2 tests of filled series read the value.
+
+**FIXED.** `SetBackgroundColorNone` and `IsBackgroundColorNone` write and read a cell's 283 as AutoCAD 2021 does, in a
+drawing of R2018 and of R2000 alike: 0 filled, with a colour of its own (`63 0`, BYBLOCK, where the cell has none), 1
+unfilled, or no override at all where the row's kind is unfilled; the library wrote and read them the other way about.
+1 new test; 1 test of the old 283 now reads 0.
+
+**FIXED.** `SetGridColor`, `SetGridLineWeight` and `SetGridVisibility` of the rows of a kind write the table's own lines in
+its head after its flags, where AutoCAD 2021 writes them and reads them onto each cell of the kind; it read those the
+library put after the last cell as none. A table that holds its own after its last cell already is written there, as
+before. 1 new test; 1 test now finds them in the head.
+
+**CHANGED.** `HorizontalCellMargin` and `VerticalCellMargin` of a table of no margin of its own read its style once and keep
+it until the drawing is changed: 2 000 readings of both take 0.8 ms on .NET 10 where they took 97 to 136, and 0.3 ms
+on .NET Framework 4.8 where they took 86 to 88, the margins read the same. 1 new test.
+
 **FIXED.** A TEXT, an attribute definition or an attribute not aligned left on its baseline always writes its alignment
 point (11, 21, 31), the origin too, as AutoCAD 2021 wrote `11 0 21 0 31 0` for its own TEXT centred on its middle (check
 D30): an attribute definition centred on (0, 0) gave the attribute `SetAttributeFromBlock` filled for an INSERT at (6000,

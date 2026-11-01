@@ -277,8 +277,10 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Sets the colour of lines of the rows of kinds, as AutoCAD's <c>SetGridColor(color, borders, rows)</c>: the table's
-        /// own of each line and kind, of the index, written in place or put in after its last cell in the order AutoCAD writes
-        /// them, its flag set in 94: the title's lines across the top and inside, <c>SetGridColor(color, HorizontalTop |
+        /// own of each line and kind, of the index, written in place or put in its head after its flags in the order AutoCAD
+        /// writes them, its flag set in 94, as AutoCAD 2021 wrote and read them in a drawing of R2018 and of R2000 alike, where
+        /// it read those the library put in after the last cell as none (D28e v27); after the last cell only where the table
+        /// holds its own there already: the title's lines across the top and inside, <c>SetGridColor(color, HorizontalTop |
         /// HorizontalInside, TitleRow)</c>, set the flags 1 and 2. The cells' own edges are left as they are. The block AutoCAD
         /// drew the table with is not drawn anew.
         /// </summary>
@@ -699,8 +701,9 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Writes the table's own groups of the lines and the kinds of rows given, each in place where it has one, else put in
-        /// after its last cell in the order AutoCAD writes them, with its flag in 94 (colours), 95 (lineweights) or 96 (showing);
-        /// the record written once, nothing where each has the value already.
+        /// its head after its flags (after its last cell where it holds its own there, or its head has no flags) in the order
+        /// AutoCAD writes them, with its flag in 94 (colours), 95 (lineweights) or 96 (showing); the record written once,
+        /// nothing where each has the value already.
         /// </summary>
         private void SetTableLines(int kind, string text, DxfGridLineType borders, DxfRowType rows)
         {
@@ -748,8 +751,13 @@ namespace GeometryHelper.Dxf
                         continue;
                     }
 
-                    // In the head where the table holds its own there, as AutoCAD 2021 writes them, else after its last cell.
-                    bool headPlaced = ownTo > ownFrom;
+                    // In the head after its flags, where AutoCAD 2021 writes and reads them (D28e v27: the data's red lines put in
+                    // after the last cell it read as none, in the head as red on each cell of the data); after its last cell only
+                    // where the table holds its own there already, or its head has no flags, so that the groups of a code stay in
+                    // the order of their flags.
+                    bool tailHeld = Array.Exists(ranks, rank => rank >= 0);
+                    var flagged = new DxfDimGroups.Range(g.Sub.From, headTo);
+                    bool headPlaced = ownTo > ownFrom || (!tailHeld && (g.Find(93, flagged) >= 0 || g.Find(94, flagged) >= 0 || g.Find(95, flagged) >= 0 || g.Find(96, flagged) >= 0));
                     g.Insert(headPlaced ? PlaceOf(g, headRanks, ownFrom, ownTo, code, wanted) : PlaceOf(g, ranks, cellsEnd, to, code, wanted), new KeyValuePair<int, string>(code, text));
                     headTo += headPlaced ? 1 : 0;
                     cellsEnd += headPlaced ? 1 : 0;

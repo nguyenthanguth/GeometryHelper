@@ -90,8 +90,10 @@ namespace GeometryHelper.Dxf
         /// of their kind the data's are not, the title's <c>170 5</c> and <c>140 6.0</c> of AutoCAD's Standard, the header's
         /// <c>170 5</c>, and the table's own of their kind (D28d r1 to r7). Rows put in at or before the first row of data take
         /// the table's own looks of the data away from it, the rows of data that were given them as their own, as AutoCAD reads
-        /// those looks from the first row of data (D28d d1 to d3). The table given a row before its title reads every row as
-        /// data, Parts still 6 high and in the middle.
+        /// those looks from the first row of data (D28d d1 to d3). The first row put into a table of one row is the header and
+        /// the rest data, as AutoCAD 2021 gave them, the header shown again where the table had left it out, and a header put
+        /// after a lone row of data read as data in the header's alignment (D28e s8, s15, s17, e07 to e12). The table given a
+        /// row before its title reads every row as data, Parts still 6 high and in the middle.
         /// </summary>
         /// <param name="row">The row the new ones go before, from nought; <see cref="NumRows"/> for after the last.</param>
         /// <param name="height">The height of each, a finite number above nought.</param>
@@ -143,8 +145,13 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Takes rows out, as AutoCAD's <c>DeleteRows</c>: their cells, their heights (141) and their count (91). A block of
         /// merged cells shrinks to the rows of it left, and is unmerged where one cell of it is left; where its top row goes,
-        /// the content and look of its top left cell go to the first cell of it left, as AutoCAD keeps a merged cell's text. A
-        /// block below the rows moves up. A range of cells linked to data shrinks and moves alike, its link named by its new top
+        /// the first cell of it left keeps its own content, empty where <see cref="MergeCells"/> emptied it, as AutoCAD 2021
+        /// kept it (D28e k1, k4), where the library moved the top left cell's there. A block below the rows moves up. The
+        /// rows left keep their kinds, as AutoCAD keeps a kind with each row: the title or the header taken out is left out
+        /// (<c>280 1</c>, <c>281 1</c> and their flags in 93), the header first and shown where the title goes, and a title or
+        /// header moved back into its place by the rows taken is shown again, its 280 or 281 taken out (D28e x1 to x17); the
+        /// table's own looks of a kind of which no row is left go from its head with their flags, as AutoCAD took the
+        /// header's background and height out with the header (x8). A range of cells linked to data shrinks and moves alike, its link named by its new top
         /// left cell, and goes where none of it is left, its DATALINK erased as <see cref="RemoveDataLink()"/> erases one: where it
         /// is anonymous and nothing else of the file points at it. The rows are taken out of the table's TABLECONTENT too, as
         /// AutoCAD 2021's <c>DeleteRows</c> takes them out: a link the TABLECONTENT names goes with its cell, its DATALINK kept and
@@ -218,7 +225,7 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Takes columns out, as AutoCAD's <c>DeleteColumns</c>: their cells, their widths (142) and their count (92), as
         /// <see cref="DeleteRows"/> takes rows out; the title merged across the columns of a table of two that loses the first
-        /// is unmerged, its text Parts in the one cell left.
+        /// is unmerged, the one cell left of its own empty text, as AutoCAD 2021 left it (D28e x5), Parts gone with the first.
         /// </summary>
         /// <param name="col">The first column taken out, from nought.</param>
         /// <param name="columns">How many, one or more, one column at least left.</param>
@@ -235,7 +242,9 @@ namespace GeometryHelper.Dxf
         /// Gives the table a number of rows and of columns, as AutoCAD's <c>SetSize</c>: rows and columns taken out from the
         /// bottom and the right, or put in there, each new row 4/3 of the text height the table style gives the data and twice
         /// the margin above and below a cell's content (<see cref="VerticalCellMargin"/>), 9 for AutoCAD's Standard of 4.5 and
-        /// 1.5 whatever the rows above, as AutoCAD 2021 made them (D28d h1 to h9), and each new column as wide as AutoCAD
+        /// 1.5 whatever the rows above, as AutoCAD 2021 made them (D28d h1 to h9), the first row put into a table of one row
+        /// the header, shown again where the table had left it out, as <see cref="InsertRows"/> puts it in (D28e s4 to s6),
+        /// rows taken out leaving the kinds of those left as <see cref="DeleteRows"/> does, and each new column as wide as AutoCAD
         /// 2021 made one, the text height of its first row whose new cell is merged with none (the header, where the title is
         /// merged across the table) and the margins either side of a cell's content (7.5 for AutoCAD's Standard, 4.5 and 1.5;
         /// 9 where the title is unmerged, its 6; 1 in a table of one row, its title merged across it, D28c w1), of empty text
@@ -308,6 +317,7 @@ namespace GeometryHelper.Dxf
                 }
             }
 
+            RowKinds kinds = numRows > rows ? Kinds(layout, cells, numCols, rows, numRows - rows, -1, valued, false) : numRows < rows ? DeletedKinds(layout, numRows, rows - numRows) : null;
             Rebuild(layout, numRows, numCols, heights, widths, cells, blocks, LinksCut(layout, numRows, numCols));
 
             if (numRows != rows)
@@ -318,7 +328,7 @@ namespace GeometryHelper.Dxf
                 }
                 else
                 {
-                    ContentInserted(true, rows, numRows - rows, heights[rows], -1);
+                    ContentInserted(true, rows, numRows - rows, heights[rows], -1, 0, rows == 1);
                 }
             }
 
@@ -333,6 +343,8 @@ namespace GeometryHelper.Dxf
                     ContentInserted(false, columns, numCols - columns, widths[columns], -1, title ? columns : 0);
                 }
             }
+
+            kinds?.WriteHead(this);
         }
 
         /// <summary>Puts rows (or columns) in at a place, new or taking the look of a row (or column), and writes the record anew.</summary>
@@ -438,7 +450,7 @@ namespace GeometryHelper.Dxf
             RowKinds kinds = rowsOf ? Kinds(layout, cells, newColumns, at, count, inheritFrom, valued) : null;
 
             Rebuild(layout, newRows, newColumns, heights, widths, cells, blocks, LinksInserted(layout, rowsOf, at, count));
-            ContentInserted(rowsOf, at, count, size, inheritFrom, title ? columns : 0);
+            ContentInserted(rowsOf, at, count, size, inheritFrom, title ? columns : 0, rowsOf && inheritFrom < 0 && rows == 1);
 
             foreach (DxfCellRange block in copied ?? new List<DxfCellRange>())
             {
@@ -511,20 +523,15 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                // The block's top left cell taken out, its content and look go to the first cell of it left, as AutoCAD keeps
-                // a merged cell's text.
-                if (first >= at && first < at + count)
-                {
-                    int newRow = rowsOf ? newFirst : b.TopRow;
-                    int newColumn = rowsOf ? b.LeftColumn : newFirst;
-                    cells[newRow * newColumns + newColumn] = Slice(layout, b.TopRow * columns + b.LeftColumn);
-                }
-
+                // The block's top left cell taken out, the first cell of it left keeps its own content, empty where the block
+                // was merged as AutoCAD merges, as AutoCAD 2021 left it (D28e x5, k1, k3, k4).
                 AddBlock(blocks, rowsOf ? newFirst : b.TopRow, rowsOf ? b.LeftColumn : newFirst, rowsOf ? newLast : b.BottomRow, rowsOf ? b.RightColumn : newLast);
             }
 
+            RowKinds kinds = rowsOf ? DeletedKinds(layout, at, count) : null;
             Rebuild(layout, newRows, newColumns, heights, widths, cells, blocks, LinksDeleted(layout, rowsOf, at, count));
             ContentDeleted(rowsOf, at, count);
+            kinds?.WriteHead(this);
         }
 
         #endregion
@@ -534,8 +541,9 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Merges a block of cells into one, as AutoCAD's <c>MergeCells</c>: each cell of it marked merged (173 of 1), its top
         /// left cell given the block's width and height in cells (175, 176), the others 0 and 0, as <see cref="GetMergeRange"/>
-        /// reads them; the content of its top left cell is the block's, the others' kept in the file as they are, unseen. A
-        /// block of merged cells within the range becomes part of it. The title of the table of 3 rows and 2 columns, merged with
+        /// reads them; the content of its top left cell is the block's, and the others are emptied as AutoCAD 2021 empties them
+        /// (<see cref="EmptyMerged"/>), where the library kept them unseen. A block of merged cells within the range becomes part
+        /// of it. The title of the table of 3 rows and 2 columns, merged with
         /// the row below it, (0, 0) to (1, 1), gives that range from each of its four cells. The table's TABLECONTENT lists the
         /// range among its merged ranges, those it meets taken out, as AutoCAD 2021 lists a merge, though AutoCAD reads a table's
         /// merges from its ACAD_TABLE. Nothing is written for a range of one cell, or one merged so already; the block AutoCAD
@@ -580,9 +588,132 @@ namespace GeometryHelper.Dxf
 
             if (changed)
             {
-                Rebuild(layout, layout.Rows, layout.Columns, null, null, AllSlices(layout), blocks, Links(layout));
-                ContentMerged(range, true);
+                List<KeyValuePair<int, string>>[] cells = AllSlices(layout);
+                EmptyMerged(layout, cells, range, Item.File.Supports(1021));
+                Rebuild(layout, layout.Rows, layout.Columns, null, null, cells, blocks, Links(layout));
+                ContentMerged(range, true, true);
             }
+        }
+
+        /// <summary>
+        /// Empties the cells of a block merged but its top left, as AutoCAD 2021's <c>MergeCells</c> emptied them (D28e p8, p9,
+        /// q1 to q7, m2 to m5): each a text cell of no value (<c>93 7</c>, <c>90 0</c>, the flag 0x40000 taken out), its block
+        /// and attribute values taken out, and its text style, text height and colour of its own (7, 140, 64), which AutoCAD
+        /// holds with the content, taken out where they are not the table's own looks of its row's kind; its alignment and
+        /// background kept, as AutoCAD kept Mark's <c>170 5</c> and took its <c>7 GH_TXT</c> and <c>140 3.5</c> away, and
+        /// kept the looks of a table of its own data of GH_TXT, 9, red and top left. The edges of the block are those its
+        /// corners give: its top and left the top left cell's, its right the top right cell's, its bottom the bottom left
+        /// cell's, each read as AutoCAD reads a line between two cells, given to each cell along it and taken from the cell
+        /// beyond, so that a green line over Qty went where the line over Mark was none and red where it was red; the lines
+        /// within the block are kept. The cells given are changed in place.
+        /// </summary>
+        private void EmptyMerged(Layout layout, List<KeyValuePair<int, string>>[] cells, DxfCellRange range, bool valued)
+        {
+            int rows = layout.Rows;
+            int columns = layout.Columns;
+            int top = range.TopRow;
+            int left = range.LeftColumn;
+            int bottom = range.BottomRow;
+            int right = range.RightColumn;
+            Func<int, int, int, CellLine> line = (row, column, edge) => LineOf(View(cells[row * columns + column]), edge);
+            CellLine over = line(top, left, 0) ?? (top > 0 ? line(top - 1, left, 2) : null);
+            CellLine before = line(top, left, 3) ?? (left > 0 ? line(top, left - 1, 1) : null);
+            CellLine after = (right + 1 < columns ? line(top, right + 1, 3) : null) ?? line(top, right, 1);
+            CellLine under = (bottom + 1 < rows ? line(bottom + 1, left, 0) : null) ?? line(bottom, left, 2);
+            List<KeyValuePair<int, string>>[] looks = RowKindLooks(layout);
+
+            for (int row = top; row <= bottom; row++)
+            {
+                for (int column = left; column <= right; column++)
+                {
+                    if (row != top || column != left)
+                    {
+                        cells[row * columns + column] = Emptied(cells[row * columns + column], looks?[row], valued);
+                    }
+                }
+            }
+
+            Action<int, int, int, CellLine> give = (row, column, edge, given) => cells[row * columns + column] = WithLine(cells[row * columns + column], edge, given, valued);
+
+            for (int column = left + 1; column <= right; column++)
+            {
+                give(top, column, 0, over);
+
+                if (over == null && top > 0)
+                {
+                    give(top - 1, column, 2, null);
+                }
+
+                give(bottom, column, 2, under);
+
+                if (bottom + 1 < rows)
+                {
+                    give(bottom + 1, column, 0, null);
+                }
+            }
+
+            for (int row = top + 1; row <= bottom; row++)
+            {
+                give(row, left, 3, before);
+
+                if (before == null && left > 0)
+                {
+                    give(row, left - 1, 1, null);
+                }
+
+                give(row, right, 1, after);
+
+                if (right + 1 < columns)
+                {
+                    give(row, right + 1, 3, null);
+                }
+            }
+        }
+
+        /// <summary>A cell of a block merged emptied, as <see cref="EmptyMerged"/> says: of no value, no block, and of no text style, height or colour of its own but those of the table's own looks of its row's kind given.</summary>
+        private static List<KeyValuePair<int, string>> Emptied(List<KeyValuePair<int, string>> groups, List<KeyValuePair<int, string>> looks, bool valued)
+        {
+            CellView cell = View(groups);
+            int mask = 0;
+
+            foreach (int code in new[] { 7, 140, 64 })
+            {
+                int bit = Layout.CellOverrides[code];
+                string own = cell.Override(code, bit);
+                int at = looks == null ? -1 : looks.FindIndex(g => g.Key == code);
+                mask |= own != null && (at < 0 || !SameLook(own, looks[at].Value)) ? bit : 0;
+            }
+
+            if (mask != 0)
+            {
+                cell.RemoveOverrides(mask);
+                cell = View(cell.Groups.List);
+            }
+
+            if (cell.Whole(171, 1) == (int)DxfTableCellType.BlockCell)
+            {
+                int end = cell.ValueFrom >= 0 ? cell.ValueFrom : cell.OverridesFrom;
+
+                for (int i = end - 1; i > cell.From; i--)
+                {
+                    int code = cell.Groups.List[i].Key;
+
+                    if (code == 340 || code == 144 || code == 179 || code == 331 || code == 300)
+                    {
+                        cell.Groups.RemoveAt(i);
+                    }
+                }
+
+                cell.Groups.List[cell.From] = new KeyValuePair<int, string>(171, "1");
+                cell = View(cell.Groups.List);
+            }
+
+            if (!cell.HoldsNoValue())
+            {
+                cell.SetNoValue();
+            }
+
+            return cell.Groups.List;
         }
 
         /// <summary>

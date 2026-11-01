@@ -685,6 +685,41 @@ written as AutoCAD reads them now.
       table of one row leaves out (`281 1`) and AutoCAD gave back with the rows (s1), where the library keeps it out.
       Where AutoCAD's own file reads back other than it read in memory (b1, b2, b8, r1, r3, r5 to r7, d2, d4, d5, h2,
       i6, i7), the library's reads as AutoCAD's file does.
+    - AutoCAD 2021 (D28e, headless, 126 edits and three read-back rounds): it keeps a kind with each row, the style of
+      its row in the TABLECONTENT (1, 2, 3), and writes the title and header shown by the first rows' styles: its
+      `DeleteRows` of the title wrote `93 1`, `280 1`, of the header `93 2`, `281 1`, of both `93 3` (x1, x2, s12), and of
+      the row put in before a title moved down the title and header shown again, `93 0` (x12 to x14). The first row put into
+      a table of one row is the header and the rest data, whatever the one row and wherever the row goes: `SetSize(3, 2)` of
+      a table of its title alone wrote `93 0` and no `281`, whether `IsHeaderSuppressed` was set before or not (s1, s3 to
+      s6, s14), `InsertRows(0)` of it a header before the title, the title read as data (s15), and a row after a lone row of
+      data a header read as data with `170 5` (e09); a table of two rows or more gets rows of data (e01 to e22). The
+      table's own looks of a kind went from its head with the last row of the kind: the header's with the header (x8,
+      `93 4784258`), the data's with the last row of data (x9). A block whose top left cell went kept the content of the
+      cell left, empty as its `MergeCells` had left it (x5, k1, k3, k4). Its `MergeCells` empties the other cells of the
+      block, `91 0` and a value of none, their block taken out, their text style, height and colour taken away but where
+      they are the table's own looks of the row's kind (q7), their alignment kept (q5, Mark's `170 5`), and gives the edges
+      of the block the lines of its corners, the top and left of the top left cell, the right of the top right and the
+      bottom of the bottom left, the lines within kept (q3, q4, m2 to m5). Its `ResetValue` and `SetCellType(TextCell)`
+      write a value of none (`91 0`, `93 7`, `90 0`; v10, v19); it writes a number's text of six places, 12.500000, and of
+      a decimal format's, 12.500 for `%lu2%pr3` (v09, v11, w30 to w33), and showed the library's 12.5 as it was. It writes
+      a cell's background filled `283 0` with `63 0` where it has no colour (v18, w18 of R2000 alike), unfilled `283 1` with
+      `63 0` in a row whose kind is filled (m1) and no override where it is not (v47), and reads `283 1` as unfilled: the
+      library wrote and read 283 the other way about. It writes the table's own lines of a kind of row in its head after
+      96 and reads them onto each cell of the kind there, but not after the last cell, where the library wrote them (v27,
+      read in the head as `V-v27`). Of the other setters of the table it wrote and read as the library does: `SetBlockScale`,
+      `SetBlockRotation`, `SetBlockAttributeValue`, `SetTextString`, `SetRowHeight` and `SetColumnWidth` of one and of
+      all, `SetValue` of a whole number, `SetAlignment`, `SetTextHeight`, `SetTextStyle`, `SetContentColor` and
+      `SetBackgroundColor` of a cell and of a content, `SetTextRotation`, `SetRotation`, `SetScale`, `SetAutoScale`,
+      `SetIsAutoScale`, `SetDataFormat` of a content and `ClearTableStyleOverrides(0)` and `(1)` (v01 to v46).
+    - Now (D28e): the library writes and reads so; AutoCAD read its files of 104 of the 114 edits it compared as it read
+      its own files of them back, the ten left those under "Not yet".
+    - Not yet (D28e): AutoCAD's own file lists the overrides of a cell's lines under other flags than the library's
+      (`CellStyleOverrides` of v24, v25, v28 and v33 differ, every line read alike), and reads a line it hid back drawn
+      (v26, v29); its `Fill` changed nothing or threw eInvalidInput in four edits (v35, f1 to f3), where the library fills;
+      it formats a number by a format of feet and inches, `1'-0 1/2"` for `%lu4%pr2` (w32), which the library leaves 12.5;
+      `SetDataType(Double)` of the text B-12 made it 0 (v12) and `SetOverrides(TextHeight)` gave Qty a height of 0.18 (v42),
+      both of which the library refuses; and its `DeleteRows` of a merged row with a row above it merged that row in its
+      place (x15, the title moved down by `InsertRows(0)` taken out), where the library drops the block.
 
 44. **The arrow block of a dimension style.**
     - Try: set `Dimtxsty` and `Dimblk` on a dimension style read from a file and on one made in code, open the drawing and run

@@ -38,11 +38,13 @@ namespace GeometryHelper.Dxf
         /// column) given (<see cref="InheritedCellGroups"/>), a row of data (style 3) or of the style of the row it takes the
         /// look of, of the height (or width) given; the links and merged ranges after them moved on and those they go
         /// into grown, as the table's own. Nothing where the table has no TABLECONTENT, or the place is past its last row (or
-        /// column), as a TABLECONTENT of fewer rows than its table AutoCAD read has. The height (or width) is written as a real,
+        /// column), as a TABLECONTENT of fewer rows than its table AutoCAD read has. The first of the rows is of the header's
+        /// style (2) where <paramref name="headerFirst"/> asks, as AutoCAD 2021 wrote the first row put into a table of one row
+        /// (<see cref="NewKind"/>). The height (or width) is written as a real,
         /// 10.0, as AutoCAD writes it. Where the title of a table of the columns given (more than none) is merged across them all,
         /// the range of the title, (0, 0) to (0, last), grows by the columns put in wherever they go, as AutoCAD 2021 listed it.
         /// </summary>
-        private void ContentInserted(bool rowsOf, int at, int count, string size, int inheritFrom, int titleColumns = 0)
+        private void ContentInserted(bool rowsOf, int at, int count, string size, int inheritFrom, int titleColumns = 0, bool headerFirst = false)
         {
             size = ContentNumber(size);
             Func<int[], int[]> title = titleColumns <= 0 || rowsOf ? (Func<int[], int[]>)null
@@ -62,7 +64,8 @@ namespace GeometryHelper.Dxf
 
                     for (int k = 0; k < count; k++)
                     {
-                        ContentRow row = NewRow(grid.Columns.Count, style, size);
+                        // Each goes in before the one put in before it: the last put in is the first, the header of a table of one row.
+                        ContentRow row = NewRow(grid.Columns.Count, headerFirst && k == count - 1 ? "2" : style, size);
 
                         for (int c = 0; source != null && c < row.Cells.Count && c < source.Cells.Count; c++)
                         {
@@ -151,12 +154,22 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Lists a range of cells merged in the TABLECONTENT, or takes the merged ranges it meets out, as AutoCAD 2021 listed and
         /// took out its merge of (1, 0) to (1, 1): every range the range meets taken out, and, merged, the range put in, the list
-        /// row by row by the top left cells. Nothing where the table has no TABLECONTENT, or it lists them so already.
+        /// row by row by the top left cells. Where <paramref name="empty"/> asks, the cells of the range but its top left are
+        /// emptied (<see cref="EmptyContent"/>), as AutoCAD 2021's <c>MergeCells</c> emptied them. Nothing where the table has
+        /// no TABLECONTENT, or it lists them so already.
         /// </summary>
-        private void ContentMerged(DxfCellRange range, bool merged)
+        private void ContentMerged(DxfCellRange range, bool merged, bool empty = false)
         {
             EditContent(true, null, grid =>
             {
+                for (int r = range.TopRow; empty && r <= range.BottomRow && r < grid.Rows.Count; r++)
+                {
+                    for (int c = range.LeftColumn; c <= range.RightColumn && c < grid.Rows[r].Cells.Count; c++)
+                    {
+                        grid.Changed |= (r != range.TopRow || c != range.LeftColumn) && EmptyContent(grid, grid.Rows[r].Cells[c].Groups);
+                    }
+                }
+
                 if (grid.Merges == null)
                 {
                     return;
@@ -301,6 +314,43 @@ namespace GeometryHelper.Dxf
             {
                 DxfField.Erase(Item.File, owned);
             }
+        }
+
+        /// <summary>
+        /// Takes a cell's content out of the TABLECONTENT, as AutoCAD 2021 wrote the other cells of a block it merged (D28e p8,
+        /// q1): no content (<c>95 0</c>), its checksum <c>140 0.0</c>, the fields it held let go; its format and lines kept.
+        /// False where it holds none and its checksum is nought already, or it is not in the form AutoCAD writes.
+        /// </summary>
+        private static bool EmptyContent(ContentGrid grid, List<KeyValuePair<int, string>> cell)
+        {
+            int end = cell.FindIndex(g => g.Key == 309 && g.Value.Trim() == "LINKEDTABLEDATACELL_END");
+            int mapEnd = cell.FindIndex(g => g.Key == 309 && g.Value.Trim() == "DATAMAP_END");
+            int count = mapEnd < 0 || end < 0 ? -1 : cell.FindIndex(mapEnd, end - mapEnd, g => g.Key == 95);
+
+            if (count < 0)
+            {
+                return false;
+            }
+
+            bool changed = false;
+            int sum = cell.FindIndex(g => g.Key == 300 && g.Value.Trim() == "ACAD_ROUNDTRIP_2008_CELL_CHECKSUM");
+            int real = sum < 0 ? -1 : cell.FindIndex(sum, mapEnd - sum, g => g.Key == 140);
+
+            if (real >= 0 && cell[real].Value.Trim() != "0.0")
+            {
+                cell[real] = new KeyValuePair<int, string>(140, "0.0");
+                changed = true;
+            }
+
+            if (end > count + 1 || cell[count].Value.Trim() != "0")
+            {
+                grid.Dropped.AddRange(FieldsOf(cell));
+                cell.RemoveRange(count + 1, end - count - 1);
+                cell[count] = new KeyValuePair<int, string>(95, "0");
+                changed = true;
+            }
+
+            return changed;
         }
 
         /// <summary>The fields a cell of the TABLECONTENT holds: the 340 of each of its contents of the kind 2 (<c>1 CELLCONTENT_BEGIN</c>, <c>90 2</c>, <c>340</c>).</summary>

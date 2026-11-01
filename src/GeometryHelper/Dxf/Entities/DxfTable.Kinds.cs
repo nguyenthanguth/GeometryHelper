@@ -208,36 +208,54 @@ namespace GeometryHelper.Dxf
         /// <c>281 1</c> for <c>InsertRows(1)</c>), and its cells given as their own the looks of their kind the data's do not
         /// have (<see cref="KindLooks"/>; D28d r1 to r7, i1 to i9, d2, d5). A row put in by <c>InsertRows</c> at or before the
         /// first row of data took the table's own looks of the data away, the old rows of data given them as their own, as
-        /// AutoCAD reads the table's looks of a kind from its first row of that kind (D28d d1 to d3, D28c o7). The cells are
-        /// changed in place; the head is written after the record (<see cref="RowKinds.WriteHead"/>). Null where nothing changes.
+        /// AutoCAD reads the table's looks of a kind from its first row of that kind (D28d d1 to d3, D28c o7); not by
+        /// <c>SetSize</c> (<paramref name="mayDrop"/> false). The kinds of the rows are those AutoCAD keeps
+        /// (<see cref="KeptKinds"/>), a new row's <see cref="NewKind"/>, so that a header put into a table of one row is shown
+        /// again (D28e s4). The cells are changed in place; the head is written after the record
+        /// (<see cref="RowKinds.WriteHead"/>). Null where nothing changes.
         /// </summary>
-        private RowKinds Kinds(Layout layout, List<KeyValuePair<int, string>>[] cells, int columns, int at, int count, int inheritFrom, bool valued)
+        private RowKinds Kinds(Layout layout, List<KeyValuePair<int, string>>[] cells, int columns, int at, int count, int inheritFrom, bool valued, bool mayDrop = true)
         {
             bool titleOn = !IsTitleSuppressed;
             bool headerOn = !IsHeaderSuppressed;
             int rows = layout.Rows + count;
             int firstData = (titleOn ? 1 : 0) + (headerOn ? 1 : 0);
-            Func<int, int> kindOf = r => titleOn && r == 0 ? 0 : headerOn && r == (titleOn ? 1 : 0) ? 1 : 2;
-            int source = inheritFrom >= 0 ? kindOf(inheritFrom) : 2;
+
+            // The TABLECONTENT is read where the rows put in reach the first two rows of a table that leaves its title or header
+            // out, or take the kind of a row after them: elsewhere the first two rows are of the kinds their places say, as the
+            // TABLECONTENT must agree, no other row moves into or out of the title's or the header's place, and a table of
+            // 4 000 rows is not read twice.
+            bool read = inheritFrom >= 2 || ((at <= 1 || layout.Rows <= 2) && !(titleOn && headerOn));
+            int[] kept = read ? KeptKinds(layout) : PlaceKinds(layout.Rows);
             var kinds = new int[rows];
 
             for (int r = 0; r < rows; r++)
             {
-                kinds[r] = r < at ? kindOf(r) : r < at + count ? source : kindOf(r - count);
+                kinds[r] = r < at ? kept[r] : r >= at + count ? kept[r - count] : inheritFrom >= 0 ? kept[inheritFrom] : NewKind(layout.Rows, r - at);
             }
 
-            bool titleNow = titleOn && kinds[0] == 0;
+            bool titleNow = kinds[0] == 0;
             int headerAt = titleNow ? 1 : 0;
-            bool headerNow = headerOn && headerAt < rows && kinds[headerAt] == 1;
+            bool headerNow = headerAt < rows && kinds[headerAt] == 1;
             bool outOfPlace = false;
+
+            // A row out of the place of its kind takes the looks of its kind where it goes out of it now, a new row or one that
+            // was in its place; one out of it already has them, as AutoCAD gave them when it went out.
+            Func<int, bool> movedOut = r =>
+            {
+                int place = titleNow && r == 0 ? 0 : headerNow && r == headerAt ? 1 : 2;
+                int old = r < at ? r : r - count;
+                bool added = r >= at && r < at + count;
+                return kinds[r] != 2 && kinds[r] != place && (added || kinds[r] == (titleOn && old == 0 ? 0 : headerOn && old == (titleOn ? 1 : 0) ? 1 : 2));
+            };
 
             for (int r = 0; r < rows && !outOfPlace; r++)
             {
-                outOfPlace = kinds[r] != 2 && kinds[r] != (titleNow && r == 0 ? 0 : headerNow && r == headerAt ? 1 : 2);
+                outOfPlace = movedOut(r);
             }
 
-            List<KeyValuePair<int, string>>[] own = (inheritFrom < 0 && at <= firstData) || outOfPlace ? OwnLooks(layout) : null;
-            bool drop = own != null && inheritFrom < 0 && at <= firstData && own[2].Count > 0;
+            List<KeyValuePair<int, string>>[] own = (mayDrop && inheritFrom < 0 && at <= firstData) || outOfPlace ? OwnLooks(layout) : null;
+            bool drop = own != null && mayDrop && inheritFrom < 0 && at <= firstData && own[2].Count > 0;
 
             if (!outOfPlace && !drop && titleNow == titleOn && headerNow == headerOn)
             {
@@ -248,9 +266,8 @@ namespace GeometryHelper.Dxf
 
             for (int r = 0; r < rows; r++)
             {
-                int place = titleNow && r == 0 ? 0 : headerNow && r == headerAt ? 1 : 2;
                 bool added = r >= at && r < at + count;
-                List<KeyValuePair<int, string>> give = kinds[r] != 2 && kinds[r] != place ? looks[kinds[r]] ?? (looks[kinds[r]] = KindLooks(kinds[r], own)) : drop && kinds[r] == 2 && !added ? own[2] : null;
+                List<KeyValuePair<int, string>> give = movedOut(r) ? looks[kinds[r]] ?? (looks[kinds[r]] = KindLooks(kinds[r], own)) : drop && kinds[r] == 2 && !added ? own[2] : null;
 
                 for (int c = 0; give != null && give.Count > 0 && c < columns; c++)
                 {
@@ -258,7 +275,113 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            return new RowKinds(titleOn && !titleNow, headerOn && !headerNow, drop);
+            return new RowKinds(titleOn, titleNow, headerOn, headerNow, drop ? 4 : 0);
+        }
+
+        /// <summary>
+        /// The kind of a row put in by <c>InsertRows</c> or <c>SetSize</c>, 1 the header and 2 data, as AutoCAD 2021 gave it:
+        /// the first of those put into a table of one row is of the header, wherever it goes and whatever the one row is, the
+        /// rest of data (D28e s4 to s17, e01 to e22): a table of its title alone given two rows has a header and a row of data,
+        /// the header shown again where the table had left it out.
+        /// </summary>
+        private static int NewKind(int rowsBefore, int newIndex) => rowsBefore == 1 && newIndex == 0 ? 1 : 2;
+
+        /// <summary>
+        /// The kind of each row as AutoCAD 2021 keeps it, 0 the title, 1 the header and 2 data: the style of its row in the
+        /// TABLECONTENT (<c>TABLEROW_BEGIN</c>, <c>90 1</c>, <c>90 2</c>, else data), where the TABLECONTENT lists each of the
+        /// table's rows and agrees with its head on whether the title and the header are shown, the title moved down by a row put
+        /// in before it kept as the title (D28e x12 to x15); else by its place, as <see cref="RowType"/> reads it.
+        /// </summary>
+        private int[] KeptKinds(Layout layout)
+        {
+            bool titleOn = !IsTitleSuppressed;
+            bool headerOn = !IsHeaderSuppressed;
+            int[] kinds = PlaceKinds(layout.Rows);
+            DxfItem content = IsResident ? ContentItem() : null;
+            ContentGrid grid = content == null ? null : ContentGrid.Read(Item.File, content);
+
+            if (grid == null || grid.Rows.Count != layout.Rows)
+            {
+                return kinds;
+            }
+
+            var kept = new int[layout.Rows];
+
+            for (int r = 0; r < kept.Length; r++)
+            {
+                string style = StyleOf(grid.Rows[r]);
+                kept[r] = style == "1" ? 0 : style == "2" ? 1 : 2;
+            }
+
+            bool keptTitle = kept.Length > 0 && kept[0] == 0;
+            int headerAt = keptTitle ? 1 : 0;
+            bool keptHeader = headerAt < kept.Length && kept[headerAt] == 1;
+            return keptTitle == titleOn && keptHeader == headerOn ? kept : kinds;
+        }
+
+        /// <summary>The kind of each row by its place, as <see cref="RowType"/> reads it: the title first and the header next, each where the table does not leave it out.</summary>
+        private int[] PlaceKinds(int rows)
+        {
+            bool titleOn = !IsTitleSuppressed;
+            bool headerOn = !IsHeaderSuppressed;
+            var kinds = new int[rows];
+
+            for (int r = 0; r < rows; r++)
+            {
+                kinds[r] = titleOn && r == 0 ? 0 : headerOn && r == (titleOn ? 1 : 0) ? 1 : 2;
+            }
+
+            return kinds;
+        }
+
+        /// <summary>
+        /// What rows taken out change of the kinds of the rows left, as AutoCAD 2021 wrote it (D28e x1 to x17): the title shown
+        /// where the first row left is of the title, the header where the row after it (or the first, the title left out) is
+        /// of the header, each written in the head (280, 281 and their flags in 93) where it changes, a title or header moved up
+        /// into its place by the rows taken shown again; and the table's own looks of a kind (<see cref="KindLookCodes"/>) of
+        /// which no row is left taken out of its head with their flags, as AutoCAD took the header's out with the header (x8,
+        /// x16) and the data's with the last row of data (x9). Null where nothing changes.
+        /// </summary>
+        private RowKinds DeletedKinds(Layout layout, int at, int count)
+        {
+            List<KeyValuePair<int, string>>[] own = OwnLooks(layout);
+
+            // Rows taken out after the first two leave the title and the header as they are: the TABLECONTENT is read only where
+            // the table has looks of its own a kind could take with it.
+            if (at >= 2 && own[0].Count == 0 && own[1].Count == 0 && own[2].Count == 0)
+            {
+                return null;
+            }
+
+            int[] kept = KeptKinds(layout);
+            var kinds = new List<int>();
+            var before = new bool[3];
+            var after = new bool[3];
+
+            for (int r = 0; r < kept.Length; r++)
+            {
+                before[kept[r]] = true;
+
+                if (r < at || r >= at + count)
+                {
+                    kinds.Add(kept[r]);
+                    after[kept[r]] = true;
+                }
+            }
+
+            bool titleOn = !IsTitleSuppressed;
+            bool headerOn = !IsHeaderSuppressed;
+            bool titleNow = kinds.Count > 0 && kinds[0] == 0;
+            int headerAt = titleNow ? 1 : 0;
+            bool headerNow = headerAt < kinds.Count && kinds[headerAt] == 1;
+            int drop = 0;
+
+            for (int kind = 0; kind < 3; kind++)
+            {
+                drop |= before[kind] && !after[kind] && own[kind].Count > 0 ? 1 << kind : 0;
+            }
+
+            return drop == 0 && titleNow == titleOn && headerNow == headerOn ? null : new RowKinds(titleOn, titleNow, headerOn, headerNow, drop);
         }
 
         /// <summary>A cell's groups given as its own each look given that it has not of its own.</summary>
@@ -391,29 +514,38 @@ namespace GeometryHelper.Dxf
             return looks;
         }
 
-        /// <summary>What <see cref="Kinds"/> found to write in the table's head: its title and its header left out, and its own looks of the data taken away.</summary>
+        /// <summary>
+        /// What <see cref="Kinds"/> and <see cref="DeletedKinds"/> found to write in the table's head: whether its title and its
+        /// header are shown before and after, and the kinds of rows (bit 0 the title, 1 the header, 2 the data) whose own looks
+        /// go.
+        /// </summary>
         private sealed class RowKinds
         {
-            private readonly bool _titleOff;
-            private readonly bool _headerOff;
-            private readonly bool _dropData;
+            private readonly bool _titleWas;
+            private readonly bool _titleNow;
+            private readonly bool _headerWas;
+            private readonly bool _headerNow;
+            private readonly int _drop;
 
-            internal RowKinds(bool titleOff, bool headerOff, bool dropData)
+            internal RowKinds(bool titleWas, bool titleNow, bool headerWas, bool headerNow, int drop)
             {
-                _titleOff = titleOff;
-                _headerOff = headerOff;
-                _dropData = dropData;
+                _titleWas = titleWas;
+                _titleNow = titleNow;
+                _headerWas = headerWas;
+                _headerNow = headerNow;
+                _drop = drop;
             }
 
             /// <summary>
-            /// Writes them in the table's head as AutoCAD 2021 wrote them: the table's own looks of the data taken out wherever
-            /// they stand, with their flags in 93; 280 and 281 of 1 set where the table holds them, else put in its head after
-            /// its flags with theirs (93 bits 0 and 1), <c>93 3</c> ... <c>96 0</c>, <c>280 1</c>, <c>281 1</c>, <c>141 ...</c>;
-            /// the record written once, nothing where it comes out the same.
+            /// Writes them in the table's head as AutoCAD 2021 wrote them: the table's own looks of the kinds that go taken out
+            /// wherever they stand, with their flags in 93; a title or header left out given 280 or 281 of 1 where the table
+            /// holds it, else put in its head after its flags with theirs (93 bits 0 and 1), <c>93 3</c> ... <c>96 0</c>,
+            /// <c>280 1</c>, <c>281 1</c>, <c>141 ...</c>; one shown again its 280 or 281 taken out with its flag, as AutoCAD
+            /// wrote <c>93 0</c> and neither (D28e s4, x12); the record written once, nothing where it comes out the same.
             /// </summary>
             internal void WriteHead(DxfTable table)
             {
-                if (!_titleOff && !_headerOff && !_dropData)
+                if (_titleWas == _titleNow && _headerWas == _headerNow && _drop == 0)
                 {
                     return;
                 }
@@ -423,26 +555,34 @@ namespace GeometryHelper.Dxf
                 int headTo = layout.CellStart.Count > 0 ? layout.CellStart[0] : layout.CellsEnd;
                 int cellsEnd = layout.CellsEnd;
 
-                if (_dropData)
+                if (_drop != 0)
                 {
                     int[] tail = TailRanks(g, headTo, cellsEnd, out int to);
                     int[] head = HeadRanks(g, headTo, out int ownFrom, out int ownTo);
                     var marked = new bool[g.List.Count];
                     int bits = 0;
 
-                    foreach (int code in KindLookCodes)
+                    for (int kind = 0; kind < 3; kind++)
                     {
-                        int rank = RowLooks[code] + 2;
-                        bits |= 1 << rank;
-
-                        for (int i = cellsEnd; i < to; i++)
+                        foreach (int code in KindLookCodes)
                         {
-                            marked[i] |= tail[i - cellsEnd] == rank;
-                        }
+                            if ((_drop & (1 << kind)) == 0)
+                            {
+                                continue;
+                            }
 
-                        for (int i = ownFrom; i < ownTo; i++)
-                        {
-                            marked[i] |= head[i - ownFrom] == rank;
+                            int rank = RowLooks[code] + kind;
+                            bits |= 1 << rank;
+
+                            for (int i = cellsEnd; i < to; i++)
+                            {
+                                marked[i] |= tail[i - cellsEnd] == rank;
+                            }
+
+                            for (int i = ownFrom; i < ownTo; i++)
+                            {
+                                marked[i] |= head[i - ownFrom] == rank;
+                            }
                         }
                     }
 
@@ -462,7 +602,10 @@ namespace GeometryHelper.Dxf
 
                 foreach (int code in new[] { 280, 281 })
                 {
-                    if (code == 280 ? !_titleOff : !_headerOff)
+                    bool was = code == 280 ? _titleWas : _headerWas;
+                    bool now = code == 280 ? _titleNow : _headerNow;
+
+                    if (was == now)
                     {
                         continue;
                     }
@@ -472,10 +615,32 @@ namespace GeometryHelper.Dxf
                     int[] head = HeadRanks(g, headTo, out int ownFrom, out int ownTo);
                     int inTail = Array.IndexOf(tail, wanted);
                     int inHead = Array.IndexOf(head, wanted);
+                    int at = inTail >= 0 ? cellsEnd + inTail : inHead >= 0 ? ownFrom + inHead : -1;
+                    var range = new DxfDimGroups.Range(g.Sub.From, headTo);
 
-                    if (inTail >= 0 || inHead >= 0)
+                    if (now)
                     {
-                        int at = inTail >= 0 ? cellsEnd + inTail : ownFrom + inHead;
+                        // Shown again: its group and its flag taken out.
+                        if (at >= 0)
+                        {
+                            g.RemoveAt(at);
+                            headTo -= inTail >= 0 ? 0 : 1;
+                            cellsEnd -= inTail >= 0 ? 0 : 1;
+                            range = new DxfDimGroups.Range(g.Sub.From, headTo);
+                        }
+
+                        int flags = g.Whole(93, range, 0);
+
+                        if ((flags & (1 << wanted)) != 0)
+                        {
+                            g.Set(93, (flags & ~(1 << wanted)).ToString(CultureInfo.InvariantCulture), range, Order);
+                        }
+
+                        continue;
+                    }
+
+                    if (at >= 0)
+                    {
                         g.List[at] = new KeyValuePair<int, string>(code, "1");
                         continue;
                     }
@@ -483,7 +648,7 @@ namespace GeometryHelper.Dxf
                     g.Insert(PlaceOf(g, head, ownFrom, ownTo, code, wanted), new KeyValuePair<int, string>(code, "1"));
                     headTo++;
                     cellsEnd++;
-                    var range = new DxfDimGroups.Range(g.Sub.From, headTo);
+                    range = new DxfDimGroups.Range(g.Sub.From, headTo);
                     bool had = g.Find(93, range) >= 0;
                     g.Set(93, (g.Whole(93, range, 0) | (1 << wanted)).ToString(CultureInfo.InvariantCulture), range, Order);
                     headTo += had ? 0 : 1;

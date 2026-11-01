@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using GeometryHelper.Export;
 using GeometryHelper.Geometry;
@@ -54,6 +55,7 @@ namespace GeometryHelper.Dxf
         private byte[] _layoutBytes;
         private int _layoutStart;
         private int _layoutEnd;
+        private MarginsRead _styleMargins;
 
         private DxfTable(DxfItem item)
             : base(item)
@@ -224,7 +226,8 @@ namespace GeometryHelper.Dxf
         /// Gets what a row is, as AutoCAD's <c>RowType</c> tells it: the first the title and the next the header, each where
         /// the table does not leave it out (<see cref="IsTitleSuppressed"/>, <see cref="IsHeaderSuppressed"/>), the rest data.
         /// A row put in before the title or the header leaves it out, as AutoCAD 2021 writes it (<see cref="InsertRows"/>), so
-        /// that the table given a row before its title reads every row as data, as AutoCAD read it (D28d r1).
+        /// that the table given a row before its title reads every row as data, as AutoCAD read it (D28d r1); the title or the
+        /// header taken out leaves it out too (<see cref="DeleteRows"/>).
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <returns>What it is.</returns>
@@ -423,7 +426,11 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the cell is not one of the table's.</exception>
         public DxfColor BackgroundColor(int row, int col) => Colour(Cell(row, col).Override(63, 0x04));
 
-        /// <summary>Gets whether a cell's background is left unfilled, as AutoCAD's <c>IsBackgroundColorNone</c>: the cell's own (283 of 0); null where it has none.</summary>
+        /// <summary>
+        /// Gets whether a cell's background is left unfilled, as AutoCAD's <c>IsBackgroundColorNone</c>: the cell's own 283, 1
+        /// unfilled and 0 filled, as AutoCAD 2021 read a cell of <c>63 3</c>, <c>283 0</c> green and one of <c>283 1</c> unfilled
+        /// (D28e v17, v18), where the library read them the other way about; null where it has none.
+        /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="col">The column, from nought.</param>
         /// <returns>Whether it is, or null.</returns>
@@ -431,7 +438,7 @@ namespace GeometryHelper.Dxf
         public bool? IsBackgroundColorNone(int row, int col)
         {
             string text = Cell(row, col).Override(283, 0x02);
-            return text == null ? (bool?)null : text.Trim() == "0";
+            return text == null ? (bool?)null : text.Trim() != "0";
         }
 
         /// <summary>
@@ -1194,7 +1201,9 @@ namespace GeometryHelper.Dxf
         private DxfItem StyleItem()
         {
             DxfFile file = Item.File;
-            DxfDimGroups own = Own();
+
+            // The record as read and kept (Read), not parsed anew: a style is looked for once a cell of 400 rows is set.
+            DxfDimGroups own = Read().Groups;
             string handle = own.Text(342, own.Sub)?.Trim();
             DxfItem style = handle == null ? null : file.ObjectItem(handle);
 
@@ -1261,30 +1270,70 @@ namespace GeometryHelper.Dxf
         private double Margin(int code)
         {
             double margin = TableReal(code, double.NaN);
+            return margin >= 0.0 ? margin : StyleMargins()[code - 40];
+        }
 
-            if (margin >= 0.0)
+        /// <summary>
+        /// The margins the table's style gives, left and right (its 40) and above and below (its 41), AutoCAD's own Standard's
+        /// where it gives none (<see cref="StandardMargin"/>); read once and kept while the drawing is not changed, as the
+        /// file counts its changes (<see cref="DxfFile.EditCount"/>): a change to the table, its style, the style it names or
+        /// the drawing's units reads them again. A margin read on a table of none of its own reads its style once, not each
+        /// time.
+        /// </summary>
+        private double[] StyleMargins()
+        {
+            DxfFile file = Item.File;
+            int edits = IsResident ? file.EditCount : -1;
+            MarginsRead kept = _styleMargins;
+
+            if (kept != null && edits >= 0 && kept.Edits == edits && ReferenceEquals(kept.File, file))
             {
-                return margin;
+                return kept.Margins;
             }
 
+            var margins = new[] { double.NaN, double.NaN };
             DxfItem style = IsResident ? StyleItem() : null;
+            bool inStyle = false;
 
-            if (style != null)
+            foreach (DxfTypedValue group in style == null ? Enumerable.Empty<DxfTypedValue>() : file.ObjectGroupsOf(style))
             {
-                bool inStyle = false;
+                inStyle = group.TypeCode == 100 ? group.Value.Trim() == "AcDbTableStyle" : inStyle;
+                int slot = inStyle && (group.TypeCode == 40 || group.TypeCode == 41) ? group.TypeCode - 40 : -1;
 
-                foreach (DxfTypedValue group in Item.File.ObjectGroupsOf(style))
+                if (slot >= 0 && double.IsNaN(margins[slot]))
                 {
-                    inStyle = group.TypeCode == 100 ? group.Value.Trim() == "AcDbTableStyle" : inStyle;
-
-                    if (inStyle && group.TypeCode == code)
-                    {
-                        return Numbers.TryRead(group.Value, out double read) && Guard.IsFinite(read) && read >= 0.0 ? read : StandardMargin();
-                    }
+                    margins[slot] = Numbers.TryRead(group.Value, out double read) && Guard.IsFinite(read) && read >= 0.0 ? read : StandardMargin();
                 }
             }
 
-            return StandardMargin();
+            for (int slot = 0; slot < 2; slot++)
+            {
+                margins[slot] = double.IsNaN(margins[slot]) ? StandardMargin() : margins[slot];
+            }
+
+            if (edits >= 0)
+            {
+                _styleMargins = new MarginsRead(file, edits, margins);
+            }
+
+            return margins;
+        }
+
+        /// <summary>The margins of a table's style as read, with the file and its count of changes they were read at.</summary>
+        private sealed class MarginsRead
+        {
+            internal MarginsRead(DxfFile file, int edits, double[] margins)
+            {
+                File = file;
+                Edits = edits;
+                Margins = margins;
+            }
+
+            internal DxfFile File { get; }
+
+            internal int Edits { get; }
+
+            internal double[] Margins { get; }
         }
 
         private double StandardMargin() => Item.File.Database == null || Item.File.Database.Measurement == DxfMeasurementValue.Metric ? 1.5 : 0.06;
@@ -1979,6 +2028,41 @@ namespace GeometryHelper.Dxf
                         break;
                     }
                 }
+            }
+
+            /// <summary>
+            /// Makes the cell's value one of none, as AutoCAD 2021 writes a cell it empties (its <c>ResetValue</c>,
+            /// <c>SetCellType</c> and <c>MergeCells</c>, D28e v10, v19, p8): from R2007 on of the flags 7 and the kind 0, no data
+            /// and an empty text, its unit and format kept, before R2007 its text empty; its kind of value (0x40000) taken out of
+            /// its flags, as AutoCAD wrote <c>91 0</c>, and a 344 taken out. The view is not kept up with the groups.
+            /// </summary>
+            internal void SetNoValue()
+            {
+                int? flags = Flags;
+
+                if (flags.HasValue && (flags.Value & DataTypeFlag) != 0)
+                {
+                    SetFlags(flags.Value & ~DataTypeFlag, 177);
+                }
+
+                if (ValueFrom < 0)
+                {
+                    SetText(string.Empty);
+                    return;
+                }
+
+                WriteValue("0", new List<KeyValuePair<int, string>>(), string.Empty, null, null);
+                Groups.List[ValueFrom + 1] = new KeyValuePair<int, string>(93, "7");
+                DropField();
+            }
+
+            /// <summary>Whether the cell holds no value: from R2007 one of the flag 1 (AutoCAD's 7) and no text, before an empty text; and no field, nor its kind of value (0x40000).</summary>
+            internal bool HoldsNoValue()
+            {
+                bool none = ValueFrom >= 0
+                    ? int.TryParse(InValue(93)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int read) && (read & 1) != 0 && Text().Length == 0
+                    : Text().Length == 0;
+                return none && Head(344) == null && ((Flags ?? 0) & DataTypeFlag) == 0;
             }
 
             /// <summary>

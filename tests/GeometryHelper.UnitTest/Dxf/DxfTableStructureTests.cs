@@ -23,6 +23,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
         private static DxfTable Table(DxfDatabase db) => db.ModelSpace.OfType<DxfTable>().Single();
 
+        /// <summary>The number a cell holds: its value from R2007 on, its text before, which is all a cell of R2000 holds.</summary>
+        private static double Number(DxfTable table, int row, int column)
+            => table.Value(row, column) is double value ? value : double.Parse(table.TextString(row, column), System.Globalization.CultureInfo.InvariantCulture);
+
         private static string TableRecord(string text) => Records(text).Single(r => HandleOf(r) == "F6");
 
         private static DxfColor Aci(short index) => DxfColor.FromColorIndex(DxfColorMethod.ByAci, index);
@@ -148,8 +152,9 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void TheTopRowOfABlockTakenOut_LeavesTheBlockItsContentInTheFirstRowOfItLeft()
+        public void TheTopRowOfABlockTakenOut_LeavesTheFirstRowOfItLeftItsOwnEmptiedCell()
         {
+            // D28e k1, k4: AutoCAD 2021 kept the content of the cell left, which its MergeCells had emptied, not Mark's.
             DxfDatabase db = DxfDatabase.Parse(DxfDimensionDrawings.R2018);
             DxfTable table = Table(db);
             table.InsertRows(3, 8.0, 1);
@@ -159,13 +164,13 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfTable read = Reread(db);
             Assert.Equal(new DxfCellRange(1, 0, 2, 0), read.GetMergeRange(2, 0));
-            Assert.Equal("Mark", read.TextString(1, 0));
-            Assert.Equal(DxfCellAlignment.MiddleCenter, read.Alignment(1, 0));
+            Assert.Equal(string.Empty, read.TextString(1, 0));
+            Assert.Null(read.Alignment(1, 0));
             Assert.Equal(DxfTableCellType.BlockCell, read.CellType(1, 1));
         }
 
         [Fact]
-        public void TheFirstColumnOfTheTitleTakenOut_LeavesItsTextInTheCellLeft()
+        public void TheFirstColumnOfTheTitleTakenOut_LeavesTheCellLeftItsOwnText()
         {
             foreach (string text in Versions)
             {
@@ -176,7 +181,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 DxfTable read = Reread(db);
                 Assert.Equal(new[] { 30.0 }, Widths(read));
-                Assert.Equal("Parts", read.TextString(0, 0));
+                Assert.Equal(string.Empty, read.TextString(0, 0));
                 Assert.False(read.IsMergedCell(0, 0, out _));
                 Assert.Equal("Qty", read.TextString(1, 0));
             }
@@ -457,7 +462,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.All(new[] { (0, 0), (0, 1), (1, 0), (1, 1) }, p => Assert.Equal(new DxfCellRange(0, 0, 1, 1), read.GetMergeRange(p.Item1, p.Item2)));
                 Assert.Contains("173\n1\n174\n0\n175\n2\n176\n2\n", TableRecord(saved), StringComparison.Ordinal);
                 Assert.Equal("Parts", read.TextString(0, 0));
-                Assert.Equal("Qty", read.TextString(1, 1));
+                Assert.Equal(string.Empty, read.TextString(1, 1));
 
                 Refused<ArgumentException>(() => table.MergeCells(new DxfCellRange(1, 0, 2, 0)), "reaches across");
                 Refused<ArgumentOutOfRangeException>(() => table.MergeCells(new DxfCellRange(2, 0, 3, 0)), "reaches past");
@@ -552,8 +557,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 string saved = db.ToText();
                 OnlyTheseChanged(text, saved, "F6");
                 string record = TableRecord(saved);
-                Assert.Contains(" 93\n0\n 94\n" + (1 | 2 | 1 << 6 | 1 << 12) + "\n 95\n" + (1 << 3 | 1 << 15) + "\n 96\n" + (1 << 11) + "\n141\n", record, StringComparison.Ordinal);
-                Assert.EndsWith(" 64\n1\n 65\n1\n 64\n2\n 64\n3\n277\n50\n277\n50\n289\n0\n", record, StringComparison.Ordinal);
+                Assert.Contains(" 93\n0\n 94\n" + (1 | 2 | 1 << 6 | 1 << 12) + "\n 95\n" + (1 << 3 | 1 << 15) + "\n 96\n" + (1 << 11) + "\n 64\n1\n 65\n1\n 64\n2\n 64\n3\n277\n50\n277\n50\n289\n0\n141\n", record, StringComparison.Ordinal);
                 DxfTable read = Table(DxfDatabase.Parse(saved));
                 Assert.Equal(1, read.GridColor(DxfGridLineType.HorizontalInside, DxfRowType.TitleRow).ColorIndex);
                 Assert.Equal(2, read.GridColor(DxfGridLineType.HorizontalTop, DxfRowType.HeaderRow).ColorIndex);
@@ -832,7 +836,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 table.Fill(new DxfCellRange(5, 1, 5, 1), new DxfCellRange(3, 1, 4, 1), DxfTableFillOptions.GenerateSeries);
 
-                Assert.Equal(3E-20, double.Parse(Reread(db).TextString(5, 1), System.Globalization.CultureInfo.InvariantCulture));
+                Assert.Equal(3E-20, Number(Reread(db), 5, 1));
             }
         }
 
@@ -928,8 +932,8 @@ namespace GeometryHelper.UnitTest.Dxf
                 table.Fill(new DxfCellRange(5, 1, 6, 1), new DxfCellRange(3, 1, 4, 1), DxfTableFillOptions.GenerateSeries);
 
                 DxfTable read = Reread(db);
-                Assert.Equal(1E15 + 2, double.Parse(read.TextString(5, 1), System.Globalization.CultureInfo.InvariantCulture));
-                Assert.Equal(1E15 + 3, double.Parse(read.TextString(6, 1), System.Globalization.CultureInfo.InvariantCulture));
+                Assert.Equal(1E15 + 2, Number(read, 5, 1));
+                Assert.Equal(1E15 + 3, Number(read, 6, 1));
             }
         }
 
@@ -1110,7 +1114,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(16001, read.NumRows);
             Assert.Equal(3, read.NumColumns);
             Assert.Equal("C16000", read.TextString(8000, 0));
-            Assert.Equal("C32001", read.TextString(16000, 2));
+            Assert.Equal(string.Empty, read.TextString(16000, 2));
             Assert.Equal(1, read.GetGridColor(9000, 2, DxfGridLineType.VerticalRight).ColorIndex);
             Assert.Equal(new DxfCellRange(16000, 0, 16000, 2), read.GetMergeRange(16000, 2));
             Assert.Equal(1.5, read.HorizontalCellMargin);

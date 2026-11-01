@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text.RegularExpressions;
 using GeometryHelper.Export;
 using GeometryHelper.Geometry;
 
@@ -313,10 +314,14 @@ namespace GeometryHelper.Dxf
         /// <see cref="int"/>, <see cref="short"/>, <see cref="byte"/> or a <see cref="long"/> within the 32 bits AutoCAD's whole
         /// number holds a <see cref="DxfDataType.Long"/>, a <see cref="double"/> or <see cref="float"/> a
         /// <see cref="DxfDataType.Double"/>. From R2007 on the value is written of its kind (90), in 91, 140 or 1, its text
-        /// (302) the number as the invariant culture writes it, 12.5, its unit (94) and format (300) kept, its flags (93) made 6
-        /// where they had the flag 1 of no value, as AutoCAD writes a value it is given: the library does not format a value,
-        /// AutoCAD does when it draws the table anew. Before R2007 a cell holds a text alone, and the value is
-        /// written as its text, as <see cref="SetTextString(int, int, string)"/> writes one. A pointer to a field (344) is taken
+        /// (302) the number as the invariant culture writes it, 7, its unit (94) and format (300) kept, its flags (93) made 6
+        /// where they had the flag 1 of no value, as AutoCAD writes a value it is given; the text of a number of its kind
+        /// <see cref="DxfDataType.Double"/> as AutoCAD 2021 wrote it and showed it, of six places of decimals where the value
+        /// has no format, 12.500000 for 12.5, and of the places of a decimal format, 12.500 for <c>%lu2%pr3</c> (D28e v09,
+        /// v11, w30 to w33), where the library wrote 12.5, which AutoCAD showed as it was; a format of another unit leaves the
+        /// text 12.5, the library not writing feet and inches. Before R2007 a cell holds a text alone, and the value is
+        /// written as its text, as <see cref="SetTextString(int, int, string)"/> writes one, a number as the invariant culture
+        /// writes it, 12.5, which keeps it whole where AutoCAD 2021 wrote 12.500000 (w09): the text is all the cell holds. A pointer to a field (344) is taken
         /// out, its field erased where the table owns it and nothing else of the file points at it. The value the cell has, a
         /// text as the file writes it or as it reads, changes nothing. The block AutoCAD drew the table with is not drawn anew.
         /// </summary>
@@ -332,17 +337,18 @@ namespace GeometryHelper.Dxf
             Written written = ValueToWrite(value, nameof(value));
             CellView cell = CellToWrite(row, col);
             CheckText(cell, row, col);
+            string shown = written.Value is double real && cell.ValueFrom >= 0 ? RealText(real, cell.InValue(300)) ?? written.Text : written.Text;
 
             if (cell.ValueFrom < 0)
             {
-                if (cell.Holds(written.Text) && cell.Head(344) == null)
+                if (cell.Holds(shown) && cell.Head(344) == null)
                 {
                     return;
                 }
 
                 CheckEditable();
                 string dropped = cell.Head(344);
-                cell.SetText(written.Text);
+                cell.SetText(shown);
                 cell.Groups.Write(Order);
                 EraseFields(new[] { dropped });
                 return;
@@ -357,7 +363,7 @@ namespace GeometryHelper.Dxf
 
             CheckEditable();
             string field = cell.Head(344);
-            cell.WriteValue(((int)written.Kind).ToString(CultureInfo.InvariantCulture), written.Data, written.Text, null, null, true);
+            cell.WriteValue(((int)written.Kind).ToString(CultureInfo.InvariantCulture), written.Data, shown, null, null, true);
             cell.DropField();
             cell.Groups.Write(Order);
             EraseFields(new[] { field });
@@ -379,9 +385,11 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Empties a cell's value, as AutoCAD's <c>ResetValue</c>: an empty text, as <see cref="SetTextString(int, int, string)"/>
-        /// writes one, its unit and format kept from R2007 on; nothing where the value is an empty text already. The block
-        /// AutoCAD drew the table with is not drawn anew.
+        /// Empties a cell's value, as AutoCAD's <c>ResetValue</c>: from R2007 on a value of none, of the flags 7 and the kind 0
+        /// and an empty text, its unit and format kept, the flag of its kind of value (0x40000) taken out, as AutoCAD 2021 wrote
+        /// Qty reset (<c>91 0</c>, <c>93 7</c>, <c>90 0</c>, D28e v10) and read it as of no value, where the library wrote an
+        /// empty text; before R2007 an empty text. Nothing where the cell holds no value already. The block AutoCAD drew the
+        /// table with is not drawn anew.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="col">The column, from nought.</param>
@@ -392,22 +400,24 @@ namespace GeometryHelper.Dxf
             CellView cell = CellToWrite(row, col);
             CheckText(cell, row, col);
 
-            if (KindOf(cell) == DxfDataType.String && cell.Text().Length == 0 && cell.Head(344) == null)
+            if (cell.HoldsNoValue())
             {
                 return;
             }
 
             CheckEditable();
             string field = cell.Head(344);
-            cell.SetText(string.Empty);
+            cell.SetNoValue();
             cell.Groups.Write(Order);
             EraseFields(new[] { field });
         }
 
         /// <summary>
         /// Sets the format of a cell's value, as AutoCAD's <c>SetFormat(row, col, format)</c>: its value's 300, as AutoCAD writes
-        /// it, <c>%lu2%pr2</c> for a decimal of two places, the value and its text kept; the library does not format the value,
-        /// AutoCAD does when it draws the table anew. No flag of the cell's overrides is set: the format is written in its value,
+        /// it, <c>%lu2%pr2</c> for a decimal of two places, the value kept; the text of a number of its kind
+        /// <see cref="DxfDataType.Double"/> written as AutoCAD 2021 wrote it, of the places a decimal format gives, 12.500 for
+        /// <c>%lu2%pr3</c>, and of six where the format is taken away (D28e v11), any other text kept, the library not formatting
+        /// the value of a format of another unit or another kind. No flag of the cell's overrides is set: the format is written in its value,
         /// and <see cref="GetOverrides(int, int, int)"/> gives what it gave. A cell before R2007 holds no value to give a format.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
@@ -438,7 +448,8 @@ namespace GeometryHelper.Dxf
 
             CheckValue(cell, row, col);
             CheckEditable();
-            cell.WriteValue(cell.InValue(90) ?? "4", cell.ValueData(), cell.Text(), null, format);
+            string shown = cell.Value() is double real ? RealText(real, format) ?? cell.Text() : cell.Text();
+            cell.WriteValue(cell.InValue(90) ?? "4", cell.ValueData(), shown, null, format);
             cell.Groups.Write(Order);
         }
 
@@ -580,6 +591,27 @@ namespace GeometryHelper.Dxf
                 default:
                     throw new ArgumentException("A cell's value is given as a string, an int, a short, a byte, a long within 32 bits, a double or a float: a " + value.GetType().Name + " is none of them.", parameter);
             }
+        }
+
+        /// <summary>
+        /// The text AutoCAD 2021 shows a number by, as it wrote it (D28e v09, v11, w30 to w33): of six places of decimals where
+        /// the value has no format, 12.500000, 0.333333 and -0.125000; of the places of a decimal format (<c>%lu2%prN</c>), 12.500
+        /// for <c>%lu2%pr3</c>; null for a format of another kind, which the library does not write. The sign is kept on a
+        /// number that rounds to nought, as AutoCAD's printf writes it, on every runtime.
+        /// </summary>
+        private static string RealText(double value, string format)
+        {
+            string places = string.IsNullOrEmpty(format) ? "6" : null;
+            Match match = places == null ? Regex.Match(format, "^%lu2%pr([0-9]{1,2})$") : null;
+            places = match != null && match.Success ? match.Groups[1].Value : places;
+
+            if (places == null)
+            {
+                return null;
+            }
+
+            string text = Math.Abs(value).ToString("F" + places, CultureInfo.InvariantCulture);
+            return value < 0.0 ? "-" + text : text;
         }
 
         private static Written Whole(int whole)
@@ -806,8 +838,13 @@ namespace GeometryHelper.Dxf
         public void SetBackgroundColor(int row, int col, DxfColor color) => SetColour(row, col, 63, color, nameof(color));
 
         /// <summary>
-        /// Sets whether a cell's background is left unfilled, as AutoCAD's <c>SetBackgroundColorNone(row, col, value)</c>: the
-        /// cell's own (283, 0 unfilled and 1 filled), its flag 0x02 set. The block AutoCAD drew the table with is not drawn anew.
+        /// Sets whether a cell's background is left unfilled, as AutoCAD's <c>SetBackgroundColorNone(row, col, value)</c>, as
+        /// AutoCAD 2021 wrote it in a drawing of R2018 and of R2000 alike (D28e v18, v47, m1, w18): filled, the cell's own 283 of
+        /// 0 with the flag 0x02 and a colour of its own (63, flag 0x04), BYBLOCK (<c>63 0</c>) where it has none; unfilled, its
+        /// 283 and 63 and their flags taken out where its row's kind is unfilled by the table and its style, as AutoCAD read
+        /// Qty given green and then none as of no background of its own, else 283 of 1 and <c>63 0</c>, as AutoCAD wrote the
+        /// header cell Mark of a table whose header is green. The library wrote 283 of 1 for filled and 0 for unfilled, which
+        /// AutoCAD read the other way about. The block AutoCAD drew the table with is not drawn anew.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="col">The column, from nought.</param>
@@ -815,11 +852,74 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the cell is not one of the table's.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the table is erased.</exception>
         public void SetBackgroundColorNone(int row, int col, bool value)
-            => SetOverride(row, col, 283, value ? "0" : "1", now => now != null && (now.Trim() == "0") == value, null);
+        {
+            CellView cell = CellToWrite(row, col);
+            string fill = cell.Override(283, 0x02)?.Trim();
+            string colour = cell.Override(63, 0x04)?.Trim();
+            int flagsCode = Item.File.Supports(1021) ? 91 : 177;
+
+            if (!value)
+            {
+                if (fill == "0" && colour != null)
+                {
+                    return;
+                }
+
+                CheckEditable();
+                cell.SetOverride(283, "0", flagsCode);
+
+                if (colour == null)
+                {
+                    cell = new CellView(cell.Groups, cell.From, cell.To);
+                    cell.SetOverride(63, "0", flagsCode);
+                }
+
+                cell.Groups.Write(Order);
+                return;
+            }
+
+            if (!KindFilled(row))
+            {
+                if (fill == null && colour == null)
+                {
+                    return;
+                }
+
+                CheckEditable();
+                cell.RemoveOverrides(0x02 | 0x04);
+                cell.Groups.Write(Order);
+                return;
+            }
+
+            if (fill == "1" && colour == "0")
+            {
+                return;
+            }
+
+            CheckEditable();
+            cell.SetOverride(283, "1", flagsCode);
+            cell = new CellView(cell.Groups, cell.From, cell.To);
+            cell.SetOverride(63, "0", flagsCode);
+            cell.Groups.Write(Order);
+        }
+
+        /// <summary>
+        /// Whether the table fills the background of a row's kind: by its own look of the kind (283 after its flags in 93, 0
+        /// filled), else by its table style's (<see cref="StyleLooks"/>).
+        /// </summary>
+        private bool KindFilled(int row)
+        {
+            DxfRowType type = RowType(row);
+            int rowKind = type == DxfRowType.TitleRow ? 0 : type == DxfRowType.HeaderRow ? 1 : 2;
+            string fill = OwnText(Read(), RowLooks[283] + rowKind) ?? StyleLooks()[rowKind][3];
+            return fill.Trim() == "0";
+        }
 
         /// <summary>
         /// Sets what a cell holds, as AutoCAD's <c>SetCellType</c>: a block cell made a text cell (171 of 1), its block, scale and
-        /// attribute values (340, 144, 179, 331, 300) taken out and its text empty. A text cell is made a block cell with its
+        /// attribute values (340, 144, 179, 331, 300) taken out and its value one of none (from R2007 on <c>93 7</c>, <c>90 0</c>,
+        /// its flag 0x40000 taken out), as AutoCAD 2021 wrote the block cell M12 made a text cell (D28e v19), where the library
+        /// wrote an empty text; before R2007 its text empty. A text cell is made a block cell with its
         /// block, which the library does not set, and is refused. The block AutoCAD drew the table with is not drawn anew.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
@@ -864,7 +964,7 @@ namespace GeometryHelper.Dxf
             cell.Groups.List[cell.From] = new KeyValuePair<int, string>(171, "1");
             var text = new CellView(cell.Groups, cell.From, cell.To - taken);
             string field = text.Head(344);
-            text.SetText(string.Empty);
+            text.SetNoValue();
             text.Groups.Write(Order);
             EraseFields(new[] { field });
         }

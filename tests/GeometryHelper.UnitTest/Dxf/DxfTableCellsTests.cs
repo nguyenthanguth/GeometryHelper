@@ -64,7 +64,7 @@ namespace GeometryHelper.UnitTest.Dxf
             string saved = db.ToText();
             OnlyTheseChanged(text, saved, "F6");
             string record = TableRecord(saved);
-            Assert.Contains("301\nCELL_VALUE\n 93\n6\n 90\n2\n140\n12.5\n 94\n0\n300\n\n302\n12.5\n304\nACVALUE_END\n", record, StringComparison.Ordinal);
+            Assert.Contains("301\nCELL_VALUE\n 93\n6\n 90\n2\n140\n12.5\n 94\n0\n300\n\n302\n12.500000\n304\nACVALUE_END\n", record, StringComparison.Ordinal);
             Assert.Contains("301\nCELL_VALUE\n 93\n6\n 90\n1\n 91\n42\n 94\n0\n300\n\n302\n42\n304\nACVALUE_END\n", record, StringComparison.Ordinal);
             Assert.Contains("301\nCELL_VALUE\n 93\n6\n 90\n4\n  1\nItem\n 94\n0\n300\n\n302\nItem\n304\nACVALUE_END\n  7\nGH_TXT\n", record, StringComparison.Ordinal);
 
@@ -75,17 +75,20 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(42, read.GetValue(1, 1, 0));
             Assert.Equal(DxfDataType.Long, read.DataType(1, 1));
             Assert.Equal("Item", read.Value(1, 0));
-            Assert.Equal("12.5", read.TextString(2, 0));
+            Assert.Equal("12.500000", read.TextString(2, 0));
             Assert.Equal(DxfCellAlignment.MiddleCenter, read.Alignment(1, 0));
 
             // The value it has, of its kind, writes nothing; a long within 32 bits is the whole number it holds.
             read.SetValue(2, 0, 12.5);
             read.SetValue(1, 1, 42L);
-            read.ResetValue(0, 1);
             Assert.Equal(saved, readDb.ToText());
 
+            // Reset, a value of none, as AutoCAD 2021 wrote it (D28e v10, w34), and reset again, nothing.
             read.ResetValue(2, 0);
-            Assert.Equal(DxfDataType.String, read.DataType(2, 0));
+            string reset = readDb.ToText();
+            read.ResetValue(2, 0);
+            Assert.Equal(reset, readDb.ToText());
+            Assert.Equal(DxfDataType.Unknown, read.DataType(2, 0));
             Assert.Equal(string.Empty, read.TextString(2, 0));
 
             Refused<ArgumentException>(() => read.SetValue(2, 0, new DateTime(2026, 10, 26)), "date or a point");
@@ -128,14 +131,14 @@ namespace GeometryHelper.UnitTest.Dxf
             table.SetDataFormat(2, 0, 0, "%lu2%pr2");
 
             string record = TableRecord(db.ToText());
-            Assert.Contains("301\nCELL_VALUE\n 93\n6\n 90\n2\n140\n12\n 94\n1\n300\n%lu2%pr2\n302\n12\n304\nACVALUE_END\n", record, StringComparison.Ordinal);
+            Assert.Contains("301\nCELL_VALUE\n 93\n6\n 90\n2\n140\n12\n 94\n1\n300\n%lu2%pr2\n302\n12.00\n304\nACVALUE_END\n", record, StringComparison.Ordinal);
             Assert.Equal("%lu2%pr2", Table(DxfDatabase.Parse(db.ToText())).GetDataFormat(2, 0));
 
             // The unit alone is written in place; a number turned into a text is the text it shows.
             table.SetDataType(2, 0, DxfDataType.Double, DxfUnitType.Area);
             Assert.Equal(12.0, table.Value(2, 0));
             table.SetDataType(2, 0, DxfDataType.String, DxfUnitType.Unitless);
-            Assert.Equal("12", table.Value(2, 0));
+            Assert.Equal("12.00", table.Value(2, 0));
             Assert.Equal("%lu2%pr2", table.Format(2, 0));
 
             Refused<ArgumentException>(() => table.SetDataType(1, 0, DxfDataType.Double, DxfUnitType.Unitless), "Mark is not a number");
@@ -175,7 +178,7 @@ namespace GeometryHelper.UnitTest.Dxf
             // A format and a kind written anew are in the cell's value, not among its overrides.
             table.SetFormat(2, 0, "%lu2%pr3");
             table.SetDataType(2, 0, DxfDataType.String, DxfUnitType.Unitless);
-            Assert.Equal("12.50", table.Value(2, 0));
+            Assert.Equal("12.500", table.Value(2, 0));
             Assert.Equal(DxfCellProperties.Invalid, table.GetOverrides(2, 0, 0));
             Assert.Empty(table.CellStyleOverrides(2, 0));
         }
@@ -237,7 +240,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Contains(flags + "\n48\n178\n", record, StringComparison.Ordinal);
                 Assert.Contains((r2000 ? "  1\nB-12\n" : "302\nB-12\n304\nACVALUE_END\n") + "  7\nGH_TXT\n140\n2.5\n171\n", record, StringComparison.Ordinal);
                 Assert.Contains(flags + "\n6\n178\n", record, StringComparison.Ordinal);
-                Assert.EndsWith((r2000 ? "300\nM12\n" : "304\nACVALUE_END\n") + " 63\n3\n283\n1\n", record, StringComparison.Ordinal);
+                Assert.EndsWith((r2000 ? "300\nM12\n" : "304\nACVALUE_END\n") + " 63\n3\n283\n0\n", record, StringComparison.Ordinal);
 
                 DxfDatabase readDb = DxfDatabase.Parse(saved);
                 DxfTable read = Table(readDb);
