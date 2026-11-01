@@ -745,7 +745,7 @@ namespace GeometryHelper.Dxf
 
                 foreach (DxfBlockLookupInput input in inputs)
                 {
-                    Column(b, input.Node, "40", "2", "0", "0", input.Connection);
+                    Column(b, input.Node, "40", input.IsAngle ? "1" : "2", "0", "0", input.Connection);
                 }
 
                 Column(b, p, "1", "0", "1", "1", "lookupString");
@@ -781,7 +781,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// A column of a lookup table, as AutoCAD writes one: its node, the type of its cells (40 a real, 1 a text) and the
-        /// number after it, whether it is looked up (282), its label of no match, whether it looks back (281), its connection.
+        /// units of its values (96: 2 a distance, 1 an angle, nought none, as AutoCAD's samples write a distance and a text),
+        /// whether it is looked up (282), its label of no match, whether it looks back (281), its connection.
         /// </summary>
         private static void Column(DxfFile.Builder b, int node, string type, string kind, string lookedUp, string reverse, string connection)
         {

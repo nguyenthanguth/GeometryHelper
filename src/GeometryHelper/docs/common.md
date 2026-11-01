@@ -1263,15 +1263,16 @@ as AutoCAD 2021 read and set it:
   `AddArrayAction(linear, entities, columnSpacing)`;
 - a distance along x and one along y: `AddXYParameter`, with `AddStretchAction`, `AddMoveAction` or
   `AddArrayAction(xy, entities, columnSpacing, rowSpacing)`;
-- a distance and an angle: `AddPolarParameter`, with `AddPolarStretchAction`;
+- a distance and an angle: `AddPolarParameter`, with `AddPolarStretchAction`, `AddStretchAction` or `AddMoveAction`;
 - a position: `AddPointParameter`, with `AddMoveAction`;
 - an angle: `AddRotationParameter`, with `AddRotateAction`;
 - the values a distance or an angle may take: a `DxfBlockParameterValueSet` given to `AddLinearParameter`,
   `AddPolarParameter`, and the overloads of `AddXYParameter` and `AddRotationParameter` that take one;
 - a mirror: `AddFlipParameter`, with `AddFlipAction`;
 - the entities shown: `AddVisibilityParameter`, each state a `DxfBlockVisibilityState`;
-- named sizes: `AddLookupParameter`, its inputs `DxfBlockLookupInput` and its rows `DxfBlockLookupRow`, the parameter and
-  its action in one call;
+- named sizes: `AddLookupParameter`, its inputs `DxfBlockLookupInput` (a linear or a polar distance, the x or the y of a
+  point, the distances of an XY parameter, the angle of a polar or a rotation parameter) and its rows `DxfBlockLookupRow`,
+  the parameter and its action in one call;
 - grips for placing the block, of no property: `AddAlignmentParameter` and `AddBasePointParameter`.
 
 Two things are refused with `NotSupportedException` before anything is written, either given second: a flip parameter
@@ -1283,8 +1284,9 @@ again: a linear parameter and its stretch written by a script in v17 (11 files o
 new drawings of R2000 to R2018 and visibility in v19 (13 of 13), a move, a scale, stretches of arcs, circles, texts and
 INSERTs, a point, a flip alone and an XY parameter in v20, a rotation in v20b, and distance multipliers and angle offsets,
 arrays along a distance and in rows and columns, lookups, a turn and a scale beside a stretch, a drawing of R2018 and
-AutoCAD's own XY and lookup samples set by the library in v21b (8 of 8), and a polar parameter with its polar stretch and
-the value sets of a rotation, an XY and a polar parameter in D25. The examples below give one block of each kind as
+AutoCAD's own XY and lookup samples set by the library in v21b (8 of 8), a polar parameter with its polar stretch and
+the value sets of a rotation, an XY and a polar parameter in D25, and the ties of value sets, a stretch and a move of a
+polar parameter and lookups of an XY, a polar and a rotation parameter in D25b. The examples below give one block of each kind as
 AutoCAD took it, to be copied as they stand: the first is a whole program, and each after it a block of statements in braces
 whose names are its own and whose block names no other example uses, so that any of them, or all of them in any order, may
 be pasted after the first; what is not written or not set is listed under
@@ -1377,12 +1379,13 @@ under .NET Framework 4.8 and 30 under .NET 10.
 
 Setting `Value` works the block out as AutoCAD's `DynamicBlockReferenceProperty.Value` does. The value is taken to the
 value set as AutoCAD 2021 took it (plugins v17 to v20): to the nearest step of an increment, a tie to the step below, then
-into the minimum and the maximum, so that 75 goes to 70, 85 to 80, 77 to 80 and 400 to 300 of the set above; to the
-nearest of a list, a tie to the one farther from the value the property had, beyond the value asked in the way it changes,
-so that 125 goes to 100 from 300 and 225 to 250 from 50 of 50, 100 ... 300; and as given where there is no set. AutoCAD's
-choice between two values of a list exactly as near was not the same every time: it took 8 of the 11 such ties of check
-v20 this way, the other one in the other three (125 to 100 from 50, 275 to 250 from 100, 75 to 100 from 300), and the
-other one in three of the four of the rounds before (75 to 100 from 100, 100 to 80 from 80, 225 to 200 from 150). The INSERT is then made to place an anonymous
+into the minimum and the maximum, so that 75 goes to 70, 85 to 80, 77 to 80 and 400 to 300 of the set above, and 95 to 90
+though the block's own is 100; to the nearest of a list, a tie to the block's own value where it is one of the two, else to
+the one written first, the lesser of a list written from the least up, whatever value the property had: of 50, 100 ...
+300, 75 and 125 go to 100 and 175 to 150 for a block's own 100, and 125 to 100 and 225 to 250 for an own 250; and as given
+where there is no set. AutoCAD 2021 took all 358 ties of lists of 3 to 6 values so (check D25b, 278 of linear parameters,
+47 of an XY and 33 of polar ones, each approached from every value of its list, alike in two sessions), and the 20 of
+checks v20 and D25 too, which the library took before by the value the property had. The INSERT is then made to place an anonymous
 block, `*U1` the first the drawing has not, holding a copy of each entity of the block with the points the stretches hold
 moved by the change: here the right edge at x = 200 and the right ends of the bottom and the top with it, the left edge at
 x = 0. The anonymous block names the dynamic one in its extended data AcDbBlockRepBTag, each copy keeps its source's tag
@@ -1691,8 +1694,11 @@ or that a scale or an array follows; a move holding a grip of a parameter it doe
 flip or an array holding other parameters; an attribute definition worked on by any action but a move; and attribute
 definitions of one tag that the actions move apart, where the INSERT has an ATTRIB of that tag. A block of three linear
 parameters, a point parameter, six stretches and five moves of these kinds, drawn in AutoCAD, is set this way, its
-anonymous block at the INSERT's own values the same, entity for entity to 1E-9, as the one AutoCAD saved; AutoCAD's own
-sets of such a block are yet to be checked (check v22).
+anonymous block at the INSERT's own values the same, entity for entity to 1E-9, as the one AutoCAD saved; AutoCAD 2021's
+own sets of such a block, each of its five properties alone, all five, two set back, an ATTRIB dragged first, and three
+sets continued (check v22), are the library's: its values, its 44 entities and its 15 ATTRIBs within 2E-12 (check D25b).
+AutoCAD kept the INSERT's history of grip edits when it set a value, where the library takes it out; AutoCAD's sets
+continued on the library's INSERTs, of no history, drew the same.
 
 A lookup parameter's table has input columns, each the distance of a linear parameter or the x or the y of a point
 parameter (`DxfBlockLookupInput.Distance`, `X`, `Y`), and rows of a label and a value for each column
@@ -1706,7 +1712,16 @@ row "Size 6 ", and AutoCAD read it so after the library set the sample's INSERT 
 itself, of no saved label, reads the first row of the block's own values, else Custom, as AutoCAD 2021 read Small for a
 panel's own Width 100 and Height 50 (check v21b). The parameter and its action are written
 as AutoCAD saved those of ACadSharp's lookup sample, each pair of edges between the action and a parameter naming each
-other and flagged 4 as the sample flags them. Values of the table are in the block's units.
+other and flagged 4 as the sample flags them. Values of the table are in the block's units. A column may also give the
+distance along x or along y of an XY parameter (`DxfBlockLookupInput.X(xy)`, `Y(xy)`, AutoCAD's UpdatedDistanceX and
+UpdatedDistanceY, as AutoCAD's Civil sample writes the first), the distance or the angle of a polar parameter
+(`Distance(polar)`, `Angle(polar)`) or the angle of a rotation parameter (`Angle(rotation)`), an angle in radians, its column
+of the units 1 (96) where a distance's is of 2: AutoCAD 2021 read and set such tables as the library does (check D25b, 0 lines
+apart), a plate's Size Large giving 200 by 80, and 400 by 160 on an INSERT scaled by 2, a pointer's Pick B a Length of 150 at a
+quarter turn, a needle's Way North a quarter turn, Angle pi then reading West, and an Angle of 1 Custom. An angle is taken
+into a turn and matched within the vector tolerance, not round the circle: a row of 2 pi sets nought and reads Custom, as
+AutoCAD read it. A lookup set reads, as every other, the label of the first row of the values then: set to Twin, a row of
+the values of Small above it, it reads Small, as AutoCAD 2021 read it (check D25b).
 
 An alignment parameter and a base point parameter are written as AutoCAD saved ACadSharp's samples of them, and give no
 property; a block takes one of each, and AutoCAD 2021 read them so (check v21). AutoCAD drew an INSERT at (300, 0) of a
@@ -1790,17 +1805,86 @@ by no other action, either way round. The parameter and the action are written a
 code for code, and the INSERT's cache keeps the parameter's base point, end point, the normal down and the base point 10
 along x, as AutoCAD 2021 wrote it.
 
+A polar parameter also takes a stretch (`AddStretchAction`) and a move (`AddMoveAction`), each by its end point and with
+the overloads of a distance multiplier and an angle offset a linear one has: they follow the end point's move along x and
+along y and turn nothing, as AutoCAD 2021 drew them (check D25b, 0 lines apart from the library). A shaft from (0, 0) to
+(100, 0) set to a Length of 150 and a quarter turn moves a circle at its tip to (0, 150) and a text at (95, 3) to (-5, 153),
+upright; a circle at (50, 0) moved of the multiplier 0.5 goes to (0, 75), and one at (100, 20) moved turned a quarter turn
+to (-50, -80); a right edge (100, 30)-(100, 50) stretched by its end goes to (0, 180)-(0, 200). They are written as a
+linear parameter's are, of the connections EndXDelta and EndYDelta of the polar parameter, and may stand beside a polar
+stretch of other entities:
+
+```csharp
+{
+    // Stretch and move of a polar parameter: Length 150 and Angle a quarter turn take the tip circle to (0, 150), its label
+    // to (-5, 153) unturned, and the right edge of the frame to (0, 180)-(0, 200).
+    var reacher = new DxfBlockTableRecord { Name = "REACHER", Origin = new GeoPoint3(0, 0, 0) };
+    db.BlockTable.Add(reacher);
+    var arm = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0));
+    var hand = new DxfCircle(new GeoPoint3(100, 0, 0), GeoVector3.ZAxis, 5);
+    var handLabel = new DxfDBText { Position = new GeoPoint3(95, 3, 0), Height = 2.5, TextString = "A" };
+    var post = new DxfLine(new GeoPoint3(100, 30, 0), new GeoPoint3(100, 50, 0));
+    foreach (DxfEntity reacherPart in new DxfEntity[] { arm, hand, handLabel, post })
+    {
+        reacher.AppendEntity(reacherPart);
+    }
+
+    DxfBlockPolarParameter armReach = reacher.AddPolarParameter("Length", null, "Angle", null, new GeoPoint3(0, 0, 0),
+        new GeoPoint3(100, 0, 0), -20, null, null);
+    reacher.AddPolarStretchAction(armReach, new GeoPoint2(90, -5), new GeoPoint2(110, 5), new[] { arm }, new DxfEntity[0]);
+    reacher.AddMoveAction(armReach, new DxfEntity[] { hand, handLabel });
+    reacher.AddStretchAction(armReach, new GeoPoint2(90, 25), new GeoPoint2(110, 60), new[] { post });
+
+    // Lookup of an XY, a polar and a rotation parameter: Size Large makes a plate 200 by 80; Way North turns a needle up.
+    var plateSizes = new DxfBlockTableRecord { Name = "PLATE_SIZES", Origin = new GeoPoint3(0, 0, 0) };
+    db.BlockTable.Add(plateSizes);
+    var plateEdge = new DxfPolyline();
+    plateEdge.AddVertexAt(0, new GeoPoint2(0, 0), 0, 0, 0);
+    plateEdge.AddVertexAt(1, new GeoPoint2(100, 0), 0, 0, 0);
+    plateEdge.AddVertexAt(2, new GeoPoint2(100, 50), 0, 0, 0);
+    plateEdge.AddVertexAt(3, new GeoPoint2(0, 50), 0, 0, 0);
+    plateEdge.Closed = true;
+    plateSizes.AppendEntity(plateEdge);
+    DxfBlockXYParameter plateXY = plateSizes.AddXYParameter("Width", null, "Depth", null, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 50, 0));
+    plateSizes.AddStretchAction(plateXY, new GeoPoint2(90, 40), new GeoPoint2(110, 60), new[] { plateEdge });
+    plateSizes.AddLookupParameter("Size", null, new GeoPoint3(50, -20, 0),
+        new[] { DxfBlockLookupInput.X(plateXY), DxfBlockLookupInput.Y(plateXY) },
+        new[] { new DxfBlockLookupRow("Small", 100, 50), new DxfBlockLookupRow("Large", 200, 80) });
+
+    var compass = new DxfBlockTableRecord { Name = "COMPASS", Origin = new GeoPoint3(0, 0, 0) };
+    db.BlockTable.Add(compass);
+    var compassNeedle = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(30, 0, 0));
+    compass.AppendEntity(compassNeedle);
+    DxfBlockRotationParameter heading = compass.AddRotationParameter("Angle", null, new GeoPoint3(0, 0, 0), 30, 0);
+    compass.AddRotateAction(heading, new[] { compassNeedle });
+    compass.AddLookupParameter("Way", null, new GeoPoint3(0, -20, 0), new[] { DxfBlockLookupInput.Angle(heading) },
+        new[] { new DxfBlockLookupRow("East", 0), new DxfBlockLookupRow("North", Math.PI / 2), new DxfBlockLookupRow("West", Math.PI) });
+
+    var reached = new DxfBlockReference(new GeoPoint3(0, 900, 0), reacher);
+    var sized = new DxfBlockReference(new GeoPoint3(300, 900, 0), plateSizes);
+    var headed = new DxfBlockReference(new GeoPoint3(600, 900, 0), compass);
+    db.ModelSpace.AppendEntity(reached);
+    db.ModelSpace.AppendEntity(sized);
+    db.ModelSpace.AppendEntity(headed);
+    reached.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Length").Value = 150.0;
+    reached.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Angle").Value = Math.PI / 2;
+    sized.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Size").Value = "Large";
+    headed.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Way").Value = "North";
+    db.Save("panel.dxf");
+}
+```
+
 A value set is taken as AutoCAD 2021 took it. A distance of an XY or a polar parameter goes to the nearest step, a tie to
 the step below (75 to 70 of 50 to 300 by 10, as AutoCAD took all 18 such ties of check D25), and to the nearest of a list,
-a tie to the value nearer the block's own: 65 to 50 and 100 to 80 of 50, 80 and 120 for a Depth of its own 50, from every
-value before, as AutoCAD took all 18 such ties. An angle goes round the circle: of the steps of 15 degrees, 40 to 45, 370
+a tie to the block's own value where it is one of the two, else to the lesser, as a linear parameter's: 65 to 50 and 100 to
+80 of 50, 80, 120 and 150 for a Depth of its own 150, and 135 to 150, from every value before, as AutoCAD took all 80 such
+ties of an XY and a polar parameter (check D25b). An angle goes round the circle: of the steps of 15 degrees, 40 to 45, 370
 to 15 and -10 to 345; of steps from 0 to 90 degrees, 120 to 90, 300 to 0 and 200 to 90, the bound nearer round the circle;
 of the list 0, 90, 180 and 270, 338 to 0. A tie of angles goes to the value behind the one asked, clockwise, 22.5 degrees
 to 15 and 315 to 270; AutoCAD's own choice in such a tie followed its rounding rather than a rule, the step behind in 26 of
-58 ties of steps of 15 degrees and the value behind in 23 of 32 of the list above, 135 going to 180 each time. AutoCAD 2021
-took the ties of a linear parameter's list, which the library takes to the value farther from the one before (check v20,
-8 of 11), to the value nearer the block's own in check D25, 10 of 10. A list of angles may hold nought; a set of angles
-reaching beyond a turn, or a set that does not hold the block's own value, is refused.
+58 ties of steps of 15 degrees and the value behind in 23 of 32 of the list above, 135 going to 180 each time. A list of
+angles may hold nought; a set of angles reaching beyond a turn, or a set that does not hold the block's own value, is
+refused.
 
 `insert.ConvertToStaticBlock("BOLT_500")` makes the INSERT place a
 new block BOLT_500 holding copies of what it draws, the anonymous block's entities (or the dynamic block's, where it places
@@ -2421,8 +2505,10 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
   saved of every parameter but constraint parameters and a block properties table, which are not read and give no
   properties.
   - Written and set: linear parameters with stretch, move, scale and array actions; XY parameters with stretch, move and
-    array actions; polar parameters with polar stretch actions; point parameters with move actions; rotation parameters
-    with rotate actions; flip parameters with flip actions; one visibility parameter; lookup parameters with their tables;
+    array actions; polar parameters with polar stretch, stretch and move actions; point parameters with move actions;
+    rotation parameters with rotate actions; flip parameters with flip actions; one visibility parameter; lookup parameters
+    with their tables, of the distances of linear, XY and polar parameters, the x and y of point parameters and the angles
+    of polar and rotation parameters;
     and one alignment and one base point parameter, which give no property. Linear, XY, polar and rotation parameters take
     value sets. A stretch holds lines and polylines by their points, arcs by both ends or, lying flat, by one, and circles,
     texts, multiline texts and INSERTs by their one point, in a frame of a rectangle; a stretch and a move take a distance
@@ -2441,8 +2527,8 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
   - Not set, with `NotSupportedException`, nothing written: an INSERT of a block of another writer holding what is not
     written above or refused (a constraint, a polar stretch tied to the base grip or of a multiplier or an offset, a move
     carrying a parameter other than a linear one or one that chains its actions, any other action holding a parameter,
-    an attribute definition in an action other than a move, a lookup column of another kind than a linear parameter's
-    distance or a point parameter's x or y), and an INSERT that keeps the base point of a linear, an XY, a polar, a
+    an attribute definition in an action other than a move, a lookup column of another kind than those written above, as
+    a visibility state's), and an INSERT that keeps the base point of a linear, an XY, a polar, a
     rotation or a flip parameter away from the block's own, as the moves carrying it leave it, as a grip moved that of
     AutoCAD's XY sample, which AutoCAD draws from there.
 

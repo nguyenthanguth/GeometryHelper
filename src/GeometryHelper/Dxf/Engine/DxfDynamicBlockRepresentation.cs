@@ -135,7 +135,7 @@ namespace GeometryHelper.Dxf
             else if (asked is Linear linear)
             {
                 double distance = Number(value);
-                double taken = linear.Take(distance, values[node][0] * scale, scale);
+                double taken = linear.Take(distance, scale);
 
                 if (!(taken / scale > Tolerance.Default.EqualPoint))
                 {
@@ -146,7 +146,7 @@ namespace GeometryHelper.Dxf
             }
             else if (asked is Planar planar)
             {
-                double distance = planar.Take(part, Number(value), values[node][part] * scale, scale);
+                double distance = planar.Take(part, Number(value), scale);
 
                 if (!(distance / scale > Tolerance.Default.EqualPoint))
                 {
@@ -159,7 +159,7 @@ namespace GeometryHelper.Dxf
             {
                 if (part == 0)
                 {
-                    double distance = polar.Take(0, Number(value), values[node][0] * scale, scale);
+                    double distance = polar.Take(0, Number(value), scale);
 
                     if (!(distance / scale > Tolerance.Default.EqualPoint))
                     {
@@ -170,7 +170,7 @@ namespace GeometryHelper.Dxf
                 }
                 else
                 {
-                    values[node][1] = polar.Take(1, Normal(Number(value)), values[node][1], scale);
+                    values[node][1] = polar.Take(1, Normal(Number(value)), scale);
                 }
             }
             else if (asked is Spot)
@@ -196,10 +196,12 @@ namespace GeometryHelper.Dxf
                 throw new NotSupportedException("The property's parameter is not one the library works out.");
             }
 
-            // Each lookup shows the label of the row of the values now, or its label of no match; a lookup set keeps its row.
+            // Each lookup shows the label of the first row of the values now, or its label of no match, the lookup set too, as
+            // AutoCAD 2021 read Small after setting Twin, a row of Small's values further down, and South after setting Down, a
+            // row of -pi / 2 (plugin D25b); a lookup set of a table of no input keeps its row.
             foreach (Looked other in block.Lookups)
             {
-                if (lookup == null || other.Table != lookup.Table)
+                if (lookup == null || other.Table != lookup.Table || other.Table.HasInputs)
                 {
                     other.Table.Relabel(values, labels);
                 }
@@ -1404,14 +1406,14 @@ namespace GeometryHelper.Dxf
                 yield return Record(Id, PointsRecord(LinearKey, from, end));
             }
 
-            /// <summary>A value, in the INSERT's units (the block's scaled), taken to the value set, as <see cref="Allowed.Distance(double, double, double)"/> says.</summary>
-            internal double Take(double value, double now, double scale) => _set.Distance(value, now, scale);
+            /// <summary>A value, in the INSERT's units (the block's scaled), taken to the value set, as <see cref="Allowed.Distance"/> says.</summary>
+            internal double Take(double value, double scale) => _set.Distance(value, scale, Own[0] * scale);
         }
 
         /// <summary>
         /// A value set of a parameter, as AutoCAD keeps one: its flags (1 a minimum, 2 a maximum, 4 an increment, 8 a list), its
         /// minimum, maximum and increment (three codes in a row) and its list (counted by a code of its own, each of the code
-        /// after the increment's), kept from the least up.
+        /// after the increment's), kept from the least up and as it is written.
         /// </summary>
         private sealed class Allowed
         {
@@ -1420,6 +1422,7 @@ namespace GeometryHelper.Dxf
             private double _maximum;
             private double _increment;
             private readonly List<double> _list = new List<double>();
+            private readonly List<double> _written = new List<double>();
 
             /// <summary>The set of a subclass of a parameter, of the codes of its flags, its minimum and its count.</summary>
             internal static Allowed Of(List<DxfTypedValue> own, int flags, int first, int count)
@@ -1457,43 +1460,39 @@ namespace GeometryHelper.Dxf
                     }
                 }
 
+                set._written.AddRange(set._list);
                 set._list.Sort();
                 return set;
             }
 
             /// <summary>
-            /// A distance of a linear parameter, in the INSERT's units (the block's scaled), taken to the value set as AutoCAD 2021
-            /// took it: a list (flags 8) to its nearest value, a tie to the one farther from the value the property had, beyond the
-            /// value asked in the way it changes, then to the least (AutoCAD 2021 took 8 of the 11 ties of plugin v20 so, 125 to
-            /// 100 from 300 and 225 to 250 from 50, and was not consistent over the rounds before); else to the nearest step of the
-            /// increment from the minimum (flags 4), a tie to the step below, then into the minimum (flags 1) and the maximum (flags
-            /// 2). Ties within the point tolerance of <see cref="Tolerance.Default"/>.
+            /// A distance of a linear, an XY or a polar parameter, in the INSERT's units (the block's scaled), taken to the value
+            /// set as AutoCAD 2021 took it, from the block's own distance (in the INSERT's units) whatever the value before: a list
+            /// (flags 8) to its nearest value, a tie to the block's own where it is one of the two, else to the one written first,
+            /// the lesser of a list written from the least up, as AutoCAD 2021 took all 358 ties of lists of 3 to 6 values of
+            /// plugin D25b (278 of linear parameters, 47 of an XY and 33 of polar ones), from every value before and in two
+            /// sessions alike: 75 to 100, 125 to 100 and 175 to 150 of 50, 100 ... 300 for an own 100, 125 to 100 and 225 to 250
+            /// for an own 250, and 125 to 150 of the same list written from 300 down for an own 200; else to the nearest step of
+            /// the increment from the minimum (flags 4), a tie to the step below, 95 to 90 for an own 100 as AutoCAD took all 100
+            /// such ties, then into the minimum (flags 1) and the maximum (flags 2). Ties within the point tolerance of
+            /// <see cref="Tolerance.Default"/>.
             /// </summary>
-            internal double Distance(double value, double now, double scale) => Distance(value, now, scale, double.NaN);
-
-            /// <summary>
-            /// A distance, in the INSERT's units, taken to the value set as <see cref="Distance(double, double, double)"/> says; a
-            /// tie between two values of a list, where the block's own distance (in the INSERT's units) is given, to the one nearer
-            /// it, then to the least, as AutoCAD 2021 took the 18 ties of the lists of an XY and a polar parameter, from every value
-            /// before (plugin D25): 75 and 125 to 100 and 175 to 150 of 50, 100, 150 and 200 for an own 100, 65 to 50 and 100 to 80
-            /// of 50, 80 and 120 for an own 50.
-            /// </summary>
-            internal double Distance(double value, double now, double scale, double own)
+            internal double Distance(double value, double scale, double own)
             {
                 double slack = Tolerance.Default.EqualPoint;
 
-                if ((_flags & 8) != 0 && _list.Count > 0)
+                if ((_flags & 8) != 0 && _written.Count > 0)
                 {
-                    double best = _list[0] * scale;
+                    // AutoCAD starts from the block's own value and takes a value of the list, in the order it is written, only
+                    // where it is nearer the value asked.
+                    int start = _written.FindIndex(v => Math.Abs(v * scale - own) <= slack);
+                    double best = _written[start < 0 ? 0 : start] * scale;
 
-                    for (int i = 1; i < _list.Count; i++)
+                    foreach (double listed in _written)
                     {
-                        double candidate = _list[i] * scale;
-                        double nearer = Math.Abs(value - best) - Math.Abs(value - candidate);
-                        bool tie = Math.Abs(nearer) <= slack;
+                        double candidate = listed * scale;
 
-                        if (nearer > slack || (tie && double.IsNaN(own) && Math.Abs(now - candidate) > Math.Abs(now - best) + slack)
-                            || (tie && !double.IsNaN(own) && Math.Abs(own - candidate) < Math.Abs(own - best) - slack))
+                        if (Math.Abs(value - best) - Math.Abs(value - candidate) > slack)
                         {
                             best = candidate;
                         }
@@ -1642,8 +1641,8 @@ namespace GeometryHelper.Dxf
             /// <summary>The way the end point lies from the base point along x and along y, 1 or -1 each.</summary>
             internal double[] Signs => new[] { _signX, _signY };
 
-            /// <summary>A distance along x (part 0) or y (part 1), in the INSERT's units, taken to its value set, as <see cref="Allowed.Distance(double, double, double, double)"/> says.</summary>
-            internal double Take(int part, double value, double now, double scale) => (part == 0 ? _x : _y).Distance(value, now, scale, Own[part] * scale);
+            /// <summary>A distance along x (part 0) or y (part 1), in the INSERT's units, taken to its value set, as <see cref="Allowed.Distance"/> says.</summary>
+            internal double Take(int part, double value, double scale) => (part == 0 ? _x : _y).Distance(value, scale, Own[part] * scale);
 
             /// <summary>The move of the end point: each distance now less the block's own, the way the end point lies.</summary>
             internal override double[] Moved(double[] now) => new[] { _signX * (now[0] - Own[0]), _signY * (now[1] - Own[1]) };
@@ -1758,10 +1757,22 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>A distance (part 0), in the INSERT's units, or an angle (part 1), taken to its value set, as <see cref="Allowed"/> says.</summary>
-            internal double Take(int part, double value, double now, double scale) => part == 0 ? _distance.Distance(value, now, scale, Own[0] * scale) : _angle.Angle(value);
+            internal double Take(int part, double value, double scale) => part == 0 ? _distance.Distance(value, scale, Own[0] * scale) : _angle.Angle(value);
 
             /// <summary>The end point at the distance and the angle given, level with the block's own along z.</summary>
             internal GeoPoint3 EndAt(double[] now) => new GeoPoint3(Base.X + now[0] * Math.Cos(now[1]), Base.Y + now[0] * Math.Sin(now[1]), End.Z);
+
+            /// <summary>The move of the end point, which a stretch or a move tied to it follows: where it is now less the block's own; none at the block's own values.</summary>
+            internal override double[] Moved(double[] now)
+            {
+                if (now[0] == Own[0] && now[1] == Own[1])
+                {
+                    return new double[2];
+                }
+
+                GeoPoint3 end = EndAt(now);
+                return new[] { end.X - End.X, end.Y - End.Y };
+            }
 
             /// <summary>
             /// What a polar stretch does at the values given: to a point it holds, the turn about the base point by the angle less
@@ -2027,7 +2038,7 @@ namespace GeometryHelper.Dxf
 
                 if (id == null || stretch._x == null || stretch._x != stretch._y || !(stretch.ByBase || (stretch._xBy == "EndXDelta" && stretch._yBy == "EndYDelta")) || parameters != 0)
                 {
-                    throw new NotSupportedException("A stretch of the block " + block + " is not one the library works out: it works out a stretch by the end point or the base point of a linear or an XY parameter, moving no other parameter.");
+                    throw new NotSupportedException("A stretch of the block " + block + " is not one the library works out: it works out a stretch by the end point or the base point of a linear, an XY or a polar parameter, moving no other parameter.");
                 }
 
                 stretch.Parameter = stretch._x;
@@ -2129,9 +2140,9 @@ namespace GeometryHelper.Dxf
 
             /// <summary>
             /// Refuses an action whose parameter is not of the kind it follows, or that works on what is not an entity of the
-            /// block the library works out: a stretch of a linear or an XY parameter, of lines, polylines and entities of one
-            /// point by their points, and of arcs by both ends or, lying flat, by one; a move of a linear or an XY parameter by
-            /// its end point or its base point, of a point parameter by its position, the attribute definitions a move alone
+            /// block the library works out: a stretch of a linear, an XY or a polar parameter, of lines, polylines and entities of
+            /// one point by their points, and of arcs by both ends or, lying flat, by one; a move of a linear, an XY or a polar
+            /// parameter by its end point or its base point, of a point parameter by its position, the attribute definitions a move alone
             /// may hold; a scale of a linear parameter, a rotate of a rotation parameter, a flip of a flip parameter, an array
             /// of a linear parameter or of an XY parameter of a row offset; a polar stretch of a polar parameter, of the points
             /// a stretch holds but an arc by one end, and of entities to turn only.
@@ -2139,7 +2150,7 @@ namespace GeometryHelper.Dxf
             internal void Check(Block block, Dictionary<string, DxfEntity> entities, string name)
             {
                 Param parameter = block.Parameters.Find(p => p.Id == Parameter);
-                bool end = parameter is Linear || parameter is Planar;
+                bool end = parameter is Linear || parameter is Planar || parameter is Polar;
                 bool fits;
 
                 switch (Kind)
@@ -2231,8 +2242,10 @@ namespace GeometryHelper.Dxf
         /// The table of a lookup action, as AutoCAD writes it: its cells row by row, kept exactly as the file holds them
         /// (AutoCAD's lookup sample labels a row "Size 6 ", which AutoCAD 2021 read back so, plugin v21), and its columns, each
         /// of a parameter's node, looked up (282 of 1) or an input, its label of no match (305) and its connection (304). The
-        /// library works out input columns of a linear parameter's distance (UpdatedDistance) and of a point parameter's x and
-        /// y (UpdatedX, UpdatedY), of reals in the block's units, and looked-up columns of a lookup parameter (lookupString).
+        /// library works out input columns of a linear or a polar parameter's distance (UpdatedDistance), a point parameter's x
+        /// and y (UpdatedX, UpdatedY) and an XY parameter's distances (UpdatedDistanceX, UpdatedDistanceY), of reals in the
+        /// block's units, and of a polar or a rotation parameter's angle (UpdatedAngle), of radians, as AutoCAD 2021 set them
+        /// (plugin D25b); and looked-up columns of a lookup parameter (lookupString).
         /// </summary>
         private sealed class Table
         {
@@ -2292,16 +2305,19 @@ namespace GeometryHelper.Dxf
                 {
                     Column column = table._columns[c];
                     Param parameter = block.Parameters.Find(p => p.Id == column.Node);
+                    string connection = column.Connection;
                     bool known = column.LookedUp
-                        ? column.Connection == "lookupString" && block.Lookups.Exists(l => l.Id == column.Node)
-                        : (parameter is Linear && column.Connection == "UpdatedDistance") || (parameter is Spot && (column.Connection == "UpdatedX" || column.Connection == "UpdatedY"));
+                        ? connection == "lookupString" && block.Lookups.Exists(l => l.Id == column.Node)
+                        : ((parameter is Linear || parameter is Polar) && connection == "UpdatedDistance") || (parameter is Spot && (connection == "UpdatedX" || connection == "UpdatedY"))
+                            || (parameter is Planar && (connection == "UpdatedDistanceX" || connection == "UpdatedDistanceY")) || ((parameter is Polar || parameter is Turning) && connection == "UpdatedAngle");
 
                     if (!known || (!column.LookedUp && table._rows.Exists(r => !DxfDynamicProperties.Number(r[c], out _))))
                     {
-                        throw new NotSupportedException("A lookup table of the block " + name + " has a column the library does not work out: it works out inputs of a linear parameter's distance and of a point parameter's x and y, of numbers, and lookup parameters looked up.");
+                        throw new NotSupportedException("A lookup table of the block " + name + " has a column the library does not work out: it works out inputs of a linear or a polar parameter's distance, a point parameter's x and y, an XY parameter's distances and a polar or a rotation parameter's angle, of numbers, and lookup parameters looked up.");
                     }
 
-                    column.Part = column.Connection == "UpdatedY" ? 1 : 0;
+                    column.IsAngle = connection == "UpdatedAngle";
+                    column.Part = connection == "UpdatedY" || connection == "UpdatedDistanceY" || (parameter is Polar && column.IsAngle) ? 1 : 0;
                 }
 
                 return table;
@@ -2309,7 +2325,9 @@ namespace GeometryHelper.Dxf
 
             /// <summary>
             /// The label a lookup, by its node's id, shows at the values given: its cell of the first row whose inputs are the values, within the
-            /// point tolerance of <see cref="Tolerance.Default"/>; else its column's label of no match.
+            /// point tolerance of <see cref="Tolerance.Default"/>, an angle (taken into a turn) within its vector tolerance, not
+            /// round the circle, as AutoCAD 2021 read Custom at nought for a row of 2 pi (plugin D25b); else its column's label of
+            /// no match.
             /// </summary>
             internal string Label(string lookup, Dictionary<string, double[]> values)
             {
@@ -2329,7 +2347,8 @@ namespace GeometryHelper.Dxf
                         if (!_columns[c].LookedUp)
                         {
                             DxfDynamicProperties.Number(row[c], out double cell);
-                            all = Math.Abs(cell - values[_columns[c].Node][_columns[c].Part]) <= Tolerance.Default.EqualPoint;
+                            double now = values[_columns[c].Node][_columns[c].Part];
+                            all = Math.Abs(cell - now) <= (_columns[c].IsAngle ? Tolerance.Default.EqualVector : Tolerance.Default.EqualPoint);
                         }
                     }
 
@@ -2341,6 +2360,9 @@ namespace GeometryHelper.Dxf
 
                 return _columns[column].Unmatched;
             }
+
+            /// <summary>Whether the table has an input column, which a row sets.</summary>
+            internal bool HasInputs => _columns.Exists(c => !c.LookedUp);
 
             /// <summary>Gives each lookup of the table the label of the values given.</summary>
             internal void Relabel(Dictionary<string, double[]> values, Dictionary<string, string> labels)
@@ -2379,7 +2401,7 @@ namespace GeometryHelper.Dxf
                     else
                     {
                         DxfDynamicProperties.Number(chosen[c], out double cell);
-                        values[_columns[c].Node][_columns[c].Part] = cell;
+                        values[_columns[c].Node][_columns[c].Part] = _columns[c].IsAngle ? Normal(cell) : cell;
                     }
                 }
             }
@@ -2396,6 +2418,9 @@ namespace GeometryHelper.Dxf
                 internal string Connection { get; set; }
 
                 internal int Part { get; set; }
+
+                /// <summary>Whether the column gives an angle (UpdatedAngle), in radians, matched within the vector tolerance.</summary>
+                internal bool IsAngle { get; set; }
             }
         }
 

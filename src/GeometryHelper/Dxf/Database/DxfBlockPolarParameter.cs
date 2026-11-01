@@ -7,7 +7,8 @@ namespace GeometryHelper.Dxf
     /// A polar parameter of a dynamic block, as <see cref="DxfBlockTableRecord.AddPolarParameter"/> wrote it: the distance from
     /// its base point to its end point and the angle of that line from the block's x axis, shown on every INSERT of the block
     /// as two dynamic properties, and followed by the polar stretch actions tied to it
-    /// (<see cref="DxfBlockTableRecord.AddPolarStretchAction"/>), which turn and stretch with its end point.
+    /// (<see cref="DxfBlockTableRecord.AddPolarStretchAction"/>), which turn and stretch with its end point, and by the stretch
+    /// and move actions tied to it, which follow its end point unturned.
     /// </summary>
     /// <remarks>
     /// The parameter of the labels Length and Angle from (0, 0, 0) to (100, 0, 0) gives each INSERT the properties Length of

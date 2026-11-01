@@ -324,14 +324,17 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// The cell of a lookup's column, by its index, of the first row whose input cells are the values the INSERT shows its
-        /// inputs at, within the point tolerance of <see cref="Tolerance.Default"/>, in the block's units: the distance of a
-        /// linear parameter (UpdatedDistance), the x or the y of a point parameter (UpdatedX, UpdatedY), each as the INSERT
-        /// saved it, else the block's own, as AutoCAD 2021 read Small on an INSERT of a lookup block itself whose Width 100 and
-        /// Height 50 were the row Small's (plugin v21b); null where no row holds them, or an input is of another kind.
+        /// inputs at, within the point tolerance of <see cref="Tolerance.Default"/>, in the block's units, or an angle, taken
+        /// into a turn, within its vector tolerance: the distance of a linear or a polar parameter (UpdatedDistance), the x or the
+        /// y of a point parameter (UpdatedX, UpdatedY), the distance along x or along y of an XY parameter (UpdatedDistanceX,
+        /// UpdatedDistanceY), the angle of a polar or a rotation parameter (UpdatedAngle), each as the INSERT saved it, else the
+        /// block's own, as AutoCAD 2021 read Small on an INSERT of a lookup block itself whose Width 100 and Height 50 were the
+        /// row Small's (plugin v21b); null where no row holds them, or an input is of another kind.
         /// </summary>
         private static string Matched(List<string> cells, List<Dictionary<int, string>> columns, int width, int column, List<DxfItem> nodes, Dictionary<string, DxfXrecord> saved)
         {
             var inputs = new List<KeyValuePair<int, double>>();
+            var angles = new HashSet<int>();
 
             for (int c = 0; c < width; c++)
             {
@@ -352,9 +355,31 @@ namespace GeometryHelper.Dxf
                 DxfItem parameter = node == null ? null : nodes.Find(n => Text(Section(n.Groups, "AcDbEvalExpr"), 90)?.Trim() == node);
                 IReadOnlyList<DxfTypedValue> cache = node != null && saved.TryGetValue(node, out DxfXrecord record) ? record.Data : null;
 
-                if (parameter?.Type == "BLOCKLINEARPARAMETER" && connection == "UpdatedDistance" && TwoPoints(parameter.Groups, cache, out double[] from, out double[] to))
+                if ((parameter?.Type == "BLOCKLINEARPARAMETER" || parameter?.Type == "BLOCKPOLARPARAMETER") && connection == "UpdatedDistance" && TwoPoints(parameter.Groups, cache, out double[] from, out double[] to))
                 {
                     inputs.Add(new KeyValuePair<int, double>(c, Distance(from, to)));
+                }
+                else if (parameter?.Type == "BLOCKXYPARAMETER" && (connection == "UpdatedDistanceX" || connection == "UpdatedDistanceY") && TwoPoints(parameter.Groups, cache, out from, out to))
+                {
+                    inputs.Add(new KeyValuePair<int, double>(c, connection == "UpdatedDistanceX" ? Math.Abs(to[0] - from[0]) : Math.Abs(to[1] - from[1])));
+                }
+                else if (parameter?.Type == "BLOCKPOLARPARAMETER" && connection == "UpdatedAngle" && TwoPoints(parameter.Groups, cache, out from, out to))
+                {
+                    inputs.Add(new KeyValuePair<int, double>(c, Normal(Math.Atan2(to[1] - from[1], to[0] - from[0]))));
+                    angles.Add(c);
+                }
+                else if (parameter?.Type == "BLOCKROTATIONPARAMETER" && connection == "UpdatedAngle")
+                {
+                    var turned = new List<DxfDynamicBlockReferenceProperty>();
+                    Rotation(parameter.Groups, cache, turned);
+
+                    if (turned.Count == 0)
+                    {
+                        return null;
+                    }
+
+                    inputs.Add(new KeyValuePair<int, double>(c, (double)turned[0].Value));
+                    angles.Add(c);
                 }
                 else if (parameter?.Type == "BLOCKPOINTPARAMETER" && (connection == "UpdatedX" || connection == "UpdatedY"))
                 {
@@ -376,7 +401,7 @@ namespace GeometryHelper.Dxf
 
             for (int row = 0; row + width <= cells.Count; row += width)
             {
-                if (inputs.TrueForAll(i => Number(cells[row + i.Key], out double cell) && Math.Abs(cell - i.Value) <= Tolerance.Default.EqualPoint))
+                if (inputs.TrueForAll(i => Number(cells[row + i.Key], out double cell) && Math.Abs(cell - i.Value) <= (angles.Contains(i.Key) ? Tolerance.Default.EqualVector : Tolerance.Default.EqualPoint)))
                 {
                     return cells[row + column];
                 }

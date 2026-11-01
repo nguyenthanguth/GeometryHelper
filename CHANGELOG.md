@@ -6,6 +6,27 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A distance set on a dynamic INSERT halfway between two values of a list goes to the block's own value where it
+is one of the two, else to the one written first, the lesser of a list written from the least up, whatever the value
+before, as AutoCAD 2021 took all 358 such ties of lists of 3 to 6 values of a linear, an XY and a polar parameter, from
+every value of the list and alike in two sessions. Of 50, 100 ... 300 for a block's own 100, 75 goes to 100 where the
+library gave 50 coming from 100 or 300; for an own 250, 125 goes to 100 where an XY or a polar parameter gave 150. The
+library took a linear list's tie to the value farther from the one before (131 of the 278 linear ties) and an XY or a
+polar list's to the value nearer the block's own (32 of 80). A tie of steps goes to the step below as before, 95 to 90 for
+an own 100, as AutoCAD took all 100 such ties. 48 new tests; one test of D24c changed to AutoCAD's values (75 to 100, 100
+to 80), one of D24d renamed.
+
+**NEW.** A polar parameter takes a stretch and a move by its end point, `AddStretchAction` and `AddMoveAction` overloads of
+`DxfBlockPolarParameter`, of a distance multiplier and an angle offset too: they follow the end point unturned, a circle at
+the tip of a shaft from (0, 0) to (100, 0) going to (0, 150) for a Length of 150 at a quarter turn, as AutoCAD 2021 drew
+them. A lookup table takes columns of an XY parameter's distances (`DxfBlockLookupInput.X` and `Y` of a
+`DxfBlockXYParameter`), a polar parameter's distance and angle (`Distance`, `Angle`) and a rotation parameter's angle
+(`Angle`), angles in radians: a plate's Size Large gives 200 by 80, a needle's Way North a quarter turn, and its Angle set
+to pi reads West, as AutoCAD 2021 read and set them, 0 lines apart. Blocks of other writers holding them are set where they
+were refused. A lookup set reads the label of the first row of its values, as every other does, as AutoCAD 2021 read Small
+after setting Twin, a row of the values of Small further down; it kept the row set. New public API only; nothing removed.
+11 new tests.
+
 **FIXED.** `DxfTable.IsLinked` reads a cell of a linked range as AutoCAD 2021 does: linked where AutoCAD lays it out
 from the ACAD_TABLE, its TABLECONTENT cell holding no content or one whose checksum disagrees with the cell's text, and
 not where it holds a content of an agreeing checksum. The library's own link over (1, 0) to (2, 1), its cells of no
@@ -46,8 +67,8 @@ its polyline (50, -5)-(100, -5) held by its end going to (5, 50)-(5, 150), as Au
 every INSERT of such a block, and the library sets one as AutoCAD does, the anonymous block the same to 1E-9 in every set
 that was not a tie. `AddRotationParameter` and `AddXYParameter` take value sets in new overloads, and `AddPolarParameter`
 one for the distance and one for the angle, taken as AutoCAD 2021 took them: an angle round the circle, 300 degrees to 0
-of 0 to 90 and 338 to 0 of 0, 90, 180 and 270, and a tie of a list of distances of an XY or a polar parameter to the
-value nearer the block's own, as AutoCAD took all 18 such ties. `DxfBlockParameterValueSet.List` takes nought, for an
+of 0 to 90 and 338 to 0 of 0, 90, 180 and 270, and a tie of a list of distances as the first entry above says.
+`DxfBlockParameterValueSet.List` takes nought, for an
 angle. A rotation, an XY or a polar parameter of a value set from another writer is set too, where it was refused. 50 new
 tests.
 

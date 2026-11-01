@@ -1031,6 +1031,70 @@ namespace GeometryHelper.Dxf
             Stretch(parameter.Block, parameter.Node, parameter.XName, frameCorner, oppositeCorner, entities, distanceMultiplier, angleOffset);
         }
 
+        /// <summary>
+        /// Gives the block a stretch action tied to a polar parameter of it, AutoCAD's Stretch action as its Block Editor makes
+        /// one on a polar parameter: as the parameter's end point moves, by its distance and its angle, the points of the
+        /// entities inside the frame move with it, along x and along y, unturned, and the points outside stay.
+        /// </summary>
+        /// <param name="parameter">The polar parameter of this block the action follows, by its end point.</param>
+        /// <param name="frameCorner">A corner of the stretch frame, a rectangle along the block's x and y.</param>
+        /// <param name="oppositeCorner">The corner across from it.</param>
+        /// <param name="entities">The entities of the block to stretch, of the kinds and with the points that
+        /// <see cref="AddStretchAction(DxfBlockLinearParameter, GeoPoint2, GeoPoint2, IEnumerable{DxfEntity})"/> takes.</param>
+        /// <remarks>
+        /// A rectangle 100 by 50 whose right edge a polar parameter from (0, 0, 0) to (100, 0, 0) stretches by the frame from (90,
+        /// -10) to (110, 60) has its right edge from (0, 150) to (0, 200) when Length is set to 150 and Angle to a quarter turn:
+        /// the end point moves from (100, 0) to (0, 150), and the edge with it, upright still, as AutoCAD 2021 drew it (plugin
+        /// D25b). The action is written as the stretch of a linear parameter is, its connections EndXDelta and EndYDelta of the
+        /// polar parameter. Where a polar stretch should turn the entities too, <see cref="AddPolarStretchAction"/> does.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the parameter, a corner, the entities or one of them is null.</exception>
+        /// <exception cref="ArgumentException">Thrown as
+        /// <see cref="AddStretchAction(DxfBlockLinearParameter, GeoPoint2, GeoPoint2, IEnumerable{DxfEntity})"/> says. Nothing is
+        /// written then.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
+        /// <exception cref="NotSupportedException">Thrown as
+        /// <see cref="AddStretchAction(DxfBlockLinearParameter, GeoPoint2, GeoPoint2, IEnumerable{DxfEntity})"/> says. Nothing is
+        /// written then.</exception>
+        public void AddStretchAction(DxfBlockPolarParameter parameter, GeoPoint2 frameCorner, GeoPoint2 oppositeCorner, IEnumerable<DxfEntity> entities)
+            => AddStretchAction(parameter, frameCorner, oppositeCorner, entities, 1.0, 0.0);
+
+        /// <summary>
+        /// Gives the block a stretch action tied to a polar parameter of it, as
+        /// <see cref="AddStretchAction(DxfBlockPolarParameter, GeoPoint2, GeoPoint2, IEnumerable{DxfEntity})"/> does, of a
+        /// distance multiplier and an angle offset: the points in the frame move by the move of the parameter's end point times
+        /// the multiplier, turned by the offset.
+        /// </summary>
+        /// <param name="parameter">The polar parameter of this block the action follows, by its end point.</param>
+        /// <param name="frameCorner">A corner of the stretch frame, a rectangle along the block's x and y.</param>
+        /// <param name="oppositeCorner">The corner across from it.</param>
+        /// <param name="entities">The entities of the block to stretch, as the overload of no multiplier takes them.</param>
+        /// <param name="distanceMultiplier">What the move of the end point is multiplied by, a finite number; 1 as far.</param>
+        /// <param name="angleOffset">The angle the move is turned by, counter-clockwise in radians, a finite number; nought keeps it.</param>
+        /// <remarks>
+        /// The right edge (100, 0)-(100, 50) of a rectangle stretched by a polar parameter from (0, 0, 0) to (100, 0, 0) of the
+        /// multiplier 0.5 goes to (50, 75)-(50, 125) when Length is set to 150 and Angle to a quarter turn, half the end point's
+        /// move from (100, 0) to (0, 150).
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the parameter, a corner, the entities or one of them is null.</exception>
+        /// <exception cref="ArgumentException">Thrown as
+        /// <see cref="AddStretchAction(DxfBlockLinearParameter, GeoPoint2, GeoPoint2, IEnumerable{DxfEntity})"/> says. Nothing is
+        /// written then.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the multiplier or the offset is not a finite number.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
+        /// <exception cref="NotSupportedException">Thrown as
+        /// <see cref="AddStretchAction(DxfBlockLinearParameter, GeoPoint2, GeoPoint2, IEnumerable{DxfEntity})"/> says. Nothing is
+        /// written then.</exception>
+        public void AddStretchAction(DxfBlockPolarParameter parameter, GeoPoint2 frameCorner, GeoPoint2 oppositeCorner, IEnumerable<DxfEntity> entities, double distanceMultiplier, double angleOffset)
+        {
+            if (parameter == null)
+            {
+                throw new ArgumentNullException(nameof(parameter));
+            }
+
+            Stretch(parameter.Block, parameter.Node, parameter.DistanceName, frameCorner, oppositeCorner, entities, distanceMultiplier, angleOffset);
+        }
+
         /// <summary>Writes a stretch action of a parameter of a block, by its node, once the frame and the entities are checked.</summary>
         private void Stretch(DxfBlockTableRecord block, int node, string name, GeoPoint2 frameCorner, GeoPoint2 oppositeCorner, IEnumerable<DxfEntity> entities, double multiplier, double angle)
         {
@@ -1434,11 +1498,21 @@ namespace GeometryHelper.Dxf
             double turned = angle % turn;
             turned = turned < 0.0 ? turned + turn : turned;
 
-            if (!set.Holds(turned, slack) && !set.Holds(turned + turn, slack) && !set.Holds(turned - turn, slack))
+            if (!HoldsAngle(set, angle))
             {
                 throw new ArgumentException("The value set " + (set.IsList ? "lists" : "steps through") + " no angle of "
                     + turned.ToString("R", CultureInfo.InvariantCulture) + " radians, the block's own.", name);
             }
+        }
+
+        /// <summary>Whether a value set of an angle holds an angle, taken into a turn, a whole turn either way, within the vector tolerance of <see cref="Tolerance.Default"/>.</summary>
+        private static bool HoldsAngle(DxfBlockParameterValueSet set, double angle)
+        {
+            const double turn = 2.0 * Math.PI;
+            double slack = Tolerance.Default.EqualVector;
+            double turned = angle % turn;
+            turned = turned < 0.0 ? turned + turn : turned;
+            return set.Holds(turned, slack) || set.Holds(turned + turn, slack) || set.Holds(turned - turn, slack);
         }
 
         /// <summary>
@@ -1549,8 +1623,8 @@ namespace GeometryHelper.Dxf
         /// A plate 100 by 50 from the origin given <c>AddXYParameter("Width", null, "Depth", null, new GeoPoint3(0, 0, 0), new
         /// GeoPoint3(100, 50, 0), DxfBlockParameterValueSet.Increments(50, 300, 10), DxfBlockParameterValueSet.List(new[] { 50.0,
         /// 80, 120 }))</c> takes a Width of 77 to 80, 75 to 70 and 400 to 300, and a Depth of 90 to 80, 65 to 50 and 100 to 80,
-        /// as AutoCAD 2021 took them from every value before (plugin D25): a tie of a list goes to the value nearer the block's
-        /// own, as <see cref="DxfDynamicBlockReferenceProperty.Value"/> says. Each set is written as AutoCAD writes the set of a
+        /// as AutoCAD 2021 took them from every value before (plugins D25 and D25b): a tie of a list goes to the block's own
+        /// value where it is one of the two, else to the lesser, as <see cref="DxfDynamicBlockReferenceProperty.Value"/> says. Each set is written as AutoCAD writes the set of a
         /// linear parameter, the set of y first (97, 146 to 149, 176) and then the set of x (96, 142 to 145, 175), as AutoCAD's
         /// samples order them.
         /// </remarks>
@@ -1597,7 +1671,9 @@ namespace GeometryHelper.Dxf
         /// Makes the block dynamic, where it is not, and gives it a polar parameter: the distance from a base point to an end
         /// point and the angle of that line from the block's x axis, which each INSERT of the block shows as two dynamic
         /// properties, AutoCAD's Polar parameter of two grips as its Block Editor makes one. Tie the parameter to the entities
-        /// it turns and stretches with <see cref="AddPolarStretchAction"/>.
+        /// it turns and stretches with <see cref="AddPolarStretchAction"/>, and those that follow its end point unturned with
+        /// <see cref="AddStretchAction(DxfBlockPolarParameter, GeoPoint2, GeoPoint2, IEnumerable{DxfEntity})"/> and
+        /// <see cref="AddMoveAction(DxfBlockPolarParameter, IEnumerable{DxfEntity})"/>.
         /// </summary>
         /// <param name="distanceName">The label of the distance, the name of its property, as Length.</param>
         /// <param name="distanceDescription">The description of the distance; null or empty for none.</param>
@@ -1866,8 +1942,11 @@ namespace GeometryHelper.Dxf
         /// <param name="description">The description of the property; null or empty for none.</param>
         /// <param name="location">Where the parameter's grip stands, in the block's coordinates.</param>
         /// <param name="inputs">The input columns of the table, each the property of another parameter of this block
-        /// (<see cref="DxfBlockLookupInput.Distance"/>, <see cref="DxfBlockLookupInput.X"/>,
-        /// <see cref="DxfBlockLookupInput.Y"/>), each once.</param>
+        /// (<see cref="DxfBlockLookupInput.Distance(DxfBlockLinearParameter)"/>, <see cref="DxfBlockLookupInput.X(DxfBlockPointParameter)"/>,
+        /// <see cref="DxfBlockLookupInput.Y(DxfBlockPointParameter)"/>, <see cref="DxfBlockLookupInput.X(DxfBlockXYParameter)"/>,
+        /// <see cref="DxfBlockLookupInput.Y(DxfBlockXYParameter)"/>, <see cref="DxfBlockLookupInput.Distance(DxfBlockPolarParameter)"/>,
+        /// <see cref="DxfBlockLookupInput.Angle(DxfBlockPolarParameter)"/>, <see cref="DxfBlockLookupInput.Angle(DxfBlockRotationParameter)"/>),
+        /// each once.</param>
         /// <param name="rows">The rows, each a label and a value for each input column (<see cref="DxfBlockLookupRow"/>), the
         /// labels apart, letters of either case the same.</param>
         /// <remarks>
@@ -1892,12 +1971,22 @@ namespace GeometryHelper.Dxf
         /// Height 50, else Custom, as AutoCAD 2021 read it (plugin v21b) and as
         /// <see cref="DxfBlockReference.DynamicBlockReferencePropertyCollection"/> reads it.
         /// </para>
+        /// <para>
+        /// A column of an XY parameter's distance along x or along y is written of the connection UpdatedDistanceX or
+        /// UpdatedDistanceY, of a polar parameter's distance UpdatedDistance, and of a polar or a rotation parameter's angle
+        /// UpdatedAngle, of the units 1 (96) where a distance's are 2, its values in radians. AutoCAD 2021 read and set them as
+        /// the library does (plugin D25b): a needle's Way of the rows East 0, North a quarter turn and West pi, set to North,
+        /// turned it a quarter turn, and its Angle set to pi read West, to 1 Custom. An angle is taken into a turn and matched
+        /// within the vector tolerance, not round the circle: a row of 2 pi sets nought and reads Custom, and one of -pi / 2
+        /// sets 3 pi / 2 and reads the row of 3 pi / 2, as AutoCAD 2021 read them.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the name, the inputs, the rows or one of them is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the name is empty, the name or the description holds a line break, a
         /// coordinate of the location is not a finite number, there are no inputs or no rows, an input is of another block or
         /// given twice, two rows have one label or a row is labelled Custom, a row has not one value for each input, or a
-        /// distance is not above the point tolerance of <see cref="Tolerance.Default"/> or not of its parameter's value set.
+        /// distance is not above the point tolerance of <see cref="Tolerance.Default"/> or not of its parameter's value set,
+        /// or an angle is not of its parameter's value set.
         /// Nothing is written then.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
         /// <exception cref="NotSupportedException">Thrown when the block has a flip parameter, as <see cref="AddLinearParameter"/>
@@ -1966,9 +2055,16 @@ namespace GeometryHelper.Dxf
 
                 for (int i = 0; i < columns.Count; i++)
                 {
-                    if (columns[i].Connection == "UpdatedDistance" && (!(row.Values[i] > Tolerance.Default.EqualPoint) || (columns[i].ValueSet != null && !columns[i].ValueSet.Holds(row.Values[i]))))
+                    bool distance = columns[i].Connection == "UpdatedDistance" || columns[i].Connection == "UpdatedDistanceX" || columns[i].Connection == "UpdatedDistanceY";
+
+                    if (distance && (!(row.Values[i] > Tolerance.Default.EqualPoint) || (columns[i].ValueSet != null && !columns[i].ValueSet.Holds(row.Values[i]))))
                     {
                         throw new ArgumentException("The row " + row.Label + " gives " + columns[i].Name + " a distance not above the point tolerance, or not of its value set.", nameof(rows));
+                    }
+
+                    if (columns[i].IsAngle && columns[i].ValueSet != null && !HoldsAngle(columns[i].ValueSet, row.Values[i]))
+                    {
+                        throw new ArgumentException("The row " + row.Label + " gives " + columns[i].Name + " an angle not of its value set.", nameof(rows));
                     }
                 }
 
@@ -2211,6 +2307,58 @@ namespace GeometryHelper.Dxf
             Factors(distanceMultiplier, angleOffset);
             List<DxfEntity> acted = Acted(parameter.Block, parameter.XName, entities, "move");
             DxfDynamicBlockWriter.AddMove(this, parameter.Node, parameter.XName, "EndXDelta", "EndYDelta", parameter.EndPoint, acted, distanceMultiplier, angleOffset);
+        }
+
+        /// <summary>
+        /// Gives the block a move action tied to a polar parameter of it, AutoCAD's Move action as its Block Editor makes one on
+        /// a polar parameter: the entities move whole with the parameter's end point, along x and along y, unturned.
+        /// </summary>
+        /// <param name="parameter">The polar parameter of this block the action follows, by its end point.</param>
+        /// <param name="entities">The entities of the block to move.</param>
+        /// <remarks>
+        /// A circle at the end point (100, 0) of a polar parameter from (0, 0, 0) moves to (0, 150) as Length is set to 150 and
+        /// Angle to a quarter turn, and a text at (95, 3) by it to (-5, 153), unturned, as AutoCAD 2021 moved them (plugin
+        /// D25b). The action is written as the move of a linear parameter is, its connections EndXDelta and EndYDelta of the
+        /// polar parameter.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the parameter, the entities or one of them is null.</exception>
+        /// <exception cref="ArgumentException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
+        /// says. Nothing is written then.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
+        /// <exception cref="NotSupportedException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
+        /// says. Nothing is written then.</exception>
+        public void AddMoveAction(DxfBlockPolarParameter parameter, IEnumerable<DxfEntity> entities) => AddMoveAction(parameter, entities, 1.0, 0.0);
+
+        /// <summary>
+        /// Gives the block a move action tied to a polar parameter of it, as
+        /// <see cref="AddMoveAction(DxfBlockPolarParameter, IEnumerable{DxfEntity})"/> does, of a distance multiplier and an
+        /// angle offset: the entities move by the move of the parameter's end point times the multiplier, turned by the offset.
+        /// </summary>
+        /// <param name="parameter">The polar parameter of this block the action follows, by its end point.</param>
+        /// <param name="entities">The entities of the block to move.</param>
+        /// <param name="distanceMultiplier">What the move of the end point is multiplied by, a finite number; 1 as far.</param>
+        /// <param name="angleOffset">The angle the move is turned by, counter-clockwise in radians, a finite number; nought keeps it.</param>
+        /// <remarks>
+        /// A circle at (50, 0), halfway along a polar parameter from (0, 0, 0) to (100, 0, 0), moved of the multiplier 0.5 stands
+        /// at (0, 75), halfway still, when Length is set to 150 and Angle to a quarter turn.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the parameter, the entities or one of them is null.</exception>
+        /// <exception cref="ArgumentException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
+        /// says. Nothing is written then.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the multiplier or the offset is not a finite number.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
+        /// <exception cref="NotSupportedException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
+        /// says. Nothing is written then.</exception>
+        public void AddMoveAction(DxfBlockPolarParameter parameter, IEnumerable<DxfEntity> entities, double distanceMultiplier, double angleOffset)
+        {
+            if (parameter == null)
+            {
+                throw new ArgumentNullException(nameof(parameter));
+            }
+
+            Factors(distanceMultiplier, angleOffset);
+            List<DxfEntity> acted = Acted(parameter.Block, parameter.DistanceName, entities, "move");
+            DxfDynamicBlockWriter.AddMove(this, parameter.Node, parameter.DistanceName, "EndXDelta", "EndYDelta", parameter.EndPoint, acted, distanceMultiplier, angleOffset);
         }
 
         /// <summary>

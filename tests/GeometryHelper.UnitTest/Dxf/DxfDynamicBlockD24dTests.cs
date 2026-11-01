@@ -675,7 +675,7 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData(100.0, 50.0, 75.0, 100.0)]
         [InlineData(100.0, 200.0, 125.0, 100.0)]
         [InlineData(250.0, 250.0, 125.0, 100.0)]
-        public void AValueHalfWayBetweenTwoValuesOfAList_GoesBeyondItTheWayItChanges_AsAutoCadTookMostTiesInV20(double own, double from, double given, double taken)
+        public void AValueHalfWayBetweenTwoValuesOfAList_GoesToTheBlocksOwnValueElseToTheLesser_AsAutoCadTookEveryTieInV20(double own, double from, double given, double taken)
         {
             DxfDatabase db = Drawing("GH_LIST", out DxfBlockTableRecord block);
             DxfLine right = Add(block, new DxfLine(new GeoPoint3(own, 0, 0), new GeoPoint3(own, 50, 0)));

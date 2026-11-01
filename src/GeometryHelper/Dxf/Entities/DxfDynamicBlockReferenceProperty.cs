@@ -89,21 +89,21 @@ namespace GeometryHelper.Dxf
         /// definition a move holds moves in the copy, and each ATTRIB of the INSERT of its tag moves by the change of that
         /// move, carried by the INSERT's placing, keeping a place the user gave it: Mark X set from 20 to 30 on an INSERT
         /// turned a quarter turn at the scale 2 moves the ATTRIB 20 along y in the world. A lookup set
-        /// to a row's label sets the properties of its input columns to the row's values; any property set, each lookup reads
-        /// the label of the first row of the values then, or its label of no match, Custom as the library writes it.
+        /// to a row's label sets the properties of its input columns to the row's values; any property set, the lookup set
+        /// too, each lookup reads the label of the first row of the values then, or its label of no match, Custom as the
+        /// library writes it: set to a row of the values of a row above it, it reads that row's label, as AutoCAD 2021 read
+        /// Small after Twin was set, a row of Small's values further down (plugin D25b).
         /// </para>
         /// <para>
         /// A distance or a position is a number (a <see cref="double"/>, or a whole number taken as one); a linear distance is
         /// taken, as AutoCAD 2021 took it (plugins v17 to v20), to the nearest step of an increment set, a tie between two steps
-        /// to the step below (85 to 80 of 50 to 300 by 10), and then into the minimum and the maximum (400 to 300); to the
-        /// nearest of a list, a tie to the one farther from the value the property had, beyond the value asked in the way it
-        /// changes (125 to 100 from 300 and 225 to 250 from 50 of 50, 100 ... 300), as AutoCAD 2021 took 8 of the 11 ties of
-        /// plugin v20, its choice in the other three and in three of the four of earlier rounds being the other one; and is
-        /// kept as given where the parameter has no set. A distance of an XY or a polar parameter is taken so too, but for a
-        /// tie of a list, which goes to the value nearer the block's own, then to the least, as AutoCAD 2021 took all 18 such
-        /// ties of plugin D25 from every value before: 65 to 50 and 100 to 80 of 50, 80 and 120 for an own 50, 75 and 125 to
-        /// 100 of 50, 100, 150 and 200 for an own 100; in that round AutoCAD 2021 took the ties of a linear list so too, 10 of
-        /// 10. A distance or a position of an INSERT
+        /// to the step below (85 to 80 and 95 to 90 of 50 to 300 by 10 for an own 100), and then into the minimum and the
+        /// maximum (400 to 300); to the nearest of a list, a tie to the block's own value where it is one of the two, else to
+        /// the one written first, the lesser of a list written from the least up, whatever the value the property had: of 50,
+        /// 100 ... 300, 75 and 125 go to 100 and 175 to 150 for an own 100, 125 to 100 and 225 to 250 for an own 250, as
+        /// AutoCAD 2021 took all 358 ties of lists of 3 to 6 values of a linear, an XY and a polar parameter, from every value
+        /// before and in two sessions alike (plugin D25b); and is kept as given where the parameter has no set. A distance of
+        /// an XY or a polar parameter is taken so too. A distance or a position of an INSERT
         /// scaled by 2 is twice the block's, as it is read. A distance of an XY or a polar parameter is above the point
         /// tolerance. An angle is a number of radians, taken into a turn, from nought up to 2 pi, and to the value set of a
         /// rotation or a polar parameter round the circle, as AutoCAD 2021 took it (plugin D25): to the nearest of a list, 338
@@ -148,7 +148,8 @@ namespace GeometryHelper.Dxf
         /// nought, or holding an arc by one end, an entity both flipped and moved by other actions, an entity both turned or
         /// scaled and stretched or moved, as AutoCAD 2021 worked such an entity out from the INSERT's last state (plugin v21),
         /// an entity both copied by an array or turned by a polar stretch and worked on by another action, a lookup table of
-        /// columns other than a linear parameter's distance, a point parameter's x and y and lookups; or when the INSERT keeps
+        /// columns other than a linear or a polar parameter's distance, a point parameter's x and y, an XY parameter's
+        /// distances, a polar or a rotation parameter's angle and lookups; or when the INSERT keeps
         /// the base point of a linear, an XY, a polar, a rotation or a flip parameter away from the
         /// block's own, as the moves carrying the parameter take it, beyond the point tolerance of <see cref="Tolerance.Default"/>, as a grip moved it: AutoCAD works such
         /// an INSERT out from the base point it keeps, and drew the array of its XY sample's INSERT whose base point a grip
