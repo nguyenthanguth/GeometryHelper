@@ -1105,7 +1105,11 @@ arc of 144.5°. A radius at which the straight edge's parallel line only touches
 would round the corner by half a circle, and the corner is left square alike at any size: the cap of the circle of
 radius 12 above a chord 4 from its centre is rounded where the chord runs into the arc at 3.5, and left square at
 4.000025 within 1E-4, as the same cap 1 000 times smaller is within 1E-7, where the small one was rounded by a half
-circle.
+circle. So is a corner between two arcs whose circles, moved in by the radius, only touch, and a touch is read to the
+rounding of the numbers, 1E-12 of the largest coordinate or radius, not to nought: the arcs of radii 10 and 7 about
+centres 12 apart, filleted where they cross at 2.5, the radius of the circle filling the lens between them, are left
+square at any size, where they were rounded by a half circle at that size and left square at a thousandth of it, and
+the cap filleted at exactly 4 is left square, where it was rounded by a half circle at a thousand times its size.
 
 Exactly enough is enough: a square of side 100 filleted at 50 loses every straight edge and comes back
 four quarter turns — a circle. Chamfered at 50 it comes back the diamond through the four midpoints. So is

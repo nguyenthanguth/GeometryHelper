@@ -245,7 +245,12 @@ namespace GeometryHelper.Core
 
             double a = direction.LengthSquared;
 
-            if (a <= tolerance.EqualVector * tolerance.EqualVector)
+            // As a segment crossing another is read (Intersection3.IsPoint): no longer than the vector tolerance, or than the
+            // point tolerance where that is the finer, so that one longer than a fine point tolerance, or one read as it is,
+            // crosses where it truly does however short.
+            double least = Math.Min(tolerance.EqualVector, tolerance.EqualPoint);
+
+            if (a <= least * least)
             {
                 // No direction to follow. The one point there is counts if the arc reaches it.
                 if (arc.IsPointOn(origin, tolerance))
@@ -466,7 +471,9 @@ namespace GeometryHelper.Core
         /// (50, 0, 0.0008) and collided with nothing, and the one from (-60, 0, 0.0006) to (49.9994, 0, 0.0006), ending
         /// 0.000849 from it, touches it at both rims. A segment no longer than the point tolerance is read as its start
         /// where it does not truly cross the arc: it is given its start where that lies within the point tolerance of the
-        /// arc, and nothing where it does not.
+        /// arc, and nothing where it does not. A longer one crosses where it does however short: at a millionth, the segment
+        /// from (0, 9.9999995, 0) to (0, 10.0000015, 0) meets the arc of radius 10 about the origin at (0, 10, 0), as it does
+        /// a hundred times larger, where, shorter than the vector tolerance of 1E-5 read as a length, it was given its start.
         /// </returns>
         public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoLine3 line, Tolerance tolerance)
             => Stub3.ReadsAsStart(line, tolerance) ? GetIntersectionsOfStub(arc, line, tolerance) : GetIntersections(arc, line, tolerance, out _);

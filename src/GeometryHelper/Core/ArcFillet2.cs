@@ -224,12 +224,23 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Adds where two circles cross.
         /// </summary>
+        /// <remarks>
+        /// Two circles that only touch, outside or inside each other, give no centre, as a line touching a circle gives
+        /// none: the one point they share lies on the line through their centres, so the arc about it touches the two
+        /// curved pieces at the ends of one diameter and sweeps half a turn, which <see cref="TryFillet"/> never takes. Where
+        /// they touch is read to the rounding of the numbers they come from, <see cref="Rounding"/>, not to nought: a shade of
+        /// overlap the rounding leaves gives two centres a root of it apart, their arcs a hair short of half a turn, and these
+        /// were taken or not as the rounding fell. Two arcs of radii 10 and 7 about centres 12 apart, crossing at
+        /// (8.125, 5.83), filleted at 2.5, the radius of the circle filling the lens between them from (5, 0) to (10, 0), were
+        /// rounded by a half circle at that size and left square at a thousandth of it and at a thousand times it.
+        /// </remarks>
         private static void Meet(List<GeoPoint2> found, GeoPoint2 first, double firstRadius, GeoPoint2 second, double secondRadius, Tolerance tolerance)
         {
             GeoVector2 between = first.GetVectorTo(second);
             double apart = between.Length;
+            double rounding = Rounding(first, second, Math.Max(firstRadius, secondRadius));
 
-            if (apart <= tolerance.EqualPoint || apart > firstRadius + secondRadius || apart < Math.Abs(firstRadius - secondRadius))
+            if (apart <= tolerance.EqualPoint || apart >= firstRadius + secondRadius - rounding || apart <= Math.Abs(firstRadius - secondRadius) + rounding)
             {
                 return;
             }
@@ -277,6 +288,13 @@ namespace GeometryHelper.Core
         /// chord runs into the arc by 4.000025 within 1E-4,
         /// a quarter of the tolerance more than the largest circle in it, was left square, and the same cap 1 000 times
         /// smaller, within 1E-7, was rounded by a half circle.
+        /// <para>
+        /// Where the line touches is read to the rounding of the numbers, <see cref="Rounding"/>, as for two circles: a line
+        /// worked out to touch the circle, and passing into it by a shade of rounding, gave two centres a root of that shade
+        /// apart, and a half circle at one size and none at another. The same cap filleted at 4, the radius of the largest
+        /// circle in it, was left square at its size and at a thousandth of it, and rounded by a half circle at a thousand
+        /// times it.
+        /// </para>
         /// </remarks>
         private static void Meet(List<GeoPoint2> found, GeoPoint2 centre, double radius, GeoLine2 line)
         {
@@ -290,18 +308,25 @@ namespace GeometryHelper.Core
             double reach = line.StartPoint.GetVectorTo(centre).DotProduct(unit);
             GeoPoint2 closest = line.StartPoint.Add(unit.Multiply(reach));
 
-            double square = radius * radius - closest.GetDistanceSquaredTo(centre);
-
-            if (square <= 0.0)
+            if (radius - closest.DistanceTo(centre) <= Rounding(centre, closest, radius))
             {
                 return;
             }
 
-            double across = Math.Sqrt(square);
+            double across = Math.Sqrt(radius * radius - closest.GetDistanceSquaredTo(centre));
 
             found.Add(closest.Add(unit.Multiply(across)));
             found.Add(closest.Add(unit.Multiply(-across)));
         }
+
+        /// <summary>
+        /// The rounding of where two circles, or a circle and a line, touch: 1E-12 of the largest coordinate of the two points
+        /// they are found from and of the radius. It has no floor, so a corner reads alike at any size: with a floor of one,
+        /// a line crossing a circle 1E-10 deep among coordinates of some tens was a crossing there and at a thousand times
+        /// the size, and a touch at a thousandth of it.
+        /// </summary>
+        private static double Rounding(GeoPoint2 one, GeoPoint2 other, double radius)
+            => 1E-12 * Math.Max(radius, Math.Max(Math.Max(Math.Abs(one.X), Math.Abs(one.Y)), Math.Max(Math.Abs(other.X), Math.Abs(other.Y))));
 
         /// <summary>
         /// Adds where two endless lines cross.

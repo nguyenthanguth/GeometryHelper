@@ -2208,6 +2208,10 @@ pieces; `ToPolyline3(chordTolerance)` and `ToPolygon3(chordTolerance)` follow th
 corner is kept, however short a side: at a millionth, the filleted chain flattens turning at both ends of its arc,
 0.0007 apart, and the rectangle 100 by 50 standing in the plane x = 20 filleted at 0.0005 to its eight corners, where
 both were put back together within the global tolerance, the chain turning once and the rectangle with four corners.
+The polygon a loop flattens to is still checked flat and enclosing an area within the global tolerance, as any
+`GeoPolygon3` is: the half disc of radius 1 built at a millionth with its diameter bent to (1, 0.000002, 0), whose three
+corners enclose a sliver of 0.000002 square units, is refused as the polygon of those corners is, where it flattened to
+the sliver; the half disc of radius 50 bent so, whose corners enclose 0.0001 square units, flattens to them.
 
 A straight polygon or chain in space is turned round, written out and transformed side for side too. `Reverse` of a
 `GeoPolygon3` keeps every corner: at a millionth, the triangle (0, 0, 0), (10, 0, 0), (10, 0, 10) with every corner cut
@@ -2221,7 +2225,11 @@ however it moves it, and of a polygon or a face under a scaling, a stretch or a 
 triangle scaled by 2 or sheared keeps its six corners, and the chain (0, 0, 0), (10, 0, 0), (10, 0, 10) scaled by 1E-5 is
 the chain 0.0002 long, where it was refused as having fewer than two vertices. Only a corner the transformation lands on
 the very same point as the one before it goes. A polygon is still checked flat and enclosing an area within the global
-tolerance, so one shrunk to under about a thousandth across is still refused as having no width.
+tolerance, so one shrunk to under about a thousandth across is still refused as having no width. A body follows its
+faces: the box 100 by 70 by 40 with a pocket 0.0004 deep cut across its top at a millionth, scaled by a half or by 10
+and sheared by a thousandth, stays closed within the millionth scaled with it, every corner kept and its volume the
+volume times the cube of the scale. It is refused where a face of it comes out under about a thousandth wide, or off
+flat by more than a thousandth, as a polygon is.
 
 A radius per corner works too, read the way the bulges are read: the entry at an index belongs to the vertex
 at that index, and nought leaves that corner square. `TryFilletAt` rounds one named corner. A bend with too
@@ -2401,7 +2409,13 @@ radius 1 000 and 1 000.00002 with their centres 1E-4 apart, and two arcs of one 
 than that somewhere cross on their radical line however close their centres: the circles of radius 1 000 and
 1 000.0005 with their centres 6E-4 apart cross at (-833.33324, 552.77094, 0) and (-833.33324, -552.77094, 0) in the
 plan, and at the same points turned with them in any plane. Centres no further apart than the point tolerance are still
-one centre where the rounding of the numbers leaves the line nowhere in particular.
+one centre where the rounding of the numbers leaves the line nowhere in particular. Centres further apart than that are
+crossed however near they are, below the vector tolerance of 1E-5 too: at a millionth, the arcs of radius 10 about the
+origin and of radius 9.999999 about (0.000002, 0, 0) cross at (5.0000007, ±8.6602536, 0), as they do a hundred times
+larger, where the radical line, as long as the centres are apart, was read within the vector tolerance as a length, taken
+for no line at all, and one crossing lost. A segment crossing an arc is read so too: one longer than the point tolerance
+crosses where it does however short, so at a millionth the segment from (0, 9.9999995, 0) to (0, 10.0000015, 0) meets
+the arc of radius 10 about the origin at (0, 10, 0), where it was given its start.
 
 Two circles, and two arcs, give the same places, to the last digit, whichever is asked first. Each is read against the
 other and a place both readings name is given once, the first reading that of the one lying within the planar

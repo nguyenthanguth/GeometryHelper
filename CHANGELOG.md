@@ -6,6 +6,45 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** An arc in space meets a segment, and another arc, where they cross however short the segment or however near
+the two centres, below the vector tolerance of 1E-5 too. The points of an arc on a line were taken for the one point the
+line starts from wherever its direction was no longer than the vector tolerance, read as a length: at a millionth, the
+segment from (0, 9.9999995, 0) to (0, 10.0000015, 0) met the arc of radius 10 about the origin at its start, where it
+meets it at (0, 10, 0) as it did a hundred times larger, and the arcs of radius 10 about the origin and of radius
+9.999999 about (0.000002, 0, 0) crossed once, where they cross at (5.0000007, ±8.6602536, 0). A line is read as a point
+now only where it is no longer than the vector tolerance or the point tolerance, whichever is the finer, as a segment
+crossing a segment and an ellipse are read. Of 759 segments longer than the point tolerance and no longer than 1E-5,
+crossing arcs at tolerances from a hundred-millionth to a thousandth and compared a hundred and ten thousand times
+larger, 190 met them at their start or nowhere at one size; none does now. Of 462 pairs of circles whose centres stand
+closer than 1E-5 and further apart than the point tolerance, 42 lost a crossing, and 26 still do: each at a point
+tolerance of 1E-7 or finer with the centres within three and a half tolerances, so that the circles cross at under
+3E-8 radians. 5 490 segments longer than 1E-5, pairs further apart and pairs about one centre give the same bits, and
+segments no longer than the point tolerance the same points to 8E-14. 2 new tests.
+
+**CHANGED.** `Flatten` of a `GeoPolygonArc3` checks the polygon of its corners enclosing an area within the global
+tolerance, as the constructor of `GeoPolygon3` checks one and as `ToPolygon` and `TransformBy` of a polygon in space do,
+while still keeping every corner however short a side. Since the last fix but one it took a sliver for an area: the half
+disc of radius 1 built at a millionth with its diameter bent to (1, 0.000002, 0), whose three corners enclose 0.000002
+square units, flattened to that sliver and is refused now, as the polygon of those corners is; the half disc of radius
+50 bent so, whose corners enclose 0.0001 square units, flattens to them. Of 3 000 loops built within the global
+tolerance none changes; of 4 000 built at a ten-millionth, 0.0001 to 10 across with chords up to 0.01 apart, 1 209 are
+refused now, each enclosing under 1E-5 square units and under about a thousandth wide, and the rest give the same bits.
+2 new tests, one a guard.
+
+**FIXED.** A corner between two arcs, or between a straight piece and an arc, filleted by the radius at which the two
+moved by it only touch is left square at any size. The arc about the one point they share would sweep half a turn,
+which a fillet never draws; where they touched was read to nought, so a shade of overlap left by the rounding of the
+numbers gave a centre whose arc swept a hair under half a turn, drawn at one size and not at another. It is read to the
+rounding, 1E-12 of the largest coordinate or radius: the arcs of radii 10 and 7 about centres 12 apart, filleted where
+they cross at 2.5, the radius of the circle filling the lens between them, were rounded by a half circle at that size
+and left square at a thousandth of it and at a thousand times it, and the cap of the circle of radius 12 above a chord 4
+from its centre, filleted at exactly 4, was rounded by a half circle at a thousand times its size. Of 4 013 corners
+between two arcs and 999 between a straight piece and an arc filleted at such a radius, each at a thousandth, the whole
+and a thousand times the size, 45 and 86 were rounded at one size and not at another; none is now, and only half
+circles went. Of 2 455 radii a billionth to a hundredth off such a radius and the 8 000 corners of the last fix, two
+lines crossing a circle less deep than the rounding were rounded by a hair under a half circle at every size and are
+left square, and the rest give the same bits. 3 new tests, one a guard.
+
 **FIXED.** `Reverse` of a `GeoPolygon3` turns it round corner for corner, `ToPolyline` of a `GeoPolygon2` and of a
 `GeoPolygon3` writes it out side for side, and `ToPolygon` of a `GeoPolyline2` and of a `GeoPolyline3` closes it corner
 for corner, however short a side, as the reversals in the plane do since the last fix. They were put back together within

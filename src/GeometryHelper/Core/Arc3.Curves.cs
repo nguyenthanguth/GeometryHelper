@@ -184,6 +184,13 @@ namespace GeometryHelper.Core
         /// alone, 37 of 4 000 pairs tilted 1E-7 to 1E-3 radians off each other gave a different number of places the one way
         /// round and the other, and 356 collided and were given none.
         /// </para>
+        /// <para>
+        /// Two circles whose centres stand further apart than the point tolerance are crossed however near the centres are:
+        /// at a millionth, the arcs of radius 10 about the origin and of radius 9.999999 about (0.000002, 0, 0) cross at
+        /// (5.0000007, ±8.6602536, 0), as they do a hundred times larger, where the line they share, as long as the centres
+        /// are apart and so shorter than the vector tolerance of 1E-5 read as a length, was taken for no line at all and
+        /// one of the crossings was lost.
+        /// </para>
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoArc3 first, GeoArc3 second, Tolerance tolerance)
             => Shared(first, second, tolerance);
