@@ -180,19 +180,23 @@ namespace GeometryHelper.Dxf
         public DxfFlowDirection FlowDirection => TableWhole(70, 0) == 1 ? DxfFlowDirection.BottomToTop : DxfFlowDirection.TopToBottom;
 
         /// <summary>
-        /// Gets the margin left and right of a cell's content (its own 40), as AutoCAD's <c>HorizontalCellMargin</c>; 0.06,
-        /// that of AutoCAD's table style STANDARD, where the table gives none of its own. The library writes the table's own
-        /// overrides after its last cell; AutoCAD 2021 writes them in its head, after its flags (93 to 96) and before its
-        /// heights, a margin of 3 as <c>93 8</c> ... <c>96 0</c>, <c>40 3.0</c>, <c>141 ...</c> (D28b s3), and both are read.
+        /// Gets the margin left and right of a cell's content (its own 40), as AutoCAD's <c>HorizontalCellMargin</c>; where the
+        /// table gives none of its own, its table style's (the style's 40), and where the drawing has no style, that of
+        /// AutoCAD's own Standard, 1.5 in a drawing of millimetres and 0.06 in one of inches, as AutoCAD 2021 read a table of
+        /// none of its own by its style's margin of 2 as 2 and by its Standard as 1.5 (D28d h10). The library writes the
+        /// table's own overrides after its last cell; AutoCAD 2021 writes them in its head, after its flags (93 to 96) and
+        /// before its heights, a margin of 3 as <c>93 8</c> ... <c>96 0</c>, <c>40 3.0</c>, <c>141 ...</c> (D28b s3), and both
+        /// are read.
         /// </summary>
-        public double HorizontalCellMargin => TableReal(40, 0.06);
+        public double HorizontalCellMargin => Margin(40);
 
         /// <summary>
         /// Gets the margin above and below a cell's content (its own 41, after its cells or in its head, as
-        /// <see cref="HorizontalCellMargin"/> reads it), as AutoCAD's <c>VerticalCellMargin</c>; 0.06 where the table gives
-        /// none of its own.
+        /// <see cref="HorizontalCellMargin"/> reads it), as AutoCAD's <c>VerticalCellMargin</c>; where the table gives none of
+        /// its own, its table style's (the style's 41), else AutoCAD's own Standard's, 1.5 in a drawing of millimetres and 0.06
+        /// in one of inches.
         /// </summary>
-        public double VerticalCellMargin => TableReal(41, 0.06);
+        public double VerticalCellMargin => Margin(41);
 
         /// <summary>Gets the height of a row (the row's group 141), as AutoCAD's <c>RowHeight</c>: 10 for the title row of the table above.</summary>
         /// <param name="row">The row, from nought.</param>
@@ -219,6 +223,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gets what a row is, as AutoCAD's <c>RowType</c> tells it: the first the title and the next the header, each where
         /// the table does not leave it out (<see cref="IsTitleSuppressed"/>, <see cref="IsHeaderSuppressed"/>), the rest data.
+        /// A row put in before the title or the header leaves it out, as AutoCAD 2021 writes it (<see cref="InsertRows"/>), so
+        /// that the table given a row before its title reads every row as data, as AutoCAD read it (D28d r1).
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <returns>What it is.</returns>
@@ -1232,15 +1238,38 @@ namespace GeometryHelper.Dxf
             int rowKind = type == DxfRowType.TitleRow ? 0 : type == DxfRowType.HeaderRow ? 1 : 2;
             double text = OwnHeight(layout, rowKind);
             text = double.IsNaN(text) ? StyleTextHeights()[rowKind] : text;
-            double margin = TableReal(40, double.NaN);
-            margin = margin >= 0.0 ? margin : double.NaN;
-            DxfItem style = double.IsNaN(margin) ? StyleItem() : null;
+            double width = text + 2.0 * Margin(40);
+            return Guard.IsFinite(width) && width > 0.0 ? Numbers.Exact(width + 0.0) : null;
+        }
 
-            if (double.IsNaN(margin) && style == null)
+        /// <summary>
+        /// The height AutoCAD 2021's <c>SetSize</c> gives each row it puts in: 4/3 of the text height its table style gives the
+        /// data and twice the margin above and below a cell's content (<see cref="VerticalCellMargin"/>), 9 for AutoCAD's
+        /// Standard of 4.5 and 1.5, whatever the heights of the rows above or the table's own text heights (D28d h1 to h9, o1).
+        /// Null where they give no height above nought.
+        /// </summary>
+        private string NewRowHeight()
+        {
+            double height = 4.0 / 3.0 * StyleTextHeights()[2] + 2.0 * Margin(41);
+            return Guard.IsFinite(height) && height > 0.0 ? Numbers.Exact(height + 0.0) : null;
+        }
+
+        /// <summary>
+        /// A margin of a cell's content, left and right (40) or above and below (41): the table's own, else its style's, else
+        /// AutoCAD's own Standard's, 1.5 in a drawing of millimetres (or of no header) and 0.06 in one of inches.
+        /// </summary>
+        private double Margin(int code)
+        {
+            double margin = TableReal(code, double.NaN);
+
+            if (margin >= 0.0)
             {
-                margin = Item.File.Database == null || Item.File.Database.Measurement == DxfMeasurementValue.Metric ? 1.5 : 0.06;
+                return margin;
             }
-            else if (double.IsNaN(margin))
+
+            DxfItem style = IsResident ? StyleItem() : null;
+
+            if (style != null)
             {
                 bool inStyle = false;
 
@@ -1248,17 +1277,17 @@ namespace GeometryHelper.Dxf
                 {
                     inStyle = group.TypeCode == 100 ? group.Value.Trim() == "AcDbTableStyle" : inStyle;
 
-                    if (inStyle && group.TypeCode == 40)
+                    if (inStyle && group.TypeCode == code)
                     {
-                        margin = Numbers.TryRead(group.Value, out double read) && Guard.IsFinite(read) && read >= 0.0 ? read : double.NaN;
-                        break;
+                        return Numbers.TryRead(group.Value, out double read) && Guard.IsFinite(read) && read >= 0.0 ? read : StandardMargin();
                     }
                 }
             }
 
-            double width = text + 2.0 * margin;
-            return Guard.IsFinite(width) && width > 0.0 ? Numbers.Exact(width + 0.0) : null;
+            return StandardMargin();
         }
+
+        private double StandardMargin() => Item.File.Database == null || Item.File.Database.Measurement == DxfMeasurementValue.Metric ? 1.5 : 0.06;
 
         #endregion
 

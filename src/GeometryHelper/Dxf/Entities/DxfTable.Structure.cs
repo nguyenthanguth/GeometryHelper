@@ -84,7 +84,14 @@ namespace GeometryHelper.Dxf
         /// a link the TABLECONTENT names moving and growing with its cells, as AutoCAD reads it there, and the merged ranges it
         /// lists alike. The record is written once, its cells anew, so that 16 000 rows go in in time linear in its groups; the
         /// block AutoCAD drew the table with is not drawn anew. The table of rows 10, 8 and 8 given two rows 6 high before its row 2 has rows 10, 8, 6, 6 and 8, its cell B-12
-        /// now in row 4.
+        /// now in row 4. Rows put in before the title or the header are of data, as AutoCAD 2021 keeps them: the record tells
+        /// a row's kind by its place alone, so the table leaves the title out (<c>280 1</c>) where a row goes in before it and
+        /// the header (<c>281 1</c>) where one goes in before it, and the cells of each, data now, take as their own the looks
+        /// of their kind the data's are not, the title's <c>170 5</c> and <c>140 6.0</c> of AutoCAD's Standard, the header's
+        /// <c>170 5</c>, and the table's own of their kind (D28d r1 to r7). Rows put in at or before the first row of data take
+        /// the table's own looks of the data away from it, the rows of data that were given them as their own, as AutoCAD reads
+        /// those looks from the first row of data (D28d d1 to d3). The table given a row before its title reads every row as
+        /// data, Parts still 6 high and in the middle.
         /// </summary>
         /// <param name="row">The row the new ones go before, from nought; <see cref="NumRows"/> for after the last.</param>
         /// <param name="height">The height of each, a finite number above nought.</param>
@@ -107,9 +114,16 @@ namespace GeometryHelper.Dxf
         /// its column holds of its own: its overrides with their flags (177, or 91 from R2007 on), wherever they stand outside
         /// its value, and the edges of its lines (172), its turn (145), and from R2007 on the kind (90, 512 for a value of no
         /// kind), unit (94) and format (300) of its value, the value the empty one of the flags 5 AutoCAD 2021 wrote; not its
-        /// content, nor its merging. In the TABLECONTENT the new rows take that row's style, a row of data from a row of data,
-        /// and each cell the format of that row's cell in its column as it stands, its margins and lines, and an empty value of
-        /// the flags 5 with the format of that cell's content where it holds one, as AutoCAD 2021 wrote them (D28c i1 to i7).
+        /// content. The blocks of merged cells across that row are merged across each new row alike, the title's too (D28d m1,
+        /// m3, i1). The new rows are of that row's kind, as AutoCAD 2021 keeps them: of the title's or the header's where it is
+        /// the title or the header, each cell given as its own the looks of that kind the data's are not, the title's
+        /// <c>170 5</c> and <c>140 6.0</c> of AutoCAD's Standard, and the table's own of that kind, unless it is put in the
+        /// place of that kind; a title or header moved out of its place leaves it out (<c>280 1</c>, <c>281 1</c>) and takes
+        /// those looks alike, as <see cref="InsertRows"/> writes them (D28d i1 to i9). The table given a row of its title's
+        /// look after its last has a fourth row merged across, 6 high, read as data. In the TABLECONTENT the new rows take that
+        /// row's style, a row of data from a row of data, and each cell the format of that row's cell in its column as it
+        /// stands, its margins and lines, and an empty value of the flags 5 with the format of that cell's content where it
+        /// holds one, as AutoCAD 2021 wrote them (D28c i1 to i7).
         /// </summary>
         /// <param name="index">The row the new ones go before, from nought; <see cref="NumRows"/> for after the last.</param>
         /// <param name="inheritFrom">The row whose look they take, one of the table's as it stands before they go in.</param>
@@ -154,7 +168,10 @@ namespace GeometryHelper.Dxf
         /// (after the last for <see cref="NumColumns"/>), as <see cref="InsertRows"/> puts rows in, the count (92) and the
         /// widths (142) written with them; the title merged across every column grows by those put in, first, last or among
         /// them, its text kept in its first cell, as AutoCAD 2021's <c>InsertColumns</c> grew it, where a merge of another row
-        /// moves on with its columns. Each new cell takes as its own the looks the table gives of its own to its kind of row
+        /// moves on with its columns. Columns put in before the title's first column or after its last merge it anew, as AutoCAD
+        /// 2021 merged it: its other cells emptied, of no value, under the title's top line, and the line under the title its
+        /// bottom line across every column, the green line under Qty where the line under Mark is yellow made yellow; a column
+        /// put in among its columns grows it as it is (D28d g1 to g4). Each new cell takes as its own the looks the table gives of its own to its kind of row
         /// (its alignment, text style, background, colour and text height), as AutoCAD 2021 gave the new header cell of a table
         /// of its own header of 9 <c>140 9.0</c> with the flag 0x20, and reads a cell without them by its table style alone
         /// (D28c o3). The table of columns 40 and 30 given one 25 wide before its column 1 has columns 40, 25 and 30, its title
@@ -177,7 +194,11 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Puts columns in that take the look of another, as AutoCAD's <c>InsertColumnsAndInherit</c>: as
-        /// <see cref="InsertRowsAndInherit"/> puts rows in, the columns of the width of the column given.
+        /// <see cref="InsertRowsAndInherit"/> puts rows in, the columns of the width of the column given, each cell with every
+        /// line of the cell it takes the look of, and the blocks of merged cells down that column merged down each new one
+        /// (D28d m2). The title is merged anew over columns put in at its edge, as <see cref="InsertColumns"/> merges it, before
+        /// the new cells take their look, so that a new cell of the title is of no value and one under it takes the title's
+        /// bottom line, as AutoCAD 2021 wrote them (D28d g5, b1, D28c i5).
         /// </summary>
         /// <param name="col">The column the new ones go before, from nought; <see cref="NumColumns"/> for after the last.</param>
         /// <param name="inheritFrom">The column whose look they take, one of the table's as it stands before they go in.</param>
@@ -212,16 +233,19 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gives the table a number of rows and of columns, as AutoCAD's <c>SetSize</c>: rows and columns taken out from the
-        /// bottom and the right, or put in there, each new row as high as the last row and each new column as wide as AutoCAD
+        /// bottom and the right, or put in there, each new row 4/3 of the text height the table style gives the data and twice
+        /// the margin above and below a cell's content (<see cref="VerticalCellMargin"/>), 9 for AutoCAD's Standard of 4.5 and
+        /// 1.5 whatever the rows above, as AutoCAD 2021 made them (D28d h1 to h9), and each new column as wide as AutoCAD
         /// 2021 made one, the text height of its first row whose new cell is merged with none (the header, where the title is
         /// merged across the table) and the margins either side of a cell's content (7.5 for AutoCAD's Standard, 4.5 and 1.5;
         /// 9 where the title is unmerged, its 6; 1 in a table of one row, its title merged across it, D28c w1), of empty text
         /// cells, those of the new columns in the rows the table had given its own looks of their kind of row, as
-        /// <see cref="InsertColumns"/> gives them; the title merged across every column grows over the new ones, and no other
+        /// <see cref="InsertColumns"/> gives them; the title merged across every column is merged anew over the new ones, as
+        /// <see cref="InsertColumns"/> merges it (D28d g4), and no other
         /// block grows, a column merged down to the last row nor a title merged across some of the columns (D28c w3, m1); blocks
         /// of merged cells and ranges linked to data cut where they reach past the new size, in the TABLECONTENT too, as
         /// <see cref="InsertRows"/> and <see cref="DeleteRows"/> write it. Nothing is written where the table is of that size.
-        /// The table of 3 rows and 2 columns given 5 and 2 has two more rows 8 high; given 3 and 3, a column 7.5 wide, its title
+        /// The table of 3 rows and 2 columns given 5 and 2 has two more rows 9 high; given 3 and 3, a column 7.5 wide, its title
         /// across the three.
         /// </summary>
         /// <param name="numRows">The number of rows, one or more.</param>
@@ -247,21 +271,30 @@ namespace GeometryHelper.Dxf
             List<DxfCellRange> found = Blocks(layout);
             bool title = numCols > columns && TitleAcross(found, columns);
             string width = numCols > columns ? NewColumnWidth(layout, title) : null;
+            string height = numRows > rows ? NewRowHeight() : null;
 
             for (int c = columns; width != null && c < numCols; c++)
             {
                 widths[c] = width;
             }
 
+            for (int r = rows; height != null && r < numRows; r++)
+            {
+                heights[r] = height;
+            }
+
             bool valued = Item.File.Supports(1021);
             var cells = new List<KeyValuePair<int, string>>[numRows * numCols];
             List<KeyValuePair<int, string>>[] looks = numCols > columns ? RowKindLooks(layout) : null;
+            TitleMerge merge = title ? MergeTitleAgain(layout, valued) : null;
 
             for (int r = 0; r < numRows; r++)
             {
                 for (int c = 0; c < numCols; c++)
                 {
-                    cells[r * numCols + c] = r < rows && c < columns ? Slice(layout, r * columns + c) : r < rows ? NewCell(valued, looks, r) : NewCell(valued);
+                    List<KeyValuePair<int, string>> cell = r < rows && c < columns ? merge?.Cells[r * columns + c] ?? Slice(layout, r * columns + c)
+                        : r < rows ? NewCell(valued, looks, r) : NewCell(valued);
+                    cells[r * numCols + c] = merge != null && r < rows && c >= columns ? merge.NewCell(cell, r, valued) : cell;
                 }
             }
 
@@ -326,6 +359,12 @@ namespace GeometryHelper.Dxf
             (rowsOf ? heights : widths).InsertRange(at, Repeat(size, count));
             var cells = new List<KeyValuePair<int, string>>[newRows * newColumns];
             List<KeyValuePair<int, string>>[] looks = !rowsOf && inheritFrom < 0 ? RowKindLooks(layout) : null;
+            List<DxfCellRange> found = Blocks(layout);
+            bool title = !rowsOf && TitleAcross(found, columns);
+
+            // Columns put in at the title's edge merge it anew, as AutoCAD 2021 merged it (D28d g1 to g5): its other cells and
+            // the row under it changed before any new cell takes the look of one of them.
+            TitleMerge merge = title && (at == 0 || at == columns) ? MergeTitleAgain(layout, valued) : null;
 
             for (int r = 0; r < newRows; r++)
             {
@@ -338,15 +377,20 @@ namespace GeometryHelper.Dxf
                     {
                         int oldRow = rowsOf && r >= at + count ? r - count : r;
                         int oldColumn = !rowsOf && c >= at + count ? c - count : c;
-                        cell = Slice(layout, oldRow * columns + oldColumn);
+                        cell = merge?.Cells[oldRow * columns + oldColumn] ?? Slice(layout, oldRow * columns + oldColumn);
                     }
                     else if (inheritFrom >= 0)
                     {
-                        cell = Inherited(rowsOf ? layout.CellAt(inheritFrom, c) : layout.CellAt(r, inheritFrom), valued);
+                        int source = rowsOf ? inheritFrom * columns + c : r * columns + inheritFrom;
+                        List<KeyValuePair<int, string>> changed = merge?.Cells[source];
+
+                        // A cell of the title merged anew is of no value, as is the new one that takes its look (D28d g5, b1).
+                        cell = changed != null && r == 0 ? new List<KeyValuePair<int, string>>(changed)
+                            : Inherited(changed != null ? View(changed) : layout.CellAt(source / columns, source % columns), valued);
                     }
                     else
                     {
-                        cell = NewCell(valued, looks, r);
+                        cell = merge != null ? merge.NewCell(NewCell(valued, looks, r), r, valued) : NewCell(valued, looks, r);
                     }
 
                     cells[r * newColumns + c] = cell;
@@ -354,8 +398,6 @@ namespace GeometryHelper.Dxf
             }
 
             var blocks = new List<DxfCellRange>();
-            List<DxfCellRange> found = Blocks(layout);
-            bool title = !rowsOf && TitleAcross(found, columns);
 
             foreach (DxfCellRange b in found)
             {
@@ -378,10 +420,32 @@ namespace GeometryHelper.Dxf
                 List<KeyValuePair<int, string>> put = cells[0];
                 cells[0] = cells[count];
                 cells[count] = put;
+
+                // The title merged anew, the new cells after its text are of no value under its top line, the one next to it
+                // left of the line right of its text, as AutoCAD 2021 wrote them (D28d g2, b3).
+                for (int k = 1; merge != null && inheritFrom >= 0 && k <= count; k++)
+                {
+                    cells[k] = merge.NewCell(NewCell(valued), 0, valued);
+                }
+
+                if (merge?.RightOfCorner != null)
+                {
+                    cells[count] = WithLine(cells[count], 3, merge.RightOfCorner, valued);
+                }
             }
+
+            List<DxfCellRange> copied = inheritFrom >= 0 ? MergesAlong(found, rowsOf, inheritFrom, at, count, blocks) : null;
+            RowKinds kinds = rowsOf ? Kinds(layout, cells, newColumns, at, count, inheritFrom, valued) : null;
 
             Rebuild(layout, newRows, newColumns, heights, widths, cells, blocks, LinksInserted(layout, rowsOf, at, count));
             ContentInserted(rowsOf, at, count, size, inheritFrom, title ? columns : 0);
+
+            foreach (DxfCellRange block in copied ?? new List<DxfCellRange>())
+            {
+                ContentMerged(block, true);
+            }
+
+            kinds?.WriteHead(this);
         }
 
         /// <summary>

@@ -26,6 +26,46 @@ sample's history and added each value it set; the library took the history out. 
 as AutoCAD gave none to the library's INSERTs it set (check D26). The test that the history is taken out now checks it is
 kept.
 
+**FIXED.** Columns put in before the first column of a table's title merged across it, or after its last, merge the title
+anew, as AutoCAD 2021 merged it: `InsertColumns`, `InsertColumnsAndInherit` and `SetSize` leave each cell of the title
+but its first empty and of no value (`91 0`, `93 7`, `90 0`), under the title's top line, and give each cell of the row
+under it the title's bottom line, where the library kept the title's other cells as they were, (0, 1) still of an empty
+text, and the lines under it; a green line under Qty where the line under Mark is yellow is made yellow, as AutoCAD drew
+it. A column put in among the title's columns grows it as it is, as before. A new cell that takes the look of another
+takes every line of it, rows and columns alike, and the blocks of merged cells along it, a row merged across or a
+column merged down, as AutoCAD 2021 merged the new ones; the new title cell of `InsertColumnsAndInherit` is of no value.
+AutoCAD read the library's files of these edits as it read its own files of them back, the D28c case of the column of
+Qty among them. 2 new tests.
+
+**FIXED.** A row `SetSize` puts in is 4/3 of the text height the table style gives the data and twice the margin above
+and below a cell's content, 9 for AutoCAD's Standard of 4.5 and 1.5, as AutoCAD 2021 made it under rows of 15 or 20,
+6.333333333333333 for a style of 2.5 and 12 for the table's own margin of 3, where the library made it as high as the
+last row. 1 new test.
+
+**FIXED.** A row put in before a table's title or header is of data, as AutoCAD 2021 keeps it. The record tells a row's
+kind by its place alone, so `InsertRows(0)` now leaves the title and the header out (`93 3`, `280 1`, `281 1`) and
+`InsertRows(1)` the header (`93 2`, `281 1`), and the title or header moved down takes as its own the looks of its kind
+the data's are not, `170 5` and `140 6.0` for the title of AutoCAD's Standard and `170 5` for the header, with the
+table's own of its kind, as AutoCAD wrote them; the library read the new row as the title or the header, and the old
+title as the header or data in the data's look. A row put in at or before the first row of data takes the table's own
+looks of the data out of its head, the old rows of data given them as their own, as AutoCAD did. 2 new tests.
+
+**FIXED.** A row `InsertRowsAndInherit` puts in from the title or the header is of that kind, as AutoCAD 2021 keeps it:
+merged across as the title is, its cells given as their own the looks of the kind the data's are not and the table's own
+of the kind, and the header left out where a title goes in before it (`93 2`, `281 1`); one put in the kind's own place
+is the title or the header, the old one moved down taking the looks. The library gave the new row the overrides of its
+cells alone, unmerged, read as data in the data's look. 1 new test.
+
+**FIXED.** `HorizontalCellMargin` and `VerticalCellMargin` of a table of no margin of its own read its table style's (the
+TABLESTYLE's 40 and 41), else that of AutoCAD's own Standard, 1.5 in a drawing of millimetres and 0.06 in one of inches,
+as AutoCAD 2021 read them, where the library read 0.06; `AttachmentPoint` places a cell's content in by them, 1.5 in
+AutoCAD's Standard. Reading a margin a table does not give of its own reads its style each time, some 25 microseconds on
+.NET 10 where it read 0.06 at once. 1 new test; 7 tests that read or placed by 0.06 in a drawing of millimetres now read 1.5.
+
+**CHANGED.** `RemoveAllOverrides` writes the one cell's groups in the place of their bytes, the rest of the record copied as
+it is: taking every cell's overrides away one by one, 806 cells of 403 rows, takes 1.7 to 2.4 s on .NET 10 where it took 5.5 to 6.0, and 2.8 on .NET Framework 4.8 where it took 6.3 to 14; the drawing written is the same
+to the byte, checked after each of the first eight cells and after all of them in 46 drawings.
+
 **FIXED.** A line between two table cells is read as AutoCAD 2021 reads it: as the top or left edge of the cell below or
 right of it where that cell holds the edge (its edge flag in 172 and one of the edge's overrides at least), else as the
 bottom or right edge of the other, each property of the line from the edge that holds it. `GetGridColor`,

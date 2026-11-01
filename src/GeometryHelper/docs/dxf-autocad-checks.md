@@ -660,6 +660,31 @@ written as AutoCAD reads them now.
       cell overrides (m7, o7), where the library reads the kind of a row by its place; `InsertRowsAndInherit` from the
       title, which AutoCAD merged as the title is and left the header out of (i3); and the lines of
       `InsertColumnsAndInherit`, which AutoCAD copied but for the top of a cell under the merged title (i5).
+    - AutoCAD 2021 (D28d, headless, 66 edits and 82 files read back): `InsertColumnsAndInherit` and `InsertRowsAndInherit`
+      copy every line of a cell, rows and columns alike (b1 to b8); what i5 lost was the title's: columns put in before the
+      title's first column or after its last merge it anew, its other cells of no value (91 0, 93 7, 90 0) under its top
+      line, and the line under it the title's bottom across every column (yellow under Qty where it was green; b1, b3, b8,
+      b9, g1, g2, g4, g5), where a column among its columns grows it as it is (b2, g3); a block the library merged, its
+      cells holding their text, is emptied alike only where the title is merged anew (l1, l2). Its own file of an
+      inherited column holds each line between two cells once, on the cell right of it, so that it reads the left cell's
+      own right line back as the right cell's left (b1, b2, b8; D28c i5 read back so too). `SetSize` makes a new row 4/3 of
+      its style's data text height and twice the vertical margin, the table's own where it has one: 9, 12 for a margin of
+      3, 6.333333333333333 for a style of 2.5, 8 for a style's margin of 1, whatever the rows above or the table's own text
+      heights (h1 to h9). `InsertRows(0)` writes `93 3`, `280 1`, `281 1`, every row data, the title's cells given
+      `170 5` and `140 6.0` and the header's `170 5`; `InsertRows(1)` `93 2`, `281 1`, the header's cells `170 5` (r1 to r7);
+      a table of its own looks of the header and the data with none in its cells gave the header moved down those of its
+      own too, and where a row went in at or before its first row of data took its own looks of the data out of its head
+      and gave them the old rows of data (d1 to d5). `InsertRowsAndInherit` from the title or the header gave the new row
+      the looks of that kind the style's data has not (`170 5`, `140 6.0`; `170 5`) unless it went in that kind's place,
+      the title's merge, and left the header out where a title went in before it (i1 to i9); it merged a row of data
+      merged across alike, and `InsertColumnsAndInherit` a column merged down (m1 to m3). It reads a table of no margin
+      of its own by its style's (2 of a style of 2, h10). Its `MergeCells` empties the other cells of a block (p8, p9),
+      where the library keeps them unseen.
+    - Now (D28d): the library reads and writes so; AutoCAD read its files of 44 of the 45 edits as it read its own files
+      of them back (r3), the one left a table of one row given rows by `SetSize`, whose header AutoCAD's own file of the
+      table of one row leaves out (`281 1`) and AutoCAD gave back with the rows (s1), where the library keeps it out.
+      Where AutoCAD's own file reads back other than it read in memory (b1, b2, b8, r1, r3, r5 to r7, d2, d4, d5, h2,
+      i6, i7), the library's reads as AutoCAD's file does.
 
 44. **The arrow block of a dimension style.**
     - Try: set `Dimtxsty` and `Dimblk` on a dimension style read from a file and on one made in code, open the drawing and run

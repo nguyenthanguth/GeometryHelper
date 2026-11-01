@@ -457,7 +457,8 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfTable cleared = Table(DxfDatabase.Parse(cellsDb.ToText()));
             DxfTable both = Table(DxfDatabase.Parse(bothDb.ToText()));
             Assert.Equal(1.5, cleared.HorizontalCellMargin);
-            Assert.Equal(0.06, both.HorizontalCellMargin);
+            // Its own margin taken away, the margin of AutoCAD's Standard of a drawing of millimetres, 1.5 (D28d h10).
+            Assert.Equal(1.5, both.HorizontalCellMargin);
             Assert.Empty(both.TableStyleOverrides());
 
             foreach (DxfTable read in new[] { cleared, both })
@@ -492,7 +493,7 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDatabase readDb = DxfDatabase.Parse(db.ToText());
             DxfTable read = Table(readDb);
             Assert.Empty(read.TableStyleOverrides());
-            Assert.Equal(0.06, read.HorizontalCellMargin);
+            Assert.Equal(1.5, read.HorizontalCellMargin);
             Assert.Equal(DxfCellAlignment.MiddleCenter, read.Alignment(1, 0));
 
             read.ClearTableStyleOverrides(2);
@@ -603,13 +604,14 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Near(new GeoPoint3(355, -114, 0), table.AttachmentPoint(1, 1));
             Near(new GeoPoint3(320, -114, 0), table.AttachmentPoint(1, 0));
-            Near(new GeoPoint3(320, -118.06, 0), table.AttachmentPoint(2, 0));
+            Near(new GeoPoint3(320, -119.5, 0), table.AttachmentPoint(2, 0));
             Near(new GeoPoint3(335, -105, 0), table.AttachmentPoint(0, 1));
 
+            // In by the margins of AutoCAD's Standard of a drawing of millimetres, 1.5 (D28d h10).
             table.SetAlignment(1, 1, DxfCellAlignment.TopLeft);
-            Near(new GeoPoint3(340.06, -110.06, 0), table.AttachmentPoint(1, 1));
+            Near(new GeoPoint3(341.5, -111.5, 0), table.AttachmentPoint(1, 1));
             table.SetAlignment(1, 1, DxfCellAlignment.BottomRight);
-            Near(new GeoPoint3(369.94, -117.94, 0), table.Cells[1, 1].AttachmentPoint);
+            Near(new GeoPoint3(368.5, -116.5, 0), table.Cells[1, 1].AttachmentPoint);
         }
 
         [Fact]
@@ -624,14 +626,14 @@ namespace GeometryHelper.UnitTest.Dxf
             Near(new GeoPoint3(300, -82, 0), table.GetCellExtents(2, 0, true)[0]);
             Near(new GeoPoint3(300, -74, 0), table.GetCellExtents(2, 0, true)[3]);
 
-            Near(new GeoPoint3(320, -74.06, 0), table.AttachmentPoint(2, 0));
+            Near(new GeoPoint3(320, -75.5, 0), table.AttachmentPoint(2, 0));
             Near(new GeoPoint3(355, -86, 0), table.AttachmentPoint(1, 1));
             table.SetAlignment(2, 0, DxfCellAlignment.TopCenter);
-            Near(new GeoPoint3(320, -74.06, 0), table.AttachmentPoint(2, 0));
+            Near(new GeoPoint3(320, -75.5, 0), table.AttachmentPoint(2, 0));
             table.SetAlignment(2, 0, DxfCellAlignment.BottomLeft);
-            Near(new GeoPoint3(300.06, -81.94, 0), table.AttachmentPoint(2, 0));
+            Near(new GeoPoint3(301.5, -80.5, 0), table.AttachmentPoint(2, 0));
             table.SetAlignment(1, 1, DxfCellAlignment.TopRight);
-            Near(new GeoPoint3(369.94, -82.06, 0), table.Cells[1, 1].AttachmentPoint);
+            Near(new GeoPoint3(368.5, -83.5, 0), table.Cells[1, 1].AttachmentPoint);
         }
 
         [Fact]
@@ -642,9 +644,9 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfTable table = Table(db);
             table.SetAlignment(0, 0, DxfCellAlignment.TopLeft);
 
-            Near(new GeoPoint3(300.06, -100.06, 0), table.AttachmentPoint(0, 0));
-            Near(new GeoPoint3(300.06, -100.06, 0), table.AttachmentPoint(0, 1));
-            Near(new GeoPoint3(300.06, -100.06, 0), table.Cells[0, 1].AttachmentPoint);
+            Near(new GeoPoint3(301.5, -101.5, 0), table.AttachmentPoint(0, 0));
+            Near(new GeoPoint3(301.5, -101.5, 0), table.AttachmentPoint(0, 1));
+            Near(new GeoPoint3(301.5, -101.5, 0), table.Cells[0, 1].AttachmentPoint);
         }
 
         [Fact]

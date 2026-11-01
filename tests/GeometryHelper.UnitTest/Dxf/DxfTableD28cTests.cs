@@ -306,7 +306,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
             table.ClearTableStyleOverrides(1);
             DxfTable cleared = Reread(db);
-            Assert.Equal(0.06, cleared.HorizontalCellMargin);
+            Assert.Equal(1.5, cleared.HorizontalCellMargin);
             Assert.False(cleared.IsHeaderSuppressed);
             Assert.Contains(" 93\n0\n 94\n0\n 95\n0\n 96\n0\n141\n10.0\n", Record(db.ToText(), "F6"), StringComparison.Ordinal);
 

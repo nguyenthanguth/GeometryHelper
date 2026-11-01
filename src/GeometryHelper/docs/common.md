@@ -2160,19 +2160,32 @@ value, `93 7` and `90 0`, as AutoCAD 2021 writes a new cell and reads as of no v
 their counts (91, 92) and heights and widths (141, 142): the table of rows 10, 8 and 8 given two rows 6 high before its
 row 2 has rows 10, 8, 6, 6 and 8, and a column 25 wide put in before its column 1 grows the title merged across it to
 three columns; so does one put in before column 0 or after the last, Parts kept in (0, 0), as AutoCAD 2021 grows a
-title merged across the table, where a merge of another row moves on with its columns. `InsertRowsAndInherit` and
+title merged across the table, where a merge of another row moves on with its columns. A column put in before the
+title's first column or after its last merges the title anew, as AutoCAD 2021 merged it: its other cells emptied, of no
+value, under its top line, and the line under the title its bottom line across every column, a green line under Qty
+made the yellow of the line under Mark; one put in among its columns grows it as it is. A row put in before the title or
+the header is of data, as AutoCAD 2021 keeps it: the record tells a row's kind by its place alone, so the table leaves
+the title out (`280 1`) or the header (`281 1`), and the title or header moved down, data now, takes as its own the looks
+of its kind the data's are not (`170 5` and `140 6.0` for the title of AutoCAD's Standard, `170 5` for the header) and
+the table's own of its kind; a row put in at or before the first row of data takes the table's own looks of the data
+away from it, the rows of data given them as their own, as AutoCAD reads them from its first row of data. `InsertRowsAndInherit` and
 `InsertColumnsAndInherit` give the new cells the look of a row or column (the overrides with their flags, the turn, and
 from R2007 on the kind, unit and format of the value, its empty value `93 5` as AutoCAD writes it, of the kind 512 for
-a value of no kind), wherever its overrides stand, with the edges of its lines (172): the row put in under a cell whose
-top and left are red has its top and left red, so that the line between them reads red, as AutoCAD 2021 wrote it; not
-its content. A new cell of a column `InsertColumns` or `SetSize` puts in takes as its own the looks the table gives of its
+a value of no kind), wherever its overrides stand, with the edges of its lines (172), every line of it, rows and columns
+alike: the row put in under a cell whose top and left are red has its top and left red, so that the line between them
+reads red, as AutoCAD 2021 wrote it; not its content. A block of merged cells along that row or column is merged along
+each new one, the title's too, and a new row of the title's or the header's look is of that kind, its cells given the
+looks of the kind as a title moved down is, unless it goes in the kind's place: from the title before the header, the
+new row merged across and 6 high, read as data, and the header left out. A new cell of a column `InsertColumns` or `SetSize` puts in takes as its own the looks the table gives of its
 own to its kind of row (alignment, text style, background, colour, text height): AutoCAD 2021 gave the new header cell of
 a table of its own header of 9 `140 9.0` with its flag 0x20, and read a cell without them by its table style alone,
 4.5; a new row's cells it gave none. `DeleteRows`
 and `DeleteColumns` take them out, a block of merged cells shrunk to what is left of it and unmerged where one cell is
 left, its top left cell's content and look moved to the first cell of it left where its top row or first column goes,
-and `SetSize(numRows, numCols)` cuts or carries on the table from its bottom and right, the new rows as high as the
-last and the new columns as wide as AutoCAD 2021 makes them, the text height of the first row whose new cell is merged
+and `SetSize(numRows, numCols)` cuts or carries on the table from its bottom and right, the new rows 4/3 of the text
+height the table style gives the data and twice the margin above and below (9 for AutoCAD's Standard of 4.5 and 1.5,
+6.333 for a style of 2.5, 12 for the table's own margin of 3, whatever the rows above) and the new columns as wide as
+AutoCAD 2021 makes them, the text height of the first row whose new cell is merged
 with none and the margins either side: the header's 4.5 and 1.5 of AutoCAD's Standard, 7.5, under a title merged across
 the table, which grows over them; the title's 6, 9 wide, where it is unmerged; 1 wide in a table of one row under its
 title merged across it, which has no row whose new cell is merged with none. No other block grows with columns or rows
@@ -2204,7 +2217,9 @@ the table's own lines of the title, the header or the data after its last cell, 
 writes the table's own overrides, with their flags in 94, 95 and 96, the groups of a code in the order of their flags
 and after the table's colours of its rows; `HorizontalCellMargin`, `VerticalCellMargin`, `IsTitleSuppressed`,
 `IsHeaderSuppressed` and `FlowDirection` read the table's own there too (`93 8` ... `96 0`, `40 3.0` before its
-heights), and a table scaled scales the text heights it gives its rows there. `SetFormula(row, column, 0, "=A2+B2")`, from R2004 on,
+heights), and a table scaled scales the text heights it gives its rows there. A table of no margin of its own takes its
+style's (the TABLESTYLE's 40 and 41), else that of AutoCAD's own Standard, 1.5 in a drawing of millimetres and 0.06 in
+one of inches, as AutoCAD 2021 reads it. `SetFormula(row, column, 0, "=A2+B2")`, from R2004 on,
 adds a FIELD of AutoCAD's expressions (AcExpr, field code `\AcExpr (A2+B2)`) owned by the table, written as `DxfField`
 writes one with the class FIELD listed, and points the cell's 344 at it, after its turn (145) and before its 92, as
 AutoCAD 2021 wrote one, its value left for AutoCAD to work out; a field

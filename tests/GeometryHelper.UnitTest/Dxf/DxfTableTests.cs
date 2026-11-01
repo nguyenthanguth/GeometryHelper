@@ -36,7 +36,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal("*T12", table.BlockTableRecord.Name);
                 Assert.Null(table.TableStyleName);
                 Assert.Equal(DxfFlowDirection.TopToBottom, table.FlowDirection);
-                Assert.Equal(0.06, table.HorizontalCellMargin);
+                Assert.Equal(1.5, table.HorizontalCellMargin);
                 Assert.False(table.IsTitleSuppressed);
 
                 Assert.Equal(DxfRowType.TitleRow, table.RowType(0));

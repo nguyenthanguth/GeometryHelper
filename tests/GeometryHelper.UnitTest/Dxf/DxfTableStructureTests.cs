@@ -391,7 +391,8 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal("GH_TXT", read.TextStyle(2, 0).Name);
                 Assert.Equal(DxfRotationAngle.Degrees090, read.TextRotation(2, 0));
                 Assert.Equal(string.Empty, read.TextString(2, 0));
-                Assert.Null(read.Alignment(2, 1));
+                // The header's look of the style that the data's is not, as AutoCAD 2021 gave its row of the header's look (D28d i5).
+                Assert.Equal(DxfCellAlignment.MiddleCenter, read.Alignment(2, 1));
                 Assert.Equal(DxfTableCellType.TextCell, read.CellType(2, 1));
                 Assert.Equal(DxfCellAlignment.MiddleCenter, read.Alignment(1, 2));
                 Assert.Equal(string.Empty, read.TextString(1, 2));
@@ -416,7 +417,8 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 table.SetSize(5, 3);
                 DxfTable grown = Reread(db);
-                Assert.Equal(new[] { 10.0, 8.0, 8.0, 8.0, 8.0 }, Heights(grown));
+                // Each new row 4/3 of the data's 4.5 and twice the margin of 1.5 of AutoCAD's Standard, 9 (D28d h7).
+                Assert.Equal(new[] { 10.0, 8.0, 8.0, 9.0, 9.0 }, Heights(grown));
                 // The new column as wide as AutoCAD 2021 makes one, the header's 4.5 and the margins of 1.5 of its Standard, and
                 // the title across it (D28b s1).
                 Assert.Equal(new[] { 40.0, 30.0, 7.5 }, Widths(grown));

@@ -251,7 +251,8 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(3, after.Columns.Count);
             Assert.Equal(Column("7.5"), after.Columns[2]);
             Assert.Equal(4, after.Rows.Count);
-            Assert.Equal(Row(3, "8.0", Cell(), Cell(), Cell()), after.Rows[3]);
+            // The row 4/3 of the data's 4.5 and twice the margin of 1.5, 9, as AutoCAD 2021 made it under its rows of 9, 15 or 20 (D28d h7).
+            Assert.Equal(Row(3, "9.0", Cell(), Cell(), Cell()), after.Rows[3]);
             Assert.True(Table(db).IsLinked(1, 0));
 
             DxfDatabase small = DxfDatabase.Parse(text);
