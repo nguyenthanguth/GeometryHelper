@@ -329,6 +329,12 @@ namespace GeometryHelper.Geometry
         /// Applies a transformation to the boundary and every hole.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
+        /// <remarks>
+        /// The boundary and the holes are transformed as <see cref="GeoPolygon3.TransformBy(GeoTransform3)"/> transforms a
+        /// polygon. A move, or an even scaling turned, moved or mirrored besides, keeps the holes on the boundary's plane as
+        /// they were and scales the area: a face of 100 square units scaled by 10 has 10 000. Anything else checks the
+        /// holes on that plane within the global tolerance loosened as far as the transformation stretches any direction.
+        /// </remarks>
         public GeoFace3 TransformBy(GeoTransform3 transform)
         {
             if (transform == null)
@@ -344,10 +350,20 @@ namespace GeometryHelper.Geometry
             }
 
             // A move that keeps every length keeps the holes on the boundary's plane as they were; asked again, one at
-            // the edge of the tolerance could land past it. See GeoPolygon3.TransformBy.
-            return transform.KeepsLengths()
-                ? new GeoFace3(Boundary.TransformBy(transform), moved, Area)
-                : new GeoFace3(Boundary.TransformBy(transform), moved);
+            // the edge of the tolerance could land past it. An even scaling keeps them there too, within the tolerance
+            // scaled with it. Anything else asks within the global tolerance stretched as the polygons are measured. See
+            // GeoPolygon3.TransformBy.
+            if (transform.KeepsLengths())
+            {
+                return new GeoFace3(Boundary.TransformBy(transform), moved, Area);
+            }
+
+            if (transform.KeepsShapes(out double areaScale))
+            {
+                return new GeoFace3(Boundary.TransformBy(transform), moved, Area * areaScale);
+            }
+
+            return new GeoFace3(Boundary.TransformBy(transform), moved, transform.Stretched(Tolerance.Global));
         }
 
         /// <summary>

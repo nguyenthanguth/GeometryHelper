@@ -2224,12 +2224,19 @@ the side back to the start. `TransformBy` of a chain,
 however it moves it, and of a polygon or a face under a scaling, a stretch or a shear keeps them side for side: the cut
 triangle scaled by 2 or sheared keeps its six corners, and the chain (0, 0, 0), (10, 0, 0), (10, 0, 10) scaled by 1E-5 is
 the chain 0.0002 long, where it was refused as having fewer than two vertices. Only a corner the transformation lands on
-the very same point as the one before it goes. A polygon is still checked flat and enclosing an area within the global
-tolerance, so one shrunk to under about a thousandth across is still refused as having no width. A body follows its
-faces: the box 100 by 70 by 40 with a pocket 0.0004 deep cut across its top at a millionth, scaled by a half or by 10
-and sheared by a thousandth, stays closed within the millionth scaled with it, every corner kept and its volume the
-volume times the cube of the scale. It is refused where a face of it comes out under about a thousandth wide, or off
-flat by more than a thousandth, as a polygon is.
+the very same point as the one before it goes. An even scaling, turned, moved or mirrored besides, carries a polygon or
+a face as a move does, its area scaled, and checks nothing again: a square 100 across with a corner 0.0009 off flat
+scaled by 10 is kept, where it was refused as not flat, and the cut triangle shrunk by a ten-thousandth keeps its six
+corners, 0.0007 wide, where it was refused as having no width. A stretch or a shear has the polygon checked flat and
+enclosing an area within the global tolerance loosened as far as it stretches any direction: off flat within ten times
+the tolerance under a stretch by 10, and wide within half of it under a scaling by 0.2, 0.25 and 0.5, which keeps a
+square 0.003 across as one 0.0006 by 0.00075. Neither is made
+finer than the global tolerance, so nothing kept before is refused now, and a projection that flattens a polygon to a
+line is still refused. A body follows its faces: the box 100 by 70 by 40 with a pocket 0.0004 deep cut across its top
+at a millionth, scaled by a half or by 10 and sheared by a thousandth, stays closed within the millionth scaled with it,
+every corner kept and its volume the volume times the cube of the scale, and the block whose top is 0.0009 off flat
+stays closed scaled by 1 000, or stretched ten times upwards with its volume ten times. It is refused where a face of it
+comes out narrower, or further off flat, than the loosened tolerance allows, as a polygon is.
 
 A radius per corner works too, read the way the bulges are read: the entry at an index belongs to the vertex
 at that index, and nought leaves that corner square. `TryFilletAt` rounds one named corner. A bend with too
@@ -2413,7 +2420,9 @@ one centre where the rounding of the numbers leaves the line nowhere in particul
 crossed however near they are, below the vector tolerance of 1E-5 too: at a millionth, the arcs of radius 10 about the
 origin and of radius 9.999999 about (0.000002, 0, 0) cross at (5.0000007, ±8.6602536, 0), as they do a hundred times
 larger, where the radical line, as long as the centres are apart, was read within the vector tolerance as a length, taken
-for no line at all, and one crossing lost. A segment crossing an arc is read so too: one longer than the point tolerance
+for no line at all, and one crossing lost. The radical line is laid in the plane of the circles: two of radius 39.7 in a
+plane leaning every way, about centres 1.4E-7 apart, cross twice on both at a ten-millionth, where the line leant out of
+the plane by the rounding of the centres and the crossings lay up to 1.4E-7 off both circles. A segment crossing an arc is read so too: one longer than the point tolerance
 crosses where it does however short, so at a millionth the segment from (0, 9.9999995, 0) to (0, 10.0000015, 0) meets
 the arc of radius 10 about the origin at (0, 10, 0), where it was given its start.
 

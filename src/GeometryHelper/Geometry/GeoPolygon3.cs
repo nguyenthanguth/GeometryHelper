@@ -588,9 +588,14 @@ namespace GeometryHelper.Geometry
         /// The polygon is transformed side for side, however short a side: at a millionth, the triangle (0, 0, 0),
         /// (10, 0, 0), (10, 0, 10) with every corner cut by 0.0003 keeps its six corners scaled by 2 or sheared, where it was
         /// put back together within the global tolerance of a thousandth and came back three. Only a corner the
-        /// transformation lands on the very same point as the one before it goes. A transformation that stretches or
-        /// shears still has the polygon checked flat and enclosing an area within the global tolerance, as the constructor
-        /// checks it.
+        /// transformation lands on the very same point as the one before it goes. An even scaling, turned, moved or
+        /// mirrored besides, carries the polygon as a move does, its area scaled: a square 100 across with a corner 0.0009
+        /// off flat scaled by 10 is kept, where it was refused as not flat, and the cut triangle shrunk by a ten-thousandth
+        /// keeps its six corners, 0.0007 wide. A transformation that stretches one way more than another or shears has the
+        /// polygon checked flat and enclosing an area within the global tolerance loosened as far as the transformation
+        /// stretches any direction: off flat within ten times the tolerance under a stretch by 10, and wide within half of
+        /// it under a scaling by 0.2, 0.25 and 0.5, which keeps a square 0.003 across as one 0.0006 by 0.00075. Neither is made finer than the global tolerance, so what was kept
+        /// before is kept still. A projection that flattens the polygon to a line is still refused.
         /// </remarks>
         public GeoPolygon3 TransformBy(GeoTransform3 transform)
         {
@@ -618,11 +623,23 @@ namespace GeometryHelper.Geometry
                 return new GeoPolygon3(moved, area.Divide(area.Length), Area);
             }
 
+            // An even scaling, turned, shifted or mirrored besides, scales every length alike: what lay flat within a
+            // tolerance and had width lies flat and has width within the tolerance scaled with it, so it is carried as a move
+            // is, its area scaled. Measured again within the global tolerance, a top 0.0009 off flat scaled by 10 was refused
+            // as not flat, and a sliver 0.00005 wide built at a millionth and scaled by 0.1 as enclosing no area.
+            if (transform.KeepsShapes(out double areaScale))
+            {
+                GeoVector3 area = Newell.GetAreaVector(moved);
+
+                return new GeoPolygon3(moved, area.Divide(area.Length), Area * areaScale);
+            }
+
             // Anything else is measured again, which is what is wanted there: a projection onto a plane can collapse the
             // polygon to a line, and that should be reported rather than carried forward as a polygon with a stale normal.
-            // The corners stand apart already, however near; only two the transformation lands on the very same point
-            // become one.
-            return new GeoPolygon3(moved, default(Tolerance), Tolerance.Global);
+            // It is measured within the global tolerance stretched as far as the transformation stretches any direction,
+            // as far as it can carry a corner off the plane. The corners stand apart already, however near; only two the
+            // transformation lands on the very same point become one.
+            return new GeoPolygon3(moved, default(Tolerance), transform.Stretched(Tolerance.Global));
         }
 
         #region Queries

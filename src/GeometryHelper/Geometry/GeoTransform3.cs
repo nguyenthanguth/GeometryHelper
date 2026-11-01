@@ -384,6 +384,107 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
+        /// Determines whether the transformation keeps every shape: a turn, a shift, a mirror or an even scaling, and nothing
+        /// that stretches one way more than another, shears or flattens. Gives the factor it multiplies areas by.
+        /// </summary>
+        /// <remarks>
+        /// The three axes have to come out square to each other and of one length, within the global vector tolerance as a
+        /// share of that length, so that a matrix rounded to six places or to a float is read as the turn or the scaling it
+        /// stands for. The factor for areas is the mean of the squared lengths of the three axes: 100 for a scaling by 10.
+        /// </remarks>
+        internal bool KeepsShapes(out double areaScale)
+        {
+            areaScale = 0.0;
+
+            double[] square = new double[3];
+
+            for (int a = 0; a < 3; a++)
+            {
+                square[a] = _m[0, a] * _m[0, a] + _m[1, a] * _m[1, a] + _m[2, a] * _m[2, a];
+            }
+
+            double mean = (square[0] + square[1] + square[2]) / 3.0;
+
+            // Written as what an even scaling has to be, so that one to nought, or of NaNs, is none.
+            if (!(mean > 0.0) || double.IsInfinity(mean))
+            {
+                return false;
+            }
+
+            // A length within a share e of the mean is a square within about 2e of its square.
+            double slack = Tolerance.Global.EqualVector * mean;
+
+            for (int a = 0; a < 3; a++)
+            {
+                if (!(Math.Abs(square[a] - mean) <= 2.0 * slack))
+                {
+                    return false;
+                }
+
+                int b = (a + 1) % 3;
+                double dot = _m[0, a] * _m[0, b] + _m[1, a] * _m[1, b] + _m[2, a] * _m[2, b];
+
+                if (!(Math.Abs(dot) <= slack))
+                {
+                    return false;
+                }
+            }
+
+            areaScale = mean;
+            return true;
+        }
+
+        /// <summary>
+        /// Gets a tolerance a shape that lay flat and had width within another is read within once transformed: its planar
+        /// threshold stretched as far as the transformation stretches any direction, where it stretches, and its point
+        /// threshold shrunk as far, where it shrinks.
+        /// </summary>
+        /// <remarks>
+        /// The stretch is the largest singular value of the matrix without its shift, the square root of the largest
+        /// eigenvalue of the products of its axes: 10 for a scaling by 10 along X alone, 0.3 for one by 0.1, 0.2 and 0.3.
+        /// No corner lands further off the plane than that many times as far as it was, and nothing is narrower than its
+        /// width shrunk that many times or more. Neither threshold is made finer than it was: a polygon built within a
+        /// coarser tolerance, or a small one standing across a stretch, was kept within the one given and is kept still.
+        /// The vector and angle thresholds are not lengths and stay as they are.
+        /// </remarks>
+        internal Tolerance Stretched(Tolerance tolerance)
+        {
+            double xx = _m[0, 0] * _m[0, 0] + _m[1, 0] * _m[1, 0] + _m[2, 0] * _m[2, 0];
+            double yy = _m[0, 1] * _m[0, 1] + _m[1, 1] * _m[1, 1] + _m[2, 1] * _m[2, 1];
+            double zz = _m[0, 2] * _m[0, 2] + _m[1, 2] * _m[1, 2] + _m[2, 2] * _m[2, 2];
+            double xy = _m[0, 0] * _m[0, 1] + _m[1, 0] * _m[1, 1] + _m[2, 0] * _m[2, 1];
+            double yz = _m[0, 1] * _m[0, 2] + _m[1, 1] * _m[1, 2] + _m[2, 1] * _m[2, 2];
+            double zx = _m[0, 2] * _m[0, 0] + _m[1, 2] * _m[1, 0] + _m[2, 2] * _m[2, 0];
+
+            // The largest eigenvalue of a symmetric 3 by 3 matrix in closed form: the mean of the diagonal, and the spread of
+            // the matrix about it turned into an angle.
+            double mean = (xx + yy + zz) / 3.0;
+            double off = xy * xy + yz * yz + zx * zx;
+            double spread = Math.Sqrt(((xx - mean) * (xx - mean) + (yy - mean) * (yy - mean) + (zz - mean) * (zz - mean) + 2.0 * off) / 6.0);
+            double largest = mean;
+
+            if (spread > 0.0)
+            {
+                double a = (xx - mean) / spread, b = (yy - mean) / spread, c = (zz - mean) / spread;
+                double p = xy / spread, q = yz / spread, r = zx / spread;
+                double half = 0.5 * (a * (b * c - q * q) - p * (p * c - q * r) + r * (p * q - b * r));
+                double angle = Math.Acos(Math.Max(-1.0, Math.Min(1.0, half))) / 3.0;
+
+                largest = mean + 2.0 * spread * Math.Cos(angle);
+            }
+
+            double stretch = Math.Sqrt(largest);
+
+            // A matrix of NaNs stretches nothing that can be told, and the shape under it is refused as it was.
+            if (!(stretch >= 0.0) || double.IsInfinity(stretch))
+            {
+                return tolerance;
+            }
+
+            return new Tolerance(tolerance.EqualPoint * Math.Min(1.0, stretch), tolerance.EqualVector, tolerance.EqualAngleRad, tolerance.EqualPlanar * Math.Max(1.0, stretch));
+        }
+
+        /// <summary>
         /// Gets the transformation that undoes this one, using the default tolerance.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the transformation is not invertible.</exception>

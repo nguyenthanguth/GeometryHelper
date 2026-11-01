@@ -107,7 +107,7 @@ namespace GeometryHelper.Core
             if (second.Radius < first.Radius)
             {
                 double back = (apart * apart + (second.Radius - first.Radius) * (second.Radius + first.Radius)) / (2.0 * apart);
-                GeoPoint3 nearer = second.Center.Add(between.Multiply(-back / apart));
+                GeoPoint3 nearer = OntoPlane(second, second.Center.Add(between.Multiply(-back / apart)));
 
                 foreach (GeoPoint3 candidate in PointsOnLine(second, nearer, across, tolerance))
                 {
@@ -121,7 +121,7 @@ namespace GeometryHelper.Core
             }
 
             double along =(apart * apart + (first.Radius - second.Radius) * (first.Radius + second.Radius)) / (2.0 * apart);
-            GeoPoint3 foot = first.Center.Add(between.Multiply(along / apart));
+            GeoPoint3 foot = OntoPlane(first, first.Center.Add(between.Multiply(along / apart)));
 
             foreach (GeoPoint3 candidate in PointsOnLine(first, foot, across, tolerance))
             {
@@ -133,6 +133,17 @@ namespace GeometryHelper.Core
 
             return found;
         }
+
+        /// <summary>
+        /// Puts a point back on the plane of an arc, along its normal.
+        /// </summary>
+        /// <remarks>
+        /// The foot of the radical line is carried along the line between the centres, which, for centres a few millionths
+        /// apart, leans out of the plane by the rounding of their coordinates: carried 14 along it, the foot stood 3E-8 off
+        /// the plane, and the crossings found from it as far off the circles.
+        /// </remarks>
+        private static GeoPoint3 OntoPlane(GeoArc3 arc, GeoPoint3 point)
+            => point.Add(arc.Normal.Multiply(-arc.Center.GetVectorTo(point).DotProduct(arc.Normal)));
 
         /// <summary>
         /// The largest coordinate of the centres of two arcs, or radius, whichever is larger: the size of the numbers whose
@@ -189,7 +200,9 @@ namespace GeometryHelper.Core
         /// at a millionth, the arcs of radius 10 about the origin and of radius 9.999999 about (0.000002, 0, 0) cross at
         /// (5.0000007, ±8.6602536, 0), as they do a hundred times larger, where the line they share, as long as the centres
         /// are apart and so shorter than the vector tolerance of 1E-5 read as a length, was taken for no line at all and
-        /// one of the crossings was lost.
+        /// one of the crossings was lost. The line is laid in the plane of the circles: two of radius 39.7 in a plane leaning
+        /// every way, about centres 1.4E-7 apart, cross twice on both at a ten-millionth, where the line, carried 14 along
+        /// the difference of the centres, leant out of the plane by its rounding and the crossings lay up to 1.4E-7 off both.
         /// </para>
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoArc3 first, GeoArc3 second, Tolerance tolerance)

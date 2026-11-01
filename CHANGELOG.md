@@ -6,6 +6,24 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `TransformBy` of a `GeoPolygon3`, a `GeoFace3` and a `GeoSolid3` under an even scaling, turned, moved or
+mirrored besides, carries the shape as a move does, its area scaled, and checks nothing again: the block 100 by 70 by 40
+whose top is 0.0009 off flat, scaled by 10 or by 1 000 as a model in metres is brought into millimetres, stays closed
+with its volume scaled, where it was refused as not flat, and a body with a pit 0.00005 deep cut at a millionth, scaled
+by a tenth, stays closed, where its walls were refused as having no width. A stretch or a shear has each polygon checked
+within the global tolerance loosened as far as the transformation stretches any direction, never made finer than it
+was: the block stretched ten times upwards stays closed with its volume ten times. Over 600 random bodies under 16
+transformations at the default tolerance, 1 460 of the 9 600 were refused or came back open and none now; over 3 000
+polygons and faces, nothing kept before is refused. A projection that flattens a polygon to a line is still refused.
+11 new tests.
+
+**FIXED.** Two arcs in one plane whose centres stand a few tenths of a millionth apart cross on both: the line their
+crossings lie on, carried along the difference of the centres, leant out of the plane by its rounding, so in a plane
+leaning every way the circles of radius 39.7 about centres 1.4E-7 apart crossed up to 1.4E-7 off both and lost a
+crossing at a ten-millionth. The line is laid in the plane now: of 9 000 random pairs, 26 lost a crossing, and none do
+now. Every crossing of two arcs in one plane moves by its last digits as a result, onto the arcs: the furthest off was
+0.998 of the point tolerance, and is now 1E-5 of it. 1 new test.
+
 **NEW.** `DxfTextSymbols`, the symbols of AutoCAD's text editor as constants, for the words of a TEXT, an MTEXT, an
 attribute or a dimension: the 21 letters its Symbol menu enters and its help lists, from `Degree` (°) and `Diameter` (∅,
 U+2205, not the Latin letter Ø) to `Subscript2`, `Squared`, `Cubed` and `NonBreakingSpace`, and the menu's control codes

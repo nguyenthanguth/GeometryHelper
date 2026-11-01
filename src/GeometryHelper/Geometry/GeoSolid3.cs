@@ -931,6 +931,12 @@ namespace GeometryHelper.Geometry
         /// Applies a transformation to every face and opening.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
+        /// <remarks>
+        /// Each face is transformed as <see cref="GeoFace3.TransformBy(GeoTransform3)"/> transforms it. The block 100 by
+        /// 70 by 40 whose top is 0.0009 off flat, scaled by 10 or by 1 000 and turned, stays closed with its volume times
+        /// the cube of the scale, and stretched ten times upwards with its volume ten times, where it was refused as not
+        /// flat.
+        /// </remarks>
         public GeoSolid3 TransformBy(GeoTransform3 transform)
         {
             if (transform == null)
