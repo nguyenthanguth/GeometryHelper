@@ -335,6 +335,13 @@ namespace GeometryHelper.Dxf
         /// </summary>
         internal DxfFileBlock OriginBlock { get; set; }
 
+        /// <summary>
+        /// The contexts of the scales a copy in no file carries of its original, each the name of its entry and a copy of its
+        /// record held in no file, in the order of the original's dictionary, until the copy is added to a drawing; null for an
+        /// item that carries none.
+        /// </summary>
+        internal List<KeyValuePair<string, DxfItem>> CopiedContexts { get; set; }
+
         /// <summary>The records the entity's own, once it is changed or added; null for an entity as the file was read.</summary>
         internal DxfFile.Piece Piece { get; set; }
 

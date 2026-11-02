@@ -316,21 +316,26 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Gives the copy of an INSERT of contexts, which holds none, the point, angle and scale factors its original is read at,
-        /// as AutoCAD 2021's copy reads (check D35b); its ATTRIBs left as they are.
+        /// Gives a copy that carries contexts, added to a drawing that is not its original's, the point, angle and scale factors
+        /// it is read at, as AutoCAD 2021's copy reads (check D35b), its contexts and its ATTRIBs' left behind, its ATTRIBs read
+        /// at their records.
         /// </summary>
-        private protected override void Copied(DxfEntity original)
+        private protected override void LeaveContexts()
         {
-            if (!(original is DxfBlockReference insert) || insert.Shown(out _) == null)
+            if (Shown(out _) == null)
             {
+                base.LeaveContexts();
                 return;
             }
 
-            GeoVector3 scale = insert.ScaleFactors;
+            GeoVector3 scale = ScaleFactors;
+            double degrees = Rotation * (180.0 / Math.PI);
+            GeoPoint3 position = Position;
+            base.LeaveContexts();
+            _contexts = null;
             GeoVector3 own = OwnScale();
-            double degrees = insert.Rotation * (180.0 / Math.PI);
             SetGroups(Join(
-                PointGroups(10, WorldToOcs(Normal, insert.Position), Origin),
+                PointGroups(10, WorldToOcs(Normal, position), Origin),
                 Factor(41, scale.X, own.X),
                 Factor(42, scale.Y, own.Y),
                 Factor(43, scale.Z, own.Z),
@@ -367,7 +372,10 @@ namespace GeometryHelper.Dxf
         /// <c>Normal</c>; of unit length, (0, 0, 1) where the record gives none.
         /// </summary>
         /// <value>Set, a direction of some length, written made of unit length; the insertion point stays where it is in the
-        /// world, written anew in the system of the new plane, and the ATTRIBs follow the block.</value>
+        /// world, written anew in the system of the new plane, and the ATTRIBs follow the block. An annotative one's normal alone
+        /// is written, its record's point and every context left as they are, in the system of the new plane, as AutoCAD 2021
+        /// writes it: the valve read at (113.883, 279.776, 0) at 1:1, given the normal (0, 0.6, 0.8), stands at (-113.883,
+        /// -223.821, 167.866) (check D35c).</value>
         /// <exception cref="ArgumentException">Thrown when the direction set has no length or is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the INSERT is erased.</exception>
         public GeoVector3 Normal
@@ -380,6 +388,12 @@ namespace GeometryHelper.Dxf
 
                 if (normal.Length == 0)
                 {
+                    return;
+                }
+
+                if (Shown(out _) != null)
+                {
+                    Place(normal);
                     return;
                 }
 
@@ -396,7 +410,11 @@ namespace GeometryHelper.Dxf
         /// origin of the block is taken as (0, 0, 0) where the drawing has no block of the INSERT's name.
         /// </summary>
         /// <value>Set, a transformation an INSERT can hold, its axes square to one another: the position, rotation, scale
-        /// factors and normal that make it written, the ATTRIBs carried by the change.</value>
+        /// factors and normal that make it written, the ATTRIBs carried by the change. An annotative one's point, angle and scale
+        /// factors are written into the context it is read at, and into its record where that context is the default, its other
+        /// contexts left as they are, as AutoCAD 2021 writes them: the valve read at 1:1 beside a default of 1:2 scaled by 3,
+        /// given the placing to (50, 300) turned 0.5 and scaled by 3, has its context of 1:1 so and that of 1:2 as it was
+        /// (check D35c).</value>
         /// <exception cref="ArgumentNullException">Thrown when the transformation set is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the transformation set shears or flattens, which an INSERT does not hold.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the INSERT is erased.</exception>
@@ -435,6 +453,34 @@ namespace GeometryHelper.Dxf
                 GeoVector3 factors = ScaleFactors;
                 double degrees = rotation;
                 GeoVector3 normalNow = Normal;
+                ShownContexts contexts = Shown(out ContextGroups shown);
+
+                if (contexts != null)
+                {
+                    // An annotative one's placing is written into the context it is shown at, and its record where that is the
+                    // default, as its point, angle and scale factors are (check D35c).
+                    GeoPoint3 point = WorldToOcs(normal, position);
+                    GeoVector3 own = OwnScale();
+                    KeyValuePair<int, string>[] turned = Same(normal.X, normalNow.X) && Same(normal.Y, normalNow.Y) && Same(normal.Z, normalNow.Z) ? new KeyValuePair<int, string>[0] : NormalGroups(normal);
+                    Place(contexts.ShownIsDefault
+                        ? Join(
+                            PointGroups(10, point, Origin),
+                            Factor(41, scale.X, own.X),
+                            Factor(42, scale.Y, own.Y),
+                            Factor(43, scale.Z, own.Z),
+                            Same(degrees, GetDouble(50, 0.0)) ? new KeyValuePair<int, string>[0] : new[] { new KeyValuePair<int, string>(50, Numbers.Exact(degrees + 0.0)) },
+                            turned)
+                        : turned, () =>
+                        {
+                            shown.Write(AtX, point.X, AtY, point.Y);
+                            shown.Write(AtZ, point.Z);
+                            shown.Write(AtDegrees, degrees);
+                            shown.Write(ScaledX, scale.X, ScaledY, scale.Y);
+                            shown.Write(ScaledZ, scale.Z);
+                        });
+                    return;
+                }
+
                 Place(Join(
                     PointGroups(10, WorldToOcs(normal, position), Origin),
                     Factor(41, scale.X, factors.X),
@@ -1694,7 +1740,7 @@ namespace GeometryHelper.Dxf
                 {
                     try
                     {
-                        DxfEntity copy = entity.GetTransformedCopy(placing);
+                        DxfEntity copy = entity.TransformedCopy(placing, false);
                         (copy as DxfMText)?.Unlink();
                         slots.Add(copy);
                         continue;

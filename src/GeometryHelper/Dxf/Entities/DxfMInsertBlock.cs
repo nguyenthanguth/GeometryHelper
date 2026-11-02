@@ -168,7 +168,7 @@ namespace GeometryHelper.Dxf
 
                     foreach (DxfEntity part in first)
                     {
-                        parts.Add(part.GetTransformedCopy(move));
+                        parts.Add(part.TransformedCopy(move, false));
                     }
                 }
             }

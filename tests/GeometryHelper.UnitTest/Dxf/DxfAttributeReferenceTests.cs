@@ -375,7 +375,8 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AnAttribOfOneLineMadeOfSeveral_HoldsItsWordsWhereTheyStand_ItsCodesWrittenAsCodes()
         {
-            // The value a\b{c} at (50, 59, 0), left on its baseline: the MTEXT a\\b\{c\} held at its bottom left there, 2.5 high.
+            // The value a\b{c} at (50, 59, 0), left on its baseline: the MTEXT a\\b\{c\} held at its top left one height above,
+            // at (50, 61.5, 0), 2.5 high, as AutoCAD 2021 makes it (plugin D35c P0 multi).
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
             DxfAttributeReference mark = Bolt(db).AttributeCollection.Single();
             mark.TextString = "a\\b{c}";
@@ -385,8 +386,8 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfMText made = mark.MTextAttribute;
             Assert.Equal("a\\\\b\\{c\\}", made.Contents);
             Assert.Equal("a\\b{c}", made.Text);
-            Assert.Equal(DxfAttachmentPoint.BottomLeft, made.Attachment);
-            Assert.Equal(Bits(new GeoPoint3(50, 59, 0)), Bits(made.Location));
+            Assert.Equal(DxfAttachmentPoint.TopLeft, made.Attachment);
+            Assert.Equal(Bits(new GeoPoint3(50, 61.5, 0)), Bits(made.Location));
             Assert.Equal(2.5, made.TextHeight);
             Assert.Equal("a\\b{c}", mark.TextString);
         }

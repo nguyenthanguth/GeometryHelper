@@ -4277,6 +4277,38 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Whether a record opens with an extension dictionary, its group <c>{ACAD_XDICTIONARY</c> before its first subclass
+        /// marker, where AutoCAD and ezdxf write it: a look at the few groups that open the record, for a copy to see whether it
+        /// has contexts to carry.
+        /// </summary>
+        internal bool OpensWithExtensionDictionary(DxfItem item)
+        {
+            Rec head = HeadOf(item);
+            int at = head.Start;
+
+            while (at < head.End)
+            {
+                int codeEnd = LineEnd(head.Bytes, at, head.End, out int valueStart);
+                TryCode(head.Bytes, at, codeEnd, out int code);
+                int valueEnd = LineEnd(head.Bytes, valueStart, head.End, out int next);
+
+                if (code == 100)
+                {
+                    return false;
+                }
+
+                if (code == 102 && Text(head, valueStart, valueEnd).Trim() == "{ACAD_XDICTIONARY")
+                {
+                    return true;
+                }
+
+                at = next;
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// The extended data of a record: its groups from the first 1001 to its end, comments left out; the texts of the
         /// application's name (1001), a string (1000) and a layer's name (1003) with their escapes (<c>\U+00E9</c>) read as
         /// letters, as a layer's name is read.

@@ -3583,8 +3583,10 @@ namespace GeometryHelper.Dxf
         /// in its block, as AutoCAD's deep clone translates its map of ids once every object is copied, and so is every pointer to
         /// a block copied with it after its own (a MULTILEADER's block and arrow blocks, an ACAD_TABLE's picture and the blocks of
         /// its cells, the arrow block an override of a dimension style names). A copy appended to its own drawing keeps its pointers, but for the
-        /// value a MULTILEADER gives an attribute definition erased since, which is left out with the definition's handle. The
-        /// extents of the header are not grown by what is appended to a block.
+        /// value a MULTILEADER gives an attribute definition erased since, which is left out with the definition's handle. A copy
+        /// of an annotative entity appended to its own drawing is given the contexts it carries, and its ATTRIBs theirs, each
+        /// under an extension dictionary as AutoCAD writes its copy's (check D35c); appended to another drawing, it leaves them
+        /// behind, given the placing it is read at. The extents of the header are not grown by what is appended to a block.
         /// </para>
         /// <para>
         /// A drawing of an older version than the entity's is given what it can hold, as AutoCAD's SAVEAS to that version gives
@@ -3639,7 +3641,11 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
+            // A copy carries its original's contexts: written here where this is its original's drawing, else left behind, the
+            // copy placed where it is read (check D35c).
+            List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>> carried = entity.TakeCopiedContexts(_file);
             entity.Bind(_file.Adopt(space, entity.Item));
+            DxfDBObject.WriteCopiedContexts(entity.Item, carried);
         }
 
         /// <summary>

@@ -1267,12 +1267,29 @@ and scaled by its factors, so its `BlockTransform` and what it places: the valve
 `Position` and `Rotation` set write its context, and its record where that is the default; `ScaleFactors` set writes every
 context, each the factors times the scale shown over its own (3 at 1:1 is 6 in the context of 1:2); `TransformBy` carries
 each context from its own point, angle and factors. An INSERT of an annotative block, or an attribute of one, that holds no
-context is shown at 1:1 (`HasContext`), and an ATTRIB is annotative as its INSERT is, whatever its own AcadAnnotative says.
+context is shown at 1:1 (`HasContext`), and an ATTRIB is annotative as its INSERT is, whatever its own AcadAnnotative says;
+in a block that is not annotative, an ATTRIB is annotative where its own data says 1 and it holds a context, as AutoCAD
+2021 read the attribute it made of an annotative definition in such a block, and not where it holds none.
 An annotative attribute made of several lines writes its MTEXT into every context, its second point the MTEXT's location
 and the MTEXT's own context embedded after the 290, and `TransformBy` carries that MTEXT; its `MTextAttribute` is that of
-the context it is read at, as tall as the attribute. A copy (`Clone`, `GetTransformedCopy`) of an annotative text, MTEXT
-or INSERT of contexts, which holds none, is given the placing its original is read at. The point of a text not aligned
-left and an MTEXT's extents, which AutoCAD works out from the font, are not.
+the context it is read at, as tall as the attribute. Any attribute made of several lines (`IsMTextAttribute`) left,
+centred or right on its baseline is held by the top left, centre or right of its MTEXT one text height above its point,
+or its second point where it is not left, whatever the font, its first point kept: the value B-12 2.5 high at (50, 59)
+becomes the MTEXT held by its top left at (50, 61.5).
+
+A copy (`Clone`, `GetTransformedCopy`) of an annotative text, attribute, MTEXT or INSERT carries the contexts of its
+original, and those of an INSERT's ATTRIBs, as AutoCAD 2021's copy keeps them: in no file it is shown at its original's
+scales and reads where its original is read; added to its original's drawing, it is given an extension dictionary of those
+contexts, as AutoCAD writes its copy's; added to another drawing, it leaves them, given the placing it is read at. Moved by
+`TransformBy`, a copy carries every context. `GetTransformedCopy` of an MTEXT or an INSERT moves every context too, but
+that of a TEXT, ATTDEF or ATTRIB moves the context it is shown at alone, and its record's point and angle only where that
+is the default, as AutoCAD 2021 moves it: moved by (10, 5), the TEXT shown at (11, 12) at 1:1 beside its default of 1:2 at
+(40, 12) is shown at (21, 17), its context of 1:2 left at (40, 12). An annotative MTEXT's `SetAttachmentMovingLocation`
+moves it by the width of the context it is read at and writes that context, its record where it is the default; its
+`Normal` set makes it read along the x axis of the new plane, in that context; an INSERT's `Normal` set writes the normal
+alone, its points left in their plane, and its `BlockTransform` set writes the context it is read at, as its point, angle
+and scale factors are. Scaled, an MTEXT's box (46) is stretched with it, in columns or not. The point of a text not aligned
+left and an MTEXT's extents, which AutoCAD works out from the font, are not read as AutoCAD reads them.
 
 `DxfMText` names the codes of an MTEXT as AutoCAD's `MText` does: `ParagraphBreak` and `LineBreak` are `\P`, `UnderlineOn` is
 `\L`, `HeightChange` `\H`, `BlockBegin` `{`, and so the 19 of them. `ContentsRTF` gives its words as RTF, the style's font

@@ -115,9 +115,13 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Gets or sets whether the attribute is a text of several lines, an MTEXT embedded in its record (group 101), as AutoCAD's <c>IsMTextAttribute</c>.</summary>
         /// <value>
-        /// Set true, an MTEXT made of its value embedded where its text stands, as <see cref="MTextAttribute"/> embeds one: the
-        /// value B-12 of letters 2.5 high at (50, 59, 0) becomes the MTEXT B-12 2.5 high held there, its backslashes and braces
-        /// written as the codes <c>\\</c>, <c>\{</c> and <c>\}</c>. Set false, the MTEXT taken out, the text keeping its first
+        /// Set true, an MTEXT made of its value embedded where its text stands, as <see cref="MTextAttribute"/> embeds one, its
+        /// backslashes and braces written as the codes <c>\\</c>, <c>\{</c> and <c>\}</c>. A text left, centred or right on its
+        /// baseline is held by the top left, centre or right of the MTEXT one text height above its point, or second point where
+        /// it is not left, as AutoCAD 2021 makes it whatever the font: the value B-12 of letters 2.5 high at (50, 59, 0) becomes
+        /// the MTEXT B-12 2.5 high held by its top left at (50, 61.5, 0) (check D35c). Any other is held by the point of its
+        /// justification at its second point. The text's first point is kept, its second point made the MTEXT's location. Set
+        /// false, the MTEXT taken out, the text keeping its first
         /// line, as an attribute of one line (71 of 1). An annotative attribute made of several lines is given its MTEXT in every
         /// context too, as <see cref="MTextAttribute"/> says; made of one, its contexts are left as they are, as AutoCAD 2021
         /// leaves them (check D35b).

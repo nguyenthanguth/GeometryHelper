@@ -834,7 +834,10 @@ namespace GeometryHelper.Dxf
         /// length, (0, 0, 1) where the record gives none.
         /// </summary>
         /// <value>Set, a direction of some length, written made of unit length; the MTEXT keeps its location and its
-        /// <see cref="Rotation"/> in the new plane, its direction written anew where the record has one.</value>
+        /// <see cref="Rotation"/> in the new plane, its direction written anew where the record has one. An annotative MTEXT
+        /// keeps its location and reads along the x axis of the new plane, written as the direction of the context it is read at,
+        /// and of its record where that context is the default, its other contexts left as they are, as AutoCAD 2021 writes it:
+        /// the MTEXT turned 30 degrees given the normal (0, 0.6, 0.8) reads along (-1, 0, 0) (check D35c).</value>
         /// <exception cref="ArgumentException">Thrown when the direction set has no length or is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the MTEXT is erased.</exception>
         public GeoVector3 Normal
@@ -852,7 +855,19 @@ namespace GeometryHelper.Dxf
 
                 double length = value.Length;
                 GeoVector3 unit = Math.Abs(length - 1.0) <= 1E-12 ? value : value.Divide(length);
-                Carried(() => Set(Join(normal, HasDirection() ? Turned(unit, Rotation, true, false) : new KeyValuePair<int, string>[0])));
+                ShownContexts contexts = Shown(out ContextGroups shown);
+
+                if (contexts == null)
+                {
+                    Carried(() => Set(Join(normal, HasDirection() ? Turned(unit, Rotation, true, false) : new KeyValuePair<int, string>[0])));
+                    return;
+                }
+
+                Carried(() =>
+                {
+                    Set(contexts.ShownIsDefault ? Join(normal, Turned(unit, 0.0, true, Value(50) != null)) : normal);
+                    WriteDirection(shown, World(unit, new GeoVector3(1.0, 0.0, 0.0)));
+                });
             }
         }
 
@@ -1345,7 +1360,11 @@ namespace GeometryHelper.Dxf
         /// where they are. The box is as wide as the group 41 (<see cref="Width"/>, but a column's before R2018 for an MTEXT in
         /// columns), the <see cref="ActualWidth"/> where the MTEXT does not wrap, and
         /// <see cref="ActualHeight"/> high, as the file writes them, along its <see cref="Direction"/> and up from it in its
-        /// plane: the MTEXT 40 wide held at its top left at (20, 40, 0), held at its top centre, stands at (40, 40, 0).
+        /// plane: the MTEXT 40 wide held at its top left at (20, 40, 0), held at its top centre, stands at (40, 40, 0). An
+        /// annotative MTEXT's box is as wide as the context it is read at says (<see cref="Width"/>), and its location and
+        /// attachment are written as <see cref="Location"/> and <see cref="Attachment"/> write them, as AutoCAD 2021 writes them:
+        /// the MTEXT read at (14, 44) at 1:1, 30 wide and held by its middle, held by its middle left, stands at (1.01, 36.5),
+        /// its context of 1:2 left as it was (check D35c).
         /// </summary>
         /// <param name="value">The point to hold it by, one of the nine of an MTEXT.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the point is not one an MTEXT has, 1 to 9.</exception>
@@ -1368,7 +1387,9 @@ namespace GeometryHelper.Dxf
 
             int across = ((int)value - 1) % 3 - ((int)now - 1) % 3;
             int down = ((int)value - 1) / 3 - ((int)now - 1) / 3;
-            double width = WrapWidth > 0.0 ? WrapWidth : Value(42) != null ? ActualWidth : double.NaN;
+            ShownContexts contexts = Shown(out _);
+            double wrap = contexts == null ? WrapWidth : ShownWidth();
+            double width = wrap > 0.0 ? wrap : Value(42) != null ? ActualWidth : double.NaN;
             double height = Value(43) != null ? ActualHeight : double.NaN;
 
             if (across != 0 && double.IsNaN(width))
@@ -1396,9 +1417,17 @@ namespace GeometryHelper.Dxf
             }
 
             GeoPoint3 location = Location;
-            Set(Join(
-                PointChanges(10, new GeoPoint3(location.X + shift.X, location.Y + shift.Y, location.Z + shift.Z), Origin),
-                new[] { new KeyValuePair<int, string>(71, ((int)value).ToString(CultureInfo.InvariantCulture)) }));
+            var moved = new GeoPoint3(location.X + shift.X, location.Y + shift.Y, location.Z + shift.Z);
+
+            if (contexts == null)
+            {
+                Set(Join(PointChanges(10, moved, Origin), new[] { new KeyValuePair<int, string>(71, ((int)value).ToString(CultureInfo.InvariantCulture)) }));
+                return;
+            }
+
+            // An annotative one's are written into the context it is shown at, and its record where that is the default (check D35c).
+            Location = moved;
+            Attachment = value;
         }
 
         /// <summary>
@@ -1406,7 +1435,9 @@ namespace GeometryHelper.Dxf
         /// carries one: its location and direction carried, its angle (50) given up for its direction, its height the stretch of
         /// its upright square to its direction, its width the stretch of its direction, the heights <c>\H</c> of its words scaled
         /// with it, its normal carried. A scale unlike along its direction and its upright stretches its box, as ezdxf stretches
-        /// it; one that leans them is refused, an MTEXT having no lean. An annotative one's contexts are carried with it, each
+        /// it; one that leans them is refused, an MTEXT having no lean. The height of its box (46) is stretched as its upright
+        /// is, in columns or not: scaled by 2 about the origin, the MTEXT in a box 20 high is in one 40 high, as AutoCAD 2021
+        /// scales it (check D35c). An annotative one's contexts are carried with it, each
         /// its location and direction, its width and box stretched, as AutoCAD 2021 carries them: scaled by 2 about the origin,
         /// the context of 1:2 at (60, 44), 80 wide in a box 40, went to (120, 88), 160 by 80 (check D35b).
         /// </summary>
@@ -1488,7 +1519,8 @@ namespace GeometryHelper.Dxf
             double up = transform.Transform(upright.Divide(upright.Length)).Length;
             bool inColumns = columns.Type != DxfColumnType.NoColumns && (columns.Embedded || columns.InXData);
 
-            if (inColumns && Value(46) != null && !Same(OwnHeight * up, OwnHeight))
+            // The box (46) is stretched with its upright, in columns or not, as AutoCAD 2021 scales it (check D35c).
+            if (Value(46) != null && !Same(OwnHeight * up, OwnHeight))
             {
                 groups.Add(new KeyValuePair<int, string>(46, Numbers.Exact(OwnHeight * up + 0.0)));
             }
@@ -2094,22 +2126,32 @@ namespace GeometryHelper.Dxf
         private bool HasDirection() => Value(11) != null || Value(21) != null || Value(31) != null;
 
         /// <summary>
-        /// Gives the copy of an annotative MTEXT, which holds no contexts, the placing its original is read at, as AutoCAD 2021's
-        /// copy reads (check D35b): its attachment, location, direction, height, width and box.
+        /// Gives a copy that carries contexts, added to a drawing that is not its original's, the placing it is read at, as
+        /// AutoCAD 2021's copy reads (check D35b): its attachment, location, direction, height, width and box, its contexts left
+        /// behind.
         /// </summary>
-        private protected override void Copied(DxfEntity original)
+        private protected override void LeaveContexts()
         {
-            if (!(original is DxfMText mtext) || mtext.Shown(out _) == null)
+            if (Shown(out _) == null)
             {
+                base.LeaveContexts();
                 return;
             }
 
-            Attachment = mtext.Attachment;
-            Location = mtext.Location;
-            Direction = mtext.Direction;
-            TextHeight = mtext.TextHeight;
-            Width = mtext.Width;
-            Height = mtext.Height;
+            DxfAttachmentPoint attachment = Attachment;
+            GeoPoint3 location = Location;
+            GeoVector3 direction = Direction;
+            double textHeight = TextHeight;
+            double width = Width;
+            double height = Height;
+            base.LeaveContexts();
+            _contexts = null;
+            Attachment = attachment;
+            Location = location;
+            Direction = direction;
+            TextHeight = textHeight;
+            Width = width;
+            Height = height;
         }
 
         /// <summary>

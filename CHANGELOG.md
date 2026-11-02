@@ -6,6 +6,41 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** A copy (`Clone`, `GetTransformedCopy`) of an annotative text, attribute, MTEXT or INSERT keeps the contexts of
+its original, and an INSERT's copy those of its ATTRIBs, as AutoCAD 2021's copy keeps them (check D35c): in no file it is
+shown at its original's scales (`HasContext`) and reads where its original is read; appended to its original's drawing it
+is given an extension dictionary of those contexts, as AutoCAD writes its copy's, where it was given the placing alone and
+no contexts; appended to another drawing it is placed where it is read, as before. `TransformBy` of a copy moves every
+context, and so does `GetTransformedCopy` of an MTEXT or an INSERT; that of a TEXT, ATTDEF or ATTRIB moves the context it
+is shown at alone, and its record's point and angle only where that context is the default, as AutoCAD 2021 moves it:
+moved by (10, 5), the TEXT shown at (11, 12) at 1:1 beside its default of 1:2 at (40, 12) is shown at (21, 17), its
+context of 1:2 left at (40, 12). `WblockCloneObjects` into the same drawing, and the anonymous blocks of a dynamic block,
+copy contexts so too. AutoCAD 2021 read nine drawings the library wrote, copies among them, as the library reads them.
+`Clone` of plain entities takes about 0.2 us more an entity, some 15 to 20 per cent; of entities of ezdxf's sample it is
+three times as fast as before.
+
+**CHANGED.** An annotative MTEXT's `SetAttachmentMovingLocation` moves it by the width of the context it is read at and
+writes that context, and its record where that context is the default, as AutoCAD 2021 writes it (check D35c): the MTEXT
+read at (14, 44) at 1:1, 30 wide and held by its middle, held by its middle left stands at (1.01, 36.5). Its `Normal` set
+makes it read along the x axis of the new plane, written into that context: turned 30 degrees and given the normal (0, 0.6,
+0.8), it reads along (-1, 0, 0). An annotative INSERT's `Normal` set writes the normal alone, its points left in their
+plane, and its `BlockTransform` set writes the context it is read at, and its record where that is the default, as its
+point, angle and scale factors are; other contexts are left as they are.
+
+**CHANGED.** An attribute made of several lines by `IsMTextAttribute` or `IsMTextAttributeDefinition`, left, centred or
+right on its baseline, is held by the top left, centre or right of its MTEXT one text height above its point, or its second
+point where it is not left, whatever the font, as AutoCAD 2021 makes it (check D35c): B-12 2.5 high at (50, 59) becomes the
+MTEXT held by its top left at (50, 61.5), where the library held it by its bottom left at (50, 59). The text's first point
+is kept, where the library made it the MTEXT's location. Existing test changed:
+`DxfAttributeReferenceTests.AnAttribOfOneLineMadeOfSeveral_HoldsItsWordsWhereTheyStand_ItsCodesWrittenAsCodes`.
+
+**CHANGED.** `TransformBy` of an MTEXT stretches its box (46) with its upright in no columns too, as AutoCAD 2021 scales
+it (check D35c): scaled by 2, an MTEXT in a box 20 high is in one 40 high, where the library left 20.
+
+**CHANGED.** An ATTRIB in a block that is not annotative is annotative where its own AcadAnnotative says 1 and it holds a
+context, as AutoCAD 2021 read the attribute it made of an annotative definition in such a block (check D35c); flagged 1
+and holding none, it is not.
+
 **CHANGED.** An annotative MTEXT or INSERT with contexts is read where AutoCAD 2021 shows it once it has read the drawing,
 as a text has been since check D35 (check D35b): at its context of the scale 1:1, else its default. An MTEXT's `Location`,
 `Direction`, `Rotation`, `Width`, `Height` (its box) and `Attachment` are that context's own, and its `TextHeight` the
@@ -17,7 +52,7 @@ that context is the default; an INSERT's `ScaleFactors` write every context by i
 AutoCAD wrote them; `TransformBy` carries every context. An annotative attribute made of several lines writes its MTEXT
 into every context, and `TransformBy` carries it; its `MTextAttribute` is the shown context's. An annotative text's
 `HorizontalMode` and `Justify` are its context's. A copy (`Clone`, `GetTransformedCopy`) of an annotative text, MTEXT or
-INSERT of contexts reads where its original is shown, though it holds no contexts, where AutoCAD's copy keeps them. Of 532
+INSERT of contexts reads where its original is shown. Of 532
 lines AutoCAD gave, 337 read apart before and 47 now. Reading an MTEXT of no contexts takes about 30 ns more a property,
 1 to 5 per cent; an INSERT of none reads as fast as before.
 

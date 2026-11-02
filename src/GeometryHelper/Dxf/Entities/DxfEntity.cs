@@ -699,13 +699,26 @@ namespace GeometryHelper.Dxf
         /// same class and look in no file, to be added to one by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.
         /// </summary>
         /// <param name="transform">The transformation.</param>
-        /// <returns>The copy, with no handle, owner, reactors or extension dictionary; its extended data kept. The identity, to
-        /// the bit, gives the entity's <see cref="Clone"/>, of any class.</returns>
+        /// <returns>The copy, with no handle, owner, reactors or extension dictionary; its extended data kept, and the contexts
+        /// of an annotative one, as <see cref="Clone"/> says. The copy of an annotative TEXT, ATTDEF or ATTRIB of contexts has
+        /// the context it is shown at moved alone, and its record where that context is the default, but for its height, width
+        /// factor and lean, which its record holds for every context, as AutoCAD 2021's <c>GetTransformedCopy</c> moves it:
+        /// moved by (10, 5), the TEXT shown at (11, 12) at 1:1 beside a default of 1:2 at (40, 12) is shown at (21, 17), its
+        /// context of 1:2 left at (40, 12) (check D35c); its <see cref="TransformBy"/> moves every context, and so does this of an
+        /// MTEXT or an INSERT. The identity, to the bit, gives the entity's <see cref="Clone"/>, of any class.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the entity is erased, as AutoCAD refuses an erased object.</exception>
         /// <exception cref="NotSupportedException">Thrown for a <see cref="DxfUnknownEntity"/> given another transformation than
         /// the identity.</exception>
-        public DxfEntity GetTransformedCopy(GeoTransform3 transform)
+        public DxfEntity GetTransformedCopy(GeoTransform3 transform) => TransformedCopy(transform, true);
+
+        /// <summary>
+        /// A copy of the entity moved by a transformation, as <see cref="GetTransformedCopy"/> gives one where
+        /// <paramref name="shownAlone"/> is true; where it is false, every context of an annotative text moved with it, as its
+        /// <see cref="TransformBy"/> moves them, for the copies the library places itself: an INSERT's parts, a drawing inserted.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
+        internal DxfEntity TransformedCopy(GeoTransform3 transform, bool shownAlone)
         {
             if (transform == null)
             {
@@ -716,21 +729,37 @@ namespace GeometryHelper.Dxf
 
             if (!DxfOcsTransform.IsIdentity(transform))
             {
-                copy.TransformBy(transform);
+                if (shownAlone)
+                {
+                    copy.MoveCopy(transform);
+                }
+                else
+                {
+                    copy.TransformBy(transform);
+                }
             }
 
             return copy;
         }
+
+        /// <summary>Moves a copy just made by a transformation, as <see cref="GetTransformedCopy"/> moves it: by <see cref="TransformBy"/> unless the class says otherwise.</summary>
+        private protected virtual void MoveCopy(GeoTransform3 transform) => TransformBy(transform);
 
         /// <summary>
         /// Gets a copy of the entity as it is, as AutoCAD's <c>Clone</c> gives one of an object: an entity of the same class
         /// and look in no file, a <see cref="DxfUnknownEntity"/> among them, its records as the file has them but its handle,
         /// owner, space, reactors and extension dictionary; a VERTEX the vertex class it is, an ATTRIB an attribute. It is added
         /// to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>, as a copy from another drawing is: see
-        /// that method for the pointers it carries. A copy of an annotative TEXT, attribute, MTEXT or INSERT of contexts, which
-        /// holds none, is given the placing its original is read at, as AutoCAD 2021's copy reads (check D35b), though
-        /// AutoCAD's keeps the contexts.
+        /// that method for the pointers it carries.
         /// </summary>
+        /// <remarks>
+        /// A copy of an annotative TEXT, attribute, MTEXT or INSERT carries the contexts of its original, as AutoCAD 2021's
+        /// <c>Clone</c> keeps them, and of each ATTRIB of an INSERT: in no file it is shown at the scales its original is
+        /// (<see cref="DxfDBObject.HasContext"/>), reads where its original is read, and is moved with every context; added to
+        /// its original's drawing, it is given an extension dictionary of those contexts, as AutoCAD writes its copy's (check
+        /// D35c). Added to another drawing, whose scales are not its original's, it leaves them behind, given the placing it is
+        /// read at, its ATTRIBs read at their records.
+        /// </remarks>
         /// <returns>The copy.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the entity is erased, as AutoCAD refuses an erased object.</exception>
         public DxfEntity Clone() => Copy();
@@ -1990,7 +2019,7 @@ namespace GeometryHelper.Dxf
             {
                 try
                 {
-                    DxfEntity copy = entity.GetTransformedCopy(placing);
+                    DxfEntity copy = entity.TransformedCopy(placing, false);
                     (copy as DxfMText)?.Unlink();
                     parts.Add(copy);
                 }
@@ -2107,7 +2136,69 @@ namespace GeometryHelper.Dxf
             // follows no entity: a VERTEX copied is the vertex it was, not an unknown entity.
             var made = (DxfEntity)copy.KeepWrapper(SameClass(copy) ?? Of(copy));
             made.Copied(this);
+            CarryContextsTo(made);
             return made;
+        }
+
+        /// <summary>
+        /// The contexts a copy in no file carries, its own and its ATTRIBs', as it is added to a drawing: for its original's, each
+        /// by the index of its record (0 the entity's own), for <see cref="DxfDBObject.WriteCopiedContexts"/> to write once it is
+        /// added; for another drawing, none, the copy given the placing it is read at by <see cref="LeaveContexts"/>, once the
+        /// drawing is seen to take it. Null where it carries none.
+        /// </summary>
+        internal List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>> TakeCopiedContexts(DxfFile target)
+        {
+            DxfItem item = Item;
+            List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>> carried = null;
+
+            if (item.CopiedContexts != null)
+            {
+                carried = new List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>> { new KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>(0, item.CopiedContexts) };
+            }
+
+            foreach (DxfItem follower in item.Followers ?? new List<DxfItem>())
+            {
+                if (follower?.CopiedContexts != null)
+                {
+                    (carried = carried ?? new List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>>()).Add(new KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>(follower.Index, follower.CopiedContexts));
+                }
+            }
+
+            if (carried == null)
+            {
+                return null;
+            }
+
+            if (item.File.Origin == target)
+            {
+                return carried;
+            }
+
+            // Checked first, so that a copy refused is left as it was.
+            target.CheckAdopt(item);
+            LeaveContexts();
+            return null;
+        }
+
+        /// <summary>
+        /// Gives a copy that carries contexts, as it is added to a drawing that is not its original's, the placing it is read at,
+        /// its contexts left behind: those of its records taken out (<see cref="ClearCopiedContexts"/>) unless the class says
+        /// otherwise.
+        /// </summary>
+        private protected virtual void LeaveContexts() => ClearCopiedContexts();
+
+        /// <summary>Takes out the contexts the entity carries and those its records that follow it carry.</summary>
+        private protected void ClearCopiedContexts()
+        {
+            Item.CopiedContexts = null;
+
+            foreach (DxfItem follower in Item.Followers ?? new List<DxfItem>())
+            {
+                if (follower != null)
+                {
+                    follower.CopiedContexts = null;
+                }
+            }
         }
 
         /// <summary>

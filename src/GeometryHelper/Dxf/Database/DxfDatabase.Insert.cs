@@ -80,7 +80,7 @@ namespace GeometryHelper.Dxf
             {
                 if (moved)
                 {
-                    entity.GetTransformedCopy(transform);
+                    entity.TransformedCopy(transform, false);
                 }
             }
 

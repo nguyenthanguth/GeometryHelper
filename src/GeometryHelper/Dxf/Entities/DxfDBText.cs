@@ -59,6 +59,9 @@ namespace GeometryHelper.Dxf
         // Whether a transformation moves the record alone, its contexts left as they are (TransformRecordOnly).
         private bool _contextsStay;
 
+        // Whether a transformation moves the context shown alone, and the record where it is the default (MoveCopy).
+        private bool _shownAlone;
+
         // The contexts of an annotative text and the groups of its shown one as last read, kept until the records of its file
         // next change (TextContexts).
         private Tuple<DxfItem, int, ShownContexts, ContextGroups> _contexts;
@@ -680,9 +683,26 @@ namespace GeometryHelper.Dxf
             List<KeyValuePair<ContextGroups, double[]>> contexts = _contextsStay ? null : ContextsMoved(transform);
             List<KeyValuePair<ContextGroups, double[]>> lines = _contextsStay || embedded == null || !Embedded ? null : MTextContext.Moved(TextContexts()?.All, true, transform, Normal);
 
+            // A copy GetTransformedCopy moves has the context it is shown at moved alone, and the placing of its record only where
+            // that is the default: its height, width factor and lean, which the record holds for every context, are moved
+            // whichever it is, as AutoCAD 2021 moved its copy (check D35c).
+            ShownContexts shown = _shownAlone ? TextContexts() : null;
+            bool unplaced = shown != null && !shown.ShownIsDefault;
+
+            if (shown != null)
+            {
+                contexts = contexts?.FindAll(c => ReferenceEquals(c.Key.Item, shown.Shown));
+                lines = lines?.FindAll(c => ReferenceEquals(c.Key.Item, shown.Shown));
+            }
+
+            if (unplaced)
+            {
+                groups = Array.FindAll(groups, g => g.Key != 10 && g.Key != 20 && g.Key != 30 && g.Key != 11 && g.Key != 21 && g.Key != 31 && g.Key != 50);
+            }
+
             if (embedded != null)
             {
-                Rewrite(groups, null, embedded);
+                Rewrite(groups, null, unplaced ? null : embedded);
             }
             else
             {
@@ -694,21 +714,48 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Gives the copy of an annotative text, which holds no contexts, the placing its original is read at, as AutoCAD 2021's
-        /// copy reads (check D35b): its horizontal mode, point, second point, angle and height.
+        /// Moves a copy just made as AutoCAD 2021's <c>GetTransformedCopy</c> moves a text, attribute or definition: an annotative
+        /// one's context it is shown at alone, its record's placing where that is the default (check D35c).
         /// </summary>
-        private protected override void Copied(DxfEntity original)
+        private protected override void MoveCopy(GeoTransform3 transform)
         {
-            if (!(original is DxfDBText text) || text.TextContexts() == null)
+            _shownAlone = true;
+
+            try
             {
+                TransformBy(transform);
+            }
+            finally
+            {
+                _shownAlone = false;
+            }
+        }
+
+        /// <summary>
+        /// Gives a copy that carries contexts, added to a drawing that is not its original's, the placing it is read at, as
+        /// AutoCAD 2021's copy reads (check D35b): its horizontal mode, point, second point, angle and height, its contexts left
+        /// behind.
+        /// </summary>
+        private protected override void LeaveContexts()
+        {
+            if (TextContexts() == null)
+            {
+                base.LeaveContexts();
                 return;
             }
 
-            HorizontalMode = text.HorizontalMode;
-            Position = text.Position;
-            AlignmentPoint = text.AlignmentPoint;
-            Rotation = text.Rotation;
-            Height = text.Height;
+            DxfTextHorizontalMode mode = HorizontalMode;
+            GeoPoint3 position = Position;
+            GeoPoint3 alignment = AlignmentPoint;
+            double rotation = Rotation;
+            double height = Height;
+            base.LeaveContexts();
+            _contexts = null;
+            HorizontalMode = mode;
+            Position = position;
+            AlignmentPoint = alignment;
+            Rotation = rotation;
+            Height = height;
         }
 
         [DxfType("TEXT")]
@@ -1014,9 +1061,10 @@ namespace GeometryHelper.Dxf
         /// <c>set_mtext</c> do: the MTEXT's own groups embedded after a 101, those AutoCAD always writes put in where it lacks
         /// them; its text's part made to agree, its value as <see cref="ValueOfLines"/> gives it, the MTEXT's location its two points
         /// in the system of its plane, its direction its rotation, its attachment its justification, its style and height its
-        /// own, its width factor, lean and mirroring taken out; its 71 the type of an attribute of several lines.
+        /// own, its width factor, lean and mirroring taken out; its 71 the type of an attribute of several lines. Its first point
+        /// (10) is kept where <paramref name="keepPoint"/> is true, as AutoCAD's <c>IsMTextAttribute</c> setter keeps it.
         /// </summary>
-        private protected void SetMText(DxfMText value)
+        private protected void SetMText(DxfMText value, bool keepPoint = false)
         {
             // Null, what an attribute of one line reads, changes nothing on one.
             if (value == null && !Embedded)
@@ -1066,7 +1114,7 @@ namespace GeometryHelper.Dxf
             Rewrite(
                 Join(
                     text.Length > 0 ? Pair(1, ValueOfLines(value)) : new KeyValuePair<int, string>[0],
-                    TextPointGroups(10, location),
+                    keepPoint ? new KeyValuePair<int, string>[0] : TextPointGroups(10, location),
                     AlignmentGroups(location),
                     NumberGroup(50, degrees, TextDouble(50, 0.0)),
                     TextNormalGroups(normal),
@@ -1193,8 +1241,21 @@ namespace GeometryHelper.Dxf
             }
 
             Several();
-            var made = new DxfMText { Contents = AsContents(TextString) };
-            SetMText(Placed(made));
+            DxfMText made = Placed(new DxfMText { Contents = AsContents(TextString) });
+            int horizontal = TextInt(72, 0);
+
+            // Left, centred or right on its baseline, it is held by its top one height above, as AutoCAD 2021 makes it, whatever
+            // the font; its text's first point is kept whatever its justification (check D35c).
+            if (TextInt(VerticalCode, 0) == 0 && horizontal <= 2)
+            {
+                GeoVector3 up = DxfOcsTransform.Cross(made.Normal, made.Direction);
+                GeoPoint3 at = made.Location;
+                double height = Height;
+                made.Location = new GeoPoint3(at.X + up.X * height, at.Y + up.Y * height, at.Z + up.Z * height);
+                made.Attachment = (DxfAttachmentPoint)(horizontal + 1);
+            }
+
+            SetMText(made, true);
         }
 
         /// <summary>

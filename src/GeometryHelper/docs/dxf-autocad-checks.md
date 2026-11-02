@@ -1817,3 +1817,46 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       AutoCAD keeps `170 5` and `140 6.0` and the library, which reads the kinds of the rows for it only where the table
       leaves its title or header out, takes them; the row of M12 turned 0.5, which AutoCAD makes higher for the block
       (layout); and D33c's e13, settled.
+
+## Annotative copies, setters and attributes of several lines
+
+96. **Copies of annotative objects and what they hold; `SetAttachmentMovingLocation`, `Normal` and `BlockTransform` set on
+    annotative MTEXTs and INSERTs; attributes made of several lines of every justification; the box of an MTEXT scaled; an
+    ATTRIB flagged annotative in a block that is not.**
+    - Try (D35c, headless, plugin GHD35CA rounds r1, r2 and r3): D35b's drawings, the TEXT, MTEXT, ATTDEF and ATTRIB of two
+      contexts, 1:1 or 1:2 the default, and the valve of AutoCAD's sample, cloned, copied by `GetTransformedCopy` moved by
+      (10, 5), turned 30 degrees and scaled by 2, cloned and then moved, and copied and moved again once appended; the
+      MTEXT held by its middle left or top right, given the normal (0, 0.6, 0.8); the valve given that normal and the
+      placing to (50, 300) turned 0.5 and scaled by 3; drawings AutoCAD made: blocks not annotative of definitions left,
+      centred, right, top left, top centre, top right, middle, bottom left, middle left, turned, 5 high, in a TrueType
+      style and 0.7 wide, inserted turned 0.3 and scaled by 2 and plainly, each attribute and definition made of several
+      lines; an MTEXT in a box 20 high scaled by 2 and one turned 30 degrees given a normal; a block not annotative whose
+      definition was made annotative, its ATTRIB read flagged 1 with its context, without it, and flagged 0 with it; nine
+      drawings the library wrote read back.
+    - AutoCAD 2021: a copy keeps every context, in no database (`HasContext` of 1:1 and 1:2) and appended, under an
+      extension dictionary, AcDbContextDataManager and ACDB_ANNOTATIONSCALES of its own, the context records as they were;
+      an INSERT's copy appended has its attribute shown at both too. `TransformBy` of a copy, in no database or appended,
+      moves every context; `GetTransformedCopy` of an MTEXT or an INSERT so too, but of a TEXT or an ATTDEF it moves the
+      context shown alone, and the record's point and angle only where that is the default, its height, width factor and
+      lean in the record whichever it is (scaled by 2 where 1:2 is the default, its record 5 high, its context of 1:2 left
+      at (40, 12)). `SetAttachmentMovingLocation` moves by the width of the context shown (30, not the record's 40) and
+      writes that context, and the record where it is the default. `Normal` set on an MTEXT, annotative or not, keeps its
+      location and makes it read along the x axis of the new plane (turned 30 degrees, given (0, 0.6, 0.8), it reads along
+      (-1, 0, 0)), the context shown written, the others left. `Normal` set on an INSERT, annotative or not, keeps its points
+      in their plane: the record's point and every context left, so that it stands at (-113.883, -223.821, 167.866), or a
+      plain one at (-100, -80, 60). `BlockTransform` set writes the context shown, and the record where it is the default,
+      the others left. Made of several lines, an attribute or definition left, centred or right on its baseline is held by
+      its MTEXT's top left, centre or right one text height above its point (left) or its second point, turned with it,
+      whatever the font, its first point kept and its second point the MTEXT's location; a definition of any other
+      justification is held by that point at its second point; an ATTRIB of one is held where its font puts it. Scaled by 2,
+      an MTEXT 40 wide in a box 20 is 80 wide in one 40 high. An ATTRIB in a block not annotative is annotative where it
+      is flagged 1 and holds a context, shown at 1:1, and not where it is flagged 1 and holds none or flagged 0.
+    - Now: as AutoCAD for each of them but those below. Of 1 244 AutoCAD lines in rounds r1 and r2, 179 read apart at base
+      and 61 now; AutoCAD read the nine library drawings, copies with their written contexts among them, as the library reads
+      them (114 lines alike).
+    - Still apart: the noise of AutoCAD's matrices on a copy's height, width factor and lean (a lean of 360 degrees); an
+      ATTRIB made of several lines that is middle, bottom, aligned or fitted, or top and not of a definition, which AutoCAD
+      places by its font; the width factor an attribute keeps when it is made of several lines, which the library takes
+      out; `Normal` set on an MTEXT or an INSERT of no contexts, where the library keeps the MTEXT's turn and the INSERT's
+      place in the world; and the INSERT's `Position`, `Rotation`, `ScaleFactors`, `Normal` and `BlockTransform` set
+      carrying its attributes, the library's documented behaviour.
