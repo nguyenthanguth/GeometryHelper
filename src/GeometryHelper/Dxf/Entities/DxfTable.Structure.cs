@@ -674,9 +674,10 @@ namespace GeometryHelper.Dxf
         #region Merging
 
         /// <summary>
-        /// Merges a block of cells into one, as AutoCAD's <c>MergeCells</c>: each cell of it marked merged (173 of 1), its top
-        /// left cell given the block's width and height in cells (175, 176), the others 0 and 0, as <see cref="GetMergeRange"/>
-        /// reads them; the content of its top left cell is the block's, and the others are emptied as AutoCAD 2021 empties them
+        /// Merges a block of cells into one, as AutoCAD's <c>MergeCells</c>: its top left cell given the block's width and height
+        /// in cells (175, 176), as <see cref="GetMergeRange"/> reads them, and <c>173 0</c>, the others marked merged (173 of
+        /// 1), as AutoCAD 2021 wrote them (D33e w07); the content of its top left cell is the block's, and the others are
+        /// emptied as AutoCAD 2021 empties them
         /// (<see cref="EmptyMerged"/>), where the library kept them unseen; a cell of a row of the title's kind moved down by a
         /// row put in before it keeps the title's <c>140 6.0</c> of AutoCAD's Standard, and is given it for a height of its own
         /// (D33c k01, k02). A block of merged cells within the range becomes part
@@ -899,11 +900,12 @@ namespace GeometryHelper.Dxf
         /// (<see cref="RowKindLooks"/>); for a row of the title's or the header's kind out of its place, the looks AutoCAD keeps
         /// with that kind (<see cref="KindLooks"/>), <c>170 5</c> and <c>140 6.0</c> of its Standard for a title moved down by a
         /// row put in before it (D33c k01, k02, k05, D33b m18, m23). <paramref name="moved"/> marks those rows, null where none
-        /// is; null where no row has looks.
+        /// is; null where no row has looks. Without <paramref name="tables"/>, the looks of the table style alone, as the table's
+        /// own go: those of the rows out of their places, a row in its place given none.
         /// </summary>
-        private List<KeyValuePair<int, string>>[] ContentLooks(Layout layout, out bool[] moved)
+        private List<KeyValuePair<int, string>>[] ContentLooks(Layout layout, out bool[] moved, bool tables = true)
         {
-            List<KeyValuePair<int, string>>[] looks = RowKindLooks(layout);
+            List<KeyValuePair<int, string>>[] looks = tables ? RowKindLooks(layout) : null;
             int[] kept = KeptKinds(layout);
             int[] places = PlaceKinds(layout.Rows);
             List<KeyValuePair<int, string>>[] own = null;
@@ -913,7 +915,7 @@ namespace GeometryHelper.Dxf
             {
                 if (kept[r] != 2 && kept[r] != places[r])
                 {
-                    own = own ?? OwnLooks(layout);
+                    own = own ?? (tables ? OwnLooks(layout) : new[] { new List<KeyValuePair<int, string>>(), new List<KeyValuePair<int, string>>(), new List<KeyValuePair<int, string>>() });
                     looks = looks ?? new List<KeyValuePair<int, string>>[layout.Rows];
                     moved = moved ?? new bool[layout.Rows];
                     looks[r] = KindLooks(kept[r], own);
@@ -929,7 +931,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Unmerges the blocks of merged cells a range meets, as AutoCAD's <c>UnmergeCells</c>: each cell of them marked
-        /// unmerged (173, 175 and 176 of 0), each showing its own content again, and taken out of the merged ranges the table's
+        /// unmerged (173 of 0), the top left cell of each block given <c>175 1</c> and <c>176 1</c>, as AutoCAD 2021 wrote it
+        /// (D33e w08), each showing its own content again, and taken out of the merged ranges the table's
         /// TABLECONTENT lists; nothing where the range meets no block. The block AutoCAD drew the table with is not drawn anew.
         /// </summary>
         /// <param name="range">The cells, within the table.</param>
@@ -979,7 +982,11 @@ namespace GeometryHelper.Dxf
         /// table the copy meets unmerged. A field (344) a cell points at is the source cell's own, and is not copied: the copy
         /// holds the text the cell shows, so SkipField and SkipFormula are taken and change nothing. The ranges of cells linked to
         /// data wholly within the source range are linked alike, to the same DATALINKs, and those of this table the copy meets
-        /// taken out, as merges are. Cells past this table's last row or column are left out, unless
+        /// taken out, as merges are. A cell emptied while the drawing is open holds no content to give, as AutoCAD 2021 copied B-12
+        /// reset (D33e f10 to f13, f17, g07, g16): the cell copied to keeps its content, the looks of it and its kind of value,
+        /// and takes the look of the cell alone, its alignment, background and lines, unless SkipFormat; Mark given B-12 reset
+        /// loses its middle centre and keeps GH_TXT and 3.5. A cell given a content is no longer one emptied in the session
+        /// (D33e g14). Cells past this table's last row or column are left out, unless
         /// <see cref="DxfTableCopyOptions.ExpandOrContractTable"/> grows the table to hold them, its new rows and columns as high
         /// and wide as the source's; the library only grows a table with it, never
         /// shrinks one. The record is written once; the block AutoCAD drew the table with is not drawn anew. The
@@ -1061,6 +1068,7 @@ namespace GeometryHelper.Dxf
             bool content = (options & DxfTableCopyOptions.SkipContent) == 0;
             bool look = (options & DxfTableCopyOptions.SkipFormat) == 0;
             var cells = new List<KeyValuePair<int, string>>[rows * columns];
+            bool[] given = content && _session != null ? new bool[rows * columns] : null;
 
             for (int r = 0; r < rows; r++)
             {
@@ -1070,10 +1078,27 @@ namespace GeometryHelper.Dxf
 
                     if (r >= top && r < top + high && c >= left && c < left + wide)
                     {
-                        CellView cell = from.CellAt(taken.TopRow + r - top, taken.LeftColumn + c - left);
+                        int row = taken.TopRow + r - top;
+                        int column = taken.LeftColumn + c - left;
+                        CellView cell = from.CellAt(row, column);
 
-                        // Both copied as the source cell holds them; the look alone, or the content alone, with the other of the cell here.
-                        target = content && look ? WithoutField(Slice(cell)) : look ? WithLook(target, cell) : content ? WithLook(WithoutField(Slice(cell)), View(target)) : target;
+                        if (source.EmptiedInSession(from, row * from.Columns + column, cell))
+                        {
+                            // A cell emptied in the session holds no content to give: the cell here keeps its own and the
+                            // looks of it, and takes the other's look of the cell alone, as AutoCAD 2021 copied B-12 reset
+                            // (D33e f10 to f13, f17, g07, g16).
+                            target = look ? WithCellLook(target, cell) : target;
+                        }
+                        else
+                        {
+                            // Both copied as the source cell holds them; the look alone, or the content alone, with the other of the cell here.
+                            target = content && look ? WithoutField(Slice(cell)) : look ? WithLook(target, cell) : content ? WithLook(WithoutField(Slice(cell)), View(target)) : target;
+
+                            if (given != null)
+                            {
+                                given[r * columns + c] = true;
+                            }
+                        }
                     }
 
                     cells[r * columns + c] = target;
@@ -1119,8 +1144,10 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            // The cells of the table it grew by are of no mark of the session.
-            int[] places = rows != layout.Rows || columns != layout.Columns ? Places(rows, columns, (r, c) => r < layout.Rows && c < layout.Columns ? r * layout.Columns + c : -2) : null;
+            // The cells of the table it grew by are of no mark of the session, nor are those given a content (D33e g14).
+            int[] places = rows != layout.Rows || columns != layout.Columns || given != null
+                ? Places(rows, columns, (r, c) => r < layout.Rows && c < layout.Columns && (given == null || !given[r * columns + c]) ? r * layout.Columns + c : -2)
+                : null;
             Rebuild(layout, rows, columns, heights, widths, cells, blocks, links, places);
             return copied;
         }
@@ -1151,7 +1178,14 @@ namespace GeometryHelper.Dxf
         /// and to 15 significant figures, 0.1 and 0.2 going on to 0.3, written of six places from R2007 on (0.300000), a whole
         /// number where every source is one and so is the step; a source of a text that is no number is copied, the cell given
         /// its kind of value. Options of none of the three change nothing; a fill range that holds a cell of the source is
-        /// refused, as AutoCAD 2021 refused it (<c>eInvalidInput</c>). The numbers are those of a whole number or a number value,
+        /// refused, as AutoCAD 2021 refused it (<c>eInvalidInput</c>). A cell emptied while the drawing is open, reset, given an
+        /// empty text, put in, or emptied by a merge, holds no content to give: CopyContent leaves the target as it was, and
+        /// CopyFormat gives it the cell's own look alone, its alignment, background and lines, the target keeping its text
+        /// style, height, colour and kind of value, as AutoCAD 2021 filled Z from B-12 reset (D33d a16, D33e f01 to f19, g01 to
+        /// g13); one read of no value from the file is copied as none. With GenerateSeries a cell of no value, of either kind,
+        /// gives the target none of no kind of value (<c>91 0</c>), CopyContent given or not (D33e f04, f05, g08, g20, g21). A
+        /// cell given a content is no longer one emptied in the session (D33e g12, g14). The numbers are those of a whole
+        /// number or a number value,
         /// or before R2007 a text that reads as one. A date is not carried on: the library knows no groups of a date value. The
         /// record is written once; the block AutoCAD drew the table with is not drawn anew.
         /// </summary>
@@ -1185,7 +1219,8 @@ namespace GeometryHelper.Dxf
 
             bool content = (options & DxfTableFillOptions.CopyContent) != 0;
             bool look = (options & DxfTableFillOptions.CopyFormat) != 0;
-            bool series = (options & DxfTableFillOptions.GenerateSeries) != 0 && !content;
+            bool seriesGiven = (options & DxfTableFillOptions.GenerateSeries) != 0;
+            bool series = seriesGiven && !content;
 
             if (!content && !look && !series)
             {
@@ -1197,6 +1232,9 @@ namespace GeometryHelper.Dxf
             int count = end - start + 1;
             int lines = along ? sourceRange.BottomRow - sourceRange.TopRow + 1 : sourceRange.RightColumn - sourceRange.LeftColumn + 1;
             bool changed = false;
+
+            // The cells given a content, which leave their marks of the session behind them (D33e g12, g14).
+            bool[] given = _session != null ? new bool[cells.Length] : null;
             List<DxfCellRange> blocks = Blocks(layout);
             bool[] hidden = Hidden(blocks, layout.Rows, layout.Columns);
 
@@ -1210,13 +1248,17 @@ namespace GeometryHelper.Dxf
                 // the most precise of them is written to.
                 var sources = new CellView[count];
                 var numbers = new double[count];
+                var emptied = new bool[count];
                 bool numeric = true;
                 bool whole = true;
                 int places = 0;
 
                 for (int k = 0; k < count; k++)
                 {
-                    sources[k] = along ? layout.CellAt(sourceRange.TopRow + line, start + k) : layout.CellAt(start + k, sourceRange.LeftColumn + line);
+                    int sourceRow = along ? sourceRange.TopRow + line : start + k;
+                    int sourceColumn = along ? start + k : sourceRange.LeftColumn + line;
+                    sources[k] = layout.CellAt(sourceRow, sourceColumn);
+                    emptied[k] = EmptiedInSession(layout, sourceRow * layout.Columns + sourceColumn, sources[k]);
                     numeric &= NumberOf(sources[k], out numbers[k], out bool isWhole, out int decimals);
                     whole &= isWhole;
                     places = Math.Max(places, decimals);
@@ -1251,11 +1293,28 @@ namespace GeometryHelper.Dxf
                         continue;
                     }
 
-                    CellView source = sources[copy && back ? count - 1 - (to - place) % count : (place - from) % count];
+                    int which = copy && back ? count - 1 - (to - place) % count : (place - from) % count;
+                    CellView source = sources[which];
                     List<KeyValuePair<int, string>> target = cells[r * layout.Columns + c];
                     List<KeyValuePair<int, string>> made;
 
-                    if (series && numeric)
+                    // A series of a cell of no value gives the target none, of no kind of value (91 0), as AutoCAD 2021 gave it,
+                    // with CopyContent too, the cell read of no value or emptied in the session (D33e f04, f05, g08, g20, g21).
+                    int kindFlag = seriesGiven && OfNoValue(source) ? 0 : DataTypeFlag;
+
+                    if (!seriesGiven && emptied[which])
+                    {
+                        // A cell emptied in the session holds no content to give: the target keeps its content, the looks of it
+                        // and its kind of value, and takes with CopyFormat the cell's own look alone (D33d a16, D33e f01 to f19,
+                        // g01 to g07, g13, g16).
+                        if (!look)
+                        {
+                            continue;
+                        }
+
+                        made = WithCellLook(target, source);
+                    }
+                    else if (series && numeric)
                     {
                         // On from the last number through the fill range, or back from the first in reverse, the fill range's
                         // last cell next to it.
@@ -1268,7 +1327,8 @@ namespace GeometryHelper.Dxf
                     }
                     else if (content && !look)
                     {
-                        made = WithFlags(WithLook(WithoutField(Slice(source)), View(target)), View(target).Flags);
+                        int? flags = View(target).Flags;
+                        made = WithFlags(WithLook(WithoutField(Slice(source)), View(target)), flags.HasValue && kindFlag == 0 ? flags.Value & ~DataTypeFlag : flags);
                     }
                     else if (look && !content && !series)
                     {
@@ -1279,7 +1339,14 @@ namespace GeometryHelper.Dxf
                         // The cell whole, or a series of texts that are no numbers: the content copied, the cell given its kind
                         // of value.
                         made = WithoutField(Slice(source));
-                        made = look ? made : WithFlags(WithLook(made, View(target)), (View(target).Flags ?? 0) | DataTypeFlag);
+                        made = look ? made : WithFlags(WithLook(made, View(target)), kindFlag == 0 ? (View(target).Flags ?? 0) & ~DataTypeFlag : (View(target).Flags ?? 0) | DataTypeFlag);
+                    }
+
+                    // A cell given a content is no longer one emptied in the session, a clear writing one of no value given it as
+                    // one read so (D33e g12, g14); one given a look alone keeps its marks.
+                    if (given != null && (content || seriesGiven))
+                    {
+                        given[r * layout.Columns + c] = true;
                     }
 
                     changed |= !SameGroups(made, target);
@@ -1289,8 +1356,53 @@ namespace GeometryHelper.Dxf
 
             if (changed)
             {
-                Rebuild(layout, layout.Rows, layout.Columns, null, null, cells, blocks, Links(layout));
+                int[] at = given == null ? null : Places(layout.Rows, layout.Columns, (r, c) => given[r * layout.Columns + c] ? -2 : r * layout.Columns + c);
+                Rebuild(layout, layout.Rows, layout.Columns, null, null, cells, blocks, Links(layout), at);
             }
+        }
+
+        /// <summary>
+        /// Whether a cell, by its index in the layout, was emptied in the session (<see cref="SessionEmptied"/>) and holds no
+        /// value still: one AutoCAD 2021 holds no content of, which a fill or a copy has nothing to give from (D33e).
+        /// </summary>
+        private bool EmptiedInSession(Layout layout, int index, CellView cell) => (MarksOf(layout, index) & SessionEmptied) != 0 && cell.HoldsNoValue();
+
+        /// <summary>Whether a cell of R2007 holds a value of none (the flag 1 of its 93) and no text, read so or emptied.</summary>
+        private static bool OfNoValue(CellView cell)
+            => cell.ValueFrom >= 0 && int.TryParse(cell.InValue(93)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int flags) && (flags & 1) != 0 && cell.Text().Length == 0;
+
+        /// <summary>
+        /// A cell's groups given the look of a cell emptied in the session, as AutoCAD 2021's CopyFormat and CopyFrom gave it
+        /// (D33e g06, g07, g16): the other's look of the cell, its alignment, background and lines, as <see cref="WithLook"/>
+        /// gives it, the cell keeping its text style, text height and colour and its kind of value, the looks of a content the
+        /// other has none of. B-12, reset of the table of its own data looks, gives Z its top left alone.
+        /// </summary>
+        private static List<KeyValuePair<int, string>> WithCellLook(List<KeyValuePair<int, string>> target, CellView source)
+        {
+            CellView own = View(target);
+            var kept = new List<KeyValuePair<int, string>>();
+
+            foreach (int code in new[] { 7, 140, 64 })
+            {
+                string held = own.Override(code, Layout.CellOverrides[code]);
+
+                if (held != null)
+                {
+                    kept.Add(new KeyValuePair<int, string>(code, held));
+                }
+            }
+
+            CellView look = View(Slice(source));
+            look.RemoveOverrides(0x08 | 0x10 | 0x20);
+            CellView cell = View(WithLook(target, look));
+
+            foreach (KeyValuePair<int, string> group in kept)
+            {
+                cell.SetOverride(group.Key, group.Value, cell.ValueFrom >= 0 ? 91 : 177);
+                cell = View(cell.Groups.List);
+            }
+
+            return cell.Groups.List;
         }
 
         /// <summary>The cells blocks of merged cells hide, all but each block's top left, row by row; null where no block hides one.</summary>
@@ -1971,9 +2083,10 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// A cell's groups with its merging as asked: merged or not (173), and as the top left of a block its width and height in
-        /// cells (175, 176), 0 and 0 for the rest; the groups as they are where the cell reads so already, a cell of 173 of 1 and
-        /// 175 and 176 of 1 among a block's cells as AutoCAD's own as one of 0 and 0, and a top left cell of the spans asked
-        /// whatever its 173, as AutoCAD writes its own 173 0.
+        /// cells (175, 176); the groups as they are where the cell reads so already, a cell of 173 of 1 and 175 and 176 of 0
+        /// among a block's cells as one of 1 and 1, and a top left cell of the spans asked whatever its 173. A cell changed is
+        /// written as AutoCAD 2021 wrote its own (D33e w07, w08): a block's top left cell 173 0 and its spans, its other cells
+        /// 173 1, and a top left cell unmerged 175 1 and 176 1.
         /// </summary>
         private static List<KeyValuePair<int, string>> Merged(List<KeyValuePair<int, string>> groups, int merged, int width, int height)
         {
@@ -1989,16 +2102,17 @@ namespace GeometryHelper.Dxf
             }
 
             CellView cell = View(groups);
+            int flag = corner ? 0 : merged;
 
-            if ((nowMerged != 0) != (merged != 0))
+            if ((nowMerged != 0) != (flag != 0))
             {
-                cell.SetHead(173, merged.ToString(CultureInfo.InvariantCulture));
+                cell.SetHead(173, flag.ToString(CultureInfo.InvariantCulture));
             }
 
             if (corner || cornerNow)
             {
-                cell.SetHead(175, width.ToString(CultureInfo.InvariantCulture));
-                cell.SetHead(176, height.ToString(CultureInfo.InvariantCulture));
+                cell.SetHead(175, (corner ? width : 1).ToString(CultureInfo.InvariantCulture));
+                cell.SetHead(176, (corner ? height : 1).ToString(CultureInfo.InvariantCulture));
             }
 
             return cell.Groups.List;
@@ -2142,7 +2256,8 @@ namespace GeometryHelper.Dxf
         /// An empty text cell that takes its look from the table style, as AutoCAD writes one: before R2007 its text in 1, from
         /// R2007 on its value of none between <c>301 CELL_VALUE</c> and <c>304 ACVALUE_END</c>, of the flags 7 and the kind 0 and
         /// no data, as AutoCAD 2021 wrote the new cells of its <c>InsertRows</c>, <c>InsertColumns</c> and <c>SetSize</c>, which it
-        /// reads as of no value, where it read an empty text the library wrote as a value of an empty text.
+        /// reads as of no value, where it read an empty text the library wrote as a value of an empty text; of no block of merged
+        /// cells, <c>175 1</c> and <c>176 1</c>, as AutoCAD wrote them (D33d a02 to a13).
         /// </summary>
         private static List<KeyValuePair<int, string>> NewCell(bool valued)
         {
@@ -2152,8 +2267,8 @@ namespace GeometryHelper.Dxf
                 new KeyValuePair<int, string>(172, "0"),
                 new KeyValuePair<int, string>(173, "0"),
                 new KeyValuePair<int, string>(174, "0"),
-                new KeyValuePair<int, string>(175, "0"),
-                new KeyValuePair<int, string>(176, "0"),
+                new KeyValuePair<int, string>(175, "1"),
+                new KeyValuePair<int, string>(176, "1"),
                 new KeyValuePair<int, string>(valued ? 91 : 177, "0"),
                 new KeyValuePair<int, string>(178, "0"),
                 new KeyValuePair<int, string>(145, "0.0"),

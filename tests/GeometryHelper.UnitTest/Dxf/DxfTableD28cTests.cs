@@ -304,11 +304,12 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(table.IsHeaderSuppressed);
             Assert.Equal(DxfRowType.DataRow, table.RowType(1));
 
+            // D33e m03, n02: the header left out stays so through the clear, as AutoCAD 2021 kept it (93 2, 281 1).
             table.ClearTableStyleOverrides(1);
             DxfTable cleared = Reread(db);
             Assert.Equal(1.5, cleared.HorizontalCellMargin);
-            Assert.False(cleared.IsHeaderSuppressed);
-            Assert.Contains(" 93\n0\n 94\n0\n 95\n0\n 96\n0\n141\n10.0\n", Record(db.ToText(), "F6"), StringComparison.Ordinal);
+            Assert.True(cleared.IsHeaderSuppressed);
+            Assert.Contains(" 93\n2\n 94\n0\n 95\n0\n 96\n0\n281\n1\n141\n10.0\n", Record(db.ToText(), "F6"), StringComparison.Ordinal);
 
             // The table's own text height of its data there is scaled with it, and given the cells of none of their own.
             DxfDatabase scaled = DxfDatabase.Parse(RowLooks());

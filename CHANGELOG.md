@@ -27,6 +27,41 @@ annotative as the dynamic block is where its anonymous block is not. An INSERT o
 one, that holds no context is shown at 1:1 (`HasContext`), whatever CANNOSCALE says, and `RemoveContext` of that scale
 refuses it as the last.
 
+**CHANGED.** A `DxfTable.Fill` with `CopyContent`, with `CopyFormat` or not, and a `CopyFrom` of a cell emptied while the
+drawing is open (reset, given an empty text, put in by `SetSize` or `InsertRows`, or emptied by a merge) leave the target's
+content as it was, as AutoCAD 2021 did (check D33e): Z filled from B-12 reset stays Z, where the library emptied it. A
+format copied from such a cell gives the target its alignment, background and lines alone, the target keeping its text
+style, height, colour and kind of value. A cell read of no value from the file is copied as none, as before. With
+`GenerateSeries`, `CopyContent` given or not, a source of no value gives the target none of no kind (`91 0`), where the
+library kept or gave the flag 0x40000. A cell given a content by a fill or a copy is no longer one emptied in the session,
+so `ClearTableStyleOverrides` writes one given none `93 5`, `90 512`.
+
+**CHANGED.** `DxfTable.ClearTableStyleOverrides` of 0 or 2 and `RemoveAllOverrides` turn a cell's text or block back to
+nought (145), as AutoCAD 2021 did (check D33e t01 to t11): B-12 turned 90 degrees reads 0 after a clear, where the
+library kept the turn. `RemoveAllOverrides` of a block cell takes its flag 0x40000 away too.
+
+**CHANGED.** `DxfTable.ClearTableStyleOverrides` of any option keeps the title and the header left out (`280`, `281` and
+bits 0 and 1 of `93`), where the library took them away; of 0 or 2 it keeps in the cells of a row of the title's or the
+header's kind out of its place the looks of its kind, and so does `RemoveAllOverrides` where the table leaves its title or
+header out, as AutoCAD 2021 did (check D33e m01 to m10, n01 to n09): the table given a row before its title and cleared of 0 writes `93 3`, `280 1`, `281 1`, its title cells
+`170 5` and `140 6.0` and its header cells `170 5`, and AutoCAD then merges the new first row on load as it merges its
+own file's (D33d s08). Existing test changed: `DxfTableD28cTests.TheTablesOwnOverridesInItsHead_AreReadAsAutoCadWritesThem`,
+which expected the header shown again after a clear of 1. A clear of 0 or 2 reads the TABLECONTENT for the kinds of the
+rows: on a table of 400 rows it takes 20 ms on .NET Framework 4.8, where it took 8, and 12 to 19 ms on .NET 10, where it
+took 3 to 4; the other edits of the table are as fast as before.
+
+**CHANGED.** From R2007 on, `DxfTable.SetValue` and `SetTextString` give a cell the flag of its kind of value
+(`91 262144`) where it has it not, a cell reset, read of no value or put in, as AutoCAD 2021 did (check D33e w01 to w10);
+the library wrote `91 0`, which AutoCAD read alike.
+
+**CHANGED.** `DxfTable.MergeCells` writes the block's top left cell `173 0`, and `UnmergeCells` it `175 1`, `176 1`, and
+the new cells of `InsertRows`, `InsertColumns`, `SetSize` and a `CopyFrom` that grows the table are written `175 1`,
+`176 1`, as AutoCAD 2021 writes them (check D33e w07, w08, w11); the library wrote `173 1` and `175 0`, `176 0`, which
+AutoCAD read alike. Existing tests changed: in `DxfTableStructureTests`,
+`RowsPutIn_TakeTheirPlaceAndHeight_AndTheRowsBelowMoveDown`,
+`RowsAndColumnsTakenOut_ShrinkTheBlocksTheyCross_AndOneLeftOfOneCellIsUnmerged` and
+`CellsMerged_AreMarkedInEveryCell_TheirBlockOnItsTopLeft_AndUnmergedTakeAllBack`, which held the old groups.
+
 **CHANGED.** `DxfTable.ClearTableStyleOverrides` of 0 or 2 leaves every cell emptied while the drawing is open of its value
 of none (`93 7`, `90 0`), wherever rows or columns put in or taken out moved it since, as AutoCAD 2021 did (check D33d:
 of 35 edits, AutoCAD read the library's files of 32 as its own): a cell reset or given an empty text, even one of no

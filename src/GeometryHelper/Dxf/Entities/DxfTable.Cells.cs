@@ -23,10 +23,11 @@ namespace GeometryHelper.Dxf
         // The flags of DxfUnitType, of which a unit is made: Distance to Percentage, and AngleNotTransformed.
         private const int UnitFlags = 0x1003F;
 
-        // The groups of the table's own overrides after its last cell, as the DXF reference lists them.
+        // The groups of the table's own overrides after its last cell, as the DXF reference lists them, which a clear takes away;
+        // not its 280 and 281, its title and header left out, which AutoCAD 2021 kept through a clear (D33e m01, n01).
         private static readonly HashSet<int> TableOverrides = new HashSet<int>
         {
-            70, 40, 41, 280, 281, 7, 140, 170, 63, 64, 65, 66, 68, 69, 283, 274, 275, 276, 277, 278, 279, 284, 285, 286, 287, 288, 289, 97, 98, 4,
+            70, 40, 41, 7, 140, 170, 63, 64, 65, 66, 68, 69, 283, 274, 275, 276, 277, 278, 279, 284, 285, 286, 287, 288, 289, 97, 98, 4,
         };
 
         #region The cells walked
@@ -316,7 +317,9 @@ namespace GeometryHelper.Dxf
         /// <see cref="DxfDataType.Double"/>. From R2007 on the value is written of its kind (90), in 91, 140 or 1, its text
         /// (302) the number as the invariant culture writes it, 7, its unit (94) kept and its format (300) taken away, as
         /// AutoCAD 2021 wrote 100.125 given to a cell of 1 in <c>%lu4%pr3</c> (D33 u7), its flags (93) made 6 where they had
-        /// the flag 1 of no value, as AutoCAD writes a value it is given; the text of a number of its kind
+        /// the flag 1 of no value, as AutoCAD writes a value it is given, and the cell given the flag of its kind of value
+        /// (0x40000) where it has it not, a cell reset or read of no value written <c>91 262144</c> as AutoCAD 2021 wrote it
+        /// (D33e w01, w03 to w06); the text of a number of its kind
         /// <see cref="DxfDataType.Double"/> as AutoCAD 2021 wrote it and showed it, of six places of decimals, 12.500000 for
         /// 12.5 (D28e v09, w30 to w33), where the library wrote 12.5, which AutoCAD showed as it was. Before R2007 a cell holds a text alone, and the value is
         /// written as its text, as <see cref="SetTextString(int, int, string)"/> writes one, a number as the invariant culture
@@ -362,10 +365,26 @@ namespace GeometryHelper.Dxf
 
             CheckEditable();
             string field = cell.Head(344);
+            Typed(cell);
             cell.WriteValue(((int)written.Kind).ToString(CultureInfo.InvariantCulture), written.Data, shown, null, string.Empty, true);
             cell.DropField();
             cell.Groups.Write(Order);
             EraseFields(new[] { field });
+        }
+
+        /// <summary>
+        /// Gives a cell of R2007 that a value is written into the flag of its kind of value (0x40000), as AutoCAD 2021's
+        /// <c>SetValue</c> and <c>SetTextString</c> gave a cell reset, read of no value or put in (91 0 made 91 262144, D33e w01,
+        /// w03 to w06, w09, w10); the other flags kept. Nothing before R2007, whose cell holds its text alone.
+        /// </summary>
+        private static void Typed(CellView cell)
+        {
+            int flags = cell.Flags ?? 0;
+
+            if (cell.ValueFrom >= 0 && (flags & DataTypeFlag) == 0)
+            {
+                cell.SetFlags(flags | DataTypeFlag, 91);
+            }
         }
 
         /// <summary>Sets the value of a content of a cell, as AutoCAD's <c>SetValue(row, column, contentIndex, value)</c>: of its one content, nought, as <see cref="SetValue(int, int, object)"/>.</summary>
@@ -1511,9 +1530,12 @@ namespace GeometryHelper.Dxf
         /// wherever they stand outside its value (AutoCAD 2021 writes them before its 92, the library after its value), their
         /// 18 flags and the edges of its edge flags (172), as AutoCAD 2021's own wrote the cell (1, 0) of 170 5, 7 GH_TXT and
         /// 140 3.5 before its 92 as 91 262144 and nothing else, and a cell of 172 9 as 172 0 (D28c x1 to x3); a flag the file
-        /// gives no groups for, as that of its kind of value (0x40000), is kept. The block AutoCAD drew the table with is not
-        /// drawn anew. The cell's groups alone are written, the rest of the record copied as it is: the overrides of every cell
-        /// of a table of 403 rows taken away one by one in about 2 s, where writing the whole record each time took 6.
+        /// gives no groups for, as that of its kind of value (0x40000), is kept, but by a block cell. The turn of its text or
+        /// block (145) is made nought, and a cell of a row of the title's or the header's kind moved out of its place, the table
+        /// leaving its title or header out, keeps the looks of its kind, the title moved down by a row put in before it
+        /// <c>170 5</c> and <c>140 6.0</c>, as AutoCAD 2021 wrote them (D33e t04, t08, t09, m07, n09). The block AutoCAD drew the table with is not drawn anew. The cell's groups
+        /// alone are written, the rest of the record copied as it is: the overrides of every cell of a table of 403 rows taken
+        /// away one by one in about 2 s, where writing the whole record each time took 6.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="column">The column, from nought.</param>
@@ -1524,8 +1546,10 @@ namespace GeometryHelper.Dxf
             MergeAsLoaded();
             Layout layout = Read();
             CellView cell = layout.CellOf(row, column);
+            bool turned = IsTurned(cell);
+            bool typed = cell.Whole(171, 1) == (int)DxfTableCellType.BlockCell && ((cell.Flags ?? 0) & DataTypeFlag) != 0;
 
-            if ((((cell.Flags ?? 0) | cell.Held()) & CellOverrideFlags) == 0)
+            if ((((cell.Flags ?? 0) | cell.Held()) & CellOverrideFlags) == 0 && !turned && !typed)
             {
                 return;
             }
@@ -1533,9 +1557,40 @@ namespace GeometryHelper.Dxf
             CheckEditable();
 
             // The cell's own groups alone written anew in the place of their bytes, the rest of the record copied as it is: a
-            // cell of a table of 400 rows costs a reading of its record, not a writing of every group of it.
+            // cell of a table of 400 rows costs a reading of its record, not a writing of every group of it. Its turn made
+            // nought, and a block cell's flag of its kind of value taken out, as AutoCAD 2021 wrote them (D33e t04, t08, t09).
             CellView alone = View(Slice(cell));
             alone.RemoveOverrides(CellOverrideFlags);
+            alone = View(alone.Groups.List);
+
+            if (turned)
+            {
+                alone.SetHead(145, "0.0");
+            }
+
+            if (typed)
+            {
+                alone.SetFlags((alone.Flags ?? 0) & ~DataTypeFlag, 177);
+            }
+
+            // A row of the title's or the header's kind moved out of its place, the table leaving its title or header out, keeps
+            // the looks of its kind, as AutoCAD 2021 kept 170 5 and 140 6.0 in the title moved down (D33e m07, n09). The kinds of
+            // the rows are read from the TABLECONTENT only then, as reading them at every cell made the overrides of 397 cells
+            // taken away one by one twice as slow.
+            bool[] moved = null;
+            List<KeyValuePair<int, string>>[] looks = IsTitleSuppressed || IsHeaderSuppressed ? ContentLooks(layout, out moved) : null;
+
+            foreach (KeyValuePair<int, string> look in moved != null && moved[row] ? looks[row] : new List<KeyValuePair<int, string>>())
+            {
+                alone.SetOverride(look.Key, look.Value, Item.File.Supports(1021) ? 91 : 177);
+                alone = View(alone.Groups.List);
+            }
+
+            if (SameGroups(alone.Groups.List, Slice(cell)))
+            {
+                return;
+            }
+
             var places = new List<int>();
             Item.File.OwnGroupsOf(Item, 0, places);
             int first = layout.Groups.Marked ? 1 : 0;
@@ -1580,9 +1635,15 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Takes away what the table and its cells hold of their own over the table style, as AutoCAD's
         /// <c>ClearTableStyleOverrides(options)</c>: 0 both, 1 the table's alone, 2 its cells' alone. The table's are the groups
-        /// the DXF reference lists as its overrides (70, 40, 41, 280, 281, the looks by row and borders, 97, 98 and 4), after its
-        /// last cell where the library writes them or in its head after its flags where AutoCAD 2021 writes them, and its flags
-        /// 93 to 96 set to nought; a cell's are those <see cref="RemoveAllOverrides(int, int)"/> takes away. Of 0 and 2, as
+        /// the DXF reference lists as its overrides (70, 40, 41, the looks by row and borders, 97, 98 and 4), after its last cell
+        /// where the library writes them or in its head after its flags where AutoCAD 2021 writes them, and its flags 93 to 96
+        /// set to nought; its title and header left out (280, 281 and their flags, bits 0 and 1 of 93) stay so, as AutoCAD 2021
+        /// kept them, the table given a row before its title writing <c>93 3</c>, <c>280 1</c>, <c>281 1</c> still (D33e m01,
+        /// m03, n01, n02). A cell's are those <see cref="RemoveAllOverrides(int, int)"/> takes away, its turn (145) made nought
+        /// (D33d b01, D33e t01, t02, t06, t07). Of 0 and 2 a cell of a row of the title's or the header's kind out of its place
+        /// keeps the looks of its kind, as AutoCAD 2021 kept <c>170 5</c> and <c>140 6.0</c> in the title moved down and
+        /// <c>170 5</c> in the header (D33e m01 to m10, n06), so that it merges the first row on load as it merges its own.
+        /// Of 0 and 2, as
         /// AutoCAD 2021 wrote them, each cell of no value is given the empty one of no kind (<c>93 5</c>, <c>90 512</c>) and
         /// each block cell loses the flag of its kind of value (0x40000), and of 2 each cell takes as its own the looks the
         /// table keeps of its own for its row's kind, so that it shows them still: the table of its own data of 5 high and
@@ -1614,6 +1675,11 @@ namespace GeometryHelper.Dxf
             // drawing is open holds as the table's (D33b c18).
             List<KeyValuePair<int, string>>[] tables = options == 1 && _session != null ? RowKindLooks(layout) : null;
 
+            // Of 0 and 2, the looks each row's cells are given as their own, read before anything goes: of 2 the table's own of
+            // the row's kind; of both, for a row of the title's or the header's kind out of its place, the looks of its kind, of
+            // the table style alone where the table's own go with the clear (D33e m01 to m10, n05 to n07).
+            List<KeyValuePair<int, string>>[] looks = options != 1 ? ContentLooks(layout, out _, options == 2) : null;
+
             if (options != 2)
             {
                 int own = layout.CellStart.Count > 0 ? layout.CellsEnd : g.List.Count;
@@ -1638,19 +1704,23 @@ namespace GeometryHelper.Dxf
                 {
                     int code = g.List[i].Key;
 
-                    if (code >= 93 && code <= 96 && g.List[i].Value.Trim() != "0")
+                    // The title and the header left out stay so, their flags (bits 0 and 1 of 93) kept with their 280 and 281,
+                    // as AutoCAD 2021 kept them (D33e m01, m03, m04, n01, n02).
+                    string flags = code != 93 ? "0" : ((int.TryParse(g.List[i].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int read) ? read : 0) & 3).ToString(CultureInfo.InvariantCulture);
+
+                    if (code >= 93 && code <= 96 && g.List[i].Value.Trim() != flags)
                     {
-                        g.List[i] = new KeyValuePair<int, string>(code, "0");
+                        g.List[i] = new KeyValuePair<int, string>(code, flags);
                     }
                 }
             }
 
             // The cells' overrides marked, each group left where it stands, then taken out of the list in one pass. A value of
             // none becomes the empty one of no kind (93 5, 90 512) and a block cell loses the flag of its kind of value, as
-            // AutoCAD 2021 wrote every cell of its fill table cleared (D33b c14), in place before.
+            // AutoCAD 2021 wrote every cell of its fill table cleared (D33b c14), in place before; the turn of a text or a
+            // block (145) is made nought, as AutoCAD 2021 made it (D33d b01, D33e t01 to t11).
             if (options != 1)
             {
-                List<KeyValuePair<int, string>>[] looks = options == 2 ? RowKindLooks(layout) : null;
                 var marked = new bool[g.List.Count];
                 int cells = Math.Min(layout.Rows * layout.Columns, layout.CellStart.Count);
 
@@ -1665,6 +1735,11 @@ namespace GeometryHelper.Dxf
                         Cleared(cell);
                     }
 
+                    if (IsTurned(cell))
+                    {
+                        cell.SetHead(145, "0.0");
+                    }
+
                     if ((((cell.Flags ?? 0) | cell.Held()) & CellOverrideFlags) != 0)
                     {
                         cell.MarkOverrides(CellOverrideFlags, marked);
@@ -1674,7 +1749,8 @@ namespace GeometryHelper.Dxf
                 g.RemoveMarked(marked);
 
                 // Of 2, each cell given the table's own looks of its row's kind as its own, as AutoCAD 2021 gave them (D33b c03,
-                // c06, c12), last cell first so that the places of those before stay as read.
+                // c06, c12), and of 0 and 2 a row out of its kind's place the looks of its kind (D33e m01 to m10), last cell first
+                // so that the places of those before stay as read.
                 if (looks != null)
                 {
                     var cleared = new Layout(g);
@@ -1684,7 +1760,7 @@ namespace GeometryHelper.Dxf
                     {
                         CellView cell = cleared.CellAt(k / cleared.Columns, k % cleared.Columns);
 
-                        foreach (KeyValuePair<int, string> look in looks[k / cleared.Columns])
+                        foreach (KeyValuePair<int, string> look in looks[k / cleared.Columns] ?? new List<KeyValuePair<int, string>>())
                         {
                             cell.SetOverride(look.Key, look.Value, flagsCode);
                         }
@@ -1803,6 +1879,13 @@ namespace GeometryHelper.Dxf
                     break;
                 }
             }
+        }
+
+        /// <summary>Whether a cell's text or block is turned (its 145 a number not nought), which a clear of its overrides takes back.</summary>
+        private static bool IsTurned(CellView cell)
+        {
+            string turn = cell.Head(145);
+            return turn != null && !(Numbers.TryRead(turn, out double angle) && angle == 0.0);
         }
 
         private static DxfCellProperties PropertiesOf(int flags)

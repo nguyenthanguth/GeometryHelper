@@ -71,8 +71,8 @@ namespace GeometryHelper.UnitTest.Dxf
                 // A new cell is of the form of its file: its text in 1 before R2007, in its value from R2007 on.
                 bool r2000 = text == DxfDimensionDrawings.R2000;
                 string fresh = r2000
-                    ? "171\n1\n172\n0\n173\n0\n174\n0\n175\n0\n176\n0\n177\n0\n178\n0\n145\n0.0\n  1\n\n171\n"
-                    : "171\n1\n172\n0\n173\n0\n174\n0\n175\n0\n176\n0\n 91\n0\n178\n0\n145\n0.0\n 92\n0\n301\nCELL_VALUE\n 93\n7\n 90\n0\n 94\n0\n300\n\n302\n\n304\nACVALUE_END\n171\n";
+                    ? "171\n1\n172\n0\n173\n0\n174\n0\n175\n1\n176\n1\n177\n0\n178\n0\n145\n0.0\n  1\n\n171\n"
+                    : "171\n1\n172\n0\n173\n0\n174\n0\n175\n1\n176\n1\n 91\n0\n178\n0\n145\n0.0\n 92\n0\n301\nCELL_VALUE\n 93\n7\n 90\n0\n 94\n0\n300\n\n302\n\n304\nACVALUE_END\n171\n";
                 Assert.Contains(fresh, TableRecord(saved), StringComparison.Ordinal);
 
                 // Rows put in after the last, and before the first, which becomes the title.
@@ -144,7 +144,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(new[] { 40.0 }, Widths(again));
                 Assert.False(again.IsMergedCell(0, 0, out _));
                 Assert.Equal("Parts", again.TextString(0, 0));
-                Assert.Contains("173\n0\n174\n0\n175\n0\n176\n0\n", TableRecord(readDb.ToText()).Substring(0, TableRecord(readDb.ToText()).IndexOf("Parts", StringComparison.Ordinal)), StringComparison.Ordinal);
+                Assert.Contains("173\n0\n174\n0\n175\n1\n176\n1\n", TableRecord(readDb.ToText()).Substring(0, TableRecord(readDb.ToText()).IndexOf("Parts", StringComparison.Ordinal)), StringComparison.Ordinal);
 
                 Refused<ArgumentOutOfRangeException>(() => read.DeleteRows(0, 2), "one row at least left");
                 Refused<ArgumentOutOfRangeException>(() => read.DeleteColumns(0, 0), "one or more");
@@ -465,7 +465,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 OnlyTheseChanged(text, saved, "F6");
                 DxfTable read = Table(DxfDatabase.Parse(saved));
                 Assert.All(new[] { (0, 0), (0, 1), (1, 0), (1, 1) }, p => Assert.Equal(new DxfCellRange(0, 0, 1, 1), read.GetMergeRange(p.Item1, p.Item2)));
-                Assert.Contains("173\n1\n174\n0\n175\n2\n176\n2\n", TableRecord(saved), StringComparison.Ordinal);
+                Assert.Contains("173\n0\n174\n0\n175\n2\n176\n2\n", TableRecord(saved), StringComparison.Ordinal);
                 Assert.Equal("Parts", read.TextString(0, 0));
                 Assert.Equal(string.Empty, read.TextString(1, 1));
 

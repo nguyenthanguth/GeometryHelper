@@ -801,7 +801,9 @@ namespace GeometryHelper.Dxf
         /// given as letters or as escapes, are a 3 of 250 escapes and a 1 of 50 (AutoCAD reads a cell in groups 2 as empty, and
         /// the escapes of each piece alone); from R2007 on its value written as a text (90 of 4), in pieces of 2 and a last 1, and
         /// its text in pieces of 303 and a last 302, the value's flags (93) made 6 where they had the flag 1 of no value, which
-        /// AutoCAD 2021 reads as none whatever the text (a block cell made a text cell and given M16 read empty). An empty text
+        /// AutoCAD 2021 reads as none whatever the text (a block cell made a text cell and given M16 read empty), and the cell
+        /// given the flag of its kind of value (91 262144) where it has it not, as AutoCAD 2021 gave a cell reset (D33e w10).
+        /// An empty text
         /// is, from R2007 on, the value of none <see cref="ResetValue"/> leaves, as AutoCAD 2021 wrote it (93 7, 90 0, the flag
         /// 0x40000 taken out, D33c r09, D33d s01 to s10), the looks of the content gone with it as there, whatever the cell held:
         /// B-12, 1.5 or the empty text of the title's hidden cell given an empty text are of no value. A pointer to a
@@ -849,6 +851,7 @@ namespace GeometryHelper.Dxf
 
             CheckEditable();
             string field = cell.Head(344);
+            Typed(cell);
             cell.SetText(value);
             cell.Groups.Write(Order);
             EraseFields(new[] { field });

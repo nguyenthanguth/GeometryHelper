@@ -1779,3 +1779,41 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       extents, which AutoCAD works out from the font; an ATTRIB flagged 1 in a block that is not annotative, not seen (AutoCAD
       read nothing of the drawing made for it); and `SetAttachmentMovingLocation`, `Normal` and `BlockTransform` set on an
       annotative MTEXT or INSERT of contexts, which still write the record alone.
+
+## Tables: copies of a cell emptied in the session, the turn and the rows out of place a clear keeps, a value's flag
+
+95. **A fill or a copy of a cell emptied in the session; a series of a cell of no value; the turn a clear takes; a title
+    and a header moved down, cleared; the flags of a value set; the merging groups of a merge and of a new cell.**
+    - Try (D33e, headless, plugin GHD33E rounds EA, EB and read-backs R1 to R3): fills of every option and `CopyFrom` of
+      none, `SkipFormat` and `SkipContent` from B-12 reset, a cell given an empty text, put in by `SetSize` or
+      `InsertRows`, emptied by a merge undone, the block cell M12 reset, B-12 reset and given a value again, and from a cell
+      read of no value; a series of such cells; `ClearTableStyleOverrides` of 0, 1 and 2 and `RemoveAllOverrides` of B-12
+      turned 90 degrees and of M12 turned 0.5; the tables given a row before the title or the header, or one taking the
+      title's look, then cleared or their cells' overrides removed; `IsTitleSuppressed` and `IsHeaderSuppressed` set and
+      cleared; `SetValue` and `SetTextString` of cells reset, read of no value and put in; a merge and a merge undone (f01
+      to f19, g01 to g21, t01 to t13, m01 to m10, n01 to n09, w01 to w11), and the library's files of the 75 edits and of
+      D33b to D33d's 65 read back, nine of them variants of s08.
+    - AutoCAD 2021: a cell emptied in the session holds no content: `Fill` with `CopyContent`, with `CopyFormat` or not,
+      and `CopyFrom` leave the target as it was (Z stays Z), and a format copied gives it the cell's own alignment,
+      background and lines alone, the target keeping its text style, height, colour and kind of value (B-12 reset of the
+      table of its own data looks gives Z its top left alone, `91 262145`; Mark given B-12 by `CopyFrom` loses its middle
+      centre and keeps GH_TXT and 3.5). A cell reset and given a value again is copied as any. A cell read of no value is
+      copied as none, the target keeping its flags. With `GenerateSeries`, `CopyContent` given or not, a source of no value
+      of either kind empties the target of no kind (`91 0`), and a clear then writes it `93 5`, `90 512`; so does a cell put
+      in and given the whole of one read of no value. `ClearTableStyleOverrides` of 0 or 2 and `RemoveAllOverrides` turn
+      the text and the block back to nought (145), set in the session or read; of 1 they stay; `RemoveAllOverrides` of a
+      block cell takes its flag 0x40000. A clear of any option keeps the title and the header left out (`93 3`, `280 1`,
+      `281 1`, and `93 1` or `93 2` set by the property), and of 0 or 2, and `RemoveAllOverrides`, keep in a row of the
+      title's or the header's kind out of its place the looks of its kind (`170 5`, `140 6.0`; the header `170 5`), a row
+      moved down or put in taking the title's look alike, and
+      AutoCAD merges the new first row on load where the head says the title is left out (V-s08: the head alone decides).
+      `SetValue` and `SetTextString` give a cell of `91 0` the flag `91 262144`. A merge's top left cell is `173 0`, a cell
+      unmerged and a new cell `175 1`, `176 1`.
+    - Now: as AutoCAD for each of them but those below. AutoCAD read the library's files of 73 of the 75 edits, and of 64
+      of D33b to D33d's 65, as it read its own, D33d's a16, b01 and s08 among them.
+    - Still apart: a clear of 2 of the table of its own data looks after a row put in before its title (n05), where AutoCAD
+      gives the old rows of data the data's looks back as their own, which the row put in had moved into them and the
+      library takes away; `RemoveAllOverrides` of a row put in taking the title's look, the title shown (n07), where
+      AutoCAD keeps `170 5` and `140 6.0` and the library, which reads the kinds of the rows for it only where the table
+      leaves its title or header out, takes them; the row of M12 turned 0.5, which AutoCAD makes higher for the block
+      (layout); and D33c's e13, settled.
