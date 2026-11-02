@@ -909,7 +909,11 @@ and reactors, so that a group that held the line holds the circle, with the line
 where the flags keep them, else its own and none; the line's extended data kept where it has none leaves the circle its own,
 as AutoCAD 2021 keeps it. The line is in no file from then on, a copy of what it was. A copy of an annotative TEXT handed
 the place writes its contexts where the line's extension dictionary is not kept, as `AppendEntity` writes them; kept, the
-line's dictionary stands for the copy's, as AutoCAD writes it.
+line's dictionary stands for the copy's, as AutoCAD writes it. Kept, a dictionary of contexts of another kind of entity is
+refused before anything is written, since AutoCAD 2021 keeps such contexts unconverted and crashed reading its own drawings
+of them: a TEXT of contexts handed over to an MTEXT keeping its dictionary throws `ArgumentException`, as do an MTEXT handed
+to a TEXT, an INSERT to a TEXT and a TEXT to an INSERT. A TEXT, an ATTDEF and an ATTRIB take one another's contexts, which
+AutoCAD read; a LINE, never annotative, takes any. Not keeping the dictionary, the new entity writes contexts of its own.
 
 `GeometricExtents` is the box of its shapes, a `GeoAabb3`; an entity with none, an IMAGE or a LINE of no length, throws, as
 AutoCAD throws for an entity with no extents. A text has no fonts here, so its box is the point it stands at. `GetPlane()`
@@ -1233,9 +1237,11 @@ is `db.ObjectContextManager.GetContextCollection("ACDB_ANNOTATIONSCALES")`, Auto
 `DxfAnnotationScale`, a SCALE of ACAD_SCALELIST with its `Name`, `PaperUnits` and `DrawingUnits`, so that 1:50 is 1 to 50 and
 its `Scale` 0.02, in the order of the dictionary; `CurrentContext` is the one `Cannoscale` names, and renaming it renames
 CANNOSCALE, refused before anything is written where the drawing cannot write that variable.
-`AddContext(new DxfAnnotationScale { Name = "1:100", PaperUnits = 1, DrawingUnits = 100 })` adds a scale under the first entry
-name A0, A1 and on the list has not, the list made where a drawing of R2007 or later has none, and a scale of as many units of
-the paper as of the drawing made the unit scale where the list has none; `RemoveContext("1:100")` takes it out, refused for
+`AddContext(new DxfAnnotationScale { Name = "1:100", PaperUnits = 1, DrawingUnits = 100 })` adds a scale under the entry
+name AutoCAD 2021 gives one, `*A1`, `*A2` and on, one more than the highest the list has or was given while the drawing is
+open, so that a number taken out is not given again (AutoCAD's own scales, named A0 to B6, are read as they are), the list
+made where a drawing of R2007 or later has none, and a scale of as many units of the paper as of the drawing made the unit
+scale where the list has none; `RemoveContext("1:100")` takes it out, refused for
 the unit scale, the current scale and a scale an object points at. `Annotative` reads the extended data AcadAnnotative of a
 TEXT, an MTEXT, an attribute, a dimension, a leader, a multileader (or its own 293), a tolerance, a hatch, a style or a block,
 an INSERT reading its block's, and gives `NotApplicable` for a line. Set true, it makes a text style or a dimension style

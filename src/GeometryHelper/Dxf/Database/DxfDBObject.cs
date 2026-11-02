@@ -617,6 +617,13 @@ namespace GeometryHelper.Dxf
         /// AcadAnnotative among it, as AutoCAD 2021 keeps it.
         /// </para>
         /// <para>
+        /// Kept, the dictionary's contexts are not converted, as AutoCAD 2021 converts none, and those of another kind of entity
+        /// are refused: AutoCAD crashed reading its own drawings of a TEXT handed over to an MTEXT, an MTEXT to a TEXT, an INSERT
+        /// to a TEXT and a TEXT to an INSERT, each keeping its dictionary (check D35e). A TEXT, an ATTDEF and an ATTRIB take one
+        /// another's contexts, which AutoCAD read; an MTEXT and an INSERT their own; an entity never annotative, as a LINE, any;
+        /// a dimension, a leader, a multileader, a tolerance and a hatch those of their own class alone.
+        /// </para>
+        /// <para>
         /// Entities alone hand their place over: a record of a table, a dictionary and the other objects of the OBJECTS section
         /// are refused, as is a VERTEX or an ATTRIB, which belongs to the entity it follows.
         /// </para>
@@ -628,8 +635,9 @@ namespace GeometryHelper.Dxf
         /// dictionary out of the drawing, with what it holds.</param>
         /// <exception cref="ArgumentNullException">Thrown when the new object is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the new object is this one, is in a file already or erased, or is one
-        /// this drawing's version cannot hold, as <see cref="DxfBlockTableRecord.AppendEntity"/> refuses it; nothing is
-        /// written then.</exception>
+        /// this drawing's version cannot hold, as <see cref="DxfBlockTableRecord.AppendEntity"/> refuses it; or when the
+        /// extension dictionary is kept and holds contexts of a kind the new object does not take, as a TEXT's handed over to
+        /// an MTEXT; nothing is written then.</exception>
         /// <exception cref="InvalidOperationException">Thrown when this object is in no file, or is erased.</exception>
         /// <exception cref="NotSupportedException">Thrown when either object is not an entity, or this one follows another.</exception>
         public void HandOverTo(DxfDBObject newPointer, bool keepXData, bool keepExtensionDictionary)
@@ -660,6 +668,11 @@ namespace GeometryHelper.Dxf
             {
                 throw new ArgumentException("The object to take the place is to be in no file: the " + newPointer + " is in one, or erased.", nameof(newPointer));
             }
+
+            // AutoCAD 2021 keeps the contexts unconverted, and crashes reading a drawing of those of another kind (check D35e).
+            string foreign = keepExtensionDictionary ? ForeignContext(made) : null;
+            Guard.Argument(foreign == null, nameof(newPointer), "The " + _item.Type + " " + (_item.Handle ?? string.Empty) + " holds contexts of the kind " + foreign + ", which the "
+                + made.Item.Type + " taking its place does not take: AutoCAD 2021 keeps them as they are and crashes reading the drawing. Hand the place over keeping no extension dictionary, and the new entity writes contexts of its own.");
 
             made.Appending(entity.Owner as DxfBlockTableRecord);
 

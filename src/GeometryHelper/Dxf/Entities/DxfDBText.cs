@@ -53,8 +53,8 @@ namespace GeometryHelper.Dxf
         private static readonly GeoPoint3 Origin = new GeoPoint3(0.0, 0.0, 0.0);
 
         // The records of the contexts of an annotative TEXT, and of an ATTRIB or ATTDEF, as AutoCAD 2021 writes them (check D35).
-        private const string TextContextType = "ACDB_TEXTOBJECTCONTEXTDATA_CLASS";
-        private const string AttributeContextType = "ACDB_MTEXTATTRIBUTEOBJECTCONTEXTDATA_CLASS";
+        internal const string TextContextType = "ACDB_TEXTOBJECTCONTEXTDATA_CLASS";
+        internal const string AttributeContextType = "ACDB_MTEXTATTRIBUTEOBJECTCONTEXTDATA_CLASS";
 
         // Whether a transformation moves the record alone, its contexts left as they are (TransformRecordOnly).
         private bool _contextsStay;

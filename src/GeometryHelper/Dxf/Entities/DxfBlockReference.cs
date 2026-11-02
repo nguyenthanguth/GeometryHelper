@@ -54,7 +54,7 @@ namespace GeometryHelper.Dxf
         // The record of a context of an INSERT of an annotative block, as AutoCAD 2021 writes it, and its groups the library
         // reads and writes, in their slots: the angle in degrees (50), the insertion point (10, 20, 30) and the scale factors
         // (41, 42, 43) (check D35b).
-        private const string ContextType = "ACDB_BLKREFOBJECTCONTEXTDATA_CLASS";
+        internal const string ContextType = "ACDB_BLKREFOBJECTCONTEXTDATA_CLASS";
         private static readonly int[] ContextCodes = { 50, 10, 20, 30, 41, 42, 43 };
         private const int AtDegrees = 0;
         private const int AtX = 1;

@@ -65,6 +65,18 @@ namespace GeometryHelper
         }
 
         /// <summary>
+        /// Refuses an argument of which a condition does not hold.
+        /// </summary>
+        /// <exception cref="ArgumentException">Thrown when the condition is false.</exception>
+        internal static void Argument(bool holds, string name, string message)
+        {
+            if (!holds)
+            {
+                throw new ArgumentException(message, name);
+            }
+        }
+
+        /// <summary>
         /// Refuses a count above a most, worked out in 64 bits so that a product of two counts cannot wrap round past it.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the count is above the most.</exception>

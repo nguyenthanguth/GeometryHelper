@@ -6,6 +6,18 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `HandOverTo` keeping the extension dictionary refuses one of contexts of another kind of entity with
+`ArgumentException`, before anything is written, where it wrote a drawing AutoCAD 2021 crashed reading (check D35e). A TEXT
+of contexts handed over to an MTEXT left the MTEXT the TEXT's records, and AutoCAD stopped with a FATAL access violation on
+the drawing; it crashed as well on a TEXT of an MTEXT's or an INSERT's records and on an INSERT of a TEXT's. A TEXT, an
+ATTDEF and an ATTRIB still take one another's contexts and a LINE any, as AutoCAD read them; not keeping the dictionary,
+the new entity writes contexts of its own, as before.
+
+**CHANGED.** `DxfObjectContextCollection.AddContext` names the entry of a scale `*A1`, `*A2` and on, as AutoCAD 2021
+names it, where the library gave the first of `A0`, `A1` and on the list had not: one more than the highest number the
+list has or was given while the drawing is open, so that Z4 added once Z3 (`*A3`) is taken out is `*A4` (check D35e).
+AutoCAD's own scales, named A0 to B6, are read as before, and AutoCAD read the library's `*A` names beside them.
+
 **CHANGED.** `DxfTable` keeps the looks of each row with the row while the drawing is open, as AutoCAD 2021 keeps them in
 its ROWTABLEFORMAT, the table's own looks of a kind those of its first row of that kind (check D33g, D33f a04, a07, a09).
 A row `InsertRows` or `SetSize` puts in keeps none: `ClearTableStyleOverrides(2)` writes its cells `91 0`, where the

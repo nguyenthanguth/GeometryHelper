@@ -119,7 +119,7 @@ namespace GeometryHelper.UnitTest.Dxf
             string saved = db.ToText();
             OnlyTheseChanged(text, saved, "14", twenty.Handle);
             Assert.Equal("  0\nSCALE\n  5\n" + twenty.Handle + "\n102\n{ACAD_REACTORS\n330\n14\n102\n}\n330\n14\n100\nAcDbScale\n 70\n0\n300\n1:20\n140\n1\n141\n20\n290\n0\n", Record(saved, twenty.Handle));
-            Assert.EndsWith("  3\nA2\n350\nF2\n  3\nA3\n350\n" + twenty.Handle + "\n", Record(saved, "14"), StringComparison.Ordinal);
+            Assert.EndsWith("  3\nA2\n350\nF2\n  3\n*A1\n350\n" + twenty.Handle + "\n", Record(saved, "14"), StringComparison.Ordinal);
             Assert.Equal(new[] { "1:1", "1:50", "1:100", "1:20" }, Scales(DxfDatabase.Parse(saved)).Select(s => s.Name));
 
             // A name the list has, letters of either case the same, is refused, as AutoCAD answers eDuplicateKey; and a scale
@@ -246,7 +246,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfDBDictionary list = (DxfDBDictionary)db.NamedObjectsDictionary.GetAt("ACAD_SCALELIST");
             Assert.NotEqual("14", list.Handle);
-            Assert.Equal("A0", list.Single().Key);
+            Assert.Equal("*A1", list.Single().Key);
             Assert.Equal(new[] { "1:50" }, Scales(DxfDatabase.Parse(db.ToText())).Select(s => s.Name));
 
             DxfDatabase r2004 = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018.Replace("AC1032", "AC1018").Replace(Entry, string.Empty));

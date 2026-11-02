@@ -13,10 +13,11 @@ namespace GeometryHelper.Dxf
     /// </summary>
     /// <remarks>
     /// <para>
-    /// A drawing AutoCAD saved lists its scales, 1:1, 1:2 and on, as SCALEs whose entries are named <c>A0</c>, <c>A1</c> and on;
-    /// a drawing of ezdxf holds the dictionary empty. <c>scales.AddContext(new DxfAnnotationScale { Name = "1:50", PaperUnits = 1,
-    /// DrawingUnits = 50 })</c> adds the scale of a plan in millimetres drawn at 1:50, its entry named by the first such name the
-    /// list has not; <c>RemoveContext("1:50")</c> takes it out again where nothing uses it.
+    /// A drawing AutoCAD saved lists its own scales, 1:1, 1:2 and on, as SCALEs whose entries are named <c>A0</c>, <c>A1</c> and
+    /// on, and those added to it as <c>*A1</c>, <c>*A2</c> and on; a drawing of ezdxf holds the dictionary empty.
+    /// <c>scales.AddContext(new DxfAnnotationScale { Name = "1:50", PaperUnits = 1, DrawingUnits = 50 })</c> adds the scale of a
+    /// plan in millimetres drawn at 1:50, its entry named <c>*A1</c> in a list of none added; <c>RemoveContext("1:50")</c> takes
+    /// it out again where nothing uses it.
     /// </para>
     /// </remarks>
     public sealed class DxfObjectContextCollection : IEnumerable<DxfObjectContext>
@@ -82,8 +83,10 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Adds a scale made in code to the list, as AutoCAD's <c>AddContext</c>: a SCALE at the end of the OBJECTS section, owned
-        /// by ACAD_SCALELIST and named in it by the first of <c>A0</c>, <c>A1</c> and on it has not, its name (300), units
-        /// (140, 141) and the flag of the unit scale (290) written as AutoCAD writes them, the flag 1 for a scale of as many units
+        /// by ACAD_SCALELIST and named in it as AutoCAD 2021 names one, <c>*A</c> and one more than the highest number of such a
+        /// name the list has or was given while the drawing is open: Z1, Z2 and Z3 added are <c>*A1</c>, <c>*A2</c> and
+        /// <c>*A3</c>, and Z4 added once Z3 is taken out is <c>*A4</c> (check D35e). Its name (300), units (140, 141) and the
+        /// flag of the unit scale (290) are written as AutoCAD writes them, the flag 1 for a scale of as many units
         /// of the paper as of the drawing, 1:1, where the list has no unit scale, as AutoCAD keeps one, else 0; the class SCALE listed in the
         /// CLASSES section where it is not. The dictionary ACAD_SCALELIST is added to the named object dictionary where it has
         /// none, in a file of R2007 (AC1021) or later, the version of AutoCAD 2008, which brought the list. The scale stands for
@@ -290,25 +293,28 @@ namespace GeometryHelper.Dxf
             return ListOf(_database);
         }
 
-        /// <summary>The first of <c>A0</c>, <c>A1</c> and on the list has no entry of, as AutoCAD names the entries of its scales.</summary>
-        private static string NewKey(DxfDBDictionary list)
+        /// <summary>
+        /// The name of the entry of a scale added, as AutoCAD 2021's <c>AddContext</c> names it (check D35e): <c>*A</c> and one
+        /// more than the highest number of such a name the list has or was given while the drawing is open, <c>*A1</c> where
+        /// there is none, so that the number of one taken out is not given again.
+        /// </summary>
+        private string NewKey(DxfDBDictionary list)
         {
-            var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            long highest = _database.ScaleEntriesGiven;
 
             foreach (DxfDBDictionaryEntry entry in list)
             {
-                keys.Add(entry.Key.Trim());
-            }
+                string key = entry.Key.Trim();
 
-            for (int n = 0; ; n++)
-            {
-                string key = "A" + n.ToString(CultureInfo.InvariantCulture);
-
-                if (!keys.Contains(key))
+                if (key.Length > 2 && key.StartsWith("*A", StringComparison.OrdinalIgnoreCase)
+                    && long.TryParse(key.Substring(2), NumberStyles.None, CultureInfo.InvariantCulture, out long n) && n > highest)
                 {
-                    return key;
+                    highest = n;
                 }
             }
+
+            _database.ScaleEntriesGiven = highest + 1;
+            return "*A" + _database.ScaleEntriesGiven.ToString(CultureInfo.InvariantCulture);
         }
     }
 }

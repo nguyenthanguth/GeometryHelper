@@ -828,6 +828,49 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// The kind of the first context the object holds that an entity of the kind of <paramref name="made"/> does not take,
+        /// as AutoCAD 2021 left a TEXT's under an MTEXT it was handed over to and crashed reading the drawing (check D35e); null
+        /// where each one fits. A TEXT, an ATTDEF and an ATTRIB take those of a TEXT and of an attribute, which AutoCAD read
+        /// under one another; an MTEXT and an INSERT their own; an entity never annotative, as a LINE, any, as AutoCAD read a
+        /// LINE of a TEXT's; one of the other annotative kinds, whose records are not checked, those of its own class alone.
+        /// </summary>
+        internal string ForeignContext(DxfEntity made)
+        {
+            string kind = made.Item.Type;
+
+            foreach (KeyValuePair<string, DxfItem> entry in ContextEntries())
+            {
+                string type = entry.Value.Type;
+                bool fits;
+
+                switch (kind)
+                {
+                    case "TEXT":
+                    case "ATTDEF":
+                    case "ATTRIB":
+                        fits = type == DxfDBText.TextContextType || type == DxfDBText.AttributeContextType;
+                        break;
+                    case "MTEXT":
+                        fits = type == DxfMText.ContextType;
+                        break;
+                    case "INSERT":
+                        fits = type == DxfBlockReference.ContextType;
+                        break;
+                    default:
+                        fits = !AnnotativeEntities.Contains(kind) || made.GetType() == GetType();
+                        break;
+                }
+
+                if (!fits)
+                {
+                    return type;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Gives a copy in no file, just made of the object, copies held in no file of the records of the contexts the object
         /// holds, its own and those of each ATTRIB of an INSERT, as AutoCAD 2021's <c>Clone</c> keeps them (check D35c); nothing
         /// for an object of none.

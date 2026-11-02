@@ -86,6 +86,9 @@ namespace GeometryHelper.Dxf
         /// <summary>The file the drawing is kept in.</summary>
         internal DxfFile File { get; }
 
+        /// <summary>The highest number of an entry <c>*A</c> given a scale added while the drawing is open (check D35e).</summary>
+        internal long ScaleEntriesGiven { get; set; }
+
         /// <summary>The text of the writer's drawing with no shape, its header naming a version from R2000 on.</summary>
         private static string Empty(string version)
         {

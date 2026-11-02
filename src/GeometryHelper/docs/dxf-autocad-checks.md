@@ -1977,3 +1977,40 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       `140 6.0`); the title moved down merged anew over a column `SetSize` puts in (g05); the value of a cell of a row put in
       taking the look of a row put in (h03, h04, `String:` for none); and the setters of a kind's looks, which the library
       has not.
+
+## `HandOverTo` keeping a dictionary of another kind's contexts, the names of the scales added, an annotative INSERT of no context
+
+100. **What AutoCAD makes of an entity handed over to one of another kind keeping its extension dictionary, and whether it
+    reads the drawing; the names of the entries of the scales it adds; the extension dictionary of an annotative INSERT
+    of no context.**
+    - Try (D35e, headless, plugin GHD35EA rounds r1 and r2, each drawing that might crash AutoCAD read in a run of its own
+      by GHD35ER): in D35d's H0, the TEXT T1 handed over to a clone of the MTEXT M1, M1 to a clone of T1, the INSERT of ANB
+      to T1 and T1 to the INSERT, the ATTDEF MSDEF to T1 and T1 to MSDEF, T1 to a new LINE, keeping the extended data and
+      the extension dictionary, and the first three not keeping the dictionary; AutoCAD's files of them read back; the
+      library's files of seven handovers its guard lets through, read back; a new drawing given the scales Z1, Z2 and
+      Z3, one of them taken out and Z4 added, and AutoCAD's file of it read again; an INSERT of an annotative block made in
+      code, written, and read again.
+    - AutoCAD 2021: keeping the dictionary, the new entity holds the old one's contexts as they were, unconverted, of
+      whatever kind: an MTEXT of ACDB_TEXTOBJECTCONTEXTDATA_CLASS, a TEXT of ACDB_MTEXTOBJECTCONTEXTDATA_CLASS or of
+      ACDB_BLKREFOBJECTCONTEXTDATA_CLASS, an INSERT of a TEXT's, a LINE of a TEXT's, each shown at 1:1 and 1:2 while the
+      drawing is open. It crashed reading four of its own drawings: the MTEXT of a TEXT's contexts (FATAL access violation,
+      D35d's A5), the TEXT of an MTEXT's and the TEXT of an INSERT's (exception 0xc0000409 in acdb24, no message), and the
+      INSERT of a TEXT's (FATAL access violation). It read the TEXT of an ATTDEF's contexts
+      (ACDB_MTEXTATTRIBUTEOBJECTCONTEXTDATA_CLASS) and the ATTDEF of a TEXT's at 1:1 and 1:2, and the LINE of a TEXT's at
+      none. Not keeping it, the new entity writes contexts of its own kind. Its `AddContext` names the entries `*A1`, `*A2`,
+      `*A3`, beside its own scales named A0 to B6; Z3 taken out, Z4 is `*A4`, and Z1 and Z4 taken out, Z5 is `*A5`: a number
+      given is not given again while the drawing is open. Read again, the entries are numbered anew, `*A1`, `*A3` and `*A4`
+      reading `*A1`, `*A2` and `*A3`. An INSERT of an annotative block made in code has no extension dictionary, and
+      AutoCAD writes none; reading the drawing, AutoCAD gives it one of a context of 1:1, its default, at the INSERT's
+      point, angle and scale.
+    - Now: `HandOverTo` keeping the dictionary refuses one of contexts of another kind, before anything is written
+      (`ArgumentException`): a TEXT, an ATTDEF and an ATTRIB take one another's, an MTEXT and an INSERT their own, an
+      entity never annotative any, a dimension, a leader, a multileader, a tolerance and a hatch those of their own class.
+      AutoCAD read the library's seven files of what is let through, each in a run of its own, as it read its own. The
+      entries of the scales the library adds are named as AutoCAD names them; AutoCAD read the library's `*A1`, `*A3` and
+      `*A4` beside AutoCAD's own. The library writes no extension dictionary for an annotative INSERT of no context, as
+      AutoCAD writes none, and reads it at 1:1.
+    - Still apart: the entries of the scales a drawing read holds, which the library keeps as they are where AutoCAD
+      numbers them anew; the extension dictionary AutoCAD makes for an annotative INSERT of no context as it reads a
+      drawing, which the library does not make, its context of 1:1 read all the same; and a LINE holding contexts, which
+      `HasContext` reads where AutoCAD reads none.

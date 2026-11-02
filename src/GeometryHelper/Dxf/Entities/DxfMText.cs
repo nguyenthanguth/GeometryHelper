@@ -56,7 +56,7 @@ namespace GeometryHelper.Dxf
         private static readonly GeoPoint3 Origin = new GeoPoint3(0.0, 0.0, 0.0);
 
         // The record of a context of an annotative MTEXT, as AutoCAD 2021 writes it (check D35b).
-        private const string ContextType = "ACDB_MTEXTOBJECTCONTEXTDATA_CLASS";
+        internal const string ContextType = "ACDB_MTEXTOBJECTCONTEXTDATA_CLASS";
 
         // The contexts of an annotative MTEXT and the groups of its shown one as last read, kept until the records of its file
         // next change (Shown).
