@@ -84,7 +84,8 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // D33b w10, w24, w25, w29, w30, w08, w09, w37 and m08, m15: a text, a space, nought or a block in a cell after the
             // first, or a block merged down from the row, kept AutoCAD from merging it; a colour, background or alignment alone
-            // did not (w22, w23, w31, m25).
+            // did not (w22, w23, w31, m25). Each state is made in the session that unmerges the title, as AutoCAD made it: a file
+            // read with the title unmerged has it merged at its first edit (D33c e01 to e20).
             foreach (Action<DxfTable> fill in new Action<DxfTable>[]
             {
                 t => t.SetValue(0, 1, "X"),
@@ -94,7 +95,8 @@ namespace GeometryHelper.UnitTest.Dxf
                 t => t.MergeCells(new DxfCellRange(0, 0, 1, 0)),
             })
             {
-                DxfDatabase db = Unmerged(2);
+                DxfDatabase db = DxfDatabase.Parse(DxfDimensionDrawings.R2018);
+                Table(db).UnmergeCells(new DxfCellRange(0, 0, 0, 1));
                 fill(Table(db));
                 db = DxfDatabase.Parse(db.ToText());
                 DxfCellRange before = Table(db).GetMergeRange(0, 0);

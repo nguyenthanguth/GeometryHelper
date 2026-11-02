@@ -332,6 +332,8 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentException("The data link " + dataLink + " is not one of the table's drawing, or is erased.", nameof(dataLink));
             }
 
+            MergeAsLoaded();
+
             // A TABLECONTENT ACDB_RECOMPOSE_DATA does not list is listed with the link, and the links it names then read with it.
             bool listed = ContentItem() == null || Listed();
 

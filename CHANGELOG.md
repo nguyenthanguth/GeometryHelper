@@ -6,6 +6,34 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** The first edit of a `DxfTable` while its drawing is open, whatever it is (`SetValue`, `InsertRows`, `SetSize`,
+`Fill`, a look, a line, `TransformBy` and the rest), merges first the rows AutoCAD 2021 merges when it loads a file, where
+`DeleteRows` and `DeleteColumns` alone did, and writes them merged, as AutoCAD writes them whenever it saves, edited or not
+(check D33c, 20 edits of a table read with its title unmerged, read back): the title Parts left unmerged over an empty
+cell comes out merged across the table after a row is put in, a value set or the table moved. Later edits merge nothing,
+so that a title unmerged in the session stays so, and a table read and not edited is written as it was read. Edits of
+the entity alone (a colour, a layer) do not merge. Existing test changed to build its states in the session that
+unmerges the title, as AutoCAD built them: `DxfTableD33bTests.AFirstRowThatHoldsMoreThanItsFirstCell_IsLeftUnmerged`.
+
+**CHANGED.** `DxfTable.Fill` above (or left of) its source and longer than it repeats the source back from the fill
+range's last cell, the source's last next to it, in whole lengths of the source, and leaves the cells of a length that
+would reach before the table's first row or column as they are, as AutoCAD 2021 filled them (check D33c, 589 fills, every
+one read alike): 2.5 and 3.5 filled into rows 10 to 12 give 3.5, 2.5 and 3.5, where the library gave 2.5, 3.5 and 2.5, and
+four sources from column 7 filled into columns 0 to 6 fill 3 to 6 alone. A cell a block of merged cells hides is left as
+it is: the title's second cell filled from Parts stays empty. A fill below or right of its source, one no longer than it,
+and a series are as they were.
+
+**CHANGED.** `DxfTable.ResetValue` takes the looks of the content away with the value, as AutoCAD 2021 did (check D33c r01
+to r07): the cell's own text style, text height and colour, but those alike the table's own looks of its row's kind, and
+its turn, made nought; its alignment, background and lines are kept. B-12 of GH_TXT, 5 high, red, turned 90 degrees and
+bottom right on green keeps bottom right on green. `ClearTableStyleOverrides` of 0 or 2 leaves a cell reset while the
+drawing is open of its value of none (`93 7`, `90 0`), and of 1 takes from it the looks it kept alike the table's, as
+AutoCAD did (D33b c16 to c18); the library wrote `93 5`, `90 512` and kept the looks.
+
+**CHANGED.** `DxfTable.MergeCells` leaves the hidden cell of a row of the title's kind moved down by a row put in before it
+the title's `140 6.0` of AutoCAD's Standard, and gives it back for a height of its own, 3.0 made 6.0, as AutoCAD 2021 wrote
+it, merged in the session or on load (check D33c k01 to k05, D33b m18, m23); the library took it away.
+
 **NEW.** `DxfSpline.FitData` fits by the parameters `SqrtChord` and `Uniform` too, as AutoCAD 2021 does (check D32b): the
 same cubic, open, closed or periodic, its knots going up by the square root of each chord or by 1, through five points the
 knots 0 to 4 and AutoCAD's control points to 3E-14, written as AutoCAD writes it with no fit points, tangents or fit

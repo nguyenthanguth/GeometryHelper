@@ -1584,3 +1584,36 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       not found (no Gauss or Simpson rule of a fixed count gives them); the direction a fit tolerance moves a fit point (not
       the curve's normal, its bend's gradient or a least-squares fit of fewer points); `ModifyPositionAndTangent` of a
       periodic spline, which AutoCAD works on its periodic form (70 3339) and the library on its clamped one.
+## Tables: every edit made on the rows merged on load, fills above their source, `ResetValue`'s looks
+
+90. **The rows AutoCAD merges when it loads a table, written at every edit; a fill into a hidden cell and above its source;
+    the looks `ResetValue` takes; the hidden cell of a title moved down.**
+    - Try (D33c, headless, plugin GHD33C rounds E, F, F2, F3 and a read-back of 102 files): 20 edits of a table read with
+      its title unmerged (a move, a colour, none at all, a value into the hidden cell, a fill into it, a merge, a height, a
+      line, a column put in), a merge in the same session of a title and of a header moved down (k01 to k05), `ResetValue`
+      of a cell of every look of its own, of Mark, of the title and of a block cell, and the table cleared after it and after
+      other edits (r01 to r14); 589 fills in memory of 1 to 4 sources by 1 to 7 cells, down and up a column, right and left
+      along a row, of a gap of 0 or 1, the source 0 to 3 cells from the table's end, and fills whose last length reaches the
+      table's first row or column.
+    - AutoCAD 2021: it writes a table merged as it loaded it whether the table was edited or not, even a file read and saved
+      untouched (e05); a title unmerged in the session stays unmerged (e06). `SetValue` and `SetTextString` write into a
+      cell a merge hides; `Fill` leaves it (f12, e09, e15, e16). Below or right of its source a fill repeats it from the
+      fill range's first cell, to the table's end; above or left of it, one no longer than the source does too, and one
+      longer repeats it back from the fill range's last cell, the source's last next to it, in whole lengths of the source,
+      leaving as they are the cells of a length that would reach before the table's first row or column (four sources from
+      column 7 into columns 0 to 6 filled 3 to 6); a series is not cut so. `ResetValue` takes the content's text style, text
+      height and colour away with the value, but those alike the table's own looks of the row's kind, and makes its turn
+      nought (`145 0.0`), keeping alignment, background and lines; a block cell it makes an empty text cell (r04).
+      `ClearTableStyleOverrides` of 0 or 2 keeps `93 7`, `90 0` in a cell emptied in the same session (by `ResetValue`,
+      `InsertRows`, `SetSize` or `MergeCells`) where it writes `93 5`, `90 512` for one read so; of 1 it takes from a cell
+      reset in the session the looks it kept alike the table's. A row of the title's kind moved down, merged on load or in
+      the session, keeps `170 5` and `140 6.0` in its hidden cell, `140 6.0` again where the cell held 3.0 (k02).
+    - Now: the first edit of a table merges those rows (`MergeAsLoaded`), at `DeleteRows` and every other edit; `Fill`,
+      `ResetValue`, `ClearTableStyleOverrides` and `MergeCells` as above. Every one of the 589 fills reads as AutoCAD's, and
+      AutoCAD read the library's files of 46 of 51 edits as it read its own.
+    - Still apart: a cell emptied in the session by anything but `ResetValue`, or reset before rows or columns went in or
+      out, is written `93 5`, `90 512` by `ClearTableStyleOverrides` of 0 or 2, read as an empty text where AutoCAD reads no
+      value (r08, r10, r12); `SetTextString` of an empty text writes an empty text where AutoCAD writes a value of none
+      (r09); `ResetValue` of a block cell is refused where AutoCAD empties it (r04); the per-cell lines of a cell's own line
+      (e13, settled); and edits the table's base entity makes (a colour, a layer) do not merge, though AutoCAD writes the
+      merge after them too (e02).

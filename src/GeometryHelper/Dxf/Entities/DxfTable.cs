@@ -43,6 +43,12 @@ namespace GeometryHelper.Dxf
     /// drawing shares the original's fields (344): a field one lets go of is kept while the other holds it, but erasing the
     /// original table leaves the copy's 344s naming nothing, a limit listed for later.
     /// </para>
+    /// <para>
+    /// AutoCAD 2021 merges across a table some rows it reads unmerged, the first among them, when it loads a file, and saves
+    /// them merged whether the table was edited or not (D33c e05). The first edit of a table while its drawing is open, a
+    /// value, a look, a row, a fill or a move, merges them first, as <see cref="DeleteRows"/> describes, so that the edit is
+    /// made on what AutoCAD holds; a table read and not edited is written as it was read.
+    /// </para>
     /// </remarks>
     public sealed partial class DxfTable : DxfEntity
     {
@@ -56,6 +62,13 @@ namespace GeometryHelper.Dxf
         private int _layoutStart;
         private int _layoutEnd;
         private MarginsRead _styleMargins;
+
+        // Whether the rows AutoCAD 2021 merges when it loads the file have been merged, at the table's first edit (MergeAsLoaded).
+        private bool _mergedAsLoaded;
+
+        // The cells, by row * columns + column, that ResetValue emptied while the drawing is open; null where none, or since
+        // rows or columns went in or out.
+        private HashSet<int> _reset;
 
         private DxfTable(DxfItem item)
             : base(item)
@@ -885,7 +898,8 @@ namespace GeometryHelper.Dxf
         /// and normal turned, and the entities of the block AutoCAD drew it with carried by the same transformation, seen from the
         /// system of its normal, as the block is placed at the table's point, where the table is the one entity of the drawing
         /// that names the block; a block another entity names too, as a copy of the table in its own drawing, is left as drawn,
-        /// for AutoCAD to draw anew. The record is written once.
+        /// for AutoCAD to draw anew. The record is written once, the rows AutoCAD merges on load merged first where this is the
+        /// table's first edit (D33c e01), as <see cref="DeleteRows"/> merges them.
         /// </summary>
         /// <remarks>
         /// A scale alike in every direction scales what the table holds of its own sizes: the heights of its rows, the widths of
@@ -929,6 +943,7 @@ namespace GeometryHelper.Dxf
             }
 
             CheckEditable();
+            MergeAsLoaded();
             bool mirrored = x.CrossProduct(y).DotProduct(z) < 0.0;
             bool scaled = Math.Abs(scale - 1.0) > 1E-9;
             GeoVector3 normal = Normal;
@@ -1422,8 +1437,8 @@ namespace GeometryHelper.Dxf
             return count == 1;
         }
 
-        /// <summary>The table's layout read anew, to be changed and written.</summary>
-        private Layout ReadToWrite() => new Layout(Own());
+        /// <summary>The table's layout read anew, to be changed and written, the rows AutoCAD merges on load merged first (<see cref="MergeAsLoaded"/>).</summary>
+        private Layout ReadToWrite() => MergeAsLoaded() ?? new Layout(Own());
 
         private CellView Cell(int row, int col) => Read().CellOf(row, col);
 
