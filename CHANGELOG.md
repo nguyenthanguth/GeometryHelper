@@ -40,6 +40,52 @@ options copied with, a range meeting the source) and of `DxfTableDataLinkTests` 
 `DxfTableCellsTests` (2), `DxfTableStructureTests`, `DxfTableD28bTests`, `DxfAutoCadChecksD12Tests` and
 `DxfAutoCadChecksD13Tests` (1 each). 36 new tests, 35 red at base (`DxfTableD33Tests`).
 
+**CHANGED.** A `DxfMLeader`'s sizes are read and set unscaled, as AutoCAD 2021's API reads and sets them (check D31c, 111
+multileaders AutoCAD made; 30 the library made read by AutoCAD, 29 as it made its own): `TextHeight` and `LandingGap` read
+the size drawn over the `Scale` and are written times it, words drawn 8 high and a gap drawn 4 at a scale of 2 reading 4
+and 2, where the library read 8 and 4, and a gap of 3 set there written 6 (145), where the library wrote 3; `ArrowSize` reads
+the arrows drawn over the scale (140), so that a multileader of arrows 4 scaled by 2 by `TransformBy` reads 8, where the
+library read its own 4 (42), which a line of no size of its own still reads (`GetArrowSize`); `DoglegLength` reads the
+first leader's dogleg over the scale, 16 after `TransformBy` by 2 and 15 after `SetDoglegLength(0, 15)`, where the library
+read the multileader's own 8 (41), which it still reads where there is no leader; `BlockScale` reads the multileader's own
+scale of the block (10) and writes the block drawn times the scale (16), a block drawn 2 at a scale of 2 reading 1, where
+the library read 2, and a block given after the scale is drawn scaled. Any caller of these getters on a multileader of a
+scale other than 1, or scaled by `TransformBy`, gets the unscaled number now; at a scale of 1 and untransformed, the numbers
+are the same as before. `TextAttachmentType` sets the left side alone, as AutoCAD's does, where the library set the right
+too: three lines met on both sides, set to the bottom of the bottom line, stand at (100, 65.33, 0) and keep the right at the
+middle of the top line.
+
+**CHANGED.** A `DxfMLeader` property set to the value it has sets its bit of the overrides (90) all the same, and nothing
+else, as AutoCAD 2021 sets it (check D31c): the leader lines' type, colour and lineweight, the landing, the gap, the dogleg
+and its length, the arrow block, the attachments of the four sides, the turn and alignment of the words, their height and
+frame, the scale, the leaders run on to the words (bit 30, now set by that property as AutoCAD sets it), and the block's
+colour, scale, turn and connection; the library changed nothing. `SetDoglegLength` sets the bit of the doglegs (7) as
+AutoCAD does, where the library set none. A leader line given the look it has (`SetLeaderLineType`, `SetLeaderLineColor`,
+`SetLeaderLineWeight`, `SetArrowSize`) has it written and flagged as its own from R2010, as AutoCAD flags it. The colour of
+the words, the content, the block, the direction of the attachment, the annotation scale, the places and the style still
+change nothing.
+
+**FIXED.** A `DxfMLeader` with a block scaled by `Scale` has the block drawn scaled, as AutoCAD 2021 draws it (check D31c):
+the library left the block's drawn scale (16) as it was. Met by one leader, the block moves so that the leader's longer
+dogleg meets it at its end, the dogleg's start kept: the box of lines from (-10, -5) to (20, 15) at (100, 50, 0) met from
+the left stands at (118, 45, 0) at a scale of 2 and (136, 40, 0) at 3, met from the right at (72, 45, 0); met on both
+sides, it stays and the leaders are landed anew, from (64, 60, 0) and (156, 60, 0). Its matrix (47) is the block's
+transform where it stood, as AutoCAD writes it.
+
+**FIXED.** A `DxfMLeader` made in code writes the text style of its words (340 of the context data) as AutoCAD 2021 writes
+it, where the library wrote 0; a new multileader, and one given a style by `MLeaderStyle`, takes the style's text style (343
+and the words' 340) where it names one and the multileader does not override it (bit 11), where the library wrote Standard.
+A multileader given a style of no arrow block has its arrow block taken away, as AutoCAD takes it, where the library kept the
+old style's, unless the multileader has one of its own (bit 8). One leader of several on a side given its own dogleg length
+lands anew, its start moved by the change, the content staying, and so do several given `DoglegLength`, as AutoCAD 2021
+lands them; the library moved nothing for the one and the content for the several.
+
+Existing tests changed (6): `DxfMLeaderTests` (3: the right side kept by `TextAttachmentType`, the arrows read 8 and 12
+after `TransformBy`), `DxfLeaderStyleAndPlaneTests` (2: the height and gap of Standard scaled 2 read 4 and 2; the look a line
+has set again changes nothing before R2010 alone, renamed), `DxfD31Tests` (1: the dogleg and arrows read 16 and 8 after
+`TransformBy`, the multileader's own 41 and 42 still 8 and 4). 20 new tests of 48 cases, 47 red at base
+(`DxfMLeaderD31cTests`).
+
 **CHANGED.** `DxfMLeader.AddLeaderLine(point)` lands a new leader on a block as AutoCAD 2021 lands it (check D31b): on the
 side of the block's box the point is on, with no gap, its dogleg ending where the block's shapes meet the line along x
 through the middle of its box, or through its position where the block is met at its base, the outermost such point on that

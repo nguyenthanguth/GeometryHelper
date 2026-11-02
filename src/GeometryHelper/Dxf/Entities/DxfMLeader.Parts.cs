@@ -29,7 +29,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gives a MULTILEADER made in code the handles of the drawing it is added to: its multileader style (340), the drawing's
-        /// CMLEADERSTYLE or Standard, and the text style Standard (343), where it names none of the drawing's.
+        /// CMLEADERSTYLE or Standard, and the text style (343) of that style's words, else Standard, where it names none of the
+        /// drawing's; its words (340 of the context's MTEXT) are given the same text style, as AutoCAD 2021 writes them.
         /// </summary>
         /// <exception cref="ArgumentException">Thrown when the drawing has no multileader style of the name, or no text style Standard.</exception>
         internal override void Appending(DxfBlockTableRecord owner)
@@ -75,6 +76,17 @@ namespace GeometryHelper.Dxf
                 }
 
                 Put(rec.After, 343, database.TextStyleTable["Standard"].Handle, TopOrder);
+            }
+
+            // The words of a MULTILEADER given them before it was added, of no text style yet, take its own.
+            if (rec.Context != null)
+            {
+                Section(rec.Context.Head, 290, MTextCodes, out int from, out int to);
+
+                if (from >= 0 && Text(rec.Context.Head.GetRange(from, to - from), 340)?.Trim() == "0")
+                {
+                    Put(rec.Context.Head, 340, Text(rec.After, 343), ContextOrder, from, to);
+                }
             }
 
             Write(rec);
@@ -444,7 +456,11 @@ namespace GeometryHelper.Dxf
             ctx.Head.InsertRange(flag + 1, groups);
         }
 
-        /// <summary>Gives the context data a block as ezdxf writes one: at the base point, in the plane's normal, of the MULTILEADER's scale, turn and colour, its matrix the identity.</summary>
+        /// <summary>
+        /// Gives the context data a block as ezdxf writes one: at the base point, in the plane's normal, of the MULTILEADER's
+        /// scale of the block times its scale (40 of the context data), as AutoCAD 2021 draws it, its turn and colour, its matrix
+        /// the identity.
+        /// </summary>
         private static void MakeBlock(Rec rec, Ctx ctx)
         {
             int flag = ctx.Head.FindIndex(g => g.Key == 296);
@@ -462,7 +478,9 @@ namespace GeometryHelper.Dxf
             var groups = new List<KeyValuePair<int, string>> { G(341, "0") };
             groups.AddRange(PointGroups(14, normal.Length > 0.0 ? Pt(normal) : new GeoPoint3(0.0, 0.0, 1.0)));
             groups.AddRange(PointGroups(15, PointOf(ctx.Head, 10, new GeoPoint3(0.0, 0.0, 0.0))));
-            groups.AddRange(PointGroups(16, PointOf(rec.After, 10, new GeoPoint3(1.0, 1.0, 1.0))));
+            GeoPoint3 own = PointOf(rec.After, 10, new GeoPoint3(1.0, 1.0, 1.0));
+            double scale = ScaleOf(ctx);
+            groups.AddRange(PointGroups(16, new GeoPoint3(own.X * scale, own.Y * scale, own.Z * scale)));
             groups.Add(G(46, Text(rec.After, 43) ?? "0"));
             groups.Add(G(93, Text(rec.After, 93) ?? ByBlock));
 
@@ -495,10 +513,25 @@ namespace GeometryHelper.Dxf
             }
         }
 
+        /// <summary>
+        /// Sets a bit of the overrides of the style (90) alone, as AutoCAD 2021 sets it for a property given the value it has
+        /// (-1 for none).
+        /// </summary>
+        private void Mark(int bit)
+        {
+            if (bit >= 0)
+            {
+                Rec rec = Read();
+                SetBit(rec, bit);
+                Write(rec);
+            }
+        }
+
         private void SetTopFlag(int code, bool value, bool now, int bit)
         {
             if (value == now)
             {
+                Mark(bit);
                 return;
             }
 
@@ -511,6 +544,7 @@ namespace GeometryHelper.Dxf
         {
             if (value == now)
             {
+                Mark(bit);
                 return;
             }
 
@@ -524,7 +558,11 @@ namespace GeometryHelper.Dxf
             Write(rec);
         }
 
-        /// <summary>Sets a number of the context data and its bit of the overrides; then lets the content follow, given the number it was.</summary>
+        /// <summary>
+        /// Sets a size of the context data, given unscaled and written times the scale (40 of the context data), and its bit of
+        /// the overrides, the bit alone where it is the size read (<see cref="Unscaled"/>); then lets the content follow, given
+        /// the size it was drawn.
+        /// </summary>
         private void SetContextNumber(int code, double value, double fallback, int bit, bool positive, Action<Rec, Ctx, double> follow)
         {
             Guard.Finite(value, nameof(value), "The number has to be a finite number.");
@@ -532,8 +570,10 @@ namespace GeometryHelper.Dxf
             Ctx ctx = Context(rec);
             double was = Num(Text(ctx.Head, code), fallback);
 
-            if (Same(value, was))
+            if (Same(value, Unscaled(ctx, code, fallback)))
             {
+                SetBit(rec, bit);
+                Write(rec);
                 return;
             }
 
@@ -546,20 +586,46 @@ namespace GeometryHelper.Dxf
                 Guard.NonNegative(value, nameof(value), "The number has to be a finite number, nought or more.");
             }
 
-            PutNumber(ctx.Head, code, value, fallback, ContextOrder);
+            PutNumber(ctx.Head, code, value * ScaleOf(ctx), fallback, ContextOrder);
             SetBit(rec, bit);
             follow(rec, ctx, was);
             Write(rec);
         }
 
-        /// <summary>Sets a colour of the MULTILEADER's own, and the one of a section of its context data where it has it.</summary>
-        private void SetColour(int code, int section, int flag, HashSet<int> codes, DxfColor value, int bit)
+        /// <summary>The scale of the context data (40), 1 where it gives none or one of no size, which sizes are drawn times.</summary>
+        private static double ScaleOf(Ctx ctx)
+        {
+            double scale = Num(Text(ctx.Head, 40), 1.0);
+            return Math.Abs(scale) > 1E-9 ? scale : 1.0;
+        }
+
+        /// <summary>
+        /// A size of the context data as AutoCAD 2021's API reads it, unscaled: as drawn (the code's group) over the scale
+        /// (<see cref="ScaleOf"/>); the fallback where the context data gives none.
+        /// </summary>
+        private static double Unscaled(Ctx ctx, int code, double fallback)
+        {
+            string text = Text(ctx.Head, code);
+            double scale = ScaleOf(ctx);
+            return text == null ? fallback : Num(text, fallback * scale) / scale;
+        }
+
+        /// <summary>
+        /// Sets a colour of the MULTILEADER's own, and the one of a section of its context data where it has it; the colour it
+        /// has sets the bit of the overrides alone where asked (<paramref name="marked"/>), as AutoCAD 2021 sets it.
+        /// </summary>
+        private void SetColour(int code, int section, int flag, HashSet<int> codes, DxfColor value, int bit, bool marked)
         {
             string text = DxfMLeaderColors.Text(value, nameof(value));
             Rec rec = Read();
 
             if (Whole(Text(rec.After, code) ?? ByBlock, 0) == Whole(text, 1))
             {
+                if (marked)
+                {
+                    Mark(bit);
+                }
+
                 return;
             }
 

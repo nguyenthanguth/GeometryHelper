@@ -348,7 +348,7 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // AutoCAD 2021 (g5, h1): scaled by 2 about the origin, the scale stays 1 (40 of the context, 45), the multileader's own
             // dogleg 8 (41) and arrows 4 (42); the dogleg is drawn 16, GetDoglegLength 16, the words 120 wide, and a line's own
-            // arrows of 2 still 2. The library made the scale 2, 41 16 and 42 8.
+            // arrows of 2 still 2. The library made the scale 2, 41 16 and 42 8. AutoCAD reads the dogleg 16 and the arrows 8 (D31c).
             DxfMLeader mleader = Words(Drawing());
             DxfMText words = mleader.MText;
             words.Width = 60;
@@ -358,8 +358,14 @@ namespace GeometryHelper.UnitTest.Dxf
             mleader.TransformBy(GeoTransform3.Scaling(new GeoPoint3(0, 0, 0), 2));
 
             Assert.Equal(1.0, mleader.Scale);
-            Assert.Equal(8.0, mleader.DoglegLength);
-            Assert.Equal(4.0, mleader.ArrowSize);
+            List<DxfTypedValue> own = mleader.Item.File.TailOf(mleader.Item, 0);
+            own = own.Skip(own.FindIndex(g => g.TypeCode == 301)).ToList();
+            Assert.Equal(8.0, double.Parse(own.First(g => g.TypeCode == 41).Value, CultureInfo.InvariantCulture));
+            Assert.Equal(4.0, double.Parse(own.First(g => g.TypeCode == 42).Value, CultureInfo.InvariantCulture));
+
+            // Read as drawn over the scale, as AutoCAD 2021 reads them (D31c, s2-arrow-read-transform).
+            Assert.Equal(16.0, mleader.DoglegLength);
+            Assert.Equal(8.0, mleader.ArrowSize);
             Assert.Equal(16.0, mleader.GetDoglegLength(0));
             Near(P(180, 96), mleader.GetLastVertex(0));
             IReadOnlyList<DxfEntity> parts = mleader.Explode();

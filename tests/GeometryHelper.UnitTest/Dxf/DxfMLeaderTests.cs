@@ -180,6 +180,7 @@ namespace GeometryHelper.UnitTest.Dxf
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
                 DxfMLeader mleader = ByHandle<DxfMLeader>(db, "8A");
+                DxfTextAttachmentType right = mleader.GetTextAttachmentType(DxfLeaderDirectionType.RightLeader);
 
                 mleader.TextHeight = 3.5;
                 mleader.ArrowSize = 2.0;
@@ -210,7 +211,9 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(0xFF8000, back.LeaderLineColor.ColorValue);
                 Assert.Equal(DxfTextAlignmentType.CenterAlignment, back.TextAlignmentType);
                 Assert.Equal(DxfAttachmentPoint.TopCenter, back.MText.Attachment);
-                Assert.Equal(DxfTextAttachmentType.AttachmentMiddle, back.GetTextAttachmentType(DxfLeaderDirectionType.RightLeader));
+                // The left alone, as AutoCAD 2021's TextAttachmentType sets it (D31c, m2-both-att4).
+                Assert.Equal(DxfTextAttachmentType.AttachmentMiddle, back.GetTextAttachmentType(DxfLeaderDirectionType.LeftLeader));
+                Assert.Equal(right, back.GetTextAttachmentType(DxfLeaderDirectionType.RightLeader));
                 Assert.True(back.EnableFrameText);
                 Assert.Equal(1.0, back.LandingGap);
             }
@@ -400,7 +403,8 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // Turned 30 degrees, scaled 2 and moved by (5, -7, 3), as ezdxf's transform() moves it (cmptransform.py: every group
             // the same), but its scale and its own sizes of the arrows and doglegs, which AutoCAD 2021's TransformBy leaves as they
-            // are (D31, g5 and h1): scale 1, arrows 4 (42), drawn 8; scaled unlike along its axes, refused, as ezdxf refuses it.
+            // are (D31, g5 and h1): scale 1, arrows 4 (42), drawn 8, read 8 as AutoCAD reads them, a line's 4 (D31c,
+            // s2-arrow-read-transform); scaled unlike along its axes, refused, as ezdxf refuses it.
             double c = Math.Sqrt(3.0);
             var transform = new GeoTransform3(new double[,] { { c, -1, 0, 5 }, { 1, c, 0, -7 }, { 0, 0, 2, 3 }, { 0, 0, 0, 1 } });
 
@@ -416,7 +420,8 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.True(words.TextLocation.IsEqualTo(transform.Transform(new GeoPoint3(800, 0, 0)), Tol));
                 Assert.True(words.GetFirstVertex(0).IsEqualTo(transform.Transform(new GeoPoint3(780, -10, 0)), Tol));
                 Assert.Equal(5.0, words.TextHeight, 12);
-                Assert.Equal(4.0, words.ArrowSize, 12);
+                Assert.Equal(4.0, words.GetArrowSize(0), 12);
+                Assert.Equal(8.0, words.ArrowSize, 12);
                 Assert.Equal(8.0, ArrowSizes(db, "B4")[0], 12);
                 Assert.Equal(1.0, words.Scale, 12);
                 Assert.Equal(16.0, words.GetDoglegLength(0), 12);
@@ -459,7 +464,8 @@ namespace GeometryHelper.UnitTest.Dxf
         public void TheSizeOfTheArrows_IsWrittenTheSameInTheMultileaderAndItsContext_SetAndMoved()
         {
             // Set to 6, both groups 6; scaled 2 with a turn of 30 degrees, the arrows drawn 12 to the rounding (140) and the
-            // multileader's own 6 (42), as AutoCAD 2021's TransformBy leaves it (D31, g5), and read back so; set to 5, both 5.
+            // multileader's own 6 (42), as AutoCAD 2021's TransformBy leaves it (D31, g5), read back 12, as drawn, as AutoCAD reads
+            // it (D31c, s2-arrow-read-transform); set to 5, both 5.
             double c = Math.Sqrt(3.0);
             var transform = new GeoTransform3(new double[,] { { c, -1, 0, 5 }, { 1, c, 0, -7 }, { 0, 0, 2, 3 }, { 0, 0, 0, 1 } });
 
@@ -474,7 +480,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 double[] moved = ArrowSizes(db, "B4");
                 Assert.Equal(12.0, moved[0], 12);
                 Assert.Equal(6.0, moved[1]);
-                Assert.Equal(6.0, ByHandle<DxfMLeader>(DxfDatabase.Parse(db.ToText()), "B4").ArrowSize, 12);
+                Assert.Equal(12.0, ByHandle<DxfMLeader>(DxfDatabase.Parse(db.ToText()), "B4").ArrowSize, 12);
 
                 // Set again once scaled, as AutoCAD's ArrowSize is: 5 in both, not 5 in one and 12 in the other.
                 words.ArrowSize = 5.0;

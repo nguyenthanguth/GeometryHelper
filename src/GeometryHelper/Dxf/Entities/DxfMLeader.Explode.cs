@@ -427,7 +427,8 @@ namespace GeometryHelper.Dxf
 
             List<KeyValuePair<int, string>> b = BlockGroups(rec, out _, out _);
             GeoVector3 normal = PointOf(b, 14, new GeoPoint3(0.0, 0.0, 1.0)).ToVector();
-            var insert = new DxfBlockReference(BlockPosition, block) { ScaleFactors = BlockScale, Rotation = BlockRotation };
+            // The block as it is drawn: its scale times the multileader's (16), else its own (10).
+            var insert = new DxfBlockReference(BlockPosition, block) { ScaleFactors = PointOf(b, 16, PointOf(rec.After, 10, new GeoPoint3(1.0, 1.0, 1.0))).ToVector(), Rotation = BlockRotation };
 
             if (normal.Length > 0.0)
             {

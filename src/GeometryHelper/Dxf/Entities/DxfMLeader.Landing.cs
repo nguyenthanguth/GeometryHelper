@@ -26,25 +26,70 @@ namespace GeometryHelper.Dxf
         {
             landing = point;
             dogleg = new GeoVector3(1.0, 0.0, 0.0);
-            Section(ctx.Head, 296, BlockCodes, out int from, out _);
-            DxfDatabase database = Database();
-            string handle = from < 0 ? null : BlockText(rec, 341) ?? Text(rec.After, 344);
-            DxfBlockTableRecord block = handle == null ? null : BlockByHandle(database, handle.Trim());
+            Axes(ctx, out GeoVector3 x, out _);
 
-            if (block == null)
+            if (!BlockMeets(rec, ctx, point.ToVector().DotProduct(x), out bool onLeft, out GeoPoint3 end))
             {
                 return false;
             }
 
-            Axes(ctx, out GeoVector3 x, out GeoVector3 y);
-            List<KeyValuePair<int, string>> b = BlockGroups(rec, out _, out _);
+            dogleg = onLeft ? x : x.Negate();
+            double length = Num(Text(rec.After, 41), 8.0) * Num(Text(ctx.Head, 40), 1.0);
+            landing = end.Add(dogleg.Multiply(-length));
+            return true;
+        }
+
+        /// <summary>
+        /// The block of the content as it is drawn (the context's block: 15, else the base point of the content; 16, else the
+        /// MULTILEADER's own 10; 46, else its own 43; and 14); null where the MULTILEADER holds no block of its drawing.
+        /// </summary>
+        private DxfBlockReference PlacedBlock(Rec rec, Ctx ctx, out DxfBlockTableRecord block)
+        {
+            Section(ctx.Head, 296, BlockCodes, out int from, out int to);
+            string handle = from < 0 ? null : BlockText(rec, 341) ?? Text(rec.After, 344);
+            block = handle == null ? null : BlockByHandle(Database(), handle.Trim());
+
+            if (block == null)
+            {
+                return null;
+            }
+
+            List<KeyValuePair<int, string>> b = ctx.Head.GetRange(from, to - from);
+            GeoPoint3 position = PointOf(b, 15, PointOf(ctx.Head, 10, new GeoPoint3(0.0, 0.0, 0.0)));
+            GeoPoint3 scale = PointOf(b, 16, PointOf(rec.After, 10, new GeoPoint3(1.0, 1.0, 1.0)));
+            double turn = Num(Text(b, 46), Num(Text(rec.After, 43), 0.0));
             GeoVector3 normal = PointOf(b, 14, new GeoPoint3(0.0, 0.0, 1.0)).ToVector();
-            var insert = new DxfBlockReference(BlockPosition, block) { ScaleFactors = BlockScale, Rotation = BlockRotation };
+            var insert = new DxfBlockReference(position, block) { ScaleFactors = scale.ToVector(), Rotation = turn };
 
             if (normal.Length > 0.0)
             {
                 insert.Normal = normal;
             }
+
+            return insert;
+        }
+
+        /// <summary>
+        /// Where a leader meets the block of the content as AutoCAD 2021 lands one, on the side of its box a point along the
+        /// plane's x axis (<paramref name="side"/>) is on (its middle, the point on it taken to the right): where the block's
+        /// shapes meet the line along x through the middle of its box (block connected at its extents, 176 of nought) or through
+        /// its position (at its base, 1), the outermost such point on that side, else that point of the line. The box is the
+        /// block's own, of the shapes of its entities the library reads, carried as the block is drawn (<see cref="PlacedBlock"/>)
+        /// and boxed in the plane. False where the MULTILEADER holds no block of its drawing, or the block has no shape the library
+        /// reads.
+        /// </summary>
+        private bool BlockMeets(Rec rec, Ctx ctx, double side, out bool onLeft, out GeoPoint3 end)
+        {
+            onLeft = true;
+            end = new GeoPoint3(0.0, 0.0, 0.0);
+            DxfBlockReference insert = PlacedBlock(rec, ctx, out DxfBlockTableRecord block);
+
+            if (insert == null)
+            {
+                return false;
+            }
+
+            Axes(ctx, out GeoVector3 x, out GeoVector3 y);
 
             // The block's own box, its corners carried as the block is drawn and boxed along the plane's axes.
             double[] own = null;
@@ -88,8 +133,8 @@ namespace GeometryHelper.Dxf
             }
 
             double middle = (left + right) / 2.0;
-            bool onLeft = point.ToVector().DotProduct(x) < middle;
-            GeoVector3 position = BlockPosition.ToVector();
+            onLeft = side < middle;
+            GeoVector3 position = insert.Position.ToVector();
             bool atBase = Whole(Text(rec.After, 176), 0) == 1;
 
             // The line along x the leader meets the block on, through the middle of the box or the block's position.
@@ -121,11 +166,109 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            GeoPoint3 end = Point(double.IsNaN(met) ? along : met);
-            dogleg = onLeft ? x : x.Negate();
-            double length = Num(Text(rec.After, 41), 8.0) * Num(Text(ctx.Head, 40), 1.0);
-            landing = end.Add(dogleg.Multiply(-length));
+            end = Point(double.IsNaN(met) ? along : met);
             return true;
+        }
+
+        /// <summary>
+        /// The block of the content as AutoCAD 2021 scales it with the MULTILEADER (<see cref="Scale"/>), its drawn scale (16)
+        /// scaled by a factor: its matrix (47) made the block's transform where it stands, before it moves; then, with one leader
+        /// on one side, the block moved so that it meets that leader's dogleg, now as long as drawn, at its end, the base point of
+        /// the content (10) put where a leader from the left meets it (k2-BOX-scale2-after, k5-BOX-scale2-right); with leaders on
+        /// both sides or several on one, the block kept and each leader on a side landed anew at it (k5-BOX-scale2-both).
+        /// </summary>
+        private void Reblocked(Rec rec, Ctx ctx, double factor)
+        {
+            Section(ctx.Head, 296, BlockCodes, out int from, out int to);
+
+            if (from < 0)
+            {
+                return;
+            }
+
+            int at = ctx.Head.FindIndex(from, to - from, g => g.Key == 16);
+
+            if (at >= 0)
+            {
+                GeoPoint3 drawn = PointAt(ctx.Head, at);
+                PutPoint(ctx.Head, 16, new GeoPoint3(drawn.X * factor, drawn.Y * factor, drawn.Z * factor), ContextOrder, from, to);
+                Section(ctx.Head, 296, BlockCodes, out from, out to);
+            }
+
+            DxfBlockReference placed = PlacedBlock(rec, ctx, out _);
+
+            if (placed != null)
+            {
+                SetMatrix(ctx.Head, from, to, placed.BlockTransform);
+            }
+
+            if (placed == null || !Kept(rec, ctx, false))
+            {
+                return;
+            }
+
+            Axes(ctx, out GeoVector3 x, out _);
+            Sides(ctx, x, out int left, out int right);
+
+            if (left + right == 1)
+            {
+                LeaderPart leader = ctx.Leaders.Find(l => Side(l, x) != 0);
+                int side = Side(leader, x);
+                GeoVector3 dogleg = Unit(PointOf(leader.Head, 11, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
+                GeoPoint3 target = PointOf(leader.Head, 10, new GeoPoint3(0.0, 0.0, 0.0)).Add(dogleg.Multiply(Num(Text(leader.Head, 40), 0.0)));
+
+                if (BlockMeets(rec, ctx, side * double.MaxValue, out _, out GeoPoint3 end))
+                {
+                    GeoVector3 by = end.GetVectorTo(target);
+                    Section(ctx.Head, 296, BlockCodes, out from, out to);
+                    MovePoint(ctx.Head, 15, p => p.Add(by), ContextOrder, from, to);
+
+                    if (BlockMeets(rec, ctx, -double.MaxValue, out _, out GeoPoint3 basePoint))
+                    {
+                        PutPoint(ctx.Head, 10, basePoint, ContextOrder);
+                    }
+                }
+
+                return;
+            }
+
+            foreach (LeaderPart leader in ctx.Leaders)
+            {
+                int side = Side(leader, x);
+
+                if (side != 0 && BlockMeets(rec, ctx, side * double.MaxValue, out _, out GeoPoint3 end))
+                {
+                    GeoVector3 dogleg = Unit(PointOf(leader.Head, 11, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
+                    PutPoint(leader.Head, 10, end.Add(dogleg.Multiply(-Num(Text(leader.Head, 40), 0.0))), LeaderOrder);
+                }
+            }
+        }
+
+        /// <summary>Writes the matrix of the block of the context data (its 16 groups 47, as ezdxf keeps it): a transformation's, row by row.</summary>
+        private static void SetMatrix(List<KeyValuePair<int, string>> head, int from, int to, GeoTransform3 transform)
+        {
+            var at = new List<int>();
+
+            for (int i = from; i < to; i++)
+            {
+                if (head[i].Key == 47)
+                {
+                    at.Add(i);
+                }
+            }
+
+            if (at.Count != 16)
+            {
+                return;
+            }
+
+            for (int i = 0; i < 16; i++)
+            {
+                if (!Same(transform[i / 4, i % 4], Num(head[at[i]].Value, double.NaN)))
+                {
+                    head[at[i]] = G(47, transform[i / 4, i % 4]);
+                }
+            }
         }
 
         #endregion
@@ -288,9 +431,9 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// The content and the landings as AutoCAD 2021 keeps them when the doglegs of some leaders (the lengths before, by leader)
-        /// change: with leaders on one side only, the content moved along x away from them by the change, its base point with it,
-        /// where every leader of that side changed alike; with leaders on both sides, the content kept and each leader changed
-        /// landed anew, its dogleg's start moved away from the content by the change.
+        /// change: with one leader, on one side, the content moved along x away from it by the change, its base point with it;
+        /// with leaders on both sides, or several on one (b-two-landed-dl15, b-two-landed-setdl1-15), the content kept and each
+        /// leader changed landed anew, its dogleg's start moved away from the content by the change.
         /// </summary>
         private void Relengthened(Rec rec, Ctx ctx, List<KeyValuePair<LeaderPart, double>> before)
         {
@@ -302,7 +445,7 @@ namespace GeometryHelper.Dxf
             Axes(ctx, out GeoVector3 x, out _);
             Sides(ctx, x, out int left, out int right);
 
-            if (left > 0 && right > 0)
+            if ((left > 0 && right > 0) || left > 1 || right > 1)
             {
                 foreach (KeyValuePair<LeaderPart, double> was in before)
                 {
@@ -585,9 +728,11 @@ namespace GeometryHelper.Dxf
         #region The style's look
 
         /// <summary>
-        /// Gives the MULTILEADER the linetype of its style's leader lines (341, the style's 340) and its style's arrow block (342,
-        /// the style's 341, where it names one), as AutoCAD 2021 writes them when a multileader takes a style, where the
-        /// MULTILEADER does not override them (bits 2 and 8 of its 90) and the drawing has the records.
+        /// Gives the MULTILEADER the linetype of its style's leader lines (341, the style's 340), its style's arrow block (342,
+        /// the style's 341; none where the style names none, l6-s2-to-standard) and the text style of its style's words (343 and
+        /// the words' 340, the style's 342, t-ts2-set-after), as AutoCAD 2021 writes them when a multileader takes a style, where
+        /// the MULTILEADER does not override them (bits 2, 8 and 11 of its 90; l6-s2-own-to-standard, b-ts3-then-s4) and the
+        /// drawing has the records.
         /// </summary>
         private void TakeStyleLook(Rec rec, DxfDatabase database)
         {
@@ -600,16 +745,41 @@ namespace GeometryHelper.Dxf
 
             int flags = Whole(Text(rec.After, 90), 0);
             string linetype = Named<DxfLinetypeTableRecord>(database, style.Text(340));
-            string arrow = Named<DxfBlockTableRecord>(database, style.Text(341));
+            string named = style.Text(341)?.Trim();
+            string arrow = Named<DxfBlockTableRecord>(database, named);
+            string textStyle = Named<DxfTextStyleTableRecord>(database, style.Text(342));
 
             if (linetype != null && (flags & (1 << 2)) == 0)
             {
                 Put(rec.After, 341, linetype, TopOrder);
             }
 
-            if (arrow != null && (flags & (1 << 8)) == 0)
+            if ((flags & (1 << 8)) == 0)
             {
-                Put(rec.After, 342, arrow, TopOrder);
+                if (arrow != null)
+                {
+                    Put(rec.After, 342, arrow, TopOrder);
+                }
+                else if (string.IsNullOrEmpty(named) || named == "0")
+                {
+                    // A style of AutoCAD's closed filled arrow, which needs no block.
+                    Put(rec.After, 342, null, TopOrder);
+                }
+            }
+
+            if (textStyle != null && (flags & (1 << 11)) == 0)
+            {
+                Put(rec.After, 343, textStyle, TopOrder);
+
+                if (rec.Context != null)
+                {
+                    Section(rec.Context.Head, 290, MTextCodes, out int from, out int to);
+
+                    if (from >= 0)
+                    {
+                        Put(rec.Context.Head, 340, textStyle, ContextOrder, from, to);
+                    }
+                }
             }
         }
 

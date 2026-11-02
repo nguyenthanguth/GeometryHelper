@@ -176,7 +176,8 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // Standard scaled 2: words 4 high, a gap of 2, arrows 4 and doglegs 8, unscaled in the style. B4 is drawn with words
             // 8 high, a gap of 4, arrows 8 and doglegs 16; its own arrow size (42) and dogleg (41) are the style's, unscaled, as
-            // AutoCAD 2021 writes them (D31, d12), each leader's (40) scaled, read back unscaled as AutoCAD reads it.
+            // AutoCAD 2021 writes them (D31, d12), each leader's (40) scaled; every size read back unscaled as AutoCAD reads it
+            // (D31c, a-scale2), the words 4 high and the gap 2.
             string text = Edited(DxfHatchLeaderDrawings.R2018, "2C", r => r.Replace("\n142\n1.0\n", "\n142\n2.0\n"));
             DxfDatabase db = DxfDatabase.Parse(text);
             DxfMLeader words = ByHandle<DxfMLeader>(db, "B4");
@@ -189,9 +190,9 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfMLeader back = ByHandle<DxfMLeader>(DxfDatabase.Parse(saved), "B4");
             Assert.Equal(2.0, back.Scale);
-            Assert.Equal(8.0, back.TextHeight);
+            Assert.Equal(4.0, back.TextHeight);
             Assert.Equal(8.0, back.MText.TextHeight);
-            Assert.Equal(4.0, back.LandingGap);
+            Assert.Equal(2.0, back.LandingGap);
             Assert.Equal(4.0, back.ArrowSize);
             Assert.Equal(8.0, back.DoglegLength);
             Assert.Equal(8.0, back.GetDoglegLength(0));
@@ -447,9 +448,11 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void ALeaderLineGivenTheLookItHas_ChangesNothing_AndOldFilesRefuseALookOfItsOwn()
+        public void ALeaderLineGivenTheLookItHasBeforeR2010_ChangesNothing_AndOldFilesRefuseALookOfItsOwn()
         {
-            SettingWhatItHasChangesNothing<DxfMLeader>(DxfHatchLeaderDrawings.R2018, m =>
+            // From R2010 the look a line has is flagged as its own, as AutoCAD 2021 flags it (DxfMLeaderD31cTests); before, a
+            // line has no flags, and nothing changes.
+            SettingWhatItHasChangesNothing<DxfMLeader>(DxfHatchLeaderDrawings.R2000, m =>
             {
                 foreach (int leader in m.GetLeaderIndexes())
                 {
@@ -461,9 +464,9 @@ namespace GeometryHelper.UnitTest.Dxf
                         m.SetArrowSize(line, m.GetArrowSize(line));
                     }
                 }
-
-                m.SetPlane(m.GetPlane());
             });
+
+            SettingWhatItHasChangesNothing<DxfMLeader>(DxfHatchLeaderDrawings.R2018, m => m.SetPlane(m.GetPlane()));
 
             DxfMLeader old = ByHandle<DxfMLeader>(DxfDatabase.Parse(DxfHatchLeaderDrawings.R2000), "B4");
             Assert.Throws<InvalidOperationException>(() => old.SetLeaderLineType(1, DxfLeaderType.SplineLeader));

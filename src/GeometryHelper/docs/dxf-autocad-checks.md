@@ -1378,7 +1378,49 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       multileaders of round I, AutoCAD read 59 as it made its own, the 60th having no case of its own to match (a height of
       10 on words met on the left: (100, 53), as AutoCAD put words given anew 10 high).
     - Still apart: the words AutoCAD moves by their font's width (met on the right while their height or scale changes,
-      given anew wider); a block scaled by `Scale`, which the library does not scale; the moves of `SetFromStyle()`, not
-      read; `TextAttachmentType` set, which AutoCAD sets for the left alone and the library for both sides; and `LandingGap`
-      and `TextHeight`, which AutoCAD reads and writes unscaled (a gap of 2 at a scale of 2 drawn 4) where the library
-      reads and writes them as drawn.
+      given anew wider) and the moves of `SetFromStyle()`, not read. A block scaled by `Scale`, `TextAttachmentType` and the
+      sizes read unscaled are now as AutoCAD has them: see point 83.
+
+## Multileader sizes and overrides
+
+83. **The sizes read unscaled, the bit of a value set again, the text style, a block scaled, a style of no arrow and one
+    leader of several given its dogleg.**
+    - Try (D31c, headless, plugin GHD31C rounds A and B, 111 multileaders on the Standard of point 80): `TextAttachmentType`
+      set on words met on the left, the right and both sides; the gap, height, arrows and doglegs set at a scale of 2, after
+      `TransformBy` by 2, with no leader and on a line of its own; `BlockScale` set at a scale of 2; the words given anew at
+      a scale of 2; a style whose words are of a text style TS2, made current, set before and after the words, and a text
+      style of the multileader's own; 31 properties and 4 looks of a line set to the value they have, read by the bits of
+      the overrides (90) and the line's flags (93); `Scale` 2 and 3, twice and back, on the box, the circle with a line
+      across it and the box of origin (5, 5), met from the left, the right, both sides, none, at its base, turned, moved;
+      `BlockScale` and `BlockRotation` set after a leader; a style of an arrow block set to one of none; two leaders on the
+      left of their own given their doglegs. Then round I: 30 of the library's multileaders made and edited the same way
+      (the edits on AutoCAD's own files), read by DXFIN.
+    - AutoCAD 2021: `TextAttachmentType` sets the left alone (173 and 174), as `SetTextAttachmentType` of the left. The API
+      reads and sets the sizes unscaled: `TextHeight` and `LandingGap` are the context's 41 and 145 over the scale (40), and
+      written times it (a gap of 3 at a scale of 2 writes 145 of 6, a height of 5 41 of 10); `ArrowSize` is 140 over the scale
+      (8 after `TransformBy` by 2, 42 still 4), a line's `GetArrowSize` 42; `DoglegLength` the first leader's 40 over the
+      scale (16 after `TransformBy`, 15 after `SetDoglegLength(0, 15)`), the multileader's own 41 where it has no leader;
+      `BlockScale` the multileader's own 10 (1 for a block drawn 2 at a scale of 2), set written 10 and times the scale 16.
+      A property set to the value it has sets its bit all the same: the leader lines' type, colour, linetype and lineweight
+      (0 to 3), the landing, gap, dogleg and its length (4 to 7), the arrow block (8), the text style (11), the attachments
+      (12, 25, 28, 29), the turn and alignment (13, 14), the height and frame (16, 17), the block's colour, scale, turn and
+      connection (20 to 23), the scale (24) and the leaders run on to the words (30); the direction of the attachment, the
+      annotation scale, the places, the style and the words given as they were set none; `SetDoglegLength` sets 7, and a
+      line's look set to the one it has flags it (93 of 1, 2, 8; 16 with its 40). A new multileader writes the text style
+      of its words in 343 and in their 340 (Standard's 55); one set to a style takes the style's text style in both unless
+      it has its own (bit 11), a block's multileader of a style of TS2 TS2. A style of no arrow block takes the arrow block
+      away (no 342), unless the multileader has its own (bit 8). `Scale` scales the block as drawn (16) and its matrix (47)
+      is made its transform where it stood; met by one leader the block moves so that the leader's longer dogleg, its
+      start kept, meets it at its end (the box at (100, 50) met from the left to (118, 45) at 2 and (136, 40) at 3, from the
+      right to (72, 45)), the base point of the content (10) where a leader from the left meets it; met on both sides or
+      by none it stays, its leaders landed anew. Of two leaders on a side, one given its dogleg starts that much further
+      away and the words stay, and `DoglegLength` does so for both. `BlockScale` and `BlockRotation` set after a leader move
+      the block so that a leader from the left would meet it at the base point of the content, and land the leaders anew.
+    - Now: all of it but what is still apart below; of the 30 multileaders of round I, AutoCAD read 29 as it made its own.
+    - Still apart: `BlockScale` and `BlockRotation` set after a leader, which the library writes without moving the block;
+      `BlockPosition` set, which AutoCAD carries the doglegs' starts with (as `TextLocation` does) and the library does not;
+      `TransformBy` of a block, which AutoCAD writes leaving the multileader's own scale of the block (10) and making the
+      matrix the block's transform, where the library writes 10 as drawn and multiplies the matrix; words given with a text
+      style of their own (AutoCAD takes it, overriding the style's); a leader of several not landed, which AutoCAD lands
+      anew when one of them is given its dogleg; and whether the colour of the words, the content and the block set to what
+      they are set their bits, which every multileader AutoCAD makes has set already.

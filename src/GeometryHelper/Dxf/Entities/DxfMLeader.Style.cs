@@ -54,7 +54,7 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gives a leader line a type of its own, as AutoCAD's <c>SetLeaderLineType</c>: its group 170 written and bit 1 of its
         /// flags (93) set, as the DXF reference and the ODA's specification of DWG place them after its index (91), from R2010.
-        /// The type the line is drawn with already changes nothing.
+        /// The type the line is drawn with already is written and flagged all the same, as AutoCAD 2021 flags it, from R2010.
         /// </summary>
         /// <param name="leaderLineIndex">The index of the line.</param>
         /// <param name="leaderLineType">The type.</param>
@@ -64,6 +64,7 @@ namespace GeometryHelper.Dxf
         {
             if (leaderLineType == GetLeaderLineType(leaderLineIndex))
             {
+                SetLineOwnAgain(leaderLineIndex, 170, ((int)leaderLineType).ToString(CultureInfo.InvariantCulture), LineTypeFlag);
                 return;
             }
 
@@ -109,8 +110,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gives a leader line a colour of its own, as AutoCAD's <c>SetLeaderLineColor</c>: its group 92 written and bit 2 of its
-        /// flags (93) set, from R2010; <see cref="Explode"/> draws the line in it. The colour the line is drawn in already
-        /// changes nothing.
+        /// flags (93) set, from R2010; <see cref="Explode"/> draws the line in it. The colour the line is drawn in already is
+        /// written and flagged all the same, as AutoCAD 2021 flags it.
         /// </summary>
         /// <param name="leaderLineIndex">The index of the line.</param>
         /// <param name="leaderLineTypeId">The colour, as AutoCAD names the argument.</param>
@@ -124,6 +125,7 @@ namespace GeometryHelper.Dxf
 
             if (Whole(text, 0) == DxfMLeaderColors.Raw(GetLeaderLineColor(leaderLineIndex), nameof(leaderLineTypeId)))
             {
+                SetLineOwnAgain(leaderLineIndex, 92, text, LineColorFlag);
                 return;
             }
 
@@ -145,7 +147,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gives a leader line a lineweight of its own, as AutoCAD's <c>SetLeaderLineWeight</c>: its group 171 written and bit 8
-        /// of its flags (93) set, from R2010. The lineweight the line is drawn with already changes nothing.
+        /// of its flags (93) set, from R2010. The lineweight the line is drawn with already is written and flagged all the same,
+        /// as AutoCAD 2021 flags it.
         /// </summary>
         /// <param name="leaderLineIndex">The index of the line.</param>
         /// <param name="leaderLineWeight">The lineweight.</param>
@@ -155,6 +158,7 @@ namespace GeometryHelper.Dxf
         {
             if (leaderLineWeight == GetLeaderLineWeight(leaderLineIndex))
             {
+                SetLineOwnAgain(leaderLineIndex, 171, ((int)leaderLineWeight).ToString(CultureInfo.InvariantCulture), LineWeightFlag);
                 return;
             }
 
@@ -168,8 +172,9 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets the size of a leader line's arrow, as AutoCAD's <c>GetArrowSize</c> of a line: its own (group 40 of the line)
-        /// where it overrides the multileader's (bit 16 of its 93), else <see cref="ArrowSize"/>; unscaled, as
-        /// <see cref="ArrowSize"/> is, the arrow drawn times the <see cref="Scale"/>.
+        /// where it overrides the multileader's (bit 16 of its 93), else the multileader's own size (its 42), as AutoCAD 2021
+        /// reads it; unscaled, the arrow drawn times the <see cref="Scale"/>. A multileader of arrows 4 scaled by 2 by
+        /// <see cref="DxfEntity.TransformBy"/> reads 4 here, its <see cref="ArrowSize"/> 8.
         /// </summary>
         /// <param name="leaderLineIndex">The index of the line.</param>
         /// <returns>The size.</returns>
@@ -184,7 +189,8 @@ namespace GeometryHelper.Dxf
         /// Gives a leader line's arrow a size of its own, as AutoCAD's <c>SetArrowSize</c> of a line: its group 40 written and
         /// bit 16 of its flags (93) set, from R2010; a line of a multileader of arrows 4 long given 2.5 reads 2.5, the others 4.
         /// The size is unscaled, as <see cref="ArrowSize"/> is: <see cref="Explode"/> draws it times the <see cref="Scale"/>, a
-        /// line given 4.5 on a multileader of scale 2 drawn 9. The size the arrow has already changes nothing.
+        /// line given 4.5 on a multileader of scale 2 drawn 9. The size the arrow has already is written and flagged all the same,
+        /// as AutoCAD 2021 writes it, from R2010.
         /// </summary>
         /// <param name="leaderLineIndex">The index of the line.</param>
         /// <param name="arrowSize">The size, nought or more.</param>
@@ -194,11 +200,24 @@ namespace GeometryHelper.Dxf
         {
             if (Same(arrowSize, GetArrowSize(leaderLineIndex)))
             {
+                SetLineOwnAgain(leaderLineIndex, 40, Real(arrowSize), ArrowSizeFlag);
                 return;
             }
 
             Guard.NonNegative(arrowSize, nameof(arrowSize), "An arrow's size has to be a finite number, nought or more.");
             SetLineOwn(leaderLineIndex, 40, Real(arrowSize), ArrowSizeFlag);
+        }
+
+        /// <summary>
+        /// Writes a leader line's own value of a code it is drawn with already and sets its flag (93), as AutoCAD 2021 flags a
+        /// look set to the one the line has; nothing in a file older than R2010, which has no flags of a line.
+        /// </summary>
+        private void SetLineOwnAgain(int leaderLineIndex, int code, string text, int flag)
+        {
+            if (Item.File.Supports(1024))
+            {
+                SetLineOwn(leaderLineIndex, code, text, flag);
+            }
         }
 
         /// <summary>A leader line's own value of a code where its flags (93) say it overrides the multileader's; null where it does not.</summary>
@@ -240,8 +259,8 @@ namespace GeometryHelper.Dxf
         /// and the style's arrows, 4 long. An override is the value the multileader's group gives, the style's kept where the
         /// multileader has no group of it, but for the arrows: a multileader of AutoCAD's closed filled arrow gives a style of
         /// no arrow block. Each is read as the multileader writes it, as <c>MLeaderStyleOverride</c> reads it: the height of
-        /// the words (bit 16) and the landing gap (bit 5) from the context data, scaled (its 41 and 145, as
-        /// <see cref="TextHeight"/> and <see cref="LandingGap"/> read them); the size of the arrows (bit 9) from the
+        /// the words (bit 16) and the landing gap (bit 5) from the context data, scaled (its 41 and 145, as drawn, which
+        /// <see cref="TextHeight"/> and <see cref="LandingGap"/> read over the scale); the size of the arrows (bit 9) from the
         /// multileader's own 42, unscaled, as the style holds it; the length of the doglegs (bit 7) from its own 41, unscaled
         /// too, as AutoCAD 2021 writes it. A multileader of scale 2 with words 8 high, arrows 4 and doglegs 8 of its own, drawn
         /// 16, gives a style of words 8 high, arrows 4 and doglegs 8, whose scale is the multileader's 2 where it overrides that
@@ -301,7 +320,7 @@ namespace GeometryHelper.Dxf
         /// cannot take keeps the multileader's own and its bit: a content (172) or a block (344) it does not hold, a size or a type out of AutoCAD's range, a linetype or a text
         /// style the style names none of or one its drawing has not, an arrow block or a block a copy in no drawing cannot be
         /// given (it keeps its own arrow, and takes the rest), and the attachments of the top and bottom and their direction in a
-        /// file older than R2010; so do the bits of no property the library writes (18 and 26). What it cannot take is judged
+        /// file older than R2010; so do the bits of no property the library writes (18, 26 and 30). What it cannot take is judged
         /// before anything is written, so that nothing is left half set. The overrides of each leader line (its 93) are the
         /// multileader's own, not the style's, and stay. The words, the block and the landings stay where they are, the properties
         /// written here not moving them as they do when set one by one: how AutoCAD 2021 moves them when a style is taken has not

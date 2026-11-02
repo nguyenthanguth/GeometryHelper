@@ -2124,11 +2124,21 @@ starts at, which every line of the leader ends at: `mleader.GetLastVertex(0)` is
 for them all; where the dogleg is not drawn, its `EnableDogleg` false or its leader lines splined, the last vertex is the end
 the dogleg would have, which the lines run on to, as AutoCAD 2021 reads it: a dogleg of 8 from (90, 48, 0) taken away
 leaves the line ending at (98, 48, 0). A property set is written in the MULTILEADER and in its context data, where AutoCAD
-keeps both, and sets its bit of the overrides of the multileader style. `new DxfMLeader()` takes the drawing's multileader
-style when it is appended, with the style's linetype of the leader lines (341) and its arrow block (342), as AutoCAD 2021
-writes them; so does `MLeaderStyle` set, where the multileader does not override them. `ArrowSize` set is written anew even
-where it is the size the multileader has, its bit set and the arrows drawn its size times the `Scale`, as AutoCAD writes
-it: 5 at a scale of 2 draws them 10.
+keeps both, and sets its bit of the overrides of the multileader style; set to the value it has, it sets the bit alone,
+as AutoCAD 2021 sets it, but the colour of the words, the content, the block, the direction of the attachment, the
+annotation scale, the places and the style, which change nothing. `new DxfMLeader()` takes the drawing's multileader
+style when it is appended, with the style's linetype of the leader lines (341), its arrow block (342) and the text style of
+its words (343, and 340 of the words, Standard where the style names none), as AutoCAD 2021 writes them; so does
+`MLeaderStyle` set, where the multileader does not override them (bits 2, 8 and 11), a style of no arrow block taking the
+multileader's away. `ArrowSize` set is written anew even where it is the size the multileader has, its bit set and the
+arrows drawn its size times the `Scale`, as AutoCAD writes it: 5 at a scale of 2 draws them 10. `TextAttachmentType` is the
+left side's, as AutoCAD's; the right is set by `SetTextAttachmentType`.
+
+The sizes are read and set unscaled, as AutoCAD 2021's API reads and sets them, and drawn times the `Scale`: `TextHeight`
+and `LandingGap` the context's 41 and 145 over the scale, `ArrowSize` its 140 over the scale (else the multileader's own
+42, which a line of no size of its own reads), `DoglegLength` the first leader's dogleg over the scale (else the
+multileader's own 41) and `BlockScale` the multileader's own 10, the block drawn times the scale (16). Words drawn 8 high
+with a gap drawn 4 at a scale of 2 read 4 and 2, and a gap of 3 set there is drawn 6.
 
 `AddLeaderLine(point)` lands a new leader where AutoCAD 2021 lands it, where it can without a font: from a point on the
 left of words held at their top left and met on their sides, the dogleg runs along the plane's x axis to the landing gap
@@ -2150,9 +2160,10 @@ The content keeps its landings as AutoCAD 2021 keeps them when something is set 
 doglegs with the words: the words moved from (100, 50, 0) to (120, 80, 0) move that dogleg to (110, 78, 0). `LandingGap`
 moves the words along x by as much as the gap grew, with leaders or none, and the doglegs on their right by twice it: a gap
 of 5 for 2 moves "ABC" to (103, 50, 0) and a dogleg on its right from (120.67, 48, 0) to (126.67, 48, 0). `DoglegLength`
-and `SetDoglegLength` move the words or block away from leaders that meet it on one side only, and, where leaders meet it
-on both, land those leaders anew instead: a dogleg of 15 moves words met on the right to (93, 50, 0), and leaves words met
-on both sides where they are, the doglegs then starting at (83, 48, 0) and (127.67, 48, 0). `SetLastVertex` (and
+and `SetDoglegLength` move the words or block away from the one leader that meets it, on one side, and, where leaders meet
+it on both sides or several on one, land those leaders anew instead: a dogleg of 15 moves words met on the right to (93,
+50, 0), and leaves words met on both sides where they are, the doglegs then starting at (83, 48, 0) and (127.67, 48, 0);
+of two leaders landed at (150, 38, 0) on the left of words at (160, 40, 0), the second given 15 starts at (143, 38, 0). `SetLastVertex` (and
 `SetVertex` of the last vertex) carries the content and every other leader's landing with the landing it moves: words met
 from (90, 48, 0), the vertex set to (50, 60, 0), stand at (60, 62, 0). `TextHeight` and `Scale` move words met on their left
 only (to (100, 53, 0) for a height of 10, to (110, 52, 0) at a scale of 2), and an attachment set moves them up or lands
@@ -2168,9 +2179,12 @@ The length of the doglegs is written as AutoCAD 2021 writes it: the
 multileader's own (`DoglegLength`, 41) unscaled, each leader's (40) times the `Scale`, `GetDoglegLength` the leader's over
 the scale (nought for a leader met at the top or bottom of the words), so that Standard's 8 at a scale of 2 is 8, drawn
 16. `Scale` scales the width and the height of the words too (43 and 44), but for words in columns, whose width, columns
-and gutter AutoCAD keeps, their height alone scaled; `TransformBy` leaves the scale and the multileader's own sizes as they
-are, as AutoCAD does: scaled by 2 the multileader is still of scale 1, its doglegs drawn 16, `DoglegLength` 8 and
-`ArrowSize` 4.
+and gutter AutoCAD keeps, their height alone scaled; a block is drawn scaled too, and, met by one leader, moves so that the
+leader's longer dogleg meets it at its end, the dogleg's start kept: the box of lines from (-10, -5) to (20, 15) at (100,
+50, 0) met from the left stands at (118, 45, 0) at a scale of 2; met on both sides it stays and its leaders are landed anew.
+`TransformBy` leaves the scale and the multileader's own sizes as they are, as AutoCAD does: scaled by 2 the multileader is
+still of scale 1, its 41 still 8 and 42 still 4, its doglegs drawn 16 and its arrows 8, which `DoglegLength` and
+`ArrowSize` read, as AutoCAD reads them.
 `GetGeometry()` gives the lines of its leaders, as `DxfReader` reads a MULTILEADER, and `IntersectWith` meets the
 multileader on them: each leader line a `GeoPolyline3` from its first vertex, where its arrow points, through its vertices
 and the last point of its leader to the end of the dogleg, the path `Explode()` draws; splined, a `GeoSpline3` fitted
@@ -2192,7 +2206,7 @@ scaled, the dogleg from the multileader's own 41 and the arrow size from its own
 the other way: the multileader takes its style's values, its words 4 high again, and its bits are set to nought, but for
 those of what it cannot take (a linetype or a text style the style names none of or its drawing has not, a content it does
 not hold, an arrow or a block a copy in no drawing cannot be given, the attachments of the top and bottom in a file older
-than R2010) and of the properties the library does not write (bits 18 and 26). Its sizes are the style's scaled once by the
+than R2010) and of the properties the library does not write (bits 18, 26 and 30). Its sizes are the style's scaled once by the
 style's scale: Standard scaled 2 gives words 8 high, a gap of 4 and arrows and doglegs drawn 8 and 16 long. A dimension, a
 leader or a multileader of a style its drawing has not answers false and changes nothing. One leader line is given a look
 of its own by
@@ -2200,7 +2214,8 @@ of its own by
 its groups 170, 92, 171 and 40 after its index and the flags 93 of those it overrides, in the order of the DXF reference;
 their `Get` give the line's own where it has one and the multileader's where it has not, and `Explode()` draws the line with
 its own type, colour, linetype, lineweight and arrow size: a line splined of its own is a SPLINE among straight lines, one
-invisible of its own gives nothing, and a size of its own, unscaled as `ArrowSize` is, is drawn times the `Scale`. `SetPlane(plane)` puts the multileader in a plane: the plane of its context data the
+invisible of its own gives nothing, and a size of its own, unscaled as `ArrowSize` is, is drawn times the `Scale`. A look
+set to the one the line has is written and flagged all the same, as AutoCAD 2021 flags it. `SetPlane(plane)` puts the multileader in a plane: the plane of its context data the
 one given, its x axis laid in it, every point moved straight onto it and every direction laid in it, the matrix of its block
 turned with it, the words of a mirrored multileader still read from behind the plane; its words at (800, 0, 0) put in the
 plane z = 5 are at (800, 0, 5), and a multileader put in its own plane changes nothing, the leaning axes a shear leaves
