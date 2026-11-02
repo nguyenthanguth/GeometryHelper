@@ -29,6 +29,12 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 13.4.0
+      - GeometryHelper.TeklaConvert is released at 13.4.0 with GeometryHelper, which reads annotative DXF texts and
+        INSERTs where AutoCAD 2021 shows them, and merges, clears, fills and resets tables, lands multileaders and fits
+        splines as AutoCAD 2021 does, and with GeometryHelper.IfcConvert, whose IfcStoreCache no longer throws when
+        opened on several threads at once as a process's first use of xBIM; nothing in TeklaConvert changes.
+
       NEW IN 13.3.0
       - GeometryHelper.TeklaConvert is released at 13.3.0 with GeometryHelper, which sets the constraint parameters of
         dynamic DXF blocks, makes block properties tables, and fills tables, lands multileaders and fits splines as

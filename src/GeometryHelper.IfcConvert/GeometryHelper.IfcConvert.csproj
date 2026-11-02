@@ -19,6 +19,15 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 13.4.0
+      - FIXED: files opened through IfcStoreCache on several threads at once, as the first thing a process does with
+        xBIM, no longer throw "Collection was modified; enumeration operation may not execute." on some of them. xBIM
+        sets up its services the first time a store asks for them, with no lock; the first IfcStoreCache now sets them
+        up before its store is opened, and those on other threads wait for it. Converting on several threads never met
+        it, since conversion starts once a store is open.
+      - Released with GeometryHelper 13.4.0, which reads annotative DXF texts and INSERTs where AutoCAD 2021 shows them,
+        and merges, clears, fills and resets tables, lands multileaders and fits splines as AutoCAD 2021 does.
+
       NEW IN 13.3.0
       - GeometryHelper.IfcConvert is released at 13.3.0 with GeometryHelper, which sets the constraint parameters of
         dynamic DXF blocks, makes block properties tables, and fills tables, lands multileaders and fits splines as

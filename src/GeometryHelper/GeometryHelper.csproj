@@ -14,53 +14,57 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement bin-packing sheet-layout cad autocad tekla bim drawing</PackageTags>
     <PackageReleaseNotes>
-      NEW IN 13.3.0
+      NEW IN 13.4.0
 
-      A minor release: 48 public members added in GeometryHelper.Dxf, none removed or renamed. Nearly all of it is DXF
-      parity with AutoCAD 2021; the results callers will see change are listed under CHANGED.
+      A minor release: no public member added, removed or renamed. Nearly all of it is DXF parity with AutoCAD 2021; the
+      results callers will see change are listed under CHANGED. The one fix outside DXF is in GeometryHelper.IfcConvert.
 
       NEW, DXF
-      - Constraint parameters of dynamic blocks: the horizontal, vertical and radial ones AutoCAD's Block Editor wrote
-        are set by solving the block's constraints, within 4E-11 of AutoCAD 2021, and AutoCAD sets the library's INSERTs
-        again. Their expressions take AutoCAD's functions (trunc, floor, ceil, min, max, pow, ln, log, d2r and the rest),
-        pi, e and the remainder %.
-      - Block properties tables: AddBlockPropertiesTable and BlockPropertiesTable, with DxfBlockPropertiesTableColumn
-        (distances, X, Y, angles, attributes, the visibility state) and DxfBlockPropertiesTableRow; AutoCAD's own tables
-        are read and set.
-      - Polar parameters and polar stretches (AddPolarParameter, AddPolarStretchAction), value sets for rotation, XY and
-        polar parameters, lookups of XY, polar and rotation inputs, and attribute definitions locked in their block in
-        stretches, moves, scales, rotates and polar stretches.
+      - DxfSpline.FitData fits by the parameters SqrtChord and Uniform too, as AutoCAD 2021 does, and FitData.KnotParam
+        reads them; only CustomParameterization is refused now.
 
       CHANGED, DXF: results callers will see change
-      - DxfMLeader.TextHeight, LandingGap, ArrowSize, DoglegLength and BlockScale read and set unscaled, as AutoCAD's API
-        does: at a scale of 2, words drawn 8 high read 4, where they read 8. At a scale of 1 and untransformed nothing
-        changes. TextAttachmentType sets the left side alone; AddLeaderLine lands a new leader as AutoCAD lands it, on a
-        block, and on words where that needs no font.
-      - DxfTable.SetDataType turns a value not of the kind, and SetOverrides gives an override the cell does not hold,
-        where both refused; Fill fills as AutoCAD fills; new cells of InsertRows, InsertColumns and SetSize hold no value,
-        where they held an empty text; HorizontalCellMargin and VerticalCellMargin of a table of no margin of its own read
-        its style's, 1.5 in a drawing of millimetres, where they read 0.06.
-      - A spline through fit points is a cubic of chord-length knots whatever degree is asked, as AutoCAD fits it, and a
-        SPLINE whose control points are not its fit is read as the fit; ToPolyline gives closer to AutoCAD's vertex counts.
-      - round in a constraint expression takes a half up: round(-2.5) is -2, where it was -3.
-      - DxfDatabase.Insert copies an INSERT naming a block the other drawing has not, where it refused the whole drawing.
-      - A block is dynamic where it holds an evaluation graph, not where it holds the GUID alone.
+      - An annotative TEXT, ATTRIB, ATTDEF, MTEXT or INSERT with contexts is read where AutoCAD 2021 shows it: its
+        place, turn and height (an MTEXT's box and attachment too, an INSERT's scale factors) are those of its context
+        of 1:1, else of its default, whatever CANNOSCALE says. Setters write the context read, and the record where it
+        is the default; the INSERT's ScaleFactors setter writes every context by its scale, 3 at 1:1 being 6 at 1:2;
+        TransformBy carries every context. A text with no context reads and writes as before.
+      - A copy (Clone, GetTransformedCopy) of an annotative text, attribute, MTEXT or INSERT keeps its original's
+        contexts. Clone of plain entities takes some 15 to 20 per cent longer.
+      - An ATTRIB is annotative as its INSERT is; an attribute made of several lines is held by the top of its MTEXT one
+        text height above its point, where it was held by its bottom left; TransformBy of an MTEXT stretches its box.
+      - DxfMLeader.BlockScale and BlockRotation set, even to the value they have, move the block so that a leader from
+        the left meets it at the base point and land its leaders anew; the library left the block where it was.
+        BlockRotation reads the multileader's own turn (43), where it read the turn the block is drawn with (46).
+        TransformBy leaves the multileader's own block scale and turn as they are: a block scaled by 2 reads a
+        BlockScale of 1. BlockPosition leaves the block's matrix as it is.
+      - A leader added by AddLeader has no landing until the first vertex given its line, which becomes its landing, the
+        content left where it is; SetDogleg lands a leader of no landing. Words given by MText bring their text style.
+      - The first edit of a DxfTable while its drawing is open merges first the rows AutoCAD 2021 merges when it loads a
+        file, a change of the table's own colour, layer and the like among the edits.
+      - DxfTable.ClearTableStyleOverrides keeps the title and header left out. Of 0 or 2 it sets the turn of a cell's
+        text or block back to nought, as RemoveAllOverrides does, and leaves a cell emptied in the session of no value;
+        of 2 it gives each cell the table's own looks of its row's kind. On a table of 400 rows a clear of 0 or 2 takes
+        20 ms on .NET Framework 4.8, where it took 8.
+      - DxfTable.ResetValue takes the looks of the content away with the value, and of a block cell makes a text cell of
+        no value, where it threw. From R2007 on, SetTextString of an empty text leaves no value as ResetValue does.
+      - DxfTable.Fill with CopyContent and CopyFrom from a cell emptied in the session leave the target's content as it
+        was; Fill above or left of its source and longer than it repeats the source from the fill range's far end; Fill
+        with CopyFormat turns a value of another kind into the source's.
+      - DxfTable.SetFormat keeps a format on a number alone, GetOverrides reads a cell's flag of its kind of value as
+        DataType | DataFormat, and the flags of merged and new cells and of a value's kind are written as AutoCAD writes
+        them.
+      - A DxfSpline read as the cubic through its fit points gives that cubic's Degree, ControlPoints, Knots, Weights
+        and NumControlPoints: five fit points alone of degree 2 are of degree 3 and 7 control points, where the library
+        gave 2 and none. ModifyPositionAndTangent and GetSplitCurves keep the fit points. The first geometry read of a
+        spline reads its record in one pass, in about half the time on .NET Framework 4.8.
 
       FIXED, DXF
-      - Multileaders explode, keep their landings and scale their blocks and words as AutoCAD 2021 does, and write the
-        style's text style, linetype and arrow block.
-      - Table rows keep their kinds, merged cells are emptied, the lines between cells are read as AutoCAD reads them,
-        SetBackgroundColorNone and IsBackgroundColorNone no longer have it the other way about, and the edits of rows and
-        columns keep the TABLECONTENT in step.
-      - Carets and %% codes in texts and ContentsRTF read as AutoCAD 2021 reads them; a justified text writes its
-        alignment point at the origin too.
-
-      FIXED and CHANGED, geometry
-      - ToPolygon3, ToFace3 and ToPolyline3 lay a shape into a frame, and ProjectToPolygon2, ProjectToFace2 and
-        ProjectToPolyline2 lay it out, side for side however short a side, where the global tolerance took short sides
-        out. A polygon or a face seen edge-on is now refused, where it came out as a line of corners.
-      - TransformBy of faces, solids and polygons one by one reads the transformation once; the results are the same to
-        the bit.
+      - DxfSpline.ToPolylineWithPrecision cuts a spline not periodic evenly where that gives more pieces than the
+        halving, as AutoCAD 2021 does; periodic fit data through three points give AutoCAD's periodic cubic.
+      - A multileader's leader moved off its landing is landed anew when the content is laid out again; a block mirrored
+        by TransformBy is drawn mirrored; a second leader on the right of a block moves it as AutoCAD moves it; words
+        that name a text style keep it when the multileader is added to a drawing.
 
       Details in CHANGELOG.md.
 

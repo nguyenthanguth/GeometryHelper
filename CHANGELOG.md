@@ -6,6 +6,29 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+## 13.4.0 (2026-11-02)
+
+A minor release: no public member is added, removed or renamed in any of the four libraries. Of its 43 entries, 1 NEW, 7
+FIXED and 35 CHANGED, all but one are DXF, each checked against what AutoCAD 2021 reads, writes or works out; the one is
+a fix in GeometryHelper.IfcConvert. Annotative texts, attributes, MTEXTs and INSERTs are read where AutoCAD 2021 shows
+them and written there, tables merge, clear, reset, fill and copy as it does, multileaders keep their blocks' landings
+and land their leaders as it does, and splines fit by its SqrtChord and Uniform parameters too and are cut into
+polylines as it cuts them. Callers will see results change: an annotative TEXT, ATTRIB, ATTDEF, MTEXT or INSERT with
+contexts reads its place, turn and height from its context of 1:1, else its default, whatever CANNOSCALE says, its
+setters write that context, an INSERT's `ScaleFactors` setter writes every context by its scale, and a copy keeps its
+original's contexts; an attribute made of several lines is held by the top of its MTEXT; a multileader's `BlockScale`
+and `BlockRotation` set, even to the value they have, move the block to be met at the base point and land its leaders
+anew, `BlockRotation` reads the multileader's own turn (43), `TransformBy` leaves the block's own scale and turn as they
+are, and a leader added by `AddLeader` has no landing until its line is given a vertex; the first edit of a `DxfTable`
+merges the rows AutoCAD merges on load, `ClearTableStyleOverrides` keeps the title and header left out, `ResetValue`
+takes a cell's looks away with its value and empties a block cell where it threw, a `Fill` with `CopyContent` or a
+`CopyFrom` from a cell emptied in the session leaves its target as it was, and a `Fill` above its source repeats it from
+the far end; a spline read as the cubic through its fit points gives that cubic's `Degree`, `ControlPoints` and `Knots`,
+and `ToPolylineWithPrecision` cuts a spline not periodic evenly where that gives more pieces. `Clone` of plain DXF
+entities is some 15 to 20 per cent slower, and a clear of 0 or 2 of a table of 400 rows takes 20 ms on .NET Framework
+4.8 where it took 8. In GeometryHelper.IfcConvert, `IfcStoreCache` opened on several threads at once as a process's
+first use of xBIM no longer throws on some of them.
+
 **CHANGED.** A copy (`Clone`, `GetTransformedCopy`) of an annotative text, attribute, MTEXT or INSERT keeps the contexts of
 its original, and an INSERT's copy those of its ATTRIBs, as AutoCAD 2021's copy keeps them (check D35c): in no file it is
 shown at its original's scales (`HasContext`) and reads where its original is read; appended to its original's drawing it
