@@ -80,11 +80,14 @@ namespace GeometryHelper.Dxf
         private const byte SessionEmptied = 1;
         private const byte SessionReset = 2;
 
-        // A cell of a row of data given the table's own looks of the data, _rowLooks, by rows put in before the first row of
-        // data, which AutoCAD 2021 keeps with the row: ClearTableStyleOverrides of 2 and RemoveAllOverrides give them back, of 0
-        // and 1 they go (D33f a01 to a14).
-        private const byte SessionRowLooks = 0x40;
-        private List<KeyValuePair<int, string>> _rowLooks;
+        // The looks each row keeps of its own while the drawing is open, by row, as AutoCAD 2021 keeps them with the row (its
+        // ROWTABLEFORMAT), the table's own looks of a kind being those of its first row of that kind: null for a row that keeps
+        // the table's own of its kind, as each row read from the file does; none for a row InsertRows or SetSize put in, and a
+        // row put in taking the look of another those that row keeps; the table's own looks of the data, for a row of data that
+        // rows put in before the first row of data, or that row taken out, took them from. ClearTableStyleOverrides of 2,
+        // RemoveAllOverrides and the cells of columns put in give them; of 0 and 1 they go (D33f a01 to a14, D33g). Read only
+        // for a table of as many rows; null where no row keeps looks of its own.
+        private List<KeyValuePair<int, string>>[] _rowLooks;
 
         private DxfTable(DxfItem item)
             : base(item)

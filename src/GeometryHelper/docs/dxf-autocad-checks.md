@@ -1944,3 +1944,36 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       out again from the font; whether an INSERT of no context record has an extension dictionary (AutoCAD says it has); and
       the names of the entries AutoCAD gives the scales it adds (`*A1`, `*A2`), where the library's `AddContext` gives
       `A0`, `A1` and on.
+
+## Tables: the looks each row keeps, and AutoCAD's clear of a table it read
+
+99. **The looks AutoCAD keeps with each row (its ROWTABLEFORMAT) through rows and columns put in and taken out; AutoCAD's
+    clear of 2 of its own file of a table given a row before its title.**
+    - Try (D33g, headless, plugin GHD33G rounds GA, GB, GR1 and GR3): D28c's o0 (its own data looks of 9, GH_TXT, red and
+      top left) given a row at 3, after B-12, then a clear of 2, a column, a row taking its look, or B-12 taken out; `SetSize`
+      of 4 rows; a row at 0 then a column, a row taking B-12's look, the row at 0 taken out again, or a second row at 0; two
+      rows at 0 taken out together, or one of them; `SetTextHeight(5.0, DataRow)` and `SetContentColor(blue, DataRow)`
+      after a row at 0 or 3; AutoCAD's own file of o0 given a row at 0 (D33f a12) and of the drawn table given one (D33e
+      m09) read again and cleared of 2 or 0, or given `RemoveAllOverrides`; the library's file of it, and that file with
+      AutoCAD's TABLECONTENT put in its place, cleared of 2; and the library's files of 35 edits, and of D33f's 103, read
+      back.
+    - AutoCAD 2021: each row keeps its looks, the table's own of a kind those of its first row of that kind. A row put in
+      by `InsertRows` or `SetSize` keeps none: cleared of 2, its cells are written `91 0`, and B-12 above keeps GH_TXT, red,
+      9 and top left; a column put in gives its cell none there, the cell of B-12's row the data's (`91 57`), the title
+      moved down `170 5`, `140 6.0` (`91 33`) and the header moved down `170 5`, its green and its 9 (`91 39`). A row put in
+      taking a row's look keeps that row's looks, none of a row put in. The row at 0 taken out again, or both rows at 0
+      together, the table's head reads `93 6886016` again, its data's looks as before; B-12 taken out after a row put in
+      after it, they go (`93 2101760`). A second row at 0 takes them from the table again, the rows that kept them keeping
+      them; a setter of the data's looks sets each row of data. AutoCAD's own file of o0 given a row at 0, read again and
+      cleared of 2, reads the title and B-12 0.18 and 4.5 high and the header without its looks, as AutoCAD reads the
+      library's file of it: its head given the title's `63 0`, `140 0.18`, `283 1` (`93 1050883`), the header's gone; the
+      library's file with AutoCAD's TABLECONTENT alike. The library's TABLECONTENT is not what differs: AutoCAD's clear of
+      a table it read is.
+    - Now: as AutoCAD for the rows put in, the rows taking a look, the columns and the rows taken out. AutoCAD read 17 of
+      29 of the library's files of round GA as its own (5 at base), all 6 of GB's, and 102 of D33f's 103 (99 at base).
+    - Still apart: the clear of 2 of a table AutoCAD read (a06, c01 to c04; the library gives the title moved down 6 and
+      the header its green, as AutoCAD does while the drawing is open); a title or header moved back into its place by a
+      row taken out, whose cells AutoCAD writes without the looks of its kind it was given (k02, the title's `170 5` and
+      `140 6.0`); the title moved down merged anew over a column `SetSize` puts in (g05); the value of a cell of a row put in
+      taking the look of a row put in (h03, h04, `String:` for none); and the setters of a kind's looks, which the library
+      has not.

@@ -6,6 +6,20 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** `DxfTable` keeps the looks of each row with the row while the drawing is open, as AutoCAD 2021 keeps them in
+its ROWTABLEFORMAT, the table's own looks of a kind those of its first row of that kind (check D33g, D33f a04, a07, a09).
+A row `InsertRows` or `SetSize` puts in keeps none: `ClearTableStyleOverrides(2)` writes its cells `91 0`, where the
+library gave them the table's own looks of the data, and a row put in at 0 later leaves it none. A row
+`InsertRowsAndInherit` puts in keeps the looks of the row whose look it takes. A cell of a column `InsertColumns` or
+`SetSize` puts in takes the looks of its row: none in a row put in, GH_TXT, red, 9 and top left in the row of data that a
+row put in at 0 took them from, and the looks of its kind in a title or header moved out of its place (`170 5` and `140
+6.0` for the title). Where `DeleteRows` or `SetSize` takes out the first row of data, the table's own looks of the data
+are those of the next row of data: the row put in at 0 taken out again writes them back in the table's head as they were
+(`93 6886016`), and B-12 taken out after a row put in after it takes them away (`93 2101760`).
+
+**CHANGED.** A title or header moved out of its place writes its kind's text height as AutoCAD 2021 writes it, `140 6.0`
+for the title of AutoCAD's Standard, where the library wrote `140 6` (check D33g).
+
 **CHANGED.** `DxfTable.RemoveAllOverrides` keeps in a cell of a row of the title's or the header's kind out of its place
 the looks of its kind, whether the table shows its title and header or not, as AutoCAD 2021 did (check D33f, D33e n07): a
 row put in taking the title's look (`InsertRowsAndInherit(3, 0, 1)`), the title shown, keeps `170 5` and `140 6.0`, and

@@ -2489,7 +2489,13 @@ merges the new first row on load as it merges its own. AutoCAD keeps the table's
 data, so that a row put in before the first row of data, which takes them from the table and gives them to the old rows'
 cells, leaves them with those rows while the drawing is open: a clear of 2 and `RemoveAllOverrides` give B-12 and M12
 back GH_TXT, red, 9 and top left, wherever the rows went since, and a clear of 0 or 1 takes them from the rows with the
-table's own. The kinds of the rows are read from the TABLECONTENT once for each writing of it, and only where it holds
+table's own. AutoCAD keeps the looks of every row with the row, and reads the table's own looks of a kind from its first
+row of that kind; the library follows the rows the same way while the drawing is open. A row `InsertRows` or `SetSize`
+puts in keeps none, so that the table of its own data looks given a row after B-12 and cleared of 2 writes the new row's
+cells `91 0`; a row `InsertRowsAndInherit` puts in keeps those of the row whose look it takes; and where `DeleteRows`
+takes out the first row of data, the table's own looks of the data are those of the next: the row put in at 0 taken out
+again gives the table its looks back as they were (`93 6886016`), and B-12 taken out after a row put in after it leaves
+it none. The kinds of the rows are read from the TABLECONTENT once for each writing of it, and only where it holds
 more rows of the title's or the header's style than the table shows: a clear of a table of 400 rows takes as long as it
 did before the kinds were read, and taking away the overrides of its cells one by one too.
 The cells are
@@ -2537,10 +2543,11 @@ alike: the row put in under a cell whose top and left are red has its top and le
 reads red, as AutoCAD 2021 wrote it; not its content. A block of merged cells along that row or column is merged along
 each new one, the title's too, and a new row of the title's or the header's look is of that kind, its cells given the
 looks of the kind as a title moved down is, unless it goes in the kind's place: from the title before the header, the
-new row merged across and 6 high, read as data, and the header left out. A new cell of a column `InsertColumns` or `SetSize` puts in takes as its own the looks the table gives of its
-own to its kind of row (alignment, text style, background, colour, text height): AutoCAD 2021 gave the new header cell of
+new row merged across and 6 high, read as data, and the header left out. A new cell of a column `InsertColumns` or `SetSize` puts in takes as its own the looks its row keeps
+(alignment, text style, background, colour, text height): AutoCAD 2021 gave the new header cell of
 a table of its own header of 9 `140 9.0` with its flag 0x20, and read a cell without them by its table style alone,
-4.5; a new row's cells it gave none. `DeleteRows`
+4.5; a new row's cells it gave none. A row of the title's or the header's kind out of its place gives its new cell the
+looks of its kind, the title moved down `170 5` and `140 6.0`, and a row put in gives its new cell none. `DeleteRows`
 and `DeleteColumns` take them out, a block of merged cells shrunk to what is left of it and unmerged where one cell is
 left, each cell left keeping its own content, empty where `MergeCells` emptied it, as AutoCAD 2021 left them: the title
 of two columns that loses its first keeps the empty text of its second, not Parts. Taking out the title or the header

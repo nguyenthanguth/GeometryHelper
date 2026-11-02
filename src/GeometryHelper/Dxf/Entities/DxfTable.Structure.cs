@@ -90,7 +90,10 @@ namespace GeometryHelper.Dxf
         /// of their kind the data's are not, the title's <c>170 5</c> and <c>140 6.0</c> of AutoCAD's Standard, the header's
         /// <c>170 5</c>, and the table's own of their kind (D28d r1 to r7). Rows put in at or before the first row of data take
         /// the table's own looks of the data away from it, the rows of data that were given them as their own, as AutoCAD reads
-        /// those looks from the first row of data (D28d d1 to d3). The first row put into a table of one row is the header and
+        /// those looks from the first row of data (D28d d1 to d3); a row that keeps looks of its own keeps those. AutoCAD 2021
+        /// keeps the looks of each row with the row, and a row put in keeps none: a clear of the cells' overrides of 2 and a
+        /// column put in give its cells none, the table of its own looks of the data given a row after B-12 and cleared of 2
+        /// writing the new row's cells <c>91 0</c> (D33f a04, D33g g01, k07). The first row put into a table of one row is the header and
         /// the rest data, as AutoCAD 2021 gave them, the header shown again where the table had left it out, and a header put
         /// after a lone row of data read as data in the header's alignment (D28e s8, s15, s17, e07 to e12). The table given a
         /// row before its title reads every row as data, Parts still 6 high and in the middle.
@@ -122,7 +125,10 @@ namespace GeometryHelper.Dxf
         /// <c>170 5</c> and <c>140 6.0</c> of AutoCAD's Standard, and the table's own of that kind, unless it is put in the
         /// place of that kind; a title or header moved out of its place leaves it out (<c>280 1</c>, <c>281 1</c>) and takes
         /// those looks alike, as <see cref="InsertRows"/> writes them (D28d i1 to i9). The table given a row of its title's
-        /// look after its last has a fourth row merged across, 6 high, read as data. In the TABLECONTENT the new rows take that
+        /// look after its last has a fourth row merged across, 6 high, read as data. The new rows keep the looks that row keeps
+        /// of its own, as AutoCAD 2021 kept them: a row put in taking the look of B-12, which a row put in at 0 took the table's
+        /// own looks of the data from, is given GH_TXT, red, 9 and top left by a clear of 2, and one taking the look of a row
+        /// put in none (D33g h01, h03). In the TABLECONTENT the new rows take that
         /// row's style, a row of data from a row of data, and each cell the format of that row's cell in its column as it
         /// stands, its margins and lines, and an empty value of the flags 5 with the format of that cell's content where it
         /// holds one, as AutoCAD 2021 wrote them (D28c i1 to i7).
@@ -151,7 +157,10 @@ namespace GeometryHelper.Dxf
         /// (<c>280 1</c>, <c>281 1</c> and their flags in 93), the header first and shown where the title goes, and a title or
         /// header moved back into its place by the rows taken is shown again, its 280 or 281 taken out (D28e x1 to x17); the
         /// table's own looks of a kind of which no row is left go from its head with their flags, as AutoCAD took the
-        /// header's background and height out with the header (x8). A range of cells linked to data shrinks and moves alike, its link named by its new top
+        /// header's background and height out with the header (x8). Where the first row of data goes, the table's own looks of
+        /// the data are those the next row of data keeps, as AutoCAD 2021 reads them from its first row of data: the row put in
+        /// at 0 taken out again gives them back to the table's head as they were (<c>93 6886016</c>), B-12 taken out after a row
+        /// put in after it takes them away (D33g k02, k05, k06). A range of cells linked to data shrinks and moves alike, its link named by its new top
         /// left cell, and goes where none of it is left, its DATALINK erased as <see cref="RemoveDataLink()"/> erases one: where it
         /// is anonymous and nothing else of the file points at it. The rows are taken out of the table's TABLECONTENT too, as
         /// AutoCAD 2021's <c>DeleteRows</c> takes them out: a link the TABLECONTENT names goes with its cell, its DATALINK kept and
@@ -184,10 +193,12 @@ namespace GeometryHelper.Dxf
         /// moves on with its columns. Columns put in before the title's first column or after its last merge it anew, as AutoCAD
         /// 2021 merged it: its other cells emptied, of no value, under the title's top line, and the line under the title its
         /// bottom line across every column, the green line under Qty where the line under Mark is yellow made yellow; a column
-        /// put in among its columns grows it as it is (D28d g1 to g4). Each new cell takes as its own the looks the table gives of its own to its kind of row
+        /// put in among its columns grows it as it is (D28d g1 to g4). Each new cell takes as its own the looks its row keeps
         /// (its alignment, text style, background, colour and text height), as AutoCAD 2021 gave the new header cell of a table
         /// of its own header of 9 <c>140 9.0</c> with the flag 0x20, and reads a cell without them by its table style alone
-        /// (D28c o3). The table of columns 40 and 30 given one 25 wide before its column 1 has columns 40, 25 and 30, its title
+        /// (D28c o3): the table's own of the row's kind, those of its kind for a row of the title's or the header's kind out of
+        /// its place, the title moved down by a row put in before it <c>170 5</c> and <c>140 6.0</c>, the looks of the data a
+        /// row put in at 0 took from the table for the rows of data, and none for a row put in (D33f a09, D33g g01, g02). The table of columns 40 and 30 given one 25 wide before its column 1 has columns 40, 25 and 30, its title
         /// merged across the three; given one before its column 0, Parts still in (0, 0) across the three.
         /// </summary>
         /// <param name="col">The column the new ones go before, from nought; <see cref="NumColumns"/> for after the last.</param>
@@ -257,8 +268,8 @@ namespace GeometryHelper.Dxf
         /// 2021 made one, the text height of its first row whose new cell is merged with none (the header, where the title is
         /// merged across the table) and the margins either side of a cell's content (7.5 for AutoCAD's Standard, 4.5 and 1.5;
         /// 9 where the title is unmerged, its 6; 1 in a table of one row, its title merged across it, D28c w1), of empty text
-        /// cells, those of the new columns in the rows the table had given its own looks of their kind of row, as
-        /// <see cref="InsertColumns"/> gives them; the title merged across every column is merged anew over the new ones, as
+        /// cells, those of the new columns given the looks their rows keep, as <see cref="InsertColumns"/> gives them, those of
+        /// the new rows none, as AutoCAD 2021 kept none with a row its <c>SetSize</c> put in (D33g e01, g05); the title merged across every column is merged anew over the new ones, as
         /// <see cref="InsertColumns"/> merges it (D28d g4), and no other
         /// block grows, a column merged down to the last row nor a title merged across some of the columns (D28c w3, m1); blocks
         /// of merged cells and ranges linked to data cut where they reach past the new size, in the TABLECONTENT too, as
@@ -303,7 +314,7 @@ namespace GeometryHelper.Dxf
 
             bool valued = Item.File.Supports(1021);
             var cells = new List<KeyValuePair<int, string>>[numRows * numCols];
-            List<KeyValuePair<int, string>>[] looks = numCols > columns ? RowKindLooks(layout) : null;
+            List<KeyValuePair<int, string>>[] looks = numCols > columns ? NewColumnLooks(layout) : null;
             TitleMerge merge = title ? MergeTitleAgain(layout, valued) : null;
 
             for (int r = 0; r < numRows; r++)
@@ -326,12 +337,16 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            RowKinds kinds = numRows > rows ? Kinds(layout, cells, numCols, rows, numRows - rows, -1, valued, false) : numRows < rows ? DeletedKinds(layout, numRows, rows - numRows) : null;
+            RowKinds kinds = numRows > rows ? Kinds(layout, cells, numCols, rows, numRows - rows, -1, valued, false) : numRows < rows ? DeletedKinds(layout, numRows, rows - numRows, cells, numCols) : null;
 
             // The cells put in, and those of the title merged anew, are emptied in the session (D33d a05).
             bool anew = merge != null;
             int[] places = Places(numRows, numCols, (r, c) => r < rows && c < columns && (!anew || r > 0 || c == 0) ? r * columns + c : -1);
             Rebuild(layout, numRows, numCols, heights, widths, cells, blocks, LinksCut(layout, numRows, numCols), places);
+
+            // A row put in keeps no looks of its own, as AutoCAD 2021 gave none to the row its SetSize put in (D33g e01).
+            MoveRowLooks(rows, Math.Min(rows, numRows), Math.Max(rows - numRows, 0), Math.Max(numRows - rows, 0), NoLooks);
+            kinds?.MarkRows(this, numRows);
 
             if (numRows != rows)
             {
@@ -383,7 +398,7 @@ namespace GeometryHelper.Dxf
 
             (rowsOf ? heights : widths).InsertRange(at, Repeat(size, count));
             var cells = new List<KeyValuePair<int, string>>[newRows * newColumns];
-            List<KeyValuePair<int, string>>[] looks = !rowsOf && inheritFrom < 0 ? RowKindLooks(layout) : null;
+            List<KeyValuePair<int, string>>[] looks = !rowsOf && inheritFrom < 0 ? NewColumnLooks(layout) : null;
             List<DxfCellRange> found = Blocks(layout);
             bool title = !rowsOf && TitleAcross(found, columns);
 
@@ -471,7 +486,15 @@ namespace GeometryHelper.Dxf
             RowKinds kinds = rowsOf ? Kinds(layout, cells, newColumns, at, count, inheritFrom, valued) : null;
 
             Rebuild(layout, newRows, newColumns, heights, widths, cells, blocks, LinksInserted(layout, rowsOf, at, count), places);
-            kinds?.MarkRows(this, newRows, newColumns);
+
+            // A row put in keeps no looks of its own, and one taking the look of another those that row keeps, as AutoCAD 2021
+            // kept them (D33f a04, D33g h01, h03).
+            if (rowsOf)
+            {
+                MoveRowLooks(rows, at, 0, count, inheritFrom >= 0 ? RowLooksOf(layout, inheritFrom) : NoLooks);
+            }
+
+            kinds?.MarkRows(this, newRows);
             ContentInserted(rowsOf, at, count, size, inheritFrom, title ? columns : 0, rowsOf && inheritFrom < 0 && rows == 1);
 
             foreach (DxfCellRange block in copied ?? new List<DxfCellRange>())
@@ -663,9 +686,16 @@ namespace GeometryHelper.Dxf
                 AddBlock(blocks, rowsOf ? newFirst : b.TopRow, rowsOf ? b.LeftColumn : newFirst, rowsOf ? newLast : b.BottomRow, rowsOf ? b.RightColumn : newLast);
             }
 
-            RowKinds kinds = rowsOf ? DeletedKinds(layout, at, count) : null;
+            RowKinds kinds = rowsOf ? DeletedKinds(layout, at, count, cells, newColumns) : null;
             int[] places = Places(newRows, newColumns, (r, c) => (rowsOf && r >= at ? r + count : r) * columns + (!rowsOf && c >= at ? c + count : c));
             Rebuild(layout, newRows, newColumns, heights, widths, cells, blocks, LinksDeleted(layout, rowsOf, at, count), places);
+
+            if (rowsOf)
+            {
+                MoveRowLooks(rows, at, count, 0, null);
+                kinds?.MarkRows(this, newRows);
+            }
+
             ContentDeleted(rowsOf, at, count);
             kinds?.WriteHead(this);
         }
@@ -2342,12 +2372,21 @@ namespace GeometryHelper.Dxf
             return rows;
         }
 
-        /// <summary>A new cell (<see cref="NewCell(bool)"/>) of a row of the table as it stands, given the table's own looks of the row's kind (<see cref="RowKindLooks"/>) as its own.</summary>
+        /// <summary>
+        /// The looks each new cell of a column put in takes as its own, row by row, as AutoCAD 2021 gave each the looks of its
+        /// row: the table's own of the row's kind (<see cref="RowKindLooks"/>), those of its kind for a row of the title's or the
+        /// header's kind out of its place, the title moved down by a row put in before it <c>170 5</c> and <c>140 6.0</c>
+        /// (91 33), the header <c>170 5</c>, its green and its 9 (91 39), and those a row keeps of its own
+        /// (<see cref="_rowLooks"/>), none for a row put in after the data (D33g g01, g02, g05); null where no row has looks.
+        /// </summary>
+        private List<KeyValuePair<int, string>>[] NewColumnLooks(Layout layout) => WithRowLooks(layout, ContentLooks(layout, out bool[] moved), moved);
+
+        /// <summary>A new cell (<see cref="NewCell(bool)"/>) of a row of the table as it stands, given the looks of its row (<see cref="NewColumnLooks"/>) as its own.</summary>
         private static List<KeyValuePair<int, string>> NewCell(bool valued, List<KeyValuePair<int, string>>[] looks, int row)
         {
             List<KeyValuePair<int, string>> cell = NewCell(valued);
 
-            if (looks == null || looks[row].Count == 0)
+            if (looks?[row] == null || looks[row].Count == 0)
             {
                 return cell;
             }

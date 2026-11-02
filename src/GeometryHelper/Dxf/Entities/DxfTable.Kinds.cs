@@ -18,6 +18,9 @@ namespace GeometryHelper.Dxf
         // The styles of the rows of the TABLECONTENT, read once for its record as it stands (ContentKindsOf).
         private ContentKinds _contentKinds;
 
+        // The looks of its own a row put in keeps: none (_rowLooks). Never changed.
+        private static readonly List<KeyValuePair<int, string>> NoLooks = new List<KeyValuePair<int, string>>();
+
         #region Lines of a cell
 
         /// <summary>A line a cell holds at an edge: its colour, lineweight and showing (null for one it holds not), and which of the three it flags.</summary>
@@ -268,10 +271,13 @@ namespace GeometryHelper.Dxf
             var looks = new List<KeyValuePair<int, string>>[3];
             bool[] dropped = drop ? new bool[rows] : null;
 
+            // The rows of data the table's own looks of the data go to are those that keep the table's: a row that keeps looks of
+            // its own, as a row put in after the data keeps none, keeps them (D33g k01, d02).
             for (int r = 0; r < rows; r++)
             {
                 bool added = r >= at && r < at + count;
-                List<KeyValuePair<int, string>> give = movedOut(r) ? looks[kinds[r]] ?? (looks[kinds[r]] = KindLooks(kinds[r], own)) : drop && kinds[r] == 2 && !added ? own[2] : null;
+                bool keepsTables = !added && RowLooksOf(layout, r < at ? r : r - count) == null;
+                List<KeyValuePair<int, string>> give = movedOut(r) ? looks[kinds[r]] ?? (looks[kinds[r]] = KindLooks(kinds[r], own)) : drop && kinds[r] == 2 && keepsTables ? own[2] : null;
 
                 for (int c = 0; give != null && give.Count > 0 && c < columns; c++)
                 {
@@ -285,6 +291,54 @@ namespace GeometryHelper.Dxf
             }
 
             return new RowKinds(titleOn, titleNow, headerOn, headerNow, drop ? 4 : 0, dropped, drop ? own[2] : null);
+        }
+
+        /// <summary>The looks a row keeps of its own (<see cref="_rowLooks"/>), by its place in the layout; null where it keeps the table's own of its kind.</summary>
+        private List<KeyValuePair<int, string>> RowLooksOf(Layout layout, int row) => _rowLooks != null && _rowLooks.Length == layout.Rows ? _rowLooks[row] : null;
+
+        /// <summary>
+        /// Moves the looks each row keeps of its own (<see cref="_rowLooks"/>) with the rows of a table of the rows given, as
+        /// rows are taken out and put in at a place: those of the rows taken out go, and each row put in keeps those given, null
+        /// for the table's own of its kind.
+        /// </summary>
+        private void MoveRowLooks(int rows, int at, int taken, int put, List<KeyValuePair<int, string>> looks)
+        {
+            List<KeyValuePair<int, string>>[] old = _rowLooks != null && _rowLooks.Length == rows ? _rowLooks : null;
+
+            if (old == null && (looks == null || put == 0))
+            {
+                _rowLooks = null;
+                return;
+            }
+
+            var moved = new List<KeyValuePair<int, string>>[rows - taken + put];
+
+            for (int r = 0; r < moved.Length; r++)
+            {
+                moved[r] = r < at ? old?[r] : r < at + put ? looks : old?[r - put + taken];
+            }
+
+            _rowLooks = moved;
+        }
+
+        /// <summary>
+        /// The looks the cells of each row are given as their own, row by row, those of <paramref name="looks"/> (of the table's
+        /// own of the row's kind, and of its kind for a row out of its place, as <see cref="ContentLooks"/> reads them), each
+        /// row in its kind's place that keeps looks of its own (<see cref="_rowLooks"/>) given those instead, as AutoCAD 2021
+        /// gave each cell the looks of its row (D33g); null where no row has looks.
+        /// </summary>
+        private List<KeyValuePair<int, string>>[] WithRowLooks(Layout layout, List<KeyValuePair<int, string>>[] looks, bool[] moved)
+        {
+            for (int r = 0; _rowLooks != null && _rowLooks.Length == layout.Rows && r < layout.Rows; r++)
+            {
+                if (_rowLooks[r] != null && (moved == null || !moved[r]))
+                {
+                    looks = looks ?? new List<KeyValuePair<int, string>>[layout.Rows];
+                    looks[r] = _rowLooks[r];
+                }
+            }
+
+            return looks;
         }
 
         /// <summary>
@@ -439,15 +493,21 @@ namespace GeometryHelper.Dxf
         /// of the header, each written in the head (280, 281 and their flags in 93) where it changes, a title or header moved up
         /// into its place by the rows taken shown again; and the table's own looks of a kind (<see cref="KindLookCodes"/>) of
         /// which no row is left taken out of its head with their flags, as AutoCAD took the header's out with the header (x8,
-        /// x16) and the data's with the last row of data (x9). Null where nothing changes.
+        /// x16) and the data's with the last row of data (x9). Where the first row of data goes and the next keeps looks of its
+        /// own (<see cref="_rowLooks"/>), the table's own looks of the data are those, as AutoCAD 2021 reads them from its first
+        /// row of data: the next row put in after the data took them away (93 2101760), the row at 0 put in and taken out again
+        /// gave them back as they were (93 6886016), and the rows of data left that keep the table's are given them as their
+        /// own in <paramref name="cells"/>, the cells of the table after, of the columns given (D33g k02, k05, k06). Null where
+        /// nothing changes.
         /// </summary>
-        private RowKinds DeletedKinds(Layout layout, int at, int count)
+        private RowKinds DeletedKinds(Layout layout, int at, int count, List<KeyValuePair<int, string>>[] cells, int columns)
         {
             List<KeyValuePair<int, string>>[] own = OwnLooks(layout);
+            bool keepsOwn = _rowLooks != null && _rowLooks.Length == layout.Rows && Array.Exists(_rowLooks, looks => looks != null);
 
             // Rows taken out after the first two leave the title and the header as they are: the TABLECONTENT is read only where
-            // the table has looks of its own a kind could take with it.
-            if (at >= 2 && own[0].Count == 0 && own[1].Count == 0 && own[2].Count == 0)
+            // the table has looks of its own a kind could take with it, or a row keeps looks of its own.
+            if (at >= 2 && own[0].Count == 0 && own[1].Count == 0 && own[2].Count == 0 && !keepsOwn)
             {
                 return null;
             }
@@ -480,8 +540,43 @@ namespace GeometryHelper.Dxf
                 drop |= before[kind] && !after[kind] && own[kind].Count > 0 ? 1 << kind : 0;
             }
 
-            return drop == 0 && titleNow == titleOn && headerNow == headerOn ? null : new RowKinds(titleOn, titleNow, headerOn, headerNow, drop);
+            // The first row of data taken out, the next row of data, where it keeps looks of its own other than the table's,
+            // gives the table its looks of the data; the rows of data left that keep the table's keep those it had.
+            int first = Array.IndexOf(kept, 2);
+            int next = first >= at && first < at + count ? Array.IndexOf(kept, 2, at + count) : -1;
+            List<KeyValuePair<int, string>> nextLooks = next >= 0 ? RowLooksOf(layout, next) : null;
+            bool[] dropped = null;
+
+            if (nextLooks != null && !SameLooks(nextLooks, own[2]))
+            {
+                drop |= own[2].Count > 0 ? 4 : 0;
+                dropped = new bool[kinds.Count];
+
+                for (int r = 0; own[2].Count > 0 && r < kinds.Count; r++)
+                {
+                    int old = r < at ? r : r + count;
+
+                    if (kinds[r] != 2 || old == next || RowLooksOf(layout, old) != null)
+                    {
+                        continue;
+                    }
+
+                    dropped[r] = true;
+
+                    for (int c = 0; c < columns; c++)
+                    {
+                        cells[r * columns + c] = WithMissing(cells[r * columns + c], own[2], Item.File.Supports(1021));
+                    }
+                }
+            }
+
+            return drop == 0 && dropped == null && titleNow == titleOn && headerNow == headerOn ? null
+                : new RowKinds(titleOn, titleNow, headerOn, headerNow, drop, dropped, own[2], dropped == null ? null : nextLooks, next - count);
         }
+
+        /// <summary>Whether two lists of looks give the same, each code of the one value, whatever their order.</summary>
+        private static bool SameLooks(List<KeyValuePair<int, string>> a, List<KeyValuePair<int, string>> b)
+            => a.Count == b.Count && a.TrueForAll(look => b.Exists(other => other.Key == look.Key && SameLook(other.Value, look.Value)));
 
         /// <summary>A cell's groups given as its own each look given that it has not of its own.</summary>
         private static List<KeyValuePair<int, string>> WithMissing(List<KeyValuePair<int, string>> groups, List<KeyValuePair<int, string>> looks, bool valued)
@@ -565,7 +660,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// The looks the table style gives each kind of row, the title, the header and the data, in the order and the form of a
         /// cell's own (<see cref="KindLookCodes"/>): its alignment (170), text style (7), background (its 63, and a cell's 283 of
-        /// 0 where the style's 283 turns it on, else 1), text colour (its 62, as a cell's 64) and text height (140); each kind of
+        /// 0 where the style's 283 turns it on, else 1), text colour (its 62, as a cell's 64) and text height (140, a real, as
+        /// AutoCAD 2021 wrote the title's <c>140 6.0</c>, D33g); each kind of
         /// cell of a TABLESTYLE opens with its 7, the data's, the title's and the header's in that order. AutoCAD's own
         /// Standard's where the drawing has no style or the style gives none: top centre for the data and middle centre for the
         /// rest, Standard, no background, by block, and the heights <see cref="StyleTextHeights"/> reads.
@@ -577,7 +673,7 @@ namespace GeometryHelper.Dxf
 
             for (int rowKind = 0; rowKind < 3; rowKind++)
             {
-                looks[rowKind] = new[] { rowKind == 2 ? "2" : "5", "Standard", "7", "1", "0", Numbers.Exact(heights[rowKind] + 0.0) };
+                looks[rowKind] = new[] { rowKind == 2 ? "2" : "5", "Standard", "7", "1", "0", ContentNumber(Numbers.Exact(heights[rowKind] + 0.0)) };
             }
 
             DxfItem style = IsResident ? StyleItem() : null;
@@ -627,8 +723,10 @@ namespace GeometryHelper.Dxf
             private readonly int _drop;
             private readonly bool[] _dropped;
             private readonly List<KeyValuePair<int, string>> _dataLooks;
+            private readonly List<KeyValuePair<int, string>> _restore;
+            private readonly int _first;
 
-            internal RowKinds(bool titleWas, bool titleNow, bool headerWas, bool headerNow, int drop, bool[] dropped = null, List<KeyValuePair<int, string>> dataLooks = null)
+            internal RowKinds(bool titleWas, bool titleNow, bool headerWas, bool headerNow, int drop, bool[] dropped = null, List<KeyValuePair<int, string>> dataLooks = null, List<KeyValuePair<int, string>> restore = null, int first = -1)
             {
                 _titleWas = titleWas;
                 _titleNow = titleNow;
@@ -637,33 +735,37 @@ namespace GeometryHelper.Dxf
                 _drop = drop;
                 _dropped = dropped;
                 _dataLooks = dataLooks;
+                _restore = restore;
+                _first = first;
             }
 
             /// <summary>
-            /// Marks the cells of the rows of data the table's own looks of the data were given to as the table loses them
-            /// (<see cref="SessionRowLooks"/>), the rows by their places after the rows put in, and keeps those looks as the
-            /// table's <see cref="_rowLooks"/>: AutoCAD 2021 kept them with each such row, so that a clear of the cells'
-            /// overrides gave them back (D33e n05, D33f a01 to a14).
+            /// Gives the rows of data the table's own looks of the data were given to as the table lost them those looks as their
+            /// own (<see cref="_rowLooks"/>), the rows by their places after the edit, as AutoCAD 2021 kept them with each such
+            /// row, so that a clear of the cells' overrides gave them back (D33e n05, D33f a01 to a14); and the row that gave the
+            /// table its looks of the data those of the table again (D33g k02).
             /// </summary>
-            internal void MarkRows(DxfTable table, int rows, int columns)
+            internal void MarkRows(DxfTable table, int rows)
             {
                 if (_dropped == null)
                 {
                     return;
                 }
 
-                if (table._session == null || table._sessionColumns != columns || table._session.Length != rows * columns)
+                if (table._rowLooks == null || table._rowLooks.Length != rows)
                 {
-                    table._session = new byte[rows * columns];
-                    table._sessionColumns = columns;
+                    table._rowLooks = new List<KeyValuePair<int, string>>[rows];
                 }
 
-                for (int k = 0; k < rows * columns; k++)
+                for (int r = 0; r < rows; r++)
                 {
-                    table._session[k] |= _dropped[k / columns] ? SessionRowLooks : (byte)0;
+                    table._rowLooks[r] = _dropped[r] ? _dataLooks : table._rowLooks[r];
                 }
 
-                table._rowLooks = _dataLooks;
+                if (_restore != null)
+                {
+                    table._rowLooks[_first] = null;
+                }
             }
 
             /// <summary>
@@ -675,7 +777,7 @@ namespace GeometryHelper.Dxf
             /// </summary>
             internal void WriteHead(DxfTable table)
             {
-                if (_titleWas == _titleNow && _headerWas == _headerNow && _drop == 0)
+                if (_titleWas == _titleNow && _headerWas == _headerNow && _drop == 0 && (_restore == null || _restore.Count == 0))
                 {
                     return;
                 }
@@ -728,6 +830,24 @@ namespace GeometryHelper.Dxf
                     cellsEnd -= inHead;
                     var range = new DxfDimGroups.Range(g.Sub.From, headTo);
                     g.Set(93, (g.Whole(93, range, 0) & ~bits).ToString(CultureInfo.InvariantCulture), range, Order);
+                }
+
+                // The table's own looks of the data given back, each in its head after its flags where AutoCAD 2021 writes them
+                // (after its last cell where it holds its own there alone), its flag in 93 (D33g k02).
+                foreach (KeyValuePair<int, string> look in _restore ?? new List<KeyValuePair<int, string>>())
+                {
+                    int rank = RowLooks[look.Key] + 2;
+                    int[] tail = TailRanks(g, headTo, cellsEnd, out int to);
+                    int[] head = HeadRanks(g, headTo, out int ownFrom, out int ownTo);
+                    bool inTail = ownTo == ownFrom && Array.Exists(tail, k => k >= 0);
+                    g.Insert(inTail ? PlaceOf(g, tail, cellsEnd, to, look.Key, rank) : PlaceOf(g, head, ownFrom, ownTo, look.Key, rank), look);
+                    headTo += inTail ? 0 : 1;
+                    cellsEnd += inTail ? 0 : 1;
+                    var range = new DxfDimGroups.Range(g.Sub.From, headTo);
+                    bool had = g.Find(93, range) >= 0;
+                    g.Set(93, (g.Whole(93, range, 0) | (1 << rank)).ToString(CultureInfo.InvariantCulture), range, Order);
+                    headTo += had ? 0 : 1;
+                    cellsEnd += had ? 0 : 1;
                 }
 
                 foreach (int code in new[] { 280, 281 })
