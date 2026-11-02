@@ -30,7 +30,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gives a MULTILEADER made in code the handles of the drawing it is added to: its multileader style (340), the drawing's
         /// CMLEADERSTYLE or Standard, and the text style (343) of that style's words, else Standard, where it names none of the
-        /// drawing's; its words (340 of the context's MTEXT) are given the same text style, as AutoCAD 2021 writes them.
+        /// drawing's; its words (340 of the context's MTEXT) are given the same text style, as AutoCAD 2021 writes them, or the
+        /// text style they named when given, where the drawing has it (with bit 11 where it is not the style's).
         /// </summary>
         /// <exception cref="ArgumentException">Thrown when the drawing has no multileader style of the name, or no text style Standard.</exception>
         internal override void Appending(DxfBlockTableRecord owner)
@@ -87,8 +88,23 @@ namespace GeometryHelper.Dxf
                 {
                     Put(rec.Context.Head, 340, Text(rec.After, 343), ContextOrder, from, to);
                 }
+
+                // Words that named a text style of the drawing keep it, with the bit of the overrides where it is not the
+                // style's, as AutoCAD 2021 keeps those of a multileader made in memory (f6-def-words-ts2, t-ts2-words-ts2).
+                if (from >= 0 && wordsTextStyle != null && database.TextStyleTable.Has(wordsTextStyle))
+                {
+                    string textStyle = database.TextStyleTable[wordsTextStyle].Handle;
+                    Put(rec.Context.Head, 340, textStyle, ContextOrder, from, to);
+
+                    if (!string.Equals(Text(rec.After, 343)?.Trim(), textStyle, StringComparison.OrdinalIgnoreCase))
+                    {
+                        Put(rec.After, 343, textStyle, TopOrder);
+                        SetBit(rec, 11);
+                    }
+                }
             }
 
+            wordsTextStyle = null;
             Write(rec);
         }
 
@@ -106,7 +122,12 @@ namespace GeometryHelper.Dxf
         /// (43), and the arrow sizes leader lines have of their own, left as they are, as AutoCAD 2021's <c>TransformBy</c> leaves
         /// them: a multileader of scale 1, its doglegs 8, scaled by 2 is still of scale 1, its doglegs drawn 16 and 41 still 8,
         /// its words 60 wide then 120 wide, a line's own arrows of 2 still drawn 2, and its block drawn twice the size with
-        /// <see cref="BlockScale"/> still 1.
+        /// <see cref="BlockScale"/> still 1. A block mirrored is drawn where the mirror puts it, its normal mirrored with it, its x
+        /// scale turned negative and its turn read from its y axis, and the plane of a multileader of a block takes the mirrored
+        /// normal, an x axis on the side the old one keeps and its y axis across them (297 of nought), as AutoCAD 2021 writes
+        /// them: the box of lines from (-10, -5) to (20, 15) at (100, 50, 0), turned 30 degrees and mirrored across the XY plane,
+        /// is of normal (0, 0, -1), scales (-1, 1, 1) and turn 330 degrees, its plane's y axis (0, -1, 0); mirrored across the YZ
+        /// plane, of normal (0, 0, 1), its plane's x axis (1, 0, 0). Words mirrored are carried as ezdxf carries them.
         /// </summary>
         /// <param name="transform">The transformation.</param>
         /// <exception cref="ArgumentException">Thrown when it scales the MULTILEADER more one way than another, which ezdxf and AutoCAD refuse, or shears it, keeping its axes as long as each other but not square, which AutoCAD refuses too.</exception>
@@ -149,6 +170,19 @@ namespace GeometryHelper.Dxf
             MovePoint(ctx.Head, 110, transform.Transform, ContextOrder, 0, -1);
             GeoVector3 newX = Unit(transform.Transform(planeX));
             GeoVector3 newY = Unit(transform.Transform(planeY));
+            bool mirrored = DxfOcsTransform.Cross(x, y).DotProduct(z) < 0.0;
+            bool flipped = false;
+
+            // A multileader of a block mirrored: the plane's normal mirrored with it, its x axis the side of the mirrored one
+            // the old keeps, and its y axis across them, as AutoCAD 2021 writes it (e5-k-mirrorxy, g-k-mirroryz).
+            if (mirrored && HasSection(ctx, 296, BlockCodes))
+            {
+                GeoVector3 mirroredZ = Unit(transform.Transform(DxfOcsTransform.Cross(planeX, planeY)));
+                flipped = newX.DotProduct(planeX) < 0.0;
+                newX = flipped ? newX.Negate() : newX;
+                newY = Unit(DxfOcsTransform.Cross(mirroredZ, newX));
+            }
+
             PutPoint(ctx.Head, 111, Pt(newX), ContextOrder);
             PutPoint(ctx.Head, 112, Pt(newY), ContextOrder);
             GeoVector3 planeZ = Unit(DxfOcsTransform.Cross(newX, newY));
@@ -205,27 +239,44 @@ namespace GeometryHelper.Dxf
             {
                 List<KeyValuePair<int, string>> b = ctx.Head.GetRange(from, to - from);
                 GeoVector3 normal = PointOf(b, 14, new GeoPoint3(0.0, 0.0, 1.0)).ToVector();
-                var ocs = new DxfOcsTransform(normal.Length > 0.0 ? normal : new GeoVector3(0.0, 0.0, 1.0), transform);
+                normal = normal.Length > 0.0 ? normal : new GeoVector3(0.0, 0.0, 1.0);
                 GeoPoint3 old = PointOf(b, 16, new GeoPoint3(1.0, 1.0, 1.0));
-                var axes = new DxfOcsTransform.Axes(normal.Length > 0.0 ? normal : new GeoVector3(0.0, 0.0, 1.0));
+                var axes = new DxfOcsTransform.Axes(normal);
                 GeoVector3 ux = transform.Transform(axes.X);
                 GeoVector3 uy = transform.Transform(axes.Y);
                 GeoVector3 uz = transform.Transform(axes.Z);
-                double sy = uy.Length * old.Y;
-
-                // The y axis against the new extrusion, which a mirror in the plane turns over, as AutoCAD 2021 turns it: a block
-                // mirrored across the y axis is drawn mirrored, its scales kept (k-transform-mirror).
-                GeoVector3 expected = Unit(DxfOcsTransform.Cross(ocs.NewExtrusion, ux));
-
-                if (expected.Subtract(Unit(uy)).Length > 1E-12)
-                {
-                    sy = -sy;
-                }
-
-                blockScale = new GeoPoint3(ux.Length * old.X, sy, uz.Length * old.Z);
                 double radians = Num(Text(b, 46), 0.0);
-                GeoVector3 d = ocs.TransformDirection(new GeoVector3(Math.Cos(radians), Math.Sin(radians), 0.0));
-                blockTurn = Math.Atan2(d.Y, d.X);
+                DxfOcsTransform ocs;
+
+                if (mirrored)
+                {
+                    // Mirrored: the normal mirrored with the block, its x scale turned negative and its turn read from its y axis,
+                    // as AutoCAD 2021 writes it, from nought to a whole turn: the box turned 30 degrees and mirrored across the XY
+                    // plane is drawn of normal (0, 0, -1), scales (-1, 1, 1) and turn 330 (e5-k-rot30-mirrorxy, g-k-rot30-mirroryz).
+                    ocs = new DxfOcsTransform(normal, Unit(uz), transform);
+                    blockScale = new GeoPoint3(-ux.Length * old.X, uy.Length * old.Y, uz.Length * old.Z);
+                    GeoVector3 up = ocs.TransformDirection(new GeoVector3(-Math.Sin(radians), Math.Cos(radians), 0.0));
+                    double turn = Math.Atan2(up.Y, up.X) - Math.PI / 2.0;
+                    blockTurn = turn < 0.0 ? turn + 2.0 * Math.PI : turn;
+                }
+                else
+                {
+                    ocs = new DxfOcsTransform(normal, transform);
+                    double sy = uy.Length * old.Y;
+
+                    // The y axis against the new extrusion, which a half turn about an axis in the plane turns over, as AutoCAD
+                    // 2021 turns it: a block turned half round about the y axis is drawn mirrored, its scales kept (k-transform-mirror).
+                    GeoVector3 expected = Unit(DxfOcsTransform.Cross(ocs.NewExtrusion, ux));
+
+                    if (expected.Subtract(Unit(uy)).Length > 1E-12)
+                    {
+                        sy = -sy;
+                    }
+
+                    blockScale = new GeoPoint3(ux.Length * old.X, sy, uz.Length * old.Z);
+                    GeoVector3 d = ocs.TransformDirection(new GeoVector3(Math.Cos(radians), Math.Sin(radians), 0.0));
+                    blockTurn = Math.Atan2(d.Y, d.X);
+                }
                 PutPoint(ctx.Head, 14, Pt(ocs.NewExtrusion), ContextOrder, from, to);
                 Section(ctx.Head, 296, BlockCodes, out from, out to);
                 MovePoint(ctx.Head, 15, transform.Transform, ContextOrder, from, to);
@@ -245,6 +296,13 @@ namespace GeometryHelper.Dxf
                 else
                 {
                     Matrix(ctx.Head, from, to, transform);
+                }
+
+                // The plane's x axis turned back: the base point where a leader from the left now meets the block, as AutoCAD 2021
+                // puts it, the box mirrored across the YZ plane met at (-120, 55) (g-k-mirroryz).
+                if (flipped && BlockMeets(rec, ctx, -double.MaxValue, out _, out GeoPoint3 left))
+                {
+                    PutPoint(ctx.Head, 10, left, ContextOrder);
                 }
             }
 
@@ -836,14 +894,29 @@ namespace GeometryHelper.Dxf
             return index;
         }
 
-        /// <summary>The vertices of a leader line: its own, then the end of its leader's landing (<see cref="LastOf"/>).</summary>
+        /// <summary>
+        /// The vertices of a leader line: its own, then the end of its leader's landing (<see cref="LastOf"/>); its own alone where
+        /// the leader has no landing yet (<see cref="HasLanding"/>), as AutoCAD 2021 counts them (a1-addleader-line).
+        /// </summary>
         private static List<GeoPoint3> Vertices(Rec rec, int index, out LinePart line, out LeaderPart leader)
         {
             line = FindLine(rec, index, out leader);
             List<GeoPoint3> vertices = line.Vertices();
-            vertices.Add(LastOf(rec, leader));
+
+            if (HasLanding(leader))
+            {
+                vertices.Add(LastOf(rec, leader));
+            }
+
             return vertices;
         }
+
+        /// <summary>
+        /// Whether a leader has its landing (290 of the leader, its last leader line point): AutoCAD 2021 writes a leader just
+        /// added by <c>AddLeader</c> with none, which the first vertex given one of its lines then becomes, and draws no dogleg
+        /// for it.
+        /// </summary>
+        private static bool HasLanding(LeaderPart leader) => Whole(Text(leader.Head, 290), 1) != 0;
 
         /// <summary>
         /// The last vertex of the lines of a leader, as AutoCAD 2021's <c>GetLastVertex</c> gives it: the point the dogleg starts
@@ -871,13 +944,21 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Writes the vertices of a leader line: all but the last its own, the last the end of its leader's landing, as
-        /// <see cref="LastOf"/> reads it, the point the dogleg starts at written so; left as it is where the last is.
+        /// <see cref="LastOf"/> reads it, the point the dogleg starts at written so; left as it is where the last is. A leader of
+        /// no landing takes the last as its landing, as AutoCAD 2021 takes the first vertex given a line of it (a1-addfirst),
+        /// the content left where it is.
         /// </summary>
         private void WriteVertices(Rec rec, LinePart line, LeaderPart leader, List<GeoPoint3> vertices, bool carry = false)
         {
             GeoPoint3 last = vertices[vertices.Count - 1];
 
-            if (Text(leader.Head, 10) == null || !SamePoint(last, LastOf(rec, leader)))
+            if (!HasLanding(leader))
+            {
+                Landing(leader, out _, out bool flat, out GeoVector3 dogleg);
+                PutPoint(leader.Head, 10, flat && !Doglegged(rec.After) ? last.Add(dogleg.Negate()) : last, LeaderOrder);
+                Put(leader.Head, 290, "1", LeaderOrder);
+            }
+            else if (Text(leader.Head, 10) == null || !SamePoint(last, LastOf(rec, leader)))
             {
                 GeoPoint3 was = PointOf(leader.Head, 10, new GeoPoint3(0.0, 0.0, 0.0));
                 bool had = Text(leader.Head, 10) != null;

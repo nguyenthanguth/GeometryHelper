@@ -638,6 +638,16 @@ namespace GeometryHelper.Dxf
             }
         }
 
+        /// <summary>The name of the text style the MTEXT names (group 7); null where it names none, which <see cref="TextStyleName"/> reads as Standard.</summary>
+        internal string NamedTextStyle
+        {
+            get
+            {
+                string name = DxfReader.NameOf(Value(7) ?? string.Empty);
+                return name.Length == 0 ? null : name;
+            }
+        }
+
         /// <summary>
         /// Gets or sets the text style of the MTEXT, as AutoCAD's <c>TextStyleId</c> gives its id: the record of
         /// <see cref="TextStyleName"/> in the text style table of the MTEXT's drawing; null where it has none of that name, or the

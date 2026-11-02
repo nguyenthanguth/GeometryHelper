@@ -1617,3 +1617,53 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       (r09); `ResetValue` of a block cell is refused where AutoCAD empties it (r04); the per-cell lines of a cell's own line
       (e13, settled); and edits the table's base entity makes (a colour, a layer) do not merge, though AutoCAD writes the
       merge after them too (e02).
+
+## Multileader leaders of no landing, the block's scale and turn set as they are, mirrors
+
+91. **A leader added with no landing, a dogleg turned, the last vertex of a leader on the right of a block, the block's scale
+    and turn set to what they are, the block moved, a mirror across the XY and YZ planes, and words given before the
+    multileader is added.**
+    - Try (D31e, headless, plugin GHD31E rounds E and G, 60 + 17 multileaders on the Standard of point 80): `AddLeader`
+      alone, with an empty line, then `AddFirstVertex` once, twice, on a second line, with no dogleg, with `SetDogleg` along
+      or against x before, with `SetDoglegLength` before, `AddLastVertex` in its place, then `SetFirstVertex` or
+      `SetLastVertex`, on words and on the box; `SetDogleg` turning a landed leader; a leader of no landing under
+      `DoglegLength`, `BlockScale`, `TransformBy`, `SetLastVertex` of another and `AddLeaderLine(point)`; `SetLastVertex` of
+      a leader on the right, left and both sides of the box and of a turned box; `BlockScale` 1 and `BlockRotation` 0 after
+      `BlockPosition`, `Scale`, `TransformBy` of 2 and of a quarter turn, two leaders and none; `BlockPosition` after
+      `BlockScale` and `Scale`; `TransformBy` of a mirror across the XY plane (`Matrix3d.Mirroring` of a plane) on the box,
+      turned and not, met on either side, then `BlockScale`, `BlockRotation` and `BlockPosition`, on words, then
+      `DoglegLength`; the same across the YZ plane; words of TS2 or Standard given to a multileader made in memory, with and
+      without `SetDatabaseDefaults`, on Standard and on S4 (TS2) current. Then round I: the library's 60 files of round E
+      read by DXFIN.
+    - AutoCAD 2021: `AddLeader` writes a leader of 290 0 that draws no dogleg; a line added to it has no vertex
+      (`VerticesCount` 0), and the first vertex given it, by `AddFirstVertex` or `AddLastVertex`, becomes the leader's
+      landing (290 1, its 10 the point, (-28, 80) for (-20, 80) with no dogleg), the content left; a vertex given after, or
+      to another line of the leader, goes before it. `SetDoglegLength` does not land it, `SetDogleg` does, on the side of
+      the content the dogleg runs from (from (90, 48) on the left of "ABC" at (100, 50), from (128, 55) on the right of the
+      box), and lands a landed leader whose dogleg it turns (k-left-setdogleg-neg); a landed leader of no line draws its
+      dogleg. `SetLastVertex` moves the content and the other landings by as much as the landing moves, on either side of a
+      block too: the box's leader added and landed on its right by `SetDogleg`, its last vertex set to (200, 70), moves the
+      box from (100, 50) to (172, 65). A leader of no landing counts among the leaders of its side under `DoglegLength` and
+      is not landed by it; alone, the words stay; `AddLeaderLine(point)` never adds a line to it. `BlockScale` and
+      `BlockRotation` set to the value they have do all that another value does: the matrix written as the block's
+      transform, the block placed to be met at the base point, the leaders landed anew, the block drawn at 1 again after a
+      `TransformBy` of 2. `BlockRotation` writes 46 as the turn plus the angle of the plane's x axis in the block's own plane
+      (120 for 30 on a quarter turn, 210 for 30 after the XY mirror). `BlockPosition` and the moves of a landing leave the
+      matrix. A mirror across the XY plane turns the block's normal over and its x scale negative (16 of -1, 1, 1), its turn
+      read from its y axis (330 for 30), the plane's y axis (0, -1, 0) and 297 0; across the YZ plane the normal stays,
+      the x scale is -1, the plane's x axis stays (1, 0, 0) and the base point is put at the new left, (-120, 55); a
+      `BlockScale` after either drops the sign. Words mirrored across the XY plane are written of normal (0, 0, -1),
+      direction (-1, 0, 0), at their right top; across the YZ plane of attachment 3 and the bit of the alignment (14).
+      Words of a text style given to a multileader of `SetDatabaseDefaults` made in memory keep it when it is added, with bit
+      11 where it is not the style's; without `SetDatabaseDefaults` they take the style's and are laid out from (110, 52).
+    - Now: the leader of no landing, `SetDogleg`'s landing, the dogleg of a landed leader of no line, the second leader on
+      the right of a block, the scale and turn set as they are, 46 from the plane, the matrix left by moves, the block under
+      both mirrors, and the words' text style kept. 54 of the 60 cases of round E read alike (22 at base), every block
+      number and matrix of them alike but the bit 24 of the overrides AutoCAD sets on `TransformBy` of a scaling; AutoCAD
+      read the library's 60 files as it read its own but those 6.
+    - Still apart: a leader landed on the right of words, which AutoCAD lands by their font's width (a1-negdogleg-*); words
+      mirrored, which AutoCAD keeps readable by their width and attachment and reads in the library's files 4 higher
+      (e5-words-*, g-words-mirroryz); words that name no text style given before the multileader is added, which take the
+      style's where AutoCAD's words carry the drawing's current text style (f6-def-s4-words-standard); bit 24 of the
+      overrides set by `TransformBy` of a scaling (c3-k-transform2-blockscale1); `RemoveFirstVertex` down to one vertex,
+      which AutoCAD allows (addfirst-removefirst) and the library refuses.

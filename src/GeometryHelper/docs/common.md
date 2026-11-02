@@ -2153,10 +2153,17 @@ indices (`AddLeader`, `AddLeaderLine`, `GetVertex`, `SetVertex`). A line's last 
 starts at, which every line of the leader ends at: `mleader.GetLastVertex(0)` is that point, and `SetLastVertex` moves it
 for them all; where the dogleg is not drawn, its `EnableDogleg` false or its leader lines splined, the last vertex is the end
 the dogleg would have, which the lines run on to, as AutoCAD 2021 reads it: a dogleg of 8 from (90, 48, 0) taken away
-leaves the line ending at (98, 48, 0). A property set is written in the MULTILEADER and in its context data, where AutoCAD
+leaves the line ending at (98, 48, 0). A leader added by `AddLeader` has no landing yet, as AutoCAD 2021 writes it (290 of
+nought): it draws no dogleg, a line added to it has no vertex, and the first vertex given a line of it (`AddFirstVertex` or
+`AddLastVertex`) becomes its landing, the content left where it is; words at (100, 50, 0) given a second leader whose line
+is given (-20, 80, 0), its last vertex then set to (40, 70, 0), stand at (160, 40, 0), as AutoCAD's own. `SetDogleg` lands a
+leader of no landing, or one whose dogleg it turns, on the side of the content the dogleg runs from, on the left of words
+or either side of a block, so that a vertex given a line of it then goes before the landing: against x, the box at
+(100, 50, 0) is met from (128, 55, 0). A property set is written in the MULTILEADER and in its context data, where AutoCAD
 keeps both, and sets its bit of the overrides of the multileader style; set to the value it has, it sets the bit alone,
 as AutoCAD 2021 sets it, but the colour of the words, the content, the block, the direction of the attachment, the
-annotation scale, the places and the style, which change nothing. `new DxfMLeader()` takes the drawing's multileader
+annotation scale, the places and the style, which change nothing, and the block's scale and turn, which lay the block out
+again as any other value does. `new DxfMLeader()` takes the drawing's multileader
 style when it is appended, with the style's linetype of the leader lines (341), its arrow block (342) and the text style of
 its words (343, and 340 of the words, Standard where the style names none), as AutoCAD 2021 writes them; so does
 `MLeaderStyle` set, where the multileader does not override them (bits 2, 8 and 11), a style of no arrow block taking the
@@ -2172,7 +2179,9 @@ with a gap drawn 4 at a scale of 2 read 4 and 2, and a gap of 3 set there is dra
 multileader's own turn (43), as AutoCAD reads it, the block drawn with the turn of the context data (46). Words given by
 `MText` to a multileader in a drawing give it their text style (343, and 340 of the words), with its bit of the overrides
 (11) where it was not the multileader's, as AutoCAD 2021 takes it: words that name none are of Standard, and words given
-back as `MText` read them change nothing.
+back as `MText` read them change nothing. Words that name a text style, given to a multileader in no drawing, keep it when
+the multileader is added to a drawing that has it, as AutoCAD 2021 keeps the words of one made in memory; words that name
+none take its style's.
 
 `AddLeaderLine(point)` lands a new leader where AutoCAD 2021 lands it, where it can without a font: from a point on the
 left of words held at their top left and met on their sides, the dogleg runs along the plane's x axis to the landing gap
@@ -2214,7 +2223,10 @@ it, the base point of the content: `BlockScale` and `BlockRotation` move the blo
 leaders or none, and land the leaders anew, the box at (100, 50, 0) met at (90, 55, 0) standing at (110, 45, 0) scaled by
 2, its leader on the right from (158, 55, 0); `BlockPosition` moves that point and every dogleg with the block, a dogleg
 from (82, 55, 0) to (112, 65, 0) for the box moved to (130, 60, 0). Set the block's scale and turn before `BlockContent`
-for the block to stay where `BlockPosition` puts it.
+for the block to stay where `BlockPosition` puts it. The block's matrix (47) is written as its transform where the scale,
+the turn or `TransformBy` is set, and left where the block is moved, by `BlockPosition` or with a landing, as AutoCAD 2021
+leaves it. `BlockRotation` turns the block from the x axis of the multileader's plane: 30 degrees on a multileader turned a
+quarter draws it turned 120.
 
 Attachment 8, the underline of every line, underlines the words as AutoCAD 2021 writes it: where a leader meets them on a
 side of that attachment, "ABC" is written `\LABC`, whether the attachment, the leader or the words come last; words that
@@ -2230,8 +2242,12 @@ leader's longer dogleg meets it at its end, the dogleg's start kept: the box of 
 `TransformBy` leaves the scale and the multileader's own sizes as they are, as AutoCAD does: scaled by 2 the multileader is
 still of scale 1, its 41 still 8 and 42 still 4, its doglegs drawn 16 and its arrows 8, which `DoglegLength` and
 `ArrowSize` read, as AutoCAD reads them; its block is drawn twice the size with `BlockScale` still 1 (10 left) and its
-matrix written as the block's transform where it stands. A block mirrored is drawn mirrored, its normal turned over and its
-scales kept, as AutoCAD writes it.
+matrix written as the block's transform where it stands. A block turned half round about an axis of its plane is drawn
+mirrored, its normal turned over and its scales kept, as AutoCAD writes it; a block mirrored is drawn where the mirror puts
+it, its normal mirrored with it, its x scale negative and its turn read from its y axis, the multileader's plane of the
+mirrored normal, an x axis on the side the old one keeps and its y across them, as AutoCAD writes them: the box turned 30
+degrees and mirrored across the XY plane is of normal (0, 0, -1), scales (-1, 1, 1) and turn 330 degrees. Words mirrored
+are carried as ezdxf carries them; AutoCAD keeps them readable by their width.
 `GetGeometry()` gives the lines of its leaders, as `DxfReader` reads a MULTILEADER, and `IntersectWith` meets the
 multileader on them: each leader line a `GeoPolyline3` from its first vertex, where its arrow points, through its vertices
 and the last point of its leader to the end of the dogleg, the path `Explode()` draws; splined, a `GeoSpline3` fitted

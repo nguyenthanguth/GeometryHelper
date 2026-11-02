@@ -132,8 +132,9 @@ namespace GeometryHelper.UnitTest.Dxf
                     m.MLeaderStyle = m.MLeaderStyle;
                     m.Scale = m.Scale;
                     m.EnableAnnotationScale = m.EnableAnnotationScale;
-                    m.BlockScale = m.BlockScale;
-                    m.BlockRotation = m.BlockRotation;
+
+                    // BlockScale and BlockRotation set as they are lay the block out again and write its matrix, as AutoCAD 2021
+                    // does (D31e, c3-k-moved-blockscale1): DxfMLeaderD31cTests and DxfMLeaderD31eTests read them.
                     m.BlockColor = m.BlockColor;
                     m.BlockConnectionType = m.BlockConnectionType;
 
@@ -289,7 +290,9 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(3, back.LeaderLineCount);
                 Assert.Equal(new[] { 0, 2 }, back.GetLeaderLineIndexes(0));
                 Assert.Equal(Bits(new GeoPoint3(10, 30, 0)), Bits(back.GetFirstVertex(1)));
-                Assert.Equal(Bits(new GeoPoint3(-2, 18, 0)), Bits(back.GetLastVertex(1)));
+                // The leader added had no landing, so the vertex given its line became it, as AutoCAD 2021 takes it (D31e, a1-addfirst).
+                Assert.Equal(1, back.VerticesCount(1));
+                Assert.Equal(Bits(new GeoPoint3(10, 30, 0)), Bits(back.GetLastVertex(1)));
                 Assert.Equal(Bits(new GeoPoint3(-25, 15, 0)), Bits(back.GetFirstVertex(2)));
 
                 back.RemoveLeaderLine(2);
@@ -498,17 +501,17 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void TheMatrixOfTheBlock_MovesWithTheBlock_PlacedOrMoved()
+        public void TheMatrixOfTheBlock_IsLeftWhenTheBlockIsPlaced_AndWrittenWhenTheMultileaderIsMoved()
         {
-            // BA's block at (900, 0, 0) under a matrix of no translation: placed at (910, 5, 0), its translation (10, 5, 0);
-            // moved by (1, 2, 3) besides, the matrix written as the block's transform where it then stands, its translation
-            // (911, 7, 3), as AutoCAD 2021's TransformBy writes it (D31d, k-transform-move).
+            // BA's block at (900, 0, 0) under a matrix of no translation: placed at (910, 5, 0), the matrix left, as AutoCAD 2021
+            // leaves it (D31e, k-moved-right); moved by (1, 2, 3) besides, the matrix written as the block's transform where it
+            // then stands, its translation (911, 7, 3), as AutoCAD 2021's TransformBy writes it (D31d, k-transform-move).
             DxfDatabase db = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
             DxfMLeader block = ByHandle<DxfMLeader>(db, "BA");
             Assert.Equal(new[] { 0.0, 0.0, 0.0 }, Translation(db, "BA"));
 
             block.BlockPosition = new GeoPoint3(910, 5, 0);
-            Assert.Equal(new[] { 10.0, 5.0, 0.0 }, Translation(db, "BA"));
+            Assert.Equal(new[] { 0.0, 0.0, 0.0 }, Translation(db, "BA"));
 
             block.MoveMLeader(new GeoVector3(1, 2, 3), DxfMoveType.MoveAllPoints);
             Assert.Equal(new[] { 911.0, 7.0, 3.0 }, Translation(db, "BA"));

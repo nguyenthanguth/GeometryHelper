@@ -414,10 +414,12 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // AutoCAD 2021: mirrored across the y axis, the box at (100, 50) stood at (-100, 50), its normal turned over, its scales
             // 1, its box from (-120, 45) to (-90, 65) (k-transform-mirror); its BlockScale then set to 2 put it at (-110, 45)
-            // (k-mirror-blockscale2). The library drew it turned half round, from (-120, 35) to (-90, 55).
+            // (k-mirror-blockscale2). The library drew it turned half round, from (-120, 35) to (-90, 55). AutoCAD's mirror about
+            // the y axis (Matrix3d.Mirroring of a line) is a half turn about it, as here (D31e); a mirror across the YZ plane keeps
+            // the normal and turns the x scale negative (DxfMLeaderD31eTests).
             DxfMLeader mleader = Of(Drawing(), "BOX", Points("left"));
 
-            mleader.TransformBy(GeoTransform3.Mirror(new GeoPlane3(P(0, 0), new GeoVector3(1, 0, 0))));
+            mleader.TransformBy(GeoTransform3.RotationY(Math.PI));
 
             Near(P(-100, 50), mleader.BlockPosition);
             Near(1, Number(After(mleader, "296", 16)));

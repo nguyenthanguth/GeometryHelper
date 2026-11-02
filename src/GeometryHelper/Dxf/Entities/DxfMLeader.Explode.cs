@@ -19,7 +19,8 @@ namespace GeometryHelper.Dxf
         /// values the multileader holds), either in the multileader's own linetype and lineweight, as AutoCAD 2021 gives them;
         /// then, leader by leader, its dogleg, a LINE from the last point of the leader along its direction, of no length where
         /// the dogleg has none, as AutoCAD 2021 draws it, where the multileader has one, its leader lines are not splined and
-        /// the leader runs left or right of the words; then line by line, unless the line is invisible, an LWPOLYLINE
+        /// the leader runs left or right of the words, a leader of no line giving its dogleg alone and one of no landing yet
+        /// (<see cref="AddLeader"/>) nothing, as AutoCAD 2021 draws them; then line by line, unless the line is invisible, an LWPOLYLINE
         /// through the vertices to the last point of the leader, and the arrowhead at the first vertex. A splined line is one
         /// SPLINE fitted through the same points, leaving along its first segment and reaching along its dogleg, its knots the
         /// lengths of the chords, as AutoCAD's. Without a dogleg, a line on the left or right of the words runs on to the end the
@@ -93,11 +94,18 @@ namespace GeometryHelper.Dxf
 
             foreach (LeaderPart leader in ctx.Leaders)
             {
+                // A leader of no landing yet draws nothing, as AutoCAD 2021 draws it (a1-addleader-line).
+                if (!HasLanding(leader))
+                {
+                    continue;
+                }
+
                 Landing(leader, out GeoPoint3 last, out bool horizontal, out GeoVector3 along);
                 bool landed = Doglegged(rec.After) && horizontal;
 
-                // The dogleg, once for the leader, in the multileader's look, where a line of it is drawn: of no length too.
-                if (landed && leader.Lines.Exists(l => LineType(l.Groups, type) != DxfLeaderType.InVisibleLeader))
+                // The dogleg, once for the leader, in the multileader's look, where a line of it is drawn or it has none: of no
+                // length too (a1-k-right-negdogleg-only).
+                if (landed && (leader.Lines.Count == 0 || leader.Lines.Exists(l => LineType(l.Groups, type) != DxfLeaderType.InVisibleLeader)))
                 {
                     var dogleg = new DxfLine(last, last.Add(along)) { Layer = layer };
                     Colour(dogleg, leaderColour, ownColour, ownTrueColour);
@@ -290,6 +298,11 @@ namespace GeometryHelper.Dxf
 
             foreach (LeaderPart leader in ctx.Leaders)
             {
+                if (!HasLanding(leader))
+                {
+                    continue;
+                }
+
                 Landing(leader, out GeoPoint3 last, out bool horizontal, out GeoVector3 along);
 
                 foreach (LinePart line in leader.Lines)

@@ -271,14 +271,17 @@ namespace GeometryHelper.Dxf
         /// (<see cref="BlockMeets"/>), or the words on their left (<see cref="WordsMeet"/>). Leaders on the right of words, which
         /// AutoCAD lands by their font's width, are left.
         /// </summary>
-        private void Landed(Rec rec, Ctx ctx)
+        private void Landed(Rec rec, Ctx ctx) => LandAnew(rec, ctx, ctx.Leaders);
+
+        /// <summary>The leaders given landed anew at the content, as <see cref="Landed"/> lands each.</summary>
+        private void LandAnew(Rec rec, Ctx ctx, List<LeaderPart> leaders)
         {
             Axes(ctx, out GeoVector3 x, out _);
             bool block = HasSection(ctx, 296, BlockCodes);
             var wordsMeet = new GeoPoint3(0.0, 0.0, 0.0);
             bool words = !block && WordsMeet(rec, ctx, out wordsMeet);
 
-            foreach (LeaderPart leader in ctx.Leaders)
+            foreach (LeaderPart leader in leaders)
             {
                 int side = Side(leader, x);
                 GeoPoint3 end = wordsMeet;
@@ -457,8 +460,8 @@ namespace GeometryHelper.Dxf
         private static int AttachmentOf(Rec rec, bool left) => Whole(Text(rec.After, left ? 173 : 95), 1);
 
         /// <summary>
-        /// Moves the content, the words (12) or the block (15, and its matrix), along a vector, and the base point of the content
-        /// (10 of the context data) along another, as AutoCAD 2021 moves them to keep a landing.
+        /// Moves the content, the words (12) or the block (15, its matrix left, k-right2-base, b-k-scale2-dl5), along a vector, and
+        /// the base point of the content (10 of the context data) along another, as AutoCAD 2021 moves them to keep a landing.
         /// </summary>
         private static void MoveContent(Ctx ctx, GeoVector3 by, GeoVector3 basePointBy)
         {
@@ -474,7 +477,6 @@ namespace GeometryHelper.Dxf
             if (from >= 0)
             {
                 MovePoint(ctx.Head, 15, p => p.Add(by), ContextOrder, from, to);
-                Shift(ctx.Head, by.X, by.Y, by.Z);
             }
 
             MovePoint(ctx.Head, 10, p => p.Add(basePointBy), ContextOrder, 0, -1);
@@ -553,6 +555,12 @@ namespace GeometryHelper.Dxf
                 if (Side(leader, x) != only)
                 {
                     continue;
+                }
+
+                // A leader of no landing yet has none to keep: the content stays (none-addleader-dl15).
+                if (!HasLanding(leader))
+                {
+                    return;
                 }
 
                 int at = before.FindIndex(p => ReferenceEquals(p.Key, leader));

@@ -476,6 +476,13 @@ namespace GeometryHelper.UnitTest.Dxf
                 default: throw new ArgumentOutOfRangeException(nameof(property), property, "No such case.");
             }
 
+            // BlockScale and BlockRotation wrote the block's matrix as its transform where it stands too (ok-blockscale, ok-blockrot,
+            // read again in D31e).
+            if (property == "BlockScale" || property == "BlockRotation")
+            {
+                before = before.Replace("|47 1|47 0|47 0|47 0|47 0|47 1|47 0|47 0|", "|47 1|47 0|47 0|47 100|47 0|47 1|47 0|47 50|");
+            }
+
             Assert.Equal(flags | (1 << bit), Flags(mleader));
             Assert.Equal(before, Record(mleader).Replace("90 " + (flags | (1 << bit)).ToString(CultureInfo.InvariantCulture), "90 #"));
         }

@@ -115,8 +115,9 @@ reads the multileader's own turn (43) before the turn the block is drawn with (4
 multileader BA, drawn turned 15 degrees with 43 of nought, reads nought, where the library read 15 degrees. The block is
 still drawn and exploded as the context data has it.
 
-**FIXED.** A `DxfMLeader` of a block mirrored by `TransformBy` draws the block mirrored, its normal turned over and its scales
-kept, as AutoCAD 2021 writes it (check D31d, k-transform-mirror): the box at (100, 50) mirrored across the y axis spans
+**FIXED.** A `DxfMLeader` of a block turned half round about the y axis by `TransformBy` (AutoCAD's mirror about a line)
+draws the block mirrored, its normal turned over and its scales kept, as AutoCAD 2021 writes it (check D31d,
+k-transform-mirror): the box at (100, 50) so mirrored about the y axis spans
 (-120, 45) to (-90, 65). The library drew it turned half round, from (-120, 35) to (-90, 55), and a `BlockScale` set after it
 undid the mirror.
 
@@ -137,6 +138,52 @@ Existing tests changed (5): `DxfMLeaderTests` (3: ezdxf's BA reads a `BlockRotat
 keeps its own block scale and turn, the matrix of a block moved is its transform), and the turned block of
 `DxfMLeaderD31bTests` and `DxfMLeaderD31cTests` given its scale and turn before its block, as AutoCAD's cases were. 18 new
 tests of 34 cases, 32 red at base (`DxfMLeaderD31dTests`).
+
+**CHANGED.** A leader added to a `DxfMLeader` by `AddLeader` has no landing yet (290 of nought), as AutoCAD 2021 writes it
+(check D31e, 60 multileaders AutoCAD made, read alike by AutoCAD from the library's files of 54 of them): it draws no dogleg,
+a line added to it has no vertex, and the first vertex given a line of it, by `AddFirstVertex` or `AddLastVertex`, becomes
+its landing, the content left where it is, where the library put the vertex before a landing at the base point. Words at
+(100, 50) given a second leader whose line is given (-20, 80) and its last vertex then set to (40, 70) stand at (160, 40),
+the first leader landed from (150, 38), as AutoCAD's own, where the library moved them to (42, 72); the multileaders of
+several leaders made so are then edited as AutoCAD edits its own. `SetDogleg` lands a leader of no landing, or one whose
+dogleg it turns, on the side of the content the dogleg runs from, on the left of words or either side of a block, as
+AutoCAD lands it: against x on the right of the box at (100, 50), from (128, 55). A leader so landed with no line draws its
+dogleg, as AutoCAD draws it. `AddLeaderLine(point)` passes over a leader of no landing.
+
+**FIXED.** A `DxfMLeader`'s second leader on the right of a block, its dogleg set against x, its line given (270, 80) and its
+last vertex set to (200, 70), moves the box at (100, 50) to (172, 65), as AutoCAD 2021 moves it (check D31e, k-right2-base):
+the leader is landed on the box's right by `SetDogleg`, so that the box moves by as much as that landing. The library moved it
+by the move from the base point, to (210, 65).
+
+**CHANGED.** `DxfMLeader.BlockScale` and `BlockRotation` set to the value they have do what any other value does, as AutoCAD
+2021 does (check D31e): the block's matrix written as its transform where it stands, the block moved to be met at the base
+point, its leaders landed anew; a block scaled by 2 by `TransformBy` given its `BlockScale` of 1 is drawn at 1 again, at
+(190, 105). The library set the bit of the overrides alone. `BlockRotation` writes the turn the block is drawn with (46) from
+the x axis of the multileader's plane, as the block's own plane sees it, as AutoCAD writes it: 30 degrees on a multileader
+turned a quarter draws the block turned 120, where the library drew it turned 30.
+
+**CHANGED.** `DxfMLeader.BlockPosition`, and the block moved with a landing (a last vertex set, a dogleg's length), leave the
+block's matrix (47) as it is, as AutoCAD 2021 leaves it (check D31e, k-moved-right, d4-k-blockscale2-moved, b-k-scale2-dl5);
+the library moved its translation with the block. The matrix is written where the scale, the turn or `TransformBy` is set.
+
+**CHANGED.** `DxfMLeader.TransformBy` of a mirror draws the block where the mirror puts it with its normal mirrored, its x
+scale negative and its turn read from its y axis, and gives a multileader of a block a plane of the mirrored normal, an x
+axis on the side the old one keeps and its y across them (297 of nought), as AutoCAD 2021 writes them (check D31e): the box
+turned 30 degrees and mirrored across the XY plane is of normal (0, 0, -1), scales (-1, 1, 1) and turn 330 degrees, its
+plane's y axis (0, -1, 0); mirrored across the YZ plane, of normal (0, 0, 1) and the plane's x axis (1, 0, 0), met at
+(-120, 55). The block is drawn as before; a `BlockScale` of 2 then set draws it at (130, 45) and (-100, 45), as AutoCAD
+does, where the library drew it at (110, 45) and (-70, 45). Words mirrored are carried as before.
+
+**FIXED.** Words that name a text style given to a `DxfMLeader` in no drawing keep it when the multileader is added to a
+drawing that has it, with the bit of the overrides (11) where it is not the style's, as AutoCAD 2021 keeps the words of a
+multileader made in memory (check D31e, f6-def-words-ts2): words of TS2 make it of TS2, where the library gave it its
+style's text style. Words that name none take the style's, as before.
+
+Existing tests changed (5): `DxfMLeaderTests` (3: a line of a leader added takes the vertex given as the landing, a block
+placed leaves its matrix, and `BlockScale` and `BlockRotation` no longer among the setters that leave the file byte for
+byte), `DxfMLeaderD31cTests` (`BlockScale` and `BlockRotation` set as they are write the matrix, as AutoCAD's own files of
+D31c show) and `DxfMLeaderD31dTests` (the mirror about the y axis made the half turn it is in AutoCAD). 20 new tests of 32
+cases, 29 red at base (`DxfMLeaderD31eTests`).
 
 ## 13.3.0 (2026-11-02)
 
