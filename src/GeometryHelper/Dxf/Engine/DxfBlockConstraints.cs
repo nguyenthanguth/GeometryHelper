@@ -555,16 +555,18 @@ namespace GeometryHelper.Dxf
                 }
             }
 
+            // The decomposition of the equations at the block's own geometry, by the list of those added to them: the base-point
+            // check and the first stage of each attempt with the same equations read the one made first.
+            var none = new List<Func<double[], double>>();
+            var decomposed = new Dictionary<List<Func<double[], double>>, Decomposition>();
+
             // A base point the constraints fix already is not kept again: keeping it adds nothing where it need not move, and
             // makes the equations unmeetable where it must.
             if (kept.Count > 0)
             {
                 List<Func<double[], double>> residuals = Residuals(start, before, after);
-                double[,] jacobian = Jacobian(residuals, start);
-                Decompose(jacobian, residuals.Count, start.Length, out double[] singular, out double[,] right);
-                double largest = 0.0;
-                Array.ForEach(singular, s => largest = Math.Max(largest, s));
-                double[,] gradients = Jacobian(kept, start);
+                Decomposition plain = decomposed[none] = Decompose(Jacobian(residuals, start), residuals.Count);
+                double[][] gradients = Jacobian(kept, start);
                 var free = new List<Func<double[], double>>();
 
                 for (int i = 0; i < kept.Count; i++)
@@ -574,18 +576,19 @@ namespace GeometryHelper.Dxf
 
                     for (int j = 0; j < start.Length; j++)
                     {
-                        size += gradients[i, j] * gradients[i, j];
+                        size += gradients[j][i] * gradients[j][i];
                     }
 
-                    for (int k = 0; k < singular.Length; k++)
+                    for (int k = 0; k < plain.Singular.Length; k++)
                     {
-                        if (!(singular[k] > 1E-8 * largest))
+                        if (!(plain.Singular[k] > 1E-8 * plain.Largest))
                         {
                             double along = 0.0;
+                            double[] vector = plain.Right[k];
 
                             for (int j = 0; j < start.Length; j++)
                             {
-                                along += gradients[i, j] * right[j, k];
+                                along += gradients[j][i] * vector[j];
                             }
 
                             weight += along * along;
@@ -602,12 +605,11 @@ namespace GeometryHelper.Dxf
             }
 
             // Tried in turn: the base points kept, then not, the free unknowns held all at once, then staged.
-            var none = new List<Func<double[], double>>();
             bool freed = false;
-            double[] solved = kept.Count > 0 ? Attempt(start, before, after, kept, false, out _) : null;
-            solved = solved ?? Attempt(start, before, after, none, false, out freed);
-            solved = solved ?? (kept.Count > 0 ? Attempt(start, before, after, kept, true, out _) : null);
-            solved = solved ?? Attempt(start, before, after, none, true, out _);
+            double[] solved = kept.Count > 0 ? Attempt(start, before, after, kept, false, decomposed, out _) : null;
+            solved = solved ?? Attempt(start, before, after, none, false, decomposed, out freed);
+            solved = solved ?? (kept.Count > 0 ? Attempt(start, before, after, kept, true, decomposed, out _) : null);
+            solved = solved ?? Attempt(start, before, after, none, true, decomposed, out _);
 
             if (solved == null)
             {
@@ -630,9 +632,11 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Solves the equations of the constraints and those given, from the block's own geometry, the unknowns they leave
-        /// free held, whether any is so; null where Newton's method does not meet them.
+        /// free held, whether any is so; null where Newton's method does not meet them. The decomposition of the equations and
+        /// those given at the block's own geometry is read from those given by the list of the equations given, where made
+        /// before, and put there where not; a stage that holds nothing more reads the one before's.
         /// </summary>
-        private double[] Attempt(double[] start, Dictionary<string, double> before, Dictionary<string, double> after, List<Func<double[], double>> extra, bool staged, out bool freed)
+        private double[] Attempt(double[] start, Dictionary<string, double> before, Dictionary<string, double> after, List<Func<double[], double>> extra, bool staged, Dictionary<List<Func<double[], double>>, Decomposition> decomposed, out bool freed)
         {
             List<Func<double[], double>> residuals = Residuals(start, before, after);
             residuals.AddRange(extra);
@@ -655,12 +659,23 @@ namespace GeometryHelper.Dxf
                 }
             }
 
+            Decomposition made = null;
+
             for (int now = 0; now <= (staged ? 2 : 0); now++)
             {
-                double[,] jacobian = Jacobian(residuals, start);
-                Decompose(jacobian, residuals.Count, start.Length, out double[] singular, out double[,] right);
-                double largest = 0.0;
-                Array.ForEach(singular, s => largest = Math.Max(largest, s));
+                if (now == 0 && decomposed.TryGetValue(extra, out Decomposition cached))
+                {
+                    made = cached;
+                }
+                else if (made == null || made.Rows != residuals.Count)
+                {
+                    made = Decompose(Jacobian(residuals, start), residuals.Count);
+
+                    if (now == 0)
+                    {
+                        decomposed[extra] = made;
+                    }
+                }
 
                 for (int j = 0; j < start.Length; j++)
                 {
@@ -671,11 +686,11 @@ namespace GeometryHelper.Dxf
 
                     double weight = 0.0;
 
-                    for (int k = 0; k < singular.Length; k++)
+                    for (int k = 0; k < made.Singular.Length; k++)
                     {
-                        if (!(singular[k] > 1E-8 * largest))
+                        if (!(made.Singular[k] > 1E-8 * made.Largest))
                         {
-                            weight += right[j, k] * right[j, k];
+                            weight += made.Right[k][j] * made.Right[k][j];
                         }
                     }
 
@@ -972,33 +987,32 @@ namespace GeometryHelper.Dxf
 
                 previous = worst;
 
-                double[,] jacobian = Jacobian(residuals, x);
                 int m = residuals.Count;
                 int n = x.Length;
-                Decompose(jacobian, m, n, out double[] singular, out double[,] right);
-                double largest = 0.0;
-                Array.ForEach(singular, s => largest = Math.Max(largest, s));
+                Decomposition made = Decompose(Jacobian(residuals, x), m);
 
                 for (int k = 0; k < n; k++)
                 {
-                    if (!(singular[k] > 1E-9 * largest))
+                    if (!(made.Singular[k] > 1E-9 * made.Largest))
                     {
                         continue;
                     }
 
                     // The column k of the decomposed matrix is the k-th left singular vector times its singular value.
                     double along = 0.0;
+                    double[] column = made.Columns[k];
+                    double[] vector = made.Right[k];
 
                     for (int i = 0; i < m; i++)
                     {
-                        along -= jacobian[i, k] * f[i];
+                        along -= column[i] * f[i];
                     }
 
-                    along /= singular[k] * singular[k];
+                    along /= made.Singular[k] * made.Singular[k];
 
                     for (int j = 0; j < n; j++)
                     {
-                        x[j] += right[j, k] * along;
+                        x[j] += vector[j] * along;
                     }
                 }
             }
@@ -1021,11 +1035,14 @@ namespace GeometryHelper.Dxf
             return f;
         }
 
-        /// <summary>The Jacobian of the equations by central differences, each unknown stepped by 1E-5 of its size, or of 1 where smaller.</summary>
-        private static double[,] Jacobian(List<Func<double[], double>> residuals, double[] x)
+        /// <summary>
+        /// The Jacobian of the equations by central differences, each unknown stepped by 1E-5 of its size, or of 1 where
+        /// smaller: a column of the derivatives of every equation by each unknown.
+        /// </summary>
+        private static double[][] Jacobian(List<Func<double[], double>> residuals, double[] x)
         {
             int m = residuals.Count;
-            var jacobian = new double[m, x.Length];
+            var jacobian = new double[x.Length][];
             double[] probe = (double[])x.Clone();
 
             for (int j = 0; j < x.Length; j++)
@@ -1036,10 +1053,11 @@ namespace GeometryHelper.Dxf
                 probe[j] = x[j] - h;
                 double[] down = Evaluate(residuals, probe);
                 probe[j] = x[j];
+                var column = jacobian[j] = new double[m];
 
                 for (int i = 0; i < m; i++)
                 {
-                    jacobian[i, j] = (up[i] - down[i]) / (2.0 * h);
+                    column[i] = (up[i] - down[i]) / (2.0 * h);
                 }
             }
 
@@ -1047,17 +1065,31 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// The singular value decomposition of an m by n matrix by one-sided Jacobi rotations of its columns: the matrix left
-        /// as its left singular vectors times their values, column by column, the values and the right singular vectors (the
-        /// columns of <paramref name="right"/>).
+        /// The singular value decomposition of a matrix of the rows given, its columns given, by one-sided Jacobi rotations of
+        /// its columns: the columns left as the left singular vectors times their values, the values and the right singular
+        /// vectors.
         /// </summary>
-        private static void Decompose(double[,] a, int m, int n, out double[] singular, out double[,] right)
+        private static Decomposition Decompose(double[][] a, int m)
         {
-            right = new double[n, n];
+            int n = a.Length;
+            var right = new double[n][];
+
+            // A column of a square size within 1E-200 of the largest's is nought: a rotation of it moves nothing else, and in
+            // numbers that small, its squares below the least normal double, gives no end of rotations, each slow.
+            double nought = 0.0;
 
             for (int j = 0; j < n; j++)
             {
-                right[j, j] = 1.0;
+                right[j] = new double[n];
+                right[j][j] = 1.0;
+                double size = 0.0;
+
+                for (int i = 0; i < m; i++)
+                {
+                    size += a[j][i] * a[j][i];
+                }
+
+                nought = Math.Max(nought, 1E-200 * size);
             }
 
             for (int sweep = 0; sweep < 80; sweep++)
@@ -1066,18 +1098,22 @@ namespace GeometryHelper.Dxf
 
                 for (int p = 0; p < n - 1; p++)
                 {
+                    double[] ap = a[p];
+                    double[] vp = right[p];
+
                     for (int q = p + 1; q < n; q++)
                     {
+                        double[] aq = a[q];
                         double alpha = 0.0, beta = 0.0, gamma = 0.0;
 
                         for (int i = 0; i < m; i++)
                         {
-                            alpha += a[i, p] * a[i, p];
-                            beta += a[i, q] * a[i, q];
-                            gamma += a[i, p] * a[i, q];
+                            alpha += ap[i] * ap[i];
+                            beta += aq[i] * aq[i];
+                            gamma += ap[i] * aq[i];
                         }
 
-                        if (alpha == 0.0 || beta == 0.0 || Math.Abs(gamma) <= 1E-15 * Math.Sqrt(alpha * beta))
+                        if (alpha <= nought || beta <= nought || Math.Abs(gamma) <= 1E-15 * Math.Sqrt(alpha * beta))
                         {
                             continue;
                         }
@@ -1090,18 +1126,20 @@ namespace GeometryHelper.Dxf
 
                         for (int i = 0; i < m; i++)
                         {
-                            double ap = a[i, p];
-                            double aq = a[i, q];
-                            a[i, p] = c * ap - s * aq;
-                            a[i, q] = s * ap + c * aq;
+                            double p0 = ap[i];
+                            double q0 = aq[i];
+                            ap[i] = c * p0 - s * q0;
+                            aq[i] = s * p0 + c * q0;
                         }
+
+                        double[] vq = right[q];
 
                         for (int i = 0; i < n; i++)
                         {
-                            double vp = right[i, p];
-                            double vq = right[i, q];
-                            right[i, p] = c * vp - s * vq;
-                            right[i, q] = s * vp + c * vq;
+                            double p0 = vp[i];
+                            double q0 = vq[i];
+                            vp[i] = c * p0 - s * q0;
+                            vq[i] = s * p0 + c * q0;
                         }
                     }
                 }
@@ -1112,7 +1150,8 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            singular = new double[n];
+            var singular = new double[n];
+            double largest = 0.0;
 
             for (int j = 0; j < n; j++)
             {
@@ -1120,11 +1159,40 @@ namespace GeometryHelper.Dxf
 
                 for (int i = 0; i < m; i++)
                 {
-                    sum += a[i, j] * a[i, j];
+                    sum += a[j][i] * a[j][i];
                 }
 
                 singular[j] = Math.Sqrt(sum);
+                largest = Math.Max(largest, singular[j]);
             }
+
+            return new Decomposition(m, a, singular, right, largest);
+        }
+
+        /// <summary>
+        /// A singular value decomposition: the count of the rows of the matrix, its columns made the left singular vectors
+        /// times their values, the values, the largest of them, and the right singular vectors, each an array.
+        /// </summary>
+        private sealed class Decomposition
+        {
+            internal Decomposition(int rows, double[][] columns, double[] singular, double[][] right, double largest)
+            {
+                Rows = rows;
+                Columns = columns;
+                Singular = singular;
+                Right = right;
+                Largest = largest;
+            }
+
+            internal int Rows { get; }
+
+            internal double[][] Columns { get; }
+
+            internal double[] Singular { get; }
+
+            internal double[][] Right { get; }
+
+            internal double Largest { get; }
         }
 
         /// <summary>A point: the start (0), the end (1) or the middle (2) of its line, the start, the end or the centre (3) of its arc, the centre of its circle.</summary>

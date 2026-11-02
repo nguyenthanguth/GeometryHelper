@@ -1819,8 +1819,14 @@ A horizontal, a vertical or a radial constraint parameter is set by solving the 
 the associative network of its BLOCK_RECORD (`ACAD_ASSOCNETWORK`), in drawings of R2010 and of R2018 alike: the distance
 is taken to its value set and to twelve significant digits, as AutoCAD 2021 solved Height 612.3456789012345 of its
 Fluorescent sample at 612.345678901 (check D27b), given to the variable of the dimensional constraint the parameter drives,
-the variables of expressions of it worked out (numbers, the names of variables, + - * / ^, brackets and the functions sin,
-cos, tan, asin, acos, atan, sqrt, abs and round, angles in degrees, as AutoCAD read `width*cos(60)` as half the width), and
+the variables of expressions of it worked out (numbers, the names of variables, + - * / % ^, brackets, the constants pi
+and e, and the functions of AutoCAD's help but random: sin, cos, tan, asin, acos and atan in degrees, as AutoCAD read
+`width*cos(60)` as half the width; sinh, cosh, tanh, asinh, acosh, atanh, sqrt, exp, exp10, ln, log, d2r, r2d, abs, sign,
+round, trunc, floor and ceil; and min, max and pow of two values apart by a semicolon or a comma, as AutoCAD 2021 worked
+them out through its own variables, check D34: round takes a half up, round(-2.5) to -2 and round(2.5) to 3; a remainder
+`7%3` is of whole values only, 1, and of the sign of the first, `-7%3` -1; max(2.5;3) is the whole 3 and max(2.0;2) the
+real 2; a variable named pi reads as pi; and what AutoCAD would not work out, as ln(-1), 1/0, 7.5%2, round(3000000000.5)
+or random, which it draws anew each time, is refused), and
 the lines, arcs, circles, polyline edges and construction lines the constraints hold moved from the block's own by Newton's
 method, each step the least that meets them, before any action works on what they give. The constraints read are those of
 AutoCAD's samples: coincident points, a point on a curve, parallel, perpendicular, horizontal (to a datum line), colinear,
@@ -1837,13 +1843,16 @@ row back (check D27b). A table whose properties must match a row leaves a constr
 others at theirs, no row matched, as AutoCAD set Fluorescent's Width 1 200, and reads the parameters of its columns as read
 only, as AutoCAD read Fluorescent's Width and Height, though they are set; a constraint parameter of no column leaves the
 table's user parameters as they are, as AutoCAD kept the bolt's Size 1 at Length 80; a flip carrying a constraint
-parameter, as the Window sample's carries DoorWidth, mirrors its points with the rest. Setting one takes from 5 to 300
-milliseconds, and up to 3 seconds for the imperial bolt's 226 nodes. The INSERT's anonymous block is given a copy of the
-block's network at the values set, as AutoCAD writes its own: each object copied with a handle of its own, the copies of
-the entities named, the variables, the geometry and the dimensions of the constraints at the values set, and the copy
-listed by the drawing's network. AutoCAD 2021 read every INSERT the library set as the library drew it, with no audit
-error of its own, and set it again from the copy as from its own, 15 values of 7 samples within 1E-12 of AutoCAD's own
-sets one after the other (check D27b); before, it set none again until the block was reset (`RESETBLOCK`).
+parameter, as the Window sample's carries DoorWidth, mirrors its points with the rest. Setting one takes from 5 to 100
+milliseconds on AutoCAD's samples, 81 for DIA of the imperial bolt, whose 130 unknowns took 800 before check D34. The
+INSERT's anonymous block is given a copy of the block's network at the values set, as AutoCAD writes its own: each object
+copied with a handle of its own, the copies of the entities named, the variables, the geometry and the dimensions of the
+constraints at the values set, and the copy listed by the drawing's network. AutoCAD 2021 read every INSERT the library
+set as the library drew it, with no audit error of its own, and set it again from the copy as from its own, 15 values of 7
+samples within 1E-12 of AutoCAD's own sets one after the other (check D27b); before, it set none again until the block
+was reset (`RESETBLOCK`). A block of a network and no constraint parameter is copied so too: AutoCAD 2021 set the library's
+Parking sample, set to a Width, a Length, a row or a number of Spaces, again to another Width or Length just as it set its
+own one after the other, in R2010 and R2018 alike, 10 sets 0 apart (check D34).
 
 A row is read within 1E-7: AutoCAD 2021 read the row of 200 at 200.00000001 and none at 200.0000002 (check D26b). A column
 of the visibility state (`DxfBlockPropertiesTableColumn.Visibility(block)`, the connection VisibilityState as AutoCAD's own
@@ -2829,15 +2838,18 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
     texts, multiline texts and INSERTs by their one point, in a frame of a rectangle; a stretch and a move take a distance
     multiplier and an angle offset. A polar stretch holds them so but an arc by one end, and turns other entities only. A
     stretch, a move, a scale and a rotate take attribute definitions locked in their block, the INSERTs' ATTRIBs following
-    (check D30).
+    (check D30), and so does a polar stretch, to stretch or to turn only: AutoCAD 2021 turned and moved such an ATTDEF
+    and its ATTRIB, and turned one it turned only, as the library does within 3E-13, on INSERTs plain, turned a quarter at
+    the scale 2 and mirrored, and left one not locked where it was (check D34).
   - Refused when written, with `NotSupportedException`, as AutoCAD 2021 worked them out from where an INSERT's last set left
     it rather than from its values: a flip parameter beside any other parameter (checks v20b and v21; AutoCAD 2021 read
     Hand back as 0 again on the library's door of a flip beside a Width, stretching or not, check D30), and a rotate or a
     scale of an entity a stretch or a move holds (check v21). An entity both copied by an array, or turned by a polar
     stretch, and worked on by another action is refused too, an order no sample of AutoCAD shows.
   - Not written: a frame of a polygon; a text aligned or fitted between two points and an INSERT of rows and columns in a
-    stretch; an attribute definition not locked in its block in any action, or in a polar stretch, a flip or an array; an
-    arc held by one end in a polar stretch; a polar stretch of a distance multiplier or
+    stretch; an attribute definition not locked in its block in any action, or in a flip or an array (AutoCAD 2021 refused
+    to set an INSERT of an array holding one, eInvalidInput, and placed one a flip held by its text's extents in its font,
+    which the library does not measure, check D34); an arc held by one end in a polar stretch; a polar stretch of a distance multiplier or
     an angle offset, or tied to the base grip; a stretch or a move tied to a base grip and a move carrying other
     parameters, which are set where AutoCAD's Block Editor wrote them; a user parameter, a
     constraint, and a block properties table whose properties must match a row, or of columns of a point, a lookup or a
@@ -2854,7 +2866,7 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
     an expression of another function, or a value the constraints cannot meet; a row of a table that would change a
     constraint parameter; a polar stretch tied to the base grip or of a multiplier or an offset, a move
     carrying a parameter other than a linear one or one that chains its actions, any other action holding a parameter,
-    an attribute definition in a polar stretch, a flip or an array, a lookup column of another kind than those written above, as
+    an attribute definition in a flip or an array, a lookup column of another kind than those written above, as
     a visibility state's, a block properties table column of another kind, or a lookup or a user parameter of a block
     whose table its properties must match, or a parameter of such a table of a column of a user parameter or of the
     visibility state), and an INSERT that keeps the base point of a linear, an XY, a polar, a

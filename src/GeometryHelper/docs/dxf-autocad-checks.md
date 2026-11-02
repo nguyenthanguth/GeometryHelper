@@ -1424,3 +1424,44 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       style of their own (AutoCAD takes it, overriding the style's); a leader of several not landed, which AutoCAD lands
       anew when one of them is given its dogleg; and whether the colour of the words, the content and the block set to what
       they are set their bits, which every multileader AutoCAD makes has set already.
+
+## Dynamic blocks: expressions, attributes and a block of a network alone
+
+84. **The functions of a block's constraints, round on a half, and the remainder.**
+    - Try (D34, headless, plugin GHD34EXPR, rounds r1 and r2, 150 expressions): a variable of a network of model space given
+      each expression by `AssocVariable.SetExpression`, worked out by `EvaluateExpression`, the value and its kind (90 or 40)
+      read: round of halves either side of nought; trunc, floor and ceil; min and max of one, two and three values, a
+      semicolon or a comma between, of equal values of either kind; exp, ln, log, log10, exp10, pow, sinh to atanh, d2r, r2d,
+      sign; pi and e, beside variables named pi and e; the remainder %; values out of each function's range; random.
+    - AutoCAD 2021: round goes to the whole number at or below the value and a half, round(-2.5) -2 and round(2.5) 3,
+      round(0.49999999999999994) 1; trunc, floor, ceil, round, sign and % are whole, the others real but abs, of its value's
+      kind; min and max take two values, by ; or by , (one or three refused), and give the one they pick of its kind, the
+      first of two equal (max(2;2.0) the whole 2, max(2.0;2) the real 2); pi and e, of any case, come before a variable of
+      their name; % is of the level of * and /, of whole values only (7.0%2 1, 7.5%2 refused), of the sign of the first
+      (-7%3 -1, 7%-3 1); log10 is no function; 1/0, ln(-1), sqrt(-1), acos(2), atanh(1), 7%0 and round(3000000000.5) are
+      refused, trunc and floor past 32 bits give -2147483648, and 2147483647+1 is the real 2147483648; random gives a new
+      value each time. Its ln and log come up to 2E-13 of their size apart from the C library's for arguments past 1 000
+      (ln(12345) 9.4210064017810993 against 9.42100640177928).
+    - Now: all of it, values within 1E-12 of their size of AutoCAD's, but random, refused, as are trunc, floor and ceil
+      past 32 bits, which AutoCAD gives as -2147483648.
+
+85. **Attribute definitions in a flip, an array and a polar stretch.**
+    - Try (D34, plugin GHD34A, rounds r1 and r2): blocks of the library's writer with two locked ATTDEFs, left at (x, y + 10)
+      and centred on (x, y - 10), in a flip, a linear array, an XY array and a polar stretch (one in the frame, one turned
+      only; and unlocked), INSERTs plain, turned a quarter at the scale 2 and mirrored, set as the library sets them.
+    - AutoCAD 2021: an array holding an ATTDEF is not set (eInvalidInput, linear and XY alike). A flip mirrors the box of
+      each ATTDEF's words and keeps them readable, the left one at (63.0, 60) for one at (20, 60) about x 45, as its font's
+      extents give. A polar stretch turns and moves a locked ATTDEF it holds and turns one it turns only, as it does a text,
+      each INSERT's ATTRIB following; it leaves one not locked and its ATTRIB where they are.
+    - Now: the polar stretch as AutoCAD, within 3E-13 on 42 dumps; the writer takes a locked ATTDEF into a polar stretch.
+      Still refused: an ATTDEF in a flip, whose place the library would need the font to work out, and in an array, which
+      AutoCAD does not set.
+
+86. **A justified TEXT of no second point, and a block of a network and no constraint parameter set again.**
+    - Try (D34): a block of TEXTs of nine justifications whose groups 11 were taken out, read by DXFIN. Then the library's
+      INSERTs of AutoCAD's Parking sample (R2010 and R2018), set to a Width, a Length, a row or a number of Spaces, set again
+      by AutoCAD to a Width or a Length beside its own sets of the same two values (plugin GHD34RUN, round p1).
+    - AutoCAD 2021: each TEXT's alignment point reads (0, 0, 0), its position worked out about it from its font. Each of the
+      10 INSERTs it set again as it set its own, 0 apart, AUDIT finding the 2 errors of the sample and no more.
+    - Now: the library reads the alignment point so; its position stays as the file has it, AutoCAD's needing the font.
+      Parking is copied with its network as D27b copies it, and nothing had to change.

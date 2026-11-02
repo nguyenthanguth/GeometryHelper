@@ -350,7 +350,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(left);
             Assert.Equal(5.0, DxfConstraintExpression.Evaluate("DIA/2", read, whole, out bool half));
             Assert.False(half);
-            Assert.Throws<NotSupportedException>(() => DxfConstraintExpression.Evaluate("exp(1)", read));
+            Assert.Throws<NotSupportedException>(() => DxfConstraintExpression.Evaluate("log10(1)", read));
         }
 
         [Fact]

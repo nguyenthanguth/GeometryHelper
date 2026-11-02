@@ -591,7 +591,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(4.9, DxfConstraintExpression.Evaluate("HdCr/4", read), Close);
             Assert.Equal(-4.0, DxfConstraintExpression.Evaluate("-2^2", read), Close);
             Assert.Equal(20.0, DxfConstraintExpression.Evaluate("(W3 - 5) * 1E0", read), Close);
-            Assert.Throws<NotSupportedException>(() => DxfConstraintExpression.Evaluate("exp(1)", read));
+            Assert.Throws<NotSupportedException>(() => DxfConstraintExpression.Evaluate("log10(1)", read));
             Assert.Throws<NotSupportedException>(() => DxfConstraintExpression.Evaluate("Width +", read));
         }
     }

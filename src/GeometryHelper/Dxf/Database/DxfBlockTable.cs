@@ -1773,8 +1773,8 @@ namespace GeometryHelper.Dxf
         /// <param name="frameCorner">A corner of the stretch frame, a rectangle along the block's x and y.</param>
         /// <param name="oppositeCorner">The corner across from it.</param>
         /// <param name="entities">The entities of the block to stretch, each with one point in the frame at least: a LINE's
-        /// start or end, a LWPOLYLINE's vertex, an arc's two ends, or the one point of a circle, a text held by one point, a
-        /// multiline text or an INSERT, as
+        /// start or end, a LWPOLYLINE's vertex, an arc's two ends, or the one point of a circle, a text or an attribute
+        /// definition held by one point, a multiline text or an INSERT, as
         /// <see cref="AddStretchAction(DxfBlockLinearParameter, GeoPoint2, GeoPoint2, IEnumerable{DxfEntity})"/> takes them.</param>
         /// <param name="rotateOnly">The entities of the block to turn only, AutoCAD's Objects to Rotate Only; none for none.</param>
         /// <remarks>
@@ -1788,6 +1788,12 @@ namespace GeometryHelper.Dxf
         /// an arc held by both ends, turn and move whole, a text turned with the line. AutoCAD 2021 worked each set out from the
         /// block's own values, not from the last set, and an INSERT scaled by 2 in its own units. A point is in the frame within
         /// the point tolerance of <see cref="Tolerance.Default"/>, on its border among them.
+        /// </para>
+        /// <para>
+        /// An attribute definition locked in its block (<see cref="DxfAttributeDefinition.LockPositionInBlock"/>) is taken to
+        /// stretch or to turn only, and each INSERT's ATTRIB of it turns and moves with it, as AutoCAD 2021 worked them out
+        /// (check D34): a left one at (100, 10) in the frame above goes, at a Distance of 150 and an Angle of 30 degrees, to
+        /// (124.904, 83.660), turned by 30 degrees, and one centred on (100, -10) to turn only to (91.603, 41.340).
         /// </para>
         /// <para>
         /// The action is written as AutoCAD saved the polar stretch of ACadSharp's sample and of AutoCAD's own Annotation sample:
@@ -1805,9 +1811,10 @@ namespace GeometryHelper.Dxf
         /// or one of them is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the parameter is of another block or no longer in its graph, the
         /// frame is no wider or no higher than the point tolerance, there are no entities to stretch, an entity is not of this
-        /// block, is erased, is of a kind not taken, has no point in the frame, or is an arc with one end only in it, or an
-        /// entity to turn only is not of this block, is erased, is an attribute definition or of a type the library keeps as it
-        /// is, or is among the entities to stretch. Nothing is written then.</exception>
+        /// block, is erased, is of a kind not taken, has no point in the frame, is an arc with one end only in it, or is an
+        /// attribute definition not locked in its block, or an entity to turn only is not of this block, is erased, is of a
+        /// type the library keeps as it is, is an attribute definition not locked in its block, or is among the entities to
+        /// stretch. Nothing is written then.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
         /// <exception cref="NotSupportedException">Thrown when an entity is also worked on by another action of the block, other
         /// than a lookup: no sample of AutoCAD shows the order they would take. Nothing is written then.</exception>
@@ -1864,8 +1871,9 @@ namespace GeometryHelper.Dxf
                     throw new ArgumentException("The entity " + (entity.Handle ?? string.Empty) + " to stretch is not of the block " + Name + ", or is erased.", nameof(entities));
                 }
 
-                List<GeoPoint3> points = StretchPoints(entity, false)
-                    ?? throw new ArgumentException("A polar stretch takes lines, polylines, arcs, circles, texts held by one point, multiline texts and INSERTs; the entity " + entity.Handle + " is a " + entity.GetType().Name + " of none of those.", nameof(entities));
+                List<GeoPoint3> points = StretchPoints(entity, true)
+                    ?? throw new ArgumentException("A polar stretch takes lines, polylines, arcs, circles, texts and attribute definitions held by one point, multiline texts and INSERTs; the entity " + entity.Handle + " is a " + entity.GetType().Name + " of none of those.", nameof(entities));
+                Locked(entity, "stretch");
                 var inside = new List<int>();
 
                 for (int i = 0; i < points.Count; i++)
@@ -1911,9 +1919,14 @@ namespace GeometryHelper.Dxf
                     throw new ArgumentException("The entity " + (entity.Handle ?? string.Empty) + " to turn only is not of the block " + Name + ", or is erased.", nameof(rotateOnly));
                 }
 
-                if (entity is DxfAttributeDefinition || entity is DxfUnknownEntity)
+                if (entity is DxfUnknownEntity)
                 {
-                    throw new ArgumentException("The entity " + entity.Handle + " to turn only is an attribute definition or of a type the library keeps as it is, which an action of the library does not take.", nameof(rotateOnly));
+                    throw new ArgumentException("The entity " + entity.Handle + " to turn only is of a type the library keeps as it is, which an action of the library does not take.", nameof(rotateOnly));
+                }
+
+                if (entity is DxfAttributeDefinition definition && !definition.LockPositionInBlock)
+                {
+                    throw new ArgumentException("The attribute definition " + definition.Tag + " (" + entity.Handle + ") to turn only is not locked in its block: lock its position (LockPositionInBlock), as AutoCAD's Block Editor asks.", nameof(rotateOnly));
                 }
 
                 if (seen.Contains(entity.Handle) && !turned.Exists(e => e.Handle == entity.Handle))

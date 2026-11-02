@@ -510,7 +510,8 @@ namespace GeometryHelper.Dxf
         /// The ATTRIBs of the INSERT that follow their ATTDEF, told by its tag, as the actions take it from where the values
         /// before put it to where the values now put it, with what each is given in the world: the change of the ATTDEF's place
         /// in the block carried by the INSERT's placing. A move or a stretch moves it; a scale or a rotate scales or turns it
-        /// about the parameter's base point, as AutoCAD 2021 scaled and turned the ATTRIBs of the library's (plugin D30, x2). An
+        /// about the parameter's base point, as AutoCAD 2021 scaled and turned the ATTRIBs of the library's (plugin D30, x2); a
+        /// polar stretch turns it and moves it, or turns it only, as it does the ATTDEF (plugin D34, e5). An
         /// ATTRIB keeps a place the user gave it and changes by the change only. An ATTDEF not locked in the block takes no ATTRIB
         /// along, as AutoCAD 2021 left them (x1). Refused with <see cref="NotSupportedException"/> where ATTDEFs of one tag the
         /// INSERT has an ATTRIB of change apart.
@@ -542,7 +543,8 @@ namespace GeometryHelper.Dxf
                 GeoTransform3 turned = null;
                 bool locked = definition.LockPositionInBlock;
 
-                if (locked && block.Actions.Exists(a => (a.Kind == ActionKind.Scale || a.Kind == ActionKind.Rotate) && Holds(a, entity.Handle)))
+                if (locked && block.Actions.Exists(a => ((a.Kind == ActionKind.Scale || a.Kind == ActionKind.Rotate) && Holds(a, entity.Handle))
+                    || (a.Kind == ActionKind.PolarStretch && (Holds(a, entity.Handle) || a.Turned.Exists(h => string.Equals(h, entity.Handle, StringComparison.OrdinalIgnoreCase))))))
                 {
                     GeoTransform3 now = Placed(block, entity.Handle, values);
                     GeoTransform3 then = Placed(block, entity.Handle, before);
@@ -627,7 +629,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// What the actions of the block give an entity of one point at the values given, in the order of the graph, as
         /// <see cref="Act"/> works them out: a stretch and a move move it, a scale scales it and a rotate turns it about the
-        /// parameter's base point.
+        /// parameter's base point, and a polar stretch turns it about the parameter's base point and moves it along the
+        /// parameter's line where it holds it, and turns it alone where it turns it only (<see cref="PolarStretch"/>).
         /// </summary>
         private static GeoTransform3 Placed(Block block, string handle, Dictionary<string, double[]> values)
         {
@@ -635,14 +638,20 @@ namespace GeometryHelper.Dxf
 
             foreach (BlockAction action in block.Actions)
             {
-                if (!Holds(action, handle))
+                bool turnedOnly = action.Kind == ActionKind.PolarStretch && !Holds(action, handle) && action.Turned.Exists(h => string.Equals(h, handle, StringComparison.OrdinalIgnoreCase));
+
+                if (!Holds(action, handle) && !turnedOnly)
                 {
                     continue;
                 }
 
                 GeoTransform3 step;
 
-                if (action.Kind == ActionKind.Stretch)
+                if (action.Kind == ActionKind.PolarStretch)
+                {
+                    step = ((Polar)block.Parameters.Find(p => p.Id == action.Parameter)).Turned(values[action.Parameter], turnedOnly);
+                }
+                else if (action.Kind == ActionKind.Stretch)
                 {
                     double[] change = Change(block, action, values);
                     step = GeoTransform3.Translation(new GeoVector3(change[0], change[1], 0.0));
@@ -1068,7 +1077,9 @@ namespace GeometryHelper.Dxf
         /// point keeps its start and follows with its end. An entity of one point held, or an arc held by both ends, and an
         /// entity of its selection holding no point (a grip of AutoCAD's own sample) are turned and moved whole; an entity it
         /// turns only (331) and does not select is turned whole: AutoCAD 2021 turned a tick it named so about the base point,
-        /// and turned and moved it too when the selection named it besides.
+        /// and turned and moved it too when the selection named it besides. An attribute definition locked in the block is
+        /// turned and moved, or turned only, so; one not locked stays where it is, as AutoCAD 2021 worked them out (plugin
+        /// D34, e7 and e8).
         /// </summary>
         private static void PolarStretch(Polar parameter, BlockAction action, Dictionary<string, double[]> values, Dictionary<string, DxfEntity> copyOf)
         {
@@ -1083,11 +1094,23 @@ namespace GeometryHelper.Dxf
 
             var held = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+            // An attribute definition not locked in the block stays, as AutoCAD 2021 left one it held and one it turned only
+            // (plugin D34, e8), as it leaves one of a move, a scale and a rotate.
+            foreach (KeyValuePair<string, DxfEntity> pair in copyOf)
+            {
+                if (pair.Value is DxfAttributeDefinition definition && !definition.LockPositionInBlock)
+                {
+                    held.Add(pair.Key);
+                }
+            }
+
+            var stays = new HashSet<string>(held, StringComparer.OrdinalIgnoreCase);
+
             foreach (KeyValuePair<string, List<int>> entity in action.Held)
             {
                 held.Add(entity.Key);
 
-                if (!copyOf.TryGetValue(entity.Key, out DxfEntity copy))
+                if (stays.Contains(entity.Key) || !copyOf.TryGetValue(entity.Key, out DxfEntity copy))
                 {
                     continue;
                 }
@@ -2666,7 +2689,7 @@ namespace GeometryHelper.Dxf
             /// block the library works out: a stretch of a linear, an XY or a polar parameter, of lines, polylines and entities of
             /// one point by their points, and of arcs by both ends or, lying flat, by one; a move of a linear, an XY or a polar
             /// parameter by its end point or its base point, of a point parameter by its position, the attribute definitions a
-            /// stretch, a move, a scale and a rotate alone may hold; a scale of a linear parameter, a rotate of a rotation parameter, a flip of a flip parameter, an array
+            /// stretch, a move, a scale, a rotate and a polar stretch alone may hold; a scale of a linear parameter, a rotate of a rotation parameter, a flip of a flip parameter, an array
             /// of a linear parameter or of an XY parameter of a row offset; a polar stretch of a polar parameter, of the points
             /// a stretch holds but an arc by one end, and of entities to turn only.
             /// </summary>
@@ -2711,7 +2734,7 @@ namespace GeometryHelper.Dxf
 
                 foreach (string handle in acted)
                 {
-                    if (Kind != ActionKind.Stretch && (!entities.TryGetValue(handle, out DxfEntity entity) || entity is DxfUnknownEntity || (entity is DxfAttributeDefinition && Kind != ActionKind.Move && Kind != ActionKind.Scale && Kind != ActionKind.Rotate)))
+                    if (Kind != ActionKind.Stretch && (!entities.TryGetValue(handle, out DxfEntity entity) || entity is DxfUnknownEntity || (entity is DxfAttributeDefinition && Kind != ActionKind.Move && Kind != ActionKind.Scale && Kind != ActionKind.Rotate && Kind != ActionKind.PolarStretch)))
                     {
                         throw new NotSupportedException("A " + Kind.ToString().ToLowerInvariant() + " action of the block " + name + " works on " + handle + ", which is not an entity of the block the library works out: it may be another parameter or a grip, moved with it.");
                     }
@@ -2720,7 +2743,7 @@ namespace GeometryHelper.Dxf
                 foreach (KeyValuePair<string, List<int>> held in Held)
                 {
                     entities.TryGetValue(held.Key, out DxfEntity entity);
-                    List<GeoPoint3> points = entity == null ? null : DxfBlockTableRecord.StretchPoints(entity, Kind == ActionKind.Stretch);
+                    List<GeoPoint3> points = entity == null ? null : DxfBlockTableRecord.StretchPoints(entity, true);
                     int count = points?.Count ?? 0;
                     bool whole = entity is DxfLine || entity is DxfPolyline || held.Value.Count == count || (Kind == ActionKind.Stretch && entity is DxfArc arc && DxfBlockTableRecord.Flat(arc.Normal));
 

@@ -6,6 +6,45 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The expressions of a dynamic block's constraints take the functions of AutoCAD's help but random, the constants pi
+and e and the remainder %, as AutoCAD 2021 worked them out through its own variables (check D34, 150 expressions): trunc,
+floor, ceil, sign, exp, exp10, ln, log, sinh, cosh, tanh, asinh, acosh, atanh, d2r and r2d, and min, max and pow of two
+values apart by a semicolon or a comma, where an expression of any of them was refused. Each is whole or real as AutoCAD
+keeps it: trunc, floor, ceil, sign and % whole, min and max of the kind of the value they give, the first of two equal
+(max(2;2.0) the whole 2), the others real. pi and e come before a variable of their name, as AutoCAD read pi*1 beside a
+variable pi of 5; % is of the level of * and /, of whole values only and of the sign of the first (-7%3 is -1). What
+AutoCAD would not work out is refused: random, which it draws anew each time, a value out of a function's range (ln(-1),
+acos(2)), a division or a remainder by nought, a remainder of a value not whole (7.5%2), a whole number past 32 bits from
+round, trunc, floor or ceil, and min or max of one value or three.
+
+**CHANGED.** round in such an expression takes a half up, as AutoCAD 2021 does: round(-2.5) is -2 and round(-0.5) 0, where
+the library gave -3 and -1, and round(0.49999999999999994) 1 (check D34). A division by nought is refused where it is made,
+as AutoCAD refused 1/0, where max(2;1/0) gave 2; a sum, a difference or a product of whole values past 32 bits is real, as
+AutoCAD kept 2147483647+1.
+
+**CHANGED.** Setting a constraint parameter of a dynamic block is up to ten times faster, every value the same to the bit
+on the 225 sets of AutoCAD's samples of checks D27 and D27b, under .NET Framework 4.8 and .NET 10: the solver keeps its
+matrices by columns, works out the decomposition of the block's own equations once for the check of the base points and
+the attempts that share it, and stops rotating a column of nought (its squares within 1E-200 of the largest's), whose
+numbers too small for a double went round 80 times. DIA of the imperial Hex Head Bolt takes 81 milliseconds where it took
+803 (.NET 10: 103 where 652), HdCr of the metric one 74 where 285, Wt of the metric WF Beam 84 where 334; the 225 sets but
+the first of each file take 3.6 seconds where they took 10.5.
+
+**NEW.** A polar stretch takes attribute definitions locked in their block, to stretch and to turn only
+(`AddPolarStretchAction`), and an INSERT's ATTRIBs of them turn and move with them, as AutoCAD 2021 worked them out within
+3E-13 on INSERTs plain, turned a quarter at the scale 2 and mirrored (check D34): a left one at (100, 10) in the frame goes,
+at a Distance of 150 and an Angle of 30 degrees, to (124.904, 83.660), turned by 30 degrees. One not locked in another
+writer's polar stretch stays where it is, its ATTRIB with it, as AutoCAD left it; such INSERTs were refused. An attribute
+definition in a flip or an array stays refused: AutoCAD 2021 placed one a flip held by its font's extents, and did not set
+an INSERT of an array holding one (eInvalidInput).
+
+**NEW.** AutoCAD 2021 set again the library's INSERTs of its Parking sample, a block of a network and no constraint
+parameter, set to a Width, a Length, a row or a number of Spaces, just as it set its own, 10 sets 0 apart in R2010 and
+R2018 (check D34); the copy of the network D27b writes needed no change. A justified TEXT of no group 11 reads its alignment
+point at (0, 0, 0), as AutoCAD 2021 read it. 13 new tests (`DxfDynamicBlockD34Tests`), 12 red before; 2 tests changed: the
+expression refused in `DxfDynamicBlockD27Tests` and `DxfDynamicBlockD27bTests` is log10(1), which AutoCAD has no function
+of, where it was exp(1).
+
 **CHANGED.** `DxfTable.Fill` fills as AutoCAD 2021 fills (check D33, 38 fills read by AutoCAD as its own): the options
 `None` alone change nothing, where the library copied the cells; `CopyContent` copies the content alone and wins over
 `GenerateSeries`; `CopyFormat` copies the look and kind of value, a cell of no value given one of none of that kind; a
