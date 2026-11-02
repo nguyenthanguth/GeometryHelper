@@ -6,6 +6,37 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** `DxfTable.DeleteRows` and `DeleteColumns` first merge across the table the rows AutoCAD 2021 merges when it
+loads a file, and write them merged, as AutoCAD writes them after its own (check D33b, 35 tables saved and read back, 27
+deletes): the first row, whatever its kind and whether the title is shown, and any other row of the title's kind, where no
+block of merged cells reaches out of it and every cell after the block of its first cell holds no value or an empty text.
+The title Parts left unmerged over an empty cell comes out merged across the table, the empty row a row put in before the
+title left too; one with X, a space or nought beside it, or a block, stays as it is. The library wrote the row unmerged,
+which AutoCAD merged again on reading, the hidden cells placed at the table's corner. Deletes of a table of 400 rows within
+noise where no row merges.
+
+**CHANGED.** `DxfTable.SetFormat` keeps a format on a number alone, as AutoCAD 2021 writes it (check D33b s01 to s19): a
+whole number, a text or a value of another kind is written with none, 7 given `%lu2%pr2` still read 7, where the library
+showed 7.00; a value of none becomes the empty value of no kind (`93 5`, `90 512`), even for an empty format; a block cell
+keeps no format and loses its flag of its kind of value (0x40000); and each value given a format loses the flag 2 of its
+value (`93 6` made 4), a number's too.
+
+**CHANGED.** `DxfTable.GetOverrides` reads a cell's flag of its kind of value (0x40000) as `DataType | DataFormat`, as
+AutoCAD 2021 reads it from a file (check D33): Qty of flags 262 144 has both, where the library gave `DataType` alone.
+
+**CHANGED.** `DxfTable.ClearTableStyleOverrides` of 2 gives each cell the table's own looks of its row's kind as its own,
+as AutoCAD 2021 writes them (check D33b c03, c06): the table of its own data of 9, GH_TXT, red and top left writes each data
+cell `170 1`, `7 GH_TXT`, `64 1`, `140 9.0`, so that the cell shows what it showed; the library gave the cells none. Of 0
+and 2 each cell of no value is written `93 5`, `90 512` and each block cell loses its flag 0x40000 (c13, c14), and so
+`SetFromStyle`; of 1 the cells are left as they are.
+
+**CHANGED.** `DxfTable.Fill` with `CopyFormat` turns a value of another kind into the source's, as `SetDataType` turns it
+and AutoCAD 2021's `Fill` did (check D33b f02, f23 to f26, f31, f32): Mark under the look of 1.5 becomes a number of none,
+the text 12 the number 12 shown 12.0000, 7 the number 7.000000, 1.5 under the look of 10 the whole number 1. The library kept
+each value. AutoCAD fills the header and the title as rows of data, as the library did (f01 to f20). Existing tests
+changed to AutoCAD's reading of `GetOverrides`: `DxfTableCellsTests.ACellsOwnKindOfValue_IsKeptByRemoveAllOverrides_AndBySetOverridesWhereItIsNamed`
+(three assertions) and `DxfTableStructureTests.ACellsOwnKindOfValue_IsInheritedWithItsFormat`.
+
 **CHANGED.** A `DxfMLeader`'s block keeps its landings as AutoCAD 2021 keeps them when it is scaled, turned or moved (check
 D31d, 56 multileaders AutoCAD made; 64 the library made or edited, read by AutoCAD as it made its own, extents and all).
 `BlockScale` and `BlockRotation` set move the block so that a leader from the left meets it at the base point of the content

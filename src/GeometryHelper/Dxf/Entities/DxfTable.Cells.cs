@@ -418,8 +418,13 @@ namespace GeometryHelper.Dxf
         /// <c>%lu2%pr3</c>, in feet and inches for an architectural format, 1'-0 1/2" for 12.5 in <c>%lu4%pr2</c> (D33 u1 to u8;
         /// to the nearest 1/2^N of an inch, four where no <c>%prN</c> is given, <c>%zs1</c> and <c>%zs2</c> leaving out nought
         /// feet and nought inches), and of six where the format is taken away (D28e v11), any other text kept, the library not
-        /// formatting the value of a format of another unit or another kind, nor one of more feet than 32 bits hold. No flag of the cell's overrides is set: the format is written in its value,
-        /// and <see cref="GetOverrides(int, int, int)"/> gives what it gave. A cell before R2007 holds no value to give a format.
+        /// formatting the value of a format of another unit or another kind, nor one of more feet than 32 bits hold. The value
+        /// loses its flag 2 (<c>93 6</c> made 4), as AutoCAD 2021 wrote it. Only a number keeps a format: a whole number, a
+        /// text or a value of another kind is written with none and its flag 2 taken away, the 7 given <c>%lu2%pr2</c> still
+        /// shown 7; a value of none becomes the empty one of no kind (<c>93 5</c>, <c>90 512</c>), even for an empty format;
+        /// a block cell keeps no format and loses the flag of its kind of value (0x40000) alone (D33b s01 to s19). No other
+        /// flag of the cell's overrides is set, and <see cref="GetOverrides(int, int, int)"/> gives what it gave. A cell
+        /// before R2007 holds no value to give a format.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="col">The column, from nought.</param>
@@ -441,16 +446,63 @@ namespace GeometryHelper.Dxf
             }
 
             CellView cell = CellToWrite(row, col);
+            string now = cell.InValue(300) ?? string.Empty;
+            int flags = int.TryParse(cell.InValue(93)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int read) ? read : 6;
+            bool block = cell.ValueFrom >= 0 && cell.Whole(171, 1) == (int)DxfTableCellType.BlockCell;
+            bool none = cell.ValueFrom >= 0 && (flags & 1) != 0;
 
-            if (string.Equals(cell.InValue(300) ?? string.Empty, format, StringComparison.Ordinal))
+            if (!block && !none && string.Equals(now, format, StringComparison.Ordinal))
             {
                 return;
             }
 
             CheckValue(cell, row, col);
+
+            // A block cell keeps no format: its kind of value (0x40000) is taken out of its flags alone (D33b s08, s19).
+            if (block)
+            {
+                int? own = cell.Flags;
+
+                if (own.HasValue && (own.Value & DataTypeFlag) != 0)
+                {
+                    CheckEditable();
+                    cell.SetFlags(own.Value & ~DataTypeFlag, 177);
+                    cell.Groups.Write(Order);
+                }
+
+                return;
+            }
+
+            // A value of none becomes the empty one of no kind, 93 5 and 90 512, whatever the format (D33b s05, s17).
+            string kind = cell.InValue(90) ?? "4";
+            string kept = flags.ToString(CultureInfo.InvariantCulture);
+            string unflagged = (flags & ~2).ToString(CultureInfo.InvariantCulture);
+
+            if (none)
+            {
+                if (kept == unflagged && kind != "0" && now.Length == 0)
+                {
+                    return;
+                }
+
+                CheckEditable();
+                cell.WriteValue(kind == "0" ? "512" : kind, cell.ValueData(), cell.Text(), null, string.Empty, false, unflagged);
+                cell.Groups.Write(Order);
+                return;
+            }
+
+            // A number keeps its format; a whole number, a text or a value of another kind keeps none (D33b s01 to s04).
+            bool real = cell.Value() is double;
+            string written = real ? format : string.Empty;
+
+            if (kept == unflagged && string.Equals(now, written, StringComparison.Ordinal))
+            {
+                return;
+            }
+
             CheckEditable();
-            string shown = cell.Value() is double real ? RealText(real, format) ?? cell.Text() : cell.Text();
-            cell.WriteValue(cell.InValue(90) ?? "4", cell.ValueData(), shown, null, format);
+            string shown = real ? RealText((double)cell.Value(), format) ?? cell.Text() : cell.Text();
+            cell.WriteValue(kind, cell.ValueData(), shown, null, written, false, unflagged);
             cell.Groups.Write(Order);
         }
 
@@ -534,12 +586,22 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentException("A cell's value is written as a text, a whole number or a number: " + dataType + " is not, the library knowing no groups for it, as the DXF reference does not describe a cell's value.", nameof(dataType));
             }
 
+            CheckEditable();
+            Turn(cell, dataType, unit);
+            cell.Groups.Write(Order);
+        }
+
+        /// <summary>
+        /// Writes a cell's value turned into another kind, of a text, a whole number or a number, as AutoCAD 2021's
+        /// <c>SetDataType</c> and the <c>CopyFormat</c> of its <c>Fill</c> turn it (<see cref="Turned"/>), in the cell's groups.
+        /// </summary>
+        private void Turn(CellView cell, DxfDataType dataType, string unit)
+        {
             int flags = int.TryParse(cell.InValue(93)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int read) ? read : 6;
             string newKind = ((int)dataType).ToString(CultureInfo.InvariantCulture);
             bool keepFlags = false;
             string format = null;
             Written written = (flags & 1) != 0 ? null : Turned(cell, dataType, out keepFlags, out format);
-            CheckEditable();
 
             if (written == null)
             {
@@ -551,8 +613,6 @@ namespace GeometryHelper.Dxf
             {
                 cell.WriteValue(newKind, written.Data, written.Text, unit, format, false, (keepFlags ? flags : flags & ~2).ToString(CultureInfo.InvariantCulture));
             }
-
-            cell.Groups.Write(Order);
         }
 
         /// <summary>
@@ -1295,9 +1355,10 @@ namespace GeometryHelper.Dxf
         /// contentIndex)</c>: by its flags (177, or 91 from R2007 on), its alignment (flag 1) <see cref="DxfCellProperties.Alignment"/>,
         /// its background (2 and 4) <see cref="DxfCellProperties.BackgroundColor"/>, its colour (8)
         /// <see cref="DxfCellProperties.ContentColor"/>, its text style (0x10) and height (0x20), and its kind of value
-        /// (0x40000) <see cref="DxfCellProperties.DataType"/>; by the overrides it holds where it gives no flags. The cell of
-        /// flags 49 has <see cref="DxfCellProperties.Alignment"/>, <see cref="DxfCellProperties.TextStyle"/> and
-        /// <see cref="DxfCellProperties.TextHeight"/>.
+        /// (0x40000) <see cref="DxfCellProperties.DataType"/> and <see cref="DxfCellProperties.DataFormat"/> both, as AutoCAD
+        /// 2021 reads that flag from a file (D33b); by the overrides it holds where it gives no flags. The cell of flags 49 has
+        /// <see cref="DxfCellProperties.Alignment"/>, <see cref="DxfCellProperties.TextStyle"/> and
+        /// <see cref="DxfCellProperties.TextHeight"/>; Qty of flags 262 144 has DataType and DataFormat.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="column">The column, from nought.</param>
@@ -1473,7 +1534,12 @@ namespace GeometryHelper.Dxf
         /// <c>ClearTableStyleOverrides(options)</c>: 0 both, 1 the table's alone, 2 its cells' alone. The table's are the groups
         /// the DXF reference lists as its overrides (70, 40, 41, 280, 281, the looks by row and borders, 97, 98 and 4), after its
         /// last cell where the library writes them or in its head after its flags where AutoCAD 2021 writes them, and its flags
-        /// 93 to 96 set to nought; a cell's are those <see cref="RemoveAllOverrides(int, int)"/> takes away. The block AutoCAD drew the table with is not drawn anew.
+        /// 93 to 96 set to nought; a cell's are those <see cref="RemoveAllOverrides(int, int)"/> takes away. Of 0 and 2, as
+        /// AutoCAD 2021 wrote them, each cell of no value is given the empty one of no kind (<c>93 5</c>, <c>90 512</c>) and
+        /// each block cell loses the flag of its kind of value (0x40000), and of 2 each cell takes as its own the looks the
+        /// table keeps of its own for its row's kind, so that it shows them still: the table of its own data of 5 high and
+        /// bottom right, cleared of 2, writes each data cell <c>170 9</c> and <c>140 5.0</c>, its header cells its green
+        /// background (D33b c01 to c18). The block AutoCAD drew the table with is not drawn anew.
         /// </summary>
         /// <param name="options">0, 1 or 2.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the options are none of 0, 1 and 2.</exception>
@@ -1519,14 +1585,19 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            // The cells' overrides marked, each group left where it stands, then taken out of the list in one pass.
+            // The cells' overrides marked, each group left where it stands, then taken out of the list in one pass. A value of
+            // none becomes the empty one of no kind (93 5, 90 512) and a block cell loses the flag of its kind of value, as
+            // AutoCAD 2021 wrote every cell of its fill table cleared (D33b c14), in place before.
             if (options != 1)
             {
+                List<KeyValuePair<int, string>>[] looks = options == 2 ? RowKindLooks(layout) : null;
                 var marked = new bool[g.List.Count];
+                int cells = Math.Min(layout.Rows * layout.Columns, layout.CellStart.Count);
 
-                for (int k = 0; k < Math.Min(layout.Rows * layout.Columns, layout.CellStart.Count); k++)
+                for (int k = 0; k < cells; k++)
                 {
                     CellView cell = layout.CellAt(k / layout.Columns, k % layout.Columns);
+                    Cleared(cell);
 
                     if ((((cell.Flags ?? 0) | cell.Held()) & CellOverrideFlags) != 0)
                     {
@@ -1535,6 +1606,24 @@ namespace GeometryHelper.Dxf
                 }
 
                 g.RemoveMarked(marked);
+
+                // Of 2, each cell given the table's own looks of its row's kind as its own, as AutoCAD 2021 gave them (D33b c03,
+                // c06, c12), last cell first so that the places of those before stay as read.
+                if (looks != null)
+                {
+                    var cleared = new Layout(g);
+                    int flagsCode = Item.File.Supports(1021) ? 91 : 177;
+
+                    for (int k = Math.Min(cells, cleared.CellStart.Count) - 1; k >= 0; k--)
+                    {
+                        CellView cell = cleared.CellAt(k / cleared.Columns, k % cleared.Columns);
+
+                        foreach (KeyValuePair<int, string> look in looks[k / cleared.Columns])
+                        {
+                            cell.SetOverride(look.Key, look.Value, flagsCode);
+                        }
+                    }
+                }
             }
 
             // The table's own in its head after its flags, where AutoCAD 2021 writes them, taken out last: the cells after them
@@ -1559,6 +1648,58 @@ namespace GeometryHelper.Dxf
             }
         }
 
+        /// <summary>
+        /// A cell's value and flags as <see cref="ClearTableStyleOverrides(int)"/> of 0 or 2 leaves them, in place, no group put
+        /// in or taken out: a value of none (its flag 1) losing its flag 2 and of no kind (90 0) made of the kind 512, and a
+        /// block cell losing the flag of its kind of value (0x40000), as AutoCAD 2021 wrote <c>93 5</c>, <c>90 512</c> and
+        /// <c>91 0</c> (D33b c14).
+        /// </summary>
+        private static void Cleared(CellView cell)
+        {
+            if (cell.ValueFrom < 0)
+            {
+                return;
+            }
+
+            if (cell.Whole(171, 1) == (int)DxfTableCellType.BlockCell)
+            {
+                int? flags = cell.Flags;
+
+                if (flags.HasValue && (flags.Value & DataTypeFlag) != 0)
+                {
+                    cell.SetFlags(flags.Value & ~DataTypeFlag, 177);
+                }
+
+                return;
+            }
+
+            int end = cell.ValueTo >= 0 ? cell.ValueTo : cell.To;
+            List<KeyValuePair<int, string>> list = cell.Groups.List;
+            bool none = false;
+
+            for (int i = cell.ValueFrom + 1; i < end; i++)
+            {
+                if (list[i].Key == 93)
+                {
+                    none = int.TryParse(list[i].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int read) && (read & 1) != 0;
+
+                    if (none && (read & 2) != 0)
+                    {
+                        list[i] = new KeyValuePair<int, string>(93, (read & ~2).ToString(CultureInfo.InvariantCulture));
+                    }
+                }
+                else if (list[i].Key == 90)
+                {
+                    if (none && list[i].Value.Trim() == "0")
+                    {
+                        list[i] = new KeyValuePair<int, string>(90, "512");
+                    }
+
+                    break;
+                }
+            }
+        }
+
         private static DxfCellProperties PropertiesOf(int flags)
         {
             DxfCellProperties found = DxfCellProperties.Invalid;
@@ -1567,7 +1708,7 @@ namespace GeometryHelper.Dxf
             found |= (flags & 0x08) != 0 ? DxfCellProperties.ContentColor : 0;
             found |= (flags & 0x10) != 0 ? DxfCellProperties.TextStyle : 0;
             found |= (flags & 0x20) != 0 ? DxfCellProperties.TextHeight : 0;
-            found |= (flags & DataTypeFlag) != 0 ? DxfCellProperties.DataType : 0;
+            found |= (flags & DataTypeFlag) != 0 ? DxfCellProperties.DataType | DxfCellProperties.DataFormat : 0;
             return found;
         }
 

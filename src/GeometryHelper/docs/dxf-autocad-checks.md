@@ -1499,3 +1499,44 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       library puts before it (the library's own multileaders of two leaders made as GHD31D made AutoCAD's do not match it);
       `SetLastVertex` on a leader on the right of a block, which AutoCAD lands at the block's right side and the library moves
       by as much as the landing; words given to a multileader in no drawing, which take its text style when it is added.
+
+## Tables: rows merged on load, formats, fills and overrides cleared
+
+88. **The rows AutoCAD merges when it loads a table, a format on a value that is no number, a fill's look onto a value of
+    another kind, the flag of a cell's kind of value, and a table cleared of its cells' overrides.**
+    - Try (D33b, headless, plugin GHD33B rounds W, W2, E, E2, E3 and two read-backs of 206 files): 35 tables made in memory
+      and saved, each read back from its file: the title unmerged with the title, the header or both left out, over three
+      columns, partly merged, merged down with the header, with X, a space, nought, a block, a colour, a background or an
+      alignment beside Parts, a row put in before the title, a row of the title's kind put in further down; then rows and
+      columns taken out of each (m01 to m27), and a row put in, a value set and a size set (m30 to m32). Fills into and from
+      the header and the title, above the source and past it, of content, format and series (f01 to f33, p1 to p11);
+      `SetFormat` on a whole number, a text, a value of none, a number and a block cell (s01 to s19);
+      `ClearTableStyleOverrides` of 0, 1 and 2 on AutoCAD's table of its own row looks, on tables of other own looks and
+      lines, and on the fill table of empty cells (c01 to c18).
+    - AutoCAD 2021: on loading a table it merges across it the first row, whatever its kind and whether the title is shown,
+      and any other row of the title's kind (TABLEROW 90 1), where no block reaches from the row into another and each cell
+      after the block of its first cell holds no value or an empty text (its colour, background and alignment whatever they
+      are); a text, a space, nought or a block leaves the row alone, and a data row of empty cells is never merged. It
+      writes that merge only after an edit, every edit, so that the hidden cells of a file it merged itself are placed at
+      the table's corner. `Fill` fills the header and the title as it fills data; `CopyFormat` onto a value of another kind
+      turns it as `SetDataType` does (Mark under 1.5 a number of none, the text 12 the number 12 shown 12.0000 under
+      `%lu6`, 7 the number 7.000000, 1.5 under 10 the whole number 1, X1 under 20 a whole number of none, 2.5
+      under X1 the text 2.500000). Above its source, a fill longer than the source repeats it from the fill range's last
+      cell back, the source's last next to it (1.5 and 2.5 into rows 1 to 3 give 2.5, 1.5, 2.5), but sometimes leaves the
+      far cell (rows 1 to 4 under three, columns 0 to 2 left of two). `SetFormat` keeps a format on a number alone; a
+      whole number, a text or another kind is written with none (7 given `%lu2%pr2` reads 7), a value of none becomes
+      `93 5` `90 512` even for an empty format, a block cell loses its flag 0x40000; each value given a format loses its
+      flag 2 (`93 6` made 4). A cell of the flag 0x40000 read from a file gives `DataType | DataFormat`. Of 0 and 2,
+      `ClearTableStyleOverrides` makes each cell of no value read from the file `93 5` `90 512` and takes the flag 0x40000
+      off each block cell; of 2 it gives each cell the table's own looks of its row's kind as its own (the header 63 3,
+      283 0, 140 9.0, the data 170 1, 7 GH_TXT, 64 1, 140 9.0); of 1 it leaves the cells alone.
+    - Now: `DeleteRows` and `DeleteColumns` merge those rows first and write them merged; `Fill`'s `CopyFormat` turns a
+      value of another kind; `SetFormat`, `GetOverrides` and `ClearTableStyleOverrides` as above. AutoCAD read the
+      library's files of 85 of the 102 edits it compared as it read its own.
+    - Still apart: a row merged on load is written only by `DeleteRows` and `DeleteColumns`, not by the other edits (m30 to
+      m32, f12 to f14), so that a fill into a cell AutoCAD merged on load fills it in the library's file (f12); a fill above
+      its source longer than the source (f07, p2, p6, p9 to p11), whose rule three rounds did not settle; a cell of the
+      title's kind further down merged on load keeps its `140 6.0` in AutoCAD's file and loses it in the library's (m18,
+      m23, read alike but for `GetOverrides`); a cell `ResetValue` emptied in the same session keeps `93 7` when AutoCAD
+      clears it, and loses its content looks (c16 to c18), where the library, which reads files, writes `93 5` and keeps
+      them; the per-cell lines AutoCAD writes for a table's own lines of a kind of row (v27, v28, c12), read alike.

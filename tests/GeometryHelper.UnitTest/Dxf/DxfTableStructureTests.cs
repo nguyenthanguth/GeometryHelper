@@ -261,7 +261,7 @@ namespace GeometryHelper.UnitTest.Dxf
             table.InsertRowsAndInherit(2, 1, 1);
 
             DxfTable read = Reread(db);
-            Assert.Equal(DxfCellProperties.Alignment | DxfCellProperties.TextStyle | DxfCellProperties.TextHeight | DxfCellProperties.DataType, read.GetOverrides(2, 0, 0));
+            Assert.Equal(DxfCellProperties.Alignment | DxfCellProperties.TextStyle | DxfCellProperties.TextHeight | DxfCellProperties.DataType | DxfCellProperties.DataFormat, read.GetOverrides(2, 0, 0));
         }
 
         [Fact]

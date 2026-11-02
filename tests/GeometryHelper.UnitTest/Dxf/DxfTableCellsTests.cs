@@ -404,7 +404,7 @@ namespace GeometryHelper.UnitTest.Dxf
             string text = r2000
                 ? DxfDimensionDrawings.R2000.Replace("176\n0\n177\n49\n178\n", "176\n0\n177\n262193\n178\n")
                 : DxfDimensionDrawings.R2018.Replace("176\n0\n 91\n49\n178\n", "176\n0\n 91\n262193\n178\n");
-            DxfCellProperties all = DxfCellProperties.DataType | DxfCellProperties.Alignment | DxfCellProperties.TextStyle | DxfCellProperties.TextHeight;
+            DxfCellProperties all = DxfCellProperties.DataType | DxfCellProperties.DataFormat | DxfCellProperties.Alignment | DxfCellProperties.TextStyle | DxfCellProperties.TextHeight;
             Assert.Equal(all, Table(DxfDatabase.Parse(text)).GetOverrides(1, 0, 0));
 
             // RemoveAllOverrides keeps the kind of value alone (D28c x1 to x3).
@@ -415,7 +415,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Contains("176\n0\n" + flags + "\n262144\n178\n", TableRecord(saved), StringComparison.Ordinal);
             Assert.DoesNotContain("GH_TXT", TableRecord(saved), StringComparison.Ordinal);
             DxfTable read = Table(DxfDatabase.Parse(saved));
-            Assert.Equal(DxfCellProperties.DataType, read.GetOverrides(1, 0, 0));
+            Assert.Equal(DxfCellProperties.DataType | DxfCellProperties.DataFormat, read.GetOverrides(1, 0, 0));
             Assert.Null(read.Alignment(1, 0));
             Assert.Equal("Mark", read.TextString(1, 0));
 
@@ -427,7 +427,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(DxfCellProperties.Alignment, Table(DxfDatabase.Parse(setDb.ToText())).GetOverrides(1, 0, 0));
             DxfDatabase keptDb = DxfDatabase.Parse(text);
             Table(keptDb).SetOverrides(1, 0, 0, DxfCellProperties.DataType);
-            Assert.Equal(DxfCellProperties.DataType | DxfCellProperties.Alignment, Table(keptDb).GetOverrides(1, 0, 0));
+            Assert.Equal(DxfCellProperties.DataType | DxfCellProperties.DataFormat | DxfCellProperties.Alignment, Table(keptDb).GetOverrides(1, 0, 0));
             Assert.Contains("176\n0\n" + flags + "\n262145\n178\n", TableRecord(keptDb.ToText()), StringComparison.Ordinal);
 
             // Its kind alone left, RemoveAllOverrides and SetOverrides of it take nothing away.
