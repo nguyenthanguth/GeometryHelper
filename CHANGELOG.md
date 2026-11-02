@@ -6,6 +6,29 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `DxfDatabase.FontSearchPath`: folders, separated by semicolons and searched in their order, where the SHX fonts of
+the drawing's text styles are read from, so that the words of the drawing are measured as AutoCAD 2021 measures them (checks
+F1a and F1b). Empty, as every drawing is opened and made, nothing is read and nothing changes. Fonts of shapes 1.0 and 1.1
+and unifonts are read as AutoCAD reads them, where ezdxf reads them otherwise: a shape within a unifont numbered big-endian,
+the pen put down marking its point, the angles of an arc of fractions whole degrees, the octants of an arc of a sign and a
+size, and an arc boxed by its chord and height up to half a turn and by its circle beyond. Measured against AutoCAD 2021 on
+its own fonts (txt, romans, simplex, isocp, gdt, complex, bold, times.shx, read in place): 1 798 of 1 814 letters to 1E-6
+of a unit, 21 596 of 21 600 TEXTs of every justification placed and boxed to 1E-9, 170 one-line MTEXTs of 170 measured, 196
+of 196 multileaders of SHX words landed, and 90 of 90 attribute definitions and attributes flipped. The results follow the
+fonts given and differ between machines and versions of a font. TrueType fonts, big fonts' letters and fonts of shapes in
+an MTEXT are not measured; a font not found is said once at Debug, and a file found that is no font once at Warn, and
+nothing throws.
+
+**CHANGED.** With `FontSearchPath` given: a TEXT, ATTRIB or ATTDEF justified other than left on its baseline is put about
+its second point when its words, second point, height, width factor, turn, justification or style are set, and when one
+made in code is added, an aligned one given its height and a fitted one its width factor ("ABC" of txt.shx 4 high centred on
+(100, 50) at (94.667, 50)), and its `GeometricExtents` are its words' ink; `DxfMText.ActualWidth` and `ActualHeight` of an
+MTEXT of one line are measured; a multileader lands a leader on the right of its words, meets words reaching below their
+baseline lower ("Ag" 2.67 below its top at the middle of its top line, where it met 2), moves words met on the right when
+their height, the scale or the words change, and keeps mirrored words readable; a flip takes a locked attribute definition,
+kept readable as AutoCAD flips it ("L1" 5 high at (20, 60) about x = 45 at (63.33, 60)), where it was refused; and a leader
+whose words sit above its line explodes with its hook running on to their end.
+
 **CHANGED.** `DxfMLeader.RemoveFirstVertex` and `RemoveLastVertex` take a leader line down to one vertex, as AutoCAD 2021
 does, where the library kept two (check D37). The line from (0, 0, 0) to the words "ABC" at (100, 50, 0) is left (90, 48,
 0) by the first, written as a line of no vertex of its own under its landed leader and drawn as its dogleg alone, and

@@ -276,8 +276,11 @@ namespace GeometryHelper.Dxf
         /// leader's own look, its colour, true colour, linetype and lineweight, whatever its dimension style or its overrides
         /// draw a leader with, as AutoCAD 2021 gives them. The leader from (0, 0, 0) through (10, 10, 0) to (20, 10, 0) with an
         /// arrow 2.5 long gives a SOLID of the corners (2.06, 1.47, 0), (0, 0, 0) and (1.47, 2.06, 0), and a polyline from
-        /// (1.77, 1.77, 0) through (10, 10, 0) to (20, 10, 0). The hook AutoCAD runs to the annotation of a leader that has one
-        /// (a vertex more, where its text ends) is AutoCAD's to work out from its fonts, and is not among them.
+        /// (1.77, 1.77, 0) through (10, 10, 0) to (20, 10, 0). The hook AutoCAD runs on under the words of a leader that has one
+        /// and holds its words above or below its line (<see cref="Dimtad"/> not nought), to where they end, is AutoCAD's to
+        /// work out from its fonts, and is among them where the drawing's <see cref="DxfDatabase.FontSearchPath"/> measures the
+        /// MTEXT it points to (check F1b): the last vertex moved along the hook to the far end of the words, "ABC" of txt.shx
+        /// 2.5 high held at (22, 10, 0), its hook ending at (21.375, 8.125, 0), giving a polyline ending at (28.667, 8.125, 0).
         /// </summary>
         /// <returns>The entities, in no file, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
         public override IReadOnlyList<DxfEntity> Explode()
@@ -337,6 +340,13 @@ namespace GeometryHelper.Dxf
                 }
             }
 
+            // Words above or below the line (Dimtad not nought) the hook runs on under, its end moved to their far end, where the
+            // drawing's fonts measure them, as AutoCAD 2021 explodes the leader (check F1b).
+            if (!IsSplined && HasHookLine && vertices.Count >= 2 && Num(Value(77), 0.0) != 0.0 && WordsEnd(vertices, out GeoPoint3 end))
+            {
+                vertices[vertices.Count - 1] = end;
+            }
+
             if (IsSplined)
             {
                 DxfSpline spline = ParameterSpline(vertices, tolerance, null, null, true);
@@ -380,6 +390,34 @@ namespace GeometryHelper.Dxf
             }
 
             return parts.AsReadOnly();
+        }
+
+        /// <summary>
+        /// Where the hook of a leader runs on to under its words, as AutoCAD 2021 explodes a leader of words above or below its
+        /// line (check F1b): along the hook, as far as the far end of the MTEXT it points to, from where the MTEXT is held, as
+        /// wide as the drawing's <see cref="DxfDatabase.FontSearchPath"/> measures it (<see cref="DxfMText.ActualWidth"/>):
+        /// "ABC" of txt.shx 2.5 high held at (22, 10, 0), its hook ending at (21.375, 8.125, 0), to (28.667, 8.125, 0). False
+        /// where the leader points to no MTEXT of its drawing, the fonts do not measure it, or the hook has no length.
+        /// </summary>
+        private bool WordsEnd(List<GeoPoint3> vertices, out GeoPoint3 end)
+        {
+            end = vertices[vertices.Count - 1];
+
+            if (!IsResident || Item.File.Database?.Fonts == null || !(Annotation is DxfMText words) || !(words.MeasuredWidth is double width))
+            {
+                return false;
+            }
+
+            GeoVector3 hook = vertices[vertices.Count - 2].GetVectorTo(end);
+
+            if (!(hook.Length > 0.0))
+            {
+                return false;
+            }
+
+            hook = hook.Multiply(1.0 / hook.Length);
+            end = end.Add(hook.Multiply(end.GetVectorTo(words.Location).DotProduct(hook) + width));
+            return true;
         }
 
         /// <summary>

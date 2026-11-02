@@ -2709,10 +2709,16 @@ namespace GeometryHelper.Dxf
         /// other parameter beside it (<see cref="AddFlipParameter"/>): AutoCAD 2021 stretched a flipped panel from where its
         /// last flip left it (plugin v20), and did not flip an INSERT of a block of a flip beside another parameter, reading
         /// Hand back as 0 (plugins v20b and v21, 24d-i and 24e-h), though it flipped one of the block of the flip alone (24d-g).
+        /// A locked attribute definition whose words the drawing's <see cref="DxfDatabase.FontSearchPath"/> measures is flipped
+        /// as AutoCAD 2021 flips it, kept readable, upright and turned as before, its INSERTs' ATTRIBs moved with it (check F1b):
+        /// one aligned right, aligned or fitted on its baseline so that its first point is its second mirrored; one held by the
+        /// middle of its words so that its second point is mirrored; any other so that the box of its ink is mirrored, "L1" of
+        /// txt.shx 5 high at (20, 60, 0), its ink 6.67 wide, about x = 45 at (63.33, 60, 0).
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the parameter, the entities or one of them is null.</exception>
         /// <exception cref="ArgumentException">Thrown as <see cref="AddMoveAction(DxfBlockLinearParameter, IEnumerable{DxfEntity})"/>
-        /// says, and when an entity is an attribute definition, locked or not. Nothing is written then.</exception>
+        /// says, and when an entity is an attribute definition whose words the drawing's fonts do not measure, locked or not.
+        /// Nothing is written then.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
         /// <exception cref="NotSupportedException">Thrown when the block has a stretch, polar stretch, move, scale, rotate or array
         /// action. Nothing is written then.</exception>
@@ -2893,8 +2899,9 @@ namespace GeometryHelper.Dxf
                     throw new ArgumentException("The entity " + (entity.Handle ?? string.Empty) + " to " + what + " is not of the block " + Name + ", or is erased.", nameof(entities));
                 }
 
-                // A move, a scale and a rotate take an attribute definition locked in the block, as AutoCAD's Block Editor does.
-                if ((entity is DxfAttributeDefinition && what != "move" && what != "scale" && what != "turn") || entity is DxfUnknownEntity)
+                // A move, a scale and a rotate take an attribute definition locked in the block, as AutoCAD's Block Editor does; a
+                // flip one whose words the drawing's fonts measure, which it keeps readable (check D34).
+                if ((entity is DxfAttributeDefinition definition && what != "move" && what != "scale" && what != "turn" && !(what == "flip" && definition.IsMeasured)) || entity is DxfUnknownEntity)
                 {
                     throw new ArgumentException("The entity " + entity.Handle + " to " + what + " is an attribute definition or of a type the library keeps as it is, which an action of the library does not take.", nameof(entities));
                 }
@@ -3650,8 +3657,15 @@ namespace GeometryHelper.Dxf
             // another drawing (check D35c, D35d).
             List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>> carried = entity.TakeCopiedContexts(_file);
             DxfFile origin = entity.Item.File.Origin;
+            bool madeInCode = entity.Item.File.IsMadeInCode;
             entity.Bind(_file.Adopt(space, entity.Item));
             DxfDBObject.WriteCopiedContexts(entity.Item, carried, origin);
+
+            // A text made in code is placed about its second point by the drawing's fonts, where it has them; a copy keeps its place.
+            if (madeInCode && entity is DxfDBText placed)
+            {
+                placed.Realign();
+            }
         }
 
         /// <summary>

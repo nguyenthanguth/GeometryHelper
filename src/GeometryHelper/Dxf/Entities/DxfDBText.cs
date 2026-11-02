@@ -27,8 +27,18 @@ namespace GeometryHelper.Dxf
     /// added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>. <see cref="DxfEntity.GetGeometry"/>
     /// gives the <see cref="DxfText"/> <see cref="DxfReader"/> reads of it.
     /// </para>
+    /// <para>
+    /// Where the drawing's <see cref="DxfDatabase.FontSearchPath"/> finds the SHX font of the text's style, a text justified
+    /// other than left on its baseline is put where its words stand about its <see cref="AlignmentPoint"/>, as AutoCAD 2021's
+    /// <c>AdjustAlignment</c> puts it (check F1a), whenever its words, second point, height, width factor, turn, justification
+    /// or style are set, and when one made in code is added to the drawing: "ABC" of txt.shx 4 high centred on (100, 50, 0)
+    /// stands at (94.667, 50, 0), the ink of its letters 10.667 wide; an aligned text takes the height, and a fitted one the
+    /// width factor, its two points give it, "ABC" aligned on two points 30 apart 11.25 high. A first point set on a text of
+    /// another justification is kept as set. With no fonts, or a font not measured (TrueType, a big font's letters, the
+    /// lines of %%u, %%o and %%k), the text stays as it is set.
+    /// </para>
     /// </remarks>
-    public class DxfDBText : DxfEntity
+    public partial class DxfDBText : DxfEntity
     {
         // The groups of a TEXT in the order AutoCAD writes them: AcDbText twice, the second holding the vertical mode.
         private static readonly IReadOnlyList<int> Order = Array.AsReadOnly(new[] { 100, 39, 10, 20, 30, 40, 1, 50, 41, 51, 7, 71, 72, 11, 21, 31, 210, 220, 230, 100, 73 });
@@ -151,6 +161,7 @@ namespace GeometryHelper.Dxf
                 if (!IsAttribute || !Embedded)
                 {
                     SetText(Pair(1, DxfReader.InCaretForm(value)));
+                    Realign();
                     return;
                 }
 
@@ -239,12 +250,14 @@ namespace GeometryHelper.Dxf
                 if (contexts == null)
                 {
                     SetText(TextPointGroups(10, point));
+                    Refit();
                     return;
                 }
 
                 GeoPoint3 own = TextPoint(10) ?? Origin;
                 SetText(TextPointGroups(10, contexts.ShownIsDefault ? point : new GeoPoint3(own.X, own.Y, point.Z)));
                 ContextText.Read(contexts.Shown).Write(ContextText.X, point.X, ContextText.Y, point.Y);
+                Refit();
             }
         }
 
@@ -288,6 +301,11 @@ namespace GeometryHelper.Dxf
                     GeoPoint3 point = WorldToOcs(Normal, value);
                     ContextText.Read(contexts.Shown).Write(ContextText.AlignedX, point.X, ContextText.AlignedY, point.Y);
                 }
+
+                if (moved)
+                {
+                    Realign();
+                }
             }
         }
 
@@ -315,6 +333,7 @@ namespace GeometryHelper.Dxf
                     Guard.Positive(value, nameof(value), "The height of a text has to be a finite number above nought.");
                     ShownContexts contexts = TextContexts();
                     SetText(NumberGroup(40, contexts == null ? value : value / contexts.HeightFactor, TextDouble(40, 2.5)));
+                    Realign();
                 }
             }
         }
@@ -352,6 +371,8 @@ namespace GeometryHelper.Dxf
                     {
                         ContextText.Read(contexts.Shown).Write(ContextText.Degrees, DxfOcsTransform.Degrees(value));
                     }
+
+                    Realign();
                 }
             }
         }
@@ -369,6 +390,7 @@ namespace GeometryHelper.Dxf
                 {
                     Guard.Positive(value, nameof(value), "A width factor has to be a finite number above nought.");
                     SetText(NumberGroup(41, value, WidthFactor));
+                    Realign();
                 }
             }
         }
@@ -429,6 +451,7 @@ namespace GeometryHelper.Dxf
                 }
 
                 shown?.Write(ContextText.Horizontal, (int)value);
+                Realign();
             }
         }
 
@@ -457,6 +480,7 @@ namespace GeometryHelper.Dxf
                 }
 
                 SetText(Join(WholeGroup(VerticalCode, (int)value, (int)VerticalMode), Aligned(TextInt(72, 0), (int)value)));
+                Realign();
             }
         }
 
@@ -499,6 +523,7 @@ namespace GeometryHelper.Dxf
                             bool record = contexts == null || contexts.ShownIsDefault;
                             SetText(Join(record ? WholeGroup(72, horizontal, TextInt(72, 0)) : new KeyValuePair<int, string>[0], WholeGroup(VerticalCode, vertical, TextInt(VerticalCode, 0)), Aligned(horizontal, vertical)));
                             shown?.Write(ContextText.Horizontal, horizontal);
+                            Realign();
                             return;
                         }
                     }
@@ -562,6 +587,7 @@ namespace GeometryHelper.Dxf
                 if (!string.Equals(value, TextStyleName, StringComparison.OrdinalIgnoreCase))
                 {
                     SetText(Pair(7, TextStyleToWrite(value, nameof(value))));
+                    Realign();
                 }
             }
         }

@@ -561,6 +561,14 @@ namespace GeometryHelper.Dxf
                             change[0] += to[0] - from[0];
                             change[1] += to[1] - from[1];
                         }
+                        else if (action.Kind == ActionKind.Flip && Holds(action, entity.Handle))
+                        {
+                            // A flip moves the definition where it keeps it readable (plugin D34, e5): its ATTRIB by as much.
+                            GeoVector3 from = Flipped(block, action, before, definition);
+                            GeoVector3 to = Flipped(block, action, values, definition);
+                            change[0] += to.X - from.X;
+                            change[1] += to.Y - from.Y;
+                        }
                     }
                 }
 
@@ -937,12 +945,36 @@ namespace GeometryHelper.Dxf
                 {
                     if (copyOf.TryGetValue(handle, out DxfEntity copy) && !(copy is DxfAttributeDefinition definition && !definition.LockPositionInBlock))
                     {
-                        copy.TransformBy(transform);
+                        copy.TransformBy(action.Kind == ActionKind.Flip && copy is DxfAttributeDefinition flipped ? Readable(flipped, transform) : transform);
                     }
                 }
             }
 
             Stretch(block, stretches, values, copyOf);
+        }
+
+        /// <summary>How far a flip at the values given moves an attribute definition of the block, as <see cref="Readable"/> moves it; nought where it is not flipped.</summary>
+        private static GeoVector3 Flipped(Block block, BlockAction flip, Dictionary<string, double[]> values, DxfAttributeDefinition definition)
+        {
+            GeoTransform3 mirror = Transform(block.Parameters.Find(p => p.Id == flip.Parameter), flip, values);
+            return mirror == null ? new GeoVector3(0.0, 0.0, 0.0) : Readable(definition, mirror).Transform(new GeoPoint3(0.0, 0.0, 0.0)).ToVector();
+        }
+
+        /// <summary>
+        /// The move a flip gives an attribute definition, which AutoCAD 2021 keeps readable, the box of its words mirrored
+        /// (<see cref="DxfDBText.Readable"/>); refused where the drawing's fonts do not measure it or the flip does not mirror
+        /// it across its baseline.
+        /// </summary>
+        private static GeoTransform3 Readable(DxfAttributeDefinition definition, GeoTransform3 mirror)
+        {
+            GeoVector3? by = definition.Readable(mirror);
+
+            if (!by.HasValue)
+            {
+                throw new NotSupportedException("A flip mirrors the attribute definition " + definition.Tag + ", whose words the drawing's fonts do not measure, or not across their baseline: the library does not work out where AutoCAD keeps it readable.");
+            }
+
+            return GeoTransform3.Translation(by.Value);
         }
 
         /// <summary>
@@ -2734,7 +2766,8 @@ namespace GeometryHelper.Dxf
 
                 foreach (string handle in acted)
                 {
-                    if (Kind != ActionKind.Stretch && (!entities.TryGetValue(handle, out DxfEntity entity) || entity is DxfUnknownEntity || (entity is DxfAttributeDefinition && Kind != ActionKind.Move && Kind != ActionKind.Scale && Kind != ActionKind.Rotate && Kind != ActionKind.PolarStretch)))
+                    // An attribute definition a flip mirrors is worked out where the drawing's fonts measure its words.
+                    if (Kind != ActionKind.Stretch && (!entities.TryGetValue(handle, out DxfEntity entity) || entity is DxfUnknownEntity || (entity is DxfAttributeDefinition definition && Kind != ActionKind.Move && Kind != ActionKind.Scale && Kind != ActionKind.Rotate && Kind != ActionKind.PolarStretch && !(Kind == ActionKind.Flip && definition.IsMeasured))))
                     {
                         throw new NotSupportedException("A " + Kind.ToString().ToLowerInvariant() + " action of the block " + name + " works on " + handle + ", which is not an entity of the block the library works out: it may be another parameter or a grip, moved with it.");
                     }

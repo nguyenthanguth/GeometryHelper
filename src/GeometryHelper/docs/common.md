@@ -1136,6 +1136,44 @@ desmoothing a mesh takes the made vertices out in one writing, 90 000 in 0.6 s; 
 vertices takes 0.04 s, and one of 1 000 spans is rebuilt of 5 000 control points in 0.05 s; 10 000 lines in any order are
 joined into a LWPOLYLINE in 0.23 s and into a SPLINE in 0.19 s, all on .NET 10.
 
+### Fonts
+
+A drawing reads no font unless it is told where to look. `DxfDatabase.FontSearchPath` takes folders separated by semicolons,
+searched in their order as AutoCAD searches its support path, and is empty when a drawing is opened or made: empty, nothing is
+read from the disk, nothing is logged, and every entity is laid out as the library lays it out without fonts. Given folders,
+the SHX font of a text style (`FileName`, `txt` read as `txt.shx`) is read once from the first folder that has it, and the
+words of the drawing are measured in it where AutoCAD 2021 needs their width, as F1a measured AutoCAD doing it:
+
+```csharp
+DxfDatabase db = DxfDatabase.Open("plan.dxf");
+db.FontSearchPath = @"C:\Program Files\Autodesk\AutoCAD 2021\Fonts;D:\Fonts";
+var text = new DxfDBText { TextString = "ABC", Height = 4, HorizontalMode = DxfTextHorizontalMode.TextCenter, AlignmentPoint = new GeoPoint3(100, 50, 0) };
+db.ModelSpace.AppendEntity(text);   // Position (94.667, 50, 0): the ink of "ABC" in txt.shx is 10.667 wide
+```
+
+- A TEXT, ATTRIB or ATTDEF justified other than left on its baseline stands where its words put it about its second point,
+  worked out again when its words, second point, height, width factor, turn, justification or style are set, and when one
+  made in code is added: across, by the box of its ink (from the start of the baseline to the last pen where the words end
+  in a space, so that romans "A " centres on 0 to 7.429), up by the height, half of it or the font's depth below its
+  baseline. An aligned text takes its height from its two points, a fitted one its width factor: "ABC" of txt.shx aligned
+  on two points 30 apart is 11.25 high. An annotative one is put so at every context. Its `GeometricExtents` are the ink of
+  its words, the corners slanted by its oblique: "A" 4 high slanted 15 degrees reaches 3.738.
+- An MTEXT of one line gives the `ActualWidth` and `ActualHeight` of its words, plain letters and the codes `\W` and `\H`:
+  "ABC" of txt.shx 4 high is 10.667 wide and 4 high, "   ABC" 22.667 wide, its spaces before counted and those after left
+  out, and "g" 5.333 high. Several lines, other codes and words that wrap keep groups 42 and 43 as the file writes them.
+- A multileader lands a leader on the right of its words, the gap past their ink: "ABC" at (100, 50) met from (250, 0) by a
+  dogleg from (120.67, 48). Words whose ink reaches below their baseline are met lower, "Ag" 2.67 below its top at the middle
+  of its top line; words met on the right move to keep that landing when their height, the scale or the words change;
+  mirrored words are kept readable.
+- A locked attribute definition is taken into a flip and kept readable, its box mirrored: "L1" 5 high at (20, 60) flipped
+  about x = 45 stands at (63.33, 60). A leader whose words sit above its line explodes with its hook running on to their end.
+
+The results follow the fonts supplied, so they differ between machines and between versions of a font, as AutoCAD's drawings
+do. TrueType fonts, the letters of a big font and fonts of shapes are not measured, nor the lines of `%%u`, `%%o` and `%%k`;
+their entities stay as they are without fonts. A font in none of the folders is said once at Debug in the log, and a file
+that is found but is no font, or cannot be read, once at Warn; nothing throws. No other folder is looked in, not the Fonts
+folder of Windows, and no font is put in for another as AutoCAD's FONTALT puts one.
+
 ### Text
 
 A TEXT is a `DxfDBText` (`TextString`, `Position`, `AlignmentPoint`, `Height`, `Rotation`, `WidthFactor`, `Oblique`,

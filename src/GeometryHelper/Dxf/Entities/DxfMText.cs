@@ -496,11 +496,55 @@ namespace GeometryHelper.Dxf
         /// <summary>The height of the MTEXT's box as its record gives it, as <see cref="Height"/> reads one of no contexts.</summary>
         private double OwnHeight => Value(46) != null ? Number(46, 0.0) : !Item.File.Supports(1021) ? Columns().Defined ?? 0.0 : OneHeight(Columns());
 
-        /// <summary>Gets the width the MTEXT's words take (group 42) as the file writes it, as AutoCAD's <c>ActualWidth</c>; nought where it gives none.</summary>
-        public double ActualWidth => Number(42, 0.0);
+        /// <summary>
+        /// Gets the width the MTEXT's words take, as AutoCAD's <c>ActualWidth</c>: where the drawing's
+        /// <see cref="DxfDatabase.FontSearchPath"/> finds the SHX font of its style and its words are one line, as AutoCAD 2021
+        /// measures them (check F1a), from their first ink, or the start of the line where it starts with a space, to the ink of
+        /// their last letter that is no space, the spaces after it left out, a line of spaces alone as wide as they move the pen:
+        /// "ABC" of txt.shx 4 high is 10.667 wide, and "   ABC" 22.667. Elsewhere, group 42 as the file writes it; nought where
+        /// it gives none.
+        /// </summary>
+        /// <remarks>
+        /// Words of one line are those of no new line, held in one column, shorter than the <see cref="Width"/> where they
+        /// wrap, and of plain letters, %%c, %%d and %%p, and the codes of the width and height of the letters, <c>\W0.7;</c>,
+        /// <c>\H8;</c> and <c>\H2x;</c>, which take the letters after them to that width and height, in braces or not; a style
+        /// as wide as high and upright.
+        /// </remarks>
+        public double ActualWidth => OneLine()?.ActualWidth ?? Number(42, 0.0);
 
-        /// <summary>Gets the height the MTEXT's words take (group 43) as the file writes it, as AutoCAD's <c>ActualHeight</c>; nought where it gives none.</summary>
-        public double ActualHeight => Number(43, 0.0);
+        /// <summary>
+        /// Gets the height the MTEXT's words take, as AutoCAD's <c>ActualHeight</c>: where <see cref="ActualWidth"/> measures
+        /// them, from the lower of the baseline and the bottom of their ink up to the higher of the height of their letters and
+        /// the top of their ink, as AutoCAD 2021 measures them: "ABC" of txt.shx 4 high is 4 high, and "g" 5.333. Elsewhere,
+        /// group 43 as the file writes it; nought where it gives none.
+        /// </summary>
+        public double ActualHeight => OneLine()?.ActualHeight ?? Number(43, 0.0);
+
+        /// <summary>The width of the MTEXT's words where the drawing's fonts measure them, as <see cref="ActualWidth"/> says; null where they do not.</summary>
+        internal double? MeasuredWidth => OneLine()?.ActualWidth;
+
+        /// <summary>The MTEXT's words measured as a line, as <see cref="ActualWidth"/> measures them; null where they are not.</summary>
+        private DxfTextLine OneLine()
+        {
+            DxfFonts fonts = IsResident ? Item.File.Database?.Fonts : null;
+
+            if (fonts == null)
+            {
+                return null;
+            }
+
+            DxfTextStyleTableRecord style = TextStyle;
+
+            if (style == null || !Same(style.XScale, 1.0) || style.ObliquingAngle != 0.0 || ColumnType != DxfColumnType.NoColumns)
+            {
+                return null;
+            }
+
+            DxfShxFont font = fonts.FontOf(style, out _);
+            DxfTextLine line = font == null ? null : DxfFonts.MText(font, Written, TextHeight);
+            double wrap = Width;
+            return line == null || (wrap > 0.0 && !(line.ActualWidth < wrap)) ? null : line;
+        }
 
         /// <summary>
         /// Gets or sets how far the MTEXT is turned, as AutoCAD's <c>Rotation</c>: in radians from the x axis of the system of

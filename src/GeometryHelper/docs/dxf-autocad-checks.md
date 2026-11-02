@@ -1329,6 +1329,7 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
     - Still apart: a leader on the right of the words, or under them between their left edge and middle, which needs the
       font; words turned, held otherwise, or met at their top or bottom. A block's landing, the words AutoCAD moves after a
       property set or `SetLastVertex`, and the underline of attachment 8 (`\L`) are now as AutoCAD has them: see point 82.
+      A leader on the right of words `FontSearchPath` measures is landed as AutoCAD lands it: see point 102.
 
 ## Inserting a drawing
 
@@ -1455,7 +1456,7 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       each INSERT's ATTRIB following; it leaves one not locked and its ATTRIB where they are.
     - Now: the polar stretch as AutoCAD, within 3E-13 on 42 dumps; the writer takes a locked ATTDEF into a polar stretch.
       Still refused: an ATTDEF in a flip, whose place the library would need the font to work out, and in an array, which
-      AutoCAD does not set.
+      AutoCAD does not set. An ATTDEF in a flip is taken where `FontSearchPath` measures its words: see point 102.
 
 86. **A justified TEXT of no second point, and a block of a network and no constraint parameter set again.**
     - Try (D34): a block of TEXTs of nine justifications whose groups 11 were taken out, read by DXFIN. Then the library's
@@ -2057,3 +2058,45 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
     - Still apart: bit 14 of a mirror across the YZ plane; the insertion point and direction a table moved or turned
       writes, which the library writes as it writes every point of an entity (`10 310`); a leader taken down to none, which
       the library refuses where AutoCAD, in the session that emptied it, allows it.
+
+## The words measured in SHX fonts
+
+102. **SHX fonts read and measured: TEXTs placed and boxed, MTEXTs of one line, multileaders met on the right, attribute
+    definitions flipped, a leader's hook exploded.**
+    - Try (F1a, headless, plugin GHF1AA and GHF1AB, fonts of AutoCAD 2021 read in place, none copied): every letter of txt,
+      romans, simplex, isocp, gdt, complex, bold and times.shx boxed by `TextStyle.ExtentsBox`; TEXTs of 26 words, 15
+      justifications, heights 1 and 4, width factors 1 and 0.7 and slants 0 and 15, after `AdjustAlignment`; MTEXTs of one line
+      and their codes; multileaders of nine words met on either side. Then (F1b, plugin GHF1BA and GHF1BB): multileaders of
+      txt and romans words "Ag", "gA", "g", "ABC", "_A" and "Il1" at every attachment of either side, and "ABC" given
+      "ABCDEF" and "AB" anew met on the right and on both sides; a drawing of the library's of blocks of a flip about x = 45
+      holding locked ATTDEFs of txt.shx, txt and romans.shx, of every justification and of spaces before and after, read by
+      DxfIn with the drawing made the working database and without, INSERTs plain and turned a quarter at the scale 2
+      flipped; LEADERs of an MTEXT of txt, their words beside and above the line, exploded. Each compared with the library
+      measuring the same fonts (`FontSearchPath`).
+    - AutoCAD 2021: the fonts read as ezdxf reads them but for four things (a shape within a unifont numbered big-endian,
+      the pen put down inking its point, the angles of an arc of fractions whole degrees, the octants of an arc of a sign
+      and a size), an arc boxed by its chord and height up to half a turn and by its circle beyond; a TEXT placed and boxed
+      by its ink, its box from the start of its baseline to its last pen where its last letter is a space; an MTEXT of one
+      line as wide as from its first ink, or its start where it starts with a space, to the ink of its last letter that is
+      no space; a leader met on the right the gap past the words' ink, and words reaching below their baseline as high as
+      their height and that depth together ("Ag" of txt met 2.667 below its top at the middle of its top line, 5.333 at its
+      bottom and under it); words met on the right moved to keep their landing as their height, scale or words change, met
+      on both sides kept as on the left and the right landed anew. A flip keeps an ATTDEF readable, upright and turned as
+      before: one aligned right, aligned or fitted on its baseline put with its first point at its second mirrored, one
+      held by the middle of its words with its second point mirrored, any other with the box of its ink mirrored ("L1" of
+      txt 5 high at (20, 60) at (63.33, 60)), its ATTRIBs moved as much; `txt` reads as `txt.shx`. Read with DxfIn but not
+      made the working database, the drawing's fonts are not loaded for the flip: AutoCAD flipped the txt.shx ATTDEF to
+      (63.0014, 60), a box 2052 units of 1466 wide, and the txt and romans ones as boxes of no width, as D34 saw (point 85).
+      A leader whose words sit above its line (DIMTAD 1) explodes its hook on to their far end, (28.667, 8.125) for "ABC"
+      2.5 high held at (22, 10); beside the line (DIMTAD 0), the polyline ends at the hook.
+    - Now: the library reads and measures so where `FontSearchPath` finds the font: 1 798 of 1 814 letters to 1E-6 of a
+      unit, 21 596 of 21 600 TEXTs, 170 of the 170 MTEXTs it measures, 196 of 196 multileaders of SHX words (108 of F1a, 88
+      of F1b), 90 of 90 flipped ATTDEFs and ATTRIBs, and the leader of "ABC" above its line exploded as AutoCAD exploded
+      it (the other five of the round follow the same rule and were not run through the library).
+    - Still apart: TrueType fonts (Arial's 18 multileaders, every Arial TEXT), the letters of a big font and a TEXT held at
+      its bottom with one, an MTEXT of several lines, of codes other than `\W` and `\H`, or of a font of shapes (times.shx
+      "A" 3.667 wide in an MTEXT, its ink 3.933), the lines of `%%u`, `%%o` and `%%k`, which AutoCAD boxes a TEXT by
+      (txt "%%u%%oA" centred on -1.4); bold's circles of a radius past 12, the ogonek letters of romans and simplex, the
+      quotes of times.shx slanted, isocp's stand-in for a letter it has not, and txt "i" aligned, as F1a left them; words
+      mirrored across their plane whose dogleg is then set, which AutoCAD moved (to 117.67 for 110.67 and a dogleg of 15)
+      and the library leaves, their words running against the plane's x.

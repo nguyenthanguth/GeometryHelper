@@ -129,7 +129,11 @@ namespace GeometryHelper.Dxf
         /// block takes the mirrored normal, an x axis on the side the old one keeps and its y axis across them (297 of nought),
         /// as AutoCAD 2021 writes them: the box of lines from (-10, -5) to (20, 15) at (100, 50, 0), turned 30 degrees and mirrored across the XY plane,
         /// is of normal (0, 0, -1), scales (-1, 1, 1) and turn 330 degrees, its plane's y axis (0, -1, 0); mirrored across the YZ
-        /// plane, of normal (0, 0, 1), its plane's x axis (1, 0, 0). Words mirrored are carried as ezdxf carries them.
+        /// plane, of normal (0, 0, 1), its plane's x axis (1, 0, 0). Words mirrored are carried as ezdxf carries them, but where
+        /// the drawing's <see cref="DxfDatabase.FontSearchPath"/> measures them (one line held at its top), which are kept
+        /// readable as AutoCAD 2021 keeps them, the plane taken as a block's is (check F1b): "ABC" of txt.shx 10.67 wide at
+        /// (100, 50, 0) mirrored across the XY plane held at (110.67, 50, 0), facing (0, 0, -1) and running against x; across
+        /// the YZ plane held by its top right at (-100, 50, 0), running along x, the base point of the content at (-112.67, 48, 0).
         /// </summary>
         /// <param name="transform">The transformation.</param>
         /// <exception cref="ArgumentException">Thrown when it scales the MULTILEADER more one way than another, which ezdxf and AutoCAD refuse, or shears it, keeping its axes as long as each other but not square, which AutoCAD refuses too.</exception>
@@ -175,9 +179,21 @@ namespace GeometryHelper.Dxf
             bool mirrored = DxfOcsTransform.Cross(x, y).DotProduct(z) < 0.0;
             bool flipped = false;
 
+            // Words the drawing's fonts measure, held at their top, mirrored: kept readable, as AutoCAD 2021 keeps them (check
+            // F1b, e5-words-mirrorxy, g-words-mirroryz); their width, else NaN.
+            double readable = double.NaN;
+
+            if (mirrored && !HasSection(ctx, 296, BlockCodes) && WordsWidth(ctx, out double wide))
+            {
+                Section(ctx.Head, 290, MTextCodes, out int held, out int end);
+                int attached = Whole(Text(ctx.Head.GetRange(held, end - held), 171), 1);
+                readable = attached >= 1 && attached <= 3 ? wide : double.NaN;
+            }
+
             // A multileader of a block mirrored: the plane's normal mirrored with it, its x axis the side of the mirrored one
-            // the old keeps, and its y axis across them, as AutoCAD 2021 writes it (e5-k-mirrorxy, g-k-mirroryz).
-            if (mirrored && HasSection(ctx, 296, BlockCodes))
+            // the old keeps, and its y axis across them, as AutoCAD 2021 writes it (e5-k-mirrorxy, g-k-mirroryz); so too one of
+            // words kept readable.
+            if (mirrored && (HasSection(ctx, 296, BlockCodes) || !double.IsNaN(readable)))
             {
                 GeoVector3 mirroredZ = Unit(transform.Transform(DxfOcsTransform.Cross(planeX, planeY)));
                 flipped = newX.DotProduct(planeX) < 0.0;
@@ -216,6 +232,12 @@ namespace GeometryHelper.Dxf
                     double radians = Num(ctx.Head[turn].Value, 0.0);
                     GeoVector3 d = ocs.TransformDirection(new GeoVector3(Math.Cos(radians), Math.Sin(radians), 0.0));
                     PutNumber(ctx.Head, 42, Math.Atan2(d.Y, d.X), 0.0, ContextOrder, from, to);
+                }
+
+                if (!double.IsNaN(readable))
+                {
+                    Readable(rec, ctx, Unit(transform.Transform(direction)), planeZ, newX, newY, flipped, readable);
+                    Section(ctx.Head, 290, MTextCodes, out from, out to);
                 }
 
                 if (Math.Abs(scale - 1.0) > 1E-9 * Math.Max(1.0, scale) && scale > 1E-12)
@@ -388,6 +410,46 @@ namespace GeometryHelper.Dxf
                 {
                     head[at[4 * r + 3]] = G(47, Num(head[at[4 * r + 3]].Value, 0.0) + by[r]);
                 }
+            }
+        }
+
+        /// <summary>
+        /// The words of a mirrored MULTILEADER kept readable, as AutoCAD 2021 keeps those it measures (check F1b): their normal the
+        /// plane's mirrored one and their direction against the mirrored one. Mirrored across their plane, as across XY, they keep
+        /// how they are held, their place moved along the mirrored direction by their width, "ABC" 10.67 wide at (100, 50, 0)
+        /// held at (110.67, 50, 0) running against x (e5-words-mirrorxy); mirrored within it, as across YZ, held at the mirrored
+        /// place by their other side, the top right for the top left, and the base point of the content put where a leader from
+        /// the left now meets them, the gap short of their left, at (-112.67, 48, 0) (g-words-mirroryz).
+        /// </summary>
+        private void Readable(Rec rec, Ctx ctx, GeoVector3 along, GeoVector3 normal, GeoVector3 x, GeoVector3 y, bool flipped, double width)
+        {
+            Section(ctx.Head, 290, MTextCodes, out int from, out int to);
+            PutPoint(ctx.Head, 11, Pt(normal), ContextOrder, from, to);
+            Section(ctx.Head, 290, MTextCodes, out from, out to);
+            PutPoint(ctx.Head, 13, Pt(along.Negate()), ContextOrder, from, to);
+            Section(ctx.Head, 290, MTextCodes, out from, out to);
+            int held = Whole(Text(ctx.Head.GetRange(from, to - from), 171), 1);
+
+            if (!flipped)
+            {
+                if (held != 2)
+                {
+                    MovePoint(ctx.Head, 12, p => p.Add(along.Multiply(held == 1 ? width : -width)), ContextOrder, from, to);
+                }
+
+                return;
+            }
+
+            int now = 4 - held;
+            Put(ctx.Head, 171, now.ToString(CultureInfo.InvariantCulture), ContextOrder, from, to);
+            Section(ctx.Head, 290, MTextCodes, out from, out to);
+            GeoPoint3 at = PointOf(ctx.Head.GetRange(from, to - from), 12, new GeoPoint3(0.0, 0.0, 0.0));
+            double left = now == 3 ? width : now == 2 ? width / 2.0 : 0.0;
+            double below = Below(ctx, AttachmentOf(rec, true), Height(ctx));
+
+            if (!double.IsNaN(below))
+            {
+                PutPoint(ctx.Head, 10, at.Add(x.Multiply(-(left + Num(Text(ctx.Head, 145), 2.0)))).Add(y.Multiply(-below)), ContextOrder);
             }
         }
 

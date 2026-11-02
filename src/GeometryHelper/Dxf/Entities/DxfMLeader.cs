@@ -35,7 +35,10 @@ namespace GeometryHelper.Dxf
     /// anew, when a property is set, so that each leader still meets the content (the gap, the doglegs, the height, the scale,
     /// an attachment, the words given anew, a leader's last vertex), the library moves them as AutoCAD does where that needs no
     /// font: words met on their left, by AutoCAD's rules of the lines of words, and a move of words met on their right that
-    /// keeps them as wide; what AutoCAD lands as far right as its font makes the words wide is left as it was.
+    /// keeps them as wide; what AutoCAD lands as far right as its font makes the words wide is left as it was, but where the
+    /// drawing's <see cref="DxfDatabase.FontSearchPath"/> measures the words (one line in an SHX font), which are then met on
+    /// their right, lower where their ink reaches below their baseline, and kept readable when mirrored, as AutoCAD 2021 does
+    /// it (check F1b).
     /// </para>
     /// <para>
     /// <see cref="DxfEntity.GetGeometry"/> gives the lines of its leaders, as <see cref="DxfReader"/> reads a MULTILEADER, so
@@ -158,7 +161,10 @@ namespace GeometryHelper.Dxf
         /// leaders meet them on a side keep their landing, as AutoCAD 2021 keeps it, the place given not taken: met on their left
         /// only, they stay where they were, moved up by as much more as the left is met below their top, three lines met at their
         /// middle given at (120, 80, 0) for "ABC" at (100, 50, 0) standing at (100, 56.67, 0); met on their right, they stay where
-        /// they were where they are as wide as before, and take the place given where AutoCAD would land them by their font. A
+        /// they were where they are as wide as before, and take the place given where AutoCAD would land them by their font, but
+        /// where the drawing's <see cref="DxfDatabase.FontSearchPath"/> measures them: met on the right alone, they move to keep
+        /// that landing, "ABCDEF" of txt.shx given to "ABC" at (100, 50, 0) met from (120.67, 48, 0) standing at (88, 50, 0), the
+        /// base point of the content at (86, 48, 0); met on both sides, as on the left, the leaders on the right landed anew. A
         /// leader meeting them on a side of attachment 8 underlines them (<c>\L</c>, <see cref="TextAttachmentType"/>). Given to a
         /// MULTILEADER in a drawing, the words' text style (<see cref="DxfMText.TextStyleName"/>, Standard where they name none)
         /// is the MULTILEADER's (343, and the words' 340), as AutoCAD 2021 takes it, with the bit of the overrides of the text
@@ -377,7 +383,10 @@ namespace GeometryHelper.Dxf
         /// met by leaders on their left only are moved to keep those landings, as AutoCAD 2021 moves them: up by as much more as
         /// the left is met below their top, words "ABC" at (100, 50, 0) met at the middle of their top line moving to (100, 53, 0)
         /// for a height of 10 from 4. Words met on their right are left where they are, which AutoCAD lands by their font's
-        /// width.</value>
+        /// width; where the drawing's <see cref="DxfDatabase.FontSearchPath"/> measures them (one line in an SHX font), met on
+        /// the right alone they move to keep that landing, "ABC" of txt.shx to (84, 53, 0) for a height of 10, the base point of
+        /// the content to (82, 48, 0), and met on both sides they move as on the left, the leaders on the right landed anew
+        /// (check F1b).</value>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the height set is not a finite number above nought.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the MULTILEADER is erased.</exception>
         public double TextHeight
@@ -1128,7 +1137,9 @@ namespace GeometryHelper.Dxf
         /// Gives a leader's dogleg its direction, as AutoCAD's <c>SetDogleg</c>. A leader of no landing yet (<see cref="AddLeader"/>),
         /// or one whose dogleg is turned to another direction, is landed on the side of the content its dogleg now runs from,
         /// where the library can tell where it meets the content, as AutoCAD 2021 lands it: along x on the left of the words, on
-        /// either side of a block; on the right of the words, which AutoCAD lands by their font's width, it keeps its point. The
+        /// either side of a block; on the right of the words, which AutoCAD lands by their font's width, it keeps its point, but
+        /// where the drawing's <see cref="DxfDatabase.FontSearchPath"/> measures them, where it is landed as far right as they are
+        /// wide. The
         /// box of lines from (-10, -5) to (20, 15) at (100, 50, 0) is met against x from (128, 55, 0), where a leader just added
         /// lands, and where its leader from the left lands once turned; a vertex then given a line of it goes before the landing.
         /// </summary>
@@ -1329,7 +1340,9 @@ namespace GeometryHelper.Dxf
         /// base point of the content (10) moved by the doglegs to (106, 48, 0); met by several leaders on their left, they move by
         /// the gap alone and up, and the leaders are landed anew, "ABC" at (160, 40, 0) met from (150, 38, 0) twice standing at
         /// (162, 42, 0), both doglegs from (142, 38, 0). Words met on their right stay where they are, which AutoCAD moves by the
-        /// font's width. A block is drawn scaled too (16 of its context data, and its matrix, 47, made its
+        /// font's width; where the drawing's <see cref="DxfDatabase.FontSearchPath"/> measures them, met on the right alone they
+        /// move to keep that landing, "ABC" of txt.shx to (79.33, 52, 0) at a scale of 2, and met on both sides they move by the
+        /// gap alone and up, every leader landed anew (check F1b). A block is drawn scaled too (16 of its context data, and its matrix, 47, made its
         /// transform where it stood), as AutoCAD 2021 scales it, its <see cref="BlockScale"/> still read the same; met by one
         /// leader, it moves so that it meets the leader's longer dogleg at its end, the dogleg's start kept: the box of lines from
         /// (-10, -5) to (20, 15) placed at (100, 50, 0), met from (82, 55, 0), stands at (118, 45, 0) at a scale of 2. Met on
@@ -1770,7 +1783,13 @@ namespace GeometryHelper.Dxf
         /// plane: the box of lines from (-10, -5) to (20, 15) placed at (100, 50, 0) is met from (0, 0, 0) by a dogleg from (82, 55, 0)
         /// to (90, 55, 0), and from (250, 0, 0) by one from (128, 55, 0) to (120, 55, 0). Elsewhere, the line goes to the first
         /// leader, one made at the base point of the content where there is none: on the right of the words, which AutoCAD lands
-        /// as far right as its font makes them wide; for words turned, held otherwise or met at their top or bottom. A leader of
+        /// as far right as its font makes them wide; for words turned, held otherwise or met at their top or bottom. Where the
+        /// drawing's <see cref="DxfDatabase.FontSearchPath"/> measures the words (one line in an SHX font), a point at their middle
+        /// or right of it is met on their right, as AutoCAD 2021 lands it (check F1b): the dogleg against x, ending the gap past
+        /// their ink, "ABC" of txt.shx 4 high at (100, 50, 0), 10.67 wide, met from (250, 0, 0) by a dogleg from (120.67, 48, 0)
+        /// to (112.67, 48, 0), and from (108, 0, 0) too, while (103, 0, 0) is met on the left; words whose ink reaches below their
+        /// baseline are as high as their height and that depth together, "Ag" met 2.67 below its top at the middle of its top
+        /// line. A leader of
         /// no landing yet (<see cref="AddLeader"/>) is passed over, as AutoCAD 2021 passes it. Words a leader meets on a side of
         /// attachment 8 are underlined (<see cref="SetTextAttachmentType"/>).
         /// </summary>
@@ -1806,6 +1825,11 @@ namespace GeometryHelper.Dxf
                     AddLeaderAt(rec, ctx, landing);
                     chosen = ctx.Leaders[ctx.Leaders.Count - 1];
                 }
+                else if (RightLanding(rec, ctx, point, out landing, out GeoVector3 back))
+                {
+                    AddLeaderAt(rec, ctx, landing, back);
+                    chosen = ctx.Leaders[ctx.Leaders.Count - 1];
+                }
                 else if (ContentType == DxfContentType.BlockContent && BlockLanding(rec, ctx, point, out landing, out GeoVector3 dogleg))
                 {
                     AddLeaderAt(rec, ctx, landing, dogleg);
@@ -1838,7 +1862,7 @@ namespace GeometryHelper.Dxf
         /// their sides (271 of nought) at a point of the left side the words' height and lines give (173 of 0 to 8), and the
         /// point is on their left; false elsewhere.
         /// </summary>
-        private static bool LeftLanding(Rec rec, Ctx ctx, GeoPoint3 point, out GeoPoint3 landing)
+        private bool LeftLanding(Rec rec, Ctx ctx, GeoPoint3 point, out GeoPoint3 landing)
         {
             landing = point;
             Section(ctx.Head, 290, MTextCodes, out int from, out int to);
@@ -1854,8 +1878,12 @@ namespace GeometryHelper.Dxf
             GeoVector3 along = Unit(PointOf(m, 13, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
             GeoPoint3 words = PointOf(m, 12, new GeoPoint3(0.0, 0.0, 0.0));
 
+            // Words the fonts measure are met on the side of their middle the point is on, the middle taken to the right (check
+            // D31): under words from 100 to 110.67 a point at 103 is met on the left, one at 108 on the right.
+            GeoPoint3 side = WordsWidth(ctx, out double width) ? words.Add(x.Multiply(width / 2.0)) : words;
+
             if (Whole(Text(m, 171), 1) != 1 || !(x.Length > 0.0) || !(y.Length > 0.0) || along.Subtract(x).Length > 1E-9
-                || !(point.GetVectorTo(words).DotProduct(x) > 0.0))
+                || !(point.GetVectorTo(side).DotProduct(x) > 0.0))
             {
                 return false;
             }
@@ -1869,6 +1897,36 @@ namespace GeometryHelper.Dxf
 
             double back = Num(Text(ctx.Head, 145), 2.0) + (Num(Text(rec.After, 41), 8.0) * Num(Text(ctx.Head, 40), 1.0));
             landing = words.Add(x.Multiply(-back)).Add(y.Multiply(-below));
+            return true;
+        }
+
+        /// <summary>
+        /// Where AutoCAD 2021 lands a new leader from a point on the right of the words, the middle of them or past it, where the
+        /// drawing's <see cref="DxfDatabase.FontSearchPath"/> measures them (check F1a): the point its dogleg starts at, a dogleg
+        /// past where it meets them (<see cref="WordsMeetRight"/>), and the dogleg's direction, against the plane's x axis. "ABC"
+        /// of txt.shx 4 high at (100, 50, 0) is met from (250, 0, 0) by a dogleg from (120.67, 48, 0) to (112.67, 48, 0). False
+        /// where the words are not measured, not held at their top left along the plane, or the point is on their left.
+        /// </summary>
+        private bool RightLanding(Rec rec, Ctx ctx, GeoPoint3 point, out GeoPoint3 landing, out GeoVector3 back)
+        {
+            landing = point;
+            Axes(ctx, out GeoVector3 x, out _);
+            back = x.Negate();
+            Section(ctx.Head, 290, MTextCodes, out int from, out int to);
+
+            if (from < 0 || !WordsWidth(ctx, out double width) || !WordsMeetRight(rec, ctx, out GeoPoint3 meet))
+            {
+                return false;
+            }
+
+            GeoPoint3 middle = PointOf(ctx.Head.GetRange(from, to - from), 12, new GeoPoint3(0.0, 0.0, 0.0)).Add(x.Multiply(width / 2.0));
+
+            if (point.GetVectorTo(middle).DotProduct(x) > 0.0)
+            {
+                return false;
+            }
+
+            landing = meet.Add(x.Multiply(Num(Text(rec.After, 41), 8.0) * Num(Text(ctx.Head, 40), 1.0)));
             return true;
         }
 

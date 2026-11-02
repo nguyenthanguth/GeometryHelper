@@ -279,14 +279,16 @@ namespace GeometryHelper.Dxf
             Axes(ctx, out GeoVector3 x, out _);
             bool block = HasSection(ctx, 296, BlockCodes);
             var wordsMeet = new GeoPoint3(0.0, 0.0, 0.0);
+            var rightMeet = new GeoPoint3(0.0, 0.0, 0.0);
             bool words = !block && WordsMeet(rec, ctx, out wordsMeet);
+            bool right = !block && WordsMeetRight(rec, ctx, out rightMeet);
 
             foreach (LeaderPart leader in leaders)
             {
                 int side = Side(leader, x);
-                GeoPoint3 end = wordsMeet;
+                GeoPoint3 end = side > 0 ? rightMeet : wordsMeet;
 
-                if (side == 0 || (block ? !BlockMeets(rec, ctx, side * double.MaxValue, out _, out end) : !words || side > 0))
+                if (side == 0 || (block ? !BlockMeets(rec, ctx, side * double.MaxValue, out _, out end) : side > 0 ? !right : !words))
                 {
                     continue;
                 }
@@ -302,7 +304,7 @@ namespace GeometryHelper.Dxf
         /// not held at their top left (171 of 1) along the plane's x axis, met on their sides (271 of nought), or there are none.
         /// Words "ABC" 4 high at (160, 40, 0), met at the middle of their top line with a gap of 2, are met at (158, 38, 0).
         /// </summary>
-        private static bool WordsMeet(Rec rec, Ctx ctx, out GeoPoint3 meet)
+        private bool WordsMeet(Rec rec, Ctx ctx, out GeoPoint3 meet)
         {
             meet = new GeoPoint3(0.0, 0.0, 0.0);
             Section(ctx.Head, 290, MTextCodes, out int from, out int to);
@@ -323,6 +325,115 @@ namespace GeometryHelper.Dxf
             }
 
             meet = PointOf(m, 12, new GeoPoint3(0.0, 0.0, 0.0)).Add(x.Multiply(-Num(Text(ctx.Head, 145), 2.0))).Add(y.Multiply(-below));
+            return true;
+        }
+
+        /// <summary>
+        /// Where a leader meets the words on their right, as AutoCAD 2021 lands one (check F1a): the <see cref="LandingGap"/> past
+        /// the right of their ink, as wide as the words' <see cref="DxfMText.ActualWidth"/> from where they are held, as far below
+        /// their top as the attachment of the right side says (<see cref="Below"/>); false where the drawing's
+        /// <see cref="DxfDatabase.FontSearchPath"/> does not measure them (<see cref="WordsWidth"/>), or they are not held at
+        /// their top left along the plane's x axis and met on their sides. "ABC" of txt.shx 4 high at (100, 50, 0), met at the
+        /// middle of their top line with a gap of 2, are met at (112.67, 48, 0), a dogleg of 8 starting at (120.67, 48, 0).
+        /// </summary>
+        private bool WordsMeetRight(Rec rec, Ctx ctx, out GeoPoint3 meet)
+        {
+            meet = new GeoPoint3(0.0, 0.0, 0.0);
+            Section(ctx.Head, 290, MTextCodes, out int from, out int to);
+
+            if (from < 0 || Whole(Text(rec.After, 271), 0) != 0 || !WordsWidth(ctx, out double width))
+            {
+                return false;
+            }
+
+            List<KeyValuePair<int, string>> m = ctx.Head.GetRange(from, to - from);
+            Axes(ctx, out GeoVector3 x, out GeoVector3 y);
+            GeoVector3 along = Unit(PointOf(m, 13, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
+            double below = Below(ctx, AttachmentOf(rec, false), Height(ctx));
+
+            if (Whole(Text(m, 171), 1) != 1 || along.Subtract(x).Length > 1E-9 || double.IsNaN(below))
+            {
+                return false;
+            }
+
+            meet = PointOf(m, 12, new GeoPoint3(0.0, 0.0, 0.0)).Add(x.Multiply(width + Num(Text(ctx.Head, 145), 2.0))).Add(y.Multiply(-below));
+            return true;
+        }
+
+        /// <summary>
+        /// The width of the words of one line, as AutoCAD 2021 measures them for <see cref="DxfMText.ActualWidth"/>
+        /// (<see cref="Measured"/>); false where they are not measured.
+        /// </summary>
+        private bool WordsWidth(Ctx ctx, out double width)
+        {
+            DxfTextLine line = Measured(ctx);
+            width = line == null ? 0.0 : line.ActualWidth;
+            return line != null;
+        }
+
+        /// <summary>
+        /// The words of one line measured as AutoCAD 2021 measures an MTEXT's (<see cref="DxfMText.ActualWidth"/>), at their height
+        /// (41 of the context data) in the SHX font of their text style (340), where the drawing's
+        /// <see cref="DxfDatabase.FontSearchPath"/> finds it; null where it does not, the style is not as wide as high and upright,
+        /// or the words are not one line as <see cref="DxfMText.ActualWidth"/> measures one.
+        /// </summary>
+        private DxfTextLine Measured(Ctx ctx)
+        {
+            DxfDatabase database = Database();
+            DxfFonts fonts = database?.Fonts;
+
+            if (fonts == null)
+            {
+                return null;
+            }
+
+            Section(ctx.Head, 290, MTextCodes, out int from, out int to);
+
+            if (from < 0)
+            {
+                return null;
+            }
+
+            List<KeyValuePair<int, string>> m = ctx.Head.GetRange(from, to - from);
+            string handle = Text(m, 340)?.Trim();
+
+            if (handle == null || !database.TryGetObject(handle, out DxfDBObject found) || !(found is DxfTextStyleTableRecord style)
+                || !Same(style.XScale, 1.0) || style.ObliquingAngle != 0.0)
+            {
+                return null;
+            }
+
+            DxfShxFont font = fonts.FontOf(style, out _);
+            DxfTextLine line = font == null ? null : DxfFonts.MText(font, Text(m, 304) ?? string.Empty, Height(ctx));
+            double wrap = Num(Text(m, 43), 0.0);
+            return line == null || (wrap > 0.0 && !(line.ActualWidth < wrap)) ? null : line;
+        }
+
+        /// <summary>
+        /// The words moved to the landing of the first leader on their right, as AutoCAD 2021 moves them where they are measured
+        /// (<see cref="WordsMeetRight"/>) and met on their right alone: so that it meets them again, the gap past the right of
+        /// their ink and as far below their top as the attachment of the right side says; the base point of the content moved
+        /// along x with the words' left, a gap short of it, and the other leaders on the right landed anew (<see cref="Landed"/>).
+        /// "ABC" 4 high at (100, 50, 0), met from (120.67, 48, 0), made 10 high stand at (84, 53, 0), the base point from
+        /// (98, 48, 0) at (82, 48, 0) (m-right-height10); at a scale of 2, at (79.33, 52, 0), the base point at (75.33, 48, 0)
+        /// (m-right-scale2). False where they are not measured, or no leader on their right has a landing.
+        /// </summary>
+        private bool Rightward(Rec rec, Ctx ctx, double gapChange)
+        {
+            Axes(ctx, out GeoVector3 x, out GeoVector3 y);
+            LeaderPart leader = ctx.Leaders.Find(l => Side(l, x) > 0 && HasLanding(l));
+            Section(ctx.Head, 290, MTextCodes, out int from, out int to);
+
+            if (leader == null || from < 0 || !WordsMeetRight(rec, ctx, out GeoPoint3 meet))
+            {
+                return false;
+            }
+
+            GeoVector3 dogleg = Unit(PointOf(leader.Head, 11, new GeoPoint3(-1.0, 0.0, 0.0)).ToVector());
+            GeoPoint3 end = PointOf(leader.Head, 10, new GeoPoint3(0.0, 0.0, 0.0)).Add(dogleg.Multiply(Num(Text(leader.Head, 40), 0.0)));
+            GeoVector3 by = meet.GetVectorTo(end);
+            MoveContent(ctx, by, x.Multiply(by.DotProduct(x) - gapChange));
+            Landed(rec, ctx);
             return true;
         }
 
@@ -424,9 +535,13 @@ namespace GeometryHelper.Dxf
         /// as AutoCAD 2021 lands it: nought at the top of the top line, half the height of the words at its middle, all of it at
         /// its bottom and a fifth more under it; the middle of the words, the middle of the bottom line, its bottom and a fifth
         /// more under it as the lines stand, each 5/3 of their height times their spacing below the one above, the lines counted
-        /// by their breaks (<c>\P</c>); NaN for another attachment, or where the MULTILEADER holds no words.
+        /// by their breaks (<c>\P</c>); NaN for another attachment, or where the MULTILEADER holds no words. Words of one line the
+        /// drawing's <see cref="DxfDatabase.FontSearchPath"/> measures (<see cref="Measured"/>) whose ink reaches below their
+        /// baseline are as high as their height and that depth together, as AutoCAD 2021 lands them (check F1b): "Ag" of txt.shx
+        /// 4 high, its g 1.33 below the baseline, are met 2.67 below their top at the middle of the top line, and 5.33 at its
+        /// bottom and under it, where 4.8 is not lower.
         /// </summary>
-        private static double Below(Ctx ctx, int attachment, double height)
+        private double Below(Ctx ctx, int attachment, double height)
         {
             Section(ctx.Head, 290, MTextCodes, out int from, out int to);
 
@@ -437,17 +552,21 @@ namespace GeometryHelper.Dxf
 
             List<KeyValuePair<int, string>> m = ctx.Head.GetRange(from, to - from);
             double whole = height + (Breaks(Text(m, 304)) * 5.0 / 3.0 * height * Num(Text(m, 45), 1.0));
+            DxfTextLine words = Measured(ctx);
+            double depth = words == null || !words.HasInk || !(words.InkBottom < 0.0) ? 0.0 : -words.InkBottom * height / Height(ctx);
+            double line = height + depth;
+            whole = depth > 0.0 ? line : whole;
 
             switch (attachment)
             {
                 case 0: return 0.0;
-                case 1: return height / 2.0;
+                case 1: return line / 2.0;
                 case 2: return whole / 2.0;
-                case 3: return whole - (height / 2.0);
+                case 3: return whole - (line / 2.0);
                 case 4: return whole;
-                case 5: return whole + (height / 5.0);
-                case 6: return height + (height / 5.0);
-                case 7: return height;
+                case 5: return depth > 0.0 ? Math.Max(whole, height + (height / 5.0)) : whole + (height / 5.0);
+                case 6: return depth > 0.0 ? Math.Max(line, height + (height / 5.0)) : height + (height / 5.0);
+                case 7: return line;
                 case 8: return height + (height / 5.0);
                 default: return double.NaN;
             }
@@ -680,6 +799,20 @@ namespace GeometryHelper.Dxf
                 MoveContent(ctx, y.Multiply(change), new GeoVector3(0.0, 0.0, 0.0));
                 Landed(rec, ctx);
             }
+            else if (right > 0 && WordsWidth(ctx, out _))
+            {
+                // Measured: met on the right alone, the words move to its landing; met on both sides, as on the left, every
+                // leader then landed anew (m-right-height10, m2-both-height10).
+                if (left == 0)
+                {
+                    Rightward(rec, ctx, 0.0);
+                }
+                else if (!double.IsNaN(change))
+                {
+                    MoveContent(ctx, y.Multiply(change), new GeoVector3(0.0, 0.0, 0.0));
+                    Landed(rec, ctx);
+                }
+            }
         }
 
         /// <summary>
@@ -702,13 +835,22 @@ namespace GeometryHelper.Dxf
             int attachment = AttachmentOf(rec, true);
             double rise = Below(ctx, attachment, Height(ctx)) - Below(ctx, attachment, wasHeight);
             double change = double.NaN;
+            bool measured = right > 0 && WordsWidth(ctx, out _);
 
-            if (left == 0 || right > 0 || double.IsNaN(rise))
+            // Measured words met on the right alone move to its landing (m-right-scale2).
+            if (measured && left == 0)
+            {
+                Rightward(rec, ctx, gapChange);
+                return;
+            }
+
+            if (left == 0 || (right > 0 && !measured) || double.IsNaN(rise))
             {
                 return;
             }
 
-            if (left > 1)
+            // Met by several leaders on the left, or on both sides, the words move by the gap alone and up (m2-both-scale2).
+            if (left > 1 || right > 0)
             {
                 MoveContent(ctx, x.Multiply(gapChange).Add(y.Multiply(rise)), new GeoVector3(0.0, 0.0, 0.0));
                 Landed(rec, ctx);
@@ -759,6 +901,21 @@ namespace GeometryHelper.Dxf
             else if (right > 0 && string.Equals(look, wasLook, StringComparison.Ordinal))
             {
                 PutPoint(ctx.Head, 12, wasAt, ContextOrder, from, to);
+            }
+            else if (right > 0 && WordsWidth(ctx, out _))
+            {
+                // Measured words of another width: met on the right alone, moved to its landing from where they were; met on
+                // both sides, kept landed on the left and the leaders on the right landed anew.
+                if (left == 0)
+                {
+                    PutPoint(ctx.Head, 12, wasAt, ContextOrder, from, to);
+                    Rightward(rec, ctx, 0.0);
+                }
+                else if (!double.IsNaN(change))
+                {
+                    PutPoint(ctx.Head, 12, wasAt.Add(y.Multiply(change)), ContextOrder, from, to);
+                    Landed(rec, ctx);
+                }
             }
         }
 

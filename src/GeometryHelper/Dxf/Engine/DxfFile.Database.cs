@@ -19,6 +19,9 @@ namespace GeometryHelper.Dxf
         private readonly DxfFile _origin;
         private DxfFile _holder;
 
+        /// <summary>Whether the file holds entities made in code, not yet in a file, rather than copies of a drawing's.</summary>
+        internal bool IsMadeInCode => ReferenceEquals(_origin, Template);
+
         /// <summary>
         /// A file that holds entities not yet in a file of their own: made in code, or copied from another. It shares the bytes
         /// and style of the file it is made from, writes no handles and no owners, adds no layer, takes any linetype and grows
