@@ -6,6 +6,21 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** An annotative TEXT, ATTRIB or ATTDEF with contexts is read where AutoCAD 2021 shows it once it has read the
+drawing (check D35): its `Position`, `AlignmentPoint` and `Rotation` are those of its context of the scale 1:1, else of
+its default context, whatever CANNOSCALE says, at the elevation of its record, and its `Height` is the record's times the
+default's scale over 1:1's. The attribute ATT_DVSUP of AutoCAD's sample Mechanical - Metric, whose record says (0.678,
+265.33), now stands at (-6.151, 265.33), its context of 1:1, as AutoCAD reads and saves it; a text 3 high whose default
+is 1:2 is 1.5 high. Setting those properties writes the context read, and the record where that context is the default
+(a height at the default's scale: 5 at 1:1 is written 10 where 1:2 is the default); `SetAttributeFromBlock` places the
+attribute so; `TransformBy` of the text or of its INSERT, and the INSERT's moves and dynamic properties that carry
+attributes, carry every context with it, as AutoCAD moved ATT_DVSUP's context of 1:2 from (-100, 265.33) to (-90, 270.33)
+with the INSERT moved by (10, 5). A text with no context reads and writes as before. Of 1 336 lines AutoCAD 2021 gave on
+the sample and on drawings with two contexts, 597 read apart before and 65 now: an MTEXT and an INSERT's own place, still
+read from their records, the point of a centred text, which AutoCAD works out from its font, and the INSERT's `Position`
+setter, which carries its attributes as the library documents. Reading an annotative attribute for the first time after an edit
+takes about a quarter longer, and again after that about a third less; one with no context is as fast as before.
+
 **CHANGED.** The first edit of a `DxfTable` while its drawing is open, whatever it is (`SetValue`, `InsertRows`, `SetSize`,
 `Fill`, a look, a line, `TransformBy` and the rest), merges first the rows AutoCAD 2021 merges when it loads a file, where
 `DeleteRows` and `DeleteColumns` alone did, and writes them merged, as AutoCAD writes them whenever it saves, edited or not

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using GeometryHelper.Export;
 
 namespace GeometryHelper.Dxf
 {
@@ -144,8 +145,10 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gets whether the object is shown at a scale, as AutoCAD's <c>HasContext</c>: whether a context under
         /// ACDB_ANNOTATIONSCALES of AcDbContextDataManager of its extension dictionary points at the scale's SCALE, by the first
-        /// 340 of its subclass AcDbAnnotScaleObjectContextData, of any kind of object. Those two groups are all the library reads
-        /// of a context; the rest of AutoCAD's record of it is kept as it is.
+        /// 340 of its subclass AcDbAnnotScaleObjectContextData, of any kind of object. Those two groups, with the default flag
+        /// (290 of AcDbObjectContextData), are all the library reads of a context, but for the angle and two points of the
+        /// context of a TEXT, an attribute or a definition, which <see cref="DxfDBText.Position"/> reads and writes; the rest
+        /// of AutoCAD's record of it is kept as it is.
         /// </summary>
         /// <param name="context">The scale, of the object's drawing's list.</param>
         /// <returns>Whether it is; false for a scale of another drawing or in none, and for an object with no contexts, as one not
@@ -401,6 +404,158 @@ namespace GeometryHelper.Dxf
             }
 
             return held;
+        }
+
+        /// <summary>
+        /// The contexts of the object of the record types given, as AutoCAD 2021 reads an annotative text, attribute or
+        /// definition once it has read its drawing (check D35): all of them, in the order of their dictionary, and the one it is
+        /// shown at, that of the scale named 1:1, else the default (290 of 1), whatever CANNOSCALE says; null where it has none
+        /// of those types, or none of them is shown.
+        /// </summary>
+        private protected ShownContexts ContextsOfType(string type, string otherType)
+        {
+            // Most objects have no extension dictionary: one look at the record says so.
+            if (_item == null || _item.File.ExtensionDictionaryOf(_item) == null)
+            {
+                return null;
+            }
+
+            DxfDBDictionary contexts = ContextDictionary();
+
+            if (contexts == null)
+            {
+                return null;
+            }
+
+            var all = new List<DxfItem>();
+            DxfItem unit = null;
+            DxfItem fallback = null;
+            string unitScale = null;
+            string fallbackScale = null;
+            bool unitIsDefault = false;
+
+            foreach (DxfDBDictionaryEntry entry in contexts)
+            {
+                DxfItem item = entry.Value?.Item;
+
+                if (item == null || (item.Type != type && item.Type != otherType))
+                {
+                    continue;
+                }
+
+                string marker = null;
+                string scale = null;
+                bool isDefault = false;
+
+                foreach (DxfTypedValue group in item.File.ObjectGroupsOf(item))
+                {
+                    if (group.TypeCode == 100)
+                    {
+                        marker = group.Value.Trim();
+                    }
+                    else if (group.TypeCode == 290 && marker == ContextDataMarker)
+                    {
+                        isDefault = group.Value.Trim() == "1";
+                    }
+                    else if (group.TypeCode == 340 && marker == ScaleContextMarker && scale == null)
+                    {
+                        scale = group.Value.Trim();
+                    }
+                }
+
+                all.Add(item);
+
+                if (unit == null && scale != null && ScaleOf(item.File, scale, out string name, out _) && name == "1:1")
+                {
+                    unit = item;
+                    unitScale = scale;
+                    unitIsDefault = isDefault;
+                }
+
+                if (fallback == null && isDefault)
+                {
+                    fallback = item;
+                    fallbackScale = scale;
+                }
+            }
+
+            if (unit == null && fallback == null)
+            {
+                return null;
+            }
+
+            if (unit == null || unitIsDefault || fallback == null)
+            {
+                return new ShownContexts(all, unit ?? fallback, unit == null || unitIsDefault, 1.0);
+            }
+
+            // The record holds the height at the default's scale: at 1:1 it is that times the default's scale.
+            double factor = fallbackScale != null && ScaleOf(_item.File, fallbackScale, out _, out double ratio) && ScaleOf(_item.File, unitScale, out _, out double shown) ? ratio / shown : 1.0;
+            return new ShownContexts(all, unit, false, Guard.IsFinite(factor) && factor > 0.0 ? factor : 1.0);
+        }
+
+        /// <summary>The name of a SCALE (300) and its units of the paper over those of the drawing (140 over 141); false where the handle names none.</summary>
+        private static bool ScaleOf(DxfFile file, string handle, out string name, out double ratio)
+        {
+            name = null;
+            ratio = 1.0;
+            DxfItem scale = file.ObjectItem(handle);
+
+            if (scale == null || scale.Type != "SCALE")
+            {
+                return false;
+            }
+
+            double paper = double.NaN;
+            double drawing = double.NaN;
+
+            foreach (DxfTypedValue group in file.ObjectGroupsOf(scale))
+            {
+                if (group.TypeCode == 300 && name == null)
+                {
+                    name = group.Value.Trim();
+                }
+                else if (group.TypeCode == 140 && Numbers.TryRead(group.Value, out double p))
+                {
+                    paper = p;
+                }
+                else if (group.TypeCode == 141 && Numbers.TryRead(group.Value, out double d))
+                {
+                    drawing = d;
+                }
+            }
+
+            double r = paper / drawing;
+            ratio = Guard.IsFinite(r) && r > 0.0 ? r : 1.0;
+            return true;
+        }
+
+        /// <summary>
+        /// The contexts of an annotative object of a kind: every one of them, the one AutoCAD shows it at, whether that is the
+        /// default, whose data the object's own groups hold, and what the height of the record is multiplied by at the shown
+        /// scale, the default's scale over the shown one's.
+        /// </summary>
+        private protected sealed class ShownContexts
+        {
+            internal ShownContexts(List<DxfItem> all, DxfItem shown, bool shownIsDefault, double heightFactor)
+            {
+                All = all;
+                Shown = shown;
+                ShownIsDefault = shownIsDefault;
+                HeightFactor = heightFactor;
+            }
+
+            /// <summary>Every context of the kind, in the order of the dictionary.</summary>
+            internal IReadOnlyList<DxfItem> All { get; }
+
+            /// <summary>The context shown: of the scale 1:1, else the default.</summary>
+            internal DxfItem Shown { get; }
+
+            /// <summary>Whether the context shown is the default, whose data the object's own groups hold.</summary>
+            internal bool ShownIsDefault { get; }
+
+            /// <summary>What the record's height is multiplied by at the shown scale: exactly 1 where it is the default.</summary>
+            internal double HeightFactor { get; }
         }
 
         /// <summary>A context of a scale an object holds: its entry's name, the handle of its SCALE and whether it is the default.</summary>

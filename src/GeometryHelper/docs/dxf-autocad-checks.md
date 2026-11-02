@@ -1667,3 +1667,41 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       style's where AutoCAD's words carry the drawing's current text style (f6-def-s4-words-standard); bit 24 of the
       overrides set by `TransformBy` of a scaling (c3-k-transform2-blockscale1); `RemoveFirstVertex` down to one vertex,
       which AutoCAD allows (addfirst-removefirst) and the library refuses.
+
+## Annotative texts and attributes read and moved at their contexts
+
+92. **An annotative attribute, text and definition read at its context of 1:1 or its default, whatever CANNOSCALE says;
+    set, filled from its definition and moved, its INSERT moved, turned and scaled.**
+    - Try (D35, headless, plugin GHD35A rounds a, b, c and c2): AutoCAD's sample Mechanical - Metric read as it is, and with
+      its attribute ATT_DVSUP given a context of 1:2 at (-100, 265.33) turned 30 degrees beside its context of 1:1, either
+      the default, first or second in the dictionary, of 1:2 alone, of 1:2 and 1:4, with CANNOSCALE 1:1, 1:2 and 1:4 in the
+      file and set after reading; its context of 1:1 turned, its record raised to 7, a mode and a second point in the
+      context alone, the INSERT's own context of 1:1 moved, turned and scaled; the INSERT moved by (10, 5), turned 30 degrees
+      and scaled by 2 about its point, its `Position` set, the attribute moved alone, given a `Position`, an
+      `AlignmentPoint`, a height and a turn, filled by `SetAttributeFromBlock`; a drawing AutoCAD made with an annotative
+      TEXT, a centred TEXT, an MTEXT, an ATTDEF and an annotative block's INSERT, given contexts of 1:1 and 1:2, either the
+      default, read, moved, turned, set and given a height; the weld symbol's `Position X` and `Offset`.
+    - AutoCAD 2021: it reads an annotative object at its context of the scale 1:1, else at its default context, never at
+      CANNOSCALE's, and CANNOSCALE set after reading changes nothing. The point (10, 20), second point (11, 21) and angle (50)
+      are the context's, the elevation the record's, the horizontal mode the context's 70; the height is the record's times
+      the default's scale over 1:1's (3 at the default 1:2 is 1.5). Saved, the record holds the default context's data:
+      ATT_DVSUP was written at (-6.151, 265.33), its context of 1:1, where its record had said (0.678, 265.33). A property
+      set writes the context shown, and the record where that is the default; a height writes the record at the default's
+      scale (5 at 1:1 is 10 at 1:2). `TransformBy` of the INSERT or of the attribute carries every context: of 1:2 to (-90,
+      270.33) for the move, to (-77.519, 210.322) turned 60 degrees for the turn, to (-213.883, 250.881) for the scale; the
+      second point of a text aligned left stays (0, 0). `SetAttributeFromBlock` writes the context shown alone, the record
+      too where it is the default, else the record keeps the default's point and takes the height at its scale. The
+      INSERT's `Position` set moves none of its attributes. A text not aligned left has its point worked out again from its
+      font after any change, in every context. An MTEXT is read at its context alike (its location 11, its direction 10, its
+      height scaled), and an INSERT at its own context of 1:1 (B5: (113.88, 279.78), turned 45 degrees, scale 2). The weld
+      symbol's two properties moved none of its attributes.
+    - Now: TEXT, ATTRIB and ATTDEF as above (`Position`, `AlignmentPoint`, `Height`, `Rotation`, their setters,
+      `TransformBy`, the INSERT's moves, `SetAttributeFromBlock`). Of 1 336 lines AutoCAD gave, 597 read apart at base and 65
+      now; the 12 lines of INSERTs 5 and 6 of the sample that D34 left apart read alike.
+    - Still apart: the point of a text not aligned left, which AutoCAD works out from the font; the horizontal mode of a
+      context that differs from its record's (B4, not in any drawing AutoCAD saved); an MTEXT and an INSERT, still read
+      from their records (G1, G2, B5); `HasContext` of 1:1 of an INSERT of an annotative block that has no context record,
+      true in AutoCAD; `Annotative` of an attribute with contexts whose data AcadAnnotative says 0 or that has none, true
+      in AutoCAD; the INSERT's `Position` set, which the library documents as carrying its attributes; an attribute of
+      several lines made from or into an MTEXT, whose contexts are not written; and a dynamic property that moves an
+      annotative attribute, carried by `TransformBy` but not checked, the sample's weld symbol being refused by the library.

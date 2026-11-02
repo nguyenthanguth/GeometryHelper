@@ -176,7 +176,11 @@ namespace GeometryHelper.Dxf
         /// definition's is 4, as ezdxf writes them, its value the words of every line of that MTEXT joined by spaces, as
         /// AutoCAD 2021 writes it. A definition not aligned left on its baseline gives its alignment point placed, the origin
         /// where its record has none: centred on (0, 0) in a block an INSERT places at (6000, 1000), it gives an attribute held
-        /// by (6000, 1000), written 11 6000 21 1000, as AutoCAD 2021 gave it (check D30).
+        /// by (6000, 1000), written 11 6000 21 1000, as AutoCAD 2021 gave it (check D30). An annotative attribute is placed so
+        /// in the context it is shown at (<see cref="DxfDBText.Position"/>), its other contexts left as they were, and its
+        /// record where that context is the default: AutoCAD 2021 put ATT_DVSUP of its sample at (5.278, 265.33) in its context
+        /// of 1:1 alone where 1:2 was the default, its record keeping the default's point and given the height 6, at 1:2, of the
+        /// definition 3 high (check D35).
         /// </summary>
         /// <param name="definition">The definition, of the block the INSERT places.</param>
         /// <param name="blockTransform">The transformation that places the block.</param>
@@ -194,6 +198,9 @@ namespace GeometryHelper.Dxf
             {
                 throw new ArgumentNullException(nameof(blockTransform));
             }
+
+            ShownContexts contexts = TextContexts();
+            string[] placing = contexts == null || contexts.ShownIsDefault ? null : RecordPlacing();
 
             List<DxfTypedValue> theirs = Before101(definition.Item.File.OwnGroupsOf(definition.Item, 0));
             List<DxfTypedValue> own = Before101(GetOwnGroups(0));
@@ -295,7 +302,14 @@ namespace GeometryHelper.Dxf
                 SetText(AlignmentGroups(new GeoPoint3(0.0, 0.0, 0.0)));
             }
 
-            TransformBy(blockTransform);
+            if (contexts == null)
+            {
+                TransformBy(blockTransform);
+                return;
+            }
+
+            TransformRecordOnly(blockTransform);
+            FillShown(contexts, placing);
         }
 
         /// <summary>

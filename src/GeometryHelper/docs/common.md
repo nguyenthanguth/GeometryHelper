@@ -1243,6 +1243,17 @@ the scale each points at (its 340); `RemoveContext` erases one, the default and 
 DxfAnnotativeStates.False` erases them all with the data. `PaperOrientation` reads whether an annotative object keeps the way
 up of the sheet from the extended data AcadAnnoPO, a reading of AutoCAD's that is not yet checked either.
 
+An annotative TEXT, attribute or attribute definition that has contexts is read where AutoCAD 2021 shows it once it has
+read the drawing: at its context of the scale 1:1, else at its default context, whatever CANNOSCALE says. Its `Position`,
+`AlignmentPoint` and `Rotation` are that context's, at the elevation of its record, and its `Height` the record's (which
+holds the height at the default scale) times the default's scale over 1:1's: the attribute ATT_DVSUP of AutoCAD's sample
+Mechanical - Metric, whose record says (0.678, 265.33) and whose context of 1:1 says (-6.151, 265.33), stands at
+(-6.151, 265.33), and a text 3 high in a record whose default is 1:2 is 1.5 high. Setting one of those writes the context
+it is read at, and its record too where that context is the default; `SetAttributeFromBlock` places the attribute so;
+`TransformBy`, of the text or of the INSERT that holds the attribute, and so a dynamic property that moves the attribute,
+carries every context with the record, each its point, its angle and, where the text is not aligned left on its baseline,
+its second point. An MTEXT, and an INSERT's own place, are still read from their records alone.
+
 `DxfMText` names the codes of an MTEXT as AutoCAD's `MText` does: `ParagraphBreak` and `LineBreak` are `\P`, `UnderlineOn` is
 `\L`, `HeightChange` `\H`, `BlockBegin` `{`, and so the 19 of them. `ContentsRTF` gives its words as RTF, the style's font
 first in the font table, and `SetContentsRtf` reads RTF into them: paragraphs, columns, groups, fonts with bold and italic,

@@ -1448,7 +1448,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Moves the ATTRIBs by a transformation, all in one writing of the INSERT; one whose groups would land in the wrong
-        /// part of its record, as an ATTRIB with an embedded MTEXT may, is moved alone.
+        /// part of its record, as an ATTRIB with an embedded MTEXT may, is moved alone. The contexts of an annotative one are
+        /// carried with it, before its record is written.
         /// </summary>
         private void Carry(IReadOnlyList<DxfAttributeReference> attributes, GeoTransform3 transform)
         {
@@ -1462,8 +1463,12 @@ namespace GeometryHelper.Dxf
                 if (groups == null)
                 {
                     apart.Add(attribute);
+                    continue;
                 }
-                else if (groups.Length > 0)
+
+                attribute.CarryContexts(transform);
+
+                if (groups.Length > 0)
                 {
                     records.Add(new KeyValuePair<int, KeyValuePair<int, string>[]>(attribute.Record, groups));
                 }
