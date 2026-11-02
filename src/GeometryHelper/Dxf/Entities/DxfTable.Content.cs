@@ -189,6 +189,21 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Empties a cell of the TABLECONTENT (<see cref="EmptyContent"/>), as AutoCAD 2021's <c>ResetValue</c> of a block cell
+        /// emptied it (D33c r04). Nothing where the table has no TABLECONTENT, or it holds no such cell.
+        /// </summary>
+        private void ContentEmptied(int row, int column)
+        {
+            EditContent(true, null, grid =>
+            {
+                if (row < grid.Rows.Count && column < grid.Rows[row].Cells.Count)
+                {
+                    grid.Changed |= EmptyContent(grid, grid.Rows[row].Cells[column].Groups);
+                }
+            });
+        }
+
+        /// <summary>
         /// Edits the TABLECONTENT of the table, read as rows of cells: the edit given made, then each merged range and each link
         /// a cell names taken through the lines given (rows or columns: a range's first and last line to their new ones, null
         /// where none is left), or through the map given, where it gives a range, the links of cells taken out let go of as

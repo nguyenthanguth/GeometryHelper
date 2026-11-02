@@ -1705,3 +1705,32 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       in AutoCAD; the INSERT's `Position` set, which the library documents as carrying its attributes; an attribute of
       several lines made from or into an MTEXT, whose contexts are not written; and a dynamic property that moves an
       annotative attribute, carried by `TransformBy` but not checked, the sample's weld symbol being refused by the library.
+
+## Tables: cells emptied in the session, an empty text, a block cell reset, the table's own look
+
+93. **Which cells a clear of the table's overrides keeps of no value, as rows and columns move them; an empty text set; a
+    block cell reset; a change of the table's colour.**
+    - Try (D33d, headless, plugin GHD33D rounds E, E2 and a read-back of 70 files): a clear of 0 after the merge AutoCAD
+      makes on load, after columns put in at the title's edge and among its columns, a row put in taking another's look,
+      `SetSize`, a merge of a cell of no value, a merge undone, rows put in and taken out, a `ResetValue` before columns or
+      rows went in or out, and a fill from a cell reset (a01 to a17); `SetTextString` of an empty text into a text, a number,
+      the title, the header, the title's hidden empty cell and a cell of every look, then cleared (s01 to s10); `ResetValue`
+      of the block cell M12, then cleared, set or read with the table's own looks (b01 to b05); a reset or an empty text of
+      a cell read of no value, and an empty text and a block reset cleared of 1 (c01 to c04).
+    - AutoCAD 2021: `ClearTableStyleOverrides` of 0 or 2 keeps `93 7`, `90 0` in every cell emptied in the session, wherever
+      it moved since: one reset or given an empty text, even of no value before (c01, c02), one put in by `InsertRows`,
+      `InsertColumns` or `SetSize`, each cell of the title merged anew by columns put in at its edge, and each cell a merge
+      emptied, the merge on load too (a01) and one unmerged since (a11); a cell read of no value it writes `93 5`, `90 512`.
+      Of 1, it takes from a cell reset the looks it kept as the table's, even after a row put in before the first row of
+      data took those looks from the table (a07). A row put in taking another's look is `93 5`, `90 4` before and after
+      (a04). `SetTextString` of an empty text is `ResetValue`: `91 0`, `93 7`, `90 0`, the looks of the content gone as
+      there (s02, s07, s09), whatever the cell held; `SetValue` of an empty text writes an empty text (s06). `ResetValue`
+      of a block cell makes it a text cell of no value, its block gone and its looks but the table's (b03), and empties it
+      in the TABLECONTENT. A colour given to the table writes the rows it merged on load merged (D33c e02), as any edit.
+    - Now: as AutoCAD for each of them; the cells carry their marks of the session through every edit that moves them.
+      AutoCAD read the library's files of 32 of the 35 edits as it read its own, D33c's r04, r08, r09, r10, r12 and e02
+      among them.
+    - Still apart: a fill from a cell of no value, which AutoCAD leaves as it was and the library empties (a16); a clear of
+      0 keeps a cell's own turn (145), which AutoCAD takes away (b01); and a clear of 0 after a row put in before the title
+      takes the title's and the header's `170 5` and `140 6.0` from the rows moved down, and AutoCAD then merges the new
+      first row on load where it does not merge the library's (s08).

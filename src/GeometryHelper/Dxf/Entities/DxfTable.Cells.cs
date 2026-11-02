@@ -392,21 +392,25 @@ namespace GeometryHelper.Dxf
         /// gives its row's kind of its own, and its turn (145 made nought), its alignment, background and lines kept; Mark
         /// keeps its middle centre alone, and B-12 of the table of its own data of 9, GH_TXT, red and top left keeps those
         /// (r01), which <see cref="ClearTableStyleOverrides(int)"/> of 1 then takes away with the table's, while the drawing is
-        /// open (D33b c18). Nothing where the cell holds no value already. The block AutoCAD drew the table with is not drawn
-        /// anew.
+        /// open, wherever rows put in or taken out move the cell (D33b c18, D33d a07). A block cell is made a text cell of no
+        /// value, its block, attribute values and looks of the content gone as from a text cell, and its content taken out of the
+        /// TABLECONTENT, as AutoCAD 2021 emptied the block cell M12 (91 0, 93 7, 90 0, D33c r04, D33d b01 to b05). Nothing is
+        /// written where the cell holds no value already. The block AutoCAD drew the table with is not drawn anew.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="col">The column, from nought.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the cell is not one of the table's.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when the cell is a block cell, or the table is erased.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the table is erased.</exception>
         public void ResetValue(int row, int col)
         {
             Layout layout = ReadToWrite();
             CellView cell = layout.CellOf(row, col);
-            CheckText(cell, row, col);
+            bool block = cell.Whole(171, 1) == (int)DxfTableCellType.BlockCell;
 
-            if (cell.HoldsNoValue())
+            // A cell of no value is written as it is, but emptied in the session all the same (D33d c01, c02).
+            if (!block && cell.HoldsNoValue())
             {
+                MarkCell(layout, row * layout.Columns + col, SessionEmptied);
                 return;
             }
 
@@ -420,22 +424,38 @@ namespace GeometryHelper.Dxf
             }
 
             // The content's looks weighed against the row's only where the cell holds one of them: the TABLECONTENT is read for
-            // the kinds of the rows, and the cell written anew in its place.
-            if (HoldsContentLooks(cell))
+            // the kinds of the rows, and the cell written anew in its place; a block cell made a text cell so too (D33d b01 to
+            // b05).
+            int kept = 0;
+
+            if (block || HoldsContentLooks(cell))
             {
-                List<KeyValuePair<int, string>>[] looks = ContentLooks(layout, out bool[] moved);
+                bool[] moved = null;
+                List<KeyValuePair<int, string>>[] looks = HoldsContentLooks(cell) ? ContentLooks(layout, out moved) : null;
                 List<KeyValuePair<int, string>> reset = Emptied(Slice(cell), looks?[row], moved != null && moved[row], Item.File.Supports(1021));
                 layout.Groups.List.RemoveRange(cell.From, cell.To - cell.From);
                 layout.Groups.List.InsertRange(cell.From, reset);
+
+                // The looks kept as the table's, marked for ClearTableStyleOverrides of 1 (0x10, 0x20, 0x08, as their flags).
+                CellView left = View(reset);
+                kept = moved != null && moved[row] ? 0 : (left.Override(7, 0x10) != null ? 0x10 : 0) | (left.Override(140, 0x20) != null ? 0x20 : 0) | (left.Override(64, 0x08) != null ? 0x08 : 0);
             }
             else
             {
                 cell.SetNoValue();
             }
 
+            // Marked before the writing, so that the layout is not used after it: read past the writing, it made 397 resets of a
+            // table of 400 rows take up to 4.8 s on .NET 10, where they take 1.6 s.
+            MarkCell(layout, row * layout.Columns + col, (byte)(SessionEmptied | SessionReset | kept));
             layout.Groups.Write(Order);
             EraseFields(new[] { field });
-            (_reset = _reset ?? new HashSet<int>()).Add(row * layout.Columns + col);
+
+            // The block's content goes from the TABLECONTENT too, as AutoCAD 2021 emptied it (r04).
+            if (block)
+            {
+                ContentEmptied(row, col);
+            }
         }
 
         /// <summary>
@@ -1567,10 +1587,15 @@ namespace GeometryHelper.Dxf
         /// each block cell loses the flag of its kind of value (0x40000), and of 2 each cell takes as its own the looks the
         /// table keeps of its own for its row's kind, so that it shows them still: the table of its own data of 5 high and
         /// bottom right, cleared of 2, writes each data cell <c>170 9</c> and <c>140 5.0</c>, its header cells its green
-        /// background (D33b c01 to c18). A cell <see cref="ResetValue"/> emptied while the drawing is open keeps its value of
-        /// none, <c>93 7</c> and <c>90 0</c>, and of 1 loses the text style, height and colour it holds alike the table's own
-        /// looks of its row's kind, which went with its content, as AutoCAD 2021 wrote it (D33b c16 to c18, D33c r11, r13).
-        /// The block AutoCAD drew the table with is not drawn anew.
+        /// background (D33b c01 to c18). A cell emptied while the drawing is open keeps its value of none, <c>93 7</c> and
+        /// <c>90 0</c>, wherever rows or columns put in or taken out moved it since, as AutoCAD 2021 kept it (D33b c16, c17,
+        /// D33c r08 to r13, D33d a01 to a13, c01, c02): one <see cref="ResetValue"/> emptied or given an empty text, even one of
+        /// no value before, one put in by <see cref="InsertRows"/>, <see cref="InsertColumns"/> or <see cref="SetSize"/>, and
+        /// one a merge emptied, the merge made on load among them, even where it is unmerged since; the new row of the table
+        /// given a row before its row 2 and cleared of 0 writes <c>93 7</c> in both its cells. Of 1, a cell reset loses the text
+        /// style, height and colour it kept as the table's own looks of its row's kind, which went with its content, even where
+        /// rows put in before the first row of data took those looks from the table since (D33b c18, D33d a07, c03, c04). The
+        /// block AutoCAD drew the table with is not drawn anew.
         /// </summary>
         /// <param name="options">0, 1 or 2.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the options are none of 0, 1 and 2.</exception>
@@ -1587,7 +1612,7 @@ namespace GeometryHelper.Dxf
 
             // Of 1, the table's own looks of each row's kind, read before they go, which a cell ResetValue emptied while the
             // drawing is open holds as the table's (D33b c18).
-            List<KeyValuePair<int, string>>[] tables = options == 1 && _reset != null ? RowKindLooks(layout) : null;
+            List<KeyValuePair<int, string>>[] tables = options == 1 && _session != null ? RowKindLooks(layout) : null;
 
             if (options != 2)
             {
@@ -1633,9 +1658,9 @@ namespace GeometryHelper.Dxf
                 {
                     CellView cell = layout.CellAt(k / layout.Columns, k % layout.Columns);
 
-                    // A cell ResetValue emptied while the drawing is open keeps its 93 7, 90 0, as AutoCAD 2021 kept it (D33b
-                    // c16, c17, D33c r11 to r13); one read so from the file is written 93 5, 90 512.
-                    if (_reset == null || !_reset.Contains(k))
+                    // A cell emptied while the drawing is open, wherever it moved since, keeps its 93 7, 90 0, as AutoCAD 2021
+                    // kept it (D33b c16, c17, D33c r08 to r13, D33d a01 to a13); one read so from the file is written 93 5, 90 512.
+                    if ((MarksOf(layout, k) & SessionEmptied) == 0)
                     {
                         Cleared(cell);
                     }
@@ -1677,7 +1702,9 @@ namespace GeometryHelper.Dxf
                 {
                     List<KeyValuePair<int, string>> given = tables[k / layout.Columns];
 
-                    if (!_reset.Contains(k) || given.Count == 0)
+                    byte marks = MarksOf(layout, k);
+
+                    if ((marks & SessionReset) == 0)
                     {
                         continue;
                     }
@@ -1685,12 +1712,14 @@ namespace GeometryHelper.Dxf
                     CellView cell = layout.CellAt(k / layout.Columns, k % layout.Columns);
                     int mask = 0;
 
+                    // One the table gives the row no more, as rows put in before its first row of data took them (D33d a07),
+                    // where the reset kept it as the table's.
                     foreach (int code in new[] { 7, 140, 64 })
                     {
                         int bit = Layout.CellOverrides[code];
                         string held = cell.Override(code, bit);
                         int at = given.FindIndex(look => look.Key == code);
-                        mask |= held != null && at >= 0 && SameLook(held, given[at].Value) ? bit : 0;
+                        mask |= held != null && (at >= 0 ? SameLook(held, given[at].Value) : (marks & bit) != 0) ? bit : 0;
                     }
 
                     if (mask != 0)

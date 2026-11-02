@@ -2386,7 +2386,11 @@ with it: the cell's own text style, text height and colour (7, 140, 64), but tho
 row's kind, and its turn (145 made nought), its alignment, background and lines kept. B-12 of GH_TXT, 5 high, red, turned
 90 degrees, bottom right on green keeps bottom right on green; in a table of its own data of 9, GH_TXT, red and top left
 it keeps those, which `ClearTableStyleOverrides(1)` then takes away with the table's while the drawing is open, and which
-`ClearTableStyleOverrides` of 0 or 2 leaves the value `93 7`, `90 0` it was given, as AutoCAD 2021 did. A cell of a file before R2007 holds its
+`ClearTableStyleOverrides` of 0 or 2 leaves the value `93 7`, `90 0` it was given, as AutoCAD 2021 did. A block cell reset
+becomes a text cell of no value (`91 0`, `93 7`, `90 0`), its block gone, as AutoCAD 2021 emptied the block cell M12; the
+library refused it before. From R2007 on, `SetTextString` of an empty text does what `ResetValue` does, as AutoCAD 2021
+wrote it: B-12, 1.5 or the empty text of the title's hidden cell given `""` are of no value, where the library wrote an
+empty text. A cell of a file before R2007 holds its
 text alone, so a value set there is written as its text, a number as the invariant culture writes it (12.5, whole), and
 reads back as one, and a kind or a format other than a text and none is refused. A date or a point is refused as a value: the library
 knows no groups for one, as the DXF reference does not describe a cell's value. The look of a cell is set as its own
@@ -2416,7 +2420,12 @@ in one pass over the table's groups: the cells of a table of 16 001 rows of 2 co
 of them of three overrides, are cleared in 0.19 s, where taking each group out on its own took 6.6 s.
 `ClearTableStyleOverrides` of 0 or 2 leaves each cell of no value the empty value of no kind (`93 5`, `90 512`) and each
 block cell without its flag 0x40000, and of 2 gives each cell the table's own looks of its row's kind as its own, as
-AutoCAD 2021 wrote them, so that a table of its own data of 9, GH_TXT, red and top left still shows them in each cell. The cells are
+AutoCAD 2021 wrote them, so that a table of its own data of 9, GH_TXT, red and top left still shows them in each cell. A
+cell emptied while the drawing is open keeps its `93 7`, `90 0`, wherever rows or columns put in or taken out moved it
+since, as AutoCAD 2021 kept it: one reset or given an empty text, one put in by `InsertRows`, `InsertColumns` or
+`SetSize`, and one a merge emptied, the merge made on load among them; the table given a row before its row 2 and
+cleared of 0 writes `93 7` in both cells of the new row, and `93 5`, `90 512` in a cell read of no value from the file.
+The cells are
 walked row by row (`foreach (DxfCell cell in table)`), and `table.Cells[1, 0]` is a `DxfCell` that reads and sets one,
 `cell.TextString = "Count"`, `cell.Alignment = DxfCellAlignment.MiddleCenter`; `table.Rows[0].Height` and
 `table.Columns[1].Width` are read and set, and the block of merged cells `GetMergeRange(0, 1)` gives reads its cells,
@@ -2471,7 +2480,8 @@ of two columns that loses its first keeps the empty text of its second, not Part
 leaves it out (`280 1` or `281 1`, the header first and shown where the title goes), and the table's own looks of a kind
 of which no row is left go from its head with their flags, the header's background with the header, the data's text
 style with the last row of data. The first edit of a table while its drawing is open, whatever it is (a value, a look, a
-row, a fill, a move), merges across the table first the rows AutoCAD 2021 merges when it loads a file, as `MergeCells`
+row, a fill, a move, or its own colour, layer, linetype, lineweight, linetype scale, visibility or transparency as an
+entity), merges across the table first the rows AutoCAD 2021 merges when it loads a file, as `MergeCells`
 merges them, and writes them so, as AutoCAD writes them whenever it saves the drawing: the first row, whatever its kind
 and whether the title is shown, and any other row of the title's kind, where no block of merged cells reaches out of it
 and every cell after the block of its first cell is a text cell of no value or of an empty text, whatever its colour,

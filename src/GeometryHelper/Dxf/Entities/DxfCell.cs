@@ -239,8 +239,8 @@ namespace GeometryHelper.Dxf
         /// <returns>The range.</returns>
         public DxfCellRange GetMergeRange() => Table.GetMergeRange(Row, Column);
 
-        /// <summary>Empties the cell's value, as AutoCAD's <c>ResetValue</c>: <see cref="DxfTable.ResetValue(int, int)"/>.</summary>
-        /// <exception cref="InvalidOperationException">Thrown when the cell is a block cell, or the table is erased.</exception>
+        /// <summary>Empties the cell's value, as AutoCAD's <c>ResetValue</c>: <see cref="DxfTable.ResetValue(int, int)"/>, a block cell made a text cell of no value.</summary>
+        /// <exception cref="InvalidOperationException">Thrown when the table is erased.</exception>
         public void ResetValue() => Table.ResetValue(Row, Column);
 
         /// <summary>Gets whether the cell is another, of the same table, row and column.</summary>

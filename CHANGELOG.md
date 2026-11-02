@@ -6,6 +6,32 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** `DxfTable.ClearTableStyleOverrides` of 0 or 2 leaves every cell emptied while the drawing is open of its value
+of none (`93 7`, `90 0`), wherever rows or columns put in or taken out moved it since, as AutoCAD 2021 did (check D33d:
+of 35 edits, AutoCAD read the library's files of 32 as its own): a cell reset or given an empty text, even one of no
+value before, one put in by `InsertRows`, `InsertColumns` or `SetSize`, and one a merge emptied, the merge made on load
+among them, even unmerged since. The table
+given a row before its row 2 and cleared of 0 writes `93 7` in both cells of the new row, where the library wrote `93 5`,
+`90 512`, which AutoCAD reads as an empty text; a cell read of no value from the file is written `93 5`, `90 512` as
+before. Of 1 it takes from a cell reset the looks it kept as the table's, also after rows went in before it.
+
+**CHANGED.** From R2007 on, `DxfTable.SetTextString` of an empty text leaves the value of none `ResetValue` leaves (`93 7`,
+`90 0`, the flag 0x40000 taken out) and takes the looks of the content away as it does, as AutoCAD 2021 wrote it (check
+D33d s01 to s10): B-12, 1.5 or the empty text of the title's hidden cell given `""` read as of no value, where the library
+wrote an empty text of the kind 4. Before R2007 it writes an empty text, as before.
+
+**CHANGED.** `DxfTable.ResetValue` (and `DxfCell.ResetValue`) of a block cell makes it a text cell of no value, its block,
+attribute values and looks of the content gone as from a text cell and its content taken out of the TABLECONTENT, as
+AutoCAD 2021 emptied the block cell M12 (`91 0`, `93 7`, `90 0`, check D33c r04, D33d b01 to b05); it threw
+`InvalidOperationException` before. Existing test changed:
+`DxfTableCellsTests.AValueSet_IsWrittenOfItsKind_ItsUnitAndFormatKept_AndAsATextBeforeR2007`, which expected the refusal.
+`ResetValue` is as fast as before the looks it takes were added: 397 resets of a table of 400 rows take 1.6 to 1.7 s on
+.NET 10, where they took 2.0 s, and 4.8 s run alone, and 2.7 s on .NET Framework 4.8, where they took 2.9 s.
+
+**CHANGED.** A change of a `DxfTable`'s own colour, layer, linetype, linetype scale, lineweight, visibility or transparency
+as an entity is an edit of it too: the first merges the rows AutoCAD 2021 merges when it loads a file, as any other first
+edit does (check D33c e02, read back alike). No other entity's setters change.
+
 **FIXED.** In GeometryHelper.IfcConvert, files opened through `IfcStoreCache` on several threads at once, as the first
 thing a process does with xBIM, no longer throw "Collection was modified; enumeration operation may not execute." on
 some of them (check D36). xBIM sets up its services the first time a store asks for them and takes no lock doing it, so
@@ -35,9 +61,8 @@ takes about a quarter longer, and again after that about a third less; one with 
 `DeleteRows` and `DeleteColumns` alone did, and writes them merged, as AutoCAD writes them whenever it saves, edited or not
 (check D33c, 20 edits of a table read with its title unmerged, read back): the title Parts left unmerged over an empty
 cell comes out merged across the table after a row is put in, a value set or the table moved. Later edits merge nothing,
-so that a title unmerged in the session stays so, and a table read and not edited is written as it was read. Edits of
-the entity alone (a colour, a layer) do not merge. Existing test changed to build its states in the session that
-unmerges the title, as AutoCAD built them: `DxfTableD33bTests.AFirstRowThatHoldsMoreThanItsFirstCell_IsLeftUnmerged`.
+so that a title unmerged in the session stays so, and a table read and not edited is written as it was read. Existing
+test changed to build its states in the session that unmerges the title, as AutoCAD built them: `DxfTableD33bTests.AFirstRowThatHoldsMoreThanItsFirstCell_IsLeftUnmerged`.
 
 **CHANGED.** `DxfTable.Fill` above (or left of) its source and longer than it repeats the source back from the fill
 range's last cell, the source's last next to it, in whole lengths of the source, and leaves the cells of a length that

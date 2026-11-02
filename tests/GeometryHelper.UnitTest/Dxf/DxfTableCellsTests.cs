@@ -96,7 +96,8 @@ namespace GeometryHelper.UnitTest.Dxf
             Refused<ArgumentOutOfRangeException>(() => read.SetValue(2, 0, 1L << 40), "32 bits");
             Refused<ArgumentOutOfRangeException>(() => read.SetValue(2, 0, double.NaN), "finite");
             Refused<InvalidOperationException>(() => read.SetValue(2, 1, "x"), "holds a block");
-            Refused<InvalidOperationException>(() => read.ResetValue(2, 1), "holds a block");
+            read.ResetValue(2, 1);
+            Assert.Equal(DxfTableCellType.TextCell, read.CellType(2, 1));
             Assert.Throws<ArgumentNullException>(() => read.SetValue(2, 0, null));
 
             // Before R2007 a cell holds its text alone: the value is written as its text.

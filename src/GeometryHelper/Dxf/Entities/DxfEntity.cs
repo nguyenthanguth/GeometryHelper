@@ -96,6 +96,7 @@ namespace GeometryHelper.Dxf
 
                 if (!string.Equals(value, Layer, StringComparison.Ordinal))
                 {
+                    LookChanging();
                     Item.Layer = value;
                 }
             }
@@ -118,6 +119,7 @@ namespace GeometryHelper.Dxf
             {
                 if (value != ColorIndex)
                 {
+                    LookChanging();
                     Item.Colour = value;
                 }
             }
@@ -168,11 +170,13 @@ namespace GeometryHelper.Dxf
                     case DxfColorMethod.ByLayer:
                     case DxfColorMethod.ByBlock:
                     case DxfColorMethod.ByAci:
+                        LookChanging();
                         TrueColor = null;
                         Item.File.SetCommon(Item, 430, null);
                         ColorIndex = value.ColorIndex;
                         break;
                     case DxfColorMethod.ByColor:
+                        LookChanging();
                         TrueColor = value.ColorValue;
                         Item.File.SetCommon(Item, 430, null);
                         ColorIndex = value.ColorIndex;
@@ -203,6 +207,7 @@ namespace GeometryHelper.Dxf
             {
                 if (value != TrueColor)
                 {
+                    LookChanging();
                     Item.TrueColour = value;
                 }
             }
@@ -235,6 +240,7 @@ namespace GeometryHelper.Dxf
 
                 if (!string.Equals(value, Linetype, StringComparison.Ordinal))
                 {
+                    LookChanging();
                     Item.Linetype = value;
                 }
             }
@@ -262,6 +268,7 @@ namespace GeometryHelper.Dxf
 
                 Guard.Positive(value, nameof(value), "A linetype scale has to be a finite number above nought.");
                 Item.File.Requires(1012, "linetype scale of an entity's own", "R13 (AC1012)");
+                LookChanging();
                 Item.File.SetCommon(Item, 48, Numbers.Exact(value));
             }
         }
@@ -283,6 +290,7 @@ namespace GeometryHelper.Dxf
             {
                 if (value != LineWeight)
                 {
+                    LookChanging();
                     Item.Lineweight = (int)value;
                 }
             }
@@ -303,6 +311,7 @@ namespace GeometryHelper.Dxf
                 if (value != Visible)
                 {
                     Item.File.Requires(1012, "visibility of an entity", "R13 (AC1012)");
+                    LookChanging();
                     Item.File.SetCommon(Item, 60, value ? "0" : "1");
                 }
             }
@@ -336,6 +345,7 @@ namespace GeometryHelper.Dxf
                 }
 
                 Item.File.Requires(1018, "transparency", "R2004 (AC1018)");
+                LookChanging();
                 Item.File.SetCommon(Item, 440, value.IsByLayer ? null : value.Value.ToString(CultureInfo.InvariantCulture));
             }
         }
@@ -454,6 +464,7 @@ namespace GeometryHelper.Dxf
 
             if (bookChanges)
             {
+                LookChanging();
                 file.SetCommon(Item, 430, book);
             }
 
@@ -1374,6 +1385,15 @@ namespace GeometryHelper.Dxf
         /// group the record has not is put. Empty where a class sets none of its own.
         /// </summary>
         private protected virtual IReadOnlyList<int> GroupOrder => NoOrder;
+
+        /// <summary>
+        /// Called by the setters of the entity's look of its own (<see cref="Layer"/>, <see cref="Color"/>, <see cref="Linetype"/>
+        /// and the others of the look) before they write a change: nothing, but for a table, which merges the rows AutoCAD merges
+        /// when it loads a file, as at any edit of it (<see cref="DxfTable"/>).
+        /// </summary>
+        private protected virtual void LookChanging()
+        {
+        }
 
         /// <summary>The text of the first group of a code in the type's own part of the record, as the file writes it; null where it has none.</summary>
         private protected string GetString(int code) => Item.File.ValueOf(Item, code);

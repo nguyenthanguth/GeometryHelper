@@ -327,7 +327,11 @@ namespace GeometryHelper.Dxf
             }
 
             RowKinds kinds = numRows > rows ? Kinds(layout, cells, numCols, rows, numRows - rows, -1, valued, false) : numRows < rows ? DeletedKinds(layout, numRows, rows - numRows) : null;
-            Rebuild(layout, numRows, numCols, heights, widths, cells, blocks, LinksCut(layout, numRows, numCols));
+
+            // The cells put in, and those of the title merged anew, are emptied in the session (D33d a05).
+            bool anew = merge != null;
+            int[] places = Places(numRows, numCols, (r, c) => r < rows && c < columns && (!anew || r > 0 || c == 0) ? r * columns + c : -1);
+            Rebuild(layout, numRows, numCols, heights, widths, cells, blocks, LinksCut(layout, numRows, numCols), places);
 
             if (numRows != rows)
             {
@@ -387,18 +391,23 @@ namespace GeometryHelper.Dxf
             // the row under it changed before any new cell takes the look of one of them.
             TitleMerge merge = title && (at == 0 || at == columns) ? MergeTitleAgain(layout, valued) : null;
 
+            // The cells put in, and those of the title merged anew, are emptied in the session (D33d a02, a03, a09).
+            var places = new int[newRows * newColumns];
+
             for (int r = 0; r < newRows; r++)
             {
                 for (int c = 0; c < newColumns; c++)
                 {
                     int line = rowsOf ? r : c;
                     List<KeyValuePair<int, string>> cell;
+                    places[r * newColumns + c] = -1;
 
                     if (line < at || line >= at + count)
                     {
                         int oldRow = rowsOf && r >= at + count ? r - count : r;
                         int oldColumn = !rowsOf && c >= at + count ? c - count : c;
                         cell = merge?.Cells[oldRow * columns + oldColumn] ?? Slice(layout, oldRow * columns + oldColumn);
+                        places[r * newColumns + c] = merge == null || oldRow > 0 || oldColumn == 0 ? oldRow * columns + oldColumn : -1;
                     }
                     else if (inheritFrom >= 0)
                     {
@@ -441,6 +450,9 @@ namespace GeometryHelper.Dxf
                 List<KeyValuePair<int, string>> put = cells[0];
                 cells[0] = cells[count];
                 cells[count] = put;
+                int place = places[0];
+                places[0] = places[count];
+                places[count] = place;
 
                 // The title merged anew, the new cells after its text are of no value under its top line, the one next to it
                 // left of the line right of its text, as AutoCAD 2021 wrote them (D28d g2, b3).
@@ -458,7 +470,7 @@ namespace GeometryHelper.Dxf
             List<DxfCellRange> copied = inheritFrom >= 0 ? MergesAlong(found, rowsOf, inheritFrom, at, count, blocks) : null;
             RowKinds kinds = rowsOf ? Kinds(layout, cells, newColumns, at, count, inheritFrom, valued) : null;
 
-            Rebuild(layout, newRows, newColumns, heights, widths, cells, blocks, LinksInserted(layout, rowsOf, at, count));
+            Rebuild(layout, newRows, newColumns, heights, widths, cells, blocks, LinksInserted(layout, rowsOf, at, count), places);
             ContentInserted(rowsOf, at, count, size, inheritFrom, title ? columns : 0, rowsOf && inheritFrom < 0 && rows == 1);
 
             foreach (DxfCellRange block in copied ?? new List<DxfCellRange>())
@@ -651,7 +663,8 @@ namespace GeometryHelper.Dxf
             }
 
             RowKinds kinds = rowsOf ? DeletedKinds(layout, at, count) : null;
-            Rebuild(layout, newRows, newColumns, heights, widths, cells, blocks, LinksDeleted(layout, rowsOf, at, count));
+            int[] places = Places(newRows, newColumns, (r, c) => (rowsOf && r >= at ? r + count : r) * columns + (!rowsOf && c >= at ? c + count : c));
+            Rebuild(layout, newRows, newColumns, heights, widths, cells, blocks, LinksDeleted(layout, rowsOf, at, count), places);
             ContentDeleted(rowsOf, at, count);
             kinds?.WriteHead(this);
         }
@@ -714,6 +727,20 @@ namespace GeometryHelper.Dxf
             {
                 List<KeyValuePair<int, string>>[] cells = AllSlices(layout);
                 EmptyMerged(layout, cells, range, Item.File.Supports(1021));
+
+                // The cells it empties are emptied in the session, of no value or not before, on load too (D33c r10, D33d a01,
+                // a06); marked before the writing, so that the layout is not used after it.
+                for (int r = range.TopRow; r <= range.BottomRow; r++)
+                {
+                    for (int c = range.LeftColumn; c <= range.RightColumn; c++)
+                    {
+                        if (r != range.TopRow || c != range.LeftColumn)
+                        {
+                            MarkCell(layout, r * layout.Columns + c, SessionEmptied);
+                        }
+                    }
+                }
+
                 Rebuild(layout, layout.Rows, layout.Columns, null, null, cells, blocks, Links(layout));
                 ContentMerged(range, true, true);
             }
@@ -1092,7 +1119,9 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            Rebuild(layout, rows, columns, heights, widths, cells, blocks, links);
+            // The cells of the table it grew by are of no mark of the session.
+            int[] places = rows != layout.Rows || columns != layout.Columns ? Places(rows, columns, (r, c) => r < layout.Rows && c < layout.Columns ? r * layout.Columns + c : -2) : null;
+            Rebuild(layout, rows, columns, heights, widths, cells, blocks, links, places);
             return copied;
         }
 
@@ -1690,18 +1719,19 @@ namespace GeometryHelper.Dxf
         /// where given) in the place of those it had, its cells, row by row, each of the groups given, and the merging (173, 175,
         /// 176) of each cell made to agree with the blocks given where it does not already, and the links to data of each made
         /// to agree with the links given, named by their top left cells alone; the groups before its cells and after its last
-        /// kept as they are. Nothing is written where the record comes out the same.
+        /// kept as they are. Nothing is written where the record comes out the same. The marks of the session follow the cells
+        /// from the places given (<see cref="Places"/>), each cell kept where none are given.
         /// </summary>
-        private void Rebuild(Layout layout, int rows, int columns, IList<string> heights, IList<string> widths, IList<List<KeyValuePair<int, string>>> cells, IList<DxfCellRange> blocks, IList<LinkedRange> links)
+        private void Rebuild(Layout layout, int rows, int columns, IList<string> heights, IList<string> widths, IList<List<KeyValuePair<int, string>>> cells, IList<DxfCellRange> blocks, IList<LinkedRange> links, int[] places = null)
         {
             DxfDimGroups g = layout.Groups;
             int first = layout.CellStart[0];
             List<string> held = CellFields(layout);
 
-            // Cells move where rows or columns go in or out: those ResetValue emptied are forgotten.
-            if (rows != layout.Rows || columns != layout.Columns)
+            if (places != null || rows != layout.Rows || columns != layout.Columns)
             {
-                _reset = null;
+                _session = Moved(layout, places);
+                _sessionColumns = columns;
             }
 
             List<string> linked = LinkHandles(layout);
@@ -1779,6 +1809,61 @@ namespace GeometryHelper.Dxf
                 EraseFields(held);
                 EraseLinks(linked);
             }
+        }
+
+        /// <summary>The marks of a cell of the session (<see cref="_session"/>), by its index in the layout; none where the marks are of a table of another size.</summary>
+        private byte MarksOf(Layout layout, int index)
+            => _session != null && _sessionColumns == layout.Columns && _session.Length == layout.Rows * layout.Columns ? _session[index] : (byte)0;
+
+        /// <summary>Marks a cell of the layout, by its index, as <see cref="_session"/> says.</summary>
+        private void MarkCell(Layout layout, int index, byte marks)
+        {
+            if (_session == null || _sessionColumns != layout.Columns || _session.Length != layout.Rows * layout.Columns)
+            {
+                _session = new byte[layout.Rows * layout.Columns];
+                _sessionColumns = layout.Columns;
+            }
+
+            _session[index] |= marks;
+        }
+
+        /// <summary>
+        /// The place each cell of a table of the size given held before an edit, row by row, as <see cref="Rebuild"/> takes it:
+        /// the index of the cell it was, -1 for a cell put in or emptied by the edit, marked emptied in the session
+        /// (<see cref="SessionEmptied"/>), -2 for a cell put in of no mark.
+        /// </summary>
+        private static int[] Places(int rows, int columns, Func<int, int, int> place)
+        {
+            var places = new int[rows * columns];
+
+            for (int r = 0; r < rows; r++)
+            {
+                for (int c = 0; c < columns; c++)
+                {
+                    places[r * columns + c] = place(r, c);
+                }
+            }
+
+            return places;
+        }
+
+        /// <summary>The marks of the session of the cells after an edit, each those of its place before (<see cref="Places"/>); null where no cell is marked, or no places are given.</summary>
+        private byte[] Moved(Layout layout, int[] places)
+        {
+            byte[] moved = null;
+
+            for (int k = 0; places != null && k < places.Length; k++)
+            {
+                byte marks = places[k] >= 0 ? MarksOf(layout, places[k]) : places[k] == -1 ? SessionEmptied : (byte)0;
+
+                if (marks != 0)
+                {
+                    moved = moved ?? new byte[places.Length];
+                    moved[k] = marks;
+                }
+            }
+
+            return moved;
         }
 
         /// <summary>The fields the cells of the table point at (344), by their handles, each once, row by row.</summary>

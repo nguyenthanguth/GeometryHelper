@@ -46,8 +46,9 @@ namespace GeometryHelper.Dxf
     /// <para>
     /// AutoCAD 2021 merges across a table some rows it reads unmerged, the first among them, when it loads a file, and saves
     /// them merged whether the table was edited or not (D33c e05). The first edit of a table while its drawing is open, a
-    /// value, a look, a row, a fill or a move, merges them first, as <see cref="DeleteRows"/> describes, so that the edit is
-    /// made on what AutoCAD holds; a table read and not edited is written as it was read.
+    /// value, a look, a row, a fill or a move, or a change of its own colour, layer, linetype, lineweight, linetype scale,
+    /// visibility or transparency as an entity (D33c e02), merges them first, as <see cref="DeleteRows"/> describes, so that
+    /// the edit is made on what AutoCAD holds; a table read and not edited is written as it was read.
     /// </para>
     /// </remarks>
     public sealed partial class DxfTable : DxfEntity
@@ -66,9 +67,18 @@ namespace GeometryHelper.Dxf
         // Whether the rows AutoCAD 2021 merges when it loads the file have been merged, at the table's first edit (MergeAsLoaded).
         private bool _mergedAsLoaded;
 
-        // The cells, by row * columns + column, that ResetValue emptied while the drawing is open; null where none, or since
-        // rows or columns went in or out.
-        private HashSet<int> _reset;
+        // What each cell went through while the drawing is open, by row * columns + column (SessionEmptied, SessionReset and the
+        // flags 0x08, 0x10, 0x20 of the looks a reset kept as the table's), the marks following the cells as rows and columns go
+        // in and out (Rebuild); null where no cell is marked. Read only for a table of _sessionColumns columns and as many cells
+        // as it holds.
+        private byte[] _session;
+        private int _sessionColumns;
+
+        // A cell emptied in the session, by ResetValue, an empty text, a merge, or put in, which ClearTableStyleOverrides of 0 or
+        // 2 keeps of none; and one whose content's looks ResetValue weighed, which ClearTableStyleOverrides of 1 takes away
+        // where they are the table's.
+        private const byte SessionEmptied = 1;
+        private const byte SessionReset = 2;
 
         private DxfTable(DxfItem item)
             : base(item)
@@ -791,7 +801,10 @@ namespace GeometryHelper.Dxf
         /// given as letters or as escapes, are a 3 of 250 escapes and a 1 of 50 (AutoCAD reads a cell in groups 2 as empty, and
         /// the escapes of each piece alone); from R2007 on its value written as a text (90 of 4), in pieces of 2 and a last 1, and
         /// its text in pieces of 303 and a last 302, the value's flags (93) made 6 where they had the flag 1 of no value, which
-        /// AutoCAD 2021 reads as none whatever the text (a block cell made a text cell and given M16 read empty). A pointer to a
+        /// AutoCAD 2021 reads as none whatever the text (a block cell made a text cell and given M16 read empty). An empty text
+        /// is, from R2007 on, the value of none <see cref="ResetValue"/> leaves, as AutoCAD 2021 wrote it (93 7, 90 0, the flag
+        /// 0x40000 taken out, D33c r09, D33d s01 to s10), the looks of the content gone with it as there, whatever the cell held:
+        /// B-12, 1.5 or the empty text of the title's hidden cell given an empty text are of no value. A pointer to a
         /// field (344) is taken out, the text being the cell's own now, and the field erased with its children where the table
         /// owns it and nothing else of the file points at it, a copy of the table among them. The words the cell has, as they
         /// are written or as they read, change nothing. The block AutoCAD drew the table with is not drawn anew.
@@ -820,6 +833,13 @@ namespace GeometryHelper.Dxf
             if (cell.Whole(171, 1) == (int)DxfTableCellType.BlockCell)
             {
                 throw new InvalidOperationException("The cell (" + row.ToString(CultureInfo.InvariantCulture) + ", " + col.ToString(CultureInfo.InvariantCulture) + ") holds a block, not a text.");
+            }
+
+            // From R2007 on an empty text is the value of none ResetValue leaves, as AutoCAD 2021 wrote it (D33c r09, D33d s01 to s10).
+            if (value.Length == 0 && cell.ValueFrom >= 0)
+            {
+                ResetValue(row, col);
+                return;
             }
 
             if (cell.Holds(value) && cell.Head(344) == null)
@@ -1436,6 +1456,9 @@ namespace GeometryHelper.Dxf
 
             return count == 1;
         }
+
+        /// <summary>The rows AutoCAD 2021 merges on load merged before the table's own look changes, as at any edit of it (<see cref="MergeAsLoaded"/>, D33c e02).</summary>
+        private protected override void LookChanging() => MergeAsLoaded();
 
         /// <summary>The table's layout read anew, to be changed and written, the rows AutoCAD merges on load merged first (<see cref="MergeAsLoaded"/>).</summary>
         private Layout ReadToWrite() => MergeAsLoaded() ?? new Layout(Own());
