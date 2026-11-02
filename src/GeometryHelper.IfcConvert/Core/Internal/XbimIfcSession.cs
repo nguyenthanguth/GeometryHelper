@@ -2,11 +2,13 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 using GeometryHelper.IfcConvert.Converters.Internal;
 using GeometryHelper.IfcConvert.Models;
 using GeometryHelper.Geometry;
+using Xbim.Common.Configuration;
 using Xbim.Ifc;
 using Xbim.Ifc4.Interfaces;
 using Xbim.IO.Memory;
@@ -53,6 +55,15 @@ namespace GeometryHelper.IfcConvert.Core.Internal
         public string SchemaVersion => _store?.SchemaVersion.ToString() ?? string.Empty;
 
         public string OriginalLengthUnit => _units.Value.LengthUnitName;
+
+        // xBIM sets up its services the first time a store asks for them, and takes no lock doing it: a store opened on
+        // another thread meanwhile reads the list of services while it is written to, and throws "Collection was
+        // modified". The first session sets them up before any store is opened, and sessions on other threads wait.
+        static XbimIfcSession()
+        {
+            RuntimeHelpers.RunClassConstructor(typeof(IfcStore).TypeHandle);
+            _ = XbimServices.Current.ServiceProvider;
+        }
 
         public XbimIfcSession(string filePath)
         {

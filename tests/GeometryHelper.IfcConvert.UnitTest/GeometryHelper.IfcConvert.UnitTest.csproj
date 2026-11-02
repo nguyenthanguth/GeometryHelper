@@ -59,6 +59,14 @@
       <HintPath>..\..\src\GeometryHelper.IfcConvert\Lib\Xbim.Tessellator.dll</HintPath>
       <Private>true</Private>
     </Reference>
+    <Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions">
+      <HintPath>..\..\src\GeometryHelper.IfcConvert\Lib\Microsoft.Extensions.DependencyInjection.Abstractions.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Logging.Abstractions">
+      <HintPath>..\..\src\GeometryHelper.IfcConvert\Lib\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>

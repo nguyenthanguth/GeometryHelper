@@ -6,6 +6,15 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** In GeometryHelper.IfcConvert, files opened through `IfcStoreCache` on several threads at once, as the first
+thing a process does with xBIM, no longer throw "Collection was modified; enumeration operation may not execute." on
+some of them (check D36). xBIM sets up its services the first time a store asks for them and takes no lock doing it, so
+a store opened on another thread meanwhile read the list of services while it was being written to. The first
+`IfcStoreCache` now sets them up before its store is opened, and those on other threads wait for it. With a thread
+paused where a pause loses the race, 8 threads opening a file at once in a fresh application domain failed on 30 of 40
+threads in 5 rounds out of 5, and fail on none now. Converting on several threads never met it, since conversion starts
+once a store is open, and Tekla reference models open their files one at a time.
+
 **CHANGED.** An annotative TEXT, ATTRIB or ATTDEF with contexts is read where AutoCAD 2021 shows it once it has read the
 drawing (check D35): its `Position`, `AlignmentPoint` and `Rotation` are those of its context of the scale 1:1, else of
 its default context, whatever CANNOSCALE says, at the elevation of its record, and its `Height` is the record's times the

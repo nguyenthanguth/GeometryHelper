@@ -307,6 +307,8 @@ Measured on a 115 MB Tekla IFC (25 000 products):
   spellings of the same full path (`/` or `\`, `.` and `..` segments, letter case) share one cached model.
 - The cache does not watch the file. After the file changes on disk, call `ClearGlobalCache(path)` to reload it.
 - Opening happens under the cache lock, so threads opening different files wait for each other.
+  `Open` takes no lock, and files can be opened with it on several threads at once, the first time in a process
+  included: the first to open sets xBIM up while the others wait for it.
 - Geometry that several products share -- a representation map every bolt of a size maps, a brep several
   beams point at -- is built once per file and settings and placed for each product, unless openings are cut
   from it (`ApplyVoids`). 2,711 products of a 116 MB Tekla model took 7.4 s instead of 3.6 minutes.
