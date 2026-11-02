@@ -314,12 +314,11 @@ namespace GeometryHelper.Dxf
         /// <see cref="int"/>, <see cref="short"/>, <see cref="byte"/> or a <see cref="long"/> within the 32 bits AutoCAD's whole
         /// number holds a <see cref="DxfDataType.Long"/>, a <see cref="double"/> or <see cref="float"/> a
         /// <see cref="DxfDataType.Double"/>. From R2007 on the value is written of its kind (90), in 91, 140 or 1, its text
-        /// (302) the number as the invariant culture writes it, 7, its unit (94) and format (300) kept, its flags (93) made 6
-        /// where they had the flag 1 of no value, as AutoCAD writes a value it is given; the text of a number of its kind
-        /// <see cref="DxfDataType.Double"/> as AutoCAD 2021 wrote it and showed it, of six places of decimals where the value
-        /// has no format, 12.500000 for 12.5, and of the places of a decimal format, 12.500 for <c>%lu2%pr3</c> (D28e v09,
-        /// v11, w30 to w33), where the library wrote 12.5, which AutoCAD showed as it was; a format of another unit leaves the
-        /// text 12.5, the library not writing feet and inches. Before R2007 a cell holds a text alone, and the value is
+        /// (302) the number as the invariant culture writes it, 7, its unit (94) kept and its format (300) taken away, as
+        /// AutoCAD 2021 wrote 100.125 given to a cell of 1 in <c>%lu4%pr3</c> (D33 u7), its flags (93) made 6 where they had
+        /// the flag 1 of no value, as AutoCAD writes a value it is given; the text of a number of its kind
+        /// <see cref="DxfDataType.Double"/> as AutoCAD 2021 wrote it and showed it, of six places of decimals, 12.500000 for
+        /// 12.5 (D28e v09, w30 to w33), where the library wrote 12.5, which AutoCAD showed as it was. Before R2007 a cell holds a text alone, and the value is
         /// written as its text, as <see cref="SetTextString(int, int, string)"/> writes one, a number as the invariant culture
         /// writes it, 12.5, which keeps it whole where AutoCAD 2021 wrote 12.500000 (w09): the text is all the cell holds. A pointer to a field (344) is taken
         /// out, its field erased where the table owns it and nothing else of the file points at it. The value the cell has, a
@@ -337,7 +336,7 @@ namespace GeometryHelper.Dxf
             Written written = ValueToWrite(value, nameof(value));
             CellView cell = CellToWrite(row, col);
             CheckText(cell, row, col);
-            string shown = written.Value is double real && cell.ValueFrom >= 0 ? RealText(real, cell.InValue(300)) ?? written.Text : written.Text;
+            string shown = written.Value is double real && cell.ValueFrom >= 0 ? RealText(real, null) : written.Text;
 
             if (cell.ValueFrom < 0)
             {
@@ -363,7 +362,7 @@ namespace GeometryHelper.Dxf
 
             CheckEditable();
             string field = cell.Head(344);
-            cell.WriteValue(((int)written.Kind).ToString(CultureInfo.InvariantCulture), written.Data, shown, null, null, true);
+            cell.WriteValue(((int)written.Kind).ToString(CultureInfo.InvariantCulture), written.Data, shown, null, string.Empty, true);
             cell.DropField();
             cell.Groups.Write(Order);
             EraseFields(new[] { field });
@@ -416,8 +415,10 @@ namespace GeometryHelper.Dxf
         /// Sets the format of a cell's value, as AutoCAD's <c>SetFormat(row, col, format)</c>: its value's 300, as AutoCAD writes
         /// it, <c>%lu2%pr2</c> for a decimal of two places, the value kept; the text of a number of its kind
         /// <see cref="DxfDataType.Double"/> written as AutoCAD 2021 wrote it, of the places a decimal format gives, 12.500 for
-        /// <c>%lu2%pr3</c>, and of six where the format is taken away (D28e v11), any other text kept, the library not formatting
-        /// the value of a format of another unit or another kind. No flag of the cell's overrides is set: the format is written in its value,
+        /// <c>%lu2%pr3</c>, in feet and inches for an architectural format, 1'-0 1/2" for 12.5 in <c>%lu4%pr2</c> (D33 u1 to u8;
+        /// to the nearest 1/2^N of an inch, four where no <c>%prN</c> is given, <c>%zs1</c> and <c>%zs2</c> leaving out nought
+        /// feet and nought inches), and of six where the format is taken away (D28e v11), any other text kept, the library not
+        /// formatting the value of a format of another unit or another kind, nor one of more feet than 32 bits hold. No flag of the cell's overrides is set: the format is written in its value,
         /// and <see cref="GetOverrides(int, int, int)"/> gives what it gave. A cell before R2007 holds no value to give a format.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
@@ -480,20 +481,27 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Sets the kind of a cell's value and what its number measures, as AutoCAD's <c>SetDataType(row, col, dataType,
-        /// unitType)</c>: its value's 90 and 94, from R2007 on. A value of another kind is turned into the new one: the text 12
-        /// into the whole number 12, the whole number 12 into the number 12, a number into the text it shows (302); one that is
-        /// not of the new kind, as the text Parts for a number, is refused, as is a kind other than a text, a whole number and
-        /// a number, for which the library knows no groups: the DXF reference does not describe a cell's value. The unit alone
-        /// is written in place, the value kept; a unit of several flags, as <c>Angle | AngleNotTransformed</c> (65 538), is
-        /// written as it is. No flag of the cell's overrides is set, its 0x40000 among them: the kind is written in its value,
-        /// and <see cref="GetOverrides(int, int, int)"/> gives what it gave.
+        /// unitType)</c>: its value's 90 and 94, from R2007 on, as AutoCAD 2021 turned each value (D33 d1 to d12, t1 to t16).
+        /// A whole number becomes the number 7, shown 7.000000, or the text 7; a number the whole number it holds cut towards
+        /// nought, 12.7 12 and -12.7 -12, one beyond 32 bits -2147483648, or the text it shows, 12.500000; a text the whole
+        /// number it reads, 12 of " 12 " and of 12.25, or the number it reads, shown in the drawing's units and given the
+        /// format <c>%lu6</c> of them, 12.0000 of 12 where LUNITS is 2 and LUPREC 4, or <c>%lu1</c> of powers of ten for a text
+        /// written in them, 1.0000E+03 of 1e3. Each takes away the flag 2 of the value (93 6 made 4) but a text of a whole number
+        /// made that number. A value not of the new kind, the text B-12 for a number, becomes a value of none of that kind,
+        /// <c>93 7</c>, an empty text, its unit not written; a value of none stays one, its flag 2 taken away (<c>93 5</c>).
+        /// AutoCAD refuses no kind; a kind other than a text, a whole number and a number is refused here, the library knowing
+        /// no groups for it: the DXF reference does not describe a cell's value. The unit alone is written in place, the value
+        /// kept; a unit of several flags, as <c>Angle | AngleNotTransformed</c> (65 538), is written as it is. No flag of the
+        /// cell's overrides is set, its 0x40000 among them: the kind is written in its value, and
+        /// <see cref="GetOverrides(int, int, int)"/> gives what it gave. A drawing's units of engineering or fractions are not
+        /// written by the library: a text read as a number in them is written as the invariant culture writes it.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="col">The column, from nought.</param>
         /// <param name="dataType">The kind: <see cref="DxfDataType.String"/>, <see cref="DxfDataType.Long"/> or <see cref="DxfDataType.Double"/>.</param>
         /// <param name="unitType">What its number measures, made of the flags of <see cref="DxfUnitType"/>.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the cell is not one of the table's, or the unit holds a flag none of <see cref="DxfUnitType"/> has.</exception>
-        /// <exception cref="ArgumentException">Thrown when the kind is not one written, or the value is not of it.</exception>
+        /// <exception cref="ArgumentException">Thrown when the kind is not one written.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the cell holds its text alone, as a file before R2007 writes it, or the table is erased.</exception>
         public void SetDataType(int row, int col, DxfDataType dataType, DxfUnitType unitType)
         {
@@ -521,9 +529,29 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            Written written = Converted(cell.Value(), cell.Text(), dataType, nameof(dataType));
+            if (dataType != DxfDataType.String && dataType != DxfDataType.Long && dataType != DxfDataType.Double)
+            {
+                throw new ArgumentException("A cell's value is written as a text, a whole number or a number: " + dataType + " is not, the library knowing no groups for it, as the DXF reference does not describe a cell's value.", nameof(dataType));
+            }
+
+            int flags = int.TryParse(cell.InValue(93)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int read) ? read : 6;
+            string newKind = ((int)dataType).ToString(CultureInfo.InvariantCulture);
+            bool keepFlags = false;
+            string format = null;
+            Written written = (flags & 1) != 0 ? null : Turned(cell, dataType, out keepFlags, out format);
             CheckEditable();
-            cell.WriteValue(((int)dataType).ToString(CultureInfo.InvariantCulture), written.Data, written.Text, unit, null);
+
+            if (written == null)
+            {
+                // No value of the new kind: a value of none (93 7) where the cell held one, the flag 2 taken away where it held none (93 5); its unit not written.
+                string none = ((flags & 1) != 0 ? flags & ~2 : flags | 1).ToString(CultureInfo.InvariantCulture);
+                cell.WriteValue(newKind, new List<KeyValuePair<int, string>>(), string.Empty, null, null, false, none);
+            }
+            else
+            {
+                cell.WriteValue(newKind, written.Data, written.Text, unit, format, false, (keepFlags ? flags : flags & ~2).ToString(CultureInfo.InvariantCulture));
+            }
+
             cell.Groups.Write(Order);
         }
 
@@ -596,8 +624,9 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// The text AutoCAD 2021 shows a number by, as it wrote it (D28e v09, v11, w30 to w33): of six places of decimals where
         /// the value has no format, 12.500000, 0.333333 and -0.125000; of the places of a decimal format (<c>%lu2%prN</c>), 12.500
-        /// for <c>%lu2%pr3</c>; null for a format of another kind, which the library does not write. The sign is kept on a
-        /// number that rounds to nought, as AutoCAD's printf writes it, on every runtime.
+        /// for <c>%lu2%pr3</c>; of feet and inches for an architectural format (<c>%lu4</c>, <see cref="Architectural"/>);
+        /// null for a format of another kind, which the library does not write. The sign is kept on a decimal number that
+        /// rounds to nought, as AutoCAD's printf writes it, on every runtime.
         /// </summary>
         private static string RealText(double value, string format)
         {
@@ -607,11 +636,62 @@ namespace GeometryHelper.Dxf
 
             if (places == null)
             {
-                return null;
+                Match feet = Regex.Match(format, "^%lu4(?:%pr([0-9]))?(?:%zs([0-9]{1,2}))?$");
+                return feet.Success ? Architectural(value, feet.Groups[1].Success ? feet.Groups[1].Value[0] - '0' : 4, feet.Groups[2].Success ? int.Parse(feet.Groups[2].Value, CultureInfo.InvariantCulture) : 0) : null;
             }
 
             string text = Math.Abs(value).ToString("F" + places, CultureInfo.InvariantCulture);
             return value < 0.0 ? "-" + text : text;
+        }
+
+        /// <summary>
+        /// A number of inches in feet and inches, as AutoCAD 2021 wrote a value of an architectural format (D33 P, P2, u1 to
+        /// u8): to the nearest 1/2^N of an inch for <c>%prN</c> (four where none is given, N from 0 to 9), a half away from
+        /// nought, the fraction reduced, 12.5 of <c>%lu4%pr2</c> 1'-0 1/2" and 11.99 1'-0"; a minus only where the number
+        /// rounded is not nought, -0.25 -0'-0 1/4" and -0.001 0'-0"; with <c>%zs1</c> nought feet left out (7.25 7 1/4",
+        /// 0.75 3/4", 0 0") and with <c>%zs2</c> nought inches (12 1', 0 0'), the other flags changing nothing. Null for a
+        /// number of more feet than 32 bits hold, which AutoCAD writes as garbage or in powers of ten.
+        /// </summary>
+        private static string Architectural(double value, int precision, int zeros)
+        {
+            long parts = 1L << precision;
+            double rounded = Math.Round(Math.Abs(value) * parts, MidpointRounding.AwayFromZero);
+
+            if (rounded / (12 * parts) > int.MaxValue)
+            {
+                return null;
+            }
+
+            long count = (long)rounded;
+            long feet = count / (12 * parts);
+            long inches = count % (12 * parts) / parts;
+            long fraction = count % parts;
+            long under = parts;
+
+            while (fraction != 0 && fraction % 2 == 0)
+            {
+                fraction /= 2;
+                under /= 2;
+            }
+
+            string sign = count != 0 && value < 0.0 ? "-" : string.Empty;
+            string inch = fraction == 0 ? inches.ToString(CultureInfo.InvariantCulture) : inches == 0 && feet == 0 && (zeros & 1) != 0 ? fraction + "/" + under : inches + " " + fraction + "/" + under;
+            string text;
+
+            if (feet == 0 && (zeros & 1) != 0)
+            {
+                text = inch + "\"";
+            }
+            else if (inches == 0 && fraction == 0 && (zeros & 2) != 0)
+            {
+                text = feet.ToString(CultureInfo.InvariantCulture) + "'";
+            }
+            else
+            {
+                text = feet.ToString(CultureInfo.InvariantCulture) + "'-" + inch + "\"";
+            }
+
+            return sign + text;
         }
 
         private static Written Whole(int whole)
@@ -627,49 +707,80 @@ namespace GeometryHelper.Dxf
             return new Written(DxfDataType.Double, real + 0.0, new[] { new KeyValuePair<int, string>(140, text) }, text);
         }
 
-        /// <summary>A cell's value turned into another kind; refused where it is not of that kind.</summary>
-        private static Written Converted(object now, string text, DxfDataType kind, string parameter)
+        /// <summary>
+        /// A cell's value turned into another kind as AutoCAD 2021 turns it (D33 d1 to d12, t1 to t16): its data, its text,
+        /// whether the flags of the value are kept (a text of a whole number made that number) or lose the flag 2, and the
+        /// format written (<c>%lu6</c> or <c>%lu1</c> for a text read as a number, null to keep the cell's); null where the
+        /// value is not of the kind, which leaves a value of none.
+        /// </summary>
+        private Written Turned(CellView cell, DxfDataType kind, out bool keepFlags, out string format)
         {
+            object now = cell.Value();
+            string text = cell.Text();
+            keepFlags = false;
+            format = null;
+
             switch (kind)
             {
                 case DxfDataType.String:
-                    return new Written(DxfDataType.String, text, CellView.Pieces(text, 2, 1), text);
+                    string shown = now is int whole ? whole.ToString(CultureInfo.InvariantCulture) : text;
+                    return new Written(DxfDataType.String, shown, CellView.Pieces(shown, 2, 1), shown);
                 case DxfDataType.Long:
-                    if (now is int whole)
+                    if (now is double real)
                     {
-                        return Whole(whole);
-                    }
-
-                    if (now is double real && Math.Floor(real) == real && real >= int.MinValue && real <= int.MaxValue)
-                    {
-                        return Whole((int)real);
+                        return Whole(Cut(real));
                     }
 
                     if (now is string words && int.TryParse(words.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int read))
                     {
+                        keepFlags = true;
                         return Whole(read);
                     }
 
-                    throw new ArgumentException("The cell's value " + text + " is not a whole number of 32 bits.", parameter);
-                case DxfDataType.Double:
+                    return now is string figures && Numbers.TryRead(figures, out double parsed) && Guard.IsFinite(parsed) ? Whole(Cut(parsed)) : null;
+                default:
                     if (now is int number)
                     {
-                        return Real(number, parameter);
+                        return new Written(DxfDataType.Double, (double)number, new[] { new KeyValuePair<int, string>(140, Numbers.Exact(number + 0.0)) }, RealText(number, cell.InValue(300)) ?? RealText(number, null));
                     }
 
-                    if (now is double kept)
+                    if (!(now is string digits) || !Numbers.TryRead(digits, out double value) || !Guard.IsFinite(value))
                     {
-                        return new Written(DxfDataType.Double, kept, new[] { new KeyValuePair<int, string>(140, Numbers.Exact(kept + 0.0)) }, text);
+                        return null;
                     }
 
-                    if (now is string figures && Numbers.TryRead(figures, out double parsed) && Guard.IsFinite(parsed))
-                    {
-                        return Real(parsed, parameter);
-                    }
+                    bool tens = digits.IndexOf('e') >= 0 || digits.IndexOf('E') >= 0;
+                    DxfDatabase database = IsResident ? Item.File.Database : null;
+                    format = tens ? "%lu1" : "%lu6";
+                    return new Written(DxfDataType.Double, value + 0.0, new[] { new KeyValuePair<int, string>(140, Numbers.Exact(value + 0.0)) }, UnitsText(value, tens ? 1 : database?.Lunits ?? 2, database?.Luprec ?? 4));
+            }
+        }
 
-                    throw new ArgumentException("The cell's value " + text + " is not a number.", parameter);
+        /// <summary>A number cut towards nought to a whole number, as AutoCAD 2021 cut 12.7 to 12 and -12.7 to -12; one beyond 32 bits -2147483648, as it wrote 3E9 (D33 t4, t5, DT).</summary>
+        private static int Cut(double value)
+        {
+            double cut = Math.Truncate(value);
+            return cut < int.MinValue || cut > int.MaxValue ? int.MinValue : (int)cut;
+        }
+
+        /// <summary>
+        /// A number shown in a drawing's units (LUNITS) to its places (LUPREC), as AutoCAD 2021 showed a text made a number of
+        /// <c>%lu6</c> or <c>%lu1</c> (D33 t1, t2, t16): of powers of ten 1.0000E+03, decimal 12.0000 and -0.5000, architectural
+        /// as <see cref="Architectural"/>; of the units of engineering and fractions, which the library does not write, as the
+        /// invariant culture writes it.
+        /// </summary>
+        private static string UnitsText(double value, int units, int places)
+        {
+            switch (units)
+            {
+                case 1:
+                    return value.ToString((places > 0 ? "0." + new string('0', places) : "0") + "E+00", CultureInfo.InvariantCulture);
+                case 2:
+                    return value.ToString("F" + places.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+                case 4:
+                    return Architectural(value, Math.Min(places, 9), 0) ?? Numbers.Exact(value + 0.0);
                 default:
-                    throw new ArgumentException("A cell's value is written as a text, a whole number or a number: " + kind + " is not, the library knowing no groups for it, as the DXF reference does not describe a cell's value.", parameter);
+                    return Numbers.Exact(value + 0.0);
             }
         }
 
@@ -1201,46 +1312,88 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Keeps of what a content of a cell holds of its own over its table style those given, as AutoCAD's
-        /// <c>SetOverrides(row, column, contentIndex, override)</c>: the others taken away, their groups and flags, so that the
-        /// cell takes them from its table style; <see cref="DxfCellProperties.Invalid"/> takes its look away. One of its look it
-        /// does not hold is given by its setter (<see cref="SetAlignment(int, int, DxfCellAlignment)"/> and the others), the
-        /// library not reading the table style whose value it would take, and is refused here; its kind of value, which no
-        /// setter of the library gives, can be kept only where the cell holds it already. Its kind of value
-        /// (<see cref="DxfCellProperties.DataType"/>, the flag 0x40000), for which the library knows no groups, is kept whether
-        /// given or not, as <see cref="RemoveAllOverrides(int, int)"/> keeps it: the cell of flags 262 193 given
-        /// <see cref="DxfCellProperties.Invalid"/> keeps 262 144. The block AutoCAD drew the table with is not drawn anew.
+        /// Gives a content of a cell the overrides named of its own over its table style, as AutoCAD's <c>SetOverrides(row,
+        /// column, contentIndex, override)</c> does (D33 o1 to o14, o20 to o28, and D28e v42): its flags made those named, the
+        /// alignment (flag 1) and background (2 and 4) of the cell kept where it holds them, as AutoCAD keeps them whatever is
+        /// named. One named it does not hold is given the value AutoCAD gives it: the alignment its row shows, the header's
+        /// middle centre (<c>170 5</c>) of AutoCAD's Standard; a background of none (<c>63 0</c>, <c>283 1</c>); the colour
+        /// by block (<c>64 0</c>); the text height of its content's own format, 0.18 (<c>140 0.18</c>), not the 4.5 the cell
+        /// showed; a text style of none, its flag alone; and its kind of value (<see cref="DxfCellProperties.DataType"/> or
+        /// <see cref="DxfCellProperties.DataFormat"/>, the flag 0x40000), its flag alone. The colour, text style, height and
+        /// kind of value not named are taken away, their groups and flags, so that the cell takes them from its table style;
+        /// the others named, as its margins or its turn, write nothing. Qty of flags 262 144 given
+        /// <see cref="DxfCellProperties.TextHeight"/> is written <c>91 32</c> and <c>140 0.18</c>; Mark of 170 5, GH_TXT and
+        /// 3.5 given <see cref="DxfCellProperties.Invalid"/> keeps its alignment alone, <c>91 1</c>. The block AutoCAD drew the
+        /// table with is not drawn anew.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="column">The column, from nought.</param>
         /// <param name="contentIndex">The content, nought.</param>
-        /// <param name="overrides">The overrides to keep.</param>
+        /// <param name="overrides">The overrides the content has of its own.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the cell is not one of the table's, or the content is not nought.</exception>
-        /// <exception cref="ArgumentException">Thrown when an override is given that the cell does not hold.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the table is erased.</exception>
         public void SetOverrides(int row, int column, int contentIndex, DxfCellProperties overrides)
         {
             CheckContent(contentIndex);
             CellView cell = CellToWrite(row, column);
-            DxfCellProperties now = PropertiesOf(cell.Flags ?? cell.Held());
-            DxfCellProperties added = overrides & ~now;
+            int now = cell.Flags ?? cell.Held();
+            int named = FlagsOf(overrides) | ((overrides & (DxfCellProperties.DataType | DxfCellProperties.DataFormat)) != 0 ? DataTypeFlag : 0);
+            int wanted = (now & 0x07) | named;
+            int flagsCode = Item.File.Supports(1021) ? 91 : 177;
 
-            if (added != DxfCellProperties.Invalid)
-            {
-                string how = added == DxfCellProperties.DataType ? "the library gives no cell that flag, so it is kept only where the cell holds it" : "it is given one by its setter, as SetAlignment";
-                throw new ArgumentException("The cell (" + row.ToString(CultureInfo.InvariantCulture) + ", " + column.ToString(CultureInfo.InvariantCulture) + ") holds no " + added + " of its own to keep: " + how + ".", nameof(overrides));
-            }
-
-            // Its kind of value is kept, given or not, as RemoveAllOverrides keeps it.
-            DxfCellProperties taken = now & ~overrides & ~DxfCellProperties.DataType;
-
-            if (taken == DxfCellProperties.Invalid)
+            if (wanted == now && cell.Flags.HasValue)
             {
                 return;
             }
 
             CheckEditable();
-            cell.RemoveOverrides(FlagsOf(taken));
+            cell.RemoveOverrides(now & ~wanted & (0x08 | 0x10 | 0x20 | DataTypeFlag));
+            cell = new CellView(cell.Groups, cell.From, cell.To);
+            int added = wanted & ~now;
+
+            if ((added & 0x01) != 0)
+            {
+                DxfRowType type = RowType(row);
+                int rowKind = type == DxfRowType.TitleRow ? 0 : type == DxfRowType.HeaderRow ? 1 : 2;
+                cell.SetOverride(170, OwnText(Read(), RowLooks[170] + rowKind) ?? StyleLooks()[rowKind][0], flagsCode);
+            }
+
+            if ((added & 0x06) != 0)
+            {
+                cell.SetOverride(63, "0", flagsCode);
+                cell.SetOverride(283, "1", flagsCode);
+            }
+
+            if ((added & 0x08) != 0)
+            {
+                cell.SetOverride(64, "0", flagsCode);
+            }
+
+            if ((added & 0x20) != 0)
+            {
+                cell.SetOverride(140, "0.18", flagsCode);
+            }
+
+            cell.SetFlags(wanted, flagsCode);
+            cell.Groups.Write(Order);
+        }
+
+        /// <summary>
+        /// Takes away the overrides of a cell's look named, their groups and their flags, so that it takes them from its table
+        /// style: what <see cref="DxfCell"/> does with a look set to null. The others, its kind of value among them, are kept.
+        /// </summary>
+        internal void TakeOverrides(int row, int column, DxfCellProperties properties)
+        {
+            CellView cell = CellToWrite(row, column);
+            int mask = FlagsOf(properties);
+
+            if ((((cell.Flags ?? 0) | cell.Held()) & mask) == 0)
+            {
+                return;
+            }
+
+            CheckEditable();
+            cell.RemoveOverrides(mask);
             cell.Groups.Write(Order);
         }
 

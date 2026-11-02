@@ -131,7 +131,7 @@ namespace GeometryHelper.UnitTest.Dxf
             table.SetDataFormat(2, 0, 0, "%lu2%pr2");
 
             string record = TableRecord(db.ToText());
-            Assert.Contains("301\nCELL_VALUE\n 93\n6\n 90\n2\n140\n12\n 94\n1\n300\n%lu2%pr2\n302\n12.00\n304\nACVALUE_END\n", record, StringComparison.Ordinal);
+            Assert.Contains("301\nCELL_VALUE\n 93\n4\n 90\n2\n140\n12\n 94\n1\n300\n%lu2%pr2\n302\n12.00\n304\nACVALUE_END\n", record, StringComparison.Ordinal);
             Assert.Equal("%lu2%pr2", Table(DxfDatabase.Parse(db.ToText())).GetDataFormat(2, 0));
 
             // The unit alone is written in place; a number turned into a text is the text it shows.
@@ -141,8 +141,6 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal("12.00", table.Value(2, 0));
             Assert.Equal("%lu2%pr2", table.Format(2, 0));
 
-            Refused<ArgumentException>(() => table.SetDataType(1, 0, DxfDataType.Double, DxfUnitType.Unitless), "Mark is not a number");
-            Refused<ArgumentException>(() => table.SetDataType(1, 0, DxfDataType.Long, DxfUnitType.Unitless), "Mark is not a whole number");
             Refused<ArgumentException>(() => table.SetDataType(1, 0, DxfDataType.Date, DxfUnitType.Unitless), "no groups");
             Refused<ArgumentOutOfRangeException>(() => table.SetDataType(1, 0, DxfDataType.String, (DxfUnitType)64), "DxfUnitType");
             Refused<ArgumentException>(() => table.SetFormat(1, 0, "a\nb"), "one line");
@@ -232,15 +230,16 @@ namespace GeometryHelper.UnitTest.Dxf
                 OnlyTheseChanged(text, saved, "F6");
                 string record = TableRecord(saved);
 
-                // Each after the cell's head (and its value from R2007 on), in the order 7, 140, 170, 64, 63, ..., 283.
+                // Before R2007 after the cell's text, in the order 7, 140, 170, 64, 63, ..., 283; from R2007 on in its head before
+                // its 92, those it held after its value with them, in the order AutoCAD 2021 writes them (D33 s30 to s35).
                 Assert.Contains(flags + "\n1\n178\n", record, StringComparison.Ordinal);
-                Assert.Contains((r2000 ? "  1\nQty\n" : "302\nQty\n304\nACVALUE_END\n") + "170\n1\n171\n", record, StringComparison.Ordinal);
+                Assert.Contains(r2000 ? "  1\nQty\n170\n1\n171\n" : "145\n0.0\n170\n1\n 92\n0\n301\nCELL_VALUE\n 93\n6\n 90\n4\n  1\nQty\n", record, StringComparison.Ordinal);
                 Assert.Contains(flags + "\n57\n178\n", record, StringComparison.Ordinal);
-                Assert.Contains("  7\nGH_TXT\n140\n3.5\n170\n5\n 64\n1\n171\n", record, StringComparison.Ordinal);
+                Assert.Contains(r2000 ? "  7\nGH_TXT\n140\n3.5\n170\n5\n 64\n1\n171\n" : "145\n0.0\n170\n5\n  7\nGH_TXT\n 64\n1\n140\n3.5\n 92\n0\n", record, StringComparison.Ordinal);
                 Assert.Contains(flags + "\n48\n178\n", record, StringComparison.Ordinal);
-                Assert.Contains((r2000 ? "  1\nB-12\n" : "302\nB-12\n304\nACVALUE_END\n") + "  7\nGH_TXT\n140\n2.5\n171\n", record, StringComparison.Ordinal);
+                Assert.Contains(r2000 ? "  1\nB-12\n  7\nGH_TXT\n140\n2.5\n171\n" : "145\n0.0\n  7\nGH_TXT\n140\n2.5\n 92\n0\n", record, StringComparison.Ordinal);
                 Assert.Contains(flags + "\n6\n178\n", record, StringComparison.Ordinal);
-                Assert.EndsWith((r2000 ? "300\nM12\n" : "304\nACVALUE_END\n") + " 63\n3\n283\n0\n", record, StringComparison.Ordinal);
+                Assert.Contains(r2000 ? "300\nM12\n 63\n3\n283\n0\n" : "145\n0.0\n 63\n3\n283\n0\n 92\n0\n340\n", record, StringComparison.Ordinal);
 
                 DxfDatabase readDb = DxfDatabase.Parse(saved);
                 DxfTable read = Table(readDb);
@@ -287,10 +286,14 @@ namespace GeometryHelper.UnitTest.Dxf
 
             table.SetContentColor(1, 0, DxfColor.ByLayer);
 
-            // Its flags in 177 before R2007 and in 91 from R2007 on, after its 176.
+            // Its flags in 177 before R2007 and in 91 from R2007 on, after its 176; from R2007 on its overrides in its head.
             string record = TableRecord(db.ToText());
-            string value = r2000 ? "  1\nMark\n" : " 92\n0\n301\nCELL_VALUE\n 93\n6\n 90\n4\n  1\nMark\n 94\n0\n300\n\n302\nMark\n304\nACVALUE_END\n";
-            Assert.Contains("176\n0\n" + (r2000 ? "177" : " 91") + "\n57\n178\n0\n145\n0.0\n" + value + "  7\nGH_TXT\n140\n3.5\n170\n5\n 64\n256\n171\n", record, StringComparison.Ordinal);
+            Assert.Contains(
+                r2000
+                    ? "176\n0\n177\n57\n178\n0\n145\n0.0\n  1\nMark\n  7\nGH_TXT\n140\n3.5\n170\n5\n 64\n256\n171\n"
+                    : "176\n0\n 91\n57\n178\n0\n145\n0.0\n170\n5\n  7\nGH_TXT\n 64\n256\n140\n3.5\n 92\n0\n301\nCELL_VALUE\n 93\n6\n 90\n4\n  1\nMark\n 94\n0\n300\n\n302\nMark\n304\nACVALUE_END\n171\n",
+                record,
+                StringComparison.Ordinal);
             DxfDatabase readDb = DxfDatabase.Parse(db.ToText());
             DxfTable read = Table(readDb);
             Assert.Equal(DxfCellAlignment.MiddleCenter, read.Alignment(1, 0));
@@ -352,7 +355,7 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void ACellsOverridesTakenAway_LeaveItToItsTableStyle_AndOneItHasNotIsRefused()
+        public void ACellsOverridesTakenAway_LeaveItToItsTableStyle_AndOneItHasNotIsGivenAutoCadsValue()
         {
             foreach (string text in new[] { DxfDimensionDrawings.R2000, DxfDimensionDrawings.R2018 })
             {
@@ -370,11 +373,16 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Null(read.TextStyle(1, 0));
                 Assert.DoesNotContain("GH_TXT", TableRecord(db.ToText()), StringComparison.Ordinal);
 
-                Refused<ArgumentException>(() => read.SetOverrides(1, 0, 0, DxfCellProperties.Alignment | DxfCellProperties.ContentColor), "by its setter");
                 string kept = readDb.ToText();
                 read.SetOverrides(1, 0, 0, DxfCellProperties.Alignment);
                 read.RemoveAllOverrides(1, 1);
                 Assert.Equal(kept, readDb.ToText());
+
+                // One it has not is given the value AutoCAD 2021 gave it (D33 o3, o7): the colour by block.
+                read.SetOverrides(1, 0, 0, DxfCellProperties.Alignment | DxfCellProperties.ContentColor);
+                Assert.Equal(DxfColor.ByBlock, read.ContentColor(1, 0));
+                read.SetOverrides(1, 0, 0, DxfCellProperties.Alignment);
+                Assert.Null(read.ContentColor(1, 0));
 
                 read.RemoveAllOverrides(1, 0);
                 DxfDatabase bareDb = DxfDatabase.Parse(readDb.ToText());
@@ -388,7 +396,7 @@ namespace GeometryHelper.UnitTest.Dxf
         [Theory]
         [InlineData("R2000")]
         [InlineData("R2018")]
-        public void ACellsOwnKindOfValue_IsKept_WhenItsOverridesAreSetOrAllTakenAway(string version)
+        public void ACellsOwnKindOfValue_IsKeptByRemoveAllOverrides_AndBySetOverridesWhereItIsNamed(string version)
         {
             // The header cell (1, 0) of flags 49 given the flag 0x40000 of its own kind of value: 262 193.
             bool r2000 = version == "R2000";
@@ -399,35 +407,34 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfCellProperties all = DxfCellProperties.DataType | DxfCellProperties.Alignment | DxfCellProperties.TextStyle | DxfCellProperties.TextHeight;
             Assert.Equal(all, Table(DxfDatabase.Parse(text)).GetOverrides(1, 0, 0));
 
-            DxfDatabase setDb = DxfDatabase.Parse(text);
-            Table(setDb).SetOverrides(1, 0, 0, DxfCellProperties.Invalid);
+            // RemoveAllOverrides keeps the kind of value alone (D28c x1 to x3).
             DxfDatabase removedDb = DxfDatabase.Parse(text);
             Table(removedDb).RemoveAllOverrides(1, 0);
+            string saved = removedDb.ToText();
+            OnlyTheseChanged(text, saved, "F6");
+            Assert.Contains("176\n0\n" + flags + "\n262144\n178\n", TableRecord(saved), StringComparison.Ordinal);
+            Assert.DoesNotContain("GH_TXT", TableRecord(saved), StringComparison.Ordinal);
+            DxfTable read = Table(DxfDatabase.Parse(saved));
+            Assert.Equal(DxfCellProperties.DataType, read.GetOverrides(1, 0, 0));
+            Assert.Null(read.Alignment(1, 0));
+            Assert.Equal("Mark", read.TextString(1, 0));
+
+            // SetOverrides keeps it where it is named and the alignment always, as AutoCAD 2021 wrote Mark given Invalid 91 1
+            // and 170 5 (D33 o13, o6).
+            DxfDatabase setDb = DxfDatabase.Parse(text);
+            Table(setDb).SetOverrides(1, 0, 0, DxfCellProperties.Invalid);
+            Assert.Contains("176\n0\n" + flags + "\n1\n178\n", TableRecord(setDb.ToText()), StringComparison.Ordinal);
+            Assert.Equal(DxfCellProperties.Alignment, Table(DxfDatabase.Parse(setDb.ToText())).GetOverrides(1, 0, 0));
             DxfDatabase keptDb = DxfDatabase.Parse(text);
-            Table(keptDb).SetOverrides(1, 0, 0, DxfCellProperties.Alignment);
-
-            foreach (DxfDatabase db in new[] { setDb, removedDb })
-            {
-                string saved = db.ToText();
-                OnlyTheseChanged(text, saved, "F6");
-                Assert.Contains("176\n0\n" + flags + "\n262144\n178\n", TableRecord(saved), StringComparison.Ordinal);
-                Assert.DoesNotContain("GH_TXT", TableRecord(saved), StringComparison.Ordinal);
-                DxfTable read = Table(DxfDatabase.Parse(saved));
-                Assert.Equal(DxfCellProperties.DataType, read.GetOverrides(1, 0, 0));
-                Assert.Null(read.Alignment(1, 0));
-                Assert.Equal("Mark", read.TextString(1, 0));
-            }
-
-            Assert.Equal(setDb.ToText(), removedDb.ToText());
+            Table(keptDb).SetOverrides(1, 0, 0, DxfCellProperties.DataType);
             Assert.Equal(DxfCellProperties.DataType | DxfCellProperties.Alignment, Table(keptDb).GetOverrides(1, 0, 0));
             Assert.Contains("176\n0\n" + flags + "\n262145\n178\n", TableRecord(keptDb.ToText()), StringComparison.Ordinal);
 
-            // Its kind alone left, nothing is taken away, given or not.
-            string bare = setDb.ToText();
-            Table(setDb).SetOverrides(1, 0, 0, DxfCellProperties.Invalid);
-            Table(setDb).SetOverrides(1, 0, 0, DxfCellProperties.DataType);
-            Table(setDb).RemoveAllOverrides(1, 0);
-            Assert.Equal(bare, setDb.ToText());
+            // Its kind alone left, RemoveAllOverrides and SetOverrides of it take nothing away.
+            string bare = removedDb.ToText();
+            Table(removedDb).SetOverrides(1, 0, 0, DxfCellProperties.DataType);
+            Table(removedDb).RemoveAllOverrides(1, 0);
+            Assert.Equal(bare, removedDb.ToText());
         }
 
         [Fact]

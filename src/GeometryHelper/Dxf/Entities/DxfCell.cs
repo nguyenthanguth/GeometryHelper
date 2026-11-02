@@ -261,7 +261,6 @@ namespace GeometryHelper.Dxf
         /// <returns>The cell as a line.</returns>
         public override string ToString() => string.Format(CultureInfo.InvariantCulture, "({0}, {1})", Row, Column);
 
-        private void TakeAway(DxfCellProperties property)
-            => Table.SetOverrides(Row, Column, 0, Table.GetOverrides(Row, Column, 0) & ~property);
+        private void TakeAway(DxfCellProperties property) => Table.TakeOverrides(Row, Column, property);
     }
 }

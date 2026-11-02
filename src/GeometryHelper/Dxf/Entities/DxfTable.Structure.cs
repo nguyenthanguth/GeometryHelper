@@ -913,29 +913,33 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Fills cells from others, as AutoCAD's <c>Fill</c> does when a cell's grip is dragged: down the columns of the source
-        /// range, or along its rows with <see cref="DxfTableFillOptions.Row"/>, each cell of the fill range outside the source
-        /// given a copy of the source cell its place repeats, content and look, or with
-        /// <see cref="DxfTableFillOptions.GenerateSeries"/> the numbers of the source carried on: a source of one number goes up
-        /// by one, 1 filled to 2, 3, 4, and one of several by the step from its first to its last, 10 and 20 filled to 30, 40,
-        /// each rounded to the places of decimals of the most precise source and of the step, and to 15 significant figures:
-        /// 0.1 and 0.2 filled to 0.3, not 0.30000000000000004; 1, 2 and 4, a step of 1.5, to 5.5, 7, 8.5; 1E-20 and 2E-20 to 3E-20.
-        /// A cell above (or left of) the source carries the series back, 10 and 20 to 0 above them. With
-        /// <see cref="DxfTableFillOptions.Reverse"/> the step goes the other way, 10 and 20 filled down to 10, 0, -10 from the
-        /// source's end, 5 to 4, 3, and the cells copied repeat the source backwards. The numbers are those of a whole number or
-        /// a number value, or before R2007 a text that reads as one (from R2007 on a text is a text, whatever it reads),
-        /// written of the kind they are, a whole number where every source is one and so is the step; a source of a text that
-        /// is no number is copied, series or not.
-        /// <see cref="DxfTableFillOptions.CopyContent"/> alone copies the content, <see cref="DxfTableFillOptions.CopyFormat"/>
-        /// alone the look; the merges of the table are kept. A date is not carried on: the library knows no groups of a date
-        /// value. The record is written once; the block AutoCAD drew the table with is not drawn anew.
+        /// Fills cells from others, as AutoCAD's <c>Fill</c> does when a cell's grip is dragged, as AutoCAD 2021 filled them
+        /// (D33 f01 to f20, g01 to g26): the rows of the fill range down the columns of the source range, or its columns along
+        /// the rows of the source with <see cref="DxfTableFillOptions.Row"/>, whatever columns (or rows) the fill range names;
+        /// each cell given the source cell its place repeats, from the fill range's first cell on, so that 1.5 and 2.5 filled
+        /// into rows 5 and 6 give 1.5 and 2.5. <see cref="DxfTableFillOptions.CopyContent"/> copies the content alone, the cell
+        /// keeping its look and flags, and wins over a series; <see cref="DxfTableFillOptions.CopyFormat"/> copies the look, the
+        /// flags and the kind of value, a cell of no value given one of none of that kind (<c>93 5</c>), one of a value keeping
+        /// it; the two together copy the cell whole. <see cref="DxfTableFillOptions.GenerateSeries"/> without CopyContent
+        /// carries the numbers of the source on, the cell given its kind of value (0x40000) and its look kept unless
+        /// CopyFormat is given: on from the source's last number by the step from its first to its last (one for a source of
+        /// one number) through the fill range, wherever it stands, 1.5 and 2.5 going on to 3.5, 4.5 and 5.5 below them or
+        /// above them alike; with <see cref="DxfTableFillOptions.Reverse"/> back from the source's first number, the fill
+        /// range's last cell next to it, 1.5 and 2.5 to -1.5, -0.5 and 0.5, and 10 and 20 to -20, -10 and 0. Reverse alone
+        /// changes nothing of a copy. A number of a series is rounded to the places of decimals of its source and its step,
+        /// and to 15 significant figures, 0.1 and 0.2 going on to 0.3, written of six places from R2007 on (0.300000), a whole
+        /// number where every source is one and so is the step; a source of a text that is no number is copied, the cell given
+        /// its kind of value. Options of none of the three change nothing; a fill range that holds a cell of the source is
+        /// refused, as AutoCAD 2021 refused it (<c>eInvalidInput</c>). The numbers are those of a whole number or a number value,
+        /// or before R2007 a text that reads as one. A date is not carried on: the library knows no groups of a date value. The
+        /// record is written once; the block AutoCAD drew the table with is not drawn anew.
         /// </summary>
-        /// <param name="fillRange">The cells filled, of the source's columns (or rows), within the table.</param>
+        /// <param name="fillRange">The cells filled: its rows (its columns along the rows), within the table.</param>
         /// <param name="sourceRange">The cells filled from, within the table.</param>
         /// <param name="options">How, of the flags of <see cref="DxfTableFillOptions"/>.</param>
         /// <exception cref="ArgumentNullException">Thrown when a range is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when a range reaches past the table, or the options hold a flag none of <see cref="DxfTableFillOptions"/> has.</exception>
-        /// <exception cref="ArgumentException">Thrown when the fill range is not of the source's columns, or along the rows of its rows.</exception>
+        /// <exception cref="ArgumentException">Thrown when the rows of the fill range (its columns, along the rows) meet the source's.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the table's record does not hold its cells, heights and widths, or the table is erased.</exception>
         public void Fill(DxfCellRange fillRange, DxfCellRange sourceRange, DxfTableFillOptions options)
         {
@@ -948,18 +952,28 @@ namespace GeometryHelper.Dxf
             CheckRange(fillRange, layout, nameof(fillRange));
             CheckRange(sourceRange, layout, nameof(sourceRange));
             bool along = (options & DxfTableFillOptions.Row) != 0;
+            int from = along ? fillRange.LeftColumn : fillRange.TopRow;
+            int to = along ? fillRange.RightColumn : fillRange.BottomRow;
+            int start = along ? sourceRange.LeftColumn : sourceRange.TopRow;
+            int end = along ? sourceRange.RightColumn : sourceRange.BottomRow;
 
-            if (along ? fillRange.TopRow != sourceRange.TopRow || fillRange.BottomRow != sourceRange.BottomRow : fillRange.LeftColumn != sourceRange.LeftColumn || fillRange.RightColumn != sourceRange.RightColumn)
+            if (from <= end && to >= start)
             {
-                throw new ArgumentException("The fill range " + fillRange + " is of the " + (along ? "rows" : "columns") + " of the source " + sourceRange + ", which it fills " + (along ? "along" : "down") + ".", nameof(fillRange));
+                throw new ArgumentException("The fill range " + fillRange + " holds " + (along ? "columns" : "rows") + " of the source " + sourceRange + ", which AutoCAD 2021 refuses (eInvalidInput).", nameof(fillRange));
+            }
+
+            bool content = (options & DxfTableFillOptions.CopyContent) != 0;
+            bool look = (options & DxfTableFillOptions.CopyFormat) != 0;
+            bool series = (options & DxfTableFillOptions.GenerateSeries) != 0 && !content;
+
+            if (!content && !look && !series)
+            {
+                return;
             }
 
             bool reverse = (options & DxfTableFillOptions.Reverse) != 0;
-            bool series = (options & DxfTableFillOptions.GenerateSeries) != 0;
-            bool onlyContent = (options & DxfTableFillOptions.CopyContent) != 0 && (options & DxfTableFillOptions.CopyFormat) == 0;
-            bool onlyLook = (options & DxfTableFillOptions.CopyFormat) != 0 && (options & DxfTableFillOptions.CopyContent) == 0;
             List<KeyValuePair<int, string>>[] cells = AllSlices(layout);
-            int count = along ? sourceRange.RightColumn - sourceRange.LeftColumn + 1 : sourceRange.BottomRow - sourceRange.TopRow + 1;
+            int count = end - start + 1;
             int lines = along ? sourceRange.BottomRow - sourceRange.TopRow + 1 : sourceRange.RightColumn - sourceRange.LeftColumn + 1;
             bool changed = false;
 
@@ -975,14 +989,14 @@ namespace GeometryHelper.Dxf
 
                 for (int k = 0; k < count; k++)
                 {
-                    sources[k] = along ? layout.CellAt(sourceRange.TopRow + line, sourceRange.LeftColumn + k) : layout.CellAt(sourceRange.TopRow + k, sourceRange.LeftColumn + line);
+                    sources[k] = along ? layout.CellAt(sourceRange.TopRow + line, start + k) : layout.CellAt(start + k, sourceRange.LeftColumn + line);
                     numeric &= NumberOf(sources[k], out numbers[k], out bool isWhole, out int decimals);
                     whole &= isWhole;
                     places = Math.Max(places, decimals);
                 }
 
-                // The step from the first to the last, one for a source of one number; the other way round in reverse.
-                double by = (count == 1 ? 1.0 : (numbers[count - 1] - numbers[0]) / (count - 1)) * (reverse ? -1.0 : 1.0);
+                // The step from the first to the last, one for a source of one number.
+                double by = count == 1 ? 1.0 : (numbers[count - 1] - numbers[0]) / (count - 1);
                 whole &= Math.Floor(by) == by;
 
                 // Whole numbers and a whole step, each within the 53 bits a double holds exactly, go on in whole arithmetic, so
@@ -996,45 +1010,40 @@ namespace GeometryHelper.Dxf
 
                 // The places of the step count too, as written to 15 figures: 1, 2 and 4 go on by 1.5 to 5.5, 7 and 8.5.
                 places = Math.Max(places, Decimals(by.ToString("G15", CultureInfo.InvariantCulture)));
-                int start = along ? sourceRange.LeftColumn : sourceRange.TopRow;
-                int end = start + count - 1;
-                int from = along ? fillRange.LeftColumn : fillRange.TopRow;
-                int to = along ? fillRange.RightColumn : fillRange.BottomRow;
 
                 for (int place = from; place <= to; place++)
                 {
-                    if (place >= start && place <= end)
-                    {
-                        continue;
-                    }
-
-                    // Past the source's end the series goes on from its last cell, before its start back from its first; the
-                    // cells copied repeat it onwards, or backwards in reverse.
-                    bool after = place > end;
-                    int steps = after ? place - end : start - place;
-                    int index = after ? (reverse ? count - 1 - steps : steps - 1) : (reverse ? steps : count - steps);
-                    double value = after ? numbers[count - 1] + steps * by : numbers[0] - steps * by;
                     int r = along ? sourceRange.TopRow + line : place;
                     int c = along ? place : sourceRange.LeftColumn + line;
-                    CellView source = sources[((index % count) + count) % count];
+                    CellView source = sources[(place - from) % count];
                     List<KeyValuePair<int, string>> target = cells[r * layout.Columns + c];
                     List<KeyValuePair<int, string>> made;
 
-                    if (onlyLook)
+                    if (series && numeric)
                     {
-                        made = WithLook(target, source);
+                        // On from the last number through the fill range, or back from the first in reverse, the fill range's
+                        // last cell next to it.
+                        int steps = reverse ? -(to - place + 1) : place - from + 1;
+                        long first = reverse ? (long)numbers[0] : (long)numbers[count - 1];
+                        double value = (reverse ? numbers[0] : numbers[count - 1]) + steps * by;
+                        double rounded = integral && Exact(first, steps, (long)by, out long exact) ? exact : Rounded(value, places);
+                        made = look ? Formatted(target, source) : target;
+                        made = WithSeriesNumber(made, rounded, whole && rounded >= int.MinValue && rounded <= int.MaxValue);
+                    }
+                    else if (content && !look)
+                    {
+                        made = WithFlags(WithLook(WithoutField(Slice(source)), View(target)), View(target).Flags);
+                    }
+                    else if (look && !content && !series)
+                    {
+                        made = Formatted(target, source);
                     }
                     else
                     {
+                        // The cell whole, or a series of texts that are no numbers: the content copied, the cell given its kind
+                        // of value.
                         made = WithoutField(Slice(source));
-
-                        if (series && numeric)
-                        {
-                            double rounded = integral && Exact(after ? (long)numbers[count - 1] : (long)numbers[0], after ? steps : -steps, (long)by, out long exact) ? exact : Rounded(value, places);
-                            made = WithNumber(made, rounded, whole && rounded >= int.MinValue && rounded <= int.MaxValue);
-                        }
-
-                        made = onlyContent ? WithLook(made, View(target)) : made;
+                        made = look ? made : WithFlags(WithLook(made, View(target)), (View(target).Flags ?? 0) | DataTypeFlag);
                     }
 
                     changed |= !SameGroups(made, target);
@@ -1046,6 +1055,58 @@ namespace GeometryHelper.Dxf
             {
                 Rebuild(layout, layout.Rows, layout.Columns, null, null, cells, Blocks(layout), Links(layout));
             }
+        }
+
+        /// <summary>
+        /// A cell given the look, flags and kind of value of another, as AutoCAD 2021's Fill of CopyFormat gave them (D33 f04,
+        /// f20, g15): its value kept where it holds one, else one of none of the other's kind, its flag 2 taken away (93 5).
+        /// </summary>
+        private static List<KeyValuePair<int, string>> Formatted(List<KeyValuePair<int, string>> target, CellView look)
+        {
+            List<KeyValuePair<int, string>> made = WithFlags(WithLook(target, look), look.Flags);
+            CellView cell = View(made);
+            int flags = int.TryParse(cell.InValue(93)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int read) ? read : 6;
+
+            if (cell.ValueFrom >= 0 && look.ValueFrom >= 0 && (flags & 1) != 0)
+            {
+                cell.WriteValue(look.InValue(90) ?? "4", new List<KeyValuePair<int, string>>(), string.Empty, null, null, false, (flags & ~2).ToString(CultureInfo.InvariantCulture));
+            }
+
+            return cell.Groups.List;
+        }
+
+        /// <summary>A cell's groups given the flags of its overrides (177, or 91 from R2007 on); null leaves them as they are.</summary>
+        private static List<KeyValuePair<int, string>> WithFlags(List<KeyValuePair<int, string>> groups, int? flags)
+        {
+            CellView cell = View(groups);
+
+            if (flags == null || cell.Flags == flags)
+            {
+                return groups;
+            }
+
+            cell.SetFlags(flags.Value, cell.ValueFrom >= 0 ? 91 : 177);
+            return cell.Groups.List;
+        }
+
+        /// <summary>
+        /// A cell's groups given a number of a series, as AutoCAD 2021's Fill wrote it (D33 f02, f18, g06): of its kind in its
+        /// value from R2007 on, the flags of the value 4 and the number shown of six places (3.500000), the cell given its kind
+        /// of value (0x40000); before R2007 as its text.
+        /// </summary>
+        private static List<KeyValuePair<int, string>> WithSeriesNumber(List<KeyValuePair<int, string>> groups, double value, bool whole)
+        {
+            CellView cell = View(groups);
+            Written written = whole ? Whole((int)value) : Real(value, nameof(value));
+
+            if (cell.ValueFrom < 0)
+            {
+                cell.SetText(written.Text);
+                return cell.Groups.List;
+            }
+
+            cell.WriteValue(((int)written.Kind).ToString(CultureInfo.InvariantCulture), written.Data, whole ? written.Text : RealText(value, null), null, null, false, "4");
+            return WithFlags(cell.Groups.List, (View(cell.Groups.List).Flags ?? 0) | DataTypeFlag);
         }
 
         /// <summary>
@@ -1150,24 +1211,6 @@ namespace GeometryHelper.Dxf
         {
             double rounded = places <= 15 ? Math.Round(value, places) : value;
             return Guard.IsFinite(rounded) ? double.Parse(rounded.ToString("G15", CultureInfo.InvariantCulture), NumberStyles.Float, CultureInfo.InvariantCulture) + 0.0 : rounded;
-        }
-
-        /// <summary>A cell's groups given a number: of its kind in its value from R2007 on, else as its text.</summary>
-        private static List<KeyValuePair<int, string>> WithNumber(List<KeyValuePair<int, string>> groups, double value, bool whole)
-        {
-            CellView cell = View(groups);
-            Written written = whole ? Whole((int)value) : Real(value, nameof(value));
-
-            if (cell.ValueFrom >= 0)
-            {
-                cell.WriteValue(((int)written.Kind).ToString(CultureInfo.InvariantCulture), written.Data, written.Text, null, null);
-            }
-            else
-            {
-                cell.SetText(written.Text);
-            }
-
-            return cell.Groups.List;
         }
 
         #endregion

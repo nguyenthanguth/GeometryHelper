@@ -397,7 +397,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.True(table.IsLinked(1, 0));
 
                 // Cells filled from a linked one are copies of its content, not of its link.
-                table.Fill(new DxfCellRange(1, 0, 2, 0), new DxfCellRange(1, 0, 1, 0), DxfTableFillOptions.None);
+                table.Fill(new DxfCellRange(2, 0, 2, 0), new DxfCellRange(1, 0, 1, 0), DxfTableFillOptions.CopyContent | DxfTableFillOptions.CopyFormat);
                 Assert.Equal(new DxfCellRange(1, 0, 1, 0), table.GetDataLinkRange(1, 0));
                 Assert.False(table.IsLinked(2, 0));
                 Assert.Equal(1, LinksNamed(TableRecord(db.ToText())));

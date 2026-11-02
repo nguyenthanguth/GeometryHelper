@@ -6,6 +6,40 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** `DxfTable.Fill` fills as AutoCAD 2021 fills (check D33, 38 fills read by AutoCAD as its own): the options
+`None` alone change nothing, where the library copied the cells; `CopyContent` copies the content alone and wins over
+`GenerateSeries`; `CopyFormat` copies the look and kind of value, a cell of no value given one of none of that kind; a
+series goes on from the source's last number wherever the fill range stands (1.5 and 2.5 filled above them to 3.5 and 4.5)
+and with `Reverse` back from its first, the fill range's last cell next to it (10 and 20 to -20, -10, 0, where the library
+wrote 10, 0, -10), its numbers shown of six places from R2007 on (0.300000); the source repeats from the fill range's first
+cell; the source's columns are filled whatever columns the fill range names, where the library refused other columns; and
+a fill range that holds a cell of the source is refused (`ArgumentException`), as AutoCAD refuses it.
+
+**CHANGED.** `DxfTable.SetDataType` turns a value as AutoCAD 2021 turns it (check D33): a value not of the kind becomes one
+of none of that kind (`93 7`), where the library refused it (the text B-12 made a number); a number made a whole number is
+cut towards nought (12.7 to 12, -12.7 to -12); a text made a number is shown in the drawing's units under `%lu6` (12.0000)
+or in powers of ten under `%lu1` (1.0000E+03), where the library wrote 12; the value's flags lose their 2 (`93 4`) but where
+a text of a whole number is made that number. Kinds other than a text, a whole number and a number are still refused.
+
+**CHANGED.** `DxfTable.SetOverrides` gives a cell the overrides named as AutoCAD 2021 gives them (check D33, 23 edits read
+by AutoCAD as its own): one it does not hold is given AutoCAD's value (the text height 0.18, the alignment its row shows,
+the colour by block, a background of none), where the library refused it; its alignment and background are kept whatever
+is named; its kind of value (0x40000) is taken away unless named, where the library kept it. `DxfCell`'s looks set to null
+still take only that look away.
+
+**CHANGED.** `SetFormat` writes a number under an architectural format (`%lu4`) in feet and inches as AutoCAD 2021 does:
+12.5 under `%lu4%pr2` is 1'-0 1/2", -0.25 -0'-0 1/4", 7.25 under `%lu4%pr2%zs1` 7 1/4"; the library left 12.5. `SetValue`
+takes the cell's format away, as AutoCAD does, where the library kept it.
+
+**CHANGED.** From R2007 on a cell's overrides set are written before its 92, in AutoCAD 2021's order, those it held after
+its value moved there with them (check D33 s30 to s35); the library wrote them after the value. AutoCAD reads both alike.
+
+Existing tests changed (16): the Fill tests of `DxfTableStructureTests` (6: reverse series, series above, six places, the
+options copied with, a range meeting the source) and of `DxfTableDataLinkTests` (1), the refusals and flags of
+`SetDataType` and `SetOverrides` in `DxfTableCellsTests` (3, two renamed), and the places of overrides written in
+`DxfTableCellsTests` (2), `DxfTableStructureTests`, `DxfTableD28bTests`, `DxfAutoCadChecksD12Tests` and
+`DxfAutoCadChecksD13Tests` (1 each). 36 new tests, 35 red at base (`DxfTableD33Tests`).
+
 **CHANGED.** `DxfMLeader.AddLeaderLine(point)` lands a new leader on a block as AutoCAD 2021 lands it (check D31b): on the
 side of the block's box the point is on, with no gap, its dogleg ending where the block's shapes meet the line along x
 through the middle of its box, or through its position where the block is met at its base, the outermost such point on that

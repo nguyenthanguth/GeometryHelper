@@ -238,7 +238,7 @@ namespace GeometryHelper.UnitTest.Dxf
             table.SetGridColor(1, 1, DxfGridLineType.HorizontalBottom, DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1));
             table.SetGridLineWeight(1, 1, DxfGridLineType.HorizontalTop, DxfLineWeight.LineWeight050);
 
-            Assert.Contains("171\n1\n172\n5\n173\n0\n174\n0\n175\n0\n176\n0\n 91\n1280\n178\n0\n145\n0.0\n 92\n0\n301\nCELL_VALUE\n 93\n6\n 90\n4\n  1\nQty\n 94\n0\n300\n\n302\nQty\n304\nACVALUE_END\n 66\n1\n279\n50\n171\n", Record(db.ToText(), "F6"), StringComparison.Ordinal);
+            Assert.Contains("171\n1\n172\n5\n173\n0\n174\n0\n175\n0\n176\n0\n 91\n1280\n178\n0\n145\n0.0\n 66\n1\n279\n50\n 92\n0\n301\nCELL_VALUE\n 93\n6\n 90\n4\n  1\nQty\n 94\n0\n300\n\n302\nQty\n304\nACVALUE_END\n171\n", Record(db.ToText(), "F6"), StringComparison.Ordinal);
             DxfTable again = Table(DxfDatabase.Parse(db.ToText()));
             Assert.Equal(1, again.GetGridColor(1, 1, DxfGridLineType.HorizontalBottom).ColorIndex);
         }

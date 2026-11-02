@@ -1790,6 +1790,11 @@ namespace GeometryHelper.Dxf
             // The groups of a cell's own overrides in the order of the DXF reference, after its head and its value.
             private static readonly int[] OverrideOrder = { 7, 140, 170, 64, 63, 69, 65, 66, 68, 279, 275, 276, 278, 283, 289, 285, 286, 288 };
 
+            // The groups of a cell's own overrides in the order AutoCAD 2021 writes them in its head before its 92 (D33 s30 to
+            // s35, D28e v27): its alignment, text style, background, colour, fill and height, then the right, bottom, left and
+            // top edge, each its lineweight, showing and colour.
+            private static readonly int[] HeadOverrideOrder = { 170, 7, 63, 64, 283, 140, 275, 285, 65, 276, 286, 66, 278, 288, 68, 279, 289, 69 };
+
             internal CellView(DxfDimGroups groups, int from, int to)
             {
                 Groups = groups;
@@ -1818,10 +1823,10 @@ namespace GeometryHelper.Dxf
             internal int To { get; set; }
 
             /// <summary>Where its value of R2007 opens (301 CELL_VALUE); -1 where it has none.</summary>
-            internal int ValueFrom { get; }
+            internal int ValueFrom { get; private set; }
 
             /// <summary>Where that value closes (304 ACVALUE_END); -1 where it has none.</summary>
-            internal int ValueTo { get; }
+            internal int ValueTo { get; private set; }
 
             /// <summary>The flags of its overrides: 91 from R2007 on, 177 before; null where it gives none.</summary>
             internal int? Flags
@@ -2067,10 +2072,11 @@ namespace GeometryHelper.Dxf
 
             /// <summary>
             /// Writes the cell's value of R2007 anew, from its 301 to its 304: its flags (93) kept, or made 6 for a value given
-            /// where they have the flag 1 of no value, its kind (90), its data, its unit (94) and format (300), each kept where
-            /// null is given, and its text in pieces of 303 and a last 302, as AutoCAD 2021 writes a text longer than 250 letters.
+            /// where they have the flag 1 of no value, or those given, its kind (90), its data, its unit (94) and format (300), each
+            /// kept where null is given, and its text in pieces of 303 and a last 302, as AutoCAD 2021 writes a text longer than
+            /// 250 letters.
             /// </summary>
-            internal void WriteValue(string kind, IEnumerable<KeyValuePair<int, string>> data, string text, string unit, string format, bool given = false)
+            internal void WriteValue(string kind, IEnumerable<KeyValuePair<int, string>> data, string text, string unit, string format, bool given = false, string flagsGiven = null)
             {
                 int end = ValueTo >= 0 ? ValueTo : To - 1;
                 var value = new List<KeyValuePair<int, string>> { Groups.List[ValueFrom] };
@@ -2088,7 +2094,7 @@ namespace GeometryHelper.Dxf
 
                 // A value given where the cell held one of the flag 1, which AutoCAD reads as no value whatever it holds, takes the flags 6 AutoCAD writes for a value it is given.
                 bool none = flags != null && int.TryParse(flags.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int read) && (read & 1) != 0;
-                value.Add(new KeyValuePair<int, string>(93, given && none ? "6" : flags ?? "6"));
+                value.Add(new KeyValuePair<int, string>(93, flagsGiven ?? (given && none ? "6" : flags ?? "6")));
                 value.Add(new KeyValuePair<int, string>(90, kind));
                 value.AddRange(data);
                 value.Add(new KeyValuePair<int, string>(94, unit ?? unitNow ?? "0"));
@@ -2195,19 +2201,41 @@ namespace GeometryHelper.Dxf
 
                 Groups.Insert(after + 1, new KeyValuePair<int, string>(code, text));
                 To++;
+
+                // The value stands after the head: its places move on with the group put in.
+                if (ValueFrom >= 0)
+                {
+                    ValueFrom++;
+                    ValueTo += ValueTo >= 0 ? 1 : 0;
+                }
             }
 
             /// <summary>
-            /// Gives the cell an override of its own: its group written in place, wherever it stands outside the cell's value
-            /// (AutoCAD 2021 writes a cell's overrides before its 92, the library after its value), or put in among its overrides
-            /// in the order of the DXF reference, and its flag set; a cell of no flags given the flags of the overrides it holds,
-            /// in a group of the code given (91 from R2007 on, 177 before).
+            /// Gives the cell an override of its own and sets its flag; a cell of no flags given the flags of the overrides it
+            /// holds, in a group of the code given (91 from R2007 on, 177 before). From R2007 on its overrides are written in its
+            /// head before its 92, where AutoCAD 2021 writes them, in its order (<see cref="HeadOverrideOrder"/>), those the cell
+            /// held after its value moved there with it, the first of each code kept, as the library reads it (D33 s30 to s35,
+            /// o7); before R2007, where AutoCAD writes them after the cell's text, the group is written in place, wherever it
+            /// stands, or put in among the cell's overrides in the order of the DXF reference.
             /// </summary>
             internal void SetOverride(int code, string text, int flagsCode)
             {
                 int? flags = Flags;
                 int now = flags ?? Held();
                 int bit = Layout.CellOverrides[code];
+
+                if (ValueFrom >= 0)
+                {
+                    PutInHead(code, text);
+
+                    if (flags != (now | bit))
+                    {
+                        SetFlags(now | bit, flagsCode);
+                    }
+
+                    return;
+                }
+
                 int start = OverridesFrom;
                 int rank = Array.IndexOf(OverrideOrder, code);
                 int at = -1;
@@ -2240,6 +2268,65 @@ namespace GeometryHelper.Dxf
                 if (flags != (now | bit))
                 {
                     SetFlags(now | bit, flagsCode);
+                }
+            }
+
+            /// <summary>
+            /// Writes the cell's own overrides of R2007, the one given among them, in its head before its 92 in AutoCAD 2021's
+            /// order, each code once, the first the cell held of it outside its value kept where none is given for it.
+            /// </summary>
+            private void PutInHead(int code, string text)
+            {
+                var own = new Dictionary<int, string>();
+
+                for (int i = From + 1; i < To; i++)
+                {
+                    int key = Groups.List[i].Key;
+
+                    if ((i < ValueFrom || i > ValueTo) && Layout.CellOverrides.ContainsKey(key) && !own.ContainsKey(key))
+                    {
+                        own[key] = Groups.List[i].Value;
+                    }
+                }
+
+                own[code] = text;
+
+                for (int i = To - 1; i > From; i--)
+                {
+                    if ((i < ValueFrom || i > ValueTo) && Layout.CellOverrides.ContainsKey(Groups.List[i].Key))
+                    {
+                        bool before = i < ValueFrom;
+                        Groups.RemoveAt(i);
+                        To--;
+
+                        if (before)
+                        {
+                            ValueFrom--;
+                            ValueTo -= ValueTo >= 0 ? 1 : 0;
+                        }
+                    }
+                }
+
+                int at = ValueFrom;
+
+                for (int i = From + 1; i < ValueFrom; i++)
+                {
+                    if (Groups.List[i].Key == 92)
+                    {
+                        at = i;
+                        break;
+                    }
+                }
+
+                foreach (int key in HeadOverrideOrder)
+                {
+                    if (own.TryGetValue(key, out string value))
+                    {
+                        Groups.Insert(at++, new KeyValuePair<int, string>(key, value));
+                        To++;
+                        ValueFrom++;
+                        ValueTo += ValueTo >= 0 ? 1 : 0;
+                    }
                 }
             }
 
@@ -2326,7 +2413,7 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>Writes the flags of the cell's overrides: in its 91, else its 177, else in a new group of the code given.</summary>
-            private void SetFlags(int flags, int code)
+            internal void SetFlags(int flags, int code)
             {
                 string text = flags.ToString(CultureInfo.InvariantCulture);
                 int end = ValueFrom >= 0 ? ValueFrom : To;

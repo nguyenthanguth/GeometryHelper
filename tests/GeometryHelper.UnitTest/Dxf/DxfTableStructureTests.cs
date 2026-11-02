@@ -202,9 +202,12 @@ namespace GeometryHelper.UnitTest.Dxf
                 table.Fill(new DxfCellRange(5, 1, 7, 1), new DxfCellRange(3, 1, 4, 1), DxfTableFillOptions.GenerateSeries);
                 table.Fill(new DxfCellRange(4, 0, 5, 0), new DxfCellRange(3, 0, 3, 0), DxfTableFillOptions.GenerateSeries);
 
+                // From R2007 on shown of six places, as AutoCAD 2021 wrote 0.300000 (D33 g06).
+                bool r2000 = text == DxfDimensionDrawings.R2000;
                 DxfTable read = Reread(db);
-                Assert.Equal(new[] { "0.3", "0.4", "0.5" }, Enumerable.Range(5, 3).Select(r => read.TextString(r, 1)).ToArray());
-                Assert.Equal(new[] { "2.25", "3.25" }, Enumerable.Range(4, 2).Select(r => read.TextString(r, 0)).ToArray());
+                Assert.Equal(r2000 ? new[] { "0.3", "0.4", "0.5" } : new[] { "0.300000", "0.400000", "0.500000" }, Enumerable.Range(5, 3).Select(r => read.TextString(r, 1)).ToArray());
+                Assert.Equal(new[] { 0.3, 0.4, 0.5 }, Enumerable.Range(5, 3).Select(r => Number(read, r, 1)).ToArray());
+                Assert.Equal(r2000 ? new[] { "2.25", "3.25" } : new[] { "2.250000", "3.250000" }, Enumerable.Range(4, 2).Select(r => read.TextString(r, 0)).ToArray());
             }
         }
 
@@ -223,9 +226,11 @@ namespace GeometryHelper.UnitTest.Dxf
                 table.Fill(new DxfCellRange(5, 1, 7, 1), new DxfCellRange(3, 1, 4, 1), DxfTableFillOptions.GenerateSeries | DxfTableFillOptions.Reverse);
                 table.Fill(new DxfCellRange(6, 0, 7, 0), new DxfCellRange(5, 0, 5, 0), DxfTableFillOptions.GenerateSeries | DxfTableFillOptions.Reverse);
 
+                // Back from the source's first number, the fill range's last cell next to it, as AutoCAD 2021 filled 10 and 20 to
+                // -20, -10 and 0 (D33 g26, g02).
                 DxfTable read = Reread(db);
-                Assert.Equal(new[] { "10", "0", "-10" }, Enumerable.Range(5, 3).Select(r => read.TextString(r, 1)).ToArray());
-                Assert.Equal(new[] { "4", "3" }, Enumerable.Range(6, 2).Select(r => read.TextString(r, 0)).ToArray());
+                Assert.Equal(new[] { "-20", "-10", "0" }, Enumerable.Range(5, 3).Select(r => read.TextString(r, 1)).ToArray());
+                Assert.Equal(new[] { "3", "4" }, Enumerable.Range(6, 2).Select(r => read.TextString(r, 0)).ToArray());
             }
         }
 
@@ -492,7 +497,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 string saved = db.ToText();
                 OnlyTheseChanged(text, saved, "F6");
                 Assert.Contains((r2000 ? "177" : " 91") + "\n" + (0x3C0 | 0x400 | 0x8000) + "\n", TableRecord(saved), StringComparison.Ordinal);
-                Assert.Contains((r2000 ? "  1\nQty\n" : "302\nQty\n304\nACVALUE_END\n") + " 69\n1\n 65\n1\n 66\n1\n 68\n1\n279\n35\n285\n0\n171\n", TableRecord(saved), StringComparison.Ordinal);
+                Assert.Contains(r2000 ? "  1\nQty\n 69\n1\n 65\n1\n 66\n1\n 68\n1\n279\n35\n285\n0\n171\n" : "145\n0.0\n285\n0\n 65\n1\n 66\n1\n 68\n1\n279\n35\n 69\n1\n 92\n0\n301\nCELL_VALUE\n", TableRecord(saved), StringComparison.Ordinal);
                 DxfTable read = Table(DxfDatabase.Parse(saved));
                 Assert.Equal(1, read.GetGridColor(1, 1, DxfGridLineType.VerticalLeft).ColorIndex);
                 Assert.Equal(1, read.GridColor(1, 1, DxfCellEdgeMasks.BottomMask).ColorIndex);
@@ -682,7 +687,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 ("delete", t => t.DeleteRows(2, 1)),
                 ("size", t => t.SetSize(2, 2)),
                 ("copy", t => t.CopyFrom(t, DxfTableCopyOptions.None, new DxfCellRange(0, 0, 0, 0), new DxfCellRange(2, 0, 2, 0))),
-                ("fill", t => t.Fill(new DxfCellRange(2, 0, 2, 0), new DxfCellRange(1, 0, 1, 0), DxfTableFillOptions.None)),
+                ("fill", t => t.Fill(new DxfCellRange(2, 0, 2, 0), new DxfCellRange(1, 0, 1, 0), DxfTableFillOptions.CopyContent | DxfTableFillOptions.CopyFormat)),
             };
 
             foreach (var (name, edit) in edits)
@@ -813,13 +818,15 @@ namespace GeometryHelper.UnitTest.Dxf
                 table.SetValue(4, 0, 2);
                 table.SetValue(5, 0, 4);
 
-                table.Fill(new DxfCellRange(1, 1, 9, 1), new DxfCellRange(3, 1, 5, 1), DxfTableFillOptions.GenerateSeries);
+                table.Fill(new DxfCellRange(6, 1, 9, 1), new DxfCellRange(3, 1, 5, 1), DxfTableFillOptions.GenerateSeries);
                 table.Fill(new DxfCellRange(6, 0, 9, 0), new DxfCellRange(3, 0, 5, 0), DxfTableFillOptions.GenerateSeries | DxfTableFillOptions.Reverse);
 
+                // On by 1.5 from 4, or back from 1 in reverse (D33 g02, g26); from R2007 on shown of six places.
+                bool r2000 = text == DxfDimensionDrawings.R2000;
                 DxfTable read = Reread(db);
-                Assert.Equal(new[] { "-2", "-0.5" }, new[] { read.TextString(1, 1), read.TextString(2, 1) });
-                Assert.Equal(new[] { "5.5", "7", "8.5", "10" }, Enumerable.Range(6, 4).Select(r => read.TextString(r, 1)).ToArray());
-                Assert.Equal(new[] { "2.5", "1", "-0.5", "-2" }, Enumerable.Range(6, 4).Select(r => read.TextString(r, 0)).ToArray());
+                Assert.Equal(new[] { 5.5, 7.0, 8.5, 10.0 }, Enumerable.Range(6, 4).Select(r => Number(read, r, 1)).ToArray());
+                Assert.Equal(r2000 ? "8.5" : "8.500000", read.TextString(8, 1));
+                Assert.Equal(new[] { -5.0, -3.5, -2.0, -0.5 }, Enumerable.Range(6, 4).Select(r => Number(read, r, 0)).ToArray());
             }
         }
 
@@ -1019,7 +1026,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 table.SetValue(4, 1, 20);
 
                 table.Fill(new DxfCellRange(5, 1, 7, 1), new DxfCellRange(3, 1, 4, 1), DxfTableFillOptions.GenerateSeries);
-                table.Fill(new DxfCellRange(3, 0, 5, 0), new DxfCellRange(1, 0, 1, 0), DxfTableFillOptions.None);
+                table.Fill(new DxfCellRange(3, 0, 5, 0), new DxfCellRange(1, 0, 1, 0), DxfTableFillOptions.CopyContent | DxfTableFillOptions.CopyFormat);
 
                 DxfTable read = Reread(db);
                 Assert.Equal(new[] { "30", "40", "50" }, Enumerable.Range(5, 3).Select(r => read.TextString(r, 1)).ToArray());
@@ -1027,22 +1034,19 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(new[] { "Mark", "Mark", "Mark" }, Enumerable.Range(3, 3).Select(r => read.TextString(r, 0)).ToArray());
                 Assert.Equal(DxfCellAlignment.MiddleCenter, read.Alignment(4, 0));
 
-                // A cell above the source carries the series back; one number goes up by one, or down with Reverse; a step of a
-                // half makes a number.
-                table.Fill(new DxfCellRange(1, 1, 1, 1), new DxfCellRange(3, 1, 4, 1), DxfTableFillOptions.GenerateSeries);
+                // One number goes up by one, or down with Reverse; a step of a half makes a number.
                 table.SetValue(6, 0, 5);
                 table.Fill(new DxfCellRange(7, 0, 7, 0), new DxfCellRange(6, 0, 6, 0), DxfTableFillOptions.GenerateSeries | DxfTableFillOptions.Reverse);
                 table.SetValue(3, 0, 0.5);
                 table.SetValue(4, 0, 1.0);
                 table.Fill(new DxfCellRange(5, 0, 5, 0), new DxfCellRange(3, 0, 4, 0), DxfTableFillOptions.GenerateSeries);
                 DxfTable again = Reread(db);
-                Assert.Equal("-10", again.TextString(1, 1));
                 Assert.Equal("4", again.TextString(7, 0));
-                Assert.Equal("1.5", again.TextString(5, 0));
+                Assert.Equal(r2000 ? "1.5" : "1.500000", again.TextString(5, 0));
                 Assert.Equal(r2000 ? (object)"1.5" : 1.5, again.Value(5, 0));
                 Assert.Equal(new DxfCellRange(0, 0, 0, 1), again.GetMergeRange(0, 1));
 
-                Refused<ArgumentException>(() => table.Fill(new DxfCellRange(3, 0, 5, 1), new DxfCellRange(1, 0, 1, 0), DxfTableFillOptions.None), "columns of the source");
+                Refused<ArgumentException>(() => table.Fill(new DxfCellRange(1, 0, 5, 0), new DxfCellRange(1, 0, 1, 0), DxfTableFillOptions.CopyContent), "eInvalidInput");
                 Refused<ArgumentOutOfRangeException>(() => table.Fill(new DxfCellRange(3, 0, 5, 0), new DxfCellRange(1, 0, 1, 0), (DxfTableFillOptions)128), "flags");
             }
         }
@@ -1055,7 +1059,7 @@ namespace GeometryHelper.UnitTest.Dxf
             table.SetSize(3, 5);
             table.SetValue(1, 0, 7);
 
-            table.Fill(new DxfCellRange(1, 1, 1, 4), new DxfCellRange(1, 0, 1, 0), DxfTableFillOptions.Row | DxfTableFillOptions.GenerateSeries | DxfTableFillOptions.CopyContent);
+            table.Fill(new DxfCellRange(1, 1, 1, 4), new DxfCellRange(1, 0, 1, 0), DxfTableFillOptions.Row | DxfTableFillOptions.GenerateSeries);
 
             DxfTable read = Reread(db);
             Assert.Equal(new object[] { 7, 8, 9, 10, 11 }, Enumerable.Range(0, 5).Select(c => read.Value(1, c)).ToArray());

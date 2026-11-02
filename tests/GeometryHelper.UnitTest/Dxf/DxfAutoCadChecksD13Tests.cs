@@ -139,7 +139,8 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Table(db).TransformBy(GeoTransform3.Scaling(2.0));
 
-            Assert.EndsWith("304\nACVALUE_END\n140\n0.36\n140\n10\n", TableRecord(db), StringComparison.Ordinal);
+            Assert.EndsWith("304\nACVALUE_END\n140\n10\n", TableRecord(db), StringComparison.Ordinal);
+            Assert.Contains("145\n0.0\n140\n0.36\n 92\n0\n340\n", TableRecord(db), StringComparison.Ordinal);
             Assert.Contains("\n 93\n1048576\n", TableRecord(db), StringComparison.Ordinal);
             Assert.Equal(new double?[] { 10, 10, 7, 0.36, 0.36, 0.36 }, CellHeights(Table(DxfDatabase.Parse(db.ToText()))));
         }

@@ -752,6 +752,38 @@ written as AutoCAD reads them now.
       `SetDataType(Double)` of the text B-12 made it 0 (v12) and `SetOverrides(TextHeight)` gave Qty a height of 0.18 (v42),
       both of which the library refuses; and its `DeleteRows` of a merged row with a row above it merged that row in its
       place (x15, the title moved down by `InsertRows(0)` taken out), where the library drops the block.
+    - AutoCAD 2021 (D33, headless, 177 edits, in-memory matrices of 700 formats and kinds, one read-back of 311 files): its
+      `Fill` of the options `None` alone fills nothing (f01, v35); `CopyContent` copies the content alone, the cell keeping
+      its look and flags, and wins over `GenerateSeries` (f03, f06, g14); `CopyFormat` copies the look, the flags and the kind
+      of value, a cell of no value given one of none of that kind (`93 5`, f04, f20, g15); `GenerateSeries` alone carries the
+      numbers on from the source's last through the fill range wherever it stands, below, above or past a gap (3.5, 4.5 and
+      5.5 of 1.5 and 2.5, f02, g01, g03), the cell given its kind of value (0x40000) and the value's flags 4, shown of six
+      places (0.300000, g06), and with `Reverse` back from the source's first, the fill range's last cell next to it (-1.5,
+      -0.5, 0.5; 10 and 20 to -20, -10, 0; g02, g05, g26), a text no number copied (g07); each cell the source cell its place
+      repeats from the fill range's first cell (f16); the source's columns filled whatever columns the fill range names (g10,
+      g24); a fill range holding a cell of the source refused with eInvalidInput (f09, D28e f1, f2). Its format `%lu4` shows
+      12.5 as 1'-0 1/2" (`%pr2`), to the nearest 1/2^N of an inch (four with no `%pr`), a half away from nought, the minus
+      only where the number rounded is not nought, `%zs1` leaving nought feet out and `%zs2` nought inches, a whole number
+      left as it is; feet beyond 32 bits it writes as garbage (-2147483648'--2147483648 -1/0" for 1E11) and from 5E11 in
+      powers of ten. Its `SetValue` takes a cell's format away (u7). Its `SetDataType` refuses nothing: a value not of the
+      kind becomes one of none (`93 7`, no unit written), a whole number is cut towards nought (12.7 12, 3E9 -2147483648), a
+      text read as a number takes `%lu6` (12.0000 under LUNITS 2 and LUPREC 4) or `%lu1` (1.0000E+03), every turn but a
+      text of a whole number dropping the value's flag 2 (d1 to d12, t1 to t16). Its `SetOverrides` refuses nothing: the
+      flags become those named, the alignment and background kept whatever is named, one added of AutoCAD's value (the
+      alignment its row shows, `63 0 64 0 283 1`, `64 0`, `140 0.18`, a text style's flag alone), the colour, text style,
+      height and kind of value not named taken away (o1 to o28). Set one at a time, its overrides of a cell are named bit k
+      the override 130 + k, as the library names them (s01 to s26); it writes a cell's overrides before its 92 in the order
+      170, 7, 63, 64, 283, 140, then the right, bottom, left and top edge, each lineweight, showing and colour (s30 to s35).
+    - Now (D33): the library writes and reads so; AutoCAD read its files of 113 of the 134 edits it compared as it read its
+      own (every `Fill`, format, `SetDataType` and `SetOverrides` edit among them), the rest under "Not yet".
+    - Not yet (D33): a line set on a cell AutoCAD writes with all three flags of its edge (`279 -2`, `69 1` and the flag of
+      its showing for a colour alone) and on the cell below or right where the line is between two, so that its
+      `CellStyleOverrides` of its own file lists two zeros more than of the library's (s08 to s33; every line read alike);
+      its own file of a line it hid reads back drawn (`288 1`, s16, s18, s19, and R2000 alike, s19b), where the library's
+      reads hidden as AutoCAD showed it before saving; the first row of a table read from a file it merges across the table
+      where the title is shown but unmerged or a row put in before a title was left (b-n1, b-n3, n9), the library's file and
+      its own alike, but writes that merge only after an edit, so that the cell (0, 1) of the library's file reads at the
+      table's corner (m01, n1 to n15); its `Fill` into the header filled nothing (f14, one case), where the library fills.
 
 44. **The arrow block of a dimension style.**
     - Try: set `Dimtxsty` and `Dimblk` on a dimension style read from a file and on one made in code, open the drawing and run

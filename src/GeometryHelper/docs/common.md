@@ -2272,15 +2272,22 @@ own instead as 0.18 in every cell, so none is written there. Its rows are still 
 
 A cell's value has its kind, `DataType` (`Long`, `Double` or `String`, the value's 90 from R2007 on), what its number
 measures, `UnitType`, and its format, `Format` (`%lu2%pr2`), each in the cell's `301 CELL_VALUE`.
-`SetValue(row, col, 12.5)` writes a number of the kind `Double`, its unit and format kept, its text as AutoCAD 2021
-writes and shows it, 12.500000, and 12.500 under the format `%lu2%pr3`, and `SetValue(row, col, 42)` a whole number. A value of the flag 1 (93 of 1, 5 or 7, as AutoCAD writes a block cell's, a
+`SetValue(row, col, 12.5)` writes a number of the kind `Double`, its unit kept and its format taken away, as AutoCAD 2021
+took a format of feet and inches away from a cell given 100.125, its text as AutoCAD writes and shows it, 12.500000, and
+`SetValue(row, col, 42)` a whole number. A value of the flag 1 (93 of 1, 5 or 7, as AutoCAD writes a block cell's, a
 formula's and an empty cell's) AutoCAD 2021 reads as none, whatever text it holds, so a text or value given to such a cell
 takes the flags 6 AutoCAD writes for one it is given: the block cell made a text cell and given M16 read empty before.
-`SetFormat`, `SetDataType` (the text 12 turned into the whole number 12, the text Parts refused as a number, a unit of
-several flags as `Angle | AngleNotTransformed`, 65 538, written as it is) and
+`SetFormat`, `SetDataType` (as AutoCAD 2021 turns a value: the text 12 into the whole number 12, 12.7 into 12 and -12.7
+into -12, the text 12 into the number 12 shown 12.0000 in the drawing's units under `%lu6` and 1e3 shown 1.0000E+03 under
+`%lu1`, the text Parts into a number of no value, `93 7` and an empty text, each but a text of a whole number losing the
+flag 2 of its value, `93 6` made 4; a unit of several flags as `Angle | AngleNotTransformed`, 65 538, written as it is; a
+kind other than a text, a whole number and a number refused, the library knowing no groups for it) and
 `ResetValue` write the rest, in the cell's value: none of them sets a flag of the cell's overrides, so `GetOverrides`
-gives what it gave. `SetFormat` writes a number's text anew by a decimal format (`%lu2%prN`), and leaves it as it is under
-one of another unit, the library not writing feet and inches; `ResetValue` leaves a value of none (`93 7`, `90 0`, the
+gives what it gave. `SetFormat` writes a number's text anew by a decimal format (`%lu2%prN`) and by one of feet and
+inches (`%lu4`): 12.5 under `%lu4%pr2` is 1'-0 1/2", to the nearest 1/2^N of an inch (four where no `%prN` is given), a
+half away from nought, -0.25 -0'-0 1/4" and -0.001 0'-0", `%zs1` leaving nought feet out (7 1/4") and `%zs2` nought
+inches (1'), as AutoCAD 2021 wrote them; it leaves the text as it is under one of another unit, and for a number of more
+feet than 32 bits hold, which AutoCAD writes as garbage or in powers of ten; `ResetValue` leaves a value of none (`93 7`, `90 0`, the
 cell's flag 0x40000 taken out), as AutoCAD 2021 wrote it and read it as of no kind. A cell of a file before R2007 holds its
 text alone, so a value set there is written as its text, a number as the invariant culture writes it (12.5, whole), and
 reads back as one, and a kind or a format other than a text and none is refused. A date or a point is refused as a value: the library
@@ -2293,8 +2300,14 @@ AutoCAD 2021 writes and reads them; `SetTextRotation` and `SetRotation` write a 
 block cell's fitting (174), and `SetCellType` makes a block cell a text cell of no value, its block and attribute values
 taken out. An override the cell has already is written in its place, before the cell's 92 where AutoCAD 2021
 writes its own (`170 5`, `7 GH_TXT`, `140 3.5`): `SetTextStyle` of such a cell wrote a second 7 after its value, which
-AutoCAD read and the library did not. `GetOverrides` gives what a cell holds of its own as AutoCAD's `CellProperties`, `SetOverrides` keeps
-those given and takes the rest away, so that the cell takes them from its table style, `RemoveAllOverrides` takes them
+AutoCAD read and the library did not. From R2007 on a cell's overrides set are all written there, in AutoCAD's order
+(170, 7, 63, 64, 283, 140, then the right, bottom, left and top edge, each its lineweight, showing and colour), those it
+held after its value moved with them; before R2007 after its text, where AutoCAD writes them. `GetOverrides` gives what a
+cell holds of its own as AutoCAD's `CellProperties`; `SetOverrides` gives it those named as AutoCAD 2021 gives them, its
+flags exactly those, its alignment and background kept whatever is named, one it has not given the value AutoCAD gives
+(the alignment its row shows, a background of none, the colour by block, the text height 0.18 of the content's own format,
+a text style of none), its colour, text style, height and kind of value not named taken away, so that the cell takes them
+from its table style: Qty given `TextHeight` is written `91 32`, `140 0.18`. `RemoveAllOverrides` takes them
 all, wherever they stand outside the cell's value, and the edges of its lines from its edge flags (172), as AutoCAD
 2021's own took `170 5`, `7 GH_TXT` and `140 3.5` out from before the 92 of its cell (1, 0) and wrote a cell of `172 9`
 as `172 0`, both keeping the cell's own kind of value (its flag 0x40000), for which the library knows no groups; and
@@ -2413,10 +2426,15 @@ link taken away, such a formula is written in the cell's own FIELD, as AutoCAD r
 options, sourceRange, targetRange)` copies cells of a table of the same drawing, content, look and merges, growing the
 table with `ExpandOrContractTable`, which never shrinks it (a copy past the last row of the header and data rows makes
 the table of 3 rows one of 5), the content alone with `SkipFormat`, the look alone with `SkipContent`; a cell's field is
-not copied, and the other options are refused. `Fill(fillRange, sourceRange, options)` fills down (or along with `Row`)
-from the source, copying it, or with `GenerateSeries` carrying its numbers on, 10 and 20 to 30 and 40, each rounded to
-the places of the source and the step, to 15 figures (0.1 and 0.2 to 0.3; 1, 2 and 4 to 5.5 and 7), and with `Reverse`
-the other way, 10 and 20 to 10, 0 and -10; a text is a number only before R2007, and dates are not carried on.
+not copied, and the other options are refused. `Fill(fillRange, sourceRange, options)` fills the rows of the fill range
+down the source's columns (or its columns along the source's rows with `Row`), as AutoCAD 2021 fills them: each cell the
+source cell its place repeats from the fill range's first cell; `CopyContent` the content alone, winning over a series,
+`CopyFormat` the look and kind alone (a cell of no value given one of none of that kind), both the cell whole;
+`GenerateSeries` carries the numbers on from the source's last, wherever the fill range stands, 10 and 20 to 30 and 40,
+each rounded to the places of the source and the step, to 15 figures (0.1 and 0.2 to 0.3, shown 0.300000; 1, 2 and 4 to
+5.5 and 7), and with `Reverse` back from the source's first, the fill range's last cell next to it, 10 and 20 to -20, -10
+and 0. Options of none of the three change nothing, and a fill range that holds a cell of the source is refused, as
+AutoCAD refuses it; a text is a number only before R2007, and dates are not carried on.
 `SetFromStyle()` takes the table's and its cells' overrides away, as `ClearTableStyleOverrides(0)` does. What a file of
 these versions has no group for is not there: several contents in one cell, and a line's style, linetype and the spacing
 of a double line.
