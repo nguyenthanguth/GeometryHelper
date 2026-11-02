@@ -99,7 +99,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(3, again.Degree);
             Assert.False(data.TangentsExist);
             Assert.Equal(DxfKnotParameterizationEnum.Chord, data.KnotParam);
-            Assert.Throws<NotSupportedException>(() => again.FitData = new DxfFitData(points, 3, 0.0) { KnotParam = DxfKnotParameterizationEnum.Uniform });
+            Assert.Throws<NotSupportedException>(() => again.FitData = new DxfFitData(points, 3, 0.0) { KnotParam = DxfKnotParameterizationEnum.CustomParameterization });
             Assert.Throws<ArgumentException>(() => again.FitData = new DxfFitData(new[] { points[0] }, 3, 0.0));
         }
 

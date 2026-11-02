@@ -431,7 +431,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 "F00");
 
             // NEAR at 10: AutoCAD's 42 vertices, each at its parameter. (At 0 AutoCAD gave 0, 40.71, 55.57, 71.70 and 111.15, of
-            // no closing vertex, where the library gives 0, 40.71, 71.70, 112.01 and the start again: parked.)
+            // no closing vertex, the range cut in fifths, as the library cuts it: DxfSplineD32bTests.)
             double[] parameters =
             {
                 0, 8.6835096245609549, 13.025264436841434, 17.36701924912191, 21.708774061402387, 26.050528873682865, 30.392283685963339, 32.563161092103584,
@@ -554,8 +554,10 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfSpline twice = Again(scaled);
             Assert.True(twice.StartFitTangent.IsEqualTo(new GeoVector3(5, 0, 0), Tight));
             Assert.True(twice.EndFitTangent.IsEqualTo(new GeoVector3(0, 5, 0), Tight));
-            Assert.True(twice.GetControlPointAt(1).IsEqualTo(P3(133.37499349161703, 0, 0), Tight));
-            Assert.Equal(FiveKnots, twice.Knots.ToArray());
+
+            // Read again, the cubic AutoCAD fits through the points scaled, its knots twice as far, as AutoCAD read its own cubic
+            // through five points scaled by 2 and saved (D32 q-own-B0-scale2): 80.02, 141.38, 222.00 and 289.08 (D32b).
+            Assert.Equal(FiveKnots.Select(k => 2 * k).ToArray(), twice.Knots.ToArray());
 
             DxfDatabase turned = DrawingOf(1064, FiveKnots, points, Five, new GeoVector3(5, 0, 0), new GeoVector3(0, 5, 0));
             ByHandle<DxfSpline>(turned, "F00").TransformBy(GeoTransform3.RotationAxis(P3(5, 5, 0), new GeoVector3(0, 0, 1), Math.PI / 6));

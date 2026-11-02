@@ -34,8 +34,17 @@ namespace GeometryHelper.Dxf
         // The flag of group 70 AutoCAD gives a spline its fit data are set on and takes off with its NURBS data (its 17-k, 17-l).
         private const int FitMade = 32;
 
-        // A flag of group 70 AutoCAD 2021 set, with 1024, on its spline of fit points given a knot (70 1288): read as nothing more.
+        // A flag of group 70 AutoCAD 2021 set, with 1024, on its spline of fit points given a knot (70 1288), whose fit points are
+        // those at its knots by parameters of its own (its CustomParameterization).
         private const int FitAtKnots = 256;
+
+        // The flags of group 70 AutoCAD 2021 writes for fit points given parameters by the square root of the chord (70 1096)
+        // and one step each (1160), in place of the 32 of the chord, with no fit points (its D32b run).
+        private const int FitBySquareRoot = 64;
+        private const int FitByStep = 128;
+
+        // The flags of how fit points are given their parameters, which go with the fit data.
+        private const int FitKinds = FitMade | FitBySquareRoot | FitByStep | FitAtKnots;
 
         // The points of Tolerance.Default and the angle within which a seam runs on in one direction: AutoCAD 2021 wrote the
         // flag 2 on its closed splines whose seams turn by 4E-16 of a radian at most, and not on one turned by a hundred-millionth
@@ -106,9 +115,13 @@ namespace GeometryHelper.Dxf
 
         #region The spline
 
-        /// <summary>Gets or sets the degree (group 71), as AutoCAD's <c>Degree</c>; 3 where the record gives none.</summary>
+        /// <summary>
+        /// Gets or sets the degree (group 71), as AutoCAD's <c>Degree</c>; 3 where the record gives none, and 3, the degree of the
+        /// cubic AutoCAD fits, for a spline of fit points it reads as that cubic (<see cref="NurbsData"/>): AutoCAD 2021 gave 3
+        /// for a record of fit points alone of 71 2 or 5 (its D32 c3-deg2 and c3-deg5).
+        /// </summary>
         /// <value>
-        /// Set, 1 or more. A spline of control points is given, with it, a clamped uniform knot vector for the same points over
+        /// Set, 1 or more; a spline read as the cubic through its fit points is given that cubic's control points and knots first. A spline of control points is given, with it, a clamped uniform knot vector for the same points over
         /// the span of knots it ran over, as AutoCAD's change of degree gives one, and is no longer periodic (flags 2 and 2048 of
         /// group 70 taken off): a cubic of 5 points made of degree 4 has the knots 0, 0, 0, 0, 0, 1, 1, 1, 1, 1 over its span from 0 to
         /// 1. Its points and weights are kept, so the curve changes with the degree. A spline given by its fit points alone has
@@ -119,7 +132,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when set on a spline that is erased.</exception>
         public int Degree
         {
-            get => GetInt(71, 3);
+            get => ReadsAsFit(out DxfNurbsData refit) ? refit.Degree : RecordDegree;
 
             set
             {
@@ -133,13 +146,16 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
-                int count = NumControlPoints;
+                int count = Points(10).Count;
 
                 if (count == 0)
                 {
                     SetInt(71, value, 3);
                     return;
                 }
+
+                TakeRefit();
+                count = Points(10).Count;
 
                 if (count < value + 1)
                 {
@@ -187,8 +203,11 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        /// <summary>Gets how many control points the spline has, as AutoCAD's <c>NumControlPoints</c>: its groups 10.</summary>
-        public int NumControlPoints => Points(10).Count;
+        /// <summary>
+        /// Gets how many control points the spline has, as AutoCAD's <c>NumControlPoints</c>: its groups 10, or those of the cubic
+        /// AutoCAD reads a spline of fit points as (<see cref="NurbsData"/>), 7 for five fit points alone (its D32 c1-fitonly).
+        /// </summary>
+        public int NumControlPoints => ReadsAsFit(out DxfNurbsData refit) ? refit.GetControlPoints().Count : Points(10).Count;
 
         /// <summary>
         /// Gets how many fit points the spline has, as AutoCAD's <c>NumFitPoints</c>: its groups 11, or where it has none and the
@@ -210,8 +229,12 @@ namespace GeometryHelper.Dxf
         /// <summary>Gets whether the spline has neither control points nor fit points, as AutoCAD's <c>IsNull</c>.</summary>
         public bool IsNull => NumControlPoints == 0 && NumFitPoints == 0;
 
-        /// <summary>Gets whether the spline has weights (flag 4 of group 70), as AutoCAD's <c>IsRational</c>.</summary>
-        public bool IsRational => (GetInt(70, 0) & 4) != 0;
+        /// <summary>
+        /// Gets whether the spline has weights (flag 4 of group 70), as AutoCAD's <c>IsRational</c>; false for a spline of fit points
+        /// AutoCAD reads as the cubic through them (<see cref="NurbsData"/>), as it read the library's cubic through five points
+        /// given a weight of 2 (its D32 B0-setweight).
+        /// </summary>
+        public bool IsRational => !ReadsAsFit(out _) && RecordRational;
 
         /// <summary>Gets whether the record says the spline lies in a plane (flag 8 of group 70), as AutoCAD's <c>IsPlanar</c>.</summary>
         public override bool IsPlanar => (GetInt(70, 0) & 8) != 0;
@@ -269,9 +292,12 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets or sets the control points (groups 10, 20, 30), in the world, a new list on each call; their count (73) with them.
+        /// A spline of fit points AutoCAD reads as the cubic through them (<see cref="NurbsData"/>) gives that cubic's, as AutoCAD
+        /// 2021 gave the cubic's 7 for a record of five fit points whose control point 1 was moved (its D32 c2) or that had none
+        /// (c1); its <see cref="Knots"/>, <see cref="Weights"/> (none) and <see cref="Degree"/> (3) go with them.
         /// </summary>
         /// <value>
-        /// Set, the points, as many as the knots ask for (their count less the degree and one) and as the weights are where the
+        /// Set, the record given that cubic first where it is read as one; the points, as many as the knots ask for (their count less the degree and one) and as the weights are where the
         /// spline has some: the knots and weights are not changed with them. <see cref="SetNurbsData"/> sets points of another
         /// count with their knots. A spline of fit points has its fit data taken out with them, as <see cref="SetControlPointAt"/>.
         /// </value>
@@ -281,7 +307,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when set on a spline that is erased.</exception>
         public IReadOnlyList<GeoPoint3> ControlPoints
         {
-            get => Read(Points(10));
+            get => ReadsAsFit(out DxfNurbsData refit) ? refit.GetControlPoints() : RecordPoints;
 
             set
             {
@@ -295,6 +321,7 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
+                TakeRefit();
                 CheckNurbs(Degree, value.Count, Knots, Weights.Count, nameof(value));
                 List<List<KeyValuePair<int, string>>> points = Points(10);
                 var written = new List<List<KeyValuePair<int, string>>>(value.Count);
@@ -322,7 +349,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when set on a spline that is erased.</exception>
         public IReadOnlyList<double> Knots
         {
-            get => NumberList(40);
+            get => ReadsAsFit(out DxfNurbsData refit) ? refit.GetKnots() : RecordKnots;
 
             set
             {
@@ -336,6 +363,7 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
+                TakeRefit();
                 CheckNurbs(Degree, NumControlPoints, value, Weights.Count, nameof(value));
                 WriteNumbers(40, KnotCodes, value, 72);
                 TakeFitOut();
@@ -353,7 +381,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when set on a spline that is erased.</exception>
         public IReadOnlyList<double> Weights
         {
-            get => NumberList(41);
+            get => ReadsAsFit(out _) ? new List<double>() : RecordWeights;
 
             set
             {
@@ -367,6 +395,7 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
+                TakeRefit();
                 foreach (double weight in value)
                 {
                     Guard.Positive(weight, nameof(value), "A weight has to be a finite number above nought.");
@@ -515,17 +544,79 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        /// <summary>Gets the direction the spline starts in at its first fit point (groups 12, 22, 32), as AutoCAD's <c>StartFitTangent</c>; of no length where the record gives none.</summary>
-        public GeoVector3 StartFitTangent => Direction(12);
+        /// <summary>
+        /// Gets the direction the spline starts in at its first fit point (groups 12, 22, 32), as AutoCAD's <c>StartFitTangent</c>;
+        /// of no length where the record gives none. A spline not periodic whose fit points are those at its knots (the flag 1024
+        /// and no groups 11) gives its derivative at its start, as AutoCAD 2021 read its own of SqrtChord parameters through five
+        /// points, (7.01, -1.77, 0), and its cubic given a knot (70 1288), (1.11, -0.34, 0) (its D32b run).
+        /// </summary>
+        public GeoVector3 StartFitTangent => EndOfKnotFit(true, out GeoVector3 derivative) ? derivative : Direction(12);
 
-        /// <summary>Gets the direction the spline ends in at its last fit point (groups 13, 23, 33), as AutoCAD's <c>EndFitTangent</c>; of no length where the record gives none.</summary>
-        public GeoVector3 EndFitTangent => Direction(13);
+        /// <summary>
+        /// Gets the direction the spline ends in at its last fit point (groups 13, 23, 33), as AutoCAD's <c>EndFitTangent</c>; of
+        /// no length where the record gives none, and as <see cref="StartFitTangent"/> the derivative at the end of a spline whose
+        /// fit points are those at its knots.
+        /// </summary>
+        public GeoVector3 EndFitTangent => EndOfKnotFit(false, out GeoVector3 derivative) ? derivative : Direction(13);
 
-        /// <summary>Gets a control point, as AutoCAD's <c>GetControlPointAt</c>.</summary>
+        /// <summary>
+        /// Whether the spline is one not periodic whose fit points are the points at its knots (the flag 1024 of group 70 and no
+        /// groups 11 or tangents), and its derivative at its start or as it reaches its end, the tangent AutoCAD gives there.
+        /// </summary>
+        private bool EndOfKnotFit(bool start, out GeoVector3 derivative)
+        {
+            derivative = default(GeoVector3);
+            int flags = GetInt(70, 0);
+
+            if ((flags & FitByKnots) == 0 || (flags & PeriodicFlag) != 0 || Points(11).Count > 0 || GetString(start ? 12 : 13) != null || Points(10).Count == 0)
+            {
+                return false;
+            }
+
+            DxfNurbs nurbs;
+
+            try
+            {
+                nurbs = Nurbs();
+            }
+            catch (InvalidOperationException)
+            {
+                // Data that make no spline give no tangent at its ends.
+                return false;
+            }
+
+            if (start)
+            {
+                nurbs.Evaluate(nurbs.Start, out _, out derivative, out _);
+            }
+            else
+            {
+                nurbs.EvaluateArriving(nurbs.End, out _, out derivative, out _);
+            }
+
+            return true;
+        }
+
+        /// <summary>Gets a control point, as AutoCAD's <c>GetControlPointAt</c>: one of <see cref="ControlPoints"/>.</summary>
         /// <param name="index">The index of the point, from nought.</param>
         /// <returns>The point, in the world.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when there is no point of the index.</exception>
-        public GeoPoint3 GetControlPointAt(int index) => Read(At(Points(10), index));
+        public GeoPoint3 GetControlPointAt(int index)
+        {
+            if (!ReadsAsFit(out DxfNurbsData refit))
+            {
+                return Read(At(Points(10), index));
+            }
+
+            IReadOnlyList<GeoPoint3> points = refit.GetControlPoints();
+
+            if (index < 0 || index >= points.Count)
+            {
+                throw new ArgumentOutOfRangeException(nameof(index), index, "The spline has " + points.Count.ToString(CultureInfo.InvariantCulture) + " control points, from nought.");
+            }
+
+            return points[index];
+        }
 
         /// <summary>
         /// Moves a control point, as AutoCAD's <c>SetControlPointAt</c>: its groups written anew, the others kept. A spline of fit
@@ -541,14 +632,15 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the spline is erased.</exception>
         public void SetControlPointAt(int index, GeoPoint3 point)
         {
-            List<List<KeyValuePair<int, string>>> points = Points(10);
-            GeoPoint3 was = Read(points[CheckIndex(points, index)]);
+            GeoPoint3 was = GetControlPointAt(index);
 
             if (point.IsValid && Same(was.X, point.X) && Same(was.Y, point.Y) && Same(was.Z, point.Z))
             {
                 return;
             }
 
+            TakeRefit();
+            List<List<KeyValuePair<int, string>>> points = Points(10);
             points[index] = Point(10, point, points[index], nameof(point));
             WritePoints(10, ControlCodes, points, 73);
             TakeFitOut();
@@ -560,7 +652,7 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private void TakeFitOut()
         {
-            if (Points(11).Count > 0 || (GetInt(70, 0) & (FitByKnots | FitMade)) != 0)
+            if (Points(11).Count > 0 || (GetInt(70, 0) & (FitByKnots | FitKinds)) != 0)
             {
                 RemoveFitData();
             }
@@ -595,7 +687,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentOutOfRangeException">Thrown when there is no point of the index.</exception>
         public double WeightAt(int index)
         {
-            CheckIndex(Points(10), index);
+            GetControlPointAt(index);
             IReadOnlyList<double> weights = Weights;
             return index < weights.Count ? weights[index] : 1.0;
         }
@@ -611,7 +703,7 @@ namespace GeometryHelper.Dxf
         public void SetWeightAt(int index, double weight)
         {
             Guard.Positive(weight, nameof(weight), "A weight has to be a finite number above nought.");
-            int count = Points(10).Count;
+            int count = NumControlPoints;
 
             if (index < 0 || index >= count)
             {
@@ -623,6 +715,7 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
+            TakeRefit();
             var weights = new List<double>(Weights);
 
             while (weights.Count < count)
@@ -646,12 +739,14 @@ namespace GeometryHelper.Dxf
         public void InsertKnot(double param)
         {
             Guard.Finite(param, nameof(param), "A knot has to be a finite number.");
-            IReadOnlyList<GeoPoint3> points = ControlPoints;
 
-            if (points.Count == 0)
+            if (Points(10).Count == 0)
             {
                 throw new InvalidOperationException("A spline given by its fit points alone has no knots of its own to insert one into.");
             }
+
+            TakeRefit();
+            IReadOnlyList<GeoPoint3> points = ControlPoints;
 
             DxfNurbs nurbs = Nurbs();
 
@@ -742,30 +837,32 @@ namespace GeometryHelper.Dxf
         /// Takes the fit data out, as AutoCAD's <c>PurgeFitData</c>: the fit points, their count, and the tangents at the ends; the
         /// spline is given by its control points from then on, the flag 1024 of its group 70, by which AutoCAD gives the points at
         /// its knots as fit points, and the flag 32 taken off too, as AutoCAD 2021 saved its cubic through five points of 70 1064
-        /// purged 70 8. A spline with no control points keeps its fit points.
+        /// purged 70 8. A spline AutoCAD reads as the cubic through its fit points (<see cref="NurbsData"/>) keeps that cubic's
+        /// control points; one with no control points keeps its fit points.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the spline is erased.</exception>
         public void PurgeFitData()
         {
-            if (NumControlPoints == 0)
+            if (Points(10).Count == 0)
             {
                 return;
             }
 
+            TakeRefit();
             RemoveFitData();
         }
 
         /// <summary>
-        /// Takes the fit points, their count, the tangents at the ends and the flags 1024 and 32 of fit data out, as AutoCAD 2021
-        /// saved its cubic of 70 1064 purged 70 8 (its D32 B0-purge); nothing where there are none.
+        /// Takes the fit points, their count, the tangents at the ends and the flags 1024, 32, 64, 128 and 256 of fit data out, as
+        /// AutoCAD 2021 saved its cubic of 70 1064 purged 70 8 (its D32 B0-purge); nothing where there are none.
         /// </summary>
         private void RemoveFitData()
         {
             int flags = GetInt(70, 0);
 
-            if ((flags & (FitByKnots | FitMade)) != 0)
+            if ((flags & (FitByKnots | FitKinds)) != 0)
             {
-                SetInt(70, flags & ~(FitByKnots | FitMade), 0);
+                SetInt(70, flags & ~(FitByKnots | FitKinds), 0);
             }
 
             if (Points(11).Count == 0 && GetString(12) == null && GetString(13) == null && GetInt(74, 0) == 0)
@@ -813,7 +910,7 @@ namespace GeometryHelper.Dxf
 
             double last = double.NaN;
 
-            foreach (double knot in Knots)
+            foreach (double knot in RecordKnots)
             {
                 if (knot >= nurbs.Start && knot <= nurbs.End && !Same(knot, last))
                 {
@@ -1033,10 +1130,10 @@ namespace GeometryHelper.Dxf
         {
             List<List<KeyValuePair<int, string>>> points = Points(10);
             List<List<KeyValuePair<int, string>>> fit = Points(11);
-            IReadOnlyList<double> knots = Knots;
-            var weights = new List<double>(Weights);
-            GeoVector3 start = StartFitTangent;
-            GeoVector3 end = EndFitTangent;
+            IReadOnlyList<double> knots = RecordKnots;
+            var weights = new List<double>(RecordWeights);
+            GeoVector3 start = Direction(12);
+            GeoVector3 end = Direction(13);
             bool hasStart = GetString(12) != null || GetString(22) != null || GetString(32) != null;
             bool hasEnd = GetString(13) != null || GetString(23) != null || GetString(33) != null;
             points.Reverse();
@@ -1202,46 +1299,214 @@ namespace GeometryHelper.Dxf
             return nurbs;
         }
 
+        // The record's runs of control points, fit points, knots and weights as last read, in one pass over its groups, and the
+        // NURBS data AutoCAD reads it as where those are not its own, kept until the records of its file next change.
+        private Reading _reading;
+
+        /// <summary>The runs of a SPLINE record and the cubic AutoCAD reads it as, read once (<see cref="Runs"/>).</summary>
+        private sealed class Reading
+        {
+            internal DxfItem Item;
+            internal int Edits;
+            internal readonly List<GeoPoint3> Points = new List<GeoPoint3>();
+            internal readonly List<GeoPoint3> Fit = new List<GeoPoint3>();
+            internal readonly List<double> Knots = new List<double>();
+            internal readonly List<double> Weights = new List<double>();
+
+            // The first group of each code read once, as GetString reads it: 70, 71, the tangents 12 and 13, and 42, 43 and 44.
+            internal readonly string[] Firsts = new string[FirstCodes.Length];
+            internal bool Refitted;
+            internal DxfNurbsData Refit;
+
+            internal string First(int code) => Firsts[Array.IndexOf(FirstCodes, code)];
+        }
+
+        // The codes whose first group a Reading keeps.
+        private static readonly int[] FirstCodes = { 70, 71, 12, 22, 32, 13, 23, 33, 42, 43, 44 };
+
         /// <summary>
-        /// The spline to walk: of the record's control points, or where it has none, the one the reader passes through its fit
-        /// points; where its fit points are not its control points, the cubic AutoCAD reads it as (<see cref="ReadAsFit"/>).
+        /// The record's runs of control points (groups 10, 20, 30), fit points (11, 21, 31), knots (40) and weights (41), read in one
+        /// pass over its groups as <see cref="Points"/>, <see cref="Read(List{List{KeyValuePair{int, string}}})"/> and
+        /// <see cref="NumberList"/> read them, and the cubic AutoCAD reads it as (<see cref="ReadsAsFit"/>): the one read last
+        /// where the spline's file has not changed since.
+        /// </summary>
+        private Reading Runs()
+        {
+            DxfItem item = Item;
+            int edits = item.File.EditCount;
+            Reading kept = Volatile.Read(ref _reading);
+
+            if (kept != null && ReferenceEquals(kept.Item, item) && kept.Edits == edits)
+            {
+                return kept;
+            }
+
+            var reading = new Reading { Item = item, Edits = edits };
+
+            foreach (DxfTypedValue group in GetOwnGroups(0))
+            {
+                int code = group.TypeCode;
+
+                switch (code)
+                {
+                    case 10:
+                    case 11:
+                        (code == 10 ? reading.Points : reading.Fit).Add(new GeoPoint3(Number(group.Value), 0.0, 0.0));
+                        break;
+                    case 20:
+                    case 30:
+                    case 21:
+                    case 31:
+                        List<GeoPoint3> run = code % 10 == 0 ? reading.Points : reading.Fit;
+
+                        if (run.Count > 0)
+                        {
+                            GeoPoint3 last = run[run.Count - 1];
+                            double value = Number(group.Value);
+                            run[run.Count - 1] = code < 30 ? new GeoPoint3(last.X, value, last.Z) : new GeoPoint3(last.X, last.Y, value);
+                        }
+
+                        break;
+                    case 40:
+                        reading.Knots.Add(Number(group.Value));
+                        break;
+                    case 41:
+                        reading.Weights.Add(Number(group.Value));
+                        break;
+                    default:
+                        int at = Array.IndexOf(FirstCodes, code);
+
+                        if (at >= 0 && reading.Firsts[at] == null)
+                        {
+                            reading.Firsts[at] = group.Value;
+                        }
+
+                        break;
+                }
+            }
+
+            reading.Refitted = ReadRefit(reading, out reading.Refit);
+            Volatile.Write(ref _reading, reading);
+            return reading;
+        }
+
+        /// <summary>A number of a group as the record's runs are read: nought where it is not a finite number.</summary>
+        private static double Number(string text) => Numbers.TryRead(text, out double value) && Guard.IsFinite(value) ? value : 0.0;
+
+        /// <summary>A number as <c>GetDouble</c> reads one: the fallback where there is none, or it is not a finite number.</summary>
+        private static double Number(string text, double fallback) => Numbers.TryRead(text, out double value) && Guard.IsFinite(value) ? value : fallback;
+
+        /// <summary>A whole number as <c>GetInt</c> reads one: the fallback where there is none, or it is not a whole number.</summary>
+        private static int Whole(string text, int fallback) => int.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : fallback;
+
+        /// <summary>A tangent as <see cref="Direction(int)"/> reads one, from the first groups of its codes kept.</summary>
+        private static GeoVector3 Direction(Reading reading, int code)
+            => new GeoVector3(Number(reading.First(code), 0.0), Number(reading.First(code + 10), 0.0), Number(reading.First(code + 20), 0.0));
+
+        /// <summary>
+        /// The spline to walk: of the record's control points, or where it is read as the cubic through its fit points, that
+        /// cubic (<see cref="ReadsAsFit"/>).
         /// </summary>
         private DxfNurbs ReadNurbs()
         {
-            IReadOnlyList<GeoPoint3> points = ControlPoints;
+            Reading reading = Runs();
 
-            if (points.Count > 0)
+            if (reading.Refitted)
             {
-                int degree = Degree;
-                IReadOnlyList<double> knots = Knots;
-                IReadOnlyList<double> weights = IsRational ? Weights : null;
-                return ReadAsFit(degree, points, knots, weights, out List<double> fitKnots, out List<GeoPoint3> fitPoints)
-                    ? new DxfNurbs(3, fitKnots, fitPoints, null)
-                    : new DxfNurbs(degree, knots, points, weights);
+                return new DxfNurbs(reading.Refit.Degree, reading.Refit.GetKnots(), reading.Refit.GetControlPoints(), null);
             }
 
-            if (GetGeCurve() is GeoSpline3 spline)
+            if (reading.Points.Count > 0)
             {
-                return new DxfNurbs(spline.Degree, spline.Knots, spline.ControlPoints, spline.IsRational ? spline.Weights : null);
+                bool rational = (Whole(reading.First(70), 0) & 4) != 0;
+                return new DxfNurbs(Whole(reading.First(71), 3), reading.Knots, reading.Points, rational ? reading.Weights : null);
             }
 
             throw new InvalidOperationException("The SPLINE has no control points, and no fit points the reader passes a spline through.");
         }
 
         /// <summary>
-        /// Whether AutoCAD 2021 reads the spline as the cubic it fits through its fit points rather than as its control points
-        /// (<see cref="DxfNurbsEdit.FitsAnew"/>), and that cubic: as it read the library's closed cubics of 70 11 of v9 (17-g)
-        /// through their 5 and 6 fit points, their control points another curve. False where it has fewer than two fit points
-        /// (groups 11), or its control points are its fit to AutoCAD's point tolerance, as AutoCAD's own are.
+        /// Whether AutoCAD 2021 reads the spline as the cubic it fits through its fit points rather than as its record's control
+        /// points, and that cubic's data, kept until the records of its file next change: a record of two fit points or more
+        /// and none of control points is read as the cubic the reader passes through them; one whose control points are not its
+        /// fit (<see cref="DxfNurbsEdit.FitsAnew"/>) as that fit, as AutoCAD read the library's closed cubics of 70 11 of v9
+        /// (17-g) through their 5 and 6 fit points, their control points another curve. False where it has fewer than two fit
+        /// points (groups 11), or its control points are its fit to AutoCAD's point tolerance, as AutoCAD's own are.
         /// </summary>
-        private bool ReadAsFit(int degree, IReadOnlyList<GeoPoint3> controlPoints, IReadOnlyList<double> controlKnots, IReadOnlyList<double> weights, out List<double> knots, out List<GeoPoint3> points)
+        private bool ReadsAsFit(out DxfNurbsData refit)
         {
-            knots = null;
-            points = null;
-            List<List<KeyValuePair<int, string>>> fit = Points(11);
-            return fit.Count >= 2
-                && DxfNurbsEdit.FitsAnew(Read(fit), StartFitTangent, EndFitTangent, FitTolerance, GetInt(70, 0), degree, controlPoints, controlKnots, weights ?? new List<double>(), out knots, out points);
+            Reading reading = Runs();
+            refit = reading.Refit;
+            return reading.Refitted;
         }
+
+        /// <summary>The data <see cref="ReadsAsFit"/> keeps, read from the record's runs.</summary>
+        private bool ReadRefit(Reading reading, out DxfNurbsData refit)
+        {
+            refit = default(DxfNurbsData);
+
+            if (reading.Fit.Count < 2)
+            {
+                return false;
+            }
+
+            int flags = Whole(reading.First(70), 0);
+            GeoVector3 start = Direction(reading, 12);
+            GeoVector3 end = Direction(reading, 13);
+            List<double> knots;
+            List<GeoPoint3> cubic;
+
+            if (reading.Points.Count > 0)
+            {
+                IReadOnlyList<double> weights = (flags & 4) != 0 ? reading.Weights : new List<double>();
+
+                if (!DxfNurbsEdit.FitsAnew(reading.Fit, start, end, Number(reading.First(44), 0.0), flags, Whole(reading.First(71), 3), reading.Points, reading.Knots, weights, out knots, out cubic))
+                {
+                    return false;
+                }
+            }
+            else if (!DxfNurbsEdit.InterpolateCubic(reading.Fit, start, end, DxfNurbsEdit.Parameters(flags), out _, out knots, out cubic))
+            {
+                return false;
+            }
+
+            refit = new DxfNurbsData(3, false, (flags & 1) != 0, (flags & 2) != 0, cubic, knots, null, Number(reading.First(43), 0.0), Number(reading.First(42), 0.0));
+            return true;
+        }
+
+        /// <summary>
+        /// Writes the cubic AutoCAD reads a spline of fit points as (<see cref="ReadsAsFit"/>) as the record's control points, knots
+        /// and degree, no weights, its fit data kept, before an edit of them, as AutoCAD edits the curve it holds: nothing where
+        /// the spline is read as its record.
+        /// </summary>
+        private void TakeRefit()
+        {
+            if (!ReadsAsFit(out DxfNurbsData refit))
+            {
+                return;
+            }
+
+            SetInt(70, GetInt(70, 0) & ~4, 0);
+            SetInt(71, refit.Degree, 3);
+            WriteNumbers(40, KnotCodes, refit.GetKnots(), 72);
+            WriteNumbers(41, WeightCodes, new List<double>(), -1);
+            WritePoints(10, ControlCodes, Rewritten(refit.GetControlPoints()), 73);
+        }
+
+        /// <summary>The degree the record gives (group 71), 3 where it gives none.</summary>
+        private int RecordDegree => Whole(Runs().First(71), 3);
+
+        /// <summary>The control points the record gives (groups 10, 20, 30), a new list.</summary>
+        private IReadOnlyList<GeoPoint3> RecordPoints => new List<GeoPoint3>(Runs().Points);
+
+        /// <summary>The knots the record gives (groups 40), a new list.</summary>
+        private IReadOnlyList<double> RecordKnots => new List<double>(Runs().Knots);
+
+        /// <summary>The weights the record gives (groups 41), a new list.</summary>
+        private IReadOnlyList<double> RecordWeights => new List<double>(Runs().Weights);
+
+        /// <summary>Whether the record says the spline is rational (flag 4 of group 70).</summary>
+        private bool RecordRational => (Whole(Runs().First(70), 0) & 4) != 0;
 
         private static double ParameterOn(DxfNurbs nurbs, GeoPoint3 point)
         {

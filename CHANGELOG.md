@@ -6,6 +6,37 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `DxfSpline.FitData` fits by the parameters `SqrtChord` and `Uniform` too, as AutoCAD 2021 does (check D32b): the
+same cubic, open, closed or periodic, its knots going up by the square root of each chord or by 1, through five points the
+knots 0 to 4 and AutoCAD's control points to 3E-14, written as AutoCAD writes it with no fit points, tangents or fit
+tolerance and the flag 64 or 128 in place of 32 (70 1096 and 1160, 3147 and 3211 periodic). `FitData.KnotParam` reads
+those flags, and 256 as `CustomParameterization`, and a spline not periodic whose fit points are the points at its knots
+gives its derivatives at its ends as `StartFitTangent` and `EndFitTangent`, as AutoCAD read its own files and the
+library's. Only `CustomParameterization` is refused now.
+
+**FIXED.** `DxfSpline.ToPolylineWithPrecision` cuts a spline not periodic of n control points evenly into (n - 3) + (n - 2) k
+pieces, k half the precision rounded down, where that is more pieces than the halving, as AutoCAD 2021 does (check D32b, 448
+polylines of closed cubics and 80 of open curves): a closed one then has no last vertex on its first, and a closed one of
+fit points as many of its knots in place as its vertices less two. The closed cubic through (0, 0), (40, 0), (40.5, 0.5),
+(50, 30) and (10, 25) is at 0 its vertices at 0, 40.71, 55.57, 71.70 and 111.15, the straight cubic of 4 points 3 segments
+at 2, and the quintic Bezier over 0 to 50 three at 0. 65 of D32's 72 polylines of AutoCAD's rings now match (52 before) and
+148 of its 156 counts (147).
+
+**FIXED.** Periodic fit data through three points give AutoCAD's periodic cubic of 3 control points to a period, read
+periodic, where the library gave a quadratic: its polylines of 5, 9, 15, 17, 31 and 54 vertices at 0, 1, 2, 3, 5 and 10.
+
+**CHANGED.** A `DxfSpline` read as the cubic through its fit points, of fit points alone or of control points that are not
+their fit, gives that cubic's `Degree`, `ControlPoints`, `Knots`, `Weights` (none), `IsRational`, `NumControlPoints` and
+`GetControlPointAt`, as AutoCAD 2021 gives them: five fit points alone of 71 2 are of degree 3 and 7 control points, where
+the library gave 2 and none. An edit of its control points, knots, weights or degree, `InsertKnot` or `PurgeFitData` writes
+the cubic to the record first. `ModifyPositionAndTangent` keeps the points at the knots of a spline of fit data as its fit
+points (70 1288, closed 1289), and so do the pieces of `GetSplitCurves`, as AutoCAD saved and gave them, where the library
+took the fit data out.
+
+**CHANGED.** The first geometry read of a spline of a drawing reads its record in one pass: 2 000 fit splines of 20 points
+with their control points, parsed and each asked its middle point, take 108 to 129 ms where they took 249 to 250 ms on .NET
+Framework 4.8, 86 to 94 ms where they took 142 on .NET 10.
+
 **CHANGED.** `DxfTable.DeleteRows` and `DeleteColumns` first merge across the table the rows AutoCAD 2021 merges when it
 loads a file, and write them merged, as AutoCAD writes them after its own (check D33b, 35 tables saved and read back, 27
 deletes): the first row, whatever its kind and whether the title is shown, and any other row of the title's kind, where no

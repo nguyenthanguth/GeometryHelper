@@ -41,7 +41,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(spline.EndPoint.IsEqualTo(new GeoPoint3(12, 0, 1), Tolerance.Default));
 
             Assert.Equal(4, fit.NumFitPoints);
-            Assert.Equal(0, fit.NumControlPoints);
+
+            // The 6 control points of the cubic AutoCAD reads it as, as AutoCAD 2021 gave 7 for five fit points alone (D32 c1).
+            Assert.Equal(6, fit.NumControlPoints);
             Assert.True(fit.HasFitData);
             Assert.Equal(DxfSplineType.FitPoints, fit.Type);
             Assert.Equal(Bits(new GeoPoint3(7, -2, 0)), Bits(fit.GetFitPointAt(2)));

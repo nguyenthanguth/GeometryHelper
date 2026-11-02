@@ -1023,9 +1023,19 @@ taken round, whatever degree they ask: each point on the curve at its knot, the 
 into as many control points as the points and 3, written 70 3115 with no fit points, tangents or fit tolerance, its points
 at its knots being its fit points. Through (0, 0), (40, 1), (50, 30) and (10, 25) it runs over the knots 0, 40.01, 70.69,
 111.00 and 137.93, its control points AutoCAD's to 1E-14; asked a degree 2 through (0, 0), (40, 0), (50, 30) and (10, 25),
-AutoCAD wrote the same cubic as asked a degree 3, as the library does. Three points give a quadratic and two a line there
-and back. Where two of the points are one, within 1E-3, which make no periodic spline, it is the closed spline the library
-fits through them.
+AutoCAD wrote the same cubic as asked a degree 3, as the library does. Three points give the cubic too, of 3 control points
+to a period, as AutoCAD fitted one through (0, 0), (30, 0) and (20, 15), and two a line there and back. Where two of the
+points are one, within 1E-3, which make no periodic spline, it is the closed spline the library fits through them.
+
+Fit data of the parameters `SqrtChord` or `Uniform` give the same cubics, open, closed or periodic, their knots going up by
+the square root of each chord or by 1 from point to point: through (0, 0), (40, 1), (50, 30), (10, 25) and (-20, 40) one
+step each, the knots 0 to 4 and AutoCAD 2021's control points to 3E-14. They are written as AutoCAD writes them, with no fit
+points, tangents or fit tolerance and the flag 64 (`SqrtChord`) or 128 (`Uniform`) in place of the 32 of the chord, saved
+70 1096 and 1160 (3147 and 3211 periodic), the points at their knots their fit points by the flag 1024. A spline reads its
+parameters from its group 70 as AutoCAD read them: 64 the square root, 128 one step each, 256 its own
+(`CustomParameterization`, a knot put in), else the chord; and where its fit points are the points at its knots and it is
+not periodic, its derivatives at its ends are its tangents (`StartFitTangent` (7.01, -1.77, 0) for the square roots
+through those five points), as AutoCAD read its own files and the library's. Parameters of the program's own are refused.
 
 Fit data not periodic give AutoCAD 2021's cubic through the points, whatever degree they ask (it fitted degrees 1 to 5 all
 as the cubic): each point on the curve at its knot, the knots the lengths of the chords from the first point, at an end
@@ -1039,10 +1049,15 @@ written but not fitted to: AutoCAD fits a curve that passes near the points ther
 reads a SPLINE of fit points by fitting it so anew, whatever its control points, flags and degree (but one of the flag
 2048, or of a fit tolerance above 1E-10): the reader and `DxfSpline` read it so where its control points are not that fit,
 as AutoCAD read the closed cubics of 70 11 of the library's check 17-g (44 vertices at 10, where their control points gave
-54), and as they are, to the bit, where they are, as AutoCAD's own are. A move, turn or scale keeps the length of a tangent
+54), and as they are, to the bit, where they are, as AutoCAD's own are. Read so, its `Degree`, `ControlPoints`, `Knots`,
+`Weights` (none), `IsRational`, `NumControlPoints` and `GetControlPointAt` are those of the cubic, as AutoCAD gave them:
+a record of five fit points alone of degree 2 is of degree 3 and 7 control points, and one whose control point 1 was moved
+gives the cubic's; an edit of its control points, knots, weights or degree, a knot put in or its fit data purged works on
+the cubic, written to the record first. A move, turn or scale keeps the length of a tangent
 (5 scaled by 2 stays 5); a control point or the knots set, or `UpdateFitData` (which AutoCAD 2021 leaves no fit data
 after), take the fit data out, the flags 32 and 1024 with them (its 1064 is saved 8, its 3115 2059); a knot put in keeps
-its fit points at its knots (70 1288), where fit points left in AutoCAD would fit anew of one control point fewer.
+its fit points at its knots (70 1288), where fit points left in AutoCAD would fit anew of one control point fewer, and so
+do `ModifyPositionAndTangent` (70 1288, a closed spline 1289) and the pieces of `GetSplitCurves`, as AutoCAD 2021 kept them.
 
 A spline gives and takes its `NurbsData` and `FitData` whole. `ElevateDegree` raises its degree with the curve kept to the
 rounding, `InsertControlPointAt` and `RemoveControlPointAt` put a control point in and take one out with a knot,
@@ -1057,13 +1072,19 @@ vertices at 0, 1, 10, 30 and 99, and the cubics of two and three spans of the ch
 99, as AutoCAD gives them; so do a quadratic of three spans and a cubic of a double knot (29 and 76 vertices at 0), a
 quintic Bezier (86 at 0 and 7 929 at 99, the same ten times its size), a hairpin cubic 100 by 1 (129 at 0 over the knots
 0 to 1, where its length decides, and 5 over 0 to 100), and an S whose middle lies on its chord (173 at 0). Of AutoCAD's
-156 counts at hand 147 are the rule's, the 9 others within 3, 7 of them of rational cubics (1 378 at 10 where AutoCAD gives
-1 377). A closed spline has its last vertex on its first, the polyline closed; one closed or of the flag 2 of its 70 that
+156 counts at hand 148 are the rule's, the 8 others within 3, of rational cubics and the S at 20 (1 378 at 10 where AutoCAD
+gives 1 377): AutoCAD measures their length a little longer than it is, by 2E-4 for the rational ones, and with its own
+lengths the rule gives all eight. A spline not periodic of n control points is cut instead into (n - 3) + (n - 2) k pieces
+even in its parameter, k half the precision rounded down, where that gives more pieces than the halving, as AutoCAD 2021
+cut its closed cubics, of fit points or not, and its open curves of few pieces: the straight cubic of 4 points is one
+segment at 0 and 1 and three at 2 and 3, the quintic Bezier over 0 to 50 three at 0, and the closed cubic through
+(0, 0), (40, 0), (40.5, 0.5), (50, 30) and (10, 25) five at 0, (0, 0), (40.5, 0.5), (49.32, 14.74), (50, 30) and
+(10.71, 25.63), with no last vertex on its first; of a closed spline of fit points, its knots stand in place there too,
+as many as its vertices less two. Otherwise a closed spline has its last vertex on its first, the polyline closed; one closed or of the flag 2 of its 70 that
 runs through fit points has each of its knots, one after another, in the place of the vertex nearest it, the later of two as near, a
 knot taking the place another took before it: the closed cubic through (0, 0), (40, 0), (50, 30) and (10, 25), its knots
 the lengths of the chords, is those four points and the first again at 0, its 48 vertices at 10 the range's 64ths with the
-knot 40 in the place of the 64th at 39.05; through (0, 0), (40, 0), (40.5, 0.5), (50, 30) and (10, 25) it has at 0 the
-knot 40.71 where the knot 40 would stand, as AutoCAD 2021 gave them. So does one AutoCAD keeps by its fit points, the flag
+knot 40 in the place of the 64th at 39.05, as AutoCAD 2021 gave them. So does one AutoCAD keeps by its fit points, the flag
 1024 of its 70 set (3115 for a periodic cubic), though its DXF holds no fit points, as AutoCAD read its own again. The same
 cubic of no fit points and no flag 1024, its 70 of 3 or 11, is the halving alone, (0, 0), (34.42, -3.51), (50.86, 28.40), (18.15, 30.49) and the first again at 0, as AutoCAD
 2021 gave it too; the arcs are bent as the pieces the halving made. Made

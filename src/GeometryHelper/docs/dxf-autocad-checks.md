@@ -1540,3 +1540,47 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       m23, read alike but for `GetOverrides`); a cell `ResetValue` emptied in the same session keeps `93 7` when AutoCAD
       clears it, and loses its content looks (c16 to c18), where the library, which reads files, writes `93 5` and keeps
       them; the per-cell lines AutoCAD writes for a table's own lines of a kind of row (v27, v28, c12), read alike.
+
+## Splines cut evenly, fitted by other parameters, and read as their fit
+
+89. **Closed and open splines cut evenly, the periodic cubic through three points, fits of other parameters, fit data kept
+    through edits, and the curve AutoCAD reads a record of fit points as.**
+    - Try (D32b, AutoCAD's own plugin headless in accoreconsole, side databases): `ToPolylineWithPrecision` at 0 to 12, 15
+      and 20 of sixteen closed cubics of 3 to 12 fit points (70 1065) and of the same cubics of control points alone, and of
+      the same as periodic cubics; of five closed cubics of a smooth seam (70 1067) and of eight open curves of few pieces
+      (straight, gentle, a quadratic, a quartic and a quintic over 0 to 50); every vertex's parameter and AutoCAD's length
+      of seven open curves; fits within a fit tolerance of 0.2 to 5 through nineteen point sets; fits of the parameters
+      `Uniform` and `SqrtChord`, open, closed and periodic, with and without tangents, saved and read back; split pieces,
+      `ModifyPositionAndTangent` and `InsertKnot` on open, closed, periodic and uniform fits; and the library's own files of
+      those read back (GHD32BA, GHD32BB).
+    - AutoCAD 2021: a spline not periodic of n control points is cut into (n - 3) + (n - 2) k pieces even in its
+      parameter, k half the precision rounded down, where that is more pieces than the halving: where and as the rule says
+      in all 448 polylines of the closed cubics, of fit points or not, and all 80 of the open curves (a straight cubic of 4
+      points 1 segment at 0 and 1, 3 at 2 and 3; the quintic over 0 to 50 in thirds at 0). A closed one is then left with
+      no last vertex on its first, and of a spline of fit points only as many of its knots as its vertices less two are put
+      in place: the closed cubic through (0, 0), (40, 0), (40.5, 0.5), (50, 30) and (10, 25) at 0 is the vertices at 0,
+      40.71, 55.57, 71.70 and 111.15, the knot 112.01 left out. Its periodic cubic through (0, 0), (30, 0) and (20, 15) is
+      of 3 control points to a period, read periodic. Its lengths (`GetDistanceAtParameter`) are longer than the curve by
+      2E-4 for the rational cubics, 3E-5 for the S and the quintics; with them the rule's tolerance max(1 / M, L / 10 000)
+      gives all 8 counts the true length misses. Fits of `Uniform` and `SqrtChord` are its cubic of knots one step apart or
+      the square roots of the chords, to 3E-14, saved with no fit points, tangents or fit tolerance, 70 1160 and 1096 (3211
+      and 3147 periodic); read back, their fit points are the points at their knots and their tangents the derivatives at
+      their ends (44.29, -9.29 and 7.01, -1.77 at the start through five points), their parameters 128 one step, 64 the
+      square root, 256 its own. `ModifyPositionAndTangent` saves a fit spline 70 1288 (closed 1289), the pieces of
+      `GetSplitCurves` keep the points at their knots as fit points, of its own parameters, and a knot put into a uniform
+      fit saves 1288. The degree, control points and knots it gives a record of fit points it reads as their fit are those
+      of the fit (of degree 3 and 7 control points for five fit points alone of 71 2). Within a fit tolerance t it moves
+      each inner fit point by t at most (the ends kept) along a direction that depends on neither t, nor a move, turn or
+      scale of the points, nor their order, and fits the cubic through the points so moved, its knots their chords; a
+      periodic fit takes no tolerance.
+    - Now: the even cut, the closed spline's last vertex and knots; the periodic cubic through three points; fits of
+      `Uniform` and `SqrtChord`, their flags and their reading back; the fit data through `ModifyPositionAndTangent`,
+      `GetSplitCurves` and `InsertKnot`; the getters of a record read as its fit. 65 of D32's 72 polylines of its rings and
+      148 of its 156 counts are AutoCAD's; AutoCAD read the library's 10 files of fits, edits and pieces as the library
+      reads them, 44 of their 48 polylines at 0 to 3 to the vertex.
+    - Still apart: a piece the halving splits where AutoCAD keeps it whole, its middle 0.2 to 5 % over the tolerance, on
+      closed and periodic curves (AutoCAD's tolerance on each ring fits one factor 1.00 to 1.06 of 1 / M across its
+      precisions, which no reading of the bend tried gives); the lengths of rational curves, which AutoCAD measures by a rule
+      not found (no Gauss or Simpson rule of a fixed count gives them); the direction a fit tolerance moves a fit point (not
+      the curve's normal, its bend's gradient or a least-squares fit of fewer points); `ModifyPositionAndTangent` of a
+      periodic spline, which AutoCAD works on its periodic form (70 3339) and the library on its clamped one.

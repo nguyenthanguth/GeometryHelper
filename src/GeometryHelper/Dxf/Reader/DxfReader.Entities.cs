@@ -1039,14 +1039,14 @@ namespace GeometryHelper.Dxf
                         return;
                     }
 
-                    ReadFitSpline(r, fit, hasStart ? startTangent : default(GeoVector3), hasEnd ? endTangent : default(GeoVector3));
+                    ReadFitSpline(r, fit, hasStart ? startTangent : default(GeoVector3), hasEnd ? endTangent : default(GeoVector3), flags);
                     return;
                 }
 
                 // AutoCAD reads a spline of fit points as the cubic it fits through them, where its control points are not it.
                 if (fit.Count >= 2 && DxfNurbsEdit.FitsAnew(fit, hasStart ? startTangent : default(GeoVector3), hasEnd ? endTangent : default(GeoVector3), r.Real(44, 0.0), flags, degree, points, knots.ConvertAll(Scaled), weights, out _, out _))
                 {
-                    ReadFitSpline(r, fit, hasStart ? startTangent : default(GeoVector3), hasEnd ? endTangent : default(GeoVector3));
+                    ReadFitSpline(r, fit, hasStart ? startTangent : default(GeoVector3), hasEnd ? endTangent : default(GeoVector3), flags);
                     return;
                 }
 
@@ -1101,11 +1101,12 @@ namespace GeometryHelper.Dxf
             /// The spline through fit points, as AutoCAD 2021 reads one: the cubic it fits through them whatever degree the file
             /// gives (<see cref="DxfNurbsEdit.InterpolateCubic"/>), its knots the chords, at an end of a tangent its derivative
             /// that tangent as the file has it, at one of none bent no more; through (0, 0) and (100, 0) the cubic straight line
-            /// of 4 control points a third apart.
+            /// of 4 control points a third apart. The knots go up by the square roots of the chords, or by 1, where the flag 64,
+            /// or 128, of group 70 says so.
             /// </summary>
-            private void ReadFitSpline(Record r, List<GeoPoint3> fit, GeoVector3 startTangent, GeoVector3 endTangent)
+            private void ReadFitSpline(Record r, List<GeoPoint3> fit, GeoVector3 startTangent, GeoVector3 endTangent, int flags)
             {
-                if (!DxfNurbsEdit.InterpolateCubic(fit, startTangent, endTangent, out _, out List<double> knots, out List<GeoPoint3> points))
+                if (!DxfNurbsEdit.InterpolateCubic(fit, startTangent, endTangent, DxfNurbsEdit.Parameters(flags), out _, out List<double> knots, out List<GeoPoint3> points))
                 {
                     RefuseSpline(r, "whose fit points the library cannot pass a spline through");
                     return;

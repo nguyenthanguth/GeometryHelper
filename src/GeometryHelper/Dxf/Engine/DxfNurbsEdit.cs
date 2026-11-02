@@ -730,15 +730,16 @@ namespace GeometryHelper.Dxf
         /// on, within <see cref="SeamGap"/> and <see cref="SeamShare"/> of its size (one and the largest of its coordinates),
         /// and of the same weights within <see cref="SeamGap"/> of the largest. AutoCAD's periodic splines it saved are so to 1.3E-15 of their size, its cubic of 7 control
         /// points and the knots 0, 0, 0, 0, 30, 45, 55, 80, 80, 80, 80 to 1E-13; its 2059 of a point beside its seam moved by
-        /// 1E-11, off by 4.1E-11, it read as periodic, and moved by 1E-10, off by 4.1E-10, as not (its 17-w). False where the spline has
-        /// fewer points than twice the degree and one, or knots the unclamping cannot divide by.
+        /// 1E-11, off by 4.1E-11, it read as periodic, and moved by 1E-10, off by 4.1E-10, as not (its 17-w). Its periodic cubic
+        /// through three points, of 6 control points clamped, it read as periodic too (D32 ring3-periodic). False where the
+        /// spline has fewer points than the degree and three (3 for a degree of 1), or knots the unclamping cannot divide by.
         /// </summary>
         internal static bool IsPeriodicForm(int p, List<double> u, List<double[]> pw)
         {
             int count = pw.Count;
             int m = count - p;
 
-            if (m < p + 1)
+            if (m < Math.Min(p + 1, 3))
             {
                 return false;
             }
@@ -837,10 +838,12 @@ namespace GeometryHelper.Dxf
         /// more, its second derivative nought (The NURBS Book, 9.2.2 and (3.9), as ezdxf's <c>fit_points_to_cad_cv</c> has it).
         /// Through (0, 0), (30, 40) and (60, 0) it is (0, 0), (10, 20), (30, 60), (50, 20) and (60, 0) over the knots 0, 0, 0, 0,
         /// 50, 100, 100, 100, 100, as AutoCAD fitted it; through five points, alone or given tangents of length 1 or 5, the
-        /// library's control points are AutoCAD's to 1E-13 (its D32 run). False where the points are all one, or the system
-        /// has no solution.
+        /// library's control points are AutoCAD's to 1E-13 (its D32 run). The knots go up by the square root of each chord, or
+        /// by 1 from point to point, where the parameters asked are those (AutoCAD's SqrtChord and Uniform, the same cubic else:
+        /// through five points 0, 1, 2, 3 and 4, its control points AutoCAD's to 3E-14, its D32b run). False where the points
+        /// are all one, or the system has no solution.
         /// </summary>
-        internal static bool InterpolateCubic(IReadOnlyList<GeoPoint3> fit, GeoVector3 start, GeoVector3 end, out List<GeoPoint3> through, out List<double> knots, out List<GeoPoint3> points)
+        internal static bool InterpolateCubic(IReadOnlyList<GeoPoint3> fit, GeoVector3 start, GeoVector3 end, DxfKnotParameterizationEnum parameters, out List<GeoPoint3> through, out List<double> knots, out List<GeoPoint3> points)
         {
             knots = null;
             points = null;
@@ -856,7 +859,7 @@ namespace GeometryHelper.Dxf
 
             for (int i = 1; i <= n; i++)
             {
-                t[i] = t[i - 1] + through[i - 1].DistanceTo(through[i]);
+                t[i] = t[i - 1] + Step(through[i - 1].DistanceTo(through[i]), parameters);
             }
 
             double length = t[n];
@@ -955,6 +958,17 @@ namespace GeometryHelper.Dxf
             return true;
         }
 
+        /// <summary>The step of the parameter from a point to the next a chord apart: the chord, its square root, or 1.</summary>
+        internal static double Step(double chord, DxfKnotParameterizationEnum parameters)
+            => parameters == DxfKnotParameterizationEnum.Uniform ? 1.0 : parameters == DxfKnotParameterizationEnum.SqrtChord ? Math.Sqrt(chord) : chord;
+
+        /// <summary>
+        /// The parameters a SPLINE's group 70 says its fit points are given, as AutoCAD 2021 writes them: by the square root of
+        /// the chord where the flag 64 is set (its 1096), one step each where 128 is (1160), else by the chord (1064, 32).
+        /// </summary>
+        internal static DxfKnotParameterizationEnum Parameters(int flags)
+            => (flags & 128) != 0 ? DxfKnotParameterizationEnum.Uniform : (flags & 64) != 0 ? DxfKnotParameterizationEnum.SqrtChord : DxfKnotParameterizationEnum.Chord;
+
         /// <summary>
         /// Whether AutoCAD 2021 reads a SPLINE of fit points as another curve than its control points give, and that curve: it
         /// fits every SPLINE of two fit points or more anew through them when it reads it, as <see cref="InterpolateCubic"/>
@@ -971,9 +985,10 @@ namespace GeometryHelper.Dxf
             fitKnots = null;
             fitPoints = null;
 
+            DxfKnotParameterizationEnum parameters = Parameters(flags);
             return fit.Count >= 2 && fitTolerance <= SeamGap && (flags & 2048) == 0
-                && !IsTheFit(fit, start, end, degree, points, knots, weights)
-                && InterpolateCubic(fit, start, end, out _, out fitKnots, out fitPoints);
+                && !IsTheFit(fit, start, end, parameters, degree, points, knots, weights)
+                && InterpolateCubic(fit, start, end, parameters, out _, out fitKnots, out fitPoints);
         }
 
         /// <summary>
@@ -984,7 +999,7 @@ namespace GeometryHelper.Dxf
         /// derivative the tangent gives, or no second derivative where none is given. The system having one solution, a curve
         /// that meets them is the fit's.
         /// </summary>
-        private static bool IsTheFit(IReadOnlyList<GeoPoint3> fit, GeoVector3 start, GeoVector3 end, int degree, IReadOnlyList<GeoPoint3> points, IReadOnlyList<double> knots, IReadOnlyList<double> weights)
+        private static bool IsTheFit(IReadOnlyList<GeoPoint3> fit, GeoVector3 start, GeoVector3 end, DxfKnotParameterizationEnum parameters, int degree, IReadOnlyList<GeoPoint3> points, IReadOnlyList<double> knots, IReadOnlyList<double> weights)
         {
             if (degree != 3)
             {
@@ -1014,7 +1029,7 @@ namespace GeometryHelper.Dxf
             {
                 if (i > 3 && i <= n + 3)
                 {
-                    t += through[i - 4].DistanceTo(through[i - 3]);
+                    t += Step(through[i - 4].DistanceTo(through[i - 3]), parameters);
                 }
 
                 if (!(Math.Abs(knots[i] - t) <= same.EqualPoint))
@@ -1097,16 +1112,19 @@ namespace GeometryHelper.Dxf
         /// AutoCAD writes it, m and the degree control points and the end knots the degree and one times each. Its cubic
         /// through (0, 0), (40, 1), (50, 30) and (10, 25) is that of its 17-l to 1E-14: the knots 0, 40.01, 70.69, 111.00 and
         /// 137.93, the control points (0, 0), (4.78, -9.71), (44.07, -9.27), (60.39, 41.46), (8.49, 34.10), (-3.22, 6.53) and
-        /// (0, 0). False where there are fewer points than the degree and one, a chord is of no length, or the system has no
-        /// solution, as for any spline of an even degree through an even count of points, whose system is singular.
+        /// (0, 0). Three points give the cubic of three control points to a period, as AutoCAD fitted one through (0, 0),
+        /// (30, 0) and (20, 15) (its D32 ring3-periodic, to 1E-13); the knots go up by the square root of each chord or by 1
+        /// where those parameters are asked. False where there are fewer points than 3 and fewer than the degree and one, a
+        /// chord is of no length, or the system has no solution, as for any spline of an even degree through an even count of
+        /// points, whose system is singular.
         /// </summary>
-        internal static bool InterpolatePeriodic(IReadOnlyList<GeoPoint3> ring, int p, out List<double> knots, out List<GeoPoint3> points)
+        internal static bool InterpolatePeriodic(IReadOnlyList<GeoPoint3> ring, int p, DxfKnotParameterizationEnum parameters, out List<double> knots, out List<GeoPoint3> points)
         {
             knots = null;
             points = null;
             int m = ring.Count;
 
-            if (p < 1 || m < p + 1)
+            if (p < 1 || m < Math.Min(p + 1, 3))
             {
                 return false;
             }
@@ -1122,7 +1140,7 @@ namespace GeometryHelper.Dxf
                     return false;
                 }
 
-                t[i] = t[i - 1] + chord;
+                t[i] = t[i - 1] + Step(chord, parameters);
             }
 
             // The knots of the curve as it runs on round, a period before and after: the floating point k is the control
