@@ -757,8 +757,9 @@ namespace GeometryHelper.Dxf
         /// <c>Clone</c> keeps them, and of each ATTRIB of an INSERT: in no file it is shown at the scales its original is
         /// (<see cref="DxfDBObject.HasContext"/>), reads where its original is read, and is moved with every context; added to
         /// its original's drawing, it is given an extension dictionary of those contexts, as AutoCAD writes its copy's (check
-        /// D35c). Added to another drawing, whose scales are not its original's, it leaves them behind, given the placing it is
-        /// read at, its ATTRIBs read at their records.
+        /// D35c). Added to another drawing, it keeps them on that drawing's scales of their names, a scale it lacks added, as
+        /// <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/> says (check D35d); to a drawing that holds no list of
+        /// scales, older than R2007, it leaves them behind, given the placing it is read at, its ATTRIBs read at their records.
         /// </remarks>
         /// <returns>The copy.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the entity is erased, as AutoCAD refuses an erased object.</exception>
@@ -2141,10 +2142,11 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// The contexts a copy in no file carries, its own and its ATTRIBs', as it is added to a drawing: for its original's, each
-        /// by the index of its record (0 the entity's own), for <see cref="DxfDBObject.WriteCopiedContexts"/> to write once it is
-        /// added; for another drawing, none, the copy given the placing it is read at by <see cref="LeaveContexts"/>, once the
-        /// drawing is seen to take it. Null where it carries none.
+        /// The contexts a copy in no file carries, its own and its ATTRIBs', as it is added to a drawing, each by the index of its
+        /// record (0 the entity's own), for <see cref="DxfDBObject.WriteCopiedContexts"/> to write once it is added, on the
+        /// scales of their names where the drawing is another; for a drawing that holds no list of scales, none, the copy given
+        /// the placing it is read at by <see cref="LeaveContexts"/>, once the drawing is seen to take it. Null where it carries
+        /// none.
         /// </summary>
         internal List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>> TakeCopiedContexts(DxfFile target)
         {
@@ -2174,14 +2176,21 @@ namespace GeometryHelper.Dxf
                 return carried;
             }
 
-            // Checked first, so that a copy refused is left as it was.
+            // Checked first, so that a copy refused is left as it was. Another drawing takes the contexts on its own scales
+            // (check D35d), but one that holds no list of scales.
             target.CheckAdopt(item);
+
+            if (item.File.Origin != null && HoldsScales(target))
+            {
+                return carried;
+            }
+
             LeaveContexts();
             return null;
         }
 
         /// <summary>
-        /// Gives a copy that carries contexts, as it is added to a drawing that is not its original's, the placing it is read at,
+        /// Gives a copy that carries contexts, as it is added to a drawing that holds no list of scales, the placing it is read at,
         /// its contexts left behind: those of its records taken out (<see cref="ClearCopiedContexts"/>) unless the class says
         /// otherwise.
         /// </summary>

@@ -1897,3 +1897,50 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       file, which reads its title and data 0.18 high (a06); and the heights of rows, which the library leaves as they are
       written, as AutoCAD reads the library's files of h01 to h12 alike all the same: matching them needs the widths of the
       letters of the font, to know where a text breaks and how wide a turned block's attribute is.
+
+## A normal set on entities of no contexts, a narrow attribute of several lines, annotative copies into another drawing, `HandOverTo`
+
+98. **What a `Normal` set keeps, in the world or in the plane, on each entity that has one; the width factor of an attribute
+    made of several lines; the scales an annotative copy stands on in another drawing; what an entity handed over to a copy
+    of contexts holds.**
+    - Try (D35d, headless, plugin GHD35DA rounds r1 to r5): a LINE, a POINT, a CIRCLE, an ARC, an LWPOLYLINE and a POLYLINE
+      at an elevation of 3, a SOLID, a TEXT turned 0.3, a centred TEXT, an ATTDEF, an INSERT turned 0.3 and its ATTRIB, an
+      MTEXT turned 30 degrees, a HATCH at an elevation of 2 and a rotated DIMENSION, all in the plane z = 0, given the normal
+      (0, 0.6, 0.8), and (0.6, 0, 0.8) first; D35c's attribute A7, 0.7 wide, and its definition made of several lines; a
+      drawing of the scales Q5 of 1:5 and S7 of 1:3 holding a TEXT of 1:1, 1:2, Q5 and S7, a TEXT of S7 and 1:1, an MTEXT of
+      1:1 and Q5 and an INSERT of an annotative block of Q5 with its attribute, copied by `WblockCloneObjects`, by
+      `Insert(Matrix3d.Identity, ...)` and by `Insert("XB", ...)` into a drawing of S7 of 1:7 and R5 of 1:5, and D35b's G2
+      into it; a LINE, a plain TEXT, T1 and T2 of G2 handed over to a clone of T1, moved or not, of a LINE of the extended
+      data GHA, keeping the extended data and the extension dictionary or not; AutoCAD's files of them, and nineteen of the
+      library's, read back.
+    - AutoCAD 2021: a `Normal` set keeps in the world the ends of a LINE, a POINT, the centre of a CIRCLE and of an ARC, whose
+      angles are kept in the new plane, and the location of an MTEXT, which reads along the x axis of the new plane, turned
+      nought ((-1, 0, 0) for (0, 0.6, 0.8)); it keeps in the plane, their coordinates written as they were, the vertices and
+      elevation of an LWPOLYLINE and a POLYLINE, the corners of a SOLID (from (200, 0) to (-200, 0, 0)), the two points and
+      the turn of a TEXT, an ATTDEF and an ATTRIB (from (11, 12) to (-11, -9.6, 7.2), turned 0.3), the point and turn of an
+      INSERT (from (300, 100) to (-300, -80, 60)), whose ATTRIBs stay where they were, and the loops and elevation of a
+      HATCH. A rotated DIMENSION keeps its extension line points in the world, gives its dimension line point and text point
+      in the world laid on the new plane through the origin ((515, 10, 0) to (515, 6.4, -4.8)) and its elevation nought,
+      but its text point given (0.6, 0, 0.8) first is kept in the plane. Made of several lines, an attribute or definition
+      0.7 wide keeps its 41 of 0.7, its MTEXT's words opening with `\W0.7000;`; one of width 1 has no `\W`. Copied into
+      another drawing, each context is put on that drawing's scale of its scale's name, letters of either case the same,
+      where the two give the same scale (1:1 onto 1:1); a scale the drawing has not of that name is added to its list, of
+      the same units (Q5 of 1:5 added though R5 of 1:5 is there, 1:2 added for G2's copies); one of the name of other units
+      is added as the name and `_1` (S7 of 1:3 onto an S7_1 of 1:3 beside the drawing's S7 of 1:7); the copy is shown where
+      its original was; the block of an annotative INSERT comes annotative, its definitions with their contexts. Handed over:
+      keeping the extension dictionary, the old entity's dictionary is the new one's, with the contexts it had or none (a
+      LINE's none, read back at the copy's record, (40, 12) 2.5 high), though AutoCAD shows the copy's until the file is
+      read again; not keeping it, the copy's contexts are written under a dictionary of its own, read back at (11, 12) 1.25
+      high; keeping the extended data, the old entity's replaces the copy's where it has some (GHA alone, not annotative),
+      and the copy keeps its own where it has none. AutoCAD wrote an MTEXT handed over to T1's dictionary, of TEXT contexts,
+      that it crashed reading back.
+    - Now: as AutoCAD for each of them but those below. Of 196 AutoCAD lines in round r1, 59 read apart at base and 8
+      now; of 106 in r2, 16 and 10; of 32 in r3, 24 and none; of 82 in r4, 14 and 8. AutoCAD read the nineteen library
+      drawings of r5 as the library reads them (231 of 232 lines alike).
+    - Still apart: the DIMENSION, which the library keeps where it stands in the world, its elevation the height of its
+      points in the new plane; the ATTRIBs of an INSERT given a normal, which the library carries with the block, as it
+      documents; what AutoCAD shows of an entity handed over keeping its extension dictionary before the file is read again
+      (the library reads what the file holds); the point of a centred TEXT copied into another drawing, which AutoCAD works
+      out again from the font; whether an INSERT of no context record has an extension dictionary (AutoCAD says it has); and
+      the names of the entries AutoCAD gives the scales it adds (`*A1`, `*A2`), where the library's `AddContext` gives
+      `A0`, `A1` and on.

@@ -424,9 +424,10 @@ namespace GeometryHelper.Dxf
         /// <value>
         /// Set, a direction of some length, written made of unit length. The vertices keep their coordinates in the plane of the
         /// normal, as AutoCAD's polyline keeps them, so the polyline turns with the plane and moves in the world: the vertex
-        /// (10, 0) given the normal (0, 0, -1) is at (-10, 0, 0) in the world. A <see cref="DxfCircle"/>, <see cref="DxfArc"/>,
-        /// <see cref="DxfDBText"/> or <see cref="DxfBlockReference"/> keeps its place in the world instead, and a
-        /// <see cref="DxfSolid"/> its corners.
+        /// (10, 0) given the normal (0, 0, -1) is at (-10, 0, 0) in the world. A <see cref="DxfDBText"/>,
+        /// <see cref="DxfBlockReference"/>, <see cref="DxfSolid"/> or <see cref="DxfHatch"/> keeps its points in its plane so
+        /// too; a <see cref="DxfCircle"/>, <see cref="DxfArc"/> or <see cref="DxfMText"/> keeps its centre or location in the
+        /// world instead (check D35d).
         /// </value>
         /// <exception cref="ArgumentException">Thrown when the direction set has no length or is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when set on a polyline that is erased.</exception>

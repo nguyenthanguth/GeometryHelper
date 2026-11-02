@@ -445,7 +445,7 @@ namespace GeometryHelper.Dxf
 
             if (normal.Length > 0.0)
             {
-                insert.Normal = normal;
+                insert.SetNormalKeepingPlace(normal);
             }
 
             insert.Layer = layer;
@@ -517,13 +517,19 @@ namespace GeometryHelper.Dxf
             {
                 GeoPoint3 back = tip.Add(direction.Multiply(size));
                 GeoVector3 side = DxfOcsTransform.Normalized(normal.CrossProduct(direction)).Multiply(size / 6.0);
-                return new DxfSolid(back.Add(side.Negate()), tip, back.Add(side)) { Normal = normal };
+                var solid = new DxfSolid(back.Add(side.Negate()), tip, back.Add(side));
+                solid.SetNormalKeepingPlace(normal);
+                return solid;
             }
 
             OcsAxes(normal, out GeoVector3 x, out GeoVector3 y);
             GeoVector3 away = direction.Negate();
             double angle = Math.Atan2(away.DotProduct(y), away.DotProduct(x));
-            return new DxfBlockReference(tip, block) { Normal = normal, ScaleFactors = new GeoVector3(size, size, size), Rotation = angle < 0.0 ? angle + 2.0 * Math.PI : angle };
+            var arrow = new DxfBlockReference(tip, block);
+            arrow.SetNormalKeepingPlace(normal);
+            arrow.ScaleFactors = new GeoVector3(size, size, size);
+            arrow.Rotation = angle < 0.0 ? angle + 2.0 * Math.PI : angle;
+            return arrow;
         }
 
         /// <summary>

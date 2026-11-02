@@ -3584,9 +3584,14 @@ namespace GeometryHelper.Dxf
         /// a block copied with it after its own (a MULTILEADER's block and arrow blocks, an ACAD_TABLE's picture and the blocks of
         /// its cells, the arrow block an override of a dimension style names). A copy appended to its own drawing keeps its pointers, but for the
         /// value a MULTILEADER gives an attribute definition erased since, which is left out with the definition's handle. A copy
-        /// of an annotative entity appended to its own drawing is given the contexts it carries, and its ATTRIBs theirs, each
-        /// under an extension dictionary as AutoCAD writes its copy's (check D35c); appended to another drawing, it leaves them
-        /// behind, given the placing it is read at. The extents of the header are not grown by what is appended to a block.
+        /// of an annotative entity appended is given the contexts it carries, and its ATTRIBs theirs, each under an extension
+        /// dictionary as AutoCAD writes its copy's (check D35c). Appended to another drawing, each context is put on the scale
+        /// of its scale's name there, as AutoCAD 2021's <c>WblockCloneObjects</c> and <c>Insert</c> put it: one of the same
+        /// units taken as it is, one the drawing's list has not added to it, and one of the name of other units added as the
+        /// name and <c>_1</c> (or <c>_2</c> and on, the first the list has not): a context of S7 of 1:3 copied into a drawing
+        /// whose S7 is 1:7 stands on an S7_1 of 1:3 added for it (check D35d). A drawing that holds no list of scales, older
+        /// than R2007, takes the copy without them, given the placing it is read at. The extents of the header are not grown by
+        /// what is appended to a block.
         /// </para>
         /// <para>
         /// A drawing of an older version than the entity's is given what it can hold, as AutoCAD's SAVEAS to that version gives
@@ -3641,11 +3646,12 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            // A copy carries its original's contexts: written here where this is its original's drawing, else left behind, the
-            // copy placed where it is read (check D35c).
+            // A copy carries its original's contexts: written here, on this drawing's scales of their names where this is
+            // another drawing (check D35c, D35d).
             List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>> carried = entity.TakeCopiedContexts(_file);
+            DxfFile origin = entity.Item.File.Origin;
             entity.Bind(_file.Adopt(space, entity.Item));
-            DxfDBObject.WriteCopiedContexts(entity.Item, carried);
+            DxfDBObject.WriteCopiedContexts(entity.Item, carried, origin);
         }
 
         /// <summary>

@@ -152,7 +152,9 @@ namespace GeometryHelper.UnitTest.Dxf
                 OnlyTheseChanged(text, saved, handle, attribute);
 
                 DxfBlockReference again = ByHandle<DxfBlockReference>(DxfDatabase.Parse(saved), handle);
-                Assert.Equal(Bits(new GeoPoint3(60.0, 55.0, 1.0)), Bits(again.Position));
+                // Given the normal (0, 0, -1), its point is kept in its plane, whose x axis is the world's -x, as AutoCAD 2021
+                // keeps it (check D35d): it stands at (-60, 55, -1).
+                Assert.Equal(Bits(new GeoPoint3(-60.0, 55.0, -1.0)), Bits(again.Position));
                 Assert.Equal(Bits(Math.PI / 2.0), Bits(again.Rotation));
                 Assert.Equal(Bits(new GeoVector3(3.0, 3.0, 3.0)), Bits(again.ScaleFactors));
                 Assert.Equal(Bits(new GeoVector3(0.0, 0.0, -1.0)), Bits(again.Normal));

@@ -308,9 +308,9 @@ namespace GeometryHelper.Dxf
         /// Puts an entity not yet in a file in the place of one of this file, as AutoCAD's <c>handOverTo</c> gives an object's
         /// id to another: the new entity's records written where the old one's stand, in its space and at its place there, with
         /// the old one's handle, the groups of the applications of its record (its reactors, and its extension dictionary where
-        /// kept), and its extended data where kept, else the new entity's own; a record that follows the new entity is owned by
-        /// that handle. The old records' handles that are not kept, those of the records that followed it, are not given again,
-        /// and an extension dictionary not kept is taken out with what it owns.
+        /// kept and it has some, else the new entity's own, as AutoCAD 2021 keeps them (check D35d); a record that follows the
+        /// new entity is owned by that handle. The old records' handles that are not kept, those of the records that followed
+        /// it, are not given again, and an extension dictionary not kept is taken out with what it owns.
         /// </summary>
         internal void HandOver(DxfItem item, DxfItem from, bool keepData, bool keepDictionary)
         {
@@ -320,6 +320,9 @@ namespace GeometryHelper.Dxf
             Rec oldHead = old[0];
             List<Pair> oldPairs = PairsOf(oldHead);
             int oldData = DataAt(oldHead, oldPairs);
+
+            // Extended data kept that the old record has none of leaves the new entity its own.
+            keepData &= oldData < oldPairs.Count;
             var braces = new List<Pair>();
             bool braced = false;
             bool kept = true;

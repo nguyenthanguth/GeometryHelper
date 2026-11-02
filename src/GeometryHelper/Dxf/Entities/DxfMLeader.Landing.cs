@@ -63,7 +63,7 @@ namespace GeometryHelper.Dxf
 
             if (normal.Length > 0.0)
             {
-                insert.Normal = normal;
+                insert.SetNormalKeepingPlace(normal);
             }
 
             return insert;

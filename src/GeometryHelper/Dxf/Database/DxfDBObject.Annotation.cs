@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using GeometryHelper.Export;
 using GeometryHelper.Geometry;
 
@@ -833,25 +834,48 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private protected void CarryContextsTo(DxfDBObject copy)
         {
-            copy._item.CopiedContexts = HeldContexts(_item);
+            List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>> held = HeldByRecords(_item, this is DxfBlockReference);
 
-            if (!(this is DxfBlockReference))
+            foreach (KeyValuePair<int, List<KeyValuePair<string, DxfItem>>> record in held ?? new List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>>())
             {
-                return;
+                (record.Key == 0 ? copy._item : copy._item.File.FollowerOf(copy._item, record.Key)).CopiedContexts = record.Value;
+            }
+        }
+
+        /// <summary>
+        /// Copies held in no file of the records of the contexts an entity's record holds, and where <paramref name="attributes"/>
+        /// is true each of its ATTRIBs', by the index of the record (0 the entity's own), in the order of the records; null where
+        /// none holds any.
+        /// </summary>
+        internal static List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>> HeldByRecords(DxfItem item, bool attributes)
+        {
+            List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>> held = null;
+            List<KeyValuePair<string, DxfItem>> own = HeldContexts(item);
+
+            if (own != null)
+            {
+                held = new List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>> { new KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>(0, own) };
             }
 
-            DxfFile file = _item.File;
-            int count = file.RecordCount(_item);
+            if (!attributes)
+            {
+                return held;
+            }
+
+            DxfFile file = item.File;
+            int count = file.RecordCount(item);
 
             for (int r = 1; r < count; r++)
             {
-                List<KeyValuePair<string, DxfItem>> held = file.RecordType(_item, r) == "ATTRIB" ? HeldContexts(file.FollowerOf(_item, r)) : null;
+                List<KeyValuePair<string, DxfItem>> theirs = file.RecordType(item, r) == "ATTRIB" ? HeldContexts(file.FollowerOf(item, r)) : null;
 
-                if (held != null)
+                if (theirs != null)
                 {
-                    copy._item.File.FollowerOf(copy._item, r).CopiedContexts = held;
+                    (held = held ?? new List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>>()).Add(new KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>(r, theirs));
                 }
             }
+
+            return held;
         }
 
         /// <summary>Copies held in no file of the records of the contexts of an object's record, each with the name of its entry; null for one of none.</summary>
@@ -880,17 +904,20 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Writes the contexts a copy carried into the drawing it was just added to, its original's, as AutoCAD 2021 writes those
-        /// of its copy (check D35c): for each record that carried some, the entity's own (0) or an ATTRIB's, an extension
-        /// dictionary owning AcDbContextDataManager, that one ACDB_ANNOTATIONSCALES, and that one a record of each context under
-        /// its name, as it was carried; nothing for none.
+        /// Writes the contexts a copy carried into the drawing it was just added to, as AutoCAD 2021 writes those of its copy
+        /// (check D35c): for each record that carried some, the entity's own (0) or an ATTRIB's, an extension dictionary owning
+        /// AcDbContextDataManager, that one ACDB_ANNOTATIONSCALES, and that one a record of each context under its name, as it
+        /// was carried; nothing for none. Where the drawing is not the copy's <paramref name="origin"/>, each context points at
+        /// the scale <see cref="ScalesFor"/> gives it there, and one whose scale its origin has not is left out.
         /// </summary>
-        internal static void WriteCopiedContexts(DxfItem item, List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>> carried)
+        internal static void WriteCopiedContexts(DxfItem item, List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>> carried, DxfFile origin)
         {
             if (carried == null)
             {
                 return;
             }
+
+            Dictionary<string, string> scaleOf = origin == null || origin == item.File ? null : ScalesFor(origin, item.File, carried);
 
             foreach (KeyValuePair<int, List<KeyValuePair<string, DxfItem>>> record in carried)
             {
@@ -911,15 +938,108 @@ namespace GeometryHelper.Dxf
                 foreach (KeyValuePair<string, DxfItem> context in record.Value)
                 {
                     IReadOnlyList<DxfTypedValue> groups = context.Value.File.ObjectGroupsOf(context.Value);
+
+                    if (scaleOf != null && !scaleOf.ContainsKey(ScaleHandleOf(groups) ?? string.Empty))
+                    {
+                        continue;
+                    }
+
                     scales.Add(context.Key, context.Value.Type, b =>
                     {
                         foreach (DxfTypedValue group in groups)
                         {
-                            b.Group(group.TypeCode, group.Value);
+                            // The scales of the drawing it came from named as this drawing's, an embedded MTEXT's among them.
+                            b.Group(group.TypeCode, scaleOf != null && group.TypeCode == 340 && scaleOf.TryGetValue(group.Value.Trim(), out string mapped) ? mapped : group.Value);
                         }
                     });
                 }
             }
+        }
+
+        /// <summary>
+        /// Whether a drawing holds a list of scales a copy's contexts can stand on: one of R2007 (AC1021) or later, of an OBJECTS
+        /// section, whose ACAD_SCALELIST is a dictionary or is not there yet.
+        /// </summary>
+        internal static bool HoldsScales(DxfFile file)
+        {
+            DxfDBDictionary root = file.Database?.NamedObjectsDictionary;
+            return root != null && file.Supports(1021) && (!root.Contains("ACAD_SCALELIST") || root.GetAt("ACAD_SCALELIST") is DxfDBDictionary);
+        }
+
+        /// <summary>
+        /// The scales of a drawing (<paramref name="target"/>) the contexts copied from another (<paramref name="origin"/>) stand
+        /// on, by the handle of the other's SCALE, as AutoCAD 2021's <c>WblockCloneObjects</c> and <c>Insert</c> find them (check
+        /// D35d): the scale of the name, letters of either case the same, where its units give the same scale, to the twelfth
+        /// figure; else one added to the list as <see cref="DxfObjectContextCollection.AddContext"/> adds it, of the other's units,
+        /// under its name where the list has none of it, else under the name and <c>_1</c>, <c>_2</c> and on, the first the
+        /// list has not. A context whose scale the other drawing has not is given none.
+        /// </summary>
+        private static Dictionary<string, string> ScalesFor(DxfFile origin, DxfFile target, List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>> carried)
+        {
+            var scaleOf = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            DxfObjectContextCollection list = target.Database.ObjectContextManager.GetContextCollection(DxfObjectContextManager.AnnotationScales);
+
+            foreach (KeyValuePair<int, List<KeyValuePair<string, DxfItem>>> record in carried)
+            {
+                foreach (KeyValuePair<string, DxfItem> context in record.Value)
+                {
+                    string handle = ScaleHandleOf(context.Value.File.ObjectGroupsOf(context.Value));
+                    DxfItem item = handle == null || scaleOf.ContainsKey(handle) ? null : origin.ObjectItem(handle);
+
+                    if (item == null || item.Type != "SCALE" || item.IsRemoved)
+                    {
+                        continue;
+                    }
+
+                    var theirs = new DxfAnnotationScale(item);
+                    string name = theirs.Name;
+                    DxfAnnotationScale ours = DxfObjectContextCollection.Find(target.Database, name);
+
+                    for (int n = 1; ours != null && !SameScale(ours, theirs); n++)
+                    {
+                        name = theirs.Name + "_" + n.ToString(CultureInfo.InvariantCulture);
+                        ours = DxfObjectContextCollection.Find(target.Database, name);
+                    }
+
+                    if (ours == null)
+                    {
+                        ours = new DxfAnnotationScale { Name = name, PaperUnits = theirs.PaperUnits, DrawingUnits = theirs.DrawingUnits };
+                        list.AddContext(ours);
+                    }
+
+                    scaleOf[handle] = ours.Handle;
+                }
+            }
+
+            return scaleOf;
+        }
+
+        /// <summary>Whether two scales give the same scale, their units of the paper over those of the drawing, to the twelfth figure.</summary>
+        private static bool SameScale(DxfAnnotationScale a, DxfAnnotationScale b)
+        {
+            double x = a.Scale;
+            double y = b.Scale;
+            return Math.Abs(x - y) <= 1E-12 * Math.Max(Math.Abs(x), Math.Abs(y));
+        }
+
+        /// <summary>The handle of the SCALE a context's record points at, the first 340 of its AcDbAnnotScaleObjectContextData; null where it has none.</summary>
+        private static string ScaleHandleOf(IReadOnlyList<DxfTypedValue> groups)
+        {
+            string marker = null;
+
+            foreach (DxfTypedValue group in groups)
+            {
+                if (group.TypeCode == 100)
+                {
+                    marker = group.Value?.Trim();
+                }
+                else if (group.TypeCode == 340 && marker == "AcDbAnnotScaleObjectContextData")
+                {
+                    return group.Value?.Trim();
+                }
+            }
+
+            return null;
         }
 
         /// <summary>The groups of a dictionary of an object's contexts after its type, owner and reactors, as AutoCAD writes them.</summary>

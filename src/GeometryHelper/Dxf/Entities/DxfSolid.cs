@@ -108,41 +108,47 @@ namespace GeometryHelper.Dxf
         /// gives none.
         /// </summary>
         /// <value>
-        /// Set, a direction of some length, written made of unit length. The corners keep their places in the world, as
-        /// <see cref="GetPointAt(short)"/> and <see cref="SetPointAt(short, GeoPoint3)"/> give and take them: each is written
-        /// anew in the system of the new normal, its height with it, to the rounding of that change. The square of side 2 at
-        /// the origin given the normal (0, 0, -1) has its corner (2, 0, 0) written as (-2, 0, 0), where it stands.
+        /// Set, a direction of some length, written made of unit length, alone: the corners keep their coordinates in the
+        /// system of the plane, which is the new one's, as AutoCAD 2021 keeps them, so the solid turns with the plane. The
+        /// solid of corners (200, 0), (210, 0), (200, 10) and (210, 10) given the normal (0, 0.6, 0.8) has them at (-200, 0, 0),
+        /// (-210, 0, 0), (-200, -8, 6) and (-210, -8, 6) (check D35d).
         /// </value>
         /// <exception cref="ArgumentException">Thrown when the direction set has no length or is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when set on a solid that is erased.</exception>
         public GeoVector3 Normal
         {
             get => GetNormal();
+            set => SetNormal(value);
+        }
 
-            set
+        /// <summary>
+        /// Gives the solid a normal, its corners kept where they stand in the world, each written anew in the system of the new
+        /// normal, its height with it, to the rounding of that change: for the solids the library makes and places itself, as
+        /// the arrowheads of a leader.
+        /// </summary>
+        internal void SetNormalKeepingPlace(GeoVector3 value)
+        {
+            KeyValuePair<int, string>[] normal = NormalGroups(value);
+
+            if (normal.Length == 0)
             {
-                KeyValuePair<int, string>[] normal = NormalGroups(value);
-
-                if (normal.Length == 0)
-                {
-                    return;
-                }
-
-                double length = value.Length;
-                GeoVector3 unit = Math.Abs(length - 1.0) <= 1E-12 ? value : value.Divide(length);
-                GeoVector3 old = GetNormal();
-                var parts = new List<KeyValuePair<int, string>[]> { normal };
-
-                for (int i = 0; i < 4; i++)
-                {
-                    if (GetString(10 + i) != null || GetString(20 + i) != null || GetString(30 + i) != null)
-                    {
-                        parts.Add(PointGroups(10 + i, WorldToOcs(unit, OcsToWorld(old, Local(i))), Origin));
-                    }
-                }
-
-                SetGroups(Join(parts.ToArray()));
+                return;
             }
+
+            double length = value.Length;
+            GeoVector3 unit = Math.Abs(length - 1.0) <= 1E-12 ? value : value.Divide(length);
+            GeoVector3 old = GetNormal();
+            var parts = new List<KeyValuePair<int, string>[]> { normal };
+
+            for (int i = 0; i < 4; i++)
+            {
+                if (GetString(10 + i) != null || GetString(20 + i) != null || GetString(30 + i) != null)
+                {
+                    parts.Add(PointGroups(10 + i, WorldToOcs(unit, OcsToWorld(old, Local(i))), Origin));
+                }
+            }
+
+            SetGroups(Join(parts.ToArray()));
         }
 
         /// <summary>Gets or sets how far the solid stands up along its <see cref="Normal"/> (group 39); nought where the record gives none.</summary>

@@ -120,8 +120,10 @@ namespace GeometryHelper.Dxf
         /// baseline is held by the top left, centre or right of the MTEXT one text height above its point, or second point where
         /// it is not left, as AutoCAD 2021 makes it whatever the font: the value B-12 of letters 2.5 high at (50, 59, 0) becomes
         /// the MTEXT B-12 2.5 high held by its top left at (50, 61.5, 0) (check D35c). Any other is held by the point of its
-        /// justification at its second point. The text's first point is kept, its second point made the MTEXT's location. Set
-        /// false, the MTEXT taken out, the text keeping its first
+        /// justification at its second point. The text's first point is kept, its second point made the MTEXT's location. Its
+        /// width factor is kept, and the MTEXT's words open with it, as AutoCAD 2021 writes them: an attribute 0.7 wide keeps
+        /// its 41 of 0.7, its MTEXT reading <c>\W0.7000;</c> and the value (check D35d). Set false, the MTEXT taken out, the
+        /// text keeping its first
         /// line, as an attribute of one line (71 of 1). An annotative attribute made of several lines is given its MTEXT in every
         /// context too, as <see cref="MTextAttribute"/> says; made of one, its contexts are left as they are, as AutoCAD 2021
         /// leaves them (check D35b).

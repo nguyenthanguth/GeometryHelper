@@ -74,14 +74,15 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void ANormalSet_KeepsTheCornersWhereTheyStandInTheWorld()
+        public void ANormalSet_KeepsTheCornersInThePlane()
         {
-            // The square 43 of side 2 at the origin given the normal (0, 0, -1): its corner (2, 0, 0) is written (-2, 0, 0) in
-            // the system of that normal, and stands where it stood.
+            // The square 43 of side 2 at the origin given the normal (0, 0, -1): its corners keep their coordinates in its plane,
+            // as AutoCAD 2021 keeps them (check D35d), so the corner (2, 0, 0) stands at (-2, 0, 0) in the world, still written 2.
             string text = DxfFileEzdxfDrawings.R2018;
             DxfDatabase db = DxfDatabase.Parse(text);
             DxfSolid solid = ByHandle<DxfSolid>(db, "43");
             GeoPoint3[] before = Enumerable.Range(0, 4).Select(i => solid.GetPointAt((short)i)).ToArray();
+            string record = Records(text).Single(r => HandleOf(r) == "43");
 
             solid.Normal = new GeoVector3(0, 0, -2);
 
@@ -92,12 +93,16 @@ namespace GeometryHelper.UnitTest.Dxf
 
             for (short i = 0; i < 4; i++)
             {
-                Assert.True(again.GetPointAt(i).IsEqualTo(before[i], Tolerance.Default), i + " " + again.GetPointAt(i));
+                var turned = new GeoPoint3(-before[i].X, before[i].Y, -before[i].Z);
+                Assert.True(again.GetPointAt(i).IsEqualTo(turned, Tolerance.Default), i + " " + again.GetPointAt(i));
             }
 
-            string record = Records(saved).Single(r => HandleOf(r) == "43");
-            Assert.True(record.Contains(" 11\n-2\n") || record.Contains(" 11\n-2.0\n"), record);
+            string written = Records(saved).Single(r => HandleOf(r) == "43");
+            Assert.Equal(Corner(record), Corner(written));
         }
+
+        /// <summary>The value of the group 11 of a record, the x of its second corner, as written.</summary>
+        private static string Corner(string record) => record.Replace("\r", string.Empty).Split('\n').SkipWhile(l => l.Trim() != "11").Skip(1).First().Trim();
 
         [Fact]
         public void ASolidMadeInCode_IsAppendedToEachVersion()

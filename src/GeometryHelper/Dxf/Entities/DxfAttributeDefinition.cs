@@ -149,7 +149,8 @@ namespace GeometryHelper.Dxf
         /// <value>
         /// Set true, an MTEXT made of its default value embedded where its text stands, as
         /// <see cref="MTextAttributeDefinition"/> embeds one, its backslashes and braces written as the codes <c>\\</c>,
-        /// <c>\{</c> and <c>\}</c>, placed as <see cref="DxfAttributeReference.IsMTextAttribute"/> says. Set false, the MTEXT
+        /// <c>\{</c> and <c>\}</c>, placed and its width factor kept as <see cref="DxfAttributeReference.IsMTextAttribute"/>
+        /// says. Set false, the MTEXT
         /// taken out, the text keeping its first line, as an attribute of one line (71 of 1).
         /// </value>
         /// <exception cref="InvalidOperationException">Thrown when the definition is erased, or set true in a file older than R2018 (AC1032).</exception>

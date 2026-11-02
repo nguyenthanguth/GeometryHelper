@@ -364,13 +364,14 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void TheCopyOfAnAnnotativeText_AddedToAnotherDrawing_LeavesItsContexts_PlacedWhereItIsRead()
+        public void TheCopyOfAnAnnotativeText_AddedToAnotherDrawing_KeepsItsContexts_OnTheScalesOfTheirNames()
         {
-            // The scales of another drawing are not its original's: the copy is placed where it is read, as before.
+            // Another drawing of the same scales takes the copy's contexts on them, as AutoCAD 2021's WblockCloneObjects keeps
+            // them (check D35d): shown where it is read, at 1:1 and 1:2.
             var copy = (DxfDBText)ByHandle<DxfDBText>(DxfDatabase.Parse(Grid()), "64").Clone();
             DxfDatabase other = DxfDatabase.Parse(Drawing());
             other.ModelSpace.AppendEntity(copy);
-            ShownAt(other, copy);
+            ShownAt(other, copy, "1:1", "1:2");
             Assert.Equal(new GeoPoint3(11.0, 12.0, 0.0), copy.Position);
             Assert.Equal(1.25, copy.Height);
             Near(15.0 * Math.PI / 180.0, copy.Rotation);

@@ -417,13 +417,14 @@ namespace GeometryHelper.UnitTest.Dxf
             Near(new GeoPoint3(100, 30, 0), Linked(db, "5C").Location);
             Near(Math.PI / 2.0, Linked(db, "5C").Rotation);
 
-            // On the normal (0, 0, -1), whose x axis is the world's -x and y the world's y, turned a quarter it still reads
-            // along (0, 1, 0): its columns stand where they stood, on the new normal.
+            // On the normal (0, 0, -1), whose x axis is the world's -x and y the world's y, it reads along that x axis, as
+            // AutoCAD 2021 turns an MTEXT given a normal (check D35d): its columns turn with it about its location, on the new
+            // normal.
             main.Normal = new GeoVector3(0, 0, -1);
-            Near(new GeoVector3(0, 1, 0), main.Direction);
+            Near(new GeoVector3(-1, 0, 0), main.Direction);
             Near(new GeoVector3(0, 0, -1), Linked(db, "5B").Normal);
-            Near(new GeoVector3(0, 1, 0), Linked(db, "5B").Direction);
-            Near(new GeoPoint3(100, 15, 0), Linked(db, "5B").Location);
+            Near(new GeoVector3(-1, 0, 0), Linked(db, "5B").Direction);
+            Near(new GeoPoint3(85, 0, 0), Linked(db, "5B").Location);
 
             // Read along the world's x again: its columns turn back about its location.
             main.Direction = new GeoVector3(1, 0, 0);

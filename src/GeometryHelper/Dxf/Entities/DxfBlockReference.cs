@@ -316,7 +316,7 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Gives a copy that carries contexts, added to a drawing that is not its original's, the point, angle and scale factors
+        /// Gives a copy that carries contexts, added to a drawing that holds no list of scales, the point, angle and scale factors
         /// it is read at, as AutoCAD 2021's copy reads (check D35b), its contexts and its ATTRIBs' left behind, its ATTRIBs read
         /// at their records.
         /// </summary>
@@ -371,36 +371,36 @@ namespace GeometryHelper.Dxf
         /// Gets or sets the normal of the plane the INSERT turns its block in (groups 210, 220, 230), as AutoCAD's
         /// <c>Normal</c>; of unit length, (0, 0, 1) where the record gives none.
         /// </summary>
-        /// <value>Set, a direction of some length, written made of unit length; the insertion point stays where it is in the
-        /// world, written anew in the system of the new plane, and the ATTRIBs follow the block. An annotative one's normal alone
-        /// is written, its record's point and every context left as they are, in the system of the new plane, as AutoCAD 2021
-        /// writes it: the valve read at (113.883, 279.776, 0) at 1:1, given the normal (0, 0.6, 0.8), stands at (-113.883,
-        /// -223.821, 167.866) (check D35c).</value>
+        /// <value>Set, a direction of some length, written made of unit length, alone: the insertion point, and every context
+        /// of an annotative one, keep their coordinates in the system of the plane, which is the new one's, as AutoCAD 2021
+        /// writes it; the ATTRIBs follow the block. An INSERT at (300, 100, 0) turned 0.3, given the normal (0, 0.6, 0.8), stands
+        /// at (-300, -80, 60), still turned 0.3 (check D35d); the valve read at (113.883, 279.776, 0) at 1:1 stands at
+        /// (-113.883, -223.821, 167.866) (check D35c).</value>
         /// <exception cref="ArgumentException">Thrown when the direction set has no length or is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the INSERT is erased.</exception>
         public GeoVector3 Normal
         {
             get => GetNormal();
+            set => Place(NormalGroups(value));
+        }
 
-            set
+        /// <summary>
+        /// Gives the INSERT a normal, its insertion point kept where it stands in the world, written anew in the system of the
+        /// new plane, and its ATTRIBs following the block: for the INSERTs the library makes and places itself, as the arrows of
+        /// a leader.
+        /// </summary>
+        internal void SetNormalKeepingPlace(GeoVector3 value)
+        {
+            KeyValuePair<int, string>[] normal = NormalGroups(value);
+
+            if (normal.Length == 0)
             {
-                KeyValuePair<int, string>[] normal = NormalGroups(value);
-
-                if (normal.Length == 0)
-                {
-                    return;
-                }
-
-                if (Shown(out _) != null)
-                {
-                    Place(normal);
-                    return;
-                }
-
-                double length = value.Length;
-                GeoVector3 unit = Math.Abs(length - 1.0) <= 1E-12 ? value : value.Divide(length);
-                Place(Join(PointGroups(10, WorldToOcs(unit, Position), Origin), normal));
+                return;
             }
+
+            double length = value.Length;
+            GeoVector3 unit = Math.Abs(length - 1.0) <= 1E-12 ? value : value.Divide(length);
+            Place(Join(PointGroups(10, WorldToOcs(unit, Position), Origin), normal));
         }
 
         /// <summary>

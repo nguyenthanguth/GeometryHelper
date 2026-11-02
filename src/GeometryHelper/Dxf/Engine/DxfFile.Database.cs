@@ -782,6 +782,16 @@ namespace GeometryHelper.Dxf
                     : AddBlock(_blockCopies[block], block.BasePoint, (int)own.Units, own.Explodable, own.BlockScaling == DxfBlockScaling.Uniform, own.Comments ?? string.Empty, out record, flags, path);
                 Database?.BlockTable.Adopted(made, record);
 
+                // An annotative block stays one, as AutoCAD 2021 brings it (check D35d).
+                IReadOnlyList<DxfTypedValue> annotative = own?.Annotative == DxfAnnotativeStates.True && Supports(1021) ? own.GetXDataForApplication("AcadAnnotative") : null;
+
+                if (annotative != null && Database != null && Database.BlockTable.Has(_blockCopies[block]))
+                {
+                    Database.BlockTable[_blockCopies[block]].XData = annotative;
+                }
+
+                bool? scales = null;
+
                 foreach (DxfItem item in block.Items.Snapshot())
                 {
                     if (item.IsRemoved)
@@ -803,6 +813,16 @@ namespace GeometryHelper.Dxf
 
                     // A HATCH keeps the handles of its boundary, which comes with it in the block, to follow its copies.
                     DxfItem copy = Adopt(made.Items, origin.CopyOf(item, true));
+
+                    // Its contexts come with it, on this drawing's scales of their names (check D35d).
+                    List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>> carried = copy != null && (item.Type == "TEXT" || item.Type == "MTEXT" || item.Type == "ATTDEF" || item.Type == "INSERT")
+                        ? DxfDBObject.HeldByRecords(item, item.Type == "INSERT")
+                        : null;
+
+                    if (carried != null && (scales = scales ?? DxfDBObject.HoldsScales(this)).Value)
+                    {
+                        DxfDBObject.WriteCopiedContexts(copy, carried, origin);
+                    }
 
                     if (copy != null && TryHex(item.Handle ?? string.Empty, out ulong was) && was != 0 && copy.Handle != null)
                     {

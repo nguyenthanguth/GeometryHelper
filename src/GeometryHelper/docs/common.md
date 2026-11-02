@@ -906,7 +906,10 @@ cent of AutoCAD's dialog, written 33 554 559 (0x0200007F); a file older than R20
 that of a drawing's current variables. `line.HandOverTo(circle, true, true)` puts an entity made in code in the line's place,
 as AutoCAD's `HandOverTo` hands the id over: the circle is written where the line stood in its block, under its handle, owner
 and reactors, so that a group that held the line holds the circle, with the line's extended data and extension dictionary
-where the flags keep them, else its own and none; the line is in no file from then on, a copy of what it was.
+where the flags keep them, else its own and none; the line's extended data kept where it has none leaves the circle its own,
+as AutoCAD 2021 keeps it. The line is in no file from then on, a copy of what it was. A copy of an annotative TEXT handed
+the place writes its contexts where the line's extension dictionary is not kept, as `AppendEntity` writes them; kept, the
+line's dictionary stands for the copy's, as AutoCAD writes it.
 
 `GeometricExtents` is the box of its shapes, a `GeoAabb3`; an entity with none, an IMAGE or a LINE of no length, throws, as
 AutoCAD throws for an entity with no extents. A text has no fonts here, so its box is the point it stands at. `GetPlane()`
@@ -1279,17 +1282,28 @@ becomes the MTEXT held by its top left at (50, 61.5).
 
 A copy (`Clone`, `GetTransformedCopy`) of an annotative text, attribute, MTEXT or INSERT carries the contexts of its
 original, and those of an INSERT's ATTRIBs, as AutoCAD 2021's copy keeps them: in no file it is shown at its original's
-scales and reads where its original is read; added to its original's drawing, it is given an extension dictionary of those
-contexts, as AutoCAD writes its copy's; added to another drawing, it leaves them, given the placing it is read at. Moved by
+scales and reads where its original is read; added to a drawing, it is given an extension dictionary of those contexts, as
+AutoCAD writes its copy's. Added to another drawing, by `AppendEntity`, `WblockCloneObjects` or `Insert`, each context stands
+on that drawing's scale of its scale's name, as AutoCAD 2021 puts it: one of the same units as it is, one the list has not
+added to it, and one of the name of other units added as the name and `_1` (S7 of 1:3 copied into a drawing whose S7 is 1:7
+stands on an S7_1 of 1:3); an annotative INSERT's block comes annotative. A drawing older than R2007, which holds no list of
+scales, takes the copy given the placing it is read at. Moved by
 `TransformBy`, a copy carries every context. `GetTransformedCopy` of an MTEXT or an INSERT moves every context too, but
 that of a TEXT, ATTDEF or ATTRIB moves the context it is shown at alone, and its record's point and angle only where that
 is the default, as AutoCAD 2021 moves it: moved by (10, 5), the TEXT shown at (11, 12) at 1:1 beside its default of 1:2 at
 (40, 12) is shown at (21, 17), its context of 1:2 left at (40, 12). An annotative MTEXT's `SetAttachmentMovingLocation`
-moves it by the width of the context it is read at and writes that context, its record where it is the default; its
-`Normal` set makes it read along the x axis of the new plane, in that context; an INSERT's `Normal` set writes the normal
-alone, its points left in their plane, and its `BlockTransform` set writes the context it is read at, as its point, angle
-and scale factors are. Scaled, an MTEXT's box (46) is stretched with it, in columns or not. The point of a text not aligned
-left and an MTEXT's extents, which AutoCAD works out from the font, are not read as AutoCAD reads them.
+moves it by the width of the context it is read at and writes that context, its record where it is the default; an INSERT's
+`BlockTransform` set writes the context it is read at, as its point, angle and scale factors are. Scaled, an MTEXT's box
+(46) is stretched with it, in columns or not. The point of a text not aligned left and an MTEXT's extents, which AutoCAD
+works out from the font, are not read as AutoCAD reads them.
+
+`Normal` set keeps what AutoCAD 2021 keeps, annotative or not: a TEXT, an ATTDEF, an ATTRIB, an INSERT, a SOLID, an LWPOLYLINE,
+a POLYLINE and a HATCH keep their points, turn and contexts in their plane, the new normal written alone, so that a TEXT at
+(11, 12, 0) turned 0.3 given (0, 0.6, 0.8) stands at (-11, -9.6, 7.2), still turned 0.3, and an INSERT at (300, 100, 0) at
+(-300, -80, 60), its ATTRIBs carried with it; an MTEXT keeps its location and reads along the x axis of the new plane,
+(-1, 0, 0); a LINE, a POINT, a CIRCLE and an ARC keep their points or centre in the world. A DIMENSION keeps its points in
+the world, where AutoCAD lays its dimension line and text on the new plane. An attribute of letters 0.7 wide made of
+several lines keeps its width factor, its MTEXT's words opening with `\W0.7000;`.
 
 `DxfMText` names the codes of an MTEXT as AutoCAD's `MText` does: `ParagraphBreak` and `LineBreak` are `\P`, `UnderlineOn` is
 `\L`, `HeightChange` `\H`, `BlockBegin` `{`, and so the 19 of them. `ContentsRTF` gives its words as RTF, the style's font

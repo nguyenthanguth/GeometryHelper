@@ -314,13 +314,17 @@ namespace GeometryHelper.Dxf
                     GeoPoint3 back = vertices[0].Add(away.Multiply(-size));
                     GeoVector3 side = DxfOcsTransform.Normalized(normal.CrossProduct(away)).Multiply(size / 6.0);
                     var solid = new DxfSolid(back.Add(side), vertices[0], back.Add(side.Negate()));
-                    solid.Normal = normal;
+                    solid.SetNormalKeepingPlace(normal);
                     head = solid;
                 }
                 else
                 {
                     OcsAxes(normal, out GeoVector3 x, out GeoVector3 y);
-                    head = new DxfBlockReference(vertices[0], arrow) { Normal = normal, ScaleFactors = new GeoVector3(size, size, size), Rotation = Math.Atan2(away.DotProduct(y), away.DotProduct(x)) };
+                    var reference = new DxfBlockReference(vertices[0], arrow);
+                    reference.SetNormalKeepingPlace(normal);
+                    reference.ScaleFactors = new GeoVector3(size, size, size);
+                    reference.Rotation = Math.Atan2(away.DotProduct(y), away.DotProduct(x));
+                    head = reference;
                 }
 
                 look.GiveTo(head);

@@ -363,6 +363,13 @@ namespace GeometryHelper.Dxf
                     }
 
                     BlockTable.Add(made);
+
+                    // An annotative block stays one, as AutoCAD 2021's Insert merges it (check D35d).
+                    if (block.Annotative == DxfAnnotativeStates.True && File.Supports(1021))
+                    {
+                        made.XData = block.GetXDataForApplication("AcadAnnotative");
+                    }
+
                     File.Copies?.Block(block.Name, made.Name);
                     source.WblockCloneObjects(new List<DxfEntity>(block), made);
                 }

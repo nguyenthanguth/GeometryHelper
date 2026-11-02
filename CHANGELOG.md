@@ -27,6 +27,35 @@ the header's style, and read whole only where it holds more of them than the tab
 table's extension dictionary is found without reading its whole record. A table that holds such a row, as one given a
 row before its title, still reads it whole once: 24 ms on .NET Framework 4.8.
 
+**CHANGED.** `Normal` set on a TEXT, ATTDEF, ATTRIB, INSERT or SOLID writes the normal alone, its points, turn and contexts
+kept in its plane, as AutoCAD 2021 keeps them and as the library already kept an annotative INSERT's (check D35d): a TEXT at
+(11, 12, 0) turned 0.3 given the normal (0, 0.6, 0.8) stands at (-11, -9.6, 7.2), still turned 0.3, an INSERT at (300, 100,
+0) at (-300, -80, 60), and a SOLID's corner (200, 10) at (-200, -8, 6), where the library kept each where it stood in the
+world. An INSERT's ATTRIBs are still carried with it. `DxfMText.Normal` keeps the location and makes the MTEXT read along
+the x axis of the new plane, turned nought, as an annotative one did already: turned 30 degrees and given (0, 0.6, 0.8), it
+reads along (-1, 0, 0), where the library kept its turn. LINE, POINT, CIRCLE, ARC, LWPOLYLINE, POLYLINE and HATCH were
+already as AutoCAD; a DIMENSION is not, and is left as it was. The library's own arrows of leaders and multileaders are
+placed as before.
+
+**CHANGED.** An annotative copy added to another drawing, by `AppendEntity`, `WblockCloneObjects` or `Insert`, keeps its
+contexts and those of its ATTRIBs, as AutoCAD 2021's `WblockCloneObjects` and `Insert` keep them (check D35d), where the
+library left them and gave the copy the placing it was read at. Each stands on that drawing's scale of its scale's name
+where the two give the same scale; a scale the list has not is added to it; one of the name of other units is added as the
+name and `_1`: a TEXT of S7 of 1:3 copied into a drawing whose S7 is 1:7 stands on an S7_1 of 1:3. The block of an
+annotative INSERT comes annotative, where it came not, and the definitions in a block a copy brings keep their contexts. A
+drawing older than R2007 takes the copy as before. With contexts to write, a copy into another drawing of a drawing of 35
+entities takes 185 ms for a hundred where it took 165 on .NET Framework 4.8; a drawing of 555 entities is within noise.
+
+**FIXED.** An attribute or definition of letters of another width made of several lines (`IsMTextAttribute`,
+`IsMTextAttributeDefinition`) keeps its width factor (41), its MTEXT's words opening with it, as AutoCAD 2021 writes them
+(check D35d): 0.7 wide, its MTEXT reads `\W0.7000;` and the value, where the library took the width factor out.
+
+**FIXED.** `HandOverTo` writes the contexts of a copy that carries them, as `AppendEntity` writes them, where the old
+entity's extension dictionary is not kept, as AutoCAD 2021 writes them (check D35d): a LINE handed over to the copy of a
+TEXT shown at (11, 12) 1.25 high at 1:1 is that TEXT so, where the library left it at its record, (40, 12) 2.5 high. Kept,
+the old entity's dictionary stands for the copy's. The old entity's extended data kept, where it has none, leaves the new
+entity its own, its AcadAnnotative among it, where the library took that away.
+
 ## 13.4.0 (2026-11-02)
 
 A minor release: no public member is added, removed or renamed in any of the four libraries. Of its 43 entries, 1 NEW, 7

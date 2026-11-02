@@ -608,13 +608,22 @@ namespace GeometryHelper.Dxf
         /// vertices of a POLYLINE, go, their handles not given again.
         /// </para>
         /// <para>
+        /// A copy of an annotative entity that carries its original's contexts (<see cref="DxfEntity.Clone"/>) is given them
+        /// as <see cref="DxfBlockTableRecord.AppendEntity"/> gives them, where this one's extension dictionary is not kept; kept,
+        /// that dictionary stands for the copy's, its contexts those this one had, or none, as AutoCAD 2021 writes it: a LINE
+        /// handed over to the copy of a TEXT shown at (11, 12) at 1:1 beside its default of 1:2 at (40, 12) is that TEXT shown at
+        /// (11, 12) at both, its dictionary not kept, and at (40, 12) at none, kept (check D35d). Kept, the extended data of
+        /// this one replaces the new object's where this one has some; where it has none, the new object keeps its own, its
+        /// AcadAnnotative among it, as AutoCAD 2021 keeps it.
+        /// </para>
+        /// <para>
         /// Entities alone hand their place over: a record of a table, a dictionary and the other objects of the OBJECTS section
         /// are refused, as is a VERTEX or an ATTRIB, which belongs to the entity it follows.
         /// </para>
         /// </remarks>
         /// <param name="newPointer">The object to take the place: an entity made in code, or copied, and in no file.</param>
-        /// <param name="keepXData">Whether the new object takes this one's extended data, which then replaces its own; false
-        /// keeps the new object's own.</param>
+        /// <param name="keepXData">Whether the new object takes this one's extended data, which then replaces its own where this
+        /// one has some; false keeps the new object's own.</param>
         /// <param name="keepExtensionDictionary">Whether the new object takes this one's extension dictionary; false takes the
         /// dictionary out of the drawing, with what it holds.</param>
         /// <exception cref="ArgumentNullException">Thrown when the new object is null.</exception>
@@ -653,12 +662,22 @@ namespace GeometryHelper.Dxf
             }
 
             made.Appending(entity.Owner as DxfBlockTableRecord);
+
+            // The contexts a copy carries are written as AppendEntity writes them where this one's extension dictionary is not
+            // kept; kept, it stands for the copy's, as AutoCAD 2021 writes it (check D35d).
+            List<KeyValuePair<int, List<KeyValuePair<string, DxfItem>>>> carried = made.TakeCopiedContexts(file);
+            DxfFile origin = made.Item.File.Origin;
             DxfItem item = _item;
             DxfItem snapshot = file.CopyOf(item);
             file.HandOver(item, made.Item, keepXData, keepExtensionDictionary);
             item.ReplaceWrapper(made);
             made.Bind(item);
             Bind(snapshot);
+
+            if (!keepExtensionDictionary)
+            {
+                WriteCopiedContexts(item, carried, origin);
+            }
             GeometryHelperLog.Info("DxfDatabase: the " + item.Type + " " + (item.Handle ?? string.Empty) + " took the place of a " + snapshot.Type + ".");
         }
 

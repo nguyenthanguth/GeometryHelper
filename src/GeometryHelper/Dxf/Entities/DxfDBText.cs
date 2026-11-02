@@ -585,8 +585,10 @@ namespace GeometryHelper.Dxf
         /// Gets or sets the normal of the plane the text stands in (groups 210, 220, 230), as AutoCAD's <c>Normal</c>; of unit
         /// length, (0, 0, 1) where the record gives none.
         /// </summary>
-        /// <value>Set, a direction of some length, written made of unit length; the text's two points stay where they are in
-        /// the world, written anew in the system of the new plane.</value>
+        /// <value>Set, a direction of some length, written made of unit length, alone: the text's two points, its turn and every
+        /// context of an annotative one keep their coordinates in the system of the plane, which is the new one's, as AutoCAD
+        /// 2021 writes them, so the text turns with the plane. A TEXT at (11, 12, 0) turned 0.3, given the normal (0, 0.6,
+        /// 0.8), stands at (-11, -9.6, 7.2), still turned 0.3; an ATTDEF or an ATTRIB the same (check D35d).</value>
         /// <exception cref="ArgumentException">Thrown when the direction set has no length or is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the text is erased.</exception>
         public GeoVector3 Normal
@@ -610,13 +612,7 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
-                GeoPoint3 position = Position;
-                bool aligned = TextPoint(11) != null || !IsDefaultAlignment;
-                GeoPoint3 alignment = AlignmentPoint;
-                SetText(Join(
-                    TextPointGroups(10, WorldToOcs(unit, position)),
-                    aligned ? AlignmentGroups(WorldToOcs(unit, alignment)) : new KeyValuePair<int, string>[0],
-                    TextNormalGroups(unit)));
+                SetText(TextNormalGroups(unit));
             }
         }
 
@@ -732,7 +728,7 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Gives a copy that carries contexts, added to a drawing that is not its original's, the placing it is read at, as
+        /// Gives a copy that carries contexts, added to a drawing that holds no list of scales, the placing it is read at, as
         /// AutoCAD 2021's copy reads (check D35b): its horizontal mode, point, second point, angle and height, its contexts left
         /// behind.
         /// </summary>
@@ -1062,7 +1058,8 @@ namespace GeometryHelper.Dxf
         /// them; its text's part made to agree, its value as <see cref="ValueOfLines"/> gives it, the MTEXT's location its two points
         /// in the system of its plane, its direction its rotation, its attachment its justification, its style and height its
         /// own, its width factor, lean and mirroring taken out; its 71 the type of an attribute of several lines. Its first point
-        /// (10) is kept where <paramref name="keepPoint"/> is true, as AutoCAD's <c>IsMTextAttribute</c> setter keeps it.
+        /// (10) and its width factor (41) are kept where <paramref name="keepPoint"/> is true, as AutoCAD's
+        /// <c>IsMTextAttribute</c> setter keeps them.
         /// </summary>
         private protected void SetMText(DxfMText value, bool keepPoint = false)
         {
@@ -1122,7 +1119,7 @@ namespace GeometryHelper.Dxf
                     WholeGroup(VerticalCode, vertical, TextInt(VerticalCode, 0)),
                     string.Equals(style, TextValue(7), StringComparison.Ordinal) ? new KeyValuePair<int, string>[0] : Pair(7, style),
                     NumberGroup(40, height, contexts == null ? Height : TextDouble(40, 2.5)),
-                    TextValue(41) != null ? Pair(41, null) : new KeyValuePair<int, string>[0],
+                    TextValue(41) != null && !keepPoint ? Pair(41, null) : new KeyValuePair<int, string>[0],
                     TextValue(51) != null ? Pair(51, null) : new KeyValuePair<int, string>[0],
                     TextValue(71) != null ? Pair(71, null) : new KeyValuePair<int, string>[0]),
                 null,
@@ -1241,7 +1238,11 @@ namespace GeometryHelper.Dxf
             }
 
             Several();
-            DxfMText made = Placed(new DxfMText { Contents = AsContents(TextString) });
+
+            // Letters of another width keep it, the MTEXT's words opening with it, \W0.7000; for 0.7 (check D35d).
+            double width = WidthFactor;
+            string narrowed = Same(width, 1.0) ? string.Empty : "\\W" + width.ToString("0.0000", CultureInfo.InvariantCulture) + ";";
+            DxfMText made = Placed(new DxfMText { Contents = narrowed + AsContents(TextString) });
             int horizontal = TextInt(72, 0);
 
             // Left, centred or right on its baseline, it is held by its top one height above, as AutoCAD 2021 makes it, whatever

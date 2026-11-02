@@ -833,11 +833,11 @@ namespace GeometryHelper.Dxf
         /// Gets or sets the normal of the plane the MTEXT stands in (groups 210, 220, 230), as AutoCAD's <c>Normal</c>; of unit
         /// length, (0, 0, 1) where the record gives none.
         /// </summary>
-        /// <value>Set, a direction of some length, written made of unit length; the MTEXT keeps its location and its
-        /// <see cref="Rotation"/> in the new plane, its direction written anew where the record has one. An annotative MTEXT
-        /// keeps its location and reads along the x axis of the new plane, written as the direction of the context it is read at,
-        /// and of its record where that context is the default, its other contexts left as they are, as AutoCAD 2021 writes it:
-        /// the MTEXT turned 30 degrees given the normal (0, 0.6, 0.8) reads along (-1, 0, 0) (check D35c).</value>
+        /// <value>Set, a direction of some length, written made of unit length; the MTEXT keeps its location and reads along the
+        /// x axis of the new plane, turned nought, as AutoCAD 2021 writes it: its direction, and its angle, written so where
+        /// the record has them. The MTEXT at (10, 200, 0) turned 30 degrees given the normal (0, 0.6, 0.8) stays at (10, 200,
+        /// 0) and reads along (-1, 0, 0) (check D35d). An annotative one's direction is written into the context it is read at,
+        /// and into its record where that context is the default, its other contexts left as they are (check D35c).</value>
         /// <exception cref="ArgumentException">Thrown when the direction set has no length or is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the MTEXT is erased.</exception>
         public GeoVector3 Normal
@@ -857,15 +857,10 @@ namespace GeometryHelper.Dxf
                 GeoVector3 unit = Math.Abs(length - 1.0) <= 1E-12 ? value : value.Divide(length);
                 ShownContexts contexts = Shown(out ContextGroups shown);
 
-                if (contexts == null)
-                {
-                    Carried(() => Set(Join(normal, HasDirection() ? Turned(unit, Rotation, true, false) : new KeyValuePair<int, string>[0])));
-                    return;
-                }
-
+                // Along the x axis of the new plane, annotative or not (check D35c, D35d).
                 Carried(() =>
                 {
-                    Set(contexts.ShownIsDefault ? Join(normal, Turned(unit, 0.0, true, Value(50) != null)) : normal);
+                    Set(contexts == null || contexts.ShownIsDefault ? Join(normal, Turned(unit, 0.0, contexts != null || HasDirection(), Value(50) != null)) : normal);
                     WriteDirection(shown, World(unit, new GeoVector3(1.0, 0.0, 0.0)));
                 });
             }
@@ -2126,7 +2121,7 @@ namespace GeometryHelper.Dxf
         private bool HasDirection() => Value(11) != null || Value(21) != null || Value(31) != null;
 
         /// <summary>
-        /// Gives a copy that carries contexts, added to a drawing that is not its original's, the placing it is read at, as
+        /// Gives a copy that carries contexts, added to a drawing that holds no list of scales, the placing it is read at, as
         /// AutoCAD 2021's copy reads (check D35b): its attachment, location, direction, height, width and box, its contexts left
         /// behind.
         /// </summary>
