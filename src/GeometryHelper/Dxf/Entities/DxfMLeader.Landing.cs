@@ -373,7 +373,7 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// The words of one line measured as AutoCAD 2021 measures an MTEXT's (<see cref="DxfMText.ActualWidth"/>), at their height
-        /// (41 of the context data) in the SHX font of their text style (340), where the drawing's
+        /// (41 of the context data) in the SHX or TrueType font of their text style (340), where the drawing's
         /// <see cref="DxfDatabase.FontSearchPath"/> finds it; null where it does not, the style is not as wide as high and upright,
         /// or the words are not one line as <see cref="DxfMText.ActualWidth"/> measures one.
         /// </summary>
@@ -403,7 +403,7 @@ namespace GeometryHelper.Dxf
                 return null;
             }
 
-            DxfShxFont font = fonts.FontOf(style, out _);
+            DxfFont font = fonts.FontOf(style, out _);
             DxfTextLine line = font == null ? null : DxfFonts.MText(font, Text(m, 304) ?? string.Empty, Height(ctx));
             double wrap = Num(Text(m, 43), 0.0);
             return line == null || (wrap > 0.0 && !(line.ActualWidth < wrap)) ? null : line;
@@ -553,7 +553,7 @@ namespace GeometryHelper.Dxf
             List<KeyValuePair<int, string>> m = ctx.Head.GetRange(from, to - from);
             double whole = height + (Breaks(Text(m, 304)) * 5.0 / 3.0 * height * Num(Text(m, 45), 1.0));
             DxfTextLine words = Measured(ctx);
-            double depth = words == null || !words.HasInk || !(words.InkBottom < 0.0) ? 0.0 : -words.InkBottom * height / Height(ctx);
+            double depth = words == null || !(words.Depth > 0.0) ? 0.0 : words.Depth * height / Height(ctx);
             double line = height + depth;
             whole = depth > 0.0 ? line : whole;
 

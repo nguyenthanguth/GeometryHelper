@@ -28,14 +28,16 @@ namespace GeometryHelper.Dxf
     /// gives the <see cref="DxfText"/> <see cref="DxfReader"/> reads of it.
     /// </para>
     /// <para>
-    /// Where the drawing's <see cref="DxfDatabase.FontSearchPath"/> finds the SHX font of the text's style, a text justified
+    /// Where the drawing's <see cref="DxfDatabase.FontSearchPath"/> finds the SHX or TrueType font of the text's style, a text justified
     /// other than left on its baseline is put where its words stand about its <see cref="AlignmentPoint"/>, as AutoCAD 2021's
     /// <c>AdjustAlignment</c> puts it (check F1a), whenever its words, second point, height, width factor, turn, justification
     /// or style are set, and when one made in code is added to the drawing: "ABC" of txt.shx 4 high centred on (100, 50, 0)
     /// stands at (94.667, 50, 0), the ink of its letters 10.667 wide; an aligned text takes the height, and a fitted one the
     /// width factor, its two points give it, "ABC" aligned on two points 30 apart 11.25 high. A first point set on a text of
-    /// another justification is kept as set. With no fonts, or a font not measured (TrueType, a big font's letters, the
-    /// lines of %%u, %%o and %%k), the text stays as it is set.
+    /// another justification is kept as set. A TrueType font is measured as AutoCAD 2021 measures it (check F2): the box from
+    /// the start of the baseline to the last pen, the ink past it counted, "ABC" of arial.ttf so centred on (100, 50, 0) at
+    /// (94.259, 50, 0). With no fonts, or a font not measured (a big font's letters, a letter a TrueType font has not, the
+    /// lines of %%u, %%o and %%k of an SHX font and of %%k of a TrueType one), the text stays as it is set.
     /// </para>
     /// </remarks>
     public partial class DxfDBText : DxfEntity

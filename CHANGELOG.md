@@ -6,6 +6,22 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `DxfDatabase.FontSearchPath` reads TrueType fonts too (.ttf, .ttc, .otf of glyf outlines), so that the words of a
+style of one are measured as AutoCAD 2021 measures them (check F2) where F1b measured those of an SHX font: TEXT, ATTRIB and
+ATTDEF places, aligned and fitted heights and widths and `GeometricExtents`, the `ActualWidth` and `ActualHeight` of an MTEXT
+of one line, multileaders met on the right, attribute definitions flipped and leaders' hooks exploded. A text's height is the
+top of the font's A, no pair of letters is kerned, a TEXT is boxed from the start of its baseline to its last pen, each
+letter as high as it is from the baseline and a space a unit below it, a TEXT at its bottom stands on the font's
+usWinDescent, and %%c is the font's U+2205, else its U+00D8: "ABC" of arial.ttf 4 high centred on (100, 50) stands at
+(94.259, 50). A style that names a typeface is measured where its file is that face, as AutoCAD draws it, and a collection
+by its first face where the style names it. Measured against AutoCAD 2021 on the fonts of Windows read in place: 30 840 of
+31 200 TEXTs, 436 of 445 MTEXTs, 280 of 288 multileaders, 142 of 144 flipped attribute definitions and 20 of 20 leaders of
+check F2, and 14 400 of 14 460 TEXTs, 152 of 153 MTEXTs and 18 of 18 multileaders of F1a's; the rest are %%c of fonts
+Windows links to others (Tahoma, Malgun Gothic, SimSun), which draw it from them, and Calibri's degree sign. Fonts of CFF
+outlines and of symbols, a letter the font has not, `%%k`, a change of width or height within an MTEXT, and a style whose
+typeface, bold or italic is not its file's are not measured; a style named by its typeface alone is not looked up. Nothing
+changes with an empty path.
+
 **FIXED.** A common part of two solids, and a difference, leave out an opening of a body whose material the result does
 not keep, either body of the common part or the one taken away, where it shares no space with the other (check GR1): its
 box further from the other's box than the tolerance, or the opening and the other both closed, their faces further apart

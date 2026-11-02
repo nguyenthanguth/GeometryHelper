@@ -498,17 +498,19 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets the width the MTEXT's words take, as AutoCAD's <c>ActualWidth</c>: where the drawing's
-        /// <see cref="DxfDatabase.FontSearchPath"/> finds the SHX font of its style and its words are one line, as AutoCAD 2021
-        /// measures them (check F1a), from their first ink, or the start of the line where it starts with a space, to the ink of
-        /// their last letter that is no space, the spaces after it left out, a line of spaces alone as wide as they move the pen:
-        /// "ABC" of txt.shx 4 high is 10.667 wide, and "   ABC" 22.667. Elsewhere, group 42 as the file writes it; nought where
-        /// it gives none.
+        /// <see cref="DxfDatabase.FontSearchPath"/> finds the SHX or TrueType font of its style and its words are one line, as
+        /// AutoCAD 2021 measures them (checks F1a and F2), from their first ink, or the start of the line where it starts with a
+        /// space, to the ink of their last letter that is no space, the spaces after it left out, a line of spaces alone as wide
+        /// as they move the pen: "ABC" of txt.shx 4 high is 10.667 wide, and "   ABC" 22.667; of a TrueType font, ink left of
+        /// the line's start not counted, "A" of arial.ttf 4 high 3.735 wide, from 0. Elsewhere, group 42 as the file writes it;
+        /// nought where it gives none.
         /// </summary>
         /// <remarks>
         /// Words of one line are those of no new line, held in one column, shorter than the <see cref="Width"/> where they
         /// wrap, and of plain letters, %%c, %%d and %%p, and the codes of the width and height of the letters, <c>\W0.7;</c>,
-        /// <c>\H8;</c> and <c>\H2x;</c>, which take the letters after them to that width and height, in braces or not; a style
-        /// as wide as high and upright.
+        /// <c>\H8;</c> and <c>\H2x;</c>, which take the letters after them to that width and height, in braces or not, of a
+        /// TrueType font before its first letter alone, as AutoCAD 2021 sets the letters after such a change on from the ink of
+        /// those before it (check F2); a style as wide as high and upright; letters its font has.
         /// </remarks>
         public double ActualWidth => OneLine()?.ActualWidth ?? Number(42, 0.0);
 
@@ -540,7 +542,7 @@ namespace GeometryHelper.Dxf
                 return null;
             }
 
-            DxfShxFont font = fonts.FontOf(style, out _);
+            DxfFont font = fonts.FontOf(style, out _);
             DxfTextLine line = font == null ? null : DxfFonts.MText(font, Written, TextHeight);
             double wrap = Width;
             return line == null || (wrap > 0.0 && !(line.ActualWidth < wrap)) ? null : line;

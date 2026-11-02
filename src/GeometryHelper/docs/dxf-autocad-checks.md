@@ -2099,4 +2099,49 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       (txt "%%u%%oA" centred on -1.4); bold's circles of a radius past 12, the ogonek letters of romans and simplex, the
       quotes of times.shx slanted, isocp's stand-in for a letter it has not, and txt "i" aligned, as F1a left them; words
       mirrored across their plane whose dogleg is then set, which AutoCAD moved (to 117.67 for 110.67 and a dogleg of 15)
-      and the library leaves, their words running against the plane's x.
+      and the library leaves, their words running against the plane's x. TrueType fonts are measured now: see point 103.
+
+## The words measured in TrueType fonts
+
+103. **TrueType fonts read and measured: TEXTs placed and boxed, MTEXTs of one line, multileaders met on the right, attribute
+    definitions flipped, a leader's hook exploded.**
+    - Try (F2, headless, plugin GHF2A, GHF2B and GHF2C, fonts of Windows read in place, none copied): TEXTs of 38 words (spaces
+      before, between and after, letters above and below the baseline, %% codes, a letter the font has not), 15
+      justifications, width factors 1 and 0.7 and slants 0 and 15, after `AdjustAlignment`, and MTEXTs of one line of 36
+      words and codes, in arial.ttf, times.ttf, calibri.ttf, malgun.ttf, symbol.ttf, wingding.ttf, isocpeur.ttf,
+      romans__.ttf, seguisym.ttf and tahoma.ttf; in arial.ttf named Arial bold, Arial italic, Times New Roman and arial, in
+      arialbd.ttf, and in simsun.ttc and msgothic.ttc named by no typeface and by SimSun, NSimSun and MS Gothic;
+      multileaders of words of Arial, Times New Roman, Calibri and isocpeur.ttf met on either side at every attachment and
+      given anew; LEADERs of an MTEXT of Arial above and beside their line, exploded; a drawing of the library's of blocks of
+      a flip about x = 45 holding locked ATTDEFs of Arial, Times New Roman and Calibri of every justification and of spaces
+      before and after, read by DxfIn as the working database. With them, the TrueType rows of F1a: TEXTs and MTEXTs of
+      Arial, Times New Roman, Verdana, Calibri, Courier New, Consolas and Tahoma, and Arial's 18 multileaders.
+    - AutoCAD 2021: a text's height is the top of the font's A, no pair of letters is kerned, and each letter is boxed as
+      its glyf header boxes it, at least a unit wide and high as Windows boxes it (a space, of no outline, a unit below the
+      baseline at the pen), as high as it is from the lower of its bottom and the baseline, and up to the baseline at least:
+      Arial's degree sign, inked from 936 to 1491 units up, is boxed from 0 to 555, and its low line, from -407 to -277,
+      from -407 to 0. A TEXT is boxed, for its place and its `GeometricExtents`, from the start of its baseline or its ink
+      left of it to its last pen or its ink past it, slanted whole by its oblique; at its bottom it stands on the font's
+      `usWinDescent`; `%%u` and `%%o` draw no line in its box. `%%c` is the font's U+2205 where it has one (isocpeur.ttf,
+      seguisym.ttf), else U+2205 of a font Windows links the font to (Tahoma, Malgun Gothic, SimSun), else U+00D8
+      (Arial). A letter the font has not is drawn from another font (Arial "中" 5.514 wide at 4 high, not its stand-in's
+      4.191). An MTEXT of one line leaves ink left of its start out, counts a space between letters a unit below the
+      baseline and those before and after not, and sets letters after a change of height on from the ink of those before
+      it (Arial "A\H2x;BC" 18.819 wide, not 18.810). A multileader is met on the right at that width, lower by the words'
+      depth; a flip mirrors the box of an ATTDEF's words without the spaces at either end ("L1 " and " L1" of Arial as
+      "L1"); a leader's hook runs on to the far end of its words. A style that names a typeface is drawn in that typeface,
+      its file name written anew: arial.ttf named Arial bold in arialbd.ttf, named Times New Roman in times.ttf; a
+      collection named by no typeface is not loaded (simsun.ttc drawn in simplex.shx, FONTALT), and one named by its
+      typeface written as SimSun.ttf, a file that is none. Symbol and Wingdings, read through their subtable of symbols,
+      have letters drawn from other fonts (Symbol "_" of Times New Roman) and widths a unit off.
+    - Now: the library measures so, where `FontSearchPath` finds the font and it is the face AutoCAD draws: of the F2 rounds,
+      30 840 of 31 200 TEXTs it measures, 436 of 445 MTEXTs, 280 of 288 multileaders, 142 of 144 flipped ATTDEFs and 20 of
+      20 exploded LEADERs; of F1a's TrueType rows, 14 400 of 14 460 TEXTs, 152 of 153 MTEXTs and 18 of 18 multileaders. It
+      leaves unmeasured a letter the font has not, `%%k`, a change of width or height within an MTEXT, Symbol and
+      Wingdings, a collection named by no typeface or by its second face, and a style whose typeface, bold or italic is not
+      its file's (arial.ttf named Arial bold, since AutoCAD draws arialbd.ttf).
+    - Still apart: `%%c` of a font Windows links to others that have U+2205 (Tahoma, Malgun Gothic, SimSun: 360 TEXTs and 6
+      MTEXTs), which the library, reading no such link, draws as the font's U+00D8; Calibri's degree sign, whose glyf header
+      reaches 103 units left of the outline AutoCAD draws (3 MTEXTs, 8 multileaders, 2 ATTDEFs); a style of a multileader
+      other than its words', by whose font AutoCAD lands a leader added at first and then moves the words (Arial words on a
+      style of txt.shx). Not tried: CFF outlines, which the library does not read, and .otf files.

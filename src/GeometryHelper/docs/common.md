@@ -1141,8 +1141,9 @@ joined into a LWPOLYLINE in 0.23 s and into a SPLINE in 0.19 s, all on .NET 10.
 A drawing reads no font unless it is told where to look. `DxfDatabase.FontSearchPath` takes folders separated by semicolons,
 searched in their order as AutoCAD searches its support path, and is empty when a drawing is opened or made: empty, nothing is
 read from the disk, nothing is logged, and every entity is laid out as the library lays it out without fonts. Given folders,
-the SHX font of a text style (`FileName`, `txt` read as `txt.shx`) is read once from the first folder that has it, and the
-words of the drawing are measured in it where AutoCAD 2021 needs their width, as F1a measured AutoCAD doing it:
+the SHX or TrueType font of a text style (`FileName`, `txt` read as `txt.shx`, `arial.ttf`) is read once from the first
+folder that has it, and the words of the drawing are measured in it where AutoCAD 2021 needs their width, as checks F1a and
+F2 measured AutoCAD doing it:
 
 ```csharp
 DxfDatabase db = DxfDatabase.Open("plan.dxf");
@@ -1168,11 +1169,36 @@ db.ModelSpace.AppendEntity(text);   // Position (94.667, 50, 0): the ink of "ABC
 - A locked attribute definition is taken into a flip and kept readable, its box mirrored: "L1" 5 high at (20, 60) flipped
   about x = 45 stands at (63.33, 60). A leader whose words sit above its line explodes with its hook running on to their end.
 
+A TrueType font (.ttf, .ttc or .otf of glyf outlines) is measured by the boxes its letters' glyf headers give, as AutoCAD 2021
+measures it (check F2):
+
+- The height of a text is the top of the font's A, not its capital height or its em: Arial's A reaches 1466 units up, so a
+  text 4 high is 4/1466 of a unit to the unit, and Times New Roman's 1387, though its H stops at 1356. No pair of letters is
+  kerned: "AV" is as wide as A's advance and V's.
+- A TEXT is boxed from the start of its baseline, or its ink left of it, to its last pen, or its ink past it: "H" of Arial 4
+  high is centred on 0 to 4.035, its advance, not on its ink from 0.447 to 3.585, and "ABC" centred on (100, 50) stands at
+  (94.259, 50). Each letter is boxed from the lower of its bottom and the baseline, as high as it is, and up to the baseline
+  at least: the degree sign, inked from 2.554 to 4.068, is boxed from 0 to 1.514; a space a unit of the font below the
+  baseline. At its bottom a text stands on the font's `usWinDescent`. `%%c` is the font's diameter sign U+2205, else its
+  U+00D8, and `%%u` and `%%o` draw no line in the box.
+- An MTEXT of one line leaves the ink left of its start out: Arial "A" 4 high is 3.735 wide. A multileader met on the right
+  lands at that width, "ABC" of Arial at (100, 50) from (250, 0) by a dogleg from (121.27, 47.97), its C reaching 25 units
+  below the baseline. A flip mirrors the box of an attribute definition's words without the spaces at either end.
+- A style that names a typeface (`DxfTextStyleTableRecord.Font`) is measured where its file is that typeface, bold and italic
+  as the style says, as AutoCAD draws such a style by its typeface: arial.ttf named Arial bold is not measured, since AutoCAD
+  draws it in arialbd.ttf. A collection (.ttc) is measured by its first face where the style names that face's typeface;
+  AutoCAD loads none of a style that names no typeface.
+
 The results follow the fonts supplied, so they differ between machines and between versions of a font, as AutoCAD's drawings
-do. TrueType fonts, the letters of a big font and fonts of shapes are not measured, nor the lines of `%%u`, `%%o` and `%%k`;
-their entities stay as they are without fonts. A font in none of the folders is said once at Debug in the log, and a file
-that is found but is no font, or cannot be read, once at Warn; nothing throws. No other folder is looked in, not the Fonts
-folder of Windows, and no font is put in for another as AutoCAD's FONTALT puts one.
+do. The letters of a big font and fonts of shapes are not measured, nor the lines of `%%u`, `%%o` and `%%k` of an SHX font
+and of `%%k` of a TrueType one; nor TrueType fonts of CFF outlines or of symbols (Symbol, Wingdings, some of whose letters
+AutoCAD draws from other fonts), a style named by its typeface alone, a letter a TrueType font has not, which Windows may
+draw from another font, and in an MTEXT a change of width or height after its first letter; their entities stay as they are
+without fonts. Windows draws `%%c` of a font that has no U+2205 from the fonts it links that font to, where it links it
+(Tahoma, Segoe UI, Malgun Gothic, SimSun): the library, which reads no such link, draws the font's U+00D8. A font in none of
+the folders is said once at Debug in the log, and a file that is found but is no font, or cannot be read, once at Warn;
+nothing throws. No other folder is looked in, not the Fonts folder of Windows, and no font is put in for another as
+AutoCAD's FONTALT puts one.
 
 ### Text
 

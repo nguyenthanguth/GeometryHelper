@@ -15,8 +15,11 @@ namespace GeometryHelper.Dxf
         /// upright, its four corners slanted by <see cref="Oblique"/>, turned and placed as the text stands at its
         /// <see cref="Position"/>, as AutoCAD 2021 boxes it (check F1a), the position itself not among them: " A" of txt.shx 4
         /// high at the origin from (4, 0, 0) to (6.667, 4, 0), "A" from (0, 0, 0) to (2.667, 4, 0), and slanted 15 degrees to
-        /// (3.738, 4, 0), its top corner moved by 4 times the tangent. A text of no ink is boxed at its position. Elsewhere as
-        /// <see cref="DxfEntity.GeometricExtents"/> gives it, the position alone.
+        /// (3.738, 4, 0), its top corner moved by 4 times the tangent. A text of no ink is boxed at its position. Of a TrueType
+        /// font, the box from the start of the baseline to the last pen, the ink past it counted, each letter boxed from the
+        /// lower of its bottom and the baseline as high as it is (check F2): "H" of arial.ttf 4 high from (0, 0, 0) to
+        /// (4.035, 4, 0), its advance, and the degree sign from (0, 0, 0) to (2.235, 1.514, 0), though inked from 2.554 up.
+        /// Elsewhere as <see cref="DxfEntity.GeometricExtents"/> gives it, the position alone.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown, with no font, as <see cref="DxfEntity.GeometricExtents"/> throws.</exception>
         public override GeoAabb3 GeometricExtents
@@ -40,14 +43,14 @@ namespace GeometryHelper.Dxf
                 double minX = position.X, minY = position.Y, minZ = position.Z;
                 double maxX = minX, maxY = minY, maxZ = minZ;
 
-                if (line.HasInk)
+                if (line.Box(out double left, out double right, out double bottom, out double top))
                 {
                     minX = minY = minZ = double.PositiveInfinity;
                     maxX = maxY = maxZ = double.NegativeInfinity;
 
-                    foreach (double x in new[] { line.InkLeft, line.InkRight })
+                    foreach (double x in new[] { left, right })
                     {
-                        foreach (double y in new[] { line.InkBottom, line.InkTop })
+                        foreach (double y in new[] { bottom, top })
                         {
                             double u = x + (y * slant);
                             GeoPoint3 corner = OcsToWorld(normal, new GeoPoint3(at.X + (u * cos) - (y * sin), at.Y + (u * sin) + (y * cos), at.Z));
@@ -66,12 +69,12 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// The text's words measured in the SHX font of its style at a height and width factor, where its drawing's
+        /// The text's words measured in the SHX or TrueType font of its style at a height and width factor, where its drawing's
         /// <see cref="DxfDatabase.FontSearchPath"/> finds it, a copy in no file measured in the drawing it was copied from; null
         /// where it does not, the text is in no drawing, is written backwards or upside down, or is an attribute of several
         /// lines.
         /// </summary>
-        private DxfTextLine Words(double height, double widthFactor, out DxfShxFont font, out bool bigFont)
+        private DxfTextLine Words(double height, double widthFactor, out DxfFont font, out bool bigFont)
         {
             font = null;
             bigFont = false;
@@ -88,7 +91,7 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Puts the text where its words stand about its second point, as AutoCAD 2021's <c>AdjustAlignment</c> puts it, where the
-        /// drawing's <see cref="DxfDatabase.FontSearchPath"/> finds the SHX font of its style; nothing elsewhere, or for a text
+        /// drawing's <see cref="DxfDatabase.FontSearchPath"/> finds the SHX or TrueType font of its style; nothing elsewhere, or for a text
         /// aligned left on its baseline. Its first point (10) is worked out from its second (11), its height, width factor,
         /// turn and modes: across, nought for the left, the middle of the box of its words for the centre and the middle, and
         /// the box's right for the right; up, the height down for the top, half of it for the middle, the font's depth below the
@@ -104,7 +107,7 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            DxfTextLine words = Words(Height, WidthFactor, out DxfShxFont font, out bool bigFont);
+            DxfTextLine words = Words(Height, WidthFactor, out DxfFont font, out bool bigFont);
 
             if (words == null)
             {
@@ -173,12 +176,18 @@ namespace GeometryHelper.Dxf
         /// right, aligned or fitted on its baseline (72 of 2, 3 and 5) so that its first point is the second mirrored, and its
         /// second the first; one held by the middle of its words (72 of 4) so that its second point is mirrored; any other so
         /// that the box of its ink is mirrored, "L1" of txt.shx 5 high at 20, inked 6.67 to the right of it, mirrored about
-        /// x = 45 standing at 63.33. Null where its words are not measured (<see cref="IsMeasured"/>), or the mirror does not
-        /// reverse its baseline and keep its upright.
+        /// x = 45 standing at 63.33; of a TrueType font, the ink of its words without the spaces at either end, as if they were
+        /// not there (check F2), "L1 " and " L1" of Arial both as "L1". Null where its words are not measured
+        /// (<see cref="IsMeasured"/>), or the mirror does not reverse its baseline and keep its upright.
         /// </summary>
         internal GeoVector3? Readable(GeoTransform3 mirror)
         {
-            DxfTextLine words = Words(Height, WidthFactor, out _, out _);
+            DxfTextLine words = Words(Height, WidthFactor, out DxfFont font, out bool bigFont);
+
+            if (words != null && font is DxfTrueTypeFont)
+            {
+                words = DxfFonts.Text(font, bigFont, TextString.Trim(' '), Height, WidthFactor);
+            }
 
             if (words == null || !words.HasInk)
             {
@@ -231,7 +240,7 @@ namespace GeometryHelper.Dxf
         /// words of no box, and for one at the bottom with a big font, whose depth is not read. The words measured already at the
         /// height and width factor are given where they are.
         /// </summary>
-        private static double[] Placed(DxfShxFont font, bool bigFont, string text, int horizontal, int vertical, double height, double widthFactor, double degrees, double x, double y, DxfTextLine measured = null)
+        private static double[] Placed(DxfFont font, bool bigFont, string text, int horizontal, int vertical, double height, double widthFactor, double degrees, double x, double y, DxfTextLine measured = null)
         {
             if (horizontal < 0 || horizontal > 4 || horizontal == 3 || vertical < 0 || vertical > 3 || (horizontal == 4 && vertical != 0) || (horizontal == 0 && vertical == 0))
             {
@@ -258,7 +267,7 @@ namespace GeometryHelper.Dxf
         /// its words gives the one it has, as AutoCAD 2021 gives them (check F1a): "ABC" of txt.shx 4 high aligned on two points
         /// 30 apart is 11.25 high. Left as it is where its words have no box, or reach no way right, or its points are one.
         /// </summary>
-        private void Fit(DxfShxFont font, bool bigFont, int horizontal, double height, double widthFactor, GeoPoint3 first, GeoPoint3 second)
+        private void Fit(DxfFont font, bool bigFont, int horizontal, double height, double widthFactor, GeoPoint3 first, GeoPoint3 second)
         {
             DxfTextLine line = DxfFonts.Text(font, bigFont, TextString, height, widthFactor);
             double apart = Math.Sqrt(((second.X - first.X) * (second.X - first.X)) + ((second.Y - first.Y) * (second.Y - first.Y)));

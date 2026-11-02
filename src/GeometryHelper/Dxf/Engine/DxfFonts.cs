@@ -7,23 +7,25 @@ using System.Text;
 namespace GeometryHelper.Dxf
 {
     /// <summary>
-    /// The SHX fonts of a drawing, found in the folders of its <see cref="DxfDatabase.FontSearchPath"/> in their order and
-    /// read once each, by the full path of the file; and the lines of words measured in them as AutoCAD 2021 measures them
-    /// (check F1a): "ABC" of txt.shx 4 high is inked from 0 to 10.667, the advances of A and B, 6 each, and the ink of C,
-    /// 4, times 4/6.
+    /// The SHX and TrueType fonts of a drawing, found in the folders of its <see cref="DxfDatabase.FontSearchPath"/> in their
+    /// order and read once each, by the full path of the file; and the lines of words measured in them as AutoCAD 2021
+    /// measures them (checks F1a and F2): "ABC" of txt.shx 4 high is inked from 0 to 10.667, the advances of A and B, 6 each,
+    /// and the ink of C, 4, times 4/6; of arial.ttf from -0.008 to 11.269, its units 4/1466 of the drawing's, 1466 the top of
+    /// its A.
     /// </summary>
     /// <remarks>
-    /// A style is measured where its font is an SHX font of letters found in those folders, <c>txt</c> read as
-    /// <c>txt.shx</c>; not where it is a TrueType font, a font of shapes, one written down the page, or one not found, each
-    /// of which the drawing's entities lay out as they did with no fonts, the log saying so once a file at Debug; a file
-    /// found but not read as a font is said once at Warn. A style of a big font is measured where every letter is its main
-    /// font's, which AutoCAD draws first.
+    /// A style is measured where its font is an SHX font of letters (<c>txt</c> read as <c>txt.shx</c>), or a TrueType font
+    /// of a .ttf, .ttc or .otf file of glyf outlines that is the face AutoCAD draws the style in, found in those folders; not
+    /// where it is a font of shapes, one written down the page, a TrueType font of CFF outlines or of symbols, one named by
+    /// its typeface alone, or one not found, each of which the drawing's entities lay out as they did with no fonts, the log
+    /// saying so once a file at Debug; a file found but not read as a font is said once at Warn. A style of a big font is
+    /// measured where every letter is its main font's, which AutoCAD draws first.
     /// </remarks>
     internal sealed class DxfFonts
     {
         private readonly string[] _folders;
         private readonly Dictionary<string, string> _paths = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, DxfShxFont> _fonts = new Dictionary<string, DxfShxFont>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, DxfFont> _fonts = new Dictionary<string, DxfFont>(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> _said = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private readonly object _lock = new object();
 
@@ -44,10 +46,13 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// The SHX font of a style, and whether the style has a big font beside it; null where it is not measured: a font of
-        /// shapes, one written down the page, a TrueType font, or one not found or not read.
+        /// The font of a style, and whether the style has a big font beside it; null where it is not measured: a font of
+        /// shapes, one written down the page, one not found or not read, and a TrueType font that is not the face AutoCAD 2021
+        /// draws the style in (check F2): one of another typeface, bold or italic than the style's <see cref="DxfFontDescriptor"/>
+        /// (arial.ttf for Arial bold, which AutoCAD draws in arialbd.ttf), or a collection of a style of no typeface, which
+        /// AutoCAD does not load.
         /// </summary>
-        internal DxfShxFont FontOf(DxfTextStyleTableRecord style, out bool bigFont)
+        internal DxfFont FontOf(DxfTextStyleTableRecord style, out bool bigFont)
         {
             bigFont = false;
 
@@ -57,11 +62,37 @@ namespace GeometryHelper.Dxf
             }
 
             bigFont = style.BigFontFileName.Trim().Length > 0;
-            return Find(style.FileName);
+            DxfFont font = Find(style.FileName);
+
+            if (!(font is DxfTrueTypeFont trueType))
+            {
+                return font;
+            }
+
+            DxfFontDescriptor face = style.Font;
+
+            if (!trueType.IsSymbols && (face.TypeFace.Length == 0 ? !trueType.IsCollection : trueType.IsFace(face.TypeFace, face.Bold, face.Italic)))
+            {
+                return trueType;
+            }
+
+            string file = style.FileName.Trim();
+            string named = face.TypeFace + (face.Bold ? " bold" : string.Empty) + (face.Italic ? " italic" : string.Empty);
+
+            lock (_lock)
+            {
+                Say(file + "|" + named, trueType.IsSymbols
+                    ? "DxfDatabase: the font " + file + " is a font of symbols, some of whose letters AutoCAD 2021 draws from other fonts; its texts are laid out as they are without fonts."
+                    : face.TypeFace.Length == 0
+                    ? "DxfDatabase: a style names the collection " + file + " but no typeface, which AutoCAD does not load; its texts are laid out as they are without fonts."
+                    : "DxfDatabase: a style names the typeface " + named + ", which the font " + file + " (" + trueType.TypeFace + ") is not, and which AutoCAD draws it in; its texts are laid out as they are without fonts.", false);
+            }
+
+            return null;
         }
 
-        /// <summary>The SHX font of a file's name, <c>.shx</c> added where it has no extension, from the first folder that has it; null where none has it, it is no SHX file, or it is no font.</summary>
-        internal DxfShxFont Find(string fileName)
+        /// <summary>The font of a file's name, <c>.shx</c> added where it has no extension, from the first folder that has it; null where none has it, it is no SHX or TrueType file, or it is no font.</summary>
+        internal DxfFont Find(string fileName)
         {
             string name = (fileName ?? string.Empty).Trim();
 
@@ -78,7 +109,7 @@ namespace GeometryHelper.Dxf
                     return null;
                 }
 
-                if (!_fonts.TryGetValue(path, out DxfShxFont font))
+                if (!_fonts.TryGetValue(path, out DxfFont font))
                 {
                     font = Load(path);
                     _fonts.Add(path, font);
@@ -88,7 +119,7 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        /// <summary>The full path of a font's file in the first folder that has it; null, said once at Debug, where it is no SHX file or none has it.</summary>
+        /// <summary>The full path of a font's file in the first folder that has it; null, said once at Debug, where it is no SHX or TrueType file (.shx, .ttf, .ttc, .otf) or none has it.</summary>
         private string Locate(string name)
         {
             string file;
@@ -107,9 +138,9 @@ namespace GeometryHelper.Dxf
                 file = string.Empty;
             }
 
-            if (file.Length == 0 || !string.Equals(Path.GetExtension(file), ".shx", StringComparison.OrdinalIgnoreCase))
+            if (file.Length == 0 || !(IsShx(file) || IsTrueType(file)))
             {
-                Say(name, "DxfDatabase: the font " + (name.Length == 0 ? "of no name" : name) + " is not an SHX font, which is all the library measures; its texts are laid out as they are without fonts.", false);
+                Say(name, "DxfDatabase: the font " + (name.Length == 0 ? "of no name" : name) + " is not of an SHX or TrueType file (.shx, .ttf, .ttc, .otf), which are all the library measures; its texts are laid out as they are without fonts.", false);
                 return null;
             }
 
@@ -134,15 +165,28 @@ namespace GeometryHelper.Dxf
             return null;
         }
 
-        /// <summary>The font of a file, read; null, said once at Warn, where it cannot be read or is no SHX font of letters.</summary>
-        private DxfShxFont Load(string path)
+        /// <summary>
+        /// The font of a file, read: an SHX font of a .shx file, a TrueType font of any other; null, said once at Warn, where it
+        /// cannot be read or is no SHX font of letters or TrueType font, and said once at Debug where it is a TrueType font of
+        /// CFF outlines.
+        /// </summary>
+        private DxfFont Load(string path)
         {
-            DxfShxFont font = null;
-            string why = "is no SHX font of letters of shapes 1.0 or 1.1 or of a unifont, or is cut short";
+            DxfFont font = null;
+            bool shx = IsShx(path);
+            string why = shx ? "is no SHX font of letters of shapes 1.0 or 1.1 or of a unifont, or is cut short" : "is no TrueType font of glyf outlines and a letter A, or is cut short";
 
             try
             {
-                font = DxfShxFont.Read(File.ReadAllBytes(path));
+                byte[] bytes = File.ReadAllBytes(path);
+
+                if (!shx && DxfTrueTypeFont.IsCff(bytes))
+                {
+                    Say(path, "DxfDatabase: the font " + path + " is of CFF outlines, whose ink the library does not read; its texts are laid out as they are without fonts.", false);
+                    return null;
+                }
+
+                font = shx ? (DxfFont)DxfShxFont.Read(bytes) : DxfTrueTypeFont.Read(bytes);
             }
             catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is System.Security.SecurityException || e is NotSupportedException || e is OutOfMemoryException)
             {
@@ -155,6 +199,14 @@ namespace GeometryHelper.Dxf
             }
 
             return font;
+        }
+
+        private static bool IsShx(string file) => string.Equals(Path.GetExtension(file), ".shx", StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsTrueType(string file)
+        {
+            string extension = Path.GetExtension(file);
+            return string.Equals(extension, ".ttf", StringComparison.OrdinalIgnoreCase) || string.Equals(extension, ".ttc", StringComparison.OrdinalIgnoreCase) || string.Equals(extension, ".otf", StringComparison.OrdinalIgnoreCase);
         }
 
         private void Say(string key, string message, bool warn)
@@ -179,11 +231,13 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// The letters of the words of a TEXT, ATTRIB or ATTDEF measured in a font, as AutoCAD 2021 lays them out: %%c, %%d and
         /// %%p the diameter, degree and plus-minus signs (U+2205, U+00B0 and U+00B1 of a unifont, 129, 127 and 128 of a font of
-        /// shapes), %%% a per cent sign, %%nnn the letter of that number; a letter the font has not drawn as its question mark.
-        /// Null where a big font beside it would draw a letter, and for words of %%u, %%o or %%k, whose lines AutoCAD 2021
-        /// boxes them by (txt "%%u%%oA" 4 high centred on -1.4, not on the -1.333 of its letter), which are not measured.
+        /// shapes, and of a TrueType font U+00B0, U+00B1 and its U+2205, else its U+00D8), %%% a per cent sign, %%nnn the letter
+        /// of that number; a letter the font has not drawn as its question mark. Null where a big font beside it would draw a
+        /// letter, or a TrueType font has not one, and for words of %%u, %%o or %%k, whose lines AutoCAD 2021 boxes them by (txt
+        /// "%%u%%oA" 4 high centred on -1.4, not on the -1.333 of its letter), which are not measured; but those of %%u and
+        /// %%o of a TrueType font, which AutoCAD does not box them by (check F1a, Arial "%%u%%oA" centred as "A").
         /// </summary>
-        internal static DxfTextLine Text(DxfShxFont font, bool bigFont, string words, double height, double widthFactor)
+        internal static DxfTextLine Text(DxfFont font, bool bigFont, string words, double height, double widthFactor)
         {
             var line = new DxfTextLine(font);
             int i = 0;
@@ -195,6 +249,12 @@ namespace GeometryHelper.Dxf
                 if (words[i] == '%' && i + 2 < words.Length && words[i + 1] == '%')
                 {
                     char code = char.ToLowerInvariant(words[i + 2]);
+
+                    if ((code == 'u' || code == 'o') && font is DxfTrueTypeFont)
+                    {
+                        i += 3;
+                        continue;
+                    }
 
                     if (code == 'u' || code == 'o' || code == 'k')
                     {
@@ -237,11 +297,12 @@ namespace GeometryHelper.Dxf
         /// from where each stands, braces keeping a change within them, and <c>\\</c>, <c>\{</c> and <c>\}</c> the letter. Null
         /// for any other code, a new line among them, and a letter the font has not, which AutoCAD 2021 draws from another
         /// font in an MTEXT (txt "中" 4.335 wide, not the 2 of its question mark); null for a font of shapes, whose MTEXT
-        /// AutoCAD 2021 measures otherwise than its TEXT (times.shx "A" 3.667 wide, its ink 3.933).
+        /// AutoCAD 2021 measures otherwise than its TEXT (times.shx "A" 3.667 wide, its ink 3.933); and of a TrueType font, null
+        /// for a change of width or height, or a brace, after the first letter (check F2).
         /// </summary>
-        internal static DxfTextLine MText(DxfShxFont font, string contents, double height)
+        internal static DxfTextLine MText(DxfFont font, string contents, double height)
         {
-            if (!font.IsUnifont)
+            if (!ByUnicode(font))
             {
                 return null;
             }
@@ -257,6 +318,13 @@ namespace GeometryHelper.Dxf
             {
                 char c = words[i];
                 int number;
+
+                // A change of the letters' width or height after a letter of TrueType is not measured: AutoCAD 2021 sets the
+                // letters after it on from the ink of those before (check F2), Arial "A\H2x;BC" 4 high 18.819 wide, not 18.810.
+                if ((c == '{' || c == '}' || (c == '\\' && i + 1 < words.Length && (words[i + 1] == 'W' || words[i + 1] == 'H'))) && line.Count > 0 && font is DxfTrueTypeFont)
+                {
+                    return null;
+                }
 
                 if (c == '{')
                 {
@@ -340,31 +408,36 @@ namespace GeometryHelper.Dxf
 
         private static bool IsDigit(char c) => c >= '0' && c <= '9';
 
-        /// <summary>The number of a sign of %%c, %%d or %%p in a font: U+2205, U+00B0 and U+00B1 of a unifont, 129, 127 and 128 of a font of shapes.</summary>
-        private static int Sign(DxfShxFont font, char code)
+        /// <summary>The number of a sign of %%c, %%d or %%p in a font: U+2205, U+00B0 and U+00B1 of a unifont, 129, 127 and 128 of a font of shapes, and of a TrueType font U+2205 where it has one and U+00D8 where it has not, as AutoCAD 2021 draws them (checks F1a and F2: Arial's U+00D8, isocpeur.ttf's U+2205).</summary>
+        private static int Sign(DxfFont font, char code)
         {
+            bool unicode = ByUnicode(font);
+
             switch (code)
             {
-                case 'c': return font.IsUnifont ? 0x2205 : 129;
-                case 'd': return font.IsUnifont ? 0xB0 : 127;
-                default: return font.IsUnifont ? 0xB1 : 128;
+                case 'c': return font is DxfTrueTypeFont && font.GlyphOf(0x2205) == null ? 0xD8 : unicode ? 0x2205 : 129;
+                case 'd': return unicode ? 0xB0 : 127;
+                default: return unicode ? 0xB1 : 128;
             }
         }
 
+        /// <summary>Whether a font's letters are numbered by Unicode: a TrueType font's and a unifont's, not those of a font of shapes, by their bytes.</summary>
+        private static bool ByUnicode(DxfFont font) => !(font is DxfShxFont shx) || shx.IsUnifont;
+
         /// <summary>The number of the letter at a place of words, read on past it: its Unicode number in a unifont, the two halves of a letter beyond U+FFFF taken together; its byte in a font of shapes, a question mark beyond a byte.</summary>
-        private static int NumberOf(DxfShxFont font, string words, ref int i)
+        private static int NumberOf(DxfFont font, string words, ref int i)
         {
             if (char.IsHighSurrogate(words[i]) && i + 1 < words.Length && char.IsLowSurrogate(words[i + 1]))
             {
                 int pair = char.ConvertToUtf32(words[i], words[i + 1]);
                 i += 2;
-                return font.IsUnifont ? pair : '?';
+                return ByUnicode(font) ? pair : '?';
             }
 
             return NumberOf(font, words[i++]);
         }
 
-        private static int NumberOf(DxfShxFont font, char c) => font.IsUnifont || c < 256 ? c : '?';
+        private static int NumberOf(DxfFont font, char c) => ByUnicode(font) || c < 256 ? c : '?';
 
         #endregion
     }

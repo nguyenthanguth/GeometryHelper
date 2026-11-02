@@ -36,7 +36,7 @@ namespace GeometryHelper.Dxf
     /// an attachment, the words given anew, a leader's last vertex), the library moves them as AutoCAD does where that needs no
     /// font: words met on their left, by AutoCAD's rules of the lines of words, and a move of words met on their right that
     /// keeps them as wide; what AutoCAD lands as far right as its font makes the words wide is left as it was, but where the
-    /// drawing's <see cref="DxfDatabase.FontSearchPath"/> measures the words (one line in an SHX font), which are then met on
+    /// drawing's <see cref="DxfDatabase.FontSearchPath"/> measures the words (one line in an SHX or TrueType font), which are then met on
     /// their right, lower where their ink reaches below their baseline, and kept readable when mirrored, as AutoCAD 2021 does
     /// it (check F1b).
     /// </para>
@@ -383,7 +383,7 @@ namespace GeometryHelper.Dxf
         /// met by leaders on their left only are moved to keep those landings, as AutoCAD 2021 moves them: up by as much more as
         /// the left is met below their top, words "ABC" at (100, 50, 0) met at the middle of their top line moving to (100, 53, 0)
         /// for a height of 10 from 4. Words met on their right are left where they are, which AutoCAD lands by their font's
-        /// width; where the drawing's <see cref="DxfDatabase.FontSearchPath"/> measures them (one line in an SHX font), met on
+        /// width; where the drawing's <see cref="DxfDatabase.FontSearchPath"/> measures them (one line in an SHX or TrueType font), met on
         /// the right alone they move to keep that landing, "ABC" of txt.shx to (84, 53, 0) for a height of 10, the base point of
         /// the content to (82, 48, 0), and met on both sides they move as on the left, the leaders on the right landed anew
         /// (check F1b).</value>
@@ -1784,7 +1784,7 @@ namespace GeometryHelper.Dxf
         /// to (90, 55, 0), and from (250, 0, 0) by one from (128, 55, 0) to (120, 55, 0). Elsewhere, the line goes to the first
         /// leader, one made at the base point of the content where there is none: on the right of the words, which AutoCAD lands
         /// as far right as its font makes them wide; for words turned, held otherwise or met at their top or bottom. Where the
-        /// drawing's <see cref="DxfDatabase.FontSearchPath"/> measures the words (one line in an SHX font), a point at their middle
+        /// drawing's <see cref="DxfDatabase.FontSearchPath"/> measures the words (one line in an SHX or TrueType font), a point at their middle
         /// or right of it is met on their right, as AutoCAD 2021 lands it (check F1b): the dogleg against x, ending the gap past
         /// their ink, "ABC" of txt.shx 4 high at (100, 50, 0), 10.67 wide, met from (250, 0, 0) by a dogleg from (120.67, 48, 0)
         /// to (112.67, 48, 0), and from (108, 0, 0) too, while (103, 0, 0) is met on the left; words whose ink reaches below their

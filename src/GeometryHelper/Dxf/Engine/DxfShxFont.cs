@@ -23,7 +23,7 @@ namespace GeometryHelper.Dxf
     /// one under half a turn as its chord and the chord moved by its height, half a turn as that half circle's box, and one
     /// over half a turn as its whole circle's box. A file of another form, or one cut short, is no font.
     /// </remarks>
-    internal sealed class DxfShxFont
+    internal sealed class DxfShxFont : DxfFont
     {
         // The directions of a move of a byte of 0x10 and over, by its low half, as AutoCAD's 16 directions run.
         private static readonly double[] StepX = { 1, 1, 1, 0.5, 0, -0.5, -1, -1, -1, -1, -1, -0.5, 0, 0.5, 1, 1 };
@@ -50,10 +50,10 @@ namespace GeometryHelper.Dxf
         internal bool IsUnifont { get; }
 
         /// <summary>How far the font's capitals reach above the baseline, in its units: 6 for txt, 21 for romans.</summary>
-        internal double Above { get; }
+        internal override double Above { get; }
 
         /// <summary>How far the font's letters reach below the baseline, in its units: 2 for txt, 7 for romans.</summary>
-        internal double Below { get; }
+        internal override double Below { get; }
 
         /// <summary>
         /// Reads a font from the bytes of its file; null where they are no font of letters of shapes 1.0 or 1.1 or of a
@@ -198,7 +198,7 @@ namespace GeometryHelper.Dxf
         internal bool Has(int number) => number != 0 && _codes.ContainsKey(number);
 
         /// <summary>The letter of a number, drawn once; null where the font has none.</summary>
-        internal Glyph GlyphOf(int number)
+        internal override Glyph GlyphOf(int number)
         {
             if (!Has(number))
             {
@@ -479,29 +479,6 @@ namespace GeometryHelper.Dxf
 
         /// <summary>The octants of an arc, a byte of a sign and a size: its high bit clockwise, its low seven the first octant (high half) and their count.</summary>
         private static int Octant(byte value) => (value & 0x80) != 0 ? -(value & 0x7F) : value;
-
-        /// <summary>A letter as it is drawn: the pen's last x, and the points of its ink, in the font's units.</summary>
-        internal sealed class Glyph
-        {
-            internal Glyph(double advance, double[] xs, double[] ys)
-            {
-                Advance = advance;
-                Xs = xs;
-                Ys = ys;
-            }
-
-            /// <summary>How far the letter moves the pen along x: its last x.</summary>
-            internal double Advance { get; }
-
-            /// <summary>The x of each point of the letter's ink.</summary>
-            internal double[] Xs { get; }
-
-            /// <summary>The y of each point of the letter's ink.</summary>
-            internal double[] Ys { get; }
-
-            /// <summary>Whether the letter leaves any ink.</summary>
-            internal bool HasInk => Xs.Length > 0;
-        }
 
         /// <summary>The pen drawing a letter: where it stands, whether it is down, its scale, its pushed places and the points it has inked.</summary>
         private sealed class Pen
