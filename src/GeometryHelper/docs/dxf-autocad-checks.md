@@ -1465,3 +1465,37 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       10 INSERTs it set again as it set its own, 0 apart, AUDIT finding the 2 errors of the sample and no more.
     - Now: the library reads the alignment point so; its position stays as the file has it, AutoCAD's needing the font.
       Parking is copied with its network as D27b copies it, and nothing had to change.
+
+## Multileader blocks placed anew
+
+87. **A block scaled, turned, moved and transformed, words of a text style, and leaders snapped back to their landing.**
+    - Try (D31d, headless, plugin GHD31D rounds C and D, 56 multileaders on the Standard of point 80): `BlockScale` and
+      `BlockRotation` set on the box, the circle with a line across it and the box of origin (5, 5), met from the left, the
+      right, both sides and none, at its extents and at its base, after `Scale` 2, after `BlockPosition`, before the leaders;
+      `BlockPosition` set with leaders on either side, both and none; `TransformBy` a scaling, a quarter turn, a move and a
+      mirror, then `BlockScale`; words of a text style TS2 given to a multileader of Standard's words and of S4's (TS2), given
+      again as read; two leaders on the left, the second moved off its landing, then a dogleg length given to either, the same
+      length, `DoglegLength`, `LandingGap`, `TextHeight` and `Scale`, on words and on a block; two leaders on a side landed,
+      then `Scale`. Then round I: 64 of the library's multileaders made and edited the same way (the leaders of several on
+      AutoCAD's own files), read by DXFIN; and a block turned as drawn (46) alone, read by `BlockRotation`.
+    - AutoCAD 2021: `BlockScale` and `BlockRotation` move the block so that a leader from the left meets it at the base point
+      of the content (10), whatever leaders it has, and land each leader on a side anew: the box at (100, 50), its base point
+      (90, 55), to (110, 45) scaled by 2, to (105.49, 48.17) turned by 30 degrees; met on both sides at a scale of 2, when the
+      base point stayed (90, 55) and the box (100, 50), to (150, 25) for a `BlockScale` of 3. The matrix (47) is written as the
+      block's transform there. `BlockPosition` moves the base point and every leader's dogleg by as much as the block, the
+      matrix left. A block given and placed has its base point where a leader from the left meets it. `TransformBy` leaves the
+      multileader's own 10 and 43 and writes the matrix as the block's transform; `BlockScale` and `BlockRotation` read 10 and
+      43 (a block drawn turned 15 degrees, 43 of nought, reads nought). A mirror turns the block's normal over (14 of
+      (0, 0, -1)), its scales kept (16 of 1) and its turn read in the new plane. Words given with a text style make it the
+      multileader's (343 and the words' 340) and set bit 11 where it differs, words given as read setting nothing; a style
+      set later keeps it. Every leader on a side is landed anew at the content when it is laid out again: a dogleg length
+      given to any leader, the same or another, `DoglegLength`, `LandingGap`, `TextHeight`, `Scale`, `BlockScale`; with
+      several leaders on the left of words, `Scale` moves the words by the gap (and up by the height), not by the doglegs, the
+      base point kept; a block met by several leaders on a side stays under `Scale`, as D31c guessed.
+    - Now: all of it; AutoCAD read the 64 multileaders of round I as it made its own, their extents too. The library lands
+      a leader anew on the left of words held at their top left and on either side of a block; one on the right of words is
+      left as it is, AutoCAD landing it by the font's width.
+    - Still apart: `AddFirstVertex` on a leader line of no vertex, which AutoCAD takes as the leader's landing and the
+      library puts before it (the library's own multileaders of two leaders made as GHD31D made AutoCAD's do not match it);
+      `SetLastVertex` on a leader on the right of a block, which AutoCAD lands at the block's right side and the library moves
+      by as much as the landing; words given to a multileader in no drawing, which take its text style when it is added.

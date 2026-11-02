@@ -6,6 +6,48 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** A `DxfMLeader`'s block keeps its landings as AutoCAD 2021 keeps them when it is scaled, turned or moved (check
+D31d, 56 multileaders AutoCAD made; 64 the library made or edited, read by AutoCAD as it made its own, extents and all).
+`BlockScale` and `BlockRotation` set move the block so that a leader from the left meets it at the base point of the content
+(10 of the context data), with leaders or none, and land each leader on a side anew: the box from (-10, -5) to (20, 15) at
+(100, 50), scaled by 2, stands at (110, 45), its leader on the right from (158, 55) for (128, 55); turned by 30 degrees, at
+(105.49, 48.17). The library left the block where it was. `BlockPosition` set moves the base point and every leader's
+dogleg with the block, a dogleg from (82, 55) to (112, 65) for the box moved to (130, 60), as `TextLocation` moves them for
+words. `BlockContent` given to a multileader of no block puts the base point where a leader from the left meets the block,
+as AutoCAD keeps it, where the library left it at the block's place. A block's scale or turn set after it is placed and
+before its leaders moves it too, as AutoCAD moved it: a caller that set them there and wanted the block where it was sets
+them before `BlockContent`.
+
+**CHANGED.** `DxfMLeader.TransformBy` leaves the multileader's own scale (10) and turn (43) of the block as they are, and
+writes the block's matrix (47) as its transform where it then stands, as AutoCAD 2021 does (check D31d): a block scaled by 2
+reads a `BlockScale` of 1, where the library read 2, and turned a quarter reads a `BlockRotation` of nought. `BlockRotation`
+reads the multileader's own turn (43) before the turn the block is drawn with (46), as AutoCAD reads it: ezdxf's
+multileader BA, drawn turned 15 degrees with 43 of nought, reads nought, where the library read 15 degrees. The block is
+still drawn and exploded as the context data has it.
+
+**FIXED.** A `DxfMLeader` of a block mirrored by `TransformBy` draws the block mirrored, its normal turned over and its scales
+kept, as AutoCAD 2021 writes it (check D31d, k-transform-mirror): the box at (100, 50) mirrored across the y axis spans
+(-120, 45) to (-90, 65). The library drew it turned half round, from (-120, 35) to (-90, 55), and a `BlockScale` set after it
+undid the mirror.
+
+**CHANGED.** Words given to a `DxfMLeader` in a drawing by `MText` give it their text style (343, and the words' 340), with
+the bit of the overrides of the text style (11) where it was not the multileader's already, as AutoCAD 2021 takes it (check
+D31d): words of TS2 make a multileader of Standard's words of TS2; words that name no text style, read as Standard, make a
+multileader of a style of TS2 of Standard. The words read by `MText` carry their text style, so that words given back as
+read change nothing. The library kept the multileader's.
+
+**FIXED.** A `DxfMLeader`'s leader moved off its landing is landed anew when the content is laid out again, as AutoCAD 2021
+lands it (check D31d): of two leaders on the left of "ABC" at (160, 40), the second moved off to (40, 70), a dogleg length
+given to either, the same or another, `DoglegLength`, `LandingGap`, `TextHeight` or `Scale`, lands it from (150, 38) again,
+on a block too (`BlockScale` and the doglegs); words met by several leaders on their left move under `Scale` by the gap
+alone, (162, 42) at a scale of 2, their leaders landed anew from (142, 38), where the library moved them by the doglegs as
+well, to (170, 42). A block met by several leaders on a side stays under `Scale`, as D31c guessed and AutoCAD confirmed.
+
+Existing tests changed (5): `DxfMLeaderTests` (3: ezdxf's BA reads a `BlockRotation` of nought, a multileader transformed
+keeps its own block scale and turn, the matrix of a block moved is its transform), and the turned block of
+`DxfMLeaderD31bTests` and `DxfMLeaderD31cTests` given its scale and turn before its block, as AutoCAD's cases were. 18 new
+tests of 34 cases, 32 red at base (`DxfMLeaderD31dTests`).
+
 ## 13.3.0 (2026-11-02)
 
 A minor release: 48 public members are added, all in `GeometryHelper.Dxf`, and none is removed or renamed. Of its 78

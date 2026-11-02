@@ -597,8 +597,15 @@ namespace GeometryHelper.UnitTest.Dxf
         public void TheScaleOfABlockTurned_LandsItAtTheDoglegOnItsTurnedSide_AsAutoCadDoes()
         {
             // AutoCAD 2021 (k5-BOX-turned-scale2-left): BOX scaled by 2 and turned by 30 degrees, then Scale 2, was drawn 4 at
-            // (138.98, 36.34), its dogleg kept from (61.02, 63.66).
-            DxfMLeader mleader = Of(Drawing(), "BOX", m => { m.BlockScale = new GeoVector3(2, 2, 2); m.BlockRotation = Math.PI / 6; });
+            // (138.98, 36.34), its dogleg kept from (61.02, 63.66). The scale and turn set before the block, as GHD31C set them:
+            // set after it is placed, they move it (D31d, k-placed-blockscale2-left).
+            DxfDatabase db = Drawing();
+            var mleader = new DxfMLeader();
+            db.ModelSpace.AppendEntity(mleader);
+            mleader.BlockScale = new GeoVector3(2, 2, 2);
+            mleader.BlockRotation = Math.PI / 6;
+            mleader.BlockContent = Block(db, "BOX");
+            mleader.BlockPosition = P(100, 50);
             mleader.AddLeaderLine(P(0, 0));
             mleader.Scale = 2;
 

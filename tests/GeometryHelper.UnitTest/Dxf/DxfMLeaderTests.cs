@@ -84,7 +84,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal("GKTAG", block.BlockContent.Name);
                 Assert.Equal(Bits(new GeoPoint3(900, 0, 0)), Bits(block.BlockPosition));
                 Assert.Equal(Bits(new GeoVector3(2, 2, 2)), Bits(block.BlockScale));
-                Assert.Equal(Bits(0.2617993877991494), Bits(block.BlockRotation));
+                // Drawn turned by 15 degrees (46), its own turn nought (43), which AutoCAD 2021's BlockRotation reads (D31d,
+                // z-rot46only).
+                Assert.Equal(Bits(0.0), Bits(block.BlockRotation));
+                Assert.Equal(Bits(0.2617993877991494), Bits(block.Explode().OfType<DxfBlockReference>().Single().Rotation));
                 Assert.Equal(1, block.BlockColor.ColorIndex);
                 Assert.Equal(DxfBlockConnectionType.ConnectExtents, block.BlockConnectionType);
                 var definition = (DxfAttributeDefinition)db.BlockTable["GKTAG"].Single(e => e is DxfAttributeDefinition);
@@ -404,7 +407,9 @@ namespace GeometryHelper.UnitTest.Dxf
             // Turned 30 degrees, scaled 2 and moved by (5, -7, 3), as ezdxf's transform() moves it (cmptransform.py: every group
             // the same), but its scale and its own sizes of the arrows and doglegs, which AutoCAD 2021's TransformBy leaves as they
             // are (D31, g5 and h1): scale 1, arrows 4 (42), drawn 8, read 8 as AutoCAD reads them, a line's 4 (D31c,
-            // s2-arrow-read-transform); scaled unlike along its axes, refused, as ezdxf refuses it.
+            // s2-arrow-read-transform); the block's own scale (10) and turn (43) left too, read 2 and nought, the block drawn 4
+            // and turned 45 degrees (D31d, s2-k-transform2, k-transform-rot90); scaled unlike along its axes, refused, as ezdxf
+            // refuses it.
             double c = Math.Sqrt(3.0);
             var transform = new GeoTransform3(new double[,] { { c, -1, 0, 5 }, { 1, c, 0, -7 }, { 0, 0, 2, 3 }, { 0, 0, 0, 1 } });
 
@@ -429,8 +434,11 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 DxfMLeader block = ByHandle<DxfMLeader>(back, "BA");
                 Assert.True(block.BlockPosition.IsEqualTo(transform.Transform(new GeoPoint3(900, 0, 0)), Tol));
-                Assert.True(block.BlockScale.IsEqualTo(new GeoVector3(4, 4, 4), Tol));
-                Assert.Equal(0.2617993877991494 + Math.PI / 6, block.BlockRotation, 12);
+                Assert.True(block.BlockScale.IsEqualTo(new GeoVector3(2, 2, 2), Tol));
+                Assert.Equal(0.0, block.BlockRotation, 12);
+                DxfBlockReference drawn = block.Explode().OfType<DxfBlockReference>().Single();
+                Assert.True(drawn.ScaleFactors.IsEqualTo(new GeoVector3(4, 4, 4), Tol));
+                Assert.Equal(0.2617993877991494 + Math.PI / 6, drawn.Rotation, 12);
             }
 
             DxfMLeader refused = ByHandle<DxfMLeader>(DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018), "B4");
@@ -493,7 +501,8 @@ namespace GeometryHelper.UnitTest.Dxf
         public void TheMatrixOfTheBlock_MovesWithTheBlock_PlacedOrMoved()
         {
             // BA's block at (900, 0, 0) under a matrix of no translation: placed at (910, 5, 0), its translation (10, 5, 0);
-            // moved by (1, 2, 3) besides, (11, 7, 3).
+            // moved by (1, 2, 3) besides, the matrix written as the block's transform where it then stands, its translation
+            // (911, 7, 3), as AutoCAD 2021's TransformBy writes it (D31d, k-transform-move).
             DxfDatabase db = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
             DxfMLeader block = ByHandle<DxfMLeader>(db, "BA");
             Assert.Equal(new[] { 0.0, 0.0, 0.0 }, Translation(db, "BA"));
@@ -502,7 +511,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(new[] { 10.0, 5.0, 0.0 }, Translation(db, "BA"));
 
             block.MoveMLeader(new GeoVector3(1, 2, 3), DxfMoveType.MoveAllPoints);
-            Assert.Equal(new[] { 11.0, 7.0, 3.0 }, Translation(db, "BA"));
+            Assert.Equal(new[] { 911.0, 7.0, 3.0 }, Translation(db, "BA"));
             Assert.Equal(Bits(new GeoPoint3(911, 7, 3)), Bits(ByHandle<DxfMLeader>(DxfDatabase.Parse(db.ToText()), "BA").BlockPosition));
         }
 

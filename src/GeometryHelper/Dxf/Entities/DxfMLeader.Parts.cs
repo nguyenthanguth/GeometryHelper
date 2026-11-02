@@ -99,12 +99,14 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Moves, turns, scales or mirrors the MULTILEADER, as AutoCAD's <c>TransformBy</c>, as ezdxf carries one: the base point,
         /// the plane, the leaders' points, doglegs and breaks, the lines' vertices, the MTEXT's place, direction and normal and the
-        /// block's place, normal, scale, turn and matrix; the sizes the words, arrows, landing and doglegs are drawn with scaled
-        /// with it (41, 140 and 145 of the context data, 40 of each leader, and the widths of the words), and the scale of the
-        /// context data (40), the MULTILEADER's own scale (45), length of the doglegs (41) and size of the arrows (42), and the
-        /// arrow sizes leader lines have of their own, left as they are, as AutoCAD 2021's <c>TransformBy</c> leaves them: a
-        /// multileader of scale 1, its doglegs 8, scaled by 2 is still of scale 1, its doglegs drawn 16 and 41 still 8, its
-        /// words 60 wide then 120 wide, and a line's own arrows of 2 still drawn 2.
+        /// block's place, normal, scale and turn as it is drawn, its matrix written as its transform where it then stands, as
+        /// AutoCAD 2021 writes it; the sizes the words, arrows, landing and doglegs are drawn with scaled with it (41, 140 and 145
+        /// of the context data, 40 of each leader, and the widths of the words), and the scale of the context data (40), the
+        /// MULTILEADER's own scale (45), length of the doglegs (41), size of the arrows (42), block scale (10) and block turn
+        /// (43), and the arrow sizes leader lines have of their own, left as they are, as AutoCAD 2021's <c>TransformBy</c> leaves
+        /// them: a multileader of scale 1, its doglegs 8, scaled by 2 is still of scale 1, its doglegs drawn 16 and 41 still 8,
+        /// its words 60 wide then 120 wide, a line's own arrows of 2 still drawn 2, and its block drawn twice the size with
+        /// <see cref="BlockScale"/> still 1.
         /// </summary>
         /// <param name="transform">The transformation.</param>
         /// <exception cref="ArgumentException">Thrown when it scales the MULTILEADER more one way than another, which ezdxf and AutoCAD refuse, or shears it, keeping its axes as long as each other but not square, which AutoCAD refuses too.</exception>
@@ -210,7 +212,10 @@ namespace GeometryHelper.Dxf
                 GeoVector3 uy = transform.Transform(axes.Y);
                 GeoVector3 uz = transform.Transform(axes.Z);
                 double sy = uy.Length * old.Y;
-                GeoVector3 expected = Unit(DxfOcsTransform.Cross(uz, ux));
+
+                // The y axis against the new extrusion, which a mirror in the plane turns over, as AutoCAD 2021 turns it: a block
+                // mirrored across the y axis is drawn mirrored, its scales kept (k-transform-mirror).
+                GeoVector3 expected = Unit(DxfOcsTransform.Cross(ocs.NewExtrusion, ux));
 
                 if (expected.Subtract(Unit(uy)).Length > 1E-12)
                 {
@@ -229,7 +234,18 @@ namespace GeometryHelper.Dxf
                 Section(ctx.Head, 296, BlockCodes, out from, out to);
                 PutNumber(ctx.Head, 46, blockTurn.Value, 0.0, ContextOrder, from, to);
                 Section(ctx.Head, 296, BlockCodes, out from, out to);
-                Matrix(ctx.Head, from, to, transform);
+                DxfBlockReference placed = PlacedBlock(rec, ctx, out _);
+
+                // The matrix the block's transform where it now stands, as AutoCAD 2021 writes it (s2-k-transform2); carried by
+                // the transformation where the drawing has no such block.
+                if (placed != null)
+                {
+                    SetMatrix(ctx.Head, from, to, placed.BlockTransform);
+                }
+                else
+                {
+                    Matrix(ctx.Head, from, to, transform);
+                }
             }
 
             // The leaders: their points, doglegs and breaks; their lines' vertices and breaks.
@@ -255,14 +271,8 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            // The MULTILEADER's own block scale and turn; its own sizes (41, 42) and scale (45) left as they are, as AutoCAD 2021
-            // leaves them.
-            if (blockScale.HasValue)
-            {
-                PutNumber(rec.After, 43, blockTurn.Value, 0.0, TopOrder);
-                PutPoint(rec.After, 10, blockScale.Value, TopOrder);
-            }
-
+            // The MULTILEADER's own block scale (10) and turn (43), sizes (41, 42) and scale (45) left as they are, as AutoCAD 2021
+            // leaves them (s2-k-transform2, k-transform-rot90).
             Write(rec);
         }
 

@@ -192,15 +192,28 @@ namespace GeometryHelper.UnitTest.Dxf
         public void ALeaderAddedToABlockScaledAndTurned_MeetsItsTurnedSides_AsAutoCadLandsIt()
         {
             // AutoCAD 2021 (k-BOX-turned): BOX scaled by 2 and turned by 30 degrees has the box (67.68, 31.34) to (139.64, 95.98);
-            // its leaders end at x 69.02 and 138.30 at y 63.66, their doglegs from 61.02 and 146.30.
-            DxfMLeader left = Of(Drawing(), "BOX", m => { m.BlockScale = new GeoVector3(2, 2, 2); m.BlockRotation = Math.PI / 6; });
-            DxfMLeader right = Of(Drawing(), "BOX", m => { m.BlockScale = new GeoVector3(2, 2, 2); m.BlockRotation = Math.PI / 6; });
+            // its leaders end at x 69.02 and 138.30 at y 63.66, their doglegs from 61.02 and 146.30. The scale and turn set before
+            // the block, as GHD31B set them: set after it is placed, they move it (D31d, k-placed-blockscale2-left).
+            DxfMLeader left = Turned(Drawing());
+            DxfMLeader right = Turned(Drawing());
 
             left.AddLeaderLine(P(0, 0));
             right.AddLeaderLine(P(250, 0));
 
             Near(P(61.01923788646684, 63.660254037844389), left.GetLastVertex(0));
             Near(P(146.30127018922195, 63.660254037844389), right.GetLastVertex(0));
+        }
+
+        /// <summary>A multileader of BOX scaled by 2 and turned by 30 degrees before it is given the block, placed at (100, 50), as GHD31B made AutoCAD's.</summary>
+        private static DxfMLeader Turned(DxfDatabase db)
+        {
+            var mleader = new DxfMLeader();
+            db.ModelSpace.AppendEntity(mleader);
+            mleader.BlockScale = new GeoVector3(2, 2, 2);
+            mleader.BlockRotation = Math.PI / 6;
+            mleader.BlockContent = Block(db, "BOX");
+            mleader.BlockPosition = P(100, 50);
+            return mleader;
         }
 
         [Fact]

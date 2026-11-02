@@ -232,16 +232,95 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
+            Landed(rec, ctx);
+        }
+
+        /// <summary>
+        /// The block moved as AutoCAD 2021 moves it when its scale or turn is set (<see cref="BlockScale"/>,
+        /// <see cref="BlockRotation"/>), with leaders or none: so that a leader from the left meets it at the base point of the
+        /// content (10 of the context data), its matrix (47) made its transform there, and each leader on a side landed anew at it
+        /// (b-k-blockscale2-*, b-k-blockrot30-*, k-both-scale2-blockscale3). The box of lines from (-10, -5) to (20, 15) placed at
+        /// (100, 50, 0), its base point (90, 55, 0), scaled by 2 stands at (110, 45, 0).
+        /// </summary>
+        private void Rebased(Rec rec, Ctx ctx)
+        {
+            DxfBlockReference placed = PlacedBlock(rec, ctx, out _);
+
+            if (placed == null || !Kept(rec, ctx, false))
+            {
+                return;
+            }
+
+            Section(ctx.Head, 296, BlockCodes, out int from, out int to);
+
+            if (Text(ctx.Head, 10) != null && BlockMeets(rec, ctx, -double.MaxValue, out _, out GeoPoint3 left))
+            {
+                GeoVector3 by = left.GetVectorTo(PointOf(ctx.Head, 10, left));
+                MovePoint(ctx.Head, 15, p => p.Add(by), ContextOrder, from, to);
+                placed = PlacedBlock(rec, ctx, out _);
+                Section(ctx.Head, 296, BlockCodes, out from, out to);
+            }
+
+            SetMatrix(ctx.Head, from, to, placed.BlockTransform);
+            Landed(rec, ctx);
+        }
+
+        /// <summary>
+        /// Each leader on a side of the content landed anew at it, as AutoCAD 2021 lands the leaders it keeps the content for, a
+        /// leader moved off its landing snapped back (d6-two-setdl0): its dogleg ending where it meets the block
+        /// (<see cref="BlockMeets"/>), or the words on their left (<see cref="WordsMeet"/>). Leaders on the right of words, which
+        /// AutoCAD lands by their font's width, are left.
+        /// </summary>
+        private void Landed(Rec rec, Ctx ctx)
+        {
+            Axes(ctx, out GeoVector3 x, out _);
+            bool block = HasSection(ctx, 296, BlockCodes);
+            var wordsMeet = new GeoPoint3(0.0, 0.0, 0.0);
+            bool words = !block && WordsMeet(rec, ctx, out wordsMeet);
+
             foreach (LeaderPart leader in ctx.Leaders)
             {
                 int side = Side(leader, x);
+                GeoPoint3 end = wordsMeet;
 
-                if (side != 0 && BlockMeets(rec, ctx, side * double.MaxValue, out _, out GeoPoint3 end))
+                if (side == 0 || (block ? !BlockMeets(rec, ctx, side * double.MaxValue, out _, out end) : !words || side > 0))
                 {
-                    GeoVector3 dogleg = Unit(PointOf(leader.Head, 11, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
-                    PutPoint(leader.Head, 10, end.Add(dogleg.Multiply(-Num(Text(leader.Head, 40), 0.0))), LeaderOrder);
+                    continue;
                 }
+
+                GeoVector3 dogleg = Unit(PointOf(leader.Head, 11, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
+                PutPoint(leader.Head, 10, end.Add(dogleg.Multiply(-Num(Text(leader.Head, 40), 0.0))), LeaderOrder);
             }
+        }
+
+        /// <summary>
+        /// Where a leader meets the words on their left, as AutoCAD 2021 lands one: the <see cref="LandingGap"/> short of their left
+        /// edge, as far below their top as the attachment of the left side says (<see cref="Below"/>); false where the words are
+        /// not held at their top left (171 of 1) along the plane's x axis, met on their sides (271 of nought), or there are none.
+        /// Words "ABC" 4 high at (160, 40, 0), met at the middle of their top line with a gap of 2, are met at (158, 38, 0).
+        /// </summary>
+        private static bool WordsMeet(Rec rec, Ctx ctx, out GeoPoint3 meet)
+        {
+            meet = new GeoPoint3(0.0, 0.0, 0.0);
+            Section(ctx.Head, 290, MTextCodes, out int from, out int to);
+
+            if (from < 0 || Whole(Text(rec.After, 271), 0) != 0)
+            {
+                return false;
+            }
+
+            List<KeyValuePair<int, string>> m = ctx.Head.GetRange(from, to - from);
+            Axes(ctx, out GeoVector3 x, out GeoVector3 y);
+            GeoVector3 along = Unit(PointOf(m, 13, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
+            double below = Below(ctx, AttachmentOf(rec, true), Height(ctx));
+
+            if (Whole(Text(m, 171), 1) != 1 || along.Subtract(x).Length > 1E-9 || double.IsNaN(below))
+            {
+                return false;
+            }
+
+            meet = PointOf(m, 12, new GeoPoint3(0.0, 0.0, 0.0)).Add(x.Multiply(-Num(Text(ctx.Head, 145), 2.0))).Add(y.Multiply(-below));
+            return true;
         }
 
         /// <summary>Writes the matrix of the block of the context data (its 16 groups 47, as ezdxf keeps it): a transformation's, row by row.</summary>
@@ -407,8 +486,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// The words moved as AutoCAD 2021 moves them when the landing gap changes by a length: along x by it, with the leaders on
         /// the right of the words, which land a gap more away from words a gap further on, by twice it; the base point and the
-        /// leaders on the left kept. A gap of 5 for 2 moves words at (100, 50) to (103, 50) and a dogleg on their right from
-        /// (120.67, 48) to (126.67, 48).
+        /// leaders on the left kept, one moved off its landing snapped back (d-two-gap5, <see cref="Landed"/>). A gap of 5 for 2
+        /// moves words at (100, 50) to (103, 50) and a dogleg on their right from (120.67, 48) to (126.67, 48).
         /// </summary>
         private void Regapped(Rec rec, Ctx ctx, double change)
         {
@@ -427,13 +506,17 @@ namespace GeometryHelper.Dxf
                     MoveLanding(leader, x.Multiply(2.0 * change));
                 }
             }
+
+            Landed(rec, ctx);
         }
 
         /// <summary>
         /// The content and the landings as AutoCAD 2021 keeps them when the doglegs of some leaders (the lengths before, by leader)
         /// change: with one leader, on one side, the content moved along x away from it by the change, its base point with it;
         /// with leaders on both sides, or several on one (b-two-landed-dl15, b-two-landed-setdl1-15), the content kept and each
-        /// leader changed landed anew, its dogleg's start moved away from the content by the change.
+        /// leader changed landed anew, its dogleg's start moved away from the content by the change, then every leader on a side
+        /// landed at the content where the library can tell where it meets it (<see cref="Landed"/>), one moved off its landing
+        /// snapped back, the lengths the same too (d6-two-setdl0, d-two-dl-same).
         /// </summary>
         private void Relengthened(Rec rec, Ctx ctx, List<KeyValuePair<LeaderPart, double>> before)
         {
@@ -458,6 +541,7 @@ namespace GeometryHelper.Dxf
                     }
                 }
 
+                Landed(rec, ctx);
                 return;
             }
 
@@ -567,8 +651,9 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// The words moved as AutoCAD 2021 moves them when their height changes, where every leader meets them on the left: up by
-        /// as much more as the left is met below their top. Words with a leader on their right are left, AutoCAD landing it as
-        /// far right as its font makes them wide.
+        /// as much more as the left is met below their top, a leader moved off its landing snapped back (two-unlanded-height10,
+        /// <see cref="Landed"/>). Words with a leader on their right are left, AutoCAD landing it as far right as its font makes
+        /// them wide.
         /// </summary>
         private void Reheighted(Rec rec, Ctx ctx, double was)
         {
@@ -585,14 +670,17 @@ namespace GeometryHelper.Dxf
             if (left > 0 && right == 0 && !double.IsNaN(change))
             {
                 MoveContent(ctx, y.Multiply(change), new GeoVector3(0.0, 0.0, 0.0));
+                Landed(rec, ctx);
             }
         }
 
         /// <summary>
         /// The words moved as AutoCAD 2021 moves them when the scale changes, where every leader meets them on the left, their
         /// doglegs alike: along x by as much as the doglegs and the gap grew, the base point by the doglegs, and up by as much
-        /// more as the left is met below their top. Words with a leader on their right are left, AutoCAD landing them by their
-        /// font's width.
+        /// more as the left is met below their top. Met by several leaders on their left, the words move by the gap alone and up,
+        /// the base point kept, and the leaders are landed anew at them (d-two-scale2, <see cref="Landed"/>): "ABC" at
+        /// (160, 40, 0) met from (150, 38, 0) twice stand at (162, 42, 0) at a scale of 2, both doglegs from (142, 38, 0). Words
+        /// with a leader on their right are left, AutoCAD landing them by their font's width.
         /// </summary>
         private void Rescaled(Rec rec, Ctx ctx, List<KeyValuePair<LeaderPart, double>> before, double gapChange, double wasHeight)
         {
@@ -609,6 +697,13 @@ namespace GeometryHelper.Dxf
 
             if (left == 0 || right > 0 || double.IsNaN(rise))
             {
+                return;
+            }
+
+            if (left > 1)
+            {
+                MoveContent(ctx, x.Multiply(gapChange).Add(y.Multiply(rise)), new GeoVector3(0.0, 0.0, 0.0));
+                Landed(rec, ctx);
                 return;
             }
 
