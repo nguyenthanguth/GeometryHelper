@@ -161,8 +161,9 @@ namespace GeometryHelper.UnitTest.Dxf
             db.ModelSpace.AppendEntity(mleader);
             mleader.TextHeight = 2.5;
             mleader.ArrowSize = 3.0;
-            // Its content given as words (bit 10), their height (16) and the size of the arrows (9).
-            Assert.Contains("\n 90\n67072\n", Records(db.ToText()).Single(r => HandleOf(r) == mleader.Handle), StringComparison.Ordinal);
+            // Its content given as words (bit 10), their height (16) and the size of the arrows (9); the words' colour, BYLAYER, as
+            // its text colour (15) and words given (18), as AutoCAD 2021 sets them (D38).
+            Assert.Contains("\n 90\n361984\n", Records(db.ToText()).Single(r => HandleOf(r) == mleader.Handle), StringComparison.Ordinal);
 
             Assert.True(mleader.SetFromStyle());
             DxfMLeader back = ByHandle<DxfMLeader>(DxfDatabase.Parse(db.ToText()), mleader.Handle);
@@ -361,7 +362,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal("GKTAG", drawn.ArrowSymbol.Name);
             Assert.Equal(2.0, drawn.LandingGap);
             Assert.Equal(8.0, drawn.DoglegLength);
-            Assert.True(drawn.TextColor.IsByBlock);
+
+            // The words' colour, BYLAYER, is the multileader's text colour of its own, as AutoCAD 2021 takes it (D38).
+            Assert.True(drawn.TextColor.IsByLayer);
 
             var standard = (DxfMLeaderStyle)db.MLeaderStyleDictionary.GetAt("Standard");
             Assert.Equal(4.0, standard.TextHeight);

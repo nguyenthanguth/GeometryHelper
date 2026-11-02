@@ -31,7 +31,9 @@ namespace GeometryHelper.Dxf
         /// Gives a MULTILEADER made in code the handles of the drawing it is added to: its multileader style (340), the drawing's
         /// CMLEADERSTYLE or Standard, and the text style (343) of that style's words, else Standard, where it names none of the
         /// drawing's; its words (340 of the context's MTEXT) are given the same text style, as AutoCAD 2021 writes them, or the
-        /// text style they named when given, where the drawing has it (with bit 11 where it is not the style's).
+        /// text style they named when given, where the drawing has it (with bit 11 where it is not the style's), moved then to
+        /// where the style's font would meet them where the drawing's fonts measure both (check D38). In a drawing of R2013 or
+        /// later its leaders run on to its content (295 of 1), as AutoCAD 2021 makes every new multileader.
         /// </summary>
         /// <exception cref="ArgumentException">Thrown when the drawing has no multileader style of the name, or no text style Standard.</exception>
         internal override void Appending(DxfBlockTableRecord owner)
@@ -67,6 +69,13 @@ namespace GeometryHelper.Dxf
 
                 // The style's linetype of the leader lines and its arrow block, as AutoCAD 2021 writes them on a new multileader.
                 TakeStyleLook(rec, database);
+
+                // Its leaders run on to its content, as AutoCAD 2021 makes every new multileader, of words, a block or none
+                // (295 of 1, check D38), from R2013.
+                if (database.File.Supports(1027))
+                {
+                    Put(rec.After, 295, "1", TopOrder);
+                }
             }
 
             if (Text(rec.After, 343)?.Trim() == "0")
@@ -94,13 +103,17 @@ namespace GeometryHelper.Dxf
                 if (from >= 0 && wordsTextStyle != null && database.TextStyleTable.Has(wordsTextStyle))
                 {
                     string textStyle = database.TextStyleTable[wordsTextStyle].Handle;
+                    string wasStyle = Text(rec.After, 343)?.Trim();
                     Put(rec.Context.Head, 340, textStyle, ContextOrder, from, to);
 
-                    if (!string.Equals(Text(rec.After, 343)?.Trim(), textStyle, StringComparison.OrdinalIgnoreCase))
+                    if (!string.Equals(wasStyle, textStyle, StringComparison.OrdinalIgnoreCase))
                     {
                         Put(rec.After, 343, textStyle, TopOrder);
                         SetBit(rec, 11);
                     }
+
+                    // Moved to where the multileader's font would meet them, as AutoCAD 2021 moves them (check D38).
+                    Restyled(rec, rec.Context, wasStyle, database);
                 }
             }
 
@@ -132,8 +145,12 @@ namespace GeometryHelper.Dxf
         /// plane, of normal (0, 0, 1), its plane's x axis (1, 0, 0). Words mirrored are carried as ezdxf carries them, but where
         /// the drawing's <see cref="DxfDatabase.FontSearchPath"/> measures them (one line held at its top), which are kept
         /// readable as AutoCAD 2021 keeps them, the plane taken as a block's is (check F1b): "ABC" of txt.shx 10.67 wide at
-        /// (100, 50, 0) mirrored across the XY plane held at (110.67, 50, 0), facing (0, 0, -1) and running against x; across
-        /// the YZ plane held by its top right at (-100, 50, 0), running along x, the base point of the content at (-112.67, 48, 0).
+        /// (100, 50, 0) mirrored across the XY plane held at (110.67, 50, 0), facing (0, 0, -1) and running against x, which they
+        /// say (294 of 1, check D38); across the YZ plane held by its top right at (-100, 50, 0), running along x, the base point
+        /// of the content at (-112.67, 48, 0). A mirror that turns the plane's x axis back, a block's or such words', lines the
+        /// content up the other way, the context's alignment (176) of the left made the right's and the right's the left's, a
+        /// centred one kept, and sets bit 14 of the overrides, as AutoCAD 2021 writes it (check D38): the box mirrored across the
+        /// YZ plane, or across a plane of normal (1, 0.2, 0), has 176 of 2; mirrored back, 0, the bit kept.
         /// </summary>
         /// <param name="transform">The transformation.</param>
         /// <exception cref="ArgumentException">Thrown when it scales the MULTILEADER more one way than another, which ezdxf and AutoCAD refuse, or shears it, keeping its axes as long as each other but not square, which AutoCAD refuses too.</exception>
@@ -199,6 +216,21 @@ namespace GeometryHelper.Dxf
                 flipped = newX.DotProduct(planeX) < 0.0;
                 newX = flipped ? newX.Negate() : newX;
                 newY = Unit(DxfOcsTransform.Cross(mirroredZ, newX));
+            }
+
+            // The plane's x axis turned back: the content lined up the other way, the context's alignment of the left (176 of
+            // nought) made the right's and the right's the left's, a centred one kept, with bit 14 of the overrides, as AutoCAD
+            // 2021 writes it (check D38, x-k-yz, a-k-center-yz).
+            if (flipped)
+            {
+                int aligned = Whole(Text(ctx.Head, 176), 0);
+
+                if (aligned == 0 || aligned == 2)
+                {
+                    Put(ctx.Head, 176, (2 - aligned).ToString(CultureInfo.InvariantCulture), ContextOrder);
+                }
+
+                SetBit(rec, 14);
             }
 
             PutPoint(ctx.Head, 111, Pt(newX), ContextOrder);
@@ -419,7 +451,8 @@ namespace GeometryHelper.Dxf
         /// how they are held, their place moved along the mirrored direction by their width, "ABC" 10.67 wide at (100, 50, 0)
         /// held at (110.67, 50, 0) running against x (e5-words-mirrorxy); mirrored within it, as across YZ, held at the mirrored
         /// place by their other side, the top right for the top left, and the base point of the content put where a leader from
-        /// the left now meets them, the gap short of their left, at (-112.67, 48, 0) (g-words-mirroryz).
+        /// the left now meets them, the gap short of their left, at (-112.67, 48, 0) (g-words-mirroryz). Words that then run
+        /// against the plane's x axis say so (294 of 1), and those along it not, as AutoCAD 2021 writes them (check D38).
         /// </summary>
         private void Readable(Rec rec, Ctx ctx, GeoVector3 along, GeoVector3 normal, GeoVector3 x, GeoVector3 y, bool flipped, double width)
         {
@@ -427,6 +460,9 @@ namespace GeometryHelper.Dxf
             PutPoint(ctx.Head, 11, Pt(normal), ContextOrder, from, to);
             Section(ctx.Head, 290, MTextCodes, out from, out to);
             PutPoint(ctx.Head, 13, Pt(along.Negate()), ContextOrder, from, to);
+
+            // Running against the plane's x axis, they say so (294 of 1), as AutoCAD 2021 writes them (check D38); along it, not.
+            Put(rec.After, 294, along.Negate().DotProduct(x) < 0.0 ? "1" : "0", TopOrder);
             Section(ctx.Head, 290, MTextCodes, out from, out to);
             int held = Whole(Text(ctx.Head.GetRange(from, to - from), 171), 1);
 
@@ -780,6 +816,37 @@ namespace GeometryHelper.Dxf
             }
 
             Write(rec);
+        }
+
+        /// <summary>
+        /// The colour of words given made the multileader's text colour (92) and its MTEXT's (90), as AutoCAD 2021 writes them
+        /// (check D38): bit 15 of the overrides set where it is not BYBLOCK; words of BYBLOCK leave the bit and write their MTEXT
+        /// BYLAYER, as AutoCAD does. Words of BYLAYER, the colour of an MTEXT made in code, make the text colour BYLAYER; red
+        /// words make it red. A colour a record does not hold is left.
+        /// </summary>
+        private static void TakeWordsColour(Rec rec, Ctx ctx, DxfColor colour)
+        {
+            DxfColorMethod method = colour?.ColorMethod ?? DxfColorMethod.None;
+
+            if (method != DxfColorMethod.ByLayer && method != DxfColorMethod.ByBlock && method != DxfColorMethod.ByAci && method != DxfColorMethod.ByColor)
+            {
+                return;
+            }
+
+            bool byBlock = method == DxfColorMethod.ByBlock;
+            string text = DxfMLeaderColors.Text(colour, nameof(colour));
+            Put(rec.After, 92, text, TopOrder);
+            Section(ctx.Head, 290, MTextCodes, out int from, out int to);
+
+            if (from >= 0)
+            {
+                Put(ctx.Head, 90, byBlock ? DxfMLeaderColors.Text(DxfColor.ByLayer, nameof(colour)) : text, ContextOrder, from, to);
+            }
+
+            if (!byBlock)
+            {
+                SetBit(rec, 15);
+            }
         }
 
         /// <summary>A point of a section of the context data; the base point of the content (10) where it has no such section.</summary>

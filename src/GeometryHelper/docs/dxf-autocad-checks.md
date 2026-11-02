@@ -2055,7 +2055,7 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       stands. A table writes as reals the heights and widths `InsertRows`, `InsertColumns`, `SetRowHeight`,
       `SetColumnWidth` and `SetSize` put in, the sizes `TransformBy` scales, the text heights it and `SetTextHeight` give a
       cell, a cell's double, block scale and turn. `HasContext` answers false for every object never annotative.
-    - Still apart: bit 14 of a mirror across the YZ plane; the insertion point and direction a table moved or turned
+    - Still apart: bit 14 of a mirror across the YZ plane (now as AutoCAD's, point 104); the insertion point and direction a table moved or turned
       writes, which the library writes as it writes every point of an entity (`10 310`); a leader taken down to none, which
       the library refuses where AutoCAD, in the session that emptied it, allows it.
 
@@ -2099,7 +2099,8 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       (txt "%%u%%oA" centred on -1.4); bold's circles of a radius past 12, the ogonek letters of romans and simplex, the
       quotes of times.shx slanted, isocp's stand-in for a letter it has not, and txt "i" aligned, as F1a left them; words
       mirrored across their plane whose dogleg is then set, which AutoCAD moved (to 117.67 for 110.67 and a dogleg of 15)
-      and the library leaves, their words running against the plane's x. TrueType fonts are measured now: see point 103.
+      and the library leaves, their words running against the plane's x (now moved: point 104). TrueType fonts are measured
+      now: see point 103.
 
 ## The words measured in TrueType fonts
 
@@ -2144,4 +2145,64 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       MTEXTs), which the library, reading no such link, draws as the font's U+00D8; Calibri's degree sign, whose glyf header
       reaches 103 units left of the outline AutoCAD draws (3 MTEXTs, 8 multileaders, 2 ATTDEFs); a style of a multileader
       other than its words', by whose font AutoCAD lands a leader added at first and then moves the words (Arial words on a
-      style of txt.shx). Not tried: CFF outlines, which the library does not read, and .otf files.
+      style of txt.shx; now moved so: point 104). Not tried: CFF outlines, which the library does not read, and .otf files.
+
+## Multileaders: words mirrored across their plane, words of another text style, a new multileader's groups
+
+104. **How words mirrored across their plane, which run against its x axis, move when the dogleg, gap, height, scale,
+    attachment, words or a leader's last vertex are set; where a leader is landed on words of a text style other than the
+    multileader's; what a new multileader writes in 295, in a new leader line's 92 and in bits 14, 15 and 18 of its
+    overrides.**
+    - Try (D38, headless, plugin GHD38A rounds r1 to r3 and GHD38R, fonts of AutoCAD 2021 and Windows read in place, each
+      database made the working one while measured): on a Standard of words 4 high, arrows 4, a gap of 2 and doglegs of 8,
+      met at the middle of the top line, "ABC" of txt.shx at (100, 50) met from (0, 0), (250, 0) or both, mirrored across the
+      XY plane, then given a dogleg of 15 (the multileader's and a leader's own), a gap of 5, a height of 10, a scale of 2,
+      the attachments 0 and 6, "ABCDEF" and "ABC" anew, a last vertex at (40, 70), a leader from (0, 100) and from (250, 100),
+      and three of these at once; words turned half round, and turned 180 degrees about (100, 50); "Ag", "ABC" and "_A" of
+      Arial, Times New Roman and romans.shx on a multileader style of txt.shx, Arial or romans.shx, at attachments 1 and 4,
+      met on either side or both, the words given in memory, after the multileader is added, or with the leader in a later
+      transaction, the multileader's own text style set before them to theirs or to a third, and the same of no leader,
+      saved, read again and given one; multileaders made with SetDatabaseDefaults and without, of words given BYLAYER,
+      BYBLOCK, red, of no colour and by default, of a block and of none; leaders run on to the words or not, with doglegs or
+      none, exploded; files of R2010 and R2007; a line given BYBLOCK and BYLAYER, on a multileader of green lines, and a line
+      added to one; mirrors across the YZ, XZ and XY planes, planes of normal (1, 1, 0), (1, 0.2, 0), (0.2, 1, 0), (1, 0, 1)
+      and (0.2, 0, 1), twice across YZ, a half turn about y, a quarter turn then YZ, the alignment set to the centre or the
+      right first, of words and of a block; and 62 of the library's files of these, read back.
+    - AutoCAD 2021: mirrored words say so (294 of 1) and move as words along the plane's x axis do, held at their right (the
+      top left of their reading) and their up against the plane's y axis: a dogleg of 15 moves them from (110.67, 50) to
+      (117.67, 50), a gap of 5 to (113.67, 50), the top of the top line to (110.67, 48), the vertex set to (40, 70) to
+      (60.67, 72); keeping their left edge at 100, a height of 10 to (126.67, 53), a scale of 2 to (131.33, 52) and "ABCDEF" to
+      (122.67, 50). Met on the right, held at their right edge: a dogleg of 15 to (103.67, 50), a height of 10 to (110.67, 53)
+      with the base point of the content moved with their left edge, by 16, a scale of 2 to (100.67, 52); met on both sides,
+      the right landed anew past their right edge, from (136.67, 48) at a height of 10; a leader from (250, 100) landed from
+      (120.67, 48). Words turned half round turn the plane with them (111 of (-1, 0, 0)), and move as words along it. Words
+      given in a text style other than the multileader's are put where a leader would meet them in the multileader's font,
+      then moved to meet that place in their own: "Ag" of Arial on txt.shx stands at (100, 49.92) for (100, 50), a leader
+      landed at (90, 47.33) or (116.46, 47.33), twice as low at the bottom of the bottom line; "ABC" 0.03 higher; given in
+      memory, after the multileader is added or with the leader later, alike; the multileader's own text style set first is
+      the one measured by; read again, the file's words and base point agree, and a leader added lands where they meet. Every
+      new multileader writes 295 1 (`ExtendLeaderToText` true), made with SetDatabaseDefaults or not, of words, a block or
+      none, and no 295 in R2010 or R2007; run on or not, they explode alike. A new leader line writes no 92, and a line given
+      BYBLOCK its flag (93 2) and no 92. Words given set bit 18 and give the multileader their colour (92 and the MTEXT's 90),
+      with bit 15 but for BYBLOCK, whose MTEXT is written BYLAYER. A mirror that turns the plane's x axis back (across YZ, or
+      a plane of normal (1, 0.2, 0)) sets bit 14 and the context's alignment (176) to 2 for 0 and 0 for 2, a centred one
+      kept; twice across YZ, 0 again, the bit kept; across XY, XZ, (1, 1, 0) and the tilted planes, the half turn and the
+      quarter turn then YZ leave both.
+    - Now: the library moves mirrored words that say so as AutoCAD does: by the dogleg, gap, attachment and last vertex
+      with no font, by their height, the scale and the words given anew where `FontSearchPath` measures them (left with
+      none, as before); it writes 294 of the words it keeps readable and lands a new leader on either side of them. It moves
+      words of another text style as AutoCAD does where both fonts are measured, writes 295 1 on a new multileader of R2013
+      or later, no 92 on a new leader line, and bits 14, 15 and 18 and the alignment 176 as above. Of round 1's 119 cases,
+      103 give AutoCAD's places, vertices, doglegs, bits, 294, 295 and lines' 92 (none at base); AutoCAD read 53 of 62 of the
+      library's files as it made its own, eight of the others the cases still apart and the ninth a file made before the
+      words of another style were moved.
+    - Still apart: words turned half round in code, whose plane the library keeps where AutoCAD turns it; words mirrored
+      within their plane across XZ or a plane of normal (0.2, 1, 0), which AutoCAD sets upright ((100, -46) for
+      (110.67, -50)); 294 of a block whose plane's x axis turns back, which AutoCAD sets; a multileader made without
+      SetDatabaseDefaults, which AutoCAD lays out otherwise (bit 16, no text colour taken, the leader at the words); the
+      base point of words given (10 of the context data), which the library puts at the words and AutoCAD where a leader from
+      the left would meet them, so that AutoCAD, adding a leader to the library's file, lands it at the words and moves them;
+      295 0 in a drawing older than R2013, where AutoCAD writes none; a line given BYBLOCK, which the library writes 92 of;
+      `GetLeaderLineColor` of a line of no colour of its own, BYBLOCK in AutoCAD and the multileader's in the library;
+      `TextAlignmentType`, read from 175 where AutoCAD reads the context's 176; a multileader of no content, which AutoCAD
+      reads as one of words.

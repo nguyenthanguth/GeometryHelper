@@ -57,6 +57,11 @@ namespace GeometryHelper.Dxf
                     (rec.Context == null ? rec.Before : rec.After).Add(run[i]);
                 }
 
+                if (rec.Context != null)
+                {
+                    rec.Context.Top = rec.After;
+                }
+
                 return rec;
             }
 
@@ -81,6 +86,9 @@ namespace GeometryHelper.Dxf
             internal List<LeaderPart> Leaders { get; } = new List<LeaderPart>();
 
             internal List<KeyValuePair<int, string>> Tail { get; } = new List<KeyValuePair<int, string>>();
+
+            /// <summary>The groups of the MULTILEADER after its context data (its <see cref="Rec.After"/>), which say how the context is drawn.</summary>
+            internal List<KeyValuePair<int, string>> Top { get; set; }
 
             internal static Ctx Read(List<KeyValuePair<int, string>> run, ref int i)
             {

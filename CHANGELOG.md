@@ -6,6 +6,30 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A multileader's words mirrored across their plane, which run against its x axis and say so (294 of 1, as AutoCAD
+2021 writes them), are moved as AutoCAD moves them when the dogleg, the gap, the height, the scale, an attachment, the words
+or a leader's last vertex are set (check D38): held at their right and their up the other way, "ABC" of txt.shx held at
+(110.67, 50) and met from the left stands at (117.67, 50) for a dogleg of 15, where it stayed at (110.67, 50), at
+(113.67, 50) for a gap of 5, and at (126.67, 53) 10 high, its left edge kept at 100. Met on the right or on both sides, they
+keep the right's landing, and a leader added on their right is landed the gap past them. What needs their width (the
+height, the scale, words given anew) is done where `DxfDatabase.FontSearchPath` measures them; the rest with no font too.
+The words the library keeps readable on a mirror now write 294 as AutoCAD does.
+
+**FIXED.** Words given to a multileader in a text style other than its own are moved to where its font would meet them, as
+AutoCAD 2021 moves them, where `DxfDatabase.FontSearchPath` measures both (check D38), so that a leader added is landed by the
+multileader's font: "Ag" of arial.ttf 4 high given at (100, 50) to a multileader of txt.shx stand at (100, 49.92), a leader
+from the left landed at (90, 47.33) and one from the right at (116.46, 47.33), where they were met at 47.41. SHX and
+TrueType alike, given in memory or once the multileader is added. With an empty path nothing changes.
+
+**CHANGED.** A new multileader writes what AutoCAD 2021 writes for one (check D38): its leaders run on to its content
+(`ExtendLeaderToText` true, 295 of 1) in a drawing of R2013 or later; a leader line added has no colour of its own (no 92),
+drawn in `LeaderLineColor` as before; words given set bit 18 of the overrides, and their colour becomes its `TextColor` (92,
+and 90 of its MTEXT), with bit 15 but for BYBLOCK, so that words made in code, BYLAYER, make the text colour BYLAYER where it
+was BYBLOCK, and `MText` read back carries a colour of the index or true. A mirror that turns the plane's x axis back (across
+the YZ plane), of a block or of words kept readable, sets bit 14 and lines the content up the other way (176 of the context
+data, 2 for 0 and 0 for 2). AutoCAD 2021 read 53 of 62 of the library's files of these as it made its own; of round 1's
+119 cases, 103 now give AutoCAD's places, vertices and groups, none before.
+
 **NEW.** `DxfDatabase.FontSearchPath` reads TrueType fonts too (.ttf, .ttc, .otf of glyf outlines), so that the words of a
 style of one are measured as AutoCAD 2021 measures them (check F2) where F1b measured those of an SHX font: TEXT, ATTRIB and
 ATTDEF places, aligned and fitted heights and widths and `GeometricExtents`, the `ActualWidth` and `ActualHeight` of an MTEXT

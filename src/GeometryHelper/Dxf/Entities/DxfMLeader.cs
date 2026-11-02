@@ -38,7 +38,9 @@ namespace GeometryHelper.Dxf
     /// keeps them as wide; what AutoCAD lands as far right as its font makes the words wide is left as it was, but where the
     /// drawing's <see cref="DxfDatabase.FontSearchPath"/> measures the words (one line in an SHX or TrueType font), which are then met on
     /// their right, lower where their ink reaches below their baseline, and kept readable when mirrored, as AutoCAD 2021 does
-    /// it (check F1b).
+    /// it (check F1b). Words mirrored across their plane, which then run against its x axis and say so (294 of 1), are moved by
+    /// the same edits, as AutoCAD 2021 moves them, held at their right, where their width is needed only where the fonts
+    /// measure them (check D38).
     /// </para>
     /// <para>
     /// <see cref="DxfEntity.GetGeometry"/> gives the lines of its leaders, as <see cref="DxfReader"/> reads a MULTILEADER, so
@@ -172,6 +174,13 @@ namespace GeometryHelper.Dxf
         /// TS2, and a style set later leaves it so. Words given to a MULTILEADER in no drawing keep the text style they name when
         /// it is added to a drawing that has one of the name, with the bit where it is not the style's, as AutoCAD 2021 keeps the
         /// words of a multileader made in memory: words of TS2 make it of TS2; words that name none take its style's text style.
+        /// Words given first in a text style other than the MULTILEADER's, where the drawing's fonts measure them in both, are
+        /// moved to where its font would meet them, as AutoCAD 2021 moves them, so that a leader added is landed by that font
+        /// (check D38): "Ag" of arial.ttf 4 high given at (100, 50, 0) to a multileader of txt.shx stand at (100, 49.92, 0), a
+        /// leader from the left landed at (90, 47.33, 0). Their colour (<see cref="DxfEntity.Color"/>) becomes the
+        /// <see cref="TextColor"/>, with its bit of the overrides (15) but for BYBLOCK, and words given set bit 18, as AutoCAD 2021
+        /// writes them (check D38): words made in code, BYLAYER, make the text colour BYLAYER. Read, the words carry their colour
+        /// of the index or true.
         /// </value>
         /// <exception cref="InvalidOperationException">Thrown when the MULTILEADER is erased.</exception>
         public DxfMText MText
@@ -235,6 +244,14 @@ namespace GeometryHelper.Dxf
                     mtext.TextStyleName = wordsTextStyle;
                 }
 
+                // Their colour, their MTEXT's (90), of the index or true, as AutoCAD 2021 reads it (check D38); else BYLAYER.
+                DxfColor colour = DxfMLeaderColors.Of(Text(m, 90) ?? ByBlock);
+
+                if (colour.ColorMethod == DxfColorMethod.ByAci || colour.ColorMethod == DxfColorMethod.ByColor)
+                {
+                    mtext.Color = colour;
+                }
+
                 return mtext;
             }
 
@@ -280,6 +297,7 @@ namespace GeometryHelper.Dxf
                 GeoPoint3 wasAt = PointOf(m, 12, new GeoPoint3(0.0, 0.0, 0.0));
                 string wasLook = WordsLook(ctx);
                 double wasBelow = Below(ctx, AttachmentOf(rec, true), Height(ctx));
+                double wasWidth = had && Reversed(ctx) && WordsWidth(ctx, out double width) ? width : double.NaN;
                 bool lined = AllLined(rec, ctx);
                 Put(m, 304, value.Written, ContextOrder);
                 PutPoint(m, 12, value.Location, ContextOrder);
@@ -302,6 +320,7 @@ namespace GeometryHelper.Dxf
                 // when it is added where it is in no drawing (f6-def-words-ts2).
                 DxfDatabase database = Database();
                 wordsTextStyle = database == null ? value.NamedTextStyle : null;
+                string wasStyle = Text(rec.After, 343)?.Trim();
 
                 if (database != null && database.TextStyleTable.Has(value.TextStyleName))
                 {
@@ -314,13 +333,22 @@ namespace GeometryHelper.Dxf
                         Put(rec.After, 343, textStyle, TopOrder);
                         SetBit(rec, 11);
                     }
+
+                    // Words given first in a style of their own, moved to where the multileader's font would meet them (check D38).
+                    if (!had)
+                    {
+                        Restyled(rec, ctx, wasStyle, database);
+                    }
                 }
 
+                // The words' colour made the text colour, and bit 18 of words given, as AutoCAD 2021 writes them (check D38).
+                TakeWordsColour(rec, ctx, value.Color);
+                SetBit(rec, 18);
                 Underline(rec, ctx, lined);
 
                 if (had)
                 {
-                    Relocated(rec, ctx, wasAt, wasLook, wasBelow);
+                    Relocated(rec, ctx, wasAt, wasLook, wasBelow, wasWidth);
                 }
 
                 Write(rec);
@@ -585,7 +613,11 @@ namespace GeometryHelper.Dxf
             set => SetTopFlag(292, value, EnableFrameText, 17);
         }
 
-        /// <summary>Gets or sets whether the leaders run on to the words (group 295, from R2013), as AutoCAD's <c>ExtendLeaderToText</c>.</summary>
+        /// <summary>
+        /// Gets or sets whether the leaders run on to the words (group 295, from R2013), as AutoCAD's <c>ExtendLeaderToText</c>:
+        /// true for a multileader made in code and added to a drawing of R2013 or later, of words, a block or none, as AutoCAD
+        /// 2021 makes every new one (check D38).
+        /// </summary>
         /// <value>Set, bit 30 of the overrides set with it, as AutoCAD 2021 sets it, the value it has too.</value>
         /// <exception cref="InvalidOperationException">Thrown when it is changed in a file older than R2013 (AC1027), or the MULTILEADER is erased.</exception>
         public bool ExtendLeaderToText
@@ -1747,8 +1779,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Adds a leader line of no vertices to a leader, as AutoCAD's <c>AddLeaderLine</c> of a leader: its index (91) one above
-        /// every line's, its colour BYBLOCK, written as ezdxf writes one. Its arrow goes at a vertex put in by
-        /// <see cref="AddFirstVertex"/>.
+        /// every line's, of no colour of its own (no 92), drawn in <see cref="LeaderLineColor"/>, as AutoCAD 2021 writes one
+        /// (check D38). Its arrow goes at a vertex put in by <see cref="AddFirstVertex"/>.
         /// </summary>
         /// <param name="leaderIndex">The index of the leader.</param>
         /// <returns>The index of the line.</returns>
@@ -1759,7 +1791,7 @@ namespace GeometryHelper.Dxf
             Rec rec = Read();
             LeaderPart leader = FindLeader(rec, leaderIndex);
             int index = NextLine(rec);
-            leader.Lines.Add(LinePart.Made(new[] { G(91, index), G(92, ByBlock) }));
+            leader.Lines.Add(LinePart.Made(new[] { G(91, index) }));
             Write(rec);
             return index;
         }
@@ -1791,7 +1823,10 @@ namespace GeometryHelper.Dxf
         /// baseline are as high as their height and that depth together, "Ag" met 2.67 below its top at the middle of its top
         /// line. A leader of
         /// no landing yet (<see cref="AddLeader"/>) is passed over, as AutoCAD 2021 passes it. Words a leader meets on a side of
-        /// attachment 8 are underlined (<see cref="SetTextAttachmentType"/>).
+        /// attachment 8 are underlined (<see cref="SetTextAttachmentType"/>). Words mirrored across their plane, which run
+        /// against its x axis (294 of 1), held at their right, are met as AutoCAD 2021 meets them where the fonts measure them
+        /// (check D38): "ABC" of txt.shx held at (110.67, 50, 0) facing down, met from (250, 100, 0) by a dogleg from
+        /// (120.67, 48, 0). The line has no colour of its own (no 92), as AutoCAD 2021 writes one.
         /// </summary>
         /// <param name="point">The point, in the world.</param>
         /// <returns>The index of the line.</returns>
@@ -1848,7 +1883,7 @@ namespace GeometryHelper.Dxf
             }
 
             int index = NextLine(rec);
-            var line = LinePart.Made(new[] { G(91, index), G(92, ByBlock) });
+            var line = LinePart.Made(new[] { G(91, index) });
             line.SetVertices(new List<GeoPoint3> { point });
             chosen.Lines.Add(line);
             Underline(rec, ctx, false);
@@ -1860,7 +1895,8 @@ namespace GeometryHelper.Dxf
         /// Where AutoCAD 2021 lands a new leader from a point on the left of the words (<see cref="AddLeaderLine(GeoPoint3)"/>):
         /// the point its dogleg starts at, where the words are held at their top left (171 of 1) along the plane's x axis, met on
         /// their sides (271 of nought) at a point of the left side the words' height and lines give (173 of 0 to 8), and the
-        /// point is on their left; false elsewhere.
+        /// point is on their left; words that run against the x axis (<see cref="Reversed"/>), held at their right, from their
+        /// left edge where the fonts measure them (check D38); false elsewhere.
         /// </summary>
         private bool LeftLanding(Rec rec, Ctx ctx, GeoPoint3 point, out GeoPoint3 landing)
         {
@@ -1873,16 +1909,28 @@ namespace GeometryHelper.Dxf
             }
 
             List<KeyValuePair<int, string>> m = ctx.Head.GetRange(from, to - from);
-            GeoVector3 x = Unit(PointOf(ctx.Head, 111, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
-            GeoVector3 y = Unit(PointOf(ctx.Head, 112, new GeoPoint3(0.0, 1.0, 0.0)).ToVector());
+            Axes(ctx, out GeoVector3 x, out GeoVector3 y);
             GeoVector3 along = Unit(PointOf(m, 13, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
             GeoPoint3 words = PointOf(m, 12, new GeoPoint3(0.0, 0.0, 0.0));
+            bool measured = WordsWidth(ctx, out double width);
+
+            // Words that run against the plane's x axis, held at their right, are met from their left edge, where the fonts
+            // measure them (check D38).
+            if (Reversed(ctx))
+            {
+                if (!measured)
+                {
+                    return false;
+                }
+
+                words = words.Add(x.Multiply(-width));
+            }
 
             // Words the fonts measure are met on the side of their middle the point is on, the middle taken to the right (check
             // D31): under words from 100 to 110.67 a point at 103 is met on the left, one at 108 on the right.
-            GeoPoint3 side = WordsWidth(ctx, out double width) ? words.Add(x.Multiply(width / 2.0)) : words;
+            GeoPoint3 side = measured ? words.Add(x.Multiply(width / 2.0)) : words;
 
-            if (Whole(Text(m, 171), 1) != 1 || !(x.Length > 0.0) || !(y.Length > 0.0) || along.Subtract(x).Length > 1E-9
+            if (Whole(Text(m, 171), 1) != 1 || !(x.Length > 0.0) || !(y.Length > 0.0) || !AlongPlane(ctx, along, x)
                 || !(point.GetVectorTo(side).DotProduct(x) > 0.0))
             {
                 return false;
@@ -1904,8 +1952,9 @@ namespace GeometryHelper.Dxf
         /// Where AutoCAD 2021 lands a new leader from a point on the right of the words, the middle of them or past it, where the
         /// drawing's <see cref="DxfDatabase.FontSearchPath"/> measures them (check F1a): the point its dogleg starts at, a dogleg
         /// past where it meets them (<see cref="WordsMeetRight"/>), and the dogleg's direction, against the plane's x axis. "ABC"
-        /// of txt.shx 4 high at (100, 50, 0) is met from (250, 0, 0) by a dogleg from (120.67, 48, 0) to (112.67, 48, 0). False
-        /// where the words are not measured, not held at their top left along the plane, or the point is on their left.
+        /// of txt.shx 4 high at (100, 50, 0) is met from (250, 0, 0) by a dogleg from (120.67, 48, 0) to (112.67, 48, 0); mirrored
+        /// across the XY plane, held at their right at (110.67, 50, 0), by the same dogleg (check D38). False where the words are
+        /// not measured, not held at their top left along the plane, or the point is on their left.
         /// </summary>
         private bool RightLanding(Rec rec, Ctx ctx, GeoPoint3 point, out GeoPoint3 landing, out GeoVector3 back)
         {
@@ -1919,7 +1968,7 @@ namespace GeometryHelper.Dxf
                 return false;
             }
 
-            GeoPoint3 middle = PointOf(ctx.Head.GetRange(from, to - from), 12, new GeoPoint3(0.0, 0.0, 0.0)).Add(x.Multiply(width / 2.0));
+            GeoPoint3 middle = PointOf(ctx.Head.GetRange(from, to - from), 12, new GeoPoint3(0.0, 0.0, 0.0)).Add(x.Multiply((Reversed(ctx) ? -width : width) / 2.0));
 
             if (point.GetVectorTo(middle).DotProduct(x) > 0.0)
             {
