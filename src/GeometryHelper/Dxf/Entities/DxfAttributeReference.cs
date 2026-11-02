@@ -118,7 +118,9 @@ namespace GeometryHelper.Dxf
         /// Set true, an MTEXT made of its value embedded where its text stands, as <see cref="MTextAttribute"/> embeds one: the
         /// value B-12 of letters 2.5 high at (50, 59, 0) becomes the MTEXT B-12 2.5 high held there, its backslashes and braces
         /// written as the codes <c>\\</c>, <c>\{</c> and <c>\}</c>. Set false, the MTEXT taken out, the text keeping its first
-        /// line, as an attribute of one line (71 of 1).
+        /// line, as an attribute of one line (71 of 1). An annotative attribute made of several lines is given its MTEXT in every
+        /// context too, as <see cref="MTextAttribute"/> says; made of one, its contexts are left as they are, as AutoCAD 2021
+        /// leaves them (check D35b).
         /// </value>
         /// <exception cref="InvalidOperationException">Thrown when the attribute is erased, or set true in a file older than R2018 (AC1032).</exception>
         public bool IsMTextAttribute
@@ -133,7 +135,10 @@ namespace GeometryHelper.Dxf
         /// <value>
         /// <para>
         /// Get, a new MTEXT in no file of the groups embedded in the attribute's record after its 101, with the attribute's
-        /// look; null for an attribute of one line. Changing it changes nothing in the drawing until it is set back.
+        /// look; null for an attribute of one line. Changing it changes nothing in the drawing until it is set back. An
+        /// annotative one's is held, turned and attached as the MTEXT of the context it is read at says
+        /// (<see cref="DxfDBText.Position"/>), as tall as the attribute: AutoCAD 2021 gave the MTEXT of an attribute 2.5 high
+        /// at the default 1:2 the height 1.25 (check D35b).
         /// </para>
         /// <para>
         /// Set, as AutoCAD sets it and ezdxf's <c>set_mtext</c> writes it: the MTEXT's own groups embedded after a 101, those
@@ -145,6 +150,13 @@ namespace GeometryHelper.Dxf
         /// justification the MTEXT's attachment, its style and height the MTEXT's, its width factor, lean and mirroring taken
         /// out; its type (71) 2, of several lines. The attribute keeps its own look. The MTEXT it is made of, given back,
         /// changes nothing, and so does null given to an attribute of one line, which reads null.
+        /// </para>
+        /// <para>
+        /// An annotative attribute is given the MTEXT in every context as AutoCAD 2021 gives it: each context's second point
+        /// the MTEXT's location, its 290 made 1 and the MTEXT's own context embedded after it, of the context's default flag and
+        /// scale, its attachment, direction, location, width and box, its extents nought; its record, where the context it is
+        /// read at is not the default, keeping the default's point and angle and given the height at the default's scale
+        /// (check D35b).
         /// </para>
         /// </value>
         /// <exception cref="ArgumentNullException">Thrown when null is set on an attribute of several lines: set
@@ -297,7 +309,7 @@ namespace GeometryHelper.Dxf
 
             // A justified definition of no second point is held by the origin, as AutoCAD reads it; its attribute is held by
             // the origin placed, written as AutoCAD 2021 wrote the 11 of the ATTRIB of one centred on (0, 0) (check D30).
-            if (!IsDefaultAlignment && !TextPoint(11).HasValue)
+            if (!OwnDefaultAlignment && !TextPoint(11).HasValue)
             {
                 SetText(AlignmentGroups(new GeoPoint3(0.0, 0.0, 0.0)));
             }

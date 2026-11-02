@@ -1252,7 +1252,27 @@ Mechanical - Metric, whose record says (0.678, 265.33) and whose context of 1:1 
 it is read at, and its record too where that context is the default; `SetAttributeFromBlock` places the attribute so;
 `TransformBy`, of the text or of the INSERT that holds the attribute, and so a dynamic property that moves the attribute,
 carries every context with the record, each its point, its angle and, where the text is not aligned left on its baseline,
-its second point. An MTEXT, and an INSERT's own place, are still read from their records alone.
+its second point. Its `HorizontalMode`, and so its `Justify`, is that of the context's 70 where the context holds one.
+
+An annotative MTEXT is read so too: its `Location` is its context's 11, its `Direction` and `Rotation` its context's 10,
+its `Width` its context's 40, its `Height` (the box) its context's 41 and its `Attachment` its context's 70, each that
+context's own at its scale, not the record's scaled, and its `TextHeight` the record's times the default's scale over
+1:1's. An MTEXT whose record says (10, 40), 40 wide, and whose context of 1:1 says (14, 44) turned 30 degrees, 30 wide and
+held by its middle, reads so, and 1.25 high where its record is 2.5 at the default 1:2. Set, each writes its context, and
+the record where the context is the default, the text height at the default's scale; `TransformBy` carries every context,
+its location and direction, its width and box stretched: scaled by 2 about the origin, a context of 1:2 at (60, 44), 80
+wide in a box 40, goes to (120, 88), 160 by 80. An INSERT of contexts stands at its context's point, turned by its angle
+and scaled by its factors, so its `BlockTransform` and what it places: the valve of the sample whose record says (13.883,
+279.776) unturned, and whose context of 1:1 says (113.883, 279.776) turned 45 degrees and scaled by 2, stands there.
+`Position` and `Rotation` set write its context, and its record where that is the default; `ScaleFactors` set writes every
+context, each the factors times the scale shown over its own (3 at 1:1 is 6 in the context of 1:2); `TransformBy` carries
+each context from its own point, angle and factors. An INSERT of an annotative block, or an attribute of one, that holds no
+context is shown at 1:1 (`HasContext`), and an ATTRIB is annotative as its INSERT is, whatever its own AcadAnnotative says.
+An annotative attribute made of several lines writes its MTEXT into every context, its second point the MTEXT's location
+and the MTEXT's own context embedded after the 290, and `TransformBy` carries that MTEXT; its `MTextAttribute` is that of
+the context it is read at, as tall as the attribute. A copy (`Clone`, `GetTransformedCopy`) of an annotative text, MTEXT
+or INSERT of contexts, which holds none, is given the placing its original is read at. The point of a text not aligned
+left and an MTEXT's extents, which AutoCAD works out from the font, are not.
 
 `DxfMText` names the codes of an MTEXT as AutoCAD's `MText` does: `ParagraphBreak` and `LineBreak` are `\P`, `UnderlineOn` is
 `\L`, `HeightChange` `\H`, `BlockBegin` `{`, and so the 19 of them. `ContentsRTF` gives its words as RTF, the style's font

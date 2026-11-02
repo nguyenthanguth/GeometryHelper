@@ -6,6 +6,27 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** An annotative MTEXT or INSERT with contexts is read where AutoCAD 2021 shows it once it has read the drawing,
+as a text has been since check D35 (check D35b): at its context of the scale 1:1, else its default. An MTEXT's `Location`,
+`Direction`, `Rotation`, `Width`, `Height` (its box) and `Attachment` are that context's own, and its `TextHeight` the
+record's times the default's scale over 1:1's: one whose record says (10, 40), 40 wide, and whose context of 1:1 says (14,
+44) turned 30 degrees and 30 wide, reads so. An INSERT's `Position`, `Rotation`, `ScaleFactors` and so `BlockTransform`
+are its context's: the valve of AutoCAD's sample Mechanical - Metric given a context of 1:1 at (113.883, 279.776) turned
+45 degrees and scaled by 2 stands there, as AutoCAD read it. Setting those writes the context shown, and the record where
+that context is the default; an INSERT's `ScaleFactors` write every context by its scale, 3 at 1:1 being 6 at 1:2, as
+AutoCAD wrote them; `TransformBy` carries every context. An annotative attribute made of several lines writes its MTEXT
+into every context, and `TransformBy` carries it; its `MTextAttribute` is the shown context's. An annotative text's
+`HorizontalMode` and `Justify` are its context's. A copy (`Clone`, `GetTransformedCopy`) of an annotative text, MTEXT or
+INSERT of contexts reads where its original is shown, though it holds no contexts, where AutoCAD's copy keeps them. Of 532
+lines AutoCAD gave, 337 read apart before and 47 now. Reading an MTEXT of no contexts takes about 30 ns more a property,
+1 to 5 per cent; an INSERT of none reads as fast as before.
+
+**CHANGED.** An ATTRIB is annotative as its INSERT is, whatever its own AcadAnnotative says, as AutoCAD 2021 reads it: the
+attribute ATT_DVSUP of AutoCAD's sample, flagged 0, is annotative in its annotative valve. An INSERT of a dynamic block is
+annotative as the dynamic block is where its anonymous block is not. An INSERT of an annotative block, or an attribute of
+one, that holds no context is shown at 1:1 (`HasContext`), whatever CANNOSCALE says, and `RemoveContext` of that scale
+refuses it as the last.
+
 **CHANGED.** `DxfTable.ClearTableStyleOverrides` of 0 or 2 leaves every cell emptied while the drawing is open of its value
 of none (`93 7`, `90 0`), wherever rows or columns put in or taken out moved it since, as AutoCAD 2021 did (check D33d:
 of 35 edits, AutoCAD read the library's files of 32 as its own): a cell reset or given an empty text, even one of no

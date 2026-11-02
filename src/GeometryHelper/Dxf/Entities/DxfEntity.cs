@@ -727,7 +727,9 @@ namespace GeometryHelper.Dxf
         /// and look in no file, a <see cref="DxfUnknownEntity"/> among them, its records as the file has them but its handle,
         /// owner, space, reactors and extension dictionary; a VERTEX the vertex class it is, an ATTRIB an attribute. It is added
         /// to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>, as a copy from another drawing is: see
-        /// that method for the pointers it carries.
+        /// that method for the pointers it carries. A copy of an annotative TEXT, attribute, MTEXT or INSERT of contexts, which
+        /// holds none, is given the placing its original is read at, as AutoCAD 2021's copy reads (check D35b), though
+        /// AutoCAD's keeps the contexts.
         /// </summary>
         /// <returns>The copy.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the entity is erased, as AutoCAD refuses an erased object.</exception>

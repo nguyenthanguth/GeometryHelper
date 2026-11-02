@@ -1734,3 +1734,48 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       0 keeps a cell's own turn (145), which AutoCAD takes away (b01); and a clear of 0 after a row put in before the title
       takes the title's and the header's `170 5` and `140 6.0` from the rows moved down, and AutoCAD then merges the new
       first row on load where it does not merge the library's (s08).
+
+## Annotative MTEXTs and INSERTs read and moved at their contexts
+
+94. **An annotative MTEXT and an INSERT read at their context of 1:1 or their default; set, moved, turned and scaled; an
+    attribute made of several lines and back, its MTEXT moved; whether attributes and INSERTs of no context are annotative and
+    shown at 1:1; the horizontal mode of a context; copies of annotative objects.**
+    - Try (D35b, headless, plugin GHD35BA rounds r1, r2 and r3): the drawing of D35 with its MTEXT given a record 40 wide in
+      a box 20 and contexts of 1:1, 30 wide in a box 15 held by its middle, and of 1:2, 80 by 40, either the default; moved
+      by (10, 5), turned 30 degrees and scaled by 2 about the origin, given a location, a turn, a direction, a text height, a
+      width, a box and an attachment. AutoCAD's sample with the valve's context of 1:1 at (113.883, 279.776) turned 45
+      degrees and scaled by 2, the default or beside a default of 1:2 at (-50, 279.776) turned 10 degrees and scaled by 3;
+      moved, turned and scaled, given a point, a turn and scale factors, cloned and copied moved. CANNOSCALE 1:2 in the
+      file; a TEXT of contexts flagged 0, an MTEXT of contexts and no AcadAnnotative, a TEXT and an ATTDEF of no contexts; an
+      ATTRIB of no contexts and no AcadAnnotative, the block made not annotative, an ATTDEF of contexts flagged 0. A centred
+      TEXT given the horizontal mode right; an ATTRIB and an ATTDEF of contexts made of several lines, and back, moved,
+      scaled, given a point and a height; a TEXT and an MTEXT cloned and copied moved; seven drawings the library wrote, read
+      back.
+    - AutoCAD 2021: an MTEXT stands at its context's 11, reads along its 10, is as wide as its 40 and its box as high as its
+      41, held by its 70, each the context's own (30 wide where the record says 40, whichever is the default), and as high
+      as its record times the default's scale over 1:1's (2.5 at 1:2 is 1.25). Each set writes the context shown alone where
+      it is not the default, a text height the record at the default's scale (5 at 1:1 is 10); `TransformBy` carries every
+      context, its direction kept of unit length, its width and box scaled (of 1:2, (60, 44), 80 by 40 to (120, 88), 160 by
+      80). An INSERT stands, turns and scales at its context (B5); a point and a turn set write the context shown alone; scale
+      factors 3 set at 1:1 write 3 there and 6 at 1:2 and in the record; `TransformBy` carries every context (of 1:2 to
+      (-183.189, 217.293) turned 40 for the turn). An INSERT of an annotative block holding no context, and its attribute
+      holding none, are shown at 1:1, not at 1:2, whatever CANNOSCALE says; a TEXT holding none is shown at none. An ATTRIB is
+      annotative as its block is: flagged 0 or not flagged, true in an annotative block, false in one that is not, contexts or
+      not; a TEXT, an MTEXT or an ATTDEF by its own flag, false where it says 0 or is not flagged. A context's horizontal mode
+      is read, and set in the context shown, its record too where that is the default. Made of several lines, an annotative
+      attribute's every context takes the MTEXT's location as its second point, its 290 1 and the MTEXT's own context after
+      it; made of one line again, its contexts are left as they were; moved, every context's MTEXT moves. A copy keeps every
+      context and reads at its 1:1 (a TEXT's copy moved by `GetTransformedCopy` moves its context of 1:1 alone). The seven
+      drawings the library wrote read back as the library reads them.
+    - Now: as AutoCAD for MTEXT (`Location`, `Direction`, `Rotation`, `TextHeight`, `Width`, `Height`, `Attachment`, their
+      setters, `TransformBy`), INSERT (`Position`, `Rotation`, `ScaleFactors` and so `BlockTransform`, their setters,
+      `TransformBy`), `HasContext` of 1:1, `Annotative` of attributes and of a dynamic block's INSERT, the horizontal mode,
+      an attribute made of several lines and moved, its `MTextAttribute`; a copy reads where its original is shown. Of 532
+      lines AutoCAD gave in rounds r1 and r2, 337 read apart at base and 47 now.
+    - Still apart: a copy holds no contexts (`HasContext` false, read at its record once added), where AutoCAD's keeps them;
+      the INSERT's `Position`, `Rotation` and `ScaleFactors` set carry its attributes, as the library documents, where
+      AutoCAD's move none; the MTEXT an attribute is made of is placed by its baseline (held by its bottom left), where
+      AutoCAD places it by its top left one height above; the point of a text whose horizontal mode is set, and an MTEXT's
+      extents, which AutoCAD works out from the font; an ATTRIB flagged 1 in a block that is not annotative, not seen (AutoCAD
+      read nothing of the drawing made for it); and `SetAttachmentMovingLocation`, `Normal` and `BlockTransform` set on an
+      annotative MTEXT or INSERT of contexts, which still write the record alone.

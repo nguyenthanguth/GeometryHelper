@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using GeometryHelper.Export;
 using GeometryHelper.Geometry;
 
@@ -50,8 +51,25 @@ namespace GeometryHelper.Dxf
 
         private static readonly GeoPoint3 Origin = new GeoPoint3(0.0, 0.0, 0.0);
 
+        // The record of a context of an INSERT of an annotative block, as AutoCAD 2021 writes it, and its groups the library
+        // reads and writes, in their slots: the angle in degrees (50), the insertion point (10, 20, 30) and the scale factors
+        // (41, 42, 43) (check D35b).
+        private const string ContextType = "ACDB_BLKREFOBJECTCONTEXTDATA_CLASS";
+        private static readonly int[] ContextCodes = { 50, 10, 20, 30, 41, 42, 43 };
+        private const int AtDegrees = 0;
+        private const int AtX = 1;
+        private const int AtY = 2;
+        private const int AtZ = 3;
+        private const int ScaledX = 4;
+        private const int ScaledY = 5;
+        private const int ScaledZ = 6;
+
         private DxfBlockTableRecord _record;
         private DxfAttributeCollection _collection;
+
+        // The contexts of the INSERT and the groups of its shown one as last read, kept until the records of its file next
+        // change (Shown).
+        private Tuple<DxfItem, int, ShownContexts, ContextGroups> _contexts;
 
         /// <summary>
         /// Initializes an INSERT of a block at a point, as AutoCAD's <c>new BlockReference(position, blockTableRecord)</c>: not
@@ -155,14 +173,25 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gets or sets where the INSERT puts its block's origin (groups 10, 20, 30), as AutoCAD's <c>Position</c>: in world
         /// coordinates, the file's point taken from the system of the <see cref="Normal"/>'s plane; the origin where the record
-        /// gives none.
+        /// gives none. An INSERT of an annotative block stands where its context of the scale 1:1 says, else its default
+        /// context, as AutoCAD 2021 reads one whatever CANNOSCALE says, and as <see cref="DxfDBText.Position"/> reads a text: the
+        /// INSERT of Valve - Metric of AutoCAD's sample, its record at (13.883, 279.776) unturned and unscaled, its context of
+        /// 1:1 at (113.883, 279.776) turned 45 degrees and scaled by 2, stands there, turned and scaled so (check D35b). Its
+        /// <see cref="Rotation"/>, <see cref="ScaleFactors"/> and so <see cref="BlockTransform"/> are that context's too.
         /// </summary>
-        /// <value>Set, the point the INSERT is moved to, its ATTRIBs moved with it.</value>
+        /// <value>Set, the point the INSERT is moved to, its ATTRIBs moved with it; an annotative one's written into the context
+        /// it is read at, and into its record where that context is the default, whose data the record holds, as AutoCAD 2021
+        /// writes it. So for its <see cref="Rotation"/>.</value>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the INSERT is erased.</exception>
         public GeoPoint3 Position
         {
-            get => OcsToWorld(Normal, GetPoint(10, Origin));
+            get
+            {
+                GeoPoint3 own = GetPoint(10, Origin);
+                bool held = Shown(out ContextGroups shown) != null && shown.Has(AtX) && shown.Has(AtY);
+                return OcsToWorld(Normal, held ? new GeoPoint3(shown.Value(AtX, 0.0), shown.Value(AtY, 0.0), shown.Value(AtZ, own.Z)) : own);
+            }
 
             set
             {
@@ -170,21 +199,40 @@ namespace GeometryHelper.Dxf
 
                 if (!SamePoint(value, Position))
                 {
-                    Place(PointGroups(10, WorldToOcs(Normal, value), Origin));
+                    GeoPoint3 point = WorldToOcs(Normal, value);
+                    ShownContexts contexts = Shown(out ContextGroups shown);
+
+                    if (contexts == null)
+                    {
+                        Place(PointGroups(10, point, Origin));
+                        return;
+                    }
+
+                    Place(contexts.ShownIsDefault ? PointGroups(10, point, Origin) : new KeyValuePair<int, string>[0], () =>
+                    {
+                        shown.Write(AtX, point.X, AtY, point.Y);
+                        shown.Write(AtZ, point.Z);
+                    });
                 }
             }
         }
 
         /// <summary>
         /// Gets or sets how far the INSERT turns its block (group 50, in degrees), as AutoCAD's <c>Rotation</c>: in radians,
-        /// counter-clockwise about its normal; nought where the record gives none.
+        /// counter-clockwise about its normal; nought where the record gives none. An annotative one's is that of the context it
+        /// is read at, as <see cref="Position"/> says.
         /// </summary>
-        /// <value>Set, the angle the INSERT is turned to about its insertion point, its ATTRIBs turned with it.</value>
+        /// <value>Set, the angle the INSERT is turned to about its insertion point, its ATTRIBs turned with it; an annotative
+        /// one's written as <see cref="Position"/> writes it.</value>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the angle set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the INSERT is erased.</exception>
         public double Rotation
         {
-            get => GetDouble(50, 0.0) * (Math.PI / 180.0);
+            get
+            {
+                bool held = Shown(out ContextGroups shown) != null && shown.Has(AtDegrees);
+                return (held ? shown.Value(AtDegrees, 0.0) : GetDouble(50, 0.0)) * (Math.PI / 180.0);
+            }
 
             set
             {
@@ -192,21 +240,43 @@ namespace GeometryHelper.Dxf
 
                 if (!Same(value, Rotation))
                 {
-                    Place(new KeyValuePair<int, string>(50, Numbers.Exact(DxfOcsTransform.Degrees(value))));
+                    var angle = new KeyValuePair<int, string>(50, Numbers.Exact(DxfOcsTransform.Degrees(value)));
+                    ShownContexts contexts = Shown(out ContextGroups shown);
+
+                    if (contexts == null)
+                    {
+                        Place(angle);
+                        return;
+                    }
+
+                    Place(contexts.ShownIsDefault ? new[] { angle } : new KeyValuePair<int, string>[0], () => shown.Write(AtDegrees, DxfOcsTransform.Degrees(value)));
                 }
             }
         }
 
         /// <summary>
         /// Gets or sets how the INSERT scales its block along its x, y and z (groups 41, 42, 43), as AutoCAD's
-        /// <c>ScaleFactors</c>; 1 for each the record gives none of. A factor below nought mirrors the block.
+        /// <c>ScaleFactors</c>; 1 for each the record gives none of. A factor below nought mirrors the block. An annotative
+        /// one's are those of the context it is read at, as <see cref="Position"/> says.
         /// </summary>
-        /// <value>Set, three finite factors none of them nought, its ATTRIBs scaled with it.</value>
+        /// <value>Set, three finite factors none of them nought, its ATTRIBs scaled with it. An annotative one's are written
+        /// into every context, each the factors given times the scale of the context read over its own, and into its record so
+        /// for its default, as AutoCAD 2021 writes them: 3 set at 1:1 is 3 in the context of 1:1 and 6 in that of 1:2.</value>
         /// <exception cref="ArgumentException">Thrown when a factor set is nought or not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the INSERT is erased.</exception>
         public GeoVector3 ScaleFactors
         {
-            get => new GeoVector3(GetDouble(41, 1.0), GetDouble(42, 1.0), GetDouble(43, 1.0));
+            get
+            {
+                GeoVector3 own = OwnScale();
+
+                if (Shown(out ContextGroups shown) == null)
+                {
+                    return own;
+                }
+
+                return new GeoVector3(shown.Value(ScaledX, own.X), shown.Value(ScaledY, own.Y), shown.Value(ScaledZ, own.Z));
+            }
 
             set
             {
@@ -222,8 +292,74 @@ namespace GeometryHelper.Dxf
                     throw new ArgumentException("Scale factors have to be finite numbers, none of them nought: " + value + " is not.", nameof(value));
                 }
 
-                Place(Join(Factor(41, value.X, now.X), Factor(42, value.Y, now.Y), Factor(43, value.Z, now.Z)));
+                ShownContexts contexts = Shown(out _);
+
+                if (contexts == null)
+                {
+                    Place(Join(Factor(41, value.X, now.X), Factor(42, value.Y, now.Y), Factor(43, value.Z, now.Z)));
+                    return;
+                }
+
+                GeoVector3 own = OwnScale();
+                double toDefault = contexts.ShownRatio / contexts.DefaultRatio;
+                Place(Join(Factor(41, value.X * toDefault, own.X), Factor(42, value.Y * toDefault, own.Y), Factor(43, value.Z * toDefault, own.Z)), () =>
+                {
+                    for (int i = 0; i < contexts.All.Count; i++)
+                    {
+                        double k = contexts.ShownRatio / contexts.Ratios[i];
+                        ContextGroups context = ContextGroups.Read(contexts.All[i], ContextCodes);
+                        context.Write(ScaledX, value.X * k, ScaledY, value.Y * k);
+                        context.Write(ScaledZ, value.Z * k);
+                    }
+                });
             }
+        }
+
+        /// <summary>
+        /// Gives the copy of an INSERT of contexts, which holds none, the point, angle and scale factors its original is read at,
+        /// as AutoCAD 2021's copy reads (check D35b); its ATTRIBs left as they are.
+        /// </summary>
+        private protected override void Copied(DxfEntity original)
+        {
+            if (!(original is DxfBlockReference insert) || insert.Shown(out _) == null)
+            {
+                return;
+            }
+
+            GeoVector3 scale = insert.ScaleFactors;
+            GeoVector3 own = OwnScale();
+            double degrees = insert.Rotation * (180.0 / Math.PI);
+            SetGroups(Join(
+                PointGroups(10, WorldToOcs(Normal, insert.Position), Origin),
+                Factor(41, scale.X, own.X),
+                Factor(42, scale.Y, own.Y),
+                Factor(43, scale.Z, own.Z),
+                Same(degrees, GetDouble(50, 0.0)) ? new KeyValuePair<int, string>[0] : new[] { new KeyValuePair<int, string>(50, Numbers.Exact(degrees + 0.0)) }));
+        }
+
+        /// <summary>The scale factors as the record gives them, as <see cref="ScaleFactors"/> reads those of an INSERT of no contexts.</summary>
+        private GeoVector3 OwnScale() => new GeoVector3(GetDouble(41, 1.0), GetDouble(42, 1.0), GetDouble(43, 1.0));
+
+        /// <summary>
+        /// The contexts of an INSERT of an annotative block, as AutoCAD 2021 reads it (<see cref="Position"/>), and the groups of
+        /// the one it is shown at, read once until the records of its file next change; null and null for one of none.
+        /// </summary>
+        private ShownContexts Shown(out ContextGroups shown)
+        {
+            DxfItem item = Item;
+            int edits = item.File.EditCount;
+            Tuple<DxfItem, int, ShownContexts, ContextGroups> kept = Volatile.Read(ref _contexts);
+
+            if (kept != null && ReferenceEquals(kept.Item1, item) && kept.Item2 == edits)
+            {
+                shown = kept.Item4;
+                return kept.Item3;
+            }
+
+            ShownContexts contexts = ContextsOfType(ContextType, ContextType);
+            shown = contexts == null ? null : ContextGroups.Read(contexts.Shown, ContextCodes);
+            Volatile.Write(ref _contexts, Tuple.Create(item, edits, contexts, shown));
+            return contexts;
         }
 
         /// <summary>
@@ -806,7 +942,10 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Moves, turns, scales or mirrors the INSERT, as AutoCAD's <c>TransformBy</c> does, and as ezdxf's <c>transform()</c>
         /// carries one: its system carried to the one the transformation makes of it, its scale factors stretched as its axes
-        /// are, one turned negative where an axis is mirrored, and its ATTRIBs moved by the same transformation.
+        /// are, one turned negative where an axis is mirrored, and its ATTRIBs moved by the same transformation. An annotative
+        /// one's contexts are carried each from its own point, angle and factors, as AutoCAD 2021 carries them: turned 30
+        /// degrees about the origin, the valve's context of 1:2 at (-50, 279.776) turned 10 degrees went to (-183.189, 217.293)
+        /// turned 40 (check D35b).
         /// </summary>
         /// <param name="transform">The transformation.</param>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
@@ -827,10 +966,38 @@ namespace GeometryHelper.Dxf
             }
 
             GeoVector3 normalNow = Normal;
-            GeoVector3 scaleNow = ScaleFactors;
+            GeoVector3 scaleNow = OwnScale();
             double degreesNow = GetDouble(50, 0.0);
             GeoPoint3 insert = System(GetPoint(10, Origin), scaleNow, degreesNow, normalNow, transform, nameof(transform), out GeoVector3 scale, out double degrees, out GeoVector3 normal, out double xStretch, out double yStretch);
             KeyValuePair<int, string>[] array = ArrayGroups(xStretch, yStretch);
+
+            // The contexts of an annotative one are carried each as its record is, from its own point, angle and factors, as
+            // AutoCAD 2021 carries them (check D35b); worked out before the record is written, and written after it.
+            List<KeyValuePair<ContextGroups, double[]>> contexts = null;
+            ShownContexts held = Shown(out _);
+
+            if (held != null)
+            {
+                GeoPoint3 own = GetPoint(10, Origin);
+                contexts = new List<KeyValuePair<ContextGroups, double[]>>(held.All.Count);
+
+                foreach (DxfItem item in held.All)
+                {
+                    ContextGroups context = ContextGroups.Read(item, ContextCodes);
+                    double[] numbers = context.Copy();
+                    var at = new GeoPoint3(context.Value(AtX, own.X), context.Value(AtY, own.Y), context.Value(AtZ, own.Z));
+                    var factors = new GeoVector3(context.Value(ScaledX, scaleNow.X), context.Value(ScaledY, scaleNow.Y), context.Value(ScaledZ, scaleNow.Z));
+                    GeoPoint3 moved = System(at, factors, context.Value(AtDegrees, degreesNow), normalNow, transform, nameof(transform), out GeoVector3 scaled, out double turned, out _, out _, out _);
+                    numbers[AtX] = moved.X;
+                    numbers[AtY] = moved.Y;
+                    numbers[AtZ] = moved.Z;
+                    numbers[ScaledX] = scaled.X;
+                    numbers[ScaledY] = scaled.Y;
+                    numbers[ScaledZ] = scaled.Z;
+                    numbers[AtDegrees] = turned;
+                    contexts.Add(new KeyValuePair<ContextGroups, double[]>(context, numbers));
+                }
+            }
 
             SetGroups(Join(
                 PointGroups(10, insert, Origin),
@@ -841,6 +1008,7 @@ namespace GeometryHelper.Dxf
                 array,
                 NormalGroups(normal)));
 
+            WriteMoved(contexts);
             Carry(Attributes(), transform);
         }
 
@@ -1427,16 +1595,25 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Writes groups of the INSERT's placing at once, and carries its ATTRIBs by the change of placing.</summary>
-        private void Place(params KeyValuePair<int, string>[] groups)
+        private void Place(params KeyValuePair<int, string>[] groups) => Place(groups, null);
+
+        /// <summary>Writes groups of the INSERT's placing, and its contexts by the action given, and carries its ATTRIBs by the change of placing.</summary>
+        private void Place(KeyValuePair<int, string>[] groups, Action contexts)
         {
-            if (groups.Length == 0)
+            if (groups.Length == 0 && contexts == null)
             {
                 return;
             }
 
             IReadOnlyList<DxfAttributeReference> attributes = Attributes();
             GeoTransform3 before = attributes.Count > 0 ? Placement() : null;
-            SetGroups(groups);
+
+            if (groups.Length > 0)
+            {
+                SetGroups(groups);
+            }
+
+            contexts?.Invoke();
 
             if (before == null || !before.TryGetInverse(out GeoTransform3 undo, Tolerance.Default))
             {

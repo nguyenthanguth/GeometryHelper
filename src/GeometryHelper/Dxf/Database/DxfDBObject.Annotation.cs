@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using GeometryHelper.Export;
+using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Dxf
 {
@@ -35,7 +36,10 @@ namespace GeometryHelper.Dxf
         /// Get, as AutoCAD keeps it: for a TEXT, an MTEXT, an attribute, a dimension, a leader, a multileader, a tolerance, a
         /// hatch, a text style, a dimension style and a block, the flag of its extended data <c>AcadAnnotative</c>, the second
         /// 1070 of <c>AnnotativeData</c>, <see cref="DxfAnnotativeStates.False"/> where it has none; a multileader is annotative
-        /// by its own group 293 (<see cref="DxfMLeader.EnableAnnotationScale"/>) as well; an INSERT by its block; a multileader
+        /// by its own group 293 (<see cref="DxfMLeader.EnableAnnotationScale"/>) as well; an INSERT by its block, that of a
+        /// dynamic block by the dynamic block where its anonymous block is not; an ATTRIB by its INSERT, whatever its own data
+        /// says, as AutoCAD 2021 reads it: the attribute ATT_DVSUP of AutoCAD's sample, whose AcadAnnotative says 0, is
+        /// annotative in its annotative valve, and one of contexts is not in a block that is not (check D35b); a multileader
         /// style by its group 296. <see cref="DxfAnnotativeStates.NotApplicable"/> for every other object, as a line.
         /// </para>
         /// <para>
@@ -62,10 +66,16 @@ namespace GeometryHelper.Dxf
                     case AnnotationKind.None:
                         return DxfAnnotativeStates.NotApplicable;
                     case AnnotationKind.Reference:
-                        DxfBlockTableRecord block = ((DxfBlockReference)this).BlockTableRecord;
-                        return block != null && block.Annotative == DxfAnnotativeStates.True ? DxfAnnotativeStates.True : DxfAnnotativeStates.False;
+                        // The anonymous block of a dynamic block's INSERT is annotative as the dynamic block is (check D35b).
+                        var reference = (DxfBlockReference)this;
+                        DxfBlockTableRecord block = reference.BlockTableRecord;
+                        bool annotative = block != null && (block.Annotative == DxfAnnotativeStates.True || reference.DynamicBlockTableRecord?.Annotative == DxfAnnotativeStates.True);
+                        return annotative ? DxfAnnotativeStates.True : DxfAnnotativeStates.False;
                     case AnnotationKind.MLeaderStyle:
                         return _item != null && _item.File.ValueOf(_item, 296)?.Trim() == "1" ? DxfAnnotativeStates.True : DxfAnnotativeStates.False;
+                    case AnnotationKind.Entity when this is DxfAttributeReference attribute && attribute.Owner is DxfBlockReference insert:
+                        // An ATTRIB is annotative as its INSERT is, whatever its own data says (check D35b).
+                        return insert.Annotative;
                     default:
                         return AnnotativeFlag() || (this is DxfMLeader mleader && mleader.EnableAnnotationScale) ? DxfAnnotativeStates.True : DxfAnnotativeStates.False;
                 }
@@ -146,13 +156,15 @@ namespace GeometryHelper.Dxf
         /// Gets whether the object is shown at a scale, as AutoCAD's <c>HasContext</c>: whether a context under
         /// ACDB_ANNOTATIONSCALES of AcDbContextDataManager of its extension dictionary points at the scale's SCALE, by the first
         /// 340 of its subclass AcDbAnnotScaleObjectContextData, of any kind of object. Those two groups, with the default flag
-        /// (290 of AcDbObjectContextData), are all the library reads of a context, but for the angle and two points of the
-        /// context of a TEXT, an attribute or a definition, which <see cref="DxfDBText.Position"/> reads and writes; the rest
-        /// of AutoCAD's record of it is kept as it is.
+        /// (290 of AcDbObjectContextData), are all the library reads of a context, but for the placing of the context of a TEXT,
+        /// an attribute or a definition, an MTEXT and an INSERT, which <see cref="DxfDBText.Position"/>,
+        /// <see cref="DxfMText.Location"/> and <see cref="DxfBlockReference.Position"/> read and write; the rest of AutoCAD's
+        /// record of it is kept as it is.
         /// </summary>
         /// <param name="context">The scale, of the object's drawing's list.</param>
         /// <returns>Whether it is; false for a scale of another drawing or in none, and for an object with no contexts, as one not
-        /// annotative.</returns>
+        /// annotative, but for an annotative INSERT, or an ATTRIB of one, that holds none, which is shown at the scale named 1:1,
+        /// whatever CANNOSCALE says, as AutoCAD 2021 read one (check D35b).</returns>
         /// <exception cref="ArgumentNullException">Thrown when the scale is null.</exception>
         public bool HasContext(DxfObjectContext context)
         {
@@ -166,7 +178,9 @@ namespace GeometryHelper.Dxf
                 return false;
             }
 
-            foreach (ScaleContext held in ScaleContexts())
+            List<ScaleContext> contexts = ScaleContexts();
+
+            foreach (ScaleContext held in contexts)
             {
                 if (string.Equals(held.Scale, scale.Handle, StringComparison.OrdinalIgnoreCase))
                 {
@@ -174,7 +188,8 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            return false;
+            // An INSERT of an annotative block, or an attribute of one, that holds no context is shown at 1:1 (check D35b).
+            return contexts.Count == 0 && scale.Name == "1:1" && (this is DxfBlockReference || this is DxfAttributeReference) && Annotative == DxfAnnotativeStates.True;
         }
 
         /// <summary>
@@ -203,7 +218,8 @@ namespace GeometryHelper.Dxf
             string handle = ((DxfAnnotationScale)context).Handle;
             List<ScaleContext> held = ScaleContexts();
 
-            if (held.Count == 1)
+            // One shown at 1:1 by its block, holding no context, is shown at that scale alone.
+            if (held.Count <= 1)
             {
                 throw new InvalidOperationException("The scale " + context.Name + " is the last the " + KindName() + " is shown at, which AutoCAD keeps: make it not annotative instead.");
             }
@@ -428,11 +444,14 @@ namespace GeometryHelper.Dxf
             }
 
             var all = new List<DxfItem>();
+            var ratios = new List<double>();
             DxfItem unit = null;
             DxfItem fallback = null;
             string unitScale = null;
             string fallbackScale = null;
             bool unitIsDefault = false;
+            double unitRatio = 1.0;
+            double fallbackRatio = 1.0;
 
             foreach (DxfDBDictionaryEntry entry in contexts)
             {
@@ -464,18 +483,24 @@ namespace GeometryHelper.Dxf
                 }
 
                 all.Add(item);
+                string name = null;
+                double each = 1.0;
+                bool known = scale != null && ScaleOf(item.File, scale, out name, out each);
+                ratios.Add(known ? each : 1.0);
 
-                if (unit == null && scale != null && ScaleOf(item.File, scale, out string name, out _) && name == "1:1")
+                if (unit == null && known && name == "1:1")
                 {
                     unit = item;
                     unitScale = scale;
                     unitIsDefault = isDefault;
+                    unitRatio = each;
                 }
 
                 if (fallback == null && isDefault)
                 {
                     fallback = item;
                     fallbackScale = scale;
+                    fallbackRatio = known ? each : 1.0;
                 }
             }
 
@@ -486,12 +511,12 @@ namespace GeometryHelper.Dxf
 
             if (unit == null || unitIsDefault || fallback == null)
             {
-                return new ShownContexts(all, unit ?? fallback, unit == null || unitIsDefault, 1.0);
+                return new ShownContexts(all, ratios, unit ?? fallback, unit == null || unitIsDefault, 1.0, unit != null ? unitRatio : fallbackRatio, unit != null ? unitRatio : fallbackRatio);
             }
 
             // The record holds the height at the default's scale: at 1:1 it is that times the default's scale.
             double factor = fallbackScale != null && ScaleOf(_item.File, fallbackScale, out _, out double ratio) && ScaleOf(_item.File, unitScale, out _, out double shown) ? ratio / shown : 1.0;
-            return new ShownContexts(all, unit, false, Guard.IsFinite(factor) && factor > 0.0 ? factor : 1.0);
+            return new ShownContexts(all, ratios, unit, false, Guard.IsFinite(factor) && factor > 0.0 ? factor : 1.0, unitRatio, fallbackRatio);
         }
 
         /// <summary>The name of a SCALE (300) and its units of the paper over those of the drawing (140 over 141); false where the handle names none.</summary>
@@ -537,16 +562,28 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private protected sealed class ShownContexts
         {
-            internal ShownContexts(List<DxfItem> all, DxfItem shown, bool shownIsDefault, double heightFactor)
+            internal ShownContexts(List<DxfItem> all, List<double> ratios, DxfItem shown, bool shownIsDefault, double heightFactor, double shownRatio, double defaultRatio)
             {
                 All = all;
+                Ratios = ratios;
                 Shown = shown;
                 ShownIsDefault = shownIsDefault;
                 HeightFactor = heightFactor;
+                ShownRatio = shownRatio;
+                DefaultRatio = defaultRatio;
             }
 
             /// <summary>Every context of the kind, in the order of the dictionary.</summary>
             internal IReadOnlyList<DxfItem> All { get; }
+
+            /// <summary>The scale of each context of <see cref="All"/>, its units of the paper over those of the drawing; 1 where it names no SCALE.</summary>
+            internal IReadOnlyList<double> Ratios { get; }
+
+            /// <summary>The scale of the context shown, as <see cref="Ratios"/> gives one.</summary>
+            internal double ShownRatio { get; }
+
+            /// <summary>The scale of the default context, as <see cref="Ratios"/> gives one; that of the context shown where it is the default or there is none.</summary>
+            internal double DefaultRatio { get; }
 
             /// <summary>The context shown: of the scale 1:1, else the default.</summary>
             internal DxfItem Shown { get; }
@@ -556,6 +593,200 @@ namespace GeometryHelper.Dxf
 
             /// <summary>What the record's height is multiplied by at the shown scale: exactly 1 where it is the default.</summary>
             internal double HeightFactor { get; }
+        }
+
+        /// <summary>
+        /// The groups of a context that the library reads and writes, as AutoCAD 2021 writes them after the marker
+        /// AcDbAnnotScaleObjectContextData and its scale (340): the first of each code given, before the 290 that says whether an
+        /// attribute's MTEXT follows; or, for that MTEXT, those after the marker's second turn; where each stands among the
+        /// record's groups, to be written in its place.
+        /// </summary>
+        private protected sealed class ContextGroups
+        {
+            private readonly DxfItem _item;
+            private readonly int[] _codes;
+            private readonly int[] _places;
+            private readonly double[] _numbers;
+
+            private ContextGroups(DxfItem item, int[] codes)
+            {
+                _item = item;
+                _codes = codes;
+                _places = new int[codes.Length];
+                _numbers = new double[codes.Length];
+
+                for (int i = 0; i < _places.Length; i++)
+                {
+                    _places[i] = -1;
+                }
+            }
+
+            /// <summary>The groups of the codes given, each a slot in their order, of a context as its record holds them now; those of an attribute's MTEXT where embedded is true.</summary>
+            internal static ContextGroups Read(DxfItem item, int[] codes, bool embedded = false)
+            {
+                var context = new ContextGroups(item, codes);
+                IReadOnlyList<DxfTypedValue> groups = item.File.GroupsOf(item);
+                int turn = embedded ? 2 : 1;
+                int seen = 0;
+                bool own = false;
+
+                for (int i = 0; i < groups.Count; i++)
+                {
+                    int code = groups[i].TypeCode;
+
+                    if (code == 100)
+                    {
+                        own = groups[i].Value.Trim() == ScaleContextMarker && ++seen == turn;
+                        continue;
+                    }
+
+                    if (!own)
+                    {
+                        continue;
+                    }
+
+                    if (!embedded && (code == 290 || code == 101))
+                    {
+                        break;
+                    }
+
+                    int slot = Array.IndexOf(codes, code);
+
+                    if (slot >= 0 && context._places[slot] < 0 && Numbers.TryRead(groups[i].Value, out double value) && Guard.IsFinite(value))
+                    {
+                        context._places[slot] = i;
+                        context._numbers[slot] = value;
+                    }
+                }
+
+                return context;
+            }
+
+            /// <summary>The context's record.</summary>
+            internal DxfItem Item => _item;
+
+            /// <summary>Whether the context holds the group of a slot.</summary>
+            internal bool Has(int slot) => _places[slot] >= 0;
+
+            /// <summary>The number of a slot; the fallback where the context holds none.</summary>
+            internal double Value(int slot, double fallback) => Has(slot) ? _numbers[slot] : fallback;
+
+            /// <summary>A copy of the numbers of every slot.</summary>
+            internal double[] Copy() => (double[])_numbers.Clone();
+
+            /// <summary>Writes a number into a slot the context holds, where it differs to the bit; a whole number for a code of one (70).</summary>
+            internal void Write(int slot, double value) => Put(slot, value);
+
+            /// <summary>Writes two numbers, as <see cref="Write(int, double)"/> writes one.</summary>
+            internal void Write(int slot, double value, int other, double otherValue)
+            {
+                Put(slot, value);
+                Put(other, otherValue);
+            }
+
+            /// <summary>Writes every number given, slot by slot, as <see cref="Write(int, double)"/> writes one.</summary>
+            internal void Write(double[] numbers)
+            {
+                for (int slot = 0; slot < numbers.Length; slot++)
+                {
+                    Put(slot, numbers[slot]);
+                }
+            }
+
+            private void Put(int slot, double value)
+            {
+                if (Has(slot) && BitConverter.DoubleToInt64Bits(value + 0.0) != BitConverter.DoubleToInt64Bits(_numbers[slot] + 0.0))
+                {
+                    bool whole = _codes[slot] >= 60 && _codes[slot] < 100;
+                    _item.File.SetValueAt(_item, _places[slot], whole ? ((int)value).ToString(System.Globalization.CultureInfo.InvariantCulture) : Numbers.Exact(value + 0.0));
+                    _numbers[slot] = value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// The groups of a context of an MTEXT, and of the MTEXT of a context of an attribute of several lines, that the library
+        /// reads and writes, in their slots, as AutoCAD 2021 writes them (check D35b): the attachment (70), the direction (10,
+        /// 20, 30), the location (11, 21, 31), the width (40) and the height of the box (41).
+        /// </summary>
+        private protected static class MTextContext
+        {
+            internal const int Attached = 0;
+            internal const int AlongX = 1;
+            internal const int AlongY = 2;
+            internal const int AlongZ = 3;
+            internal const int AtX = 4;
+            internal const int AtY = 5;
+            internal const int AtZ = 6;
+            internal const int Wide = 7;
+            internal const int High = 8;
+
+            internal static readonly int[] Codes = { 70, 10, 20, 30, 11, 21, 31, 40, 41 };
+
+            /// <summary>
+            /// The contexts given as a transformation carries them, each with its new numbers, as AutoCAD 2021 carries them: its
+            /// location carried, its direction carried and made of unit length, its width stretched as its direction is and the
+            /// height of its box as its upright in the plane of the normal given; those of an attribute's MTEXT where embedded is
+            /// true. Null for none.
+            /// </summary>
+            internal static List<KeyValuePair<ContextGroups, double[]>> Moved(IReadOnlyList<DxfItem> contexts, bool embedded, GeoTransform3 transform, GeoVector3 normal)
+            {
+                if (contexts == null)
+                {
+                    return null;
+                }
+
+                var moved = new List<KeyValuePair<ContextGroups, double[]>>(contexts.Count);
+
+                foreach (DxfItem item in contexts)
+                {
+                    ContextGroups context = ContextGroups.Read(item, Codes, embedded);
+                    double[] numbers = context.Copy();
+
+                    if (context.Has(AtX) && context.Has(AtY))
+                    {
+                        GeoPoint3 at = transform.Transform(new GeoPoint3(numbers[AtX], numbers[AtY], numbers[AtZ]));
+                        numbers[AtX] = at.X;
+                        numbers[AtY] = at.Y;
+                        numbers[AtZ] = at.Z;
+                    }
+
+                    if (context.Has(AlongX) && context.Has(AlongY))
+                    {
+                        var along = new GeoVector3(numbers[AlongX], numbers[AlongY], numbers[AlongZ]);
+                        GeoVector3 turned = transform.Transform(along);
+                        GeoVector3 upright = DxfOcsTransform.Cross(normal, along);
+
+                        if (turned.Length > 0.0 && along.Length > 0.0 && upright.Length > 0.0)
+                        {
+                            GeoVector3 unit = DxfOcsTransform.Normalized(turned);
+                            numbers[AlongX] = unit.X;
+                            numbers[AlongY] = unit.Y;
+                            numbers[AlongZ] = unit.Z;
+                            numbers[Wide] *= turned.Length / along.Length;
+                            numbers[High] *= transform.Transform(upright.Divide(upright.Length)).Length;
+                        }
+                    }
+
+                    moved.Add(new KeyValuePair<ContextGroups, double[]>(context, numbers));
+                }
+
+                return moved;
+            }
+        }
+
+        /// <summary>Writes the numbers worked out for contexts into them, slot by slot; nothing for none.</summary>
+        private protected static void WriteMoved(List<KeyValuePair<ContextGroups, double[]>> contexts)
+        {
+            if (contexts == null)
+            {
+                return;
+            }
+
+            foreach (KeyValuePair<ContextGroups, double[]> context in contexts)
+            {
+                context.Key.Write(context.Value);
+            }
         }
 
         /// <summary>A context of a scale an object holds: its entry's name, the handle of its SCALE and whether it is the default.</summary>

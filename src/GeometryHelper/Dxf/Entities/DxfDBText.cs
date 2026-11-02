@@ -61,7 +61,7 @@ namespace GeometryHelper.Dxf
 
         // The contexts of an annotative text and the groups of its shown one as last read, kept until the records of its file
         // next change (TextContexts).
-        private Tuple<DxfItem, int, ShownContexts, ContextText> _contexts;
+        private Tuple<DxfItem, int, ShownContexts, ContextGroups> _contexts;
 
         /// <summary>
         /// Initializes a text with no words at the origin, 2.5 high, as AutoCAD's <c>new DBText()</c>, on layer 0 in the text
@@ -212,7 +212,7 @@ namespace GeometryHelper.Dxf
         {
             get
             {
-                if (TextContexts(out ContextText shown) == null)
+                if (TextContexts(out ContextGroups shown) == null)
                 {
                     return OcsToWorld(Normal, TextPoint(10) ?? Origin);
                 }
@@ -260,7 +260,7 @@ namespace GeometryHelper.Dxf
         {
             get
             {
-                if (TextContexts(out ContextText shown) == null)
+                if (TextContexts(out ContextGroups shown) == null)
                 {
                     return OcsToWorld(Normal, TextPoint(11) ?? Origin);
                 }
@@ -328,7 +328,7 @@ namespace GeometryHelper.Dxf
         {
             get
             {
-                bool held = TextContexts(out ContextText shown) != null && shown.Has(ContextText.Degrees);
+                bool held = TextContexts(out ContextGroups shown) != null && shown.Has(ContextText.Degrees);
                 return (held ? shown.Value(ContextText.Degrees, 0.0) : TextDouble(50, 0.0)) * (Math.PI / 180.0);
             }
 
@@ -393,15 +393,18 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets or sets how the text stands across its point (group 72), as AutoCAD's <c>HorizontalMode</c>;
-        /// <see cref="DxfTextHorizontalMode.TextLeft"/> where the record gives none.
+        /// <see cref="DxfTextHorizontalMode.TextLeft"/> where the record gives none. An annotative one's is that of the context
+        /// it is read at (<see cref="Position"/>), its 70, where it holds one: AutoCAD 2021 read an attribute whose record is
+        /// aligned left, and whose context of 1:1 says 2, as aligned right (check D35b).
         /// </summary>
         /// <value>Set, the mode; a text made other than left on its baseline is given the origin as its second point where it
-        /// has none, as <see cref="Justify"/> says.</value>
+        /// has none, as <see cref="Justify"/> says. An annotative one's written into the context it is read at, and into its
+        /// record where that context is the default, as AutoCAD 2021 writes it.</value>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the mode set is not one of AutoCAD's.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the text is erased.</exception>
         public DxfTextHorizontalMode HorizontalMode
         {
-            get => (DxfTextHorizontalMode)TextInt(72, 0);
+            get => (DxfTextHorizontalMode)Horizontal();
 
             set
             {
@@ -415,7 +418,14 @@ namespace GeometryHelper.Dxf
                     throw new ArgumentOutOfRangeException(nameof(value), value, "A horizontal mode is one of AutoCAD's, 0 to 5.");
                 }
 
-                SetText(Join(WholeGroup(72, (int)value, (int)HorizontalMode), Aligned((int)value, TextInt(VerticalCode, 0))));
+                ShownContexts contexts = TextContexts(out ContextGroups shown);
+
+                if (contexts == null || contexts.ShownIsDefault)
+                {
+                    SetText(Join(WholeGroup(72, (int)value, TextInt(72, 0)), Aligned((int)value, TextInt(VerticalCode, 0))));
+                }
+
+                shown?.Write(ContextText.Horizontal, (int)value);
             }
         }
 
@@ -461,7 +471,7 @@ namespace GeometryHelper.Dxf
         {
             get
             {
-                int horizontal = TextInt(72, 0);
+                int horizontal = Horizontal();
                 int vertical = TextInt(VerticalCode, 0);
                 return horizontal >= 0 && horizontal <= 5 && vertical >= 0 && vertical <= 3 ? (DxfAttachmentPoint)Justifications[horizontal, vertical] : DxfAttachmentPoint.BaseLeft;
             }
@@ -480,7 +490,12 @@ namespace GeometryHelper.Dxf
                     {
                         if (Justifications[horizontal, vertical] == (int)value)
                         {
-                            SetText(Join(WholeGroup(72, horizontal, TextInt(72, 0)), WholeGroup(VerticalCode, vertical, TextInt(VerticalCode, 0)), Aligned(horizontal, vertical)));
+                            // An annotative one's horizontal mode goes into the context it is read at, and into its record
+                            // where that is the default, as HorizontalMode writes it.
+                            ShownContexts contexts = TextContexts(out ContextGroups shown);
+                            bool record = contexts == null || contexts.ShownIsDefault;
+                            SetText(Join(record ? WholeGroup(72, horizontal, TextInt(72, 0)) : new KeyValuePair<int, string>[0], WholeGroup(VerticalCode, vertical, TextInt(VerticalCode, 0)), Aligned(horizontal, vertical)));
+                            shown?.Write(ContextText.Horizontal, horizontal);
                             return;
                         }
                     }
@@ -491,7 +506,13 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Gets whether the text is aligned left on its baseline, its modes both nought, as AutoCAD's <c>IsDefaultAlignment</c>.</summary>
-        public bool IsDefaultAlignment => TextInt(72, 0) == 0 && TextInt(VerticalCode, 0) == 0;
+        public bool IsDefaultAlignment => Horizontal() == 0 && TextInt(VerticalCode, 0) == 0;
+
+        /// <summary>Whether the record itself is aligned left on its baseline, its own modes (72 and the vertical) both nought, whatever a context says.</summary>
+        private protected bool OwnDefaultAlignment => TextInt(72, 0) == 0 && TextInt(VerticalCode, 0) == 0;
+
+        /// <summary>The horizontal mode the text is read with: that of the context it is shown at where it holds one (70), else its record's (72).</summary>
+        private int Horizontal() => TextContexts(out ContextGroups shown) != null && shown.Has(ContextText.Horizontal) ? (int)shown.Value(ContextText.Horizontal, 0.0) : TextInt(72, 0);
 
         /// <summary>Gets or sets whether the text is written backwards (flag 2 of group 71), as AutoCAD's <c>IsMirroredInX</c>.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the text is erased.</exception>
@@ -654,8 +675,10 @@ namespace GeometryHelper.Dxf
             KeyValuePair<int, string>[] groups = TransformGroups(transform);
             List<DxfTypedValue> embedded = IsAttribute ? EmbeddedMoved(transform) : null;
 
-            // The contexts are worked out from the record as it is, and written after it.
-            List<KeyValuePair<ContextText, double[]>> contexts = _contextsStay ? null : ContextsMoved(transform);
+            // The contexts are worked out from the record as it is, and written after it; an attribute's of several lines with
+            // the MTEXT each holds, as AutoCAD 2021 carries them (check D35b).
+            List<KeyValuePair<ContextGroups, double[]>> contexts = _contextsStay ? null : ContextsMoved(transform);
+            List<KeyValuePair<ContextGroups, double[]>> lines = _contextsStay || embedded == null || !Embedded ? null : MTextContext.Moved(TextContexts()?.All, true, transform, Normal);
 
             if (embedded != null)
             {
@@ -667,6 +690,25 @@ namespace GeometryHelper.Dxf
             }
 
             WriteContexts(contexts);
+            WriteMoved(lines);
+        }
+
+        /// <summary>
+        /// Gives the copy of an annotative text, which holds no contexts, the placing its original is read at, as AutoCAD 2021's
+        /// copy reads (check D35b): its horizontal mode, point, second point, angle and height.
+        /// </summary>
+        private protected override void Copied(DxfEntity original)
+        {
+            if (!(original is DxfDBText text) || text.TextContexts() == null)
+            {
+                return;
+            }
+
+            HorizontalMode = text.HorizontalMode;
+            Position = text.Position;
+            AlignmentPoint = text.AlignmentPoint;
+            Rotation = text.Rotation;
+            Height = text.Height;
         }
 
         [DxfType("TEXT")]
@@ -938,6 +980,32 @@ namespace GeometryHelper.Dxf
 
             DxfMText mtext = DxfMText.OfEmbedded(tail);
             mtext.SetPropertiesFrom(this);
+            ShownContexts contexts = TextContexts();
+
+            if (contexts == null)
+            {
+                return mtext;
+            }
+
+            // An annotative one's MTEXT is that of the context it is shown at, as tall as its scale makes it (check D35b).
+            ContextGroups lines = ContextGroups.Read(contexts.Shown, MTextContext.Codes, true);
+
+            if (lines.Has(MTextContext.AtX) && lines.Has(MTextContext.AtY))
+            {
+                mtext.Location = new GeoPoint3(lines.Value(MTextContext.AtX, 0.0), lines.Value(MTextContext.AtY, 0.0), lines.Value(MTextContext.AtZ, 0.0));
+            }
+
+            if (lines.Has(MTextContext.AlongX) && lines.Has(MTextContext.AlongY))
+            {
+                mtext.Direction = new GeoVector3(lines.Value(MTextContext.AlongX, 0.0), lines.Value(MTextContext.AlongY, 0.0), lines.Value(MTextContext.AlongZ, 0.0));
+            }
+
+            if (lines.Has(MTextContext.Attached) && lines.Value(MTextContext.Attached, 1.0) >= 1.0 && lines.Value(MTextContext.Attached, 1.0) <= 9.0)
+            {
+                mtext.Attachment = (DxfAttachmentPoint)(int)lines.Value(MTextContext.Attached, 1.0);
+            }
+
+            mtext.TextHeight = Height;
             return mtext;
         }
 
@@ -983,6 +1051,18 @@ namespace GeometryHelper.Dxf
             string text = value.Text;
             var embedded = new List<DxfTypedValue> { DxfTypedValue.Read(101, "Embedded Object") };
             embedded.AddRange(DxfMText.EmbeddedOf(value));
+            ShownContexts contexts = TextContexts();
+            string[] placing = contexts == null || contexts.ShownIsDefault ? null : RecordPlacing();
+            double height = contexts == null ? value.TextHeight : value.TextHeight / contexts.HeightFactor;
+
+            // An annotative one's record, its MTEXT's among it, holds the height at its default scale.
+            int high = contexts == null ? -1 : embedded.FindIndex(g => g.TypeCode == 40);
+
+            if (high > 0 && !Same(height, value.TextHeight))
+            {
+                embedded[high] = DxfTypedValue.Read(40, Numbers.Exact(height + 0.0));
+            }
+
             Rewrite(
                 Join(
                     text.Length > 0 ? Pair(1, ValueOfLines(value)) : new KeyValuePair<int, string>[0],
@@ -993,14 +1073,105 @@ namespace GeometryHelper.Dxf
                     WholeGroup(72, horizontal, TextInt(72, 0)),
                     WholeGroup(VerticalCode, vertical, TextInt(VerticalCode, 0)),
                     string.Equals(style, TextValue(7), StringComparison.Ordinal) ? new KeyValuePair<int, string>[0] : Pair(7, style),
-                    NumberGroup(40, value.TextHeight, Height),
+                    NumberGroup(40, height, contexts == null ? Height : TextDouble(40, 2.5)),
                     TextValue(41) != null ? Pair(41, null) : new KeyValuePair<int, string>[0],
                     TextValue(51) != null ? Pair(51, null) : new KeyValuePair<int, string>[0],
                     TextValue(71) != null ? Pair(71, null) : new KeyValuePair<int, string>[0]),
                 null,
                 embedded,
                 SeveralLines);
+
+            if (contexts != null)
+            {
+                LinesIntoContexts(contexts, placing, value);
+            }
         }
+
+        /// <summary>
+        /// Writes the MTEXT an annotative attribute is made of into its contexts, as AutoCAD 2021 wrote them (check D35b): in
+        /// each, its second point (11, 21) the MTEXT's location, as the record's, its 290 made 1 and the MTEXT's own context
+        /// after it, embedded as in the record, of the context's default flag and scale, its attachment, direction, location,
+        /// width and box, its extents nought, in no columns; a context that held one already given it anew. Where the context
+        /// shown is not the default, the record, which holds the default's, is given back the point and angle it had.
+        /// </summary>
+        private void LinesIntoContexts(ShownContexts contexts, string[] before, DxfMText lines)
+        {
+            GeoPoint3 aligned = TextPoint(11) ?? Origin;
+            GeoVector3 along = DxfOcsTransform.Normalized(lines.Direction);
+            GeoPoint3 at = lines.Location;
+
+            foreach (DxfItem item in contexts.All)
+            {
+                IReadOnlyList<DxfTypedValue> groups = item.File.GroupsOf(item);
+                string marker = null;
+                string scale = null;
+                bool isDefault = false;
+                int flag = -1;
+
+                for (int i = 0; i < groups.Count && flag < 0; i++)
+                {
+                    int code = groups[i].TypeCode;
+
+                    if (code == 100)
+                    {
+                        marker = groups[i].Value.Trim();
+                    }
+                    else if (code == 290 && marker == "AcDbObjectContextData")
+                    {
+                        isDefault = groups[i].Value.Trim() == "1";
+                    }
+                    else if (code == 340 && marker == "AcDbAnnotScaleObjectContextData" && scale == null)
+                    {
+                        scale = groups[i].Value;
+                    }
+                    else if (code == 290 && marker == "AcDbAnnotScaleObjectContextData")
+                    {
+                        flag = i;
+                    }
+                }
+
+                if (flag < 0 || scale == null)
+                {
+                    continue;
+                }
+
+                ContextText.Read(item).Write(ContextText.AlignedX, aligned.X, ContextText.AlignedY, aligned.Y);
+                item.File.ReplaceTail(item, flag, new[]
+                {
+                    G(290, "1"), G(101, "Embedded Object"), G(100, "AcDbObjectContextData"), G(70, "4"), G(290, isDefault ? "1" : "0"),
+                    G(100, "AcDbAnnotScaleObjectContextData"), G(340, scale), G(70, ((int)lines.Attachment).ToString(CultureInfo.InvariantCulture)),
+                    G(10, Numbers.Exact(along.X + 0.0)), G(20, Numbers.Exact(along.Y + 0.0)), G(30, Numbers.Exact(along.Z + 0.0)),
+                    G(11, Numbers.Exact(at.X + 0.0)), G(21, Numbers.Exact(at.Y + 0.0)), G(31, Numbers.Exact(at.Z + 0.0)),
+                    G(40, Numbers.Exact(lines.Width + 0.0)), G(41, Numbers.Exact(lines.Height + 0.0)), G(42, "0.0"), G(43, "0.0"), G(71, "0"),
+                });
+            }
+
+            if (before == null)
+            {
+                return;
+            }
+
+            int[] codes = { 10, 20, 30, 50 };
+            var back = new List<KeyValuePair<int, string>>();
+
+            for (int i = 0; i < codes.Length; i++)
+            {
+                string was = before[i < 3 ? i : 6];
+                string now = TextValue(codes[i]);
+
+                if (!string.Equals(was, now, StringComparison.Ordinal))
+                {
+                    back.Add(new KeyValuePair<int, string>(codes[i], was));
+                }
+            }
+
+            if (back.Count > 0)
+            {
+                SetText(back.ToArray());
+            }
+        }
+
+        private static KeyValuePair<int, string> G(int code, string value) => new KeyValuePair<int, string>(code, value);
 
         /// <summary>
         /// Makes the attribute of several lines or of one, as AutoCAD's <c>IsMTextAttribute</c> setter does: of several, an MTEXT
@@ -1529,7 +1700,7 @@ namespace GeometryHelper.Dxf
 
             // A text not aligned left on its baseline is held by the origin where its record gives no second point, as AutoCAD
             // reads it, and carries it (check D30).
-            GeoPoint3? aligned = TextPoint(11) ?? (IsDefaultAlignment ? (GeoPoint3?)null : Origin);
+            GeoPoint3? aligned = TextPoint(11) ?? (OwnDefaultAlignment ? (GeoPoint3?)null : Origin);
             double oldRotation = TextDouble(50, 0.0);
             double newRotation = ocs.TransformDegrees(oldRotation);
             double xScale = ocs.TransformLength(FromDegrees(oldRotation));
@@ -1570,11 +1741,11 @@ namespace GeometryHelper.Dxf
         /// The contexts of an annotative text, attribute or definition, as <see cref="TextContexts()"/> gives them, and the groups
         /// of the one it is shown at, read once until the records of its file next change; null and null for one of none.
         /// </summary>
-        private ShownContexts TextContexts(out ContextText shown)
+        private ShownContexts TextContexts(out ContextGroups shown)
         {
             DxfItem item = Item;
             int edits = item.File.EditCount;
-            Tuple<DxfItem, int, ShownContexts, ContextText> kept = Volatile.Read(ref _contexts);
+            Tuple<DxfItem, int, ShownContexts, ContextGroups> kept = Volatile.Read(ref _contexts);
 
             if (kept != null && ReferenceEquals(kept.Item1, item) && kept.Item2 == edits)
             {
@@ -1631,7 +1802,7 @@ namespace GeometryHelper.Dxf
         {
             GeoPoint3 point = TextPoint(10) ?? Origin;
             GeoPoint3 aligned = TextPoint(11) ?? Origin;
-            ContextText shown = ContextText.Read(contexts.Shown);
+            ContextGroups shown = ContextText.Read(contexts.Shown);
             shown.Write(ContextText.X, point.X, ContextText.Y, point.Y);
 
             if (!IsDefaultAlignment)
@@ -1674,7 +1845,7 @@ namespace GeometryHelper.Dxf
         /// of its plane, the second point only for a text not aligned left on its baseline, whose context AutoCAD 2021 leaves at
         /// (0, 0); its angle turned. Null for a text of no context.
         /// </summary>
-        private List<KeyValuePair<ContextText, double[]>> ContextsMoved(GeoTransform3 transform)
+        private List<KeyValuePair<ContextGroups, double[]>> ContextsMoved(GeoTransform3 transform)
         {
             ShownContexts contexts = TextContexts();
 
@@ -1686,11 +1857,11 @@ namespace GeometryHelper.Dxf
             var ocs = new DxfOcsTransform(Normal, transform);
             double elevation = (TextPoint(10) ?? Origin).Z;
             bool aligned = !IsDefaultAlignment;
-            var moved = new List<KeyValuePair<ContextText, double[]>>(contexts.All.Count);
+            var moved = new List<KeyValuePair<ContextGroups, double[]>>(contexts.All.Count);
 
             foreach (DxfItem item in contexts.All)
             {
-                ContextText context = ContextText.Read(item);
+                ContextGroups context = ContextText.Read(item);
                 double[] numbers = context.Copy();
 
                 if (context.Has(ContextText.X) && context.Has(ContextText.Y))
@@ -1712,126 +1883,45 @@ namespace GeometryHelper.Dxf
                     numbers[ContextText.Degrees] = ocs.TransformDegrees(numbers[ContextText.Degrees]);
                 }
 
-                moved.Add(new KeyValuePair<ContextText, double[]>(context, numbers));
+                moved.Add(new KeyValuePair<ContextGroups, double[]>(context, numbers));
             }
 
             return moved;
         }
 
         /// <summary>Writes the numbers <see cref="ContextsMoved"/> worked out into their contexts; nothing for none.</summary>
-        private static void WriteContexts(List<KeyValuePair<ContextText, double[]>> contexts)
+        private static void WriteContexts(List<KeyValuePair<ContextGroups, double[]>> contexts)
         {
             if (contexts == null)
             {
                 return;
             }
 
-            foreach (KeyValuePair<ContextText, double[]> context in contexts)
+            foreach (KeyValuePair<ContextGroups, double[]> context in contexts)
             {
                 context.Key.Write(context.Value);
             }
         }
 
         /// <summary>
-        /// The groups of a context of a text that the library reads and writes, as AutoCAD 2021 writes them after the marker
-        /// AcDbAnnotScaleObjectContextData and its scale (340): the angle in degrees (50), the point (10, 20) and the second
-        /// point (11, 21), the first of each before the 290 that says whether an attribute's MTEXT follows; where each stands
-        /// among the record's groups, to be written in its place.
+        /// The slots of the groups of a context of a text that the library reads and writes, as AutoCAD 2021 writes them after
+        /// the marker AcDbAnnotScaleObjectContextData and its scale (340): the angle in degrees (50), the point (10, 20), the
+        /// second point (11, 21) and the horizontal mode (70), the first of each before the 290 that says whether an attribute's
+        /// MTEXT follows.
         /// </summary>
-        private sealed class ContextText
+        private static class ContextText
         {
             internal const int Degrees = 0;
             internal const int X = 1;
             internal const int Y = 2;
             internal const int AlignedX = 3;
             internal const int AlignedY = 4;
+            internal const int Horizontal = 5;
 
-            private static readonly int[] Codes = { 50, 10, 20, 11, 21 };
-
-            private readonly DxfItem _item;
-            private readonly int[] _places = { -1, -1, -1, -1, -1 };
-            private readonly double[] _numbers = new double[5];
-
-            private ContextText(DxfItem item)
-            {
-                _item = item;
-            }
+            private static readonly int[] Codes = { 50, 10, 20, 11, 21, 70 };
 
             /// <summary>The groups of a context as its record holds them now.</summary>
-            internal static ContextText Read(DxfItem item)
-            {
-                var context = new ContextText(item);
-                IReadOnlyList<DxfTypedValue> groups = item.File.GroupsOf(item);
-                bool own = false;
-
-                for (int i = 0; i < groups.Count; i++)
-                {
-                    int code = groups[i].TypeCode;
-
-                    if (code == 100)
-                    {
-                        own = groups[i].Value.Trim() == "AcDbAnnotScaleObjectContextData";
-                        continue;
-                    }
-
-                    if (!own)
-                    {
-                        continue;
-                    }
-
-                    if (code == 290 || code == 101)
-                    {
-                        break;
-                    }
-
-                    int slot = Array.IndexOf(Codes, code);
-
-                    if (slot >= 0 && context._places[slot] < 0 && Numbers.TryRead(groups[i].Value, out double value) && Guard.IsFinite(value))
-                    {
-                        context._places[slot] = i;
-                        context._numbers[slot] = value;
-                    }
-                }
-
-                return context;
-            }
-
-            /// <summary>Whether the context holds the group of a slot.</summary>
-            internal bool Has(int slot) => _places[slot] >= 0;
-
-            /// <summary>The number of a slot; the fallback where the context holds none.</summary>
-            internal double Value(int slot, double fallback) => Has(slot) ? _numbers[slot] : fallback;
-
-            /// <summary>A copy of the numbers of every slot.</summary>
-            internal double[] Copy() => (double[])_numbers.Clone();
-
-            /// <summary>Writes a number into a slot the context holds, where it differs to the bit.</summary>
-            internal void Write(int slot, double value) => Put(slot, value);
-
-            /// <summary>Writes two numbers, as <see cref="Write(int, double)"/> writes one.</summary>
-            internal void Write(int slot, double value, int other, double otherValue)
-            {
-                Put(slot, value);
-                Put(other, otherValue);
-            }
-
-            /// <summary>Writes every number given, slot by slot, as <see cref="Write(int, double)"/> writes one.</summary>
-            internal void Write(double[] numbers)
-            {
-                for (int slot = 0; slot < numbers.Length; slot++)
-                {
-                    Put(slot, numbers[slot]);
-                }
-            }
-
-            private void Put(int slot, double value)
-            {
-                if (Has(slot) && BitConverter.DoubleToInt64Bits(value + 0.0) != BitConverter.DoubleToInt64Bits(_numbers[slot] + 0.0))
-                {
-                    _item.File.SetValueAt(_item, _places[slot], Numbers.Exact(value + 0.0));
-                    _numbers[slot] = value;
-                }
-            }
+            internal static ContextGroups Read(DxfItem item) => ContextGroups.Read(item, Codes);
         }
 
         private static GeoVector3 FromDegrees(double degrees)
