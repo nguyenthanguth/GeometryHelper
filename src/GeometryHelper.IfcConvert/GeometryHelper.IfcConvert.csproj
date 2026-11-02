@@ -19,6 +19,12 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 13.3.0
+      - GeometryHelper.IfcConvert is released at 13.3.0 with GeometryHelper, which sets the constraint parameters of
+        dynamic DXF blocks, makes block properties tables, and fills tables, lands multileaders and fits splines as
+        AutoCAD 2021 does, and lays polygons and chains into and out of a frame side for side however short a side;
+        nothing in IfcConvert changes.
+
       NEW IN 13.2.0
       - GeometryHelper.IfcConvert is released at 13.2.0 with GeometryHelper, which makes and sets dynamic DXF blocks
         in code, carries polygons, faces and solids through an even scaling as a move does, and fixes short

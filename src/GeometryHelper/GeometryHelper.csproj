@@ -14,38 +14,53 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement bin-packing sheet-layout cad autocad tekla bim drawing</PackageTags>
     <PackageReleaseNotes>
-      NEW IN 13.2.0
+      NEW IN 13.3.0
 
-      A minor release: 126 public members added in GeometryHelper.Dxf, none removed or changed.
+      A minor release: 48 public members added in GeometryHelper.Dxf, none removed or renamed. Nearly all of it is DXF
+      parity with AutoCAD 2021; the results callers will see change are listed under CHANGED.
 
       NEW, DXF
-      - Dynamic blocks made in code: DxfBlockTableRecord.AddLinearParameter, AddXYParameter, AddPointParameter,
-        AddRotationParameter, AddFlipParameter, AddVisibilityParameter, AddLookupParameter, AddAlignmentParameter and
-        AddBasePointParameter, with AddStretchAction, AddMoveAction, AddScaleAction, AddRotateAction, AddFlipAction and
-        AddArrayAction, each written as AutoCAD 2021 saved ACadSharp's sample of it.
-      - DxfBlockReference.DynamicBlockReferencePropertyCollection reads the dynamic properties of an INSERT, and
-        DxfDynamicBlockReferenceProperty.Value sets them as AutoCAD sets them: of 50 to 300 by 10, 77 goes to 80.
-      - new DxfDatabase(version) makes an empty drawing of AC1015 to AC1032; DxfTable.SetDataLink links cells to a
-        DATALINK; DxfTextSymbols holds the symbols of AutoCAD's text editor; DxfGeoData.NorthDirection and
-        DxfLayerStateManager.GetLayerStateNames as AutoCAD's.
+      - Constraint parameters of dynamic blocks: the horizontal, vertical and radial ones AutoCAD's Block Editor wrote
+        are set by solving the block's constraints, within 4E-11 of AutoCAD 2021, and AutoCAD sets the library's INSERTs
+        again. Their expressions take AutoCAD's functions (trunc, floor, ceil, min, max, pow, ln, log, d2r and the rest),
+        pi, e and the remainder %.
+      - Block properties tables: AddBlockPropertiesTable and BlockPropertiesTable, with DxfBlockPropertiesTableColumn
+        (distances, X, Y, angles, attributes, the visibility state) and DxfBlockPropertiesTableRow; AutoCAD's own tables
+        are read and set.
+      - Polar parameters and polar stretches (AddPolarParameter, AddPolarStretchAction), value sets for rotation, XY and
+        polar parameters, lookups of XY, polar and rotation inputs, and attribute definitions locked in their block in
+        stretches, moves, scales, rotates and polar stretches.
 
-      FIXED, geometry
-      - TransformBy of a polygon, a face or a solid under an even scaling carries the shape as a move does, and a
-        stretch checks it at a tolerance loosened as far as it stretches: of 9 600 random bodies transformed, 1 460
-        were refused or came back open, and none now.
-      - Fillets, chamfers, offsets, cuts, closest points and shortest lines read each short side and small arc as it
-        is, in the plane and in space; two arcs whose centres stand a few tenths of a millionth apart cross on both.
-      - Booleans and the measures of bodies with openings, asked at or below the rounding of the coordinates, no
-        longer trust a wrong or open result. Welds that close a crack between two bodies weigh a corner a face lies round
-        by the whole face: of 8 000 unions and cuts at 1E-3 to 0.05, wrong or refused results fell from 24 to 4.
+      CHANGED, DXF: results callers will see change
+      - DxfMLeader.TextHeight, LandingGap, ArrowSize, DoglegLength and BlockScale read and set unscaled, as AutoCAD's API
+        does: at a scale of 2, words drawn 8 high read 4, where they read 8. At a scale of 1 and untransformed nothing
+        changes. TextAttachmentType sets the left side alone; AddLeaderLine lands a new leader as AutoCAD lands it, on a
+        block, and on words where that needs no font.
+      - DxfTable.SetDataType turns a value not of the kind, and SetOverrides gives an override the cell does not hold,
+        where both refused; Fill fills as AutoCAD fills; new cells of InsertRows, InsertColumns and SetSize hold no value,
+        where they held an empty text; HorizontalCellMargin and VerticalCellMargin of a table of no margin of its own read
+        its style's, 1.5 in a drawing of millimetres, where they read 0.06.
+      - A spline through fit points is a cubic of chord-length knots whatever degree is asked, as AutoCAD fits it, and a
+        SPLINE whose control points are not its fit is read as the fit; ToPolyline gives closer to AutoCAD's vertex counts.
+      - round in a constraint expression takes a half up: round(-2.5) is -2, where it was -3.
+      - DxfDatabase.Insert copies an INSERT naming a block the other drawing has not, where it refused the whole drawing.
+      - A block is dynamic where it holds an evaluation graph, not where it holds the GUID alone.
 
-      FIXED and CHANGED, DXF
-      - Texts read their escapes, %%c, %%d, %%p and \M+ codes as AutoCAD 2021 reads them, and a drawing before R2007
-        is saved in its code page.
-      - Dimensions, dimension styles, layers, polyface faces, MTEXT backgrounds, hatch patterns and polyline vertices
-        no longer make files AutoCAD 2021 will not open.
-      - Explode, splines, tables, viewports, groups and MTEXT columns give what AutoCAD 2021 gives; Explode of a
-        MINSERT throws NotSupportedException, as AutoCAD's does.
+      FIXED, DXF
+      - Multileaders explode, keep their landings and scale their blocks and words as AutoCAD 2021 does, and write the
+        style's text style, linetype and arrow block.
+      - Table rows keep their kinds, merged cells are emptied, the lines between cells are read as AutoCAD reads them,
+        SetBackgroundColorNone and IsBackgroundColorNone no longer have it the other way about, and the edits of rows and
+        columns keep the TABLECONTENT in step.
+      - Carets and %% codes in texts and ContentsRTF read as AutoCAD 2021 reads them; a justified text writes its
+        alignment point at the origin too.
+
+      FIXED and CHANGED, geometry
+      - ToPolygon3, ToFace3 and ToPolyline3 lay a shape into a frame, and ProjectToPolygon2, ProjectToFace2 and
+        ProjectToPolyline2 lay it out, side for side however short a side, where the global tolerance took short sides
+        out. A polygon or a face seen edge-on is now refused, where it came out as a line of corners.
+      - TransformBy of faces, solids and polygons one by one reads the transformation once; the results are the same to
+        the bit.
 
       Details in CHANGELOG.md.
 

@@ -6,6 +6,27 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+## 13.3.0 (2026-11-02)
+
+A minor release: 48 public members are added, all in `GeometryHelper.Dxf`, and none is removed or renamed. Of its 78
+entries, 11 NEW, 41 FIXED and 26 CHANGED, all but six are DXF, each checked against what AutoCAD 2021 reads, writes or
+works out. Dynamic blocks set their horizontal, vertical and radial constraint parameters by solving the block's
+constraints, their expressions taking AutoCAD's functions, and AutoCAD sets the library's INSERTs again; they take block
+properties tables, polar parameters and polar stretches, and attribute definitions locked in their block in their
+actions. Tables fill, turn kinds of value, set overrides, put rows and columns in and take them out, merge cells and read
+their lines as AutoCAD 2021 does; multileaders land, explode and scale as it does, and splines are fitted through their
+points as it fits them. Callers will see results change: a multileader's `TextHeight`, `LandingGap`, `ArrowSize`,
+`DoglegLength` and `BlockScale` read unscaled where its scale is not 1 or `TransformBy` scaled it; `DxfTable.SetDataType`
+and `SetOverrides` turn a value or give an override where they refused, `Fill` fills as AutoCAD fills, and new cells hold
+no value where they held an empty text; a spline through fit points is a cubic of chord-length knots whatever degree is
+asked, a SPLINE whose control points are not its fit is read as the fit, and `ToPolyline` gives closer to AutoCAD's vertex
+counts; round in a constraint expression takes a half up, round(-2.5) being -2 where it was -3; `DxfDatabase.Insert`
+copies an INSERT of a block the other drawing has not, where it refused the drawing. On the geometry side, `ToPolygon3`,
+`ToFace3` and `ToPolyline3` lay a shape into a frame, and `ProjectToPolygon2`, `ProjectToFace2` and `ProjectToPolyline2`
+lay it out, side for side however short a side, where the global tolerance took short sides out; a polygon or a face seen
+edge-on is refused, where it came out as a line of corners. `TransformBy` of faces and solids reads the transformation
+once, its results the same to the bit.
+
 **NEW.** The expressions of a dynamic block's constraints take the functions of AutoCAD's help but random, the constants pi
 and e and the remainder %, as AutoCAD 2021 worked them out through its own variables (check D34, 150 expressions): trunc,
 floor, ceil, sign, exp, exp10, ln, log, sinh, cosh, tanh, asinh, acosh, atanh, d2r and r2d, and min, max and pow of two
