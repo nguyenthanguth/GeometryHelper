@@ -2014,3 +2014,46 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       numbers them anew; the extension dictionary AutoCAD makes for an annotative INSERT of no context as it reads a
       drawing, which the library does not make, its context of 1:1 read all the same; and a LINE holding contexts, which
       `HasContext` reads where AutoCAD reads none.
+
+## A multileader scaled, a leader line of one vertex, a table's reals, the contexts of an entity never annotative
+
+101. **Which `TransformBy` marks a multileader's scale as its own; what `RemoveFirstVertex` and `RemoveLastVertex` leave of a
+    leader line, down to one vertex and to none; how a table writes the heights and widths it puts in; whether an entity
+    never annotative is shown at the scales of the contexts it holds.**
+    - Try (D37, headless, plugin GHD37 rounds r1 to r3, each case that might crash AutoCAD in a run of its own): on a
+      Standard of words 4 high, arrows 4, a gap of 2 and doglegs of 8, the words "ABC" at (100, 50) and the box of lines from
+      (-10, -5) to (20, 15) there, each met from (0, 0), moved by (10, 20), turned 30 degrees, mirrored across the XY and the
+      YZ plane, scaled by 1, 2 and 0.5, about (100, 50), turned and scaled by 3, mirrored and scaled by 2, scaled by 2 and
+      back by 0.5; the line from (0, 0) given `RemoveFirstVertex` and `RemoveLastVertex` once, twice and three times, with
+      and without its dogleg drawn, on the right, of the box, of a leader of two lines, of three vertices, then given
+      vertices again, moved and scaled; a line just added to a landed leader and the line of a leader landed by its first
+      vertex given `RemoveFirstVertex`; AutoCAD's own drawing of a line of one vertex read and given it again; the library's
+      files of seven of these read back. D35e's TEXT of contexts of 1:1 and 1:2 handed over to a new LINE, CIRCLE, ARC,
+      POINT, ELLIPSE, XLINE, RAY, SOLID, 3DFACE, LWPOLYLINE and SPLINE, keeping its extension dictionary.
+    - AutoCAD 2021: every `TransformBy` that scales sets bit 24 of the overrides (90), the scale itself still 1, and the
+      bit stays once scaled back; a move, a turn, a mirror, a scaling by 1 and the identity leave it. A mirror across the YZ
+      plane sets bit 14 too, of the words and of the box. `RemoveFirstVertex` takes a line of two down to its landing:
+      (90, 48) beside the words, (82, 55) beside the box, written as a LEADER_LINE of no vertex of its own under a leader
+      landed there (290 1), drawn as its dogleg alone, the content left. `RemoveLastVertex` makes the vertex before the last
+      the leader's point (10) as it stands, with no dogleg drawn too: (0, 0), the vertex then read (8, 0), from a line of two
+      as from one of three. Taken down to none in the session, the leader is written of no landing (290 0, its point kept)
+      and draws no dogleg; given a vertex again, it is landed there. It crashed (FATAL access violation, no event in the log)
+      taking the vertex out of a line just added to a landed leader, out of the line of a leader landed by its first vertex,
+      and out of its own drawing's line of one vertex once read, and took nothing out of a line of none it had emptied
+      itself. `RemoveLastVertex` of a leader of two lines answered eInvalidContext, of either line, of two vertices or of
+      three, and changed nothing; `RemoveFirstVertex` of one of them took it down to one. Each entity handed the TEXT's
+      place held both records and answered `HasContext` of neither scale, `Annotative` NotApplicable, while the drawing was
+      open, as D35e's LINE did both then and read back. Every real of an ACAD_TABLE AutoCAD wrote in D33 to D33g bears its point: `141
+      9.0`, `142 20.0`, `141 12.0`, `140 7.0`, the double of a cell `140 12.0` and `140 1000.0`, the insertion point moved
+      `10 310.0`.
+    - Now: a `TransformBy` that scales sets bit 24, and AutoCAD read it back so; the library's 15 cases of the box give
+      AutoCAD's overrides but for bit 14 of the YZ mirror. `RemoveFirstVertex` and `RemoveLastVertex` take a line down to
+      one vertex, written and drawn as AutoCAD writes and draws it, and AutoCAD read the library's files of them as its own;
+      the one vertex is kept (`InvalidOperationException`), as AutoCAD cannot take it out of a drawing it has read, and so is
+      the last vertex of a leader of more lines than one. `RemoveLastVertex` writes the leader's point as the vertex
+      stands. A table writes as reals the heights and widths `InsertRows`, `InsertColumns`, `SetRowHeight`,
+      `SetColumnWidth` and `SetSize` put in, the sizes `TransformBy` scales, the text heights it and `SetTextHeight` give a
+      cell, a cell's double, block scale and turn. `HasContext` answers false for every object never annotative.
+    - Still apart: bit 14 of a mirror across the YZ plane; the insertion point and direction a table moved or turned
+      writes, which the library writes as it writes every point of an entity (`10 310`); a leader taken down to none, which
+      the library refuses where AutoCAD, in the session that emptied it, allows it.

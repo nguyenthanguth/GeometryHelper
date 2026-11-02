@@ -153,10 +153,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 (t => t.SetValue(2, 0, 12.7), DxfDataType.Long, "301\nCELL_VALUE\n 93\n4\n 90\n1\n 91\n12\n 94\n0\n300\n\n302\n12\n304\n"),
                 (t => t.SetValue(2, 0, -12.7), DxfDataType.Long, "301\nCELL_VALUE\n 93\n4\n 90\n1\n 91\n-12\n 94\n0\n300\n\n302\n-12\n304\n"),
                 (t => t.SetValue(2, 0, 3E9), DxfDataType.Long, "301\nCELL_VALUE\n 93\n4\n 90\n1\n 91\n-2147483648\n 94\n0\n300\n\n302\n-2147483648\n304\n"),
-                (t => t.SetValue(2, 0, "12"), DxfDataType.Double, "301\nCELL_VALUE\n 93\n4\n 90\n2\n140\n12\n 94\n0\n300\n%lu6\n302\n12.0000\n304\n"),
+                (t => t.SetValue(2, 0, "12"), DxfDataType.Double, "301\nCELL_VALUE\n 93\n4\n 90\n2\n140\n12.0\n 94\n0\n300\n%lu6\n302\n12.0000\n304\n"),
                 (t => t.SetValue(2, 0, "-0.5"), DxfDataType.Double, "301\nCELL_VALUE\n 93\n4\n 90\n2\n140\n-0.5\n 94\n0\n300\n%lu6\n302\n-0.5000\n304\n"),
-                (t => t.SetValue(2, 0, "1e3"), DxfDataType.Double, "301\nCELL_VALUE\n 93\n4\n 90\n2\n140\n1000\n 94\n0\n300\n%lu1\n302\n1.0000E+03\n304\n"),
-                (t => t.SetValue(2, 0, 7), DxfDataType.Double, "301\nCELL_VALUE\n 93\n4\n 90\n2\n140\n7\n 94\n0\n300\n\n302\n7.000000\n304\n"),
+                (t => t.SetValue(2, 0, "1e3"), DxfDataType.Double, "301\nCELL_VALUE\n 93\n4\n 90\n2\n140\n1000.0\n 94\n0\n300\n%lu1\n302\n1.0000E+03\n304\n"),
+                (t => t.SetValue(2, 0, 7), DxfDataType.Double, "301\nCELL_VALUE\n 93\n4\n 90\n2\n140\n7.0\n 94\n0\n300\n\n302\n7.000000\n304\n"),
                 (t => t.SetValue(2, 0, 7), DxfDataType.String, "301\nCELL_VALUE\n 93\n4\n 90\n4\n  1\n7\n 94\n0\n300\n\n302\n7\n304\n"),
                 (t => t.SetValue(2, 0, 12.5), DxfDataType.String, "301\nCELL_VALUE\n 93\n4\n 90\n4\n  1\n12.500000\n 94\n0\n300\n\n302\n12.500000\n304\n"),
             };

@@ -132,7 +132,7 @@ namespace GeometryHelper.UnitTest.Dxf
             table.SetDataFormat(2, 0, 0, "%lu2%pr2");
 
             string record = TableRecord(db.ToText());
-            Assert.Contains("301\nCELL_VALUE\n 93\n4\n 90\n2\n140\n12\n 94\n1\n300\n%lu2%pr2\n302\n12.00\n304\nACVALUE_END\n", record, StringComparison.Ordinal);
+            Assert.Contains("301\nCELL_VALUE\n 93\n4\n 90\n2\n140\n12.0\n 94\n1\n300\n%lu2%pr2\n302\n12.00\n304\nACVALUE_END\n", record, StringComparison.Ordinal);
             Assert.Equal("%lu2%pr2", Table(DxfDatabase.Parse(db.ToText())).GetDataFormat(2, 0));
 
             // The unit alone is written in place; a number turned into a text is the text it shows.

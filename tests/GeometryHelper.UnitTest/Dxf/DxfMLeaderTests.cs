@@ -255,15 +255,19 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.Equal(3, back.VerticesCount(1));
                 Assert.Equal(Bits(new GeoPoint3(770, 20, 0)), Bits(back.GetFirstVertex(1)));
 
-                // The last vertex is the leader's: every line of it ends there.
+                // The last vertex is the leader's: every line of it ends there, and AutoCAD 2021 does not take it out of a leader of
+                // two lines (D37 r-twolines-last). A line is taken down to that one vertex (D37 r-first), which it keeps.
                 Assert.Equal(Bits(new GeoPoint3(791, -1.25, 0)), Bits(back.GetLastVertex(1)));
-                Assert.Throws<InvalidOperationException>(() => back.RemoveFirstVertex(0));
+                Assert.Throws<InvalidOperationException>(() => back.RemoveLastVertex(0));
 
                 back.AddLastVertex(0, new GeoPoint3(792, 0, 0));
                 Assert.Equal(3, back.VerticesCount(0));
                 Assert.Equal(Bits(new GeoPoint3(791, -1.25, 0)), Bits(back.GetVertex(0, 1)));
-                back.RemoveLastVertex(0);
-                Assert.Equal(Bits(new GeoPoint3(791, -1.25, 0)), Bits(back.GetLastVertex(0)));
+                back.RemoveFirstVertex(0);
+                back.RemoveFirstVertex(0);
+                Assert.Equal(1, back.VerticesCount(0));
+                Assert.Equal(Bits(new GeoPoint3(792, 0, 0)), Bits(back.GetLastVertex(0)));
+                Assert.Throws<InvalidOperationException>(() => back.RemoveFirstVertex(0));
             }
         }
 

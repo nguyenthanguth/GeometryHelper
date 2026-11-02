@@ -830,7 +830,7 @@ namespace GeometryHelper.Dxf
         {
             Guard.Finite(real, parameter, "A cell's number has to be finite.");
             string text = Numbers.Exact(real + 0.0);
-            return new Written(DxfDataType.Double, real + 0.0, new[] { new KeyValuePair<int, string>(140, text) }, text);
+            return new Written(DxfDataType.Double, real + 0.0, new[] { new KeyValuePair<int, string>(140, AsReal(real)) }, text);
         }
 
         /// <summary>
@@ -867,7 +867,7 @@ namespace GeometryHelper.Dxf
                 default:
                     if (now is int number)
                     {
-                        return new Written(DxfDataType.Double, (double)number, new[] { new KeyValuePair<int, string>(140, Numbers.Exact(number + 0.0)) }, RealText(number, cell.InValue(300)) ?? RealText(number, null));
+                        return new Written(DxfDataType.Double, (double)number, new[] { new KeyValuePair<int, string>(140, AsReal(number)) }, RealText(number, cell.InValue(300)) ?? RealText(number, null));
                     }
 
                     if (!(now is string digits) || !Numbers.TryRead(digits, out double value) || !Guard.IsFinite(value))
@@ -878,7 +878,7 @@ namespace GeometryHelper.Dxf
                     bool tens = digits.IndexOf('e') >= 0 || digits.IndexOf('E') >= 0;
                     DxfDatabase database = IsResident ? Item.File.Database : null;
                     format = tens ? "%lu1" : "%lu6";
-                    return new Written(DxfDataType.Double, value + 0.0, new[] { new KeyValuePair<int, string>(140, Numbers.Exact(value + 0.0)) }, UnitsText(value, tens ? 1 : database?.Lunits ?? 2, database?.Luprec ?? 4));
+                    return new Written(DxfDataType.Double, value + 0.0, new[] { new KeyValuePair<int, string>(140, AsReal(value)) }, UnitsText(value, tens ? 1 : database?.Lunits ?? 2, database?.Luprec ?? 4));
             }
         }
 
@@ -993,7 +993,7 @@ namespace GeometryHelper.Dxf
                 row,
                 col,
                 140,
-                Numbers.Exact(height + 0.0),
+                AsReal(height),
                 now => Numbers.TryRead(now, out double value) && Guard.IsFinite(value) && Same(value, height),
                 () => Guard.Positive(height, nameof(height), "A text's height has to be a finite number above nought."));
         }
@@ -1368,7 +1368,7 @@ namespace GeometryHelper.Dxf
 
             check();
             CheckEditable();
-            cell.SetHead(code, Numbers.Exact(value + 0.0));
+            cell.SetHead(code, AsReal(value));
             cell.Groups.Write(Order);
         }
 

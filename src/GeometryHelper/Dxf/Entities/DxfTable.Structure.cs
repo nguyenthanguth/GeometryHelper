@@ -78,7 +78,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Puts rows in, as AutoCAD's <c>InsertRows</c>: as many rows as asked, of the height given, before a row (after the
         /// last for <see cref="NumRows"/>), each of empty text cells that take their look from the table style; the count of rows
-        /// (91) and their heights (141) are written with them. A block of merged cells the rows go into grows by them, one they
+        /// (91) and their heights (141) are written with them, each as a real, as AutoCAD 2021 writes it, 9 as <c>141 9.0</c>
+        /// (D37). A block of merged cells the rows go into grows by them, one they
         /// go above moves down with its rows, and so does a range of cells linked to data. The rows go into the table's
         /// TABLECONTENT too, where it has one, as AutoCAD 2021's <c>InsertRows</c> writes them: rows of data of empty cells,
         /// a link the TABLECONTENT names moving and growing with its cells, as AutoCAD reads it there, and the merged ranges it
@@ -110,7 +111,7 @@ namespace GeometryHelper.Dxf
             CheckCount(rows, nameof(rows));
             CheckCells((long)layout.Rows + rows, layout.Columns, nameof(rows));
             Guard.Positive(height, nameof(height), "A row's height has to be a finite number above nought.");
-            InsertLines(layout, true, row, rows, Numbers.Exact(height + 0.0), -1);
+            InsertLines(layout, true, row, rows, AsReal(height), -1);
         }
 
         /// <summary>
@@ -188,7 +189,7 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Puts columns in, as AutoCAD's <c>InsertColumns</c>: as many columns as asked, of the width given, before a column
         /// (after the last for <see cref="NumColumns"/>), as <see cref="InsertRows"/> puts rows in, the count (92) and the
-        /// widths (142) written with them; the title merged across every column grows by those put in, first, last or among
+        /// widths (142) written with them, 20 as <c>142 20.0</c>; the title merged across every column grows by those put in, first, last or among
         /// them, its text kept in its first cell, as AutoCAD 2021's <c>InsertColumns</c> grew it, where a merge of another row
         /// moves on with its columns. Columns put in before the title's first column or after its last merge it anew, as AutoCAD
         /// 2021 merged it: its other cells emptied, of no value, under the title's top line, and the line under the title its
@@ -213,7 +214,7 @@ namespace GeometryHelper.Dxf
             CheckCount(columns, nameof(columns));
             CheckCells(layout.Rows, (long)layout.Columns + columns, nameof(columns));
             Guard.Positive(width, nameof(width), "A column's width has to be a finite number above nought.");
-            InsertLines(layout, false, col, columns, Numbers.Exact(width + 0.0), -1);
+            InsertLines(layout, false, col, columns, AsReal(width), -1);
         }
 
         /// <summary>

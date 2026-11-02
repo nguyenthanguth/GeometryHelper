@@ -781,7 +781,7 @@ namespace GeometryHelper.Dxf
                 at = cell.Groups.List[i].Key == code ? i : -1;
             }
 
-            string text = Numbers.Exact(value + 0.0);
+            string text = AsReal(value);
 
             if (at >= 0)
             {
@@ -1137,7 +1137,7 @@ namespace GeometryHelper.Dxf
             {
                 if (Numbers.TryRead(list[at].Value, out double size) && Guard.IsFinite(size))
                 {
-                    list[at] = new KeyValuePair<int, string>(list[at].Key, Numbers.Exact(size * scale + 0.0));
+                    list[at] = new KeyValuePair<int, string>(list[at].Key, AsReal(size * scale));
                 }
             }
         }
@@ -1193,7 +1193,7 @@ namespace GeometryHelper.Dxf
 
                 if (cell.Override(140, Layout.CellOverrides[140]) == null && !double.IsNaN(height))
                 {
-                    cell.SetOverride(140, Numbers.Exact(height + 0.0), flagsCode);
+                    cell.SetOverride(140, AsReal(height), flagsCode);
                 }
             }
         }
@@ -1287,7 +1287,7 @@ namespace GeometryHelper.Dxf
 
             if (titleAcross && layout.Rows == 1)
             {
-                return Numbers.Exact(1.0);
+                return AsReal(1.0);
             }
 
             DxfRowType type = RowType(titleAcross ? 1 : 0);
@@ -1295,7 +1295,7 @@ namespace GeometryHelper.Dxf
             double text = OwnHeight(layout, rowKind);
             text = double.IsNaN(text) ? StyleTextHeights()[rowKind] : text;
             double width = text + 2.0 * Margin(40);
-            return Guard.IsFinite(width) && width > 0.0 ? Numbers.Exact(width + 0.0) : null;
+            return Guard.IsFinite(width) && width > 0.0 ? AsReal(width) : null;
         }
 
         /// <summary>
@@ -1307,7 +1307,7 @@ namespace GeometryHelper.Dxf
         private string NewRowHeight()
         {
             double height = 4.0 / 3.0 * StyleTextHeights()[2] + 2.0 * Margin(41);
-            return Guard.IsFinite(height) && height > 0.0 ? Numbers.Exact(height + 0.0) : null;
+            return Guard.IsFinite(height) && height > 0.0 ? AsReal(height) : null;
         }
 
         /// <summary>
@@ -1579,7 +1579,7 @@ namespace GeometryHelper.Dxf
 
             Guard.Positive(size, parameter, message);
             CheckEditable();
-            string text = Numbers.Exact(size + 0.0);
+            string text = AsReal(size);
 
             foreach (int at in places)
             {

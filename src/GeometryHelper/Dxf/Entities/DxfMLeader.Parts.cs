@@ -122,10 +122,12 @@ namespace GeometryHelper.Dxf
         /// (43), and the arrow sizes leader lines have of their own, left as they are, as AutoCAD 2021's <c>TransformBy</c> leaves
         /// them: a multileader of scale 1, its doglegs 8, scaled by 2 is still of scale 1, its doglegs drawn 16 and 41 still 8,
         /// its words 60 wide then 120 wide, a line's own arrows of 2 still drawn 2, and its block drawn twice the size with
-        /// <see cref="BlockScale"/> still 1. A block mirrored is drawn where the mirror puts it, its normal mirrored with it, its x
-        /// scale turned negative and its turn read from its y axis, and the plane of a multileader of a block takes the mirrored
-        /// normal, an x axis on the side the old one keeps and its y axis across them (297 of nought), as AutoCAD 2021 writes
-        /// them: the box of lines from (-10, -5) to (20, 15) at (100, 50, 0), turned 30 degrees and mirrored across the XY plane,
+        /// <see cref="BlockScale"/> still 1. Where it scales, by 2 or by 0.5, turned or mirrored too, the scale is marked as the
+        /// multileader's own (bit 24 of its overrides, 90), as AutoCAD 2021 marks it, and stays marked once scaled back; a move,
+        /// a turn or a mirror alone leaves the mark as it was. A block mirrored is drawn where the mirror puts it, its normal
+        /// mirrored with it, its x scale turned negative and its turn read from its y axis, and the plane of a multileader of a
+        /// block takes the mirrored normal, an x axis on the side the old one keeps and its y axis across them (297 of nought),
+        /// as AutoCAD 2021 writes them: the box of lines from (-10, -5) to (20, 15) at (100, 50, 0), turned 30 degrees and mirrored across the XY plane,
         /// is of normal (0, 0, -1), scales (-1, 1, 1) and turn 330 degrees, its plane's y axis (0, -1, 0); mirrored across the YZ
         /// plane, of normal (0, 0, 1), its plane's x axis (1, 0, 0). Words mirrored are carried as ezdxf carries them.
         /// </summary>
@@ -330,7 +332,13 @@ namespace GeometryHelper.Dxf
             }
 
             // The MULTILEADER's own block scale (10) and turn (43), sizes (41, 42) and scale (45) left as they are, as AutoCAD 2021
-            // leaves them (s2-k-transform2, k-transform-rot90).
+            // leaves them (s2-k-transform2, k-transform-rot90); the bit of the scale's override set where it scales, as AutoCAD
+            // 2021 sets it, by 2 or 0.5, turned or mirrored with it, and not by a move, a turn or a mirror alone (D37 t-*).
+            if (Math.Abs(scale - 1.0) > 1E-9 * Math.Max(1.0, scale))
+            {
+                SetBit(rec, 24);
+            }
+
             Write(rec);
         }
 
@@ -976,18 +984,40 @@ namespace GeometryHelper.Dxf
             Write(rec);
         }
 
+        /// <summary>
+        /// Takes the first or the last vertex out of a leader line, as AutoCAD 2021 takes them (D37): down to one, the landing,
+        /// which a line keeps, as AutoCAD crashed taking it out of a drawing it had read; the last refused on a leader of more
+        /// lines than one, which all end at it, as AutoCAD refused it (eInvalidContext); the vertex before the last made the
+        /// point the leader's dogleg starts at as it stands, whether the dogleg is drawn or not.
+        /// </summary>
         private void RemoveVertex(int leaderLineIndex, bool first)
         {
             Rec rec = Read();
             List<GeoPoint3> vertices = Vertices(rec, leaderLineIndex, out LinePart line, out LeaderPart leader);
 
-            if (vertices.Count <= 2)
+            if (vertices.Count < 2)
             {
-                throw new InvalidOperationException("A leader line keeps two vertices at least, and this one has " + vertices.Count.ToString(CultureInfo.InvariantCulture) + ".");
+                throw new InvalidOperationException("A leader line keeps its last vertex, which AutoCAD 2021 crashed taking out of a drawing it had read, and this one has " + vertices.Count.ToString(CultureInfo.InvariantCulture) + ".");
+            }
+
+            if (!first && leader.Lines.Count > 1)
+            {
+                throw new InvalidOperationException("The last vertex of a line is the landing every line of its leader ends at, and AutoCAD 2021 does not take it out of a leader of " + leader.Lines.Count.ToString(CultureInfo.InvariantCulture) + " lines (eInvalidContext).");
             }
 
             vertices.RemoveAt(first ? 0 : vertices.Count - 1);
-            WriteVertices(rec, line, leader, vertices);
+
+            if (first || !HasLanding(leader))
+            {
+                WriteVertices(rec, line, leader, vertices);
+                return;
+            }
+
+            // The vertex before the last the point the dogleg starts at, as AutoCAD 2021 writes it with no dogleg drawn too: the
+            // line from (0, 0) is landed at (0, 0), and its last vertex read (8, 0), the end its dogleg of 8 would have.
+            PutPoint(leader.Head, 10, vertices[vertices.Count - 1], LeaderOrder);
+            line.SetVertices(vertices.GetRange(0, vertices.Count - 1));
+            Write(rec);
         }
 
         /// <summary>Takes out the arrow of a leader line (its 94 and the 345 after it).</summary>

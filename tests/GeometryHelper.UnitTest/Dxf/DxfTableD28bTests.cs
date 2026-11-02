@@ -217,7 +217,7 @@ namespace GeometryHelper.UnitTest.Dxf
             table.SetTextStyle(1, 0, (DxfTextStyleTableRecord)db.TextStyleTable["Standard"]);
             table.SetTextHeight(1, 0, 5.0);
 
-            Assert.Equal(text.Replace("170\n5\n  7\nGH_TXT\n140\n3.5\n 92\n", "170\n5\n  7\nStandard\n140\n5\n 92\n"), db.ToText());
+            Assert.Equal(text.Replace("170\n5\n  7\nGH_TXT\n140\n3.5\n 92\n", "170\n5\n  7\nStandard\n140\n5.0\n 92\n"), db.ToText());
             DxfTable again = Table(DxfDatabase.Parse(db.ToText()));
             Assert.Equal("Standard", again.TextStyle(1, 0).Name);
             Assert.Equal(5.0, again.TextHeight(1, 0));

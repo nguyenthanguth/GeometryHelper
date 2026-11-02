@@ -103,7 +103,7 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfTable read = Table(DxfDatabase.Parse(db.ToText()));
             Assert.Equal(new double?[] { 12, 12, 7, 9, 9, 9 }, CellHeights(read));
             Assert.Empty(read.TableStyleOverrides());
-            Assert.DoesNotContain("304\nACVALUE_END\n140\n12\n140\n9\n140\n9\n", TableRecord(db), StringComparison.Ordinal);
+            Assert.DoesNotContain("304\nACVALUE_END\n140\n12.0\n140\n9.0\n140\n9.0\n", TableRecord(db), StringComparison.Ordinal);
             Assert.Equal(20.0, read.RowHeight(0));
         }
 
@@ -139,7 +139,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Table(db).TransformBy(GeoTransform3.Scaling(2.0));
 
-            Assert.EndsWith("304\nACVALUE_END\n140\n10\n", TableRecord(db), StringComparison.Ordinal);
+            Assert.EndsWith("304\nACVALUE_END\n140\n10.0\n", TableRecord(db), StringComparison.Ordinal);
             Assert.Contains("145\n0.0\n140\n0.36\n 92\n0\n340\n", TableRecord(db), StringComparison.Ordinal);
             Assert.Contains("\n 93\n1048576\n", TableRecord(db), StringComparison.Ordinal);
             Assert.Equal(new double?[] { 10, 10, 7, 0.36, 0.36, 0.36 }, CellHeights(Table(DxfDatabase.Parse(db.ToText()))));

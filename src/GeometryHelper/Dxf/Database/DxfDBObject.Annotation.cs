@@ -159,7 +159,10 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gets whether the object is shown at a scale, as AutoCAD's <c>HasContext</c>: whether a context under
         /// ACDB_ANNOTATIONSCALES of AcDbContextDataManager of its extension dictionary points at the scale's SCALE, by the first
-        /// 340 of its subclass AcDbAnnotScaleObjectContextData, of any kind of object. Those two groups, with the default flag
+        /// 340 of its subclass AcDbAnnotScaleObjectContextData, of any kind of context; never for an object that is never
+        /// annotative (<see cref="Annotative"/> <see cref="DxfAnnotativeStates.NotApplicable"/>), as a LINE, a CIRCLE or a
+        /// layer, whatever records it holds, as AutoCAD 2021 answered for eleven kinds of entity handed a TEXT's contexts by
+        /// <see cref="HandOverTo"/> (check D37), which keeps them. Those two groups, with the default flag
         /// (290 of AcDbObjectContextData), are all the library reads of a context, but for the placing of the context of a TEXT,
         /// an attribute or a definition, an MTEXT and an INSERT, which <see cref="DxfDBText.Position"/>,
         /// <see cref="DxfMText.Location"/> and <see cref="DxfBlockReference.Position"/> read and write; the rest of AutoCAD's
@@ -167,8 +170,8 @@ namespace GeometryHelper.Dxf
         /// and is shown at the scales of its original's drawing.
         /// </summary>
         /// <param name="context">The scale, of the object's drawing's list.</param>
-        /// <returns>Whether it is; false for a scale of another drawing or in none, and for an object with no contexts, as one not
-        /// annotative, but for an annotative INSERT, or an ATTRIB of one, that holds none, which is shown at the scale named 1:1,
+        /// <returns>Whether it is; false for a scale of another drawing or in none, for an object never annotative, and for an
+        /// object with no contexts, as one not annotative, but for an annotative INSERT, or an ATTRIB of one, that holds none, which is shown at the scale named 1:1,
         /// whatever CANNOSCALE says, as AutoCAD 2021 read one (check D35b).</returns>
         /// <exception cref="ArgumentNullException">Thrown when the scale is null.</exception>
         public bool HasContext(DxfObjectContext context)
@@ -181,7 +184,8 @@ namespace GeometryHelper.Dxf
             // A copy that carries its original's contexts is shown at the scales of its original's drawing.
             DxfFile own = _item?.CopiedContexts != null ? _item.File.Origin : _item?.File;
 
-            if (!(context is DxfAnnotationScale scale) || scale.Item == null || _item == null || scale.Item.File != own)
+            // An object never annotative, as a LINE, is shown at no scale, whatever records it holds (check D37).
+            if (!(context is DxfAnnotationScale scale) || scale.Item == null || _item == null || scale.Item.File != own || AnnotativeKind() == AnnotationKind.None)
             {
                 return false;
             }

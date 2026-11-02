@@ -6,6 +6,32 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** `DxfMLeader.RemoveFirstVertex` and `RemoveLastVertex` take a leader line down to one vertex, as AutoCAD 2021
+does, where the library kept two (check D37). The line from (0, 0, 0) to the words "ABC" at (100, 50, 0) is left (90, 48,
+0) by the first, written as a line of no vertex of its own under its landed leader and drawn as its dogleg alone, and
+(0, 0, 0) by the last, its dogleg drawn on to (8, 0, 0), the words left where they are. The one vertex is kept
+(`InvalidOperationException`): AutoCAD crashed taking it out of a drawing it had read.
+
+**CHANGED.** `DxfMLeader.RemoveLastVertex` refuses the last vertex of a leader of two lines or more
+(`InvalidOperationException`), the landing every line of the leader ends at, as AutoCAD 2021 refuses it (eInvalidContext),
+where the library moved the landing for them all (check D37). With no dogleg drawn it writes the vertex before the last as
+the leader's point, as AutoCAD does: the line from (-10, -10, 0) through (0, 0, 0) to its landing is landed at (0, 0, 0),
+its last vertex then read (8, 0, 0), where the library wrote the point (-8, 0, 0).
+
+**FIXED.** A `TransformBy` that scales a `DxfMLeader`, by 2 or by 0.5, turned or mirrored too, marks its scale as its own
+(bit 24 of its overrides, `90`), as AutoCAD 2021 marks it (check D37, D31e c3-k-transform2-blockscale1); a move, a turn
+or a mirror alone does not, as before.
+
+**FIXED.** `DxfTable` writes the reals it gives a table with their point, as AutoCAD 2021 writes every real of a table
+(check D37, D33 to D33g): a row `InsertRows` puts in 9 high is `141 9.0` and a column `InsertColumns` puts in 20 wide `142
+20.0`, where the library wrote `141 9` and `142 20`; so are the heights and widths `SetRowHeight`, `SetColumnWidth` and
+`SetSize` give, the sizes and text heights `TransformBy` scales, a cell's text height (`140 7.0`), its double (`140
+12.0`), its block's scale and its turn. Numbers that are not whole are written as before.
+
+**FIXED.** `HasContext` answers false for an object that is never annotative, as a LINE, a CIRCLE or a layer, whatever
+context records it holds, as AutoCAD 2021 answered for eleven kinds of entity handed a TEXT's contexts by `HandOverTo`
+(check D37), where the library read the records as its contexts. The records are kept, as before.
+
 **FIXED.** `HandOverTo` keeping the extension dictionary refuses one of contexts of another kind of entity with
 `ArgumentException`, before anything is written, where it wrote a drawing AutoCAD 2021 crashed reading (check D35e). A TEXT
 of contexts handed over to an MTEXT left the MTEXT the TEXT's records, and AutoCAD stopped with a FATAL access violation on

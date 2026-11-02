@@ -1248,7 +1248,8 @@ an INSERT reading its block's, and gives `NotApplicable` for a line. Set true, i
 annotative by that data alone; an entity is refused, since AutoCAD shows an annotative entity at a scale by a context record
 of the OBJECTS section that the library does not write until that record is checked on a drawing AutoCAD saved. `HasContext`
 reads an object's contexts, of any kind, under ACDB_ANNOTATIONSCALES of AcDbContextDataManager of its extension dictionary, by
-the scale each points at (its 340); `RemoveContext` erases one, the default and the last refused, and `Annotative =
+the scale each points at (its 340), and none of an object never annotative, as a LINE or a CIRCLE handed a TEXT's contexts by
+`HandOverTo`, which keeps them, as AutoCAD 2021 reads it; `RemoveContext` erases one, the default and the last refused, and `Annotative =
 DxfAnnotativeStates.False` erases them all with the data. `PaperOrientation` reads whether an annotative object keeps the way
 up of the sheet from the extended data AcadAnnoPO, a reading of AutoCAD's that is not yet checked either.
 
@@ -2224,7 +2225,11 @@ the dogleg would have, which the lines run on to, as AutoCAD 2021 reads it: a do
 leaves the line ending at (98, 48, 0). A leader added by `AddLeader` has no landing yet, as AutoCAD 2021 writes it (290 of
 nought): it draws no dogleg, a line added to it has no vertex, and the first vertex given a line of it (`AddFirstVertex` or
 `AddLastVertex`) becomes its landing, the content left where it is; words at (100, 50, 0) given a second leader whose line
-is given (-20, 80, 0), its last vertex then set to (40, 70, 0), stand at (160, 40, 0), as AutoCAD's own. `SetDogleg` lands a
+is given (-20, 80, 0), its last vertex then set to (40, 70, 0), stand at (160, 40, 0), as AutoCAD's own. `RemoveFirstVertex`
+and `RemoveLastVertex` take a line down to one vertex, as AutoCAD 2021 does: the line from (0, 0, 0) to words at (100, 50,
+0) is left (90, 48, 0) by the first, drawn as its dogleg alone, and (0, 0, 0) by the last, its dogleg drawn on to (8, 0,
+0), the words left where they are. A line keeps that one vertex, which AutoCAD crashed taking out of a drawing it had read,
+and the last vertex of a leader of two lines, which both end at, is not taken out, as AutoCAD refuses it. `SetDogleg` lands a
 leader of no landing, or one whose dogleg it turns, on the side of the content the dogleg runs from, on the left of words
 or either side of a block, so that a vertex given a line of it then goes before the landing: against x, the box at
 (100, 50, 0) is met from (128, 55, 0). A property set is written in the MULTILEADER and in its context data, where AutoCAD
@@ -2310,7 +2315,9 @@ leader's longer dogleg meets it at its end, the dogleg's start kept: the box of 
 `TransformBy` leaves the scale and the multileader's own sizes as they are, as AutoCAD does: scaled by 2 the multileader is
 still of scale 1, its 41 still 8 and 42 still 4, its doglegs drawn 16 and its arrows 8, which `DoglegLength` and
 `ArrowSize` read, as AutoCAD reads them; its block is drawn twice the size with `BlockScale` still 1 (10 left) and its
-matrix written as the block's transform where it stands. A block turned half round about an axis of its plane is drawn
+matrix written as the block's transform where it stands. A `TransformBy` that scales, by 2 or by 0.5, turned or mirrored
+too, marks the scale as the multileader's own (bit 24 of its 90), as AutoCAD 2021 marks it; a move, a turn or a mirror
+alone does not. A block turned half round about an axis of its plane is drawn
 mirrored, its normal turned over and its scales kept, as AutoCAD writes it; a block mirrored is drawn where the mirror puts
 it, its normal mirrored with it, its x scale negative and its turn read from its y axis, the multileader's plane of the
 mirrored normal, an x axis on the side the old one keeps and its y across them, as AutoCAD writes them: the box turned 30
@@ -2524,7 +2531,8 @@ A table's structure changes as AutoCAD's does, each change written in one writin
 AutoCAD to draw anew. `InsertRows(row, height, rows)` and `InsertColumns(col, width, columns)` put in rows and columns
 of empty text cells, written in the form of the file (text in 1 before R2007, from R2007 on a `301 CELL_VALUE` of no
 value, `93 7` and `90 0`, as AutoCAD 2021 writes a new cell and reads as of no value), with
-their counts (91, 92) and heights and widths (141, 142): the table of rows 10, 8 and 8 given two rows 6 high before its
+their counts (91, 92) and heights and widths (141, 142), written as reals as AutoCAD 2021 writes every real of a table (`141
+9.0` for a row 9 high, `142 20.0` for a column 20 wide): the table of rows 10, 8 and 8 given two rows 6 high before its
 row 2 has rows 10, 8, 6, 6 and 8, and a column 25 wide put in before its column 1 grows the title merged across it to
 three columns; so does one put in before column 0 or after the last, Parts kept in (0, 0), as AutoCAD 2021 grows a
 title merged across the table, where a merge of another row moves on with its columns. A column put in before the

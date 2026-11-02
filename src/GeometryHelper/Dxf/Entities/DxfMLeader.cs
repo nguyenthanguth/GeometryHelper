@@ -1656,19 +1656,29 @@ namespace GeometryHelper.Dxf
             WriteVertices(rec, line, leader, vertices);
         }
 
-        /// <summary>Takes the first vertex of a leader line out, as AutoCAD's <c>RemoveFirstVertex</c>; a line keeps two vertices.</summary>
-        /// <param name="leaderLineIndex">The index of the line.</param>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the MULTILEADER has no line of the index.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when the line has two vertices or fewer, or the MULTILEADER is erased.</exception>
-        public void RemoveFirstVertex(int leaderLineIndex) => RemoveVertex(leaderLineIndex, true);
-
         /// <summary>
-        /// Takes the last vertex of a leader line out, as AutoCAD's <c>RemoveLastVertex</c>: the vertex before it becomes the end
-        /// of the leader's landing (<see cref="GetLastVertex"/>); a line keeps two vertices.
+        /// Takes the first vertex of a leader line out, as AutoCAD's <c>RemoveFirstVertex</c>, down to one, the point its leader's
+        /// dogleg starts at, as AutoCAD 2021 takes it: the line from (0, 0, 0) to the words "ABC" at (100, 50, 0) is left the one
+        /// vertex (90, 48, 0), written as a line of no vertex of its own, and drawn as its dogleg alone, from (90, 48, 0) to
+        /// (98, 48, 0), with no arrow. A line keeps that vertex, which AutoCAD 2021 crashed taking out of a drawing it had read.
         /// </summary>
         /// <param name="leaderLineIndex">The index of the line.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the MULTILEADER has no line of the index.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when the line has two vertices or fewer, or the MULTILEADER is erased.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the line has one vertex or none, or the MULTILEADER is erased.</exception>
+        public void RemoveFirstVertex(int leaderLineIndex) => RemoveVertex(leaderLineIndex, true);
+
+        /// <summary>
+        /// Takes the last vertex of a leader line out, as AutoCAD's <c>RemoveLastVertex</c>, down to one: the vertex before it
+        /// becomes the point the leader's dogleg starts at, as it stands, the content left where it is, as AutoCAD 2021 makes it.
+        /// The line from (0, 0, 0) to the words "ABC" at (100, 50, 0) is landed at (0, 0, 0), its dogleg drawn to (8, 0, 0); with
+        /// no dogleg drawn (<see cref="EnableDogleg"/>) the dogleg starts at (0, 0, 0) all the same, and the vertex reads (8, 0, 0),
+        /// the end the dogleg would have, as <see cref="GetLastVertex"/> reads it. A line keeps one vertex, as
+        /// <see cref="RemoveFirstVertex"/> says; and the last vertex of a leader of more lines than one, the landing they all end
+        /// at, is not taken out, as AutoCAD 2021 refuses it.
+        /// </summary>
+        /// <param name="leaderLineIndex">The index of the line.</param>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the MULTILEADER has no line of the index.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the line has one vertex or none, or its leader has more lines than one, or the MULTILEADER is erased.</exception>
         public void RemoveLastVertex(int leaderLineIndex) => RemoveVertex(leaderLineIndex, false);
 
         /// <summary>
