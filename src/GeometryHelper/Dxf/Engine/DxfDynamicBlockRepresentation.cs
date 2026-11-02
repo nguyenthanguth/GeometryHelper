@@ -718,6 +718,9 @@ namespace GeometryHelper.Dxf
                 {
                     entity.Erase();
                 }
+
+                // A copy of a network the anonymous block held names the entities just erased.
+                DxfBlockConstraints.Release(anonymous);
             }
             else
             {
@@ -772,12 +775,52 @@ namespace GeometryHelper.Dxf
 
             Copy(block, values, copyOf, database, anonymous);
 
+            // The anonymous block holds a copy of the block's network at the values set, as AutoCAD 2021 gives its own, through
+            // which alone it solves the constraints again at a value set later (plugin D27b).
+            block.Constraints?.Copy(anonymous, Own(dynamic), copyOf, Given(block, values), Held(block, users));
+
             if (!ReferenceEquals(insert.BlockTableRecord, anonymous))
             {
                 insert.BlockTableRecord = anonymous;
             }
 
             Cache(insert, dynamic, block, values, state, labels, users);
+        }
+
+        /// <summary>
+        /// The values of the variables the constraint parameters drive, by the variables' names: each parameter's distance
+        /// as AutoCAD 2021 takes a value into a variable (<see cref="DxfBlockConstraints.Rounded"/>), as it solved Height
+        /// 612.3456789012345 of its Fluorescent sample at 612.345678901 (plugin D27b).
+        /// </summary>
+        private static Dictionary<string, double> Given(Block block, Dictionary<string, double[]> values)
+        {
+            var given = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (Param parameter in block.Parameters)
+            {
+                if (parameter is Dimensional dimensional && dimensional.Dimension != null)
+                {
+                    given[dimensional.Dimension.Variable] = DxfBlockConstraints.Rounded(values[parameter.Id][0]);
+                }
+            }
+
+            return given;
+        }
+
+        /// <summary>The values of the user parameters, by the handles of their variables: each the value set, else the block's own.</summary>
+        private static Dictionary<string, object> Held(Block block, Dictionary<string, object> users)
+        {
+            var held = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (User user in block.Users)
+            {
+                if (user.Variable != null)
+                {
+                    held[user.Variable] = users.TryGetValue(user.Id, out object given) ? given : user.Own;
+                }
+            }
+
+            return held;
         }
 
         /// <summary>The block's own entities, by their handles.</summary>
@@ -813,14 +856,14 @@ namespace GeometryHelper.Dxf
                 throw new NotSupportedException("A constraint parameter of the block " + dynamic.Name + " drives no dimensional constraint the library reads in the block's associative network.");
             }
 
-            var given = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+            var bases = new Dictionary<string, GeoPoint3>(StringComparer.OrdinalIgnoreCase);
 
             foreach (Param parameter in dimensions)
             {
-                given[((Dimensional)parameter).Dimension.Variable] = values[parameter.Id][0];
+                bases[((Dimensional)parameter).Dimension.Variable] = parameter.Base;
             }
 
-            DxfBlockConstraints.Solution solution = block.Constraints.Solve(given);
+            DxfBlockConstraints.Solution solution = block.Constraints.Solve(Given(block, values), bases);
 
             if (solution == null)
             {
@@ -1548,17 +1591,15 @@ namespace GeometryHelper.Dxf
                     }
                 }
 
-                // The constraint parameters drive dimensional constraints of the block's associative network.
-                if (block.Parameters.Exists(p => p is Dimensional))
-                {
-                    block.Constraints = DxfBlockConstraints.Of(dynamic);
+                // The constraint parameters drive dimensional constraints of the block's associative network, which the
+                // anonymous block is given a copy of (plugin D27b) whether or not the block has any.
+                block.Constraints = DxfBlockConstraints.Of(dynamic);
 
-                    foreach (Param parameter in block.Parameters)
+                foreach (Param parameter in block.Parameters)
+                {
+                    if (parameter is Dimensional dimensional)
                     {
-                        if (parameter is Dimensional dimensional)
-                        {
-                            dimensional.Dimension = block.Constraints?.DimensionOf(parameter.Handle);
-                        }
+                        dimensional.Dimension = block.Constraints?.DimensionOf(parameter.Handle);
                     }
                 }
 
@@ -2921,6 +2962,9 @@ namespace GeometryHelper.Dxf
 
             internal object Own { get; private set; }
 
+            /// <summary>The handle of the variable of the block's network that holds the parameter's value.</summary>
+            internal string Variable { get; private set; }
+
             internal static User Of(IReadOnlyList<DxfTypedValue> groups, string id, DxfFile file, string block)
             {
                 List<DxfTypedValue> own = DxfDynamicProperties.Section(groups, "AcDbBlockUserParameter");
@@ -2950,7 +2994,7 @@ namespace GeometryHelper.Dxf
                     throw new NotSupportedException("A user parameter of the block " + block + " keeps a value the library cannot read.");
                 }
 
-                return new User { Id = id, Location = new GeoPoint3(at[0], at[1], at[2]), IsText = code == 1, Own = value };
+                return new User { Id = id, Location = new GeoPoint3(at[0], at[1], at[2]), IsText = code == 1, Own = value, Variable = variable.Handle };
             }
         }
 

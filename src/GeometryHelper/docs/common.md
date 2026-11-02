@@ -1317,12 +1317,13 @@ attribute definitions in a stretch, a move, a scale or a rotate, whose ATTRIBs o
 and what is still refused, is set out after the examples.
 
 Constraint parameters of such a block (AutoCAD's horizontal, vertical and radial ones) are set too, by solving the block's
-geometric and dimensional constraints, which the library reads from the block's associative network and does not write:
-`Property(insert, "Width").Value = 1200.0` on AutoCAD's Fluorescent sample, a rectangle 1 000 by 500 fixed at its corner,
-moves its right side to x = 1 200 as AutoCAD 2021 did, to 3E-13 (check D27). A value the constraints cannot meet without
-moving geometry they leave free is refused with `NotSupportedException`, nothing written, as AutoCAD moved such geometry by
-rules of its own, and so is a block of a constraint or an expression the library does not solve, as the paragraph on
-constraint parameters after the block properties tables below sets out.
+geometric and dimensional constraints, which the library reads from the block's associative network and copies into the
+INSERT's anonymous block as AutoCAD does: `Property(insert, "Width").Value = 1200.0` on AutoCAD's Fluorescent sample, a
+rectangle 1 000 by 500 fixed at its corner, moves its right side to x = 1 200 as AutoCAD 2021 did, to 3E-13 (check D27).
+Geometry the constraints leave free moves as AutoCAD moved it: Width 1 000 of its Door Elevation, fixed nowhere, keeps the
+door's left side, where Width's base point is (check D27b). A block of a constraint or an expression the library does not
+solve is refused with `NotSupportedException`, nothing written, as the paragraph on constraint parameters after the block
+properties tables below sets out.
 
 A dynamic block is found as
 ezdxf finds it, by the extended data `AcDbDynamicBlockGUID` of its BLOCK_RECORD, or `AcDbBlockRepBTag` of the anonymous
@@ -1796,26 +1797,34 @@ constraints of its Hex Head Bolt as they were when a row set DIA from 10 to 6, t
 (check D27).
 
 A horizontal, a vertical or a radial constraint parameter is set by solving the block's constraints, which AutoCAD keeps in
-the associative network of its BLOCK_RECORD (`ACAD_ASSOCNETWORK`): the distance is taken to its value set, given to the
-variable of the dimensional constraint the parameter drives, the variables of expressions of it worked out (numbers, the
-names of variables, + - * / ^ and brackets, as `width-W3*2` of the Fluorescent sample), and the lines, arcs, circles and
-polyline edges the constraints hold moved from the block's own by Newton's method, each step the least that meets them,
-before any action works on what they give. The constraints read are those of AutoCAD's samples: coincident points, a point
-on a curve, parallel, perpendicular, horizontal (to a datum line), colinear, tangent, a middle, a centre, fixed, equal
-lengths and radii, a distance along x or y, an angle and a radius. Geometry the constraints leave free is held where the
-block has it, and a value that cannot be met without moving it is refused: AutoCAD 2021 moved such geometry by rules of
-its own, keeping the left side of its Door Elevation, fixed nowhere, at a new Width where the least change moves both
-sides by half, and the fillets of its Hex Head Bolt whole at a new HdCr where the least change shrinks them to nothing.
-AutoCAD 2021 solved its samples so once `AssocManager.EvaluateTopLevelNetwork` ran, and the library's 51 values of its
-Fluorescent, Window, Channel, Concrete Pipe, Hex Head Bolt (Length and DIA) and WF Beam (W) samples, metric and imperial,
-came out within 4E-11 of AutoCAD's; the 27 others it refused, Door Elevation, the beams' flanges and the bolt's head among
-them (check D27). A table whose properties must match a row leaves a constraint parameter at the value set and the others
-at theirs, no row matched, as AutoCAD set Fluorescent's Width 1 200; a constraint parameter of no column leaves the
+the associative network of its BLOCK_RECORD (`ACAD_ASSOCNETWORK`), in drawings of R2010 and of R2018 alike: the distance
+is taken to its value set and to twelve significant digits, as AutoCAD 2021 solved Height 612.3456789012345 of its
+Fluorescent sample at 612.345678901 (check D27b), given to the variable of the dimensional constraint the parameter drives,
+the variables of expressions of it worked out (numbers, the names of variables, + - * / ^, brackets and the functions sin,
+cos, tan, asin, acos, atan, sqrt, abs and round, angles in degrees, as AutoCAD read `width*cos(60)` as half the width), and
+the lines, arcs, circles, polyline edges and construction lines the constraints hold moved from the block's own by Newton's
+method, each step the least that meets them, before any action works on what they give. The constraints read are those of
+AutoCAD's samples: coincident points, a point on a curve, parallel, perpendicular, horizontal (to a datum line), colinear,
+tangent, a middle, a centre, fixed, equal lengths and radii, a distance along x or y, an angle of two lines or of three
+points and a radius. Geometry the constraints leave free keeps the base point of each parameter set where it is along its
+distance, as AutoCAD kept the left side of its Door Elevation, fixed nowhere, at a new Width where the least change moves
+both sides by half; what is still free is held where the block has it, the radii and the ends of arcs before the rest
+where all at once cannot be met, as AutoCAD kept the fillets of its Hex Head Bolt whole at a new HdCr where the least
+change shrinks them to nothing. AutoCAD 2021 solved its samples so once `AssocManager.EvaluateTopLevelNetwork` ran, and of
+the 79 values the library set on its Fluorescent, Door Elevation, Window, Channel, Concrete Pipe, Hex Head Bolt, WF Beam
+and I Beam samples, metric and imperial, 77 came out within 3E-12 of AutoCAD's, one of an I Beam whose own geometry is
+7E-6 off its constraints 1.5E-6 off, and one, Fluorescent's Width 800 after Height 300, apart, as AutoCAD took its table's
+row back (check D27b). A table whose properties must match a row leaves a constraint parameter at the value set and the
+others at theirs, no row matched, as AutoCAD set Fluorescent's Width 1 200, and reads the parameters of its columns as read
+only, as AutoCAD read Fluorescent's Width and Height, though they are set; a constraint parameter of no column leaves the
 table's user parameters as they are, as AutoCAD kept the bolt's Size 1 at Length 80; a flip carrying a constraint
-parameter, as the Window sample's carries DoorWidth, mirrors its points with the rest. Setting one takes from 5 to 100
-milliseconds. AutoCAD 2021 read every INSERT the library set as the library drew it, to 1E-13, with no audit error of its
-own, and flipped it again; but it did not solve it again at another value until the block was reset (`RESETBLOCK`), as
-the anonymous block the library writes holds no network of its own, where AutoCAD's holds a copy of the block's.
+parameter, as the Window sample's carries DoorWidth, mirrors its points with the rest. Setting one takes from 5 to 300
+milliseconds, and up to 3 seconds for the imperial bolt's 226 nodes. The INSERT's anonymous block is given a copy of the
+block's network at the values set, as AutoCAD writes its own: each object copied with a handle of its own, the copies of
+the entities named, the variables, the geometry and the dimensions of the constraints at the values set, and the copy
+listed by the drawing's network. AutoCAD 2021 read every INSERT the library set as the library drew it, with no audit
+error of its own, and set it again from the copy as from its own, 15 values of 7 samples within 1E-12 of AutoCAD's own
+sets one after the other (check D27b); before, it set none again until the block was reset (`RESETBLOCK`).
 
 A row is read within 1E-7: AutoCAD 2021 read the row of 200 at 200.00000001 and none at 200.0000002 (check D26b). A column
 of the visibility state (`DxfBlockPropertiesTableColumn.Visibility(block)`, the connection VisibilityState as AutoCAD's own
@@ -2759,14 +2768,13 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
     linear parameters; attribute definitions not locked in their block, which a move, a scale and a rotate leave where they
     are and a stretch moves without their ATTRIBs, as AutoCAD 2021 did (check D30); a polar stretch naming an entity to
     turn only in its selection too, or its parameter's grip; horizontal, vertical and radial constraint parameters, by
-    solving the block's constraints, and a flip carrying them (check D27). The constraints and their network are read,
-    never written: the anonymous block holds none, so AutoCAD 2021 solved such an INSERT again only once it was reset.
+    solving the block's constraints, and a flip carrying them (check D27). The network is copied into the anonymous block
+    at the values set, from which AutoCAD 2021 set such an INSERT again as from its own (check D27b).
   - Not set, with `NotSupportedException`, nothing written: an INSERT of a block of another writer holding what is not
     written above or refused (an aligned, angular or diametric constraint parameter; a constraint other than those of
-    AutoCAD's samples, geometry other than lines, arcs, circles and polyline edges flat in the block, an expression of a
-    function, or a value the constraints cannot meet without moving geometry they leave free, as of AutoCAD's Door
-    Elevation, the flanges of its beams and the head of its Hex Head Bolt; a row of a table that would change a constraint
-    parameter; a polar stretch tied to the base grip or of a multiplier or an offset, a move
+    AutoCAD's samples, geometry other than lines, arcs, circles, polyline edges and construction lines flat in the block,
+    an expression of another function, or a value the constraints cannot meet; a row of a table that would change a
+    constraint parameter; a polar stretch tied to the base grip or of a multiplier or an offset, a move
     carrying a parameter other than a linear one or one that chains its actions, any other action holding a parameter,
     an attribute definition in a polar stretch, a flip or an array, a lookup column of another kind than those written above, as
     a visibility state's, a block properties table column of another kind, or a lookup or a user parameter of a block

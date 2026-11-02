@@ -154,6 +154,19 @@ namespace GeometryHelper.Dxf
                 {
                     properties[at].Bind(insert, id, 0);
                 }
+
+                // A constraint parameter's distance a table to match holds reads as read only, as AutoCAD 2021 read Width and
+                // Height of its Fluorescent sample (plugin D27b).
+                foreach (DxfPropertiesTable.Column column in table.MustMatch ? table.Columns : new List<DxfPropertiesTable.Column>())
+                {
+                    string type = column.Node == null ? null : nodes.Find(n => Text(Section(n.Groups, "AcDbEvalExpr"), 90)?.Trim() == column.Node)?.Type;
+
+                    if (type != null && type.EndsWith("CONSTRAINTPARAMETER", StringComparison.Ordinal) && column.Connection == "UpdatedDistance"
+                        && given.TryGetValue(column.Node, out List<DxfDynamicBlockReferenceProperty> held) && held.Count > 0)
+                    {
+                        held[0].HeldByTable();
+                    }
+                }
             }
 
             return properties.AsReadOnly();

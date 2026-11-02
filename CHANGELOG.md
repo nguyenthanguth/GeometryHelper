@@ -91,6 +91,29 @@ user parameters, as AutoCAD 2021 set them. Setting one takes 5 to 100 ms. The ne
 solved an INSERT the library set again only after `RESETBLOCK`, and did not solve a minimal network written by hand. 10 new
 tests.
 
+**FIXED.** An INSERT whose constraint parameter the library set is set again by AutoCAD 2021 (check D27b): its anonymous
+block is given a copy of the block's associative network at the values set, as AutoCAD writes its own, where it held none,
+or the copy AutoCAD had written naming entities gone (eKeyNotFound). Each object of the network is copied with a handle of
+its own, each handle naming the copy of what it named; the copy is listed by the drawing's network, its dependency on each
+constraint parameter put last in the parameter's chain and among its reactors; the variables hold the values set (an
+expression of the value to twelve significant digits, whole or real as AutoCAD keeps it), the geometry of the constraint
+groups that of the anonymous block once the actions worked, and each dimension of a constraint is moved to the geometry and
+shows its value as the drawing writes lengths, without which AutoCAD solved the copy wrongly. AutoCAD then set 15 values of
+the library's INSERTs of 7 samples within 1E-12 of its own sets one after the other, its audit finding nothing the samples
+had not. A value set is solved at twelve significant digits, as AutoCAD solved Height 612.3456789012345 at 612.345678901.
+Constraint groups of R2018 (AC1032), as AutoCAD 2021 saves them, are read, where every constraint parameter of such a
+drawing was refused. A constraint parameter a table whose properties must match holds reads as read only, as AutoCAD read
+Fluorescent's Width and Height, and is set all the same.
+
+**NEW.** Geometry the constraints leave free moves as AutoCAD 2021 moved it, where such a set was refused (check D27b): each
+constraint parameter set keeps its base point along its distance, Width 1 000 of the Door Elevation keeping the door's left
+side, and what is still free is held, the radii and the ends of arcs before the rest where all at once cannot be met, the
+Hex Head Bolt's fillets kept whole at a new HdCr. Construction lines and angles of three points (the imperial Hex Head
+Bolt's) are solved, and expressions take sin, cos, tan, asin, acos, atan, sqrt, abs and round, angles in degrees, as
+AutoCAD read `width*cos(60)` as half the width. Of the 79 values the library set on AutoCAD's samples, 77 came out within
+3E-12 of AutoCAD's, where 27 were refused; the one refused is a row of a table that would change a constraint parameter.
+10 new tests; 2 tests changed: a rectangle free to slide keeps its left side at a new Width, and `sin(30)` is evaluated.
+
 **FIXED.** A row a table puts in or takes out leaves the kinds of its rows as AutoCAD 2021 keeps them: by the style of
 each row in the TABLECONTENT, which the library now reads (check D28e, rounds E1, E2). The first row put into a table of
 one row is the header, the rest data: `SetSize(3, 2)` or `InsertRows(1, 9.0, 2)` of a table of its title alone gives it a

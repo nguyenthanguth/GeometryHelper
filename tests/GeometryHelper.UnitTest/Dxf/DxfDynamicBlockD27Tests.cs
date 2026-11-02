@@ -19,21 +19,21 @@ namespace GeometryHelper.UnitTest.Dxf
     /// </summary>
     public class DxfDynamicBlockD27Tests
     {
-        private const double Close = 1E-9;
+        internal const double Close = 1E-9;
 
-        private static DxfDatabase Reopened(DxfDatabase db) => DxfDatabase.Parse(db.ToText());
+        internal static DxfDatabase Reopened(DxfDatabase db) => DxfDatabase.Parse(db.ToText());
 
-        private static DxfBlockReference Insert(DxfDatabase db) => db.ModelSpace.OfType<DxfBlockReference>().Single();
+        internal static DxfBlockReference Insert(DxfDatabase db) => db.ModelSpace.OfType<DxfBlockReference>().Single();
 
-        private static DxfDynamicBlockReferenceProperty Property(DxfBlockReference insert, string name) => insert.DynamicBlockReferencePropertyCollection.Single(p => p.PropertyName == name);
+        internal static DxfDynamicBlockReferenceProperty Property(DxfBlockReference insert, string name) => insert.DynamicBlockReferencePropertyCollection.Single(p => p.PropertyName == name);
 
-        private static double Distance(DxfBlockReference insert, string name) => (double)Property(insert, name).Value;
+        internal static double Distance(DxfBlockReference insert, string name) => (double)Property(insert, name).Value;
 
-        private static List<DxfLine> Lines(DxfBlockReference insert) => insert.BlockTableRecord.OfType<DxfLine>().ToList();
+        internal static List<DxfLine> Lines(DxfBlockReference insert) => insert.BlockTableRecord.OfType<DxfLine>().ToList();
 
-        private static string Real(double value) => value.ToString("R", CultureInfo.InvariantCulture);
+        internal static string Real(double value) => value.ToString("R", CultureInfo.InvariantCulture);
 
-        private static void Point(Groups b, int code, double x, double y)
+        internal static void Point(Groups b, int code, double x, double y)
         {
             b.Group(code, Real(x));
             b.Group(code + 10, Real(y));
@@ -41,19 +41,19 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>The objects of the graph's nodes of a block, in its order.</summary>
-        private static List<DxfItem> Nodes(DxfBlockTableRecord block)
+        internal static List<DxfItem> Nodes(DxfBlockTableRecord block)
         {
             DxfDBObject graph = block.ExtensionDictionary.GetAt("ACAD_ENHANCEDBLOCK");
             return graph.Item.Groups.Where(g => g.TypeCode == 360).Select(g => graph.Item.File.ObjectItem(g.Value)).ToList();
         }
 
-        private static DxfItem Node(DxfBlockTableRecord block, string type, string label)
+        internal static DxfItem Node(DxfBlockTableRecord block, string type, string label)
             => Nodes(block).First(n => n.Type == type && n.Groups.Any(g => g.TypeCode == 305 && g.Value == label));
 
-        private static string IdOf(DxfItem node) => node.Groups.First(g => g.TypeCode == 90).Value.Trim();
+        internal static string IdOf(DxfItem node) => node.Groups.First(g => g.TypeCode == 90).Value.Trim();
 
         /// <summary>Rewrites the groups of an object by an edit of them all.</summary>
-        private static void Edit(DxfItem item, Action<List<KeyValuePair<int, string>>> edit)
+        internal static void Edit(DxfItem item, Action<List<KeyValuePair<int, string>>> edit)
         {
             DxfFile file = item.File;
             var groups = file.TailOf(item, 0).Select(g => new KeyValuePair<int, string>(g.TypeCode, g.Value)).ToList();
@@ -68,7 +68,7 @@ namespace GeometryHelper.UnitTest.Dxf
         /// corner unfixed, or name the class of a constraint the library does not solve in place of the parallel one, where
         /// asked; give Height an expression of Width where asked, and a flip of the whole rectangle carrying Width where asked.
         /// </summary>
-        private static DxfDatabase Rectangle(bool fixedCorner = true, string parallel = "AcParallelConstraint", string heightExpression = "", bool flip = false, DxfBlockParameterValueSet widths = null, bool table = false)
+        internal static DxfDatabase Rectangle(bool fixedCorner = true, string parallel = "AcParallelConstraint", string heightExpression = "", bool flip = false, DxfBlockParameterValueSet widths = null, bool table = false)
         {
             var db = new DxfDatabase("AC1024");
             var block = new DxfBlockTableRecord { Name = "RECT", Origin = new GeoPoint3(0, 0, 0) };
@@ -268,7 +268,7 @@ namespace GeometryHelper.UnitTest.Dxf
         /// A constraint parameter of a type, an id and a name, from the origin to the point given, written as AutoCAD writes
         /// one and added to the block's graph as a node of its own.
         /// </summary>
-        private static DxfItem Parameter(DxfBlockTableRecord block, string type, int id, string name, double x, double y)
+        internal static DxfItem Parameter(DxfBlockTableRecord block, string type, int id, string name, double x, double y)
         {
             DxfItem graph = block.ExtensionDictionary.GetAt("ACAD_ENHANCEDBLOCK").Item;
             string ids = id.ToString(CultureInfo.InvariantCulture);
@@ -304,14 +304,14 @@ namespace GeometryHelper.UnitTest.Dxf
             return node;
         }
 
-        private static KeyValuePair<int, string> Pair(string s)
+        internal static KeyValuePair<int, string> Pair(string s)
         {
             int colon = s.IndexOf(':');
             return new KeyValuePair<int, string>(int.Parse(s.Substring(0, colon), CultureInfo.InvariantCulture), s.Substring(colon + 1));
         }
 
         /// <summary>The record of a parameter of the text made a constraint parameter of the type given: its type and its subclass marker.</summary>
-        private static string Retype(string text, string handle, string type, string tie)
+        internal static string Retype(string text, string handle, string type, string tie)
         {
             string head = "  0\nBLOCKLINEARPARAMETER\n  5\n" + handle + "\n";
             int at = text.IndexOf(head, StringComparison.Ordinal);
@@ -326,20 +326,20 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>The groups of an object being written, in order.</summary>
-        private sealed class Groups : List<KeyValuePair<int, string>>
+        internal sealed class Groups : List<KeyValuePair<int, string>>
         {
             internal void Group(int code, string value) => Add(new KeyValuePair<int, string>(code, value));
         }
 
         /// <summary>Adds an object of the groups given at the end of the OBJECTS section, owned by the object given.</summary>
-        private static DxfItem Add(DxfFile file, string type, string owner, Action<Groups> fill)
+        internal static DxfItem Add(DxfFile file, string type, string owner, Action<Groups> fill)
         {
             var groups = new Groups();
             fill(groups);
             return file.AddObject(type, owner, b => groups.ForEach(g => b.Group(g.Key, g.Value)));
         }
 
-        private static DxfItem Variable(DxfFile file, string network, int id, string name, string expression, double value)
+        internal static DxfItem Variable(DxfFile file, string network, int id, string name, string expression, double value)
             => Add(file, "ACDBASSOCVARIABLE", network, b =>
             {
                 b.Group(100, "AcDbAssocAction");
@@ -356,7 +356,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 b.Group(90, "0");
             });
 
-        private static void Dependency(Groups b, string target, string order)
+        internal static void Dependency(Groups b, string target, string order)
         {
             b.Group(100, "AcDbAssocDependency");
             b.Group(90, "2");
@@ -371,7 +371,7 @@ namespace GeometryHelper.UnitTest.Dxf
             b.Group(90, "1");
         }
 
-        private static string Value(DxfFile file, string group, string variable, double value)
+        internal static string Value(DxfFile file, string group, string variable, double value)
             => Add(file, "ACDBASSOCVALUEDEPENDENCY", group, b =>
             {
                 Dependency(b, variable, "0");
@@ -381,7 +381,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 b.Group(40, Real(value));
             }).Handle;
 
-        private static void Head(Groups b, string type, string group, int id, params int[] links)
+        internal static void Head(Groups b, string type, string group, int id, params int[] links)
         {
             b.Group(1, type);
             b.Group(330, group);
@@ -391,7 +391,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Array.ForEach(links, l => b.Group(90, l.ToString(CultureInfo.InvariantCulture)));
         }
 
-        private static void Implicit(Groups b, string group, int id, int type, int owner)
+        internal static void Implicit(Groups b, string group, int id, int type, int owner)
         {
             Head(b, "AcConstrainedImplicitPoint", group, id);
             b.Group(330, "0");
@@ -401,7 +401,7 @@ namespace GeometryHelper.UnitTest.Dxf
             b.Group(90, owner.ToString(CultureInfo.InvariantCulture));
         }
 
-        private static void Rule(Groups b, string type, string group, int id, params int[] links)
+        internal static void Rule(Groups b, string type, string group, int id, params int[] links)
         {
             Head(b, type, group, id, links);
             b.Group(90, "0");
@@ -409,7 +409,7 @@ namespace GeometryHelper.UnitTest.Dxf
             b.Group(290, "1");
         }
 
-        private static void Distance(Groups b, string value, string tie, double x, double y)
+        internal static void Distance(Groups b, string value, string tie, double x, double y)
         {
             b.Group(340, value);
             b.Group(340, tie);
@@ -418,13 +418,13 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>The lines of the INSERT's block, each its start and end, to the nearest 1E-9.</summary>
-        private static string Drawn(DxfBlockReference insert)
+        internal static string Drawn(DxfBlockReference insert)
             => string.Join(" ", Lines(insert).Select(l => "(" + Round(l.StartPoint.X) + "," + Round(l.StartPoint.Y) + ")-(" + Round(l.EndPoint.X) + "," + Round(l.EndPoint.Y) + ")"));
 
-        private static string Round(double v) => Math.Round(v, 9).ToString("0.#########", CultureInfo.InvariantCulture);
+        internal static string Round(double v) => Math.Round(v, 9).ToString("0.#########", CultureInfo.InvariantCulture);
 
         /// <summary>The two points of the record the INSERT's cache keeps of a node, and its normal's z.</summary>
-        private static string Cached(DxfBlockReference insert, string id)
+        internal static string Cached(DxfBlockReference insert, string id)
         {
             var data = (DxfDBDictionary)((DxfDBDictionary)((DxfDBDictionary)insert.ExtensionDictionary.GetAt("AcDbBlockRepresentation")).GetAt("AppDataCache")).GetAt("ACAD_ENHANCEDBLOCKDATA");
             var record = (DxfXrecord)data.GetAt(id);
@@ -540,17 +540,18 @@ namespace GeometryHelper.UnitTest.Dxf
         // ---- 2. refused -----------------------------------------------------------------------------------------------------
 
         [Fact]
-        public void ARectangleFreeToSlide_WidthSet_IsRefused_AsAutoCadKeptItsDoorElevationsLeftSideByRulesOfItsOwn()
+        public void ARectangleFreeToSlide_WidthSet_KeepsItsLeftSide_AsAutoCadKeptItsDoorElevationsLeftSide()
         {
             // AutoCAD 2021 drew its Door Elevation sample, whose constraints fix no point, at Width 800 with its left side kept
-            // where the least change would move both sides (plugin D27 p2): the library does not set such a block.
+            // where the least change would move both sides (plugin D27 p2): Width's base point, on the left, stays where it is
+            // (plugin D27b).
             DxfDatabase db = Rectangle(fixedCorner: false);
             DxfBlockReference insert = Insert(db);
-            string before = insert.BlockTableRecord.Name;
 
-            Assert.Throws<NotSupportedException>(() => Property(insert, "Width").Value = 150.0);
-            Assert.Equal(before, insert.BlockTableRecord.Name);
-            Assert.Equal(100.0, Distance(insert, "Width"), Close);
+            Property(insert, "Width").Value = 150.0;
+
+            Assert.Equal("(0,0)-(150,0) (150,0)-(150,50) (150,50)-(0,50) (0,50)-(0,0)", Drawn(insert));
+            Assert.Equal(150.0, Distance(insert, "Width"), Close);
         }
 
         [Fact]
@@ -590,7 +591,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(4.9, DxfConstraintExpression.Evaluate("HdCr/4", read), Close);
             Assert.Equal(-4.0, DxfConstraintExpression.Evaluate("-2^2", read), Close);
             Assert.Equal(20.0, DxfConstraintExpression.Evaluate("(W3 - 5) * 1E0", read), Close);
-            Assert.Throws<NotSupportedException>(() => DxfConstraintExpression.Evaluate("sin(30)", read));
+            Assert.Throws<NotSupportedException>(() => DxfConstraintExpression.Evaluate("exp(1)", read));
             Assert.Throws<NotSupportedException>(() => DxfConstraintExpression.Evaluate("Width +", read));
         }
     }

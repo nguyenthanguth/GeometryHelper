@@ -26,6 +26,9 @@ namespace GeometryHelper.Dxf
         private string _node;
         private int _part;
 
+        // Whether the property is set though it reads as read only, a table that must be matched holding it.
+        private bool _settable;
+
         /// <summary>A property read from a parameter, its allowed values kept as given.</summary>
         internal DxfDynamicBlockReferenceProperty(string name, string description, object value, short typeCode, DxfDynamicBlockReferencePropertyUnitsType units, bool readOnly, object[] allowed)
         {
@@ -130,22 +133,28 @@ namespace GeometryHelper.Dxf
         /// <para>
         /// A horizontal, a vertical or a radial constraint parameter is set by solving the block's geometric and dimensional
         /// constraints, kept in the associative network of its BLOCK_RECORD, as AutoCAD 2021 solved its Dynamic Blocks samples
-        /// (plugin D27): the distance taken to its value set, the variable of the dimensional constraint it drives given it,
-        /// the variables of expressions of it worked out (numbers, names, + - * / ^ and brackets), and the lines, arcs,
-        /// circles and polyline edges the constraints hold moved from the block's own by Newton's method, each step the least
-        /// that meets the constraints, before any action works on them. Of AutoCAD's Fluorescent, Window, Channel, Concrete
-        /// Pipe, Hex Head Bolt and WF Beam samples, metric and imperial, the 51 values the library set came out within 4E-11 of
-        /// AutoCAD's: Width 1 200 of Fluorescent's rectangle 1 000 by 500, its corner fixed, moves its right side to x = 1 200.
-        /// Geometry the constraints leave free is held where the block has it, and a value that cannot be met without moving
-        /// it is refused, as AutoCAD moved such geometry by rules of its own: it kept the left side of its Door Elevation,
-        /// fixed nowhere, at a new Width, and the fillets of its Hex Head Bolt whole at a new HdCr. A table whose properties
-        /// must match a row leaves a constraint parameter at the value set and the others at theirs, no row matched, as
-        /// AutoCAD set Fluorescent's Width; a row that would change a constraint parameter is refused, as AutoCAD left the
-        /// constraints as they were at a row of its Hex Head Bolt. A constraint parameter of no column of the table leaves its
-        /// user parameters as they are, as AutoCAD kept Hex Head Bolt's Size 1 at Length 80. A flip carrying a constraint
-        /// parameter mirrors its points too, as AutoCAD's Window sample's flip carries DoorWidth. AutoCAD 2021 reads the
-        /// INSERT so set as the library wrote it, but did not solve it again at another value until the block was reset
-        /// (RESETBLOCK), as the anonymous block holds no network of its own.
+        /// (plugins D27, D27b): the distance taken to its value set and to twelve significant digits, as AutoCAD solved Height
+        /// 612.3456789012345 at 612.345678901, the variable of the dimensional constraint it drives given it, the variables of
+        /// expressions of it worked out (numbers, names, + - * / ^, brackets and the functions sin, cos, tan, asin, acos,
+        /// atan, sqrt, abs and round, angles in degrees), and the lines, arcs, circles, polyline edges and construction lines
+        /// the constraints hold moved from the block's own by Newton's method, each step the least that meets the constraints,
+        /// before any action works on them. Geometry the constraints leave free keeps the base point of each constraint
+        /// parameter set where it is along its distance, as AutoCAD kept the left side of its Door Elevation, fixed nowhere, at
+        /// a new Width; what is still free is held where the block has it, the radii and the arcs' ends before the rest where
+        /// all at once cannot be met, as AutoCAD kept the fillets of its Hex Head Bolt whole at a new HdCr. Of AutoCAD's
+        /// Fluorescent, Door Elevation, Window, Channel, Concrete Pipe, Hex Head Bolt, WF Beam and I Beam samples, metric and
+        /// imperial, 77 of the 79 values the library set came out within 3E-12 of AutoCAD's, one of an I Beam whose own
+        /// geometry is 7E-6 off its constraints 1.5E-6 off, and one of Fluorescent at Width 800 apart, AutoCAD having taken
+        /// its table's row back: Width 1 200 of Fluorescent's rectangle 1 000 by 500, its corner fixed, moves its right side to
+        /// x = 1 200. A table whose properties must match a row leaves a constraint parameter
+        /// at the value set and the others at theirs, no row matched, as AutoCAD set Fluorescent's Width; a row that would
+        /// change a constraint parameter is refused, as AutoCAD left the constraints as they were at a row of its Hex Head
+        /// Bolt. A constraint parameter of no column of the table leaves its user parameters as they are, as AutoCAD kept Hex
+        /// Head Bolt's Size 1 at Length 80. A flip carrying a constraint parameter mirrors its points too, as AutoCAD's Window
+        /// sample's flip carries DoorWidth. The anonymous block is given a copy of the block's associative network at the
+        /// values set, as AutoCAD gives its own, the dimensions of the constraints moved to the geometry and showing their
+        /// values: AutoCAD 2021 set such an INSERT again from it as from its own, 15 values of 7 samples within 1E-12 of its
+        /// own sets, where it set none again whose anonymous block held no copy, or one naming entities gone (eKeyNotFound).
         /// </para>
         /// <para>
         /// The INSERT is made to place an anonymous block of AutoCAD's (<c>*U1</c> and on, flagged anonymous) holding a copy of
@@ -174,9 +183,9 @@ namespace GeometryHelper.Dxf
         /// <exception cref="NotSupportedException">Thrown when the block holds a parameter or an action of a kind the library does
         /// not work out (an aligned constraint parameter), constraints it does not solve (a constraint of a kind other than a
         /// coincidence, a point on a curve, parallel, perpendicular, horizontal, colinear, tangent, a middle, a centre, fixed,
-        /// equal lengths or radii, a distance along x or y, an angle and a radius; geometry other than lines, arcs and circles
-        /// flat in the block, or an expression of functions), constraints that cannot be met at the value set without moving
-        /// geometry they leave free, a block properties table's row that would change a constraint parameter, or an action it does not work out: a stretch of an entity other than those above or of a tilted arc by one end, a stretch, a scale, a rotate, a
+        /// equal lengths or radii, a distance along x or y, an angle of two lines or of three points and a radius; geometry
+        /// other than lines, arcs, circles and construction lines flat in the block, or an expression of another function),
+        /// constraints that cannot be met at the value set, a block properties table's row that would change a constraint parameter, or an action it does not work out: a stretch of an entity other than those above or of a tilted arc by one end, a stretch, a scale, a rotate, a
         /// flip or an array holding other parameters, a move holding grips of a parameter it does not carry, a move carrying a
         /// parameter other than a linear one, or one that chains its actions or that a scale or an array follows, attribute
         /// definitions of one tag moved apart where the INSERT has an ATTRIB of that tag, an attribute definition worked on by
@@ -201,7 +210,7 @@ namespace GeometryHelper.Dxf
 
             set
             {
-                if (ReadOnly)
+                if (ReadOnly && !_settable)
                 {
                     throw new InvalidOperationException("The property " + PropertyName + " is read only, as AutoCAD keeps it.");
                 }
@@ -225,10 +234,13 @@ namespace GeometryHelper.Dxf
         public DxfDynamicBlockReferencePropertyUnitsType UnitsType { get; }
 
         /// <summary>
-        /// Gets whether AutoCAD lets the property be set, as its <c>ReadOnly</c>: true only for a value looked up whose table
-        /// does not allow looking back (its column's reverse lookup off).
+        /// Gets whether AutoCAD lets the property be set, as its <c>ReadOnly</c>: true for a value looked up whose table does
+        /// not allow looking back (its column's reverse lookup off); and for the distance of a horizontal, a vertical, an
+        /// aligned or a radial constraint parameter a column of a block properties table holds whose properties must match a
+        /// row, as AutoCAD 2021 read Width and Height of its Fluorescent sample (plugin D27b), whose value is set all the same,
+        /// as AutoCAD set Width 1 200 there.
         /// </summary>
-        public bool ReadOnly { get; }
+        public bool ReadOnly { get; private set; }
 
         /// <summary>Gets the description the parameter gives the property, as AutoCAD's <c>Description</c>; empty where it gives none.</summary>
         public string Description { get; }
@@ -256,6 +268,13 @@ namespace GeometryHelper.Dxf
             _insert = insert;
             _node = node;
             _part = part;
+        }
+
+        /// <summary>Reads the property as read only, a table whose properties must match holding it, while its value is still set, as AutoCAD 2021 read and set Width of its Fluorescent sample (plugin D27b).</summary>
+        internal void HeldByTable()
+        {
+            ReadOnly = true;
+            _settable = true;
         }
 
         /// <summary>Gives the property as a line for debugging: its name and its value.</summary>
