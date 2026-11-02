@@ -133,7 +133,7 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             string text = R2000(
                 G(0, "LWPOLYLINE", 8, "0", 100, "AcDbPolyline", 90, 3, 70, 1, 10, "0", 20, "0", 42, "0.5", 10, "1e200", 20, "0", 10, "1e200", 20, "1e200")
-                + G(0, "SPLINE", 8, "0", 100, "AcDbSpline", 70, 8, 71, 3, 72, 0, 73, 0, 74, 4, 11, "0", 21, "0", 31, "0", 11, "1e200", 21, "0", 31, "0", 11, "2e200", 21, "1", 31, "0", 11, "3", 21, "3", 31, "0")
+                + G(0, "LEADER", 8, "0", 100, "AcDbLeader", 71, 1, 72, 1, 73, 3, 76, 3, 10, "0", 20, "0", 30, "0", 10, "1e200", 20, "0", 30, "0", 10, "2e200", 20, "1", 30, "0")
                 + G(0, "LINE", 8, "0", 10, "0", 20, "0", 11, "1", 21, "0"));
 
             var log = new List<string>();
@@ -150,11 +150,12 @@ namespace GeometryHelper.UnitTest.Dxf
                 GeometryHelperLog.Writer = before;
             }
 
-            // The fit points 1E200 apart make no system that can be solved: that SPLINE alone is left out. The polyline of them is read.
+            // The vertices 1E200 apart of a splined leader make no system that can be solved, and its reading throws: that LEADER
+            // alone is left out. The polyline of them is read. (A SPLINE of such fit points is refused now, D32, and no longer throws.)
             Assert.Equal(new[] { "LWPOLYLINE", "LINE" }, read.Shapes.Select(e => e.Type).ToArray());
-            Assert.Equal(1, read.Skipped["SPLINE"]);
-            Assert.Contains(read.Warnings, w => w.StartsWith("1 SPLINE could not be read and was left out: InvalidOperationException", StringComparison.Ordinal));
-            Assert.Contains("Warn DxfReader: 1 SPLINE could not be read and was left out.", log);
+            Assert.Equal(1, read.Skipped["LEADER"]);
+            Assert.Contains(read.Warnings, w => w.StartsWith("1 LEADER could not be read and was left out: InvalidOperationException", StringComparison.Ordinal));
+            Assert.Contains("Warn DxfReader: 1 LEADER could not be read and was left out.", log);
         }
 
         // ----- Should -----------------------------------------------------------------------------------------------------
@@ -261,10 +262,11 @@ namespace GeometryHelper.UnitTest.Dxf
             Near(new GeoPoint2(5, 0), closed.StartPoint, "the start");
             Near(new GeoPoint2(10, 5), closed.EndPoint, "the end");
 
-            // Two fit points of a cubic: the straight line through them, at degree 1.
+            // Two fit points of a cubic: the straight line through them, a cubic of 4 points, as AutoCAD 2021 fits two (D32 o4-F2).
             var straight = Assert.IsType<GeoSpline2>(read.Shapes[1].Shape);
-            Assert.Equal(1, straight.Degree);
-            Assert.Contains(read.Warnings, w => w.Contains("one degree less"));
+            Assert.Equal(3, straight.Degree);
+            Assert.Equal(4, straight.ControlPoints.Count);
+            Assert.Contains(read.Warnings, w => w.Contains("fit points alone"));
 
             Assert.Equal(1, read.Skipped["SPLINE"]);
             Assert.Contains(read.Warnings, w => w.Contains("SPLINE was not read"));

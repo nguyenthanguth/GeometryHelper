@@ -382,6 +382,35 @@ written as AutoCAD reads them now.
       would fit a length 0.02 % above the true one, as a length AutoCAD works out by its own sum might be; the quintic at 5
       fits no length, its count at 3 asking a tolerance 0.2 % larger than its count at 5 allows. The library keeps 1 / M for
       every spline (117 where AutoCAD gives 96 for the quintic of two spans at 0) until the four are understood.
+    - AutoCAD 2021 (D32, its own plugin run headless in accoreconsole on 2 November 2026, side databases): fitting. Its
+      constructors and `FitData` fit a spline not periodic as one cubic whatever degree they are given (1 to 5, `FitData.Degree`
+      3), its knots the lengths of the chords, at an end of a tangent the derivative that tangent at its own length (the
+      constructors make it unit, `FitData` keeps it: 5 stays 5), at an end of none, or a tangent of no length, no second
+      derivative (ezdxf's `fit_points_to_cad_cv`): its control points of 44 fits, open, closed, 3D, of two to seven points,
+      with tangents at both ends, one or none, are that rule's to 3E-13. Points one after another a trillionth apart are one;
+      a millionth apart, two (that fit the rule's to 4E-8, its system near singular). A fit tolerance t gives a curve up to 1.5 t off the points (1E-12 and its default 1E-10 none).
+      Reading: a SPLINE of fit points is fitted anew so, whatever its control points (moved by 1), knots (doubled), degree (2,
+      5), flags (8, 40 for 1064) or its having none, which is why the library's 17-g of v9 read as another curve. Edits: a
+      move, turn, scale or stretch keeps the length of a tangent; `ReverseCurve`, `InsertFitPointAt`, `RemoveFitPointAt`,
+      `SetFitPointAt` give the fit anew; `SetControlPointAt`, `UpdateFitData` and `PurgeFitData` leave no fit data (1064 saved
+      8, 1067 11, 3115 2059); `InsertKnot` keeps the fit points at the knots (1064 saved 1288, 1067 1291, 3115 3339);
+      `SetWeightAt` keeps the fit data and weights, which AutoCAD drops when it reads the file again.
+    - Now (D32): fit data not periodic, the reader's spline of fit points alone and `DxfSpline`'s are AutoCAD's cubic, and a
+      record whose control points are not its fit is read as the fit (its own to the bit where they are); the library's 87
+      edited files of AutoCAD's cubics through five points read back in AutoCAD as the library reads them to 3.5E-14, but
+      those of a fit tolerance of 0.5 (0.49 off, the fit within a tolerance not done) and of a weight set (AutoCAD's own
+      inconsistency); 17-g's HALFWAY at 0 and 10 (44 vertices) and NEAR at 10 (42) are AutoCAD's, NEAR at 0 is not (parked).
+    - AutoCAD 2021 (D32): precision. A hairpin cubic 100 by 1 over the knots 0 to 1 gives 129 vertices at 0, over 0 to 100
+      5, the same at 1 by 10; a quintic Bezier and the same ten times its size 86 at 0 and 7 929 at 99; a rational cubic of
+      the weights 1, 3, 1, 1 and the same ten times its size 112 and 10 729; an S of three spans whose middle lies on its
+      chord 173 at 0. Closed cubics of fit points not periodic (70 1065), of 3 to 8 points: each knot in the place of the
+      vertex of the halving nearest it, as on a periodic one.
+    - Now (D32): the tolerance is max(1 / M, L / 10 000) / (p + 1)^2 and each piece judged at its middle and its quarters:
+      147 of AutoCAD's 156 counts at hand, where 1 / M and the middle alone gave 50; the 9 others within 3 (the rational cubics
+      by 1 to 3, the S at 20 by 2, the quintic over 0 to 50 at 0 by 1). A closed spline of fit points has its knots in
+      place, the flag 2 or not: 52 of the 72 polylines of the twelve closed and periodic cubics at 0, 1, 2, 3, 5 and 10, where
+      27 were. Parked: the closed cubics at 0 of 5 points or more (AutoCAD's vertices at 0.4 and 0.8 of the range, no closing
+      vertex), the periodic cubic through 3 points, and 7 polylines a vertex off.
 
 18. **The narrowest ellipse.**
     - Try: squash an ellipse to a ratio of 1E-7 by `TransformBy`, and project a circle onto a plane seen almost edge on.

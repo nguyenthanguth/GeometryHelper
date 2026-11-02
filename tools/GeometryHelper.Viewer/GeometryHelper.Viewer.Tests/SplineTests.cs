@@ -381,7 +381,7 @@ namespace GeometryHelper.Viewer.Tests
         [Fact]
         public void ASplineGivenByItsFitPointsAlone_IsTheSplineThroughThem_AndSaid()
         {
-            // The library passes a spline through the fit points, of one degree less than the file asks where there are too few of them.
+            // The library passes AutoCAD's cubic through the fit points, whatever degree the file asks (D32).
             string fit = G(0, "SPLINE", 8, "0", 100, "AcDbSpline", 70, 8, 71, 3, 72, 0, 73, 0, 74, 3, 11, 0, 21, 0, 31, 0, 11, 50, 21, 40, 31, 0, 11, 100, 21, 0, 31, 0);
             Scene scene = ReadEntities(fit + G(0, "POINT", 10, 1, 20, 2));
 
@@ -389,7 +389,7 @@ namespace GeometryHelper.Viewer.Tests
             var spline = (GeoSpline2)scene.Items[0].ToGeometry();
             Assert.Equal(new GeoPoint2(0, 0), spline.StartPoint);
             Assert.Equal(new GeoPoint2(100, 0), spline.EndPoint);
-            Assert.Contains(scene.LoadWarnings, w => w.Contains("1 SPLINE given by its fit points alone was read as the spline GeoSpline.Interpolate passes through them"));
+            Assert.Contains(scene.LoadWarnings, w => w.Contains("1 SPLINE given by its fit points alone was read as the cubic AutoCAD 2021 fits through them"));
         }
 
         [Fact]

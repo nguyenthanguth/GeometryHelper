@@ -17,7 +17,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gets or sets the NURBS data in one value, as AutoCAD's <c>NurbsData</c>: degree, flags, control points, knots,
         /// weights and the tolerances of the points (group 43) and knots (42). A spline given by its fit points alone gives
-        /// the data of the spline <see cref="DxfReader"/> passes through them.
+        /// the data of the spline <see cref="DxfReader"/> passes through them, the cubic AutoCAD fits; so does one whose fit
+        /// points are not its control points, as AutoCAD reads it, the record's control points another curve.
         /// </summary>
         /// <value>
         /// Set, the data written as <see cref="SetNurbsData"/> writes it, its fit data taken out, and the two tolerances; data
@@ -33,6 +34,11 @@ namespace GeometryHelper.Dxf
                 double pointTolerance = GetDouble(43, 0.0);
                 double knotTolerance = GetDouble(42, 0.0);
                 IReadOnlyList<GeoPoint3> points = ControlPoints;
+
+                if (points.Count > 0 && ReadAsFit(Degree, points, Knots, IsRational ? Weights : null, out List<double> fitKnots, out List<GeoPoint3> fitPoints))
+                {
+                    return new DxfNurbsData(3, false, Closed, FlaggedPeriodic, fitPoints, fitKnots, null, pointTolerance, knotTolerance);
+                }
 
                 if (points.Count > 0 || !(GetGeCurve() is GeoSpline3 spline))
                 {
@@ -64,13 +70,17 @@ namespace GeometryHelper.Dxf
         /// </summary>
         /// <value>
         /// Set, the fit points and the rest written, and the control points worked out anew through them, as AutoCAD keeps both:
-        /// the spline through the points by <see cref="GeoSpline3.Interpolate(IEnumerable{GeoPoint3}, int, Tolerance)"/>
-        /// (with the tangents where given), its knots the lengths of the chords from the first point, so that a spline through
-        /// (0, 0, 0), (30, 40, 0) and (60, 0, 0) runs from 0 to 100. It passes through every point, which is within any fit
-        /// tolerance. A spline closed, or set periodic data, is closed through its first point again, its tangent there the
-        /// direction from the point before to the point after where none is given, and stays closed, as AutoCAD 2021 kept its
-        /// closed cubic of 70 1035 given fit data not periodic, saving it 70 1067 (its 17-l); with fewer points than the degree
-        /// asks for, the degree is lowered to what they carry, as <see cref="DxfReader"/> reads such a spline, and written so.
+        /// the cubic AutoCAD 2021 fits through them, whatever degree is asked, each point on it at its knot, its knots the
+        /// lengths of the chords from the first point, at an end of a tangent its derivative that tangent at the length given
+        /// (written as given), and at an end of none, or of one of no length, its curve bent no more. Through (0, 0, 0),
+        /// (30, 40, 0) and (60, 0, 0) it is the cubic of the control points (0, 0), (10, 20), (30, 60), (50, 20) and (60, 0) from
+        /// 0 to 100, as AutoCAD fitted it, and through five points, alone or given tangents of length 1 or 5, AutoCAD's control
+        /// points to 1E-13 (its D32 run); two points give the straight cubic of 4 points a third apart. Points one after another
+        /// within 1E-10 are taken as one, as AutoCAD took two points a trillionth apart, and kept two a millionth apart. It
+        /// passes through every point: a fit tolerance above 1E-10, within which AutoCAD fits a curve that passes near the points
+        /// (1.5 times the tolerance off at most in its D32 run), is written but not fitted to. A spline closed, or set periodic data, is closed through its first point again, its curve bent no
+        /// more at the seam where no tangents are given, and stays closed, as AutoCAD 2021 kept its closed cubic of 70 1035
+        /// given fit data not periodic, saving it 70 1067 or, of no tangents, 70 1065 (its 17-l).
         /// The flags 32 and 1024 of fit data are set, and the flags 1 and 2 as <see cref="SetNurbsData"/> gives them. Periodic
         /// data give AutoCAD's periodic cubic through the points taken round, of whatever degree they ask, each point on the
         /// curve at its knot, the knots the lengths of the chords, clamped into 3 and the count of the points as control points,
@@ -294,43 +304,16 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Gives the spline fit data of its control points, as AutoCAD's <c>UpdateFitData</c>: its fit points the points of the
-        /// curve at each knot from its start to its end, and the tangents at its ends the directions it starts and ends in, of
-        /// unit length; the control points kept. A cubic of 4 points from (0, 0, 0) to (30, 0, 0) has the fit points of its
-        /// start and end.
+        /// Brings the fit data up to the control points, as AutoCAD 2021's <c>UpdateFitData</c> does: it takes them out, the
+        /// spline given by its control points from then on, as <see cref="PurgeFitData"/>. AutoCAD held no fit data after it on
+        /// its cubic through five points, nor on its cubic of 5 control points, and saved both 70 8 (its D32 run); fit points of
+        /// the curve at its knots, which AutoCAD fits anew when it reads them, would not give the curve back.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the spline has no data that make a spline, or is erased.</exception>
         public void UpdateFitData()
         {
-            DxfNurbs nurbs = Nurbs();
-            var fit = new List<GeoPoint3>();
-            IReadOnlyList<double> knots = NurbsData.GetKnots();
-            double last = double.NaN;
-
-            foreach (double knot in knots)
-            {
-                if (knot >= nurbs.Start && knot <= nurbs.End && !Same(knot, last))
-                {
-                    fit.Add(nurbs.PointAt(knot));
-                    last = knot;
-                }
-            }
-
-            nurbs.Evaluate(nurbs.Start, out _, out GeoVector3 start, out _);
-            nurbs.Evaluate(nurbs.End, out _, out GeoVector3 end, out _);
-            List<List<KeyValuePair<int, string>>> was = Points(11);
-            var written = new List<List<KeyValuePair<int, string>>>(fit.Count);
-
-            for (int i = 0; i < fit.Count; i++)
-            {
-                written.Add(Point(11, fit[i], i < was.Count ? was[i] : null, "fit"));
-            }
-
-            WritePoints(11, FitCodes, written, 74);
-            var tangents = new List<KeyValuePair<int, string>>();
-            tangents.AddRange(TangentGroups(12, start));
-            tangents.AddRange(TangentGroups(13, end));
-            SetGroups(tangents.ToArray());
+            Nurbs();
+            PurgeFitData();
         }
 
         /// <summary>
@@ -569,9 +552,15 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gets the polyline that runs along the spline within a precision, as AutoCAD's <c>ToPolylineWithPrecision</c>. Of
         /// lines, as AutoCAD 2021 makes it: the spline's whole parameter range, from its start to its end, halved again and
-        /// again until the spline's point halfway along each piece's parameter is no farther from the middle of the piece's chord
-        /// than one over the spline's sharpest bend times the square of one more than the precision, 1 / (M (p + 1)^2), M the
-        /// largest length of the spline's second derivative by its parameter; each piece a segment. The rule gives AutoCAD's
+        /// again until the spline's points halfway, a quarter and three quarters along each piece's parameter are no farther from
+        /// the chord's points there than the larger of one over the spline's sharpest bend and a ten-thousandth of its length,
+        /// over the square of one more than the precision, max(1 / M, L / 10 000) / (p + 1)^2, M the largest length of the
+        /// spline's second derivative by its parameter; each piece a segment. AutoCAD's 156 counts at hand, of cubics, a
+        /// quadratic, a quartic, quintics and rational cubics, at 0 to 99 (its plugin runs v4 to v7 and D32), are the rule's but
+        /// 9, each within 3 of AutoCAD's, 7 of them of rational cubics: a quintic Bezier gives 86, 478 and 7 929 vertices at 0, 5
+        /// and 99 and the same 10 times its size, a hairpin cubic of 100 by 1 over the knots 0 to 1 129 at 0, where its length
+        /// decides, and over 0 to 100 5, where its bend does, and an S of three spans whose middle lies on its chord 173.
+        /// The rule gives AutoCAD's
         /// counts of vertices for the three cubics of its plugin runs v4 and v5 at every precision tried: the cubic of one span on
         /// (0, 0), (10, 10), (20, 10), (30, 0), whose bend is 60 everywhere, 33, 65, 129, 257 and 4 097 vertices at 0, 1, 3, 10
         /// and 99; the cubic of two spans on (0, 40), (10, 50), (20, 50), (30, 40), (40, 30), 50 at 0, 513 at 10 and 4 750 at
@@ -580,18 +569,21 @@ namespace GeometryHelper.Dxf
         /// second derivative runs straight along a span, is its largest; a piece is halved no more than 20 times over and no finer
         /// than the rounding of the spline's largest coordinate, and a straight spline is one segment. The rule gives AutoCAD's
         /// counts for a quadratic of three spans and a cubic of a double knot too (29, 342 and 2 732, and 76, 933 and 8 011 at 0,
-        /// 10 and 99), but more than AutoCAD's for a spline of degree 5 (117 where AutoCAD gives 96 at 0) and a rational one (371
-        /// where it gives 130), whose bend AutoCAD reads otherwise. A closed spline has its last vertex on its first, the
-        /// polyline closed; one of the flag 2 of its 70 (the periodic of the DXF reference, which AutoCAD writes on its closed
-        /// splines) that runs through fit points, or that AutoCAD keeps by its fit points, the flag 1024 of its 70 set (its 3115
-        /// of a periodic cubic, written with no fit points), has each of its knots, one after another, in
+        /// 10 and 99), a spline of degree 5 (96 at 0) and a rational one (130 at 0, 1 378 at 10 where AutoCAD gives 1 377). A
+        /// closed spline has its last vertex on its first, the
+        /// polyline closed; one closed, or of the flag 2 of its 70 (the periodic of the DXF reference, which AutoCAD writes on its
+        /// closed splines of a smooth seam), that runs through fit points, or that AutoCAD keeps by its fit points, the flag 1024
+        /// of its 70 set (its 3115 of a periodic cubic, written with no fit points), has each of its knots, one after another, in
         /// the place of the vertex of the halving nearest it, the later of two as near, a knot taking the place another took
         /// before it, as AutoCAD 2021 gave them: the closed cubic through (0, 0), (40, 0), (50, 30) and (10, 25), its knots the lengths of the
         /// chords, is those four points and the first again at 0, and 48 vertices at 10, the range halved into 64ths and the knot
         /// 40 standing in the place of the 64th at 39.05; through (0, 0), (40, 0), (40.5, 0.5), (50, 30) and (10, 25) it is at
         /// 0 the vertices at 0, 40.71, 71.70, 112.01 and its end, the knot 40.71 in the place the knot 40 took. The same spline
         /// of no fit points and no flag 1024, its 70 of 3, is the halving alone, as AutoCAD 2021 gave it: (0, 0), (34.42, -3.51),
-        /// (50.86, 28.40), (18.15, 30.49) and the first again at 0. Each arc is bent as the piece the halving made, its first,
+        /// (50.86, 28.40), (18.15, 30.49) and the first again at 0. AutoCAD's closed cubic not periodic through (0, 0), (30, 0),
+        /// (30, 15) and (20, 15), a corner at its seam (70 1065), has its knots in place as well: at 0 (0, 0), (22.66, -5.01), (30,
+        /// 15), (20, 15) and the first again, the knots 45 and 55 for the quarters 40 and 60 (its D32 run, where 27 of the 36
+        /// polylines of six such cubics at 0 to 10 are the library's). Each arc is bent as the piece the halving made, its first,
         /// from (0, 0) to (40, 0) at 0, by the turn of the tangent over the first quarter of the range. Of arcs, for a flat spline, the same vertices, each
         /// segment the arc that turns as the spline's tangent turns along it, its bulge the tangent of a quarter of that turn,
         /// as AutoCAD 2021 makes them: the cubic of one span at 0 gives 33 vertices, its first arc, from (0, 0) to (0.9375, 0.908), of bulge
@@ -616,15 +608,17 @@ namespace GeometryHelper.Dxf
             var parameters = new List<double> { nurbs.Start };
             var middles = new List<double>();
             double bend = SharpestBend(nurbs, NurbsData.GetKnots());
-            double within = Math.Max(1E-9 * (1.0 + largest), bend > 0.0 ? 1.0 / (bend * (precision + 1.0) * (precision + 1.0)) : double.PositiveInfinity);
+            // The larger of one over the sharpest bend and a ten-thousandth of the length, as AutoCAD's counts give it (D32).
+            double loose = Math.Max(bend > 0.0 ? 1.0 / bend : double.PositiveInfinity, nurbs.LooseLength / 10000.0);
+            double within = Math.Max(1E-9 * (1.0 + largest), loose / ((precision + 1.0) * (precision + 1.0)));
             Halve(nurbs, nurbs.Start, nurbs.End, nurbs.PointAt(nurbs.Start), nurbs.PointAt(nurbs.End), within, 0, parameters, middles);
 
-            // A spline of the flag 2 and of fit points, or one AutoCAD keeps by its fit points (the flag 1024 of its 70), has its knots
+            // A closed spline or one of the flag 2, of fit points or kept by AutoCAD by its fit points (the flag 1024), has its knots
             // where the vertices nearest them were, each arc still bent by the turn along the piece the halving made; the last
             // vertex of a closed spline is kept on its first.
             int flags = GetInt(70, 0);
             bool byFitPoints = (flags & FitByKnots) != 0 || Points(11).Count > 0;
-            List<double> places = (flags & 2) != 0 && byFitPoints ? PlaceKnots(parameters, NurbsData.GetKnots(), nurbs.Start, nurbs.End) : parameters;
+            List<double> places = (flags & 3) != 0 && byFitPoints ? PlaceKnots(parameters, NurbsData.GetKnots(), nurbs.Start, nurbs.End) : parameters;
 
             // Arcs are bent by the turn of the spline's tangent along each segment, not through its point halfway.
             return Polyline(nurbs, parameters, bConvertAsArcs ? null : middles, bConvertAsArcs, bToLWPolyline, true, places);
@@ -943,30 +937,13 @@ namespace GeometryHelper.Dxf
             }
 
             var through = new List<GeoPoint3>(fit);
-            GeoVector3 first = hasStart ? startTangent : default(GeoVector3);
-            GeoVector3 last = hasEnd ? endTangent : default(GeoVector3);
 
-            if (closed && fit.Count > 2)
+            if (closed && fit.Count > 2 && !through[0].IsEqualTo(through[through.Count - 1], Tolerance.Default))
             {
-                if (!through[0].IsEqualTo(through[through.Count - 1], Tolerance.Default))
-                {
-                    through.Add(through[0]);
-                }
-
-                // Round the seam the spline runs on as from the point before to the point after.
-                GeoVector3 seam = through[through.Count - 2].GetVectorTo(through[1]);
-
-                if (!hasStart && !hasEnd && seam.Length > 0.0)
-                {
-                    first = seam;
-                    last = seam;
-                }
+                through.Add(through[0]);
             }
 
-            bool ends = first.Length > 0.0 && last.Length > 0.0;
-            int distinct = Distinct(through);
-
-            if (distinct < 2)
+            if (Distinct(through) < 2)
             {
                 throw new ArgumentException("The fit points are all one point, and a spline through them has no length.", parameter);
             }
@@ -976,46 +953,34 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            int used = ends ? Math.Max(2, Math.Min(degree, distinct + 1)) : Math.Min(degree, distinct - 1);
-            GeoSpline3 spline = ends
-                ? GeoSpline3.Interpolate(through, first, last, used, Tolerance.Default)
-                : GeoSpline3.Interpolate(through, used, Tolerance.Default);
-            double chord = 0.0;
-
-            for (int i = 1; i < through.Count; i++)
+            if (!DxfNurbsEdit.InterpolateCubic(through, hasStart ? startTangent : None, hasEnd ? endTangent : None, out List<GeoPoint3> kept, out List<double> knots, out List<GeoPoint3> points))
             {
-                chord += through[i - 1].DistanceTo(through[i]);
-            }
-
-            var knots = new List<double>(spline.Knots.Count);
-
-            foreach (double knot in spline.Knots)
-            {
-                knots.Add(knot * chord);
+                throw new ArgumentException("The fit points make no cubic through them: its system has no solution.", parameter);
             }
 
             List<List<KeyValuePair<int, string>>> was = Points(11);
-            var written = new List<List<KeyValuePair<int, string>>>(fit.Count);
+            var written = new List<List<KeyValuePair<int, string>>>(kept.Count);
 
-            for (int i = 0; i < fit.Count; i++)
+            for (int i = 0; i < kept.Count; i++)
             {
-                written.Add(Point(11, fit[i], i < was.Count ? was[i] : null, parameter));
+                written.Add(Point(11, kept[i], i < was.Count ? was[i] : null, parameter));
             }
 
-            bool closedCurve = closed && spline.StartPoint.IsEqualTo(spline.EndPoint, Tolerance.Default);
-            SetNurbsData(used, false, closedCurve, false, spline.ControlPoints, knots, null);
+            bool closedCurve = closed && points[0].IsEqualTo(points[points.Count - 1], Tolerance.Default);
+            SetNurbsData(3, false, closedCurve, false, points, knots, null);
             SetInt(70, GetInt(70, 0) | FitMade | FitByKnots, 0);
             WritePoints(11, FitCodes, written, 74);
             var groups = new List<KeyValuePair<int, string>>();
 
+            // The tangents as given, of their own length: AutoCAD keeps and fits by the length (its 17-l, of 0.82).
             if (hasStart)
             {
-                groups.AddRange(TangentGroups(12, startTangent));
+                groups.AddRange(PointGroups(12, new GeoPoint3(startTangent.X, startTangent.Y, startTangent.Z), new GeoPoint3(0.0, 0.0, 0.0)));
             }
 
             if (hasEnd)
             {
-                groups.AddRange(TangentGroups(13, endTangent));
+                groups.AddRange(PointGroups(13, new GeoPoint3(endTangent.X, endTangent.Y, endTangent.Z), new GeoPoint3(0.0, 0.0, 0.0)));
             }
 
             SetGroups(groups.ToArray());
@@ -1262,8 +1227,8 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Halves a piece of the spline's parameter range until the spline's point halfway along it lies within the tolerance
-        /// of the middle of its chord, as AutoCAD's <c>ToPolylineWithPrecision</c> does, adding the end and the middle parameter
+        /// Halves a piece of the spline's parameter range until the spline's points halfway, a quarter and three quarters along
+        /// it lie within the tolerance of its chord's there, as AutoCAD's <c>ToPolylineWithPrecision</c> does, adding the end and the middle parameter
         /// of each piece kept, in order; a piece halved 20 times over is kept as it is.
         /// </summary>
         private static void Halve(DxfNurbs nurbs, double a, double b, GeoPoint3 pa, GeoPoint3 pb, double tolerance, int depth, List<double> parameters, List<double> middles)
@@ -1272,7 +1237,7 @@ namespace GeometryHelper.Dxf
             GeoPoint3 pm = nurbs.PointAt(m);
             var chord = new GeoPoint3(0.5 * (pa.X + pb.X), 0.5 * (pa.Y + pb.Y), 0.5 * (pa.Z + pb.Z));
 
-            if (depth >= 20 || pm.DistanceTo(chord) <= tolerance)
+            if (depth >= 20 || (pm.DistanceTo(chord) <= tolerance && Quarters(nurbs, a, b, pa, pb) <= tolerance))
             {
                 parameters.Add(b);
                 middles.Add(m);
@@ -1281,6 +1246,20 @@ namespace GeometryHelper.Dxf
 
             Halve(nurbs, a, m, pa, pm, tolerance, depth + 1, parameters, middles);
             Halve(nurbs, m, b, pm, pb, tolerance, depth + 1, parameters, middles);
+        }
+
+        /// <summary>
+        /// The larger distance of the curve at a quarter and at three quarters of a piece's parameter from its chord there, which
+        /// AutoCAD judges a piece by besides its middle: an S of three spans whose middle lies on its chord gave it 173 vertices
+        /// at 0, not one segment (its D32 run).
+        /// </summary>
+        private static double Quarters(DxfNurbs nurbs, double a, double b, GeoPoint3 pa, GeoPoint3 pb)
+        {
+            GeoPoint3 q1 = nurbs.PointAt(a + 0.25 * (b - a));
+            GeoPoint3 q3 = nurbs.PointAt(a + 0.75 * (b - a));
+            var c1 = new GeoPoint3(0.75 * pa.X + 0.25 * pb.X, 0.75 * pa.Y + 0.25 * pb.Y, 0.75 * pa.Z + 0.25 * pb.Z);
+            var c3 = new GeoPoint3(0.25 * pa.X + 0.75 * pb.X, 0.25 * pa.Y + 0.75 * pb.Y, 0.25 * pa.Z + 0.75 * pb.Z);
+            return Math.Max(q1.DistanceTo(c1), q3.DistanceTo(c3));
         }
 
         /// <summary>

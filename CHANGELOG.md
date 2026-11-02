@@ -6,6 +6,36 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A spline is fitted through fit points as AutoCAD 2021 fits one that is not periodic (check D32, its own plugin
+run headless): one cubic whatever degree is asked, its knots the lengths of the chords, at an end given a tangent the
+derivative there that tangent at the length it is given, written as given, and at an end given none the curve bent no
+more. Through (0, 0), (30, 40) and (60, 0) `FitData` gives the cubic of (0, 0), (10, 20), (30, 60), (50, 20) and (60, 0),
+where the library gave a quadratic of averaged knots; through five points, alone or with tangents of length 1 or 5, its
+control points are AutoCAD's to 1E-13, where the library's were up to 8.7 off, and so are those of `InsertFitPointAt`,
+`RemoveFitPointAt` and `SetFitPointAt`. A closed spline given no tangents has the corner at its seam AutoCAD gives it
+(70 1065), points a trillionth apart are one, and the fit points written are those fitted through, the closing one with
+them. The reader's spline of fit points alone is the same cubic (two points the straight cubic of 4 control points, not a
+line of degree 1), and a SPLINE of fit points whose control points are not their fit is read as the fit, as AutoCAD reads
+it: the library's closed cubics of 70 11 of check 17-g give AutoCAD's 44 vertices at 10, not 54. A move, turn or scale keeps
+the length of a tangent (5 scaled by 2 stays 5, as AutoCAD keeps it, where the library wrote 10 and AutoCAD fitted 26.7
+off); a control point or the knots set, and `UpdateFitData`, take the fit data out, which AutoCAD would otherwise fit anew
+over the change (its 1064 saved 8, its 3115 2059); `PurgeFitData` takes the flag 32 out with the 1024 (8, 2059); a knot put
+into a spline of fit points keeps its 8 control points and gives its fit points at its knots (70 1288), where AutoCAD read
+the 5 fit points left in as 7. Of the library's 87 edits of AutoCAD's cubics through five points, AutoCAD now reads every
+file as the library does to 3.5E-14, but a fit tolerance of 0.5 (the fit within a tolerance is not done) and a weight set
+(AutoCAD drops it on reading its own). 19 new tests; 7 tests changed: three points fit a cubic, `UpdateFitData` takes the fit
+data out, a purged 3115 is 2059, two fit points read as a cubic, the entity whose reading throws is a splined LEADER of
+vertices 1E200 apart (a SPLINE of such fit points is refused now, not thrown on), the viewer's warning of a spline of fit points alone, and the periodic cubics of checks 17f and 17n are built 70
+3115 with no fit points, as AutoCAD saved them.
+
+**FIXED.** `ToPolylineWithPrecision` (and `ToPolyline`) made lines halve the spline until its points halfway, a quarter and
+three quarters along each piece lie within max(1 / M, L / 10 000) / (p + 1)^2 of its chord's, L the spline's length, as
+AutoCAD 2021 counts: 147 of its 156 counts at hand, where the middle alone within 1 / (M (p + 1)^2) gave 50. A quintic
+Bezier gives 86 vertices at 0, and the same ten times its size, where the library gave 120 and 1 113; a rational cubic of
+the weights 1, 2, 0.5, 3, 1 gives 130, where it gave 371; an S whose middle lies on its chord 173, where it gave one
+segment. A closed spline of fit points not periodic (70 1065) has its knots in place as a periodic one: 52 of AutoCAD's 72
+polylines of closed and periodic cubics, where 27 were.
+
 **FIXED.** A MULTILEADER is exploded as AutoCAD 2021 explodes the ones it makes (check D31: 137 multileaders AutoCAD made,
 exploded by its API and by `Explode()`, the same to 1E-6 but for the lines AutoCAD draws under, over or round the words as
 long as its font makes them). A multileader whose leader lines are splined has no dogleg drawn, as AutoCAD's `EnableDogleg`

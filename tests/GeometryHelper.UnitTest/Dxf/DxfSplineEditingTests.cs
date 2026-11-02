@@ -94,8 +94,9 @@ namespace GeometryHelper.UnitTest.Dxf
                 Assert.True(again.GetClosestPointTo(point, false).IsEqualTo(point, Tight));
             }
 
+            // The cubic, as AutoCAD 2021 fits three points (D32 o4-F3).
             DxfFitData data = again.FitData;
-            Assert.Equal(2, again.Degree);
+            Assert.Equal(3, again.Degree);
             Assert.False(data.TangentsExist);
             Assert.Equal(DxfKnotParameterizationEnum.Chord, data.KnotParam);
             Assert.Throws<NotSupportedException>(() => again.FitData = new DxfFitData(points, 3, 0.0) { KnotParam = DxfKnotParameterizationEnum.Uniform });
@@ -128,18 +129,17 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void TheFitDataUpdated_IsThePointsOfTheCurveAtItsKnots_ItsControlPointsKept()
+        public void TheFitDataUpdated_IsTakenOut_ItsControlPointsKept()
         {
+            // AutoCAD 2021 held no fit data after UpdateFitData on a spline of control points (D32 BC-updatefit).
             DxfSpline spline = Fixture(out _);
             IReadOnlyList<GeoPoint3> control = spline.ControlPoints;
 
             spline.UpdateFitData();
 
             Assert.Equal(control, spline.ControlPoints);
-            Assert.Equal(3, spline.NumFitPoints);
-            Assert.True(spline.GetFitPointAt(1).IsEqualTo(spline.GetPointAtParameter(spline.Knots[4]), Tight));
-            Assert.Equal(1.0, spline.StartFitTangent.Length, 12);
-            Assert.True(spline.FitData.TangentsExist);
+            Assert.Equal(0, spline.NumFitPoints);
+            Assert.False(spline.HasFitData);
         }
 
         [Fact]

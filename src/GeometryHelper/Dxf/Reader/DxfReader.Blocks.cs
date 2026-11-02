@@ -518,7 +518,7 @@ namespace GeometryHelper.Dxf
                 private static int[] Counts(Reading r) => new[]
                 {
                     r._fitSplines, r._periodicSplines, r._openedLoops, r._droppedFaces, r._looseFaces, r._badLook, r._refusedSplines,
-                    r._loweredFitSplines, r._missingInserts, r._selfInserts, r._deepInserts, r._xrefInserts, r._hugeArrays,
+                    r._missingInserts, r._selfInserts, r._deepInserts, r._xrefInserts, r._hugeArrays,
                 };
 
                 internal void Restore(Reading r)
@@ -565,7 +565,6 @@ namespace GeometryHelper.Dxf
                     r._looseFaces = _counts[k++];
                     r._badLook = _counts[k++];
                     r._refusedSplines = _counts[k++];
-                    r._loweredFitSplines = _counts[k++];
                     r._missingInserts = _counts[k++];
                     r._selfInserts = _counts[k++];
                     r._deepInserts = _counts[k++];

@@ -1027,19 +1027,38 @@ AutoCAD wrote the same cubic as asked a degree 3, as the library does. Three poi
 and back. Where two of the points are one, within 1E-3, which make no periodic spline, it is the closed spline the library
 fits through them.
 
+Fit data not periodic give AutoCAD 2021's cubic through the points, whatever degree they ask (it fitted degrees 1 to 5 all
+as the cubic): each point on the curve at its knot, the knots the lengths of the chords from the first point, at an end
+given a tangent the derivative there that tangent at the length it is given, and at an end given none the curve bent no
+more, its second derivative nought. Through (0, 0), (30, 40) and (60, 0) it is the cubic of (0, 0), (10, 20), (30, 60),
+(50, 20) and (60, 0) over the knots 0 to 100; through (0, 0) and (100, 0) the straight cubic of 4 points a third apart.
+Through five points, alone or with tangents of length 1 or 5 (written as given, which AutoCAD keeps and fits by), the
+control points are AutoCAD's to 1E-13. Points one after another within 1E-10 are one, as AutoCAD took two a trillionth
+apart; a closed spline given no tangents has a corner at its seam (AutoCAD's 70 1065). A fit tolerance above 1E-10 is
+written but not fitted to: AutoCAD fits a curve that passes near the points there, within 1.5 times the tolerance. AutoCAD
+reads a SPLINE of fit points by fitting it so anew, whatever its control points, flags and degree (but one of the flag
+2048, or of a fit tolerance above 1E-10): the reader and `DxfSpline` read it so where its control points are not that fit,
+as AutoCAD read the closed cubics of 70 11 of the library's check 17-g (44 vertices at 10, where their control points gave
+54), and as they are, to the bit, where they are, as AutoCAD's own are. A move, turn or scale keeps the length of a tangent
+(5 scaled by 2 stays 5); a control point or the knots set, or `UpdateFitData` (which AutoCAD 2021 leaves no fit data
+after), take the fit data out, the flags 32 and 1024 with them (its 1064 is saved 8, its 3115 2059); a knot put in keeps
+its fit points at its knots (70 1288), where fit points left in AutoCAD would fit anew of one control point fewer.
+
 A spline gives and takes its `NurbsData` and `FitData` whole. `ElevateDegree` raises its degree with the curve kept to the
 rounding, `InsertControlPointAt` and `RemoveControlPointAt` put a control point in and take one out with a knot,
 `InsertFitPointAt`, `SetFitPointAt` and `RemoveFitPointAt` fit it anew through its points (its knots the lengths of the
 chords, so that a spline through (0, 0, 0), (30, 40, 0) and (60, 0, 0) runs from 0 to 100), `ModifyPositionAndTangent`
 makes it pass a point in a direction, `Rebuild` fits it again of another degree and count of points, and `ToPolyline` /
 `ToPolylineWithPrecision` give the polyline along it. Made lines, it is AutoCAD 2021's: the spline's whole parameter range
-halved until the spline's point halfway along each piece lies within 1 / (M (p + 1)^2) of the middle of its chord, M the
-largest length of its second derivative and p the precision. The cubic on (0, 0), (10, 10), (20, 10) and (30, 0), whose
-second derivative is 60 everywhere, gives 33, 65, 257, 1 025 and 4 097 vertices at 0, 1, 10, 30 and 99, and the cubics of
-two and three spans of the checks 50 and 78 at 0, 4 750 and 7 562 at 99, as AutoCAD gives them; so do a quadratic of three
-spans and a cubic of a double knot (29 and 76 vertices at 0). A spline of degree 5 and a rational one are given more than
-AutoCAD gives them (117 where AutoCAD gives 96, 371 where it gives 130, at 0): AutoCAD reads their bend otherwise, and how
-is not found yet. A closed spline has its last vertex on its first, the polyline closed; one of the flag 2 of its 70 that
+halved until the spline's points halfway, a quarter and three quarters along each piece lie within max(1 / M, L / 10 000) /
+(p + 1)^2 of its chord's, M the largest length of its second derivative, L its length and p the precision. The cubic on
+(0, 0), (10, 10), (20, 10) and (30, 0), whose second derivative is 60 everywhere, gives 33, 65, 257, 1 025 and 4 097
+vertices at 0, 1, 10, 30 and 99, and the cubics of two and three spans of the checks 50 and 78 at 0, 4 750 and 7 562 at
+99, as AutoCAD gives them; so do a quadratic of three spans and a cubic of a double knot (29 and 76 vertices at 0), a
+quintic Bezier (86 at 0 and 7 929 at 99, the same ten times its size), a hairpin cubic 100 by 1 (129 at 0 over the knots
+0 to 1, where its length decides, and 5 over 0 to 100), and an S whose middle lies on its chord (173 at 0). Of AutoCAD's
+156 counts at hand 147 are the rule's, the 9 others within 3, 7 of them of rational cubics (1 378 at 10 where AutoCAD gives
+1 377). A closed spline has its last vertex on its first, the polyline closed; one closed or of the flag 2 of its 70 that
 runs through fit points has each of its knots, one after another, in the place of the vertex nearest it, the later of two as near, a
 knot taking the place another took before it: the closed cubic through (0, 0), (40, 0), (50, 30) and (10, 25), its knots
 the lengths of the chords, is those four points and the first again at 0, its 48 vertices at 10 the range's 64ths with the
@@ -2883,8 +2902,8 @@ polyline at the elevation 50 is at z = 50, its vertices written at 0. A part of 
 quadratic pieces of at most a quarter turn of its eccentric angle, each the stretched image of the arc
 `GeoSpline2.FromArc` makes, so every point of it is on the ellipse to rounding: a quarter of the ellipse 60 by 30 is 3
 control points, three quarters 7. A SPLINE whose knots are not clamped, as AutoCAD writes a closed one, is clamped by
-knot insertion, the same curve over the span its knots give; one of fewer fit points than its degree asks for is read
-at one degree less than its points, and a warning says so. A closed polyline of two vertices with an arc, a circle drawn
+knot insertion, the same curve over the span its knots give; one of fit points alone is read as the cubic AutoCAD 2021
+fits through them whatever degree it asks (two points the straight cubic of 4 control points), and a warning says so. A closed polyline of two vertices with an arc, a circle drawn
 as two half circles, is a loop with its first half circle cut at its middle, so that it has the three vertices a loop
 has: two half circles of radius 10 are a `GeoPolygonArc2` of area 314.159. A closed polyline that encloses no area, or
 in space does not lie in one plane, is a chain that ends on its first vertex, in the plane as in space, and a warning

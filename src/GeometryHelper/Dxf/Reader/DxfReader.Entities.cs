@@ -23,7 +23,6 @@ namespace GeometryHelper.Dxf
             private int _looseFaces;
             private int _badLook;
             private int _refusedSplines;
-            private int _loweredFitSplines;
 
             #region The entities in turn
 
@@ -241,8 +240,7 @@ namespace GeometryHelper.Dxf
 
             private void EntityWarnings(bool log = true)
             {
-                Warn(_fitSplines, " SPLINE given by its fit points alone was read as the spline GeoSpline.Interpolate passes through them, its parameters by chord length, which can differ from the curve the CAD program draws.", " SPLINEs given by their fit points alone were read as the splines GeoSpline.Interpolate passes through them, their parameters by chord length, which can differ from the curves the CAD program draws.");
-                Warn(_loweredFitSplines, " SPLINE had fewer fit points than its degree asks for and was read at one degree less than its points, two points being a straight line.", " SPLINEs had fewer fit points than their degree asks for and were read at one degree less than their points, two points being a straight line.");
+                Warn(_fitSplines, " SPLINE given by its fit points alone was read as the cubic AutoCAD 2021 fits through them, its parameters by chord length, whatever degree it gives.", " SPLINEs given by their fit points alone were read as the cubics AutoCAD 2021 fits through them, their parameters by chord length, whatever degree they give.");
                 Warn(_periodicSplines, " periodic SPLINE was not read: its knots could not be clamped to those of the library.", " periodic SPLINEs were not read: their knots could not be clamped to those of the library.");
                 Warn(_refusedSplines, " SPLINE was not read: its degree, knots, weights or fit points do not make a spline the library takes.", " SPLINEs were not read: their degree, knots, weights or fit points do not make a spline the library takes.");
                 Warn(_openedLoops, " closed polyline that encloses no area, or in space does not lie in one plane, was read as an open chain that ends on its first vertex.", " closed polylines that enclose no area, or in space do not lie in one plane, were read as open chains that end on their first vertex.");
@@ -1000,7 +998,8 @@ namespace GeometryHelper.Dxf
             /// its control points (each 10, 20, 30), every number as the file prints it, in world coordinates. One whose knots
             /// are not clamped, as AutoCAD writes a closed one, is clamped by knot insertion, the same curve over the same
             /// span. One given by its fit points alone (each 11, 21, 31), with the tangents at its ends where it has them (12,
-            /// 22, 32 and 13, 23, 33), is the spline the library passes through them, and said in a warning.
+            /// 22, 32 and 13, 23, 33), is the cubic AutoCAD fits through them, and said in a warning; so is one of fit points
+            /// whose control points are not that cubic, as AutoCAD reads it (<see cref="DxfNurbsEdit.FitsAnew"/>).
             /// </summary>
             private void ReadSpline(Record r)
             {
@@ -1040,7 +1039,14 @@ namespace GeometryHelper.Dxf
                         return;
                     }
 
-                    ReadFitSpline(r, fit, degree, hasStart && hasEnd && startTangent.Length > 0.0 && endTangent.Length > 0.0, startTangent, endTangent);
+                    ReadFitSpline(r, fit, hasStart ? startTangent : default(GeoVector3), hasEnd ? endTangent : default(GeoVector3));
+                    return;
+                }
+
+                // AutoCAD reads a spline of fit points as the cubic it fits through them, where its control points are not it.
+                if (fit.Count >= 2 && DxfNurbsEdit.FitsAnew(fit, hasStart ? startTangent : default(GeoVector3), hasEnd ? endTangent : default(GeoVector3), r.Real(44, 0.0), flags, degree, points, knots.ConvertAll(Scaled), weights, out _, out _))
+                {
+                    ReadFitSpline(r, fit, hasStart ? startTangent : default(GeoVector3), hasEnd ? endTangent : default(GeoVector3));
                     return;
                 }
 
@@ -1092,47 +1098,25 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>
-            /// The spline through fit points: of the degree the file gives, or of one less than the points there are where
-            /// they are too few for it and there are no tangents, as two points of a cubic are a straight line, said in a
-            /// warning.
+            /// The spline through fit points, as AutoCAD 2021 reads one: the cubic it fits through them whatever degree the file
+            /// gives (<see cref="DxfNurbsEdit.InterpolateCubic"/>), its knots the chords, at an end of a tangent its derivative
+            /// that tangent as the file has it, at one of none bent no more; through (0, 0) and (100, 0) the cubic straight line
+            /// of 4 control points a third apart.
             /// </summary>
-            private void ReadFitSpline(Record r, List<GeoPoint3> fit, int degree, bool tangents, GeoVector3 startTangent, GeoVector3 endTangent)
+            private void ReadFitSpline(Record r, List<GeoPoint3> fit, GeoVector3 startTangent, GeoVector3 endTangent)
             {
+                if (!DxfNurbsEdit.InterpolateCubic(fit, startTangent, endTangent, out _, out List<double> knots, out List<GeoPoint3> points))
+                {
+                    RefuseSpline(r, "whose fit points the library cannot pass a spline through");
+                    return;
+                }
+
                 // Inside a block the spline is passed through the points where the block has them, and then placed.
-                bool flat = _place == null && FlatInWorld(fit) && (!tangents || (startTangent.Z == 0.0 && endTangent.Z == 0.0));
-                int distinct = 0;
-
-                for (int i = 0; i < fit.Count; i++)
-                {
-                    if (i == 0 || !fit[i].IsEqualTo(fit[i - 1], _tolerance))
-                    {
-                        distinct++;
-                    }
-                }
-
-                if (!tangents && distinct >= 2 && distinct <= degree)
-                {
-                    degree = distinct - 1;
-                    _loweredFitSplines++;
-                }
+                bool flat = _place == null && FlatInWorld(points);
 
                 try
                 {
-                    object spline;
-
-                    if (flat)
-                    {
-                        var plan = fit.ConvertAll(Plan);
-                        spline = tangents
-                            ? GeoSpline2.Interpolate(plan, new GeoVector2(startTangent.X, startTangent.Y), new GeoVector2(endTangent.X, endTangent.Y), degree, _tolerance)
-                            : GeoSpline2.Interpolate(plan, degree, _tolerance);
-                    }
-                    else
-                    {
-                        spline = tangents
-                            ? GeoSpline3.Interpolate(fit, startTangent, endTangent, degree, _tolerance)
-                            : GeoSpline3.Interpolate(fit, degree, _tolerance);
-                    }
+                    object spline = flat ? (object)new GeoSpline2(3, points.ConvertAll(Plan), knots, null) : new GeoSpline3(3, points, knots, null);
 
                     if (_place != null && !TryPlaceSpline((GeoSpline3)spline, out spline))
                     {

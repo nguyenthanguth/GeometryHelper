@@ -495,16 +495,17 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>
-        /// A periodic cubic as AutoCAD 2021 keeps one it fitted, read from a drawing: its control points and clamped knots as
-        /// its DXF of v8 gives them, and the fit points it runs through, the first again at the end.
+        /// A periodic cubic as AutoCAD 2021 keeps one it fitted, read from a drawing: 70 3115, its control points and clamped
+        /// knots as its DXF of v8 gives them, and no fit points, which it gives at its knots by the flag 1024. (Written 70 11
+        /// with the fit points it runs through, the form of the library's 17-g, AutoCAD fits it anew through them: D32.)
         /// </summary>
-        private static DxfSpline Fitted(double[] knots, GeoPoint3[] points, GeoPoint3[] fit)
+        private static DxfSpline Fitted(double[] knots, GeoPoint3[] points)
         {
             var record = new StringBuilder();
             record.Append(G(0, "SPLINE")).Append(G(5, "F00")).Append(G(330, "17")).Append(G(100, "AcDbEntity")).Append(G(8, "0")).Append(G(100, "AcDbSpline"))
-                .Append(G(210, "0.0")).Append(G(220, "0.0")).Append(G(230, "1.0")).Append(G(70, "11")).Append(G(71, "3"))
+                .Append(G(210, "0.0")).Append(G(220, "0.0")).Append(G(230, "1.0")).Append(G(70, "3115")).Append(G(71, "3"))
                 .Append(G(72, knots.Length.ToString(CultureInfo.InvariantCulture))).Append(G(73, points.Length.ToString(CultureInfo.InvariantCulture)))
-                .Append(G(74, fit.Length.ToString(CultureInfo.InvariantCulture))).Append(G(42, "0.000000001")).Append(G(43, "0.0000000001")).Append(G(44, "0.0000000001"));
+                .Append(G(74, "0")).Append(G(42, "0.000000001")).Append(G(43, "0.0000000001"));
 
             foreach (double knot in knots)
             {
@@ -516,35 +517,27 @@ namespace GeometryHelper.UnitTest.Dxf
                 record.Append(G(10, point.X)).Append(G(20, point.Y)).Append(G(30, point.Z));
             }
 
-            foreach (GeoPoint3 point in fit)
-            {
-                record.Append(G(11, point.X)).Append(G(21, point.Y)).Append(G(31, point.Z));
-            }
-
             string text = DxfFileEzdxfDrawings.R2018.Replace("\r\n", "\n").Replace("$HANDSEED\n  5\nA1\n", "$HANDSEED\n  5\nF01\n")
                 .Replace("  0\nENDSEC\n  0\nSECTION\n  2\nOBJECTS\n", record + "  0\nENDSEC\n  0\nSECTION\n  2\nOBJECTS\n");
             return ByHandle<DxfSpline>(DxfDatabase.Parse(text), "F00");
         }
 
-        /// <summary>The closed cubic (g) of 17n as AutoCAD 2021 fitted it in v7: the control points and knots of <see cref="G17"/>, and its fit points.</summary>
+        /// <summary>The closed cubic (g) of 17n as AutoCAD 2021 fitted it in v7: the control points and knots of <see cref="G17"/>, saved 70 3115.</summary>
         internal static DxfSpline FittedG() => Fitted(
             new[] { 0.0, 0.0, 0.0, 0.0, 40.0, 71.62277660168379, 111.9340653431765, 138.859889378849, 138.859889378849, 138.859889378849, 138.859889378849 },
-            Enumerable.Range(0, 7).Select(i => G17().GetControlPointAt(i)).ToArray(),
-            new[] { P3(0, 0, 0), P3(40, 0, 0), P3(50, 30, 0), P3(10, 25, 0), P3(0, 0, 0) });
+            Enumerable.Range(0, 7).Select(i => G17().GetControlPointAt(i)).ToArray());
 
         // The closed cubic through (0, 0), (30, 0), (30, 15) and (20, 15), its knots 0, 30, 45, 55 and 80, the knot 30 halfway
         // between the quarters 20 and 40 (v8-17f-autocad-knot-halfway.dxf).
         private static DxfSpline Halfway() => Fitted(
             new[] { 0.0, 0, 0, 0, 30, 45, 55, 80, 80, 80, 80 },
-            new[] { P3(0.0000000000000007, -0.0000000000000004, 0), P3(1.9696772796188, -6.041152263374485, 0), P3(33.61425167857916, -10.88065843621399, 0), P3(33.34423507327991, 17.56241426611796, 0), P3(14.65605371453325, 14.81893004115226, 0), P3(-1.641397733015665, 5.03429355281207, 0), P3(0.0000000000000007, -0.0000000000000004, 0) },
-            new[] { P3(0, 0, 0), P3(30, 0, 0), P3(30, 15, 0), P3(20, 15, 0), P3(0, 0, 0) });
+            new[] { P3(0.0000000000000007, -0.0000000000000004, 0), P3(1.9696772796188, -6.041152263374485, 0), P3(33.61425167857916, -10.88065843621399, 0), P3(33.34423507327991, 17.56241426611796, 0), P3(14.65605371453325, 14.81893004115226, 0), P3(-1.641397733015665, 5.03429355281207, 0), P3(0.0000000000000007, -0.0000000000000004, 0) });
 
         // The closed cubic through (0, 0), (40, 0), (40.5, 0.5), (50, 30) and (10, 25), its knots 40 and 40.71 nearer each
         // other than a quarter of the range (v8-17f-autocad-near-knots.dxf).
         private static DxfSpline Near() => Fitted(
             new[] { 0.0, 0, 0, 0, 40, 40.70710678118654, 71.69904121581001, 112.0103299573027, 138.9361539929752, 138.9361539929752, 138.9361539929752, 138.9361539929752 },
-            new[] { P3(0.0000000000000004, 0.0000000000000022, 0), P3(5.581908864552045, -9.637933498405571, 0), P3(30.82057656148167, -9.244936922688699, 0), P3(47.57923142560183, 7.619549683548036, 0), P3(61.79166624560641, 41.95179922457442, 0), P3(8.605513742194279, 34.03076806443996, 0), P3(-3.757437396752223, 6.487732536139555, 0), P3(0.0000000000000004, 0.0000000000000022, 0) },
-            new[] { P3(0, 0, 0), P3(40, 0, 0), P3(40.5, 0.5, 0), P3(50, 30, 0), P3(10, 25, 0), P3(0, 0, 0) });
+            new[] { P3(0.0000000000000004, 0.0000000000000022, 0), P3(5.581908864552045, -9.637933498405571, 0), P3(30.82057656148167, -9.244936922688699, 0), P3(47.57923142560183, 7.619549683548036, 0), P3(61.79166624560641, 41.95179922457442, 0), P3(8.605513742194279, 34.03076806443996, 0), P3(-3.757437396752223, 6.487732536139555, 0), P3(0.0000000000000004, 0.0000000000000022, 0) });
 
         /// <summary>Checks a polyline of a spline: its vertices, closed, at the parameters AutoCAD 2021's stood at.</summary>
         internal static void AtParameters(DxfSpline spline, int precision, double[] parameters)

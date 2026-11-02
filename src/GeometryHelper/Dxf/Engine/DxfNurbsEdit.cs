@@ -829,6 +829,268 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// The cubic through fit points as AutoCAD 2021 fits a spline that is not periodic, whatever degree it is asked: the
+        /// points one after another within its point tolerance taken as one (<see cref="SeamGap"/> and <see cref="SeamShare"/> of
+        /// their size), each on the curve at its knot, the knots the lengths of the chords from the first point and the ends
+        /// four times each, so that n points give n and 2 control points; at an end given a tangent the derivative there that
+        /// tangent as it is, by the length along the chords, and at an end given none (or one of no length) the curve bent no
+        /// more, its second derivative nought (The NURBS Book, 9.2.2 and (3.9), as ezdxf's <c>fit_points_to_cad_cv</c> has it).
+        /// Through (0, 0), (30, 40) and (60, 0) it is (0, 0), (10, 20), (30, 60), (50, 20) and (60, 0) over the knots 0, 0, 0, 0,
+        /// 50, 100, 100, 100, 100, as AutoCAD fitted it; through five points, alone or given tangents of length 1 or 5, the
+        /// library's control points are AutoCAD's to 1E-13 (its D32 run). False where the points are all one, or the system
+        /// has no solution.
+        /// </summary>
+        internal static bool InterpolateCubic(IReadOnlyList<GeoPoint3> fit, GeoVector3 start, GeoVector3 end, out List<GeoPoint3> through, out List<double> knots, out List<GeoPoint3> points)
+        {
+            knots = null;
+            points = null;
+            through = OneEach(fit, out _);
+            int n = through.Count - 1;
+
+            if (n < 1)
+            {
+                return false;
+            }
+
+            var t = new double[n + 1];
+
+            for (int i = 1; i <= n; i++)
+            {
+                t[i] = t[i - 1] + through[i - 1].DistanceTo(through[i]);
+            }
+
+            double length = t[n];
+            const int p = 3;
+            int m = n + 3;
+            var u = new List<double>(m + p + 1) { 0.0, 0.0, 0.0, 0.0 };
+
+            for (int i = 1; i < n; i++)
+            {
+                u.Add(t[i]);
+            }
+
+            u.AddRange(new[] { length, length, length, length });
+            var columns = new List<int>[m];
+            var entries = new List<double>[m];
+            var rhs = new double[m][];
+            bool leaves = start.Length > 0.0;
+            bool arrives = end.Length > 0.0;
+
+            columns[0] = new List<int> { 0 };
+            entries[0] = new List<double> { 1.0 };
+            rhs[0] = new[] { through[0].X, through[0].Y, through[0].Z };
+
+            if (leaves)
+            {
+                // The derivative at the start: 3 (P1 - P0) over the first chord.
+                double share = u[p + 1] / p;
+                columns[1] = new List<int> { 0, 1 };
+                entries[1] = new List<double> { -1.0, 1.0 };
+                rhs[1] = new[] { share * start.X, share * start.Y, share * start.Z };
+            }
+            else
+            {
+                // No second derivative at the start, the row divided down so that its largest entry is 1.
+                double a = u[p + 1];
+                double b = u[p + 2];
+                columns[1] = new List<int> { 0, 1, 2 };
+                entries[1] = new List<double> { b / (a + b), -1.0, a / (a + b) };
+                rhs[1] = new double[3];
+            }
+
+            for (int j = 1; j < n; j++)
+            {
+                double[,] basis = BasisDerivatives(p, u, p + j, t[j], 0);
+                var row = new List<int>(p + 1);
+                var values = new List<double>(p + 1);
+
+                for (int a = 0; a <= p; a++)
+                {
+                    if (basis[0, a] != 0.0)
+                    {
+                        row.Add(j + a);
+                        values.Add(basis[0, a]);
+                    }
+                }
+
+                columns[j + 1] = row;
+                entries[j + 1] = values;
+                rhs[j + 1] = new[] { through[j].X, through[j].Y, through[j].Z };
+            }
+
+            if (arrives)
+            {
+                double share = (length - u[m - 1]) / p;
+                columns[m - 2] = new List<int> { m - 2, m - 1 };
+                entries[m - 2] = new List<double> { -1.0, 1.0 };
+                rhs[m - 2] = new[] { share * end.X, share * end.Y, share * end.Z };
+            }
+            else
+            {
+                double a = length - u[m - 1];
+                double b = length - u[m - 2];
+                columns[m - 2] = new List<int> { m - 3, m - 2, m - 1 };
+                entries[m - 2] = new List<double> { a / (a + b), -1.0, b / (a + b) };
+                rhs[m - 2] = new double[3];
+            }
+
+            columns[m - 1] = new List<int> { m - 1 };
+            entries[m - 1] = new List<double> { 1.0 };
+            rhs[m - 1] = new[] { through[n].X, through[n].Y, through[n].Z };
+            double[][] solved = SolveSparse(columns, entries, rhs);
+
+            if (solved == null)
+            {
+                return false;
+            }
+
+            points = new List<GeoPoint3>(m);
+
+            foreach (double[] q in solved)
+            {
+                points.Add(new GeoPoint3(q[0], q[1], q[2]));
+            }
+
+            knots = u;
+            return true;
+        }
+
+        /// <summary>
+        /// Whether AutoCAD 2021 reads a SPLINE of fit points as another curve than its control points give, and that curve: it
+        /// fits every SPLINE of two fit points or more anew through them when it reads it, as <see cref="InterpolateCubic"/>
+        /// does, whatever its flags, degree and control points (its D32 run: a control point moved by 1, the knots doubled, the
+        /// degree 2 or 5, the flags 8 or 40 in place of 1064, all read as the fit), save one of the flag 2048 of a periodic
+        /// spline, which AutoCAD writes with no fit points, and one of a fit tolerance above 1E-10, which it fits otherwise.
+        /// True where that fit is not the record's own (<see cref="IsTheFit"/>: another degree or count, weights, knots not the
+        /// chords, or a condition of the fit not met within its point tolerance). AutoCAD's own splines of fit points
+        /// are their fit to 3E-13, so that they are read as their records hold them, to the bit; the library's 17-g of v9,
+        /// closed cubics of 70 11 through 5 and 6 fit points, are not, and AutoCAD read them as their fits.
+        /// </summary>
+        internal static bool FitsAnew(IReadOnlyList<GeoPoint3> fit, GeoVector3 start, GeoVector3 end, double fitTolerance, int flags, int degree, IReadOnlyList<GeoPoint3> points, IReadOnlyList<double> knots, IReadOnlyList<double> weights, out List<double> fitKnots, out List<GeoPoint3> fitPoints)
+        {
+            fitKnots = null;
+            fitPoints = null;
+
+            return fit.Count >= 2 && fitTolerance <= SeamGap && (flags & 2048) == 0
+                && !IsTheFit(fit, start, end, degree, points, knots, weights)
+                && InterpolateCubic(fit, start, end, out _, out fitKnots, out fitPoints);
+        }
+
+        /// <summary>
+        /// Whether a record's control points and knots are the cubic <see cref="InterpolateCubic"/> fits through fit points, told
+        /// without fitting: a cubic of no weights other than 1, of as many points and knots, its knots the chords' lengths, and
+        /// every condition the fit is solved for met within <see cref="SeamGap"/> and <see cref="SeamShare"/> of the points'
+        /// size: its ends the first and last fit points, its point at each inner knot the fit point there, and at each end the
+        /// derivative the tangent gives, or no second derivative where none is given. The system having one solution, a curve
+        /// that meets them is the fit's.
+        /// </summary>
+        private static bool IsTheFit(IReadOnlyList<GeoPoint3> fit, GeoVector3 start, GeoVector3 end, int degree, IReadOnlyList<GeoPoint3> points, IReadOnlyList<double> knots, IReadOnlyList<double> weights)
+        {
+            if (degree != 3)
+            {
+                return false;
+            }
+
+            foreach (double w in weights)
+            {
+                if (w != 1.0)
+                {
+                    return false;
+                }
+            }
+
+            List<GeoPoint3> through = OneEach(fit, out Tolerance same);
+            int n = through.Count - 1;
+            int m = n + 3;
+
+            if (n < 1 || points.Count != m || knots.Count != m + 4)
+            {
+                return false;
+            }
+
+            double t = 0.0;
+
+            for (int i = 0; i <= m + 3; i++)
+            {
+                if (i > 3 && i <= n + 3)
+                {
+                    t += through[i - 4].DistanceTo(through[i - 3]);
+                }
+
+                if (!(Math.Abs(knots[i] - t) <= same.EqualPoint))
+                {
+                    return false;
+                }
+            }
+
+            if (!points[0].IsEqualTo(through[0], same) || !points[m - 1].IsEqualTo(through[n], same))
+            {
+                return false;
+            }
+
+            for (int j = 1; j < n; j++)
+            {
+                double[,] basis = BasisDerivatives(3, knots, 3 + j, knots[3 + j], 0);
+                double x = 0.0, y = 0.0, z = 0.0;
+
+                for (int a = 0; a <= 3; a++)
+                {
+                    x += basis[0, a] * points[j + a].X;
+                    y += basis[0, a] * points[j + a].Y;
+                    z += basis[0, a] * points[j + a].Z;
+                }
+
+                if (!new GeoPoint3(x, y, z).IsEqualTo(through[j], same))
+                {
+                    return false;
+                }
+            }
+
+            return EndHolds(points[0], points[1], points[2], knots[4], knots[5], start, same)
+                && EndHolds(points[m - 1], points[m - 2], points[m - 3], t - knots[m - 1], t - knots[m - 2], -end, same);
+        }
+
+        /// <summary>
+        /// Whether an end of a cubic meets the condition of <see cref="InterpolateCubic"/> there: the derivative from its end
+        /// point towards the next the tangent, by the first span over 3, or of no tangent, no second derivative.
+        /// </summary>
+        private static bool EndHolds(GeoPoint3 p0, GeoPoint3 p1, GeoPoint3 p2, double a, double b, GeoVector3 tangent, Tolerance same)
+        {
+            if (tangent.Length > 0.0)
+            {
+                double share = a / 3.0;
+                return new GeoPoint3(p1.X - p0.X, p1.Y - p0.Y, p1.Z - p0.Z).IsEqualTo(new GeoPoint3(share * tangent.X, share * tangent.Y, share * tangent.Z), same);
+            }
+
+            double s = a + b;
+            return new GeoPoint3(b / s * p0.X - p1.X + a / s * p2.X, b / s * p0.Y - p1.Y + a / s * p2.Y, b / s * p0.Z - p1.Z + a / s * p2.Z).IsEqualTo(new GeoPoint3(0.0, 0.0, 0.0), same);
+        }
+
+        /// <summary>The fit points, one after another within AutoCAD's point tolerance of their size taken as one, and that tolerance.</summary>
+        private static List<GeoPoint3> OneEach(IReadOnlyList<GeoPoint3> fit, out Tolerance same)
+        {
+            double size = 0.0;
+
+            foreach (GeoPoint3 q in fit)
+            {
+                size = Math.Max(size, Math.Max(Math.Abs(q.X), Math.Max(Math.Abs(q.Y), Math.Abs(q.Z))));
+            }
+
+            same = new Tolerance(SeamGap + SeamShare * (1.0 + size), SeamGap);
+            var through = new List<GeoPoint3>(fit.Count);
+
+            foreach (GeoPoint3 q in fit)
+            {
+                if (through.Count == 0 || !through[through.Count - 1].IsEqualTo(q, same))
+                {
+                    through.Add(q);
+                }
+            }
+
+            return through;
+        }
+
+        /// <summary>
         /// The periodic spline of a degree through points taken round, the last back to the first, as AutoCAD 2021 fits a
         /// periodic spline: each point on the curve at its knot, the knots the lengths of the chords from the first point, the m
         /// points' system solved for the m control points of a period, then clamped at the first knot and again a period on, as

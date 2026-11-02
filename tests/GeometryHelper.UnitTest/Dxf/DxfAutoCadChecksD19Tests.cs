@@ -292,9 +292,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal("2059", Flags(kept));
             Assert.True(kept.IsPeriodic);
 
+            // Purged, the flag 32 goes with the 1024: AutoCAD 2021 saved its 3115 purged 2059 (D32).
             DxfSpline purged = Halfway(3115);
             purged.PurgeFitData();
-            Assert.Equal("2091", Flags(purged));
+            Assert.Equal("2059", Flags(purged));
             Assert.Equal(0, purged.NumFitPoints);
         }
 
