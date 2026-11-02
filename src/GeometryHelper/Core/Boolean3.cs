@@ -45,6 +45,13 @@ namespace GeometryHelper.Core
     /// so no cell straddles a wall, and drops the cells filling them as not being material. Either way the
     /// result carries the cavity as real geometry rather than as an opening of its own. Two bodies too far
     /// apart to meet are the exception — nothing is cut there, and each keeps the openings it came with.
+    /// An opening of either body of a common part, or of the body a difference takes away, that shares no space with the
+    /// other body is left out, since it changes nothing the operation gives: its box further from the other's box than
+    /// the tolerance, or it and the other closed, their faces further apart than twice the tolerance and no corner of
+    /// either inside the other. A spiral girder less a spiral ramp holding a spiral tube as an opening, 80 under the
+    /// girder's top all along it, was cut into 640 222 cells in 202 seconds and not worked out, the tube cut into the
+    /// ramp; the tube left out, it is cut into 18 345 in 1.6 seconds and holds what slicing gives. The openings of a body
+    /// a union or a difference keeps material of are cut in as before, wherever they lie.
     /// Walls of two openings of a body, or of an opening and the body, standing apart within the tolerance of one plane
     /// are each kept in their own: the openings of both bodies are cut in, and the operation worked out, within a finer
     /// tolerance, as <see cref="TryCutOpenings(GeoSolid3, out GeoSolid3, Tolerance)"/> cuts such openings, where no wall of
@@ -573,6 +580,13 @@ namespace GeometryHelper.Core
         {
             Guard(first, second);
 
+            // An opening of either body that shares no space with the other takes nothing from what they share, and is left
+            // out; see LeaveOutOpeningsApart.
+            if (LeaveOutOpeningsApart(first, second, tolerance, true, out GeoSolid3 a, out GeoSolid3 b))
+            {
+                return Intersect(a, b, out result, tolerance, out outcome, out open);
+            }
+
             // Walls of a body and its openings standing apart within the tolerance of one plane are worked out within a finer
             // one; see WithWallsApart.
             if (WithWallsApart(IntersectAsAsked, first, second, out result, tolerance, out open))
@@ -912,6 +926,13 @@ namespace GeometryHelper.Core
         private static bool Subtract(GeoSolid3 subject, GeoSolid3 tool, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome, out GeoSolid3 open)
         {
             Guard(subject, tool);
+
+            // An opening of the tool that shares no space with the subject gives nothing back, and is left out; the subject's
+            // openings are cut in as they were. See LeaveOutOpeningsApart.
+            if (LeaveOutOpeningsApart(subject, tool, tolerance, false, out _, out GeoSolid3 b))
+            {
+                return Subtract(subject, b, out result, tolerance, out outcome, out open);
+            }
 
             // Walls of a body and its openings standing apart within the tolerance of one plane are worked out within a finer
             // one; see WithWallsApart.

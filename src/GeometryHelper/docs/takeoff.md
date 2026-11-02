@@ -102,6 +102,9 @@ over half a turn, and a spiral girder 600 by 500 in 66 lying 100 into its outer 
 1.2 seconds on .NET 10 and 3.0 on .NET Framework 4.8, the girder losing the 65 400 402.028 cubic millimetres slicing
 gives. The booleans used to cut the girder by each plane of the ramp wherever it ran, into hundreds of thousands of
 cells, not only where its faces are (see [space](solid.md#combining-bodies)), and took 41 and 90 seconds over it.
+An opening of either part that shares no space with the other is left out of their common part: with a spiral tube
+inside the ramp as an opening, 80 under the girder's top all along it, the common part was cut into 29 681 cells, the
+tube cut in; it is cut into the 18 345 of the ramp without it, and the girder loses the same 65 400 402.028.
 
 ## On a real model
 

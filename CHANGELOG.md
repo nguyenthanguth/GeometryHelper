@@ -6,6 +6,17 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A common part of two solids, and a difference, leave out an opening of a body whose material the result does
+not keep, either body of the common part or the one taken away, where it shares no space with the other (check GR1): its
+box further from the other's box than the tolerance, or the opening and the other both closed, their faces further apart
+than twice the tolerance and no corner of either inside the other. A spiral girder less a spiral ramp holding a spiral
+tube as an opening, 80 under the girder's top all along it, the tube's box and the girder's both reaching round the half
+turn, came apart into 640 222 cells in 202 seconds on .NET 10 and 704 on .NET Framework 4.8 and was not worked out, the
+tube cut into the ramp; with the tube left out it is cut into 18 345 in 1.6 and 2.7 seconds and holds what slicing
+gives, 10 044 789 407.964 cubic millimetres. Their common part and the take-off of the two, the girder ranked under the
+ramp, are cut into the 18 345 cells of the ramp without the tube, where they took 29 681. The openings of either body of
+a union, and of the body a difference takes material from, are cut in as before.
+
 **NEW.** `DxfDatabase.FontSearchPath`: folders, separated by semicolons and searched in their order, where the SHX fonts of
 the drawing's text styles are read from, so that the words of the drawing are measured as AutoCAD 2021 measures them (checks
 F1a and F1b). Empty, as every drawing is opened and made, nothing is read and nothing changes. Fonts of shapes 1.0 and 1.1

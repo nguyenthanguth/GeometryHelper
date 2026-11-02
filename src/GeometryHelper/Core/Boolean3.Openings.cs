@@ -2169,5 +2169,201 @@ namespace GeometryHelper.Core
         internal static int TakenOutOneAtATime;
 
         #endregion
+
+        #region Openings clear of the other body
+
+        /// <summary>
+        /// Leaves out of the bodies of a boolean whose material the result does not keep each opening that shares no space
+        /// with the other body, its box further from the other's box than the tolerance or the opening itself clear of the
+        /// other's faces (see <see cref="Clearance"/>): both bodies of a common part, or the body a difference takes away.
+        /// Leaving such an opening out is exact: what two bodies share is what they share without it, and a body less one
+        /// with an opening apart from it is the body less the other whole.
+        /// </summary>
+        /// <param name="first">The first body; for a difference, the one material is taken from, which is left as it is.</param>
+        /// <param name="second">The second body; for a difference, the one taken away.</param>
+        /// <param name="tolerance">The tolerance asked.</param>
+        /// <param name="both">true for a common part, whose bodies both lose such openings; false for a difference, whose
+        /// second body alone does.</param>
+        /// <param name="a">The first body less the openings left out; the body itself where none is.</param>
+        /// <param name="b">The second body less the openings left out; the body itself where none is.</param>
+        /// <returns>true where an opening is left out; false where none is, or the bodies' boxes do not meet.</returns>
+        /// <remarks>
+        /// <para>
+        /// The tolerance is the widest the boolean reads: the point and planar tolerances, raised to the rounding below it as
+        /// <see cref="BelowTheRounding"/> raises them, and what rounding moves a corner off a plane by for each body. An
+        /// opening whose box comes exactly that far from the other's box, or nearer, is left out only where it is clear of
+        /// the other's faces by twice that.
+        /// </para>
+        /// <para>
+        /// An opening of an opening kept is left out too where it shares no space with the other body either: what the
+        /// boolean reads of such a body is only what lies within the other. The openings of a body whose material is kept,
+        /// either of a union or the one a difference takes material from, are cut in as they were, so that the faces of what
+        /// the boolean gives are still where its material ends.
+        /// </para>
+        /// <para>
+        /// Two bodies whose boxes do not meet are left as they are, and so are two with no opening apart, which are worked out
+        /// as they were, to the bit.
+        /// </para>
+        /// </remarks>
+        private static bool LeaveOutOpeningsApart(GeoSolid3 first, GeoSolid3 second, Tolerance tolerance, bool both, out GeoSolid3 a, out GeoSolid3 b)
+        {
+            a = first;
+            b = second;
+
+            // Bodies whose boxes do not meet are worked out as they were; see Share and TakeAway.
+            if ((!both || first.Openings.Count == 0) && second.Openings.Count == 0 || !first.GetAabb().CollidesWith(second.GetAabb(), tolerance))
+            {
+                return false;
+            }
+
+            BelowTheRounding(first, second, tolerance, out Tolerance within);
+            double widest = Math.Max(Math.Max(tolerance.EqualPoint, tolerance.EqualPlanar), Math.Max(within.EqualPoint, within.EqualPlanar))
+                + Splition3.Rounding(first) + Splition3.Rounding(second);
+            var reach = new Tolerance(widest, tolerance.EqualVector, tolerance.EqualAngleRad, widest);
+            var clear = new Tolerance(2.0 * widest, tolerance.EqualVector, tolerance.EqualAngleRad, 2.0 * widest);
+            Tolerance work = ForWork(tolerance);
+
+            if (both)
+            {
+                a = WithoutOpeningsApart(first, new Clearance(second, reach, clear, work));
+            }
+
+            b = WithoutOpeningsApart(second, new Clearance(first, reach, clear, work));
+            return !ReferenceEquals(a, first) || !ReferenceEquals(b, second);
+        }
+
+        /// <summary>
+        /// A body less each opening that shares no space with the other body, as a clearance reads it, and less each such
+        /// opening of an opening kept, at every depth; the body itself where none is. The openings kept keep their order.
+        /// </summary>
+        /// <param name="solid">The body.</param>
+        /// <param name="other">The other body, as the openings are asked against it.</param>
+        private static GeoSolid3 WithoutOpeningsApart(GeoSolid3 solid, Clearance other)
+        {
+            IReadOnlyList<GeoSolid3> openings = solid.Openings;
+            List<GeoSolid3> remaining = null;
+
+            for (int i = 0; i < openings.Count; i++)
+            {
+                GeoSolid3 opening = openings[i];
+                bool apart = other.IsClear(opening);
+                GeoSolid3 inner = apart ? opening : WithoutOpeningsApart(opening, other);
+
+                if (remaining == null && (apart || !ReferenceEquals(inner, opening)))
+                {
+                    remaining = new List<GeoSolid3>(openings.Count);
+
+                    for (int j = 0; j < i; j++)
+                    {
+                        remaining.Add(openings[j]);
+                    }
+                }
+
+                if (!apart)
+                {
+                    remaining?.Add(inner);
+                }
+            }
+
+            return remaining == null ? solid : new GeoSolid3(solid.Faces, remaining);
+        }
+
+        /// <summary>
+        /// The other body of a boolean, as an opening of one is asked whether it shares any space with it: an opening whose
+        /// box stays further from the other's box than the reach does not, nor does one whose faces close, as the other's do,
+        /// with no triangle of either within the clearance of a triangle of the other and no corner of either inside the other
+        /// or within the clearance of its faces. The other is read by its faces alone, its own openings not cut out, which
+        /// can only keep an opening that is clear; its faces are meshed and indexed once, when an opening's box first meets
+        /// its box.
+        /// </summary>
+        /// <remarks>
+        /// A box is not enough on a curved body. A spiral ramp 7 600 wide and 300 thick in 56 facets over half a turn, with a
+        /// spiral tube 110 by 100 inside it as an opening, from 100 to 200 over its floor, less a spiral girder 600 by 500 in
+        /// 66 lying 100 into its outer edge, its top 20 over the floor: the tube's box and the girder's both reach round the
+        /// half turn, and the tube, 80 under the girder's top all along it, was cut into the ramp. The girder less the ramp
+        /// was cut into 640 222 cells in 202 seconds on .NET 10 and was not worked out; with the tube left out it is cut into
+        /// 18 345 in 1.6 seconds and holds what slicing gives, 10 044 789 407.964. Clear surfaces and no corner inside settle
+        /// it: two closed bodies sharing space have surfaces that cross, or one lies wholly inside the other, every corner of
+        /// it with it.
+        /// </remarks>
+        private sealed class Clearance
+        {
+            private readonly GeoSolid3 _other;
+            private readonly Tolerance _reach;
+            private readonly Tolerance _clear;
+            private readonly Tolerance _work;
+            private GeoSolid3 _faces;
+            private Spatial.GeoBvh3 _index;
+
+            /// <summary>
+            /// Asks openings against a body.
+            /// </summary>
+            /// <param name="other">The other body.</param>
+            /// <param name="reach">How far an opening's box has to stay from the other's box to be clear by its box alone.</param>
+            /// <param name="clear">How far an opening's faces have to stay from the other's faces where the boxes meet.</param>
+            /// <param name="work">The tolerance the opening and the other have to close within.</param>
+            internal Clearance(GeoSolid3 other, Tolerance reach, Tolerance clear, Tolerance work)
+            {
+                _other = other;
+                _reach = reach;
+                _clear = clear;
+                _work = work;
+            }
+
+            /// <summary>
+            /// Whether an opening shares no space with the other body; ties and doubt read as sharing.
+            /// </summary>
+            internal bool IsClear(GeoSolid3 opening)
+            {
+                if (!opening.GetAabb().CollidesWith(_other.GetAabb(), _reach))
+                {
+                    return true;
+                }
+
+                if (_faces == null)
+                {
+                    _faces = _other.Openings.Count == 0 ? _other : new GeoSolid3(_other.Faces);
+                    GeoTriangle3[] mesh = Shells3.Closes(_faces, _work) ? _faces.TriangulateQuietly(_work) : Array.Empty<GeoTriangle3>();
+                    _index = mesh.Length > 0 ? new Spatial.GeoBvh3(mesh) : null;
+                }
+
+                GeoSolid3 faces = opening.Openings.Count == 0 ? opening : new GeoSolid3(opening.Faces);
+
+                if (_index == null || !Shells3.Closes(faces, _work))
+                {
+                    return false;
+                }
+
+                GeoTriangle3[] triangles = faces.TriangulateQuietly(_work);
+
+                if (triangles.Length == 0 || new Spatial.GeoBvh3(triangles).CollidesWith(_index, _clear))
+                {
+                    return false;
+                }
+
+                return Outside(faces, _faces) && Outside(_faces, faces);
+            }
+
+            /// <summary>
+            /// Whether every corner of one body lies outside another, further than the clearance from its faces.
+            /// </summary>
+            private bool Outside(GeoSolid3 body, GeoSolid3 of)
+            {
+                foreach (GeoFace3 face in body.Faces)
+                {
+                    foreach (GeoPoint3 corner in face.Boundary.Vertices)
+                    {
+                        if (Containment3.Locate(of, corner, _clear) != PointLocation.OutSide)
+                        {
+                            return false;
+                        }
+                    }
+                }
+
+                return true;
+            }
+        }
+
+        #endregion
     }
 }

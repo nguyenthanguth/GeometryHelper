@@ -66,6 +66,11 @@ namespace GeometryHelper.UnitTest.Solid.Core
 
         private static GeoSolid3 FineGirder(double top) => Spiral(10500, 11100, top - 500, top, 0.01, Math.PI - 0.01, 66);
 
+        // The finer ramp with a spiral tube 110 by 100 inside it as an opening, near its outer edge, from 100 to 200 over its
+        // floor: 80 clear of the girder's top all along it, though its box and the girder's both reach round the half turn.
+        private static GeoSolid3 FineRampWithATube()
+            => new GeoSolid3(FineRamp().Faces, new[] { Spiral(10450, 10560, 100, 200, 0.2, Math.PI - 0.2, 24) });
+
         private static double Sliced(GeoSolid3 part, GeoSolid3 within)
         {
             Assert.True(Slice3.TryVolume(part, new[] { within }, new GeoSolid3[0], out double volume));
@@ -141,6 +146,42 @@ namespace GeometryHelper.UnitTest.Solid.Core
             Assert.True(made, outcome.ToString());
             Assert.True(union.Validate(Options.Tolerance).IsValid);
             Assert.InRange(union.GetVolume(Options.Tolerance) - expected, -slack, slack);
+            Assert.InRange(cells, 1, MostCellsBothWays);
+        }
+
+        [Fact]
+        public void TheGirderLessARampWithATubeClearOfIt_IsCutAsWithoutTheTube_AndLeavesWhatSlicingGives()
+        {
+            // The tube was cut into the ramp: the girder less the ramp was cut into 640 222 cells in 202 seconds and was not
+            // worked out.
+            GeoSolid3 girder = FineGirder(20), ramp = FineRampWithATube();
+            double expected = girder.GetVolume(Options.Tolerance) - Sliced(girder, ramp);
+
+            long before = Boolean3.CellsMade;
+            bool made = Boolean3.TrySubtract(girder, ramp, out GeoSolid3 rest, Options, out BooleanOutcome outcome);
+            long cells = Boolean3.CellsMade - before;
+
+            Assert.True(made, outcome.ToString());
+            Assert.True(rest.Validate(Options.Tolerance).IsValid);
+            Assert.InRange(rest.GetVolume(Options.Tolerance) - expected, -1E-9 * expected, 1E-9 * expected);
+            Assert.InRange(cells, 1, MostCellsBothWays);
+        }
+
+        [Fact]
+        public void TheTakeoffOfTheGirderAndARampWithATubeClearOfIt_IsCutAsWithoutTheTube_AndDeductsWhatSlicingGives()
+        {
+            // The common part was cut into 29 681 cells, the tube cut in; it makes the 18 345 of the ramp without it.
+            GeoSolid3 girder = FineGirder(20), ramp = FineRampWithATube();
+            double expected = Sliced(girder, ramp);
+            var items = new List<VolumeItem> { new VolumeItem(girder, "girder", 4, 0), new VolumeItem(ramp, "ramp", 6, 1) };
+
+            // One thread: the take-off runs on this one, which the count of cells is kept for.
+            long before = Boolean3.CellsMade;
+            VolumeTakeoffResult result = VolumeTakeoff.Run(items, new VolumeTakeoffOptions(Options, 1))[0];
+            long cells = Boolean3.CellsMade - before;
+
+            Assert.Empty(result.Issues);
+            Assert.InRange(result.DeductedVolume - expected, -1E-9 * expected, 1E-9 * expected);
             Assert.InRange(cells, 1, MostCellsBothWays);
         }
 

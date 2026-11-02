@@ -1445,6 +1445,18 @@ however many. A difference or a union whose one body, cut so, came out open and 
 welded closed in the end all the same; what is taken instead is checked, and the boolean is not worked out where that
 does not add up either.
 
+**An opening that shares no space with the other body is left out of a common part, and out of the body a difference
+takes away.** Its box stays further from the other body's box than the tolerance, or the opening and the other body both
+close, their faces stand further apart than twice the tolerance, and no corner of either lies inside the other. Left
+out, it changes nothing the boolean gives: the part two bodies share is what they share without it, and a body less one
+carrying such an opening is the body less the other whole. A box is not enough on a curved body: a spiral ramp 7 600
+wide in 56 facets over half a turn, holding a spiral tube 110 by 100 as an opening 80 under the top of a spiral girder in
+66 lying 100 into its outer edge, has the tube's box and the girder's both reaching round the half turn. The girder less
+the ramp, the tube cut into it, came apart into 640 222 cells in 202 seconds on .NET 10 and was not worked out; with the
+tube left out it is cut into 18 345 in 1.6 seconds and holds what slicing gives, 10 044 789 407.964 cubic millimetres.
+The openings of a body whose material the result keeps, either body of a union or the one a difference takes material
+from, are cut in as before wherever they lie, so the faces of a union or a difference are still where its material ends.
+
 **What comes back closes within the default tolerance.** Two faces of a result meeting on an edge each have it
 where their own planes put it. Where a plane of one body passes within the tolerance of a face of the other, the
 two copies stand a few hundredths apart: closed within the tolerance the boolean was given, open read within a
