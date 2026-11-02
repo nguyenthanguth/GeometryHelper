@@ -426,10 +426,107 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The value of a group of the data of an object as it is read: a text with its escapes read as letters.</summary>
-        private string TailText(Rec record, Pair pair)
+        private string TailText(Rec record, Pair pair) => TailText(record, pair.Code, pair.ValueStart, pair.ValueEnd);
+
+        private string TailText(Rec record, int code, int start, int end)
         {
-            string text = Text(record, pair);
-            return (pair.Code >= 1 && pair.Code <= 9) || (pair.Code >= 300 && pair.Code <= 309) ? DxfReader.Decode(text) : text;
+            string text = Text(record, start, end);
+            return (code >= 1 && code <= 9) || (code >= 300 && code <= 309) ? DxfReader.Decode(text) : text;
+        }
+
+        /// <summary>
+        /// The values of the groups that follow a value in a record, at most as many as <see cref="TailOf"/> would find: for each
+        /// line of the record whose text, its escapes read as letters and its spaces taken off, is the value given (a group's
+        /// value in a record of the form a DXF writes), the value of the group after it, comments passed over, its spaces taken
+        /// off, where that is of the code given. Each group <see cref="TailOf"/> reads of that value with such a group after it
+        /// is among them, and any line of the value elsewhere besides, in extended data or out of its place; so that a count
+        /// of them is never below the one of the groups read. The bytes are looked through for a letter of the value, the one
+        /// given as the rarest in such records, and for a backslash, and a line made a text only where it holds the value's
+        /// letters or an escape: the TABLECONTENT of a table of 400 rows and 3 columns, looked through for its W, in 0.4 ms on
+        /// .NET Framework 4.8, where reading its groups takes 12.
+        /// </summary>
+        internal List<string> ValuesAfter(DxfItem item, string value, char rare, int next)
+        {
+            Rec head = RecordAt(item, 0);
+            byte[] bytes = head.Bytes;
+            var found = new List<string>();
+            int done = head.Start;
+            int letter = Find(bytes, rare, head.Start, head.End);
+            int escape = Find(bytes, '\\', head.Start, head.End);
+
+            // Each line that holds the letter or a backslash, in their order, each looked at once.
+            while (letter >= 0 || escape >= 0)
+            {
+                int at = letter < 0 ? escape : escape < 0 ? letter : Math.Min(letter, escape);
+
+                if (at >= done)
+                {
+                    int feed = Find(bytes, '\n', at, head.End);
+                    int lineEnd = feed < 0 ? head.End : feed;
+                    int line = at > head.Start ? Math.Max(Array.LastIndexOf(bytes, (byte)'\n', at - 1, at - head.Start) + 1, head.Start) : head.Start;
+                    done = feed < 0 ? head.End : feed + 1;
+
+                    if ((escape >= at && escape < lineEnd) || Holds(bytes, line, lineEnd, value))
+                    {
+                        int end = lineEnd > line && bytes[lineEnd - 1] == '\r' ? lineEnd - 1 : lineEnd;
+
+                        if (DxfReader.Decode(Text(head, line, end)).Trim() == value)
+                        {
+                            After(head, done, next, found);
+                        }
+                    }
+                }
+
+                letter = letter >= 0 && letter < done ? Find(bytes, rare, done, head.End) : letter;
+                escape = escape >= 0 && escape < done ? Find(bytes, '\\', done, head.End) : escape;
+            }
+
+            return found;
+        }
+
+        /// <summary>Where a byte stands first in bytes from a place to an end; -1 where it is not there.</summary>
+        private static int Find(byte[] bytes, char letter, int from, int end) => from >= end ? -1 : Array.IndexOf(bytes, (byte)letter, from, end - from);
+
+        /// <summary>The value of the group that begins at a place of a record, comments passed over, its spaces taken off, added where it is of the code given.</summary>
+        private void After(Rec record, int at, int next, List<string> found)
+        {
+            while (at < record.End)
+            {
+                int codeEnd = LineEnd(record.Bytes, at, record.End, out int valueStart);
+                TryCode(record.Bytes, at, codeEnd, out int code);
+                int valueEnd = LineEnd(record.Bytes, valueStart, record.End, out at);
+
+                if (code != 999)
+                {
+                    if (code == next)
+                    {
+                        found.Add(Text(record, valueStart, valueEnd).Trim());
+                    }
+
+                    return;
+                }
+            }
+        }
+
+        /// <summary>Whether the bytes of a line hold the letters of a value of ASCII one after another.</summary>
+        private static bool Holds(byte[] bytes, int start, int end, string letters)
+        {
+            for (int i = start; i + letters.Length <= end; i++)
+            {
+                int k = 0;
+
+                while (k < letters.Length && bytes[i + k] == letters[k])
+                {
+                    k++;
+                }
+
+                if (k == letters.Length)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>

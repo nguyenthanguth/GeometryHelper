@@ -80,6 +80,12 @@ namespace GeometryHelper.Dxf
         private const byte SessionEmptied = 1;
         private const byte SessionReset = 2;
 
+        // A cell of a row of data given the table's own looks of the data, _rowLooks, by rows put in before the first row of
+        // data, which AutoCAD 2021 keeps with the row: ClearTableStyleOverrides of 2 and RemoveAllOverrides give them back, of 0
+        // and 1 they go (D33f a01 to a14).
+        private const byte SessionRowLooks = 0x40;
+        private List<KeyValuePair<int, string>> _rowLooks;
+
         private DxfTable(DxfItem item)
             : base(item)
         {
@@ -1479,9 +1485,12 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A whole number of the table's own after its cells; the fallback where it has none.</summary>
-        private int TableWhole(int code, int fallback)
+        private int TableWhole(int code, int fallback) => TableWhole(Read(), code, fallback);
+
+        /// <summary>A whole number of the table's own after its cells, in a layout of its record; the fallback where it has none.</summary>
+        private static int TableWhole(Layout layout, int code, int fallback)
         {
-            string text = TableText(code);
+            string text = TableText(layout, code);
             return int.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? value : fallback;
         }
 
@@ -1492,9 +1501,11 @@ namespace GeometryHelper.Dxf
         /// where there is none there, the last of its head after its flags (93 to 96) and before its heights, where AutoCAD 2021
         /// writes them: its flow (70) of a table it mirrored, its margins (40, 41), its title and header left out (280, 281).
         /// </summary>
-        private string TableText(int code)
+        private string TableText(int code) => TableText(Read(), code);
+
+        /// <summary>The text of such a group in a layout of the table's record.</summary>
+        private static string TableText(Layout layout, int code)
         {
-            Layout layout = Read();
             int from = layout.CellStart.Count > 0 ? layout.CellsEnd : layout.Groups.List.Count;
 
             for (int i = layout.Groups.List.Count - 1; i >= from; i--)

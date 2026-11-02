@@ -2454,8 +2454,8 @@ all, wherever they stand outside the cell's value, and the edges of its lines fr
 2021's own took `170 5`, `7 GH_TXT` and `140 3.5` out from before the 92 of its cell (1, 0) and wrote a cell of `172 9`
 as `172 0`, both keeping the cell's own kind of value (its flag 0x40000), for which the library knows no groups, but in a
 block cell, which loses it; it also turns the cell's text or block back to nought (145), and a cell of a row of the
-title's or the header's kind moved out of its place, the table leaving its title or header out, keeps the looks of its
-kind (`170 5`, `140 6.0` in the title moved down by a row put in before it), as AutoCAD 2021 wrote them; and
+title's or the header's kind out of its place keeps the looks of its kind (`170 5`, `140 6.0` in the title moved down by a
+row put in before it, and in a row put in that takes the title's look, the title shown), as AutoCAD 2021 wrote them; and
 `TableStyleOverrides` and `ClearTableStyleOverrides` read and take away the table's own (its flags 93 to 96 and the
 groups after its last cell, or in its head after those flags and before its heights, where AutoCAD 2021 writes them),
 in one pass over the table's groups: the cells of a table of 16 001 rows of 2 columns, half
@@ -2471,7 +2471,13 @@ A clear of any option leaves the title and the header left out as they are (280,
 it turns each cell's text and block back to nought (145), and gives a cell of a row of the title's or the header's kind
 out of its place the looks of its kind, as AutoCAD 2021 did: the table given a row before its title and cleared of 0
 writes `93 3`, `280 1`, `281 1`, its title cells `170 5` and `140 6.0` and its header cells `170 5`, and AutoCAD then
-merges the new first row on load as it merges its own.
+merges the new first row on load as it merges its own. AutoCAD keeps the table's own looks of the data with each row of
+data, so that a row put in before the first row of data, which takes them from the table and gives them to the old rows'
+cells, leaves them with those rows while the drawing is open: a clear of 2 and `RemoveAllOverrides` give B-12 and M12
+back GH_TXT, red, 9 and top left, wherever the rows went since, and a clear of 0 or 1 takes them from the rows with the
+table's own. The kinds of the rows are read from the TABLECONTENT once for each writing of it, and only where it holds
+more rows of the title's or the header's style than the table shows: a clear of a table of 400 rows takes as long as it
+did before the kinds were read, and taking away the overrides of its cells one by one too.
 The cells are
 walked row by row (`foreach (DxfCell cell in table)`), and `table.Cells[1, 0]` is a `DxfCell` that reads and sets one,
 `cell.TextString = "Count"`, `cell.Alignment = DxfCellAlignment.MiddleCenter`; `table.Rows[0].Height` and

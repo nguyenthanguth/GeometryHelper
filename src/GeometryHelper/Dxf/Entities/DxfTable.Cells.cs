@@ -1531,9 +1531,12 @@ namespace GeometryHelper.Dxf
         /// 18 flags and the edges of its edge flags (172), as AutoCAD 2021's own wrote the cell (1, 0) of 170 5, 7 GH_TXT and
         /// 140 3.5 before its 92 as 91 262144 and nothing else, and a cell of 172 9 as 172 0 (D28c x1 to x3); a flag the file
         /// gives no groups for, as that of its kind of value (0x40000), is kept, but by a block cell. The turn of its text or
-        /// block (145) is made nought, and a cell of a row of the title's or the header's kind moved out of its place, the table
-        /// leaving its title or header out, keeps the looks of its kind, the title moved down by a row put in before it
-        /// <c>170 5</c> and <c>140 6.0</c>, as AutoCAD 2021 wrote them (D33e t04, t08, t09, m07, n09). The block AutoCAD drew the table with is not drawn anew. The cell's groups
+        /// block (145) is made nought, and a cell of a row of the title's or the header's kind out of its place keeps the looks
+        /// of its kind, the title moved down by a row put in before it <c>170 5</c> and <c>140 6.0</c>, as does a row put in
+        /// taking the title's look while the title is shown, as AutoCAD 2021 wrote them (D33e t04, t08, t09, m07, n07, n09). A
+        /// cell of a row of data that a row put in before the first row of data took the table's own looks of the data from
+        /// keeps them while the drawing is open, as AutoCAD 2021 kept GH_TXT, red, 9 and top left in B-12 and M12 (D33f a01,
+        /// a10). The block AutoCAD drew the table with is not drawn anew. The cell's groups
         /// alone are written, the rest of the record copied as it is: the overrides of every cell of a table of 403 rows taken
         /// away one by one in about 2 s, where writing the whole record each time took 6.
         /// </summary>
@@ -1573,14 +1576,20 @@ namespace GeometryHelper.Dxf
                 alone.SetFlags((alone.Flags ?? 0) & ~DataTypeFlag, 177);
             }
 
-            // A row of the title's or the header's kind moved out of its place, the table leaving its title or header out, keeps
-            // the looks of its kind, as AutoCAD 2021 kept 170 5 and 140 6.0 in the title moved down (D33e m07, n09). The kinds of
-            // the rows are read from the TABLECONTENT only then, as reading them at every cell made the overrides of 397 cells
-            // taken away one by one twice as slow.
-            bool[] moved = null;
-            List<KeyValuePair<int, string>>[] looks = IsTitleSuppressed || IsHeaderSuppressed ? ContentLooks(layout, out moved) : null;
+            // A row of the title's or the header's kind out of its place keeps the looks of its kind, as AutoCAD 2021 kept 170 5
+            // and 140 6.0 in the title moved down (D33e m07, n09) and in a row put in that takes the title's look, the title
+            // shown (D33f n07). The kinds of the rows are read of the TABLECONTENT once for its record (ContentKindsOf).
+            List<KeyValuePair<int, string>>[] looks = ContentLooks(layout, out bool[] moved);
 
             foreach (KeyValuePair<int, string> look in moved != null && moved[row] ? looks[row] : new List<KeyValuePair<int, string>>())
+            {
+                alone.SetOverride(look.Key, look.Value, Item.File.Supports(1021) ? 91 : 177);
+                alone = View(alone.Groups.List);
+            }
+
+            // A cell of a row of data that rows put in before the first took the table's own looks of the data from keeps them,
+            // as AutoCAD 2021 kept GH_TXT, red, 9 and top left in B-12 and M12 (D33f a01, a10, a11).
+            foreach (KeyValuePair<int, string> look in _rowLooks != null && (MarksOf(layout, row * layout.Columns + column) & SessionRowLooks) != 0 ? _rowLooks : new List<KeyValuePair<int, string>>())
             {
                 alone.SetOverride(look.Key, look.Value, Item.File.Supports(1021) ? 91 : 177);
                 alone = View(alone.Groups.List);
@@ -1643,7 +1652,12 @@ namespace GeometryHelper.Dxf
         /// (D33d b01, D33e t01, t02, t06, t07). Of 0 and 2 a cell of a row of the title's or the header's kind out of its place
         /// keeps the looks of its kind, as AutoCAD 2021 kept <c>170 5</c> and <c>140 6.0</c> in the title moved down and
         /// <c>170 5</c> in the header (D33e m01 to m10, n06), so that it merges the first row on load as it merges its own.
-        /// Of 0 and 2, as
+        /// AutoCAD 2021 keeps the table's own looks of the data with each row of data: of 2, a cell of a row of data that a row
+        /// put in before the first row of data took them from while the drawing is open is given them back, B-12 and M12 of
+        /// the table of its own data looks given a row at 0 GH_TXT, red, 9 and top left, wherever the rows went since; of 0
+        /// and 1 they go from the rows with the table's own (D33e n05, D33f a01 to a14). The kinds of the rows are read from
+        /// the TABLECONTENT once for each writing of it, and whole only where it holds more rows of the title's or the
+        /// header's style than the table shows. Of 0 and 2, as
         /// AutoCAD 2021 wrote them, each cell of no value is given the empty one of no kind (<c>93 5</c>, <c>90 512</c>) and
         /// each block cell loses the flag of its kind of value (0x40000), and of 2 each cell takes as its own the looks the
         /// table keeps of its own for its row's kind, so that it shows them still: the table of its own data of 5 high and
@@ -1678,7 +1692,19 @@ namespace GeometryHelper.Dxf
             // Of 0 and 2, the looks each row's cells are given as their own, read before anything goes: of 2 the table's own of
             // the row's kind; of both, for a row of the title's or the header's kind out of its place, the looks of its kind, of
             // the table style alone where the table's own go with the clear (D33e m01 to m10, n05 to n07).
-            List<KeyValuePair<int, string>>[] looks = options != 1 ? ContentLooks(layout, out _, options == 2) : null;
+            // The title's and the header's showing read of the layout, which holds the record as it stands, so that the clear
+            // reads the record once.
+            List<KeyValuePair<int, string>>[] looks = options != 1 ? ContentLooks(layout, out _, options == 2, true) : null;
+
+            // Of 2, the table's own looks of the data that rows put in before its first row of data took from it, which AutoCAD
+            // 2021 kept with the rows of data then and gave back to their cells; of 0 and 1 they go with the table's (D33e n05,
+            // D33f a02, a13).
+            List<KeyValuePair<int, string>> rowLooks = options == 2 ? _rowLooks : null;
+
+            if (options != 2)
+            {
+                ForgetRowLooks();
+            }
 
             if (options != 2)
             {
@@ -1750,8 +1776,9 @@ namespace GeometryHelper.Dxf
 
                 // Of 2, each cell given the table's own looks of its row's kind as its own, as AutoCAD 2021 gave them (D33b c03,
                 // c06, c12), and of 0 and 2 a row out of its kind's place the looks of its kind (D33e m01 to m10), last cell first
-                // so that the places of those before stay as read.
-                if (looks != null)
+                // so that the places of those before stay as read; of 2, a cell of a row of data that rows put in before the first
+                // took the table's own looks of the data from those, the rest of them (D33e n05, D33f a03 to a14).
+                if (looks != null || rowLooks != null)
                 {
                     var cleared = new Layout(g);
                     int flagsCode = Item.File.Supports(1021) ? 91 : 177;
@@ -1759,10 +1786,19 @@ namespace GeometryHelper.Dxf
                     for (int k = Math.Min(cells, cleared.CellStart.Count) - 1; k >= 0; k--)
                     {
                         CellView cell = cleared.CellAt(k / cleared.Columns, k % cleared.Columns);
+                        List<KeyValuePair<int, string>> given = looks?[k / cleared.Columns] ?? new List<KeyValuePair<int, string>>();
 
-                        foreach (KeyValuePair<int, string> look in looks[k / cleared.Columns] ?? new List<KeyValuePair<int, string>>())
+                        foreach (KeyValuePair<int, string> look in given)
                         {
                             cell.SetOverride(look.Key, look.Value, flagsCode);
+                        }
+
+                        foreach (KeyValuePair<int, string> look in rowLooks != null && (MarksOf(layout, k) & SessionRowLooks) != 0 ? rowLooks : new List<KeyValuePair<int, string>>())
+                        {
+                            if (!given.Exists(other => other.Key == look.Key))
+                            {
+                                cell.SetOverride(look.Key, look.Value, flagsCode);
+                            }
                         }
                     }
                 }
@@ -1878,6 +1914,17 @@ namespace GeometryHelper.Dxf
 
                     break;
                 }
+            }
+        }
+
+        /// <summary>Forgets the table's own looks of the data kept with its rows of data (<see cref="SessionRowLooks"/>), as a clear of the table's overrides takes them.</summary>
+        private void ForgetRowLooks()
+        {
+            _rowLooks = null;
+
+            for (int k = 0; _session != null && k < _session.Length; k++)
+            {
+                _session[k] &= unchecked((byte)~SessionRowLooks);
             }
         }
 

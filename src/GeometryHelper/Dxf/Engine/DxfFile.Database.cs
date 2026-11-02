@@ -4254,22 +4254,26 @@ namespace GeometryHelper.Dxf
             return null;
         }
 
-        /// <summary>The handle of a record's extension dictionary: the 360 in its group {ACAD_XDICTIONARY; null where it has none.</summary>
+        /// <summary>
+        /// The handle of a record's extension dictionary: the 360 in its group {ACAD_XDICTIONARY; null where it has none. The
+        /// groups are read one at a time up to it, as it stands after the handle: the record of a table of 400 rows is not read
+        /// whole to find it.
+        /// </summary>
         internal string ExtensionDictionaryOf(DxfItem item)
         {
             Rec head = HeadOf(item);
-            List<Pair> pairs = PairsOf(head);
+            var walk = new GroupWalk(head);
             bool inDictionary = false;
 
-            for (int i = 1; i < pairs.Count; i++)
+            while (walk.Next(out int code, out int start, out int end))
             {
-                if (pairs[i].Code == 102)
+                if (code == 102)
                 {
-                    inDictionary = Text(head, pairs[i]).Trim() == "{ACAD_XDICTIONARY";
+                    inDictionary = Text(head, start, end).Trim() == "{ACAD_XDICTIONARY";
                 }
-                else if (inDictionary && pairs[i].Code == 360)
+                else if (inDictionary && code == 360)
                 {
-                    return Text(head, pairs[i]).Trim();
+                    return Text(head, start, end).Trim();
                 }
             }
 

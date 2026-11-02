@@ -6,6 +6,27 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** `DxfTable.RemoveAllOverrides` keeps in a cell of a row of the title's or the header's kind out of its place
+the looks of its kind, whether the table shows its title and header or not, as AutoCAD 2021 did (check D33f, D33e n07): a
+row put in taking the title's look (`InsertRowsAndInherit(3, 0, 1)`), the title shown, keeps `170 5` and `140 6.0`, and
+one taking the header's look `170 5`, where the library took them away. It read the kinds of the rows only where the
+table left its title or header out, since reading them at every cell made the overrides of 397 cells taken away one by
+one twice as slow; they are now read once for each writing of the TABLECONTENT.
+
+**CHANGED.** A row of data keeps the table's own looks of the data that a row put in before the first row of data takes
+from the table, while the drawing is open, as AutoCAD 2021 keeps them with the row (check D33f a01 to a14, D33e n05):
+`ClearTableStyleOverrides(2)` and `RemoveAllOverrides` give B-12 and M12 of the table of its own data looks, given a row
+at 0, back GH_TXT, red, 9 and top left, after a second row at 0, the row put in taken out again or B-12 given a height of
+5, where the library took them away. A clear of 0 or 1 takes them from the rows with the table's own. A drawing read
+again holds no such row, as AutoCAD reads a file the library wrote.
+
+**FIXED.** `DxfTable.ClearTableStyleOverrides` of 0 or 2 is as fast again as before it read the kinds of the rows (check
+D33f): a clear of 0 of a table of 400 rows and 3 columns takes 9 ms on .NET Framework 4.8 and 5 on .NET 10, where 13.4.0
+took 22 and 21, and the library before check D33e 8 and 4. The TABLECONTENT is looked through for rows of the title's or
+the header's style, and read whole only where it holds more of them than the table shows, once for each writing of it; a
+table's extension dictionary is found without reading its whole record. A table that holds such a row, as one given a
+row before its title, still reads it whole once: 24 ms on .NET Framework 4.8.
+
 ## 13.4.0 (2026-11-02)
 
 A minor release: no public member is added, removed or renamed in any of the four libraries. Of its 43 entries, 1 NEW, 7

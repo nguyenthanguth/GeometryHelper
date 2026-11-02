@@ -1860,3 +1860,40 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       out; `Normal` set on an MTEXT or an INSERT of no contexts, where the library keeps the MTEXT's turn and the INSERT's
       place in the world; and the INSERT's `Position`, `Rotation`, `ScaleFactors`, `Normal` and `BlockTransform` set
       carrying its attributes, the library's documented behaviour.
+
+## Tables: the looks a row of data keeps, a row out of place cleared one cell at a time, the rows a text makes higher
+
+97. **The table's own looks of the data a row put in before the first row of data takes, and what gives them back; a row
+    of the title's or the header's kind out of its place, the title shown, its cells' overrides taken away one by one;
+    the heights AutoCAD gives a row for a taller text, more lines, a larger or turned block.**
+    - Try (D33f, headless, plugin GHD33F rounds FA and FR2): D28c's o0 (its own data looks of 9, GH_TXT, red and top
+      left) given a row at 0, at 2 or at 3, then `ClearTableStyleOverrides` of 2, of 1 or 0 then 2, of 2 twice,
+      `RemoveAllOverrides` of B-12 and of M12, B-12 given a height of 5, the row put in taken out again, a column put
+      in, a second row at 0; the library's own file of o0 given a row at 0, cleared of 2 by AutoCAD; the drawn table
+      given a row taking the header's look and one taking the title's, their cells' overrides taken away; B-12 given a
+      text height of 3, 5 and 8, two and three lines (`A\PB`, `A\PB\PC`), two lines at 5, Mark of romans 9 high and of
+      two lines, the title 9 high, M12 scaled by 2.5 and turned a quarter turn, a height of 8 cleared of 0 (a01 to a14,
+      b01, b02, h01 to h12); and the library's files of the 28 edits and of D33e's 75 read back.
+    - AutoCAD 2021: the table's own looks of the data are kept with each row of data. A row put in before the first row
+      of data takes them from the table and leaves them with the old rows; a clear of 2 and `RemoveAllOverrides` give
+      B-12 and M12 back GH_TXT, red, 9 and top left (`91 262201`, the block cell `91 57`), after a second row at 0, the
+      row taken out again, B-12 given 5, or a clear of 2 before; a clear of 0 or 1 takes them from the rows, and a clear
+      of 2 after it gives none. A row put in after the data keeps none of them through a clear of 2. A column put in
+      gives its cell in such a row the looks too. A clear of 2 by AutoCAD of the library's file of o0 given a row at 0,
+      read as AutoCAD reads a file of the library, gives none. `RemoveAllOverrides` of a row put in taking the title's
+      look keeps `170 5` and `140 6.0`, and of one taking the header's `170 5`. A row is made as high as its text needs:
+      one line of a height h of txt or romans `4/3 h` and the margins above and below (9.666667 for 5, 13.666667 for 8,
+      15 for Mark 9 high), n lines `h + (n - 1) 5/3 h` (15 for two lines of 4.5, 22.5 for three, 16.333333 for two of
+      5, 12.333333 for two of 3.5); a lower text leaves it as it is, and a clear of 0 after a height of 8 makes it 9
+      again; M12 scaled by 2.5 makes its row 13 (the circle of 4 across), turned a quarter turn 11.5 and turned 0.5
+      10.146656 (the width of the text M12 counted).
+    - Now: as AutoCAD for the rows of data while the drawing is open, and for the row taking the title's or the header's
+      look. AutoCAD read the library's files of 24 of the 28 edits, and of all 75 of D33e's, n05 and n07 among them, as it
+      read its own.
+    - Still apart: the row put in after the data, which the library's clear of 2 gives the table's own looks of the data
+      (a04; AutoCAD's own cells read 0.18 high after it); the cell of a column put in in such a row, which the library
+      gives none (a09); the table's own looks of the data, which AutoCAD takes again from the first row of data when the
+      row put in before it goes and the library does not (a07, its cells alike); AutoCAD's clear of 2 of the library's
+      file, which reads its title and data 0.18 high (a06); and the heights of rows, which the library leaves as they are
+      written, as AutoCAD reads the library's files of h01 to h12 alike all the same: matching them needs the widths of the
+      letters of the font, to know where a text breaks and how wide a turned block's attribute is.

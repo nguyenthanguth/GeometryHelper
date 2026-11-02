@@ -471,6 +471,7 @@ namespace GeometryHelper.Dxf
             RowKinds kinds = rowsOf ? Kinds(layout, cells, newColumns, at, count, inheritFrom, valued) : null;
 
             Rebuild(layout, newRows, newColumns, heights, widths, cells, blocks, LinksInserted(layout, rowsOf, at, count), places);
+            kinds?.MarkRows(this, newRows, newColumns);
             ContentInserted(rowsOf, at, count, size, inheritFrom, title ? columns : 0, rowsOf && inheritFrom < 0 && rows == 1);
 
             foreach (DxfCellRange block in copied ?? new List<DxfCellRange>())
@@ -901,13 +902,14 @@ namespace GeometryHelper.Dxf
         /// with that kind (<see cref="KindLooks"/>), <c>170 5</c> and <c>140 6.0</c> of its Standard for a title moved down by a
         /// row put in before it (D33c k01, k02, k05, D33b m18, m23). <paramref name="moved"/> marks those rows, null where none
         /// is; null where no row has looks. Without <paramref name="tables"/>, the looks of the table style alone, as the table's
-        /// own go: those of the rows out of their places, a row in its place given none.
+        /// own go: those of the rows out of their places, a row in its place given none. With <paramref name="shownOf"/>, the
+        /// title's and the header's showing read of the layout, which holds the record as it stands (<see cref="KeptKinds"/>).
         /// </summary>
-        private List<KeyValuePair<int, string>>[] ContentLooks(Layout layout, out bool[] moved, bool tables = true)
+        private List<KeyValuePair<int, string>>[] ContentLooks(Layout layout, out bool[] moved, bool tables = true, bool shownOf = false)
         {
             List<KeyValuePair<int, string>>[] looks = tables ? RowKindLooks(layout) : null;
-            int[] kept = KeptKinds(layout);
-            int[] places = PlaceKinds(layout.Rows);
+            int[] kept = KeptKinds(layout, shownOf);
+            int[] places = shownOf ? PlaceKinds(layout.Rows, TableWhole(layout, 280, 0) == 0, TableWhole(layout, 281, 0) == 0) : PlaceKinds(layout.Rows);
             List<KeyValuePair<int, string>>[] own = null;
             moved = null;
 

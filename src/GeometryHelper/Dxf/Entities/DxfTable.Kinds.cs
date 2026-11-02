@@ -15,6 +15,9 @@ namespace GeometryHelper.Dxf
         // style, background (63, 283), colour and text height.
         private static readonly int[] KindLookCodes = { 170, 7, 63, 283, 64, 140 };
 
+        // The styles of the rows of the TABLECONTENT, read once for its record as it stands (ContentKindsOf).
+        private ContentKinds _contentKinds;
+
         #region Lines of a cell
 
         /// <summary>A line a cell holds at an edge: its colour, lineweight and showing (null for one it holds not), and which of the three it flags.</summary>
@@ -263,6 +266,7 @@ namespace GeometryHelper.Dxf
             }
 
             var looks = new List<KeyValuePair<int, string>>[3];
+            bool[] dropped = drop ? new bool[rows] : null;
 
             for (int r = 0; r < rows; r++)
             {
@@ -273,9 +277,14 @@ namespace GeometryHelper.Dxf
                 {
                     cells[r * columns + c] = WithMissing(cells[r * columns + c], give, valued);
                 }
+
+                if (dropped != null)
+                {
+                    dropped[r] = give == own[2];
+                }
             }
 
-            return new RowKinds(titleOn, titleNow, headerOn, headerNow, drop ? 4 : 0);
+            return new RowKinds(titleOn, titleNow, headerOn, headerNow, drop ? 4 : 0, dropped, drop ? own[2] : null);
         }
 
         /// <summary>
@@ -290,17 +299,30 @@ namespace GeometryHelper.Dxf
         /// The kind of each row as AutoCAD 2021 keeps it, 0 the title, 1 the header and 2 data: the style of its row in the
         /// TABLECONTENT (<c>TABLEROW_BEGIN</c>, <c>90 1</c>, <c>90 2</c>, else data), where the TABLECONTENT lists each of the
         /// table's rows and agrees with its head on whether the title and the header are shown, the title moved down by a row put
-        /// in before it kept as the title (D28e x12 to x15); else by its place, as <see cref="RowType"/> reads it.
+        /// in before it kept as the title (D28e x12 to x15); else by its place, as <see cref="RowType"/> reads it. The
+        /// TABLECONTENT is read whole only where it holds more rows of the title's or the header's style than the table shows,
+        /// and once for its record as it stands (<see cref="ContentKinds"/>). With <paramref name="shownOf"/>, whether the title
+        /// and the header are shown is read of the layout, one of the record as it stands, not of the record again.
         /// </summary>
-        private int[] KeptKinds(Layout layout)
+        private int[] KeptKinds(Layout layout, bool shownOf = false)
         {
-            bool titleOn = !IsTitleSuppressed;
-            bool headerOn = !IsHeaderSuppressed;
-            int[] kinds = PlaceKinds(layout.Rows);
+            bool titleOn = shownOf ? TableWhole(layout, 280, 0) == 0 : !IsTitleSuppressed;
+            bool headerOn = shownOf ? TableWhole(layout, 281, 0) == 0 : !IsHeaderSuppressed;
+            int[] kinds = PlaceKinds(layout.Rows, titleOn, headerOn);
             DxfItem content = IsResident ? ContentItem() : null;
-            ContentGrid grid = content == null ? null : ContentGrid.Read(Item.File, content);
+            ContentKinds read = content == null ? null : ContentKindsOf(content);
 
-            if (grid == null || grid.Rows.Count != layout.Rows)
+            // A row of the TABLECONTENT is of the style of its first TABLEROW_BEGIN, so that no row is of the title's or the
+            // header's kind out of its place where no more of their styles are found than the table shows: the kinds are those
+            // of the places, as a reading of every row would give them.
+            if (read == null || (read.Titles <= (titleOn ? 1 : 0) && read.Headers <= (headerOn ? 1 : 0)))
+            {
+                return kinds;
+            }
+
+            string[] styles = read.Styles(Item.File, content);
+
+            if (styles == null || styles.Length != layout.Rows)
             {
                 return kinds;
             }
@@ -309,7 +331,7 @@ namespace GeometryHelper.Dxf
 
             for (int r = 0; r < kept.Length; r++)
             {
-                string style = StyleOf(grid.Rows[r]);
+                string style = styles[r];
                 kept[r] = style == "1" ? 0 : style == "2" ? 1 : 2;
             }
 
@@ -319,11 +341,88 @@ namespace GeometryHelper.Dxf
             return keptTitle == titleOn && keptHeader == headerOn ? kept : kinds;
         }
 
-        /// <summary>The kind of each row by its place, as <see cref="RowType"/> reads it: the title first and the header next, each where the table does not leave it out.</summary>
-        private int[] PlaceKinds(int rows)
+        /// <summary>
+        /// The styles of the rows of the table's TABLECONTENT, kept while its record's bytes are the same, as every writing gives
+        /// a record new ones: the cells of a table of 400 rows cleared one by one read it once, where each read it whole, which
+        /// made the overrides of 397 cells taken away one by one twice as slow (D33e, D33f).
+        /// </summary>
+        private ContentKinds ContentKindsOf(DxfItem content)
         {
-            bool titleOn = !IsTitleSuppressed;
-            bool headerOn = !IsHeaderSuppressed;
+            DxfFile file = Item.File;
+            DxfFile.Rec record = file.RecordAt(content, 0);
+            ContentKinds kept = _contentKinds;
+
+            if (kept != null && ReferenceEquals(kept.File, file) && ReferenceEquals(kept.Bytes, record.Bytes) && kept.Start == record.Start && kept.End == record.End)
+            {
+                return kept;
+            }
+
+            int titles = 0;
+            int headers = 0;
+
+            foreach (string style in file.ValuesAfter(content, "TABLEROW_BEGIN", 'W', 90))
+            {
+                titles += style == "1" ? 1 : 0;
+                headers += style == "2" ? 1 : 0;
+            }
+
+            kept = new ContentKinds(file, record, titles, headers);
+            _contentKinds = kept;
+            return kept;
+        }
+
+        /// <summary>
+        /// The styles of the rows of a TABLECONTENT as its record stands: how many of its TABLEROW_BEGIN give the title's style
+        /// (<c>90 1</c>) and the header's (<c>90 2</c>), wherever they stand, and the style of each row, read whole the first
+        /// time it is asked for.
+        /// </summary>
+        private sealed class ContentKinds
+        {
+            private string[] _styles;
+            private bool _read;
+
+            internal ContentKinds(DxfFile file, DxfFile.Rec record, int titles, int headers)
+            {
+                File = file;
+                Bytes = record.Bytes;
+                Start = record.Start;
+                End = record.End;
+                Titles = titles;
+                Headers = headers;
+            }
+
+            internal DxfFile File { get; }
+
+            internal byte[] Bytes { get; }
+
+            internal int Start { get; }
+
+            internal int End { get; }
+
+            internal int Titles { get; }
+
+            internal int Headers { get; }
+
+            /// <summary>The style of each row, as <see cref="StyleOf"/> reads it; null where the TABLECONTENT is not in the form AutoCAD writes.</summary>
+            internal string[] Styles(DxfFile file, DxfItem content)
+            {
+                if (!_read)
+                {
+                    ContentGrid grid = ContentGrid.Read(file, content);
+                    _styles = grid?.Rows.ConvertAll(StyleOf).ToArray();
+                    _read = true;
+                }
+
+                return _styles;
+            }
+        }
+
+        /// <summary>The kind of each row by its place, as <see cref="RowType"/> reads it: the title first and the header next, each where the table does not leave it out.</summary>
+        private int[] PlaceKinds(int rows) => PlaceKinds(rows, !IsTitleSuppressed, !IsHeaderSuppressed);
+
+        /// <summary>The kind of each row by its place, the title and the header shown as given.</summary>
+        private static int[] PlaceKinds(int rows, bool titleOn, bool headerOn)
+        {
             var kinds = new int[rows];
 
             for (int r = 0; r < rows; r++)
@@ -526,14 +625,45 @@ namespace GeometryHelper.Dxf
             private readonly bool _headerWas;
             private readonly bool _headerNow;
             private readonly int _drop;
+            private readonly bool[] _dropped;
+            private readonly List<KeyValuePair<int, string>> _dataLooks;
 
-            internal RowKinds(bool titleWas, bool titleNow, bool headerWas, bool headerNow, int drop)
+            internal RowKinds(bool titleWas, bool titleNow, bool headerWas, bool headerNow, int drop, bool[] dropped = null, List<KeyValuePair<int, string>> dataLooks = null)
             {
                 _titleWas = titleWas;
                 _titleNow = titleNow;
                 _headerWas = headerWas;
                 _headerNow = headerNow;
                 _drop = drop;
+                _dropped = dropped;
+                _dataLooks = dataLooks;
+            }
+
+            /// <summary>
+            /// Marks the cells of the rows of data the table's own looks of the data were given to as the table loses them
+            /// (<see cref="SessionRowLooks"/>), the rows by their places after the rows put in, and keeps those looks as the
+            /// table's <see cref="_rowLooks"/>: AutoCAD 2021 kept them with each such row, so that a clear of the cells'
+            /// overrides gave them back (D33e n05, D33f a01 to a14).
+            /// </summary>
+            internal void MarkRows(DxfTable table, int rows, int columns)
+            {
+                if (_dropped == null)
+                {
+                    return;
+                }
+
+                if (table._session == null || table._sessionColumns != columns || table._session.Length != rows * columns)
+                {
+                    table._session = new byte[rows * columns];
+                    table._sessionColumns = columns;
+                }
+
+                for (int k = 0; k < rows * columns; k++)
+                {
+                    table._session[k] |= _dropped[k / columns] ? SessionRowLooks : (byte)0;
+                }
+
+                table._rowLooks = _dataLooks;
             }
 
             /// <summary>
