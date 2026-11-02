@@ -62,6 +62,9 @@ namespace GeometryHelper.Dxf
                 }
 
                 Put(rec.After, 340, handle, TopOrder);
+
+                // The style's linetype of the leader lines and its arrow block, as AutoCAD 2021 writes them on a new multileader.
+                TakeStyleLook(rec, database);
             }
 
             if (Text(rec.After, 343)?.Trim() == "0")
@@ -521,13 +524,15 @@ namespace GeometryHelper.Dxf
             Write(rec);
         }
 
-        private void SetContextNumber(int code, double value, double fallback, int bit, bool positive)
+        /// <summary>Sets a number of the context data and its bit of the overrides; then lets the content follow, given the number it was.</summary>
+        private void SetContextNumber(int code, double value, double fallback, int bit, bool positive, Action<Rec, Ctx, double> follow)
         {
             Guard.Finite(value, nameof(value), "The number has to be a finite number.");
             Rec rec = Read();
             Ctx ctx = Context(rec);
+            double was = Num(Text(ctx.Head, code), fallback);
 
-            if (Same(value, Num(Text(ctx.Head, code), fallback)))
+            if (Same(value, was))
             {
                 return;
             }
@@ -543,6 +548,7 @@ namespace GeometryHelper.Dxf
 
             PutNumber(ctx.Head, code, value, fallback, ContextOrder);
             SetBit(rec, bit);
+            follow(rec, ctx, was);
             Write(rec);
         }
 
@@ -791,14 +797,22 @@ namespace GeometryHelper.Dxf
         /// Writes the vertices of a leader line: all but the last its own, the last the end of its leader's landing, as
         /// <see cref="LastOf"/> reads it, the point the dogleg starts at written so; left as it is where the last is.
         /// </summary>
-        private void WriteVertices(Rec rec, LinePart line, LeaderPart leader, List<GeoPoint3> vertices)
+        private void WriteVertices(Rec rec, LinePart line, LeaderPart leader, List<GeoPoint3> vertices, bool carry = false)
         {
             GeoPoint3 last = vertices[vertices.Count - 1];
 
             if (Text(leader.Head, 10) == null || !SamePoint(last, LastOf(rec, leader)))
             {
+                GeoPoint3 was = PointOf(leader.Head, 10, new GeoPoint3(0.0, 0.0, 0.0));
+                bool had = Text(leader.Head, 10) != null;
                 Landing(leader, out _, out bool horizontal, out GeoVector3 along);
                 PutPoint(leader.Head, 10, horizontal && !Doglegged(rec.After) ? last.Add(along.Negate()) : last, LeaderOrder);
+
+                // The last vertex set: the content and the other landings carried with the landing, as AutoCAD 2021 carries them.
+                if (carry && had)
+                {
+                    Relanded(rec, Context(rec), leader, was.GetVectorTo(PointOf(leader.Head, 10, was)));
+                }
             }
 
             line.SetVertices(vertices.GetRange(0, vertices.Count - 1));

@@ -181,7 +181,6 @@ namespace GeometryHelper.UnitTest.Dxf
                 DxfDatabase db = DxfDatabase.Parse(text);
                 DxfMLeader mleader = ByHandle<DxfMLeader>(db, "8A");
 
-                mleader.TextLocation = new GeoPoint3(1, 21, 0);
                 mleader.TextHeight = 3.5;
                 mleader.ArrowSize = 2.0;
                 mleader.DoglegLength = 5.0;
@@ -191,6 +190,9 @@ namespace GeometryHelper.UnitTest.Dxf
                 mleader.TextAttachmentType = DxfTextAttachmentType.AttachmentMiddle;
                 mleader.EnableFrameText = true;
                 mleader.LandingGap = 1.0;
+
+                // Placed last: AutoCAD 2021 moves the words to keep their landings when the height, dogleg, attachment or gap is set.
+                mleader.TextLocation = new GeoPoint3(1, 21, 0);
                 OnlyTheseChanged(text, db.ToText(), "8A");
 
                 string record = Records(db.ToText()).Single(r => HandleOf(r) == "8A");

@@ -303,13 +303,31 @@ namespace GeometryHelper.Dxf
         /// given (it keeps its own arrow, and takes the rest), and the attachments of the top and bottom and their direction in a
         /// file older than R2010; so do the bits of no property the library writes (18 and 26). What it cannot take is judged
         /// before anything is written, so that nothing is left half set. The overrides of each leader line (its 93) are the
-        /// multileader's own, not the style's, and stay.
+        /// multileader's own, not the style's, and stay. The words, the block and the landings stay where they are, the properties
+        /// written here not moving them as they do when set one by one: how AutoCAD 2021 moves them when a style is taken has not
+        /// been read.
         /// </summary>
         /// <returns>Whether the multileader names a multileader style of its drawing it is set from (for a copy in no file, of
         /// the drawing it was copied from); false, and nothing changed, where it names none, or has no context data to be drawn
         /// from.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the multileader is erased and differs from its style.</exception>
         public override bool SetFromStyle()
+        {
+            // The style's values written through the properties leave the content and the landings where they are.
+            styling = true;
+
+            try
+            {
+                return TakeStyle();
+            }
+            finally
+            {
+                styling = false;
+            }
+        }
+
+        /// <summary>The body of <see cref="SetFromStyle"/>, the content and landings left where they are.</summary>
+        private bool TakeStyle()
         {
             DxfMLeaderStyle style = StyleOf(Read(), out DxfDatabase database);
 

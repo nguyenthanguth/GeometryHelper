@@ -1,0 +1,618 @@
+using System;
+using System.Collections.Generic;
+using GeometryHelper.Geometry;
+using static GeometryHelper.Dxf.DxfLeaderGroups;
+
+namespace GeometryHelper.Dxf
+{
+    public sealed partial class DxfMLeader
+    {
+        // Set while SetFromStyle writes the style's values through the properties, which then leave the content and the landings
+        // where they are, as the library wrote them before AutoCAD 2021's moving of them was read.
+        private bool styling;
+
+        #region The landing of a block
+
+        /// <summary>
+        /// Where AutoCAD 2021 lands a new leader from a point on a block (<see cref="AddLeaderLine(GeoPoint3)"/>): the point its
+        /// dogleg starts at and the dogleg's direction, along the plane's x axis on the side of the block's box the point is on
+        /// (its middle along x, the point on it taken to the right), the dogleg ending where the block's shapes meet the line along
+        /// x through the middle of its box (block connected at its extents, 176 of nought) or through its position (at its base,
+        /// 1), the outermost such point on that side, else that point of the line; no gap. The box is the block's own, of the shapes
+        /// of its entities the library reads, carried as the block is drawn (15, 16, 46 and 14 of the context data) and boxed
+        /// in the plane. False where the MULTILEADER holds no block of its drawing, or the block has no shape the library reads.
+        /// </summary>
+        private bool BlockLanding(Rec rec, Ctx ctx, GeoPoint3 point, out GeoPoint3 landing, out GeoVector3 dogleg)
+        {
+            landing = point;
+            dogleg = new GeoVector3(1.0, 0.0, 0.0);
+            Section(ctx.Head, 296, BlockCodes, out int from, out _);
+            DxfDatabase database = Database();
+            string handle = from < 0 ? null : BlockText(rec, 341) ?? Text(rec.After, 344);
+            DxfBlockTableRecord block = handle == null ? null : BlockByHandle(database, handle.Trim());
+
+            if (block == null)
+            {
+                return false;
+            }
+
+            Axes(ctx, out GeoVector3 x, out GeoVector3 y);
+            List<KeyValuePair<int, string>> b = BlockGroups(rec, out _, out _);
+            GeoVector3 normal = PointOf(b, 14, new GeoPoint3(0.0, 0.0, 1.0)).ToVector();
+            var insert = new DxfBlockReference(BlockPosition, block) { ScaleFactors = BlockScale, Rotation = BlockRotation };
+
+            if (normal.Length > 0.0)
+            {
+                insert.Normal = normal;
+            }
+
+            // The block's own box, its corners carried as the block is drawn and boxed along the plane's axes.
+            double[] own = null;
+
+            foreach (DxfEntity entity in block)
+            {
+                GeoAabb3 box;
+
+                try
+                {
+                    box = entity.GeometricExtents;
+                }
+                catch (InvalidOperationException)
+                {
+                    continue;
+                }
+
+                own = own == null
+                    ? new[] { box.Min.X, box.Min.Y, box.Min.Z, box.Max.X, box.Max.Y, box.Max.Z }
+                    : new[] { Math.Min(own[0], box.Min.X), Math.Min(own[1], box.Min.Y), Math.Min(own[2], box.Min.Z), Math.Max(own[3], box.Max.X), Math.Max(own[4], box.Max.Y), Math.Max(own[5], box.Max.Z) };
+            }
+
+            if (own == null)
+            {
+                return false;
+            }
+
+            GeoTransform3 placed = insert.BlockTransform;
+            double left = double.PositiveInfinity;
+            double right = double.NegativeInfinity;
+            double low = double.PositiveInfinity;
+            double high = double.NegativeInfinity;
+
+            for (int corner = 0; corner < 8; corner++)
+            {
+                GeoVector3 c = placed.Transform(new GeoPoint3(own[(corner & 1) * 3], own[1 + ((corner >> 1) & 1) * 3], own[2 + ((corner >> 2) & 1) * 3])).ToVector();
+                left = Math.Min(left, c.DotProduct(x));
+                right = Math.Max(right, c.DotProduct(x));
+                low = Math.Min(low, c.DotProduct(y));
+                high = Math.Max(high, c.DotProduct(y));
+            }
+
+            double middle = (left + right) / 2.0;
+            bool onLeft = point.ToVector().DotProduct(x) < middle;
+            GeoVector3 position = BlockPosition.ToVector();
+            bool atBase = Whole(Text(rec.After, 176), 0) == 1;
+
+            // The line along x the leader meets the block on, through the middle of the box or the block's position.
+            double along = atBase ? position.DotProduct(x) : middle;
+            double up = atBase ? position.DotProduct(y) : (low + high) / 2.0;
+            GeoVector3 across = position.Subtract(x.Multiply(position.DotProduct(x))).Subtract(y.Multiply(position.DotProduct(y)));
+            GeoPoint3 Point(double u) => Pt(across.Add(x.Multiply(u)).Add(y.Multiply(up)));
+            double reach = right - left + Math.Abs(along - middle) + 1.0;
+            var line = new DxfLine(Point(Math.Min(left, along) - reach), Point(Math.Max(right, along) + reach));
+            double met = double.NaN;
+
+            foreach (DxfEntity entity in insert.Explode())
+            {
+                IReadOnlyList<GeoPoint3> points;
+
+                try
+                {
+                    points = entity.IntersectWith(line, DxfIntersect.OnBothOperands);
+                }
+                catch (NotSupportedException)
+                {
+                    continue;
+                }
+
+                foreach (GeoPoint3 p in points)
+                {
+                    double u = p.ToVector().DotProduct(x);
+                    met = double.IsNaN(met) || (onLeft ? u < met : u > met) ? u : met;
+                }
+            }
+
+            GeoPoint3 end = Point(double.IsNaN(met) ? along : met);
+            dogleg = onLeft ? x : x.Negate();
+            double length = Num(Text(rec.After, 41), 8.0) * Num(Text(ctx.Head, 40), 1.0);
+            landing = end.Add(dogleg.Multiply(-length));
+            return true;
+        }
+
+        #endregion
+
+        #region The landing kept
+
+        /// <summary>The unit x and y axes of the plane of the context data (111 and 112).</summary>
+        private static void Axes(Ctx ctx, out GeoVector3 x, out GeoVector3 y)
+        {
+            x = Unit(PointOf(ctx.Head, 111, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
+            y = Unit(PointOf(ctx.Head, 112, new GeoPoint3(0.0, 1.0, 0.0)).ToVector());
+        }
+
+        /// <summary>
+        /// The side of the content a leader meets it on: -1 the left, its dogleg along the plane's x axis, 1 the right, its
+        /// dogleg against it, the leader meeting the content on its sides (271 of nought); nought for one that meets the words at
+        /// their top or bottom, or whose dogleg runs another way.
+        /// </summary>
+        private static int Side(LeaderPart leader, GeoVector3 x)
+        {
+            if (Whole(Text(leader.Head, 271) ?? Text(leader.Tail, 271), 0) != 0)
+            {
+                return 0;
+            }
+
+            GeoVector3 dogleg = PointOf(leader.Head, 11, new GeoPoint3(1.0, 0.0, 0.0)).ToVector();
+            double length = dogleg.Length;
+            double along = length > 0.0 ? dogleg.DotProduct(x) / length : 0.0;
+            return along >= 1.0 - 1E-9 ? -1 : along <= -1.0 + 1E-9 ? 1 : 0;
+        }
+
+        /// <summary>How many leaders meet the content on its left and on its right (<see cref="Side"/>).</summary>
+        private static void Sides(Ctx ctx, GeoVector3 x, out int left, out int right)
+        {
+            left = 0;
+            right = 0;
+
+            foreach (LeaderPart leader in ctx.Leaders)
+            {
+                int side = Side(leader, x);
+                left += side < 0 ? 1 : 0;
+                right += side > 0 ? 1 : 0;
+            }
+        }
+
+        /// <summary>
+        /// Whether the content is moved with its landings, as AutoCAD 2021 moves it: words met on their sides (271 of nought),
+        /// running along the plane's x axis (13), or a block; and the MULTILEADER is not being set from its style.
+        /// </summary>
+        private bool Kept(Rec rec, Ctx ctx, bool words)
+        {
+            if (styling || Whole(Text(rec.After, 271), 0) != 0)
+            {
+                return false;
+            }
+
+            Section(ctx.Head, 290, MTextCodes, out int from, out int to);
+
+            if (from >= 0)
+            {
+                Axes(ctx, out GeoVector3 x, out _);
+                GeoVector3 along = Unit(PointOf(ctx.Head.GetRange(from, to - from), 13, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
+                return along.Subtract(x).Length <= 1E-9;
+            }
+
+            return !words && HasSection(ctx, 296, BlockCodes);
+        }
+
+        /// <summary>
+        /// How far below the top of the words a leader meets them for an attachment of a side (173 of the left, 95 of the right),
+        /// as AutoCAD 2021 lands it: nought at the top of the top line, half the height of the words at its middle, all of it at
+        /// its bottom and a fifth more under it; the middle of the words, the middle of the bottom line, its bottom and a fifth
+        /// more under it as the lines stand, each 5/3 of their height times their spacing below the one above, the lines counted
+        /// by their breaks (<c>\P</c>); NaN for another attachment, or where the MULTILEADER holds no words.
+        /// </summary>
+        private static double Below(Ctx ctx, int attachment, double height)
+        {
+            Section(ctx.Head, 290, MTextCodes, out int from, out int to);
+
+            if (from < 0)
+            {
+                return double.NaN;
+            }
+
+            List<KeyValuePair<int, string>> m = ctx.Head.GetRange(from, to - from);
+            double whole = height + (Breaks(Text(m, 304)) * 5.0 / 3.0 * height * Num(Text(m, 45), 1.0));
+
+            switch (attachment)
+            {
+                case 0: return 0.0;
+                case 1: return height / 2.0;
+                case 2: return whole / 2.0;
+                case 3: return whole - (height / 2.0);
+                case 4: return whole;
+                case 5: return whole + (height / 5.0);
+                case 6: return height + (height / 5.0);
+                case 7: return height;
+                case 8: return height + (height / 5.0);
+                default: return double.NaN;
+            }
+        }
+
+        /// <summary>The height of the words (41 of the context data).</summary>
+        private static double Height(Ctx ctx) => Num(Text(ctx.Head, 41), 4.0);
+
+        /// <summary>The attachment of a side of the words: the left (173) or the right (95).</summary>
+        private static int AttachmentOf(Rec rec, bool left) => Whole(Text(rec.After, left ? 173 : 95), 1);
+
+        /// <summary>
+        /// Moves the content, the words (12) or the block (15, and its matrix), along a vector, and the base point of the content
+        /// (10 of the context data) along another, as AutoCAD 2021 moves them to keep a landing.
+        /// </summary>
+        private static void MoveContent(Ctx ctx, GeoVector3 by, GeoVector3 basePointBy)
+        {
+            Section(ctx.Head, 290, MTextCodes, out int from, out int to);
+
+            if (from >= 0)
+            {
+                MovePoint(ctx.Head, 12, p => p.Add(by), ContextOrder, from, to);
+            }
+
+            Section(ctx.Head, 296, BlockCodes, out from, out to);
+
+            if (from >= 0)
+            {
+                MovePoint(ctx.Head, 15, p => p.Add(by), ContextOrder, from, to);
+                Shift(ctx.Head, by.X, by.Y, by.Z);
+            }
+
+            MovePoint(ctx.Head, 10, p => p.Add(basePointBy), ContextOrder, 0, -1);
+        }
+
+        /// <summary>Moves the point a leader's dogleg starts at (its 10) along a vector.</summary>
+        private static void MoveLanding(LeaderPart leader, GeoVector3 by) => MovePoint(leader.Head, 10, p => p.Add(by), LeaderOrder, 0, -1);
+
+        /// <summary>
+        /// The words moved as AutoCAD 2021 moves them when the landing gap changes by a length: along x by it, with the leaders on
+        /// the right of the words, which land a gap more away from words a gap further on, by twice it; the base point and the
+        /// leaders on the left kept. A gap of 5 for 2 moves words at (100, 50) to (103, 50) and a dogleg on their right from
+        /// (120.67, 48) to (126.67, 48).
+        /// </summary>
+        private void Regapped(Rec rec, Ctx ctx, double change)
+        {
+            if (!Kept(rec, ctx, true))
+            {
+                return;
+            }
+
+            Axes(ctx, out GeoVector3 x, out _);
+            MoveContent(ctx, x.Multiply(change), new GeoVector3(0.0, 0.0, 0.0));
+
+            foreach (LeaderPart leader in ctx.Leaders)
+            {
+                if (Side(leader, x) > 0)
+                {
+                    MoveLanding(leader, x.Multiply(2.0 * change));
+                }
+            }
+        }
+
+        /// <summary>
+        /// The content and the landings as AutoCAD 2021 keeps them when the doglegs of some leaders (the lengths before, by leader)
+        /// change: with leaders on one side only, the content moved along x away from them by the change, its base point with it,
+        /// where every leader of that side changed alike; with leaders on both sides, the content kept and each leader changed
+        /// landed anew, its dogleg's start moved away from the content by the change.
+        /// </summary>
+        private void Relengthened(Rec rec, Ctx ctx, List<KeyValuePair<LeaderPart, double>> before)
+        {
+            if (!Kept(rec, ctx, false))
+            {
+                return;
+            }
+
+            Axes(ctx, out GeoVector3 x, out _);
+            Sides(ctx, x, out int left, out int right);
+
+            if (left > 0 && right > 0)
+            {
+                foreach (KeyValuePair<LeaderPart, double> was in before)
+                {
+                    int side = Side(was.Key, x);
+                    double change = Num(Text(was.Key.Head, 40), 1.0) - was.Value;
+
+                    if (side != 0)
+                    {
+                        MoveLanding(was.Key, x.Multiply(side * change));
+                    }
+                }
+
+                return;
+            }
+
+            int only = left > 0 ? -1 : 1;
+            double common = double.NaN;
+
+            foreach (LeaderPart leader in ctx.Leaders)
+            {
+                if (Side(leader, x) != only)
+                {
+                    continue;
+                }
+
+                int at = before.FindIndex(p => ReferenceEquals(p.Key, leader));
+                double change = at < 0 ? 0.0 : Num(Text(leader.Head, 40), 1.0) - before[at].Value;
+
+                if (!double.IsNaN(common) && !Same(common, change))
+                {
+                    return;
+                }
+
+                common = change;
+            }
+
+            if (!double.IsNaN(common))
+            {
+                GeoVector3 by = x.Multiply(-only * common);
+                MoveContent(ctx, by, by);
+            }
+        }
+
+        /// <summary>
+        /// The content and the other landings moved with a leader's landing, as AutoCAD 2021 moves them when the last vertex of a
+        /// line of a leader on a side of the content is set: by as much as the dogleg's start moved.
+        /// </summary>
+        private void Relanded(Rec rec, Ctx ctx, LeaderPart moved, GeoVector3 by)
+        {
+            if (!Kept(rec, ctx, false))
+            {
+                return;
+            }
+
+            Axes(ctx, out GeoVector3 x, out _);
+
+            if (Side(moved, x) == 0)
+            {
+                return;
+            }
+
+            MoveContent(ctx, by, by);
+
+            foreach (LeaderPart leader in ctx.Leaders)
+            {
+                if (!ReferenceEquals(leader, moved) && Side(leader, x) != 0)
+                {
+                    MoveLanding(leader, by);
+                }
+            }
+        }
+
+        /// <summary>
+        /// The words moved as AutoCAD 2021 moves them when the attachment of a side changes from one to another, keeping the
+        /// landings of that side: up by as much more as the side is met below their top. With leaders on the left, the words and
+        /// the leaders on the right move, for the left; with leaders on the right, for the right, the words move where there are
+        /// none on the left, else the leaders on the right are landed anew. A side with no leader moves nothing.
+        /// </summary>
+        private void Reattached(Rec rec, Ctx ctx, bool left, int was, int now)
+        {
+            if (!Kept(rec, ctx, true))
+            {
+                return;
+            }
+
+            Axes(ctx, out GeoVector3 x, out GeoVector3 y);
+            Sides(ctx, x, out int lefts, out int rights);
+            double change = Below(ctx, now, Height(ctx)) - Below(ctx, was, Height(ctx));
+
+            if (double.IsNaN(change) || (left ? lefts : rights) == 0)
+            {
+                return;
+            }
+
+            GeoVector3 up = y.Multiply(change);
+
+            // The right alone: the words move to the leaders, the base point with them.
+            if (!left && lefts == 0)
+            {
+                MoveContent(ctx, up, up);
+                return;
+            }
+
+            // The left: the words move, the base point stays, and the leaders on the right follow the words; the right with
+            // leaders on the left: the words stay and the leaders on the right are landed lower by as much.
+            if (left)
+            {
+                MoveContent(ctx, up, new GeoVector3(0.0, 0.0, 0.0));
+            }
+
+            foreach (LeaderPart leader in ctx.Leaders)
+            {
+                if (Side(leader, x) > 0)
+                {
+                    MoveLanding(leader, left ? up : up.Negate());
+                }
+            }
+        }
+
+        /// <summary>
+        /// The words moved as AutoCAD 2021 moves them when their height changes, where every leader meets them on the left: up by
+        /// as much more as the left is met below their top. Words with a leader on their right are left, AutoCAD landing it as
+        /// far right as its font makes them wide.
+        /// </summary>
+        private void Reheighted(Rec rec, Ctx ctx, double was)
+        {
+            if (!Kept(rec, ctx, true))
+            {
+                return;
+            }
+
+            Axes(ctx, out GeoVector3 x, out GeoVector3 y);
+            Sides(ctx, x, out int left, out int right);
+            int attachment = AttachmentOf(rec, true);
+            double change = Below(ctx, attachment, Height(ctx)) - Below(ctx, attachment, was);
+
+            if (left > 0 && right == 0 && !double.IsNaN(change))
+            {
+                MoveContent(ctx, y.Multiply(change), new GeoVector3(0.0, 0.0, 0.0));
+            }
+        }
+
+        /// <summary>
+        /// The words moved as AutoCAD 2021 moves them when the scale changes, where every leader meets them on the left, their
+        /// doglegs alike: along x by as much as the doglegs and the gap grew, the base point by the doglegs, and up by as much
+        /// more as the left is met below their top. Words with a leader on their right are left, AutoCAD landing them by their
+        /// font's width.
+        /// </summary>
+        private void Rescaled(Rec rec, Ctx ctx, List<KeyValuePair<LeaderPart, double>> before, double gapChange, double wasHeight)
+        {
+            if (!Kept(rec, ctx, true))
+            {
+                return;
+            }
+
+            Axes(ctx, out GeoVector3 x, out GeoVector3 y);
+            Sides(ctx, x, out int left, out int right);
+            int attachment = AttachmentOf(rec, true);
+            double rise = Below(ctx, attachment, Height(ctx)) - Below(ctx, attachment, wasHeight);
+            double change = double.NaN;
+
+            if (left == 0 || right > 0 || double.IsNaN(rise))
+            {
+                return;
+            }
+
+            foreach (KeyValuePair<LeaderPart, double> was in before)
+            {
+                if (Side(was.Key, x) < 0)
+                {
+                    double grew = Num(Text(was.Key.Head, 40), 1.0) - was.Value;
+
+                    if (!double.IsNaN(change) && !Same(change, grew))
+                    {
+                        return;
+                    }
+
+                    change = grew;
+                }
+            }
+
+            MoveContent(ctx, x.Multiply(change + gapChange).Add(y.Multiply(rise)), x.Multiply(change));
+        }
+
+        /// <summary>
+        /// The words kept landed as AutoCAD 2021 keeps them when they are given anew (<see cref="MText"/>) where leaders meet them
+        /// on a side, the place given not taken: met on the left only, where they were, moved up by as much more as the left is
+        /// met below their top; met on the right, where they were if they are as wide as before (the same words, height, width
+        /// and spacing). Words AutoCAD would land by their font's width take the place given.
+        /// </summary>
+        private void Relocated(Rec rec, Ctx ctx, GeoPoint3 wasAt, string wasLook, double wasBelow)
+        {
+            if (!Kept(rec, ctx, true))
+            {
+                return;
+            }
+
+            Axes(ctx, out GeoVector3 x, out GeoVector3 y);
+            Sides(ctx, x, out int left, out int right);
+            Section(ctx.Head, 290, MTextCodes, out int from, out int to);
+            string look = WordsLook(ctx);
+            double change = Below(ctx, AttachmentOf(rec, true), Height(ctx)) - wasBelow;
+
+            if (left > 0 && right == 0 && !double.IsNaN(change))
+            {
+                PutPoint(ctx.Head, 12, wasAt.Add(y.Multiply(change)), ContextOrder, from, to);
+            }
+            else if (right > 0 && string.Equals(look, wasLook, StringComparison.Ordinal))
+            {
+                PutPoint(ctx.Head, 12, wasAt, ContextOrder, from, to);
+            }
+        }
+
+        /// <summary>What the width of the words follows, as read: their letters (304), width (43), spacing (45 and 170) and height (41 of the context data).</summary>
+        private static string WordsLook(Ctx ctx)
+        {
+            Section(ctx.Head, 290, MTextCodes, out int from, out int to);
+            List<KeyValuePair<int, string>> m = from < 0 ? new List<KeyValuePair<int, string>>() : ctx.Head.GetRange(from, to - from);
+            return Text(m, 304) + "|" + Real(Num(Text(m, 43), 0.0)) + "|" + Real(Num(Text(m, 45), 1.0)) + "|" + Whole(Text(m, 170), 1).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                + "|" + Real(Height(ctx));
+        }
+
+        #endregion
+
+        #region The underline of attachment 8
+
+        /// <summary>
+        /// Whether a leader meets the words on a side whose attachment is the underline of all their lines (8), where AutoCAD 2021
+        /// underlines the words (<c>\L</c>).
+        /// </summary>
+        private static bool AllLined(Rec rec, Ctx ctx)
+        {
+            Axes(ctx, out GeoVector3 x, out _);
+
+            foreach (LeaderPart leader in ctx.Leaders)
+            {
+                int side = Side(leader, x);
+
+                if (side != 0 && AttachmentOf(rec, side < 0) == 8)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// The words underlined as AutoCAD 2021 underlines them for attachment 8: <c>\L</c> put before words that do not begin with
+        /// it where a leader meets them on a side of that attachment (<see cref="AllLined"/>), "ABC" written <c>\LABC</c>; taken
+        /// off again where no leader does once one did. Words of no letters are left.
+        /// </summary>
+        private void Underline(Rec rec, Ctx ctx, bool was)
+        {
+            Section(ctx.Head, 290, MTextCodes, out int from, out int to);
+
+            if (styling || from < 0)
+            {
+                return;
+            }
+
+            string words = Text(ctx.Head.GetRange(from, to - from), 304) ?? string.Empty;
+            bool lined = words.StartsWith("\\L", StringComparison.Ordinal);
+
+            if (AllLined(rec, ctx))
+            {
+                if (!lined && words.Length > 0)
+                {
+                    Put(ctx.Head, 304, "\\L" + words, ContextOrder, from, to);
+                }
+            }
+            else if (was && lined)
+            {
+                Put(ctx.Head, 304, words.Substring(2), ContextOrder, from, to);
+            }
+        }
+
+        #endregion
+
+        #region The style's look
+
+        /// <summary>
+        /// Gives the MULTILEADER the linetype of its style's leader lines (341, the style's 340) and its style's arrow block (342,
+        /// the style's 341, where it names one), as AutoCAD 2021 writes them when a multileader takes a style, where the
+        /// MULTILEADER does not override them (bits 2 and 8 of its 90) and the drawing has the records.
+        /// </summary>
+        private void TakeStyleLook(Rec rec, DxfDatabase database)
+        {
+            string handle = Text(rec.After, 340)?.Trim();
+
+            if (handle == null || database == null || !database.TryGetObject(handle, out DxfDBObject found) || !(found is DxfMLeaderStyle style))
+            {
+                return;
+            }
+
+            int flags = Whole(Text(rec.After, 90), 0);
+            string linetype = Named<DxfLinetypeTableRecord>(database, style.Text(340));
+            string arrow = Named<DxfBlockTableRecord>(database, style.Text(341));
+
+            if (linetype != null && (flags & (1 << 2)) == 0)
+            {
+                Put(rec.After, 341, linetype, TopOrder);
+            }
+
+            if (arrow != null && (flags & (1 << 8)) == 0)
+            {
+                Put(rec.After, 342, arrow, TopOrder);
+            }
+        }
+
+        #endregion
+    }
+}

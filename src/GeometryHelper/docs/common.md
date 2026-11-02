@@ -2125,7 +2125,10 @@ for them all; where the dogleg is not drawn, its `EnableDogleg` false or its lea
 the dogleg would have, which the lines run on to, as AutoCAD 2021 reads it: a dogleg of 8 from (90, 48, 0) taken away
 leaves the line ending at (98, 48, 0). A property set is written in the MULTILEADER and in its context data, where AutoCAD
 keeps both, and sets its bit of the overrides of the multileader style. `new DxfMLeader()` takes the drawing's multileader
-style when it is appended.
+style when it is appended, with the style's linetype of the leader lines (341) and its arrow block (342), as AutoCAD 2021
+writes them; so does `MLeaderStyle` set, where the multileader does not override them. `ArrowSize` set is written anew even
+where it is the size the multileader has, its bit set and the arrows drawn its size times the `Scale`, as AutoCAD writes
+it: 5 at a scale of 2 draws them 10.
 
 `AddLeaderLine(point)` lands a new leader where AutoCAD 2021 lands it, where it can without a font: from a point on the
 left of words held at their top left and met on their sides, the dogleg runs along the plane's x axis to the landing gap
@@ -2134,15 +2137,38 @@ line, half the height of the words at its middle, all of it at its bottom and a 
 middle of the bottom line, the bottom and a fifth more under it as the lines stand, 5/3 of the height times the spacing
 apart, counted by their breaks). Words "ABC" 4 high held at (100, 50, 0), with a gap of 2 and a dogleg of 8, met at the
 middle of their top line, are met by a leader from (0, 0, 0) whose dogleg runs from (90, 48, 0) to (98, 48, 0); three
-lines met at their middle, from (90, 41.33, 0). AutoCAD lands one on the right as far right as its font makes the words
-wide, and decides which side by their middle, so a point on the right of their left edge, a block, and words turned,
-held otherwise or met at their top or bottom keep the old landing: the first leader, or one made at the base point of the
-content. `TextLocation` set moves the doglegs with the words, as AutoCAD moves them: the words moved from (100, 50, 0) to
-(120, 80, 0) move that dogleg to (110, 78, 0). A gap, a dogleg, a height or a scale set afterwards leaves the words where
-they are, where AutoCAD moves them to keep the landing. The length of the doglegs is written as AutoCAD 2021 writes it: the
+lines met at their middle, from (90, 41.33, 0). A block is met on the side of its box the point is on, with no gap: the
+dogleg ends where the block's shapes meet the line along x through the middle of its box (or through its position, where
+`BlockConnectionType` is its base), the outermost such point on that side, else that point of the line. The box of lines
+from (-10, -5) to (20, 15) placed at (100, 50, 0) is met from (0, 0, 0) by a dogleg from (82, 55, 0) and from (250, 0, 0)
+by one from (128, 55, 0); a circle of radius 10 with a line across it, by doglegs ending at the circle, (90, 50, 0) and
+(110, 50, 0), though the line reaches further right. AutoCAD lands words on the right as far right as its font makes them
+wide, and decides which side by their middle, so a point on the right of their left edge, and words turned, held otherwise
+or met at their top or bottom keep the old landing: the first leader, or one made at the base point of the content.
+
+The content keeps its landings as AutoCAD 2021 keeps them when something is set afterwards. `TextLocation` set moves the
+doglegs with the words: the words moved from (100, 50, 0) to (120, 80, 0) move that dogleg to (110, 78, 0). `LandingGap`
+moves the words along x by as much as the gap grew, with leaders or none, and the doglegs on their right by twice it: a gap
+of 5 for 2 moves "ABC" to (103, 50, 0) and a dogleg on its right from (120.67, 48, 0) to (126.67, 48, 0). `DoglegLength`
+and `SetDoglegLength` move the words or block away from leaders that meet it on one side only, and, where leaders meet it
+on both, land those leaders anew instead: a dogleg of 15 moves words met on the right to (93, 50, 0), and leaves words met
+on both sides where they are, the doglegs then starting at (83, 48, 0) and (127.67, 48, 0). `SetLastVertex` (and
+`SetVertex` of the last vertex) carries the content and every other leader's landing with the landing it moves: words met
+from (90, 48, 0), the vertex set to (50, 60, 0), stand at (60, 62, 0). `TextHeight` and `Scale` move words met on their left
+only (to (100, 53, 0) for a height of 10, to (110, 52, 0) at a scale of 2), and an attachment set moves them up or lands
+the leaders on the right anew by as much more as that side is met below their top. Words given anew by `MText` keep their
+landing rather than take the place given. Where AutoCAD would land the words by their font's width (words met on their
+right whose height or scale changes), the words are left where they are. `SetFromStyle()` moves nothing.
+
+Attachment 8, the underline of every line, underlines the words as AutoCAD 2021 writes it: where a leader meets them on a
+side of that attachment, "ABC" is written `\LABC`, whether the attachment, the leader or the words come last; words that
+begin with `\L` or have no letters are left, and the attachment set away from 8 takes the `\L` off again.
+
+The length of the doglegs is written as AutoCAD 2021 writes it: the
 multileader's own (`DoglegLength`, 41) unscaled, each leader's (40) times the `Scale`, `GetDoglegLength` the leader's over
 the scale (nought for a leader met at the top or bottom of the words), so that Standard's 8 at a scale of 2 is 8, drawn
-16. `Scale` scales the width of the words too, and `TransformBy` leaves the scale and the multileader's own sizes as they
+16. `Scale` scales the width and the height of the words too (43 and 44), but for words in columns, whose width, columns
+and gutter AutoCAD keeps, their height alone scaled; `TransformBy` leaves the scale and the multileader's own sizes as they
 are, as AutoCAD does: scaled by 2 the multileader is still of scale 1, its doglegs drawn 16, `DoglegLength` 8 and
 `ArrowSize` 4.
 `GetGeometry()` gives the lines of its leaders, as `DxfReader` reads a MULTILEADER, and `IntersectWith` meets the

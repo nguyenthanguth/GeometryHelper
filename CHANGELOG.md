@@ -6,6 +6,46 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** `DxfMLeader.AddLeaderLine(point)` lands a new leader on a block as AutoCAD 2021 lands it (check D31b): on the
+side of the block's box the point is on, with no gap, its dogleg ending where the block's shapes meet the line along x
+through the middle of its box, or through its position where the block is met at its base, the outermost such point on that
+side, else that point of the line. The box of lines from (-10, -5) to (20, 15) placed at (100, 50, 0) is met from (0, 0, 0)
+by a dogleg from (82, 55, 0) and from (250, 0, 0) by one from (128, 55, 0); a circle of radius 10 with a line across it to
+(20, 5) by doglegs from (82, 50, 0) and (118, 50, 0), the line reaching further right left out, as AutoCAD leaves it. The
+library made the leader at the base point of the content, its dogleg along x whatever the side. `BlockConnectionType` set
+is written in the context data too (177), where AutoCAD 2021 reads it. 3 new tests, of 18 cases.
+
+**CHANGED.** A `DxfMLeader` keeps its landings as AutoCAD 2021 keeps them when a property is set after its leaders, where
+that needs no font (check D31b, 59 of the library's multileaders read by AutoCAD as it made its own): `LandingGap` moves
+the words along x by as much as the gap grew, with leaders or none, and the doglegs on their right by twice it, a gap of 5
+for 2 moving "ABC" from (100, 50, 0) to (103, 50, 0); `DoglegLength` and `SetDoglegLength` move the words or block away from
+leaders on one side only, words met on the right to (93, 50, 0) for a dogleg of 15 from 8, and land leaders on both sides
+anew, from (83, 48, 0) and (127.67, 48, 0); `SetLastVertex` and `SetVertex` of a last vertex carry the content and the
+other landings with the landing, words met from (90, 48, 0) set to (50, 60, 0) standing at (60, 62, 0), as a block does;
+`TextHeight` and `Scale` move words met on their left only, to (100, 53, 0) for a height of 10 and (110, 52, 0) at a scale
+of 2; an attachment of a side set moves the words or lands the leaders of the right anew by the change below the words'
+top; and words given anew by `MText` keep their landing rather than take the place given. The library left the words and
+block where they were. Words AutoCAD lands by their font's width (met on the right while their height or scale changes) and
+`SetFromStyle()` are left as before. 7 new tests; 1 test changed: the words placed last where the height, dogleg,
+attachment and gap set before it now move them.
+
+**CHANGED.** Attachment 8 of a `DxfMLeader`, the underline of every line, underlines the words as AutoCAD 2021 writes it
+(check D31b): where a leader meets them on a side of that attachment, "ABC" is written `\LABC`, whether the attachment, the
+leader or the words come last; words that begin with `\L` or have no letters are left, and the attachment set away from 8
+takes the `\L` off again. The library wrote the words as given, which AutoCAD draws without the underline. 2 new tests.
+
+**FIXED.** A `DxfMLeader` made in code and appended to a drawing, and one given a style by `MLeaderStyle`, takes the style's
+linetype of the leader lines (341) and its arrow block (342), as AutoCAD 2021 writes them (check D31b), where the
+multileader does not override them; the library wrote neither, and AutoCAD drew such a multileader's leader lines ByLayer
+where its own are ByBlock. `ArrowSize` set is written anew even where it is the size the multileader has, its bit of the
+overrides set, and the arrows drawn its size times the `Scale`, as AutoCAD writes it: 5 at a scale of 2 draws them 10,
+where the library drew them 5, and 4 after `TransformBy` by 2 draws them 4 again. 2 new tests.
+
+**FIXED.** `DxfMLeader.Scale` scales the height of the words (44) with their width, as AutoCAD 2021 scales it (check D31b):
+words 60 by 30 at a scale of 1 are 120 by 60 at 2, where the library left the height at 30; words in columns keep their width,
+columns and gutter (43, 142 to 144), their height alone scaled, as AutoCAD keeps them, where the library scaled their
+width. 1 new test.
+
 **FIXED.** A spline is fitted through fit points as AutoCAD 2021 fits one that is not periodic (check D32, its own plugin
 run headless): one cubic whatever degree is asked, its knots the lengths of the chords, at an end given a tangent the
 derivative there that tangent at the length it is given, written as given, and at an end given none the curve bent no

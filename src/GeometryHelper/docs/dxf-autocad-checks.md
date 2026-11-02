@@ -1295,8 +1295,8 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       `TextLocation` moves the doglegs; the dogleg lengths and `TransformBy` are written as AutoCAD writes them. Of 30
       multileaders the library made as AutoCAD's plugin made them, AutoCAD read every one as the library reads it.
     - Still apart: a leader on the right of the words, or under them between their left edge and middle, which needs the
-      font; a block's landing; words turned, held otherwise, or met at their top or bottom; the words AutoCAD moves after a
-      property set or `SetLastVertex`; and the underline AutoCAD writes into the words for attachment 8 (`\L`).
+      font; words turned, held otherwise, or met at their top or bottom. A block's landing, the words AutoCAD moves after a
+      property set or `SetLastVertex`, and the underline of attachment 8 (`\L`) are now as AutoCAD has them: see point 82.
 
 ## Inserting a drawing
 
@@ -1312,3 +1312,41 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       place"), and copied one in a block a copy brings.
     - Now: `Insert` copies each as it is, naming Z, and says so in one Debug line; where the drawing has a Z the copy places
       it, as a DXF names its block by name. `WblockCloneObjects` refuses one given among the entities, as before.
+
+## Multileader landings kept
+
+82. **A block's landing, the content moved to keep its landings, the underline of attachment 8, the style's look, the
+    arrows set again and the scale of words in columns.**
+    - Try (D31b, headless, plugin GHD31B rounds A and B, on the Standard of point 80): blocks of four shapes (a box, a circle
+      with a line across it, a slanting line, two small circles off the middle) placed at (100, 50), with their origin at
+      (5, 5), scaled by 2 and turned by 30 degrees, met at their extents or base from either side and from points under
+      them; the gap, the dogleg (all and one), the height, the scale, an attachment and the words set after a leader on the
+      left, on the right and on both sides, the last vertex set, the words given anew; attachment 8 set before and after the
+      words and leader, back again, on words underlined already and of no letters; a style of its own linetype and arrow
+      block made current or set; `ArrowSize` set to the size it has, after `Scale` and after `TransformBy`; `Scale` on
+      words 60 by 30 and in static and dynamic columns. Then round I: 60 of the library's multileaders, made and edited by
+      the library the same way (the edits on AutoCAD's own files of point 80), read by DXFIN.
+    - AutoCAD 2021: a block is met with no gap where its shapes meet the line along x through the middle of its own box,
+      carried as it is drawn (or through its position, at its base), the outermost point on the side of the box's middle the
+      point is on, else at that point of the line: the box from 90 to 120 at y 55, the circle with a line across it at 90
+      and 110 though the line reaches 120, the slanting line at 110 from both sides, the two small circles at the middle of
+      the box, 110 (at the position, 100, at its base). The gap moves the words by its change, with or without leaders, and
+      a dogleg on their right by twice it; the dogleg moves the content away from leaders on one side and lands leaders on
+      both sides anew; the last vertex set carries the content and the other landings; the height and the scale move words
+      met on the left, and words met on the right by their font's width; an attachment moves the words or the right
+      leaders by the change below the top; words given anew stay landed, the place given not taken. Attachment 8 writes
+      `\L` before the words where a leader meets its side, once, and takes it off when set away; 5 and 6 write nothing. A
+      new multileader, or one set to a style, takes the style's linetype (341) and arrow block (342). `ArrowSize` set to the
+      size it has sets bit 9 and writes the arrows drawn its size times the scale (4 after `TransformBy` by 2 draws them 4
+      again, 5 at a scale of 2 draws them 10). `Scale` scales the height of the words (44) always and their width (43) only
+      where they have no columns; columns, gutter and heights (142 to 144) are kept, but dynamic columns of manual heights,
+      which AutoCAD flows anew (65 wide becoming 100, a third column added). `BlockConnectionType` is read from the context
+      data (177), where the library had not written it.
+    - Now: all of it but the dynamic columns of manual heights and what needs the font, as AutoCAD has it; of the 60
+      multileaders of round I, AutoCAD read 59 as it made its own, the 60th having no case of its own to match (a height of
+      10 on words met on the left: (100, 53), as AutoCAD put words given anew 10 high).
+    - Still apart: the words AutoCAD moves by their font's width (met on the right while their height or scale changes,
+      given anew wider); a block scaled by `Scale`, which the library does not scale; the moves of `SetFromStyle()`, not
+      read; `TextAttachmentType` set, which AutoCAD sets for the left alone and the library for both sides; and `LandingGap`
+      and `TextHeight`, which AutoCAD reads and writes unscaled (a gap of 2 at a scale of 2 drawn 4) where the library
+      reads and writes them as drawn.
