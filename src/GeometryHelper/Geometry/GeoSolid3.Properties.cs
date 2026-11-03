@@ -57,6 +57,18 @@ namespace GeometryHelper.Geometry
         /// measures 56 497.83, trusted.
         /// </para>
         /// <para>
+        /// A body far out, reaching more than 2^20 and more than 1 024 times the size of its box from the origin, as at
+        /// national-grid coordinates, has its openings cut near the origin, as a union, a common part and a difference of
+        /// such bodies are worked out, and the material moved back, each corner it keeps as it was given, to the bit; the
+        /// volume, the area and the centroid are of that material. Where it stood, a corner was read on a plane within a
+        /// trillionth of the coordinates, and walls of openings a fraction of the tolerance apart were cut in one plane: a
+        /// plate 200 by 100 by 3 a hundred million out, with two openings up from its floor whose ceilings stood 0.00015
+        /// apart, measured 0.525 too much; an L 100 by 80 by 50 a thousand million out, with an opening up from its floor
+        /// and one down from its top whose far walls stood 0.0009 apart, 153 732.16 within a thousandth, and with its
+        /// openings given the other way round 153 731.38, where it holds 153 731.64. Each measures what it holds now, to
+        /// 1.3E-4. Below a trillionth of the coordinates a 256th of the reach out the body is cut where it stands, as before.
+        /// </para>
+        /// <para>
         /// Each face is taken as the fan of its boundary from its first corner, which is exact for a flat face and
         /// the way Tekla Structures reports a part's volume. <see cref="Measure3"/> measures the volume other ways
         /// too, and sets the ways side by side where a face a hair out of flat makes them part.
@@ -242,9 +254,26 @@ namespace GeometryHelper.Geometry
         /// 1E-7, the plate had no section either. At a millionth and above, the default tolerance among them, the material is
         /// cut as it was, to the bit.
         /// </para>
+        /// <para>
+        /// A body far out, as <see cref="GetVolume(Tolerance)"/> says, is moved near the origin with the plane, by whole
+        /// coordinates, cut there, and the section moved back. Where it stood, walls of openings a fraction of the tolerance
+        /// apart were cut in one plane: a plate 200 by 100 by 3 a hundred million out, with two openings up from its floor
+        /// whose ceilings stood 0.00015 apart, cut square to its length through the deeper opening, gave 195, the opening as
+        /// shallow as the other, where the plane cuts 194.9895 of it; it gives that now, to 3E-7.
+        /// </para>
         /// </remarks>
         public GeoFace3[] Section(GeoPlane3 plane, Tolerance tolerance)
         {
+            // A body far out is moved near the origin with its openings, and the plane with it, cut there, and the section
+            // moved back; see the remarks.
+            if (Boolean3.FarFrame.TryFor(this, tolerance, out Boolean3.FarFrame frame))
+            {
+                GeoSolid3 moved = frame.In(this);
+                GeoPlane3 cutter = frame.In(plane);
+
+                return frame.Out(Boolean3.FarFrame.Inside(() => moved.Section(cutter, tolerance)));
+            }
+
             // Below the rounding of the coordinates the material is cut by the plane within it; see the remarks.
             Splition3.BelowTheRounding(this, tolerance, out Tolerance within);
 
@@ -308,6 +337,16 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         private MaterialCut CutMaterial(Tolerance tolerance)
         {
+            // A body far out is moved near the origin with its openings, cut there, and its material moved back; see
+            // Boolean3.FarFrame.
+            if (Boolean3.FarFrame.TryFor(this, tolerance, out Boolean3.FarFrame frame))
+            {
+                GeoSolid3 moved = frame.In(this);
+                MaterialCut cut = Boolean3.FarFrame.Inside(() => moved.CutMaterial(tolerance));
+
+                return new MaterialCut(tolerance, frame.Out(cut.Body), cut.Whole);
+            }
+
             Tolerance within = Material3.ToRounding(this, tolerance);
 
             if (!(within.EqualPoint > tolerance.EqualPoint))

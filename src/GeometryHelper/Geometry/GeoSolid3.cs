@@ -718,6 +718,14 @@ namespace GeometryHelper.Geometry
         /// <see cref="GetCentroid(Tolerance)"/>, read the material this method gives: at nought that plate measures
         /// 58 800, where it measured 60 000, its hole not taken out, and <c>TryGetVolume</c> said that could be trusted.
         /// </para>
+        /// <para>
+        /// A body far out, as <see cref="GetVolume(Tolerance)"/> says, is moved near the origin with its openings, by whole
+        /// coordinates, cut there, and its material moved back: each corner of the body or of an opening it keeps comes back as
+        /// it was given, to the bit, and only the corners the cut makes are rounded, once. Where it stood, walls of openings a
+        /// fraction of the tolerance apart were cut in one plane: the L 100 by 80 by 50 that <c>GetVolume</c> measures a
+        /// thousand million out came back holding 153 732.16 within a thousandth, 0.52 too much, the far wall of one opening
+        /// cut in the plane of the other's; it holds 153 731.64 now, to 3E-5.
+        /// </para>
         /// </remarks>
         public bool TryCutOpenings(out GeoSolid3 material, Tolerance tolerance) => Boolean3.TryCutOpenings(this, out material, tolerance);
 

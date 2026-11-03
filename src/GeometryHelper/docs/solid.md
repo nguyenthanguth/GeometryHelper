@@ -1667,8 +1667,27 @@ a hundredth, and a third less at a millionth. Within a million of the origin, an
 the coordinates a 256th of the reach out (four millionths a thousand million out), a boolean is worked out where the
 bodies stand, as before, to the bit: there their corners carry more rounding from where they stand than the frame allows
 for, and moved, 58 of 5 292 that were right at nought, a trillionth and a thousand-millionth came out otherwise.
-`GetVolume`, `TryCutOpenings`, `Section` and `Mesh3.ToCells` of such bodies are still worked out where they stand: the L
-above with its openings a thousand million out measures 0.52 off.
+
+**The queries of a body far out are worked out near the origin too.** `TryCutOpenings`, the material its measures read
+(`GetVolume`, `TryGetVolume`, `GetSurfaceArea`, `GetCentroid` and `GetMassProperties`), `Section` and `Mesh3.ToCells`
+move such a body alone, by the same gate and the same frame, and move back what has a place: the material and a section
+by their corners, the plane of a section in with the body, and a grid by its origin, each cell's box and each cell's
+material, where its cells start and end and what each holds as they were worked out. A volume and an area are the same
+in the frame as out of it. The L above with its openings a thousand million out measured 153 732.16 within a thousandth,
+0.52 too much, and with its openings given the other way round 0.26 too little; its 9 cells 50 by 40 by 20 were off by
+up to 0.28 each. A plate 200 by 100 by 3 a hundred million out, with two openings up from its floor whose ceilings stood
+0.00015 apart, measured 0.525 too much, and a section square to its length through the deeper opening cut 0.0105 too
+much, the two ceilings cut in one plane. Each holds what it holds now, to 1.3E-4 a thousand million out. Of 617 prisms
+with two or three such openings, ten million to a thousand million out, each asked its volume, whether it can be trusted,
+its area, its centroid, its cut, two sections and its cells along the world's axes and its own, 745 answers were wrong
+at a thousandth and 8 are, 853 at a hundredth and 8; at a millionth, which the gate lets through up to a hundred million
+out, 73 wrong there and 8. The answers left at a thousandth and a hundredth are of walls 0.000 15 to 0.0015 apart: five
+areas 0.02 under to 2.4 over, their volumes right, and two sections 0.0027 and 0.006 off; one of the areas was right and
+is 0.0027 over, a wall cut in a step 0.0007 high where it was cut whole, and one grid ten million out lays a cell fewer
+than at the origin, as it did. Cells along a star's own axes are left out of the count, since the smallest box round a
+star can turn either of several ways. Within a million of the origin, and below the gate's tolerance, nothing changed,
+to the bit: 36 729 and 10 764 fuzz lines. Such queries far out take 4 to 12 % longer at a thousandth and a hundredth,
+and 10 to 13 % less at a millionth.
 
 **Openings that come out open cut in at once**, asked at a millionth or below, have the boolean worked out again on the
 material `TryCutOpenings` gives, which closes such a cut by a weld or takes the openings out one at a time. The planes of

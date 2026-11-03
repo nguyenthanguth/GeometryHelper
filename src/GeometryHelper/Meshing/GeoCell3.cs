@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 using GeometryHelper.Geometry;
 
@@ -129,6 +130,15 @@ namespace GeometryHelper.Meshing
         /// NaN where the body bounds it.
         /// </summary>
         internal double[] High { get; }
+
+        /// <summary>
+        /// Gets the cell moved: its whole cell and its material as a box, where it is one, by one move, its material as a body,
+        /// where it is one, by the other; its place in the grid, its volume and its cuts as they are.
+        /// </summary>
+        /// <param name="box">How a box is moved.</param>
+        /// <param name="solid">How a body is moved.</param>
+        internal GeoCell3 Moved(Func<GeoObb3, GeoObb3> box, Func<GeoSolid3, GeoSolid3> solid)
+            => new GeoCell3(I, J, K, Piece, box(Box), _solid == null ? null : solid(_solid), _material == null ? null : box(_material), IsWhole, Volume, Low, High);
 
         /// <summary>
         /// Describes the cell.

@@ -212,6 +212,24 @@ namespace GeometryHelper.Meshing
             return new GeoObb3(frame.WithOrigin(center), x1 - x0, y1 - y0, z1 - z0);
         }
 
+        /// <summary>
+        /// Gets the grid standing in another frame, its cells moved as it is: where they start and end along its axes, measured
+        /// from its origin, and the tolerances, as they are.
+        /// </summary>
+        /// <param name="frame">The frame it stands in.</param>
+        /// <param name="cell">How each cell is moved.</param>
+        internal GeoCellGrid3 Moved(GeoCoordinateSystem3 frame, Func<GeoCell3, GeoCell3> cell)
+        {
+            var cells = new GeoCell3[_cells.Length];
+
+            for (int i = 0; i < cells.Length; i++)
+            {
+                cells[i] = cell(_cells[i]);
+            }
+
+            return new GeoCellGrid3(frame, _starts, _ends, cells, _joint, _tolerance, _asked);
+        }
+
         private Dictionary<(int, int, int), int[]> ByIndex()
         {
             if (_byIndex != null)

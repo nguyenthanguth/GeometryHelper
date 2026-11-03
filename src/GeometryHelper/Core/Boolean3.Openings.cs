@@ -84,8 +84,9 @@ namespace GeometryHelper.Core
         /// within the tolerance of one plane are cut within a finer tolerance, where what that gives closes within the one
         /// asked: an L 100 by 80 by 50, a million out, with two blind openings 27 apart whose walls stood 0.0009 apart
         /// across it, cut within a thousandth, held 153 674.08 where it holds 153 673.56, the second opening's wall cut in
-        /// the plane of the first's. See <see cref="GeoSolid3.TryCutOpenings(out GeoSolid3, Tolerance)"/>
-        /// for what it refuses and what the measures of the body read at nought.
+        /// the plane of the first's. A body far out is cut near the origin and its material moved back, as a boolean of such
+        /// bodies is worked out. See <see cref="GeoSolid3.TryCutOpenings(out GeoSolid3, Tolerance)"/>
+        /// for what it refuses, what the measures of the body read at nought, and a body far out.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the body is null.</exception>
         public static bool TryCutOpenings(GeoSolid3 solid, out GeoSolid3 material, Tolerance tolerance)
@@ -93,6 +94,19 @@ namespace GeometryHelper.Core
             if (solid == null)
             {
                 throw new ArgumentNullException(nameof(solid));
+            }
+
+            // A body far out is moved near the origin with its openings, cut there, and its material moved back; see
+            // FarFrame.
+            if (solid.Openings.Count > 0 && FarFrame.TryFor(solid, tolerance, out FarFrame frame))
+            {
+                GeoSolid3 moved = frame.In(solid);
+                GeoSolid3 cut = null;
+                Exception failed = null;
+                bool left = FarFrame.Inside(() => TryCutOpenings(moved, out cut, tolerance, out failed));
+
+                material = frame.Out(cut);
+                return left || (failed != null && Unworkable("cut of openings", failed, out material));
             }
 
             return TryCutOpenings(solid, out material, tolerance, out Exception failure)

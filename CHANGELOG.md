@@ -6,6 +6,25 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The cut of a solid's openings, the material its volume, area, centroid and mass are read from, a section of it
+and its cells are worked out near the origin where it stands far out, as its booleans are since 13.5.0 (check GR2b):
+`TryCutOpenings`, `GetVolume`, `TryGetVolume`, `GetSurfaceArea`, `GetCentroid`, `GetMassProperties`, `Section` and
+`Mesh3.ToCells` move a body reaching more than 2^20 out and more than 1 024 times the size of its box by whole
+coordinates, with its openings, a section's plane or a grid's origin, work it out there, and move the material, the
+section or the cells back; a corner kept comes back as it was given, to the bit. Where it stood, walls of openings a
+fraction of the tolerance apart were cut in one plane: an L 100 by 80 by 50 a thousand million out, with an opening up
+from its floor and one down from its top whose far walls stood 0.0009 apart, measured 153 732.16 within a thousandth,
+where it holds 153 731.64, and its cells held 0.52 too much; a plate 200 by 100 by 3 a hundred million out, with two
+openings up from its floor whose ceilings stood 0.00015 apart, measured 0.525 too much, and a section through the deeper
+one cut 0.0105 too much. Each holds what it holds now, to 1.3E-4. Of 617 prisms with two or three such openings ten
+million to a thousand million out, each asked its volume, whether that can be trusted, its area, its centroid, its cut,
+two sections and its cells along the world's axes and its own, wrong answers at a thousandth 745 -> 8, at a hundredth
+853 -> 8, and at a millionth, up to a hundred million out, 73 -> 8; one area that was right is 0.0027 over. Within a
+million of the origin, and below the gate's tolerance, nothing changed, to the bit: 47 493 query fuzz lines, 191 corpus
+sets, 4 bnear runs and the benchmarks; the booleans are as they were, far out too, in 16 800 fuzz lines, but for the
+volume read of a result far out that keeps openings. Such queries far out take 4 to 12 % longer at a thousandth and a
+hundredth, and 10 to 13 % less at a millionth; near the origin they take as long as before.
+
 **CHANGED.** Uniting shapes that Clipper2 joins into one path one after another, squares standing on a strip or in a
 row, no longer slows with the square of their number. An output path joined into another kept that path as its owner,
 so the paths joined one after another made a chain, and every horizontal segment of the answer walked it from the path

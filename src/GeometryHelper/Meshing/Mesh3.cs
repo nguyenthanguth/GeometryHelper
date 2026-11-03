@@ -467,6 +467,15 @@ namespace GeometryHelper.Meshing
         /// three openings, the walls of two of them 0.0009 apart across it, cut within a thousandth into 15 cells, held 0.76
         /// too little in six of them, and cut within a thousandth from its material cut exact, 0.06 too much in one.
         /// </para>
+        /// <para>
+        /// A body far out, as <see cref="GeoSolid3.GetVolume(Tolerance)"/> says, is moved near the origin by whole coordinates,
+        /// the placement's origin with it, cut into cells there, and the grid moved back: its origin, each cell's box and each
+        /// cell's material, coordinate by coordinate; where the cells start and end along its axes, and what each holds, are
+        /// as they were worked out. Where it stood, walls of openings a fraction of the tolerance apart were cut in one plane:
+        /// an L 100 by 80 by 50 a thousand million out, with an opening up from its floor and one down from its top whose far
+        /// walls stood 0.0009 apart, cut within a thousandth into 9 cells 50 by 40 by 20, held 0.52 too much, 0.28 in one
+        /// cell; each holds what it holds at the origin now, to 2.1E-5.
+        /// </para>
         /// </remarks>
         public static GeoCellGrid3 ToCells(GeoSolid3 solid, CellOptions3 options, MeshPlacement3 placement, Tolerance tolerance)
         {
@@ -485,6 +494,16 @@ namespace GeometryHelper.Meshing
             if (!solid.ClosesByCorners(tolerance))
             {
                 throw new ArgumentException("The body is closed along its edges, as GeoSolid3.IsClosed reads it, but not by its corners within the tolerance its cells are cut within, as a body closed only to the rounding of its coordinates is; give a larger tolerance, or mend the body.", nameof(solid));
+            }
+
+            // A body far out is moved near the origin with its openings, and the placement's origin with it, cut into cells
+            // there, and the grid moved back; see the remarks.
+            if (Boolean3.FarFrame.TryFor(solid, tolerance, out Boolean3.FarFrame frame))
+            {
+                GeoSolid3 moved = frame.In(solid);
+                MeshPlacement3 at = frame.In(placement);
+
+                return frame.Out(Boolean3.FarFrame.Inside(() => ToCells(moved, options, at, tolerance)));
             }
 
             solid = solid.TurnOutwards();

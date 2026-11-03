@@ -13,7 +13,7 @@ namespace GeometryHelper.Core
     {
         #region Options
 
-        private delegate bool Operation(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome, out GeoSolid3 open);
+        internal delegate bool Operation(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome, out GeoSolid3 open);
 
         /// <summary>
         /// Joins two solids into one as the options say; see <see cref="SolidBooleanOptions"/>.

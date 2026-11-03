@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using GeometryHelper.Enums;
 using GeometryHelper.Geometry;
+using GeometryHelper.Meshing;
 
 namespace GeometryHelper.Core
 {
@@ -16,7 +17,8 @@ namespace GeometryHelper.Core
     /// by 50 a hundred million out, with two blind openings whose walls stood 0.0009 apart, less a box across both walls,
     /// held 130 189.39 within a thousandth, where it holds 130 189.32, and the box less the L 28 457.23, where it holds
     /// 28 457.68. So such bodies are moved near the origin first, by whole coordinates, the boolean worked out there as it
-    /// is worked out near the origin, and what it gives moved back out.
+    /// is worked out near the origin, and what it gives moved back out. The cut of a body's openings, its material as its
+    /// volume, area, centroid and mass read it, a section of it and its cells are worked out so too.
     /// </remarks>
     public static partial class Boolean3
     {
@@ -79,8 +81,13 @@ namespace GeometryHelper.Core
         /// face or a body the boolean hands back untouched goes out as it was given, the very one; a polygon moved in has its
         /// normal and area measured again where it lands, as a body built there has them.
         /// </para>
+        /// <para>
+        /// The cut of a body's openings, the material its volume, area, centroid and mass are measured on, a section of it and
+        /// its cells are worked out in a frame of the body alone, by the same rules; a volume and an area are the same in the
+        /// frame as out of it, and what has a place, a corner, a plane, a box, is moved back.
+        /// </para>
         /// </remarks>
-        private sealed class FarFrame
+        internal sealed class FarFrame
         {
             private readonly GeoVector3 _origin;
             private readonly GeoVector3 _in;
@@ -111,6 +118,35 @@ namespace GeometryHelper.Core
             /// Marks that a boolean on this thread worked out in a frame is done.
             /// </summary>
             internal static void Leave() => _working--;
+
+            /// <summary>
+            /// Works something out in a frame: marks it so, as <see cref="Enter"/> does, for as long as it takes.
+            /// </summary>
+            /// <param name="work">What is worked out, on bodies already moved into the frame.</param>
+            /// <returns>What it gives, still in the frame.</returns>
+            internal static T Inside<T>(Func<T> work)
+            {
+                Enter();
+
+                try
+                {
+                    return work();
+                }
+                finally
+                {
+                    Leave();
+                }
+            }
+
+            /// <summary>
+            /// Gets the frame a body is worked out in, where it stands far out.
+            /// </summary>
+            /// <param name="body">The body.</param>
+            /// <param name="tolerance">The tolerance it is worked out within.</param>
+            /// <param name="frame">The frame; null when the method returns false.</param>
+            /// <returns>true where the body stands far out, as <see cref="FarFrame"/> says; otherwise, false.</returns>
+            internal static bool TryFor(GeoSolid3 body, Tolerance tolerance, out FarFrame frame)
+                => TryFor(body, new GeoSolid3[0], tolerance, out frame);
 
             /// <summary>
             /// Gets the frame two bodies are worked out in, where they stand far out.
@@ -296,6 +332,45 @@ namespace GeometryHelper.Core
 
                 return new GeoSolid3(faces, openings);
             }
+
+            /// <summary>
+            /// Moves a plane into the frame: its point, coordinate by coordinate, and its normal as it is.
+            /// </summary>
+            internal GeoPlane3 In(GeoPlane3 plane) => GeoPlane3.FromUnitNormal(plane.Origin.Add(_in), plane.Normal);
+
+            /// <summary>
+            /// Moves a placement of a grid into the frame: the point a cell starts at, where it has one; its axes as they are.
+            /// </summary>
+            internal MeshPlacement3 In(MeshPlacement3 placement)
+                => placement.Origin.HasValue ? placement.At(placement.Origin.Value.Add(_in)) : placement;
+
+            /// <summary>
+            /// Moves faces out of the frame, as the faces of a body are moved out.
+            /// </summary>
+            internal GeoFace3[] Out(GeoFace3[] moved)
+            {
+                var faces = new GeoFace3[moved.Length];
+
+                for (int i = 0; i < faces.Length; i++)
+                {
+                    faces[i] = _givenFaces.TryGetValue(moved[i], out GeoFace3 was) ? was : moved[i].MovedBy(_origin, false);
+                }
+
+                return faces;
+            }
+
+            /// <summary>
+            /// Moves a box out of the frame: its centre, coordinate by coordinate; its axes and sizes as they are.
+            /// </summary>
+            internal GeoObb3 Out(GeoObb3 box)
+                => new GeoObb3(box.CoordinateSystem.WithOrigin(box.Center.Add(_origin)), box.SizeX, box.SizeY, box.SizeZ);
+
+            /// <summary>
+            /// Moves a grid of cells out of the frame: its origin, each cell's box and each cell's material; where the cells
+            /// start and end along its axes, measured from its origin, and what each holds, as they are.
+            /// </summary>
+            internal GeoCellGrid3 Out(GeoCellGrid3 grid)
+                => grid.Moved(grid.Frame.WithOrigin(grid.Frame.Origin.Add(_origin)), cell => cell.Moved(Out, Out));
 
             /// <summary>
             /// Moves what a run of cuts reports out of the frame: the place of each repair of a cut closed.
