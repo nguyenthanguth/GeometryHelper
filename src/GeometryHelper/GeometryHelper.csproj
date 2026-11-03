@@ -14,81 +14,50 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement bin-packing sheet-layout cad autocad tekla bim drawing</PackageTags>
     <PackageReleaseNotes>
-      NEW IN 13.5.0
+      NEW IN 13.6.0
 
-      A minor release: one public member added, DxfDatabase.FontSearchPath, and none removed or renamed. Most of it is
-      DXF parity with AutoCAD 2021; the results callers will see change are listed under CHANGED. Three fixes are to the
-      booleans of solids.
-
-      NEW, DXF
-      - DxfDatabase.FontSearchPath: folders, separated by semicolons and searched in their order, where the SHX and
-        TrueType fonts (.ttf, .ttc, .otf of glyf outlines) of the drawing's text styles are read from, so that its words
-        are measured as AutoCAD 2021 measures them: TEXT, ATTRIB and ATTDEF places and GeometricExtents, the ActualWidth
-        and ActualHeight of a one-line MTEXT, multileaders met on the right, attribute definitions flipped and leaders'
-        hooks exploded. Against AutoCAD 2021, 21 596 of 21 600 TEXTs of its own SHX fonts and 30 840 of 31 200 TEXTs of
-        the TrueType fonts of Windows come out as it gives them. The results follow the fonts given. Empty, as every
-        drawing is opened and made, nothing is read and nothing changes.
+      A minor release: no public member added, removed or renamed. Its fixes are to solids far out, the cut of openings,
+      the weld of booleans and the meshing of faces, and its speed is in Clipper2; the results callers will see change
+      are those that were wrong.
 
       FIXED, solids
-      - A common part of two solids, and a difference, leave out an opening of a body whose material the result does not
-        keep where it shares no space with the other body. A spiral girder less a spiral ramp holding a spiral tube as
-        an opening came apart into 640 222 cells in 202 seconds on .NET 10 and 704 on .NET Framework 4.8 and was not
-        worked out; it is cut into 18 345 in 1.6 and 2.7 seconds and holds what slicing gives. The openings of a union's
-        bodies, and of the body a difference takes material from, are cut in as before.
-      - A union, a common part and a difference of solids far out, and each cut of TrySubtractAll, are worked out near
-        the origin: bodies reaching more than 2^20 out and more than 1 024 times the size of their box are moved by
-        whole coordinates, worked out and moved back, a corner kept coming back as it was given, to the bit. Of 1 196
-        such booleans ten million to a thousand million out, wrong at a thousandth 241 -> 14, at a hundredth 413 -> 15
-        and not worked out 134 -> 49; 3 of 1 200 with a face exactly the tolerance off a wall's plane came out otherwise
-        by up to 1.9. Within a million of the origin nothing changed, to the bit. Far out, booleans at a thousandth and
-        a hundredth take 17 to 26 per cent longer, at a millionth a third less. GetVolume, TryCutOpenings, Section and
-        Mesh3.ToCells of bodies far out are not moved yet.
-      - A union, a common part or a difference that is not worked out is worked out once more where either body closes
-        within the tolerance and not at the rounding of its coordinates, as a body cracked a hair wide does: its corners
-        within the tolerance of each other made one and its faces lying in one plane merged. Of 45 000 booleans of a
-        cracked U and a box at a thousandth, a hundredth and 0.05, 1 619 differences, 2 106 common parts and 2 063
-        unions not worked out are right now, and none was made wrong. Every boolean worked out as the bodies came is as
-        it was, to the bit, and takes as long as it did; one worked out again takes 1.4 to 2.5 milliseconds longer for
-        such a U and box under .NET Framework 4.8.
+      - TryCutOpenings, GetVolume, TryGetVolume, GetSurfaceArea, GetCentroid, GetMassProperties, Section and
+        Mesh3.ToCells of a body far out are worked out near the origin, as its booleans are since 13.5.0: a body
+        reaching more than 2^20 out and more than 1 024 times the size of its box is moved by whole coordinates, with
+        its openings, a section's plane or a grid's origin, and the answer moved back; a corner kept comes back as it
+        was given, to the bit. Of 617 prisms with two or three openings ten million to a thousand million out, wrong
+        answers at a thousandth 745 -> 8 and at a hundredth 853 -> 8. Within a million of the origin nothing changed, to
+        the bit. Far out these take 4 to 12 per cent longer at a thousandth and a hundredth, 10 to 13 per cent less at a
+        millionth.
+      - The cut of a solid's openings no longer leaves a sheet inside the material where walls of two openings stand a
+        fraction of the tolerance apart: a strip still lying against a face once the gluing has taken what it could is
+        read again with that face, and what they share goes from both. Of 4 500 prisms with two or three such openings,
+        areas wrong at a hundredth and at a thousandth 576 -> 2, at a millionth 579 -> 0, and none that was right moved.
+        The booleans glue their cells the same way: of 25 200 unions, common parts and differences of such prisms and
+        boxes, 3 not worked out are right now; 13 ten million to a thousand million out, asked below the far frame's
+        gate, that were right come out wrong.
+      - A union, a common part or a difference welded closed takes, of the corners that move the volume by nothing but
+        rounding, the one tilting the faces round the others least, where it took the first met. A cube of 100 and a
+        block 40 by 30 running 0.001 into its top held 1.39 less than the two less their overlap and holds 0.39 less. Of
+        210 797 booleans of the gate corpora, 5 that were wrong are right and none is made wrong; given the same bodies,
+        .NET 10 and .NET Framework 4.8 work them alike, to the bit. They take as long as they did.
 
-      CHANGED, DXF: results callers will see change
-      - Words given to a DxfMLeader put the base point of its content where a leader from the left would meet them, the
-        gap short of the place given and as far below as the left is met, where the library put it at the words. Words
-        turned in code turn the multileader's plane where no leader is landed yet; words mirrored are moved as AutoCAD
-        2021 moves them, kept upright where FontSearchPath measures them; words of another text style are moved to where
-        the multileader's font meets them, where FontSearchPath measures both.
-      - new DxfMLeader() is of words: ContentType is MTextContent, where it was NoneContent. A new multileader writes
-        what AutoCAD 2021 writes for one: ExtendLeaderToText true in a drawing of R2013 or later, a leader line added of
-        no colour of its own, and TextColor the colour of the words given, BYLAYER for words made in code, where it was
-        BYBLOCK.
-      - DxfMLeader.RemoveFirstVertex and RemoveLastVertex take a leader line down to one vertex, where the library kept
-        two; RemoveLastVertex refuses the last vertex of a leader of two lines or more (InvalidOperationException), as
-        AutoCAD 2021 refuses it.
-      - HandOverTo keeping the extension dictionary refuses the contexts of another kind of entity (ArgumentException)
-        before anything is written, where it wrote a drawing AutoCAD 2021 crashed reading; not keeping it, the new
-        entity writes the contexts of the copy it is handed.
-      - HasContext answers false for an object that is never annotative, as a LINE or a layer, whatever context records
-        it holds. DxfObjectContextCollection.AddContext names a scale's entry *A1, *A2 and on, as AutoCAD 2021 does,
-        where the library gave A0, A1 and on.
-      - DxfTable writes the reals it gives with their point (141 9.0, where it wrote 141 9), keeps each row's looks with
-        the row while the drawing is open, as AutoCAD 2021 keeps them in its ROWTABLEFORMAT, and RemoveAllOverrides
-        keeps the looks of the title's or the header's kind in a row of that kind out of its place.
-      - Normal set on a TEXT, ATTDEF, ATTRIB, INSERT or SOLID keeps its points, turn and contexts in its plane, as
-        AutoCAD 2021 does, where the library kept them where they stood in the world; DxfMText.Normal makes the MTEXT
-        read along the new plane's x axis.
-      - An annotative copy added to another drawing by AppendEntity, WblockCloneObjects or Insert keeps its contexts and
-        those of its ATTRIBs, each on that drawing's scale of its scale's name where the two give the same scale. A
-        hundred such copies of a drawing of 35 entities take 185 ms where they took 165 on .NET Framework 4.8.
-      - With FontSearchPath given, a TEXT, ATTRIB or ATTDEF justified other than left on its baseline is put about its
-        second point when it is edited or added, and a locked attribute definition is flipped, where it was refused.
+      FIXED, meshing
+      - GeoFace3.TriangulateSurface covers what the face covers, to rounding, where its corners stand within the
+        tolerance of edges they are not on: the rings of a face cut into strips are read within rounding, where corners
+        closer than the tolerance were merged. Of 48 904 faces with steps, notches, spikes, dents and holes 1E-6 to 0.02
+        across, 24 622 areas wrong at a hundredth, 20 293 at a thousandth and 392 at a millionth are right, and none
+        that was right moved. A loop thinner than the tolerance is still a seam with no triangle: one plate a thousand
+        million out, whose cut keeps sheets 0.00018 thick, holds 0.057 too much read as the triangles in its faces.
 
-      FIXED, DXF
-      - A TransformBy that scales a multileader marks its scale as its own (bit 24); a multileader's leader lines of
-        BYBLOCK, its 176, 294 and 295 are read and written as AutoCAD 2021 reads and writes them.
-      - DxfTable.ClearTableStyleOverrides of 0 on a table of 400 rows takes 9 ms on .NET Framework 4.8, where 13.4.0
-        took 22.
-      - An attribute of several lines keeps its width factor; HandOverTo leaves the new entity its own extended data
-        where the old one has none.
+      CHANGED, Clipper2
+      - Shapes Clipper2 joins into one path one after another unite without slowing with the square of their number:
+        50 000 squares of side 10 standing on a strip took 10.6 seconds to unite with Boolean2.Union on .NET 10, 9.8 of
+        them in Clipper2, and take 1.1, 0.3 in Clipper2.
+      - Clipper2 builds a polytree of many holes in one path, or of shapes joined one after another, in time growing
+        with their number: 20 000 teeth standing on a strip, each with a hole and an island, took 33 seconds to unite
+        into a polytree on .NET 10 and take 0.44. Small clips take as long as they did. Of 80 000 sets of random paths,
+        combs, zigzags, rows of squares, lattices and strips under every fill rule, no answer moves by a bit.
 
       Details in CHANGELOG.md.
 

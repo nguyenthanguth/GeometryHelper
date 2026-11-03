@@ -19,6 +19,14 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 13.6.0
+      - GeometryHelper.IfcConvert is released at 13.6.0 with GeometryHelper, which measures, cuts, sections and meshes
+        solids far out near the origin, leaves no sheet inside the material where walls of openings stand a fraction of
+        the tolerance apart, takes the weld corner tilting the faces least among those that move the volume by rounding
+        alone, meshes faces whose corners stand within the tolerance of other edges to rounding, and unites in Clipper2
+        shapes joined one after another, and polytrees of many holes, without slowing with the square of their number;
+        nothing in IfcConvert changes.
+
       NEW IN 13.5.0
       - GeometryHelper.IfcConvert is released at 13.5.0 with GeometryHelper, which measures DXF words in the SHX and
         TrueType fonts found on DxfDatabase.FontSearchPath as AutoCAD 2021 measures them, places and lands multileaders

@@ -6,6 +6,31 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+## 13.6.0 (2026-11-03)
+
+A minor release: no public member is added, removed or renamed in any of the four libraries. Its six entries, 4 FIXED
+and 2 CHANGED, are fixes to solids and the meshing of faces and speed in the Clipper2 carried compiled in. The cut of a
+solid's openings, the material its volume, area, centroid and mass are read from, a section of it and its cells are
+worked out near the origin where it stands far out, as its booleans are since 13.5.0: of 617 prisms with openings ten
+million to a thousand million out, 8 answers are wrong at a thousandth where 745 were, and within a million of the
+origin nothing changed, to the bit. The cut of openings whose walls stand a fraction of the tolerance apart no longer
+leaves a sheet inside the material: of 4 500 prisms with two or three such openings, 576 areas were wrong at a hundredth
+and at a thousandth, and 2 are. `GeoFace3.TriangulateSurface` covers what the face covers, to rounding, where its
+corners stand within the tolerance of edges they are not on: of 48 904 such faces, 45 307 areas wrong at a hundredth, a
+thousandth or a millionth are right, and none that was right moved. A union, a common part or a difference welded
+closed takes, of the corners that move the volume by nothing but rounding, the one tilting the faces round the others
+least, where it took the first met: a cube of 100 and a block running 0.001 into its top held 1.39 less than the two
+less their overlap and holds 0.39 less, and of 210 797 booleans of the gate corpora 5 that were wrong are right and
+none is made wrong. Clipper2 unites shapes it joins one after another, and builds polytrees of many holes, without
+slowing with the square of their number: 50 000 squares standing on a strip took 9.8 seconds in Clipper2 on .NET 10 and
+take 0.3, and 20 000 teeth each with a hole and an island took 33 seconds to unite into a polytree and take 0.44; of
+80 000 sets of random paths, no answer moves by a bit. Callers will see results change where they were wrong: the
+volumes, areas, sections and cells of bodies far out, the areas of cut openings, the triangles of faces with corners
+near other edges and the corner a weld takes. Far out, those queries take 4 to 12 per cent longer at a thousandth and a
+hundredth; 13 booleans ten million to a thousand million out, asked below the far frame's gate, that were right come
+out wrong, and one plate a thousand million out whose cut keeps sheets 0.00018 thick holds 0.057 too much read as the
+triangles in its faces.
+
 **FIXED.** `GeoFace3.TriangulateSurface` covers what the face covers, to rounding, where its corners stand within the
 tolerance of edges they are not on (check GR2d). Such a face is cut into strips, and the corners of each of its rings
 were read within the tolerance first: corners closer than it were merged and corners within a hundredth of it of a
