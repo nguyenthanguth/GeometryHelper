@@ -1489,7 +1489,15 @@ and tilt less of the faces than the first, the one moving the volume less is tak
 tilt, or, where the first does not close and it lays no face over another, in its place. A column 300 by 300 by 1 000 joined within a hundredth to a beam 160.1 by
 160.8 whose end stands exactly 0.01 clear of its side had two corners of the hole in the column's face, 274 255 square
 millimetres, taken 0.01 off it to the beam's, and held the two and 918.9 cubic millimetres where filling the gap holds
-257.4; it holds the two and 214.5 now, the beam's corners taken onto the column's face. What comes of it is kept where
+257.4; it holds the two and 214.5 now, the beam's corners taken onto the column's face. Corners of a group that move
+the volume by no more than the rounding of the coordinates times the area they are weighed by, which is to say by
+nothing, are told apart by the faces round them: the one that tilts those faces least is taken, and of those still
+alike the one moving the volume least, then the first met. A corner moving the volume more is taken as before. A cube
+of 100 and a block 40 by 30 running exactly 0.001 into its top, turned and joined within a thousandth, had two corners
+0.0003 apart part way along the edges of two faces of 10 000 square millimetres, weighing 3.3E-18 and 2.1E-17 cubic
+millimetres, and the weld took one to the other, 0.0003 off its own face, where the other stands on the first one's
+face: the union held 1.39 less than the two less their overlap, where the tolerance times the area where they meet is
+1.2. It holds 0.39 less now. What comes of it is kept where
 it closes within the default and within its own tolerance, and holds its volume within the tolerance times its area.
 Of 10 314 cuts within 0.05 of the parts of a Tekla model by the parts they meet, 14 came out open within 0.01 that way;
 they close now. A result open within its own tolerance is welded too, where that closes it, and one closed within the

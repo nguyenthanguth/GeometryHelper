@@ -50,7 +50,9 @@ namespace GeometryHelper.Core
     /// face taken 0.01 off it to a sliver's corner, the one more of its group stood within the tolerance of, and the union
     /// came out 1 216.9 short of the two less their overlap; taken to the corner moving the volume least, it holds the two.
     /// A column whose faces come in strips, joined to a beam framing 0.002 into its flange, is welded as before, the ends
-    /// of the beam's flanges beyond the column tilted: weighed by the faces, every corner goes where it went.
+    /// of the beam's flanges beyond the column tilted: weighed by the faces, every corner goes where it went. Corners of a
+    /// group that move the volume by nothing but rounding are told apart by the faces round them, the one tilting them
+    /// least taken; see <see cref="Settled"/>.
     /// </para>
     /// <para>
     /// Only a body open within the default tolerance, or within its own where that is the finer, is welded; one closed
@@ -218,7 +220,7 @@ namespace GeometryHelper.Core
             double least = Math.Max(rounding, 0.01 * reach);
             Func<int, List<(GeoVector3 Triangle, GeoVector3 Round)>> turns = Turns(faces, rings, points, reach);
             Tolerance pieces = LoopAssembly.ForPieces(work);
-            List<GeoFace3> built = Weld(faces, given, points, turns, reach, wide, double.PositiveInfinity, pieces, false, out rings, out int[] to, out int[] wider, null, null, out _);
+            List<GeoFace3> built = Weld(faces, given, points, turns, reach, wide, double.PositiveInfinity, rounding, pieces, false, out rings, out int[] to, out int[] wider, null, null, out _);
 
             if (built == null)
             {
@@ -285,7 +287,7 @@ namespace GeometryHelper.Core
             {
                 otherWelded = null;
                 otherShift = 0.0;
-                List<GeoFace3> other = Weld(faces, given, points, turns, reach, wide, least, pieces, movedFirst, out List<List<int>>[] otherRings, out int[] otherTo, out int[] otherWider, to, wider, out List<bool> asCame);
+                List<GeoFace3> other = Weld(faces, given, points, turns, reach, wide, least, rounding, pieces, movedFirst, out List<List<int>>[] otherRings, out int[] otherTo, out int[] otherWider, to, wider, out List<bool> asCame);
 
                 // Only a weld tilting less of the faces than the first is another way of closing it: one tilting the same
                 // faces moves the volume otherwise, no nearer. A block 40 by 30 running exactly 0.001 into a cube's top over
@@ -317,6 +319,8 @@ namespace GeometryHelper.Core
         /// <param name="wide">How far apart the corners of edges left unpaired are taken together next.</param>
         /// <param name="least">How far off a face's plane a corner the face lies round is moved before it is weighed by the
         /// face; infinite to weigh every corner by its triangle.</param>
+        /// <param name="rounding">The rounding of the body's coordinates: points of a group that only that tells apart are
+        /// settled otherwise; see <see cref="Settled"/>.</param>
         /// <param name="pieces">The tolerance the faces moved are built within.</param>
         /// <param name="movedFirst">Whether each group goes to the corner of it that moves the volume least before the one that
         /// takes most of it.</param>
@@ -327,7 +331,7 @@ namespace GeometryHelper.Core
         /// <param name="unlikeWider">Where that weld took each welded corner next, or null.</param>
         /// <param name="asCame">Whether each face welded is a face of the body as it came.</param>
         /// <returns>The faces welded; null too where every corner goes where the other weld took it.</returns>
-        private static List<GeoFace3> Weld(IReadOnlyList<GeoFace3> faces, List<List<int>>[] given, List<GeoPoint3> points, Func<int, List<(GeoVector3 Triangle, GeoVector3 Round)>> turns, double reach, double wide, double least, Tolerance pieces, bool movedFirst, out List<List<int>>[] rings, out int[] to, out int[] wider, int[] unlikeTo, int[] unlikeWider, out List<bool> asCame)
+        private static List<GeoFace3> Weld(IReadOnlyList<GeoFace3> faces, List<List<int>>[] given, List<GeoPoint3> points, Func<int, List<(GeoVector3 Triangle, GeoVector3 Round)>> turns, double reach, double wide, double least, double rounding, Tolerance pieces, bool movedFirst, out List<List<int>>[] rings, out int[] to, out int[] wider, int[] unlikeTo, int[] unlikeWider, out List<bool> asCame)
         {
             asCame = null;
             rings = new List<List<int>>[faces.Count];
@@ -337,7 +341,7 @@ namespace GeometryHelper.Core
                 rings[f] = new List<List<int>>(given[f]);
             }
 
-            int[] first = Representatives(points, turns, reach, least, null, movedFirst);
+            int[] first = Representatives(points, turns, reach, least, rounding, null, movedFirst);
             to = first;
             wider = null;
 
@@ -385,7 +389,7 @@ namespace GeometryHelper.Core
                     return all;
                 }
 
-                wider = Representatives(points, TurnsOfAll, wide, least, Loose(rings), movedFirst);
+                wider = Representatives(points, TurnsOfAll, wide, least, rounding, Loose(rings), movedFirst);
 
                 foreach (List<List<int>> faceRings in rings)
                 {
@@ -1481,14 +1485,15 @@ namespace GeometryHelper.Core
         /// themselves.
         /// </summary>
         private static int[] Representatives(List<GeoPoint3> points, Func<int, List<(GeoVector3 Triangle, GeoVector3 Round)>> corners, double reach, double least)
-            => Representatives(points, corners, reach, least, null, false);
+            => Representatives(points, corners, reach, least, 0.0, null, false);
 
         /// <summary>
         /// The position each point is welded to, as the overload without marks gives it, of the points marked only where
         /// marks are given: every other point stays where it is. Asked to, each goes to the point that moves the volume least
         /// first, and of those that move it by less than the reach cubed apart to the one that takes the most of the group.
+        /// Points that only rounding tells apart, given, are settled as <see cref="Settled"/> settles them.
         /// </summary>
-        internal static int[] Representatives(List<GeoPoint3> points, Func<int, List<(GeoVector3 Triangle, GeoVector3 Round)>> corners, double reach, double least, bool[] only, bool movedFirst)
+        internal static int[] Representatives(List<GeoPoint3> points, Func<int, List<(GeoVector3 Triangle, GeoVector3 Round)>> corners, double reach, double least, double rounding, bool[] only, bool movedFirst)
         {
             int count = points.Count;
             int[] parent = new int[count];
@@ -1583,26 +1588,18 @@ namespace GeometryHelper.Core
                 {
                     int chosen = left[0];
 
-                    if (left.Count > 1 && movedFirst)
+                    if (left.Count > 1)
                     {
-                        chosen = MovingLeast(left, points, corners, reachSquared, least, reach * reach * reach);
-                    }
-                    else if (left.Count > 1)
-                    {
-                        int mostTaken = -1;
-                        double leastMoved = double.MaxValue;
+                        var taken = new int[left.Count];
+                        var moved = new double[left.Count];
 
-                        foreach (int candidate in left)
+                        for (int c = 0; c < left.Count; c++)
                         {
-                            Weigh(candidate, left, points, corners, reachSquared, least, out int taken, out double moved);
-
-                            if (taken > mostTaken || taken == mostTaken && moved < leastMoved)
-                            {
-                                chosen = candidate;
-                                mostTaken = taken;
-                                leastMoved = moved;
-                            }
+                            Weigh(left[c], left, points, corners, reachSquared, least, out taken[c], out moved[c]);
                         }
+
+                        int best = movedFirst ? MovingLeast(taken, moved, reach * reach * reach) : MostTaken(taken, moved);
+                        chosen = left[rounding > 0.0 ? Settled(best, left, taken, moved, points, corners, reachSquared, rounding) : best];
                     }
 
                     var rest = new List<int>();
@@ -1627,25 +1624,45 @@ namespace GeometryHelper.Core
         }
 
         /// <summary>
-        /// The point of a group that moves the volume least taking those within the tolerance of it, of those that move it
-        /// less than the slack further than that the one that takes the most of the group, then the one that moves it least,
-        /// then the first met.
+        /// Of the points of a group, weighed as <see cref="Weigh"/> weighs them, the one that takes the most of the group,
+        /// then the one that moves the volume least, then the first met.
         /// </summary>
-        private static int MovingLeast(List<int> group, List<GeoPoint3> points, Func<int, List<(GeoVector3 Triangle, GeoVector3 Round)>> corners, double reachSquared, double least, double slack)
+        private static int MostTaken(int[] taken, double[] moved)
         {
-            var taken = new int[group.Count];
-            var moved = new double[group.Count];
+            int chosen = 0;
+            int mostTaken = -1;
+            double leastMoved = double.MaxValue;
+
+            for (int c = 0; c < taken.Length; c++)
+            {
+                if (taken[c] > mostTaken || taken[c] == mostTaken && moved[c] < leastMoved)
+                {
+                    chosen = c;
+                    mostTaken = taken[c];
+                    leastMoved = moved[c];
+                }
+            }
+
+            return chosen;
+        }
+
+        /// <summary>
+        /// Of the points of a group, weighed as <see cref="Weigh"/> weighs them, the one that moves the volume least taking
+        /// those within the tolerance of it, of those that move it less than the slack further than that the one that takes
+        /// the most of the group, then the one that moves it least, then the first met.
+        /// </summary>
+        private static int MovingLeast(int[] taken, double[] moved, double slack)
+        {
             double fewest = double.MaxValue;
 
-            for (int c = 0; c < group.Count; c++)
+            for (int c = 0; c < moved.Length; c++)
             {
-                Weigh(group[c], group, points, corners, reachSquared, least, out taken[c], out moved[c]);
                 fewest = Math.Min(fewest, moved[c]);
             }
 
             int chosen = -1;
 
-            for (int c = 0; c < group.Count; c++)
+            for (int c = 0; c < moved.Length; c++)
             {
                 if (moved[c] <= fewest + slack && (chosen < 0 || taken[c] > taken[chosen] || taken[c] == taken[chosen] && moved[c] < moved[chosen]))
                 {
@@ -1653,7 +1670,92 @@ namespace GeometryHelper.Core
                 }
             }
 
-            return group[chosen];
+            return chosen;
+        }
+
+        /// <summary>
+        /// The point of a group a weld takes the others to where the one chosen moves the volume no more than rounding times
+        /// the area weighed, which rounding alone tells from moving nothing: of those that take as many of the group and move
+        /// the volume no more than that further than it, the one that tilts the faces lying round the others least, within
+        /// rounding times that area too, then of those the one that moves the volume least, then the first met. Where the
+        /// one chosen moves the volume more, it is kept.
+        /// </summary>
+        /// <remarks>
+        /// A cube of 100, turned, and a block 40 by 30 running exactly 0.001 into its top, joined within a thousandth, came
+        /// out with two corners 0.0003 apart part way along the edges of two faces, each 10 000 square millimetres, whose
+        /// triangles weigh nothing: they moved the volume by 3.3E-18 and 2.1E-17 cubic millimetres, and the first was taken.
+        /// The second stands on the first one's face, and the first 0.0003 off the second one's, so that weld tilted the
+        /// second one's face, and the union held 1.39 less than the two less their overlap, where the tolerance times the
+        /// area where they meet is 1.2; taken to the second, it holds 0.39 less. Three corners a box 100 by 60 by 40 less a
+        /// cube of 0.59 a thousandth inside its corner came out with, each moving the volume by 3.5E-4, are kept to the one
+        /// moving it least: taken to the one tilting the faces least, the cut came out valid and 1.68 short, where the cube
+        /// holds 0.21. Nor is a corner the face turns at taken before one part way along a straight edge: a column joined to
+        /// a beam whose end runs exactly 0.001 into it then held the slab they share twice, 51.86 over.
+        /// </remarks>
+        private static int Settled(int chosen, List<int> group, int[] taken, double[] moved, List<GeoPoint3> points, Func<int, List<(GeoVector3 Triangle, GeoVector3 Round)>> corners, double reachSquared, double rounding)
+        {
+            double area = 0.0;
+
+            foreach (int m in group)
+            {
+                foreach ((GeoVector3 triangle, GeoVector3 round) in corners(m))
+                {
+                    area += Math.Max(triangle.Length, round.Length);
+                }
+            }
+
+            double near = rounding * area;
+
+            if (moved[chosen] > near)
+            {
+                return chosen;
+            }
+
+            var tied = new List<int>();
+
+            for (int c = 0; c < group.Count; c++)
+            {
+                if (taken[c] == taken[chosen] && moved[c] <= moved[chosen] + near)
+                {
+                    tied.Add(c);
+                }
+            }
+
+            if (tied.Count < 2)
+            {
+                return chosen;
+            }
+
+            var tilts = new double[tied.Count];
+            double fewest = double.MaxValue;
+
+            for (int i = 0; i < tied.Count; i++)
+            {
+                Weigh(group[tied[i]], group, points, corners, reachSquared, rounding, out _, out tilts[i]);
+                fewest = Math.Min(fewest, tilts[i]);
+            }
+
+            var level = new List<int>(tied.Count);
+
+            for (int i = 0; i < tied.Count; i++)
+            {
+                if (tilts[i] <= fewest + near)
+                {
+                    level.Add(tied[i]);
+                }
+            }
+
+            int settled = level[0];
+
+            foreach (int c in level)
+            {
+                if (moved[c] < moved[settled] || moved[c] == moved[settled] && group[c] < group[settled])
+                {
+                    settled = c;
+                }
+            }
+
+            return settled;
         }
 
         /// <summary>

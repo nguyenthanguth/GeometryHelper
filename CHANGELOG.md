@@ -18,6 +18,22 @@ each united, cut, intersected and xored under every fill rule into paths and pol
 library, none moves by a bit; with the walk passing the paths split off as well, 48 of 20 000 sets nest a polytree
 otherwise, holes coming out at its top as outer paths. The benchmarks sign as they did.
 
+**FIXED.** A union, a common part or a difference welded closed no longer tilts a face to take one corner to another
+that moves the volume by nothing but rounding as well (check GR4). Where the corner the weld took moves the volume by
+no more than the rounding of the coordinates times the area the group is weighed by, as corners part way along
+straight edges do, whose triangles weigh nothing, the others of the group that move it as little are alike to it; of
+those it takes the one tilting the faces round the others least now, then the one moving the volume least, then the
+first met, where it took the first met. A corner moving the volume more is taken as before. A cube of 100 and a block
+40 by 30 running exactly 0.001 into its top, turned and joined within a thousandth, had two corners 0.0003 apart part
+way along the edges of faces of 10 000 square millimetres, weighing 3.3E-18 and 2.1E-17 cubic millimetres; the weld
+took the one standing on the other's face to that other, 0.0003 off its own face, and the union held 1.39 less than
+the two less their overlap, where the tolerance times the area where they meet is 1.2. It holds 0.39 less now. The
+cube came out so turned as .NET 10 turns it, whose cosine of the angle is a bit off .NET Framework 4.8's, and closed as
+it was turned as .NET Framework turns it; given the same bodies, the two work them alike, to the bit. Of 210 797
+booleans of the gate corpora 346 come out otherwise: 5 that were wrong are right, and none is made wrong. Of 25 200
+booleans fuzzed, 17 differ in their bits and none in its class, and of 24 000 of bodies with openings, 2. They take as
+long as they did.
+
 ## 13.5.0 (2026-11-03)
 
 A minor release: one public member is added, `DxfDatabase.FontSearchPath`, and none is removed or renamed in any of the
