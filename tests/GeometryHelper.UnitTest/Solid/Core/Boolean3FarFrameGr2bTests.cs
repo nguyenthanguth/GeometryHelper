@@ -87,13 +87,12 @@ namespace GeometryHelper.UnitTest.Solid
         [MemberData(nameof(Cases))]
         public void TheAreaOfTheL_FarOut_IsWhatItIsNearTheOrigin(double far, bool turnedRound, double tolerance)
         {
-            // Its openings given down first, the L cut at the origin keeps faces 0.0009 wide between the planes of the two far
-            // walls, under the opening down from the top, and measures 0.0234 over Surface; far out it is held to what it
-            // measures there.
+            // Its openings given down first, the L cut at the origin kept faces 0.0009 wide between the planes of the two far
+            // walls, under the opening down from the top, and measured 0.0234 over Surface; see Boolean3StripsGr2cTests.
             double near = L(0, turnedRound).GetSurfaceArea(Within(tolerance));
 
-            Assert.Equal(near, L(far, turnedRound).GetSurfaceArea(Within(tolerance)), Rounding(far));
-            Assert.Equal(Surface, near, turnedRound ? 0.03 : 1E-9);
+            Assert.Equal(Surface, L(far, turnedRound).GetSurfaceArea(Within(tolerance)), Rounding(far));
+            Assert.Equal(Surface, near, 1E-9);
         }
 
         [Theory]
@@ -213,6 +212,9 @@ namespace GeometryHelper.UnitTest.Solid
 
         private const double PlateHeld = 60_000 - 50 * 70 * 1.5 - 50 * 70 * 1.50015;
 
+        /// <summary>The plate's faces, 41 800, and the walls of its openings, 360 and 360.036.</summary>
+        private const double PlateSurface = 41_800 + 2 * 120 * 1.5 + 2 * 120 * 1.50015;
+
         /// <summary>What rounding the corners of the plate far out can cost a volume: 2^-52 of far times its area and its openings'.</summary>
         private static double PlateRounding(double far) => far * Math.Pow(2, -52) * 2 * 42_520;
 
@@ -225,16 +227,23 @@ namespace GeometryHelper.UnitTest.Solid
             // and its area lost the walls of the step.
             GeoSolid3 plate = Plate(far);
 
+            // Cut at the origin it kept a sheet 0.00015 by 100 beside the first opening, 0.03 too much, and measures what it
+            // should now, there and a hundred million out. A thousand million out it is cut 3.9E6 from the origin, where the
+            // strips of that sheet cannot be laid flat within the tolerance its ceilings are cut within, and the sheet stays.
+            double sheet = far < 1E9 ? 0.0 : 2 * 0.00015 * 100;
             Assert.Equal(PlateHeld, plate.GetVolume(Thousandth), PlateRounding(far));
-            Assert.Equal(Plate(0).GetSurfaceArea(Thousandth), plate.GetSurfaceArea(Thousandth), PlateRounding(far));
+            Assert.Equal(PlateSurface + sheet, plate.GetSurfaceArea(Thousandth), PlateRounding(far));
+            Assert.Equal(PlateSurface, Plate(0).GetSurfaceArea(Thousandth), 1E-9);
             Assert.Equal(Plate(0).GetCentroid(Thousandth).Z, plate.GetCentroid(Thousandth).Z - far, 300 * PlateRounding(far) / PlateHeld + 2 * far * Math.Pow(2, -52));
             Assert.Equal(PlateHeld, Mesh3.ToCells(plate, CellOptions3.Grid(50, 40, 20), MeshPlacement3.World, Thousandth).Volume, PlateRounding(far));
 
-            // Read as the triangles lying in its faces, the plate cut at the origin holds 0.33 too much, where read as fans it
-            // holds what it holds; far out it is held to what it holds there.
+            // Read as the triangles lying in its faces, the plate cut at the origin holds 0.175 too much, where read as fans it
+            // holds what it holds: the triangles of a wall whose corners stand 0.00015 apart along its side, closer than the
+            // tolerance, leave a sliver of it out. Far out it is held to what it holds there; a thousand million out, its sheet
+            // kept, it holds 0.33 too much, as it did at the origin with the sheet.
             MassProperties3 mass = plate.GetMassProperties(7.85E-6, Thousandth);
             MassProperties3 near = Plate(0).GetMassProperties(7.85E-6, Thousandth);
-            Assert.Equal(near.Volume, mass.Volume, PlateRounding(far));
+            Assert.Equal(far < 1E9 ? near.Volume : PlateHeld + 0.33, mass.Volume, PlateRounding(far));
             Assert.Equal(near.Centroid.Z, mass.Centroid.Z - far, 300 * PlateRounding(far) / PlateHeld + 2 * far * Math.Pow(2, -52));
         }
 

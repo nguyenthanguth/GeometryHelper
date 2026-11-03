@@ -4253,7 +4253,7 @@ namespace GeometryHelper.Core
 
             if (pairs == null)
             {
-                return faces;
+                return CancelStrips(faces, owners, tolerance);
             }
 
             pairs.Sort();
@@ -4268,12 +4268,14 @@ namespace GeometryHelper.Core
             PairNearestOnly(faces, planes, against, tolerance);
 
             var kept = new List<GeoFace3>(count);
+            var keptOwners = new List<int>(count);
 
             for (int i = 0; i < count; i++)
             {
                 if (against[i] == null)
                 {
                     kept.Add(faces[i]);
+                    keptOwners.Add(owners == null ? i : owners[i]);
                     continue;
                 }
 
@@ -4296,11 +4298,175 @@ namespace GeometryHelper.Core
                     if (piece.Area > speck)
                     {
                         kept.Add(piece);
+                        keptOwners.Add(owners == null ? i : owners[i]);
+                    }
+                }
+            }
+
+            return CancelStrips(kept, keptOwners, tolerance);
+        }
+
+        /// <summary>
+        /// Takes from each other, both laid out within the tolerance of the work, the faces left lying back to back where one
+        /// is a strip narrower than the global tolerance: what they share bounds no material.
+        /// </summary>
+        /// <param name="faces">The faces left once the faces lying back to back took from each other.</param>
+        /// <param name="owners">For each face, the cell or the body whole it came from; null where that is not known.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <remarks>
+        /// <para>
+        /// A face is laid out in its plane within the global tolerance however fine the work (see <see cref="Flatten"/>), and
+        /// a strip narrower than that is nothing there: it shares nothing with a face against it, and nothing is taken from
+        /// it. Where the cut of openings left a cell that thin between two walls a fraction of the tolerance apart, its face
+        /// and the strip of the face against it stayed, a sheet inside the material, bounding none. An L 100 by 80 by 50 with
+        /// two blind openings whose far walls stood 0.0009 apart, cut with the opening down from the top first, kept a sheet
+        /// 0.0009 by 13 under that opening, its area 0.0234 too much; a plate 200 by 100 by 3 with two openings up from its
+        /// floor whose ceilings stood 0.00015 apart kept one 0.00015 by 100 beside the first opening, 0.03 too much.
+        /// </para>
+        /// <para>
+        /// Such a strip is read again, laid out within the tolerance of the work with the faces against it, as faces lying
+        /// back to back are read: two of one cell are never taken so, its two sides where it is thinner than the tolerance
+        /// (see <see cref="CancelBackToBack(List{GeoFace3}, List{int}, Tolerance)"/>). A face no strip lies against comes
+        /// out as it came.
+        /// </para>
+        /// <para>
+        /// A strip more than a million out, as <see cref="Splition3.Rounding"/> reads the reach, is read so only within a
+        /// tolerance <see cref="FinerRoundings"/> times what rounding can move a corner off a plane there, and is otherwise
+        /// left as it came. A body a thousand million out is cut 3.9E6 from the origin (see <see cref="FarFrame"/>), and its
+        /// strips are read; a boolean asked below the gate of the far frame is worked out where the bodies stand, within the
+        /// rounding, and read so there too, 13 of 16 800 booleans of such prisms ten million to a thousand million out, at
+        /// nought to a millionth, that were right came out wrong, by as much as 0.68, or not valid.
+        /// </para>
+        /// </remarks>
+        private static List<GeoFace3> CancelStrips(List<GeoFace3> faces, List<int> owners, Tolerance tolerance)
+        {
+            int count = faces.Count;
+            bool[] strip = null;
+
+            for (int i = 0; i < count; i++)
+            {
+                if (IsStrip(faces[i], tolerance))
+                {
+                    (strip = strip ?? new bool[count])[i] = true;
+                }
+            }
+
+            if (strip == null)
+            {
+                return faces;
+            }
+
+            var normals = new GeoVector3[count];
+            var boxes = new GeoAabb3[count];
+            var planes = new GeoPlane3[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                normals[i] = faces[i].Boundary.Normal;
+                boxes[i] = faces[i].GetAabb();
+                planes[i] = faces[i].GetPlane();
+            }
+
+            double speck = tolerance.EqualPoint * tolerance.EqualPoint;
+            var against = new List<int>[count];
+            bool any = false;
+
+            for (int s = 0; s < count; s++)
+            {
+                if (!strip[s])
+                {
+                    continue;
+                }
+
+                for (int f = 0; f < count; f++)
+                {
+                    // Two strips lying back to back are paired once, from the first.
+                    if (f == s || strip[f] && f < s || owners != null && owners[f] == owners[s] || normals[s].DotProduct(normals[f]) >= 0.0
+                        || !boxes[s].CollidesWith(boxes[f], tolerance))
+                    {
+                        continue;
+                    }
+
+                    bool fInS = LiesIn(planes[s], faces[f], tolerance);
+
+                    if (!fInS && !LiesIn(planes[f], faces[s], tolerance)
+                        || AreaOf(fInS ? IntersectLaidOutFinely(faces[s], faces[f], tolerance) : IntersectLaidOutFinely(faces[f], faces[s], tolerance)) <= speck)
+                    {
+                        continue;
+                    }
+
+                    (against[s] = against[s] ?? new List<int>()).Add(f);
+                    (against[f] = against[f] ?? new List<int>()).Add(s);
+                    any = true;
+                }
+            }
+
+            if (!any)
+            {
+                return faces;
+            }
+
+            var kept = new List<GeoFace3>(count);
+
+            for (int i = 0; i < count; i++)
+            {
+                if (against[i] == null)
+                {
+                    kept.Add(faces[i]);
+                    continue;
+                }
+
+                against[i].Sort();
+                var left = new List<GeoFace3> { faces[i] };
+
+                foreach (int j in against[i])
+                {
+                    var rest = new List<GeoFace3>();
+
+                    foreach (GeoFace3 piece in left)
+                    {
+                        rest.AddRange(SubtractLaidOutFinely(piece, faces[j], tolerance));
+                    }
+
+                    left = rest;
+                }
+
+                foreach (GeoFace3 piece in left)
+                {
+                    if (piece.Area > speck)
+                    {
+                        kept.Add(piece);
                     }
                 }
             }
 
             return kept;
+        }
+
+        /// <summary>
+        /// Whether a face is a strip the plane leaves nothing of laid out within the global tolerance, and something of
+        /// laid out within the tolerance of the work; see <see cref="CancelStrips"/>.
+        /// </summary>
+        private static bool IsStrip(GeoFace3 face, Tolerance tolerance)
+        {
+            // Nothing is left of a face laid out within the global tolerance only where all of it lies within about that of
+            // a line, and then twice its area over its rim, its width for a strip, is no more than that.
+            IReadOnlyList<GeoPoint3> corners = face.Boundary.Vertices;
+            double rim = 0.0;
+            double reach = 0.0;
+
+            for (int k = 0; k < corners.Count; k++)
+            {
+                rim += corners[k].DistanceTo(corners[(k + 1) % corners.Count]);
+                reach = Math.Max(reach, Math.Max(Math.Abs(corners[k].X), Math.Max(Math.Abs(corners[k].Y), Math.Abs(corners[k].Z))));
+            }
+
+            // Within a million of the origin, as Splition3.Rounding reads the reach, or further out within a tolerance well
+            // above what rounding can move a corner off a plane there; see CancelStrips.
+            double rounding = 1E-12 * (1.0 + reach);
+
+            return (rounding <= Splition3.RaisedBelow || tolerance.EqualPlanar >= FinerRoundings * rounding)
+                && 2.0 * face.Area <= 4.0 * Tolerance.Global.EqualPoint * rim && IsLostToThePlane(face, tolerance);
         }
 
         /// <summary>

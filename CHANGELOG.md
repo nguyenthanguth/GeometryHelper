@@ -6,6 +6,35 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The cut of a solid's openings no longer leaves a sheet inside the material where walls of two openings stand
+a fraction of the tolerance apart (check GR2c). The cut parts the body by the planes of each opening, and between two
+such planes leaves cells thinner than the global tolerance; the gluing lays each face out in its plane within that
+tolerance however fine the work, so the face of such a cell, a strip, came to nothing there: it shared nothing with the
+face against it, nothing was taken from it, and the strip and the part of that face against it stayed, a sheet bounding
+no material. The volume held; the area did not. An L 100 by 80 by 50 at the origin with an opening up from its floor and
+one down from its top whose far walls stood 0.0009 apart, the openings given down first, kept a sheet 0.0009 by 13 and
+measured 0.0234 too much; a plate 200 by 100 by 3 with two openings up from its floor whose ceilings stood 0.00015 apart
+kept one 0.00015 by 100 and measured 0.03 too much, at a hundredth, a thousandth and a millionth alike. A strip still
+lying against a face once the gluing has taken what it could is now read again with that face, both laid out within the
+tolerance of the work, and what they share goes from both. Of 4 500 prisms with two or three openings whose walls stood
+1E-5 to 0.002 apart, within a thousand of the origin, turned about in space or not, 576 areas were wrong at a hundredth
+and at a thousandth and 579 at a millionth, and 2, 2 and none are, both a thousand out with walls 1.1E-5 and 1.35E-5
+apart and smaller than they were; none that was right moved. A plate 300 by 200 by 12 turned about in space, with twelve
+openings 22 by 22 a row of which stood the tolerance off the walls of the others, kept sheets in 23 of 69 cuts at a
+thousandth, and 5 of those held 0.024 to 1.46 too little; each holds and measures what it should now. Of the other 190
+corpus sets, a union lost its sheet and 344 volumes moved in their last bits, every verdict kept. The booleans glue
+their cells the same way: of 25 200 unions, common parts and differences of such prisms and boxes, at nought to a
+hundredth, 3 at the origin that were not worked out are right now, and none that was right moved by more than 4.5E-5.
+More than a million out a strip is read so only within a tolerance eight times what rounding can move a corner off a
+plane there: a boolean asked below the far frame's gate is worked out where the bodies stand, and read so there, 13 ten
+million to a thousand million out that were right came out wrong. The cut of a body that far out is worked out a 256th
+of its reach from the origin, and of 3 600 cuts of such prisms ten million to a thousand million out, 76 areas wrong at
+a hundredth and at a thousandth and 104 at a millionth are 5, 5 and 59, none that was right moved; the plate with
+ceilings apart a thousand million out keeps its sheet, its strips too thin to be laid flat 3.9E6 out. Read as the
+triangles lying in its faces (`VolumeMethod.Surface`, which `GetMassProperties` sums), the plate with ceilings apart
+still holds 0.175 too much, where fans hold it as it is: the triangles of a wall whose corners stand closer than the
+tolerance along a side leave a sliver of it out.
+
 **FIXED.** The cut of a solid's openings, the material its volume, area, centroid and mass are read from, a section of it
 and its cells are worked out near the origin where it stands far out, as its booleans are since 13.5.0 (check GR2b):
 `TryCutOpenings`, `GetVolume`, `TryGetVolume`, `GetSurfaceArea`, `GetCentroid`, `GetMassProperties`, `Section` and

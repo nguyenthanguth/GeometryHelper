@@ -483,6 +483,31 @@ namespace GeometryHelper.Core
             => Combine(Combination.Subtract, PlanarMap.FrameOf(face), face, tool, tolerance);
 
         /// <summary>
+        /// Takes one face from another lying back to back with it, as <see cref="SubtractLaidOut"/> does, both laid out
+        /// within the tolerance of the work rather than the global one; for the strips <see cref="CancelStrips"/> reads.
+        /// </summary>
+        private static GeoFace3[] SubtractLaidOutFinely(GeoFace3 face, GeoFace3 tool, Tolerance tolerance)
+            => Combine(Combination.Subtract, PlanarMap.FrameOf(face), face, tool, tolerance, true);
+
+        /// <summary>
+        /// Keeps what two faces lying back to back share, in the plane of the first, both laid out within the tolerance of the
+        /// work rather than the global one; for the strips <see cref="CancelStrips"/> reads.
+        /// </summary>
+        private static GeoFace3[] IntersectLaidOutFinely(GeoFace3 face, GeoFace3 other, Tolerance tolerance)
+            => Combine(Combination.Intersect, PlanarMap.FrameOf(face), face, other, tolerance, true);
+
+        /// <summary>
+        /// Whether a face laid out in its own plane within the global tolerance leaves nothing with an area (see
+        /// <see cref="Flatten"/>), and laid out within the tolerance of the work, something.
+        /// </summary>
+        private static bool IsLostToThePlane(GeoFace3 face, Tolerance tolerance)
+        {
+            GeoCoordinateSystem3 frame = PlanarMap.FrameOf(face);
+
+            return Flatten(frame, face) == null && FlattenFinely(frame, face, tolerance) != null;
+        }
+
+        /// <summary>
         /// The frame to work the two shapes out in, refusing a second shape that lies in another plane.
         /// </summary>
         private static GeoCoordinateSystem3 FlatFrame(GeoFace3 first, GeoFace3 second, Tolerance tolerance, string name)
@@ -519,10 +544,10 @@ namespace GeometryHelper.Core
         /// was, it threw, and took with it the union or difference of two bodies whose gluing compared such a
         /// sliver with the face lying against it.
         /// </remarks>
-        private static GeoFace3[] Combine(Combination combination, GeoCoordinateSystem3 frame, GeoFace3 first, GeoFace3 second, Tolerance tolerance)
+        private static GeoFace3[] Combine(Combination combination, GeoCoordinateSystem3 frame, GeoFace3 first, GeoFace3 second, Tolerance tolerance, bool finely = false)
         {
-            GeoFace2 one = Flatten(frame, first);
-            GeoFace2 other = Flatten(frame, second);
+            GeoFace2 one = finely ? FlattenFinely(frame, first, tolerance) : Flatten(frame, first);
+            GeoFace2 other = finely ? FlattenFinely(frame, second, tolerance) : Flatten(frame, second);
 
             if (one == null || other == null)
             {
@@ -563,13 +588,31 @@ namespace GeometryHelper.Core
         /// millionth and below within a million of the origin, closed that plate's cut the first time but moved no boolean of
         /// those prisms from right, wrong or not worked out, the cut being cut again already
         /// (see <see cref="CutOpenings(GeoSolid3, IReadOnlyList{GeoSolid3}, out GeoSolid3, Tolerance, out bool, bool)"/>);
-        /// further out it turned 15 not worked out into trusted and wrong. The layout is left as it was.
+        /// further out it turned 15 not worked out into trusted and wrong. The layout is left as it was; a strip it leaves
+        /// nothing of, still lying against a face once the gluing has taken what it could, is read again laid out within the
+        /// tolerance of the work (see <see cref="CancelStrips"/>).
         /// </remarks>
         private static GeoFace2 Flatten(GeoCoordinateSystem3 frame, GeoFace3 face)
         {
             try
             {
                 return PlanarMap.ProjectToFace2WithinGlobal(frame, face);
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Lays a face out in a frame merging only corners within the tolerance of the work, or gives null when nothing with
+        /// an area is left of it there; for the strips <see cref="CancelStrips"/> reads.
+        /// </summary>
+        private static GeoFace2 FlattenFinely(GeoCoordinateSystem3 frame, GeoFace3 face, Tolerance tolerance)
+        {
+            try
+            {
+                return PlanarMap.TryProjectToFace2(frame, face, tolerance, out GeoFace2 laidOut) ? laidOut : null;
             }
             catch (ArgumentException)
             {
