@@ -63,9 +63,13 @@ namespace GeometryHelper.Dxf
         // The text style the words given to a MULTILEADER in no drawing name, which it takes when it is added to one.
         private string wordsTextStyle;
 
+        // Whether the words were last given in no drawing, where no font measured them for the base point of the content.
+        private bool wordsInMemory;
+
         /// <summary>
         /// Initializes a MULTILEADER of no content and no leaders, its plane the floor, as AutoCAD's <c>new MLeader()</c>, on layer
-        /// 0 in no file: added to a drawing, it takes the drawing's multileader style (CMLEADERSTYLE, else Standard), with the
+        /// 0 in no file, its content type the words (172 of 2) though it holds none, as AutoCAD 2021 makes one (check D38b): added
+        /// to a drawing, it takes the drawing's multileader style (CMLEADERSTYLE, else Standard), with the
         /// style's linetype of the leader lines (341) and its arrow block (342) where it names them, as AutoCAD 2021 writes them,
         /// and the text style Standard. Give it leaders with <see cref="AddLeaderLine(GeoPoint3)"/> and words with <see cref="MText"/>.
         /// </summary>
@@ -86,7 +90,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets or sets what the leaders point to (group 172), as AutoCAD's <c>ContentType</c>;
-        /// <see cref="DxfContentType.MTextContent"/> where the record gives none.
+        /// <see cref="DxfContentType.MTextContent"/> where the record gives none, and for a new MULTILEADER, which holds no words
+        /// yet (<see cref="HasContent"/> false), as AutoCAD 2021 reads a new one (check D38b).
         /// </summary>
         /// <value>
         /// Set to <see cref="DxfContentType.NoneContent"/>, the MTEXT and the block of the context data are taken out; set to
@@ -158,15 +163,27 @@ namespace GeometryHelper.Dxf
         /// <value>
         /// Set, an MTEXT whose words, place, direction, height, width, spacing and point are written into the context data, the
         /// height's bit of the overrides set; a MULTILEADER that held no words is given an MTEXT as ezdxf writes one, its block
-        /// taken out with the handle of it (344), its content type the words and the base point of its content (10 of the context
-        /// data) their place. Null takes the words out, as <see cref="ContentType"/> set to none does. Words given anew where
+        /// taken out with the handle of it (344), and its content type the words, with bit 10. The base point of the content (10
+        /// of the context data), where AutoCAD lands a leader it adds, is put where a leader from the left would meet the words,
+        /// as AutoCAD 2021 puts it where no leader is landed yet (check D38b): the <see cref="LandingGap"/> short of the place
+        /// given and as far below as the left's attachment says, which needs no font, "ABC" 4 high given at (100, 50, 0), met at
+        /// the middle of the top line, putting it at (98, 48, 0), so that AutoCAD lands a leader from the left there and leaves the
+        /// words. Words held at their top centre or right have their left edge at the place given, as AutoCAD 2021 puts them, and
+        /// move along the plane by half their width or all of it where the drawing's fonts measure them: "ABC" of txt.shx held at
+        /// the top right stand at (110.67, 50, 0); the context's alignment (176) is then theirs, with bits 14 and 26 where that
+        /// changes it. Words turned in the plane turn it with them where no leader is landed yet, its x axis (111) their direction,
+        /// as AutoCAD 2021 turns it: "ABC" turned half round make the x axis (-1, 0, 0), the base point at (102, 52, 0), and are met
+        /// as words along the plane. Words given first to a MULTILEADER whose leaders are landed already move to meet the first
+        /// on a side, as AutoCAD 2021 moves them: given at (100, 50, 0) to a line landed at (0, 0, 0), they stand at (10, 2, 0);
+        /// on the right, where the fonts measure them. Null takes the words out, as <see cref="ContentType"/> set to none does. Words given anew where
         /// leaders meet them on a side keep their landing, as AutoCAD 2021 keeps it, the place given not taken: met on their left
         /// only, they stay where they were, moved up by as much more as the left is met below their top, three lines met at their
         /// middle given at (120, 80, 0) for "ABC" at (100, 50, 0) standing at (100, 56.67, 0); met on their right, they stay where
         /// they were where they are as wide as before, and take the place given where AutoCAD would land them by their font, but
         /// where the drawing's <see cref="DxfDatabase.FontSearchPath"/> measures them: met on the right alone, they move to keep
         /// that landing, "ABCDEF" of txt.shx given to "ABC" at (100, 50, 0) met from (120.67, 48, 0) standing at (88, 50, 0), the
-        /// base point of the content at (86, 48, 0); met on both sides, as on the left, the leaders on the right landed anew. A
+        /// base point of the content at (86, 48, 0); met on both sides, as on the left, the leaders on the right landed anew.
+        /// Given anew where no leader is landed, they take the place given, the base point put again with them. A
         /// leader meeting them on a side of attachment 8 underlines them (<c>\L</c>, <see cref="TextAttachmentType"/>). Given to a
         /// MULTILEADER in a drawing, the words' text style (<see cref="DxfMText.TextStyleName"/>, Standard where they name none)
         /// is the MULTILEADER's (343, and the words' 340), as AutoCAD 2021 takes it, with the bit of the overrides of the text
@@ -286,8 +303,8 @@ namespace GeometryHelper.Dxf
                     MakeMText(rec, ctx);
                     SetTop(rec, 172, "2", 10);
 
-                    // The base point of the content, where a leader added starts its dogleg, at the words.
-                    PutPoint(ctx.Head, 10, value.Location, ContextOrder);
+                    // Bit 10 of words given, as AutoCAD 2021 sets it, the content type of a new multileader the words already (check D38b).
+                    SetBit(rec, 10);
                 }
 
                 Section(ctx.Head, 290, MTextCodes, out int from, out int to);
@@ -309,6 +326,22 @@ namespace GeometryHelper.Dxf
                 Put(m, 171, (((int)value.Attachment - 1) % 3 + 1).ToString(CultureInfo.InvariantCulture), ContextOrder);
                 ctx.Head.RemoveRange(from, to - from);
                 ctx.Head.InsertRange(from, m);
+
+                // Words turned in their plane where no leader is landed yet turn it with them, as AutoCAD 2021 turns it (check D38b).
+                bool loose = !ctx.Leaders.Exists(HasLanding);
+
+                if (loose)
+                {
+                    TurnPlane(ctx);
+                }
+
+                // The content lined up as the words are held (176 of the context data), with bits 14 and 26 where that changes it,
+                // as AutoCAD 2021 writes it (check D38b b-held2-N, b-align1-N).
+                if (Put(ctx.Head, 176, (((int)value.Attachment - 1) % 3).ToString(CultureInfo.InvariantCulture), ContextOrder))
+                {
+                    SetBit(rec, 14);
+                    SetBit(rec, 26);
+                }
 
                 if (!Same(Num(Text(ctx.Head, 41), 4.0), value.TextHeight))
                 {
@@ -351,6 +384,18 @@ namespace GeometryHelper.Dxf
                     Relocated(rec, ctx, wasAt, wasLook, wasBelow, wasWidth);
                 }
 
+                // The base point where a leader from the left would meet the words, or the words moved to meet the leaders they
+                // are given to, as AutoCAD 2021 puts them (check D38b).
+                if (loose)
+                {
+                    Based(rec, ctx, !had, database);
+                }
+                else if (!had)
+                {
+                    Met(rec, ctx);
+                }
+
+                wordsInMemory = database == null;
                 Write(rec);
             }
         }
@@ -523,13 +568,19 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets or sets how the words are lined up (group 175, 176 of the context data, and 171 of its MTEXT), as AutoCAD's
-        /// <c>TextAlignmentType</c>; on the left where the record gives none.
+        /// <c>TextAlignmentType</c>: read from the context data, as AutoCAD 2021 reads it (check D38b), else from 175; on the left
+        /// where the record gives neither. Words lined up on the left and mirrored across the YZ plane, which the mirror lines up
+        /// the other way (176 of 2), read on the right; lined up on the right and mirrored so, on the left.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the type set is not one of <see cref="DxfTextAlignmentType"/>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the MULTILEADER is erased.</exception>
         public DxfTextAlignmentType TextAlignmentType
         {
-            get => (DxfTextAlignmentType)Whole(Text(Read().After, 175), 0);
+            get
+            {
+                Rec rec = Read();
+                return (DxfTextAlignmentType)Whole(rec.Context == null ? null : Text(rec.Context.Head, 176), Whole(Text(rec.After, 175), 0));
+            }
 
             set
             {
@@ -1814,8 +1865,13 @@ namespace GeometryHelper.Dxf
         /// line; the box is the block's own, of the shapes the library reads, carried as the block is drawn and boxed in the
         /// plane: the box of lines from (-10, -5) to (20, 15) placed at (100, 50, 0) is met from (0, 0, 0) by a dogleg from (82, 55, 0)
         /// to (90, 55, 0), and from (250, 0, 0) by one from (128, 55, 0) to (120, 55, 0). Elsewhere, the line goes to the first
-        /// leader, one made at the base point of the content where there is none: on the right of the words, which AutoCAD lands
-        /// as far right as its font makes them wide; for words turned, held otherwise or met at their top or bottom. Where the
+        /// leader, one made at the base point of the content where there is none, its dogleg ending there for a point on its
+        /// left, as AutoCAD 2021 lands a leader it adds (check D38b), and starting there for one on its right: on the right of
+        /// the words, which AutoCAD lands as far right as its font makes them wide; for words turned off the plane, held at
+        /// their top centre or right where no font measures them, or met at their top or bottom. A MULTILEADER of no content has
+        /// its first line landed at the point, its dogleg towards the base point, the line of that one vertex, as AutoCAD 2021
+        /// lands it (check D38b): from (30, 40, 0), a dogleg from there along -x; a line after it goes to that leader. Words
+        /// held at their top centre or right are met from their edges where the fonts measure them (check D38b). Where the
         /// drawing's <see cref="DxfDatabase.FontSearchPath"/> measures the words (one line in an SHX or TrueType font), a point at their middle
         /// or right of it is met on their right, as AutoCAD 2021 lands it (check F1b): the dogleg against x, ending the gap past
         /// their ink, "ABC" of txt.shx 4 high at (100, 50, 0), 10.67 wide, met from (250, 0, 0) by a dogleg from (120.67, 48, 0)
@@ -1838,6 +1894,7 @@ namespace GeometryHelper.Dxf
             Rec rec = Read();
             Ctx ctx = Context(rec);
             LeaderPart chosen = null;
+            bool landedThere = false;
 
             foreach (LeaderPart leader in ctx.Leaders)
             {
@@ -1873,10 +1930,24 @@ namespace GeometryHelper.Dxf
                 else
                 {
                     chosen = ctx.Leaders.Find(HasLanding);
+                    GeoPoint3 basePoint = PointOf(ctx.Head, 10, new GeoPoint3(0.0, 0.0, 0.0));
 
-                    if (chosen == null)
+                    if (chosen == null && !HasSection(ctx, 290, MTextCodes) && !HasSection(ctx, 296, BlockCodes))
                     {
-                        AddLeaderAt(rec, ctx, PointOf(ctx.Head, 10, new GeoPoint3(0.0, 0.0, 0.0)));
+                        // No content: the line landed at its point, its dogleg towards the base point, the line of that one
+                        // vertex, as AutoCAD 2021 lands it (check D38b n-none-pt).
+                        Axes(ctx, out GeoVector3 x, out _);
+                        AddLeaderAt(rec, ctx, point, point.GetVectorTo(basePoint).DotProduct(x) < 0.0 ? x.Negate() : x);
+                        chosen = ctx.Leaders[ctx.Leaders.Count - 1];
+                        landedThere = true;
+                    }
+                    else if (chosen == null)
+                    {
+                        // A point on the left of the base point of words met on their sides: the dogleg ends there, as AutoCAD 2021
+                        // lands a leader it adds (check D38 g-*-addL, D38b b-held2-L); else it starts there.
+                        Axes(ctx, out GeoVector3 x, out _);
+                        bool left = HasSection(ctx, 290, MTextCodes) && Whole(Text(rec.After, 271), 0) == 0 && point.GetVectorTo(basePoint).DotProduct(x) > 0.0;
+                        AddLeaderAt(rec, ctx, left ? basePoint.Add(x.Multiply(-(Num(Text(rec.After, 41), 8.0) * Num(Text(ctx.Head, 40), 1.0)))) : basePoint);
                         chosen = ctx.Leaders[ctx.Leaders.Count - 1];
                     }
                 }
@@ -1884,7 +1955,7 @@ namespace GeometryHelper.Dxf
 
             int index = NextLine(rec);
             var line = LinePart.Made(new[] { G(91, index) });
-            line.SetVertices(new List<GeoPoint3> { point });
+            line.SetVertices(landedThere ? new List<GeoPoint3>() : new List<GeoPoint3> { point });
             chosen.Lines.Add(line);
             Underline(rec, ctx, false);
             Write(rec);
@@ -1896,7 +1967,8 @@ namespace GeometryHelper.Dxf
         /// the point its dogleg starts at, where the words are held at their top left (171 of 1) along the plane's x axis, met on
         /// their sides (271 of nought) at a point of the left side the words' height and lines give (173 of 0 to 8), and the
         /// point is on their left; words that run against the x axis (<see cref="Reversed"/>), held at their right, from their
-        /// left edge where the fonts measure them (check D38); false elsewhere.
+        /// left edge where the fonts measure them (check D38), as are words held at their top centre or right (check D38b,
+        /// <see cref="FromLeft"/>); false elsewhere.
         /// </summary>
         private bool LeftLanding(Rec rec, Ctx ctx, GeoPoint3 point, out GeoPoint3 landing)
         {
@@ -1915,23 +1987,24 @@ namespace GeometryHelper.Dxf
             bool measured = WordsWidth(ctx, out double width);
 
             // Words that run against the plane's x axis, held at their right, are met from their left edge, where the fonts
-            // measure them (check D38).
-            if (Reversed(ctx))
-            {
-                if (!measured)
-                {
-                    return false;
-                }
+            // measure them (check D38); so too words held at their top centre or right (check D38b).
+            double offset = FromLeft(ctx, m, along, x);
 
-                words = words.Add(x.Multiply(-width));
+            if (double.IsNaN(offset))
+            {
+                return false;
+            }
+
+            if (offset != 0.0)
+            {
+                words = words.Add(x.Multiply(-offset));
             }
 
             // Words the fonts measure are met on the side of their middle the point is on, the middle taken to the right (check
             // D31): under words from 100 to 110.67 a point at 103 is met on the left, one at 108 on the right.
             GeoPoint3 side = measured ? words.Add(x.Multiply(width / 2.0)) : words;
 
-            if (Whole(Text(m, 171), 1) != 1 || !(x.Length > 0.0) || !(y.Length > 0.0) || !AlongPlane(ctx, along, x)
-                || !(point.GetVectorTo(side).DotProduct(x) > 0.0))
+            if (!(x.Length > 0.0) || !(y.Length > 0.0) || !AlongPlane(ctx, along, x) || !(point.GetVectorTo(side).DotProduct(x) > 0.0))
             {
                 return false;
             }
@@ -1954,7 +2027,8 @@ namespace GeometryHelper.Dxf
         /// past where it meets them (<see cref="WordsMeetRight"/>), and the dogleg's direction, against the plane's x axis. "ABC"
         /// of txt.shx 4 high at (100, 50, 0) is met from (250, 0, 0) by a dogleg from (120.67, 48, 0) to (112.67, 48, 0); mirrored
         /// across the XY plane, held at their right at (110.67, 50, 0), by the same dogleg (check D38). False where the words are
-        /// not measured, not held at their top left along the plane, or the point is on their left.
+        /// not measured, not held at their top along the plane, or the point is on their left; words held at their top centre or
+        /// right are met from their right edge (check D38b).
         /// </summary>
         private bool RightLanding(Rec rec, Ctx ctx, GeoPoint3 point, out GeoPoint3 landing, out GeoVector3 back)
         {
@@ -1968,7 +2042,12 @@ namespace GeometryHelper.Dxf
                 return false;
             }
 
-            GeoPoint3 middle = PointOf(ctx.Head.GetRange(from, to - from), 12, new GeoPoint3(0.0, 0.0, 0.0)).Add(x.Multiply((Reversed(ctx) ? -width : width) / 2.0));
+            // Their middle: half their width from where they are held at their top left, back from their right, or there at their
+            // top centre (check D38b).
+            List<KeyValuePair<int, string>> m = ctx.Head.GetRange(from, to - from);
+            int held = Whole(Text(m, 171), 1);
+            GeoPoint3 at = PointOf(m, 12, new GeoPoint3(0.0, 0.0, 0.0));
+            GeoPoint3 middle = held == 2 && !Reversed(ctx) ? at : at.Add(x.Multiply((Reversed(ctx) || held == 3 ? -width : width) / 2.0));
 
             if (point.GetVectorTo(middle).DotProduct(x) > 0.0)
             {

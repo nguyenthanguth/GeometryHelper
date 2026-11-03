@@ -2205,4 +2205,53 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       295 0 in a drawing older than R2013, where AutoCAD writes none; a line given BYBLOCK, which the library writes 92 of;
       `GetLeaderLineColor` of a line of no colour of its own, BYBLOCK in AutoCAD and the multileader's in the library;
       `TextAlignmentType`, read from 175 where AutoCAD reads the context's 176; a multileader of no content, which AutoCAD
-      reads as one of words.
+      reads as one of words. All but the multileader made without SetDatabaseDefaults are as AutoCAD's now: point 105.
+
+## Multileaders: the base point of words given, words turned in code, words mirrored upside down
+
+105. **Where the base point of the content (10 of the context data) of words given goes, so that AutoCAD lands a leader it
+    adds to the library's file and leaves the words; how words turned in code turn the plane; which way words mirrored
+    across a plane that turns them upside down are read; and the small readings D38 left.**
+    - Try (D38b, headless, plugin GHD38BA rounds r1 and r3 and GHD38BR rounds r2 and r4, fonts of AutoCAD 2021 read in
+      place, each database made the working one while measured): on D38's Standard, "ABC", "Ag" and "A\PB\PC" of txt.shx at
+      (100, 50), of no leader and met from (0, 0), (250, 0) or (105, 0), at the attachments 0 to 8, held at the top left,
+      centre and right, the alignment set to the centre first, given anew at (150, 80), moved, 10 high, a gap of 5, a dogleg
+      of 15, a scale of 2, the left set to the bottom line, given after the multileader is added and after its leaders;
+      words turned 30, 90, 135, 180 and 270 degrees by their rotation or their direction, of no leader and met on either
+      side, given turned anew, then edited, mirrored across XY, moved, given a second leader, scaled and attached anew;
+      words mirrored across XZ, met from either side, "Ag", held at the centre and the right, at the attachments 0 and 4,
+      then given a dogleg, a height or a leader, mirrored back, turned 30 degrees first; planes of normal (0.6, 0.8, 0),
+      (0.8, 0.6, 0), (0.7, 0.71, 0), (0.3, 0.5, 0.8), (0.1, 0.6, 0.8), (0.6, 0.1, 0.8) and (0.1, 0.7, 0.7); words turned
+      then mirrored across XY, XZ, (1, 0, 1) and (0.6, 0.1, 0.8), and turned a quarter by `TransformBy` then mirrored; a
+      multileader of no content given one line from (30, 40), two, and words after; and 216 of the library's files of these,
+      made with the fonts and with none, read back and given a leader, a gap, a scale, a move, a dogleg or a height.
+    - AutoCAD 2021: the base point of words given is where a leader from the left would meet them held at their top left
+      where they are given, the gap short and as far below as the left is met ((98, 48) for "ABC", (98, 47.33) for "Ag",
+      (98, 41.33) for three lines met at their middle, (98, 44.67) for "Ag" at the underline of attachment 8); words held at
+      the top centre or right have their left edge there ((105.33, 50) and (110.67, 50)), the context's alignment theirs and
+      bits 14 and 26; given anew with no leader, the base point goes with them; a gap or a scale moves words of no leader
+      to meet it again ((103, 50), (102, 52)), the left set to the bottom line too ((100, 52.8)), a height and a dogleg do
+      not; given after their leaders, they meet the first ((10, 2) for a line landed at (0, 0), (229.33, 2) for one from
+      (250, 0)). Adding a leader, AutoCAD ends its dogleg at the base point and moves the words to meet it. Words turned in
+      code turn the plane (111 their direction) and are met in it, for any turn; given so where leaders are landed, the
+      doglegs turn too and the words move to meet them. Of the two ways to read words mirrored, AutoCAD keeps the one turned,
+      in the system of their normal, nearer the turn they had: across XZ "ABC" runs along x, met again by the mirrored leader
+      at its attachment ((100, -46), (100, -50) at the top of the top line, (100, -44.67) for "Ag"), the plane and 294 kept;
+      across XY against x; a quarter turn mirrored across XY up y still; as near both ways (a quarter turn either side), the
+      way turned back but once. A block's plane turned back says so (294 of 1, then of nought); a line given BYBLOCK writes
+      93 2 and no 92, and a line of no colour reads BYBLOCK; `TextAlignmentType` reads the context's 176; no 295 before
+      R2013; a multileader of no content is of words (172 of 2), its first line landed at its point (one vertex), its
+      dogleg towards the base point.
+    - Now: the library puts the base point, holds words at the top centre and right, turns the plane with words turned where
+      no leader is landed, keeps the way AutoCAD keeps of words mirrored, and makes the small readings as above. Of D38b
+      round 1's 84 cases, 82 give AutoCAD's places, vertices, doglegs, base points, planes and groups (at base 31 by places and
+      1 by base points); of round 3's 23, 22 (1); of D38's 120, 116 (104); with an empty path, where widths and
+      depths are not measured, 42 of 84 (31). AutoCAD read 25 of the library's files and added a leader to each, made with
+      the fonts: the words stayed in all 25, the leader landed where AutoCAD lands its own; made with an empty path, AutoCAD
+      moved the words whose place needs a font (their depth, or their width held at the centre or right) to meet the base
+      point.
+    - Still apart: words turned in code given where leaders are landed already (r-anew180-L, r-rot180-o4-L), whose doglegs
+      AutoCAD turns with the plane; words turned 135 degrees mirrored across XZ, as near both ways, where AutoCAD keeps the
+      way the library does not; `AddLeader`'s leader of no landing, written at the base point where AutoCAD writes the
+      origin; the multileader made without SetDatabaseDefaults (point 104); words mirrored where no font measures them,
+      carried as ezdxf carries them, as before.

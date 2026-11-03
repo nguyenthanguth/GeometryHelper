@@ -6,6 +6,43 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Words given to a multileader put the base point of its content (10 of the context data) where AutoCAD 2021 puts
+it (check D38b): where a leader from the left would meet them, the gap short of the place given and as far below as the left
+is met, which needs no font: "ABC" 4 high given at (100, 50), met at the middle of the top line, put it at (98, 48), where the
+library put it at the words. AutoCAD lands a leader it adds to the library's file there and leaves the words, where it moved
+them: "Ag" of Arial on a multileader of txt.shx stays at (100, 49.92), a leader from the left landed at (90, 47.33), where
+AutoCAD moved them to (102, 52.59) and landed it at (92, 50). Of 25 of the library's files given a leader in AutoCAD, with
+the fonts on `DxfDatabase.FontSearchPath`, the words stayed in all 25; with an empty path, AutoCAD still moves words whose
+place needs their font (their depth, or their width where they are held at the top centre or right). Words held at their top
+centre or right have their left edge at the place given and line the content up so (176, bits 14 and 26), as AutoCAD puts
+them, and are met by leaders from their edges, where the fonts measure them; words given anew where no leader is landed
+take the base point with them; words given after the leaders move to meet the first, (10, 2) for a line landed at (0, 0).
+
+**FIXED.** Words turned in code turn the multileader's plane with them where no leader is landed yet, as AutoCAD 2021 turns
+it (check D38b): "ABC" turned half round make its x axis (-1, 0, 0), the base point at (102, 52), and a leader from (250, 0)
+is landed at (110, 52) along -x, from (0, 0) at (79.33, 52) where the fonts measure them; a dogleg of 15 moves them to
+(107, 50). Turned 30 degrees or a quarter alike. The library kept the plane and landed every leader at the words.
+
+**FIXED.** Words mirrored so that they would read upside down are kept upright, as AutoCAD 2021 keeps them, where
+`DxfDatabase.FontSearchPath` measures them (check D38b): across the XZ plane "ABC" at (100, 50) met from (0, 0) stands at
+(100, -46) running along x, met again at its attachment by the mirrored leader at (90, -48), where the library turned it
+half round at (110.67, -50). Of the two ways to read them, the one kept is the one turned nearer the turn they had, which
+gives AutoCAD's way in 54 of 55 mirrors of words tried, across planes in and off the floor, of words turned first or not;
+the 55th, words turned 135 degrees mirrored across XZ, is as near both ways and AutoCAD's choice there is left.
+
+**FIXED.** Small readings and writings of a multileader, as AutoCAD 2021 makes them (check D38b): a leader line given
+BYBLOCK writes its flag and no 92; `GetLeaderLineColor` of a line of no colour of its own is BYBLOCK, whatever
+`LeaderLineColor` it is drawn in; `TextAlignmentType` is read from the context's 176, the right for words lined up on the
+left and mirrored across YZ; a block whose plane a mirror turns back says so (294 of 1, then of nought); a new multileader
+writes no 295 before R2013; a multileader of no content is of words (`ContentType` `MTextContent`, 172 of 2, `HasContent`
+false), and its first leader line is landed at its point, the line of that one vertex. Words of no leader meet the base
+point again when they are scaled or the left's attachment is set, and are met 5.33 below their top at attachment 8 where
+their ink reaches 1.33 below the baseline.
+
+**CHANGED.** `new DxfMLeader().ContentType` is `MTextContent` (was `NoneContent`), and setting it to `MTextContent` on a
+multileader of no words is a no-op where it threw. The base point of the content of words given is no longer their place;
+`TextLocation` read on a multileader of no words gives that base point, as before.
+
 **FIXED.** A union, a common part and a difference of solids far out, and each cut of `TrySubtractAll`, are worked out
 near the origin (check GR2): bodies reaching more than 2^20 out and more than 1 024 times the size of their box, as at
 national-grid coordinates, are moved by whole coordinates, with their openings, until the least corner of their box

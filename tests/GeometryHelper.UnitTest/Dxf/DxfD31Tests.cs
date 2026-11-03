@@ -299,13 +299,13 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // AutoCAD 2021 (d08, g4): words moved from (100, 50) to (120, 80) moved the dogleg from (90, 48) to (110, 78), the line's
             // first vertex staying at (0, 0). The library left the dogleg where it was. The base point of the content moves too,
-            // the words' place in a multileader made in code.
+            // from where a leader from the left meets the words given in code, (98, 48), as AutoCAD 2021 puts it (D38b).
             DxfMLeader mleader = Words(Drawing());
             mleader.TextLocation = P(120, 80);
 
             Near(P(110, 78), mleader.GetLastVertex(0));
             Near(P(0, 0), mleader.GetFirstVertex(0));
-            Assert.Equal(new double?[] { 120, 80 }, new[] { After(mleader, "CONTEXT_DATA{", 10), After(mleader, "CONTEXT_DATA{", 20) });
+            Assert.Equal(new double?[] { 118, 78 }, new[] { After(mleader, "CONTEXT_DATA{", 10), After(mleader, "CONTEXT_DATA{", 20) });
         }
 
         [Fact]

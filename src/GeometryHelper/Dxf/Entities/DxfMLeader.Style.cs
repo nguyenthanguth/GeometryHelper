@@ -78,30 +78,27 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets the colour of a leader line, as AutoCAD's <c>GetLeaderLineColor</c>: its own (group 92 of the line) where it
-        /// overrides the multileader's (bit 2 of its 93), or where the line has no flags and its colour is not BYBLOCK, as ezdxf
-        /// writes and <see cref="Explode"/> draws such a line; else <see cref="LeaderLineColor"/>.
+        /// overrides the multileader's (bit 2 of its 93), BYBLOCK where it does so with no 92, or where the line has no flags and
+        /// its colour is not BYBLOCK, as ezdxf writes and <see cref="Explode"/> draws such a line; else BYBLOCK, as AutoCAD 2021
+        /// reads a line of no colour of its own whatever the <see cref="LeaderLineColor"/> it is drawn in (check D38b): a new line
+        /// of a multileader of green lines reads BYBLOCK, and is drawn green.
         /// </summary>
         /// <param name="leaderLineIndex">The index of the line.</param>
         /// <returns>The colour.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the MULTILEADER has no line of the index.</exception>
-        public DxfColor GetLeaderLineColor(int leaderLineIndex)
-        {
-            Rec rec = Read();
-            return DxfMLeaderColors.Of(LineColour(FindLine(rec, leaderLineIndex, out _).Groups) ?? Text(rec.After, 91) ?? ByBlock);
-        }
+        public DxfColor GetLeaderLineColor(int leaderLineIndex) => DxfMLeaderColors.Of(LineColour(FindLine(Read(), leaderLineIndex, out _).Groups) ?? ByBlock);
 
         /// <summary>
         /// The colour of a leader line's own, as the multileader writes one: its 92 where its flags say it overrides the
-        /// multileader's, BYBLOCK among them, or where it has no flags and its colour is not BYBLOCK, as ezdxf writes one; null
-        /// where it has none, and is drawn in the multileader's.
+        /// multileader's, BYBLOCK among them, and BYBLOCK where they say so with no 92, as AutoCAD 2021 writes a line given
+        /// BYBLOCK (check D38b); or its 92 where it has no flags and its colour is not BYBLOCK, as ezdxf writes one; null where it
+        /// has none, and is drawn in the multileader's.
         /// </summary>
         private static string LineColour(List<KeyValuePair<int, string>> line)
         {
-            string own = Own(line, LineColorFlag, 92);
-
-            if (own != null)
+            if ((Whole(Text(line, 93), 0) & LineColorFlag) != 0)
             {
-                return own;
+                return Text(line, 92) ?? ByBlock;
             }
 
             string colour = Text(line, 92);
@@ -110,8 +107,9 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gives a leader line a colour of its own, as AutoCAD's <c>SetLeaderLineColor</c>: its group 92 written and bit 2 of its
-        /// flags (93) set, from R2010; <see cref="Explode"/> draws the line in it. The colour the line is drawn in already is
-        /// written and flagged all the same, as AutoCAD 2021 flags it.
+        /// flags (93) set, from R2010; <see cref="Explode"/> draws the line in it. BYBLOCK sets the flag and writes no 92, as
+        /// AutoCAD 2021 writes it (check D38b). The colour the line is drawn in already is written and flagged all the same, as
+        /// AutoCAD 2021 flags it.
         /// </summary>
         /// <param name="leaderLineIndex">The index of the line.</param>
         /// <param name="leaderLineTypeId">The colour, as AutoCAD names the argument.</param>
@@ -122,14 +120,17 @@ namespace GeometryHelper.Dxf
         public void SetLeaderLineColor(int leaderLineIndex, DxfColor leaderLineTypeId)
         {
             string text = DxfMLeaderColors.Text(leaderLineTypeId, nameof(leaderLineTypeId));
+            Rec rec = Read();
+            string drawn = LineColour(FindLine(rec, leaderLineIndex, out _).Groups) ?? Text(rec.After, 91) ?? ByBlock;
+            string written = Whole(text, 0) == Whole(ByBlock, 0) ? null : text;
 
-            if (Whole(text, 0) == DxfMLeaderColors.Raw(GetLeaderLineColor(leaderLineIndex), nameof(leaderLineTypeId)))
+            if (Whole(text, 0) == DxfMLeaderColors.Raw(DxfMLeaderColors.Of(drawn), nameof(leaderLineTypeId)))
             {
-                SetLineOwnAgain(leaderLineIndex, 92, text, LineColorFlag);
+                SetLineOwnAgain(leaderLineIndex, 92, written, LineColorFlag);
                 return;
             }
 
-            SetLineOwn(leaderLineIndex, 92, text, LineColorFlag);
+            SetLineOwn(leaderLineIndex, 92, written, LineColorFlag);
         }
 
         /// <summary>

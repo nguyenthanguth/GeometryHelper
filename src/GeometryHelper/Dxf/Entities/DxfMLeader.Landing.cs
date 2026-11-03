@@ -301,11 +301,11 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Where a leader meets the words on their left, as AutoCAD 2021 lands one: the <see cref="LandingGap"/> short of their left
         /// edge, as far below their top as the attachment of the left side says (<see cref="Below(Ctx, int, double)"/>); false where the words are
-        /// not held at their top left (171 of 1) along the plane's x axis, met on their sides (271 of nought), or there are none.
+        /// not held at their top along the plane's x axis, met on their sides (271 of nought), or there are none.
         /// Words "ABC" 4 high at (160, 40, 0), met at the middle of their top line with a gap of 2, are met at (158, 38, 0). Words
         /// that run against the x axis (<see cref="Reversed"/>) are met the gap short of their far end, where the drawing's fonts
         /// measure them (check D38): "ABC" of txt.shx 10.67 wide mirrored across the XY plane, held at (110.67, 50, 0), at
-        /// (98, 48, 0).
+        /// (98, 48, 0); so too words held at their top centre or right, from their left edge (check D38b, <see cref="FromLeft"/>).
         /// </summary>
         private bool WordsMeet(Rec rec, Ctx ctx, out GeoPoint3 meet)
         {
@@ -321,26 +321,48 @@ namespace GeometryHelper.Dxf
             Axes(ctx, out GeoVector3 x, out GeoVector3 y);
             GeoVector3 along = Unit(PointOf(m, 13, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
             double below = Below(ctx, AttachmentOf(rec, true), Height(ctx));
+            double offset = FromLeft(ctx, m, along, x);
 
-            if (Whole(Text(m, 171), 1) != 1 || !AlongPlane(ctx, along, x) || double.IsNaN(below))
+            if (double.IsNaN(offset) || !AlongPlane(ctx, along, x) || double.IsNaN(below))
             {
                 return false;
             }
 
             GeoPoint3 left = PointOf(m, 12, new GeoPoint3(0.0, 0.0, 0.0));
 
-            if (along.Subtract(x).Length > 1E-9)
+            if (offset != 0.0)
             {
-                if (!WordsWidth(ctx, out double width))
-                {
-                    return false;
-                }
-
-                left = left.Add(x.Multiply(-width));
+                left = left.Add(x.Multiply(-offset));
             }
 
             meet = left.Add(x.Multiply(-Num(Text(ctx.Head, 145), 2.0))).Add(y.Multiply(-below));
             return true;
+        }
+
+        /// <summary>
+        /// How far along the plane's x axis the words are held from their left edge, as AutoCAD 2021 meets them: nought for words
+        /// held at their top left along it; all of their width for words that run against it held at their top left
+        /// (<see cref="Reversed"/>, check D38), and half of it or all of it for words along it held at their top centre or right
+        /// (check D38b), the width as the drawing's <see cref="DxfDatabase.FontSearchPath"/> measures them (<see cref="WordsWidth"/>):
+        /// "ABC" of txt.shx 10.67 wide held at their top right, 10.67. NaN where that needs a width no font gives, or the words are
+        /// held otherwise.
+        /// </summary>
+        private double FromLeft(Ctx ctx, List<KeyValuePair<int, string>> m, GeoVector3 along, GeoVector3 x)
+        {
+            int held = Whole(Text(m, 171), 1);
+            bool backward = along.Subtract(x).Length > 1E-9;
+
+            if (held == 1 && !backward)
+            {
+                return 0.0;
+            }
+
+            if (held < 1 || held > 3 || (backward && held != 1) || !WordsWidth(ctx, out double width))
+            {
+                return double.NaN;
+            }
+
+            return held == 2 ? width / 2.0 : width;
         }
 
         /// <summary>
@@ -351,7 +373,8 @@ namespace GeometryHelper.Dxf
         /// their top left along the plane's x axis and met on their sides. "ABC" of txt.shx 4 high at (100, 50, 0), met at the
         /// middle of their top line with a gap of 2, are met at (112.67, 48, 0), a dogleg of 8 starting at (120.67, 48, 0). Words
         /// that run against the x axis (<see cref="Reversed"/>) are met the gap past where they are held, their right along the
-        /// plane (check D38): mirrored across the XY plane and held at (110.67, 50, 0), at (112.67, 48, 0).
+        /// plane (check D38): mirrored across the XY plane and held at (110.67, 50, 0), at (112.67, 48, 0); words held at their top
+        /// centre the gap past half their width from it, at their top right the gap past it (check D38b).
         /// </summary>
         private bool WordsMeetRight(Rec rec, Ctx ctx, out GeoPoint3 meet)
         {
@@ -367,13 +390,16 @@ namespace GeometryHelper.Dxf
             Axes(ctx, out GeoVector3 x, out GeoVector3 y);
             GeoVector3 along = Unit(PointOf(m, 13, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
             double below = Below(ctx, AttachmentOf(rec, false), Height(ctx));
+            double offset = FromLeft(ctx, m, along, x);
 
-            if (Whole(Text(m, 171), 1) != 1 || !AlongPlane(ctx, along, x) || double.IsNaN(below))
+            if (double.IsNaN(offset) || !AlongPlane(ctx, along, x) || double.IsNaN(below))
             {
                 return false;
             }
 
-            double past = along.Subtract(x).Length > 1E-9 ? Num(Text(ctx.Head, 145), 2.0) : width + Num(Text(ctx.Head, 145), 2.0);
+            int held = Whole(Text(m, 171), 1);
+            double gap = Num(Text(ctx.Head, 145), 2.0);
+            double past = along.Subtract(x).Length > 1E-9 || held == 3 ? gap : held == 2 ? (width / 2.0) + gap : width + gap;
             meet = PointOf(m, 12, new GeoPoint3(0.0, 0.0, 0.0)).Add(x.Multiply(past)).Add(y.Multiply(-below));
             return true;
         }
@@ -623,7 +649,7 @@ namespace GeometryHelper.Dxf
         /// drawing's <see cref="DxfDatabase.FontSearchPath"/> measures (<see cref="Measured(Ctx)"/>) whose ink reaches below their
         /// baseline are as high as their height and that depth together, as AutoCAD 2021 lands them (check F1b): "Ag" of txt.shx
         /// 4 high, its g 1.33 below the baseline, are met 2.67 below their top at the middle of the top line, and 5.33 at its
-        /// bottom and under it, where 4.8 is not lower.
+        /// bottom, under it and at the underline of attachment 8 (check D38b), where 4.8 is not lower.
         /// </summary>
         private double Below(Ctx ctx, int attachment, double height) => Below(ctx, attachment, height, Measured(ctx));
 
@@ -653,7 +679,7 @@ namespace GeometryHelper.Dxf
                 case 5: return depth > 0.0 ? Math.Max(whole, height + (height / 5.0)) : whole + (height / 5.0);
                 case 6: return depth > 0.0 ? Math.Max(line, height + (height / 5.0)) : height + (height / 5.0);
                 case 7: return line;
-                case 8: return height + (height / 5.0);
+                case 8: return depth > 0.0 ? Math.Max(line, height + (height / 5.0)) : height + (height / 5.0);
                 default: return double.NaN;
             }
         }
@@ -819,7 +845,10 @@ namespace GeometryHelper.Dxf
         /// The words moved as AutoCAD 2021 moves them when the attachment of a side changes from one to another, keeping the
         /// landings of that side: up by as much more as the side is met below their top. With leaders on the left, the words and
         /// the leaders on the right move, for the left; with leaders on the right, for the right, the words move where there are
-        /// none on the left, else the leaders on the right are landed anew. A side with no leader moves nothing.
+        /// none on the left, else the leaders on the right are landed anew. The left of no leader moves words of no leader to meet
+        /// the base point again, and puts the base point of words met on their right where the left now meets them, as AutoCAD
+        /// 2021 does (check D38b): "ABC" at (100, 50, 0) of no leader stand at (100, 52.8, 0) met at the bottom line. Another side
+        /// with no leader moves nothing.
         /// </summary>
         private void Reattached(Rec rec, Ctx ctx, bool left, int was, int now)
         {
@@ -832,7 +861,29 @@ namespace GeometryHelper.Dxf
             Sides(ctx, x, out int lefts, out int rights);
             double change = Below(ctx, now, Height(ctx)) - Below(ctx, was, Height(ctx));
 
-            if (double.IsNaN(change) || (left ? lefts : rights) == 0)
+            if (double.IsNaN(change))
+            {
+                return;
+            }
+
+            // The left with no leader on it: words of no leader moved to meet the base point again, the base point of words met
+            // on their right put where the left now meets them, as AutoCAD 2021 moves them (check D38b b-att4set-N,
+            // r-rot180-att4-L).
+            if (left && lefts == 0)
+            {
+                if (rights == 0)
+                {
+                    MoveContent(ctx, y.Multiply(change), new GeoVector3(0.0, 0.0, 0.0));
+                }
+                else if (WordsMeet(rec, ctx, out GeoPoint3 meet))
+                {
+                    PutPoint(ctx.Head, 10, meet, ContextOrder);
+                }
+
+                return;
+            }
+
+            if ((left ? lefts : rights) == 0)
             {
                 return;
             }
@@ -919,7 +970,8 @@ namespace GeometryHelper.Dxf
         /// with a leader on their right are left, AutoCAD landing them by their font's width. Words that run against the plane's
         /// x axis (<see cref="Reversed"/>) move along it by how much wider they are too, where the drawing's fonts measure them,
         /// and are left where they do not (check D38): "ABC" mirrored across the XY plane, held at (110.67, 50, 0) and met from
-        /// the left, stand at (131.33, 52, 0) at a scale of 2.
+        /// the left, stand at (131.33, 52, 0) at a scale of 2. Words of no leader move to meet the base point again, by the gap
+        /// and up, as AutoCAD 2021 moves them (check D38b): "ABC" at (100, 50, 0) stand at (102, 52, 0) at a scale of 2.
         /// </summary>
         private void Rescaled(Rec rec, Ctx ctx, List<KeyValuePair<LeaderPart, double>> before, double gapChange, double wasHeight)
         {
@@ -950,6 +1002,13 @@ namespace GeometryHelper.Dxf
 
             if (left == 0 || (right > 0 && !measured) || double.IsNaN(rise))
             {
+                // Met by no leader, the words move to meet the base point again, by the gap and up, as AutoCAD 2021 moves them
+                // (check D38b b-scale2-N): "ABC" at (100, 50, 0) stand at (102, 52, 0) at a scale of 2.
+                if (left == 0 && right == 0 && !double.IsNaN(rise) && !Reversed(ctx))
+                {
+                    MoveContent(ctx, x.Multiply(gapChange).Add(y.Multiply(rise)), new GeoVector3(0.0, 0.0, 0.0));
+                }
+
                 return;
             }
 
@@ -1086,6 +1145,113 @@ namespace GeometryHelper.Dxf
 
             Axes(ctx, out _, out GeoVector3 y);
             MovePoint(ctx.Head, 12, p => p.Add(y.Multiply(shift)), ContextOrder, from, to);
+        }
+
+        /// <summary>
+        /// The plane of the context data turned about its normal with words turned in it, as AutoCAD 2021 turns it where no leader
+        /// is landed yet (check D38b r-*): its x axis (111) their direction (13), its y axis (112) across them. "ABC" given turned
+        /// half round to a multileader of the floor make its x axis (-1, 0, 0) and its y axis (0, -1, 0); turned 30 degrees, its x
+        /// axis (0.87, 0.5, 0). Words facing another way than the plane, or off it, leave it.
+        /// </summary>
+        private static void TurnPlane(Ctx ctx)
+        {
+            Section(ctx.Head, 290, MTextCodes, out int from, out int to);
+            List<KeyValuePair<int, string>> m = ctx.Head.GetRange(from, to - from);
+            GeoVector3 x = Unit(PointOf(ctx.Head, 111, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
+            GeoVector3 normal = Unit(DxfOcsTransform.Cross(x, Unit(PointOf(ctx.Head, 112, new GeoPoint3(0.0, 1.0, 0.0)).ToVector())));
+            GeoVector3 along = Unit(PointOf(m, 13, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
+            GeoVector3 facing = Unit(PointOf(m, 11, new GeoPoint3(0.0, 0.0, 1.0)).ToVector());
+
+            if (!(along.Length > 0.0) || !(normal.Length > 0.0) || facing.Subtract(normal).Length > 1E-9 || Math.Abs(along.DotProduct(normal)) > 1E-9
+                || along.Subtract(x).Length <= 1E-9)
+            {
+                return;
+            }
+
+            PutPoint(ctx.Head, 111, Pt(along), ContextOrder);
+            PutPoint(ctx.Head, 112, Pt(Unit(DxfOcsTransform.Cross(normal, along))), ContextOrder);
+        }
+
+        /// <summary>
+        /// The base point of the content (10 of the context data) of words given where no leader is landed, as AutoCAD 2021 puts
+        /// it (check D38b): where a leader from the left of the plane would meet them held at their top left where they are, the
+        /// <see cref="LandingGap"/> short of them and as far below their top as the attachment of the left side says, which needs
+        /// no font, so that AutoCAD lands a leader it adds there and leaves the words; words held at their top centre or right,
+        /// whose left edge AutoCAD puts where they are given, moved along the plane by half their width or all of it where the
+        /// drawing's <see cref="DxfDatabase.FontSearchPath"/> measures them. "ABC" 4 high given at (100, 50, 0), met at the middle
+        /// of the top line, put it at (98, 48, 0); held at their top right, 10.67 wide in txt.shx, they stand at (110.67, 50, 0).
+        /// Words held otherwise, met at their top or bottom, running against the plane's x axis or off it put it at their place
+        /// where they are given first, as before, and leave it where they are given anew.
+        /// </summary>
+        private static void Based(Rec rec, Ctx ctx, bool first, DxfDatabase database)
+        {
+            Section(ctx.Head, 290, MTextCodes, out int from, out int to);
+            List<KeyValuePair<int, string>> m = ctx.Head.GetRange(from, to - from);
+            GeoPoint3 at = PointOf(m, 12, new GeoPoint3(0.0, 0.0, 0.0));
+            Axes(ctx, out GeoVector3 x, out GeoVector3 y);
+            GeoVector3 along = Unit(PointOf(m, 13, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
+            int held = Whole(Text(m, 171), 1);
+            DxfTextLine words = Measured(ctx, Height(ctx), null, database);
+            double below = Below(ctx, AttachmentOf(rec, true), Height(ctx), words);
+
+            if (Reversed(ctx) || along.Subtract(x).Length > 1E-9 || held < 1 || held > 3 || double.IsNaN(below) || Whole(Text(rec.After, 271), 0) != 0)
+            {
+                if (first)
+                {
+                    PutPoint(ctx.Head, 10, at, ContextOrder);
+                }
+
+                return;
+            }
+
+            if (held != 1 && words != null)
+            {
+                PutPoint(ctx.Head, 12, at.Add(x.Multiply(held == 3 ? words.ActualWidth : words.ActualWidth / 2.0)), ContextOrder, from, to);
+            }
+
+            PutPoint(ctx.Head, 10, at.Add(x.Multiply(-Num(Text(ctx.Head, 145), 2.0))).Add(y.Multiply(-below)), ContextOrder);
+        }
+
+        /// <summary>
+        /// Words given first to a MULTILEADER whose leaders are landed moved to meet the first leader on a side, as AutoCAD 2021
+        /// moves them (check D38b b-o4-*): the <see cref="LandingGap"/> past the end of its dogleg on their left, as far below their
+        /// top as the attachment of the side says; on their right, where the drawing's fonts measure them, their right edge the gap
+        /// short of it. "ABC" 4 high given at (100, 50, 0) to a multileader of one line landed at (0, 0, 0), its dogleg 8 along x,
+        /// stand at (10, 2, 0); the base point then where a leader from their left meets them, at (8, 0, 0). Words AutoCAD would
+        /// place by a width no font gives, or that the plane cannot meet, stay where given, the base point put as
+        /// <see cref="Based"/> puts it.
+        /// </summary>
+        private void Met(Rec rec, Ctx ctx)
+        {
+            Axes(ctx, out GeoVector3 x, out GeoVector3 y);
+            LeaderPart leader = ctx.Leaders.Find(l => HasLanding(l) && Side(l, x) != 0);
+            Section(ctx.Head, 290, MTextCodes, out int from, out int to);
+            List<KeyValuePair<int, string>> m = ctx.Head.GetRange(from, to - from);
+            GeoVector3 along = Unit(PointOf(m, 13, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
+            int held = Whole(Text(m, 171), 1);
+
+            if (leader != null && !Reversed(ctx) && along.Subtract(x).Length <= 1E-9 && held >= 1 && held <= 3 && Whole(Text(rec.After, 271), 0) == 0)
+            {
+                int side = Side(leader, x);
+                GeoVector3 dogleg = Unit(PointOf(leader.Head, 11, new GeoPoint3(1.0, 0.0, 0.0)).ToVector());
+                GeoPoint3 end = PointOf(leader.Head, 10, new GeoPoint3(0.0, 0.0, 0.0)).Add(dogleg.Multiply(Num(Text(leader.Head, 40), 0.0)));
+                double gap = Num(Text(ctx.Head, 145), 2.0);
+                double below = Below(ctx, AttachmentOf(rec, side < 0), Height(ctx));
+                double left = Below(ctx, AttachmentOf(rec, true), Height(ctx));
+                bool measured = WordsWidth(ctx, out double width);
+
+                if (!double.IsNaN(below) && !double.IsNaN(left) && (measured || (side < 0 && held == 1)))
+                {
+                    // Their left edge, then the point they are held by.
+                    GeoPoint3 edge = end.Add(x.Multiply(side < 0 ? gap : -(gap + width))).Add(y.Multiply(below - left));
+                    GeoPoint3 top = edge.Add(y.Multiply(left));
+                    PutPoint(ctx.Head, 12, top.Add(x.Multiply(held == 3 ? width : held == 2 ? width / 2.0 : 0.0)), ContextOrder, from, to);
+                    PutPoint(ctx.Head, 10, edge.Add(x.Multiply(-gap)), ContextOrder);
+                    return;
+                }
+            }
+
+            Based(rec, ctx, true, Database());
         }
 
         /// <summary>What the width of the words follows, as read: their letters (304), width (43), spacing (45 and 170) and height (41 of the context data).</summary>

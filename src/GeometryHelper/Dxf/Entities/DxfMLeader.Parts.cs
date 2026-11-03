@@ -19,7 +19,7 @@ namespace GeometryHelper.Dxf
                 G(140, "4"), G(145, "2"), G(174, "1"), G(175, "1"), G(176, "0"), G(177, "0"), G(290, "0"), G(296, "0"), G(110, "0"),
                 G(120, "0"), G(130, "0"), G(111, "1"), G(121, "0"), G(131, "0"), G(112, "0"), G(122, "1"), G(132, "0"), G(297, "0"),
                 G(272, "9"), G(273, "9"), G(301, "}"), G(340, "0"), G(90, "0"), G(170, "1"), G(91, ByBlock), G(171, "-2"), G(290, "1"),
-                G(291, "1"), G(41, "8"), G(42, "4"), G(172, "0"), G(343, "0"), G(173, "1"), G(95, "1"), G(174, "1"), G(175, "0"),
+                G(291, "1"), G(41, "8"), G(42, "4"), G(172, "2"), G(343, "0"), G(173, "1"), G(95, "1"), G(174, "1"), G(175, "0"),
                 G(92, ByBlock), G(292, "0"), G(93, ByBlock), G(10, "1"), G(20, "1"), G(30, "1"), G(43, "0"), G(176, "0"), G(293, "0"),
                 G(294, "0"), G(178, "0"), G(179, "1"), G(45, "1"), G(271, "0"), G(272, "9"), G(273, "9"), G(295, "0"),
             };
@@ -33,7 +33,9 @@ namespace GeometryHelper.Dxf
         /// drawing's; its words (340 of the context's MTEXT) are given the same text style, as AutoCAD 2021 writes them, or the
         /// text style they named when given, where the drawing has it (with bit 11 where it is not the style's), moved then to
         /// where the style's font would meet them where the drawing's fonts measure both (check D38). In a drawing of R2013 or
-        /// later its leaders run on to its content (295 of 1), as AutoCAD 2021 makes every new multileader.
+        /// later its leaders run on to its content (295 of 1), as AutoCAD 2021 makes every new multileader; in an older one it
+        /// has no 295, as AutoCAD 2021 writes it (check D38b). Words given in no drawing, where no leader is landed, have the base
+        /// point of their content put again as the drawing's fonts meet them (<see cref="MText"/>).
         /// </summary>
         /// <exception cref="ArgumentException">Thrown when the drawing has no multileader style of the name, or no text style Standard.</exception>
         internal override void Appending(DxfBlockTableRecord owner)
@@ -71,11 +73,8 @@ namespace GeometryHelper.Dxf
                 TakeStyleLook(rec, database);
 
                 // Its leaders run on to its content, as AutoCAD 2021 makes every new multileader, of words, a block or none
-                // (295 of 1, check D38), from R2013.
-                if (database.File.Supports(1027))
-                {
-                    Put(rec.After, 295, "1", TopOrder);
-                }
+                // (295 of 1, check D38), from R2013; before, it writes no 295 (check D38b e-w-2010).
+                Put(rec.After, 295, database.File.Supports(1027) ? "1" : null, TopOrder);
             }
 
             if (Text(rec.After, 343)?.Trim() == "0")
@@ -115,9 +114,17 @@ namespace GeometryHelper.Dxf
                     // Moved to where the multileader's font would meet them, as AutoCAD 2021 moves them (check D38).
                     Restyled(rec, rec.Context, wasStyle, database);
                 }
+
+                // Words given in no drawing, where no leader is landed: the base point put again as the drawing's fonts meet
+                // them, and words held at their top centre or right moved by them, as AutoCAD 2021 puts them (check D38b).
+                if (from >= 0 && wordsInMemory && !rec.Context.Leaders.Exists(HasLanding))
+                {
+                    Based(rec, rec.Context, false, database);
+                }
             }
 
             wordsTextStyle = null;
+            wordsInMemory = false;
             Write(rec);
         }
 
@@ -150,7 +157,11 @@ namespace GeometryHelper.Dxf
         /// of the content at (-112.67, 48, 0). A mirror that turns the plane's x axis back, a block's or such words', lines the
         /// content up the other way, the context's alignment (176) of the left made the right's and the right's the left's, a
         /// centred one kept, and sets bit 14 of the overrides, as AutoCAD 2021 writes it (check D38): the box mirrored across the
-        /// YZ plane, or across a plane of normal (1, 0.2, 0), has 176 of 2; mirrored back, 0, the bit kept.
+        /// YZ plane, or across a plane of normal (1, 0.2, 0), has 176 of 2; mirrored back, 0, the bit kept, and says so (294 of 1,
+        /// then of nought), as AutoCAD 2021 writes it (check D38b). Of the two ways to read words kept readable, the one kept is
+        /// the one turned in the system of their normal nearer the turn they had, as AutoCAD 2021 keeps them (check D38b): across
+        /// XZ, or a plane of normal (0.2, 1, 0), "ABC" runs the mirrored way, upright, met again at its attachment by the mirrored
+        /// leader, at (100, -46, 0) running along x; across XY against x, as above; turned a quarter first, across XY, up y still.
         /// </summary>
         /// <param name="transform">The transformation.</param>
         /// <exception cref="ArgumentException">Thrown when it scales the MULTILEADER more one way than another, which ezdxf and AutoCAD refuse, or shears it, keeping its axes as long as each other but not square, which AutoCAD refuses too.</exception>
@@ -231,6 +242,12 @@ namespace GeometryHelper.Dxf
                 }
 
                 SetBit(rec, 14);
+
+                // A block's says so each time (294 of 1, then of nought), as AutoCAD 2021 writes it (check D38b x-k-yz, x-k-yz-yz).
+                if (HasSection(ctx, 296, BlockCodes))
+                {
+                    Put(rec.After, 294, Whole(Text(rec.After, 294), 0) == 1 ? "0" : "1", TopOrder);
+                }
             }
 
             PutPoint(ctx.Head, 111, Pt(newX), ContextOrder);
@@ -268,7 +285,8 @@ namespace GeometryHelper.Dxf
 
                 if (!double.IsNaN(readable))
                 {
-                    Readable(rec, ctx, Unit(transform.Transform(direction)), planeZ, newX, newY, flipped, readable);
+                    GeoVector3 was = new DxfOcsTransform.Axes(normal.Length > 0.0 ? normal : new GeoVector3(0.0, 0.0, 1.0)).FromWorld(direction);
+                    Readable(rec, ctx, Unit(transform.Transform(direction)), planeZ, newX, newY, flipped, readable, Math.Atan2(was.Y, was.X));
                     Section(ctx.Head, 290, MTextCodes, out from, out to);
                 }
 
@@ -452,10 +470,27 @@ namespace GeometryHelper.Dxf
         /// held at (110.67, 50, 0) running against x (e5-words-mirrorxy); mirrored within it, as across YZ, held at the mirrored
         /// place by their other side, the top right for the top left, and the base point of the content put where a leader from
         /// the left now meets them, the gap short of their left, at (-112.67, 48, 0) (g-words-mirroryz). Words that then run
-        /// against the plane's x axis say so (294 of 1), and those along it not, as AutoCAD 2021 writes them (check D38).
+        /// against the plane's x axis say so (294 of 1), and those along it not, as AutoCAD 2021 writes them (check D38). Where
+        /// running the mirrored way leaves them turned nearer the turn they had before (<paramref name="turned"/>, in the system
+        /// of their normal then), as a mirror across XZ does, they are kept so, upright (<see cref="Upright"/>, check D38b).
         /// </summary>
-        private void Readable(Rec rec, Ctx ctx, GeoVector3 along, GeoVector3 normal, GeoVector3 x, GeoVector3 y, bool flipped, double width)
+        private void Readable(Rec rec, Ctx ctx, GeoVector3 along, GeoVector3 normal, GeoVector3 x, GeoVector3 y, bool flipped, double width, double turned)
         {
+            // Of the two ways to read them, the one turned in the system of their normal nearer the turn they had in the system of
+            // theirs before, the other where the two are as near, as AutoCAD 2021 keeps them (check D38b): kept running the
+            // mirrored way where the mirror turns them upside down, as across XZ.
+            var system = new DxfOcsTransform.Axes(normal);
+            GeoVector3 local = system.FromWorld(along);
+            double kept = Math.Abs(Math.IEEERemainder(Math.Atan2(local.Y, local.X) - turned, 2.0 * Math.PI));
+            double back = Math.Abs(Math.IEEERemainder(Math.Atan2(-local.Y, -local.X) - turned, 2.0 * Math.PI));
+
+            // As near both ways, a quarter turn either side, turned back, as AutoCAD 2021 turns them (x-w-d45, q-rot90-tilt).
+            if (kept < back - 1E-9)
+            {
+                Upright(rec, ctx, along, normal, x, y, system, flipped);
+                return;
+            }
+
             Section(ctx.Head, 290, MTextCodes, out int from, out int to);
             PutPoint(ctx.Head, 11, Pt(normal), ContextOrder, from, to);
             Section(ctx.Head, 290, MTextCodes, out from, out to);
@@ -485,6 +520,63 @@ namespace GeometryHelper.Dxf
 
             if (!double.IsNaN(below))
             {
+                PutPoint(ctx.Head, 10, at.Add(x.Multiply(-(left + Num(Text(ctx.Head, 145), 2.0)))).Add(y.Multiply(-below)), ContextOrder);
+            }
+        }
+
+        /// <summary>
+        /// The words of a mirrored MULTILEADER that the mirror turned upside down kept running the mirrored way, upright, as
+        /// AutoCAD 2021 keeps them (check D38b z-*): their normal the plane's mirrored one, their turn (42) read in its system,
+        /// held as they were, and moved up across their direction by twice as far below their top as the left is met, so that
+        /// the mirrored leaders meet them again at their attachment; the base point of the content then where a leader from the
+        /// left meets them. "ABC" 4 high at (100, 50, 0), met at the middle of the top line, mirrored across the XZ plane stand at
+        /// (100, -46, 0) running along x, of 294 nought, the base point at (98, -48, 0); met at the top of the top line, at
+        /// (100, -50, 0).
+        /// </summary>
+        private void Upright(Rec rec, Ctx ctx, GeoVector3 along, GeoVector3 normal, GeoVector3 x, GeoVector3 y, DxfOcsTransform.Axes system, bool flipped)
+        {
+            Section(ctx.Head, 290, MTextCodes, out int from, out int to);
+            PutPoint(ctx.Head, 11, Pt(normal), ContextOrder, from, to);
+
+            // A mirror that turns the plane's x axis back holds them by their other side, as the alignment is turned (check D38b
+            // q-rot135-xz): the top left made the top right, their place moved along them by their width.
+            if (flipped && WordsWidth(ctx, out double wide))
+            {
+                Section(ctx.Head, 290, MTextCodes, out from, out to);
+                int was = Whole(Text(ctx.Head.GetRange(from, to - from), 171), 1);
+
+                if (was == 1 || was == 3)
+                {
+                    Put(ctx.Head, 171, (4 - was).ToString(CultureInfo.InvariantCulture), ContextOrder, from, to);
+                    Section(ctx.Head, 290, MTextCodes, out from, out to);
+                    MovePoint(ctx.Head, 12, p => p.Add(along.Multiply(was == 1 ? wide : -wide)), ContextOrder, from, to);
+                }
+            }
+
+            GeoVector3 local = system.FromWorld(along);
+            double turn = Math.Atan2(local.Y, local.X);
+            Section(ctx.Head, 290, MTextCodes, out from, out to);
+            PutNumber(ctx.Head, 42, turn < 0.0 ? turn + (2.0 * Math.PI) : turn, 0.0, ContextOrder, from, to);
+            Put(rec.After, 294, along.DotProduct(x) < 0.0 ? "1" : "0", TopOrder);
+            double below = Below(ctx, AttachmentOf(rec, true), Height(ctx));
+
+            if (double.IsNaN(below))
+            {
+                return;
+            }
+
+            GeoVector3 up = Unit(DxfOcsTransform.Cross(normal, along));
+            Section(ctx.Head, 290, MTextCodes, out from, out to);
+            MovePoint(ctx.Head, 12, p => p.Add(up.Multiply(2.0 * below)), ContextOrder, from, to);
+
+            // The base point where a leader from the left now meets them, the words running along the plane.
+            if (along.Subtract(x).Length <= 1E-9 && WordsWidth(ctx, out double width))
+            {
+                Section(ctx.Head, 290, MTextCodes, out from, out to);
+                List<KeyValuePair<int, string>> m = ctx.Head.GetRange(from, to - from);
+                int held = Whole(Text(m, 171), 1);
+                double left = held == 3 ? width : held == 2 ? width / 2.0 : 0.0;
+                GeoPoint3 at = PointOf(m, 12, new GeoPoint3(0.0, 0.0, 0.0));
                 PutPoint(ctx.Head, 10, at.Add(x.Multiply(-(left + Num(Text(ctx.Head, 145), 2.0)))).Add(y.Multiply(-below)), ContextOrder);
             }
         }

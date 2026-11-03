@@ -2324,8 +2324,27 @@ the multileader is added to a drawing that has it, as AutoCAD 2021 keeps the wor
 none take its style's. Words given set bit 18 of the overrides, and their colour becomes the multileader's `TextColor`, with
 bit 15 but for BYBLOCK, as AutoCAD 2021 writes them (check D38): an MTEXT made in code, BYLAYER, makes the text colour
 BYLAYER, and red words make it red; read back by `MText`, the words carry their red. A new multileader, of words, a block
-or none, runs its leaders on to its content (`ExtendLeaderToText`, 295 of 1) in a drawing of R2013 or later, and a new
-leader line has no colour of its own (no 92), drawn in `LeaderLineColor`, as AutoCAD 2021 writes them.
+or none, runs its leaders on to its content (`ExtendLeaderToText`, 295 of 1) in a drawing of R2013 or later, and writes
+no 295 in an older one; a new leader line has no colour of its own (no 92), drawn in `LeaderLineColor`, and reads
+`GetLeaderLineColor` BYBLOCK whatever that colour is; a line given BYBLOCK writes its flag (93 2) and no 92, as AutoCAD 2021
+writes them (check D38b). `TextAlignmentType` is read from the context's 176, as AutoCAD reads it: words lined up on the left
+and mirrored across the YZ plane read on the right. A new multileader is of words (`ContentType` `MTextContent`, 172 of 2)
+though it holds none (`HasContent` false), as AutoCAD 2021 makes one; its first leader line is landed at its point, its
+dogleg towards the base point, the line of that one vertex: from (30, 40, 0), a dogleg along -x from there.
+
+Words given put the base point of the content (10 of the context data), where AutoCAD lands a leader it adds, where a
+leader from the left would meet them, as AutoCAD 2021 puts it where no leader is landed yet (check D38b): the landing gap
+short of the place given and as far below as the left's attachment says, which needs no font. "ABC" 4 high given at
+(100, 50, 0), met at the middle of the top line, put it at (98, 48, 0), so that AutoCAD, adding a leader to the library's
+file, lands it from (90, 48, 0) and leaves the words; "Ag" of Arial on a multileader of txt.shx stays at (100, 49.92, 0),
+landed at (90, 47.33, 0), where AutoCAD moved the words before. Words held at their top centre or right have their left edge
+at the place given and line the content up so (176), as AutoCAD 2021 puts them: "ABC" of txt.shx held at the top right
+stands at (110.67, 50, 0) where `FontSearchPath` measures it, and is met from (90, 48, 0) on the left and from
+(120.67, 48, 0) on the right. Words given anew where no leader is landed take the base point with them; words given after
+their leaders move to meet the first, at (10, 2, 0) for a line landed at (0, 0, 0). Words turned in the plane turn it with
+them where no leader is landed yet, its x axis their direction, as AutoCAD 2021 turns it: "ABC" turned half round make the
+x axis (-1, 0, 0) and the base point (102, 52, 0), are met from (250, 0, 0) by a dogleg from (110, 52, 0) along -x, and move
+as words along the plane do.
 
 `AddLeaderLine(point)` lands a new leader where AutoCAD 2021 lands it, where it can without a font: from a point on the
 left of words held at their top left and met on their sides, the dogleg runs along the plane's x axis to the landing gap
@@ -2340,8 +2359,10 @@ dogleg ends where the block's shapes meet the line along x through the middle of
 from (-10, -5) to (20, 15) placed at (100, 50, 0) is met from (0, 0, 0) by a dogleg from (82, 55, 0) and from (250, 0, 0)
 by one from (128, 55, 0); a circle of radius 10 with a line across it, by doglegs ending at the circle, (90, 50, 0) and
 (110, 50, 0), though the line reaches further right. AutoCAD lands words on the right as far right as its font makes them
-wide, and decides which side by their middle, so a point on the right of their left edge, and words turned, held otherwise
-or met at their top or bottom keep the old landing: the first leader, or one made at the base point of the content.
+wide, and decides which side by their middle, so a point on the right of their left edge, and words turned off the plane,
+held at their top centre or right with no font to tell their width, or met at their top or bottom keep the old landing: the
+first leader, or one made at the base point of the content, its dogleg ending there for a point on its left, as AutoCAD 2021
+lands a leader it adds (check D38b).
 
 The content keeps its landings as AutoCAD 2021 keeps them when something is set afterwards. `TextLocation` set moves the
 doglegs with the words: the words moved from (100, 50, 0) to (120, 80, 0) move that dogleg to (110, 78, 0). `LandingGap`
@@ -2362,7 +2383,9 @@ readable), are moved by these as AutoCAD 2021 moves them, held at their right an
 held at (110.67, 50, 0), met from (90, 48, 0), stands at (117.67, 50, 0) for a dogleg of 15, at (113.67, 50, 0) for a gap
 of 5, and at (60.67, 72, 0) for the vertex set to (40, 70, 0). What keeps their left edge as they grow, their height, the
 scale and the words given anew (at (126.67, 53, 0) 10 high, 26.67 wide from 100), needs their width, and is done where
-the drawing's `FontSearchPath` measures them; with no font they are left, as before.
+the drawing's `FontSearchPath` measures them; with no font they are left, as before. Words of no leader meet the base point
+again at a scale of 2, at (102, 52, 0), and met at the bottom line on the left, at (100, 52.8, 0), as AutoCAD 2021 moves
+them; met only on their right, the left set puts the base point where it now meets them (check D38b).
 
 Each of these lays the leaders out again as AutoCAD 2021 does, so a leader moved off its landing (by `SetLastVertex` of
 another, say) is landed anew on the left of the words or on either side of a block: of two leaders on the left of "ABC" at
@@ -2403,7 +2426,11 @@ are carried as ezdxf carries them; AutoCAD keeps them readable by their width. A
 (across the YZ plane, or a plane of normal (1, 0.2, 0)), of a block or of words kept readable, lines the content up the
 other way, the context's alignment (176) of the left made the right's and the right's the left's, a centred one kept, and
 sets bit 14 of the overrides, as AutoCAD 2021 writes it (check D38); mirrored back, the alignment is the left's again and
-the bit stays.
+the bit stays; a block's says so in 294, 1 and then 0 again (check D38b). Of the two ways to read words kept readable, the
+library keeps the one turned, in the system of their normal, nearer the turn they had, as AutoCAD 2021 keeps them (check
+D38b): across the XZ plane, or a plane of normal (0.2, 1, 0), "ABC" met from (0, 0, 0) runs the mirrored way, upright, met
+again by the mirrored leader at its attachment, standing at (100, -46, 0) for a landing at (90, -48, 0); across the XY plane
+it runs against x, as above; turned a quarter first, across XY, it runs up y still.
 `GetGeometry()` gives the lines of its leaders, as `DxfReader` reads a MULTILEADER, and `IntersectWith` meets the
 multileader on them: each leader line a `GeoPolyline3` from its first vertex, where its arrow points, through its vertices
 and the last point of its leader to the end of the dogleg, the path `Explode()` draws; splined, a `GeoSpline3` fitted
