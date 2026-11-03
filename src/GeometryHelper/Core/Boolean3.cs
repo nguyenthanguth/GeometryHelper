@@ -180,6 +180,16 @@ namespace GeometryHelper.Core
                 return frame.Work(Union, first, second, out result, tolerance, out outcome, out open);
             }
 
+            // Not worked out, it is worked out again on a body closing only within the tolerance welded closed; see
+            // WeldedWhereRefused.
+            return WeldedWhereRefused(UnionHere, first, second, out result, tolerance, out outcome, out open);
+        }
+
+        /// <summary>
+        /// Works out the union where the bodies stand, as <see cref="TryUnion(GeoSolid3, GeoSolid3, out GeoSolid3, Tolerance, out BooleanOutcome)"/> does.
+        /// </summary>
+        private static bool UnionHere(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome, out GeoSolid3 open)
+        {
             // Walls of a body and its openings standing apart within the tolerance of one plane are worked out within a finer
             // one; see WithWallsApart.
             if (WithWallsApart(UnionAsAsked, first, second, out result, tolerance, out open))
@@ -601,6 +611,16 @@ namespace GeometryHelper.Core
                 return Intersect(a, b, out result, tolerance, out outcome, out open);
             }
 
+            // Not worked out, it is worked out again on a body closing only within the tolerance welded closed; see
+            // WeldedWhereRefused.
+            return WeldedWhereRefused(IntersectHere, first, second, out result, tolerance, out outcome, out open);
+        }
+
+        /// <summary>
+        /// Works out the intersection where the bodies stand, as <see cref="TryIntersect(GeoSolid3, GeoSolid3, out GeoSolid3, Tolerance, out BooleanOutcome)"/> does.
+        /// </summary>
+        private static bool IntersectHere(GeoSolid3 first, GeoSolid3 second, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome, out GeoSolid3 open)
+        {
             // Walls of a body and its openings standing apart within the tolerance of one plane are worked out within a finer
             // one; see WithWallsApart.
             if (WithWallsApart(IntersectAsAsked, first, second, out result, tolerance, out open))
@@ -955,6 +975,16 @@ namespace GeometryHelper.Core
                 return Subtract(subject, b, out result, tolerance, out outcome, out open);
             }
 
+            // Not worked out, it is worked out again on a body closing only within the tolerance welded closed; see
+            // WeldedWhereRefused.
+            return WeldedWhereRefused(SubtractHere, subject, tool, out result, tolerance, out outcome, out open);
+        }
+
+        /// <summary>
+        /// Works out the difference where the bodies stand, as <see cref="TrySubtract(GeoSolid3, GeoSolid3, out GeoSolid3, Tolerance, out BooleanOutcome)"/> does.
+        /// </summary>
+        private static bool SubtractHere(GeoSolid3 subject, GeoSolid3 tool, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome, out GeoSolid3 open)
+        {
             // Walls of a body and its openings standing apart within the tolerance of one plane are worked out within a finer
             // one; see WithWallsApart.
             if (WithWallsApart(SubtractAsAsked, subject, tool, out result, tolerance, out open))

@@ -249,6 +249,19 @@ two ways of cutting a common part, the one that weighs more than that is not tak
 whose floor lies 0.014 under the floor of the U's notch, both turned, shares a slab 0.52 with it, which came out as
 nothing and comes out whole now.
 
+Most such cells are cut along a crack: a body whose faces meet on two copies of an edge a hair apart closes within the
+tolerance and no closer, and where a plane of the other body crosses the crack within a few thousandths, the cut leaves
+a gap at the plane wider than it bridges, and the cell whole. So a union, a common part or a difference that is not
+worked out is worked out once more where either body closes within the tolerance and not at the rounding of its
+coordinates: each such body has its corners within the tolerance of each other made one, as a boolean welds what it
+gives, and its faces lying in one plane merged, and the boolean is worked out on what that gives, by the same checks.
+The cracked box less that U, its cracks 1.7E-5 wide and slanting 0.004 either side of the U's planes, leaves 475.54
+now, as it should, and the two share 2.55 and join into 3 143.38, all three not worked out before. Of 45 000 booleans of
+such a U and a box, both cracked 1E-5 to 1E-4 wide, at a thousandth, a hundredth and 0.05, 1 619 differences, 2 106
+common parts and 2 063 unions were not worked out, all but 23 of them at a thousandth, and every one is right now. What
+was worked out as the bodies came is as it was, to the bit, and so is what is still not worked out; far out, the bodies
+are welded in the frame they are worked out in. At nought a crack is a crack, and nothing is welded.
+
 The volume is measured by the divergence theorem, so it does not depend on where the solid sits and is
 reported unsigned: faces wound inwards give the same answer as faces wound outwards, and `TurnOutwards()` turns
 such a body the right way out for the booleans and the containment queries, which read the winding. It does

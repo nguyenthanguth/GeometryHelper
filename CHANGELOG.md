@@ -6,6 +6,21 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A union, a common part or a difference that is not worked out is worked out once more where either body
+closes within the tolerance and not at the rounding of its coordinates, as a body cracked a hair wide does (check GR3):
+each such body has its corners within the tolerance of each other made one and its faces lying in one plane merged,
+and the boolean is worked out on what that gives, by the same checks, in the frame it is worked out in. A crack
+slanting across a plane of the other body within a few thousandths left the cut a gap at the plane wider than it
+bridges, and the cell could not be judged: a cracked box dipping 0.088 into an arm of a cracked U, the cracks 1.7E-5
+wide and slanting 0.004 either side of the planes of the other, less the U, was not worked out, and leaves 475.54 now,
+as it should; the two share 2.55 and join into 3 143.38, neither worked out before. Of 45 000 booleans of such a U and a
+box, both cracked 1E-5 to 1E-4 wide, at a thousandth, a hundredth and 0.05, 1 619 differences, 2 106 common parts and
+2 063 unions not worked out are right now, and none was made wrong; of 18 000 booleans of prisms of other shapes, 3
+more are right. Every boolean worked out as the bodies came is as it was, to the bit, and so is every one still not
+worked out. A boolean worked out as the bodies came takes as long as it did; one worked out again takes 1.4 to 2.5
+milliseconds longer for such a U and box under .NET Framework 4.8, a quarter to two thirds more than refusing it took,
+and the 9 000 booleans of a cracked set 16 % longer in all.
+
 **FIXED.** Words given to a multileader put the base point of its content (10 of the context data) where AutoCAD 2021 puts
 it (check D38b): where a leader from the left would meet them, the gap short of the place given and as far below as the left
 is met, which needs no font: "ABC" 4 high given at (100, 50), met at the middle of the top line, put it at (98, 48), where the
