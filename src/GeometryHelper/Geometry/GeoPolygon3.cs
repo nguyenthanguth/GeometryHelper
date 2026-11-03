@@ -650,6 +650,38 @@ namespace GeometryHelper.Geometry
             return new GeoPolygon3(moved, default(Tolerance), carrying.Stretched);
         }
 
+        /// <summary>
+        /// Moves the polygon coordinate by coordinate, the offset's X, Y and Z added to each corner's own, with no matrix: a
+        /// corner moved by an offset it is exactly apart from comes out exact, and moved back comes out as it was given.
+        /// </summary>
+        /// <param name="offset">How far to move it, and which way.</param>
+        /// <param name="measure">
+        /// Whether the normal and the area are measured again on the corners moved, as a polygon brought in from far out
+        /// reads them finer; or kept, as one measured near the origin and moved back out keeps them.
+        /// </param>
+        internal GeoPolygon3 MovedBy(GeoVector3 offset, bool measure)
+        {
+            GeoPoint3[] moved = new GeoPoint3[_vertices.Length];
+
+            for (int i = 0; i < _vertices.Length; i++)
+            {
+                moved[i] = _vertices[i].Add(offset);
+            }
+
+            if (measure)
+            {
+                GeoVector3 area = Newell.GetAreaVector(moved);
+                double length = area.Length;
+
+                if (length > 0.0)
+                {
+                    return new GeoPolygon3(moved, area.Divide(length), length);
+                }
+            }
+
+            return new GeoPolygon3(moved, Normal, Area);
+        }
+
         #region Queries
 
         /// <summary>

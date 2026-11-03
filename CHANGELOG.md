@@ -6,6 +6,22 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A union, a common part and a difference of solids far out, and each cut of `TrySubtractAll`, are worked out
+near the origin (check GR2): bodies reaching more than 2^20 out and more than 1 024 times the size of their box, as at
+national-grid coordinates, are moved by whole coordinates, with their openings, until the least corner of their box
+stands a 256th of their reach from the origin, worked out there and moved back; a corner kept comes back as it was
+given, to the bit. A corner was read on a plane within a trillionth of the coordinates, a thousandth a thousand million
+out, and walls of openings a fraction of the tolerance apart were cut in one plane: an L 100 by 80 by 50 a hundred
+million out, with two blind openings whose walls stood 0.0009 apart, less a box across both walls, held 130 189.39
+within a thousandth, where it holds 130 189.32, and the box less the L 28 457.23, where it holds 28 457.68; they hold
+it now, to 3E-5 a thousand million out. Of 1 196 such booleans of prisms with openings and boxes ten million to a
+thousand million out, wrong at a thousandth 241 -> 14, at a hundredth 413 -> 15, at a millionth 257 -> 127 and not
+worked out 134 -> 49; 3 of 1 200 with a face of the box near a wall's plane, each exactly the tolerance off, came out
+otherwise by up to 1.9. Within a million of the origin, and below a trillionth of the coordinates a 256th of the reach
+out, nothing changed, to the bit: 12 852 fuzz lines, 191 corpus sets and 4 bnear runs. Such booleans at a thousandth and
+a hundredth take 17-26 % longer, at a millionth a third less. `GetVolume`, `TryCutOpenings`, `Section` and
+`Mesh3.ToCells` of bodies far out are not moved yet.
+
 **FIXED.** A multileader's words mirrored across their plane, which run against its x axis and say so (294 of 1, as AutoCAD
 2021 writes them), are moved as AutoCAD moves them when the dogleg, the gap, the height, the scale, an attachment, the words
 or a leader's last vertex are set (check D38): held at their right and their up the other way, "ABC" of txt.shx held at

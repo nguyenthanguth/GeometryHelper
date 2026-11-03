@@ -187,6 +187,36 @@ namespace GeometryHelper.Core
         /// <param name="report">What was done.</param>
         private static bool SubtractAll(GeoSolid3 subject, IEnumerable<GeoSolid3> tools, SolidBooleanOptions options, SolidClosingOptions closing, out GeoSolid3 result, out SubtractReport report)
         {
+            var given = new List<GeoSolid3>(tools);
+
+            // A body far out and its tools are moved near the origin together, every cut and closing worked out there, and
+            // what is left moved back; see FarFrame. A null tool is moved as null, and refused where its cut comes.
+            if (FarFrame.TryFor(subject, given, options.Tolerance, out FarFrame frame))
+            {
+                var moved = new List<GeoSolid3>(given.Count);
+
+                foreach (GeoSolid3 tool in given)
+                {
+                    moved.Add(frame.In(tool));
+                }
+
+                bool left;
+                FarFrame.Enter();
+
+                try
+                {
+                    left = SubtractAll(frame.In(subject), moved, options, closing, out result, out report);
+                }
+                finally
+                {
+                    FarFrame.Leave();
+                }
+
+                result = frame.Out(result);
+                report = frame.Out(report);
+                return left;
+            }
+
             GeoSolid3 current = subject;
             var skipped = new List<int>();
             var withinFallback = new List<int>();
@@ -195,7 +225,7 @@ namespace GeometryHelper.Core
             var refused = new List<int>();
             int tried = 0, taken = 0;
 
-            foreach (GeoSolid3 tool in tools)
+            foreach (GeoSolid3 tool in given)
             {
                 if (tool == null)
                 {
@@ -345,6 +375,29 @@ namespace GeometryHelper.Core
             if (options == null)
             {
                 throw new ArgumentNullException(nameof(options));
+            }
+
+            // Bodies far out are moved near the origin, put onto each other and worked out there, and what it gives moved
+            // back; see FarFrame.
+            if (FarFrame.TryFor(first, second, options.Tolerance, out FarFrame frame))
+            {
+                bool far;
+                FarFrame.Enter();
+
+                try
+                {
+                    far = WithOptions(operation, frame.In(first), frame.In(second), options, check, out result, out outcome, out good, out again, out put, out resultAgain, out open);
+                }
+                finally
+                {
+                    FarFrame.Leave();
+                }
+
+                result = frame.Out(result);
+                put = frame.Out(put);
+                resultAgain = frame.Out(resultAgain);
+                open = frame.Out(open);
+                return far;
             }
 
             again = false;

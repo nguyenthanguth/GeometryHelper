@@ -173,6 +173,13 @@ namespace GeometryHelper.Core
         {
             Guard(first, second);
 
+            // Bodies far out are moved near the origin, the union worked out there, and what it gives moved back; see
+            // FarFrame.
+            if (FarFrame.TryFor(first, second, tolerance, out FarFrame frame))
+            {
+                return frame.Work(Union, first, second, out result, tolerance, out outcome, out open);
+            }
+
             // Walls of a body and its openings standing apart within the tolerance of one plane are worked out within a finer
             // one; see WithWallsApart.
             if (WithWallsApart(UnionAsAsked, first, second, out result, tolerance, out open))
@@ -580,6 +587,13 @@ namespace GeometryHelper.Core
         {
             Guard(first, second);
 
+            // Bodies far out are moved near the origin, the common part worked out there, and what it gives moved back; see
+            // FarFrame.
+            if (FarFrame.TryFor(first, second, tolerance, out FarFrame frame))
+            {
+                return frame.Work(Intersect, first, second, out result, tolerance, out outcome, out open);
+            }
+
             // An opening of either body that shares no space with the other takes nothing from what they share, and is left
             // out; see LeaveOutOpeningsApart.
             if (LeaveOutOpeningsApart(first, second, tolerance, true, out GeoSolid3 a, out GeoSolid3 b))
@@ -926,6 +940,13 @@ namespace GeometryHelper.Core
         private static bool Subtract(GeoSolid3 subject, GeoSolid3 tool, out GeoSolid3 result, Tolerance tolerance, out BooleanOutcome outcome, out GeoSolid3 open)
         {
             Guard(subject, tool);
+
+            // Bodies far out are moved near the origin, the difference worked out there, and what it gives moved back; see
+            // FarFrame.
+            if (FarFrame.TryFor(subject, tool, tolerance, out FarFrame frame))
+            {
+                return frame.Work(Subtract, subject, tool, out result, tolerance, out outcome, out open);
+            }
 
             // An opening of the tool that shares no space with the subject gives nothing back, and is left out; the subject's
             // openings are cut in as they were. See LeaveOutOpeningsApart.

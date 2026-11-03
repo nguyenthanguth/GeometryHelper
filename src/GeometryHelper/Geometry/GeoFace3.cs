@@ -377,6 +377,26 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
+        /// Moves the face coordinate by coordinate, its boundary and holes as <see cref="GeoPolygon3.MovedBy"/> moves them.
+        /// </summary>
+        /// <param name="offset">How far to move it, and which way.</param>
+        /// <param name="measure">Whether the area is measured again on the polygons moved, or kept.</param>
+        internal GeoFace3 MovedBy(GeoVector3 offset, bool measure)
+        {
+            GeoPolygon3 boundary = Boundary.MovedBy(offset, measure);
+            GeoPolygon3[] holes = new GeoPolygon3[_holes.Length];
+            double area = boundary.Area;
+
+            for (int i = 0; i < _holes.Length; i++)
+            {
+                holes[i] = _holes[i].MovedBy(offset, measure);
+                area -= holes[i].Area;
+            }
+
+            return new GeoFace3(boundary, holes, measure ? Math.Max(0.0, area) : Area);
+        }
+
+        /// <summary>
         /// Initializes a face from a boundary and holes already known to lie in one plane and to be wound alike, and the
         /// area they leave.
         /// </summary>

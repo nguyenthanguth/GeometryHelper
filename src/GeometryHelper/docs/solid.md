@@ -1626,6 +1626,29 @@ more out, where the finer tolerance would come within eight trillionths of the s
 the tolerance of the plane of, as an opening's wall 0.0004 off an L's inner wall and 5 along it, is found standing apart
 too, by `TryCutOpenings`, `GetVolume`, `Section` and `Mesh3.ToCells` as well: that L measured 0.09 too little.
 
+**Bodies far out are worked out near the origin.** A union, a common part or a difference, and each cut of
+`TrySubtractAll`, of bodies reaching more than 2^20 (a little over a kilometre) and more than 1 024 times the size of
+their box out, as at national-grid coordinates (VN-2000 northings run 1.1 to 2.6 thousand million millimetres), moves
+them by whole coordinates, with their openings, so that the least corner of their box stands a 256th of their reach from
+the origin; works the boolean out there as it is worked out near the origin; and moves what it gives back. Each corner
+less the origin is exact, so a corner of the bodies kept comes back as it was given, to the bit, and only the corners
+the boolean makes are rounded, once, to about a ten-millionth a thousand million out. Where they stood, a corner was read
+on a plane within a trillionth of the coordinates, a thousandth a thousand million out, and walls of openings a fraction
+of the tolerance apart could not be told apart: the L above a hundred million out less the box held 130 189.39 within a
+thousandth, where it holds 130 189.32, and the box less the L 28 457.23, where it holds 28 457.68; both hold it now, to
+3E-5 a thousand million out, as do their union and their common part. Of 1 196 unions, common parts and differences of
+prisms with two or three such openings and boxes ten million to a thousand million out, 241 were wrong at a thousandth
+and 14 are, 413 at a hundredth and 15, and at a millionth 257 wrong and 134 not worked out, 127 and 49; the 14 left stand
+a thousand million out with walls 0.000 15 apart. Of 1 200 more, a face of each box a tenth of the tolerance to the
+tolerance off the plane of a wall, 3 that were right came out otherwise, each a face exactly the tolerance off, by no
+more than 1.9, which a face so placed can move either way. Booleans so moved take 17 to 26 % longer at a thousandth and
+a hundredth, and a third less at a millionth. Within a million of the origin, and below a trillionth of
+the coordinates a 256th of the reach out (four millionths a thousand million out), a boolean is worked out where the
+bodies stand, as before, to the bit: there their corners carry more rounding from where they stand than the frame allows
+for, and moved, 58 of 5 292 that were right at nought, a trillionth and a thousand-millionth came out otherwise.
+`GetVolume`, `TryCutOpenings`, `Section` and `Mesh3.ToCells` of such bodies are still worked out where they stand: the L
+above with its openings a thousand million out measures 0.52 off.
+
 **Openings that come out open cut in at once**, asked at a millionth or below, have the boolean worked out again on the
 material `TryCutOpenings` gives, which closes such a cut by a weld or takes the openings out one at a time. The planes of
 an opening cut only the pieces of the body its box reaches, and a piece beside one so cut kept a face the other's faces
