@@ -19,6 +19,13 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 13.5.0
+      - GeometryHelper.IfcConvert is released at 13.5.0 with GeometryHelper, which measures DXF words in the SHX and
+        TrueType fonts found on DxfDatabase.FontSearchPath as AutoCAD 2021 measures them, places and lands multileaders
+        as it does, leaves out of common parts and differences an opening that shares no space with the other body,
+        works the booleans of solids far out near the origin, and works out once more on welded bodies a boolean of
+        cracked ones it did not work out; nothing in IfcConvert changes.
+
       NEW IN 13.4.0
       - FIXED: files opened through IfcStoreCache on several threads at once, as the first thing a process does with
         xBIM, no longer throw "Collection was modified; enumeration operation may not execute." on some of them. xBIM

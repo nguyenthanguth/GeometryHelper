@@ -6,6 +6,35 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+## 13.5.0 (2026-11-03)
+
+A minor release: one public member is added, `DxfDatabase.FontSearchPath`, and none is removed or renamed in any of the
+four libraries. Of its 30 entries, 2 NEW, 16 FIXED and 12 CHANGED, all but three are DXF, each checked against what
+AutoCAD 2021 reads, writes or works out; the three are fixes to the booleans of solids. `DxfDatabase.FontSearchPath`
+names the folders the SHX and TrueType fonts of a drawing's text styles are read from, so that its words are measured as
+AutoCAD 2021 measures them: TEXTs placed and boxed, one-line MTEXTs sized, multileaders landed, attribute definitions
+flipped and leaders' hooks exploded; empty, as every drawing is opened and made, nothing is read and nothing changes. A
+common part and a difference leave out an opening of a body whose material the result does not keep where it shares no
+space with the other body: a spiral girder less a spiral ramp holding a spiral tube as an opening, which came apart into
+640 222 cells in 202 seconds on .NET 10 and was not worked out, is cut in 1.6. The booleans of solids far out, as at
+national-grid coordinates, are worked out near the origin: of 1 196 ten million to a thousand million out, 14 are wrong
+at a thousandth where 241 were, and within a million of the origin nothing changed, to the bit. A boolean not worked out
+where a body is cracked a hair wide is worked out once more on the bodies welded: of 45 000 booleans of a cracked U and
+a box, 1 619 differences, 2 106 common parts and 2 063 unions not worked out are right now, none was made wrong, and
+every boolean worked out as the bodies came is as it was, to the bit. Callers will see results change: words given to a
+multileader put the base point of its content where a leader from the left meets them, turned words turn its plane, and
+mirrored words are moved and kept upright as AutoCAD moves them; a new multileader is of words (`ContentType`
+`MTextContent`), its leaders run on to its words (`ExtendLeaderToText`) and words made in code make its `TextColor`
+BYLAYER where it was BYBLOCK; `RemoveFirstVertex` and `RemoveLastVertex` take a leader line down to one vertex;
+`HandOverTo` keeping the extension dictionary refuses the contexts of another kind of entity; `HasContext` is false on
+an object that is never annotative; `AddContext` names a scale's entry `*A1` and on; a table writes its reals with their
+point and keeps each row's looks with the row; `Normal` keeps the points and turn of a TEXT, ATTDEF, ATTRIB, INSERT or
+SOLID in its plane; an annotative copy added to another drawing keeps its contexts; and with `FontSearchPath` given, a
+TEXT justified other than left on its baseline is put about its second point. Far out, booleans at a thousandth and a
+hundredth take 17 to 26 per cent longer; one worked out again takes 1.4 to 2.5 ms longer for such a U and box under .NET
+Framework 4.8 than refusing it took; a hundred copies with contexts into another drawing take 185 ms where they took 165
+on .NET Framework 4.8; and a clear of 0 of a table of 400 rows takes 9 ms there, where 13.4.0 took 22.
+
 **FIXED.** A union, a common part or a difference that is not worked out is worked out once more where either body
 closes within the tolerance and not at the rounding of its coordinates, as a body cracked a hair wide does (check GR3):
 each such body has its corners within the tolerance of each other made one and its faces lying in one plane merged,

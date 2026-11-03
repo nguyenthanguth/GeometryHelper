@@ -29,6 +29,13 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 13.5.0
+      - GeometryHelper.TeklaConvert is released at 13.5.0 with GeometryHelper, which measures DXF words in the SHX and
+        TrueType fonts found on DxfDatabase.FontSearchPath as AutoCAD 2021 measures them, places and lands multileaders
+        as it does, leaves out of common parts and differences an opening that shares no space with the other body,
+        works the booleans of solids far out near the origin, and works out once more on welded bodies a boolean of
+        cracked ones it did not work out; nothing in TeklaConvert changes.
+
       NEW IN 13.4.0
       - GeometryHelper.TeklaConvert is released at 13.4.0 with GeometryHelper, which reads annotative DXF texts and
         INSERTs where AutoCAD 2021 shows them, and merges, clears, fills and resets tables, lands multileaders and fits

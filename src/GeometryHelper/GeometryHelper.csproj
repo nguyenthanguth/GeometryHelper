@@ -14,57 +14,81 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement bin-packing sheet-layout cad autocad tekla bim drawing</PackageTags>
     <PackageReleaseNotes>
-      NEW IN 13.4.0
+      NEW IN 13.5.0
 
-      A minor release: no public member added, removed or renamed. Nearly all of it is DXF parity with AutoCAD 2021; the
-      results callers will see change are listed under CHANGED. The one fix outside DXF is in GeometryHelper.IfcConvert.
+      A minor release: one public member added, DxfDatabase.FontSearchPath, and none removed or renamed. Most of it is
+      DXF parity with AutoCAD 2021; the results callers will see change are listed under CHANGED. Three fixes are to the
+      booleans of solids.
 
       NEW, DXF
-      - DxfSpline.FitData fits by the parameters SqrtChord and Uniform too, as AutoCAD 2021 does, and FitData.KnotParam
-        reads them; only CustomParameterization is refused now.
+      - DxfDatabase.FontSearchPath: folders, separated by semicolons and searched in their order, where the SHX and
+        TrueType fonts (.ttf, .ttc, .otf of glyf outlines) of the drawing's text styles are read from, so that its words
+        are measured as AutoCAD 2021 measures them: TEXT, ATTRIB and ATTDEF places and GeometricExtents, the ActualWidth
+        and ActualHeight of a one-line MTEXT, multileaders met on the right, attribute definitions flipped and leaders'
+        hooks exploded. Against AutoCAD 2021, 21 596 of 21 600 TEXTs of its own SHX fonts and 30 840 of 31 200 TEXTs of
+        the TrueType fonts of Windows come out as it gives them. The results follow the fonts given. Empty, as every
+        drawing is opened and made, nothing is read and nothing changes.
+
+      FIXED, solids
+      - A common part of two solids, and a difference, leave out an opening of a body whose material the result does not
+        keep where it shares no space with the other body. A spiral girder less a spiral ramp holding a spiral tube as
+        an opening came apart into 640 222 cells in 202 seconds on .NET 10 and 704 on .NET Framework 4.8 and was not
+        worked out; it is cut into 18 345 in 1.6 and 2.7 seconds and holds what slicing gives. The openings of a union's
+        bodies, and of the body a difference takes material from, are cut in as before.
+      - A union, a common part and a difference of solids far out, and each cut of TrySubtractAll, are worked out near
+        the origin: bodies reaching more than 2^20 out and more than 1 024 times the size of their box are moved by
+        whole coordinates, worked out and moved back, a corner kept coming back as it was given, to the bit. Of 1 196
+        such booleans ten million to a thousand million out, wrong at a thousandth 241 -> 14, at a hundredth 413 -> 15
+        and not worked out 134 -> 49; 3 of 1 200 with a face exactly the tolerance off a wall's plane came out otherwise
+        by up to 1.9. Within a million of the origin nothing changed, to the bit. Far out, booleans at a thousandth and
+        a hundredth take 17 to 26 per cent longer, at a millionth a third less. GetVolume, TryCutOpenings, Section and
+        Mesh3.ToCells of bodies far out are not moved yet.
+      - A union, a common part or a difference that is not worked out is worked out once more where either body closes
+        within the tolerance and not at the rounding of its coordinates, as a body cracked a hair wide does: its corners
+        within the tolerance of each other made one and its faces lying in one plane merged. Of 45 000 booleans of a
+        cracked U and a box at a thousandth, a hundredth and 0.05, 1 619 differences, 2 106 common parts and 2 063
+        unions not worked out are right now, and none was made wrong. Every boolean worked out as the bodies came is as
+        it was, to the bit, and takes as long as it did; one worked out again takes 1.4 to 2.5 milliseconds longer for
+        such a U and box under .NET Framework 4.8.
 
       CHANGED, DXF: results callers will see change
-      - An annotative TEXT, ATTRIB, ATTDEF, MTEXT or INSERT with contexts is read where AutoCAD 2021 shows it: its
-        place, turn and height (an MTEXT's box and attachment too, an INSERT's scale factors) are those of its context
-        of 1:1, else of its default, whatever CANNOSCALE says. Setters write the context read, and the record where it
-        is the default; the INSERT's ScaleFactors setter writes every context by its scale, 3 at 1:1 being 6 at 1:2;
-        TransformBy carries every context. A text with no context reads and writes as before.
-      - A copy (Clone, GetTransformedCopy) of an annotative text, attribute, MTEXT or INSERT keeps its original's
-        contexts. Clone of plain entities takes some 15 to 20 per cent longer.
-      - An ATTRIB is annotative as its INSERT is; an attribute made of several lines is held by the top of its MTEXT one
-        text height above its point, where it was held by its bottom left; TransformBy of an MTEXT stretches its box.
-      - DxfMLeader.BlockScale and BlockRotation set, even to the value they have, move the block so that a leader from
-        the left meets it at the base point and land its leaders anew; the library left the block where it was.
-        BlockRotation reads the multileader's own turn (43), where it read the turn the block is drawn with (46).
-        TransformBy leaves the multileader's own block scale and turn as they are: a block scaled by 2 reads a
-        BlockScale of 1. BlockPosition leaves the block's matrix as it is.
-      - A leader added by AddLeader has no landing until the first vertex given its line, which becomes its landing, the
-        content left where it is; SetDogleg lands a leader of no landing. Words given by MText bring their text style.
-      - The first edit of a DxfTable while its drawing is open merges first the rows AutoCAD 2021 merges when it loads a
-        file, a change of the table's own colour, layer and the like among the edits.
-      - DxfTable.ClearTableStyleOverrides keeps the title and header left out. Of 0 or 2 it sets the turn of a cell's
-        text or block back to nought, as RemoveAllOverrides does, and leaves a cell emptied in the session of no value;
-        of 2 it gives each cell the table's own looks of its row's kind. On a table of 400 rows a clear of 0 or 2 takes
-        20 ms on .NET Framework 4.8, where it took 8.
-      - DxfTable.ResetValue takes the looks of the content away with the value, and of a block cell makes a text cell of
-        no value, where it threw. From R2007 on, SetTextString of an empty text leaves no value as ResetValue does.
-      - DxfTable.Fill with CopyContent and CopyFrom from a cell emptied in the session leave the target's content as it
-        was; Fill above or left of its source and longer than it repeats the source from the fill range's far end; Fill
-        with CopyFormat turns a value of another kind into the source's.
-      - DxfTable.SetFormat keeps a format on a number alone, GetOverrides reads a cell's flag of its kind of value as
-        DataType | DataFormat, and the flags of merged and new cells and of a value's kind are written as AutoCAD writes
-        them.
-      - A DxfSpline read as the cubic through its fit points gives that cubic's Degree, ControlPoints, Knots, Weights
-        and NumControlPoints: five fit points alone of degree 2 are of degree 3 and 7 control points, where the library
-        gave 2 and none. ModifyPositionAndTangent and GetSplitCurves keep the fit points. The first geometry read of a
-        spline reads its record in one pass, in about half the time on .NET Framework 4.8.
+      - Words given to a DxfMLeader put the base point of its content where a leader from the left would meet them, the
+        gap short of the place given and as far below as the left is met, where the library put it at the words. Words
+        turned in code turn the multileader's plane where no leader is landed yet; words mirrored are moved as AutoCAD
+        2021 moves them, kept upright where FontSearchPath measures them; words of another text style are moved to where
+        the multileader's font meets them, where FontSearchPath measures both.
+      - new DxfMLeader() is of words: ContentType is MTextContent, where it was NoneContent. A new multileader writes
+        what AutoCAD 2021 writes for one: ExtendLeaderToText true in a drawing of R2013 or later, a leader line added of
+        no colour of its own, and TextColor the colour of the words given, BYLAYER for words made in code, where it was
+        BYBLOCK.
+      - DxfMLeader.RemoveFirstVertex and RemoveLastVertex take a leader line down to one vertex, where the library kept
+        two; RemoveLastVertex refuses the last vertex of a leader of two lines or more (InvalidOperationException), as
+        AutoCAD 2021 refuses it.
+      - HandOverTo keeping the extension dictionary refuses the contexts of another kind of entity (ArgumentException)
+        before anything is written, where it wrote a drawing AutoCAD 2021 crashed reading; not keeping it, the new
+        entity writes the contexts of the copy it is handed.
+      - HasContext answers false for an object that is never annotative, as a LINE or a layer, whatever context records
+        it holds. DxfObjectContextCollection.AddContext names a scale's entry *A1, *A2 and on, as AutoCAD 2021 does,
+        where the library gave A0, A1 and on.
+      - DxfTable writes the reals it gives with their point (141 9.0, where it wrote 141 9), keeps each row's looks with
+        the row while the drawing is open, as AutoCAD 2021 keeps them in its ROWTABLEFORMAT, and RemoveAllOverrides
+        keeps the looks of the title's or the header's kind in a row of that kind out of its place.
+      - Normal set on a TEXT, ATTDEF, ATTRIB, INSERT or SOLID keeps its points, turn and contexts in its plane, as
+        AutoCAD 2021 does, where the library kept them where they stood in the world; DxfMText.Normal makes the MTEXT
+        read along the new plane's x axis.
+      - An annotative copy added to another drawing by AppendEntity, WblockCloneObjects or Insert keeps its contexts and
+        those of its ATTRIBs, each on that drawing's scale of its scale's name where the two give the same scale. A
+        hundred such copies of a drawing of 35 entities take 185 ms where they took 165 on .NET Framework 4.8.
+      - With FontSearchPath given, a TEXT, ATTRIB or ATTDEF justified other than left on its baseline is put about its
+        second point when it is edited or added, and a locked attribute definition is flipped, where it was refused.
 
       FIXED, DXF
-      - DxfSpline.ToPolylineWithPrecision cuts a spline not periodic evenly where that gives more pieces than the
-        halving, as AutoCAD 2021 does; periodic fit data through three points give AutoCAD's periodic cubic.
-      - A multileader's leader moved off its landing is landed anew when the content is laid out again; a block mirrored
-        by TransformBy is drawn mirrored; a second leader on the right of a block moves it as AutoCAD moves it; words
-        that name a text style keep it when the multileader is added to a drawing.
+      - A TransformBy that scales a multileader marks its scale as its own (bit 24); a multileader's leader lines of
+        BYBLOCK, its 176, 294 and 295 are read and written as AutoCAD 2021 reads and writes them.
+      - DxfTable.ClearTableStyleOverrides of 0 on a table of 400 rows takes 9 ms on .NET Framework 4.8, where 13.4.0
+        took 22.
+      - An attribute of several lines keeps its width factor; HandOverTo leaves the new entity its own extended data
+        where the old one has none.
 
       Details in CHANGELOG.md.
 
