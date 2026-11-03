@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using GeometryHelper;
 using GeometryHelper.Geometry;
+using GeometryHelper.Internal.Planar;
 
 namespace GeometryHelper.Core
 {
@@ -10,12 +11,13 @@ namespace GeometryHelper.Core
     /// to each other.
     /// <para>
     /// Ear clipping needs the rings of a face to stand apart, since it joins them into one loop that must not touch
-    /// itself. This needs nothing of them. The region is first resolved as the booleans read it, inside the boundary and
-    /// outside every hole, into loops that neither cross nor overlap: holes that touch or overlap are taken together, and
-    /// one reaching past the boundary takes away only what it covers. Lines across the plane through every corner of
-    /// those loops then cut the region into strips. Within a strip no edge ends and none crosses another, so the material
-    /// between two edges in turn is a trapezoid, two triangles; a trapezoid running on between the same two edges into the
-    /// next strip is carried on, so that a strip line ends a piece only where something changes.
+    /// itself. This needs nothing of them. The region is first resolved as the booleans read it, but each ring within
+    /// rounding rather than the tolerance, inside the boundary and outside every hole, into loops that neither cross nor
+    /// overlap: holes that touch or overlap are taken together, and one reaching past the boundary takes away only what it
+    /// covers. Lines across the plane through every corner of those loops then cut the region into strips. Within a strip
+    /// no edge ends and none crosses another, so the material between two edges in turn is a trapezoid, two triangles; a
+    /// trapezoid running on between the same two edges into the next strip is carried on, so that a strip line ends a
+    /// piece only where something changes.
     /// </para>
     /// <para>
     /// The triangles lie within the material and leave every hole open. They keep the face's own corners, but meet its
@@ -24,6 +26,21 @@ namespace GeometryHelper.Core
     /// </summary>
     internal static class StripTriangulation
     {
+        /// <summary>
+        /// What each ring's corners are read within before the strips are cut: nothing but rounding. Only its point tolerance
+        /// is read, so corners are merged only where they stand on each other and dropped only within a few steps of the grid
+        /// Clipper2 rounds to of a straight run.
+        /// </summary>
+        /// <remarks>
+        /// The faces that come here are the ones whose rings come within the tolerance of each other, and corners read within
+        /// the tolerance lose what lies within it. A wall of a cut plate 50 by 1.50015, with corners at 1.5 up both its sides,
+        /// had the corners 0.00015 apart merged at a thousandth, the one kept on one side and the other on the other, and its
+        /// triangles came to 0.00375 less than the wall; the plate's mass read through them held 0.175 too much. A corner a
+        /// hundredth of the tolerance off a straight run was dropped, and a notch 0.0002 wide closed. Read within rounding,
+        /// the triangles cover what the face covers; only a loop thinner than the tolerance is still left out.
+        /// </remarks>
+        private static readonly Tolerance WithinRounding = new Tolerance(0.0, 0.0);
+
         /// <summary>
         /// One end of an edge: the strip line it stands on, where it lies in the plane, and the point it is, the face's
         /// own corner when it is one.
@@ -75,7 +92,7 @@ namespace GeometryHelper.Core
         /// Triangulates the material of a face, holes left open.
         /// </summary>
         /// <param name="face">The face to break up.</param>
-        /// <param name="tolerance">The tolerance the region is resolved within and below which a triangle counts as none.</param>
+        /// <param name="tolerance">The tolerance a millionth of which strip lines are merged within and a triangle counts as none below.</param>
         /// <returns>The triangles covering the material, wound to share the face's normal; none when nothing is left.</returns>
         public static GeoTriangle3[] Triangulate(GeoFace3 face, Tolerance tolerance)
         {
@@ -103,7 +120,7 @@ namespace GeometryHelper.Core
         /// A frame whose XY plane is the face's: the strip lines run along its Y axis, one through every corner, so the
         /// pieces have their parallel sides that way.
         /// </param>
-        /// <param name="tolerance">The tolerance the region is resolved within.</param>
+        /// <param name="tolerance">The tolerance a millionth of which strip lines are merged within; the rings are read within rounding, see <see cref="WithinRounding"/>.</param>
         /// <returns>
         /// Each piece as its four corners in turn, counter-clockwise about the frame's Z axis: along the lower edge from
         /// the strip line it starts at to the one it ends at, then back along the upper edge. Two of them stand on each
@@ -137,8 +154,8 @@ namespace GeometryHelper.Core
                     corners[(point.X - origin.X, point.Y - origin.Y)] = corner;
                 }
 
-                // Laid out as the face has it: the ring is resolved within the tolerance given below, and checked against the
-                // global one here it would refuse a face thinner than that, which the tolerance given may not be.
+                // Laid out as the face has it: the ring is resolved within rounding below, and checked against the global
+                // tolerance here it would refuse a face thinner than that.
                 return new GeoPolygon2(flat.ToArray(), flat.Count);
             }
 
@@ -151,7 +168,12 @@ namespace GeometryHelper.Core
             }
 
             int precision = ClipperRegion.GetPrecision(ClipperRegion.Extent(points, origin));
-            List<List<GeoPoint2>> region = ClipperRegion.RegionOf(new GeoFace2(boundary, holes), origin, precision, tolerance);
+            List<List<GeoPoint2>> region = ClipperRegion.RegionOf(new GeoFace2(boundary, holes), origin, precision, WithinRounding);
+
+            // A loop thinner than the tolerance, area over perimeter, is a seam at it, as the booleans read one, and is left
+            // out as it was: the side of a slab 0.0008 thick has no triangle at a thousandth.
+            region.RemoveAll(loop => Math.Abs(LoopTools.SignedArea(loop)) <= 0.5 * tolerance.EqualPoint * LoopTools.Perimeter(loop));
+
             List<List<GeoPoint2>> loops = ClipperRegion.ResolveOutline(region, Clipper.FillRule.Positive, precision);
 
             // A strip line through every corner, corners within rounding of each other across standing on one: a side of

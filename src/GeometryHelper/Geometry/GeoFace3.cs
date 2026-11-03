@@ -224,7 +224,7 @@ namespace GeometryHelper.Geometry
         /// Breaks the face into triangles that each lie within its material, holes included, within a
         /// tolerance.
         /// </summary>
-        /// <param name="tolerance">The tolerance within which rings count as meeting and a region is read; a triangle is left out only when it has no width, within a millionth of its point tolerance.</param>
+        /// <param name="tolerance">The tolerance within which rings count as meeting; a triangle is left out only when it has no width, within a millionth of its point tolerance.</param>
         /// <returns>The triangles covering the face, wound to share its normal; a small one may have no normal at the global tolerance, see the remarks.</returns>
         /// <remarks>
         /// This is the triangulation to use wherever the mesh stands for the surface itself — ray casting,
@@ -239,6 +239,14 @@ namespace GeometryHelper.Geometry
         /// together, and one reaching past the boundary takes away only what it covers. Those triangles
         /// still lie within the material and leave every hole open, but they meet the face's edges at
         /// points of their own as well as at its corners. A face with nothing left of it gives none.
+        /// </para>
+        /// <para>
+        /// The triangles cover what the face covers, to rounding, however near its corners stand to edges they are not on.
+        /// The corners of its rings were once read within the tolerance before they were cut: a wall 50 by 1.50015 with
+        /// corners at 1.5 up both its sides, 0.00015 under its top ones, was meshed 0.00375 short at a thousandth, and a notch
+        /// 0.0002 wide was closed. They are read within rounding now; a loop thinner than the tolerance is still a seam at
+        /// it, with no triangle. A face the clipping leaves a needle of, every ear of it blocked by corners within rounding of
+        /// its sides, is cut into strips too, rather than the needle dropped.
         /// </para>
         /// <para>
         /// Such a face used to be handed back as the fan of its boundary, laid across every hole: a slab

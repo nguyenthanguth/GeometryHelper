@@ -237,13 +237,15 @@ namespace GeometryHelper.UnitTest.Solid
             Assert.Equal(Plate(0).GetCentroid(Thousandth).Z, plate.GetCentroid(Thousandth).Z - far, 300 * PlateRounding(far) / PlateHeld + 2 * far * Math.Pow(2, -52));
             Assert.Equal(PlateHeld, Mesh3.ToCells(plate, CellOptions3.Grid(50, 40, 20), MeshPlacement3.World, Thousandth).Volume, PlateRounding(far));
 
-            // Read as the triangles lying in its faces, the plate cut at the origin holds 0.175 too much, where read as fans it
-            // holds what it holds: the triangles of a wall whose corners stand 0.00015 apart along its side, closer than the
-            // tolerance, leave a sliver of it out. Far out it is held to what it holds there; a thousand million out, its sheet
-            // kept, it holds 0.33 too much, as it did at the origin with the sheet.
+            // Read as the triangles lying in its faces, it held 0.175 too much at the origin, and 0.33 a thousand million out
+            // with its sheet: the triangles of a wall whose corners stand 0.00015 apart along its side, closer than the
+            // tolerance, left a sliver of it out. It holds what it holds at the origin and a hundred million out. A thousand
+            // million out, its sheet kept, it holds 0.2 too much: the side of the sheet standing as a face of its own is a seam
+            // at the tolerance and has no triangle, while the face across it has its part of the sheet.
             MassProperties3 mass = plate.GetMassProperties(7.85E-6, Thousandth);
             MassProperties3 near = Plate(0).GetMassProperties(7.85E-6, Thousandth);
-            Assert.Equal(far < 1E9 ? near.Volume : PlateHeld + 0.33, mass.Volume, PlateRounding(far));
+            Assert.Equal(PlateHeld, near.Volume, 1E-9);
+            Assert.Equal(far < 1E9 ? PlateHeld : PlateHeld + 0.2, mass.Volume, PlateRounding(far));
             Assert.Equal(near.Centroid.Z, mass.Centroid.Z - far, 300 * PlateRounding(far) / PlateHeld + 2 * far * Math.Pow(2, -52));
         }
 

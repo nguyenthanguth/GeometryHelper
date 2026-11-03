@@ -6,6 +6,32 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `GeoFace3.TriangulateSurface` covers what the face covers, to rounding, where its corners stand within the
+tolerance of edges they are not on (check GR2d). Such a face is cut into strips, and the corners of each of its rings
+were read within the tolerance first: corners closer than it were merged and corners within a hundredth of it of a
+straight run dropped. The wall of an opening 50 by 1.50015, with corners at 1.5 up both its sides where the ceiling of
+another opening 0.00015 lower met it, had those corners merged, one kept on each side, and was meshed 0.00375 short at a
+hundredth and at a thousandth; a plate 100 by 30 with a step 0.0005 high in its top and a notch 0.0002 wide in its bottom
+was meshed 0.013 short, the step flattened and the notch closed. The plate 200 by 100 by 3 of check GR2c, the ceilings of
+its two openings 0.00015 apart, held 0.175 too much read as the triangles lying in its faces (`VolumeMethod.Surface`,
+which `GetMassProperties` sums), where fans held it as it is; it holds what it holds now, and a hundred million out too.
+A thousand million out, where its cut keeps a sheet 0.00015 by 100, it held 0.33 too much and holds 0.2 too much: the
+side of the sheet standing as a face of its own is a seam at the tolerance with no triangle. The corners are read within
+rounding; a loop thinner than the tolerance is still a seam at it with no triangle, as the side of a slab thinner than
+the tolerance is. Where the clipping is left with a needle of a face, every ear of it blocked by corners within rounding
+of its sides, the face is cut into strips too, where the needle was dropped: a plate 81.43 by 17.44 with a hole
+0.0000016 above its bottom was meshed 0.000066 short at a millionth. Of
+48 904 faces with steps, pairs of corners, notches, spikes and dents 1E-6 to 0.02 across, holes apart from, near and
+touching each other and the boundary, turned about in space and up to a thousand out, 24 622 areas wrong at a hundredth,
+20 293 at a thousandth and 392 at a millionth are right, and none that was right moved; what is left are triangles of a
+ten-millionth of a square unit or less whose middles stand outside by the rounding, where holes touch on faces turned
+about in space, as before. Of the GR2c area fuzz, 4 500 cuts near the origin read so, 396 wrong at a hundredth and 227
+at a thousandth are right, and none is wrong; of 4 500 ten million to a thousand million out, 385 and 217 are right, and
+the cuts themselves are the same to the bit. One plate a thousand million out, whose cut keeps sheets 0.00018 thick,
+now holds 0.057 too much where it held what it holds: its sheets are seams at the tolerance and have no triangle on the
+side where they stand alone, and the faces beside them, whose corners were merged and lost about as much, no longer
+make up for it. Of 288 000 seeds of the mesh fuzz, none moved.
+
 **FIXED.** The cut of a solid's openings no longer leaves a sheet inside the material where walls of two openings stand
 a fraction of the tolerance apart (check GR2c). The cut parts the body by the planes of each opening, and between two
 such planes leaves cells thinner than the global tolerance; the gluing lays each face out in its plane within that
@@ -32,8 +58,8 @@ of its reach from the origin, and of 3 600 cuts of such prisms ten million to a 
 a hundredth and at a thousandth and 104 at a millionth are 5, 5 and 59, none that was right moved; the plate with
 ceilings apart a thousand million out keeps its sheet, its strips too thin to be laid flat 3.9E6 out. Read as the
 triangles lying in its faces (`VolumeMethod.Surface`, which `GetMassProperties` sums), the plate with ceilings apart
-still holds 0.175 too much, where fans hold it as it is: the triangles of a wall whose corners stand closer than the
-tolerance along a side leave a sliver of it out.
+held 0.175 too much, where fans held it as it is, the triangles of a wall whose corners stood closer than the tolerance
+along a side leaving a sliver of it out; see the entry above.
 
 **FIXED.** The cut of a solid's openings, the material its volume, area, centroid and mass are read from, a section of it
 and its cells are worked out near the origin where it stands far out, as its booleans are since 13.5.0 (check GR2b):

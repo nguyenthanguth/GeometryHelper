@@ -860,8 +860,11 @@ namespace GeometryHelper.Core
 
             // What is left once no ear can be found is measured as an area: a length tolerance across the width of the
             // face. Deriving it from the face rather than fixing it keeps the test behaving the same on a model in
-            // millimetres and one in metres.
-            double areaEpsilon = tolerance.EqualPoint * Extent(loop);
+            // millimetres and one in metres. A mesh of the surface allows rounding only, a millionth of the tolerance across:
+            // a needle of the face left between its edge and the corner of a hole 0.0000016 above it, at a tolerance of
+            // 0.000001, had every ear blocked by corners within rounding of its sides, and was dropped as nothing, 0.000066
+            // of the face. Such a face is cut into strips instead.
+            double areaEpsilon = (surface ? tolerance.EqualPoint * 1E-6 : tolerance.EqualPoint) * Extent(loop);
 
             // The loop is kept as links from each corner to the ones either side, and its reflex corners as a list of their
             // own. Only a reflex corner can block an ear, so an ear is looked at against the reflex corners alone, not all

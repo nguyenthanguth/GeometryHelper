@@ -351,6 +351,17 @@ meeting where the sides were, but not edge by edge: the slab's 4 triangles leave
 side. Triangulate at the tolerance the body was built within for a mesh closed edge by edge, the slab's 12 triangles at
 1E-5.
 
+Short of that, the surface mesh of a face covers what the face covers, to rounding, however near its corners stand to
+edges they are not on. A face whose rings come within the tolerance of each other is cut into strips, and the corners of
+each ring were read within the tolerance first: the wall of an opening 50 by 1.50015, with corners at 1.5 up both its
+sides where the ceiling of another opening 0.00015 lower met it, had those corners merged, one kept on each side, and was
+meshed 0.00375 short at a thousandth; a notch 0.0002 wide was closed, and a corner a hundredth of the tolerance off a
+straight run dropped. The plate the wall was cut from, read as the triangles lying in its faces, held 0.175 too much. The
+corners are read within rounding now, so the wall is its 75.0075 and the plate holds what it holds. Where the clipping is
+left with a needle of a face, every ear of it blocked by corners within rounding of its sides, the face is cut into
+strips too, where the needle was dropped: a plate 81.43 by 17.44 with a hole 0.0000016 above its bottom lost 0.000066 at
+a millionth.
+
 ## Operations
 
 | Class | Answers |
@@ -1712,8 +1723,10 @@ wrong at a hundredth and at a thousandth and 104 at a millionth are 5, 5 and 59;
 thousand million out keeps its sheet, its strips too thin to be laid flat 3.9E6 out. A boolean asked below the gate is
 worked out where the bodies stand, within the rounding, and its strips are left: read there, 13 that were right came out
 wrong. Read as the triangles lying in its faces (`VolumeMethod.Surface`, which `GetMassProperties` sums), the plate with
-ceilings apart still holds 0.175 too much where fans hold it as it is: the triangles of a wall whose corners stand
-closer than the tolerance along a side leave a sliver of it out.
+ceilings apart held 0.175 too much where fans held it as it is, the triangles of a wall whose corners stood closer than
+the tolerance along a side leaving a sliver of it out; it holds what it holds now (see the surface mesh under
+[Solids and openings](#solids-and-openings)). A thousand million out, its sheet kept, it holds 0.2 too much, where it
+held 0.33: the side of the sheet standing as a face of its own is a seam at the tolerance and has no triangle.
 
 **Openings that come out open cut in at once**, asked at a millionth or below, have the boolean worked out again on the
 material `TryCutOpenings` gives, which closes such a cut by a weld or takes the openings out one at a time. The planes of
