@@ -170,6 +170,76 @@ namespace GeometryHelper.UnitTest.Clipper
         }
 
         [Fact]
+        public void TwentyThousandTeethWithAHoleAndAnIslandEach_AreUnitedIntoAPolyTreeInUnderThreeSeconds()
+        {
+            // Each hole was looked for in the outer path by walking round its 80 000 points, and up a chain of the emptied
+            // paths of the teeth joined before its own: 33 seconds on .NET 10 and 34 to 40 on .NET Framework, against 0.4 now.
+            // Its points are found through the outer path's crossings with their lines now, and the chain is shortened as
+            // it is walked.
+            const int teeth = 20000;
+            var shapes = new Paths64 { Rectangle(0, 0, 20 * teeth, 10) };
+
+            for (int i = 0; i < teeth; i++)
+            {
+                Path64 hole = Rectangle(20 * i + 2, 20, 20 * i + 8, 30);
+                hole.Reverse();
+                shapes.Add(Rectangle(20 * i, 10, 20 * i + 10, 40));
+                shapes.Add(hole);
+                shapes.Add(Rectangle(20 * i + 4, 24, 20 * i + 6, 26));
+            }
+
+            var clipper = new Clipper64();
+            clipper.AddSubject(shapes);
+            var tree = new PolyTree64();
+            var watch = Stopwatch.StartNew();
+            Assert.True(clipper.Execute(ClipType.Union, FillRule.NonZero, tree));
+            watch.Stop();
+
+            // The strip 400 000 by 10 and the teeth 10 by 30, round 20 000 holes 6 by 10 with an island 2 by 2 in each.
+            Assert.Single(tree);
+            Assert.Equal(teeth * 500.0, Clipper2.Area(tree[0].Polygon));
+            Assert.Equal(teeth, tree[0].Count);
+
+            for (int i = 0; i < teeth; i++)
+            {
+                PolyPath64 hole = tree[0][i];
+                Assert.True(hole.IsHole);
+                Assert.Equal(-60.0, Clipper2.Area(hole.Polygon));
+                Assert.Single(hole);
+                Assert.Equal(4.0, Clipper2.Area(hole[0].Polygon));
+                Assert.Empty(hole[0]);
+            }
+
+            Assert.True(watch.Elapsed.TotalSeconds < 3, watch.Elapsed.ToString());
+        }
+
+        [Fact]
+        public void HundredThousandSquaresSideBySide_AreUnitedIntoAPolyTreeInUnderThreeSeconds()
+        {
+            // Each square's output path was given the one to its left as its owner, and made sure first that it did not own
+            // that one already, by walking up the chain of owners of all the squares to its left: 20 seconds on .NET 10 and
+            // 18 to 27 on .NET Framework, against 0.5 to 0.7 now. A path just made owns none, and is not looked for now.
+            var squares = new Paths64();
+
+            for (int i = 0; i < 100000; i++)
+            {
+                squares.Add(Rectangle(10 * i, 0, 10 * i + 10, 10));
+            }
+
+            var clipper = new Clipper64();
+            clipper.AddSubject(squares);
+            var tree = new PolyTree64();
+            var watch = Stopwatch.StartNew();
+            Assert.True(clipper.Execute(ClipType.Union, FillRule.NonZero, tree));
+            watch.Stop();
+
+            Assert.Single(tree);
+            Assert.Equal(100000.0 * 100, Clipper2.Area(tree[0].Polygon));
+            Assert.Empty(tree[0]);
+            Assert.True(watch.Elapsed.TotalSeconds < 3, watch.Elapsed.ToString());
+        }
+
+        [Fact]
         public void AXorOfTwentyThinRectangles_NestsItsTwoHolesInThePathAroundThem()
         {
             // What is left of case 94 of seed 1 of the tile fuzz, with every rectangle not needed taken out. The walk that
@@ -216,6 +286,109 @@ namespace GeometryHelper.UnitTest.Clipper
             }
 
             Assert.Equal(2, holes);
+        }
+
+        [Fact]
+        public void AXorOfACombAndTwoZigzags_LeavesThePieceBesideAToothAnOuterPathOfItsOwn()
+        {
+            // What is left of case 1273 of seed 1 of the clip fuzz. Points are found against a path of 64 points or more
+            // through its crossings with their line, those near a point worked out exactly; judged by the doubles alone, the
+            // corners of the piece on the side of a tooth were found inside the path round it, not on it, and the piece came
+            // out as a hole of that path.
+            var subject = new Paths64
+            {
+                Path(1364, -72, 1364, 0, 891, -144, 891, 0, 888, 0, 888, -72, 883, 0, 879, -144, 693, 0),
+                Path(607, -49, 591, -9, 591, -49, 585, -49, 580, -9, 536, -9, 530, -49),
+            };
+            var clip = new Paths64
+            {
+                Path(503, 0, 503, -35, 506, -35, 506, 0, 509, 0, 509, -35, 510, -35, 510, 0, 512, 0, 512, -68, 515, -68, 515, 0, 516, 0,
+                    516, -68, 519, -68, 519, 0, 520, 0, 520, -136, 522, -136, 522, 0, 525, 0, 525, -136, 527, -136, 527, 0, 529, 0,
+                    529, -136, 533, 0, 536, -35, 536, 0, 539, 0, 539, -68, 580, 0, 580, -68, 583, 0, 583, -136, 591, -136, 591, 0,
+                    593, 0, 596, -136, 596, 0, 599, 0, 600, -68, 600, 0, 601, 0, 604, -68, 604, 0, 606, 0, 606, -35, 607, -35, 607, 0,
+                    610, 0, 610, 68),
+            };
+
+            var clipper = new Clipper64 { PreserveCollinear = false };
+            clipper.AddSubject(subject);
+            clipper.AddClip(clip);
+            var tree = new PolyTree64();
+            Assert.True(clipper.Execute(ClipType.Xor, FillRule.EvenOdd, tree));
+
+            // 16 outer paths side by side, the largest of 64 points, and no holes.
+            Assert.Equal(16, tree.Count);
+            int largest = 0;
+
+            for (int i = 0; i < tree.Count; i++)
+            {
+                Assert.True(Clipper2.IsPositive(tree[i].Polygon));
+                Assert.Empty(tree[i]);
+                largest = System.Math.Max(largest, tree[i].Polygon.Count);
+            }
+
+            Assert.Equal(64, largest);
+        }
+
+        [Fact]
+        public void AXorOf14ThinStrips_NestsTheHoleAlongTheEdgeOfThePathAroundIt()
+        {
+            // What is left of case 226 of seed 1 of the tile fuzz. The spans of a path of 64 points or more along a line, its
+            // edges along it and its vertices on it, find a point on them on the path; without them, the hole's corners on
+            // the path's edge along y 0 were judged by the crossings alone, and the hole came out at the top of the tree, as
+            // an outer path of its own.
+            var subject = new Paths64
+            {
+                Rectangle(0, 3, 1417, 0), Rectangle(6, 0, 1531, 3), Path(9, 3, 2722, 3, 9, 6), Rectangle(10, 0, 1067, 1),
+                Rectangle(39, 1, 2473, 0), Rectangle(45, 0, 1525, 3), Rectangle(48, 0, 1628, 3), Rectangle(57, 1, 2888, 0),
+                Rectangle(21, 0, 2364, 2), Rectangle(26, 0, 2096, 2), Rectangle(84, 1, 2524, 0), Rectangle(58, 2, 1677, 0),
+                Rectangle(68, 0, 2576, 2),
+            };
+            var clip = new Paths64 { Rectangle(6, 0, 2684, 1) };
+
+            var clipper = new Clipper64();
+            clipper.AddSubject(subject);
+            clipper.AddClip(clip);
+            var tree = new PolyTree64();
+            Assert.True(clipper.Execute(ClipType.Xor, FillRule.EvenOdd, tree));
+
+            // 4 outer paths at the top, the one of 64 points holding the hole 51 by 1, wound against it and not outside it.
+            Assert.Equal(4, tree.Count);
+            int holes = 0;
+
+            for (int i = 0; i < tree.Count; i++)
+            {
+                PolyPath64 outer = tree[i];
+                Assert.False(outer.IsHole);
+                Assert.True(Clipper2.IsPositive(outer.Polygon));
+
+                for (int j = 0; j < outer.Count; j++)
+                {
+                    PolyPath64 hole = outer[j];
+                    Assert.Equal(64, outer.Polygon.Count);
+                    Assert.True(hole.IsHole);
+                    Assert.Equal(-51.0, Clipper2.Area(hole.Polygon));
+                    Assert.Empty(hole);
+                    Assert.All(hole.Polygon, p => Assert.NotEqual(PointInPolygonResult.IsOutside, Clipper2.PointInPolygon(p, outer.Polygon)));
+                    holes++;
+                }
+            }
+
+            Assert.Equal(1, holes);
+        }
+
+        /// <summary>
+        /// The path through the points, given x and y in turn.
+        /// </summary>
+        private static Path64 Path(params long[] coordinates)
+        {
+            var path = new Path64();
+
+            for (int i = 0; i < coordinates.Length; i += 2)
+            {
+                path.Add(new Point64(coordinates[i], coordinates[i + 1]));
+            }
+
+            return path;
         }
 
         /// <summary>

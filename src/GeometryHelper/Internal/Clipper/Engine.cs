@@ -708,6 +708,8 @@ namespace GeometryHelper.Clipper
         private readonly HorzJoinPoolList _horzJoinList;
         private readonly OutPtPoolList _outPtPool;
         private readonly WalkStarts _walkStarts = new WalkStarts();
+        // The lines of the paths points are found against while the polytree is built, by index; see GetRingLines.
+        private RingLines[] _ringLines;
 
         // A stretch of the active edge list with no edge strictly inside it that adds to a closed output path: from
         // _coldFrom, or from the head where that is null, to _coldTo, or no stretch where _coldTo is null. See
@@ -718,6 +720,8 @@ namespace GeometryHelper.Clipper
         private long _currentBotY;
         private bool _isSortedMinimaList;
         private bool _hasOpenPaths;
+        // Whether every output path of this sweep has no owner or an older one, of a lower index; see SetOwner.
+        private bool _ownersOlder;
         internal bool _using_polytree;
         internal bool _succeeded;
 
@@ -1180,20 +1184,58 @@ namespace GeometryHelper.Clipper
         /// Makes newOwner the owner of the output path. Owners of newOwner that were emptied are skipped, and when the
         /// path itself owns newOwner, newOwner takes the path's own owner first, so that no path comes to own itself.
         /// </summary>
+        /// <remarks>
+        /// While every output path of the sweep has no owner or an older one, of a lower index (_ownersOlder), the
+        /// owners up from newOwner only grow older, so a path newer than newOwner is none of them and is not looked for.
+        /// Every owner given here, or in ProcessHorzJoins without a polytree, is noted by NoteOwner; every other owner
+        /// given while the sweep and its joins run is older by how it is chosen: one up the chain of the path, or one
+        /// given to a path just made, newer than all. Squares of side 10 in a row are joined each into an older one, and
+        /// the chain up from it ran back along the row: 1 000 000 squares walked 1 750 million owners here and took 9.6
+        /// seconds to unite on .NET 10, 4.3 now. Once an owner no older than its path has been given, the path is looked
+        /// for again whatever newOwner's age: skipping the walk for every older newOwner, case 0 of seed 1 of the clip
+        /// fuzz, of random paths, never ends, its owners coming round in a ring.
+        /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void SetOwner(OutRec outrec, OutRec newOwner)
+        private void SetOwner(OutRec outrec, OutRec newOwner)
         {
             //precondition1: new_owner is never null
-            while (newOwner.owner != null && newOwner.owner.pts == null)
-                newOwner.owner = newOwner.owner.owner;
+            SkipEmptiedOwners(newOwner);
 
             //make sure that outrec isn't an owner of newOwner
-            OutRec tmp = newOwner;
-            while (tmp != null && tmp != outrec)
-                tmp = tmp.owner;
-            if (tmp != null)
-                newOwner.owner = outrec.owner;
+            if (!_ownersOlder || newOwner.idx >= outrec.idx)
+            {
+                OutRec tmp = newOwner;
+                while (tmp != null && tmp != outrec)
+                    tmp = tmp.owner;
+                if (tmp != null)
+                {
+                    newOwner.owner = outrec.owner;
+                    NoteOwner(newOwner);
+                }
+            }
             outrec.owner = newOwner;
+            NoteOwner(outrec);
+        }
+
+        /// <summary>
+        /// Gives the output path, as its owner, the first owner up its chain that has points, passing over those that
+        /// were emptied.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void SkipEmptiedOwners(OutRec outrec)
+        {
+            while (outrec.owner != null && outrec.owner.pts == null)
+                outrec.owner = outrec.owner.owner;
+        }
+
+        /// <summary>
+        /// Marks the sweep as no longer giving older owners only, once the output path has been given an owner no older
+        /// than itself.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void NoteOwner(OutRec outrec)
+        {
+            if (outrec.owner != null && outrec.owner.idx >= outrec.idx) _ownersOlder = false;
         }
 
         /// <summary>
@@ -1395,6 +1437,7 @@ namespace GeometryHelper.Clipper
             _coldTo = null;
             _sel = null;
             _succeeded = true;
+            _ownersOlder = true;
         }
 
         /// <summary>
@@ -2022,8 +2065,9 @@ namespace GeometryHelper.Clipper
                 // the ascending edge (see AddLocalMinPoly).
                 if (prevHotEdge != null)
                 {
+                    // what SetOwner would do: the new path owns no path, so its walk for one would find none
                     if (_using_polytree)
-                        SetOwner(outrec, prevHotEdge.outrec);
+                        SkipEmptiedOwners(prevHotEdge.outrec);
                     outrec.owner = prevHotEdge.outrec;
                     if (OutrecIsAscending(prevHotEdge) == isNew)
                         SetSides(outrec, ae2, ae1);
@@ -2109,7 +2153,7 @@ namespace GeometryHelper.Clipper
         /// active edge list.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void JoinOutrecPaths(Active ae1, Active ae2)
+        private void JoinOutrecPaths(Active ae1, Active ae2)
         {
             // join ae2 outrec path onto ae1 outrec path and then delete ae2 outrec path
             // pointers. (NB Only very rarely do the joining ends share the same coords.)
@@ -3668,9 +3712,10 @@ namespace GeometryHelper.Clipper
         /// <summary>
         /// Whether the first ring of output points lies inside the second: two of its points in turn found on the same
         /// side settle it, so that one misjudged through rounding does not; when that stays unclear, the two rings,
-        /// without the midpoints of their straight runs, are asked again.
+        /// without the midpoints of their straight runs, are asked again. Given the lines of the second ring, its points
+        /// are found through them where they can be, with the same answers.
         /// </summary>
-        private static bool Path1InsidePath2(OutPt op1, OutPt op2)
+        private static bool Path1InsidePath2(OutPt op1, OutPt op2, RingLines lines = null)
         {
             // we need to make some accommodation for rounding errors
             // so we won't jump if the first vertex is found outside
@@ -3678,7 +3723,9 @@ namespace GeometryHelper.Clipper
             OutPt op = op1;
             do
             {
-                switch (PointInOpPolygon(op.pt, op2))
+                if (lines == null || !lines.TryLocate(op.pt, out PointInPolygonResult result))
+                    result = PointInOpPolygon(op.pt, op2);
+                switch (result)
                 {
                     case PointInPolygonResult.IsOutside:
                         if (pip == PointInPolygonResult.IsOutside) return false;
@@ -3771,7 +3818,10 @@ namespace GeometryHelper.Clipper
                         MoveSplits(or2, or1); //#618
                     }
                     else
+                    {
                         or2.owner = or1;
+                        NoteOwner(or2);
+                    }
                 }
             }
         }
@@ -4213,6 +4263,46 @@ namespace GeometryHelper.Clipper
         }
 
         /// <summary>
+        /// The lines of the finished path of the output path, made the first time they are asked for and kept by its
+        /// index, through which points are found against it while the polytree is built; null for a path of fewer than
+        /// 64 points or with empty bounds, which is looked through point by point.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private RingLines GetRingLines(OutRec outrec)
+        {
+            if (outrec.path.Count < 64 || outrec.bounds.IsEmpty()) return null;
+            if (_ringLines == null || outrec.idx >= _ringLines.Length)
+                Array.Resize(ref _ringLines, Math.Max(outrec.idx + 1, _outrecList.Count));
+            return _ringLines[outrec.idx] ??= new RingLines(outrec.path);
+        }
+
+        /// <summary>
+        /// The first owner up the chain of the emptied output path, which has no splits, that has points or splits, or
+        /// null; every path walked is given it as its owner on the way, so that the next walk from any of them is short.
+        /// </summary>
+        /// <remarks>
+        /// RecursiveCheckOwners passes over such paths one by one, and no path emptied without splits gains points or
+        /// splits while the polytree is built, so its walk from any path goes on as it did. Each hole of 20 000 teeth
+        /// standing on a strip, one in each, was owned by its tooth's path, joined into the next as the sweep went
+        /// along: 200 million owners walked, where 20 000 are now.
+        /// </remarks>
+        private static OutRec GetOwnerToCheck(OutRec outrec)
+        {
+            OutRec to = outrec.owner;
+            while (to != null && to.pts == null && (to.splits == null || to.splits.Count == 0))
+                to = to.owner;
+
+            while (outrec != to)
+            {
+                OutRec next = outrec.owner;
+                outrec.owner = to;
+                outrec = next;
+            }
+
+            return to;
+        }
+
+        /// <summary>
         /// Looks among the paths split off an owner, and those split off them, for one that holds the output path;
         /// makes it the owner and returns true when it finds one.
         /// </summary>
@@ -4273,7 +4363,7 @@ namespace GeometryHelper.Clipper
                 OutRec found = at.split;
                 if (!CheckBounds(found) ||
                         !found.bounds.Contains(outrec.bounds) ||
-                        !Path1InsidePath2(outrec.pts, found.pts))
+                        !Path1InsidePath2(outrec.pts, found.pts, GetRingLines(found)))
                 {
                     at.Next();
                     continue;
@@ -4322,6 +4412,201 @@ namespace GeometryHelper.Clipper
         }
 
         /// <summary>
+        /// Finds points against a finished closed path as PointInOpPolygon finds them against its ring, through the
+        /// crossings of the path with the line of each point's Y, sorted along X, so that many points on few lines
+        /// cost a search each rather than a walk round the path.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// PointInOpPolygon gives IsOn when the point lies on a vertex or an edge of the ring, else IsInside or IsOutside
+        /// by the even-odd count of the edges that cross the point's line left of it (and IsOutside when every point of
+        /// the ring is on that line, which a path with bounds of some height is not). Where the ring runs along the line
+        /// or touches it at a vertex, it counts a crossing at the last vertex of the run, and the edges counted here,
+        /// those with one end below the line (smaller Y) and the other on or above it, count it at the first; the two
+        /// counts differ only for a point on the run between, which is IsOn either way. The finished path is the ring
+        /// without the points that repeat the one before, so it has the same edges.
+        /// </para>
+        /// <para>
+        /// The lines are kept in 64 slots by their Y, a line taking the slot of another that falls in it, and one is made
+        /// the third time in a row its slot is asked for a point on it, while the lines made hold no more than four
+        /// entries for each point of the path; any other point is left to PointInOpPolygon. So a path asked for a few
+        /// points on many lines, round a few holes, costs what it did, with no table to look in. Along a line the
+        /// crossings are kept at X worked out in doubles, off by less than half the margin used, and those within the
+        /// margin of the point are worked out exactly, by CrossProductSign, as PointInOpPolygon works them out. 20 000
+        /// teeth standing on a strip, each with a hole and an island, asked for 40 000 points against a path of 80 000
+        /// points, on few lines: 3.2 billion points walked, most of the 32 seconds the polytree took on .NET 10; 0.4 now.
+        /// </para>
+        /// </remarks>
+        private sealed class RingLines
+        {
+            private const int Slots = 64;
+            private readonly Path64 _path;
+            private readonly long[] _slotY = new long[Slots];
+            private readonly int[] _slotAsked = new int[Slots];
+            private readonly Line[] _slotLine = new Line[Slots];
+            private double _magnitude = -1;
+            private int _room;
+
+            /// <summary>
+            /// No lines yet, for the finished path, which is not to change while they are kept.
+            /// </summary>
+            public RingLines(Path64 path)
+            {
+                _path = path;
+                _room = 4 * path.Count;
+            }
+
+            /// <summary>
+            /// Where the point lies against the path, through the line of its Y; false, with nothing found, while that
+            /// line is not made.
+            /// </summary>
+            public bool TryLocate(Point64 pt, out PointInPolygonResult result)
+            {
+                // the top six bits of Y times 2^64 over the golden ratio
+                int slot = (int) (unchecked((ulong) pt.Y * 11400714819323198485UL) >> 58);
+                if (_slotY[slot] != pt.Y || _slotAsked[slot] == 0)
+                {
+                    _slotY[slot] = pt.Y;
+                    _slotAsked[slot] = 0;
+                    _slotLine[slot] = null;
+                }
+
+                Line line = _slotLine[slot];
+                if (line == null)
+                {
+                    if (++_slotAsked[slot] < 3 || _room <= 0)
+                    {
+                        result = PointInPolygonResult.IsOutside;
+                        return false;
+                    }
+                    if (_magnitude < 0)
+                    {
+                        _magnitude = 0;
+                        foreach (Point64 p in _path)
+                            _magnitude = Math.Max(_magnitude, Math.Max(Math.Abs((double) p.X), Math.Abs((double) p.Y)));
+                    }
+                    line = new Line(_path, pt.Y);
+                    _room -= line.Size;
+                    _slotLine[slot] = line;
+                }
+                // the doubles are off by less than (magnitude + |X|) / 2^49, half this margin
+                result = line.Locate(_path, pt, 1 + (_magnitude + Math.Abs((double) pt.X)) / 281474976710656.0);
+                return true;
+            }
+
+            /// <summary>
+            /// The path along one line: the spans it covers on the line (its edges along the line and its vertices on
+            /// it) sorted by their left ends, and the edges that cross it, sorted by where they cross.
+            /// </summary>
+            private sealed class Line
+            {
+                private readonly long[] _spanLeft;
+                private readonly long[] _spanRightSoFar;
+                private readonly double[] _crossX;
+                private readonly int[] _crossEdge;
+
+                /// <summary>
+                /// How many spans and crossings it holds.
+                /// </summary>
+                public int Size => _spanLeft.Length + _crossX.Length;
+
+                /// <summary>
+                /// The path along the line at y, read in one walk round it.
+                /// </summary>
+                public Line(Path64 path, long y)
+                {
+                    int count = path.Count;
+                    var spans = new List<(long left, long right)>();
+                    var crossings = new List<(double x, int edge)>();
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        Point64 a = path[i], b = path[i + 1 < count ? i + 1 : 0];
+                        if (a.Y == y)
+                            spans.Add(b.Y == y ? (Math.Min(a.X, b.X), Math.Max(a.X, b.X)) : (a.X, a.X));
+
+                        if ((a.Y < y) == (b.Y < y)) continue;
+                        Point64 low = a.Y < b.Y ? a : b, high = a.Y < b.Y ? b : a;
+                        double x = low.X + (double) (high.X - low.X) * ((double) (y - low.Y) / (high.Y - low.Y));
+                        crossings.Add((x, i));
+                    }
+
+                    spans.Sort();
+                    _spanLeft = new long[spans.Count];
+                    _spanRightSoFar = new long[spans.Count];
+                    for (int i = 0; i < spans.Count; i++)
+                    {
+                        _spanLeft[i] = spans[i].left;
+                        _spanRightSoFar[i] = i == 0 ? spans[i].right : Math.Max(_spanRightSoFar[i - 1], spans[i].right);
+                    }
+
+                    crossings.Sort();
+                    _crossX = new double[crossings.Count];
+                    _crossEdge = new int[crossings.Count];
+                    for (int i = 0; i < crossings.Count; i++)
+                    {
+                        _crossX[i] = crossings[i].x;
+                        _crossEdge[i] = crossings[i].edge;
+                    }
+                }
+
+                /// <summary>
+                /// Where the point on the line lies against the path, crossings within margin of its X worked out
+                /// exactly.
+                /// </summary>
+                public PointInPolygonResult Locate(Path64 path, Point64 pt, double margin)
+                {
+                    int spans = CountAtOrBefore(_spanLeft, pt.X);
+                    if (spans > 0 && _spanRightSoFar[spans - 1] >= pt.X) return PointInPolygonResult.IsOn;
+
+                    // left of the margin they cross left of the point, past it right of it
+                    int left = CountBefore(_crossX, pt.X - margin), right = CountBefore(_crossX, pt.X + margin);
+                    int count = left;
+                    for (int i = left; i < right; i++)
+                    {
+                        int edge = _crossEdge[i];
+                        Point64 a = path[edge], b = path[edge + 1 < path.Count ? edge + 1 : 0];
+                        int sign = a.Y < b.Y ? InternalClipper.CrossProductSign(a, b, pt) : InternalClipper.CrossProductSign(b, a, pt);
+                        if (sign == 0) return PointInPolygonResult.IsOn;
+                        if (sign < 0) count++;
+                    }
+
+                    return (count & 1) != 0 ? PointInPolygonResult.IsInside : PointInPolygonResult.IsOutside;
+                }
+
+                /// <summary>
+                /// How many of the sorted values are at or before the value.
+                /// </summary>
+                private static int CountAtOrBefore(long[] values, long value)
+                {
+                    int lo = 0, hi = values.Length;
+                    while (lo < hi)
+                    {
+                        int mid = (lo + hi) >> 1;
+                        if (values[mid] <= value) lo = mid + 1;
+                        else hi = mid;
+                    }
+                    return lo;
+                }
+
+                /// <summary>
+                /// How many of the sorted values are before the value.
+                /// </summary>
+                private static int CountBefore(double[] values, double value)
+                {
+                    int lo = 0, hi = values.Length;
+                    while (lo < hi)
+                    {
+                        int mid = (lo + hi) >> 1;
+                        if (values[mid] < value) lo = mid + 1;
+                        else hi = mid;
+                    }
+                    return lo;
+                }
+            }
+        }
+
+        /// <summary>
         /// Finds the real owner of the output path, the nearest one up its chain of owners, or among the paths split
         /// off them, that holds it, and adds the path to the polytree under the owner's node, the owner's own node made
         /// first; under polypath when it has no owner.
@@ -4335,10 +4620,16 @@ namespace GeometryHelper.Clipper
 
             while (outrec.owner != null)
             {
+                if (outrec.owner.pts == null && (outrec.owner.splits == null || outrec.owner.splits.Count == 0))
+                {
+                    // nothing to look at in it: on to the next owner with points or splits, as the loop would go
+                    outrec.owner = GetOwnerToCheck(outrec.owner);
+                    continue;
+                }
                 if (outrec.owner.splits != null &&
                     CheckSplitOwner(outrec, outrec.owner.splits)) break;
                 if (outrec.owner.pts != null && CheckBounds(outrec.owner) &&
-                    Path1InsidePath2(outrec.pts, outrec.owner.pts)) break;
+                    Path1InsidePath2(outrec.pts, outrec.owner.pts, GetRingLines(outrec.owner))) break;
                 outrec.owner = outrec.owner.owner;
             }
 
@@ -4362,6 +4653,7 @@ namespace GeometryHelper.Clipper
             solutionOpen.Clear();
             if (_hasOpenPaths)
                 solutionOpen.EnsureCapacity(_outrecList.Count);
+            _ringLines = null;
 
             int i = 0;
             // _outrecList.Count is not static here because
@@ -4382,6 +4674,7 @@ namespace GeometryHelper.Clipper
                 if (CheckBounds(outrec))
                     RecursiveCheckOwners(outrec, polytree);
             }
+            _ringLines = null;
         }
 
         /// <summary>

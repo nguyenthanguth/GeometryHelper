@@ -54,6 +54,29 @@ sets, 4 bnear runs and the benchmarks; the booleans are as they were, far out to
 volume read of a result far out that keeps openings. Such queries far out take 4 to 12 % longer at a thousandth and a
 hundredth, and 10 to 13 % less at a millionth; near the origin they take as long as before.
 
+**CHANGED.** Clipper2, which GeometryHelper carries compiled in, builds a polytree of many holes in one path, or of
+shapes joined one after another, without slowing with the square of their number, and unites squares in a row into
+paths in half the time. Each hole was looked for in the path round it by walking all that path's points, after walking
+up the chain of the emptied paths of the shapes joined before its own; each new output path walked the owners of all
+the paths to its left before taking the nearest as its own, to make sure it did not own it already; and each path
+joined into an older one walked that one's owners the same way. Points are found against a path of 64 points or more
+through its crossings with their line now, sorted along it and kept for a line asked for again, those near the point
+worked out exactly; the chain is shortened as it is walked; a new path, which owns none, is not looked for; and while
+every path is owned by an older one or none, no path is looked for among the owners of an older one. 20 000 teeth
+standing on a strip, each with a hole and an island, took 33 seconds to unite into a polytree on .NET 10 and 40 on .NET
+Framework: 0.44 and 0.49 now. 100 000 squares of side 10 in a row took 20 and 24 seconds: 0.5 now. 1 000 000 in a row
+took 9.7 and 10.0 seconds to unite into paths: 4.4 and 4.7. GeometryHelper's own operations take Clipper2's answers as
+paths, so they gain only where Clipper2 alone does, on rows far longer: `Boolean2.Union` of 100 000 squares in a row
+takes 1.8 and 1.5 seconds as it did. Small clips take as long as they did, into paths or polytrees, and the other
+shapes timed, polytrees of paths of 64 to 4 096 points round 10 to 4 000 small holes among them, to within 3 %. Of
+80 000 sets of random paths, combs, zigzags, rows of squares, lattices and strips, each united, cut, intersected and
+xored under every fill rule into paths and polytrees, or offset and combined by the library, none moves by a bit, nor
+of 20 000 with lines made for every path of three points or more at the first point asked. Of 10 000 of them, with the
+crossings near a point judged by their doubles alone, 18 nest a polytree otherwise; without the path's edges along
+the line and vertices on it, 197; and with the emptied paths that others split off passed over as well, 72. With no
+path looked for among the owners of an older one whatever the owners, the sweep of a set of random paths never ends.
+The benchmarks sign as they did.
+
 **CHANGED.** Uniting shapes that Clipper2 joins into one path one after another, squares standing on a strip or in a
 row, no longer slows with the square of their number. An output path joined into another kept that path as its owner,
 so the paths joined one after another made a chain, and every horizontal segment of the answer walked it from the path

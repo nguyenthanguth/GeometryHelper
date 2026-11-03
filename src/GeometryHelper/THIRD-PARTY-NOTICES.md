@@ -10,7 +10,12 @@ and its tests call, made internal, without nullable annotations, commented, and 
 slow. Among the changes for speed, the walk from an emptied output path up its owners to the path it was joined into
 (`GetRealOutRec`) points each emptied path it passes straight at the next path it must not pass over, as the find of a
 union-find does, and gives the same answers to the bit; Clipper2 has no such change up to commit `4be4655` of 28 October
-2026.
+2026. Building a polytree, the walk up the owners of each path to the one that holds it (`RecursiveCheckOwners`)
+shortens the chains of emptied paths it passes in the same way, and the points of a path are found against a path of 64
+points or more through that path's crossings with their line, sorted along it (`RingLines`); a path just made is not
+looked for among the owners of the path that is to own it, nor, while every path is owned by an older one or none, any
+path among the owners of an older one (`SetOwner`). These give the same answers to the bit too, and Clipper2 has none of
+them up to the same commit.
 
 - `src/GeometryHelper/Internal/Clipper`: the engine, compiled into GeometryHelper. The package carries its source too,
   embedded in the DLL's symbols, and this notice with it.
