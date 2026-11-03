@@ -6,6 +6,18 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** Uniting shapes that Clipper2 joins into one path one after another, squares standing on a strip or in a
+row, no longer slows with the square of their number. An output path joined into another kept that path as its owner,
+so the paths joined one after another made a chain, and every horizontal segment of the answer walked it from the path
+its point was first added to. The walk now points each path it passes at the end of the chain, as the find of a
+union-find does, but stops at a path that others split off, which a polytree reads its owners from. 50 000 squares of
+side 10 standing on a strip took 10.6 seconds to unite with `Boolean2.Union` on .NET 10 and 10.0 on .NET Framework, 9.8
+and 9.4 of them in Clipper2: 1.1 and 0.8 now, 0.3 in Clipper2. 1 000 000 squares of side 10 in a row took 18.6 seconds
+in Clipper2 alone, and 9.5 now. Of 80 000 sets of random paths, combs, zigzags, rows of squares, lattices and strips,
+each united, cut, intersected and xored under every fill rule into paths and polytrees, or offset and combined by the
+library, none moves by a bit; with the walk passing the paths split off as well, 48 of 20 000 sets nest a polytree
+otherwise, holes coming out at its top as outer paths. The benchmarks sign as they did.
+
 ## 13.5.0 (2026-11-03)
 
 A minor release: one public member is added, `DxfDatabase.FontSearchPath`, and none is removed or renamed in any of the

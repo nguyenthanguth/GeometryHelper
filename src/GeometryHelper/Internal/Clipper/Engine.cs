@@ -1227,14 +1227,59 @@ namespace GeometryHelper.Clipper
 
         /// <summary>
         /// The output path itself while it has points, else the first of its owners that has: the path it was merged
-        /// into.
+        /// into, the chain walked to it shortened on the way.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static OutRec GetRealOutRec(OutRec outRec)
         {
-            while ((outRec != null) && (outRec.pts == null))
-                outRec = outRec.owner;
-            return outRec;
+            if (outRec == null || outRec.pts != null) return outRec;
+            return GetRealOutRecOfEmptied(outRec);
+        }
+
+        /// <summary>
+        /// The first owner of the emptied output path that has points, as GetRealOutRec gives it; on the way, every
+        /// emptied path walked is given as its owner the next path up the chain that has points or splits, so that the
+        /// next walk from any of them is short, as the find of a union-find shortens its chains.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Once a path is emptied and given the owner it was joined into, it never has points again (the open path that
+        /// JoinOutrecPaths empties and fills again has them back before any walk), only this walk changes that owner,
+        /// and only paths with points gain splits. So a walk up the chain from any path still passes every path with
+        /// points and every path with splits it passed before, and RecursiveCheckOwners reads the splits of the paths on
+        /// its way up; it skips only emptied paths without splits, none of them the path SetOwner or IsValidOwner looks
+        /// for, which has points or was emptied after the last walk. Every answer is the same to the bit; passing over
+        /// the emptied paths with splits as well, 48 of 20 000 fuzz cases nest their polytrees otherwise.
+        /// </para>
+        /// <para>
+        /// Each path joined into the next kept the chain of all those joined before it, and every horizontal segment of
+        /// the answer walked that chain from the path its point was first added to: 50 000 squares of side 10 standing on
+        /// a strip took 9.8 seconds to unite on .NET 10, and 1 000 000 side by side 18.1, 8.7 of them in these walks; 0.3
+        /// and 9.5 now.
+        /// </para>
+        /// </remarks>
+        private static OutRec GetRealOutRecOfEmptied(OutRec outRec)
+        {
+            OutRec real = outRec.owner;
+            while (real != null && real.pts == null)
+                real = real.owner;
+
+            OutRec from = outRec;
+            while (from != real)
+            {
+                OutRec to = from.owner;
+                while (to != real && (to.splits == null || to.splits.Count == 0))
+                    to = to.owner;
+
+                while (from != to)
+                {
+                    OutRec next = from.owner;
+                    from.owner = to;
+                    from = next;
+                }
+            }
+
+            return real;
         }
 
         /// <summary>

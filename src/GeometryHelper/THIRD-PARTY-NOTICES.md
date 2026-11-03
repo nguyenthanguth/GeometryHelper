@@ -6,7 +6,11 @@ GeometryHelper holds code that comes from another project. Its notice follows.
 
 The clipping engine of [Clipper2](https://github.com/AngusJohnson/Clipper2) 2.0.0, by Angus Johnson, from the C#
 library of commit `f39457d` of 17 December 2025, changed for GeometryHelper: renamed, trimmed to what GeometryHelper
-and its tests call, made internal, without nullable annotations, commented, and mended where it was found at fault.
+and its tests call, made internal, without nullable annotations, commented, and mended where it was found at fault or
+slow. Among the changes for speed, the walk from an emptied output path up its owners to the path it was joined into
+(`GetRealOutRec`) points each emptied path it passes straight at the next path it must not pass over, as the find of a
+union-find does, and gives the same answers to the bit; Clipper2 has no such change up to commit `4be4655` of 28 October
+2026.
 
 - `src/GeometryHelper/Internal/Clipper`: the engine, compiled into GeometryHelper. The package carries its source too,
   embedded in the DLL's symbols, and this notice with it.

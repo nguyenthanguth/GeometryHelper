@@ -145,6 +145,85 @@ namespace GeometryHelper.UnitTest.Clipper
             Assert.True(watch.Elapsed.TotalSeconds < 3, watch.Elapsed.ToString());
         }
 
+        [Fact]
+        public void FiftyThousandSquaresStandingOnAStrip_AreUnitedInUnderThreeSeconds()
+        {
+            // Each square's output path was joined into another as the sweep passed it, the paths so emptied making a chain
+            // of all those joined before them, and each horizontal segment along the strip's top walked that chain to the
+            // path that holds its points: 9.8 seconds on .NET 10 and 9.4 on .NET Framework, against 0.3 now. Each walk
+            // points the paths it passes at the end of the chain now.
+            var shapes = new Paths64 { new Path64 { new Point64(0, 0), new Point64(1000000, 0), new Point64(1000000, 10), new Point64(0, 10) } };
+
+            for (int i = 0; i < 50000; i++)
+            {
+                shapes.Add(new Path64 { new Point64(20 * i, 10), new Point64(20 * i + 10, 10), new Point64(20 * i + 10, 20), new Point64(20 * i, 20) });
+            }
+
+            var watch = Stopwatch.StartNew();
+            Paths64 union = Clipper2.Union(shapes, FillRule.NonZero);
+            watch.Stop();
+
+            // The strip 1 000 000 by 10 and 50 000 squares of 100.
+            Assert.Single(union);
+            Assert.Equal(15000000.0, Clipper2.Area(union[0]));
+            Assert.True(watch.Elapsed.TotalSeconds < 3, watch.Elapsed.ToString());
+        }
+
+        [Fact]
+        public void AXorOfTwentyThinRectangles_NestsItsTwoHolesInThePathAroundThem()
+        {
+            // What is left of case 94 of seed 1 of the tile fuzz, with every rectangle not needed taken out. The walk that
+            // shortens the chains of owners stops at each emptied path that others split off, as the polytree reads the
+            // owners of a path from those splits; walking past them too, both holes came out at the top of the tree, as
+            // outer paths of their own.
+            var subject = new Paths64
+            {
+                Rectangle(21, 0, 1610, 1), Rectangle(78, 1, 2608, 0), Rectangle(81, 0, 2120, 2), Rectangle(33, 2, 1157, 0),
+                Rectangle(35, 35, 2394, 36), Rectangle(111, 0, 1527, 1), Rectangle(39, 0, 1387, 1), Rectangle(150, 50, 1320, 52),
+            };
+            var clip = new Paths64
+            {
+                Rectangle(0, 0, 1130, 2), Rectangle(24, 8, 1584, 10), Rectangle(36, 0, 2579, 3), Rectangle(34, 0, 1679, 2),
+                Rectangle(23, 23, 1861, 24), Rectangle(62, 0, 2171, 2), Rectangle(34, 0, 1110, 2), Rectangle(108, 0, 2869, 1),
+                Rectangle(114, 0, 1289, 3), Rectangle(82, 0, 1379, 1), Rectangle(129, 1, 1775, 0), Rectangle(153, 51, 1822, 53),
+            };
+
+            var clipper = new Clipper64 { PreserveCollinear = false };
+            clipper.AddSubject(subject);
+            clipper.AddClip(clip);
+            var tree = new PolyTree64();
+            Assert.True(clipper.Execute(ClipType.Xor, FillRule.EvenOdd, tree));
+
+            // 14 outer paths at the top, one of them holding both holes, and every hole wound against the outer paths.
+            Assert.Equal(14, tree.Count);
+            int holes = 0;
+
+            for (int i = 0; i < tree.Count; i++)
+            {
+                PolyPath64 outer = tree[i];
+                Assert.False(outer.IsHole);
+                Assert.True(Clipper2.IsPositive(outer.Polygon));
+
+                for (int j = 0; j < outer.Count; j++)
+                {
+                    PolyPath64 hole = outer[j];
+                    Assert.True(hole.IsHole);
+                    Assert.False(Clipper2.IsPositive(hole.Polygon));
+                    Assert.Empty(hole);
+                    Assert.All(hole.Polygon, p => Assert.NotEqual(PointInPolygonResult.IsOutside, Clipper2.PointInPolygon(p, outer.Polygon)));
+                    holes++;
+                }
+            }
+
+            Assert.Equal(2, holes);
+        }
+
+        /// <summary>
+        /// The path round the rectangle from the first corner to the other, along x first.
+        /// </summary>
+        private static Path64 Rectangle(long x1, long y1, long x2, long y2)
+            => new Path64 { new Point64(x1, y1), new Point64(x2, y1), new Point64(x2, y2), new Point64(x1, y2) };
+
         /// <summary>
         /// A comb along X: teeth 4 wide and 200 long, 4 apart, on a back 200 deep, pointing down from it, or up when mirrored.
         /// </summary>
