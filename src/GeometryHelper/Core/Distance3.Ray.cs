@@ -62,6 +62,12 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(solid));
             }
 
+            // A body far out is asked near the origin, the ray moved in with it; see Boolean3.FarBody.
+            if (Boolean3.FarBody.TryFor(solid, tolerance, out Boolean3.FarBody far))
+            {
+                return Boolean3.FarFrame.Inside(() => DistanceTo(far.In(ray), far.Moved, tolerance));
+            }
+
             // The faces run straight across every opening; the nearest material can sit on any opening's rim.
             solid = Material3.Whole(solid, tolerance);
 

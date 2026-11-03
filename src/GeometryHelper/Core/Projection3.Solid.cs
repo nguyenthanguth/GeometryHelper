@@ -188,6 +188,13 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(solid));
             }
 
+            // A body far out is asked near the origin, the segment moved in with it, and the segment it gives moved back out;
+            // see Boolean3.FarBody.
+            if (Boolean3.FarBody.TryFor(solid, tolerance, out Boolean3.FarBody far))
+            {
+                return far.Out(Boolean3.FarFrame.Inside(() => GetShortestLineTo(far.Moved, far.In(line), tolerance)));
+            }
+
             // The faces run straight across every opening; the nearest material can sit on any opening's rim.
             solid = Material3.Whole(solid, tolerance);
 
@@ -590,6 +597,13 @@ namespace GeometryHelper.Core
             if (solid == null)
             {
                 throw new ArgumentNullException(nameof(solid));
+            }
+
+            // A body far out is asked near the origin, the ray moved in with it, and the segment it gives moved back out; see
+            // Boolean3.FarBody.
+            if (Boolean3.FarBody.TryFor(solid, tolerance, out Boolean3.FarBody far))
+            {
+                return far.Out(Boolean3.FarFrame.Inside(() => GetShortestLineTo(far.Moved, far.In(ray), tolerance)));
             }
 
             // The faces run straight across every opening; the nearest material can sit on any opening's rim.

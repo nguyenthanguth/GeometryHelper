@@ -109,8 +109,18 @@ namespace GeometryHelper.Core
                 return left || (failed != null && Unworkable("cut of openings", failed, out material));
             }
 
-            return TryCutOpenings(solid, out material, tolerance, out Exception failure)
-                || (failure != null && Unworkable("cut of openings", failure, out material));
+            // Cut where the body stands, what the cut asks of it is asked there too; see FarBody.Hold.
+            FarBody.Hold();
+
+            try
+            {
+                return TryCutOpenings(solid, out material, tolerance, out Exception failure)
+                    || (failure != null && Unworkable("cut of openings", failure, out material));
+            }
+            finally
+            {
+                FarBody.Release();
+            }
         }
 
         /// <summary>
@@ -802,8 +812,23 @@ namespace GeometryHelper.Core
             // TryCutOpenings cuts them; Material3 hands its queries' tolerance in raised already, and they read as they did.
             Tolerance within = Material3.ToRounding(solid, tolerance);
             bool withinRounding = within.EqualPoint > tolerance.EqualPoint;
+            bool cut;
+            GeoSolid3 material, open;
+            Exception failure;
 
-            if (TryCutOpenings(solid, openings, out GeoSolid3 material, withinRounding ? within : tolerance, withinRounding, out Exception failure, out GeoSolid3 open))
+            // Cut where the body stands, what the cut asks of it is asked there too; see FarBody.Hold.
+            FarBody.Hold();
+
+            try
+            {
+                cut = TryCutOpenings(solid, openings, out material, withinRounding ? within : tolerance, withinRounding, out failure, out open);
+            }
+            finally
+            {
+                FarBody.Release();
+            }
+
+            if (cut)
             {
                 return material;
             }

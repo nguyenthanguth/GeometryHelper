@@ -50,6 +50,10 @@ namespace GeometryHelper.Geometry
         // handed to the next is read once. Written whole or not at all, and the body cannot change, so neither can the answer.
         private volatile ClosesWithin _closes;
 
+        // The body moved into the frame it is asked where a point, a ray, a segment or a line stands against it, where it
+        // stands far out; see Boolean3.FarBody. Its frame is set by its box alone, so it is made once, whole or not at all.
+        private volatile Boolean3.FarBody _far;
+
         /// <summary>
         /// Gets the read-only list of faces bounding the solid.
         /// </summary>

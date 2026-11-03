@@ -506,6 +506,16 @@ namespace GeometryHelper.Meshing
                 return frame.Out(Boolean3.FarFrame.Inside(() => ToCells(moved, options, at, tolerance)));
             }
 
+            // Cut where the body stands, what the cut asks of it is asked there too; see Boolean3.FarBody.Hold.
+            return Boolean3.FarBody.Held(() => ToCellsHere(solid, options, placement, tolerance));
+        }
+
+        /// <summary>
+        /// Cuts a closed body into cells where it stands, as <see cref="ToCells(GeoSolid3, CellOptions3, MeshPlacement3, Tolerance)"/>
+        /// does near the origin.
+        /// </summary>
+        private static GeoCellGrid3 ToCellsHere(GeoSolid3 solid, CellOptions3 options, MeshPlacement3 placement, Tolerance tolerance)
+        {
             solid = solid.TurnOutwards();
             GeoSolid3 material = solid;
             IReadOnlyList<GeoSolid3> left = new GeoSolid3[0];

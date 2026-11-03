@@ -418,12 +418,28 @@ namespace GeometryHelper.Core
         /// The planes of fan triangles far out can be rounded by more, and a point on the axis of a cylinder of 1 080 sides
         /// 1E7 out may still be read outside.
         /// </para>
+        /// <para>
+        /// A body far out, reaching more than 2^20 and more than 1 024 times the size of its box from the origin, is asked
+        /// near the origin, in the frame its booleans are worked out in, the point moved in with it coordinate by coordinate;
+        /// so are its distance, its signed distance, its nearest point and its shortest line to a point, and where a ray, a
+        /// segment or a line meets it, collides with it or stands from it, what has a place moved back out. Where it stood,
+        /// its openings were cut and its faces read within a trillionth of the coordinates: of 636 points half a thousandth in
+        /// and out from a plate 200 by 100 by 3 a thousand million out, with two openings up from its floor whose ceilings
+        /// stood 0.0009 apart, 12 had another nearest point than at the origin. Below a trillionth of the coordinates a 256th
+        /// of the reach out the body is asked where it stands, as before.
+        /// </para>
         /// </remarks>
         public static PointLocation Locate(GeoSolid3 solid, GeoPoint3 point, Tolerance tolerance)
         {
             if (solid == null)
             {
                 throw new ArgumentNullException(nameof(solid));
+            }
+
+            // A body far out is asked near the origin, the point moved in with it; see Boolean3.FarBody.
+            if (Boolean3.FarBody.TryFor(solid, tolerance, out Boolean3.FarBody far))
+            {
+                return Boolean3.FarFrame.Inside(() => Locate(far.Moved, far.In(point), tolerance));
             }
 
             // A point beyond the bounding box is beyond every face and every opening, and the ray casting

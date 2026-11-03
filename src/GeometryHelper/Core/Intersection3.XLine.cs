@@ -20,6 +20,13 @@ namespace GeometryHelper.Core
 
         internal static GeoPoint3[] GetIntersections(GeoXLine3 xline, GeoSolid3 solid, Tolerance tolerance)
         {
+            // A body far out is asked near the origin, the line moved in with it before it is cut, and where they meet moved
+            // back out; see Boolean3.FarBody.
+            if (Boolean3.FarBody.TryFor(solid, tolerance, out Boolean3.FarBody far))
+            {
+                return far.Out(Boolean3.FarFrame.Inside(() => GetIntersections(far.In(xline), far.Moved, tolerance)));
+            }
+
             return GetIntersections(XLine3.CutPast(xline, solid, tolerance), solid, tolerance);
         }
 

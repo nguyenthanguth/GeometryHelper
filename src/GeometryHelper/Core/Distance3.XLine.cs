@@ -78,6 +78,12 @@ namespace GeometryHelper.Core
 
         internal static double DistanceTo(GeoXLine3 xline, GeoSolid3 solid, Tolerance tolerance)
         {
+            // A body far out is asked near the origin, the line moved in with it before it is cut; see Boolean3.FarBody.
+            if (Boolean3.FarBody.TryFor(solid, tolerance, out Boolean3.FarBody far))
+            {
+                return Boolean3.FarFrame.Inside(() => DistanceTo(far.In(xline), far.Moved, tolerance));
+            }
+
             return DistanceTo(XLine3.CutPast(xline, solid, tolerance), solid, tolerance);
         }
 

@@ -181,8 +181,17 @@ namespace GeometryHelper.Core
             }
 
             // Not worked out, it is worked out again on a body closing only within the tolerance welded closed; see
-            // WeldedWhereRefused.
-            return WeldedWhereRefused(UnionHere, first, second, out result, tolerance, out outcome, out open);
+            // WeldedWhereRefused. Worked out where the bodies stand, what it asks of them is asked there too; see FarBody.Hold.
+            FarBody.Hold();
+
+            try
+            {
+                return WeldedWhereRefused(UnionHere, first, second, out result, tolerance, out outcome, out open);
+            }
+            finally
+            {
+                FarBody.Release();
+            }
         }
 
         /// <summary>
@@ -604,16 +613,26 @@ namespace GeometryHelper.Core
                 return frame.Work(Intersect, first, second, out result, tolerance, out outcome, out open);
             }
 
-            // An opening of either body that shares no space with the other takes nothing from what they share, and is left
-            // out; see LeaveOutOpeningsApart.
-            if (LeaveOutOpeningsApart(first, second, tolerance, true, out GeoSolid3 a, out GeoSolid3 b))
-            {
-                return Intersect(a, b, out result, tolerance, out outcome, out open);
-            }
+            // Worked out where the bodies stand, what it asks of them is asked there too; see FarBody.Hold.
+            FarBody.Hold();
 
-            // Not worked out, it is worked out again on a body closing only within the tolerance welded closed; see
-            // WeldedWhereRefused.
-            return WeldedWhereRefused(IntersectHere, first, second, out result, tolerance, out outcome, out open);
+            try
+            {
+                // An opening of either body that shares no space with the other takes nothing from what they share, and is
+                // left out; see LeaveOutOpeningsApart.
+                if (LeaveOutOpeningsApart(first, second, tolerance, true, out GeoSolid3 a, out GeoSolid3 b))
+                {
+                    return Intersect(a, b, out result, tolerance, out outcome, out open);
+                }
+
+                // Not worked out, it is worked out again on a body closing only within the tolerance welded closed; see
+                // WeldedWhereRefused.
+                return WeldedWhereRefused(IntersectHere, first, second, out result, tolerance, out outcome, out open);
+            }
+            finally
+            {
+                FarBody.Release();
+            }
         }
 
         /// <summary>
@@ -968,16 +987,26 @@ namespace GeometryHelper.Core
                 return frame.Work(Subtract, subject, tool, out result, tolerance, out outcome, out open);
             }
 
-            // An opening of the tool that shares no space with the subject gives nothing back, and is left out; the subject's
-            // openings are cut in as they were. See LeaveOutOpeningsApart.
-            if (LeaveOutOpeningsApart(subject, tool, tolerance, false, out _, out GeoSolid3 b))
-            {
-                return Subtract(subject, b, out result, tolerance, out outcome, out open);
-            }
+            // Worked out where the bodies stand, what it asks of them is asked there too; see FarBody.Hold.
+            FarBody.Hold();
 
-            // Not worked out, it is worked out again on a body closing only within the tolerance welded closed; see
-            // WeldedWhereRefused.
-            return WeldedWhereRefused(SubtractHere, subject, tool, out result, tolerance, out outcome, out open);
+            try
+            {
+                // An opening of the tool that shares no space with the subject gives nothing back, and is left out; the
+                // subject's openings are cut in as they were. See LeaveOutOpeningsApart.
+                if (LeaveOutOpeningsApart(subject, tool, tolerance, false, out _, out GeoSolid3 b))
+                {
+                    return Subtract(subject, b, out result, tolerance, out outcome, out open);
+                }
+
+                // Not worked out, it is worked out again on a body closing only within the tolerance welded closed; see
+                // WeldedWhereRefused.
+                return WeldedWhereRefused(SubtractHere, subject, tool, out result, tolerance, out outcome, out open);
+            }
+            finally
+            {
+                FarBody.Release();
+            }
         }
 
         /// <summary>

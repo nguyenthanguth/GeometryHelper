@@ -6,6 +6,31 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Where a point, a ray, a segment or a line stands against a solid far out is worked out near the origin, as
+its booleans and its measures are (check GR2e): `Locate`, `Contains`, `DistanceTo`, `SignedDistanceTo`,
+`GetClosestPointOnBoundary` and `GetShortestLineTo` of a point, and `CollidesWith`, `DistanceTo`, `GetIntersections` and
+`GetShortestLineTo` of a ray, a segment and a line, on `GeoSolid3`, on the shapes asked of it and in `Containment3`,
+`Distance3`, `Projection3`, `Collision3` and `Intersection3`, move a body reaching more than 2^20 out and more than 1 024
+times the size of its box into the frame of the booleans, once, keeping the moved body, and the probe with it; what has a
+place comes back moved exactly. `GeoPreparedSolid3` prepares such a body again in the frame the first time it is asked
+where a point, a ray or a line stands, and keeps `Material`, `Surface`, `Index` and its questions of another body where
+the body stands. Where it stood, its openings were cut and its faces read within a trillionth of the coordinates: of 636
+points half a thousandth in and out from a plate 200 by 100 by 3 a thousand million out, with two openings up from its
+floor whose ceilings stood 0.0009 apart, 12 had another nearest point than at the origin, and of the segments and lines
+from them 32 and 67 of 1 908 other crossings, none now; of 2 080 rays from an L 100 by 80 by 50 with a pocket and a hole
+a hundred million out at a hundredth, 9 had other crossings, and 48 asked of its prepared form, 1 and 1 now, and of 2 016
+a thousand million out 19 and 52, none now. Of 18 000 points, rays, segments and lines beside
+bodies with and without openings, turned about in space, ten million to a thousand million out, against the same body
+moved back to the origin exactly, wrong answers at a hundredth, a thousandth and, to a hundred million out, a millionth
+209 -> 67, and 1 284 -> 9 of probes the tolerance itself off a face; those left are crossings of rays starting on or
+half the tolerance off a face. Within a million of the origin, and below the frame's tolerance, nothing changed, to the
+bit, and no boolean, cut, measure, section or cell far out moved: what they ask of a body they ask where they work. The
+ray fuzz of check G1e, rays beside turned boxes, U's, cylinders, cones and rings 0 to 1E9 out at nought, a thousandth
+and a hundredth, was wrong nowhere in 360 000 before and is wrong nowhere in 180 000 now. Far out, the first question of
+a body moves it into the frame, 2 to 14 microseconds for a U, a cylinder, a slab with a duct and a plate with two
+openings, and a prepared body is prepared once more at its first such question; after that each question takes as long
+as before, and near the origin nothing takes longer.
+
 ## 13.6.0 (2026-11-03)
 
 A minor release: no public member is added, removed or renamed in any of the four libraries. Its six entries, 4 FIXED

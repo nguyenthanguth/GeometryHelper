@@ -43,12 +43,26 @@ namespace GeometryHelper.Core
         /// under the top of the box only where it leaves, where each was given its origin besides; at a tolerance of nought the
         /// ray from the middle of a box 100 by 80 by 50 turned about in space is given where it leaves, where the rounding
         /// refused the crossing of every face and it collided and was given nothing.
+        /// <para>
+        /// A body far out is asked near the origin, as <see cref="Containment3.Locate(GeoSolid3, GeoPoint3, Tolerance)"/> says,
+        /// and the crossings moved back out, coordinate by coordinate. Where it stood, of 2 080 rays half a hundredth in and out
+        /// from an L 100 by 80 by 50 a hundred million out, with a pocket up from its floor and a hole down through its other
+        /// leg, at a hundredth, 9 were given other crossings than at the origin, and of 2 016 a thousand million out, 19; 1 and
+        /// none are, a ray along the world's Y axis.
+        /// </para>
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoRay3 ray, GeoSolid3 solid, Tolerance tolerance)
         {
             if (solid == null)
             {
                 throw new ArgumentNullException(nameof(solid));
+            }
+
+            // A body far out is asked near the origin, the ray moved in with it, and where they meet moved back out; see
+            // Boolean3.FarBody.
+            if (Boolean3.FarBody.TryFor(solid, tolerance, out Boolean3.FarBody far))
+            {
+                return far.Out(Boolean3.FarFrame.Inside(() => GetIntersections(far.In(ray), far.Moved, tolerance)));
             }
 
             // The faces run straight across every opening; read the material the probe can reach instead.

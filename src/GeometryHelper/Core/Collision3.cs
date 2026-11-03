@@ -561,6 +561,12 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(solid));
             }
 
+            // A body far out is asked near the origin, the segment moved in with it; see Boolean3.FarBody.
+            if (Boolean3.FarBody.TryFor(solid, tolerance, out Boolean3.FarBody far))
+            {
+                return Boolean3.FarFrame.Inside(() => CollidesWith(far.In(line), far.Moved, readShortAsPoint, tolerance));
+            }
+
             GeoAabb3 reach = line.GetAabb();
 
             // An end the body holds, to a billionth or 1E-15 of the coordinates, can stand that far outside its box; a segment

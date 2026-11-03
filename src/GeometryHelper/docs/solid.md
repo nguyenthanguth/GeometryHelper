@@ -1700,6 +1700,30 @@ star can turn either of several ways. Within a million of the origin, and below 
 to the bit: 36 729 and 10 764 fuzz lines. Such queries far out take 4 to 12 % longer at a thousandth and a hundredth,
 and 10 to 13 % less at a millionth.
 
+**So is where a point, a ray, a segment or a line stands against it.** `Locate` and `Contains`, `DistanceTo`,
+`SignedDistanceTo`, `GetClosestPointOnBoundary` and `GetShortestLineTo` of a point, and `CollidesWith`, `DistanceTo`,
+`GetIntersections` and `GetShortestLineTo` of a ray, a segment and a line move such a body into the same frame, once,
+keeping the moved body with it, move the probe in coordinate by coordinate and what has a place back out; a probe near
+the body moves exactly and comes back as it was given. A `GeoPreparedSolid3` of such a body is prepared again in the
+frame the first time it is asked so, and asked there from then on; its `Material`, `Surface` and `Index`, and what it
+weighs another body by, stay where the body stands. Where it stood, the material those questions read was cut and read
+within a trillionth of the coordinates: of 636 points half a thousandth in and out from the plate above with ceilings
+0.0009 apart, a thousand million out, 12 had another nearest point than at the origin, and of 1 908 segments and lines
+from them, 32 and 67 were given other crossings, and none is now; of 2 080 rays from the L with a pocket and a hole a
+hundred million out at a hundredth, 9, and of the same rays from its prepared form, 48, and 1 and 1 are, a ray along
+the world's Y axis; a thousand million out, 19 and 52, and none is. Of 18 000 points, rays, segments and lines drawn
+beside boxes, U's, L's, cylinders, plates and slabs with and without openings, turned about in space and ten million to
+a thousand million out, each asked against the same body moved back to the origin exactly, 209 answers at a hundredth,
+a thousandth and, up to a hundred million out, a millionth were wrong, besides 1 284 of probes standing the tolerance
+itself off a face, and 67 and 9 are: crossings of rays starting on or half the tolerance off a face, given or left a
+crossing at their origin, as the frame, a 256th of the reach out, reads the origin by the rounding there. Below the
+frame's tolerance, at nought and at a millionth a thousand million out, the body is asked where it stands, as before.
+Within a million of the origin nothing changed, to the bit, and neither did any boolean, cut, measure, section or cell
+far out: what they ask of a body is asked where they work it out. The first question of a body far out costs the move,
+2 to 14 microseconds for the bodies above, and the first of a prepared body far out a second preparing, as long as the
+first; then each question takes as long as it did, and a prepared ray question in the frame's index 4 to 13 times less
+than its material asked as a body.
+
 **Walls a fraction of the tolerance apart leave no sheet inside the material.** The cut of openings parts a body by the
 planes of each opening, and between the planes of two walls a fraction of the tolerance apart it leaves cells thinner
 than the global tolerance. A face is laid out in its plane within that tolerance however fine the work, and the face of

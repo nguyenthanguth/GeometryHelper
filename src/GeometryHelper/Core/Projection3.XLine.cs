@@ -91,6 +91,13 @@ namespace GeometryHelper.Core
 
         internal static GeoLine3 GetShortestLineTo(GeoXLine3 xline, GeoSolid3 solid, Tolerance tolerance)
         {
+            // A body far out is asked near the origin, the line moved in with it before it is cut, and the segment it gives
+            // moved back out; see Boolean3.FarBody.
+            if (Boolean3.FarBody.TryFor(solid, tolerance, out Boolean3.FarBody far))
+            {
+                return far.Out(Boolean3.FarFrame.Inside(() => GetShortestLineTo(far.In(xline), far.Moved, tolerance)));
+            }
+
             return GetShortestLineTo(solid, XLine3.CutPast(xline, solid, tolerance), tolerance).Reverse();
         }
 

@@ -274,10 +274,11 @@ namespace GeometryHelper.Geometry
                 return frame.Out(Boolean3.FarFrame.Inside(() => moved.Section(cutter, tolerance)));
             }
 
-            // Below the rounding of the coordinates the material is cut by the plane within it; see the remarks.
+            // Below the rounding of the coordinates the material is cut by the plane within it; see the remarks. Cut where the
+            // body stands, what the cut asks of it is asked there too; see Boolean3.FarBody.Hold.
             Splition3.BelowTheRounding(this, tolerance, out Tolerance within);
 
-            return Splition3.Section(Material3.Whole(this, tolerance), plane, within);
+            return Boolean3.FarBody.Held(() => Splition3.Section(Material3.Whole(this, tolerance), plane, within));
         }
 
         #endregion
@@ -347,6 +348,15 @@ namespace GeometryHelper.Geometry
                 return new MaterialCut(tolerance, frame.Out(cut.Body), cut.Whole);
             }
 
+            // Cut where the body stands, what the cut asks of it is asked there too; see Boolean3.FarBody.Hold.
+            return Boolean3.FarBody.Held(() => CutMaterialHere(tolerance));
+        }
+
+        /// <summary>
+        /// Cuts the material of this body where it stands, as <see cref="CutMaterial"/> does near the origin.
+        /// </summary>
+        private MaterialCut CutMaterialHere(Tolerance tolerance)
+        {
             Tolerance within = Material3.ToRounding(this, tolerance);
 
             if (!(within.EqualPoint > tolerance.EqualPoint))
@@ -501,6 +511,16 @@ namespace GeometryHelper.Geometry
         {
             get => _atOnce;
             set => _atOnce = value;
+        }
+
+        /// <summary>
+        /// The body moved into the frame it is asked where a point, a ray, a segment or a line stands against it, where it
+        /// stands far out; see Boolean3.FarBody.
+        /// </summary>
+        internal Boolean3.FarBody Far
+        {
+            get => _far;
+            set => _far = value;
         }
 
         /// <summary>

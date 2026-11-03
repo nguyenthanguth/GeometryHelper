@@ -18,7 +18,8 @@ namespace GeometryHelper.Core
     /// held 130 189.39 within a thousandth, where it holds 130 189.32, and the box less the L 28 457.23, where it holds
     /// 28 457.68. So such bodies are moved near the origin first, by whole coordinates, the boolean worked out there as it
     /// is worked out near the origin, and what it gives moved back out. The cut of a body's openings, its material as its
-    /// volume, area, centroid and mass read it, a section of it and its cells are worked out so too.
+    /// volume, area, centroid and mass read it, a section of it and its cells are worked out so too, and so is where a point,
+    /// a ray, a segment or a line stands against it (see <see cref="FarBody"/>).
     /// </remarks>
     public static partial class Boolean3
     {
@@ -120,6 +121,11 @@ namespace GeometryHelper.Core
             internal static void Leave() => _working--;
 
             /// <summary>
+            /// Gets whether a boolean on this thread is worked out in a frame.
+            /// </summary>
+            internal static bool Working => _working > 0;
+
+            /// <summary>
             /// Works something out in a frame: marks it so, as <see cref="Enter"/> does, for as long as it takes.
             /// </summary>
             /// <param name="work">What is worked out, on bodies already moved into the frame.</param>
@@ -208,8 +214,28 @@ namespace GeometryHelper.Core
 
                 double lift = FarLift * reach;
                 frame = new FarFrame(new GeoVector3(Corner(min.X, max.X, lift), Corner(min.Y, max.Y, lift), Corner(min.Z, max.Z, lift)));
+                frame.Reach = reach;
                 return true;
             }
+
+            /// <summary>
+            /// Gets how far out the bodies the frame was made for reach.
+            /// </summary>
+            internal double Reach { get; private set; }
+
+            /// <summary>
+            /// Gets the origin of the frame, which a body moved in is moved by less and moved out by more.
+            /// </summary>
+            internal GeoVector3 Origin => _origin;
+
+            /// <summary>
+            /// Determines whether bodies reaching as far out as a frame made for them already are worked out in it within a
+            /// tolerance: none is being worked out in a frame on this thread, and neither the point nor the planar tolerance is
+            /// finer than <see cref="FarFinest"/> of the reach, as <see cref="TryFor(GeoSolid3, IEnumerable{GeoSolid3}, Tolerance, out FarFrame)"/>
+            /// reads it.
+            /// </summary>
+            internal static bool Admits(double reach, Tolerance tolerance)
+                => _working == 0 && !(Math.Min(tolerance.EqualPoint, tolerance.EqualPlanar) < FarFinest * reach);
 
             /// <summary>
             /// Gets the origin along an axis, the least coordinate less the lift, where every coordinate from the least to the
@@ -396,6 +422,174 @@ namespace GeometryHelper.Core
 
                 return new SubtractReport(report.Tools, report.Taken, report.Skipped, report.WithinFallback, report.Closed, closings, report.RefusedByVolume);
             }
+        }
+
+        /// <summary>
+        /// A body far out moved into the frame it is asked where a point, a ray, a segment or a line stands against it: the
+        /// frame of the body alone, as <see cref="FarFrame"/> makes it, the body moved in once and kept with it, the probe moved
+        /// in with it for each question, and what has a place in the answer moved back out.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A body is a value and cannot change, and its frame is set by its box alone, so the body moved in is made the first
+        /// time it is asked within a tolerance the frame admits and kept, as the cut of its material is: two threads that make
+        /// it make the same body, either of which is complete. What the moved body works out and keeps of its own, the regions
+        /// its gaps are measured with among them, is kept with it, as it is with the body where it stands.
+        /// </para>
+        /// <para>
+        /// A probe is moved coordinate by coordinate, as the body is. One near the body moves exactly, by Sterbenz's lemma, and
+        /// comes back out as it was given; one standing as far again from it moves to the rounding of its distance from the
+        /// frame's origin, a part in ten thousand million million of how far it stands from the body.
+        /// </para>
+        /// </remarks>
+        internal sealed class FarBody
+        {
+            private readonly GeoVector3 _origin;
+            private readonly GeoVector3 _in;
+            private readonly double _reach;
+
+            // How many booleans, cuts of openings, measures, sections and cuts into cells on this thread are being worked out
+            // where the bodies stand: what they ask of a body is asked there too.
+            [ThreadStatic]
+            private static int _held;
+
+            private FarBody(FarFrame frame, GeoSolid3 moved)
+            {
+                _origin = frame.Origin;
+                _in = _origin.Negate();
+                _reach = frame.Reach;
+                Moved = moved;
+            }
+
+            /// <summary>
+            /// Gets the body moved into the frame, its openings with it.
+            /// </summary>
+            internal GeoSolid3 Moved { get; }
+
+            /// <summary>
+            /// Determines whether the body is asked in the frame within a tolerance, as <see cref="TryFor"/> reads it.
+            /// </summary>
+            internal bool Admits(Tolerance tolerance) => FarFrame.Admits(_reach, tolerance);
+
+            /// <summary>
+            /// Gets the body moved into the frame it is asked questions in, where it stands far out and the tolerance is one the
+            /// frame admits, as <see cref="FarFrame"/> says.
+            /// </summary>
+            /// <param name="body">The body; null is not far out.</param>
+            /// <param name="tolerance">The tolerance the question is asked within.</param>
+            /// <param name="far">The body moved in; null when the method returns false.</param>
+            /// <returns>true where the body is asked in a frame; otherwise, false.</returns>
+            internal static bool TryFor(GeoSolid3 body, Tolerance tolerance, out FarBody far)
+            {
+                far = null;
+
+                if (_held > 0)
+                {
+                    return false;
+                }
+
+                far = body?.Far;
+
+                if (far != null)
+                {
+                    if (far.Admits(tolerance))
+                    {
+                        return true;
+                    }
+
+                    far = null;
+                    return false;
+                }
+
+                if (body == null || !FarFrame.TryFor(body, tolerance, out FarFrame frame))
+                {
+                    return false;
+                }
+
+                far = new FarBody(frame, frame.In(body));
+                body.Far = far;
+                return true;
+            }
+
+            /// <summary>
+            /// Marks that a boolean, a cut of openings, a measure, a section or a cut into cells on this thread is worked out
+            /// where the bodies stand, not in a frame, so that a point, a ray, a segment or a line it asks of a body far out
+            /// within a tolerance of its own is asked there too and what it gives is what it gave; <see cref="Release"/> undoes it.
+            /// </summary>
+            internal static void Hold() => _held++;
+
+            /// <summary>
+            /// Marks that work <see cref="Hold"/> marked is done.
+            /// </summary>
+            internal static void Release() => _held--;
+
+            /// <summary>
+            /// Gets whether work on this thread is marked as <see cref="Hold"/> marks it, or is worked out in a frame, so that
+            /// work it hands to other threads is marked so too.
+            /// </summary>
+            internal static bool Holding => _held > 0 || FarFrame.Working;
+
+            /// <summary>
+            /// Works something out where the bodies stand, marked as <see cref="Hold"/> marks it, for as long as it takes.
+            /// </summary>
+            internal static T Held<T>(Func<T> work)
+            {
+                Hold();
+
+                try
+                {
+                    return work();
+                }
+                finally
+                {
+                    Release();
+                }
+            }
+
+            /// <summary>
+            /// Moves a point into the frame.
+            /// </summary>
+            internal GeoPoint3 In(GeoPoint3 point) => point.Add(_in);
+
+            /// <summary>
+            /// Moves a ray into the frame: its origin, coordinate by coordinate; its direction as it is.
+            /// </summary>
+            internal GeoRay3 In(GeoRay3 ray) => new GeoRay3(ray.Origin.Add(_in), ray.Direction, true);
+
+            /// <summary>
+            /// Moves a line without ends into the frame: its origin, coordinate by coordinate; its direction as it is.
+            /// </summary>
+            internal GeoXLine3 In(GeoXLine3 xline) => new GeoXLine3(xline.Origin.Add(_in), xline.Direction, true);
+
+            /// <summary>
+            /// Moves a segment into the frame, end by end.
+            /// </summary>
+            internal GeoLine3 In(GeoLine3 line) => new GeoLine3(line.StartPoint.Add(_in), line.EndPoint.Add(_in));
+
+            /// <summary>
+            /// Moves a point out of the frame.
+            /// </summary>
+            internal GeoPoint3 Out(GeoPoint3 point) => point.Add(_origin);
+
+            /// <summary>
+            /// Moves points out of the frame, in their order.
+            /// </summary>
+            internal GeoPoint3[] Out(GeoPoint3[] points)
+            {
+                var moved = new GeoPoint3[points.Length];
+
+                for (int i = 0; i < moved.Length; i++)
+                {
+                    moved[i] = points[i].Add(_origin);
+                }
+
+                return moved;
+            }
+
+            /// <summary>
+            /// Moves a segment out of the frame, end by end.
+            /// </summary>
+            internal GeoLine3 Out(GeoLine3 line) => new GeoLine3(line.StartPoint.Add(_origin), line.EndPoint.Add(_origin));
         }
 
         /// <summary>

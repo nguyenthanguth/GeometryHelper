@@ -703,6 +703,13 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(solid));
             }
 
+            // A body far out is asked near the origin, the point moved in with it, and the point it gives moved back out; see
+            // Boolean3.FarBody.
+            if (Boolean3.FarBody.TryFor(solid, tolerance, out Boolean3.FarBody far))
+            {
+                return far.Out(Boolean3.FarFrame.Inside(() => ProjectToSolid(far.Moved, far.In(point), tolerance, exactSides)));
+            }
+
             return solid.Openings.Count == 0
                 ? ProjectToFaces(solid.Faces, point, tolerance, exactSides)
                 : ProjectToMaterial(solid, point, tolerance, exactSides);

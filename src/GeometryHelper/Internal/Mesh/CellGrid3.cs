@@ -730,8 +730,17 @@ namespace GeometryHelper.Core
         {
             Exception failed = null;
 
+            // Cells cut where the body stands, or in its frame, ask a point, a ray or a line of a body where it is on every
+            // thread, as on the one that asked for them; see Boolean3.FarBody.Hold.
+            bool held = Boolean3.FarBody.Holding;
+
             Parallel.For(0, count, threads, n =>
             {
+                if (held)
+                {
+                    Boolean3.FarBody.Hold();
+                }
+
                 try
                 {
                     work(n);
@@ -739,6 +748,13 @@ namespace GeometryHelper.Core
                 catch (Exception exception)
                 {
                     Interlocked.CompareExchange(ref failed, exception, null);
+                }
+                finally
+                {
+                    if (held)
+                    {
+                        Boolean3.FarBody.Release();
+                    }
                 }
             });
 

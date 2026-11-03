@@ -1730,7 +1730,16 @@ namespace GeometryHelper.Core
         /// standing under the floor at (5, 5, 0), where it was given its start.
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoLine3 line, GeoSolid3 solid, Tolerance tolerance)
-            => Stub3.ReadsAsStart(line, tolerance) ? CrossingsOfStub(line, solid, tolerance) : Crossings(line, solid, true, tolerance);
+        {
+            // A body far out is asked near the origin, the segment moved in with it, and where they meet moved back out; see
+            // Boolean3.FarBody.
+            if (Boolean3.FarBody.TryFor(solid, tolerance, out Boolean3.FarBody far))
+            {
+                return far.Out(Boolean3.FarFrame.Inside(() => GetIntersections(far.In(line), far.Moved, tolerance)));
+            }
+
+            return Stub3.ReadsAsStart(line, tolerance) ? CrossingsOfStub(line, solid, tolerance) : Crossings(line, solid, true, tolerance);
+        }
 
         /// <summary>
         /// Gets where a segment no longer than the tolerance, read as its start unless it truly crosses the surface, meets a

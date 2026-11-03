@@ -217,6 +217,24 @@ namespace GeometryHelper.Core
                 return left;
             }
 
+            // Worked out where the bodies stand, what the cuts and closings ask of them is asked there too; see FarBody.Hold.
+            FarBody.Hold();
+
+            try
+            {
+                return SubtractAllHere(subject, given, options, closing, out result, out report);
+            }
+            finally
+            {
+                FarBody.Release();
+            }
+        }
+
+        /// <summary>
+        /// Takes bodies from a body one after another where they stand, as <see cref="SubtractAll"/> does near the origin.
+        /// </summary>
+        private static bool SubtractAllHere(GeoSolid3 subject, List<GeoSolid3> tools, SolidBooleanOptions options, SolidClosingOptions closing, out GeoSolid3 result, out SubtractReport report)
+        {
             GeoSolid3 current = subject;
             var skipped = new List<int>();
             var withinFallback = new List<int>();
@@ -225,7 +243,7 @@ namespace GeometryHelper.Core
             var refused = new List<int>();
             int tried = 0, taken = 0;
 
-            foreach (GeoSolid3 tool in given)
+            foreach (GeoSolid3 tool in tools)
             {
                 if (tool == null)
                 {
@@ -400,6 +418,24 @@ namespace GeometryHelper.Core
                 return far;
             }
 
+            // Worked out where the bodies stand, what it asks of them is asked there too; see FarBody.Hold.
+            FarBody.Hold();
+
+            try
+            {
+                return WithOptionsHere(operation, first, second, options, check, out result, out outcome, out good, out again, out put, out resultAgain, out open);
+            }
+            finally
+            {
+                FarBody.Release();
+            }
+        }
+
+        /// <summary>
+        /// Works out a boolean with options where the bodies stand, as <see cref="WithOptions"/> does near the origin.
+        /// </summary>
+        private static bool WithOptionsHere(Operation operation, GeoSolid3 first, GeoSolid3 second, SolidBooleanOptions options, bool check, out GeoSolid3 result, out BooleanOutcome outcome, out bool good, out bool again, out GeoSolid3 put, out GeoSolid3 resultAgain, out GeoSolid3 open)
+        {
             again = false;
             resultAgain = null;
             Tolerance tolerance = options.Tolerance;

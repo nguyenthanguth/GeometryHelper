@@ -56,6 +56,12 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(solid));
             }
 
+            // A body far out is asked near the origin, the point moved in with it; see Boolean3.FarBody.
+            if (Boolean3.FarBody.TryFor(solid, tolerance, out Boolean3.FarBody far))
+            {
+                return Boolean3.FarFrame.Inside(() => SignedDistanceTo(far.Moved, far.In(point), tolerance));
+            }
+
             return Signed(ReachToSurface(solid, point, tolerance), Containment3.Locate(solid, point, tolerance));
         }
 

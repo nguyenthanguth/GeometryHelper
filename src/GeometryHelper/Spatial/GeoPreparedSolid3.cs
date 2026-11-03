@@ -23,6 +23,15 @@ namespace GeometryHelper.Spatial
     /// The answers are the body's own: whatever the prepared body says, the body says too, only slower. It is a
     /// snapshot — immutable, safe to share between threads, and holding the body it was made from.
     /// </para>
+    /// <para>
+    /// A body far out, as <see cref="Containment3.Locate(GeoSolid3, GeoPoint3, Tolerance)"/> says, is prepared again in
+    /// its frame the first time it is asked where a point, a ray or a line stands against it, its openings cut, its surface
+    /// meshed and indexed there, and asked there from then on, the probe moved in and what has a place moved back out.
+    /// <see cref="Material"/>, <see cref="Surface"/>, <see cref="Index"/> and what it weighs another body by stay where the
+    /// body stands. Where it stood, of 2 080 rays half a hundredth in and out from an L 100 by 80 by 50 with a pocket and a
+    /// hole, prepared a hundred million out at a hundredth, 48 were given other crossings than at the origin, and of 2 016
+    /// a thousand million out, 52; 1 and none are, a ray along the world's Y axis.
+    /// </para>
     /// </remarks>
     public sealed class GeoPreparedSolid3
     {
@@ -42,6 +51,11 @@ namespace GeometryHelper.Spatial
         private readonly GeoTriangle3[] _surface;
         private readonly GeoPoint3[] _corners;
         private readonly bool _convex;
+        private readonly Tolerance _tolerance;
+
+        // The body prepared again in the frame it is asked where a point, a ray or a line stands against it, where it stands
+        // far out; made the first time it is asked so, whole or not at all. See TryFramed.
+        private volatile GeoPreparedSolid3 _framed;
 
         /// <summary>
         /// Prepares a body, using the default tolerance.
@@ -61,6 +75,7 @@ namespace GeometryHelper.Spatial
         public GeoPreparedSolid3(GeoSolid3 solid, Tolerance tolerance)
         {
             Solid = solid ?? throw new ArgumentNullException(nameof(solid));
+            _tolerance = tolerance;
 
             // Openings that take all the material leave the gross body, as every query of the body does. Wound outwards
             // once here, as the convexity, the parting faces and every boolean of a pair read it.
@@ -125,6 +140,21 @@ namespace GeometryHelper.Spatial
         /// </remarks>
         public PointLocation Locate(GeoPoint3 point, Tolerance tolerance)
         {
+            // A body far out is asked in its frame, the point moved in; see TryFramed.
+            if (TryFramed(tolerance, out Boolean3.FarBody far, out GeoPreparedSolid3 framed))
+            {
+                return Boolean3.FarFrame.Inside(() => framed.Locate(far.In(point), tolerance));
+            }
+
+            return LocateHere(point, tolerance);
+        }
+
+        /// <summary>
+        /// Locates a point where the body stands, as <see cref="Locate(GeoPoint3, Tolerance)"/> does near the origin: what this
+        /// body asks of itself where it meets another.
+        /// </summary>
+        private PointLocation LocateHere(GeoPoint3 point, Tolerance tolerance)
+        {
             if (Box.DistanceTo(point) > tolerance.EqualPoint)
             {
                 return PointLocation.OutSide;
@@ -173,7 +203,15 @@ namespace GeometryHelper.Spatial
         /// Gets how far a point is from the material, within a tolerance; nought for a point it holds.
         /// </summary>
         public double DistanceTo(GeoPoint3 point, Tolerance tolerance)
-            => Locate(point, tolerance) == PointLocation.OutSide ? Index.DistanceTo(point, tolerance) : 0.0;
+        {
+            // A body far out is asked in its frame, the point moved in; see TryFramed.
+            if (TryFramed(tolerance, out Boolean3.FarBody far, out GeoPreparedSolid3 framed))
+            {
+                return Boolean3.FarFrame.Inside(() => framed.DistanceTo(far.In(point), tolerance));
+            }
+
+            return LocateHere(point, tolerance) == PointLocation.OutSide ? Index.DistanceTo(point, tolerance) : 0.0;
+        }
 
         /// <summary>
         /// Gets how far a point is from where the material ends, negative inside it, using the default tolerance.
@@ -185,7 +223,13 @@ namespace GeometryHelper.Spatial
         /// </summary>
         public double SignedDistanceTo(GeoPoint3 point, Tolerance tolerance)
         {
-            PointLocation where = Locate(point, tolerance);
+            // A body far out is asked in its frame, the point moved in; see TryFramed.
+            if (TryFramed(tolerance, out Boolean3.FarBody far, out GeoPreparedSolid3 framed))
+            {
+                return Boolean3.FarFrame.Inside(() => framed.SignedDistanceTo(far.In(point), tolerance));
+            }
+
+            PointLocation where = LocateHere(point, tolerance);
 
             if (where == PointLocation.OnSide)
             {
@@ -205,7 +249,16 @@ namespace GeometryHelper.Spatial
         /// <summary>
         /// Gets the point where the material ends nearest a point, within a tolerance.
         /// </summary>
-        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point, Tolerance tolerance) => Index.GetClosestPoint(point, tolerance);
+        public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point, Tolerance tolerance)
+        {
+            // A body far out is asked in its frame, the point moved in and the one it gives moved out; see TryFramed.
+            if (TryFramed(tolerance, out Boolean3.FarBody far, out GeoPreparedSolid3 framed))
+            {
+                return far.Out(Boolean3.FarFrame.Inside(() => framed.GetClosestPointOnBoundary(far.In(point), tolerance)));
+            }
+
+            return Index.GetClosestPoint(point, tolerance);
+        }
 
         #endregion
 
@@ -232,6 +285,12 @@ namespace GeometryHelper.Spatial
         /// </remarks>
         public GeoPoint3[] GetIntersections(GeoRay3 ray, Tolerance tolerance)
         {
+            // A body far out is asked in its frame, the ray moved in and where they meet moved out; see TryFramed.
+            if (TryFramed(tolerance, out Boolean3.FarBody far, out GeoPreparedSolid3 framed))
+            {
+                return far.Out(Boolean3.FarFrame.Inside(() => framed.GetIntersections(far.In(ray), tolerance)));
+            }
+
             var hits = new List<GeoPoint3>();
 
             // Below the rounding a seam is one crossing to eight times it, which at a tolerance of nought is what its two triangles
@@ -272,7 +331,15 @@ namespace GeometryHelper.Spatial
         /// crossings read as <see cref="GetIntersections(GeoRay3, Tolerance)"/> reads them.
         /// </summary>
         public bool CollidesWith(GeoRay3 ray, Tolerance tolerance)
-            => Contains(ray.Origin, tolerance) || Index.GetIntersections(ray, tolerance).Length > 0;
+        {
+            // A body far out is asked in its frame, the ray moved in; see TryFramed.
+            if (TryFramed(tolerance, out Boolean3.FarBody far, out GeoPreparedSolid3 framed))
+            {
+                return Boolean3.FarFrame.Inside(() => framed.CollidesWith(far.In(ray), tolerance));
+            }
+
+            return LocateHere(ray.Origin, tolerance) != PointLocation.OutSide || Index.GetIntersections(ray, tolerance).Length > 0;
+        }
 
         /// <summary>
         /// The distances along a ray of every crossing the index reports, sorted, one per triangle.
@@ -311,6 +378,12 @@ namespace GeometryHelper.Spatial
         /// </remarks>
         public GeoPoint3[] GetIntersections(GeoXLine3 xline, Tolerance tolerance)
         {
+            // A body far out is asked in its frame, the line moved in and where they meet moved out; see TryFramed.
+            if (TryFramed(tolerance, out Boolean3.FarBody far, out GeoPreparedSolid3 framed))
+            {
+                return far.Out(Boolean3.FarFrame.Inside(() => framed.GetIntersections(far.In(xline), tolerance)));
+            }
+
             var hits = new List<GeoPoint3>();
             var reaches = new List<double>();
 
@@ -354,7 +427,50 @@ namespace GeometryHelper.Spatial
         /// crossings read as <see cref="GetIntersections(GeoXLine3, Tolerance)"/> reads them.
         /// </summary>
         public bool CollidesWith(GeoXLine3 xline, Tolerance tolerance)
-            => Contains(xline.Origin, tolerance) || Index.GetIntersections(xline, tolerance).Length > 0;
+        {
+            // A body far out is asked in its frame, the line moved in; see TryFramed.
+            if (TryFramed(tolerance, out Boolean3.FarBody far, out GeoPreparedSolid3 framed))
+            {
+                return Boolean3.FarFrame.Inside(() => framed.CollidesWith(far.In(xline), tolerance));
+            }
+
+            return LocateHere(xline.Origin, tolerance) != PointLocation.OutSide || Index.GetIntersections(xline, tolerance).Length > 0;
+        }
+
+        /// <summary>
+        /// Gets the body prepared again in the frame it is asked where a point, a ray or a line stands against it, where it
+        /// stands far out, as <see cref="GeoSolid3"/> is asked: its openings cut, its surface meshed and indexed there, made
+        /// the first time it is asked so and kept.
+        /// </summary>
+        /// <param name="tolerance">The tolerance the question is asked within.</param>
+        /// <param name="far">The body moved into its frame, to move a probe in and an answer out by; null when the method
+        /// returns false.</param>
+        /// <param name="framed">The body prepared in the frame; null when the method returns false.</param>
+        /// <returns>
+        /// true where the body stands far out and the frame admits both the tolerance it was prepared within and the one asked;
+        /// otherwise false, and the question is answered where the body stands, as it was.
+        /// </returns>
+        private bool TryFramed(Tolerance tolerance, out Boolean3.FarBody far, out GeoPreparedSolid3 framed)
+        {
+            framed = null;
+
+            if (!Boolean3.FarBody.TryFor(Solid, _tolerance, out far) || !far.Admits(tolerance))
+            {
+                far = null;
+                return false;
+            }
+
+            framed = _framed;
+
+            if (framed == null)
+            {
+                GeoSolid3 moved = far.Moved;
+                framed = Boolean3.FarFrame.Inside(() => new GeoPreparedSolid3(moved, _tolerance));
+                _framed = framed;
+            }
+
+            return true;
+        }
 
         #endregion
 
@@ -390,8 +506,8 @@ namespace GeometryHelper.Spatial
                 return true;
             }
 
-            return (_surface.Length > 0 && other.Locate(_surface[0].A, tolerance) == PointLocation.Inside)
-                || (other._surface.Length > 0 && Locate(other._surface[0].A, tolerance) == PointLocation.Inside);
+            return (_surface.Length > 0 && other.LocateHere(_surface[0].A, tolerance) == PointLocation.Inside)
+                || (other._surface.Length > 0 && LocateHere(other._surface[0].A, tolerance) == PointLocation.Inside);
         }
 
         /// <summary>
@@ -689,7 +805,7 @@ namespace GeometryHelper.Spatial
 
             foreach (GeoPoint3 corner in regionCorners)
             {
-                if (Locate(corner, tolerance) != PointLocation.OutSide)
+                if (LocateHere(corner, tolerance) != PointLocation.OutSide)
                 {
                     corners.Add(corner);
                 }
