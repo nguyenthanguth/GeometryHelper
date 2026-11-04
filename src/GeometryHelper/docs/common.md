@@ -1192,8 +1192,39 @@ measures it (check F2):
   draws it in arialbd.ttf. A collection (.ttc) is measured by its first face where the style names that face's typeface;
   AutoCAD loads none of a style that names no typeface.
 
+A style's big font (`BigFontFileName`: gbcbig.shx, chineset.shx, extfont.shx) is read from the same folders, and its letters
+are drawn beside the style's SHX font as AutoCAD 2021 draws them (check F3):
+
+- A text's letters are read in the code page AutoCAD gives the big font's name: GBK for gbcbig.shx, Big5 for chineset.shx,
+  Shift-JIS for bigfont, extfont, extfont2 and @extfont2.shx, and Korean for whgtxt, whgdtxt, whtgtxt and whtmtxt.shx,
+  named bare, in any case, with or without `.shx`. So 中 is gbcbig.shx's letter D6D0 and chineset.shx's A4A4. AutoCAD reads
+  a big font of any other name, or one named with its folder, in no code page: its texts are measured where every letter is
+  ASCII. On .NET, not .NET Framework, the code pages need `CodePagesEncodingProvider` registered, as a DXF of them does.
+- A letter of two bytes the big font has is drawn from it before the style's font: Ж beside extfont.shx is its own. The
+  degree, plus-minus and diameter signs stay the font's. A byte alone is the font's letter, else the big font's (the
+  half-width kana of extfont.shx). A space is the big font's where it has one: extfont.shx's is 9 of 15 wide, so "A B" of
+  txt.shx 4 high is 9.067 wide, not 10.667. A byte that opens a letter of two takes the next letter with it (special.shx's
+  "~!"). A letter neither font has is the big font's question mark where it has one, else the font's.
+- The big font's letters are as high as its height above. gbcbig.shx's is nought, read as 8, so 中 4 high is half a unit to
+  the unit, and "A中B" of txt.shx and gbcbig.shx centred on (100, 50) stands at (95.211, 50). A TEXT at its bottom stands on
+  the big font's depth: gbcbig.shx's 64 of 8 puts it 32 up at 4 high, whatever its letters. The shapes of an extended big font
+  (extfont.shx) are stretched into the box each letter gives them, and a whole circle of a big font is not drawn
+  (chineset.shx's full stop is its dot alone).
+- A TEXT of txt.shx and gbcbig.shx "中A" is boxed from 0, not from 中's ink at 0.529: the first letter of the font after letters
+  of the big font, where it puts its pen down before it moves, is inked where they began. An MTEXT is not boxed so, and
+  leaves ink left of its start out (whgdtxt.shx's "한국어" 4 high is 14.083 wide, though inked from -0.208).
+
+Not measured beside a big font: a font of shapes (times.shx beside gbcbig.shx), a letter of a shape the big font draws from the
+style's font (special.shx's), a multibyte code (`\M+`), which AutoCAD draws by its two bytes whatever its code page, and in an
+MTEXT a letter neither font has and the ideographic space, which AutoCAD draws from other fonts or spaces otherwise. A TrueType
+style's big font is not drawn at all. Of AutoCAD 2021's ten Chinese, Japanese and Korean big fonts read in place, 6 910 of 6 910
+letters are boxed as AutoCAD boxes them, and 158 of 158 letters with whole circles. Of the TEXTs of checks F3 and F1a in styles
+with a big font, 15 382 measured give AutoCAD's place and box and 68 do not: 64 that the font gives without a big font too
+(isocp.shx's stand-in for a letter it has not, romans.shx's Ą, txt.shx's "i" aligned on two points) and 4 of an ideographic
+space alone aligned on two points.
+
 The results follow the fonts supplied, so they differ between machines and between versions of a font, as AutoCAD's drawings
-do. The letters of a big font and fonts of shapes are not measured, nor the lines of `%%u`, `%%o` and `%%k` of an SHX font
+do. Fonts of shapes are not measured, nor the lines of `%%u`, `%%o` and `%%k` of an SHX font
 and of `%%k` of a TrueType one; nor TrueType fonts of CFF outlines or of symbols (Symbol, Wingdings, some of whose letters
 AutoCAD draws from other fonts), a style named by its typeface alone, a letter a TrueType font has not, which Windows may
 draw from another font, and in an MTEXT a change of width or height after its first letter; their entities stay as they are

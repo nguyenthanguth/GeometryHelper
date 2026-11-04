@@ -115,7 +115,11 @@ namespace GeometryHelper.Dxf
             set => SetText(3, value, ref _fileName, FileName);
         }
 
-        /// <summary>Gets or sets the file of the style's big font (group 4), as AutoCAD's <c>BigFontFileName</c>; empty where the record gives none.</summary>
+        /// <summary>
+        /// Gets or sets the file of the style's big font (group 4), as AutoCAD's <c>BigFontFileName</c>; empty where the record
+        /// gives none. Where the drawing's <see cref="DxfDatabase.FontSearchPath"/> finds it, the letters of the style's texts
+        /// are measured in it beside the style's font, as that says: gbcbig.shx's 中 4 high 2.912 wide.
+        /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the name set is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the name set has a line break in it.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the style is erased.</exception>

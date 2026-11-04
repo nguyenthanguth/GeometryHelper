@@ -36,12 +36,25 @@ namespace GeometryHelper.Dxf
         /// names it.
         /// </para>
         /// <para>
+        /// A style's big font (<see cref="DxfTextStyleTableRecord.BigFontFileName"/>) is read from the same folders and its
+        /// letters drawn beside the style's SHX font as AutoCAD 2021 draws them (check F3): a text's letters read in the code
+        /// page AutoCAD gives the big font's name, GBK for gbcbig.shx, Big5 for chineset.shx, Shift-JIS for bigfont.shx,
+        /// extfont.shx, extfont2.shx and @extfont2.shx, and Korean for whgtxt.shx, whgdtxt.shx, whtgtxt.shx and whtmtxt.shx,
+        /// so that 中 is gbcbig.shx's D6D0 and chineset.shx's A4A4; a letter of two bytes the big font has drawn from it, but
+        /// °, ± and ∅; a byte alone the font's letter, else the big font's; a space the big font's where it has one; and a
+        /// letter neither font has the big font's question mark where it has one. "A中B" of txt.shx and gbcbig.shx, 4 high and
+        /// centred on (100, 50, 0), stands at (95.211, 50, 0), as AutoCAD puts it. A big font of another name, or named with
+        /// its folder, AutoCAD reads in no code page, and its texts are measured where every letter is of ASCII. On .NET, not
+        /// .NET Framework, the code pages of big fonts are read where <c>CodePagesEncodingProvider</c> is registered, as for a
+        /// DXF of them. A TrueType style's big font is not drawn.
+        /// </para>
+        /// <para>
         /// The results follow the fonts supplied, so that they differ between machines and between versions of a font, as
-        /// AutoCAD's drawings do. Big fonts and fonts of shapes are not measured, nor TrueType fonts of CFF outlines or of
-        /// symbols, a style named by its typeface alone, one of another typeface than its file, and a collection a style
-        /// names by no typeface: a style of one, or of a font in none of the folders, lays its words out as with no fonts, the
-        /// log saying so at Debug once a file, and a file that is found but is no font, or cannot be read, is said at Warn;
-        /// nothing throws. Each set reads the fonts anew. No folder is looked in that is not given: not the Fonts folder of
+        /// AutoCAD's drawings do. Fonts of shapes are not measured, nor one beside a big font, a multibyte code (<c>\M+</c>)
+        /// beside a big font, TrueType fonts of CFF outlines or of symbols, a style named by its typeface alone, one of another
+        /// typeface than its file, and a collection a style names by no typeface: a style of one, or of a font in none of the
+        /// folders, lays its words out as with no fonts, the log saying so at Debug once a file, and a file that is found but
+        /// is no font, or cannot be read, is said at Warn; nothing throws. Each set reads the fonts anew. No folder is looked in that is not given: not the Fonts folder of
         /// Windows, and no font is put in for another, as AutoCAD's FONTALT puts one, or as Windows draws a letter a TrueType
         /// font has not from a font it links it to: a TEXT of such a letter is not measured.
         /// </para>

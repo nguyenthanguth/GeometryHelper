@@ -20,11 +20,15 @@ namespace GeometryHelper.Dxf
         /// <summary>A letter as it is drawn: the pen's last x, and the points of its ink, in the font's units.</summary>
         internal sealed class Glyph
         {
-            internal Glyph(double advance, double[] xs, double[] ys)
+            internal Glyph(double advance, double[] xs, double[] ys, bool inksOrigin = false, bool isWhole = true, double penBottom = 0.0, double penTop = 0.0)
             {
                 Advance = advance;
                 Xs = xs;
                 Ys = ys;
+                InksOrigin = inksOrigin;
+                IsWhole = isWhole;
+                PenBottom = penBottom;
+                PenTop = penTop;
             }
 
             /// <summary>How far the letter moves the pen along x: its last x.</summary>
@@ -38,6 +42,18 @@ namespace GeometryHelper.Dxf
 
             /// <summary>Whether the letter leaves any ink.</summary>
             internal bool HasInk => Xs.Length > 0;
+
+            /// <summary>Whether the letter puts its pen down where it starts before it moves it, as txt's A does.</summary>
+            internal bool InksOrigin { get; }
+
+            /// <summary>Whether the letter is drawn whole: false for a letter of a big font that draws a shape the font has not, or an arc in a shape it stretches, which AutoCAD 2021 draws otherwise.</summary>
+            internal bool IsWhole { get; }
+
+            /// <summary>The least y the pen stands at, its ink or not, from nought down: gbcbig.shx's 中 -5 times 9/102.</summary>
+            internal double PenBottom { get; }
+
+            /// <summary>The greatest y the pen stands at, its ink or not, from nought up.</summary>
+            internal double PenTop { get; }
         }
     }
 }

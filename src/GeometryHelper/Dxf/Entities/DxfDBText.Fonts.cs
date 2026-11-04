@@ -72,12 +72,13 @@ namespace GeometryHelper.Dxf
         /// The text's words measured in the SHX or TrueType font of its style at a height and width factor, where its drawing's
         /// <see cref="DxfDatabase.FontSearchPath"/> finds it, a copy in no file measured in the drawing it was copied from; null
         /// where it does not, the text is in no drawing, is written backwards or upside down, or is an attribute of several
-        /// lines.
+        /// lines; and where its style's big font is read and its words hold a multibyte code (<c>\M+1D6D0</c>), which AutoCAD
+        /// 2021 draws from the big font by its two bytes, whatever its code page (check F1a), and the words read in their own.
         /// </summary>
-        private DxfTextLine Words(double height, double widthFactor, out DxfFont font, out bool bigFont)
+        private DxfTextLine Words(double height, double widthFactor, out DxfFont font, out DxfFonts.Big big)
         {
             font = null;
-            bigFont = false;
+            big = null;
             DxfFonts fonts = (IsResident ? Item.File : Item.File.Origin)?.Database?.Fonts;
 
             if (fonts == null || IsMirroredInX || IsMirroredInY || (IsAttribute && Embedded))
@@ -85,8 +86,15 @@ namespace GeometryHelper.Dxf
                 return null;
             }
 
-            font = fonts.FontOf(TextStyle, out bigFont);
-            return font == null ? null : DxfFonts.Text(font, bigFont, TextString, height, widthFactor);
+            font = fonts.FontOf(TextStyle, out big);
+            string raw = big?.Font != null ? GetString(1) ?? string.Empty : string.Empty;
+
+            if (raw.IndexOf("\\M+", StringComparison.Ordinal) >= 0 || raw.IndexOf("\\m+", StringComparison.Ordinal) >= 0)
+            {
+                return null;
+            }
+
+            return font == null ? null : DxfFonts.Text(font, big, TextString, height, widthFactor);
         }
 
         /// <summary>
@@ -107,7 +115,7 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            DxfTextLine words = Words(Height, WidthFactor, out DxfFont font, out bool bigFont);
+            DxfTextLine words = Words(Height, WidthFactor, out DxfFont font, out DxfFonts.Big big);
 
             if (words == null)
             {
@@ -127,12 +135,12 @@ namespace GeometryHelper.Dxf
 
                 if ((horizontal == 3 || horizontal == 5) && vertical == 0)
                 {
-                    Fit(font, bigFont, horizontal, height, widthFactor, first, second);
+                    Fit(font, big, horizontal, height, widthFactor, first, second);
                     return;
                 }
 
                 string text = TextString;
-                double[] placed = Placed(font, bigFont, text, horizontal, vertical, height, widthFactor, TextDouble(50, 0.0), second.X, second.Y, BitConverter.DoubleToInt64Bits(height) == BitConverter.DoubleToInt64Bits(Height) ? words : null);
+                double[] placed = Placed(font, big, text, horizontal, vertical, height, widthFactor, TextDouble(50, 0.0), second.X, second.Y, BitConverter.DoubleToInt64Bits(height) == BitConverter.DoubleToInt64Bits(Height) ? words : null);
 
                 if (placed != null)
                 {
@@ -153,7 +161,7 @@ namespace GeometryHelper.Dxf
                     double ratio = contexts.Ratios[i];
                     double tall = Guard.IsFinite(ratio) && ratio > 0.0 ? height * contexts.DefaultRatio / ratio : height;
                     double degrees = context.Value(ContextText.Degrees, TextDouble(50, 0.0));
-                    placed = Placed(font, bigFont, text, mode, vertical, tall, widthFactor, degrees, context.Value(ContextText.AlignedX, second.X), context.Value(ContextText.AlignedY, second.Y));
+                    placed = Placed(font, big, text, mode, vertical, tall, widthFactor, degrees, context.Value(ContextText.AlignedX, second.X), context.Value(ContextText.AlignedY, second.Y));
 
                     if (placed != null && context.Has(ContextText.X) && context.Has(ContextText.Y))
                     {
@@ -182,11 +190,11 @@ namespace GeometryHelper.Dxf
         /// </summary>
         internal GeoVector3? Readable(GeoTransform3 mirror)
         {
-            DxfTextLine words = Words(Height, WidthFactor, out DxfFont font, out bool bigFont);
+            DxfTextLine words = Words(Height, WidthFactor, out DxfFont font, out DxfFonts.Big big);
 
             if (words != null && font is DxfTrueTypeFont)
             {
-                words = DxfFonts.Text(font, bigFont, TextString.Trim(' '), Height, WidthFactor);
+                words = DxfFonts.Text(font, big, TextString.Trim(' '), Height, WidthFactor);
             }
 
             if (words == null || !words.HasInk)
@@ -237,25 +245,28 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Where a text's first point stands, in the system of its plane, for its words held by its second point as its modes
         /// say, turned by an angle in degrees, as <see cref="Realign"/> works it out; null for modes AutoCAD has no place for, for
-        /// words of no box, and for one at the bottom with a big font, whose depth is not read. The words measured already at the
-        /// height and width factor are given where they are.
+        /// words of no box, and for one at the bottom with a big font that is not read. One at the bottom with a big font that is
+        /// stands on the big font's depth, as AutoCAD 2021 stands it whatever its letters (checks F1a and F3): txt and gbcbig 4
+        /// high 32 up, its depth 64 over its height 8. The words measured already at the height and width factor are given where
+        /// they are.
         /// </summary>
-        private static double[] Placed(DxfFont font, bool bigFont, string text, int horizontal, int vertical, double height, double widthFactor, double degrees, double x, double y, DxfTextLine measured = null)
+        private static double[] Placed(DxfFont font, DxfFonts.Big big, string text, int horizontal, int vertical, double height, double widthFactor, double degrees, double x, double y, DxfTextLine measured = null)
         {
             if (horizontal < 0 || horizontal > 4 || horizontal == 3 || vertical < 0 || vertical > 3 || (horizontal == 4 && vertical != 0) || (horizontal == 0 && vertical == 0))
             {
                 return null;
             }
 
-            DxfTextLine line = measured ?? DxfFonts.Text(font, bigFont, text, height, widthFactor);
+            DxfTextLine line = measured ?? DxfFonts.Text(font, big, text, height, widthFactor);
 
-            if (line == null || !line.AlignmentBox(out double left, out double right, out double bottom, out double top) || (vertical == 1 && bigFont))
+            if (line == null || !line.AlignmentBox(out double left, out double right, out double bottom, out double top) || (vertical == 1 && big != null && big.Font == null))
             {
                 return null;
             }
 
+            DxfFont deep = big?.Font ?? font;
             double across = horizontal == 0 ? 0.0 : horizontal == 2 ? -right : -(left + right) / 2.0;
-            double up = horizontal == 4 ? -(bottom + top) / 2.0 : vertical == 3 ? -height : vertical == 2 ? -height / 2.0 : vertical == 1 ? height * font.Below / font.Above : 0.0;
+            double up = horizontal == 4 ? -(bottom + top) / 2.0 : vertical == 3 ? -height : vertical == 2 ? -height / 2.0 : vertical == 1 ? height * deep.Below / deep.Above : 0.0;
             double radians = degrees * (Math.PI / 180.0);
             double cos = Math.Cos(radians);
             double sin = Math.Sin(radians);
@@ -267,9 +278,9 @@ namespace GeometryHelper.Dxf
         /// its words gives the one it has, as AutoCAD 2021 gives them (check F1a): "ABC" of txt.shx 4 high aligned on two points
         /// 30 apart is 11.25 high. Left as it is where its words have no box, or reach no way right, or its points are one.
         /// </summary>
-        private void Fit(DxfFont font, bool bigFont, int horizontal, double height, double widthFactor, GeoPoint3 first, GeoPoint3 second)
+        private void Fit(DxfFont font, DxfFonts.Big big, int horizontal, double height, double widthFactor, GeoPoint3 first, GeoPoint3 second)
         {
-            DxfTextLine line = DxfFonts.Text(font, bigFont, TextString, height, widthFactor);
+            DxfTextLine line = DxfFonts.Text(font, big, TextString, height, widthFactor);
             double apart = Math.Sqrt(((second.X - first.X) * (second.X - first.X)) + ((second.Y - first.Y) * (second.Y - first.Y)));
 
             if (line == null || !line.AlignmentBox(out _, out double right, out _, out _) || !(right > 0.0) || !(apart > 0.0))

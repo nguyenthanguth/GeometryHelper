@@ -455,8 +455,8 @@ namespace GeometryHelper.Dxf
                 return null;
             }
 
-            DxfFont font = fonts.FontOf(style, out _);
-            DxfTextLine line = font == null ? null : DxfFonts.MText(font, Text(m, 304) ?? string.Empty, height);
+            DxfFont font = fonts.FontOf(style, out DxfFonts.Big big);
+            DxfTextLine line = font == null ? null : DxfFonts.MText(font, big, Text(m, 304) ?? string.Empty, height);
             double wrap = Num(Text(m, 43), 0.0);
             return line == null || (wrap > 0.0 && !(line.ActualWidth < wrap)) ? null : line;
         }

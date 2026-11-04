@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace GeometryHelper.Dxf
@@ -18,11 +19,27 @@ namespace GeometryHelper.Dxf
     /// of a .ttf, .ttc or .otf file of glyf outlines that is the face AutoCAD draws the style in, found in those folders; not
     /// where it is a font of shapes, one written down the page, a TrueType font of CFF outlines or of symbols, one named by
     /// its typeface alone, or one not found, each of which the drawing's entities lay out as they did with no fonts, the log
-    /// saying so once a file at Debug; a file found but not read as a font is said once at Warn. A style of a big font is
-    /// measured where every letter is its main font's, which AutoCAD draws first.
+    /// saying so once a file at Debug; a file found but not read as a font is said once at Warn. A style of an SHX font and a
+    /// big font (<see cref="DxfTextStyleTableRecord.BigFontFileName"/>) found in those folders is measured as AutoCAD 2021
+    /// draws it (check F3), each letter from one font or the other as <see cref="Text"/> says; one whose big font is not
+    /// found or read only where every letter is its main font's; and a TrueType style's big font is not drawn at all.
     /// </remarks>
     internal sealed class DxfFonts
     {
+        // The code page of each big font AutoCAD 2021 knows by its name (check F3), the letters of a text read in it to the
+        // big font's numbers: 中 is D6D0 in gbcbig.shx (GBK), A4A4 in chineset.shx (Big5) and 9286 in extfont.shx (Shift-JIS).
+        // AutoCAD reads a big font of another name, or one named with its folder, in none of them.
+        private static readonly Dictionary<string, int> BigPages = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "bigfont", 932 }, { "extfont", 932 }, { "extfont2", 932 }, { "@extfont2", 932 }, { "gbcbig", 936 },
+            { "whgdtxt", 949 }, { "whgtxt", 949 }, { "whtgtxt", 949 }, { "whtmtxt", 949 }, { "chineset", 950 },
+        };
+
+        // The byte of each ASCII letter, which is its own in every code page, read but never written.
+        private static readonly byte[][] Ascii = Enumerable.Range(0, 0x80).Select(c => new[] { (byte)c }).ToArray();
+
+        // The code pages of the big fonts, got once a set of the path, so that a page registered after one set is got at the next.
+        private readonly Dictionary<int, Encoding> _pages = new Dictionary<int, Encoding>();
         private readonly string[] _folders;
         private readonly Dictionary<string, string> _paths = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, DxfFont> _fonts = new Dictionary<string, DxfFont>(StringComparer.OrdinalIgnoreCase);
@@ -46,26 +63,38 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// The font of a style, and whether the style has a big font beside it; null where it is not measured: a font of
-        /// shapes, one written down the page, one not found or not read, and a TrueType font that is not the face AutoCAD 2021
-        /// draws the style in (check F2): one of another typeface, bold or italic than the style's <see cref="DxfFontDescriptor"/>
+        /// The font of a style, and the big font beside it, null where the style names none or its font is a TrueType font,
+        /// whose big font AutoCAD 2021 does not draw (check F3); null where it is not measured: a font of shapes, one written
+        /// down the page, one not found or not read, a big font, and a TrueType font that is not the face AutoCAD 2021 draws
+        /// the style in (check F2): one of another typeface, bold or italic than the style's <see cref="DxfFontDescriptor"/>
         /// (arial.ttf for Arial bold, which AutoCAD draws in arialbd.ttf), or a collection of a style of no typeface, which
         /// AutoCAD does not load.
         /// </summary>
-        internal DxfFont FontOf(DxfTextStyleTableRecord style, out bool bigFont)
+        internal DxfFont FontOf(DxfTextStyleTableRecord style, out Big big)
         {
-            bigFont = false;
+            big = null;
 
             if (style == null || style.IsShapeFile || style.IsVertical)
             {
                 return null;
             }
 
-            bigFont = style.BigFontFileName.Trim().Length > 0;
+            string bigName = style.BigFontFileName.Trim();
             DxfFont font = Find(style.FileName);
+
+            if (font is DxfShxFont shx && shx.IsBig)
+            {
+                lock (_lock)
+                {
+                    Say(style.FileName.Trim() + "|main", "DxfDatabase: the font " + style.FileName.Trim() + " is a big font, which a style draws beside its font and not as it; its texts are laid out as they are without fonts.", true);
+                }
+
+                return null;
+            }
 
             if (!(font is DxfTrueTypeFont trueType))
             {
+                big = font != null && bigName.Length > 0 ? BigOf(bigName) : null;
                 return font;
             }
 
@@ -89,6 +118,80 @@ namespace GeometryHelper.Dxf
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// The big font of a style's file name, found as its font is, and the code page AutoCAD 2021 reads a text's letters in
+        /// for it: of a name it knows, bare, its extension or not and of any case (<c>gbcbig</c>, <c>GBCBIG.SHX</c>), and none
+        /// for another, or one written with its folder; its font null where it is not found or is no big font, said once at
+        /// Debug, as is a code page the runtime has not got (on .NET without <c>CodePagesEncodingProvider</c> registered).
+        /// </summary>
+        private Big BigOf(string name)
+        {
+            DxfFont found = Find(name);
+
+            if (!(found is DxfShxFont shx) || !shx.IsBig)
+            {
+                if (found != null)
+                {
+                    lock (_lock)
+                    {
+                        Say(name + "|big", "DxfDatabase: the big font " + name + " is no big font; its texts are laid out as they are without fonts where a letter is not their font's.", false);
+                    }
+                }
+
+                return new Big(null, null);
+            }
+
+            Encoding page = null;
+            string bare = name.EndsWith(".shx", StringComparison.OrdinalIgnoreCase) ? name.Substring(0, name.Length - 4) : name;
+
+            if (name.IndexOfAny(new[] { '\\', '/', ':' }) < 0 && BigPages.TryGetValue(bare, out int number))
+            {
+                lock (_lock)
+                {
+                    if (!_pages.TryGetValue(number, out page))
+                    {
+                        try
+                        {
+                            // No best fit: a letter the page has not is none (check F3, the yen sign of chineset.shx drawn from txt.shx).
+                            page = Encoding.GetEncoding(number, new EncoderReplacementFallback(string.Empty), DecoderFallback.ReplacementFallback);
+                        }
+                        catch (Exception e) when (e is ArgumentException || e is NotSupportedException)
+                        {
+                            page = null;
+                        }
+
+                        _pages.Add(number, page);
+                    }
+                }
+
+                if (page == null)
+                {
+                    lock (_lock)
+                    {
+                        Say(name + "|page", "DxfDatabase: the code page " + number.ToString(CultureInfo.InvariantCulture) + " of the big font " + name + " is not in the runtime (register CodePagesEncodingProvider); its texts are measured where every letter is of ASCII.", false);
+                    }
+                }
+            }
+
+            return new Big(shx, page);
+        }
+
+        /// <summary>A style's big font and the code page AutoCAD 2021 reads its letters in: the font null where it is not found or read, the page null where AutoCAD reads it in none (a font of another name) or the runtime has it not.</summary>
+        internal sealed class Big
+        {
+            internal Big(DxfShxFont font, Encoding page)
+            {
+                Font = font;
+                Page = page;
+            }
+
+            /// <summary>The big font; null where it is not found or read.</summary>
+            internal DxfShxFont Font { get; }
+
+            /// <summary>The code page its letters are read in; null for none.</summary>
+            internal Encoding Page { get; }
         }
 
         /// <summary>The font of a file's name, <c>.shx</c> added where it has no extension, from the first folder that has it; null where none has it, it is no SHX or TrueType file, or it is no font.</summary>
@@ -174,7 +277,7 @@ namespace GeometryHelper.Dxf
         {
             DxfFont font = null;
             bool shx = IsShx(path);
-            string why = shx ? "is no SHX font of letters of shapes 1.0 or 1.1 or of a unifont, or is cut short" : "is no TrueType font of glyf outlines and a letter A, or is cut short";
+            string why = shx ? "is no SHX font of shapes 1.0 or 1.1, unifont or big font, or is cut short" : "is no TrueType font of glyf outlines and a letter A, or is cut short";
 
             try
             {
@@ -232,14 +335,20 @@ namespace GeometryHelper.Dxf
         /// The letters of the words of a TEXT, ATTRIB or ATTDEF measured in a font, as AutoCAD 2021 lays them out: %%c, %%d and
         /// %%p the diameter, degree and plus-minus signs (U+2205, U+00B0 and U+00B1 of a unifont, 129, 127 and 128 of a font of
         /// shapes, and of a TrueType font U+00B0, U+00B1 and its U+2205, else its U+00D8), %%% a per cent sign, %%nnn the letter
-        /// of that number; a letter the font has not drawn as its question mark. Null where a big font beside it would draw a
-        /// letter, or a TrueType font has not one, and for words of %%u, %%o or %%k, whose lines AutoCAD 2021 boxes them by (txt
-        /// "%%u%%oA" 4 high centred on -1.4, not on the -1.333 of its letter), which are not measured; but those of %%u and
-        /// %%o of a TrueType font, which AutoCAD does not box them by (check F1a, Arial "%%u%%oA" centred as "A").
+        /// of that number; a letter the font has not drawn as its question mark. Beside a big font that is read, each letter
+        /// from the font or the big font as <see cref="Pick"/> says, a letter neither has drawn as the big font's question mark
+        /// where it has one and else the font's, and the first letter of the font after letters of the big font that puts its
+        /// pen down where it starts inked too where they began, as AutoCAD 2021 boxes it (check F3): txt and gbcbig "中A" 4
+        /// high from 0, not from 中's ink at 0.529, and " 中A" from 4. Null where a big font beside it that is not read would
+        /// draw a letter, a TrueType font has not one, and for words of %%u, %%o or %%k, whose lines AutoCAD 2021 boxes them by
+        /// (txt "%%u%%oA" 4 high centred on -1.4, not on the -1.333 of its letter), which are not measured; but those of %%u
+        /// and %%o of a TrueType font, which AutoCAD does not box them by (check F1a, Arial "%%u%%oA" centred as "A").
         /// </summary>
-        internal static DxfTextLine Text(DxfFont font, bool bigFont, string words, double height, double widthFactor)
+        internal static DxfTextLine Text(DxfFont font, Big big, string words, double height, double widthFactor)
         {
             var line = new DxfTextLine(font);
+            bool drawn = big?.Font != null;
+            List<int> numbers = drawn ? new List<int>() : null;
             int i = 0;
 
             while (i < words.Length)
@@ -279,16 +388,209 @@ namespace GeometryHelper.Dxf
                 }
                 else
                 {
-                    number = NumberOf(font, words, ref i);
+                    number = drawn ? CodePoint(words, ref i) : NumberOf(font, words, ref i);
                 }
 
-                if (!line.Add(number, widthFactor, height, bigFont))
+                if (drawn)
+                {
+                    numbers.Add(number);
+                }
+                else if (!line.Add(number, widthFactor, height, big != null))
                 {
                     return null;
                 }
             }
 
-            return line;
+            return !drawn || Drawn(line, font, big, numbers, null, null, widthFactor, height, true) ? line : null;
+        }
+
+        /// <summary>
+        /// Adds letters to a line, each drawn from a font or the big font beside it as <see cref="Pick"/> says, at a width
+        /// factor and height, or at those of each where they are given (of an MTEXT); false where one is not measured. A letter
+        /// neither font has is, in a TEXT, the big font's question mark where it has one, else the font's; and a letter of the
+        /// font after letters of the big font that puts its pen down where it starts is inked where they began too, as AutoCAD
+        /// 2021 boxes a TEXT (check F3).
+        /// </summary>
+        private static bool Drawn(DxfTextLine line, DxfFont font, Big big, List<int> numbers, List<double> widths, List<double> heights, double widthFactor, double height, bool text)
+        {
+            bool afterBig = false;
+            double began = 0.0;
+            int k = 0;
+
+            while (k < numbers.Count)
+            {
+                // An MTEXT's ideographic space is a space of its own (check F3: txt and extfont.shx U+3000 and 中 4 high 8.267
+                // wide, from the start of the line), which is not measured.
+                if ((!text && numbers[k] == 0x3000) || !Pick(font, big, numbers, k, out DxfFont from, out int number, out int taken))
+                {
+                    return false;
+                }
+
+                if (from == null)
+                {
+                    if (!text)
+                    {
+                        return false;
+                    }
+
+                    from = big.Font.Has('?') ? big.Font : font;
+                    number = '?';
+                }
+
+                DxfFont.Glyph glyph = from.GlyphOf(number);
+
+                if (glyph != null && !glyph.IsWhole)
+                {
+                    return false;
+                }
+
+                if (from == big.Font)
+                {
+                    began = afterBig ? began : line.Advance;
+                    afterBig = true;
+                }
+                else
+                {
+                    if (text && afterBig && glyph != null && glyph.InksOrigin)
+                    {
+                        line.Dot(began, 0.0);
+                    }
+
+                    afterBig = false;
+                }
+
+                // The letter taken last is the one a space is told by: special.shx's "~ " ends in a space, though drawn as one
+                // letter; the ideographic space drawn as a space is none (check F3).
+                line.Add(from, glyph, numbers[k + taken - 1], widths == null ? widthFactor : widths[k], heights == null ? height : heights[k]);
+                k += taken;
+            }
+
+            line.BesideBig();
+            return true;
+        }
+
+        /// <summary>
+        /// The font a letter of words is drawn from beside a big font that is read, and its number there, as AutoCAD 2021 draws
+        /// it (check F3), and how many letters it takes; the font null for a letter neither has, and false where it is not
+        /// measured. The letter is read as bytes in the big font's code page (ASCII as itself), and drawn:
+        /// <list type="bullet">
+        /// <item>°, ± and ∅, the signs of %%d, %%p and %%c, from the font where it has them;</item>
+        /// <item>a byte that opens a letter of two in the big font, with the next letter's byte, as that letter of the big font
+        /// (special.shx's "~!");</item>
+        /// <item>a space as the big font's where it has one (extfont.shx's, 9 of 15 wide), else the font's;</item>
+        /// <item>another byte alone as the font's letter, else the big font's;</item>
+        /// <item>a letter of two bytes as the big font's (中, Ж beside extfont.shx), else the font's (Ж beside gbcbig.shx), and
+        /// the ideographic space a space;</item>
+        /// <item>a letter the page has not as the font's.</item>
+        /// </list>
+        /// Not measured: a letter beyond ASCII beside a big font of no code page or a font of shapes, and a byte that opens a
+        /// letter of two before one of two bytes.
+        /// </summary>
+        private static bool Pick(DxfFont font, Big big, List<int> numbers, int k, out DxfFont from, out int number, out int taken)
+        {
+            DxfShxFont bigFont = big.Font;
+            int c = numbers[k];
+            from = null;
+            number = c;
+            taken = 1;
+
+            // A font of shapes beside a big font is not measured (check F3: times.shx "~!" 4 high beside gbcbig.shx inked a
+            // third of a unit higher than its glyphs are read).
+            if (!ByUnicode(font) || (c >= 0x80 && big.Page == null))
+            {
+                return false;
+            }
+
+            // °, ± and ∅ are the font's (check F3: txt.shx's degree sign beside gbcbig.shx's A1E3).
+            if ((c == 0xB0 || c == 0xB1 || c == 0x2205) && font.GlyphOf(c) != null)
+            {
+                from = font;
+                return true;
+            }
+
+            byte[] bytes = BytesOf(big.Page, c);
+
+            if (bytes == null || bytes.Length > 2)
+            {
+                return false;
+            }
+
+            if (bytes.Length == 1 && bigFont.Opens(bytes[0]) && k + 1 < numbers.Count)
+            {
+                byte[] next = BytesOf(big.Page, numbers[k + 1]);
+
+                if (next == null || next.Length != 1)
+                {
+                    return false;
+                }
+
+                taken = 2;
+                number = (bytes[0] << 8) | next[0];
+                from = bigFont.Has(number) ? bigFont : null;
+                return true;
+            }
+
+            if (bytes.Length == 1 && bytes[0] == ' ')
+            {
+                from = bigFont.Has(' ') ? bigFont : font;
+                return true;
+            }
+
+            // Whatever the big font's ranges: gbcbig.shx's 9DAE (潁), whose 9D its ranges A1 to FE leave out, is drawn (check F3).
+            if (bytes.Length == 2 && bigFont.Has((bytes[0] << 8) | bytes[1]))
+            {
+                from = bigFont;
+                number = (bytes[0] << 8) | bytes[1];
+                return true;
+            }
+
+            if (font.GlyphOf(c) != null)
+            {
+                from = font;
+                return true;
+            }
+
+            if (bytes.Length == 1 && bigFont.Has(bytes[0]))
+            {
+                from = bigFont;
+                number = bytes[0];
+            }
+            else if (c == 0x3000)
+            {
+                from = bigFont.Has(' ') ? bigFont : font;
+                number = ' ';
+            }
+
+            return true;
+        }
+
+        /// <summary>The bytes of a letter in a code page, an ASCII letter its own; none where the page has it not, and null where it is no letter.</summary>
+        private static byte[] BytesOf(Encoding page, int c)
+        {
+            if (c < 0x80)
+            {
+                return Ascii[c];
+            }
+
+            if (page == null || c > 0x10FFFF || (c >= 0xD800 && c <= 0xDFFF))
+            {
+                return null;
+            }
+
+            return page.GetBytes(char.ConvertFromUtf32(c));
+        }
+
+        /// <summary>The Unicode number of the letter at a place of words, read on past it, the two halves of a letter beyond U+FFFF taken together.</summary>
+        private static int CodePoint(string words, ref int i)
+        {
+            if (char.IsHighSurrogate(words[i]) && i + 1 < words.Length && char.IsLowSurrogate(words[i + 1]))
+            {
+                int pair = char.ConvertToUtf32(words[i], words[i + 1]);
+                i += 2;
+                return pair;
+            }
+
+            return words[i++];
         }
 
         /// <summary>
@@ -298,17 +600,32 @@ namespace GeometryHelper.Dxf
         /// for any other code, a new line among them, and a letter the font has not, which AutoCAD 2021 draws from another
         /// font in an MTEXT (txt "中" 4.335 wide, not the 2 of its question mark); null for a font of shapes, whose MTEXT
         /// AutoCAD 2021 measures otherwise than its TEXT (times.shx "A" 3.667 wide, its ink 3.933); and of a TrueType font, null
-        /// for a change of width or height, or a brace, after the first letter (check F2).
+        /// for a change of width or height, or a brace, after the first letter (check F2). Beside a big font that is read, each
+        /// letter from the font or the big font as a TEXT draws it (<see cref="Pick"/>), a letter neither has null, and no
+        /// letter inked where letters of the big font before it began (check F3: txt and gbcbig "中A" 4 high 5.049 wide, from
+        /// 中's ink at 0.529).
         /// </summary>
-        internal static DxfTextLine MText(DxfFont font, string contents, double height)
+        internal static DxfTextLine MText(DxfFont font, Big big, string contents, double height)
         {
             if (!ByUnicode(font))
             {
                 return null;
             }
 
+            bool drawn = big?.Font != null;
+
+            // A multibyte code beside a big font is drawn from another font (check F3: chineset.shx "\M+5D6D0" 4 high 4.335
+            // wide, not its own 中), and is not measured.
+            if (drawn && (contents.IndexOf("\\M+", StringComparison.Ordinal) >= 0 || contents.IndexOf("\\m+", StringComparison.Ordinal) >= 0))
+            {
+                return null;
+            }
+
             string words = DxfReader.Decode(DxfReader.Carets(contents), true);
             var line = new DxfTextLine(font);
+            List<int> numbers = drawn ? new List<int>() : null;
+            List<double> widths = drawn ? new List<double>() : null;
+            List<double> heights = drawn ? new List<double>() : null;
             var kept = new Stack<KeyValuePair<double, double>>();
             double width = 1.0;
             double high = height;
@@ -397,13 +714,19 @@ namespace GeometryHelper.Dxf
                     number = NumberOf(font, words, ref i);
                 }
 
-                if (!line.Add(number, width, high, true))
+                if (drawn)
+                {
+                    numbers.Add(number);
+                    widths.Add(width);
+                    heights.Add(high);
+                }
+                else if (!line.Add(number, width, high, true))
                 {
                     return null;
                 }
             }
 
-            return line;
+            return !drawn || Drawn(line, font, big, numbers, widths, heights, 1.0, height, false) ? line : null;
         }
 
         private static bool IsDigit(char c) => c >= '0' && c <= '9';

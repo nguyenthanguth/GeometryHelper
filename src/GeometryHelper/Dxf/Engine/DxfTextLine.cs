@@ -27,6 +27,11 @@ namespace GeometryHelper.Dxf
         private double _gapBottom;
         private double _gapTop;
 
+        // Whether the line was drawn beside a big font, and how far the pen stood below and above the baseline in its letters.
+        private bool _besideBig;
+        private double _penLow;
+        private double _penHigh;
+
         internal DxfTextLine(DxfFont font)
         {
             _font = font;
@@ -86,7 +91,18 @@ namespace GeometryHelper.Dxf
                 glyph = _font.GlyphOf('?');
             }
 
-            double scale = height / _font.Above;
+            Add(_font, glyph, number, widthFactor, height);
+            return true;
+        }
+
+        /// <summary>
+        /// Adds a letter of a number drawn from a font, the line's or the big font beside it, at a width factor and a height,
+        /// scaled by the height over that font's height above its baseline: gbcbig.shx's 中 4 high by 4 over 8; a letter of no
+        /// glyph taken in with no ink and no width.
+        /// </summary>
+        internal void Add(DxfFont font, DxfFont.Glyph glyph, int number, double widthFactor, double height)
+        {
+            double scale = height / font.Above;
             double across = scale * widthFactor;
             Height = Count == 0 ? height : Math.Max(Height, height);
             StartsWithSpace = Count == 0 ? number == ' ' : StartsWithSpace;
@@ -96,27 +112,18 @@ namespace GeometryHelper.Dxf
 
             if (glyph == null)
             {
-                return true;
+                return;
             }
 
             for (int k = 0; k < glyph.Xs.Length; k++)
             {
-                double x = Advance + (across * glyph.Xs[k]);
-                double y = scale * glyph.Ys[k];
+                Dot(Advance + (across * glyph.Xs[k]), scale * glyph.Ys[k]);
+            }
 
-                if (!HasInk)
-                {
-                    InkLeft = InkRight = x;
-                    InkBottom = InkTop = y;
-                    HasInk = true;
-                }
-                else
-                {
-                    InkLeft = Math.Min(InkLeft, x);
-                    InkRight = Math.Max(InkRight, x);
-                    InkBottom = Math.Min(InkBottom, y);
-                    InkTop = Math.Max(InkTop, y);
-                }
+            if (font is DxfShxFont shx && shx.IsBig)
+            {
+                _penLow = Math.Min(_penLow, scale * glyph.PenBottom);
+                _penHigh = Math.Max(_penHigh, scale * glyph.PenTop);
             }
 
             if (!EndsWithSpace && HasInk)
@@ -132,7 +139,27 @@ namespace GeometryHelper.Dxf
             }
 
             Advance += glyph.Advance * across;
-            return true;
+        }
+
+        /// <summary>Marks the line drawn beside a big font, which <see cref="AlignmentBox"/> boxes as AutoCAD 2021 boxes one (check F3).</summary>
+        internal void BesideBig() => _besideBig = true;
+
+        /// <summary>Takes a point, in the drawing's units along the line, into the box of the ink.</summary>
+        internal void Dot(double x, double y)
+        {
+            if (!HasInk)
+            {
+                InkLeft = InkRight = x;
+                InkBottom = InkTop = y;
+                HasInk = true;
+            }
+            else
+            {
+                InkLeft = Math.Min(InkLeft, x);
+                InkRight = Math.Max(InkRight, x);
+                InkBottom = Math.Min(InkBottom, y);
+                InkTop = Math.Max(InkTop, y);
+            }
         }
 
         /// <summary>Takes a letter's ink, from its bottom to its top, into the ink of the words: a space's into that of the spaces since the last letter, which the next letter that is no space takes in.</summary>
@@ -173,7 +200,10 @@ namespace GeometryHelper.Dxf
         /// The box a TEXT is justified by, as AutoCAD 2021's <c>AdjustAlignment</c> takes it: the ink's, but for a line whose last
         /// letter is a space, whose box reaches from the start of its baseline to its last pen and takes in the baseline, so that
         /// romans "A " is centred on 0 to 7.429 and not 0.190 to 7.429; false for a line of no ink that ends in no space. A line
-        /// of a TrueType font is boxed by <see cref="Box"/>, its ink from the start of its baseline to its last pen.
+        /// of a TrueType font is boxed by <see cref="Box"/>, its ink from the start of its baseline to its last pen. A line drawn
+        /// beside a big font takes in too, where it ends in a space, where the pen stood in its letters of the big font, so that
+        /// gbcbig.shx's "中 " 4 high reaches 0.221 below the baseline, not its ink's 0.176; and where it has no ink and ends in no
+        /// space it is boxed at the start of its baseline, as AutoCAD 2021 boxes a lone ideographic space (check F3).
         /// </summary>
         internal bool AlignmentBox(out double left, out double right, out double bottom, out double top)
         {
@@ -193,6 +223,19 @@ namespace GeometryHelper.Dxf
                 right = HasInk ? Math.Max(Advance, InkRight) : Advance;
                 bottom = HasInk ? Math.Min(0.0, InkBottom) : 0.0;
                 top = HasInk ? Math.Max(0.0, InkTop) : 0.0;
+
+                if (_besideBig)
+                {
+                    bottom = Math.Min(bottom, _penLow);
+                    top = Math.Max(top, _penHigh);
+                }
+
+                return true;
+            }
+
+            if (!HasInk && _besideBig && Count > 0)
+            {
+                left = right = bottom = top = 0.0;
                 return true;
             }
 
@@ -226,9 +269,10 @@ namespace GeometryHelper.Dxf
         /// line where it starts with a space, to the ink of its last letter that is no space, its spaces after it left out; a
         /// line of spaces alone as wide as they move the pen. romans "A" is 3.048 wide at 4 high, not its advance of 3.238, and
         /// txt "   ABC" 22.667. Of a TrueType font, ink left of the start of the line is not counted (check F1a): Arial "A" 4
-        /// high is 3.735 wide, from 0 to its ink's right.
+        /// high is 3.735 wide, from 0 to its ink's right; nor of a line drawn beside a big font (check F3): whgdtxt.shx's
+        /// "한국어" 4 high 14.083 wide, though inked from -0.208.
         /// </summary>
-        internal double ActualWidth => AllSpaces ? Advance : !_wordsInked ? 0.0 : _wordsRight - (StartsWithSpace ? 0.0 : _font is DxfTrueTypeFont ? Math.Max(0.0, _wordsLeft) : _wordsLeft);
+        internal double ActualWidth => AllSpaces ? Advance : !_wordsInked ? 0.0 : _wordsRight - (StartsWithSpace ? 0.0 : _font is DxfTrueTypeFont || _besideBig ? Math.Max(0.0, _wordsLeft) : _wordsLeft);
 
         /// <summary>
         /// The height of an MTEXT of this one line, as AutoCAD 2021's <c>ActualHeight</c>: from the lower of the baseline and the

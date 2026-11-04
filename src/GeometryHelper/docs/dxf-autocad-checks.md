@@ -2255,3 +2255,47 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       way the library does not; `AddLeader`'s leader of no landing, written at the base point where AutoCAD writes the
       origin; the multileader made without SetDatabaseDefaults (point 104); words mirrored where no font measures them,
       carried as ezdxf carries them, as before.
+
+## The words measured in big fonts
+
+106. **Big fonts read and measured beside a style's SHX font: which font each letter is drawn from, in which code page, at
+    what height, and how TEXTs and MTEXTs of them are placed and boxed.**
+    - Try (F3, headless, plugin GHF3A to GHF3F, fonts of AutoCAD 2021 read in place, none copied into the repository): 691
+      letters of four code pages boxed by `TextStyle.ExtentsBox` beside each of the 13 big fonts of AutoCAD's Fonts folder
+      (bigfont, chineset, extfont, extfont2, @extfont2, gbcbig, special, spec_bar, spec_sl and the four wh*.shx), and every
+      letter of chineset and extfont2 drawn with a whole circle; TEXTs of 19 to 49 words (ASCII and CJK mixed, spaces before
+      and after, `%%` codes, `\M+`, the ideographic space, `~` codes), 15 justifications, width factors 1 and 0.7 and slants
+      0 and 15, after `AdjustAlignment`, and MTEXTs of one line, beside txt, romans, isocp, times.shx and arial.ttf; big
+      fonts written for the check (headers of a height of nought, of five bytes, ranges of one byte or none, letters of one
+      byte, shapes stretched into boxes, the pen moved before them), named as AutoCAD's own and by their folders, and copies
+      of gbcbig.shx and extfont.shx under other names.
+    - AutoCAD 2021: the code page of a big font is that of its name, AutoCAD's own ten CJK big fonts by name (gbcbig.shx
+      GBK, chineset.shx Big5, bigfont, extfont, extfont2 and @extfont2.shx Shift-JIS, the wh*.shx Korean), in any case and
+      without `.shx`; a big font named with its folder, even gbcbig.shx itself, or of another name, is read in none, its CJK
+      letters drawn as question marks. A letter of two bytes the big font has is drawn from it before the style's font (Ж
+      beside extfont.shx), whatever the ranges of the font (gbcbig.shx's 9DAE), but for °, ± and ∅; a letter the code page
+      has not is the font's (¥ beside chineset.shx); a byte alone is the font's letter, else the big font's (ｱ beside
+      extfont.shx); a space is the big font's where it has one (extfont.shx's 9 of 15, whgtxt.shx's 62 of 96); a byte the
+      ranges open takes the next letter's byte with it (special.shx "~!" its 7E21, "~ " its 7E20, of none, a question mark);
+      the ideographic space is a space where the big font has it not; a letter neither font has is the big font's question
+      mark where it has one, else the font's. A big font's height above of nought is 8 (gbcbig.shx, 中 4 high 2.912 wide); a
+      TEXT at its bottom stands on the big font's depth, whatever its letters (64 of 8, 32 up at 4 high). An extended big
+      font's shape `7 0 hi lo x y width height` is drawn from the pen moved by (x, y), its cell stretched to the box, the pen
+      put back across after it; a whole circle of a big font is not drawn (chineset.shx's 。 is its dot). The first letter of
+      the style's font after letters of the big font, where it puts its pen down before it moves (txt's A and "."), is inked
+      too where they began: "中A" of txt and gbcbig boxed from 0, " 中A" from 4. An MTEXT draws a letter neither font has, and a
+      multibyte code, from other fonts, spaces an ideographic space otherwise, and leaves ink left of its start out. A
+      TrueType style's big font is not drawn; times.shx beside gbcbig.shx inks "~!" a third of a unit higher than the
+      library reads its letters.
+    - Now: the library reads big fonts (the form `AutoCAD-86 bigfont 1.0`, its index read whole, not by its hash) and draws
+      each letter as above. Of the 691 letters beside each of the ten CJK big fonts, all 6 910 are boxed as AutoCAD boxes
+      them, and the 158 with whole circles (at base: none read). Of the TEXTs in styles with a big font, 15 382 measured give
+      AutoCAD's place and box (F3: 10 226, at base 3 240; F1a's txt and gbcbig: 5 156, at base 3 692), and 68 do not: 64 that
+      the font gives without a big font too (isocp.shx's stand-in, romans.shx's Ą, txt.shx's "i" aligned) and 4 of an
+      ideographic space alone aligned on two points. Of F3's MTEXTs, 640 measured give AutoCAD's widths and heights and 1
+      does not (romans.shx's Ą, as without a big font; at base 479 and 65). Left unmeasured: a big font of no code page
+      beyond ASCII, a font of shapes beside a big font, special.shx's letters drawn from the style's font, `\M+` codes, and
+      in an MTEXT a letter neither font has and the ideographic space.
+    - Still apart: an ideographic space alone aligned or fitted on two points, which AutoCAD makes 1 high as it makes txt.shx's
+      "i" (F1a); the code page AutoCAD reads a big font of another name in, which on this machine (code page 1252) draws every
+      CJK letter as a question mark and takes ° as the byte B0, but not × as D7: not modelled.

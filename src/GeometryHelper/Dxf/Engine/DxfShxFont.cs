@@ -22,6 +22,17 @@ namespace GeometryHelper.Dxf
     /// arc are of a sign and a size, 0xA4 clockwise from octant 2 for 4. An arc is inked as AutoCAD boxes it, not as it runs:
     /// one under half a turn as its chord and the chord moved by its height, half a turn as that half circle's box, and one
     /// over half a turn as its whole circle's box. A file of another form, or one cut short, is no font.
+    /// <para>
+    /// A big font, of the form <c>AutoCAD-86 bigfont 1.0</c> (check F3), holds the letters of two bytes a text style draws
+    /// beside its font: the ranges of the bytes that open a letter of two, then an index of each letter's number, length and
+    /// place in the file, its empty places passed over, shape 0 the font's name, height above and depth below its baseline
+    /// and modes, of five bytes in an extended big font, whose fourth is the width of its cell. Read as AutoCAD 2021 draws it:
+    /// a height above of nought is 8, as gbcbig.shx's is; a shape within one of two bytes (<c>7 0 hi lo</c>); in an extended
+    /// big font a shape within of two bytes drawn at a base point from the pen into a box of a width and height given, its
+    /// cell stretched to the box, the pen put back across after it (<c>7 0 hi lo x y width height</c>); and a whole circle
+    /// (an arc of octants of a count of nought) not drawn. A letter that draws a shape the font has not, or an arc in a shape
+    /// it stretches, is not drawn whole.
+    /// </para>
     /// </remarks>
     internal sealed class DxfShxFont : DxfFont
     {
@@ -35,8 +46,18 @@ namespace GeometryHelper.Dxf
         private const int MostDepth = 16;
         private const int MostCodes = 100000;
 
+        // The height above of a big font whose shape 0 gives nought, as AutoCAD 2021 scales gbcbig.shx (check F3): a text 4
+        // high draws its letters half a unit to the unit, and is held at its bottom 32 up by its depth of 64.
+        private const int BigAboveOfNought = 8;
+
         private readonly Dictionary<int, byte[]> _codes;
         private readonly Dictionary<int, Glyph> _glyphs = new Dictionary<int, Glyph>();
+
+        // A big font's bytes that open a letter of two, as pairs from and to; and an extended big font's cell, width and height.
+        private readonly int[] _leads;
+        private readonly bool _extended;
+        private readonly int _cellWidth;
+        private readonly int _cellHeight;
 
         private DxfShxFont(bool unifont, int above, int below, Dictionary<int, byte[]> codes)
         {
@@ -46,8 +67,37 @@ namespace GeometryHelper.Dxf
             _codes = codes;
         }
 
+        private DxfShxFont(int above, int below, int[] leads, bool extended, int cellWidth, int cellHeight, Dictionary<int, byte[]> codes)
+        {
+            IsBig = true;
+            Above = above == 0 ? BigAboveOfNought : above;
+            Below = below;
+            _leads = leads;
+            _extended = extended;
+            _cellWidth = cellWidth;
+            _cellHeight = cellHeight;
+            _codes = codes;
+        }
+
         /// <summary>Whether the font is a unifont, its letters by their Unicode numbers; else of shapes 1.0 or 1.1, by their bytes.</summary>
         internal bool IsUnifont { get; }
+
+        /// <summary>Whether the font is a big font, its letters by the bytes of a code page, one or two.</summary>
+        internal bool IsBig { get; }
+
+        /// <summary>Whether a byte opens a letter of two bytes in the big font, by its ranges: 0xD6 in gbcbig.shx (A1 to FE), 0x7E in special.shx.</summary>
+        internal bool Opens(int value)
+        {
+            for (int i = 0; _leads != null && i + 1 < _leads.Length; i += 2)
+            {
+                if (value >= _leads[i] && value <= _leads[i + 1])
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
 
         /// <summary>How far the font's capitals reach above the baseline, in its units: 6 for txt, 21 for romans.</summary>
         internal override double Above { get; }
@@ -56,8 +106,8 @@ namespace GeometryHelper.Dxf
         internal override double Below { get; }
 
         /// <summary>
-        /// Reads a font from the bytes of its file; null where they are no font of letters of shapes 1.0 or 1.1 or of a
-        /// unifont, one cut short or of no height above its baseline, and where they are a big font, which is read elsewhere.
+        /// Reads a font from the bytes of its file; null where they are no font of letters of shapes 1.0 or 1.1, of a unifont
+        /// or a big font, or one cut short or, but for a big font, of no height above its baseline.
         /// </summary>
         internal static DxfShxFont Read(byte[] bytes)
         {
@@ -80,7 +130,89 @@ namespace GeometryHelper.Dxf
                 return Shapes(bytes, end + 1);
             }
 
+            if (header.StartsWith("AutoCAD-86 bigfont 1.0", StringComparison.Ordinal))
+            {
+                return Big(bytes, end + 1);
+            }
+
             return header.StartsWith("AutoCAD-86 unifont 1.0", StringComparison.Ordinal) ? Unifont(bytes, end + 1) : null;
+        }
+
+        /// <summary>
+        /// A big font: the length of an index entry, the count of entries and of ranges, the ranges of the bytes that open a
+        /// letter of two (from and to), then each entry, a letter's number, its length and its place in the file, entries of
+        /// noughts passed over; each letter its name, a byte 0 and its codes; shape 0's codes the height above, the depth below,
+        /// the modes and, in an extended big font of five, the width of its cell, its height that above.
+        /// </summary>
+        private static DxfShxFont Big(byte[] bytes, int at)
+        {
+            if (at + 6 > bytes.Length)
+            {
+                return null;
+            }
+
+            int count = U16(bytes, at + 2);
+            int ranges = U16(bytes, at + 4);
+            at += 6;
+
+            if (at + (ranges * 4) + ((long)count * 8) > bytes.Length)
+            {
+                return null;
+            }
+
+            var leads = new int[ranges * 2];
+
+            for (int i = 0; i < ranges; i++)
+            {
+                leads[2 * i] = U16(bytes, at + (i * 4));
+                leads[(2 * i) + 1] = U16(bytes, at + (i * 4) + 2);
+            }
+
+            at += ranges * 4;
+            var codes = new Dictionary<int, byte[]>();
+            byte[] head = null;
+
+            for (int i = 0; i < count; i++)
+            {
+                int entry = at + (i * 8);
+                int number = U16(bytes, entry);
+                int length = U16(bytes, entry + 2);
+                long place = (uint)(bytes[entry + 4] | (bytes[entry + 5] << 8) | (bytes[entry + 6] << 16) | (bytes[entry + 7] << 24));
+
+                if (length == 0 && place == 0)
+                {
+                    continue;
+                }
+
+                if (place + length > bytes.Length)
+                {
+                    return null;
+                }
+
+                int zero = Array.IndexOf(bytes, (byte)0, (int)place, length);
+
+                if (zero < 0)
+                {
+                    continue;
+                }
+
+                if (number == 0)
+                {
+                    head = head ?? Slice(bytes, zero + 1, (int)place + length);
+                }
+                else if (!codes.ContainsKey(number))
+                {
+                    codes.Add(number, Slice(bytes, zero + 1, (int)place + length));
+                }
+            }
+
+            if (head == null || head.Length < 2)
+            {
+                return null;
+            }
+
+            bool extended = head.Length >= 5;
+            return new DxfShxFont(head[0], head[1], leads, extended, extended ? head[3] : 0, extended ? head[0] : 0, codes);
         }
 
         /// <summary>A font of shapes 1.0 or 1.1: the first and last numbers and the count, the number and length of each shape, then the shapes, each its name, a byte 0 and its codes.</summary>
@@ -211,7 +343,7 @@ namespace GeometryHelper.Dxf
                 {
                     var pen = new Pen();
                     Draw(number, pen);
-                    glyph = new Glyph(pen.X, pen.Xs.ToArray(), pen.Ys.ToArray());
+                    glyph = new Glyph(pen.X, pen.Xs.ToArray(), pen.Ys.ToArray(), pen.InksOrigin, !pen.Broken, pen.Low, pen.High);
                     _glyphs.Add(number, glyph);
                 }
 
@@ -224,6 +356,8 @@ namespace GeometryHelper.Dxf
         {
             if (!_codes.TryGetValue(number, out byte[] c) || pen.Depth >= MostDepth)
             {
+                // A big font draws a shape it has not otherwise (check F3: special.shx draws the digits of the text's font).
+                pen.Broken |= IsBig;
                 return;
             }
 
@@ -262,6 +396,7 @@ namespace GeometryHelper.Dxf
                     {
                         // The pen put down marks the point it stands on.
                         pen.Down = true;
+                        pen.InksOrigin |= !pen.Moved;
                         pen.Ink(pen.X, pen.Y);
                     }
                 }
@@ -292,6 +427,39 @@ namespace GeometryHelper.Dxf
                         KeyValuePair<double, double> was = pen.Stack.Pop();
                         pen.X = was.Key;
                         pen.Y = was.Value;
+                        pen.Stood();
+                    }
+                }
+                else if (code == 7 && IsBig)
+                {
+                    int sub = c[i++];
+
+                    if (sub == 0)
+                    {
+                        // A shape of two bytes; in an extended big font with the base point and box it is drawn in.
+                        int more = _extended ? 6 : 2;
+
+                        if (i + more > c.Length)
+                        {
+                            break;
+                        }
+
+                        sub = (c[i] << 8) | c[i + 1];
+
+                        if (!skip && more == 6)
+                        {
+                            Stretched(sub, pen, (sbyte)c[i + 2], (sbyte)c[i + 3], c[i + 4], c[i + 5]);
+                        }
+                        else if (!skip)
+                        {
+                            Draw(sub, pen);
+                        }
+
+                        i += more;
+                    }
+                    else if (!skip)
+                    {
+                        Draw(sub, pen);
                     }
                 }
                 else if (code == 7)
@@ -393,7 +561,12 @@ namespace GeometryHelper.Dxf
                         int count = size & 7;
                         double r = radius * pen.Scale;
                         double start = ((size >> 4) & 7) * Math.PI / 4.0;
-                        pen.Arc(r, start, (octant >= 0 ? 1 : -1) * (count == 0 ? 8 : count) * Math.PI / 4.0);
+
+                        // A big font's whole circle is not drawn (check F3: chineset.shx's full stop is its dot alone).
+                        if (!IsBig || count != 0)
+                        {
+                            pen.Arc(r, start, (octant >= 0 ? 1 : -1) * (count == 0 ? 8 : count) * Math.PI / 4.0);
+                        }
                     }
                 }
                 else if (code == 11)
@@ -480,6 +653,39 @@ namespace GeometryHelper.Dxf
         /// <summary>The octants of an arc, a byte of a sign and a size: its high bit clockwise, its low seven the first octant (high half) and their count.</summary>
         private static int Octant(byte value) => (value & 0x80) != 0 ? -(value & 0x7F) : value;
 
+        /// <summary>
+        /// Draws a shape of an extended big font as AutoCAD 2021 draws <c>7 0 hi lo x y width height</c> (check F3): from the pen
+        /// moved by the base point, its cell (the font's width by its height above) stretched to the box, then the pen put back
+        /// across where it stood and moved up by as much as the shape moved it from the base point. extfont.shx's 中 (9286) draws
+        /// its mouth, a shape of 14 by 15, from (1, 6) into 12 by 6, and its stroke from the pen at (0, 0).
+        /// </summary>
+        private void Stretched(int number, Pen pen, int x, int y, int width, int height)
+        {
+            if (_cellWidth == 0 || _cellHeight == 0)
+            {
+                pen.Broken = true;
+                return;
+            }
+
+            double x0 = pen.X;
+            double y0 = pen.Y;
+            double across = pen.Across;
+            double upward = pen.Upward;
+            pen.X = x0 + (x * pen.Scale * across);
+            pen.Y = y0 + (y * pen.Scale * upward);
+            double baseY = pen.Y;
+            pen.Across = across * width / _cellWidth;
+            pen.Upward = upward * height / _cellHeight;
+            pen.Boxed++;
+            Draw(number, pen);
+            pen.Boxed--;
+            pen.Across = across;
+            pen.Upward = upward;
+            pen.Y = y0 + (pen.Y - baseY);
+            pen.X = x0;
+            pen.Stood();
+        }
+
         /// <summary>The pen drawing a letter: where it stands, whether it is down, its scale, its pushed places and the points it has inked.</summary>
         private sealed class Pen
         {
@@ -501,10 +707,38 @@ namespace GeometryHelper.Dxf
 
             internal List<double> Ys { get; } = new List<double>();
 
+            // How far a shape of an extended big font is stretched across and up, and how many such shapes the pen is within;
+            // whether the pen has moved since the letter began, and was put down before it did; and whether the letter is drawn
+            // otherwise than read.
+            internal double Across { get; set; } = 1.0;
+
+            internal double Upward { get; set; } = 1.0;
+
+            internal int Boxed { get; set; }
+
+            internal bool Moved { get; set; }
+
+            internal bool InksOrigin { get; set; }
+
+            internal bool Broken { get; set; }
+
+            // The least and greatest y the pen has stood at.
+            internal double Low { get; private set; }
+
+            internal double High { get; private set; }
+
             internal void Ink(double x, double y)
             {
                 Xs.Add(x);
                 Ys.Add(y);
+            }
+
+            /// <summary>Marks the pen moved to where it stands.</summary>
+            internal void Stood()
+            {
+                Moved = true;
+                Low = Math.Min(Low, Y);
+                High = Math.Max(High, Y);
             }
 
             /// <summary>A move by a vector of the font's units, scaled; inked at both ends where the pen is down.</summary>
@@ -512,8 +746,9 @@ namespace GeometryHelper.Dxf
             {
                 double x0 = X;
                 double y0 = Y;
-                X += dx * Scale;
-                Y += dy * Scale;
+                X += dx * Scale * Across;
+                Y += dy * Scale * Upward;
+                Stood();
 
                 if (Down)
                 {
@@ -529,6 +764,8 @@ namespace GeometryHelper.Dxf
             /// </summary>
             internal void Arc(double r, double start, double sweep)
             {
+                // An arc of a shape stretched into a box, which AutoCAD may draw as other than an arc, is not read.
+                Broken |= Boxed > 0;
                 double cx = X - (r * Math.Cos(start));
                 double cy = Y - (r * Math.Sin(start));
                 double stop = start + sweep;
@@ -560,6 +797,7 @@ namespace GeometryHelper.Dxf
 
                 X = cx + (r * Math.Cos(stop));
                 Y = cy + (r * Math.Sin(stop));
+                Stood();
             }
 
             /// <summary>An arc to a point a vector of the font's units away, by its bulge, the tangent of a quarter of its sweep; a straight move where it has none or the pen is up.</summary>

@@ -6,6 +6,27 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The big font of a text style (`DxfTextStyleTableRecord.BigFontFileName`) is read from
+`DxfDatabase.FontSearchPath` and its letters measured beside the style's SHX font as AutoCAD 2021 draws them (check F3):
+TEXT, ATTRIB and ATTDEF places and extents, one-line MTEXT `ActualWidth` and `ActualHeight`, multileaders landed on the
+right and attribute definitions in flips. A letter is read in the code page AutoCAD gives the big font's name (GBK for
+gbcbig.shx, Big5 for chineset.shx, Shift-JIS for bigfont, extfont, extfont2 and @extfont2.shx, Korean for the four
+wh*.shx); a letter of two bytes the big font has is drawn from it before the style's font, but °, ± and ∅; a space is the
+big font's where it has one; a height above of nought is 8. "A中B" of txt.shx and gbcbig.shx 4 high, centred on
+(100, 50), stands at (95.211, 50) as in AutoCAD. Of 691 letters beside each of AutoCAD's ten CJK big fonts, read in
+place, all 6 910 are boxed as AutoCAD boxes them, and of the TEXTs in styles with a big font, 15 382 measured give
+AutoCAD's place and box and 68 do not, 64 of them as off without a big font. A big font of another name, or named with
+its folder, which AutoCAD reads in no code page, is measured for ASCII only; on .NET the code pages need
+`CodePagesEncodingProvider` registered. No public member is added; with an empty `FontSearchPath` nothing changes, to the
+byte.
+
+**FIXED.** Beside a big font that is read, a TEXT stands at its bottom on the big font's depth (gbcbig.shx 32 up at 4
+high), where it was left where it stood; spaces are the big font's (txt.shx and extfont.shx "A B" 4 high 9.067 wide, not
+10.667); a TrueType style's big font, which AutoCAD does not draw, no longer leaves its TEXTs at their bottom unplaced;
+and a font of shapes beside a big font, which AutoCAD inks otherwise, is no longer measured. Of check F1a's 5 400 TEXTs of
+txt.shx and gbcbig.shx, 3 692 gave AutoCAD's place and box and 1 168 did not; 5 156 do, 4 do not (txt's "i" aligned, as
+without a big font), and the 240 of `\M+` codes, which AutoCAD draws by their two bytes, are left unmeasured.
+
 **FIXED.** Where a point, a ray, a segment or a line stands against a solid far out is worked out near the origin, as
 its booleans and its measures are (check GR2e): `Locate`, `Contains`, `DistanceTo`, `SignedDistanceTo`,
 `GetClosestPointOnBoundary` and `GetShortestLineTo` of a point, and `CollidesWith`, `DistanceTo`, `GetIntersections` and
