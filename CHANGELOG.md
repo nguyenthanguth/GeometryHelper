@@ -6,6 +6,13 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+## 13.8.0 (2026-11-04)
+
+A minor release: one public member is added, `PackOptions.StartCorner`, and none is removed or renamed in any of the
+four libraries. `SheetPacker` can fill each sheet from any corner of its usable area, the packing the mirror image of
+the one from the upper left, which stays the default and the same to the bit. The checklist of what AutoCAD reads
+records four more points looked at in the AutoCAD 2021 editor (25, 31, 38 and 40); no code changed for them.
+
 **NEW.** `PackOptions.StartCorner`: `SheetPacker` fills each sheet from the corner of its usable area given,
 `UpperLeft` (the default, as before), `UpperRight`, `LowerLeft` or `LowerRight`. The first block goes into that corner
 and the rows run from its side, laid from its edge; a group laid out afresh puts its main view at that corner of its

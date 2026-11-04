@@ -29,6 +29,10 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 13.8.0
+      - GeometryHelper.TeklaConvert is released at 13.8.0 with GeometryHelper, which lets SheetPacker fill each sheet from
+        any corner of its usable area (PackOptions.StartCorner); nothing in TeklaConvert changes.
+
       NEW IN 13.7.0
       - GeometryHelper.TeklaConvert is released at 13.7.0 with GeometryHelper, which works out near the origin where a
         point, a ray, a segment or a line stands against a solid far out, measures DXF words beside SHX big fonts and
