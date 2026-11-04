@@ -611,8 +611,10 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Writes a HATCH copied from a drawing of another version in the form of the drawing it is added to, as AutoCAD's
         /// SAVEAS writes one: each spline edge's count of fit points (97) as <see cref="InsertLoopAt"/> says, and before R2004,
-        /// which has no gradient, the gradient taken out, as SAVEAS to such a version drops it, the HATCH left filled solid.
-        /// Nothing where the drawing cannot hold a HATCH, which refuses it.
+        /// which has no gradient, the gradient taken out, as SAVEAS to such a version drops it, the HATCH left filled solid. A
+        /// HATCH given a pattern of a pattern file while in no drawing, which holds no lines of it, is given them from the files
+        /// of the drawing's <see cref="DxfDatabase.PatternSearchPath"/>, as <see cref="SetHatchPattern"/> gives them; a copy is
+        /// not. Nothing where the drawing cannot hold a HATCH, which refuses it.
         /// </summary>
         internal override void Appending(DxfBlockTableRecord owner)
         {
@@ -650,6 +652,16 @@ namespace GeometryHelper.Dxf
             {
                 record.SetPart(Kind.Gradient, null);
                 changed = true;
+            }
+
+            if (_fromFiles)
+            {
+                _fromFiles = false;
+
+                if (!IsSolidFill && Lines(record).Count == 0 && FromFiles(record, file.Database, Num(record.Text(52), 0.0), Num(record.Text(41), 1.0), true))
+                {
+                    changed = true;
+                }
             }
 
             if (changed)

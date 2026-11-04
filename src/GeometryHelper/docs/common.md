@@ -2319,7 +2319,8 @@ even-odd rule counts it, a square given twice filling nothing. `GetPlane()` is t
 `GeometricExtents` the box of its loops.
 
 `SetHatchPattern(DxfHatchPatternType.PreDefined, "SOLID")` fills it solid, and any other pattern of AutoCAD's file is
-written by its name with a count of no lines (78 of 0), which AutoCAD 2021 refuses a file without; `PatternScale` and `PatternAngle` scale and turn
+written by its name with a count of no lines (78 of 0), which AutoCAD 2021 refuses a file without, unless
+`PatternSearchPath` finds it (below); `PatternScale` and `PatternAngle` scale and turn
 the lines of its pattern with them (`GetPatternDefinitionAt`), and a pattern made by the user (`_USER`, `PatternSpace`,
 `PatternDouble`) is given its lines as AutoCAD makes them. `SetGradient` fills it with one of AutoCAD's gradients from
 R2004, its colours `DxfGradientColor`s, and `EvaluateGradientColorAt(0.5f)` is the colour halfway along it by the
@@ -2328,6 +2329,48 @@ pale yellow, gives (128, 128, 204). `GetHatchLinesData()` gives the lines `Explo
 the plane's own system, and `NumberOfHatchLines` and `GetHatchLineDataAt(i)` the same one by one, worked out once while
 the hatch is not changed: the square 30 by 20 of a pattern made by the user, lines at 45 degrees 3.175 apart, draws 11. A
 file older than R2000 has no HATCH and refuses one.
+
+A drawing reads no pattern file unless it is told where to look, and the library carries none of AutoCAD's.
+`DxfDatabase.PatternSearchPath` takes folders separated by semicolons, searched in their order as AutoCAD searches its
+support path, and is empty when a drawing is opened or made: empty, nothing is read and a pattern of AutoCAD's file holds
+no lines, as above. Given the folders of the caller's own pattern files, `SetHatchPattern` gives the hatch the lines of the
+pattern as AutoCAD 2021 gives them (check P4c):
+
+```csharp
+DxfDatabase db = DxfDatabase.Open("plan.dxf");
+db.PatternSearchPath = @"C:\Users\me\AppData\Roaming\Autodesk\AutoCAD 2021\R24.0\enu\Support;D:\Patterns";
+var hatch = new DxfHatch();
+hatch.SetHatchPattern(DxfHatchPatternType.PreDefined, "ANSI31");
+hatch.AppendLoop(DxfHatchLoopTypes.External, new[] { new GeoPoint2(0, 0), new GeoPoint2(30, 0), new GeoPoint2(30, 20), new GeoPoint2(0, 20) }, null);
+db.ModelSpace.AppendEntity(hatch);   // one line at 45 degrees, offset (-2.245, 2.245); Explode() gives 11 LINEs
+```
+
+- The file is acadiso.pat in a drawing of millimetres and acad.pat in one of inches, as `Measurement` says (a header of
+  no `$MEASUREMENT` is read as millimetres, though AutoCAD 2021 opens such a file as inches), or a file named after the
+  pattern, `GRID.pat` for GRID: a pattern of AutoCAD's file is looked for in the drawing's file first, a custom one in its
+  own file first. Each file is read once, from the first folder that has it, and the first pattern of a name in it is taken,
+  whatever its case. The hatch is written of the type of the file the pattern is found in, its name in capitals, as AutoCAD
+  writes it.
+- Each line is turned by `PatternAngle` and scaled by `PatternScale` about the origin of the plane: its angle the file's
+  and the turn, from 0 up to 360, its base point turned and scaled, its offset, across it in the file, turned by its angle
+  and scaled, its dashes scaled. Setting either writes the lines anew from the file: `0, 0,0, 0,2` at scale 3 and 90
+  degrees is the line at 90 degrees, offset (-6, 0). `PatternDouble` adds no line to such a pattern, as AutoCAD adds none.
+- A hatch in no drawing is given its lines when it is added to one; a copy of a hatch of no lines is not. A hatch read
+  from a file keeps the lines the file holds; given the pattern of the name it has again, it keeps them, or is given them
+  where it holds none.
+- A file is read as AutoCAD 2021 reads one. A pattern begins at a line whose first character is `*`, its name all before
+  the first comma; comments from a `;`, blank lines and the blanks about numbers are passed over, commas running together
+  count as one, and a comma at the end of a line is a dash of nought. A pattern AutoCAD refuses is refused: a line of
+  fewer than five numbers or more than six dashes, a number it cannot read (`2x`, `1e400`), or a pattern of no line; so is
+  one refused in the first file that has it, not looked for in the other. A pattern found nowhere, or refused, is left with
+  no lines, said once at Debug, or at Warn for one refused and a file that cannot be read; nothing throws.
+- Every pattern of AutoCAD 2021's acad.pat and acadiso.pat, at scale 1, 2.5 at 30 degrees and 0.5 at -45 degrees, 918
+  hatches, gives the lines AutoCAD gives to 1E-13; on squares off the origin AutoCAD draws the library's hatch, and
+  `Explode()` breaks it, into AutoCAD's own LINEs, 84 034 of 84 034, and AUDIT finds nothing to fix. On squares whose edges
+  the pattern's lines run along, AutoCAD's own hatch and its drawing of the library's differ by a few LINEs on those edges
+  (82 956 of 83 063 the same), and the library's `Explode()` by a few more (82 774).
+- Writing the lines takes 0.02 ms for ANSI31 and 0.4 ms for GRAVEL, of 41 lines, on .NET 10, each file read once; with
+  no folders a pattern is set as fast as before.
 
 ### Leaders and multileaders
 
@@ -3197,10 +3240,12 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
 - Without `FontSearchPath` (see Fonts) it has no fonts. A text's `GeometricExtents` is the point it stands at; an MTEXT's `ActualWidth` and `ActualHeight` are what
   the file says, nought where it says nothing; where the words of an MTEXT wrap, and the box of a fitted or aligned TEXT, are
   AutoCAD's to work out, and so is where it wraps an MTEXT exploded or written into R12 as TEXTs.
-- It knows no pattern file. A pattern of AutoCAD's acad.pat the HATCH does not hold the lines of, ANSI31 given by
-  `SetHatchPattern` among them, holds no lines (`NumberOfPatternDefinitions` 0), its name written for AutoCAD to take the
-  lines from its own file, and `Explode()` and `GetHatchLinesData()` refuse it. AutoCAD 2021 draws none of those lines
-  either, even after REGEN, until the hatch is edited: give a pattern of the user's own (`_USER`) where the lines must show. A leader drawn anew (`EvaluateLeader`),
+- Without `PatternSearchPath` (see Hatches) it has no pattern file, and carries none of AutoCAD's. A pattern of AutoCAD's
+  acad.pat the HATCH does not hold the lines of, ANSI31 given by `SetHatchPattern` among them, holds no lines
+  (`NumberOfPatternDefinitions` 0), its name written for AutoCAD to take the lines from its own file, and `Explode()` and
+  `GetHatchLinesData()` refuse it. AutoCAD 2021 draws none of those lines either, even after REGEN, until the hatch is
+  edited: give the drawing the folder of the pattern files, or a pattern of the user's own (`_USER`), where the lines must
+  show. A leader drawn anew (`EvaluateLeader`),
   where a multileader's leaders meet its words, and the size of those words in its `GeometricExtents` are not worked out: a
   leader added on the left of words held at their top left is landed as AutoCAD lands it, but one on their right, which
   AutoCAD lands as far right as its font makes the words wide, starts its dogleg at the base point of the content (10 of

@@ -27,7 +27,9 @@ namespace GeometryHelper.Dxf
     /// in the file; <see cref="Explode"/> works them out as ezdxf draws them, and <see cref="GetHatchLinesData"/> gives them as
     /// lines in the plane. A pattern of AutoCAD's own pattern file the HATCH does not hold the lines of is not known to the library:
     /// <c>new DxfHatch()</c> given ANSI31 by <see cref="SetHatchPattern"/> holds no lines of it
-    /// (<see cref="NumberOfPatternDefinitions"/> 0), its name and type written for AutoCAD to take the lines from its own file.
+    /// (<see cref="NumberOfPatternDefinitions"/> 0), its name and type written for AutoCAD to take the lines from its own file;
+    /// unless the drawing's <see cref="DxfDatabase.PatternSearchPath"/> finds it in the caller's own pattern files, which give
+    /// it its lines as AutoCAD gives them: ANSI31 of acadiso.pat, the one line at 45 degrees 3.175 apart.
     /// </para>
     /// <para>
     /// A file older than R2000 has no HATCH: <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/> refuses one there, and a
@@ -50,6 +52,10 @@ namespace GeometryHelper.Dxf
         private static readonly string[] Gradients = { "LINEAR", "CYLINDER", "INVCYLINDER", "SPHERICAL", "INVSPHERICAL", "HEMISPHERICAL", "INVHEMISPHERICAL", "CURVED", "INVCURVED" };
 
         private const string Background = "HATCHBACKGROUNDCOLOR";
+
+        // A pattern of a pattern file given in code while the HATCH was in no drawing: its lines are taken from the files of the
+        // drawing it is added to, as AutoCAD takes them at once from the working drawing's.
+        private bool _fromFiles;
 
         /// <summary>
         /// Initializes a HATCH of no loops, filled solid, on the floor, as AutoCAD's <c>new Hatch()</c>, on layer 0 in no file;
@@ -232,7 +238,9 @@ namespace GeometryHelper.Dxf
         /// </summary>
         /// <value>
         /// Set, a finite number above nought: written in group 41, and the lines of the pattern the HATCH holds scaled by the new
-        /// scale over the old, their points about the origin of the plane, as ezdxf's <c>set_pattern_scale</c> scales them.
+        /// scale over the old, their points about the origin of the plane, as ezdxf's <c>set_pattern_scale</c> scales them;
+        /// where the drawing's <see cref="DxfDatabase.PatternSearchPath"/> finds the pattern, its lines written anew from the
+        /// file at the new scale and the angle it has, as AutoCAD's <c>SetHatchPattern</c> writes them after the scale is set.
         /// </value>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the scale set is not a finite number above nought.</exception>
         /// <exception cref="InvalidOperationException">Thrown when a scale other than the one it has is set on a solid fill or a
@@ -258,7 +266,12 @@ namespace GeometryHelper.Dxf
 
                 double old = Num(record.Text(41), 1.0);
                 record.Set(41, Real(value));
-                ScaleLines(record, old > 0.0 ? value / old : 1.0, 0.0);
+
+                if (!FromFiles(record, IsResident ? Item.File.Database : null, Num(record.Text(52), 0.0), value, false))
+                {
+                    ScaleLines(record, old > 0.0 ? value / old : 1.0, 0.0);
+                }
+
                 Write(record);
             }
         }
@@ -269,7 +282,10 @@ namespace GeometryHelper.Dxf
         /// </summary>
         /// <value>
         /// Set, a finite number: written in group 52 in degrees, and the lines of the pattern the HATCH holds turned by the new
-        /// angle less the old, about the origin of the plane, as ezdxf's <c>set_pattern_angle</c> turns them.
+        /// angle less the old, about the origin of the plane, as ezdxf's <c>set_pattern_angle</c> turns them; where the drawing's
+        /// <see cref="DxfDatabase.PatternSearchPath"/> finds the pattern, its lines written anew from the file at the new angle
+        /// and the scale it has, as AutoCAD 2021 writes them: <c>0, 0,0, 0,2</c> at scale 3 and 90 degrees is the line at 90
+        /// degrees, offset (-6, 0).
         /// </value>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the angle set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when an angle other than the one it has is set on a solid fill, which
@@ -291,7 +307,12 @@ namespace GeometryHelper.Dxf
                 double old = Num(record.Text(52), 0.0);
                 double degrees = DxfOcsTransform.Degrees(value);
                 record.Set(52, Real(degrees));
-                ScaleLines(record, 1.0, degrees - old);
+
+                if (!FromFiles(record, IsResident ? Item.File.Database : null, degrees, Num(record.Text(41), 1.0), false))
+                {
+                    ScaleLines(record, 1.0, degrees - old);
+                }
+
                 Write(record);
             }
         }
@@ -334,7 +355,8 @@ namespace GeometryHelper.Dxf
         /// Gets or sets whether the lines of a pattern made by the user are crossed by as many again square to them (group 77), as
         /// AutoCAD's <c>PatternDouble</c>; false where the record gives none.
         /// </summary>
-        /// <value>Set, written in group 77; the lines of a pattern made by the user written anew to agree.</value>
+        /// <value>Set, written in group 77; the lines of a pattern made by the user written anew to agree, and those of a pattern
+        /// of a pattern file kept, as AutoCAD 2021 keeps them.</value>
         /// <exception cref="InvalidOperationException">Thrown when it is changed on a solid fill, which has no pattern, or on a
         /// HATCH that is erased.</exception>
         public bool PatternDouble
@@ -367,7 +389,11 @@ namespace GeometryHelper.Dxf
         /// one family at <see cref="PatternAngle"/> <see cref="PatternSpace"/> apart, crossed where it is double, as AutoCAD makes
         /// them; a pattern of the name it has keeps its lines; the lines of any other pattern are in AutoCAD's pattern file, not in
         /// the drawing, and are left out, for AutoCAD to draw the pattern by its name, the count of its lines (78) written as 0,
-        /// since AutoCAD refuses a file whose pattern HATCH has no 78.
+        /// since AutoCAD refuses a file whose pattern HATCH has no 78. Where the drawing's <see cref="DxfDatabase.PatternSearchPath"/>
+        /// finds the pattern in the caller's own files, the HATCH is given its lines from there as AutoCAD 2021 gives them, turned
+        /// and scaled with it, its name written in capitals and its type that of the file it is found in, and so is a pattern of
+        /// the name it has that holds no lines; a HATCH in no drawing is given them when it is added to one: a square 30 by 20
+        /// given ANSI31 of acadiso.pat holds the one line at 45 degrees, offset (-2.245, 2.245), and explodes to 11 LINEs.
         /// </summary>
         /// <param name="patternType">Where the pattern comes from.</param>
         /// <param name="patternName">The name of the pattern, as ANSI31; <c>_USER</c> for one made by the user, as AutoCAD names it.</param>
@@ -401,12 +427,17 @@ namespace GeometryHelper.Dxf
             string was = record.Text(2)?.Trim() ?? "SOLID";
             bool solid = string.Equals(name, "SOLID", StringComparison.OrdinalIgnoreCase) && patternType != DxfHatchPatternType.UserDefined;
             bool same = string.Equals(name, was, StringComparison.OrdinalIgnoreCase) && Whole(record.Text(76), 1) == (int)patternType;
+            DxfDatabase database = IsResident ? Item.File.Database : null;
 
-            if (same && (solid ? IsSolidFill && !(force && IsGradient) : !IsSolidFill))
+            // A pattern of the name it has keeps its lines; one that holds none is given them where the drawing's files have it.
+            bool unfilled = database?.Patterns != null && patternType != DxfHatchPatternType.UserDefined && Lines(record).Count == 0;
+
+            if (same && (solid ? IsSolidFill && !(force && IsGradient) : !IsSolidFill && !unfilled))
             {
                 return;
             }
 
+            _fromFiles = false;
             record.Set(2, name);
             record.Set(76, ((int)patternType).ToString(CultureInfo.InvariantCulture));
             record.SetPart(Kind.Gradient, null);
@@ -434,13 +465,82 @@ namespace GeometryHelper.Dxf
             {
                 record.SetPart(Kind.Pattern, UserLines(angle, scale, twice));
             }
-            else if (!same)
+            else if (!FromFiles(record, database, angle, scale, true))
             {
+                if (same)
+                {
+                    // Found in none of the files, a pattern of the name it has is left as it was, as with no folders.
+                    return;
+                }
+
                 // The count of lines is written though there are none: AutoCAD refuses a pattern's HATCH without its 78.
                 record.SetPart(Kind.Pattern, LineGroups(new List<double[]>()));
+
+                // Given in no drawing, as AutoCAD gives it from the working drawing's file: taken from the files when it is added.
+                _fromFiles = !IsResident;
             }
 
             Write(record);
+        }
+
+        /// <summary>
+        /// Writes the lines of the record's pattern from the pattern files of a drawing (<see cref="DxfDatabase.PatternSearchPath"/>),
+        /// each turned by the angle in degrees and scaled by the scale about the origin of the plane, as AutoCAD 2021 writes them
+        /// (check P4c): its angle the file's and the turn, from 0 up to 360; its base point turned and scaled; its offset, across
+        /// it in the file, turned by its angle and scaled; its dashes scaled. Named, the pattern's name is written in capitals
+        /// and its type as that of the file it is found in, as AutoCAD's <c>SetHatchPattern</c> writes them. False, the record
+        /// left as it was, where the drawing has no files, the pattern is made by the user or it is in none of the files.
+        /// </summary>
+        private static bool FromFiles(Parts record, DxfDatabase database, double degrees, double scale, bool named)
+        {
+            var type = (DxfHatchPatternType)Whole(record.Text(76), 1);
+            DxfPatterns patterns = database?.Patterns;
+
+            if (patterns == null || type == DxfHatchPatternType.UserDefined)
+            {
+                return false;
+            }
+
+            string name = record.Text(2)?.Trim() ?? "SOLID";
+            List<double[]> lines = patterns.Find(name, type == DxfHatchPatternType.CustomDefined, database.Measurement == DxfMeasurementValue.Metric, out bool predefined);
+
+            if (lines == null)
+            {
+                return false;
+            }
+
+            double turn = degrees * (Math.PI / 180.0);
+            double cos = Math.Cos(turn);
+            double sin = Math.Sin(turn);
+
+            foreach (double[] line in lines)
+            {
+                double angle = (line[0] + degrees) % 360.0;
+                line[0] = angle < 0.0 ? angle + 360.0 : angle;
+                double x = line[1] * scale;
+                double y = line[2] * scale;
+                line[1] = x * cos - y * sin;
+                line[2] = x * sin + y * cos;
+                double along = line[0] * (Math.PI / 180.0);
+                double dx = line[3] * scale;
+                double dy = line[4] * scale;
+                line[3] = dx * Math.Cos(along) - dy * Math.Sin(along);
+                line[4] = dx * Math.Sin(along) + dy * Math.Cos(along);
+
+                for (int i = 5; i < line.Length; i++)
+                {
+                    line[i] *= scale;
+                }
+            }
+
+            if (named)
+            {
+                record.Set(2, name.ToUpperInvariant());
+                record.Set(76, ((int)(predefined ? DxfHatchPatternType.PreDefined : DxfHatchPatternType.CustomDefined)).ToString(CultureInfo.InvariantCulture));
+            }
+
+            record.SetPart(Kind.Pattern, LineGroups(lines));
+            return true;
         }
 
         /// <summary>Gets how many lines the pattern has (group 78), as AutoCAD's <c>NumberOfPatternDefinitions</c>: nought for a solid fill.</summary>

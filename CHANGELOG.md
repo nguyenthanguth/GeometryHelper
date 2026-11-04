@@ -6,6 +6,23 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `DxfDatabase.PatternSearchPath` gives a drawing the folders of the caller's own hatch pattern files, separated
+by semicolons and searched in their order, as `FontSearchPath` gives it the folders of its fonts (check P4c, point 34). A
+HATCH given a pattern by `SetHatchPattern` is then given its lines from there as AutoCAD 2021 gives them: from acadiso.pat
+in a drawing of millimetres and acad.pat in one of inches (`Measurement`), or from a file named after the pattern, a
+pattern of AutoCAD's file looked for in the drawing's file first and a custom one in its own file first, the type it is
+written as that of the file it is found in; each line turned by `PatternAngle` and scaled by `PatternScale` about the
+origin of the plane, and written anew when either is set, so that `Explode()` and `GetHatchLinesData()` draw it. ANSI31 of
+acadiso.pat on a square 30 by 20 holds its one line at 45 degrees, offset (-2.245, 2.245), and explodes to 11 LINEs. A
+HATCH made in code is given its lines when it is added to the drawing, and one read from a file keeps what the file holds.
+A file is read as AutoCAD reads one, comments, blank lines and the blanks about numbers passed over, and a pattern
+AutoCAD refuses is refused (a line of fewer than five numbers or more than six dashes, or a number it cannot read); a
+pattern not found is left with no lines, as before, said once at Debug, and a malformed file never throws. Every pattern
+of AutoCAD 2021's acad.pat and acadiso.pat, at three scales and angles (918 hatches), gives AutoCAD's own lines to 1E-13,
+and on squares off the origin AutoCAD draws the library's HATCH, and `Explode()` breaks it, into AutoCAD's own 84 034
+LINEs; AUDIT finds nothing to fix. The library carries no pattern of AutoCAD's. Empty, as a drawing is opened or made,
+nothing is read and every drawing is written as before, to the byte.
+
 **FIXED.** A block given an attribute definition by `DxfBlockTableRecord.AppendEntity` is marked as one of attribute
 definitions (flag 2 of its BLOCK, `HasAttributeDefinitions`), as AutoCAD 2021 marks one, constant or not and model space
 too, and the mark is kept when the definition is erased, as AutoCAD keeps it (check P4b, point 61). Without it AutoCAD

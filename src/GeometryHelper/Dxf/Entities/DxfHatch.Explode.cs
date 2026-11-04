@@ -31,7 +31,8 @@ namespace GeometryHelper.Dxf
         /// </summary>
         /// <returns>The entities, in no file, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
         /// <exception cref="NotSupportedException">Thrown for a solid fill and a gradient, which the library does not break; and for
-        /// a pattern the HATCH holds no lines of, AutoCAD's own pattern file being AutoCAD's.</exception>
+        /// a pattern the HATCH holds no lines of, AutoCAD's own pattern file being AutoCAD's: one the drawing's
+        /// <see cref="DxfDatabase.PatternSearchPath"/> found in none of its files when the pattern was given.</exception>
         /// <exception cref="InvalidOperationException">Thrown, before anything is made, when a loop has an edge that is no shape;
         /// when the pattern would give more than the 2 000 000 entities of <see cref="DxfReadOptions.MaxPlacedEntities"/>, or its
         /// lines would cross the loops more than 32 000 000 times, which holds what the crossings take to half a gigabyte, the
@@ -87,7 +88,7 @@ namespace GeometryHelper.Dxf
         /// <param name="underEstimateNumLines">Whether AutoCAD is to estimate the number of the lines low before it lays them; of
         /// no effect in the library, which counts them exactly.</param>
         /// <exception cref="NotSupportedException">Thrown for a pattern the HATCH holds no lines of, AutoCAD's own pattern file
-        /// being AutoCAD's.</exception>
+        /// being AutoCAD's, as <see cref="Explode"/> says.</exception>
         /// <exception cref="InvalidOperationException">Thrown as <see cref="Explode"/> throws: when a loop has an edge that is no
         /// shape, the lines would be more than the 2 000 000 of <see cref="DxfReadOptions.MaxPlacedEntities"/> or cross the loops
         /// more than 32 000 000 times, or the loops lie more than 2^52 spacings or lengths of dashes from the pattern's base

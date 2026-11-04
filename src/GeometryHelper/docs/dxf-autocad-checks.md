@@ -627,6 +627,36 @@ and the 3D polyline of point 13 fitted at SPLINETYPE 5 its `Type mismatch`, as A
       Autodesk's files, and choosing between them by `$MEASUREMENT`; left to the maintainer. Until then the library's
       `SetHatchPattern` of a pattern of AutoCAD's file draws nothing in AutoCAD; a pattern made by the user (`_USER`), whose
       lines the library writes, is drawn (point 35).
+    - The maintainer's choice (P4c): no pattern is carried; the library reads the caller's own .pat files, from the folders
+      of `DxfDatabase.PatternSearchPath`, as it reads the caller's fonts.
+    - AutoCAD 2021 (P4c, plugins GHP4CR, GHP4CS and GHP4CT on patterns of the probe's own, and the console's folder before
+      the support path): `SetHatchPattern` takes acadiso.pat in a drawing of `$MEASUREMENT` 1 and acad.pat in one of 0, and
+      opens a DXF whose header gives none as one of 0. A pattern of AutoCAD's file (PreDefined) is looked for in that file,
+      then in a file of its name, GHA in GHA.pat; a custom one the other way round; the first folder that has each file
+      gives it, the first pattern of a name in it is taken whatever its case, and one refused in the first file that has it
+      is not looked for in the other. The HATCH is written of the type of the file it was found in (CustomDefined ANSI31 of
+      acadiso.pat as PreDefined, PreDefined GHA as CustomDefined), its name in capitals, and one in no drawing is given its
+      lines at once from the working drawing's file. A line is the file's angle plus the hatch's, from 0 up to 360 (720 as 0,
+      -30 as 330), its base point turned by the hatch's angle and scaled, its offset turned by its own angle and scaled, its
+      dashes scaled. `PatternAngle` writes the lines anew at the scale the hatch has, `PatternScale` alone does not until
+      `SetHatchPattern` is called again, and `PatternDouble` adds no line. Read from the file: a pattern begins at a line
+      whose first character is `*` (an indented one, or one after a mark of UTF-8, is none), its name all before the first
+      comma (`*GHR , x` is `GHR `), a comment from a `;` and the blanks at the end of a line left out; blank lines, comment
+      lines and the blanks before numbers are passed over, `2 1` is read as 2, commas running together as one, and a comma
+      at the end of a line is a dash of nought. Refused, `SetHatchPattern` throwing eInvalidInput: a line of fewer than five
+      numbers or more than six dashes (six taken, seven refused, whatever the length of the line), a number not ended by a
+      blank or a comma (`2x`), a word, a blank between commas, numbers without commas, 1e400, or a pattern of no line.
+    - Now: the library writes the lines so where `PatternSearchPath` finds the pattern, on `SetHatchPattern`, on
+      `PatternScale` and `PatternAngle` (both written anew from the file, as AutoCAD writes them after `SetHatchPattern`),
+      and when a HATCH given its pattern in no drawing is added to one; a HATCH read from a file keeps what the file holds;
+      a pattern not found is left with no lines, as before, said once at Debug. Every pattern of AutoCAD 2021's acadiso.pat
+      (82 but SOLID) and acad.pat (71) at scale 1, 2.5 at 30 degrees and 0.5 at -45 degrees, on a square 60 by 40 and 3 by
+      2, 918 hatches: the lines written are AutoCAD's own to 1E-13 (918 of 918). On the squares off the origin, AutoCAD
+      draws the library's HATCH as the LINEs of its own, 459 of 459 (84 034 of 84 034 LINEs within 1E-6), and the library's
+      `Explode()` gives them too, 459 of 459. On the squares from the origin, along whose edges lines of ANSI36, ZIGZAG and
+      the like run, AutoCAD draws the library's HATCH as its own 425 times of 459 (82 956 of 83 063 LINEs) and the library's
+      `Explode()` matches 380 (82 774): the difference is on those edges, where AutoCAD's drawing of two hatches of the same
+      lines differs too. AUDIT finds nothing to fix in the 12 files.
 
 35. **Where a pattern is scaled and turned from.**
     - Try: a hatch of ANSI31 at an elevation and a normal other than up, its `PatternScale` and `PatternAngle` set, against the
