@@ -99,5 +99,35 @@ namespace GeometryHelper.UnitTest.Packing
                 Assert.True(before.IsEqualTo(after), $"view {i}: {before} and {after}");
             }
         }
+
+        /// <summary>
+        /// The guide's nine boxes on an A4 with offsets of 10: from each corner the first is in that corner, on the one
+        /// sheet they all take.
+        /// </summary>
+        [Theory]
+        [InlineData(SheetCorner.UpperLeft)]
+        [InlineData(SheetCorner.UpperRight)]
+        [InlineData(SheetCorner.LowerLeft)]
+        [InlineData(SheetCorner.LowerRight)]
+        public void TheStartCorner_TakesTheFirstBox(SheetCorner corner)
+        {
+            var sizes = new (double W, double H)[] { (80, 50), (60, 40), (70, 60), (50, 30), (90, 45), (40, 40), (60, 50), (55, 35), (75, 40) };
+            List<GeoRectangle2[]> groups = sizes.Select(s => new[] { new GeoRectangle2(new GeoPoint2(-3000, 2000), s.W, s.H) }).ToList();
+            var sheet = new Sheet(PaperSize.A4) { OffsetLeft = 10, OffsetRight = 10, OffsetTop = 10, OffsetBottom = 10 };
+
+            var options = new PackOptions { GroupSpacing = 5, StartCorner = corner, Tolerance = Tolerance.Default };
+            PackResult result = SheetPacker.Pack(groups, sheet, options);
+
+            GeoRectangle2 first = result.Placements[0][0].ViewBox, area = result.Sheets[0].UsableArea;
+            GeoPoint2 expected = corner == SheetCorner.UpperLeft ? area.UpperLeft
+                : corner == SheetCorner.UpperRight ? area.UpperRight
+                : corner == SheetCorner.LowerLeft ? area.LowerLeft : area.LowerRight;
+            GeoPoint2 placed = corner == SheetCorner.UpperLeft ? first.UpperLeft
+                : corner == SheetCorner.UpperRight ? first.UpperRight
+                : corner == SheetCorner.LowerLeft ? first.LowerLeft : first.LowerRight;
+            Assert.True(placed.IsEqualTo(expected, Tolerance.Default), placed.ToString());
+            Assert.Single(result.Sheets);
+            Assert.All(result.Placements, g => Assert.True(g[0].Placed));
+        }
     }
 }

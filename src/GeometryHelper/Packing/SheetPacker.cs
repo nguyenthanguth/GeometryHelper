@@ -8,7 +8,8 @@ namespace GeometryHelper.Packing
 {
     /// <summary>
     /// Packs boxes onto sheets of paper: each group of boxes as one block, the blocks from the upper left of the first
-    /// sheet, and onto a new sheet beside it when the one before is full.
+    /// sheet, or the corner <see cref="PackOptions.StartCorner"/> names, and onto a new sheet beside it when the one
+    /// before is full.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -21,7 +22,8 @@ namespace GeometryHelper.Packing
     /// from one another, and <see cref="PackOptions.GroupSpacing"/> from other groups. A group too large for one sheet
     /// is split, in its order, into blocks that each go onto one. The blocks are placed by the maximal rectangles
     /// method, each where its top is highest and then its left side furthest left, so that a sheet fills from its
-    /// upper left corner as the eye reads it.
+    /// upper left corner as the eye reads it. From another <see cref="PackOptions.StartCorner"/> the packing is the
+    /// mirror image of that one, the same boxes on the same sheets.
     /// </para>
     /// <para>
     /// The result is judged as it came out: a box reported <see cref="PackPlacement.Placed"/> lies inside the usable
@@ -109,7 +111,10 @@ namespace GeometryHelper.Packing
 
             // STEP 3: Each block onto the last sheet, or any sheet with room, or a new one. Each block with the group
             // spacing added on its right and above, into sheets the spacing wider and higher: the blocks then stand the
-            // spacing apart, and flush with the edges of the usable area.
+            // spacing apart, and flush with the edges of the usable area. From another corner than the upper left, each
+            // block and each box of a block laid out afresh is mirrored across the usable area and its block.
+            bool fromRight = options.StartCorner == SheetCorner.UpperRight || options.StartCorner == SheetCorner.LowerRight;
+            bool fromBelow = options.StartCorner == SheetCorner.LowerLeft || options.StartCorner == SheetCorner.LowerRight;
             var bins = new List<MaxRectsBin>();
             var spots = new List<Spot>();
             int clusterIndex = 0;
@@ -120,13 +125,17 @@ namespace GeometryHelper.Packing
                 if (onSheet >= 0)
                 {
                     Footprint area = sheet.GetUsableArea(onSheet);
+                    double blockX = fromRight ? usable.Width - x - cluster.Width : x;
+                    double blockY = fromBelow ? usable.Height - y - cluster.Height : y;
                     for (int j = 0; j < cluster.Members.Count; j++)
                     {
                         int g = cluster.Group, i = cluster.Members[j];
                         Footprint box = footprints[g][i];
+                        double offsetX = fromRight && !cluster.Kept ? cluster.Width - cluster.Offsets[j].X - box.Width : cluster.Offsets[j].X;
+                        double offsetY = fromBelow && !cluster.Kept ? cluster.Height - cluster.Offsets[j].Y - box.Height : cluster.Offsets[j].Y;
                         var translation = new GeoVector2(
-                            area.MinX + x + cluster.Offsets[j].X - box.MinX,
-                            area.MinY + y + cluster.Offsets[j].Y - box.MinY);
+                            area.MinX + blockX + offsetX - box.MinX,
+                            area.MinY + blockY + offsetY - box.MinY);
                         GeoRectangle2 moved = groups[g][i].Translate(translation);
                         placements[g][i] = new PackPlacement(onSheet, translation, moved, true);
                         spots.Add(new Spot(g, i, onSheet, clusterIndex, cluster.Kept, Footprint.Of(moved)));

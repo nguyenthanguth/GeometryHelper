@@ -16,7 +16,9 @@ namespace GeometryHelper.UnitTest.Packing
     {
         private const double Slack = 1e-6;
 
-        public static IEnumerable<object[]> Seeds() => Enumerable.Range(1, 40).Select(seed => new object[] { seed });
+        // Each scene packed from each corner it may start from.
+        public static IEnumerable<object[]> Seeds() => Enumerable.Range(1, 40).SelectMany(seed =>
+            new[] { SheetCorner.UpperLeft, SheetCorner.UpperRight, SheetCorner.LowerLeft, SheetCorner.LowerRight }.Select(corner => new object[] { seed, corner }));
 
         private static (List<GeoRectangle2[]> Groups, Sheet Sheet, PackOptions Options) Scene(int seed)
         {
@@ -71,9 +73,10 @@ namespace GeometryHelper.UnitTest.Packing
 
         [Theory]
         [MemberData(nameof(Seeds))]
-        public void EveryPacking_KeepsItsPromises(int seed)
+        public void EveryPacking_KeepsItsPromises(int seed, SheetCorner corner)
         {
             (List<GeoRectangle2[]> groups, Sheet sheet, PackOptions options) = Scene(seed);
+            options.StartCorner = corner;
 
             PackResult result = SheetPacker.Pack(groups, sheet, options);
 

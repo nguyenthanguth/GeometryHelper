@@ -6,6 +6,16 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `PackOptions.StartCorner`: `SheetPacker` fills each sheet from the corner of its usable area given,
+`UpperLeft` (the default, as before), `UpperRight`, `LowerLeft` or `LowerRight`. The first block goes into that corner
+and the rows run from its side, laid from its edge; a group laid out afresh puts its main view at that corner of its
+block, and a group kept as drawn is mirrored as one block, its boxes as they stood. The packing is the mirror image of
+the one from the upper left, so the sheets taken and how full they are do not change: from the lower right, three
+boxes 100 by 50 on a usable area 267 by 190 put two in the bottom row, the first at the right, and the third above
+the first. `SheetCorner.Center` is refused. From the upper left every result is the same to the bit as before (a
+thousand boxes in 200 groups on A1, hashed), and as fast, about 5 ms. Tested by 60 scenes packed from each corner
+against the mirror of the upper left's, and the packing promises checked from every corner (40 scenes each).
+
 ## 13.7.0 (2026-11-04)
 
 A minor release: one public member is added, `DxfDatabase.PatternSearchPath`, and none is removed or renamed in any of

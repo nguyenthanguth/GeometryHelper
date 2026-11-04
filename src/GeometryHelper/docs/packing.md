@@ -88,7 +88,7 @@ Each `GeoRectangle2[]` is a group of boxes that belong together, packed onto a s
 
 | `GroupLayout` | The boxes of a group |
 |---|---|
-| `Compact` (default) | laid out afresh, as close together as they go, in their order from the upper left: the first box, the main view, at the upper left of its block |
+| `Compact` (default) | laid out afresh, as close together as they go, in their order from the start corner: the first box, the main view, at that corner of its block, the upper left unless `StartCorner` says another |
 | `Keep` | as they stand to one another: a layout already drawn moves as one block, its boxes overlapping or not |
 
 The boxes of a group stand `Spacing` apart, and the groups `GroupSpacing` apart, both in millimetres on paper: a
@@ -96,7 +96,8 @@ group spacing wider than the spacing shows which boxes belong together. A group 
 in its order, into blocks that each go onto one sheet, laid out compactly.
 
 A layout of four views already drawn, in blue, and a group of two, in orange, on an A3. `Keep` moves the four as they
-were drawn, gaps and all; `Compact` lays them out afresh, the first of them, the main view, at the upper left:
+were drawn, gaps and all; `Compact` lays them out afresh, the first of them, the main view, at the upper left, the
+default start corner:
 
 | | |
 |---|---|
@@ -132,8 +133,26 @@ foreach (View view in views)   // the views of one drawing, their boxes in the s
 ## Order and filling
 
 The blocks are placed by the maximal rectangles method, each where its top is highest, then its left side furthest
-left, so that a sheet fills from its upper left corner as the eye reads it. Two options trade that order for fewer
-sheets:
+left, so that a sheet fills from its upper left corner as the eye reads it.
+
+`PackOptions.StartCorner` starts each sheet from another corner of its usable area: `UpperLeft` (the default),
+`UpperRight`, `LowerLeft` or `LowerRight`. The first block goes into that corner, the rows run from its side and are
+laid from its edge. The packing is the mirror image of the one from the upper left: the same boxes go on the same
+sheets, as far from the start corner's sides as they stood from the upper left's, so the sheets taken and how full
+they are do not change. A group laid out afresh puts its main view at that corner of its block; a group kept as drawn
+is mirrored as one block, its boxes as they stood. Where each new sheet goes is still `Sheet.NewSheet`'s.
+
+```csharp
+var options = new PackOptions { GroupSpacing = 5, StartCorner = SheetCorner.LowerRight };
+PackResult result = SheetPacker.Pack(groups, sheet, options);
+```
+
+Nine boxes, one to a group, on an A4 with offsets of 10, from each corner; the first, in orange, is in the start
+corner every time:
+
+![The same nine boxes on an A4 from the upper left, the upper right, the lower left and the lower right](images/packing/start-corner.svg)
+
+Two options trade the order of the groups for fewer sheets:
 
 | `PackOptions` | Default | When set |
 |---|---|---|

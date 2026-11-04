@@ -16,6 +16,7 @@ namespace GeometryHelper.Packing
         private double _spacing;
         private double _groupSpacing;
         private GroupLayout _groupLayout = GroupLayout.Compact;
+        private SheetCorner _startCorner = SheetCorner.UpperLeft;
 
         /// <summary>
         /// Gets the default options, a new instance each time it is read, so that changing what it gives changes no
@@ -84,6 +85,35 @@ namespace GeometryHelper.Packing
         /// can take fewer of them.
         /// </summary>
         public bool FillEarlierSheets { get; set; }
+
+        /// <summary>
+        /// Gets or sets the corner of the usable area each sheet fills from: the first block goes into it, the rows run
+        /// from its side and are laid from its edge, and a group laid out afresh puts its first box at that corner of its
+        /// block; <see cref="SheetCorner.UpperLeft"/> unless set. From the lower right, three boxes 100 by 50 on a usable
+        /// area 267 by 190 put two in the bottom row, the first at the right, and the third above the first.
+        /// </summary>
+        /// <remarks>
+        /// The packing from another corner is the mirror image of the one from the upper left: the same boxes go on the
+        /// same sheets, as far from the start corner's sides as they stood from the upper left's. A group kept as drawn
+        /// (<see cref="GroupLayout.Keep"/>) is mirrored as one block, its boxes as they stood. Where each new sheet goes is
+        /// <see cref="Sheet.NewSheet"/>'s, whatever the corner.
+        /// </remarks>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// The value is <see cref="SheetCorner.Center"/>, or not one of <see cref="SheetCorner"/>.
+        /// </exception>
+        public SheetCorner StartCorner
+        {
+            get => _startCorner;
+            set
+            {
+                if (value != SheetCorner.UpperLeft && value != SheetCorner.UpperRight && value != SheetCorner.LowerLeft && value != SheetCorner.LowerRight)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(value), value, "A packing starts from one of the four corners.");
+                }
+
+                _startCorner = value;
+            }
+        }
 
         /// <summary>
         /// Gets or sets the tolerance: how far a box may pass a free space, or the edge of the usable area, and still be
