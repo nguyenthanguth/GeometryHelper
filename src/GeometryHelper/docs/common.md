@@ -662,8 +662,9 @@ drawing of R2004 or later, as many custom properties as there are, an empty text
 drawing had taken out, as AutoCAD saved such a drawing, in AutoCAD 2021's order after `$DWGCODEPAGE`: `$TITLE`, `$SUBJECT`,
 `$AUTHOR`, `$KEYWORDS`, `$COMMENTS`, the header's `$LASTSAVEDBY` as it was, `$REVISIONNUMBER`, then the pairs. A drawing of R2000 keeps them in its DWGPROPS, as AutoCAD 2021 saves
 one: its custom properties are read from the groups 300 to 309 (`name=value`) and from a list after a group 90 (a count,
-then each name and value in two groups 1), and written in the ten groups alone, ten at most, their count after the base of
-the hyperlinks, as AutoCAD writes and reads them: it reads none of the list. The base of the hyperlinks is written to the
+then each name and value in two groups 1), and written in the ten groups, their count after the base of the hyperlinks,
+then each after the tenth in a group 300 after the count, as AutoCAD 2021 writes and reads twelve: it reads none of the
+list. The base of the hyperlinks is written to the
 header's `$HYPERLINKBASE` too, where AutoCAD reads it, and read from there where it is not empty.
 
 ### The tables
@@ -674,7 +675,9 @@ header's `$HYPERLINKBASE` too, where AutoCAD reads it, and read from there where
 whatever the file calls them (ezdxf's files of R12 call them `$Model_Space` and `$Paper_Space`), and stand for their records
 from the moment the drawing is opened, with their handles and extended data.
 `BlockTable.Add(new DxfBlockTableRecord { Name = "BOLT", Origin = new GeoPoint3(0, 0, 0) })` adds a block, which is filled
-by its own `AppendEntity`. A block has its
+by its own `AppendEntity`. A block given an attribute definition is marked as one (`HasAttributeDefinitions`, flag 2 of its
+BLOCK), model space too, and keeps the mark when the definition is erased, as AutoCAD does; AutoCAD takes no value a
+multileader gives the attributes of a block without it. A block has its
 `Comments` (the BLOCK's 4), `Units`, `Explodable` and `BlockScaling` (its BLOCK_RECORD's 70, 280 and 281, from R2007 on),
 `PreviewIcon` (the bytes of its 310), `IsDynamicBlock` and `Hyperlinks`. `GetBlockReferences(true)` gives its INSERTs, as
 AutoCAD's `GetBlockReferenceIds` gives their ids, and `GetBlockReferences(false)` those of the blocks that hold one of it too
@@ -3188,14 +3191,16 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
 ### What the model does not do
 
 - It draws nothing anew. The block that draws a dimension (`*D`) or a table (`*T`) is left as it was when a point, a text, a
-  cell or a variable of its style changes, for AutoCAD to draw anew; until AutoCAD does, it shows the old picture. A
-  dimension's `Measurement` is worked out from its points all the same.
-- It has no fonts. A text's `GeometricExtents` is the point it stands at; an MTEXT's `ActualWidth` and `ActualHeight` are what
+  cell or a variable of its style changes, for AutoCAD to draw anew; until AutoCAD does, it shows the old picture. AutoCAD 2021 draws a
+  dimension's block anew only when it is edited, not on opening or REGEN; a table's it draws anew on opening. A dimension's
+  `Measurement` is worked out from its points all the same.
+- Without `FontSearchPath` (see Fonts) it has no fonts. A text's `GeometricExtents` is the point it stands at; an MTEXT's `ActualWidth` and `ActualHeight` are what
   the file says, nought where it says nothing; where the words of an MTEXT wrap, and the box of a fitted or aligned TEXT, are
   AutoCAD's to work out, and so is where it wraps an MTEXT exploded or written into R12 as TEXTs.
 - It knows no pattern file. A pattern of AutoCAD's acad.pat the HATCH does not hold the lines of, ANSI31 given by
   `SetHatchPattern` among them, holds no lines (`NumberOfPatternDefinitions` 0), its name written for AutoCAD to take the
-  lines from its own file, and `Explode()` and `GetHatchLinesData()` refuse it. A leader drawn anew (`EvaluateLeader`),
+  lines from its own file, and `Explode()` and `GetHatchLinesData()` refuse it. AutoCAD 2021 draws none of those lines
+  either, even after REGEN, until the hatch is edited: give a pattern of the user's own (`_USER`) where the lines must show. A leader drawn anew (`EvaluateLeader`),
   where a multileader's leaders meet its words, and the size of those words in its `GeometricExtents` are not worked out: a
   leader added on the left of words held at their top left is landed as AutoCAD lands it, but one on their right, which
   AutoCAD lands as far right as its font makes the words wide, starts its dogleg at the base point of the content (10 of

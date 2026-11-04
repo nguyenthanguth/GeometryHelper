@@ -145,7 +145,8 @@ namespace GeometryHelper.Dxf
         /// The properties of the data of a DWGPROPS: the first group of each of the codes 2, 3, 4, 6, 7, 8 and 9, the group 1
         /// after the marker, and the custom properties: each group 300 to 309 of a name, split at its first equals sign, then
         /// those of the list after the group 90 that follows the base of the hyperlinks, its count, each a name and a value in two
-        /// groups 1; a name of both kept once, as first found, letters of either case the same.
+        /// groups 1, then each group 300 after those, as AutoCAD 2021 writes the eleventh and twelfth of twelve; a name of both
+        /// kept once, as first found, letters of either case the same.
         /// </summary>
         internal static DxfDatabaseSummaryInfo Read(IReadOnlyList<DxfTypedValue> data)
         {
@@ -179,6 +180,12 @@ namespace GeometryHelper.Dxf
             for (int k = 0; listAt >= 0 && k < count; k++)
             {
                 Add(custom, data[listAt + 1 + 2 * k].Value, data[listAt + 2 + 2 * k].Value);
+            }
+
+            for (int i = listAt + 1 + 2 * count; listAt >= 0 && i < data.Count && data[i].TypeCode == 300; i++)
+            {
+                int equals = data[i].Value.IndexOf('=');
+                Add(custom, equals < 0 ? data[i].Value : data[i].Value.Substring(0, equals), equals < 0 ? string.Empty : data[i].Value.Substring(equals + 1));
             }
 
             return new DxfDatabaseSummaryInfo(texts, hyperlinkBase, custom);
@@ -234,8 +241,9 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// The data of a DWGPROPS of these properties, as AutoCAD 2021 writes it: the marker, the texts, the ten groups of custom
         /// properties 300 to 309, the time spent and the two dates (those of the data kept where it has them, else the header's),
-        /// the base of the hyperlinks and the count of the custom properties (90); then the groups the data kept has after
-        /// those, a list of custom properties after its group 90 left out, so that the record holds one set of them.
+        /// the base of the hyperlinks and the count of the custom properties (90), each after the tenth in a group 300 after
+        /// it; then the groups the data kept has after those, a list of custom properties after its group 90 and the groups 300
+        /// after that left out, so that the record holds one set of them.
         /// </summary>
         internal List<DxfTypedValue> Written(IReadOnlyList<DxfTypedValue> kept, string editing, string created, string updated)
         {
@@ -255,6 +263,12 @@ namespace GeometryHelper.Dxf
                     if (i == listAt)
                     {
                         i += 2 * count;
+
+                        while (i + 1 < kept.Count && kept[i + 1].TypeCode == 300)
+                        {
+                            i++;
+                        }
+
                         continue;
                     }
 
@@ -292,6 +306,12 @@ namespace GeometryHelper.Dxf
 
             data.Add(new DxfTypedValue(1, HyperlinkBase));
             data.Add(new DxfTypedValue(90, CustomProperties.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+
+            for (int i = 10; i < CustomProperties.Count; i++)
+            {
+                data.Add(new DxfTypedValue(300, CustomProperties[i].Key + "=" + CustomProperties[i].Value));
+            }
+
             data.AddRange(rest);
             return data;
         }

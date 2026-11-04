@@ -163,7 +163,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Contains("300\nProject=Grid A\n301\nPhase=2\n302\nClient=ACME\n303\n=\n", record, StringComparison.Ordinal);
             Assert.EndsWith("  1\nhttps://example.com/\n 90\n3\n", record, StringComparison.Ordinal);
 
-            // A record with no list is written in the ten groups too, ten at most, their count after them as AutoCAD writes it.
+            // A record with no list is written in the ten groups too, their count after them as AutoCAD writes it.
             string plain = DxfObjectsEzdxfDrawings.R2000.Replace("https://example.com/\n 90\n0\n", "https://example.com/\n");
             DxfDatabase old = DxfDatabase.Parse(plain);
             var builder = new DxfDatabaseSummaryInfoBuilder(old.SummaryInfo);
@@ -173,12 +173,14 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Contains("300\nProject=Grid A\n301\nPhase=2\n302\nGrade=S355\n303\n=\n", kept, StringComparison.Ordinal);
             Assert.EndsWith("  1\nhttps://example.com/\n 90\n3\n", kept, StringComparison.Ordinal);
 
+            // More than ten: each after the tenth in a group 300 after the count, as AutoCAD 2021 writes twelve (P4b, point 26).
             for (int i = 0; i < 8; i++)
             {
                 builder.CustomPropertyTable.Add(new KeyValuePair<string, string>("P" + i, "v"));
             }
 
-            Assert.Throws<ArgumentException>(() => old.SummaryInfo = builder.ToDatabaseSummaryInfo());
+            old.SummaryInfo = builder.ToDatabaseSummaryInfo();
+            Assert.Equal(11, DxfDatabase.Parse(old.ToText()).SummaryInfo.CustomProperties.Count);
         }
 
         [Theory]

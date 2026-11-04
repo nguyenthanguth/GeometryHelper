@@ -6,6 +6,20 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A block given an attribute definition by `DxfBlockTableRecord.AppendEntity` is marked as one of attribute
+definitions (flag 2 of its BLOCK, `HasAttributeDefinitions`), as AutoCAD 2021 marks one, constant or not and model space
+too, and the mark is kept when the definition is erased, as AutoCAD keeps it (check P4b, point 61). Without it AutoCAD
+2021 took a block made in code for one of no attribute: the value B7 a multileader of the library gave the block's MARK
+it did not find, and its EXPLODE gave the block's INSERT no ATTRIB; with it, AutoCAD's EXPLODE and `Explode` give the
+INSERT of MARK=B7, as the library's `Explode` does. A block read from a file says what its file says.
+
+**FIXED.** `DxfDatabase.SummaryInfo` of a drawing of R2000 reads every custom property of its DWGPROPS AutoCAD 2021
+saved, and writes more than ten as AutoCAD does, where it read ten and refused an eleventh (check P4b, point 26).
+AutoCAD writes the first ten in the groups 300 to 309, their count after the base of the hyperlinks, then each after the
+tenth in a group 300 of its own: twelve end `90 12`, `300 P8=v8`, `300 P9=v9`. AutoCAD 2021 read its own such save as
+twelve, of which the library read ten, and read the library's drawing of twelve as twelve, AUDIT finding nothing. A drawing
+of ten or fewer is written as before, to the byte.
+
 **NEW.** An MTEXT of several lines is laid out in the fonts `DxfDatabase.FontSearchPath` finds, as AutoCAD 2021 lays it
 out (check F4): its paragraphs (`\P`) wrapped at its width, its `ActualWidth` and `ActualHeight`, its `GeometricExtents`,
 and the TEXTs `Explode` and a drawing of R12 give of it, a TEXT for each run of letters of one look of each line where

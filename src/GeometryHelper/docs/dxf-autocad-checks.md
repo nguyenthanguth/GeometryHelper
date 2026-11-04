@@ -16,6 +16,15 @@ four are now written as AutoCAD reads them. Its plugin v4 found two more: a DIME
 R2010 brought (points 29 and 30), and a DIMSTYLE copied into R12 without its arrows by name 5, 6 and 7 (point 55); both are
 written as AutoCAD reads them now.
 
+On 4 November 2026 (P4b) AutoCAD 2021, run headless in accoreconsole, settled the points still open that its API or AUDIT
+can answer, and the answers of its plugins v2 to v14 that this page had not yet taken in are written under their points.
+Its AUDIT found no error of the library's own in the 134 files the library wrote for it: the 125 of points 1 to 79 made
+anew by the library of 13.6.0, a drawing of each version from R2000 to R2018 holding one of each common entity, and those
+of points 26, 35 and 42 below; 127 it found nothing in. What it reported in the other seven came from elsewhere: the five
+drawings of R12 made from ezdxf's empty drawing of R12 carry its 402 errors `Invalid textstyle name ""` (that drawing
+alone has them all), the drawing of R12 of point 33 ezdxf's linetypes BYBLOCK and BYLAYER, which AutoCAD holds already,
+and the 3D polyline of point 13 fitted at SPLINETYPE 5 its `Type mismatch`, as AutoCAD's own PEDIT gives it.
+
 ## Entities and copies
 
 1. **A SOLID given a new normal.**
@@ -167,6 +176,10 @@ written as AutoCAD reads them now.
     - A change if: AutoCAD shrinks it.
     - AutoCAD 2021, so far: `Offset(5)` of the arc of normal (0, 0, -1) gives a radius of 15; `GetOffsetCurvesGivenPlaneNormal`
       threw `eNotImplementedYet` and is to be tried again.
+    - AutoCAD 2021 (plugin v2): `GetOffsetCurvesGivenPlaneNormal` throws `eNotImplementedYet` for an arc and a circle, either
+      normal given: it is not in AutoCAD 2021 for them. `GetOffsetCurves(5)` grows the radius by 5 whichever way the normal
+      points: the arc of normal (0, 0, -1) to 15, and an arc and a circle turned over in their own plane, of radius 10, to 15;
+      `GetOffsetCurves(-5)` shrinks it to 5. So does the library.
 
 13. **Spline fitting of a polyline.**
     - Try: `SplineFit` of a 2D and a 3D polyline at SPLINESEGS 8 and SPLINETYPE 5 and 6, and on a polyline of fewer vertices
@@ -176,6 +189,9 @@ written as AutoCAD reads them now.
     - Now: SPLINESEGS segments to each knot span, the degree dropped where the vertices are too few; every vertex carries its
       polyline's look (layer, linetype, colour, lineweight and the rest), written when it is made and when the polyline's is
       set.
+    - AutoCAD 2021 (P4b, AUDIT of 13-a made anew): one error left, `AcDb3dPolyline Type mismatch` of the 3D polyline fitted at
+      SPLINETYPE 5 (70 of 12, 75 of 5), which AUDIT reported of AutoCAD's own `PEDIT _S` of the same polyline in the COM round
+      of 29 October as well; nothing of 13-b at SPLINETYPE 6. Not the library's to change.
 
 14. **Curve fitting and surface fitting.**
     - Try: `CurveFit` of a polyline and `SurfaceFit` of a polygon mesh at SURFU 6 and SURFV 6, and count the vertices.
@@ -445,6 +461,8 @@ written as AutoCAD reads them now.
       group so. The library is unchanged.
     - Still open: `TextAt` of a dash of no text gives an empty text, where AutoCAD's throws eNotApplicable; kept, as the
       library's own reading, until it is asked for.
+    - AutoCAD 2021 (plugin v8): reads the group 50 of 30 of GH_GAS30 as 30 degrees, and its save writes 30 again; a linetype
+      it loads from a .lin of `R=30` it writes 50 of 30 too. Degrees, as the library writes and reads them.
 
 22. **The current transparency.**
     - Try: set CETRANSPARENCY to the alpha 100 through `Cetransparency` and read it in AutoCAD.
@@ -468,6 +486,9 @@ written as AutoCAD reads them now.
     - Try: set `PreviewIcon` of a block and look at it in AutoCAD's INSERT dialog.
     - Now: its bytes in the BLOCK_RECORD's 310 groups, after its other groups.
     - A change if: AutoCAD wants them in another place of the record.
+    - AutoCAD 2021 (plugin v2): reads them there: GH_PREVIEW's `HasPreviewIcon` true, its `PreviewIcon` the picture the
+      library wrote, 32 by 32 of 24 bits, a red X on white in a blue frame (172 red pixels, 124 blue, 728 white, no other).
+      The INSERT dialog's preview, which needs the editor, is for the maintainer's eye.
 
 26. **The drawing's properties.**
     - Try: set `SummaryInfo` with a hyperlink base and two custom properties in a drawing of R2004 or later and of R2000, and
@@ -504,6 +525,12 @@ written as AutoCAD reads them now.
     - Now (D16): the header's `$LASTSAVEDBY` moved into the run before `$REVISIONNUMBER`, its value kept, and the run after
       `$DWGCODEPAGE`, as AutoCAD writes it. A DWGPROPS of R2000 still takes ten custom properties at most (parked: the two
       more after the 90 that AutoCAD writes are not written yet).
+    - AutoCAD 2021 (P4b, plugin GHP4BA): reads its own save of 26-e as R2000, ten in 300 to 309, `90 12`, then `300 P8=v8`
+      and `300 P9=v9`, as twelve custom properties; the library read ten of them.
+    - Now (P4b): a DWGPROPS of R2000 holds as many custom properties as there are, each after the tenth in a group 300
+      after the count, and every such group 300 is read: AutoCAD's save of 26-e reads twelve, and the library's drawing of
+      R2000 of twelve (26-x) AutoCAD read as twelve, AUDIT finding nothing, and saved again in the same form. A drawing of
+      ten or fewer is written as before, to the byte.
 
 27. **Empty groups.**
     - Try: in AutoCAD, empty a group by erasing its last member, by removing it, and make one with no member; save.
@@ -523,6 +550,9 @@ written as AutoCAD reads them now.
     - Now: given a name, it is anonymous no longer (group 70 of 0), by `DxfGroup.Name` and, since it was found making the
       files that it did not, by `GroupDictionary.SetName`.
     - A change if: AutoCAD keeps it anonymous.
+    - AutoCAD 2021 (plugin v4, and the maintainer's CLASSICGROUP): its `Group.Name` and the rename in CLASSICGROUP write the
+      group's 70 of 0, anonymous no longer, as the library; its `DBDictionary.SetName` of the group dictionary keeps 70 of 1,
+      a named group still flagged anonymous. The library's 28-b it read named and of 70 0, its log empty.
 
 29. **Records of R2018 copied into R2000.**
     - Try: open in AutoCAD 2000 a drawing of R2000 into which the library copied a DIMSTYLE and a layer from a drawing of R2018.
@@ -574,7 +604,7 @@ written as AutoCAD reads them now.
     - AutoCAD 2021: reads the centre and height of R12 as written, but the twist the library wrote, 30 for 30 degrees, as
       1 718.87 degrees: 30 radians.
     - Now: the twist in MVIEW is written and read in radians (group 51 of R2000 on in degrees, as before); the view of R14 is
-      still to be tried.
+      still to be tried. Not to be tried here: AutoCAD 2021 saves no DXF of R14, and the library makes none from nothing.
     - AutoCAD 2021 (plugin v4, 33-b): reads the snap angle in MVIEW in radians as well, the library's 30 as 1 718.87 degrees,
       and writes a snap of pi/6 there as 0.5235987755982988.
     - Now: the snap angle in MVIEW is written and read in radians too.
@@ -587,12 +617,29 @@ written as AutoCAD reads them now.
     - Now: its name and type are written for AutoCAD to take the lines from acad.pat.
     - A change if: AutoCAD draws nothing until the hatch is edited; the library should then write the lines of the common
       patterns.
+    - AutoCAD 2021 (P4b, plugin GHP4BA and the drawing opened in accoreconsole): it does draw nothing. The library's HATCH of
+      ANSI31 (78 0) on the square 30 by 20, read by DxfIn or opened as a drawing, holds no line of its pattern
+      (`NumberOfPatternDefinitions` 0) and explodes to nothing, after REGEN too, as do those of the library's own drawings of
+      R2000 and R2018; AutoCAD's own HATCH of ANSI31 on the same square holds its one line at 45 degrees, 3.175 apart in a
+      drawing of millimetres (`$MEASUREMENT` 1, acadiso.pat) and 0.125 in one of inches (acad.pat), and explodes to 11 LINEs
+      (283 on the square 30 by 20 of inches). AUDIT finds nothing to fix in either.
+    - Parked (P4b): writing the lines means carrying the patterns of acad.pat and acadiso.pat, the library's own copy of
+      Autodesk's files, and choosing between them by `$MEASUREMENT`; left to the maintainer. Until then the library's
+      `SetHatchPattern` of a pattern of AutoCAD's file draws nothing in AutoCAD; a pattern made by the user (`_USER`), whose
+      lines the library writes, is drawn (point 35).
 
 35. **Where a pattern is scaled and turned from.**
     - Try: a hatch of ANSI31 at an elevation and a normal other than up, its `PatternScale` and `PatternAngle` set, against the
       same done in AutoCAD.
     - Now: the lines are scaled and turned about the origin of the hatch's own system.
     - A change if: AutoCAD's lines start elsewhere.
+    - AutoCAD 2021 (P4b, plugin GHP4BA): the library's ANSI31 of 35-a holds no line in AutoCAD, as in point 34, so it draws
+      nothing there. AutoCAD's own ANSI31 at elevation 5 on the normal (0, -0.7071, 0.7071), scaled by 2 and turned by 30
+      degrees, holds its line at 75 degrees from the base (0, 0) of the hatch's own system, offset (-6.134, 1.644), 6.35
+      apart. A pattern made by the user, spaced 3 and turned by 30 degrees, on the same plane and square (35-u): AutoCAD
+      draws the library's HATCH as 10 LINEs, each within 1E-6 of the 10 the library's `Explode()` gives, and its own HATCH of
+      the same pattern on the same LWPOLYLINE as the same 10, its line at 30 degrees from (0, 0), offset (-1.5, 2.598).
+      The lines start where the library starts them.
 
 36. **A hatch's background colour and gradient.**
     - Try: set `BackgroundColor` to an index and `SetGradient` on a new hatch, and open it.
@@ -601,23 +648,34 @@ written as AutoCAD reads them now.
     - A change if: AutoCAD shows another colour.
     - AutoCAD 2021, so far: its DxfIn refused the whole file ("expected group code 78"): the pattern HATCH set by
       `SetHatchPattern` had no 78. The count of no lines is now written; the colours are to be tried again on the new file.
+    - AutoCAD 2021 (plugin v4, `after-d9`): opens the file, its log empty; the background of 8D reads blue, `ByAci` 5, and
+      8E a gradient LINEAR from (0, 0, 255) at 0 to (255, 255, 153) at 1, as the library wrote them.
 
 37. **A leader's annotation offset.**
     - Try: a leader whose `AnnotationOffset` is set, moved and turned, against the same in AutoCAD.
     - Now: groups 213, 223 and 233 in the world, turned with the leader.
     - A change if: AutoCAD reads the offset another way round, or does not turn it.
+    - AutoCAD 2021 (plugin v2): the offset (2, 2, 0) of the leader moved by (100, 0, 0) and turned by 30 degrees about
+      (100, 0, 0) is (0.732051, 2.732051, 0), turned with it, and it reads the library's copy so moved as the same to 1E-15.
 
 38. **A multileader's lines and vertices.**
     - Try: `AddLeaderLine`, `AddLastVertex` and `SetLastVertex` on a multileader, and open it.
     - Now: a line's last vertex is the point its leader's dogleg starts at, shared by every line of the leader; line indices are
       unique across the multileader.
     - A change if: AutoCAD keeps the last vertex per line, or numbers lines per leader.
+    - AutoCAD 2021 (plugin v2): reads the library's two lines of one leader ending at (14, 10, 0) both, (0, 0, 0), (20, 10, 0),
+      (14, 10, 0) and (0, 20, 0), (14, 10, 0), and saves them so. Moving the vertices by their grips is for the maintainer's
+      eye; the vertices set in code are AutoCAD's since D31 (points 80, 87 and 91).
 
 39. **A multileader's scale.**
     - Try: set `Scale` to 2 on a multileader and open it.
     - Now: the words, the arrows and the landing gap of its context data scaled by 2, as ezdxf scales them, and the doglegs too,
       the multileader's (41) and each leader's (40), which ezdxf leaves; the arrow size in the context (140) is `ArrowSize`.
     - A change if: AutoCAD keeps a dogleg or the landing gap at its size, or holds 140 as the arrow size times the scale.
+    - AutoCAD 2021 (plugin v2): exploded, the multileader of `Scale` 2 has words 5 high where the other has 2.5, and its arrow
+      and dogleg twice as long, 16 for 8; its `TextHeight`, `ArrowSize`, `LandingGap` and `DoglegLength` read the unscaled
+      2.5, 4, 2 and 8. That it holds 140 as the arrow size times the scale, and reads the sizes unscaled, D31c found and the
+      library follows (point 83).
 
 40. **A multileader's overrides.**
     - Try: set a property of a multileader, open it in AutoCAD, and change the property in its style.
@@ -650,6 +708,16 @@ written as AutoCAD reads them now.
     - Now: the blocks that draw them (`*D`, `*T`) are left as they were.
     - A change if: AutoCAD shows the old picture even after REGEN; then the library would have to draw them anew, or mark them for
       AutoCAD to.
+    - AutoCAD 2021 (plugin v2, and P4b with 42-b opened as a drawing in accoreconsole): the table it draws anew as it opens
+      the file, its block `*T` holding Parts, CHANGED, Qty and B-12; the dimension it does not. Its block, 9 entities, keeps
+      the words `121 TYP` and lines reaching x 76.17 though the second point moved to (120, 20), after REGEN and after
+      REGENALL alike, and `Explode` gives that old picture; `RecomputeDimensionBlock` draws it anew, its lines to x 91.17.
+      The same file with the dimension's group 2, the name of its block, taken out (42-c) AutoCAD draws anew as it opens it,
+      a block of its own (`*D19`, 7 entities, lines to x 91.17, words in the style's units), AUDIT finding nothing.
+    - Parked (P4b): a dimension changed by the library shows its old picture in AutoCAD. Drawing the block anew is AutoCAD's
+      dimension drawing over again; writing the dimension without its block's name, which makes AutoCAD draw it, leaves
+      readers that draw the block (ezdxf, viewers) no picture at all. Which of the two, or neither, is the maintainer's
+      decision; the guide says the old picture stays.
 
 43. **A table of R2007 written by hand.**
     - Try: open a table whose cells were set in a drawing of R2007 or later, with a cell of overrides.
@@ -807,6 +875,8 @@ written as AutoCAD reads them now.
     - Try: move and turn an ordinate dimension and read its `Measurement` in AutoCAD.
     - Now: measured along the user's axes its group 51 gives, which the move carries, so it is the same.
     - A change if: AutoCAD measures along the axes of the normal's own system.
+    - AutoCAD 2021 (plugin v2): the `Measurement` of the ordinates BB (x) and C6 (y) is 20 and 30 before the library moved and
+      turned them, and 20 and 30 after, as the library measures them.
 
 ## Exploding, copying and older versions
 
@@ -850,7 +920,8 @@ written as AutoCAD reads them now.
     - Now (D15): so does the library: `Explode()` of a MINSERT of more than one cell throws `NotSupportedException`, and
       `ExplodeToOwnerSpace()` appends the first cell's entities; `GeometryExtentsBestFit` still measures every cell. A MINSERT
       of one cell explodes as an INSERT.
-    - Still open: whether AutoCAD's `Explode()` takes a MINSERT of one cell, and its EXPLODE command, which needs the editor.
+    - Still open: whether AutoCAD's `Explode()` takes a MINSERT of one cell, and its EXPLODE command, which needs the editor
+      (answered below: neither).
     - AutoCAD 2021 (plugin v8, 51-b): `Explode()` refused the MINSERT of one cell at (60, 0) too (eNotApplicable);
       `TreatAsBlockRefForExplode` false for both; `GeometryExtentsBestFit()` threw eInvalidExtents for both, and
       `GeometricExtents` gave the first cell alone, (-3, -3, 0) to (3, 3, 0) and (57, -3, 0) to (63, 3, 0);
@@ -859,6 +930,8 @@ written as AutoCAD reads them now.
       R12); its `Explode()` throws `NotSupportedException`, its `TreatAsBlockRefForExplode` is false, its
       `GeometryExtentsBestFit` throws `InvalidOperationException` and its `GeometricExtents` is its first cell's. The
       extents of the drawing (`UpdateExt`) still take in every cell, which AutoCAD was not asked about.
+    - AutoCAD 2021 (P4b, the EXPLODE command run in accoreconsole on 51-minsert-2x3 opened as a drawing): "The object is not
+      able to be exploded", the MINSERT left as it was: its EXPLODE takes no MINSERT, as the library's `Explode()`.
 
 52. **A leader exploded.**
     - Try: EXPLODE in AutoCAD a straight leader with the closed filled arrow, one with an arrow block (DIMLDRBLK) and one with a
@@ -881,6 +954,11 @@ written as AutoCAD reads them now.
     - Now: the block comes under its name, with the blocks it inserts that the drawing has not and its description, units,
       explodability and scaling; a drawing with a block of the name places its own.
     - A change if: AutoCAD brings something else of the block, or renames it where the drawing has one of the name.
+    - AutoCAD 2021 (plugin v3, `WblockCloneObjects` with `DuplicateRecordCloning.Ignore`, as a paste does): into the empty
+      drawing OUTER and INNER come, OUTER with its description, units of inches, not explodable and scaled uniformly, holding
+      its line and the INSERT of INNER, and so saved and read again; into the drawing of an OUTER of its own (a circle), its
+      own is placed, not renamed, and INNER not brought. As the library's copy. AUDIT (P4b) finds nothing in the library's
+      files of either.
 
 54. **A table scaled and mirrored.**
     - Try: SCALE by 2 and MIRROR in AutoCAD a table of rows 10, 8 and 8 high, with a cell of its own text height and a block
@@ -931,6 +1009,9 @@ written as AutoCAD reads them now.
     - Try: copy a TEXT in a style of its own from a drawing of R2018 into one of R12 with AutoCAD, and the other way.
     - Now: the style is copied by name, as a layer is.
     - A change if: AutoCAD puts the text in Standard, or copies the style otherwise.
+    - AutoCAD 2021 (plugin v3, `WblockCloneObjects`): the TEXT of GH_ROMANS of R2018 copied into the drawing of R12 and saved
+      as R12 keeps GH_ROMANS (romans.shx), and the TEXT of GH_SIMPLEX of R12 copied into a new drawing of R2018 keeps
+      GH_SIMPLEX (simplex.shx), each read so again: the style by name, as the library copies it.
 
 58. **A polyface and a polygon mesh exploded.**
     - Try: EXPLODE in AutoCAD a polyface mesh with a triangle whose third number is below nought and a face of its own colour,
@@ -988,6 +1069,19 @@ written as AutoCAD reads them now.
       an angle from nought to a whole turn (d18, g1); and the words are as wide as the record's 43, which the scale has
       scaled already (h1c), where the library scaled them again. What remains apart is the line AutoCAD draws under, over
       or round the words (attachments 5, 6 and 8, the vertical lined centre, the frame), as long as its font makes them.
+    - AutoCAD 2021 (P4b, 61-a made anew and opened in accoreconsole, its EXPLODE command run on it): the INSERT of no ATTRIB
+      was the library's block's doing. Its GH_TAG holds the attribute definition MARK, but its BLOCK was written with 70 of
+      0, and AutoCAD reads such a block as one of no attribute: it found no value the multileader gave MARK
+      (`GetBlockAttribute` KeyNotFound), its own `SetBlockAttribute` of MARK threw `eInvalidInput`, and both EXPLODE and
+      `Explode` gave the INSERT no ATTRIB. The same file with 70 of 2 reads MARK=B7, and EXPLODE and `Explode` give the
+      INSERT of GH_TAG with the ATTRIB MARK=B7, as does AutoCAD's own block of the same shape given B8. AutoCAD marks a block
+      given an attribute definition with that flag, the definition constant, preset or plain, model space too, and keeps
+      it when the definition is erased (`HasAttributeDefinitions` true, saved 70 of 2); a block of none keeps 0.
+    - Now (P4b): `AppendEntity` of an attribute definition marks its block so, as AutoCAD does, and the library's `Explode`
+      keeps the INSERT's ATTRIB, as AutoCAD's EXPLODE and `Explode` keep it. A block read from a file says what its file says.
+      AutoCAD read the library's 61-a made so as MARK=B7 and exploded it, by EXPLODE and by `Explode`, to the INSERT of
+      the ATTRIB MARK=B7; of the 125 files of points 1 to 79 made anew, the five whose blocks hold attribute definitions
+      (04-c, 04-d, 06-a, 61-a, 61-b) changed in that one group alone, and AUDIT found in them all what it found before.
 
 62. **A leader exploded in the look of its dimension style.**
     - Try: EXPLODE in AutoCAD a leader of colour 3 whose style has DIMCLRD BYBLOCK, one with DIMCLRD 1 and DIMLWD 0.35 as
@@ -1056,6 +1150,9 @@ written as AutoCAD reads them now.
     - Now: the library names the GEODATA by a 360, an owning pointer, and writes model space's BLOCK_RECORD handle as its
       host; ezdxf writes a 350 and a host of 0, and the library reads both.
     - A change if: AutoCAD writes a 350, or a host other than model space's handle; the library should then write it so.
+    - AutoCAD 2021 (plugin v3, its own save of point 65): model space's extension dictionary names the GEODATA by a 360
+      under ACAD_GEOGRAPHICDATA, and the GEODATA's 330 after its 90 is model space's BLOCK_RECORD (17), its API's
+      `BlockTableRecordId` that record and its owner the dictionary: as the library writes them.
 
 68. **A new GeoLocationData, and one in paper space.**
     - Try: in AutoCAD's API, read every property of `new GeoLocationData()`; then set its `BlockTableRecordId` to paper
@@ -1093,6 +1190,9 @@ written as AutoCAD reads them now.
     - Now: the GEODATA is written and no class for it, since there is no CLASSES section to list it in.
     - A change if: AutoCAD refuses the file, drops the GEODATA, or AUDIT reports it; `PostToDb` should then write a CLASSES
       section, or refuse such a file.
+    - AutoCAD 2021 (plugin v3, and AUDIT in P4b): opens 71-a and 71-b, its log empty, finds the GEODATA of 71-b under model
+      space's ACAD_GEOGRAPHICDATA (`GeoDataObject`), and saves it with the GEODATA and a CLASS of it of its own (4095, count
+      1); AUDIT finds nothing in either file. The library writes no CLASSES section for it, and need not.
 
 72. **The angle of the north direction.**
     - Try: in AutoCAD's API, read `NorthDirection` of a GeoLocationData whose `NorthDirectionVector` is (0, 1), (1, 0) and
@@ -1180,6 +1280,9 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       and (2, 1), and (2, 1) of 73-n and of AutoCAD's save of it, read linked; every other cell as before, no byte moved.
       The library writes the state as it is (no 12). Still to see (v14): `RemoveDataLink()` on 73-r, whether AutoCAD clears
       the flag 4 of (0, 0) and (2, 1), cells of no range it reads linked, which the library leaves as they are.
+    - AutoCAD 2021 (plugin v14, 73q): its `RemoveDataLink()` of 73-r threw `eInvalidInput` and took the link of (1, 0) away
+      all the same, the table of no link and the DATALINK kept of no target; (0, 0) and (2, 1) it left linked, their flag 4
+      kept, as the library leaves them, and saved (0, 0) as `90 12`, which the library does not write.
     - AutoCAD 2021 (D28, headless, the library's edits of its 50 and 73 read, and its own edits saved): a cell's text, value,
       format, the heights and widths and the merged cells are read from the ACAD_TABLE whatever the TABLECONTENT holds (Ntz
       of Qty's checksum 676 read as Ntz; a merge taken out of either alone read as the ACAD_TABLE has it); the links, the
@@ -1233,6 +1336,8 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       `TABLECONTENT`, `AcDbTableContent`, of the same flags.
     - Now: unchanged, as the library writes no link and no class of one; the writing held back is to take 1152 and the
       count of the links.
+    - Now (D28): `SetDataLink` links a table to a DATALINK the drawing has, and makes none, so it lists no class DATALINK;
+      the TABLECONTENT it gives a table of none is listed as AutoCAD lists it, `TABLECONTENT`, `AcDbTableContent`, flags 1152.
 
 76. **What a linked table keeps of its link.**
     - Try: in the drawing of point 73, look in the ACAD_TABLE for a reactor or a pointer to the DATALINK other than the
@@ -1278,6 +1383,9 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
     - Now (D17): `RemoveDataLink` writes the formula of a cell whose 344 names no record, read from the TABLECONTENT, in a
       FIELD of the cell's own, owned by the table, as `SetFormula` writes one (78c's form); the TABLECONTENT's field is kept.
       To check: 78-d of after-d17.
+    - AutoCAD 2021 (plugin v10, 78-d): the cell (1, 0) is linked no more and the table has no link, but keeps its formula
+      `(1+2)`, which `EvaluateFields()` makes 3, the DATALINK of no target: it takes the field of the ACAD_TABLE's cell, the
+      library's. As the library reads it.
 
 ## Offsets of polylines that cross themselves
 

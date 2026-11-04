@@ -3429,7 +3429,11 @@ namespace GeometryHelper.Dxf
         /// <summary>Gets whether the block is an external reference overlaid (flag 8), as AutoCAD's <c>IsFromOverlayReference</c>.</summary>
         public bool IsFromOverlayReference => (Flags & 8) != 0;
 
-        /// <summary>Gets whether the block has attribute definitions (flag 2), as AutoCAD's <c>HasAttributeDefinitions</c>.</summary>
+        /// <summary>
+        /// Gets whether the block has attribute definitions (flag 2), as AutoCAD's <c>HasAttributeDefinitions</c>: set when one is
+        /// appended (<see cref="AppendEntity(DxfEntity)"/>), constant or not, in model space too, and kept when it is erased, as AutoCAD 2021
+        /// sets and saves it; a block read from a file says what its file says.
+        /// </summary>
         public bool HasAttributeDefinitions => (Flags & 2) != 0;
 
         /// <summary>Gets the path of the drawing an external reference comes from (group 1 of its BLOCK), as AutoCAD's <c>PathName</c>; empty for a block that is none.</summary>
@@ -3660,6 +3664,14 @@ namespace GeometryHelper.Dxf
             bool madeInCode = entity.Item.File.IsMadeInCode;
             entity.Bind(_file.Adopt(space, entity.Item));
             DxfDBObject.WriteCopiedContexts(entity.Item, carried, origin);
+
+            // A block given an attribute definition says so (flag 2 of its BLOCK), as AutoCAD 2021 marks one, model space too,
+            // the definition constant or not, and keeps the mark when the definition goes: without it AutoCAD takes no value
+            // a multileader gives the block's attributes (check P4b).
+            if (entity is DxfAttributeDefinition && _block?.Head != null && (Flags & 2) == 0)
+            {
+                _file.SetValues(_block.Head, new[] { new KeyValuePair<int, string>(70, (Flags | 2).ToString(CultureInfo.InvariantCulture)) }, BlockOrder, false);
+            }
 
             // A text made in code is placed about its second point by the drawing's fonts, where it has them; a copy keeps its place.
             if (madeInCode && entity is DxfDBText placed)

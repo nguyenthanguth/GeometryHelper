@@ -145,7 +145,8 @@ namespace GeometryHelper.Dxf
         /// the named object dictionary AutoCAD keeps them in, its title (group 2), subject (3), author (4), comments (6),
         /// keywords (7), who saved it last (8), its revision (9), the base of its hyperlinks (the group 1 after its dates) and its
         /// custom properties: each <c>name=value</c> in a group 300 to 309, then those of a list after the group 90 that follows
-        /// the base of the hyperlinks, where one follows it, each a name and a value in two groups 1. The base of the hyperlinks
+        /// the base of the hyperlinks, where one follows it, each a name and a value in two groups 1, then each <c>name=value</c>
+        /// in a group 300 after those, as AutoCAD 2021 saved the eleventh and twelfth of twelve. The base of the hyperlinks
         /// is the header's <c>$HYPERLINKBASE</c> where that is not empty, as AutoCAD 2021 reads it there. A drawing with no
         /// DWGPROPS, as AutoCAD saves one of R2004 or later, gives the texts of its header, <c>$TITLE</c>, <c>$SUBJECT</c>,
         /// <c>$AUTHOR</c>, <c>$COMMENTS</c>, <c>$KEYWORDS</c> and <c>$REVISIONNUMBER</c>, and its custom properties, each the
@@ -168,8 +169,9 @@ namespace GeometryHelper.Dxf
         /// its marker <c>DWGPROPS COOKIE</c> (1), the texts, the custom properties in the ten groups 300 to 309 (<c>=</c> where
         /// there is none), the time spent on it and the dates it was made and saved (40, 41, 42, those of a DWGPROPS kept, else
         /// the header's <c>$TDINDWG</c>, <c>$TDCREATE</c> and <c>$TDUPDATE</c>), the base of its hyperlinks and the count of the
-        /// custom properties (90); the groups after those kept as they were. A list of them after the group 90, which AutoCAD
-        /// 2021 does not read, is written no more. The base of the hyperlinks is written to the header's
+        /// custom properties (90), and each after the tenth in a group 300 after the count, as AutoCAD 2021 saved twelve as
+        /// R2000 and read them back; the groups after those kept as they were. A list of them after the group 90 of two groups
+        /// 1 each, which AutoCAD 2021 does not read, is written no more. The base of the hyperlinks is written to the header's
         /// <c>$HYPERLINKBASE</c> too, in a drawing of R2000, and each text the header holds already is set there as well, so
         /// that the two agree. A drawing with none is given one, owned by the named object dictionary. Properties the same as
         /// the drawing has change nothing, in a drawing of any version.
@@ -180,8 +182,8 @@ namespace GeometryHelper.Dxf
         /// </para>
         /// </value>
         /// <exception cref="ArgumentNullException">Thrown when the properties set are null.</exception>
-        /// <exception cref="ArgumentException">Thrown when set in a drawing older than R2004 with more than ten custom
-        /// properties, or one whose name has an equals sign in it.</exception>
+        /// <exception cref="ArgumentException">Thrown when set in a drawing older than R2004 with a custom property whose name
+        /// has an equals sign in it.</exception>
         /// <exception cref="InvalidOperationException">Thrown when set in a file of R12, or one older than R2004 with no named
         /// object dictionary.</exception>
         public DxfDatabaseSummaryInfo SummaryInfo
@@ -224,11 +226,6 @@ namespace GeometryHelper.Dxf
 
                 DxfDBDictionary root = NamedObjectsDictionary ?? throw new InvalidOperationException("A DXF " + (Version ?? "with no version") + " has no named object dictionary to hold DWGPROPS: R13 (AC1012) brought it.");
                 DxfXrecord properties = DwgProps();
-
-                if (value.CustomProperties.Count > 10)
-                {
-                    throw new ArgumentException("A DWGPROPS of the groups 300 to 309 holds ten custom properties, and " + value.CustomProperties.Count.ToString(CultureInfo.InvariantCulture) + " are given.", nameof(value));
-                }
 
                 foreach (KeyValuePair<string, string> property in value.CustomProperties)
                 {
