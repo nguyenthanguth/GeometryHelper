@@ -6,6 +6,37 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** IMAGE and WIPEOUT entities get classes of their own, `DxfRasterImage` and `DxfWipeout`, as AutoCAD's
+`RasterImage` and `Wipeout`, and their objects `DxfRasterImageDef` (IMAGEDEF) and `DxfRasterVariables`
+(RASTERVARIABLES), with the enums `DxfImageDisplayOptions`, `DxfClipBoundaryType`, `DxfFrameSetting`,
+`DxfImageQuality` and `DxfUnit`. No pixel is read. An image is placed (`GetOrientation`, `SetOrientation`,
+`Position`, `Width`, `Height`, `Rotation`, `PixelToModelTransform`), shown (`DisplayOptions`, `ShowImage`,
+`ImageTransparency`, `Brightness`, `Contrast`, `Fade`) and clipped (`IsClipped`, `IsClipInverted`,
+`GetClipBoundary`, `SetClipBoundary`, `SetClipBoundaryToWholeImage`, `GetVertices`) as AutoCAD 2021 reads and writes
+its groups: a picture of 4 by 3 pixels placed at (10, 20) with a pixel 10 across is 40 by 30, and clipped by the triangle
+of the pixels (0, 0), (3, 0), (1.5, 2.5) shows the triangle (15, 45, 0), (45, 45, 0), (30, 20, 0). `DxfWipeout.SetFrom`
+frames a polygon as AutoCAD 2021 does, and refuses one not closed, which AutoCAD 2021 writes as a wipeout it then cannot
+open. `TransformBy` takes any transformation, as AutoCAD 2021's does, a shear and a mirror among them; `Explode` gives
+the lines of the frame or the boundary, four for the picture and three for the triangle; `GeometricExtents` and
+`GetGeometry` (a closed `GeoPolyline3`) are those of the boundary shown. An image copied into another drawing brings its
+IMAGEDEF under its name, one for all the images that show it, the dictionary of images made where that drawing has none,
+and the CLASS rows of IMAGE and IMAGEDEF, or of WIPEOUT, where it lists none, each counted 1, and a row of them counted 0,
+as ezdxf 1.4.5 counts its own, counted 1: AutoCAD 2021 ignores every image and wipeout of a drawing that lists no class of
+them, and passes over those of a class it counts 0, so that the copies into ezdxf's drawing of R2018 show, its own images
+with them. Checked against AutoCAD 2021: its own
+files of R2000 to R2018 read and written unchanged byte for byte, and the files the library edited (moved, turned,
+scaled, mirrored, clipped anew, inverted) opened with AUDIT finding no error, AutoCAD reading back the corner, sides and
+boundary the library gives.
+
+**CHANGED.** An IMAGE or a WIPEOUT read from a file is a `DxfRasterImage` or a `DxfWipeout`, not a `DxfUnknownEntity`:
+it is moved where it was refused (`NotSupportedException`), so a drawing holding one is inserted by
+`DxfDatabase.Insert` with a placing, and an INSERT of a block with a wipeout under its words explodes with the wipeout
+placed, where it was left out. Its `GetGeometry` and `GeometricExtents` give its boundary where they gave nothing and
+threw, so `UpdateExt` takes it into the extents, and an image appended or moved grows the extents of the header as any
+entity does: the picture 40 by 30 copied to (1010, 1020) beside a line to (1, 1) makes `Extmax` (1050, 1050, 0), and
+moved 5 000 along x (6050, 1050, 0). `IntersectWith` crosses its frame or its boundary, and the actions of a dynamic
+block and its turn-only entities take an image or a wipeout where they refused it as a type kept as it was. `DxfReader` reads none of them, as before.
+
 ## 13.8.0 (2026-11-04)
 
 A minor release: one public member is added, `PackOptions.StartCorner`, and none is removed or renamed in any of the

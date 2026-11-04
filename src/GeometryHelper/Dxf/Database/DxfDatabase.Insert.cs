@@ -47,7 +47,7 @@ namespace GeometryHelper.Dxf
         /// Every entity is checked before anything is written, its copy and its copy moved, so that a drawing this one cannot
         /// hold, a SPLINE into one of R12 or an INSERT the transformation would shear, changes nothing; nor does a drawing whose
         /// model space holds an entity of a type the library has no class for (<see cref="DxfUnknownEntity"/>, as a SHAPE or
-        /// an IMAGE), whose geometry is not moved, by any transformation but the identity. The extents of the header grow by
+        /// a REGION), whose geometry is not moved, by any transformation but the identity. The extents of the header grow by
         /// the entities where they are moved to. The other drawing is left as it is.
         /// </para>
         /// </remarks>

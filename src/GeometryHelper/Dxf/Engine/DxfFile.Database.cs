@@ -316,6 +316,13 @@ namespace GeometryHelper.Dxf
 
                 DxfItem written = Write(space, from, source, records, foreign ? origin : null, marking, unmarking);
 
+                // AutoCAD 2021 reads an IMAGE or a WIPEOUT, and an IMAGEDEF, only where the drawing lists a class of their enabler
+                // of some objects; one counted 0 it passes over. Listed as its WblockCloneObjects lists them, one of each counted.
+                if (IsRaster(type))
+                {
+                    RasterClasses(type);
+                }
+
                 // An INSERT of a block its drawing has not, copied as it is (CopiesDangling), is said with the rest as the call ends.
                 if (foreign && type == "INSERT" && originBlock == null)
                 {
@@ -503,6 +510,12 @@ namespace GeometryHelper.Dxf
             if (style.Version < source.Style.Version)
             {
                 records[0] = source.WithoutLaterOverrides(records[0], this);
+            }
+
+            // An image's inverted clip (290) came with R2010: a drawing before it has none, as AutoCAD 2021 writes none there.
+            if (IsRaster(type) && !Supports(1024) && source.WithGroup(records[0], 290, null, false, out Rec uninverted))
+            {
+                records[0] = uninverted;
             }
 
             // A copy of an entity of another drawing points at objects of that drawing: each pointer is taken to the object of
@@ -2222,6 +2235,14 @@ namespace GeometryHelper.Dxf
                 else if (i < data && !braced && (IsPointer(code) || (body >= 0 && i > body && code == 330)))
                 {
                     string was = Text(record, pair);
+
+                    // A wipeout's IMAGEDEF of none (340 of 0) is kept, as AutoCAD's copy keeps it.
+                    if (code == 340 && IsRaster(record.Type) && TryHex(was.Trim(), out ulong none) && none == 0)
+                    {
+                        b.Raw(record, pair);
+                        continue;
+                    }
+
                     changed = true;
 
                     // A multileader's attribute definition: its copy, which waits while its block is being copied, or its namesake.
@@ -2266,6 +2287,12 @@ namespace GeometryHelper.Dxf
 
                     string now = target.CopyHandle(was) ?? target.Equivalent(origin, was);
 
+                    // An image's IMAGEDEF comes with it, as AutoCAD's deep clone brings it, where this drawing has none of its name.
+                    if (now == null && code == 340 && IsRaster(record.Type))
+                    {
+                        now = target.ImageDefBrought(origin, was);
+                    }
+
                     if (now != null)
                     {
                         b.Group(code, now);
@@ -2304,6 +2331,94 @@ namespace GeometryHelper.Dxf
 
             // A leader whose annotation is left out points to none (73 of 3), as AutoCAD's copy of a leader alone leaves it.
             return unannotated && WithGroup(made, 73, "3", false, out Rec bare) ? bare : made;
+        }
+
+        /// <summary>
+        /// Lists the classes of an IMAGE (with its IMAGEDEF) or a WIPEOUT in the CLASSES section where it lists none of their
+        /// names, as AutoCAD 2021's <c>WblockCloneObjects</c> lists them, of one object each from R2004 on: AutoCAD reads none of
+        /// them in a drawing that lists none of their classes, and passes over those of a class it counts 0.
+        /// </summary>
+        private void RasterClasses(string type)
+        {
+            if (type == "IMAGE")
+            {
+                AddClass("IMAGE", "AcDbRasterImage", 2175, "ISM", 1, true);
+                AddClass("IMAGEDEF", "AcDbRasterImageDef", 0, "ISM", 1);
+            }
+            else
+            {
+                AddClass("WIPEOUT", "AcDbWipeout", 2175, "WipeOut|Product Desc: Object Enabler for WipeOut entity | Company: Autodesk, Inc. | WEB Address: www.autodesk.com", 1, true);
+            }
+
+            CountClass(type);
+        }
+
+        /// <summary>Whether a type is that of an IMAGE or a WIPEOUT, whose IMAGEDEF (340) a copy into another drawing takes along.</summary>
+        private static bool IsRaster(string type) => type == "IMAGE" || type == "WIPEOUT";
+
+        /// <summary>
+        /// The handle here of the copy of the IMAGEDEF an IMAGE of another drawing shows, brought with it as AutoCAD 2021's
+        /// <c>WblockCloneObjects</c> brings it: under the name it has in that drawing's dictionary of images (ACAD_IMAGE_DICT), in
+        /// this drawing's, which is made where it has none, its groups as that drawing holds them but its handle, owner and
+        /// reactors; the one here of the name where there is one. Null where the other drawing has no IMAGEDEF of the handle in
+        /// its dictionary of images, or this drawing no named object dictionary.
+        /// </summary>
+        private string ImageDefBrought(DxfFile origin, string pointer)
+        {
+            string handle = pointer.Trim();
+
+            if (!TryHex(handle, out ulong key) || key == 0 || !origin.NamedPath(key, out string dictionary, out string entry)
+                || !string.Equals(dictionary, "ACAD_IMAGE_DICT", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            DxfItem definition = origin.ObjectItem(handle);
+            DxfDBDictionary root = Database?.NamedObjectsDictionary;
+
+            if (definition == null || definition.Type != "IMAGEDEF" || root == null)
+            {
+                return null;
+            }
+
+            DxfDBDictionary images;
+
+            if (root.Contains("ACAD_IMAGE_DICT"))
+            {
+                images = root.GetAt("ACAD_IMAGE_DICT") as DxfDBDictionary;
+            }
+            else
+            {
+                // As AutoCAD 2021 writes its dictionary of images: owned by the named object dictionary, of entries kept (281 of 1).
+                images = (DxfDBDictionary)DxfDBObject.OfObject(root.Add("ACAD_IMAGE_DICT", "DICTIONARY", b =>
+                {
+                    b.Group(100, "AcDbDictionary");
+                    b.Group(281, "1");
+                }));
+            }
+
+            if (images == null)
+            {
+                return null;
+            }
+
+            if (images.Contains(entry))
+            {
+                return images.GetAt(entry)?.Handle;
+            }
+
+            IReadOnlyList<DxfTypedValue> groups = origin.ObjectGroupsOf(definition);
+            DxfItem copy = images.Add(entry, "IMAGEDEF", b =>
+            {
+                foreach (DxfTypedValue group in groups)
+                {
+                    b.Group(group.TypeCode, group.Value);
+                }
+            });
+
+            CountClass("IMAGEDEF");
+            _objects = null;
+            return copy.Handle;
         }
 
         /// <summary>
@@ -3240,6 +3355,26 @@ namespace GeometryHelper.Dxf
             if (_detached || item.Block != null)
             {
                 return;
+            }
+
+            // An IMAGE or a WIPEOUT, which the reader reads no shape of, grows them by its own extents. An object made here
+            // only to read them is not kept, so that the entity being appended, bound to the record next, is still the one
+            // its space gives back.
+            if (IsRaster(item.Type))
+            {
+                bool kept = item.Wrapper != null;
+                DxfRasterImage image = DxfEntity.Of(item) as DxfRasterImage;
+                if (!kept)
+                {
+                    item.ReplaceWrapper(null);
+                }
+
+                if (image != null)
+                {
+                    Geometry.GeoAabb3 box = image.GeometricExtents;
+                    Grow(new[] { box.Min.X, box.Min.Y, box.Min.Z, box.Max.X, box.Max.Y, box.Max.Z }, item.IsPaper);
+                    return;
+                }
             }
 
             foreach (object shape in item.Shapes)

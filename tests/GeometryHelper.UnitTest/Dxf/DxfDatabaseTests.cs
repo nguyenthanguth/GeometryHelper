@@ -119,9 +119,11 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(first, db.ModelSpace.ToList());
             Assert.IsType<DxfLine>(first[0]);
             Assert.IsType<DxfHatch>(first.Single(e => e.Handle == "74"));
-            Assert.Equal("IMAGE", Assert.IsType<DxfUnknownEntity>(first.Single(e => e.Handle == "8E")).DxfName);
+            Assert.IsType<DxfRasterImage>(first.Single(e => e.Handle == "8E"));
             Assert.All(first, e => Assert.Same(db.ModelSpace, e.Owner));
-            Assert.Equal(read.Shapes.Count(s => s.Type != "INSERT"), first.Where(e => e.Item.Type != "INSERT").Sum(e => e.GetGeometry().Count));
+
+            // An IMAGE gives its frame, which the reader does not read.
+            Assert.Equal(read.Shapes.Count(s => s.Type != "INSERT"), first.Where(e => e.Item.Type != "INSERT" && !(e is DxfRasterImage)).Sum(e => e.GetGeometry().Count));
         }
 
         [Fact]
@@ -409,9 +411,9 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             string text = DxfFileEzdxfDrawings.R2000;
             DxfDatabase db = DxfDatabase.Parse(text);
-            var hatch = (DxfUnknownEntity)db.ModelSpace.Single(e => e.Handle == "8E");
+            var hatch = (DxfUnknownEntity)db.ModelSpace.Single(e => e.Handle == "93");
 
-            Assert.Equal("IMAGE", hatch.DxfName);
+            Assert.Equal("MESH", hatch.DxfName);
             Assert.Equal(hatch.Groups.Count, hatch.Groups.Count);
             Assert.Empty(hatch.GetGeometry());
             Assert.Throws<NotSupportedException>(() => hatch.TransformBy(GeoTransform3.Translation(new GeoVector3(1, 0, 0))));
@@ -421,8 +423,8 @@ namespace GeometryHelper.UnitTest.Dxf
             hatch.ColorIndex = 2;
             hatch.Visible = false;
             hatch.LinetypeScale = 2.0;
-            OnlyTheseChanged(text, db.ToText(), "8E");
-            DxfUnknownEntity again = (DxfUnknownEntity)DxfDatabase.Parse(db.ToText()).ModelSpace.Single(e => e.Handle == "8E");
+            OnlyTheseChanged(text, db.ToText(), "93");
+            DxfUnknownEntity again = (DxfUnknownEntity)DxfDatabase.Parse(db.ToText()).ModelSpace.Single(e => e.Handle == "93");
             Assert.Equal(2, again.ColorIndex);
             Assert.False(again.Visible);
             Assert.Equal(2.0, again.LinetypeScale);

@@ -452,8 +452,8 @@ The objects are AutoCAD's classes in AutoCAD's order. A `DxfDBObject` is any obj
 is drawn, and a `DxfCurve` an entity walked along; the tables are a `DxfSymbolTable` of `DxfSymbolTableRecord`s; the
 dictionaries, records of data and groups of the OBJECTS section are a `DxfDBDictionary`, a `DxfXrecord` and a `DxfGroup`;
 a layout is a `DxfLayout`, whose plot settings are a `DxfPlotSettings`. A type of entity the library has no class for yet,
-an IMAGE, a REGION or a 3DSOLID among them, is a `DxfUnknownEntity`: kept as the file has it, its look editable, itself
-erasable and copied, its geometry not moved.
+a REGION, a 3DSOLID or an ACAD_PROXY_ENTITY among them, is a `DxfUnknownEntity`: kept as the file has it, its look editable,
+itself erasable and copied, its geometry not moved.
 
 A drawing begins as a file, or new, of a version named: `new DxfDatabase("AC1024")` is a drawing of R2010 with nothing in
 it, the drawing `DxfWriter` writes with no shape, in millimetres, with model space and paper space, two layouts, the layer
@@ -500,6 +500,7 @@ Dxf in front and their members' names.
 | `Polyline`, `Polyline2d`, `Polyline3d`, `PolyFaceMesh`, `PolygonMesh`, `Spline`, `Ray`, `Xline`, `Face`, `Solid` | `DxfPolyline`, `DxfPolyline2d`, `DxfPolyline3d`, `DxfPolyFaceMesh`, `DxfPolygonMesh`, `DxfSpline`, `DxfRay`, `DxfXline`, `DxfFace`, `DxfSolid` | Their vertices are `DxfVertex2d`, `DxfPolylineVertex3d`, `DxfPolyFaceMeshVertex`, `DxfFaceRecord` and `DxfPolygonMeshVertex`. |
 | `DBText`, `MText` | `DxfDBText`, `DxfMText` | No fonts: a text's `GeometricExtents` is its insertion point, and `AdjustAlignment` is not there. `TextStyleId` is `TextStyle`, the record, beside `TextStyleName`. |
 | `BlockReference`, `MInsertBlock`, `AttributeReference`, `AttributeDefinition` | `DxfBlockReference`, `DxfMInsertBlock`, `DxfAttributeReference`, `DxfAttributeDefinition` | `new DxfBlockReference(position, block)` takes the block record, not its id; `AttributeCollection.AppendAttribute` takes the attribute itself. |
+| `RasterImage`, `Wipeout`, `RasterImageDef`, `RasterVariables` | `DxfRasterImage`, `DxfWipeout`, `DxfRasterImageDef`, `DxfRasterVariables` | Read, moved, clipped and copied; no pixel is read. `Orientation` is `GetOrientation` and `SetOrientation`, an origin and two sides of their lengths, where `GeoCoordinateSystem3` would make them unit and square. `ImageDefId` is `ImageDef`, the object. See [Images and wipeouts](#images-and-wipeouts). |
 | `Hatch`, `Leader`, `MLeader` | `DxfHatch`, `DxfLeader`, `DxfMLeader` | A loop is a `DxfHatchLoop` of the library's shapes; a line of `GetHatchLinesData` is a `GeoLine2`; `EvaluateLeader` is not there. |
 | `RotatedDimension`, `AlignedDimension`, `RadialDimension`, `DiametricDimension`, `LineAngularDimension2`, `Point3AngularDimension`, `ArcDimension`, `OrdinateDimension`, `RadialDimensionLarge` | the same with Dxf in front | `RecomputeDimensionBlock` is not there: the block that draws a dimension is left for AutoCAD to draw anew. |
 | `Table` | `DxfTable` | Cells read and set; its block is left for AutoCAD to draw anew (`RecomputeTableBlock` is not there); a shear or a scale unlike along its axes refused. `table.Cells[r, c]` is a `DxfCell`, `Rows` and `Columns` lists of `DxfRow` and `DxfColumn`; `SetTextStyle` takes the record, not its id. The forms by row type (`SetAlignment(align, rowTypes)` and the like) are not there. |
@@ -538,7 +539,7 @@ write them, and `ToText()` gives the text as it would be saved. What is kept is 
 R2018 (AC1032), as `Version` names it; the line ends, a carriage return and a line feed, a line feed alone, or both in one
 file; the group codes padded to three places or not; the mark of UTF-8 or none; the text in the code page of a file before
 R2007 and in UTF-8 after, byte for byte, `CodePage` naming it (`ANSI_1252`, `UTF-8`); comments (999); the sections, tables,
-objects and entities the library does not read (CLASSES, IMAGE, objects of a type with no class and the rest); extended data,
+objects and entities the library does not read (CLASSES, objects of a type with no class and the rest); extended data,
 reactors and extension dictionaries; and whatever follows the EOF. A file is read as `DxfReader` reads it (see [Reading
 DXF](#reading-dxf)), and one it refuses is refused the same way, with the same message: a binary DXF, one cut short, one whose
 header names a code page that does not read each byte of ASCII as itself. `Warnings` says what was said of reading its text,
@@ -809,7 +810,7 @@ true)` makes the other drawing's model space the block PLATE instead, drawn abou
 nothing to model space; a name the other drawing has a block of is refused, as its block would come under the same name.
 Every entity is checked before anything is written, so that a SPLINE into a drawing of R12, or an INSERT the transformation
 would shear, refuses the whole; so does a block that inserts itself, X holding an INSERT of X or Y and Z inserting each
-other, which AutoCAD's AUDIT takes out, and an entity of a type the library has no class for, a SHAPE or an IMAGE, in a model
+other, which AutoCAD's AUDIT takes out, and an entity of a type the library has no class for, a SHAPE or a REGION, in a model
 space moved by anything but the identity, as its geometry is not moved (`NotSupportedException`). A block of it that would
 come to insert itself only through an INSERT of this drawing of a block it has not is refused before anything is written
 too, the blocks to be merged walked with those the copies bring: this drawing's P holding an INSERT of M, the other's A a
@@ -918,7 +919,7 @@ of them: a TEXT of contexts handed over to an MTEXT keeping its dictionary throw
 to a TEXT, an INSERT to a TEXT and a TEXT to an INSERT. A TEXT, an ATTDEF and an ATTRIB take one another's contexts, which
 AutoCAD read; a LINE, never annotative, takes any. Not keeping the dictionary, the new entity writes contexts of its own.
 
-`GeometricExtents` is the box of its shapes, a `GeoAabb3`; an entity with none, an IMAGE or a LINE of no length, throws, as
+`GeometricExtents` is the box of its shapes, a `GeoAabb3`; an entity with none, a REGION or a LINE of no length, throws, as
 AutoCAD throws for an entity with no extents. A text has no fonts here, so its box is the point it stands at. `GetPlane()`
 gives the plane it lies in, that of its extrusion through its first point where all of it lies there, else the one its shapes
 span, to `Tolerance.Default`, and `IsPlanar` whether there is one: a 3D polyline with a corner 0.002 off the plane of the
@@ -2961,6 +2962,54 @@ it, is SkipFormat (0x20000) and AllowSourceUpdate (0x100000), which make 1 179 6
 `UpdateOption` explains. The breaking of a table into parts (`BreakEnabled` and the rest) is not there either: its
 groups are in no reference.
 
+### Images and wipeouts
+
+An IMAGE is a `DxfRasterImage` and a WIPEOUT a `DxfWipeout`, as AutoCAD's `RasterImage` and `Wipeout`; the IMAGEDEF an
+image shows is a `DxfRasterImageDef` (`image.ImageDef`), under its name in the dictionary of images
+(`DxfRasterImageDef.GetImageDictionary(db)`), and the drawing's RASTERVARIABLES a `DxfRasterVariables` (the entry
+ACAD_IMAGE_VARS of the named object dictionary). No pixel is read: the library places, moves and clips the image as its
+record says, and the path of the picture is kept as the file writes it.
+
+A picture of 4 by 3 pixels placed at (10, 20) with a pixel 10 across and 10 up gives `GetOrientation` the corner (10, 20,
+0) and the sides (40, 0, 0) and (0, 30, 0); `Width` 40, `Height` 30, `ImageWidth` 4, `ImageHeight` 3; and
+`Position` (50, 50, 0), the far corner, as AutoCAD 2021 gives it. `SetOrientation` places it anew, the sides divided by
+the pixels along them, square or not. Its clip boundary is in pixels counted from the centre of the top left one, y down
+(`PixelToModelTransform` takes them to the world, the pixel (0, 0) to (15, 45, 0)): AutoCAD writes a rectangle as two
+corners and a polygon with its first corner again at the end. The image is clipped where `IsClipped` (flag 4 of its
+display options, which AutoCAD sets on every new image) is on and a boundary was set (280 of 1): `GetVertices()`,
+`GetGeometry()` (a closed `GeoPolyline3`), `GeometricExtents` and `Explode()` follow the boundary then, and the frame
+otherwise, as AutoCAD 2021 does. Clipped by the triangle of the pixels (0, 0), (3, 0), (1.5, 2.5), the picture shows the
+triangle (15, 45, 0), (45, 45, 0), (30, 20, 0), its box (15, 20, 0) to (45, 45, 0); clipped inverted (`IsClipInverted`),
+showing what lies outside it, its vertices and lines are still the triangle's and its box the frame's, (10, 20, 0) to (50,
+50, 0), as AutoCAD 2021 gives them. A wipeout another writer left with flag 4 of 70 off, or 280 of 0, shows its whole
+frame, the origin of its plane among it where `SetFrom` put the frame there, as AutoCAD 2021 gives it. `SetClipBoundary` takes a rectangle
+as its five corners, the first again at the end, and writes the first and the third, and a polygon of three corners or
+more closed by its first, its last corner within 0.001 of the first in the world whatever the size of a pixel, as AutoCAD
+2021 takes and writes them; `SetClipBoundaryToWholeImage` clips by nothing (280 of
+0). `IsClipInverted` (290) is read and set from R2010. A WIPEOUT has no picture: its brightness, contrast, fade and display
+options are refused, as AutoCAD 2021 refuses or ignores them, and `SetFrom` frames a polygon as AutoCAD 2021 does, in
+the square on the box of the corners and the origin of their plane: the rectangle (-30, -10) to (10, 20) in the square of
+side 40 at (-30, -10), and a square 10 by 10 at (100 000, 100 000) in the square of side 100 010 at the origin. An inverted
+clip is left out of a copy into a drawing before R2010, and taken off there by `IsClipInverted = false`.
+
+`TransformBy` takes any transformation, as AutoCAD 2021 does: scaled 2 along x alone, the picture is 80 by 30; sheared,
+its sides lean; mirrored, it is seen from behind. Appended or moved, an image grows the extents of the header by its box,
+as any entity does. `GetTransformedCopy` of a wipeout refuses an uneven scale and a shear,
+as AutoCAD answers eCannotScaleNonUniformly. A copy appended to its own drawing shows the same IMAGEDEF, with no reactor of
+its own, as AutoCAD's `Clone` appended has; appended to another drawing it brings its IMAGEDEF under its name, the
+dictionary of images made where that drawing has none, once for any number of images, as AutoCAD's
+`WblockCloneObjects` brings it; and the CLASS rows of IMAGE and IMAGEDEF, or of WIPEOUT, are listed where the drawing
+lists none, each counted 1, and a row of the class of what was written counted 0 is counted 1, as AutoCAD 2021 ignores the
+images and wipeouts of a drawing that lists no class of them and passes over those of a class counted 0, as ezdxf 1.4.5
+counts its own. An image erased takes its IMAGEDEF_REACTOR with it and leaves the IMAGEDEF. A drawing of
+R12 takes neither. `DxfReader` reads no IMAGE and no WIPEOUT, as before.
+
+What AutoCAD's classes have that is not here: the members that load, show or change the picture's pixels
+(`RasterImageDef.Load`, `Unload`, `OpenImage`, `ImageCopy`, `SetImage`, `Embed`, `ColorDepth`, `FileType`,
+`Organization` and the rest), which need the file read; `RasterImage.Scale`, which AutoCAD works out from the picture
+loaded; `Wipeout.HasFrame`, which AutoCAD 2021 gave true for every wipeout whatever its drawing said; and the image made in
+code (`new RasterImage`, `AssociateRasterDef`, `RasterImageDef.CreateImageDictionary`), to come.
+
 ### Layouts and viewports
 
 The layouts are `db.Layouts`, `DxfLayout` objects in the order of their tabs: `LayoutName` (set, the layout dictionary's
@@ -3060,6 +3109,7 @@ hatch, a dimension) refuses a transformation that flattens that plane:
 | the dimensions | any, the points moved as ezdxf's `transform()` moves them, the block with them where it is the dimension's alone and placed at no point of its own | a flattening |
 | `DxfTable` | a move, a turn, a tilt, a mirror and a scale alike in every direction, its sizes scaled with it, the block with it where no other entity names it | a shear or a scale unlike along its axes, which would make its cells other than the rectangles AutoCAD lays it out in |
 | `DxfViewport` | a move and a scale alike, on its sheet, its view kept | a turn, a mirror or a stretch |
+| `DxfRasterImage`, `DxfWipeout` | any, as AutoCAD 2021's `TransformBy` takes it: the corner moved, the pixel across and up turned and scaled, a shear leaning the sides and a mirror showing the image from behind; `GetTransformedCopy` of a wipeout refuses an uneven scale and a shear, as AutoCAD answers eCannotScaleNonUniformly | one that takes a side to no length, or the two onto one line |
 | `DxfUnknownEntity` | nothing | everything, with `NotSupportedException`: its geometry is kept as the file has it |
 
 **Exploding.** `Explode()` is every entity's, as AutoCAD's is, and gives new entities in no file, to be appended. Each class
@@ -3081,6 +3131,7 @@ breaks as AutoCAD breaks it:
 | an MLINE (`DxfUnknownEntity`) | from its record and its MLINESTYLE, for an open one its start caps, a LINE for each element along each segment, the miter lines at each joint where the style draws them, then its end caps: a line across the ends as two LINEs from the outer elements to the point halfway between them, an outer arc as one half circle, or two quarter ARCs where the outer elements' colours differ, and inner arcs joining each pair of inner elements. Each LINE has its element's colour and linetype. An element broken by MLEDIT gives a LINE for each piece left, caps the MLINE leaves off are not drawn, and the fill is left out. Standard through four vertices gives six lines |
 | a MESH (`DxfUnknownEntity`) not smoothed | a 3DFACE for each face, in the order of its list of faces, with the MESH's look and every edge drawn: a face of four corners a 3DFACE of them, a triangle one ending on its third corner, as ezdxf's `MeshBuilder` renders them; a cube 10 by 10 by 10 of eight vertices and six faces gives six 3DFACEs. A face of more than four corners breaks into a strip of triangles, as AutoCAD 2021 breaks one: from two corners on, the rest taken by turns from the far end and the near one, each triangle after the first the other way round, from its first two corners, or from its last two back the other way where it faces into a closed MESH, whose faces AutoCAD turns to face out: the corners 0 to 4 alone, or in an open MESH, give (0, 1, 4), (2, 4, 1) and (4, 2, 3), as the base of a pyramid facing up into it (4, 3, 0), (2, 0, 3) and (0, 2, 1); 0 to 5 alone (0, 1, 5), (2, 5, 1), (5, 2, 4) and (3, 4, 2), as such a base (5, 4, 0), (3, 0, 4), (0, 3, 1) and (2, 1, 3). A face of four corners or three that faces into a closed MESH is turned too, its corners read from its last back, as AutoCAD 2021 explodes one: the square base (0, 1, 2, 3) of a pyramid facing up into it gives the 3DFACE of (3, 2, 1, 0), a side (0, 3, 4) facing in (4, 3, 0); every other face is given as the file holds it. A face given a colour of its own keeps it on its 3DFACEs. A MESH smoothed (level 1 or more), and one that gives a face a material or a transparency of its own, or an edge or a vertex anything of its own, are refused with `NotSupportedException`, saying which |
 | `DxfHatch` of a pattern | the dashes of each line of its pattern, as the HATCH holds them, cut by the loops its style fills by the even-odd rule, each a LINE, a dot a LINE of no length, laid from the base point of its line, as ezdxf's `hatch_entity` draws them; an arc, an ellipse and a polyline's bulge cut exactly, a spline within each sixteenth of a span of its knots. A dot that falls on a loop where its line crosses it is kept, and a line that runs along a straight edge gives nothing there, as AutoCAD 2021 gives nothing: DOTS 1.5875 apart in a square 30 by 20 from its corner give 228 dots, none on its bottom edge. In the outer style the loops flagged external or outermost are those it is cut by, as AutoCAD and ezdxf take them, ignoring islands those flagged external; where none is flagged, by how deep each lies. A square 30 by 20 of ANSI31 gives 11 lines; round a circle of radius 5 about its middle in the normal style, 14, the three lines that cross the circle broken in two. A pattern that would give more than 2 000 000 parts, or cross its loops more than 32 000 000 times (half a gigabyte of crossings), is refused before anything is made, and so is one whose loops lie more than 2^52 of its spacings or dash lengths from its base point |
+| `DxfRasterImage`, `DxfWipeout` | a LINE along each side of `GetVertices()`, as AutoCAD 2021's `Explode` gives them, each with the image's look (AutoCAD's have none of their own): the frame of an image not clipped, four LINEs from the corner it is placed at up its left side and round, and the boundary of one clipped, three for a triangle; a side of no length left out |
 
 The library explodes exactly these classes. Every other entity refuses with `NotSupportedException`: those AutoCAD does not
 break, a LINE or a CIRCLE, as AutoCAD answers eNotApplicable for them, and some AutoCAD does break, listed under [What the

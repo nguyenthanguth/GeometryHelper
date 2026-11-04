@@ -2,7 +2,9 @@ namespace GeometryHelper.Dxf
 {
     /// <summary>
     /// The unit a DXF file says its drawing is in, the header variable <c>$INSUNITS</c>, numbered as the DXF reference
-    /// numbers it: a file <see cref="DxfWriter"/> writes is in <see cref="Millimeters"/>, 4.
+    /// numbers it: a file <see cref="DxfWriter"/> writes is in <see cref="Millimeters"/>, 4. Not <see cref="DxfUnit"/>, AutoCAD's
+    /// <c>Unit</c>, which numbers the resolution of an image's pixels and the unit images are scaled in: a millimetre is 4
+    /// here and 1 there.
     /// </summary>
     public enum DxfUnits
     {

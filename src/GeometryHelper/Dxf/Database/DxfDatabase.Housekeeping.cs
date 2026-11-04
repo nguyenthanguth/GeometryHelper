@@ -173,7 +173,7 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Works the extents of model space and paper space out anew, as AutoCAD's <c>UpdateExt</c>: <c>$EXTMIN</c> and
         /// <c>$EXTMAX</c> the box of the <see cref="DxfEntity.GeometricExtents"/> of every entity of model space, <c>$PEXTMIN</c>
-        /// and <c>$PEXTMAX</c> that of paper space, so that they shrink as well as grow; an entity with no extents, an IMAGE or
+        /// and <c>$PEXTMAX</c> that of paper space, so that they shrink as well as grow; an entity with no extents, a REGION or
         /// a LINE of no length, passed over, and a text counted as the point it stands at, there being no fonts here. A space
         /// with nothing of extents in it is given AutoCAD's empty extents, 1E+20 for the least corner and -1E+20 for the most.
         /// A value the header has already, to the bit, is not written.

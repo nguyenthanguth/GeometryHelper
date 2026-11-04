@@ -2495,3 +2495,92 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       Not laid out: slanted letters (`\Q`, AutoCAD boxing them otherwise: txt "\Q12;A/B jig..." 27.758 wide, not 27.900),
       `\f`, `\S`, `\p`, columns, a TrueType font's spread and its changes of size after its first letter; nor a
       multileader's words of several lines, or a table's cells that wrap.
+
+## Images and wipeouts
+
+108. **The groups of an IMAGE and a WIPEOUT as AutoCAD 2021 writes them, and where its boundary stands.**
+    - Try (WI, headless, plugin GHWIMAKE, a PNG of 4 by 3 pixels made by the plugin): images placed by `Orientation`,
+      turned, clipped and standing upright, and wipeouts by `SetFrom`, saved by `DxfOut` as R2000 to R2018, and their
+      `Position`, `Orientation`, `GetClipBoundary`, `GetVertices`, `PixelToModelTransform` and `GeometricExtents`
+      read.
+    - AutoCAD 2021: an IMAGE is AcDbRasterImage with 90, 10, 11, 12, 13, 340, 70, 280, 281, 282, 283, then 290 from R2010
+      on, then 360, 71, 91 and the run of 14; a WIPEOUT the same groups under the one marker AcDbWipeout, its 340 and 360 of
+      0, 13 of (1, 1). A new image is 70 of 7 and 280 of 0; a rectangle is written as two corners. The boundary is in pixels
+      from the centre of the top left pixel, y down: the pixel (0, 0) of the picture 40 by 30 placed at (10, 20) is (15, 45,
+      0). `GetVertices` gives the frame from the placing corner up the left side and round where the image is not
+      clipped, and the boundary where flag 4 of 70 is on and 280 is 1, a rectangle from its least corner; `Position` is
+      the far corner, (50, 50, 0). R12 holds none (`DxfOut` writes no IMAGE into AC1009 and refuses AC1014).
+    - Now: as AutoCAD reads and writes them; the library's values of every image of the six versions agree with AutoCAD's.
+
+109. **What `SetClipBoundary`, `SetClipBoundaryToWholeImage` and `IsClipped` take and write.**
+    - Try: each on a new image, the drawing saved, its groups read.
+    - AutoCAD 2021: a rectangle is taken as its five corners, the first again at the end, either way round, and written as
+      the first and third; two or four corners are refused (eInvalidInput); a polygon has to end on its first corner (one
+      1E-7 off is refused) and may cross itself or leave the image. Each writes 280 of 1 and leaves 70 alone;
+      `SetClipBoundaryToWholeImage` writes the whole rectangle and 280 of 0; `IsClipped` sets and reads flag 4 of 70 and
+      leaves 280: a polygon given false shows its frame, 70 of 3, 280 of 1. `SetClipBoundary(Vector2d)` writes nothing to
+      the file: the whole image again. `DisplayOptions` set to 9 or 3 wrote 255, and read gave 1 for 7 and 2 for 6.
+    - Now: as AutoCAD 2021 but for `DisplayOptions`, read and written as the flags of 70, and the overload of a size,
+      which is not there; a boundary is closed where its last corner is within 0.001 of its first in the world, whatever the
+      size of a pixel: on a wipeout's frame of 10 000, a corner 0.0009 of the frame off, 9 away, is refused.
+    - AutoCAD 2021 (fix round 1): an image clipped inverted (290 of 1) gives the vertices and the exploded lines of its
+      boundary and the box of its whole frame; a wipeout whose 70 lacks flag 4, or whose 280 is 0, gives the vertices, lines
+      and box of its whole frame, the origin among them where `SetFrom` framed it there. The library gives the same.
+
+110. **How `TransformBy`, `GetTransformedCopy` and `Explode` take an IMAGE and a WIPEOUT.**
+    - Try: a move, a turn about z and about x, a scale of 2, a scale of 2 along x alone, a shear x + 0.5 y, mirrors in a
+      line and in the plane z = 0; each explode, of images not clipped and clipped by a triangle.
+    - AutoCAD 2021: `TransformBy` takes every one, for both, the corner moved and the pixel across and up transformed (a
+      shear leans the sides, a mirror makes the pixel across (-10, 0, 0)); `GetTransformedCopy` of a Wipeout refuses
+      the scale along x alone and the shear (eCannotScaleNonUniformly) and takes the rest. `Explode` gives a LINE along
+      each side of `GetVertices`, four for the frame and three for a triangle, with no layer or colour of their own.
+    - Now: as AutoCAD; the lines carry the image's look.
+
+111. **What a WIPEOUT takes of an image's look, and how `SetFrom` frames it.**
+    - Try: `Brightness`, `Contrast`, `Fade` and `DisplayOptions` set on a wipeout; `SetFrom` of rectangles near the
+      origin, far from it and on both sides of it, of a triangle open and closed, of two points and of a line, in the planes
+      of (0, 0, 1), (0, -1, 0) and (1, 1, 1).
+    - AutoCAD 2021: every brightness, contrast and fade is refused, 0 and 10 among them (eInvalidInput), and
+      `DisplayOptions` leaves 70 at 7. `SetFrom` puts the frame on the square of the box of the corners and the origin of
+      their plane, its side the box's longer: (-30, -10) to (10, 20) in the square of side 40 at (-30, -10), (200, 100) to
+      (230, 110) in the square of side 230 at the origin, the boundary in -0.5 to 0.5 of it, y down. Two points and a line
+      are refused (eNullExtents); an open triangle is written as a WIPEOUT of no boundary (71 and 91 of 0) and AutoCAD 2021
+      then crashes opening the file (Unhandled Access Violation), so AUDIT cannot be run on it.
+    - Now: as AutoCAD, the open polygon refused (`ArgumentException`) where AutoCAD writes the file it cannot open.
+
+112. **The RASTERVARIABLES and `Rotation`.**
+    - Try: `ImageFrame`, `ImageQuality` and `UserScale` set and saved; files whose 70 and 72 are each value read; an
+      image of each angle and one standing upright given `Rotation` 1.
+    - AutoCAD 2021: 70 is the number of the `FrameSetting`, 0 to 3, 71 of the `ImageQuality`, 72 read as the `Unit` of
+      its number; its `UserScale` set to millimetres, feet or microns left 72 at 0. `Rotation` is the angle of the pixel
+      across in the plane xy, 0 to 2 pi (3 pi / 2 for (0, -10, 0), pi mirrored); set, it lays the pixel across at the angle
+      in the plane xy and the one up a quarter turn on, of their lengths, about the corner, an upright image laid flat.
+      `Wipeout.HasFrame` was true for every wipeout, its WIPEOUTVARIABLES of 70 of 0, 1 or 2 or none.
+    - Now: as AutoCAD but `UserScale`, which writes the unit set; `HasFrame` is not there.
+
+113. **Copies and erasing.**
+    - Try: `Clone` of an image appended to its own drawing, `WblockCloneObjects` of images and wipeouts into a new
+      drawing, an image erased, each saved; AUDIT of those files and of copies of them without the 360 of an image, and of
+      AutoCAD's own files without the CLASS rows of IMAGE, WIPEOUT or IMAGEDEF.
+    - AutoCAD 2021: the clone appended keeps its 340 and writes 360 of 0, with no IMAGEDEF_REACTOR; `WblockCloneObjects`
+      brings the IMAGEDEF, ACAD_IMAGE_DICT and ACAD_IMAGE_VARS, a reactor made for each image copied; an image erased takes
+      its reactor out of the file and leaves its handle in the IMAGEDEF's reactors. AUDIT finds no error in any of them,
+      nor in an image with no 360. A drawing that lists no class of the image enabler (IMAGE, IMAGEDEF or WIPEOUT, any one
+      of them, counted 1 or more) has its IMAGEs, WIPEOUTs and IMAGEDEFs ignored ("Unknown object type IMAGE ignored"), and
+      one that counts them 0 (91 of 0, as ezdxf 1.4.5 writes its drawings of R2010 and R2018) has them passed over without
+      a word, AUDIT finding no error: AutoCAD read 0 of the 5 images and wipeouts of ezdxf's own drawings of R2010 and R2018,
+      and all 5 once those counts were 9.
+    - Now: a copy into its own drawing shows the same IMAGEDEF and has no reactor; into another it brings its IMAGEDEF
+      under its name and the dictionary of images where that drawing has none, and the CLASS rows of IMAGE and IMAGEDEF,
+      or of WIPEOUT, where it lists none of their names, each counted 1, as AutoCAD writes them. A drawing that lists them
+      counted 0 has the row of the class of what it writes counted 1: AutoCAD 2021 then reads every image and wipeout of
+      ezdxf's drawing of R2018 and the copies into it, the IMAGEDEFs of a class still counted 0 among them, AUDIT finding no
+      error.
+
+114. **A WIPEOUT of no boundary.**
+    - Try: open in accoreconsole AutoCAD 2021's own drawing whose `SetFrom` of an open triangle wrote a WIPEOUT of 280, 71
+      and 91 of 0 and no corner.
+    - AutoCAD 2021: crashes opening it, by `/i` and by `DxfIn` (Unhandled Access Violation Reading 0x0000), the drawing
+      opening once that wipeout is taken out. ezdxf recovers and audits it with nothing to say.
+    - Now: the library reads it, the frame its vertices, and writes it unchanged; `SetFrom` and `SetClipBoundary` refuse
+      a boundary not closed or of fewer than four corners, so it writes none.

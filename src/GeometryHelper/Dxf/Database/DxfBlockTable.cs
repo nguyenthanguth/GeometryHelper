@@ -3579,7 +3579,11 @@ namespace GeometryHelper.Dxf
         /// An entity copied from another drawing (<see cref="DxfEntity.Clone"/>, <see cref="DxfEntity.GetTransformedCopy"/>)
         /// has its pointers taken to this drawing as AutoCAD's deep clone between databases takes them: a material, plot style
         /// or visual style to the one of the same dictionary and entry names, a record of a table to the one of its name; a
-        /// pointer to an object this drawing has no namesake of is left out, so that its default holds, and a handle of
+        /// pointer to an object this drawing has no namesake of is left out, so that its default holds, but the IMAGEDEF of an
+        /// IMAGE, which comes with it under its name in the dictionary of images (ACAD_IMAGE_DICT, made where this drawing has
+        /// none), one IMAGEDEF brought for all the images that show it, as AutoCAD 2021's <c>WblockCloneObjects</c> brings it,
+        /// with the CLASS rows of IMAGE and IMAGEDEF, or of WIPEOUT, where the drawing lists none, each counted 1, and a row of
+        /// them counted 0 counted 1, without which AutoCAD 2021 ignores them; and a handle of
         /// extended data (1005) is left out, as AutoCAD's mapping leaves it null, but for the records the overrides of a dimension
         /// style name (ACAD DSTYLE), which name those of the same name here. The records of the tables a copy names that this
         /// drawing has not (its layers, linetypes, text styles and dimension styles, and their arrow blocks) are copied with it by

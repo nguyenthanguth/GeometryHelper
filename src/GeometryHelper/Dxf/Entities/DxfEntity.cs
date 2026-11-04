@@ -541,7 +541,7 @@ namespace GeometryHelper.Dxf
         /// gives no shapes for gives its own, as a HATCH the box of its loops.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the entity has no shape the library reads, as AutoCAD throws
-        /// for an entity with no extents: an IMAGE, a LINE of no length, an INSERT that places nothing.</exception>
+        /// for an entity with no extents: a REGION, a LINE of no length, an INSERT that places nothing.</exception>
         public virtual GeoAabb3 GeometricExtents
         {
             get
@@ -592,14 +592,17 @@ namespace GeometryHelper.Dxf
         /// leader on it: a <see cref="GeoPolyline3"/> through its vertices, a vertex on the one before it left out, so that the
         /// leader from (0, 0, 0) to (10, 5, 0) meets the line x = 5 at (5, 2.5, 0); splined, the <see cref="GeoSpline3"/> of the
         /// spline <see cref="DxfLeader.Explode"/> fits through them; none where fewer than two of its vertices are apart. A
-        /// MULTILEADER gives the lines of its leaders, as <see cref="DxfMLeader"/> says, and not its words or block.
+        /// MULTILEADER gives the lines of its leaders, as <see cref="DxfMLeader"/> says, and not its words or block. An IMAGE and a
+        /// WIPEOUT, which the reader does not read, give the closed <see cref="GeoPolyline3"/> of their
+        /// <see cref="DxfRasterImage.GetVertices"/>, the frame of the image or its boundary where it is clipped.
         /// </summary>
-        /// <returns>The shapes, in the coordinates of the file, the same list until the entity is changed.</returns>
+        /// <returns>The shapes, in the coordinates of the file, the same list until the entity is changed; of an IMAGE and a
+        /// WIPEOUT, a new list on each call.</returns>
         public IReadOnlyList<object> GetGeometry()
         {
             if (Item.Type != "INSERT")
             {
-                return Item.Shapes;
+                return OwnGeometry() ?? Item.Shapes;
             }
 
             if (Item.Shape is DxfInsert insert)
@@ -616,6 +619,12 @@ namespace GeometryHelper.Dxf
 
             return NoShapes;
         }
+
+        /// <summary>
+        /// The shapes of a class whose type <see cref="DxfReader"/> reads none of, given by <see cref="GetGeometry"/> in their
+        /// place, as an IMAGE its boundary; null, the reader's, unless the class says otherwise.
+        /// </summary>
+        private protected virtual IReadOnlyList<object> OwnGeometry() => null;
 
         /// <summary>
         /// Moves, turns, scales or mirrors the entity by a transformation, as AutoCAD's <c>TransformBy</c> does: its record is

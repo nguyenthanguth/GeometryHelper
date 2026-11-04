@@ -6,7 +6,7 @@ using GeometryHelper.Geometry;
 namespace GeometryHelper.Dxf
 {
     /// <summary>
-    /// An entity of a type the library has no class for, such as an IMAGE, a WIPEOUT or an ACAD_PROXY_ENTITY: kept as the
+    /// An entity of a type the library has no class for, such as a REGION, a SHAPE or an ACAD_PROXY_ENTITY: kept as the
     /// file has it, its groups read as they are, its look editable and the entity erasable.
     /// </summary>
     /// <remarks>
@@ -25,7 +25,7 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets the type of the entity as the file names it in its group 0, as AutoCAD's class names its <c>DxfName</c>:
-        /// <c>IMAGE</c>, <c>WIPEOUT</c>, <c>ACAD_PROXY_ENTITY</c>.
+        /// <c>REGION</c>, <c>SHAPE</c>, <c>ACAD_PROXY_ENTITY</c>.
         /// </summary>
         public string DxfName => Item.Type;
 

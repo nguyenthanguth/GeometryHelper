@@ -960,7 +960,7 @@ namespace GeometryHelper.Dxf
         /// <see cref="DxfWriter"/> writes them, an ELLIPSE for that circle, with its look; nothing nested is placed for it. An
         /// INSERT in the block that cannot hold the placing, one turned in its block under a scale unlike along the world's
         /// axes, is exploded in its turn and its parts placed, so that what is drawn stays where it was. A type the library
-        /// neither moves nor reads, as an IMAGE, is left out, and so are a MULTILEADER and an ACAD_TABLE under a placing that
+        /// neither moves nor reads, as a REGION, is left out, and so are a MULTILEADER and an ACAD_TABLE under a placing that
         /// scales them unlike along their axes or shears them, which they do not hold.
         /// </para>
         /// <para>
