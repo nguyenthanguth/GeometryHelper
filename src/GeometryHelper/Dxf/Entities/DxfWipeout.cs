@@ -27,9 +27,64 @@ namespace GeometryHelper.Dxf
     /// </remarks>
     public sealed class DxfWipeout : DxfRasterImage
     {
+        /// <summary>
+        /// Initializes a wipeout made in code, as AutoCAD's <c>new Wipeout()</c>: of no polygon yet, to be given one by
+        /// <see cref="SetFrom"/> before it is appended, as AutoCAD 2021 writes a wipeout never set as one of no boundary and then
+        /// cannot open the drawing. Its groups are those AutoCAD 2021 writes: a frame of one pixel, shown and clipped (70 of 7,
+        /// 280 of 1), no IMAGEDEF (340 of 0). Appended, it lists the variables of wipeouts (ACAD_WIPEOUT_VARS) in a drawing that
+        /// has none.
+        /// </summary>
+        public DxfWipeout()
+            : base("WIPEOUT", new[]
+            {
+                new DxfTypedValue(100, "AcDbWipeout"), new DxfTypedValue(90, "0"),
+                new DxfTypedValue(10, "0"), new DxfTypedValue(20, "0"), new DxfTypedValue(30, "0"),
+                new DxfTypedValue(11, "1"), new DxfTypedValue(21, "0"), new DxfTypedValue(31, "0"),
+                new DxfTypedValue(12, "0"), new DxfTypedValue(22, "1"), new DxfTypedValue(32, "0"),
+                new DxfTypedValue(13, "1"), new DxfTypedValue(23, "1"), new DxfTypedValue(340, "0"),
+                new DxfTypedValue(70, "7"), new DxfTypedValue(280, "1"), new DxfTypedValue(281, "50"), new DxfTypedValue(282, "50"),
+                new DxfTypedValue(283, "0"), new DxfTypedValue(290, "0"), new DxfTypedValue(360, "0"), new DxfTypedValue(71, "2"),
+                new DxfTypedValue(91, "0"),
+            })
+        {
+        }
+
         private DxfWipeout(DxfItem item)
             : base(item)
         {
+        }
+
+        /// <summary>
+        /// Refuses a wipeout made in code of no polygon, a corner count that is not its corners', or a polygon not closed; and a
+        /// copy of no boundary, a rectangle of fewer than two corners or a polygon of fewer than three, as AutoCAD 2021 crashes
+        /// opening a drawing that holds a wipeout of no boundary. A copy of a polygon another writer left not closed, which the
+        /// library reads closed and AutoCAD 2021 as of no corners, is taken, and written closed.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the wipeout has no boundary AutoCAD takes.</exception>
+        internal override void Appending(DxfBlockTableRecord owner)
+        {
+            IReadOnlyList<GeoPoint2> boundary = GetClipBoundary();
+            DxfClipBoundaryType kind = ClipBoundaryType;
+            int held = BoundaryCount;
+            bool taken;
+
+            if (Item.File.IsMadeInCode)
+            {
+                bool polygon = kind == DxfClipBoundaryType.Poly && boundary.Count >= 4 && boundary[0].IsEqualTo(boundary[boundary.Count - 1], Tolerance.Default);
+                bool rectangle = kind == DxfClipBoundaryType.Rectangle && boundary.Count == 5;
+                taken = (polygon || rectangle) && GetInt(91, -1) == held;
+            }
+            else
+            {
+                taken = (kind == DxfClipBoundaryType.Poly && held >= 3) || (kind == DxfClipBoundaryType.Rectangle && held >= 2);
+            }
+
+            if (!taken)
+            {
+                throw new InvalidOperationException("The wipeout has no polygon AutoCAD takes: give it one by SetFrom first, as AutoCAD 2021 cannot open a drawing that holds a wipeout of no boundary.");
+            }
+
+            base.Appending(owner);
         }
 
         /// <summary>

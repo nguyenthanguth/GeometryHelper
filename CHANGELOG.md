@@ -6,6 +6,25 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** IMAGEs, their definitions and WIPEOUTs are made in code, as AutoCAD 2021's API makes them: `new
+DxfRasterImageDef(path, size)`, the size in pixels given since the library reads no picture, with `ResolutionMMPerPixel`
+and `ResolutionUnits` set, added by `DxfDBDictionary.SetAt` to the dictionary of images that
+`DxfRasterImageDef.CreateImageDictionary` makes where a drawing has none, under the name `SuggestName` gives (`px43`,
+then `px43_1`); `new DxfRasterImage(definition)`, one unit a pixel at the origin until placed, given its
+IMAGEDEF_REACTOR when appended, as `AssociateRasterDef` gives one, and counted by `GetEntityCount` as AutoCAD 2021
+counts it; `new DxfWipeout()` and `SetFrom`. `AssociateRasterDef` points an image at another definition, `Name` renames
+the definition's entry, and a definition erased takes its images with it. The variables of images and of wipeouts and
+the CLASS rows are made where a drawing has none. A copy given by `AssociateRasterDef` a definition of the drawing it
+goes into shows that one there, with a reactor of its own. An image of a definition of another drawing, a wipeout made
+in code of no polygon, a copy of a wipeout of no boundary, a definition under a name the dictionary has (AutoCAD's
+`SetAt` erases the one there and leaves its images out of the file it writes), an IMAGE before R14 and a WIPEOUT before
+R2000 are refused. A copy of an image or a wipeout whose polygon another writer left not ending on its first corner,
+where its count matches its corners, is written closed, and so is one `AssociateRasterDef` writes anew: AutoCAD 2021
+shows such a wipeout as nothing and cannot open a drawing that holds such an image. AutoCAD 2021 opened the drawings so
+made, of R2000, R2010 and R2018, new and of its own and ezdxf's, with AUDIT finding no error, read back 3 059 numbers of
+their images as the library gives them, counted each definition's images as the library counts them, and saved them
+again in the three versions, which the library reads the same. Making 10 000 wipeouts takes 0.53 s.
+
 **NEW.** IMAGE and WIPEOUT entities get classes of their own, `DxfRasterImage` and `DxfWipeout`, as AutoCAD's
 `RasterImage` and `Wipeout`, and their objects `DxfRasterImageDef` (IMAGEDEF) and `DxfRasterVariables`
 (RASTERVARIABLES), with the enums `DxfImageDisplayOptions`, `DxfClipBoundaryType`, `DxfFrameSetting`,

@@ -169,7 +169,10 @@ namespace GeometryHelper.Dxf
         /// <param name="newValue">The object, made in code and in no file yet.</param>
         /// <exception cref="ArgumentNullException">Thrown when the name or the object is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the name is empty or has a control character in it, or the object is
-        /// in a file already or of a class the library does not add: a <see cref="DxfLayout"/> or one of no class of its own.</exception>
+        /// in a file already or of a class the library does not add: a <see cref="DxfLayout"/> or one of no class of its own; or
+        /// it is a <see cref="DxfRasterImageDef"/> and the name has an entry, as AutoCAD 2021's <c>SetAt</c> erases the
+        /// definition there and leaves the images that show it out of the file it writes: add it under the name
+        /// <see cref="DxfRasterImageDef.SuggestName"/> gives.</exception>
         /// <exception cref="InvalidOperationException">Thrown when this dictionary is in no file, or is erased.</exception>
         public void SetAt(string searchKey, DxfDBObject newValue)
         {
@@ -229,8 +232,30 @@ namespace GeometryHelper.Dxf
                         b.Group(71, group.MadeSelectable ? "1" : "0");
                     }));
                     break;
+                case DxfRasterImageDef definition:
+                    DxfFile file = Resident();
+                    file.Requires(1014, "images", "R14 (AC1014)");
+
+                    // AutoCAD's SetAt erases the definition there, and the images that show it are not in the file it writes.
+                    if (Find(searchKey) >= 0)
+                    {
+                        throw new ArgumentException("The dictionary has an entry " + searchKey.Trim() + " already, an IMAGEDEF its images show: add the new one under the name DxfRasterImageDef.SuggestName gives.", nameof(searchKey));
+                    }
+
+                    IReadOnlyList<KeyValuePair<int, string>> made = definition.MadeGroups;
+                    newValue.Bind(Add(searchKey, "IMAGEDEF", b =>
+                    {
+                        b.Group(100, "AcDbRasterImageDef");
+
+                        foreach (KeyValuePair<int, string> pair in made)
+                        {
+                            b.Group(pair.Key, pair.Value);
+                        }
+                    }));
+                    file.ImageDefWritten();
+                    break;
                 default:
-                    throw new ArgumentException("A dictionary takes a DxfDBDictionary, a DxfXrecord or a DxfGroup made in code: a " + newValue.GetType().Name + " is not added.", nameof(newValue));
+                    throw new ArgumentException("A dictionary takes a DxfDBDictionary, a DxfXrecord, a DxfGroup or a DxfRasterImageDef made in code: a " + newValue.GetType().Name + " is not added.", nameof(newValue));
             }
         }
 

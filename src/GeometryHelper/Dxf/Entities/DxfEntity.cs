@@ -1422,6 +1422,15 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Called once <see cref="DxfBlockTableRecord.AppendEntity"/> has written the entity into its block, given whether it was
+        /// made in code rather than copied: an IMAGE made in code is given its IMAGEDEF_REACTOR. Nothing unless the class says
+        /// otherwise.
+        /// </summary>
+        internal virtual void Appended(bool madeInCode)
+        {
+        }
+
+        /// <summary>
         /// The codes of the type's own groups in the order AutoCAD writes them, a 100 where a subclass marker stands: where a
         /// group the record has not is put. Empty where a class sets none of its own.
         /// </summary>

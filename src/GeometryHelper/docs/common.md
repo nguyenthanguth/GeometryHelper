@@ -3004,11 +3004,56 @@ images and wipeouts of a drawing that lists no class of them and passes over tho
 counts its own. An image erased takes its IMAGEDEF_REACTOR with it and leaves the IMAGEDEF. A drawing of
 R12 takes neither. `DxfReader` reads no IMAGE and no WIPEOUT, as before.
 
+They are made in code as AutoCAD 2021's API makes them. A definition is given its path and its size in pixels, which
+AutoCAD reads from the file and the library cannot, and added to the dictionary of images under the name `SuggestName`
+gives, the file's name without its extension, then with `_1` once that is taken:
+
+```csharp
+DxfDBDictionary images = DxfRasterImageDef.CreateImageDictionary(db);   // ACAD_IMAGE_DICT, made where the drawing has none
+var picture = new DxfRasterImageDef(@"C:\pictures\px43.png", new GeoVector2(4, 3)) { ResolutionUnits = DxfUnit.Centimeter };
+images.SetAt(DxfRasterImageDef.SuggestName(images, picture.SourceFileName), picture);   // "px43"
+var image = new DxfRasterImage(picture);                     // one unit a pixel at the origin: (4, 0, 0) by (0, 3, 0)
+image.SetOrientation(new GeoPoint3(10, 20, 0), new GeoVector3(40, 0, 0), new GeoVector3(0, 30, 0));
+db.ModelSpace.AppendEntity(image);                           // given its IMAGEDEF_REACTOR; picture.GetEntityCount(out _) is 1
+var mask = new DxfWipeout();
+mask.SetFrom(new[] { new GeoPoint2(-30, -10), new GeoPoint2(10, -10), new GeoPoint2(10, 20), new GeoPoint2(-30, 20), new GeoPoint2(-30, -10) }, new GeoVector3(0, 0, 1));
+db.ModelSpace.AppendEntity(mask);                            // the frame of side 40 at (-30, -10)
+```
+
+The definition is written as AutoCAD 2021 writes a new one, loaded (280 of 1), a pixel (1, 1) in no unit until set; the
+drawing is given its variables of images (ACAD_IMAGE_VARS: frames shown, pictures finely, no unit) and of wipeouts
+(ACAD_WIPEOUT_VARS: frames shown) where it has none, as AutoCAD gives a drawing it opens, and the CLASS rows of each
+class written, counted. The image is written as AutoCAD 2021 writes one given its definition: shown and clipped by the
+whole picture (70 of 7, 280 of 0), its brightness and contrast 50; appended to a block of the definition's drawing,
+model space, paper space or a block placed by INSERTs, it is given its IMAGEDEF_REACTOR, as AutoCAD's
+`AssociateRasterDef` gives one, owned by the image and listed by the definition, and `GetEntityCount` counts it as
+AutoCAD 2021 counts the images of a definition: those of a reactor, a copy, which AutoCAD's `Clone` leaves with none,
+not among them. `AssociateRasterDef` makes an image show another definition of its drawing, its sides kept and its
+reactor moved; `Name` set renames the definition's entry, as AutoCAD 2021 renames it. A definition erased takes the
+images that show it with it, as AutoCAD 2021 takes those associated with it; an image erased its reactor. A copy of an
+image, given by `AssociateRasterDef` a definition of the drawing it is to go into, shows that one there, with a reactor
+of its own. A wipeout made in code and never given its polygon is refused, as AutoCAD 2021 writes one of no boundary and
+then cannot open the drawing; a copy of one read is refused only where it has no boundary, a polygon of fewer than three
+corners or a rectangle of fewer than two. A polygon another writer left not ending on its first corner to the bit, where
+its count (91) matches its corners, read closed, is written closed wherever the library writes it anew: in a copy, the
+first corner again at the end and the count one more, and by `AssociateRasterDef`. AutoCAD 2021 reads a wipeout of four
+corners so left as of none and shows nothing, and cannot open a drawing that holds such an image, even one whose last
+corner is a millionth of a pixel off its first; the copies so closed it opens with AUDIT finding no error and reads
+where the library says. A drawing only read and saved is written as it was. A definition added under a name the
+dictionary has is refused, as AutoCAD 2021's `SetAt` erases the one there and leaves its images out of the file it
+writes: add it under the name `SuggestName` gives. An image of a definition of another drawing is refused, and an IMAGE
+before R14, a WIPEOUT before R2000. AutoCAD 2021 opened every drawing so made, of R2000, R2010 and R2018, new or of its
+own or ezdxf's, with AUDIT finding no error, read every image where the library says, gave each definition the count the
+library gives, and saved them again as DXF of R2000, R2010 and R2018, which the library reads the same. Making 10 000
+wipeouts takes 0.53 s.
+
 What AutoCAD's classes have that is not here: the members that load, show or change the picture's pixels
 (`RasterImageDef.Load`, `Unload`, `OpenImage`, `ImageCopy`, `SetImage`, `Embed`, `ColorDepth`, `FileType`,
 `Organization` and the rest), which need the file read; `RasterImage.Scale`, which AutoCAD works out from the picture
-loaded; `Wipeout.HasFrame`, which AutoCAD 2021 gave true for every wipeout whatever its drawing said; and the image made in
-code (`new RasterImage`, `AssociateRasterDef`, `RasterImageDef.CreateImageDictionary`), to come.
+loaded; and `Wipeout.HasFrame`, which AutoCAD 2021 gave true for every wipeout whatever its drawing said.
+
+Known limits: a copied image or wipeout whose count of corners (91) does not match the corners its record holds is written
+as it is, its polygon not closed, as the library cannot tell which corners AutoCAD would take.
 
 ### Layouts and viewports
 

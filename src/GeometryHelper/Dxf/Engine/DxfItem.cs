@@ -342,6 +342,15 @@ namespace GeometryHelper.Dxf
         /// </summary>
         internal List<KeyValuePair<string, DxfItem>> CopiedContexts { get; set; }
 
+        /// <summary>
+        /// The handle of the IMAGEDEF of the drawing a copy of an IMAGE in no file is to go into, which
+        /// <c>DxfRasterImage.AssociateRasterDef</c> gave it: kept as the copy is written there, where a pointer of the copy
+        /// would be taken for one of the drawing it was copied from; null for any other item. Only
+        /// <c>DxfBlockTableRecord.AppendEntity</c> brings such a copy in: the copies <c>DxfDatabase.Insert</c> and
+        /// <c>WblockCloneObjects</c> make, and those of the entities of a block copied, are the library's own and given none.
+        /// </summary>
+        internal string KeptImageDef { get; set; }
+
         /// <summary>The records the entity's own, once it is changed or added; null for an entity as the file was read.</summary>
         internal DxfFile.Piece Piece { get; set; }
 

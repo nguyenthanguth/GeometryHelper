@@ -750,6 +750,39 @@ namespace GeometryHelper.Dxf
         /// <summary>Whether the file holds objects of the OBJECTS section: from R13 on, with such a section.</summary>
         internal bool HoldsObjects => Style.Markers && ObjectsEnd() >= 0;
 
+        /// <summary>The handles of the list of reactors of a record (330 in <c>{ACAD_REACTORS</c>), in its order; none where it has none.</summary>
+        internal List<string> ReactorsOf(DxfItem item)
+        {
+            Rec head = RecordsOf(item)[0];
+            List<Pair> pairs = PairsOf(head);
+            int data = DataAt(head, pairs);
+            var found = new List<string>();
+            bool open = false;
+
+            for (int i = 1; i < data; i++)
+            {
+                if (pairs[i].Code == 102)
+                {
+                    string said = Text(head, pairs[i]).Trim();
+
+                    if (said == "{ACAD_REACTORS")
+                    {
+                        open = true;
+                    }
+                    else if (open && said == "}")
+                    {
+                        break;
+                    }
+                }
+                else if (open && pairs[i].Code == 330)
+                {
+                    found.Add(Text(head, pairs[i]).Trim());
+                }
+            }
+
+            return found;
+        }
+
         /// <summary>The bytes of the THUMBNAILIMAGE section: its groups 310 one after another; null where the file has none.</summary>
         internal byte[] Thumbnail()
         {

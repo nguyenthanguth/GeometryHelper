@@ -3583,7 +3583,9 @@ namespace GeometryHelper.Dxf
         /// IMAGE, which comes with it under its name in the dictionary of images (ACAD_IMAGE_DICT, made where this drawing has
         /// none), one IMAGEDEF brought for all the images that show it, as AutoCAD 2021's <c>WblockCloneObjects</c> brings it,
         /// with the CLASS rows of IMAGE and IMAGEDEF, or of WIPEOUT, where the drawing lists none, each counted 1, and a row of
-        /// them counted 0 counted 1, without which AutoCAD 2021 ignores them; and a handle of
+        /// them counted 0 counted 1, without which AutoCAD 2021 ignores them; an IMAGE that
+        /// <see cref="DxfRasterImage.AssociateRasterDef"/> gave an IMAGEDEF of this drawing shows that one, given an
+        /// IMAGEDEF_REACTOR of its own, nothing brought for it; and a handle of
         /// extended data (1005) is left out, as AutoCAD's mapping leaves it null, but for the records the overrides of a dimension
         /// style name (ACAD DSTYLE), which name those of the same name here. The records of the tables a copy names that this
         /// drawing has not (its layers, linetypes, text styles and dimension styles, and their arrow blocks) are copied with it by
@@ -3627,7 +3629,9 @@ namespace GeometryHelper.Dxf
         /// any depth; or when it is a copy of another drawing's entity whose blocks would, once brought, insert themselves or
         /// this block, an INSERT here of a block this drawing has not placing the one brought of that name: an INSERT, or a
         /// dimension whose <c>*D</c> holds an INSERT that closes such a round. Nothing is written then.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when the entity is in a file already, or this block is not.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the entity is in a file already, or this block is not; or it is
+        /// a <see cref="DxfWipeout"/> made in code and given no polygon by <see cref="DxfWipeout.SetFrom"/>, or a copy of one of no
+        /// boundary, as AutoCAD 2021 cannot open a drawing that holds one.</exception>
         public void AppendEntity(DxfEntity entity)
         {
             if (entity == null)
@@ -3668,6 +3672,7 @@ namespace GeometryHelper.Dxf
             bool madeInCode = entity.Item.File.IsMadeInCode;
             entity.Bind(_file.Adopt(space, entity.Item));
             DxfDBObject.WriteCopiedContexts(entity.Item, carried, origin);
+            entity.Appended(madeInCode);
 
             // A block given an attribute definition says so (flag 2 of its BLOCK), as AutoCAD 2021 marks one, model space too,
             // the definition constant or not, and keeps the mark when the definition goes: without it AutoCAD takes no value

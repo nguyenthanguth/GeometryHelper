@@ -411,6 +411,12 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentException("A " + type + " cannot be added to a DXF " + VersionSaid() + ", which has no such type: R13 (AC1012) brought it.", "entity");
             }
 
+            // An IMAGE came with R14 and a WIPEOUT with R2000, as the DXF reference and ACadSharp's classes have them.
+            if ((type == "IMAGE" && !Supports(1014)) || (type == "WIPEOUT" && !Supports(1015)))
+            {
+                throw new ArgumentException("A " + type + " cannot be added to a DXF " + VersionSaid() + ", which has no such type: " + (type == "IMAGE" ? "R14 (AC1014)" : "R2000 (AC1015)") + " brought it.", "entity");
+            }
+
             if (type == "LWPOLYLINE" && !style.Lightweight)
             {
                 throw new ArgumentException("A LWPOLYLINE cannot be added to a DXF " + VersionSaid() + ", which has no lightweight polylines: R14 (AC1014) brought them. Add a DxfPolyline2d.", "entity");
@@ -518,6 +524,12 @@ namespace GeometryHelper.Dxf
                 records[0] = uninverted;
             }
 
+            // A polygon another writer left not closed is written closed, as the library reads it.
+            if (IsRaster(type) && source.ClosedBoundary(records[0], out Rec closed))
+            {
+                records[0] = closed;
+            }
+
             // A copy of an entity of another drawing points at objects of that drawing: each pointer is taken to the object of
             // the same name here, or left out, as AutoCAD's deep clone between databases maps or drops them.
             bool deferred = false;
@@ -526,7 +538,7 @@ namespace GeometryHelper.Dxf
             {
                 for (int r = 0; r < records.Count; r++)
                 {
-                    records[r] = source.Pointed(records[r], origin, this, ref deferred);
+                    records[r] = source.Pointed(records[r], origin, this, ref deferred, r == 0 ? from.KeptImageDef : null);
                 }
             }
             else if (type == "MULTILEADER" && source.Origin == this)
@@ -2151,7 +2163,7 @@ namespace GeometryHelper.Dxf
         /// ACAD_TABLE's picture (343) and the block of a cell (340), and the arrow block an override of a dimension style names
         /// (DIMBLK, DIMBLK1, DIMBLK2, DIMLDRBLK), whose 1070 waits with it. The record itself where nothing changes.
         /// </summary>
-        private Rec Pointed(Rec record, DxfFile origin, DxfFile target, ref bool deferred)
+        private Rec Pointed(Rec record, DxfFile origin, DxfFile target, ref bool deferred, string keptImageDef = null)
         {
             List<Pair> pairs = PairsOf(record);
             int data = DataAt(record, pairs);
@@ -2240,6 +2252,14 @@ namespace GeometryHelper.Dxf
                     if (code == 340 && IsRaster(record.Type) && TryHex(was.Trim(), out ulong none) && none == 0)
                     {
                         b.Raw(record, pair);
+                        continue;
+                    }
+
+                    // An IMAGEDEF of the drawing written into, which AssociateRasterDef gave the copy, is kept as it is.
+                    if (code == 340 && keptImageDef != null && IsRaster(record.Type))
+                    {
+                        b.Group(code, keptImageDef);
+                        changed = true;
                         continue;
                     }
 
@@ -2348,13 +2368,162 @@ namespace GeometryHelper.Dxf
             else
             {
                 AddClass("WIPEOUT", "AcDbWipeout", 2175, "WipeOut|Product Desc: Object Enabler for WipeOut entity | Company: Autodesk, Inc. | WEB Address: www.autodesk.com", 1, true);
+                WipeoutVariables();
             }
 
             CountClass(type);
         }
 
+        /// <summary>
+        /// An IMAGEDEF written into the drawing, made in code or brought with a copy: its class listed and counted, and the
+        /// variables of images (ACAD_IMAGE_VARS) made where the drawing has none, as AutoCAD 2021 gives a drawing it opens with
+        /// images: frames shown (70 of 1), pictures finely (71 of 1), no unit (72 of 0), its class listed.
+        /// </summary>
+        internal void ImageDefWritten()
+        {
+            AddClass("IMAGEDEF", "AcDbRasterImageDef", 0, "ISM", 1);
+            CountClass("IMAGEDEF");
+            DxfDBDictionary root = Database?.NamedObjectsDictionary;
+
+            if (root != null && !root.Contains("ACAD_IMAGE_VARS"))
+            {
+                root.Add("ACAD_IMAGE_VARS", "RASTERVARIABLES", b =>
+                {
+                    b.Group(100, "AcDbRasterVariables");
+                    b.Group(90, "0");
+                    b.Group(70, "1");
+                    b.Group(71, "1");
+                    b.Group(72, "0");
+                });
+                AddClass("RASTERVARIABLES", "AcDbRasterVariables", 0, "ISM", 1);
+                CountClass("RASTERVARIABLES");
+            }
+        }
+
+        /// <summary>
+        /// The variables of wipeouts (ACAD_WIPEOUT_VARS) made where the drawing has none, as AutoCAD 2021 gives a drawing it opens
+        /// with wipeouts: frames shown (70 of 1), its class listed as AutoCAD lists it.
+        /// </summary>
+        private void WipeoutVariables()
+        {
+            DxfDBDictionary root = Database?.NamedObjectsDictionary;
+
+            if (root == null || root.Contains("ACAD_WIPEOUT_VARS"))
+            {
+                return;
+            }
+
+            root.Add("ACAD_WIPEOUT_VARS", "WIPEOUTVARIABLES", b =>
+            {
+                b.Group(100, "AcDbWipeoutVariables");
+                b.Group(70, "1");
+            });
+            AddClass("WIPEOUTVARIABLES", "AcDbWipeoutVariables", 0, "\"WipeOut|Product Desc:     WipeOut Dbx Application|Company:          Autodesk, Inc.|WEB Address:      www.autodesk.com\"", 1);
+            CountClass("WIPEOUTVARIABLES");
+        }
+
+        /// <summary>
+        /// Gives an IMAGE appended its IMAGEDEF_REACTOR, as AutoCAD 2021's <c>AssociateRasterDef</c> makes one: an object owned by
+        /// the image and naming it (90 of 2), its handle the image's 360 and among the definition's reactors; its class listed.
+        /// </summary>
+        internal string AddImageReactor(DxfItem image, DxfItem definition)
+        {
+            string owner = image.Handle;
+            DxfItem reactor = AddObject("IMAGEDEF_REACTOR", null, b =>
+            {
+                b.Group(330, owner);
+                b.Group(100, "AcDbRasterImageDefReactor");
+                b.Group(90, "2");
+                b.Group(330, owner);
+            });
+
+            SetReactor(definition, reactor.Handle, true);
+            AddClass("IMAGEDEF_REACTOR", "AcDbRasterImageDefReactor", 1, "ISM", 1);
+            CountClass("IMAGEDEF_REACTOR");
+            return reactor.Handle;
+        }
+
         /// <summary>Whether a type is that of an IMAGE or a WIPEOUT, whose IMAGEDEF (340) a copy into another drawing takes along.</summary>
         private static bool IsRaster(string type) => type == "IMAGE" || type == "WIPEOUT";
+
+        /// <summary>
+        /// The record of an IMAGE or a WIPEOUT whose polygon (71 of 2) of three corners or more, each a 14 with its 24 and as
+        /// many as its count (91) says, does not end on its first corner to the bit, written closed: the first corner's two
+        /// groups again after the last, as they are, and the count one more. AutoCAD 2021 reads a wipeout so left as of no
+        /// corners, showing nothing, and cannot open a drawing that holds such an image, even one whose last corner is a
+        /// millionth of a pixel off its first; the library reads both closed. False where the polygon is closed, or there is none.
+        /// </summary>
+        private bool ClosedBoundary(Rec record, out Rec closed)
+        {
+            closed = record;
+            List<Pair> pairs = PairsOf(record);
+            int data = DataAt(record, pairs);
+            int kind = -1;
+            int count = -1;
+            int first = -1;
+            int last = -1;
+            int corners = 0;
+
+            for (int i = 1; i < data; i++)
+            {
+                int code = pairs[i].Code;
+
+                if (code == 71 && kind < 0)
+                {
+                    kind = i;
+                }
+                else if (code == 91 && count < 0)
+                {
+                    count = i;
+                }
+                else if (code == 14 && i + 1 < data && pairs[i + 1].Code == 24)
+                {
+                    first = first < 0 ? i : first;
+                    last = i;
+                    corners++;
+                    i++;
+                }
+            }
+
+            if (kind < 0 || count < 0 || corners < 3 || Text(record, pairs[kind]).Trim() != "2"
+                || !int.TryParse(Text(record, pairs[count]).Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int said) || said != corners)
+            {
+                return false;
+            }
+
+            // AutoCAD 2021 takes a polygon as closed only where its last corner is its first to the bit.
+            if (Numbers.TryRead(Text(record, pairs[first]), out double x0) && Numbers.TryRead(Text(record, pairs[first + 1]), out double y0)
+                && Numbers.TryRead(Text(record, pairs[last]), out double x1) && Numbers.TryRead(Text(record, pairs[last + 1]), out double y1)
+                && BitConverter.DoubleToInt64Bits(x0) == BitConverter.DoubleToInt64Bits(x1) && BitConverter.DoubleToInt64Bits(y0) == BitConverter.DoubleToInt64Bits(y1))
+            {
+                return false;
+            }
+
+            var b = new Builder(this);
+
+            for (int i = 0; i < pairs.Count; i++)
+            {
+                if (i == count)
+                {
+                    b.Raw(record, pairs[i].Start, pairs[i].ValueStart);
+                    b.Value((corners + 1).ToString(CultureInfo.InvariantCulture));
+                    b.Raw(record, pairs[i].ValueEnd, pairs[i].End);
+                }
+                else
+                {
+                    b.Raw(record, pairs[i]);
+                }
+
+                if (i == last + 1)
+                {
+                    b.Raw(record, pairs[first]);
+                    b.Raw(record, pairs[first + 1]);
+                }
+            }
+
+            closed = b.Done(record.Type);
+            return true;
+        }
 
         /// <summary>
         /// The handle here of the copy of the IMAGEDEF an IMAGE of another drawing shows, brought with it as AutoCAD 2021's
@@ -2416,7 +2585,7 @@ namespace GeometryHelper.Dxf
                 }
             });
 
-            CountClass("IMAGEDEF");
+            ImageDefWritten();
             _objects = null;
             return copy.Handle;
         }

@@ -2584,3 +2584,43 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       opening once that wipeout is taken out. ezdxf recovers and audits it with nothing to say.
     - Now: the library reads it, the frame its vertices, and writes it unchanged; `SetFrom` and `SetClipBoundary` refuse
       a boundary not closed or of fewer than four corners, so it writes none.
+
+115. **Images, definitions and wipeouts made by AutoCAD 2021's API, and the library's made in code.**
+    - Try (R2, headless, plugin GHWINEW): `CreateImageDictionary` twice, `SuggestName` of several paths, a `RasterImageDef`
+      new, given a path found and one not, loaded and set; images given only their `ImageDefId`, and associated by
+      `AssociateRasterDef`, in model space, paper space and a block placed twice; `GetEntityCount`, `Name` set, the
+      definition erased; a `Wipeout` new. Then the library's drawings made in code, of R2000, R2010 and R2018 and into
+      AutoCAD's and ezdxf's, opened (GHWIREAD, GHWICOUNT), audited, and saved by `DxfOut` in the three versions (GHWISAVE).
+    - AutoCAD 2021: `CreateImageDictionary` makes a new dictionary each time and erases the one before; `SuggestName` gives
+      the file's name without its extension, `px43_1` once `px43` is taken; `SourceFileName` and `Load` refuse a file not
+      found (eFileAccessErr); a new image given its definition is one unit a pixel at the origin, (4, 0, 0) by (0, 3, 0),
+      written 70 of 7, 280 of 0, 281 and 282 of 50; it has a reactor only once associated, and `GetEntityCount` counts the
+      images of a reactor: 1, then 3 of 4 where one was given only its id. `Name` set renames the entry. The definition
+      erased takes with it the images associated with it and their reactors and leaves one of no reactor pointing at it,
+      AUDIT finding no error. The API makes neither ACAD_IMAGE_VARS nor ACAD_WIPEOUT_VARS; AutoCAD makes both when it opens
+      a drawing with images. The library's drawings: AUDIT finds no error in any of the 6, AutoCAD reads 3 059 numbers of
+      their images as the library gives them and the counts the library gives (5, and 3 for ezdxf's own definition), and
+      its saves of them in the three versions read in the library the same, 9 177 numbers, and pass ezdxf's recover and audit.
+    - Now: as AutoCAD 2021, but `CreateImageDictionary` gives the dictionary a drawing has, rather than one in its place;
+      the path is written as given, found or not; the variables of images and of wipeouts are made where a drawing has none,
+      as AutoCAD makes them when it opens it; and a definition erased takes every image that shows it, a copy of no reactor
+      too.
+    - Try (R2 review, headless, plugin GHWIDUP): `SetAt` of a new `RasterImageDef` under the name of one an associated image
+      shows, then the side database saved by `DxfOut`. AutoCAD 2021: `SetAt` takes it, the entry names the new one, the one
+      there is erased, the image still points at it, not erased, and the file written holds neither the image nor its
+      reactor, only the new definition. Now: refused, the message pointing to `SuggestName`, the drawing as it was.
+    - Try (R2 review): AutoCAD's own R2018 and R2000 drawings with every polygon of a wipeout left with its first corner not
+      again at the end (91 of 4 and 3), as another writer may hold them, opened (GHWIREAD), audited and saved (GHWISAVE);
+      and the library's copies of them into a new drawing, a block placed twice, the drawing itself and a drawing inserted,
+      audited. AutoCAD 2021: opens all 10, AUDIT finding no error, but reads each such wipeout as of no corners, no vertices,
+      no extents and no lines exploded, where the same polygons closed give their 5 and 4 corners; saved, it writes them
+      71 of 2 and 91 of 0; and the same with every last corner a millionth of a pixel off its first, all 5 corners kept,
+      read as of none too. Now: the library reads such a polygon closed and writes every copy closed, the first corner again
+      at the end and 91 one more, the drawing only read written as it was; a copy of no boundary, which AutoCAD 2021 cannot
+      open, it refuses. The copies so closed: AUDIT finds no error in any of the 15, and AutoCAD reads 5 880 numbers of the 10
+      read back as the library gives them, no wipeout of no corners among them.
+    - Try (R2 review): AutoCAD's own R2018 drawing with the clip polygon of its IMAGE 80 left with its closing corner out
+      (91 of 5), and with its last corner a millionth of a pixel off its first (6 kept). AutoCAD 2021: crashes opening
+      either, an access violation while regenerating the model (the files kept outside the repository, not to be sent
+      again). Now: a copy of such an image is written closed, as `AssociateRasterDef` writes one, and an image made in code
+      is closed by `SetClipBoundary`; the copies so closed are among the 15 above.
