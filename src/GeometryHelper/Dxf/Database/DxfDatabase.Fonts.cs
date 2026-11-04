@@ -21,8 +21,9 @@ namespace GeometryHelper.Dxf
         /// AutoCAD 2021 needs their width to place what it places by them, as it measures them: a TEXT, ATTRIB or ATTDEF
         /// justified other than left on its baseline stands where its words put it about its second point, and an aligned or
         /// fitted one takes the height or width its two points give; its <see cref="DxfEntity.GeometricExtents"/> are its
-        /// words' ink; an MTEXT of one line gives the <see cref="DxfMText.ActualWidth"/> and
-        /// <see cref="DxfMText.ActualHeight"/> of its words; a multileader lands a leader on the right of its words; an
+        /// words' ink; an MTEXT is laid out in lines, its paragraphs wrapped at its width, and gives the
+        /// <see cref="DxfMText.ActualWidth"/>, <see cref="DxfMText.ActualHeight"/>, <see cref="DxfEntity.GeometricExtents"/> and
+        /// exploded TEXTs of them (check F4); a multileader lands a leader on the right of its words of one line; an
         /// attribute definition is taken into a flip. "ABC" of txt.shx, 4 high and centred on (100, 50, 0), stands at
         /// (94.667, 50, 0), the ink of its letters 10.667 wide, and of arial.ttf at (94.259, 50, 0); with no fonts it stays
         /// where it stood.

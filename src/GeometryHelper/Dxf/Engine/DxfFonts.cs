@@ -401,17 +401,17 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            return !drawn || Drawn(line, font, big, numbers, null, null, widthFactor, height, true) ? line : null;
+            return !drawn || Drawn(line, font, big, numbers, null, widthFactor, height, true) ? line : null;
         }
 
         /// <summary>
         /// Adds letters to a line, each drawn from a font or the big font beside it as <see cref="Pick"/> says, at a width
-        /// factor and height, or at those of each where they are given (of an MTEXT); false where one is not measured. A letter
-        /// neither font has is, in a TEXT, the big font's question mark where it has one, else the font's; and a letter of the
-        /// font after letters of the big font that puts its pen down where it starts is inked where they began too, as AutoCAD
-        /// 2021 boxes a TEXT (check F3).
+        /// factor and height, or as each letter of an MTEXT is drawn where they are given; false where one is not measured. A
+        /// letter neither font has is, in a TEXT, the big font's question mark where it has one, else the font's; and a letter of
+        /// the font after letters of the big font that puts its pen down where it starts is inked where they began too, as
+        /// AutoCAD 2021 boxes a TEXT (check F3).
         /// </summary>
-        private static bool Drawn(DxfTextLine line, DxfFont font, Big big, List<int> numbers, List<double> widths, List<double> heights, double widthFactor, double height, bool text)
+        private static bool Drawn(DxfTextLine line, DxfFont font, Big big, List<int> numbers, List<Letter> drawn, double widthFactor, double height, bool text)
         {
             bool afterBig = false;
             double began = 0.0;
@@ -461,7 +461,15 @@ namespace GeometryHelper.Dxf
 
                 // The letter taken last is the one a space is told by: special.shx's "~ " ends in a space, though drawn as one
                 // letter; the ideographic space drawn as a space is none (check F3).
-                line.Add(from, glyph, numbers[k + taken - 1], widths == null ? widthFactor : widths[k], heights == null ? height : heights[k]);
+                if (drawn == null)
+                {
+                    line.Add(from, glyph, numbers[k + taken - 1], widthFactor, height);
+                }
+                else
+                {
+                    line.Add(from, glyph, numbers[k + taken - 1], drawn[k].Width, drawn[k].Height, drawn[k].Track, drawn[k].Marks);
+                }
+
                 k += taken;
             }
 
@@ -596,8 +604,10 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// The words of an MTEXT of one line measured in a font, as AutoCAD 2021 lays them out: plain letters, %%c, %%d and %%p
         /// as a TEXT reads them, the width of the letters set by <c>\W0.7;</c> and their height by <c>\H8;</c> or <c>\H2x;</c>
-        /// from where each stands, braces keeping a change within them, and <c>\\</c>, <c>\{</c> and <c>\}</c> the letter. Null
-        /// for any other code, a new line among them, and a letter the font has not, which AutoCAD 2021 draws from another
+        /// from where each stands, braces keeping a change within them, <c>\\</c>, <c>\{</c> and <c>\}</c> the letter, and
+        /// the codes <see cref="MTextLetters"/> reads besides (check F4). Null for any other code, a new paragraph or line among
+        /// them (laid out by <see cref="DxfMTextLayout"/>), letters lined under or over, and a letter the font has not, which
+        /// AutoCAD 2021 draws from another
         /// font in an MTEXT (txt "中" 4.335 wide, not the 2 of its question mark); null for a font of shapes, whose MTEXT
         /// AutoCAD 2021 measures otherwise than its TEXT (times.shx "A" 3.667 wide, its ink 3.933); and of a TrueType font, null
         /// for a change of width or height, or a brace, after the first letter (check F2). Beside a big font that is read, each
@@ -606,6 +616,73 @@ namespace GeometryHelper.Dxf
         /// 中's ink at 0.529).
         /// </summary>
         internal static DxfTextLine MText(DxfFont font, Big big, string contents, double height)
+        {
+            // Words lined under or over are not measured for a multileader, which F4 did not check.
+            List<Letter> letters = MTextLetters(font, big, contents, height);
+            return letters == null || letters.Exists(l => l.Number < 0 || (l.Marks & 3) != 0) ? null : Measure(font, big, letters, 0, letters.Count, height);
+        }
+
+        /// <summary>
+        /// A letter of an MTEXT's words, as <see cref="MTextLetters"/> reads it: its number in its font, the width factor and the
+        /// height it is drawn at, and whether it is a space it may break at; a number below nought for a new paragraph.
+        /// </summary>
+        internal struct Letter
+        {
+            internal Letter(int number, double width, double height, double track = 1.0, int align = 0, int marks = 0, int tint = 0)
+            {
+                Number = number;
+                Width = width;
+                Height = height;
+                Track = track;
+                Align = align;
+                Marks = marks;
+                Tint = tint;
+            }
+
+            /// <summary>The number of the letter in its font, <see cref="Paragraph"/> for a new paragraph.</summary>
+            internal int Number { get; }
+
+            /// <summary>The width factor it is drawn at.</summary>
+            internal double Width { get; }
+
+            /// <summary>The height it is drawn at.</summary>
+            internal double Height { get; }
+
+            /// <summary>The factor its pen's move is spread by (<c>\T</c>).</summary>
+            internal double Track { get; }
+
+            /// <summary>How it is held in a line of taller letters (<c>\A</c>): 0 on the baseline, 1 at the middle, 2 at the top.</summary>
+            internal int Align { get; }
+
+            /// <summary>The lines drawn with it: 1 under it (<c>\L</c>), 2 over it (<c>\O</c>), 4 through it (<c>\K</c>).</summary>
+            internal int Marks { get; }
+
+            /// <summary>Which colour of the words it is in, counted from nought for the MTEXT's own, one more at each <c>\C</c> or <c>\c</c>.</summary>
+            internal int Tint { get; }
+
+            /// <summary>Whether it begins a new paragraph (<c>\P</c>).</summary>
+            internal bool IsParagraph => Number == Paragraph;
+
+            /// <summary>Whether it is a space a line breaks at (U+0020, not the space of <c>\~</c>, which does not break).</summary>
+            internal bool IsSpace => Number == ' ';
+        }
+
+        /// <summary>The number <see cref="Letter"/> gives a new paragraph.</summary>
+        internal const int Paragraph = -1;
+
+        /// <summary>
+        /// The letters of an MTEXT's words, read as <see cref="MText"/> reads them, a new paragraph (<c>\P</c>) a letter of
+        /// <see cref="Paragraph"/>, and the space of <c>\~</c>, which does not break a line, the font's U+00A0; and as AutoCAD
+        /// 2021 draws them (check F4) the codes that spread the pen's moves (<c>\T1.5;</c>, not of a TrueType font), hold letters
+        /// at the middle or top of a line of taller letters (<c>\A1;</c>, <c>\A2;</c>), line them under, over and through
+        /// (<c>\L</c>, <c>\O</c>, <c>\K</c> and their ends <c>\l</c>, <c>\o</c>, <c>\k</c>) and colour them (<c>\C1;</c>,
+        /// <c>\c255;</c>), which changes no place. Null where they are not measured, as <see cref="MText"/> says, and for slanted
+        /// letters (<c>\Q</c>), which AutoCAD 2021 boxes otherwise in an MTEXT than in a TEXT (check F4: txt "\Q12;A/B jig" and
+        /// three lines more, 45 wide, 27.758 wide, not the 27.900 of letters slanted as a TEXT's), a font switch (<c>\f</c>,
+        /// <c>\F</c>), a stack (<c>\S</c>), a paragraph's indents and tabs (<c>\p</c>), a column break (<c>\N</c>) and any other
+        /// code.
+        /// </summary>
+        internal static List<Letter> MTextLetters(DxfFont font, Big big, string contents, double height)
         {
             if (!ByUnicode(font))
             {
@@ -622,13 +699,15 @@ namespace GeometryHelper.Dxf
             }
 
             string words = DxfReader.Decode(DxfReader.Carets(contents), true);
-            var line = new DxfTextLine(font);
-            List<int> numbers = drawn ? new List<int>() : null;
-            List<double> widths = drawn ? new List<double>() : null;
-            List<double> heights = drawn ? new List<double>() : null;
-            var kept = new Stack<KeyValuePair<double, double>>();
+            var letters = new List<Letter>();
+            var kept = new Stack<Letter>();
             double width = 1.0;
             double high = height;
+            double track = 1.0;
+            int align = 0;
+            int marks = 0;
+            int tint = 0;
+            int tints = 0;
             int i = 0;
 
             while (i < words.Length)
@@ -638,14 +717,14 @@ namespace GeometryHelper.Dxf
 
                 // A change of the letters' width or height after a letter of TrueType is not measured: AutoCAD 2021 sets the
                 // letters after it on from the ink of those before (check F2), Arial "A\H2x;BC" 4 high 18.819 wide, not 18.810.
-                if ((c == '{' || c == '}' || (c == '\\' && i + 1 < words.Length && (words[i + 1] == 'W' || words[i + 1] == 'H'))) && line.Count > 0 && font is DxfTrueTypeFont)
+                if ((c == '{' || c == '}' || (c == '\\' && i + 1 < words.Length && (words[i + 1] == 'W' || words[i + 1] == 'H'))) && letters.Count > 0 && font is DxfTrueTypeFont)
                 {
                     return null;
                 }
 
                 if (c == '{')
                 {
-                    kept.Push(new KeyValuePair<double, double>(width, high));
+                    kept.Push(new Letter(0, width, high, track, align, marks, tint));
                     i++;
                     continue;
                 }
@@ -654,9 +733,13 @@ namespace GeometryHelper.Dxf
                 {
                     if (kept.Count > 0)
                     {
-                        KeyValuePair<double, double> was = kept.Pop();
-                        width = was.Key;
-                        high = was.Value;
+                        Letter was = kept.Pop();
+                        width = was.Width;
+                        high = was.Height;
+                        track = was.Track;
+                        align = was.Align;
+                        marks = was.Marks;
+                        tint = was.Tint;
                     }
 
                     i++;
@@ -672,13 +755,30 @@ namespace GeometryHelper.Dxf
                         number = NumberOf(font, code);
                         i += 2;
                     }
-                    else if (code == 'W' || code == 'H')
+                    else if (code == 'P')
                     {
+                        number = Paragraph;
+                        i += 2;
+                    }
+                    else if (code == '~')
+                    {
+                        number = 0xA0;
+                        i += 2;
+                    }
+                    else if (code == 'W' || code == 'H' || code == 'T' || code == 'A')
+                    {
+                        // A TrueType font's spread is not measured: AutoCAD 2021 spreads it otherwise than its advances say
+                        // (check F4: Arial "\T2;ABC DEF" 4 high 41.228 wide, not the 44.767 of its advances spread).
+                        if (code == 'T' && font is DxfTrueTypeFont)
+                        {
+                            return null;
+                        }
+
                         int end = words.IndexOf(';', i);
                         string value = end < 0 ? string.Empty : words.Substring(i + 2, end - i - 2).Trim();
                         bool times = code == 'H' && value.EndsWith("x", StringComparison.OrdinalIgnoreCase);
 
-                        if (!double.TryParse(times ? value.Substring(0, value.Length - 1) : value, NumberStyles.Float, CultureInfo.InvariantCulture, out double v) || !Guard.IsFinite(v) || !(v > 0.0))
+                        if (!double.TryParse(times ? value.Substring(0, value.Length - 1) : value, NumberStyles.Float, CultureInfo.InvariantCulture, out double v) || !Guard.IsFinite(v) || !(v > 0.0 || (code == 'A' && v == 0.0)))
                         {
                             return null;
                         }
@@ -687,12 +787,45 @@ namespace GeometryHelper.Dxf
                         {
                             width = v;
                         }
-                        else
+                        else if (code == 'H')
                         {
                             high = times ? high * v : v;
                         }
+                        else if (code == 'T')
+                        {
+                            track = v;
+                        }
+                        else if (v == 0.0 || v == 1.0 || v == 2.0)
+                        {
+                            align = (int)v;
+                        }
+                        else
+                        {
+                            return null;
+                        }
 
                         i = end + 1;
+                        continue;
+                    }
+                    else if (code == 'C' || code == 'c')
+                    {
+                        // A colour changes no place, but begins a run of its own (check F4); its value is passed over.
+                        int end = words.IndexOf(';', i);
+
+                        if (end < 0)
+                        {
+                            return null;
+                        }
+
+                        tint = ++tints;
+                        i = end + 1;
+                        continue;
+                    }
+                    else if ("LlOoKk".IndexOf(code) >= 0)
+                    {
+                        int mark = code == 'L' || code == 'l' ? 1 : code == 'O' || code == 'o' ? 2 : 4;
+                        marks = char.IsUpper(code) ? marks | mark : marks & ~mark;
+                        i += 2;
                         continue;
                     }
                     else
@@ -714,19 +847,44 @@ namespace GeometryHelper.Dxf
                     number = NumberOf(font, words, ref i);
                 }
 
-                if (drawn)
-                {
-                    numbers.Add(number);
-                    widths.Add(width);
-                    heights.Add(high);
-                }
-                else if (!line.Add(number, width, high, true))
-                {
-                    return null;
-                }
+                letters.Add(new Letter(number, width, high, track, align, marks, tint));
             }
 
-            return !drawn || Drawn(line, font, big, numbers, widths, heights, 1.0, height, false) ? line : null;
+            return letters;
+        }
+
+        /// <summary>
+        /// The letters of an MTEXT from one place up to another measured as a line in a font, each from the font or the big
+        /// font beside it as <see cref="MText"/> says; null where one is not measured. A new paragraph among them is not.
+        /// </summary>
+        internal static DxfTextLine Measure(DxfFont font, Big big, List<Letter> letters, int from, int to, double height)
+        {
+            var line = new DxfTextLine(font);
+
+            if (big?.Font == null)
+            {
+                for (int k = from; k < to; k++)
+                {
+                    Letter letter = letters[k];
+
+                    if (!line.Add(letter.Number, letter.Width, letter.Height, true, letter.Track, letter.Marks))
+                    {
+                        return null;
+                    }
+                }
+
+                return line;
+            }
+
+            var numbers = new List<int>(to - from);
+            List<Letter> drawn = letters.GetRange(from, to - from);
+
+            for (int k = from; k < to; k++)
+            {
+                numbers.Add(letters[k].Number);
+            }
+
+            return Drawn(line, font, big, numbers, drawn, 1.0, height, false) ? line : null;
         }
 
         private static bool IsDigit(char c) => c >= '0' && c <= '9';

@@ -828,7 +828,8 @@ written as AutoCAD reads them now.
     - AutoCAD 2021: wraps the long paragraph by its font into six lines at the width 40, eight TEXTs in all, each held at its
       left (no 72, 73 or 11) where its font puts it; the baselines, from 33.33 for eight lines 4.17 apart about the middle 20,
       follow the library's rule for that many lines. Where the lines break and where each starts needs AutoCAD's font, which
-      the library has not; it still gives a TEXT a paragraph.
+      the library has not; it still gives a TEXT a paragraph. Where `DxfDatabase.FontSearchPath` finds the font, it now
+      wraps and places the lines as AutoCAD does, a TEXT each held at its left (point 107).
 
 50. **A dimension and a table exploded.**
     - Try: EXPLODE in AutoCAD a dimension in a tilted plane and a table, each drawn last by AutoCAD, and compare with
@@ -2100,7 +2101,7 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       quotes of times.shx slanted, isocp's stand-in for a letter it has not, and txt "i" aligned, as F1a left them; words
       mirrored across their plane whose dogleg is then set, which AutoCAD moved (to 117.67 for 110.67 and a dogleg of 15)
       and the library leaves, their words running against the plane's x (now moved: point 104). TrueType fonts are measured
-      now: see point 103.
+      now: see point 103; MTEXTs of several lines and of more codes are laid out: point 107.
 
 ## The words measured in TrueType fonts
 
@@ -2299,3 +2300,56 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
     - Still apart: an ideographic space alone aligned or fitted on two points, which AutoCAD makes 1 high as it makes txt.shx's
       "i" (F1a); the code page AutoCAD reads a big font of another name in, which on this machine (code page 1252) draws every
       CJK letter as a question mark and takes ° as the byte B0, but not × as D7: not modelled.
+
+## MTEXTs of several lines laid out in their fonts
+
+107. **How AutoCAD 2021 lays out an MTEXT of several lines by its font: where its lines break, how far apart they stand,
+    how wide and high it is, the box it fills, and the TEXTs it explodes to.**
+    - Try (F4, headless, plugin GHF4A to GHF4E, fonts of AutoCAD 2021 and Windows read in place, none copied into the
+      repository; each MTEXT 4 high, or 2.5, 3.5, 5 and 10, at (10, 20), read for `ActualWidth`, `ActualHeight`,
+      `GeometricExtents`, `Explode` and `ExplodeFragments`): round A, 22 paragraphs and words (two paragraphs, empty ones,
+      a pangram, double spaces, a word longer than the width, hyphens, spaces before and after, `\~`, digits, punctuation,
+      %% codes, Chinese) at the widths 0, 15, 30, 41 and 70, line spacing factors 0.5 to 2.5 at least and exactly, the nine
+      attachments, turned 30 degrees, in txt, romans, simplex, isocp and gdt.shx, arial and times.ttf and txt.shx beside
+      gbcbig.shx; round B, "H H H H" at widths swept across the ink and the advance of its first three words, 0.02 apart, at
+      2.5, 4 and 10 high, and paragraphs empty or of spaces; round C, first lines and lines after a wrap swept 0.01 apart,
+      their first and last letters A, t, y and f and spaces before; round D, codes of height, width, spread, slant, hold,
+      lines and colour, fonts, stacks and indents within the words, lines of other heights, 33 Chinese and Japanese signs
+      before and after a break, kana beside extfont.shx and Hangul beside whgtxt.shx; round E, 900 MTEXTs of words and codes
+      drawn at random, of every width, height, spacing, attachment and turn, as a check on rules fitted to the others.
+    - AutoCAD 2021: a line breaks after the spaces between words, which stay at the end of the line they break, and before
+      or after a Chinese, Japanese or Korean letter (kana and Hangul too), but not before ，。、；：？！．…・ー々, the
+      closing brackets and the quotes “”‘’, nor after the opening brackets （「『【〔〈《, the letter next to such a sign going
+      with it; not at a hyphen. A word moves down where the line would reach the width, measured from the start of the line
+      to the pen at that word and the word's own ink, from its first ink, of a TrueType font from its pen at least: romans
+      "H H t" 4 high, inked 17.524 wide, holds t from a width of 17.91, "H H H" from 19.05, its ink's 19.048; equal, the word
+      moves down (txt "fox jumps over the" 70.000 at 70). A word longer than the width stays whole on a line of its own.
+      Spaces before the first word are a word, a line of their own where the next word does not fit. Spaced at least, the
+      first baseline stands the first line's height, or its ink's top where higher, below the top, and each line's top the
+      factor times the top of the line before, a third of that line's height and a third of the MTEXT's height below the
+      top of the line before (gdt "x\Py": 8.667; txt "\H2x;ABC\PDEF": 12; "ABC\P{\H3x;g}\PDEF": 14.667 and 9.333); the
+      MTEXT as high as from the top to its last line's foot. Spaced exactly, the MTEXT's own height spaces the lines, and it
+      is its height, the spacing and a third of its height high. An empty paragraph at the end is no line, a second is. The
+      width is that of the widest line; the extents are the box of the width (or of that width) and height held by the
+      attachment; each line stands on its own at the left, the centre or the right of the location, its ink at that edge,
+      but a line wrapped where its letters' height changes starts at the edge unmoved. `Explode` gives a TEXT for each run
+      of letters of one look (height, width, spread, slant, hold, lines, colour) of each line, held at its left where the
+      pen stands at it, `%%U`, `%%O` and `%%K` written for its lines, a run of spaces between runs a TEXT of its own, the
+      spaces at a line's end left out; letters held at the middle or top of taller ones stand up by half the difference or
+      all of it, of the MTEXT's height where spaced exactly. A line under letters reaches a fifth of their height below the
+      baseline, one over them a fifth above it; a spread lengthens every move of the pen after a letter, of a TrueType font
+      otherwise ("\T2;ABC DEF" of Arial 41.228 wide). With %% codes on a wrapped line, the TEXTs AutoCAD explodes to do not
+      follow its own lines (txt "%%c50 %%d %%p %%c50 %%c50 %%c50" 15 wide: five lines of fragments, two TEXTs).
+    - Now: the library lays out an MTEXT so where `FontSearchPath` measures its words (`ActualWidth`, `ActualHeight`,
+      `GeometricExtents`, `Explode` and a drawing of R12). Round A: 1 650 measured of 1 655, 1 626 of AutoCAD's sizes and
+      extents and 1 604 every exploded TEXT too (at base: none laid out, 243 sizes of one line); round B 1 492 of 1 492;
+      round C 9 550 of 9 550; round D 789 measured, all 789; round E 753 measured of 936, 747 sizes, 748 extents and 647
+      every TEXT too. Of F1a's MTEXTs, 130 of 154 and 242 of 312 where 104 and 221 were; every other F1a, F1b, F2 and F3
+      result as before.
+    - Still apart: the TEXTs of a wrapped line with %% codes (103), which the library gives a line each; isocp.shx's
+      heights (27, up to 0.01), as for a line; letters held at the middle of taller ones whose ink reaches above the line,
+      which AutoCAD spaces lower; a line wrapped at a change of look other than height that AutoCAD moves; and lowercase
+      letters whose line starts with a change of height (romans "g\P\H3x;g", the g set in by its bearing at 4 high, not 12).
+      Not laid out: slanted letters (`\Q`, AutoCAD boxing them otherwise: txt "\Q12;A/B jig..." 27.758 wide, not 27.900),
+      `\f`, `\S`, `\p`, columns, a TrueType font's spread and its changes of size after its first letter; nor a
+      multileader's words of several lines, or a table's cells that wrap.

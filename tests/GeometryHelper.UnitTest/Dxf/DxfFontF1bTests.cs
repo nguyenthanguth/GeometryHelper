@@ -534,11 +534,11 @@ namespace GeometryHelper.UnitTest.Dxf
                 Is(5.333333333333333, Words("g").ActualHeight);
                 Is(6.666666666666667, Words("Ag").ActualWidth);
 
-                // Several lines, codes not measured, a letter the font has not and words that wrap keep the file's 42 and 43.
-                Assert.Equal(0.0, Words("ABC\\PDE").ActualWidth);
-                Assert.Equal(0.0, Words("\\T1.5;ABC").ActualWidth);
+                // Several lines, codes laid out and words that wrap are measured (check F4); a letter the font has not keeps 42.
+                Is(10.666666666666666, Words("ABC\\PDE").ActualWidth);
+                Is(14.666666666666666, Words("\\T1.5;ABC").ActualWidth);
                 Assert.Equal(0.0, Words("A中").ActualWidth);
-                Assert.Equal(0.0, Words("ABC ABC ABC", 20).ActualWidth);
+                Is(10.666666666666666, Words("ABC ABC ABC", 20).ActualWidth);
                 Is(10.666666666666666, Words("ABC", 20).ActualWidth);
             });
         }

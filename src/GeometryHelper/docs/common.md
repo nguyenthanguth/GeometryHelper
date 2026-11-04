@@ -1159,9 +1159,10 @@ db.ModelSpace.AppendEntity(text);   // Position (94.667, 50, 0): the ink of "ABC
   baseline. An aligned text takes its height from its two points, a fitted one its width factor: "ABC" of txt.shx aligned
   on two points 30 apart is 11.25 high. An annotative one is put so at every context. Its `GeometricExtents` are the ink of
   its words, the corners slanted by its oblique: "A" 4 high slanted 15 degrees reaches 3.738.
-- An MTEXT of one line gives the `ActualWidth` and `ActualHeight` of its words, plain letters and the codes `\W` and `\H`:
-  "ABC" of txt.shx 4 high is 10.667 wide and 4 high, "   ABC" 22.667 wide, its spaces before counted and those after left
-  out, and "g" 5.333 high. Several lines, other codes and words that wrap keep groups 42 and 43 as the file writes them.
+- An MTEXT gives the `ActualWidth` and `ActualHeight` of its words, plain letters and the codes `\W`, `\H`, `\T`, `\A`,
+  `\L`, `\O`, `\K`, `\C` and `\~`: "ABC" of txt.shx 4 high is 10.667 wide and 4 high, "   ABC" 22.667 wide, its spaces
+  before counted and those after left out, and "g" 5.333 high. Its paragraphs are laid out in lines, wrapped at its width,
+  as the next list says, and its `GeometricExtents` and `Explode` follow them.
 - A multileader lands a leader on the right of its words, the gap past their ink: "ABC" at (100, 50) met from (250, 0) by a
   dogleg from (120.67, 48). Words whose ink reaches below their baseline are met lower, "Ag" 2.67 below its top at the middle
   of its top line; words met on the right move to keep that landing when their height, the scale or the words change;
@@ -1222,6 +1223,45 @@ letters are boxed as AutoCAD boxes them, and 158 of 158 letters with whole circl
 with a big font, 15 382 measured give AutoCAD's place and box and 68 do not: 64 that the font gives without a big font too
 (isocp.shx's stand-in for a letter it has not, romans.shx's Ą, txt.shx's "i" aligned on two points) and 4 of an ideographic
 space alone aligned on two points.
+
+An MTEXT of several lines is laid out as AutoCAD 2021 lays it out (check F4), in any of the fonts above:
+
+- A paragraph (`\P`) begins a line, and where the MTEXT has a width its words wrap at it. A line breaks after the spaces
+  between words, which stay at the end of the line they break, and before or after a Chinese, Japanese or Korean letter,
+  but not before a sign a line does not begin with (，。、；：？！．, the closing brackets and quotes, …, ・, ー, 々) nor
+  after an opening bracket, which take the letter next to them along. A word moves down where the line would reach the
+  width, the line measured from its start to where the pen stands at that word and that word's own ink: "H H t" of
+  romans.shx 4 high is inked 17.524 wide but fits a width of 17.91 and not of 17.9. A word longer than the width stays
+  whole on a line of its own, and the MTEXT is then wider than its width. Spaces before the first word are a word of their
+  own: "  ABC DEF  GHI" of txt.shx 15 wide begins with a line of its two spaces. An empty paragraph at the end is no line,
+  but a second one is: "ABC\P" is 4 high and "ABC\P\P" 10.667.
+- Spaced at least (`LineSpacingStyle` `AtLeast`), the first baseline stands the first line's height, or the top of its ink
+  where that is higher, below the top; the top of each line after it stands the factor (`LineSpacingFactor`) times the top
+  of the line before, a third of that line's height and a third of the MTEXT's `TextHeight` below the top of the line
+  before. Lines of one height 4 are 6.667 apart, as 5/3 of the height says; "ABC\P{\H3x;g}\PDEF" of txt.shx 4 high has its
+  baselines 14.667 and 9.333 apart and is 28 high, the last line's ink below its baseline counted. Spaced exactly, the
+  baselines stand the `TextHeight` below the top and the factor times 5/3 of it apart, and the MTEXT is its height, that
+  spacing for each line after the first and a third of its height high, whatever its letters: "ABC\PDE" 4 high is 12 high.
+- The `ActualWidth` is that of the widest line. The `GeometricExtents` are the box as wide as the width, or the
+  `ActualWidth` where it has none, and `ActualHeight` high, held by the attachment at the location: "ABC\PDE" 41 wide held
+  at its middle centre at (10, 20) is boxed from (-10.5, 14.667) to (30.5, 25.333). Each line stands on its own at the left
+  of the box, centred on the location or ending at it, as the attachment says, its ink at that edge.
+- `Explode` gives a TEXT for each run of letters of one height, width, spread, hold, line and colour of each line, held at
+  its left where the pen stands at the run, as AutoCAD 2021 explodes the MTEXT: "A\H2x;B\H0.5x;C\PDEF" of txt.shx 4 high
+  at (10, 20) gives A at (10, 12), B 8 high at (14, 12), C at (22, 12) and DEF at (10, 4). Letters held at the middle or
+  top of a line of taller ones (`\A1;`, `\A2;`) stand up by half the difference or all of it, a line under, over or
+  through them is written `%%U`, `%%O` or `%%K`, and a run of spaces between runs is a TEXT of its own; a colour within the
+  words splits the runs but is not given to the TEXTs. A drawing of R12 is given the same TEXTs.
+- A line under letters (`\L`) reaches a fifth of their height below the baseline and one over them (`\O`) a fifth above
+  their height: "\LABC\l DEF" 4 high is 4.8 high. A spread (`\T1.5;`) lengthens each move of the pen after a letter; a
+  TrueType font's spread is not measured, AutoCAD spreading it otherwise than its advances say.
+
+Not laid out: slanted letters (`\Q`), which AutoCAD boxes otherwise in an MTEXT than in a TEXT, other fonts (`\f`, `\F`),
+stacks (`\S`), indents and tabs (`\p`), columns, and of a TrueType font a change of width or height after the first
+letter; their MTEXTs keep groups 42 and 43 and explode a TEXT a paragraph, as with no fonts. A multileader is landed by
+its words of one line only. Of 14 750 MTEXTs AutoCAD 2021 measured in five rounds, 14 234 are laid out, and 14 082 of
+them give AutoCAD's sizes, extents and every exploded TEXT; the most of the others explode with %% codes, where AutoCAD's
+own TEXTs do not follow its lines, or are of isocp.shx, whose heights are up to 0.01 off as they were for a line.
 
 The results follow the fonts supplied, so they differ between machines and between versions of a font, as AutoCAD's drawings
 do. Fonts of shapes are not measured, nor the lines of `%%u`, `%%o` and `%%k` of an SHX font

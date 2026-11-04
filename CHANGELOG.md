@@ -6,6 +6,32 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** An MTEXT of several lines is laid out in the fonts `DxfDatabase.FontSearchPath` finds, as AutoCAD 2021 lays it
+out (check F4): its paragraphs (`\P`) wrapped at its width, its `ActualWidth` and `ActualHeight`, its `GeometricExtents`,
+and the TEXTs `Explode` and a drawing of R12 give of it, a TEXT for each run of letters of one look of each line where
+the font puts it. A line breaks after the spaces between words and before or after a Chinese, Japanese or Korean letter,
+but not before a comma, a full stop or a closing bracket, nor after an opening one; a word moves down where the pen at
+it and its own ink would reach the width (romans.shx "H H t" 4 high fits 17.91, not 17.9, though inked 17.524 wide), and
+a word longer than the width stays whole on a line of its own. Spaced at least, each line stands the top of the line
+before, a third of its height and a third of the MTEXT's height below it, so that "ABC\P{\H3x;g}\PDEF" of txt.shx 4 high
+is 28 high; spaced exactly, the MTEXT is its height, the spacing and a third of its height high, whatever its letters.
+The codes `\T` (not of a TrueType font), `\A`, `\L`, `\O`, `\K`, `\C` and `\~` are measured with `\W` and `\H`; slanted
+letters (`\Q`), other fonts (`\f`), stacks (`\S`) and indents and tabs (`\p`) are not. Against AutoCAD 2021, of 14 750
+MTEXTs of five rounds in txt, romans, simplex, isocp and gdt.shx, arial and times.ttf and txt.shx beside gbcbig.shx,
+extfont.shx and whgtxt.shx, 14 234 are measured: 14 204 give AutoCAD's `ActualWidth` and `ActualHeight`, 14 205 its
+extents, and 14 082 those and every exploded TEXT's words and place. Of the other 152, 103 explode with %% codes, where
+AutoCAD's own TEXTs do not follow its lines, 27 are of isocp.shx, up to 0.01 off in height as its MTEXTs of one line were,
+and 22 hold letters at the middle of taller ones, wrap where their height changes or line a run at a line's end. With an
+empty `FontSearchPath` nothing changes, to the byte, on .NET 10 and .NET Framework 4.8. No public member is added;
+`DxfMText.GeometricExtents` is overridden.
+
+**CHANGED.** Where its fonts are measured, an MTEXT of one line spaced exactly is as high as AutoCAD 2021 makes it, its
+height and a third ("ABC" of txt.shx 4 high is 5.333 high, not 4), and one whose words wrap, or that holds `\T`, `\A`,
+`\L`, `\O`, `\K`, `\C` or `\~`, is measured where it kept the file's 42 and 43. A multileader's words of one line holding
+`\T`, `\A`, `\K`, `\C` or `\~` are landed by their width too. Reading an MTEXT's `ActualWidth` of one line takes about
+2.5 microseconds more a call with fonts, 13.8 where it took 11.3 for txt.shx on .NET Framework 4.8; nothing changes
+without fonts.
+
 **NEW.** The big font of a text style (`DxfTextStyleTableRecord.BigFontFileName`) is read from
 `DxfDatabase.FontSearchPath` and its letters measured beside the style's SHX font as AutoCAD 2021 draws them (check F3):
 TEXT, ATTRIB and ATTDEF places and extents, one-line MTEXT `ActualWidth` and `ActualHeight`, multileaders landed on the

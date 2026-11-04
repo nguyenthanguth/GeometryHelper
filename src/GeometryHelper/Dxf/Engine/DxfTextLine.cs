@@ -27,6 +27,18 @@ namespace GeometryHelper.Dxf
         private double _gapBottom;
         private double _gapTop;
 
+        // Where the pen stood at the start of the last word, and the ink of its letters, for where an MTEXT wraps; the last letter.
+        private double _fitPen;
+        private bool _fitInked;
+        private double _fitLeft;
+        private double _fitRight;
+        private int _previous = ' ';
+
+        // How far below and above the baseline the lines drawn under and over letters of an MTEXT reach, where any is.
+        private bool _marked;
+        private double _markLow;
+        private double _markHigh;
+
         // Whether the line was drawn beside a big font, and how far the pen stood below and above the baseline in its letters.
         private bool _besideBig;
         private double _penLow;
@@ -75,9 +87,10 @@ namespace GeometryHelper.Dxf
         /// a TEXT draws one; strict, false where it has none instead, for a letter another font would draw: a big font beside
         /// it, or the font an MTEXT draws such a letter from. False too for a letter a TrueType font has not, which Windows may
         /// draw from another font (check F2): Arial "中" 4 high is 5.514 wide in a TEXT of AutoCAD 2021, not the 4.191 of
-        /// Arial's own stand-in.
+        /// Arial's own stand-in. A letter of an MTEXT is given too the factor its pen's move is spread by and the lines drawn
+        /// with it, as <see cref="DxfFonts.Letter"/> holds them.
         /// </summary>
-        internal bool Add(int number, double widthFactor, double height, bool strict)
+        internal bool Add(int number, double widthFactor, double height, bool strict, double track = 1.0, int marks = 0)
         {
             DxfFont.Glyph glyph = _font.GlyphOf(number);
 
@@ -91,24 +104,43 @@ namespace GeometryHelper.Dxf
                 glyph = _font.GlyphOf('?');
             }
 
-            Add(_font, glyph, number, widthFactor, height);
+            Add(_font, glyph, number, widthFactor, height, track, marks);
             return true;
         }
 
         /// <summary>
         /// Adds a letter of a number drawn from a font, the line's or the big font beside it, at a width factor and a height,
         /// scaled by the height over that font's height above its baseline: gbcbig.shx's 中 4 high by 4 over 8; a letter of no
-        /// glyph taken in with no ink and no width.
+        /// glyph taken in with no ink and no width. A letter of an MTEXT spreads the pen's move after it by a factor
+        /// (<c>\T</c>), and is lined under, over or through (<c>\L</c>, <c>\O</c>, <c>\K</c>, marks 1, 2 and 4): the line under it a fifth of its
+        /// height below the baseline, the line over it a fifth above its height, as AutoCAD 2021 measures an MTEXT (check F4).
         /// </summary>
-        internal void Add(DxfFont font, DxfFont.Glyph glyph, int number, double widthFactor, double height)
+        internal void Add(DxfFont font, DxfFont.Glyph glyph, int number, double widthFactor, double height, double track = 1.0, int marks = 0)
         {
             double scale = height / font.Above;
             double across = scale * widthFactor;
+
+            if ((marks & 3) != 0)
+            {
+                _markLow = (marks & 1) != 0 ? Math.Min(_markLow, -height / 5.0) : _markLow;
+                _markHigh = (marks & 2) != 0 ? Math.Max(_markHigh, height * 6.0 / 5.0) : _markHigh;
+                _marked = true;
+            }
+
             Height = Count == 0 ? height : Math.Max(Height, height);
             StartsWithSpace = Count == 0 ? number == ' ' : StartsWithSpace;
             EndsWithSpace = number == ' ';
             AllSpaces &= EndsWithSpace;
             Count++;
+
+            // A word begins where a line of an MTEXT may break: after a space, and at most letters of Chinese, Japanese or Korean.
+            if (!EndsWithSpace && (Count == 1 || DxfMTextLayout.Breaks(_previous, number)))
+            {
+                _fitPen = Advance;
+                _fitInked = false;
+            }
+
+            _previous = number;
 
             if (glyph == null)
             {
@@ -117,7 +149,15 @@ namespace GeometryHelper.Dxf
 
             for (int k = 0; k < glyph.Xs.Length; k++)
             {
-                Dot(Advance + (across * glyph.Xs[k]), scale * glyph.Ys[k]);
+                double x = Advance + (across * glyph.Xs[k]);
+                Dot(x, scale * glyph.Ys[k]);
+
+                if (!EndsWithSpace)
+                {
+                    _fitLeft = _fitInked ? Math.Min(_fitLeft, x) : x;
+                    _fitRight = _fitInked ? Math.Max(_fitRight, x) : x;
+                    _fitInked = true;
+                }
             }
 
             if (font is DxfShxFont shx && shx.IsBig)
@@ -138,7 +178,7 @@ namespace GeometryHelper.Dxf
                 Words(scale * glyph.Ys[0], scale * glyph.Ys[1]);
             }
 
-            Advance += glyph.Advance * across;
+            Advance += track == 1.0 ? glyph.Advance * across : glyph.Advance * across * track;
         }
 
         /// <summary>Marks the line drawn beside a big font, which <see cref="AlignmentBox"/> boxes as AutoCAD 2021 boxes one (check F3).</summary>
@@ -259,10 +299,12 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// How far the ink of the words reaches below the baseline, as <see cref="ActualHeight"/> counts it; nought where it does
-        /// not.
+        /// How far the ink of the words reaches below the baseline, as <see cref="ActualHeight"/> counts it, a line under them
+        /// taken in; nought where it does not.
         /// </summary>
-        internal double Depth => _font is DxfTrueTypeFont ? (_wordsHigh && _wordsBottom < 0.0 ? -_wordsBottom : 0.0) : (HasInk && InkBottom < 0.0 ? -InkBottom : 0.0);
+        internal double Depth => _marked ? Math.Max(InkDepth, -_markLow) : InkDepth;
+
+        private double InkDepth => _font is DxfTrueTypeFont ? (_wordsHigh && _wordsBottom < 0.0 ? -_wordsBottom : 0.0) : (HasInk && InkBottom < 0.0 ? -InkBottom : 0.0);
 
         /// <summary>
         /// The width of an MTEXT of this one line, as AutoCAD 2021's <c>ActualWidth</c>: from the first ink, or the start of the
@@ -278,10 +320,35 @@ namespace GeometryHelper.Dxf
         /// The height of an MTEXT of this one line, as AutoCAD 2021's <c>ActualHeight</c>: from the lower of the baseline and the
         /// ink's bottom up to the higher of the letters' height and the ink's top; of a TrueType font, the ink of the letters from
         /// the first that is no space to the last (check F2), Arial "A B" 4 high 4.003 high, its space boxed a unit below the
-        /// baseline, and "A " 4.
+        /// baseline, and "A " 4. A line drawn under or over letters is taken in: txt "\LABC" 4 high is 4.8 high.
         /// </summary>
-        internal double ActualHeight => _font is DxfTrueTypeFont
+        internal double ActualHeight => _marked ? Top + Depth : _font is DxfTrueTypeFont
             ? Math.Max(Height, _wordsHigh ? _wordsTop : 0.0) - Math.Min(0.0, _wordsHigh ? _wordsBottom : 0.0)
             : Math.Max(Height, HasInk ? InkTop : 0.0) - Math.Min(0.0, HasInk ? InkBottom : 0.0);
+
+        /// <summary>
+        /// How high the line of an MTEXT reaches above its baseline, as <see cref="ActualHeight"/> counts it: the higher of the
+        /// letters' height and the top of their ink, of a TrueType font of the ink of the letters from the first that is no
+        /// space to the last, a line over them taken in.
+        /// </summary>
+        internal double Top => _marked ? Math.Max(Rise, _markHigh) : Rise;
+
+        private double Rise => _font is DxfTrueTypeFont ? Math.Max(Height, _wordsHigh ? _wordsTop : 0.0) : Math.Max(Height, HasInk ? InkTop : 0.0);
+
+        /// <summary>
+        /// How wide the line is as AutoCAD 2021 tells whether it fits the width of an MTEXT (check F4): from the start of the line
+        /// to where the pen stands at its last word, and the ink of that word, as if it had no bearing on its left; a word the
+        /// letters from where a line may break (<see cref="DxfMTextLayout.Breaks"/>), and of a TrueType font or beside a big font
+        /// its ink left of that pen not counted. romans "H H t" 4 high is 17.905, not its ink's 17.524, and moves t down at a
+        /// width of 17.9; a line of spaces alone is as wide as they move the pen.
+        /// </summary>
+        internal double FitWidth => AllSpaces ? Advance : !_fitInked ? _fitPen : _fitRight - ((_font is DxfTrueTypeFont || _besideBig ? Math.Max(_fitPen, _fitLeft) : _fitLeft) - _fitPen);
+
+        /// <summary>
+        /// Where along the line its <see cref="ActualWidth"/> is measured from: its first ink, or the start of the line where it
+        /// starts with a space or is of spaces alone, ink left of the start not counted of a TrueType font or beside a big font;
+        /// romans "A" 4 high from 0.190, where AutoCAD 2021 puts the ink of a line of an MTEXT at its left edge.
+        /// </summary>
+        internal double WordsStart => AllSpaces || !_wordsInked || StartsWithSpace ? 0.0 : _font is DxfTrueTypeFont || _besideBig ? Math.Max(0.0, _wordsLeft) : _wordsLeft;
     }
 }

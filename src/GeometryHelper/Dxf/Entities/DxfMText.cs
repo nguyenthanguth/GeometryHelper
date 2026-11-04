@@ -498,35 +498,109 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets the width the MTEXT's words take, as AutoCAD's <c>ActualWidth</c>: where the drawing's
-        /// <see cref="DxfDatabase.FontSearchPath"/> finds the SHX or TrueType font of its style and its words are one line, as
-        /// AutoCAD 2021 measures them (checks F1a and F2), from their first ink, or the start of the line where it starts with a
-        /// space, to the ink of their last letter that is no space, the spaces after it left out, a line of spaces alone as wide
-        /// as they move the pen: "ABC" of txt.shx 4 high is 10.667 wide, and "   ABC" 22.667; of a TrueType font, ink left of
-        /// the line's start not counted, "A" of arial.ttf 4 high 3.735 wide, from 0. Elsewhere, group 42 as the file writes it;
+        /// <see cref="DxfDatabase.FontSearchPath"/> finds the SHX or TrueType font of its style, the width of its widest line,
+        /// laid out as AutoCAD 2021 lays them out (checks F1a, F2 and F4): a line from its first ink, or its start where it
+        /// starts with a space, to the ink of its last letter that is no space, the spaces after it left out, a line of spaces
+        /// alone as wide as they move the pen: "ABC" of txt.shx 4 high is 10.667 wide, and "   ABC" 22.667; of a TrueType font,
+        /// ink left of the line's start not counted, "A" of arial.ttf 4 high 3.735 wide, from 0. The lines are its paragraphs
+        /// (<c>\P</c>), wrapped at its <see cref="Width"/> where it has one: "The quick brown fox jumps over the lazy dog and keeps
+        /// on running" of txt.shx 4 high, 41 wide, is seven lines, the widest 38. Elsewhere, group 42 as the file writes it;
         /// nought where it gives none.
         /// </summary>
         /// <remarks>
-        /// Words of one line are those of no new line, held in one column, shorter than the <see cref="Width"/> where they
-        /// wrap, and of plain letters, %%c, %%d and %%p, and the codes of the width and height of the letters, <c>\W0.7;</c>,
-        /// <c>\H8;</c> and <c>\H2x;</c>, which take the letters after them to that width and height, in braces or not, of a
-        /// TrueType font before its first letter alone, as AutoCAD 2021 sets the letters after such a change on from the ink of
-        /// those before it (check F2); a style as wide as high and upright; letters its font has.
+        /// <para>
+        /// A line breaks after the spaces between words and before or after a letter of Chinese, Japanese or Korean writing, but
+        /// not before a sign a line does not begin with, as a comma or a closing bracket, nor after an opening one; a word moves
+        /// down where the line would reach the width, measured from the start of the line to where the pen stands at that word
+        /// and the word's own ink (romans.shx "H H t" 4 high fits a width of 17.91, not of 17.9, though inked 17.524 wide); a
+        /// word longer than the width stays whole on a line of its own, wider than the width.
+        /// </para>
+        /// <para>
+        /// The words measured are of plain letters, %%c, %%d and %%p, <c>\~</c>, and the codes of the width, height and spread
+        /// of the letters, <c>\W0.7;</c>, <c>\H8;</c>, <c>\H2x;</c> and <c>\T1.5;</c>, which take the letters after them to that
+        /// width, height and spread, in braces or not, of a TrueType font before its first letter alone and spread not at all,
+        /// as AutoCAD 2021 sets the letters after such a change on from the ink of those before it (checks F2 and F4); the codes
+        /// that hold letters in a line (<c>\A</c>), line them under, over or through (<c>\L</c>, <c>\O</c>, <c>\K</c>) and colour
+        /// them (<c>\C</c>, <c>\c</c>); a style as wide as high and upright; letters its font has; no columns. Slanted letters
+        /// (<c>\Q</c>), other fonts (<c>\f</c>), stacks (<c>\S</c>), indents and tabs (<c>\p</c>) are not measured.
+        /// </para>
         /// </remarks>
-        public double ActualWidth => OneLine()?.ActualWidth ?? Number(42, 0.0);
+        public double ActualWidth => Layout()?.ActualWidth ?? Number(42, 0.0);
 
         /// <summary>
         /// Gets the height the MTEXT's words take, as AutoCAD's <c>ActualHeight</c>: where <see cref="ActualWidth"/> measures
-        /// them, from the lower of the baseline and the bottom of their ink up to the higher of the height of their letters and
-        /// the top of their ink, as AutoCAD 2021 measures them: "ABC" of txt.shx 4 high is 4 high, and "g" 5.333. Elsewhere,
-        /// group 43 as the file writes it; nought where it gives none.
+        /// them, from the top of the first line to the foot of the last, as AutoCAD 2021 lays them out (checks F1a and F4): a
+        /// line of one height from the lower of its baseline and the bottom of its ink up to the higher of the height of its
+        /// letters and the top of its ink, a line drawn under them a fifth of their height below the baseline and over them a
+        /// fifth above their height: "ABC" of txt.shx 4 high is 4 high, and "g" 5.333. With its line spacing at least (group 73
+        /// of 1), the top of each line is the factor (44) times the top of the line before, a third of that line's height and a
+        /// third of the MTEXT's <see cref="TextHeight"/> below the top of the line before it, so that "ABC\PDE" 4 high is 10.667
+        /// high and "ABC\P{\H3x;ABC}\PDEF" 28; spaced exactly (2), the MTEXT is its height, the spacing of each line after the
+        /// first and a third of its height high, whatever its letters: "ABC\PDE" 12. An empty paragraph at the end is no line:
+        /// "ABC\P" is 4 high, "ABC\P\P" 10.667. Elsewhere, group 43 as the file writes it; nought where it gives none.
         /// </summary>
-        public double ActualHeight => OneLine()?.ActualHeight ?? Number(43, 0.0);
+        public double ActualHeight => Layout()?.ActualHeight ?? Number(43, 0.0);
 
-        /// <summary>The width of the MTEXT's words where the drawing's fonts measure them, as <see cref="ActualWidth"/> says; null where they do not.</summary>
-        internal double? MeasuredWidth => OneLine()?.ActualWidth;
+        /// <summary>The width of the MTEXT's words where the drawing's fonts measure them as one line, shorter than the <see cref="Width"/> where it has one, as <see cref="ActualWidth"/> says; null where they do not.</summary>
+        internal double? MeasuredWidth
+        {
+            get
+            {
+                DxfMTextLayout layout = Layout();
+                double wrap = Width;
+                return layout == null || layout.Lines.Count != 1 || (wrap > 0.0 && !(layout.ActualWidth < wrap)) ? (double?)null : layout.ActualWidth;
+            }
+        }
 
-        /// <summary>The MTEXT's words measured as a line, as <see cref="ActualWidth"/> measures them; null where they are not.</summary>
-        private DxfTextLine OneLine()
+        /// <summary>
+        /// Gets the box the MTEXT fills, as AutoCAD's <c>GeometricExtents</c>: where <see cref="ActualWidth"/> measures its words,
+        /// the box AutoCAD 2021 gives it (check F4), as wide as its <see cref="Width"/>, or its <see cref="ActualWidth"/> where it
+        /// has none, and <see cref="ActualHeight"/> high, held at its <see cref="Location"/> by its <see cref="Attachment"/>,
+        /// along its <see cref="Direction"/> in the plane of its <see cref="Normal"/>: "ABC\PDE" of txt.shx 4 high, 41 wide, held
+        /// at its top left at (10, 20, 0), from (10, 9.333, 0) to (51, 20, 0). Elsewhere as
+        /// <see cref="DxfEntity.GeometricExtents"/> gives it.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown, with no font, as <see cref="DxfEntity.GeometricExtents"/> throws.</exception>
+        public override GeoAabb3 GeometricExtents
+        {
+            get
+            {
+                DxfMTextLayout layout = Layout();
+
+                if (layout == null)
+                {
+                    return base.GeometricExtents;
+                }
+
+                int attachment = (int)Attachment;
+                attachment = attachment >= 1 && attachment <= 9 ? attachment - 1 : 0;
+                double wide = Width > 0.0 ? Width : layout.ActualWidth;
+                double left = -(attachment % 3) * wide / 2.0;
+                double top = (attachment / 3) * layout.ActualHeight / 2.0;
+                GeoTransform3 frame = Frame();
+                double minX = double.PositiveInfinity, minY = double.PositiveInfinity, minZ = double.PositiveInfinity;
+                double maxX = double.NegativeInfinity, maxY = double.NegativeInfinity, maxZ = double.NegativeInfinity;
+
+                foreach (double x in new[] { left, left + wide })
+                {
+                    foreach (double y in new[] { top - layout.ActualHeight, top })
+                    {
+                        GeoPoint3 corner = frame.Transform(new GeoPoint3(x, y, 0.0));
+                        minX = Math.Min(minX, corner.X);
+                        minY = Math.Min(minY, corner.Y);
+                        minZ = Math.Min(minZ, corner.Z);
+                        maxX = Math.Max(maxX, corner.X);
+                        maxY = Math.Max(maxY, corner.Y);
+                        maxZ = Math.Max(maxZ, corner.Z);
+                    }
+                }
+
+                return new GeoAabb3(new GeoPoint3(minX, minY, minZ), new GeoPoint3(maxX, maxY, maxZ));
+            }
+        }
+
+        /// <summary>The MTEXT's words laid out in lines, as <see cref="ActualWidth"/> measures them; null where they are not.</summary>
+        private DxfMTextLayout Layout()
         {
             DxfFonts fonts = IsResident ? Item.File.Database?.Fonts : null;
 
@@ -543,9 +617,7 @@ namespace GeometryHelper.Dxf
             }
 
             DxfFont font = fonts.FontOf(style, out DxfFonts.Big big);
-            DxfTextLine line = font == null ? null : DxfFonts.MText(font, big, Written, TextHeight);
-            double wrap = Width;
-            return line == null || (wrap > 0.0 && !(line.ActualWidth < wrap)) ? null : line;
+            return font == null ? null : DxfMTextLayout.Of(font, big, Written, TextHeight, Width, LineSpacingFactor, LineSpacingStyle == DxfLineSpacingStyle.Exactly);
         }
 
         /// <summary>
@@ -1808,20 +1880,25 @@ namespace GeometryHelper.Dxf
         /// <see cref="Direction"/> in the plane of its <see cref="Normal"/>, the lines <see cref="LineSpaceDistance"/> apart, the
         /// whole of them standing where its <see cref="Attachment"/> holds them, and each held at the left, the middle or the right
         /// of its baseline as the MTEXT is held; in its text style where that drawing has it, else in Standard (in its own, with
-        /// no drawing given). A line with no words is left out, its place kept.
+        /// no drawing given). A line with no words is left out, its place kept. Where the MTEXT's fonts measure its words, its
+        /// lines and their runs as <see cref="Explode"/> says (check F4).
         /// </summary>
         internal List<DxfEntity> R12Texts(DxfFile target)
         {
-            List<string> lines = Paragraphs();
+            DxfMTextLayout layout = Layout();
+            List<string> lines = layout == null ? Paragraphs() : null;
+            int count = layout == null ? lines.Count : layout.Lines.Count;
             double height = TextHeight;
             double pitch = LineSpaceDistance;
             GeoVector3 normal = Normal;
-            GeoVector3 up = DxfOcsTransform.Normalized(normal.CrossProduct(Direction));
+            GeoVector3 along = Direction;
+            GeoVector3 up = DxfOcsTransform.Normalized(normal.CrossProduct(along));
             int attachment = (int)Attachment;
             attachment = attachment >= 1 && attachment <= 9 ? attachment - 1 : 0;
             int row = attachment / 3;
             int column = attachment % 3;
-            double first = row == 0 ? -height : row == 1 ? (height + (lines.Count - 1) * pitch) / 2.0 - height : (lines.Count - 1) * pitch;
+            double first = row == 0 ? -height : row == 1 ? (height + (count - 1) * pitch) / 2.0 - height : (count - 1) * pitch;
+            double top = layout == null ? 0.0 : row == 0 ? 0.0 : row == 1 ? layout.ActualHeight / 2.0 : layout.ActualHeight;
             string style = Value(7);
             DxfFile source = IsResident ? Item.File : Item.File.Origin;
 
@@ -1833,27 +1910,58 @@ namespace GeometryHelper.Dxf
             GeoPoint3 location = Location;
             var texts = new List<DxfEntity>();
 
-            for (int k = 0; k < lines.Count; k++)
+            for (int k = 0, part = 0; k < count; part++)
             {
-                if (lines[k].Trim().Length == 0)
+                // Each line of a layout breaks into its runs of one look, a TEXT each (check F4).
+                DxfMTextLayout.Run run = layout == null ? null : layout.Lines[k].Runs.Count == 0 ? null : layout.Lines[k].Runs[part];
+                string words = layout == null ? lines[k] : run?.Words ?? string.Empty;
+                int line = k;
+
+                if (layout == null || part + 1 >= layout.Lines[k].Runs.Count)
+                {
+                    k++;
+                    part = -1;
+                }
+
+                // A run of spaces between runs of words is a TEXT of its own, as AutoCAD 2021 explodes one (check F4).
+                if (layout == null ? words.Trim().Length == 0 : words.Length == 0)
                 {
                     continue;
                 }
 
-                double rise = first - k * pitch;
-                GeoPoint3 at = WorldToOcs(normal, new GeoPoint3(location.X + up.X * rise, location.Y + up.Y * rise, location.Z + up.Z * rise));
+                GeoPoint3 at;
+
+                if (layout == null)
+                {
+                    double rise = first - line * pitch;
+                    at = WorldToOcs(normal, new GeoPoint3(location.X + up.X * rise, location.Y + up.Y * rise, location.Z + up.Z * rise));
+                }
+                else
+                {
+                    // Each line held at its left where the font puts it, its ink at the left of its place in the box (check F4).
+                    DxfTextLine measure = layout.Lines[line].Measure;
+                    double rise = top + layout.Lines[line].Baseline + run.Rise;
+                    double across = (-column * measure.ActualWidth / 2.0) - layout.Lines[line].Start + run.Pen;
+                    at = WorldToOcs(normal, new GeoPoint3(location.X + (along.X * across) + (up.X * rise), location.Y + (along.Y * across) + (up.Y * rise), location.Z + (along.Z * across) + (up.Z * rise)));
+                }
+
                 var own = new List<KeyValuePair<int, string>>
                 {
                     G(100, "AcDbText"), G(10, Numbers.Exact(at.X + 0.0)), G(20, Numbers.Exact(at.Y + 0.0)), G(30, Numbers.Exact(at.Z + 0.0)),
-                    G(40, Numbers.Exact(height + 0.0)), G(1, lines[k]), G(50, Numbers.Exact(degrees + 0.0)),
+                    G(40, Numbers.Exact((run == null ? height : run.Height) + 0.0)), G(1, words), G(50, Numbers.Exact(degrees + 0.0)),
                 };
+
+                if (run != null && run.Width != 1.0)
+                {
+                    own.Add(G(41, Numbers.Exact(run.Width + 0.0)));
+                }
 
                 if (style != null)
                 {
                     own.Add(G(7, style));
                 }
 
-                if (column != 0)
+                if (column != 0 && layout == null)
                 {
                     own.Add(G(72, column.ToString(CultureInfo.InvariantCulture)));
                     own.Add(G(11, Numbers.Exact(at.X + 0.0)));
@@ -1943,10 +2051,15 @@ namespace GeometryHelper.Dxf
         /// Gets the texts the MTEXT breaks into, as AutoCAD's <c>Explode</c> does: one TEXT for each paragraph (<c>\P</c>, a column
         /// break <c>\N</c> taken as one), its formatting and the heights of its codes left out as <see cref="Text"/> leaves them
         /// out, as an MTEXT is written into a drawing of R12 (see <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>): each
-        /// in its text style, its height, turn and plane, the lines spaced as <see cref="LineSpaceDistance"/> says. A paragraph is
-        /// not wrapped at <see cref="Width"/>, as AutoCAD wraps it by the letters of its font, which the library does not read, and
-        /// a part of it in another font or height is not given a TEXT of its own, as AutoCAD gives it. B-12 and M16 on two lines, 2.5 high, held at the
-        /// top left at (10, 20), come out as two TEXTs on the baselines 17.5 and 13.33 high.
+        /// in its text style, its height, turn and plane, the lines spaced as <see cref="LineSpaceDistance"/> says. B-12 and M16
+        /// on two lines, 2.5 high, held at the top left at (10, 20), come out as two TEXTs on the baselines 17.5 and 13.33 high.
+        /// Where the drawing's <see cref="DxfDatabase.FontSearchPath"/> measures its words (<see cref="ActualWidth"/>), as AutoCAD
+        /// 2021 explodes it (check F4): a TEXT for each run of letters of one look of each line as the font lays them out, wrapped
+        /// at its <see cref="Width"/>, held at its left where the pen stands at the run, the ink of the line at the left of its
+        /// place in the box (or centred on, or ending at, the <see cref="Location"/> for an MTEXT held at its centre or right),
+        /// each its height and width factor, a line under, over or through it written <c>%%U</c>, <c>%%O</c> or <c>%%K</c>:
+        /// "A\H2x;B\H0.5x;C\PDEF" of txt.shx 4 high held at the top left at (10, 20) comes out as A at (10, 12), B 8 high at
+        /// (14, 12), C at (22, 12) and DEF at (10, 4). A colour within the words is not given to its TEXT.
         /// </summary>
         /// <returns>The <see cref="DxfDBText"/> objects, in no file, to be added to a drawing by
         /// <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
