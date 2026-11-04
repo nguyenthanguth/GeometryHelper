@@ -488,7 +488,8 @@ and the 3D polyline of point 13 fitted at SPLINETYPE 5 its `Type mismatch`, as A
     - A change if: AutoCAD wants them in another place of the record.
     - AutoCAD 2021 (plugin v2): reads them there: GH_PREVIEW's `HasPreviewIcon` true, its `PreviewIcon` the picture the
       library wrote, 32 by 32 of 24 bits, a red X on white in a blue frame (172 red pixels, 124 blue, 728 white, no other).
-      The INSERT dialog's preview, which needs the editor, is for the maintainer's eye.
+      In the editor (the maintainer's check): DesignCenter shows that picture as the block's icon; the INSERT dialog
+      (CLASSICINSERT) draws its preview from the block's geometry, as for every block, and not from the bytes.
 
 26. **The drawing's properties.**
     - Try: set `SummaryInfo` with a hyperlink base and two custom properties in a drawing of R2004 or later and of R2000, and
@@ -587,7 +588,8 @@ and the 3D polyline of point 13 fitted at SPLINETYPE 5 its `Type mismatch`, as A
     - Now: the three flags AutoCAD keeps inverted (0x10, 0x40000, 0x100000) are written inverted; the isometric pair as ezdxf
       writes it.
     - AutoCAD 2021: agrees, through its API (`FrontClipAtEyeOn`, `GridBoundToLimits`, `GridSubdivisionRestricted`,
-      `SnapIsometric`); the grid as drawn is for the eye to see.
+      `SnapIsometric`). In the editor (the maintainer's check): the viewport's grid is drawn isometric and within the
+      limits only, and the viewport beside it with no flags set shows none.
 
 32. **A viewport's light and number.**
     - Try: read the ambient light colour of a viewport with no group 63, and the `Number` of a viewport turned off.
@@ -694,8 +696,9 @@ and the 3D polyline of point 13 fitted at SPLINETYPE 5 its `Type mismatch`, as A
       unique across the multileader.
     - A change if: AutoCAD keeps the last vertex per line, or numbers lines per leader.
     - AutoCAD 2021 (plugin v2): reads the library's two lines of one leader ending at (14, 10, 0) both, (0, 0, 0), (20, 10, 0),
-      (14, 10, 0) and (0, 20, 0), (14, 10, 0), and saves them so. Moving the vertices by their grips is for the maintainer's
-      eye; the vertices set in code are AutoCAD's since D31 (points 80, 87 and 91).
+      (14, 10, 0) and (0, 20, 0), (14, 10, 0), and saves them so. In the editor (the maintainer's check): the grip at
+      (14, 10, 0) moves the ends of both lines, the one at (20, 10, 0) the first line's only; the vertices set in code are
+      AutoCAD's since D31 (points 80, 87 and 91).
 
 39. **A multileader's scale.**
     - Try: set `Scale` to 2 on a multileader and open it.
@@ -712,7 +715,8 @@ and the 3D polyline of point 13 fitted at SPLINETYPE 5 its `Type mismatch`, as A
     - Now: the property is written in the multileader and its context data, and its bit of the overrides of the style set.
     - AutoCAD 2021: through its API neither multileader follows the style's arrow size made 10: the one of its own 6 keeps 6,
       the other its 4, exploded with arrows 6.08 and 4.06 long. The library reads each multileader's own size (42) and has no
-      setter of a style's, so it agrees; whether the MLEADERSTYLE dialog carries the change on is AutoCAD's editor's.
+      setter of a style's, so it agrees. In the editor (the maintainer's check) the MLEADERSTYLE dialog's change was seen
+      as expected: the multileader of its own 6 keeps 6.
 
 41. **A new multileader and one of a block.**
     - Try: open a `new DxfMLeader()` with words and one with a block placed at its base point.
