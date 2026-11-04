@@ -14,19 +14,33 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement bin-packing sheet-layout cad autocad tekla bim drawing</PackageTags>
     <PackageReleaseNotes>
-      NEW IN 13.8.0
+      NEW IN 13.9.0
 
-      A minor release: one public member added, PackOptions.StartCorner, and none removed or renamed. From the upper
-      left, the default, every packing is the same to the bit as before.
+      A minor release: public types and members added, none removed or renamed. A drawing only read and saved is
+      written as it was, to the byte.
 
-      NEW, Packing
-      - PackOptions.StartCorner: SheetPacker fills each sheet from the corner of its usable area given, UpperLeft (the
-        default), UpperRight, LowerLeft or LowerRight; SheetCorner.Center is refused. The first block goes into that
-        corner and the rows run from its side, laid from its edge; a group laid out afresh puts its main view at that
-        corner of its block, and a group kept as drawn is mirrored as one block, its boxes as they stood. The packing is
-        the mirror image of the one from the upper left, so the sheets taken and how full they are do not change: from
-        the lower right, three boxes 100 by 50 on a usable area 267 by 190 put two in the bottom row, the first at the
-        right, and the third above the first. A thousand boxes in 200 groups on A1 pack in about 5 ms, as before.
+      NEW, DXF: images and wipeouts
+      - IMAGE and WIPEOUT entities, read until now as DxfUnknownEntity and refused by TransformBy, are DxfRasterImage and
+        DxfWipeout, after AutoCAD's RasterImage and Wipeout, with DxfRasterImageDef (IMAGEDEF) and DxfRasterVariables
+        (RASTERVARIABLES). No pixel is read. An image is placed (Get/SetOrientation, Position, Width, Height, Rotation,
+        PixelToModelTransform), shown (DisplayOptions, ShowImage, ImageTransparency, Brightness, Contrast, Fade) and
+        clipped (IsClipped, IsClipInverted, GetClipBoundary, SetClipBoundary, GetVertices) as AutoCAD 2021 reads and
+        writes it: a picture of 4 by 3 pixels at (10, 20) with a pixel 10 across is 40 by 30. TransformBy takes any
+        transformation, Explode gives the lines of the frame or the boundary, GeometricExtents and GetGeometry follow
+        the boundary shown, and the header extents grow when one is appended or moved.
+      - Copies into another drawing bring one IMAGEDEF for all images, the CLASS rows AutoCAD needs, and raise a row
+        counted 0 (ezdxf R2010 and later) so that AutoCAD shows them; the inverted clip is left out before R2010.
+      - Made in code: new DxfRasterImageDef(path, size), CreateImageDictionary, SuggestName, DxfDBDictionary.SetAt,
+        new DxfRasterImage(definition), AssociateRasterDef, GetEntityCount, new DxfWipeout() and SetFrom; reactors,
+        variables and CLASS rows are made where a drawing has none. A name already taken is refused.
+      - A clip polygon not ending on its first corner to the bit, which AutoCAD 2021 shows as nothing (a wipeout) or
+        cannot open (an image), is written closed wherever the library writes it anew.
+      - Checked in AutoCAD 2021: every drawing made or edited opened with AUDIT finding no error, 55 579 numbers read
+        back within 7.1E-15, and AutoCAD's own saves read back the same.
+
+      CHANGED, DXF: results callers will see change
+      - An IMAGE or a WIPEOUT read from a file is a DxfRasterImage or a DxfWipeout, not a DxfUnknownEntity; it can be
+        moved, is taken by dynamic-block actions and by IntersectWith (its frame or boundary), and grows the extents.
 
       Details in CHANGELOG.md.
 

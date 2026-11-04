@@ -19,6 +19,10 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 13.9.0
+      - GeometryHelper.IfcConvert is released at 13.9.0 with GeometryHelper, which reads, moves, clips, copies and makes
+        DXF images and wipeouts as AutoCAD 2021 does; nothing in IfcConvert changes.
+
       NEW IN 13.8.0
       - GeometryHelper.IfcConvert is released at 13.8.0 with GeometryHelper, which lets SheetPacker fill each sheet from
         any corner of its usable area (PackOptions.StartCorner); nothing in IfcConvert changes.

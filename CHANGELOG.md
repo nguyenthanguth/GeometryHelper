@@ -6,6 +6,17 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+## 13.9.0 (2026-11-05)
+
+A minor release: public types and members are added and none is removed or renamed in any of the four libraries. IMAGE
+and WIPEOUT entities, read until now as `DxfUnknownEntity` and refused by `TransformBy`, get classes of their own,
+`DxfRasterImage` and `DxfWipeout`, with their definitions (`DxfRasterImageDef`) and variables (`DxfRasterVariables`):
+they are read, moved, turned, mirrored, clipped, exploded, copied between drawings and made in code as AutoCAD 2021 does,
+checked in AutoCAD 2021 itself, which opened every drawing so made or edited with AUDIT finding no error and read back
+their images as the library gives them (55 579 numbers, within 7.1E-15). A drawing only read and saved is written as it
+was, to the byte. Where AutoCAD crashes or shows nothing (a clip polygon not closed to the bit), the library writes it
+closed.
+
 **NEW.** IMAGEs, their definitions and WIPEOUTs are made in code, as AutoCAD 2021's API makes them: `new
 DxfRasterImageDef(path, size)`, the size in pixels given since the library reads no picture, with `ResolutionMMPerPixel`
 and `ResolutionUnits` set, added by `DxfDBDictionary.SetAt` to the dictionary of images that
