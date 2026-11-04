@@ -14,50 +14,73 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement bin-packing sheet-layout cad autocad tekla bim drawing</PackageTags>
     <PackageReleaseNotes>
-      NEW IN 13.6.0
+      NEW IN 13.7.0
 
-      A minor release: no public member added, removed or renamed. Its fixes are to solids far out, the cut of openings,
-      the weld of booleans and the meshing of faces, and its speed is in Clipper2; the results callers will see change
-      are those that were wrong.
+      A minor release: one public member added, DxfDatabase.PatternSearchPath, and none removed or renamed. One fix is
+      to the queries of solids far out; the rest is DXF parity with AutoCAD 2021, and the results callers will see
+      change are listed under CHANGED.
+
+      NEW, DXF
+      - DxfDatabase.PatternSearchPath: folders, separated by semicolons and searched in their order, where the caller's
+        own hatch pattern files are read from, as FontSearchPath gives the folders of the fonts. A HATCH given a pattern
+        by SetHatchPattern is given its lines from there as AutoCAD 2021 gives them: from acadiso.pat in a drawing of
+        millimetres and acad.pat in one of inches, or from a file named after the pattern, each line turned by
+        PatternAngle and scaled by PatternScale and written anew when either is set, so that Explode() and
+        GetHatchLinesData() draw it. ANSI31 of acadiso.pat on a square 30 by 20 holds its one line at 45 degrees and
+        explodes to 11 LINEs. A file is read as AutoCAD reads one, a pattern AutoCAD refuses is refused, a pattern not
+        found is left with no lines, as before, and a malformed file never throws. Every pattern of AutoCAD 2021's
+        acad.pat and acadiso.pat at three scales and angles, 918 hatches, gives AutoCAD's own lines to 1E-13, and AUDIT
+        finds nothing to fix. The library carries no pattern of AutoCAD's. Empty, as a drawing is opened or made,
+        nothing is read and every drawing is written as before, to the byte.
+      - An MTEXT of several lines is laid out in the fonts FontSearchPath finds as AutoCAD 2021 lays it out: its
+        paragraphs wrapped at its width, its ActualWidth, ActualHeight and GeometricExtents, and the TEXTs Explode and a
+        drawing of R12 give of it. A line breaks after the spaces between words and before or after a Chinese, Japanese
+        or Korean letter, but not before a comma, a full stop or a closing bracket; a word longer than the width stays
+        whole on a line of its own; spaced at least, each line stands a third of its height and a third of the MTEXT's
+        height below the line before. Against AutoCAD 2021, paragraphs, widths, spacing, attachments, turns and styles
+        come out as it gives them in 1 604 of 1 650 MTEXTs, breaks in 1 492 of 1 492, first and following lines in
+        9 550 of 9 550, and codes and CJK letters in 789 of 789. Slanted letters, other fonts, stacks, indents and tabs
+        are not measured. DxfMText.GeometricExtents is overridden; with an empty FontSearchPath nothing changes.
+      - The big font of a text style (BigFontFileName) is read from FontSearchPath and its letters measured beside the
+        style's SHX font as AutoCAD 2021 draws them: TEXT, ATTRIB and ATTDEF places and extents, one-line MTEXT sizes,
+        multileaders landed on the right and attribute definitions in flips. A letter is read in the code page AutoCAD
+        gives the big font's name (GBK for gbcbig.shx, Big5 for chineset.shx, Shift-JIS for bigfont and the extfont
+        files, Korean for the four wh*.shx). Of 691 letters beside each of AutoCAD's ten CJK big fonts, all 6 910 are
+        boxed as AutoCAD boxes them, and of the TEXTs in styles with a big font 15 382 of 15 450 give AutoCAD's place
+        and box. On .NET the code pages need CodePagesEncodingProvider registered.
+
+      FIXED, DXF
+      - Beside a big font that is read, a TEXT stands at its bottom on the big font's depth, spaces are the big font's,
+        and a TrueType style's big font, which AutoCAD does not draw, no longer leaves its TEXTs at their bottom
+        unplaced: of 5 400 TEXTs of txt.shx and gbcbig.shx, 3 692 gave AutoCAD's place and box and 5 156 do.
+      - DxfDatabase.SummaryInfo of a drawing of R2000 reads every custom property AutoCAD 2021 saved, and writes more
+        than ten as AutoCAD does, where it read ten and refused an eleventh. A drawing of ten or fewer is written as
+        before, to the byte.
+      - A block given an attribute definition by DxfBlockTableRecord.AppendEntity is marked as one of attribute
+        definitions (flag 2 of its BLOCK, HasAttributeDefinitions), as AutoCAD 2021 marks one, and the mark is kept when
+        the definition is erased. Without it AutoCAD took a block made in code for one of no attribute: the value a
+        multileader gave the block's attribute was lost, and its EXPLODE gave the INSERT no ATTRIB. These two fixes
+        come of the checklist of DXF held against AutoCAD 2021, of which 23 points are settled against it.
 
       FIXED, solids
-      - TryCutOpenings, GetVolume, TryGetVolume, GetSurfaceArea, GetCentroid, GetMassProperties, Section and
-        Mesh3.ToCells of a body far out are worked out near the origin, as its booleans are since 13.5.0: a body
-        reaching more than 2^20 out and more than 1 024 times the size of its box is moved by whole coordinates, with
-        its openings, a section's plane or a grid's origin, and the answer moved back; a corner kept comes back as it
-        was given, to the bit. Of 617 prisms with two or three openings ten million to a thousand million out, wrong
-        answers at a thousandth 745 -> 8 and at a hundredth 853 -> 8. Within a million of the origin nothing changed, to
-        the bit. Far out these take 4 to 12 per cent longer at a thousandth and a hundredth, 10 to 13 per cent less at a
-        millionth.
-      - The cut of a solid's openings no longer leaves a sheet inside the material where walls of two openings stand a
-        fraction of the tolerance apart: a strip still lying against a face once the gluing has taken what it could is
-        read again with that face, and what they share goes from both. Of 4 500 prisms with two or three such openings,
-        areas wrong at a hundredth and at a thousandth 576 -> 2, at a millionth 579 -> 0, and none that was right moved.
-        The booleans glue their cells the same way: of 25 200 unions, common parts and differences of such prisms and
-        boxes, 3 not worked out are right now; 13 ten million to a thousand million out, asked below the far frame's
-        gate, that were right come out wrong.
-      - A union, a common part or a difference welded closed takes, of the corners that move the volume by nothing but
-        rounding, the one tilting the faces round the others least, where it took the first met. A cube of 100 and a
-        block 40 by 30 running 0.001 into its top held 1.39 less than the two less their overlap and holds 0.39 less. Of
-        210 797 booleans of the gate corpora, 5 that were wrong are right and none is made wrong; given the same bodies,
-        .NET 10 and .NET Framework 4.8 work them alike, to the bit. They take as long as they did.
+      - Where a point, a ray, a segment or a line stands against a solid far out is worked out near the origin, as its
+        booleans and its measures are: Locate, Contains, DistanceTo, SignedDistanceTo, GetClosestPointOnBoundary and
+        GetShortestLineTo of a point, and CollidesWith, DistanceTo, GetIntersections and GetShortestLineTo of a ray, a
+        segment and a line, on GeoSolid3, GeoPreparedSolid3 and the shapes asked of it, move a body reaching more than
+        2^20 out and more than 1 024 times the size of its box into the frame of the booleans, once, and the probe with
+        it. Of 18 000 points, rays, segments and lines beside bodies ten million to a thousand million out, wrong
+        answers at a hundredth, a thousandth and a millionth 209 -> 67, and 1 284 -> 9 of probes the tolerance itself
+        off a face. Within a million of the origin nothing changed, to the bit. Far out the first question of a body
+        takes 2 to 14 microseconds to move it; after that each takes as long as before.
 
-      FIXED, meshing
-      - GeoFace3.TriangulateSurface covers what the face covers, to rounding, where its corners stand within the
-        tolerance of edges they are not on: the rings of a face cut into strips are read within rounding, where corners
-        closer than the tolerance were merged. Of 48 904 faces with steps, notches, spikes, dents and holes 1E-6 to 0.02
-        across, 24 622 areas wrong at a hundredth, 20 293 at a thousandth and 392 at a millionth are right, and none
-        that was right moved. A loop thinner than the tolerance is still a seam with no triangle: one plate a thousand
-        million out, whose cut keeps sheets 0.00018 thick, holds 0.057 too much read as the triangles in its faces.
-
-      CHANGED, Clipper2
-      - Shapes Clipper2 joins into one path one after another unite without slowing with the square of their number:
-        50 000 squares of side 10 standing on a strip took 10.6 seconds to unite with Boolean2.Union on .NET 10, 9.8 of
-        them in Clipper2, and take 1.1, 0.3 in Clipper2.
-      - Clipper2 builds a polytree of many holes in one path, or of shapes joined one after another, in time growing
-        with their number: 20 000 teeth standing on a strip, each with a hole and an island, took 33 seconds to unite
-        into a polytree on .NET 10 and take 0.44. Small clips take as long as they did. Of 80 000 sets of random paths,
-        combs, zigzags, rows of squares, lattices and strips under every fill rule, no answer moves by a bit.
+      CHANGED, DXF: results callers will see change
+      - Where its fonts are measured, an MTEXT of one line spaced exactly is as high as AutoCAD 2021 makes it, its
+        height and a third ("ABC" of txt.shx 4 high is 5.333 high, not 4), and one whose words wrap, or that holds \T,
+        \A, \L, \O, \K, \C or \~, is measured where it kept the file's 42 and 43. Reading a one-line ActualWidth with
+        fonts takes 13.8 microseconds where it took 11.3 for txt.shx on .NET Framework 4.8; nothing changes without
+        fonts.
+      - A block given an attribute definition in code writes flag 2 in its BLOCK, where it wrote none; a block read
+        from a file says what its file says.
 
       Details in CHANGELOG.md.
 

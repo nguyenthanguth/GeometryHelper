@@ -19,6 +19,13 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 13.7.0
+      - GeometryHelper.IfcConvert is released at 13.7.0 with GeometryHelper, which works out near the origin where a
+        point, a ray, a segment or a line stands against a solid far out, measures DXF words beside SHX big fonts and
+        lays out MTEXT of several lines as AutoCAD 2021 does, writes more than ten custom properties of an R2000
+        drawing, marks a block given an attribute definition, and gives predefined hatch patterns their lines from the
+        caller's own .pat files on DxfDatabase.PatternSearchPath; nothing in IfcConvert changes.
+
       NEW IN 13.6.0
       - GeometryHelper.IfcConvert is released at 13.6.0 with GeometryHelper, which measures, cuts, sections and meshes
         solids far out near the origin, leaves no sheet inside the material where walls of openings stand a fraction of

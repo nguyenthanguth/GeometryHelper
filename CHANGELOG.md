@@ -6,6 +6,32 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+## 13.7.0 (2026-11-04)
+
+A minor release: one public member is added, `DxfDatabase.PatternSearchPath`, and none is removed or renamed in any of
+the four libraries. Of its eight entries, 3 NEW, 4 FIXED and 1 CHANGED, one is a fix to the queries of solids and the
+rest are DXF, each checked against what AutoCAD 2021 reads, writes or draws. Where a point, a ray, a segment or a line
+stands against a solid far out is worked out near the origin, as its booleans and its measures are: of 18 000 such
+probes beside bodies ten million to a thousand million out, 67 answers are wrong where 209 were, and within a million of
+the origin nothing changed, to the bit. The big font of a text style is read from `FontSearchPath` and its letters
+measured beside the style's SHX font as AutoCAD draws them: all 6 910 letters beside AutoCAD's ten CJK big fonts are
+boxed as AutoCAD boxes them, and 15 382 of 15 450 TEXTs in styles with a big font give AutoCAD's place and box. An
+MTEXT of several lines is laid out in the fonts found as AutoCAD lays it out, its paragraphs wrapped at its width, its
+lines spaced and its TEXTs exploded where the font puts them: of AutoCAD's rounds of paragraphs, widths, spacing and
+attachments, 1 604 of 1 650 come out as it gives them, and of its breaks, its first and following lines and its codes
+and CJK letters, all 1 492, 9 550 and 789. The checklist of what AutoCAD reads was held against AutoCAD 2021 once more
+and 23 of its points settled against it: a drawing of R2000 reads and writes more than ten custom properties as AutoCAD
+does, and a block given an attribute definition is marked as one (`HasAttributeDefinitions`), so that AutoCAD fills and
+explodes its attributes. `DxfDatabase.PatternSearchPath` names the folders of the caller's own hatch pattern files, and
+a HATCH given a predefined pattern is given its lines from there: every pattern of AutoCAD 2021's acad.pat and
+acadiso.pat, at three scales and angles, gives AutoCAD's own lines, 918 of 918, and the library carries no pattern of
+AutoCAD's. Callers will see results change: where its fonts are measured, an MTEXT of one line spaced exactly is its
+height and a third high, as AutoCAD makes it, and one whose words wrap is measured where it kept the file's sizes; a
+block made in code holding an attribute definition writes flag 2 in its BLOCK. Reading a one-line `ActualWidth` with
+fonts takes 2.5 microseconds more, and far out the first question of a body takes 2 to 14 microseconds to move it into
+the frame. Empty, as a drawing is opened or made, `FontSearchPath` and `PatternSearchPath` read nothing and change
+nothing, to the byte.
+
 **NEW.** `DxfDatabase.PatternSearchPath` gives a drawing the folders of the caller's own hatch pattern files, separated
 by semicolons and searched in their order, as `FontSearchPath` gives it the folders of its fonts (check P4c, point 34). A
 HATCH given a pattern by `SetHatchPattern` is then given its lines from there as AutoCAD 2021 gives them: from acadiso.pat
