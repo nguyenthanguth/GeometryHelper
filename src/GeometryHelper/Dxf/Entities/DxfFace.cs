@@ -129,6 +129,104 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Gets the face as the library's polygon, of the corners <see cref="DxfEntity.GetGeometry"/> reads: the boundary of its
+        /// <see cref="GeoFace3"/> where it has four corners in one plane within the planar tolerance, and the polygon of its
+        /// <see cref="GeoTriangle3"/> where it has three, a corner the same as the one before it to the bit left out. The face
+        /// (0, 0, 0), (10, 0, 0), (10, 8, 0), (0, 8, 0) is that <see cref="GeoPolygon3"/>; with a corner raised by 1 its corners
+        /// are not in one plane, the reader cuts it into two triangles, and it is refused, as the bow tie (0, 0, 0), (10, 10, 0),
+        /// (10, 0, 0), (0, 10, 0) is, whose edges cross.
+        /// </summary>
+        /// <returns>The polygon, in world coordinates.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the reader cuts the face into two triangles, its four corners
+        /// not in one plane within the default planar tolerance or, in one, its edges crossing; when the face has fewer than three
+        /// distinct corners or encloses no area, a number of its record is not finite, or it is erased.</exception>
+        public GeoPolygon3 ToGeoPolygon3() => Polygon(nameof(ToGeoPolygon3), Tolerance.Default);
+
+        /// <summary>
+        /// Gets the face as a polygon of the plane: the polygon of <see cref="ToGeoPolygon3"/> where every corner of it is at a
+        /// height of nought, as <see cref="DxfReader"/> takes a shape in world coordinates to lie on the floor, and refused
+        /// otherwise, the reader reading a 3DFACE in space whatever <see cref="DxfReadOptions.PlanAs2D"/> says. The face above is
+        /// the <see cref="GeoPolygon2"/> (0, 0), (10, 0), (10, 8), (0, 8).
+        /// </summary>
+        /// <returns>The polygon in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when a corner is not at a height of nought, or as
+        /// <see cref="ToGeoPolygon3"/> refuses the face.</exception>
+        public GeoPolygon2 ToGeoPolygon2() => ToGeoPolygon2(Tolerance.Default);
+
+        /// <summary>
+        /// Gets the face as a polygon of the plane, as <see cref="ToGeoPolygon2()"/> does, its corners read within a tolerance,
+        /// whose planar part says whether four corners are in one plane.
+        /// </summary>
+        /// <param name="tolerance">The tolerance, as <see cref="DxfReadOptions.Tolerance"/> reads it.</param>
+        /// <returns>The polygon in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when a corner is not at a height of nought, or as
+        /// <see cref="ToGeoPolygon3"/> refuses the face within the tolerance.</exception>
+        public GeoPolygon2 ToGeoPolygon2(Tolerance tolerance)
+        {
+            GeoPolygon3 polygon = Polygon(nameof(ToGeoPolygon2), tolerance);
+            var plan = new GeoPoint2[polygon.VertexCount];
+
+            for (int i = 0; i < plan.Length; i++)
+            {
+                GeoPoint3 corner = polygon.Vertices[i];
+
+                if (corner.Z != 0.0)
+                {
+                    throw new InvalidOperationException(TypeAndHandle + " does not lie on the floor, the XY plane at height nought, as ToGeoPolygon2 asks: ToGeoPolygon3 gives it in space.");
+                }
+
+                plan[i] = new GeoPoint2(corner.X, corner.Y);
+            }
+
+            return new GeoPolygon2(plan, plan.Length);
+        }
+
+        /// <summary>The polygon of the face as the reader reads it within a tolerance: its face's boundary, or its triangle's corners.</summary>
+        private GeoPolygon3 Polygon(string method, Tolerance tolerance)
+        {
+            object shape = ShapeAs<object>(method, false, tolerance, kind: read => TypeAndHandle + " is no one polygon: the reader cuts it into two triangles, which GetGeometry gives, " + WhyCut(read, tolerance) + ".");
+
+            if (shape is GeoFace3 face)
+            {
+                return face.Boundary;
+            }
+
+            var triangle = (GeoTriangle3)shape;
+
+            try
+            {
+                return new GeoPolygon3(new[] { triangle.A, triangle.B, triangle.C }, tolerance);
+            }
+            catch (ArgumentException)
+            {
+                throw new InvalidOperationException(TypeAndHandle + " encloses no area within the tolerance: its corners are on one line.");
+            }
+        }
+
+        /// <summary>Why the reader cut the face into its two triangles: its corners out of one plane, or in one but bounding no polygon.</summary>
+        private static string WhyCut(object triangles, Tolerance tolerance)
+        {
+            var corners = new List<GeoPoint3>();
+
+            foreach (object shape in (IEnumerable<object>)triangles)
+            {
+                var triangle = (GeoTriangle3)shape;
+
+                foreach (GeoPoint3 corner in new[] { triangle.A, triangle.B, triangle.C })
+                {
+                    if (!corners.Contains(corner))
+                    {
+                        corners.Add(corner);
+                    }
+                }
+            }
+
+            return new GeoPolyline3(corners.ToArray(), true).TryGetPlane(out _, tolerance)
+                ? "its corners being in one plane but its edges crossing, or three of its corners on one line"
+                : "its corners not being in one plane within the tolerance";
+        }
+
+        /// <summary>
         /// Moves, turns, scales or mirrors the face, as AutoCAD's <c>TransformBy</c>, as ezdxf carries one: its four corners moved
         /// in the world, a triangle's third written again as its fourth. The record is written once.
         /// </summary>

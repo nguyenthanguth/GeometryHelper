@@ -627,6 +627,65 @@ namespace GeometryHelper.Dxf
         private protected virtual IReadOnlyList<object> OwnGeometry() => null;
 
         /// <summary>
+        /// The one shape of the kind a typed conversion gives: of space at the default tolerance, that of
+        /// <see cref="GetGeometry"/> where it is of the kind, else the record read as the reader reads it at the tolerance given,
+        /// with the polyline's kind asked for (<paramref name="loop"/>, <paramref name="arcs"/>); of the plane, the record read
+        /// with <see cref="DxfReadOptions.PlanAs2D"/>. Refused, with the reason, where the entity is erased, the reader reads no
+        /// shape of it or more than one, the shape is of space where one of the plane is asked for, or of another kind, which
+        /// <paramref name="kind"/> words where it is given (given the list of shapes where there are more than one).
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown where the entity gives no shape of the kind.</exception>
+        private protected T ShapeAs<T>(string method, bool plan, Tolerance tolerance, bool? loop = null, bool arcs = false, Func<object, string> kind = null)
+        {
+            if (IsErased)
+            {
+                throw new InvalidOperationException(TypeAndHandle + " is erased, and gives no shape.");
+            }
+
+            if (!plan && tolerance.Equals(Tolerance.Default))
+            {
+                IReadOnlyList<object> shapes = GetGeometry();
+
+                if (shapes.Count == 1 && shapes[0] is T kept)
+                {
+                    return kept;
+                }
+            }
+
+            List<object> read = Item.File.ShapesOf(Item, tolerance, plan, loop, arcs, out string why);
+
+            if (read.Count == 0)
+            {
+                throw new InvalidOperationException(TypeAndHandle + " has no shape for " + method + " to give: the reader reads none of a " + Item.Type + " " + (why ?? "of this record") + ".");
+            }
+
+            if (read.Count == 1 && read[0] is T shape)
+            {
+                return shape;
+            }
+
+            if (read.Count > 1)
+            {
+                throw new InvalidOperationException(kind?.Invoke(read) ?? TypeAndHandle + " is read as " + read.Count.ToString(CultureInfo.InvariantCulture) + " shapes, not one " + typeof(T).Name + ": GetGeometry gives them.");
+            }
+
+            if (plan && InSpace(read[0]))
+            {
+                throw new InvalidOperationException(TypeAndHandle + " does not lie on the floor, the XY plane at height nought, as " + method + " asks: " + method.Substring(0, method.Length - 1) + "3 gives it in space.");
+            }
+
+            throw new InvalidOperationException(kind?.Invoke(read[0]) ?? TypeAndHandle + " is read as a " + read[0].GetType().Name + ", not a " + typeof(T).Name + ".");
+        }
+
+        /// <summary>The entity as a message names it: its type and its handle, "The LINE 1A".</summary>
+        private protected string TypeAndHandle => "The " + Item.Type + (Handle == null ? string.Empty : " " + Handle);
+
+        /// <summary>Whether a shape the reader gives is one of space.</summary>
+        private static bool InSpace(object shape)
+            => shape is GeoPoint3 || shape is GeoLine3 || shape is GeoRay3 || shape is GeoXLine3 || shape is GeoCircle3 || shape is GeoArc3 || shape is GeoEllipse3
+            || shape is GeoSpline3 || shape is GeoPolyline3 || shape is GeoPolygon3 || shape is GeoPolylineArc3 || shape is GeoPolygonArc3;
+
+        /// <summary>
         /// Moves, turns, scales or mirrors the entity by a transformation, as AutoCAD's <c>TransformBy</c> does: its record is
         /// written anew with the new geometry, its look kept, and its extended data moved with it in the same writing, as
         /// <see cref="DxfDBObject.XDataTransformBy"/> moves it: a world position (1011) moved, a displacement (1012) and a
@@ -1693,7 +1752,7 @@ namespace GeometryHelper.Dxf
         /// </summary>
         /// <exception cref="ArgumentException">Thrown when the shape is written as another type, or cannot be written.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the entity is erased.</exception>
-        private protected void SetShape(object shape)
+        private protected void SetShape(object shape, object sameAs = null)
         {
             if (shape == null)
             {
@@ -1707,7 +1766,7 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentException("A " + shape.GetType().Name + " is written as a " + type + ", and a " + GetType().Name + " is a " + Item.Type + ".", nameof(shape));
             }
 
-            Item.File.SetShape(Item, shape);
+            Item.File.SetShape(Item, shape, null, false, sameAs);
         }
 
         /// <summary>The thickness (39), nought where the record gives none.</summary>

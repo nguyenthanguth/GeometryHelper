@@ -435,15 +435,56 @@ namespace GeometryHelper.Dxf
             return pieces;
         }
 
-        /// <summary>Gives the circle the centre, normal and radius of a <see cref="GeoCircle3"/>, as AutoCAD's <c>SetFromGeCurve</c>, written as <see cref="DxfWriter"/> writes one.</summary>
-        /// <param name="geCurve">The circle, a <see cref="GeoCircle3"/>.</param>
-        /// <exception cref="ArgumentException">Thrown when the shape is not a <see cref="GeoCircle3"/>, or not one of finite numbers and some radius.</exception>
+        /// <summary>
+        /// Gets the circle as the library's, as AutoCAD's <c>GetGeCurve</c> and the AutoCAD bridge's <c>ToGeoCircle3</c> give
+        /// it: the shape <see cref="DxfEntity.GetGeometry"/> gives, to the bit. The circle of radius 10 about (0, 0, 5) is the
+        /// <see cref="GeoCircle3"/> of that centre and radius on the normal (0, 0, 1).
+        /// </summary>
+        /// <returns>The circle, in world coordinates.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the circle has no radius within the default point tolerance,
+        /// a number of its record is not finite, or it is erased.</exception>
+        public GeoCircle3 ToGeoCircle3() => ShapeAs<GeoCircle3>(nameof(ToGeoCircle3), false, Tolerance.Default);
+
+        /// <summary>
+        /// Gets the circle in the plane, as <see cref="DxfReader"/> reads it with <see cref="DxfReadOptions.PlanAs2D"/> within the
+        /// default tolerance: the circle of radius 10 about (0, 0, 0) is the <see cref="GeoCircle2"/> of radius 10 about
+        /// (0, 0); one on the normal (0, 0, -1), as AutoCAD writes a mirrored circle, has the x of its centre turned over. One at
+        /// a height of 5, or on a tilted normal, does not lie on the floor, and is refused.
+        /// </summary>
+        /// <returns>The circle in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the circle does not lie on the floor, has no radius within the
+        /// default point tolerance, a number of its record is not finite, or it is erased.</exception>
+        public GeoCircle2 ToGeoCircle2() => ToGeoCircle2(Tolerance.Default);
+
+        /// <summary>
+        /// Gets the circle in the plane, as <see cref="ToGeoCircle2()"/> does, within a tolerance, which says whether it has a
+        /// radius.
+        /// </summary>
+        /// <param name="tolerance">The tolerance, as <see cref="DxfReadOptions.Tolerance"/> reads it.</param>
+        /// <returns>The circle in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the circle does not lie on the floor, has no radius within the
+        /// point tolerance, a number of its record is not finite, or it is erased.</exception>
+        public GeoCircle2 ToGeoCircle2(Tolerance tolerance) => ShapeAs<GeoCircle2>(nameof(ToGeoCircle2), true, tolerance);
+
+        /// <summary>
+        /// Gives the circle the centre, normal and radius of a <see cref="GeoCircle3"/>, as AutoCAD's <c>SetFromGeCurve</c>, or
+        /// of a <see cref="GeoCircle2"/> at z = 0 on the normal (0, 0, 1), each written as <see cref="DxfWriter"/> writes one.
+        /// </summary>
+        /// <param name="geCurve">The circle, a <see cref="GeoCircle3"/> or a <see cref="GeoCircle2"/>.</param>
+        /// <exception cref="ArgumentException">Thrown when the shape is not a <see cref="GeoCircle3"/> or a <see cref="GeoCircle2"/>,
+        /// or not one of finite numbers and some radius.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the circle is erased.</exception>
         public override void SetFromGeCurve(object geCurve)
         {
+            if (geCurve is GeoCircle2 flat)
+            {
+                SetShape(flat);
+                return;
+            }
+
             if (!(geCurve is GeoCircle3 circle))
             {
-                throw new ArgumentException("A circle takes a GeoCircle3, and was given " + (geCurve == null ? "null" : "a " + geCurve.GetType().Name) + ".", nameof(geCurve));
+                throw new ArgumentException("A circle takes a GeoCircle3 or a GeoCircle2, and was given " + (geCurve == null ? "null" : "a " + geCurve.GetType().Name) + ".", nameof(geCurve));
             }
 
             SetShape(circle);

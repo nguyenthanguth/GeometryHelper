@@ -20,6 +20,22 @@ namespace GeometryHelper.Dxf
             return reading.Shapes();
         }
 
+        /// <summary>
+        /// The shapes the reader makes of one entity as <see cref="ShapesOf(Record, Tolerance)"/> makes them, those lying on the
+        /// floor read as shapes of the plane where asked, as <see cref="DxfReadOptions.PlanAs2D"/> reads them, and a polyline
+        /// read as the kind a typed conversion of <see cref="DxfEntity"/> asks for: a loop whatever its flag says
+        /// (<paramref name="loop"/> true), a chain, a closed one opened to end on its first vertex (false), or as the file says
+        /// (null); with arcs, its bulges all nought where it has none, where <paramref name="arcs"/> is set. Where the reader
+        /// reads no shape, <paramref name="why"/> is its reason, as the log gives it: "of no length" for a LINE of none.
+        /// </summary>
+        internal static List<object> ShapesOf(Record record, Tolerance tolerance, bool planAs2D, bool? loop, bool arcs, out string why)
+        {
+            var reading = new Reading(new DxfReadOptions { Tolerance = tolerance, KeepGroups = false, PlanAs2D = planAs2D }) { LoopAsked = loop, ArcsAsked = arcs };
+            reading.One(record);
+            why = reading.Why();
+            return reading.Shapes();
+        }
+
         /// <summary>The layer of an entity as the reader names it: its group 8, its escapes read as letters, 0 where it gives none.</summary>
         internal static string LayerOf(Record record)
         {
@@ -118,6 +134,29 @@ namespace GeometryHelper.Dxf
             internal void One(Record record) => Item(record, true);
 
             internal List<object> Shapes() => _entities.ConvertAll(e => e.Shape);
+
+            /// <summary>
+            /// Of a polyline, the kind a typed conversion asks for: null as the file says, true a loop whatever its flag says,
+            /// false a chain, a closed one opened to end on its first vertex as a loop that encloses no area is.
+            /// </summary>
+            internal bool? LoopAsked { get; set; }
+
+            /// <summary>Whether a polyline is read as a chain or loop with arcs though it has none, its bulges all nought.</summary>
+            internal bool ArcsAsked { get; set; }
+
+            /// <summary>The reason the reader read no shape of the one entity it read, as the log gives it; null where it read one.</summary>
+            internal string Why()
+            {
+                foreach (KeyValuePair<string, SortedDictionary<string, int>> type in _reasons)
+                {
+                    foreach (KeyValuePair<string, int> reason in type.Value)
+                    {
+                        return reason.Key;
+                    }
+                }
+
+                return null;
+            }
 
             internal void BasePoint(Record block, out GeoPoint3 basePoint)
             {

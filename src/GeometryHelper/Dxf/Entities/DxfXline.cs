@@ -300,15 +300,55 @@ namespace GeometryHelper.Dxf
             return pieces;
         }
 
-        /// <summary>Gives the xline the origin and direction of a <see cref="GeoXLine3"/>, as AutoCAD's <c>SetFromGeCurve</c>, written as <see cref="DxfWriter"/> writes one.</summary>
-        /// <param name="geCurve">The line, a <see cref="GeoXLine3"/>.</param>
-        /// <exception cref="ArgumentException">Thrown when the shape is not a <see cref="GeoXLine3"/>, or not one of finite numbers and some direction.</exception>
+        /// <summary>
+        /// Gets the xline as the library's, as AutoCAD's <c>GetGeCurve</c> and the AutoCAD bridge's <c>ToGeoXLine3</c> give it:
+        /// the shape <see cref="DxfEntity.GetGeometry"/> gives, to the bit. The xline through (0, 0, 0) along (3, 4, 0) is the
+        /// <see cref="GeoXLine3"/> through there along (0.6, 0.8, 0).
+        /// </summary>
+        /// <returns>The line without ends, in world coordinates.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the xline has no direction within the default vector
+        /// tolerance, a number of its record is not finite, or it is erased.</exception>
+        public GeoXLine3 ToGeoXLine3() => ShapeAs<GeoXLine3>(nameof(ToGeoXLine3), false, Tolerance.Default);
+
+        /// <summary>
+        /// Gets the xline in the plane, as <see cref="DxfReader"/> reads it with <see cref="DxfReadOptions.PlanAs2D"/> within the
+        /// default tolerance: the xline through (0, 0, 0) along (3, 4, 0) is the <see cref="GeoXLine2"/> through (0, 0) along
+        /// (0.6, 0.8). One whose origin is at a height, or whose direction rises, does not lie on the floor, and is refused.
+        /// </summary>
+        /// <returns>The line without ends in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the xline does not lie on the floor, has no direction within
+        /// the default vector tolerance, a number of its record is not finite, or it is erased.</exception>
+        public GeoXLine2 ToGeoXLine2() => ToGeoXLine2(Tolerance.Default);
+
+        /// <summary>
+        /// Gets the xline in the plane, as <see cref="ToGeoXLine2()"/> does, within a tolerance, which says whether it has a
+        /// direction.
+        /// </summary>
+        /// <param name="tolerance">The tolerance, as <see cref="DxfReadOptions.Tolerance"/> reads it.</param>
+        /// <returns>The line without ends in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the xline does not lie on the floor, has no direction within
+        /// the vector tolerance, a number of its record is not finite, or it is erased.</exception>
+        public GeoXLine2 ToGeoXLine2(Tolerance tolerance) => ShapeAs<GeoXLine2>(nameof(ToGeoXLine2), true, tolerance);
+
+        /// <summary>
+        /// Gives the xline the origin and direction of a <see cref="GeoXLine3"/>, as AutoCAD's <c>SetFromGeCurve</c>, or of a
+        /// <see cref="GeoXLine2"/> at z = 0, each written as <see cref="DxfWriter"/> writes one.
+        /// </summary>
+        /// <param name="geCurve">The line, a <see cref="GeoXLine3"/> or a <see cref="GeoXLine2"/>.</param>
+        /// <exception cref="ArgumentException">Thrown when the shape is not a <see cref="GeoXLine3"/> or a <see cref="GeoXLine2"/>,
+        /// or not one of finite numbers and some direction.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the xline is erased.</exception>
         public override void SetFromGeCurve(object geCurve)
         {
+            if (geCurve is GeoXLine2 flat)
+            {
+                SetShape(flat);
+                return;
+            }
+
             if (!(geCurve is GeoXLine3 xline))
             {
-                throw new ArgumentException("An xline takes a GeoXLine3, and was given " + (geCurve == null ? "null" : "a " + geCurve.GetType().Name) + ".", nameof(geCurve));
+                throw new ArgumentException("An xline takes a GeoXLine3 or a GeoXLine2, and was given " + (geCurve == null ? "null" : "a " + geCurve.GetType().Name) + ".", nameof(geCurve));
             }
 
             SetShape(xline);

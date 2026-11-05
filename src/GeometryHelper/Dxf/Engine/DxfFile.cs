@@ -609,6 +609,15 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// The shapes of an entity other than an INSERT as a typed conversion of <see cref="DxfEntity"/> reads them: at a
+        /// tolerance, of the plane where asked and the entity lies on the floor, and a polyline as the kind asked, as
+        /// <see cref="DxfReader.ShapesOf(DxfReader.Record, Tolerance, bool, bool?, bool, out string)"/> reads them; the reason
+        /// where there are none.
+        /// </summary>
+        internal List<object> ShapesOf(DxfItem item, Tolerance tolerance, bool planAs2D, bool? loop, bool arcs, out string why)
+            => DxfReader.ShapesOf(Records(item), tolerance, planAs2D, loop, arcs, out why);
+
+        /// <summary>
         /// The record of an INSERT as it is placed: a copy in no file names the block it was copied with by that block's name
         /// now, so that a block renamed in the drawing the copy came from is still the one it places; null for a copy whose
         /// block was erased there since, which places nothing.

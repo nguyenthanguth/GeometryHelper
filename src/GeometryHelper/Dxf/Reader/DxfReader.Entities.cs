@@ -1424,10 +1424,14 @@ namespace GeometryHelper.Dxf
             /// on, as the constructors of the chains drop one; a last vertex on the first of a loop goes with its edge back to
             /// the first. A loop of two vertices with an arc, a circle drawn as two halves, has its first arc halved at its
             /// middle, so that it is a loop of the three vertices a loop has; a loop that encloses no area, or in space does
-            /// not lie in one plane, is an open chain that ends on its first vertex, and said in a warning.
+            /// not lie in one plane, is an open chain that ends on its first vertex, and said in a warning. A typed conversion
+            /// may ask for a loop whatever the flag says, the bulge of the last vertex closing it (<see cref="LoopAsked"/>), for
+            /// a chain, a closed polyline opened as such a loop is, or for the kind with arcs though there are none
+            /// (<see cref="ArcsAsked"/>).
             /// </summary>
             private void Chain(Record r, List<GeoPoint3> points, List<double> bulges, bool closed, bool flat, GeoVector3 normal)
             {
+                closed |= LoopAsked == true;
                 var kept = new List<GeoPoint3>(points.Count);
                 var keptBulges = new List<double>(points.Count);
 
@@ -1480,8 +1484,14 @@ namespace GeometryHelper.Dxf
                 bool arcs = keptBulges.Exists(b => b != 0.0);
                 var normals = keptBulges.ConvertAll(b => b != 0.0 ? (flat ? new GeoVector3(0.0, 0.0, 1.0) : normal) : default(GeoVector3));
 
-                if (closed && TryLoop(kept, keptBulges, normals, flat, arcs, out object loop))
+                if (closed && LoopAsked != false && TryLoop(kept, keptBulges, normals, flat, arcs, out object loop))
                 {
+                    // A loop with no arc asked for with arcs is the same loop, judged as one by the rule of its straight edges.
+                    if (ArcsAsked && !arcs)
+                    {
+                        loop = flat ? (object)GeoPolygonArc2.FromValidated(kept.ConvertAll(Plan).ToArray(), keptBulges.ToArray()) : new GeoPolygonArc3(kept, keptBulges, normals, _tolerance);
+                    }
+
                     Add(r, loop);
                     return;
                 }
@@ -1491,6 +1501,8 @@ namespace GeometryHelper.Dxf
                     OpenLoop(kept, keptBulges);
                     normals.Add(default(GeoVector3));
                 }
+
+                arcs |= ArcsAsked;
 
                 if (flat)
                 {

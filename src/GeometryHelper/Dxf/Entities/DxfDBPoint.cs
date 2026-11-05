@@ -105,6 +105,35 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Gets the point as the library's, as the AutoCAD bridge's <c>ToGeoPoint3</c> gives a <c>Point3d</c>: the shape
+        /// <see cref="DxfEntity.GetGeometry"/> gives, to the bit. The point at (3, 4, 5) is the <see cref="GeoPoint3"/>
+        /// (3, 4, 5).
+        /// </summary>
+        /// <returns>The point, in world coordinates.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when a number of its record is not finite, or the point is erased.</exception>
+        public GeoPoint3 ToGeoPoint3() => ShapeAs<GeoPoint3>(nameof(ToGeoPoint3), false, Tolerance.Default);
+
+        /// <summary>
+        /// Gets the point in the plane, as <see cref="DxfReader"/> reads it with <see cref="DxfReadOptions.PlanAs2D"/>: the point
+        /// at (3, 4, 0) is the <see cref="GeoPoint2"/> (3, 4). The point at (3, 4, 5) does not lie on the floor, and is refused
+        /// rather than flattened, where the AutoCAD bridge's <c>ToGeoPoint2</c> drops z.
+        /// </summary>
+        /// <returns>The point in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the point does not lie on the floor, a number of its record is
+        /// not finite, or it is erased.</exception>
+        public GeoPoint2 ToGeoPoint2() => ToGeoPoint2(Tolerance.Default);
+
+        /// <summary>
+        /// Gets the point in the plane, as <see cref="ToGeoPoint2()"/> does, as <see cref="DxfReader"/> reads it within a
+        /// tolerance, which a point does not need: it gives the same at any.
+        /// </summary>
+        /// <param name="tolerance">The tolerance, as <see cref="DxfReadOptions.Tolerance"/> reads it.</param>
+        /// <returns>The point in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the point does not lie on the floor, a number of its record is
+        /// not finite, or it is erased.</exception>
+        public GeoPoint2 ToGeoPoint2(Tolerance tolerance) => ShapeAs<GeoPoint2>(nameof(ToGeoPoint2), true, tolerance);
+
+        /// <summary>
         /// Moves, turns, scales or mirrors the point, as AutoCAD's <c>TransformBy</c> does: its position is moved, and its
         /// normal and thickness are carried as ezdxf carries them, as a <see cref="DxfLine"/>'s are; the turn of its symbol is
         /// kept, as ezdxf keeps it. The record is written once.

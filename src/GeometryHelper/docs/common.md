@@ -516,7 +516,8 @@ Dxf in front and their members' names.
 | `entity.IntersectWith(other, Intersect.ExtendThis, points, IntPtr.Zero, IntPtr.Zero)` | `entity.IntersectWith(other, DxfIntersect.ExtendThis)` giving `IReadOnlyList<GeoPoint3>` | Worked out on the library's shapes; a pair it cannot cross, a text among them, throws `NotSupportedException`, where AutoCAD crosses the box of a TEXT's or an MTEXT's words, which needs the fonts. |
 | `GeometricExtents` giving `Extents3d` | `GeometricExtents` giving `GeoAabb3` | Of the shapes `GetGeometry()` gives; a text has no fonts to give it a box. |
 | `Curve.GetPointAtParameter`, `GetDistAtPoint`, `GetOffsetCurves`, `GetSplitCurves`, `Extend` | the same on `DxfCurve` | Offsets go the side AutoCAD's do, a line to the left of its way and the rest to the right, as below. |
-| `Curve.GetGeCurve()` giving a `Curve3d` | `GetGeCurve()` giving the library's shape (`GeoLine3`, `GeoArc3`, ...) as an `object` | `GetGeometry()` gives the same as `DxfReader` reads it, a LEADER its curve, a `GeoPolyline3` or, splined, a `GeoSpline3`, and a MULTILEADER the lines of its leaders. |
+| `Curve.GetGeCurve()` giving a `Curve3d` | `GetGeCurve()` giving the library's shape (`GeoLine3`, `GeoArc3`, ...) as an `object`; typed, with no cast, `line.ToGeoLine3()`, `polyline.ToGeoPolygonArc2()` and the rest, named as CadConvert names its own | `GetGeometry()` gives the same as `DxfReader` reads it, a LEADER its curve, a `GeoPolyline3` or, splined, a `GeoSpline3`, and a MULTILEADER the lines of its leaders. A typed conversion of the plane refuses an entity off the floor, where CadConvert's drops z (see [Typed shapes](#typed-shapes)). |
+| `Curve.SetFromGeCurve(curve3d)` | `SetFromGeCurve(shape)` | Takes the shape of space and of the plane, and a polyline a chain or a loop, each written as `DxfWriter` writes it. |
 | `Clone()`, `db.WblockCloneObjects(ids, ownerId, map, DuplicateRecordCloning.Ignore, false)` | `entity.Clone()` then `other.ModelSpace.AppendEntity(copy)`; `db.WblockCloneObjects(entities, other.ModelSpace)` giving the copies | Records of the tables and the blocks a copy draws by come with it where the other drawing has none of their names, its own used where it has (see [Editing rules](#editing-rules)). No `IdMapping`: the copies are given back in the order of the entities. |
 | `Point3d`, `Vector3d`, `Point2d`, `Vector2d` | `GeoPoint3`, `GeoVector3`, `GeoPoint2`, `GeoVector2` | CadConvert turns one into the other: `point.ToGeoPoint3()`, `point.ToAcadPoint3()`. |
 | `Matrix3d.Displacement(v)`, `Rotation(angle, axis, centre)`, `Scaling(factor, centre)`, `Mirroring(plane)` | `GeoTransform3.Translation(v)`, `RotationAxis(centre, axis, angle)`, `Scaling(centre, factor)`, `Mirror(plane)` | `a * b` applies `b` first, as `Matrix3d`'s product does. `Matrix3d.AlignCoordinateSystem` from one system to another is `FromCoordinateSystem(to) * ToCoordinateSystem(from)`. |
@@ -1139,6 +1140,73 @@ set or taken out rewrites only that vertex's groups and the count, 10 000 put in
 desmoothing a mesh takes the made vertices out in one writing, 90 000 in 0.6 s; a spline of 200 spans made a polyline of 100
 vertices takes 0.04 s, and one of 1 000 spans is rebuilt of 5 000 control points in 0.05 s; 10 000 lines in any order are
 joined into a LWPOLYLINE in 0.23 s and into a SPLINE in 0.19 s, all on .NET 10.
+
+### Typed shapes
+
+Each class gives its shape as the library's, typed, by the names CadConvert gives AutoCAD's: `line.ToGeoLine3()` where
+`GetGeCurve()` gives an `object` to be cast. A conversion of space (`...3`) is the shape `GetGeometry()` gives, to the bit;
+one of the plane (`...2`) is what `DxfReader` reads with `PlanAs2D`, to the bit, within the default tolerance or the one
+given (`ToGeoLine2(tolerance)`). An entity that does not lie on the floor, its heights not all nought or, in the system of
+its extrusion, its extrusion not (0, 0, 1) or (0, 0, -1), is refused with an `InvalidOperationException` rather than
+flattened: the line from (0, 0, 0) to (100, 50, 0) is the `GeoLine2` from (0, 0) to (100, 50), and with a z of 5 at one end
+`ToGeoLine2` refuses it, where CadConvert's drops z. On (0, 0, -1), as AutoCAD writes a mirrored entity, x is turned over,
+an arc runs clockwise and a bulge is negated, as the reader reads them. So is an entity with no shape, with the reader's
+reason (a LINE of no length, an ELLIPSE of no axis, a number that is not finite), and one that is erased.
+
+| Class | Of space | Of the plane |
+|---|---|---|
+| `DxfLine`, `DxfCircle`, `DxfArc` | `ToGeoLine3`, `ToGeoCircle3`, `ToGeoArc3` | `ToGeoLine2`, `ToGeoCircle2`, `ToGeoArc2` |
+| `DxfEllipse` | `ToGeoEllipse3` of a whole one, `ToGeoSpline3` of a part | `ToGeoEllipse2`, `ToGeoSpline2` |
+| `DxfRay`, `DxfXline`, `DxfSpline`, `DxfDBPoint` | `ToGeoRay3`, `ToGeoXLine3`, `ToGeoSpline3`, `ToGeoPoint3` | `ToGeoRay2`, `ToGeoXLine2`, `ToGeoSpline2`, `ToGeoPoint2` |
+| `DxfPolyline`, `DxfPolyline2d` | `ToGeoPolyline3`, `ToGeoPolylineArc3`, `ToGeoPolygon3`, `ToGeoPolygonArc3` | `ToGeoPolyline2`, `ToGeoPolylineArc2`, `ToGeoPolygon2`, `ToGeoPolygonArc2` |
+| `DxfPolyline3d` | `ToGeoPolyline3`, `ToGeoPolygon3` | `ToGeoPolyline2`, `ToGeoPolygon2` |
+| `DxfLeader` | `ToGeoPolyline3` of a straight one, `ToGeoSpline3` of a splined one | `ToGeoPolyline2`, `ToGeoSpline2` |
+| `DxfFace`, `DxfSolid` | `ToGeoPolygon3` | `ToGeoPolygon2` |
+
+A polyline is given as the kind asked for, as CadConvert gives one, built by the reader's own chain and loop. A loop
+(`...Polygon...`) joins its last vertex to its first whether the polyline is closed or not, the bulge of the last vertex that
+of the closing edge, and is refused where it encloses no area (three vertices on a line) or, in space, does not lie in one
+plane. A chain (`...Polyline...`) of a closed polyline runs on back to its first vertex. The straight kinds refuse a polyline
+with an arc, its arcs never cut into chords here, and the kinds with arcs give one with none, every bulge nought. A vertex on
+the one before it is left out and a closed polyline of two vertices with an arc has its first arc halved, as the reader
+reads them; a polyline fitted with a spline is read through the vertices of the spline drawn, its frame left out, and its
+widths are no part of the shape. A 3DFACE is the polygon of its corners where they are in one plane, and refused where the
+reader cuts it into two triangles; a SOLID is its corners in DXF's order 1, 2, 4, 3. An ELLIPSE whole is a `GeoEllipse3`
+and a part of one the spline that is exactly that part, each refusing the other (`Spline` gives a whole one as a spline).
+`GetLineSegment2dAt` and `GetArcSegment2dAt` of a `DxfPolyline` give a segment in the system of its normal, of the vertices
+of `GetPoint2dAt` and the arc as its bulge turns there, as AutoCAD's do: on a tilted or mirrored normal, the segment of
+`GetLineSegmentAt` or `GetArcSegmentAt` taken into that system.
+
+The way back, `SetFromGeCurve`, takes the shape of the plane too, written at z = 0 on the normal (0, 0, 1) as `DxfWriter`
+writes it, and `ToGeoX2()` gives it back to the bit, but the angles of an arc, which go through degrees; a clockwise
+`GeoArc2` comes back counter-clockwise over the same points. A `DxfPolyline` takes a `GeoPolyline2`, `GeoPolylineArc2`,
+`GeoPolygon2` or `GeoPolygonArc2` (closed for a loop), or the same of space; a `DxfPolyline2d` the same, written as a
+POLYLINE of the plane; a `DxfPolyline3d` a `GeoPolyline3` or `GeoPolygon3`, or a `GeoPolyline2` or `GeoPolygon2` at
+z = 0. A chain or loop of space whose every vertex is within the point tolerance of the plane through its first vertex
+square to the polyline's own normal, and no point of its arcs further off it than the planar tolerance, is written in the
+system of that normal (a half circle of radius 100 turned 0.001 out of that plane stands 0.1 off it, and is written in its
+own plane instead), so a polyline
+mirrored on (0, 0, -1) given its loop edited in its plane stays mirrored, and a chain on one line has a plane to be in: the
+LWPOLYLINE (0, 0), (10, 0) at the elevation 5 takes the chain from (0, 0, 5) to (20, 0, 5) and gives it back from
+`ToGeoPolyline3()` to the bit. Any other is written in the system of the plane it lies in, its normal turned up; the chain
+from (0, 0, 0) to (10 000, 0, 0.1) on a polyline of the normal (0, 0, 1), on one line and 0.1 off the polyline's plane, lies
+in no plane and is refused rather than flattened. The handle, layer, look, thickness and extended data are kept. Where the
+shape is written anew a polyline's widths, linetype generation and fitting are not kept; a shape written as the shape it has
+now is written, as the one `GetGeometry()` gives, leaves it as it is, widths and fitting and all. What the entity's type
+cannot hold is refused with an `ArgumentException`: a face with holes, a chain of space bent out of one plane for a
+polyline of the plane. `CreateFromGeCurve` makes the curve of a shape of the plane as of one of space.
+
+```csharp
+DxfDatabase db = DxfDatabase.Open("plan.dxf");
+DxfPolyline plate = db.ModelSpace.OfType<DxfPolyline>().First(p => p.Closed);
+GeoPolygonArc2 outline = plate.ToGeoPolygonArc2();                 // refused where the plate does not lie on the floor
+GeoPolygonArc2 grown = outline.Offset(5.0, Tolerance.Default)[0];  // 5 outwards, its arcs kept
+plate.SetFromGeCurve(grown);                                       // the same handle, layer and look
+db.Save("plan-grown.dxf");
+```
+
+A conversion of space at the default tolerance gives the shape `GetGeometry()` keeps; one of the plane, or one of a
+polyline of a kind other than the file's, reads the record anew.
 
 ### Fonts
 

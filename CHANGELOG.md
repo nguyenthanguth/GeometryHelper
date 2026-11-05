@@ -6,6 +6,38 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The entity classes give their shapes typed, by the names the AutoCAD bridge gives its own, so a reading of a DXF
+and an AutoCAD plugin make the same calls: `DxfLine.ToGeoLine3()` where `(GeoLine3)line.GetGeCurve()` was cast, and the
+same on `DxfCircle`, `DxfArc`, `DxfEllipse` (`ToGeoEllipse3` of a whole one, `ToGeoSpline3` of a part), `DxfRay`,
+`DxfXline`, `DxfSpline`, `DxfDBPoint`, `DxfLeader` (`ToGeoPolyline3` straight, `ToGeoSpline3` splined), `DxfFace` and
+`DxfSolid` (`ToGeoPolygon3`), and the polylines: `DxfPolyline` and `DxfPolyline2d` give `ToGeoPolyline3`,
+`ToGeoPolylineArc3`, `ToGeoPolygon3` and `ToGeoPolygonArc3`, `DxfPolyline3d` the straight two. A conversion of space is
+the shape `GetGeometry()` gives, to the bit; each has its twin of the plane, `ToGeoLine2()` and `ToGeoLine2(tolerance)`,
+which is what `DxfReader` reads with `PlanAs2D`, to the bit, and refuses an entity that does not lie on the floor rather
+than drop its z: the line from (0, 0, 0) to (100, 50, 0) is the `GeoLine2` from (0, 0) to (100, 50), and with a z of 5 at
+one end `ToGeoLine2` refuses it. A polyline is given as the kind asked for, by the reader's own chain and loop: a loop
+joins the last vertex to the first, closed or not, the last bulge closing it, as CadConvert's `ToGeoPolygonArc2` does; a
+chain of a closed polyline runs back to its first vertex; a straight kind refuses an arc, never cutting it into chords.
+An entity with no shape, of another kind (a part of an ellipse asked for as a `GeoEllipse3`, a 3DFACE out of one plane,
+three vertices on a line asked for as a loop) or erased is refused with an `InvalidOperationException` that says why.
+`GetGeometry()` gives the same as before, to the bit, and a drawing only read and saved is written as it was.
+
+**NEW.** `SetFromGeCurve` takes the shapes of the plane: a `DxfLine` a `GeoLine2`, and so on for the circle, arc,
+ellipse, ray, xline and spline, each written at z = 0 on the normal (0, 0, 1) as `DxfWriter` writes it and read back by
+its `ToGeoX2()` to the bit (an arc's angles go through degrees, and a clockwise one comes back counter-clockwise over the
+same points). The polylines take one, where they took none: a `DxfPolyline` a `GeoPolyline2`, `GeoPolylineArc2`,
+`GeoPolygon2` or `GeoPolygonArc2`, or one of space, written as a LWPOLYLINE, closed for a loop: one of space within the
+point tolerance of the polyline's own plane in the system of its own normal, so that a mirrored polyline stays mirrored and
+a LWPOLYLINE of one segment takes the chain `ToGeoPolyline3()` gives back, and any other in the system of the plane it lies
+in, as the writer writes one; a `DxfPolyline2d` the same as a POLYLINE of the plane; a `DxfPolyline3d` a `GeoPolyline3` or
+`GeoPolygon3`, or the straight shapes of the plane at z = 0. The handle, layer, look and extended data are kept; where the
+shape is written anew the widths and fitting of a polyline are not, and a shape written as the shape it has now is written
+leaves it as it is, widths and fitting and all. A chain of space bent out of one plane, one on a line off the polyline's
+plane (from (0, 0, 0) to (10 000, 0, 0.1) on the normal (0, 0, 1), refused rather than flattened) and a face with holes
+are refused with an `ArgumentException`. Read, offset in the library and
+written back, a closed polyline keeps its place in the drawing: `plate.SetFromGeCurve(plate.ToGeoPolygonArc2().Offset(5.0,
+Tolerance.Default)[0])`. The shapes of space are set as before, to the byte.
+
 ## 13.9.0 (2026-11-05)
 
 A minor release: public types and members are added and none is removed or renamed in any of the four libraries. IMAGE

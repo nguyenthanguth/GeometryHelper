@@ -320,7 +320,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gets the library's shape for the curve, as AutoCAD's <c>GetGeCurve</c> gives its geometry's: the one shape of
         /// <see cref="DxfEntity.GetGeometry"/>, a <see cref="GeoLine3"/> for a line; null where the reader reads none, as for a
-        /// line of no length.
+        /// line of no length. Each class also gives its shape typed, with no cast, by the names of the AutoCAD bridge:
+        /// <see cref="DxfLine.ToGeoLine3"/>, and <see cref="DxfLine.ToGeoLine2()"/> for the shape of the plane.
         /// </summary>
         /// <returns>The shape.</returns>
         public object GetGeCurve()
@@ -333,6 +334,194 @@ namespace GeometryHelper.Dxf
         /// <param name="geCurve">The shape, of the kind the class takes.</param>
         /// <exception cref="NotSupportedException">Thrown where the class takes none.</exception>
         public virtual void SetFromGeCurve(object geCurve) => throw NotHere("setting from a shape");
+
+        /// <summary>
+        /// The chain or loop of a polyline of the kind a typed conversion asks for, as <see cref="DxfEntity.ShapeAs{T}"/> gives
+        /// it: a loop where <paramref name="loop"/> is set, else a chain, and with arcs where <paramref name="arcs"/> is set;
+        /// refused where it has arcs and a straight kind is asked for, or a loop is asked for and it is none.
+        /// </summary>
+        private protected T Chained<T>(string method, bool plan, Tolerance tolerance, bool loop, bool arcs)
+            => ShapeAs<T>(method, plan, tolerance, loop, arcs, shape => ChainKind(shape, method, loop, arcs));
+
+        /// <summary>
+        /// The chain or loop a polyline of a plane is written from, as <see cref="DxfWriter"/> writes one as a polyline of its
+        /// plane: one of the plane as it is, a loop with arcs of space as it is, and a chain of space, or a loop of straight
+        /// edges, as the chain or loop with arcs of its vertices, which the writer writes in its plane where it lies in one. A
+        /// chain or loop of space whose every vertex is within the default point tolerance of the plane through its first vertex
+        /// square to the polyline's own normal, no point of its arcs further off it than the planar tolerance, is written in the system of that
+        /// normal, so a mirrored polyline stays mirrored and a chain on one line has a plane to be in.
+        /// </summary>
+        /// <exception cref="ArgumentException">Thrown when the shape is none of those, or a chain of space that lies neither in
+        /// the plane of the normal nor in one plane of its own within the default tolerance.</exception>
+        private protected static object PlaneChain(object geCurve, string who, GeoVector3 normal)
+        {
+            object chain;
+
+            try
+            {
+                switch (geCurve)
+                {
+                    case GeoPolyline2 _:
+                    case GeoPolylineArc2 _:
+                    case GeoPolygon2 _:
+                    case GeoPolygonArc2 _:
+                    case GeoPolygonArc3 _:
+                    case GeoPolylineArc3 _:
+                        chain = geCurve;
+                        break;
+
+                    case GeoPolyline3 straight:
+                        chain = new GeoPolylineArc3(straight.Vertices, null, null, Tolerance.Default);
+                        break;
+
+                    case GeoPolygon3 loop:
+                        chain = new GeoPolygonArc3(loop.Vertices, null, null, Tolerance.Default);
+                        break;
+
+                    default:
+                        throw new ArgumentException(who + " takes a GeoPolyline2, GeoPolylineArc2, GeoPolygon2 or GeoPolygonArc2, or one of space in one plane, and was given " + (geCurve == null ? "null" : "a " + geCurve.GetType().Name) + ".", nameof(geCurve));
+                }
+            }
+            catch (ArgumentException e) when (e.ParamName != nameof(geCurve))
+            {
+                throw new ArgumentException("The " + geCurve.GetType().Name + " is not one chain or loop within the default tolerance: " + e.Message, nameof(geCurve), e);
+            }
+
+            List<GeoEdge3> edges = chain is GeoPolylineArc3 open ? new List<GeoEdge3>(open.GetEdges()) : chain is GeoPolygonArc3 loop3 ? new List<GeoEdge3>(loop3.GetEdges()) : null;
+
+            if (edges == null)
+            {
+                return chain;
+            }
+
+            if (OnNormal(edges, normal))
+            {
+                return new DxfWriter.ChainOnNormal(edges, chain is GeoPolygonArc3, normal);
+            }
+
+            if (chain is GeoPolylineArc3 space && !space.TryGetPlane(out _, Tolerance.Default))
+            {
+                throw new ArgumentException(OnOneLine(space)
+                    ? "The " + geCurve.GetType().Name + " has no plane of its own, and none the polyline can hold: its vertices are on one line, not in the plane of the polyline's normal " + normal + " within the default point tolerance."
+                    : "The " + geCurve.GetType().Name + " does not lie in one plane within the default tolerance, as " + who.ToLowerInvariant() + " has to: a DxfPolyline3d takes a straight chain of space.", nameof(geCurve));
+            }
+
+            return chain;
+        }
+
+        /// <summary>
+        /// Whether edges lie in the plane through their first point square to a normal: every point within the default point
+        /// tolerance of it, measured along the normal, and no point of an arc further off it than the planar tolerance, as
+        /// <see cref="Core.Arc3.LiesIn"/> judges an arc of a <see cref="GeoPolygonArc3"/>.
+        /// </summary>
+        private static bool OnNormal(List<GeoEdge3> edges, GeoVector3 normal)
+        {
+            GeoPoint3 first = edges[0].StartPoint;
+            var plane = new GeoPlane3(first, normal);
+            double slack = Tolerance.Default.EqualPoint;
+
+            foreach (GeoEdge3 edge in edges)
+            {
+                if (!(Math.Abs(first.GetVectorTo(edge.EndPoint).DotProduct(normal)) <= slack))
+                {
+                    return false;
+                }
+
+                if (edge.IsArc && !Core.Arc3.LiesIn(plane, edge.StartPoint, edge.EndPoint, edge.Bulge, edge.Normal, Tolerance.Default))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// The shape a polyline of a plane has now, as <see cref="PlaneChain"/> takes it to be written on its normal, for the test
+        /// of whether a new shape is written as that one is; null where it has none, or none that route takes.
+        /// </summary>
+        private protected object SameAs(string who, GeoVector3 normal)
+        {
+            object now = GetGeCurve();
+
+            if (now == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                return PlaneChain(now, who, normal);
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Whether a chain is straight and its vertices are on one line within the default point tolerance, the line through its
+        /// first vertex and the one furthest from it.
+        /// </summary>
+        private static bool OnOneLine(GeoPolylineArc3 chain)
+        {
+            IReadOnlyList<GeoPoint3> vertices = chain.Vertices;
+            GeoPoint3 first = vertices[0];
+            GeoPoint3 far = first;
+
+            foreach (double bulge in chain.Bulges)
+            {
+                if (bulge != 0.0)
+                {
+                    return false;
+                }
+            }
+
+            foreach (GeoPoint3 vertex in vertices)
+            {
+                if (first.DistanceTo(vertex) > first.DistanceTo(far))
+                {
+                    far = vertex;
+                }
+            }
+
+            double length = first.DistanceTo(far);
+
+            if (!(length > 0.0))
+            {
+                return false;
+            }
+
+            GeoVector3 along = first.GetVectorTo(far).Divide(length);
+
+            foreach (GeoPoint3 vertex in vertices)
+            {
+                GeoVector3 off = first.GetVectorTo(vertex);
+
+                if (off.Subtract(along.Multiply(off.DotProduct(along))).Length > Tolerance.Default.EqualPoint)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Why a chain or loop read is not of the kind asked: a loop asked for and a chain read is no loop, which the kind with
+        /// arcs would refuse too; a straight kind asked for and arcs read has arcs it cannot hold.
+        /// </summary>
+        private string ChainKind(object shape, string method, bool loop, bool arcs)
+        {
+            bool chain = shape is GeoPolyline2 || shape is GeoPolylineArc2 || shape is GeoPolyline3 || shape is GeoPolylineArc3;
+
+            if (!(loop && chain) && !arcs && (shape is GeoPolylineArc2 || shape is GeoPolygonArc2 || shape is GeoPolylineArc3 || shape is GeoPolygonArc3))
+            {
+                return TypeAndHandle + " has arcs, which a " + method.Substring(2) + " cannot hold: " + method.Substring(0, method.Length - 1) + "Arc" + method.Substring(method.Length - 1) + " gives them, exactly.";
+            }
+
+            return TypeAndHandle + " encloses no area, or does not lie in one plane within the tolerance, so it is no loop: " + method.Replace("Polygon", "Polyline") + " gives it as a chain.";
+        }
 
         /// <summary>
         /// Makes the curve of a shape of the library, as AutoCAD's <c>CreateFromGeCurve</c>: a <see cref="DxfLine"/> of a

@@ -957,6 +957,75 @@ namespace GeometryHelper.Dxf
         #region The curve
 
         /// <summary>
+        /// Gets the curve of a straight leader as the library's chain, as <see cref="DxfEntity.GetGeometry"/> gives it, to the
+        /// bit: the <see cref="GeoPolyline3"/> through its vertices in the world, a vertex within the point tolerance of the one
+        /// kept before it left out. The leader through (0, 0, 0), (10, 10, 0) and (20, 10, 0) is that chain of two segments. A
+        /// splined leader is refused: <see cref="ToGeoSpline3"/> gives it.
+        /// </summary>
+        /// <returns>The chain, in world coordinates.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the leader is splined, has fewer than two vertices apart, a
+        /// number of its record is not finite, or it is erased.</exception>
+        public GeoPolyline3 ToGeoPolyline3() => ShapeAs<GeoPolyline3>(nameof(ToGeoPolyline3), false, Tolerance.Default, kind: OtherKind);
+
+        /// <summary>
+        /// Gets the curve of a straight leader as a chain of the plane, as <see cref="DxfReader"/> reads it with
+        /// <see cref="DxfReadOptions.PlanAs2D"/> within the default tolerance: the leader above is the <see cref="GeoPolyline2"/>
+        /// (0, 0), (10, 10), (20, 10). One with a vertex at a height does not lie on the floor, and is refused; so is a splined
+        /// one, which <see cref="ToGeoSpline2()"/> gives.
+        /// </summary>
+        /// <returns>The chain in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the leader does not lie on the floor, is splined, has fewer than
+        /// two vertices apart, a number of its record is not finite, or it is erased.</exception>
+        public GeoPolyline2 ToGeoPolyline2() => ToGeoPolyline2(Tolerance.Default);
+
+        /// <summary>
+        /// Gets the curve of a straight leader as a chain of the plane, as <see cref="ToGeoPolyline2()"/> does, within a
+        /// tolerance, which says which vertices are one.
+        /// </summary>
+        /// <param name="tolerance">The tolerance, as <see cref="DxfReadOptions.Tolerance"/> reads it.</param>
+        /// <returns>The chain in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the leader does not lie on the floor, is splined, has fewer than
+        /// two vertices apart within the point tolerance, a number of its record is not finite, or it is erased.</exception>
+        public GeoPolyline2 ToGeoPolyline2(Tolerance tolerance) => ShapeAs<GeoPolyline2>(nameof(ToGeoPolyline2), true, tolerance, kind: OtherKind);
+
+        /// <summary>
+        /// Gets the curve of a splined leader as the library's spline, as <see cref="DxfEntity.GetGeometry"/> gives it, to the
+        /// bit: the cubic <see cref="Explode"/> fits through its vertices, leaving along its first segment and reaching along its
+        /// last, its parameter from 0 to 1; through (0, 0, 0), (10, 10, 0) and (20, 10, 0) it rises to y = 10.43. A straight
+        /// leader is refused: <see cref="ToGeoPolyline3"/> gives it.
+        /// </summary>
+        /// <returns>The spline, in world coordinates.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the leader is straight, has fewer than two vertices apart, a
+        /// number of its record is not finite, or it is erased.</exception>
+        public GeoSpline3 ToGeoSpline3() => ShapeAs<GeoSpline3>(nameof(ToGeoSpline3), false, Tolerance.Default, kind: OtherKind);
+
+        /// <summary>
+        /// Gets the curve of a splined leader as a spline of the plane, as <see cref="DxfReader"/> reads it with
+        /// <see cref="DxfReadOptions.PlanAs2D"/> within the default tolerance. One with a control point at a height does not lie
+        /// on the floor, and is refused; so is a straight one, which <see cref="ToGeoPolyline2()"/> gives.
+        /// </summary>
+        /// <returns>The spline in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the leader does not lie on the floor, is straight, has fewer
+        /// than two vertices apart, a number of its record is not finite, or it is erased.</exception>
+        public GeoSpline2 ToGeoSpline2() => ToGeoSpline2(Tolerance.Default);
+
+        /// <summary>
+        /// Gets the curve of a splined leader as a spline of the plane, as <see cref="ToGeoSpline2()"/> does, within a tolerance,
+        /// which says which vertices are one.
+        /// </summary>
+        /// <param name="tolerance">The tolerance, as <see cref="DxfReadOptions.Tolerance"/> reads it.</param>
+        /// <returns>The spline in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the leader does not lie on the floor, is straight, has fewer
+        /// than two vertices apart within the point tolerance, a number of its record is not finite, or it is erased.</exception>
+        public GeoSpline2 ToGeoSpline2(Tolerance tolerance) => ShapeAs<GeoSpline2>(nameof(ToGeoSpline2), true, tolerance, kind: OtherKind);
+
+        /// <summary>Why the curve read is not of the kind asked: a splined leader is a spline, a straight one a chain.</summary>
+        private string OtherKind(object shape)
+            => shape is GeoSpline3 || shape is GeoSpline2
+                ? TypeAndHandle + " is splined: " + (shape is GeoSpline2 ? "ToGeoSpline2" : "ToGeoSpline3") + " gives its curve."
+                : TypeAndHandle + " is straight: " + (shape is GeoPolyline2 ? "ToGeoPolyline2" : "ToGeoPolyline3") + " gives its curve.";
+
+        /// <summary>
         /// Gets the parameter at the last vertex, as AutoCAD's: the count of the segments of a straight leader; of a splined one
         /// the sum of the lengths of the chords between its vertices, as AutoCAD 2021 runs it, the spline fitted through its
         /// vertices walked over that length: 24.14 through (0, 0, 0), (10, 10, 0) and (20, 10, 0).

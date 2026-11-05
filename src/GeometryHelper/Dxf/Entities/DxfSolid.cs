@@ -161,6 +161,38 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Gets the area of the solid as the library's polygon, as <see cref="DxfEntity.GetGeometry"/> gives it, to the bit: its
+        /// corners in the world in DXF's order 1, 2, 4, 3, a fourth the same as the third to the bit a triangle. The square of
+        /// side 2 written (0, 0), (2, 0), (0, 2), (2, 2) is the <see cref="GeoPolygon3"/> (0, 0, 0), (2, 0, 0), (2, 2, 0),
+        /// (0, 2, 0).
+        /// </summary>
+        /// <returns>The polygon, in world coordinates.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the solid encloses no area within the default tolerance, a
+        /// number of its record is not finite, or it is erased.</exception>
+        public GeoPolygon3 ToGeoPolygon3() => ShapeAs<GeoPolygon3>(nameof(ToGeoPolygon3), false, Tolerance.Default);
+
+        /// <summary>
+        /// Gets the area of the solid as a polygon of the plane, as <see cref="DxfReader"/> reads it with
+        /// <see cref="DxfReadOptions.PlanAs2D"/> within the default tolerance: the square above is the <see cref="GeoPolygon2"/>
+        /// (0, 0), (2, 0), (2, 2), (0, 2). One at a height, or on a normal other than (0, 0, 1) and (0, 0, -1), does not lie on
+        /// the floor, and is refused.
+        /// </summary>
+        /// <returns>The polygon in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the solid does not lie on the floor, encloses no area within the
+        /// default tolerance, a number of its record is not finite, or it is erased.</exception>
+        public GeoPolygon2 ToGeoPolygon2() => ToGeoPolygon2(Tolerance.Default);
+
+        /// <summary>
+        /// Gets the area of the solid as a polygon of the plane, as <see cref="ToGeoPolygon2()"/> does, within a tolerance, which
+        /// says whether it encloses an area.
+        /// </summary>
+        /// <param name="tolerance">The tolerance, as <see cref="DxfReadOptions.Tolerance"/> reads it.</param>
+        /// <returns>The polygon in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the solid does not lie on the floor, encloses no area within the
+        /// tolerance, a number of its record is not finite, or it is erased.</exception>
+        public GeoPolygon2 ToGeoPolygon2(Tolerance tolerance) => ShapeAs<GeoPolygon2>(nameof(ToGeoPolygon2), true, tolerance);
+
+        /// <summary>
         /// Moves, turns, scales or mirrors the solid, as AutoCAD's <c>TransformBy</c>, as ezdxf carries one: each corner the record
         /// gives taken from the old plane to the world, moved, and into the plane of the new normal, square to where the old
         /// plane's axes go; the thickness scaled with it. The record is written once.

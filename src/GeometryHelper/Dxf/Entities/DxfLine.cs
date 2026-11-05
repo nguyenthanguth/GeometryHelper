@@ -388,15 +388,58 @@ namespace GeometryHelper.Dxf
             return pieces;
         }
 
-        /// <summary>Gives the line the ends of a <see cref="GeoLine3"/>, as AutoCAD's <c>SetFromGeCurve</c>.</summary>
-        /// <param name="geCurve">The segment, a <see cref="GeoLine3"/>.</param>
-        /// <exception cref="ArgumentException">Thrown when the shape is not a <see cref="GeoLine3"/>.</exception>
+        /// <summary>
+        /// Gets the segment of the line, as AutoCAD's <c>GetGeCurve</c> and the AutoCAD bridge's <c>ToGeoLine3</c> give it:
+        /// the shape <see cref="DxfEntity.GetGeometry"/> gives, to the bit. The line from (0, 0, 0) to (100, 50, 0) is the
+        /// <see cref="GeoLine3"/> between them.
+        /// </summary>
+        /// <returns>The segment, in world coordinates.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the line has no length within the default point tolerance,
+        /// a number of its record is not finite, or it is erased.</exception>
+        public GeoLine3 ToGeoLine3() => ShapeAs<GeoLine3>(nameof(ToGeoLine3), false, Tolerance.Default);
+
+        /// <summary>
+        /// Gets the segment of the line in the plane, as <see cref="DxfReader"/> reads it with
+        /// <see cref="DxfReadOptions.PlanAs2D"/> within the default tolerance: the line from (0, 0, 0) to (100, 50, 0) is the
+        /// <see cref="GeoLine2"/> from (0, 0) to (100, 50). With a z of 5 at one end it does not lie on the floor, and is
+        /// refused rather than flattened, where the AutoCAD bridge's <c>ToGeoLine2</c> drops z.
+        /// </summary>
+        /// <returns>The segment in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the line does not lie on the floor (a z of an end is not
+        /// nought), has no length within the default point tolerance, a number of its record is not finite, or it is erased.</exception>
+        public GeoLine2 ToGeoLine2() => ToGeoLine2(Tolerance.Default);
+
+        /// <summary>
+        /// Gets the segment of the line in the plane, as <see cref="DxfReader"/> reads it with
+        /// <see cref="DxfReadOptions.PlanAs2D"/> within a tolerance, which says whether it has a length: a line 0.0004 long is
+        /// refused within the default tolerance and given within 1E-5.
+        /// </summary>
+        /// <param name="tolerance">The tolerance, as <see cref="DxfReadOptions.Tolerance"/> reads it.</param>
+        /// <returns>The segment in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the line does not lie on the floor, has no length within the
+        /// point tolerance, a number of its record is not finite, or it is erased.</exception>
+        public GeoLine2 ToGeoLine2(Tolerance tolerance) => ShapeAs<GeoLine2>(nameof(ToGeoLine2), true, tolerance);
+
+        /// <summary>
+        /// Gives the line the ends of a <see cref="GeoLine3"/>, as AutoCAD's <c>SetFromGeCurve</c>, its normal kept; or of a
+        /// <see cref="GeoLine2"/>, written at z = 0 with the normal (0, 0, 1) as <see cref="DxfWriter"/> writes one, which
+        /// <see cref="ToGeoLine2()"/> gives back to the bit.
+        /// </summary>
+        /// <param name="geCurve">The segment, a <see cref="GeoLine3"/> or a <see cref="GeoLine2"/>.</param>
+        /// <exception cref="ArgumentException">Thrown when the shape is not a <see cref="GeoLine3"/> or a <see cref="GeoLine2"/>,
+        /// or not one of finite numbers.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the line is erased.</exception>
         public override void SetFromGeCurve(object geCurve)
         {
+            if (geCurve is GeoLine2 flat)
+            {
+                SetShape(flat);
+                return;
+            }
+
             if (!(geCurve is GeoLine3 segment))
             {
-                throw new ArgumentException("A line takes a GeoLine3, and was given " + (geCurve == null ? "null" : "a " + geCurve.GetType().Name) + ".", nameof(geCurve));
+                throw new ArgumentException("A line takes a GeoLine3 or a GeoLine2, and was given " + (geCurve == null ? "null" : "a " + geCurve.GetType().Name) + ".", nameof(geCurve));
             }
 
             if (!segment.StartPoint.IsValid || !segment.EndPoint.IsValid)

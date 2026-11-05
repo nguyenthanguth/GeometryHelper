@@ -1314,12 +1314,37 @@ namespace GeometryHelper.Dxf
             || shape is GeoRay2 || shape is GeoXLine2 || shape is GeoSpline2 || shape is GeoPoint3 || shape is GeoLine3 || shape is GeoPolyline3
             || shape is GeoPolygon3 || shape is GeoRay3 || shape is GeoXLine3 || shape is GeoSpline3 || shape is GeoEllipse3 || shape is GeoTriangle3
             || shape is GeoFace3 || shape is GeoSolid3 || shape is GeoMesh3 || shape is GeoAabb3 || shape is GeoObb3 || shape is GeoArc3
-            || shape is GeoCircle3 || shape is GeoPolylineArc3 || shape is GeoPolygonArc3 || shape is DxfText;
+            || shape is GeoCircle3 || shape is GeoPolylineArc3 || shape is GeoPolygonArc3 || shape is DxfText || shape is ChainOnNormal;
+
+        /// <summary>
+        /// The edges of a chain or loop of space that lies in the plane of a normal, the normal of the polyline it is given to,
+        /// to be written as a lightweight polyline in the system of that normal as it is, not turned up.
+        /// </summary>
+        internal sealed class ChainOnNormal
+        {
+            internal ChainOnNormal(List<GeoEdge3> edges, bool closed, GeoVector3 normal)
+            {
+                Edges = edges;
+                Closed = closed;
+                Normal = normal;
+            }
+
+            internal List<GeoEdge3> Edges { get; }
+
+            internal bool Closed { get; }
+
+            internal GeoVector3 Normal { get; }
+        }
 
         private void Write(object shape, string layer, int hidden, Tolerance? tolerance = null)
         {
             switch (shape)
             {
+                case ChainOnNormal s:
+                    Check(s.Edges.ConvertAll(e => e.EndPoint), nameof(shape));
+                    Check(s.Edges[0].StartPoint, nameof(shape));
+                    Lightweight3(Layer(layer), s.Normal, s.Edges, s.Closed, false);
+                    break;
                 case GeoPoint2 s: Add(s, layer); break;
                 case GeoLine2 s: Add(s, layer); break;
                 case GeoPolyline2 s: Add(s, layer); break;
@@ -2281,11 +2306,12 @@ namespace GeometryHelper.Dxf
         /// A chain or loop that lies in one plane as one lightweight polyline in the coordinates of that plane: the extrusion
         /// is the normal of the plane turned to point up in its largest component, the elevation is that of the first vertex,
         /// and a bulge is the arc's times the cosine between its normal and the extrusion: its own where the two agree,
-        /// negated where they are opposite, and nought where the arc bows square to the plane.
+        /// negated where they are opposite, and nought where the arc bows square to the plane. Not turned up, the extrusion is
+        /// the normal given, as a straight chain on one line is written on the normal of the polyline it is given to.
         /// </summary>
-        private DxfWriter Lightweight3(string layer, GeoVector3 plane, List<GeoEdge3> edges, bool closed)
+        private DxfWriter Lightweight3(string layer, GeoVector3 plane, List<GeoEdge3> edges, bool closed, bool turnUp = true)
         {
-            GeoVector3 normal = Upward(plane);
+            GeoVector3 normal = turnUp ? Upward(plane) : plane;
 
             var ocs = new Ocs(normal);
             int count = closed ? edges.Count : edges.Count + 1;

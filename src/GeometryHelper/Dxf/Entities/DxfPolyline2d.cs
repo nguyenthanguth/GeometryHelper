@@ -984,6 +984,168 @@ namespace GeometryHelper.Dxf
 
         #endregion
 
+        #region The library's shapes
+
+        /// <summary>
+        /// Gets the polyline as a chain of straight segments in the world, of its vertices as <see cref="DxfReader"/> reads them:
+        /// in the plane of its normal at its elevation (its group 30, or the first vertex's height where it gives none), the
+        /// polyline (0, 0), (12, 0), (12, 8) at the elevation 5 the <see cref="GeoPolyline3"/> through (0, 0, 5), (12, 0, 5) and
+        /// (12, 8, 5); closed, the chain runs on back to its first vertex. A polyline fitted with a curve is read through all
+        /// its vertices, those the fitting added among them, with their bulges; one fitted with a spline through the vertices
+        /// of the spline drawn (flag 8), its frame (flag 16) left out. A vertex within the point tolerance of the one before it
+        /// is left out. A polyline with an arc is refused, its arcs not cut into chords here: <see cref="ToGeoPolylineArc3"/>
+        /// gives it exactly. Its widths are no part of the shape.
+        /// </summary>
+        /// <returns>The chain, in world coordinates.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the polyline has an arc, has fewer than two vertices apart, a
+        /// number of its record is not finite, or it is erased.</exception>
+        public GeoPolyline3 ToGeoPolyline3() => Chained<GeoPolyline3>(nameof(ToGeoPolyline3), false, Tolerance.Default, false, false);
+
+        /// <summary>
+        /// Gets the polyline as a chain with arcs in the world, bulge for bulge, of the vertices <see cref="ToGeoPolyline3"/>
+        /// reads: the bulge on a vertex is that of the segment leaving it, and on the last vertex of an open polyline belongs to
+        /// nothing; closed, the chain runs on back to its first vertex, the bulge of the last vertex that of the closing
+        /// segment. One with no arc is the chain whose bulges are all nought.
+        /// </summary>
+        /// <returns>The chain, in world coordinates.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the polyline has fewer than two vertices apart, a number of its
+        /// record is not finite, or it is erased.</exception>
+        public GeoPolylineArc3 ToGeoPolylineArc3() => Chained<GeoPolylineArc3>(nameof(ToGeoPolylineArc3), false, Tolerance.Default, false, true);
+
+        /// <summary>
+        /// Gets the polyline as a loop of straight edges in the world, of the vertices <see cref="ToGeoPolyline3"/> reads: closed
+        /// or not, its last vertex joined back to its first, and a last vertex on the first left out. The closed polyline (0, 0),
+        /// (12, 0), (12, 8) at no elevation is the <see cref="GeoPolygon3"/> of area 48, as <see cref="DxfEntity.GetGeometry"/>
+        /// gives it. A polyline with an arc is refused (<see cref="ToGeoPolygonArc3"/> gives it), and so is one that encloses no
+        /// area, its vertices on one line.
+        /// </summary>
+        /// <returns>The loop, in world coordinates.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the polyline has an arc, encloses no area within the default
+        /// tolerance, a number of its record is not finite, or it is erased.</exception>
+        public GeoPolygon3 ToGeoPolygon3() => Chained<GeoPolygon3>(nameof(ToGeoPolygon3), false, Tolerance.Default, true, false);
+
+        /// <summary>
+        /// Gets the polyline as a loop with arcs in the world, bulge for bulge, of the vertices <see cref="ToGeoPolyline3"/>
+        /// reads: closed or not, its last vertex joined back to its first, the bulge of the last vertex that of the closing
+        /// edge. A closed polyline of two vertices with an arc has its first arc halved at its middle, as the reader reads it,
+        /// so that it has the three vertices a loop has: two half circles of radius 10 are the <see cref="GeoPolygonArc3"/> of
+        /// area 314.159. One with no arc is the loop whose bulges are all nought; one of no area is refused.
+        /// </summary>
+        /// <returns>The loop, in world coordinates.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the polyline encloses no area within the default tolerance, a
+        /// number of its record is not finite, or it is erased.</exception>
+        public GeoPolygonArc3 ToGeoPolygonArc3() => Chained<GeoPolygonArc3>(nameof(ToGeoPolygonArc3), false, Tolerance.Default, true, true);
+
+        /// <summary>
+        /// Gets the polyline as a chain of straight segments of the plane, as <see cref="ToGeoPolyline3"/> reads it, where it
+        /// lies on the floor as <see cref="DxfReader"/> reads one with <see cref="DxfReadOptions.PlanAs2D"/>: its normal
+        /// (0, 0, 1) and its elevation nought; or its normal (0, 0, -1), as AutoCAD writes a mirrored polyline, its x turned over
+        /// and its bulges negated, the vertices in their order. One at an elevation, or on a tilted normal, is refused rather
+        /// than flattened.
+        /// </summary>
+        /// <returns>The chain in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the polyline does not lie on the floor, has an arc, has fewer
+        /// than two vertices apart, a number of its record is not finite, or it is erased.</exception>
+        public GeoPolyline2 ToGeoPolyline2() => ToGeoPolyline2(Tolerance.Default);
+
+        /// <summary>
+        /// Gets the polyline as a chain of straight segments of the plane, as <see cref="ToGeoPolyline2()"/> does, within a
+        /// tolerance, which says which vertices are one.
+        /// </summary>
+        /// <param name="tolerance">The tolerance, as <see cref="DxfReadOptions.Tolerance"/> reads it.</param>
+        /// <returns>The chain in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the polyline does not lie on the floor, has an arc, has fewer
+        /// than two vertices apart within the point tolerance, a number of its record is not finite, or it is erased.</exception>
+        public GeoPolyline2 ToGeoPolyline2(Tolerance tolerance) => Chained<GeoPolyline2>(nameof(ToGeoPolyline2), true, tolerance, false, false);
+
+        /// <summary>
+        /// Gets the polyline as a chain with arcs of the plane, as <see cref="ToGeoPolylineArc3"/> reads it, where it lies on the
+        /// floor as <see cref="ToGeoPolyline2()"/> says.
+        /// </summary>
+        /// <returns>The chain in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the polyline does not lie on the floor, has fewer than two
+        /// vertices apart, a number of its record is not finite, or it is erased.</exception>
+        public GeoPolylineArc2 ToGeoPolylineArc2() => ToGeoPolylineArc2(Tolerance.Default);
+
+        /// <summary>
+        /// Gets the polyline as a chain with arcs of the plane, as <see cref="ToGeoPolylineArc2()"/> does, within a tolerance,
+        /// which says which vertices are one.
+        /// </summary>
+        /// <param name="tolerance">The tolerance, as <see cref="DxfReadOptions.Tolerance"/> reads it.</param>
+        /// <returns>The chain in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the polyline does not lie on the floor, has fewer than two
+        /// vertices apart within the point tolerance, a number of its record is not finite, or it is erased.</exception>
+        public GeoPolylineArc2 ToGeoPolylineArc2(Tolerance tolerance) => Chained<GeoPolylineArc2>(nameof(ToGeoPolylineArc2), true, tolerance, false, true);
+
+        /// <summary>
+        /// Gets the polyline as a loop of straight edges of the plane, as <see cref="ToGeoPolygon3"/> reads it, where it lies on
+        /// the floor as <see cref="ToGeoPolyline2()"/> says: the closed polyline (0, 0), (12, 0), (12, 8) at no elevation is the
+        /// <see cref="GeoPolygon2"/> of area 48.
+        /// </summary>
+        /// <returns>The loop in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the polyline does not lie on the floor, has an arc, encloses no
+        /// area, a number of its record is not finite, or it is erased.</exception>
+        public GeoPolygon2 ToGeoPolygon2() => ToGeoPolygon2(Tolerance.Default);
+
+        /// <summary>
+        /// Gets the polyline as a loop of straight edges of the plane, as <see cref="ToGeoPolygon2()"/> does, within a tolerance,
+        /// which says which vertices are one and whether it encloses an area.
+        /// </summary>
+        /// <param name="tolerance">The tolerance, as <see cref="DxfReadOptions.Tolerance"/> reads it.</param>
+        /// <returns>The loop in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the polyline does not lie on the floor, has an arc, encloses no
+        /// area within the tolerance, a number of its record is not finite, or it is erased.</exception>
+        public GeoPolygon2 ToGeoPolygon2(Tolerance tolerance) => Chained<GeoPolygon2>(nameof(ToGeoPolygon2), true, tolerance, true, false);
+
+        /// <summary>
+        /// Gets the polyline as a loop with arcs of the plane, as <see cref="ToGeoPolygonArc3"/> reads it, where it lies on the
+        /// floor as <see cref="ToGeoPolyline2()"/> says.
+        /// </summary>
+        /// <returns>The loop in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the polyline does not lie on the floor, encloses no area, a
+        /// number of its record is not finite, or it is erased.</exception>
+        public GeoPolygonArc2 ToGeoPolygonArc2() => ToGeoPolygonArc2(Tolerance.Default);
+
+        /// <summary>
+        /// Gets the polyline as a loop with arcs of the plane, as <see cref="ToGeoPolygonArc2()"/> does, within a tolerance,
+        /// which says which vertices are one and whether it encloses an area.
+        /// </summary>
+        /// <param name="tolerance">The tolerance, as <see cref="DxfReadOptions.Tolerance"/> reads it.</param>
+        /// <returns>The loop in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the polyline does not lie on the floor, encloses no area within
+        /// the tolerance, a number of its record is not finite, or it is erased.</exception>
+        public GeoPolygonArc2 ToGeoPolygonArc2(Tolerance tolerance) => Chained<GeoPolygonArc2>(nameof(ToGeoPolygonArc2), true, tolerance, true, true);
+
+        /// <summary>
+        /// Gives the polyline the vertices and bulges of a chain or loop, as AutoCAD's <c>SetFromGeCurve</c>, written as
+        /// <see cref="DxfWriter"/> writes one as a POLYLINE of the plane for a file older than R14, with its VERTEX records, its
+        /// SEQEND kept: a <see cref="GeoPolyline2"/>, <see cref="GeoPolylineArc2"/>, <see cref="GeoPolygon2"/> or
+        /// <see cref="GeoPolygonArc2"/> on the normal (0, 0, 1) at no elevation, closed for a loop, read back by the matching
+        /// method of the plane to the bit; a <see cref="GeoPolyline3"/>, <see cref="GeoPolylineArc3"/>, <see cref="GeoPolygon3"/>
+        /// or <see cref="GeoPolygonArc3"/> whose every vertex is within the default point tolerance of the plane through its
+        /// first vertex square to the polyline's own <see cref="Normal"/>, no point of its arcs further off it than the planar
+        /// tolerance, in the system
+        /// of that normal, at the elevation of its first vertex, as <see cref="DxfPolyline.SetFromGeCurve"/> writes one; any
+        /// other of those in the system of the plane it lies in within the default tolerance, its normal turned up in its largest
+        /// component. Its handle, layer, look, thickness and extended data are kept. Where the shape is written anew, its widths,
+        /// its linetype generation and its fitting are not kept, the polyline coming back straight (<see cref="PolyType"/>
+        /// simple); a shape written as the shape it has now is written leaves it as it is, widths and fitting and all.
+        /// </summary>
+        /// <param name="geCurve">The chain or loop.</param>
+        /// <exception cref="ArgumentException">Thrown when the shape is not one of those, is a chain of space that lies neither in
+        /// the plane of the polyline's normal nor in one plane of its own within the default tolerance (one on a line off the
+        /// polyline's plane among them), or is not one of finite numbers.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the polyline is erased.</exception>
+        public override void SetFromGeCurve(object geCurve)
+        {
+            const string Who = "A polyline of the plane";
+            GeoVector3 normal = Normal;
+            object shape = PlaneChain(geCurve, Who, normal);
+            Item.File.SetShape(Item, shape, null, true, SameAs(Who, normal));
+        }
+
+        #endregion
+
         #region The vertices as the editing sees them
 
         /// <summary>

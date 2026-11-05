@@ -320,15 +320,54 @@ namespace GeometryHelper.Dxf
             return pieces;
         }
 
-        /// <summary>Gives the ray the origin and direction of a <see cref="GeoRay3"/>, as AutoCAD's <c>SetFromGeCurve</c>, written as <see cref="DxfWriter"/> writes one.</summary>
-        /// <param name="geCurve">The ray, a <see cref="GeoRay3"/>.</param>
-        /// <exception cref="ArgumentException">Thrown when the shape is not a <see cref="GeoRay3"/>, or not one of finite numbers and some direction.</exception>
+        /// <summary>
+        /// Gets the ray as the library's, as AutoCAD's <c>GetGeCurve</c> and the AutoCAD bridge's <c>ToGeoRay3</c> give it: the
+        /// shape <see cref="DxfEntity.GetGeometry"/> gives, to the bit. The ray from (0, 0, 0) along (3, 4, 0) is the
+        /// <see cref="GeoRay3"/> from there along (0.6, 0.8, 0).
+        /// </summary>
+        /// <returns>The ray, in world coordinates.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the ray has no direction within the default vector tolerance,
+        /// a number of its record is not finite, or it is erased.</exception>
+        public GeoRay3 ToGeoRay3() => ShapeAs<GeoRay3>(nameof(ToGeoRay3), false, Tolerance.Default);
+
+        /// <summary>
+        /// Gets the ray in the plane, as <see cref="DxfReader"/> reads it with <see cref="DxfReadOptions.PlanAs2D"/> within the
+        /// default tolerance: the ray from (0, 0, 0) along (3, 4, 0) is the <see cref="GeoRay2"/> from (0, 0) along (0.6, 0.8).
+        /// One whose origin is at a height, or whose direction rises, does not lie on the floor, and is refused.
+        /// </summary>
+        /// <returns>The ray in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the ray does not lie on the floor, has no direction within the
+        /// default vector tolerance, a number of its record is not finite, or it is erased.</exception>
+        public GeoRay2 ToGeoRay2() => ToGeoRay2(Tolerance.Default);
+
+        /// <summary>
+        /// Gets the ray in the plane, as <see cref="ToGeoRay2()"/> does, within a tolerance, which says whether it has a direction.
+        /// </summary>
+        /// <param name="tolerance">The tolerance, as <see cref="DxfReadOptions.Tolerance"/> reads it.</param>
+        /// <returns>The ray in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the ray does not lie on the floor, has no direction within the
+        /// vector tolerance, a number of its record is not finite, or it is erased.</exception>
+        public GeoRay2 ToGeoRay2(Tolerance tolerance) => ShapeAs<GeoRay2>(nameof(ToGeoRay2), true, tolerance);
+
+        /// <summary>
+        /// Gives the ray the origin and direction of a <see cref="GeoRay3"/>, as AutoCAD's <c>SetFromGeCurve</c>, or of a
+        /// <see cref="GeoRay2"/> at z = 0, each written as <see cref="DxfWriter"/> writes one.
+        /// </summary>
+        /// <param name="geCurve">The ray, a <see cref="GeoRay3"/> or a <see cref="GeoRay2"/>.</param>
+        /// <exception cref="ArgumentException">Thrown when the shape is not a <see cref="GeoRay3"/> or a <see cref="GeoRay2"/>, or
+        /// not one of finite numbers and some direction.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the ray is erased.</exception>
         public override void SetFromGeCurve(object geCurve)
         {
+            if (geCurve is GeoRay2 flat)
+            {
+                SetShape(flat);
+                return;
+            }
+
             if (!(geCurve is GeoRay3 ray))
             {
-                throw new ArgumentException("A ray takes a GeoRay3, and was given " + (geCurve == null ? "null" : "a " + geCurve.GetType().Name) + ".", nameof(geCurve));
+                throw new ArgumentException("A ray takes a GeoRay3 or a GeoRay2, and was given " + (geCurve == null ? "null" : "a " + geCurve.GetType().Name) + ".", nameof(geCurve));
             }
 
             SetShape(ray);

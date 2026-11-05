@@ -969,9 +969,12 @@ namespace GeometryHelper.Dxf
         /// what the old type alone had then left out. A POLYLINE's vertices are written anew, its end kept. Where
         /// <paramref name="given"/> are given, they are written in the place of the shape's, the type and own groups of the
         /// entity followed by those of the records that follow it, as a polyline converted to the other kind takes the place of
-        /// the old one, its handle and look kept.
+        /// the old one, its handle and look kept. Where <paramref name="heavy"/> is set, a chain or loop of a plane is written
+        /// as the POLYLINE of the plane the writer writes for a file older than R14, as a <see cref="DxfPolyline2d"/> takes one.
+        /// Where <paramref name="sameAs"/> is given, it stands for the shape the entity has now in the test of whether the shape
+        /// is written as that one is, written by the same route as the new shape.
         /// </summary>
-        internal void SetShape(DxfItem item, object shape, List<KeyValuePair<string, List<DxfTypedValue>>> given = null)
+        internal void SetShape(DxfItem item, object shape, List<KeyValuePair<string, List<DxfTypedValue>>> given = null, bool heavy = false, object sameAs = null)
         {
             if (shape == null && given == null)
             {
@@ -1005,10 +1008,10 @@ namespace GeometryHelper.Dxf
             int hidden = item.Type == "3DFACE" ? FirstWhole(head, pairs, 70) : 0;
             double thickness = item.Thickness;
             double[] extents = null;
-            List<KeyValuePair<string, List<DxfTypedValue>>> written = given ?? Written(shape, hidden, thickness, "value", out extents);
+            List<KeyValuePair<string, List<DxfTypedValue>>> written = given ?? Written(shape, hidden, thickness, "value", out extents, heavy);
 
             // A shape written as the entity is written now, group for group, is the shape it has: nothing to change.
-            if (given == null && now.Count == 1 && SameWriting(written, now[0], hidden, thickness))
+            if (given == null && now.Count == 1 && SameWriting(written, sameAs ?? now[0], hidden, thickness, heavy))
             {
                 return;
             }
@@ -1245,12 +1248,12 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// The records a shape is written as in this file, checked to be one entity the file's version can hold: a POLYLINE
-        /// with its vertices and end is one.
+        /// with its vertices and end is one. Heavy, a chain or loop of a plane is written as a POLYLINE whatever the version.
         /// </summary>
-        private List<KeyValuePair<string, List<DxfTypedValue>>> Written(object shape, int hidden, double thickness, string parameter, out double[] extents)
+        private List<KeyValuePair<string, List<DxfTypedValue>>> Written(object shape, int hidden, double thickness, string parameter, out double[] extents, bool heavy = false)
         {
             Writing style = Style;
-            List<KeyValuePair<string, List<DxfTypedValue>>> written = DxfWriter.RecordsOf(shape, hidden, thickness, style.Markers, style.Lightweight, out extents);
+            List<KeyValuePair<string, List<DxfTypedValue>>> written = DxfWriter.RecordsOf(shape, hidden, thickness, style.Markers, style.Lightweight && !heavy, out extents);
             int entities = 0;
 
             foreach (KeyValuePair<string, List<DxfTypedValue>> record in written)
@@ -1274,13 +1277,13 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Whether a shape the entity has now is written as the records given, group for group.</summary>
-        private bool SameWriting(List<KeyValuePair<string, List<DxfTypedValue>>> written, object was, int hidden, double thickness)
+        private bool SameWriting(List<KeyValuePair<string, List<DxfTypedValue>>> written, object was, int hidden, double thickness, bool heavy)
         {
             List<KeyValuePair<string, List<DxfTypedValue>>> before;
 
             try
             {
-                before = DxfWriter.RecordsOf(was, hidden, thickness, Style.Markers, Style.Lightweight, out _);
+                before = DxfWriter.RecordsOf(was, hidden, thickness, Style.Markers, Style.Lightweight && !heavy, out _);
             }
             catch (ArgumentException)
             {

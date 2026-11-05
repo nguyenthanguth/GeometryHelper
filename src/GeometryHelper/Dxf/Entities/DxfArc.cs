@@ -537,16 +537,59 @@ namespace GeometryHelper.Dxf
             return pieces;
         }
 
-        /// <summary>Gives the arc the centre, normal, radius and angles of a <see cref="GeoArc3"/>, as AutoCAD's <c>SetFromGeCurve</c>, written as <see cref="DxfWriter"/> writes one.</summary>
-        /// <param name="geCurve">The arc, a <see cref="GeoArc3"/> short of a whole turn.</param>
-        /// <exception cref="ArgumentException">Thrown when the shape is not a <see cref="GeoArc3"/>, is a whole turn, which is
-        /// written as a CIRCLE, or is not one of finite numbers and some radius.</exception>
+        /// <summary>
+        /// Gets the arc as the library's, as AutoCAD's <c>GetGeCurve</c> and the AutoCAD bridge's <c>ToGeoArc3</c> give it: the
+        /// shape <see cref="DxfEntity.GetGeometry"/> gives, to the bit. The arc of radius 10 about (0, 0, 0) from 0 to 90
+        /// degrees is the <see cref="GeoArc3"/> from (10, 0, 0) to (0, 10, 0) about the normal (0, 0, 1); on the normal
+        /// (0, 0, -1), as AutoCAD writes a mirrored arc, it runs from (-10, 0, 0) to (0, 10, 0), clockwise seen from above.
+        /// </summary>
+        /// <returns>The arc, in world coordinates.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the arc has no radius within the default point tolerance, a
+        /// number of its record is not finite, or it is erased.</exception>
+        public GeoArc3 ToGeoArc3() => ShapeAs<GeoArc3>(nameof(ToGeoArc3), false, Tolerance.Default);
+
+        /// <summary>
+        /// Gets the arc in the plane, as <see cref="DxfReader"/> reads it with <see cref="DxfReadOptions.PlanAs2D"/> within the
+        /// default tolerance: the arc of radius 10 about (0, 0, 0) from 0 to 90 degrees is the counter-clockwise
+        /// <see cref="GeoArc2"/> from (10, 0) to (0, 10); on the normal (0, 0, -1) it is the clockwise one from (-10, 0) to
+        /// (0, 10), from pi to pi / 2, starting where the arc in space starts. One at a height, or on a tilted normal, does not
+        /// lie on the floor, and is refused.
+        /// </summary>
+        /// <returns>The arc in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the arc does not lie on the floor, has no radius within the
+        /// default point tolerance, a number of its record is not finite, or it is erased.</exception>
+        public GeoArc2 ToGeoArc2() => ToGeoArc2(Tolerance.Default);
+
+        /// <summary>
+        /// Gets the arc in the plane, as <see cref="ToGeoArc2()"/> does, within a tolerance, which says whether it has a radius.
+        /// </summary>
+        /// <param name="tolerance">The tolerance, as <see cref="DxfReadOptions.Tolerance"/> reads it.</param>
+        /// <returns>The arc in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the arc does not lie on the floor, has no radius within the
+        /// point tolerance, a number of its record is not finite, or it is erased.</exception>
+        public GeoArc2 ToGeoArc2(Tolerance tolerance) => ShapeAs<GeoArc2>(nameof(ToGeoArc2), true, tolerance);
+
+        /// <summary>
+        /// Gives the arc the centre, normal, radius and angles of a <see cref="GeoArc3"/>, as AutoCAD's <c>SetFromGeCurve</c>,
+        /// or of a <see cref="GeoArc2"/> at z = 0 on the normal (0, 0, 1), each written as <see cref="DxfWriter"/> writes one: a
+        /// clockwise <see cref="GeoArc2"/> from its end to its start, so that it comes back counter-clockwise over the same
+        /// points, and the angles through degrees.
+        /// </summary>
+        /// <param name="geCurve">The arc, a <see cref="GeoArc3"/> or a <see cref="GeoArc2"/> short of a whole turn.</param>
+        /// <exception cref="ArgumentException">Thrown when the shape is not a <see cref="GeoArc3"/> or a <see cref="GeoArc2"/>, is
+        /// a whole turn, which is written as a CIRCLE, or is not one of finite numbers and some radius.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the arc is erased.</exception>
         public override void SetFromGeCurve(object geCurve)
         {
+            if (geCurve is GeoArc2 flat)
+            {
+                SetShape(flat);
+                return;
+            }
+
             if (!(geCurve is GeoArc3 arc))
             {
-                throw new ArgumentException("An arc takes a GeoArc3, and was given " + (geCurve == null ? "null" : "a " + geCurve.GetType().Name) + ".", nameof(geCurve));
+                throw new ArgumentException("An arc takes a GeoArc3 or a GeoArc2, and was given " + (geCurve == null ? "null" : "a " + geCurve.GetType().Name) + ".", nameof(geCurve));
             }
 
             SetShape(arc);

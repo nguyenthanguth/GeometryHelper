@@ -1181,17 +1181,57 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Gives the spline the degree, knots, control points and weights of a <see cref="GeoSpline3"/>, as AutoCAD's
-        /// <c>SetFromGeCurve</c>: its fit data taken out.
+        /// Gets the spline as the library's, as AutoCAD's <c>GetGeCurve</c> and the AutoCAD bridge's <c>ToGeoSpline3</c> give
+        /// it: the shape <see cref="DxfEntity.GetGeometry"/> gives, to the bit, of its degree, knots, weights and control points,
+        /// one whose knots are not clamped clamped by knot insertion, and one of fit points alone the cubic AutoCAD 2021 fits
+        /// through them. The cubic with the control points (0, 0, 0), (100, 150, 0), (200, 150, 0) and (300, 0, 0) is the
+        /// <see cref="GeoSpline3"/> of those points and the knots 0, 0, 0, 0, 1, 1, 1, 1.
         /// </summary>
-        /// <param name="geCurve">The spline, a <see cref="GeoSpline3"/>.</param>
-        /// <exception cref="ArgumentException">Thrown when the shape is not a <see cref="GeoSpline3"/>.</exception>
+        /// <returns>The spline, in world coordinates.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the reader reads no spline of the record (one it does not take,
+        /// or a number that is not finite), or the spline is erased.</exception>
+        public GeoSpline3 ToGeoSpline3() => ShapeAs<GeoSpline3>(nameof(ToGeoSpline3), false, Tolerance.Default);
+
+        /// <summary>
+        /// Gets the spline in the plane, as <see cref="DxfReader"/> reads it with <see cref="DxfReadOptions.PlanAs2D"/> within
+        /// the default tolerance: the cubic above is the <see cref="GeoSpline2"/> of the control points (0, 0), (100, 150),
+        /// (200, 150) and (300, 0). One with a control point at a height does not lie on the floor, and is refused.
+        /// </summary>
+        /// <returns>The spline in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the spline does not lie on the floor, the reader reads no spline
+        /// of the record, or it is erased.</exception>
+        public GeoSpline2 ToGeoSpline2() => ToGeoSpline2(Tolerance.Default);
+
+        /// <summary>
+        /// Gets the spline in the plane, as <see cref="ToGeoSpline2()"/> does, within a tolerance, which says which fit points
+        /// are one.
+        /// </summary>
+        /// <param name="tolerance">The tolerance, as <see cref="DxfReadOptions.Tolerance"/> reads it.</param>
+        /// <returns>The spline in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the spline does not lie on the floor, the reader reads no spline
+        /// of the record, or it is erased.</exception>
+        public GeoSpline2 ToGeoSpline2(Tolerance tolerance) => ShapeAs<GeoSpline2>(nameof(ToGeoSpline2), true, tolerance);
+
+        /// <summary>
+        /// Gives the spline the degree, knots, control points and weights of a <see cref="GeoSpline3"/>, as AutoCAD's
+        /// <c>SetFromGeCurve</c>: its fit data taken out. A <see cref="GeoSpline2"/> is written as <see cref="DxfWriter"/>
+        /// writes one, at z = 0, planar on the normal (0, 0, 1), flagged closed only where its ends are one point exactly, and
+        /// comes back from <see cref="ToGeoSpline2()"/> to the bit.
+        /// </summary>
+        /// <param name="geCurve">The spline, a <see cref="GeoSpline3"/> or a <see cref="GeoSpline2"/>.</param>
+        /// <exception cref="ArgumentException">Thrown when the shape is not a <see cref="GeoSpline3"/> or a <see cref="GeoSpline2"/>.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the spline is erased.</exception>
         public override void SetFromGeCurve(object geCurve)
         {
+            if (geCurve is GeoSpline2 flat)
+            {
+                SetShape(flat);
+                return;
+            }
+
             if (!(geCurve is GeoSpline3 spline))
             {
-                throw new ArgumentException("A spline takes a GeoSpline3, and was given " + (geCurve == null ? "null" : "a " + geCurve.GetType().Name) + ".", nameof(geCurve));
+                throw new ArgumentException("A spline takes a GeoSpline3 or a GeoSpline2, and was given " + (geCurve == null ? "null" : "a " + geCurve.GetType().Name) + ".", nameof(geCurve));
             }
 
             SetNurbsData(spline.Degree, spline.IsRational, Closed, false, spline.ControlPoints, spline.Knots, spline.Weights);

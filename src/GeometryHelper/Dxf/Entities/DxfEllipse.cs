@@ -682,19 +682,100 @@ namespace GeometryHelper.Dxf
             return pieces;
         }
 
-        /// <summary>Gives the ellipse the centre, normal, axes and radii of a whole <see cref="GeoEllipse3"/>, as AutoCAD's <c>SetFromGeCurve</c>, written as <see cref="DxfWriter"/> writes one.</summary>
-        /// <param name="geCurve">The ellipse, a <see cref="GeoEllipse3"/>.</param>
-        /// <exception cref="ArgumentException">Thrown when the shape is not a <see cref="GeoEllipse3"/>, or not one of finite numbers.</exception>
+        /// <summary>
+        /// Gets the whole ellipse as the library's, as AutoCAD's <c>GetGeCurve</c> and the AutoCAD bridge's <c>ToGeoEllipse3</c>
+        /// give it: the shape <see cref="DxfEntity.GetGeometry"/> gives, to the bit. The ellipse about (0, 0, 0) with the end
+        /// of its major axis at (60, 0, 0) and a ratio of 0.5 is the <see cref="GeoEllipse3"/> of radii 60 and 30. A part of
+        /// an ellipse is refused: <see cref="ToGeoSpline3"/> gives it, as the reader reads it, exactly.
+        /// </summary>
+        /// <returns>The ellipse, in world coordinates.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the ellipse is a part of one, has no major axis within the
+        /// default point tolerance, a number of its record is not finite, or it is erased.</exception>
+        public GeoEllipse3 ToGeoEllipse3() => ShapeAs<GeoEllipse3>(nameof(ToGeoEllipse3), false, Tolerance.Default, kind: NotWhole);
+
+        /// <summary>
+        /// Gets the whole ellipse in the plane, as <see cref="DxfReader"/> reads it with <see cref="DxfReadOptions.PlanAs2D"/>
+        /// within the default tolerance: the ellipse about (0, 0, 0) with the end of its major axis at (60, 0, 0) and a ratio of
+        /// 0.5 is the <see cref="GeoEllipse2"/> of radii 60 and 30 along x. One at a height, or on a normal other than (0, 0, 1)
+        /// and (0, 0, -1), does not lie on the floor, and is refused; so is a part of an ellipse, which
+        /// <see cref="ToGeoSpline2()"/> gives.
+        /// </summary>
+        /// <returns>The ellipse in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the ellipse does not lie on the floor, is a part of one, has
+        /// no major axis within the default point tolerance, a number of its record is not finite, or it is erased.</exception>
+        public GeoEllipse2 ToGeoEllipse2() => ToGeoEllipse2(Tolerance.Default);
+
+        /// <summary>
+        /// Gets the whole ellipse in the plane, as <see cref="ToGeoEllipse2()"/> does, within a tolerance, which says whether
+        /// its major axis has a length.
+        /// </summary>
+        /// <param name="tolerance">The tolerance, as <see cref="DxfReadOptions.Tolerance"/> reads it.</param>
+        /// <returns>The ellipse in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the ellipse does not lie on the floor, is a part of one, has
+        /// no major axis within the point tolerance, a number of its record is not finite, or it is erased.</exception>
+        public GeoEllipse2 ToGeoEllipse2(Tolerance tolerance) => ShapeAs<GeoEllipse2>(nameof(ToGeoEllipse2), true, tolerance, kind: NotWhole);
+
+        /// <summary>
+        /// Gets a part of an ellipse as the spline that is exactly that part, as <see cref="DxfEntity.GetGeometry"/> gives it,
+        /// to the bit: rational quadratic pieces of at most a quarter turn of its eccentric angle, so a quarter of the ellipse
+        /// 60 by 30 is a <see cref="GeoSpline3"/> of 3 control points. A whole ellipse is refused: <see cref="ToGeoEllipse3"/>
+        /// gives it, and <see cref="DxfCurve.Spline"/> the spline of a whole one.
+        /// </summary>
+        /// <returns>The spline, in world coordinates.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the ellipse is whole, has no major axis within the default
+        /// point tolerance, a number of its record is not finite, or it is erased.</exception>
+        public GeoSpline3 ToGeoSpline3() => ShapeAs<GeoSpline3>(nameof(ToGeoSpline3), false, Tolerance.Default, kind: NotPart);
+
+        /// <summary>
+        /// Gets a part of an ellipse in the plane as the spline that is exactly that part, as <see cref="DxfReader"/> reads it
+        /// with <see cref="DxfReadOptions.PlanAs2D"/> within the default tolerance, in the direction of the file. One that does
+        /// not lie on the floor is refused, and so is a whole ellipse, which <see cref="ToGeoEllipse2()"/> gives.
+        /// </summary>
+        /// <returns>The spline in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the ellipse does not lie on the floor, is whole, has no major
+        /// axis within the default point tolerance, a number of its record is not finite, or it is erased.</exception>
+        public GeoSpline2 ToGeoSpline2() => ToGeoSpline2(Tolerance.Default);
+
+        /// <summary>
+        /// Gets a part of an ellipse in the plane as the spline that is exactly that part, as <see cref="ToGeoSpline2()"/> does,
+        /// within a tolerance, which says whether its major axis has a length.
+        /// </summary>
+        /// <param name="tolerance">The tolerance, as <see cref="DxfReadOptions.Tolerance"/> reads it.</param>
+        /// <returns>The spline in the plane.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the ellipse does not lie on the floor, is whole, has no major
+        /// axis within the point tolerance, a number of its record is not finite, or it is erased.</exception>
+        public GeoSpline2 ToGeoSpline2(Tolerance tolerance) => ShapeAs<GeoSpline2>(nameof(ToGeoSpline2), true, tolerance, kind: NotPart);
+
+        /// <summary>
+        /// Gives the ellipse the centre, normal, axes and radii of a whole <see cref="GeoEllipse3"/>, as AutoCAD's
+        /// <c>SetFromGeCurve</c>, or of a <see cref="GeoEllipse2"/> at z = 0 on the normal (0, 0, 1), each written as
+        /// <see cref="DxfWriter"/> writes one.
+        /// </summary>
+        /// <param name="geCurve">The ellipse, a <see cref="GeoEllipse3"/> or a <see cref="GeoEllipse2"/>.</param>
+        /// <exception cref="ArgumentException">Thrown when the shape is not a <see cref="GeoEllipse3"/> or a <see cref="GeoEllipse2"/>,
+        /// or not one of finite numbers.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the ellipse is erased.</exception>
         public override void SetFromGeCurve(object geCurve)
         {
+            if (geCurve is GeoEllipse2 flat)
+            {
+                SetShape(flat);
+                return;
+            }
+
             if (!(geCurve is GeoEllipse3 ellipse))
             {
-                throw new ArgumentException("An ellipse takes a GeoEllipse3, and was given " + (geCurve == null ? "null" : "a " + geCurve.GetType().Name) + ".", nameof(geCurve));
+                throw new ArgumentException("An ellipse takes a GeoEllipse3 or a GeoEllipse2, and was given " + (geCurve == null ? "null" : "a " + geCurve.GetType().Name) + ".", nameof(geCurve));
             }
 
             SetShape(ellipse);
         }
+
+        /// <summary>Why the ellipse read is not a whole one.</summary>
+        private string NotWhole(object shape) => TypeAndHandle + " is a part of an ellipse, which a " + (shape is GeoSpline2 ? "GeoEllipse2" : "GeoEllipse3") + " is not: " + (shape is GeoSpline2 ? "ToGeoSpline2" : "ToGeoSpline3") + " gives it, exactly.";
+
+        /// <summary>Why the ellipse read is not a part of one.</summary>
+        private string NotPart(object shape) => TypeAndHandle + " is a whole ellipse, which " + (shape is GeoEllipse2 ? "ToGeoEllipse2" : "ToGeoEllipse3") + " gives; DxfCurve.Spline gives it as a spline.";
 
         /// <summary>
         /// Moves, turns, scales, mirrors or shears the ellipse, as AutoCAD's <c>TransformBy</c> does: as ezdxf transforms one,
