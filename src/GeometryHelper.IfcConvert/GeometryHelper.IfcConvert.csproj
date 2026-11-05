@@ -19,6 +19,10 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 13.10.0
+      - GeometryHelper.IfcConvert is released at 13.10.0 with GeometryHelper, whose DXF entities give their shapes
+        typed and take shapes of the plane back; nothing in IfcConvert changes.
+
       NEW IN 13.9.0
       - GeometryHelper.IfcConvert is released at 13.9.0 with GeometryHelper, which reads, moves, clips, copies and makes
         DXF images and wipeouts as AutoCAD 2021 does; nothing in IfcConvert changes.

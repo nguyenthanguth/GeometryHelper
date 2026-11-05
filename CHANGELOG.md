@@ -6,6 +6,16 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+## 13.10.0 (2026-11-05)
+
+A minor release: public members are added and none is removed or renamed in any of the four libraries. The DXF entities
+give their shapes typed, by the names the AutoCAD bridge gives its own (`DxfLine.ToGeoLine3()` where
+`(GeoLine3)line.GetGeCurve()` was cast), in space as `GetGeometry()` gives them and in the plane as `DxfReader` reads them
+with `PlanAs2D`, both to the bit; and `SetFromGeCurve` takes the shapes of the plane and, on the polylines, chains and
+loops, so that a shape read, changed in the library and written back keeps its place in the drawing. Checked in AutoCAD
+2021, which opened a drawing made with every new way of writing with AUDIT finding no error and read back every value as
+the library gives it. A drawing only read and saved is written as it was, to the byte.
+
 **NEW.** The entity classes give their shapes typed, by the names the AutoCAD bridge gives its own, so a reading of a DXF
 and an AutoCAD plugin make the same calls: `DxfLine.ToGeoLine3()` where `(GeoLine3)line.GetGeCurve()` was cast, and the
 same on `DxfCircle`, `DxfArc`, `DxfEllipse` (`ToGeoEllipse3` of a whole one, `ToGeoSpline3` of a part), `DxfRay`,

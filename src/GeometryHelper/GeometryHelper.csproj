@@ -14,33 +14,28 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement bin-packing sheet-layout cad autocad tekla bim drawing</PackageTags>
     <PackageReleaseNotes>
-      NEW IN 13.9.0
+      NEW IN 13.10.0
 
-      A minor release: public types and members added, none removed or renamed. A drawing only read and saved is
-      written as it was, to the byte.
+      A minor release: public members added, none removed or renamed. A drawing only read and saved is written as it
+      was, to the byte.
 
-      NEW, DXF: images and wipeouts
-      - IMAGE and WIPEOUT entities, read until now as DxfUnknownEntity and refused by TransformBy, are DxfRasterImage and
-        DxfWipeout, after AutoCAD's RasterImage and Wipeout, with DxfRasterImageDef (IMAGEDEF) and DxfRasterVariables
-        (RASTERVARIABLES). No pixel is read. An image is placed (Get/SetOrientation, Position, Width, Height, Rotation,
-        PixelToModelTransform), shown (DisplayOptions, ShowImage, ImageTransparency, Brightness, Contrast, Fade) and
-        clipped (IsClipped, IsClipInverted, GetClipBoundary, SetClipBoundary, GetVertices) as AutoCAD 2021 reads and
-        writes it: a picture of 4 by 3 pixels at (10, 20) with a pixel 10 across is 40 by 30. TransformBy takes any
-        transformation, Explode gives the lines of the frame or the boundary, GeometricExtents and GetGeometry follow
-        the boundary shown, and the header extents grow when one is appended or moved.
-      - Copies into another drawing bring one IMAGEDEF for all images, the CLASS rows AutoCAD needs, and raise a row
-        counted 0 (ezdxf R2010 and later) so that AutoCAD shows them; the inverted clip is left out before R2010.
-      - Made in code: new DxfRasterImageDef(path, size), CreateImageDictionary, SuggestName, DxfDBDictionary.SetAt,
-        new DxfRasterImage(definition), AssociateRasterDef, GetEntityCount, new DxfWipeout() and SetFrom; reactors,
-        variables and CLASS rows are made where a drawing has none. A name already taken is refused.
-      - A clip polygon not ending on its first corner to the bit, which AutoCAD 2021 shows as nothing (a wipeout) or
-        cannot open (an image), is written closed wherever the library writes it anew.
-      - Checked in AutoCAD 2021: every drawing made or edited opened with AUDIT finding no error, 55 579 numbers read
-        back within 7.1E-15, and AutoCAD's own saves read back the same.
+      NEW, DXF: shapes typed
+      - The entities give their shapes typed, by CadConvert's names: DxfLine.ToGeoLine3() and ToGeoLine2(), and the same
+        on DxfCircle, DxfArc, DxfEllipse (ToGeoEllipse of a whole one, ToGeoSpline of a part), DxfRay, DxfXline,
+        DxfSpline, DxfDBPoint, DxfLeader, DxfFace, DxfSolid, and the polylines (ToGeoPolyline, ToGeoPolylineArc,
+        ToGeoPolygon, ToGeoPolygonArc; the straight two on DxfPolyline3d).
+      - In space, the shape GetGeometry() gives, to the bit; in the plane, what DxfReader reads with PlanAs2D, to the
+        bit, an entity off the floor refused rather than its z dropped: the line from (0, 0, 0) to (100, 50, 0) is the
+        GeoLine2 from (0, 0) to (100, 50), and with a z of 5 at one end ToGeoLine2 refuses it.
+      - A polyline is given as the kind asked for: a loop joins the last vertex to the first, a chain of a closed one
+        runs back to its first vertex, a straight kind refuses an arc rather than cut it into chords.
 
-      CHANGED, DXF: results callers will see change
-      - An IMAGE or a WIPEOUT read from a file is a DxfRasterImage or a DxfWipeout, not a DxfUnknownEntity; it can be
-        moved, is taken by dynamic-block actions and by IntersectWith (its frame or boundary), and grows the extents.
+      NEW, DXF: the way back
+      - SetFromGeCurve takes the shapes of the plane (written at z 0 on the normal up), and the polylines take chains
+        and loops: within the point tolerance of the polyline's own plane on its own normal, so a mirrored polyline
+        stays mirrored; otherwise in their own plane; a chain on a line off that plane is refused, never flattened.
+      - The handle, layer, look and extended data are kept; a shape written as the current one leaves the record as it
+        is, widths and fitting and all.
 
       Details in CHANGELOG.md.
 
