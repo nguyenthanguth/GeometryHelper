@@ -11,7 +11,9 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 pages stay, each with a list of its pages; a bookmark to a section that moved lands on that list, by the link to the
 page the section is on now. A page "How do I" gives a task, the call that does it and the page that tells the rest; the
 AutoCAD patterns of the DXF model have a page of their own; and the first mention of each public type on a page links to
-its page of the API reference.
+its page of the API reference. Every page opens with what it is for, is cut into sections with headings (a bold lead that
+opened a paragraph is now a heading), and ends with "See also"; the blocks page is four, two of them on dynamic blocks,
+and combining bodies two. No guide page is over 500 lines.
 
 ## 13.11.0 (2026-11-07)
 
