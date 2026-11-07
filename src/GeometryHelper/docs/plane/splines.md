@@ -1,5 +1,8 @@
 # Splines
 
+NURBS curves of the plane (GeoSpline2): made four ways, exact to rounding, written to and read from DXF, and asked
+against every other shape.
+
 [`GeoSpline2`](xref:GeometryHelper.Geometry.GeoSpline2) is a curve that is one smooth sweep and not a chain of pieces: a NURBS, a B-spline whose control points may pull
 on it with different strengths, which is what the SPLINE of AutoCAD and the B-spline curves of IFC hold. It is given by its
 degree (1 to 10), its control points, its knots and, when it is rational, its weights. The curve is clamped, so it starts at its
@@ -24,7 +27,9 @@ circle.GetCurvatureAtParameter(0.3);        // 0.01, all the way round
 circle.DistanceTo(new GeoPoint2(160, 0));  // 60
 ```
 
-**The knots are kept as given.** A spline read from a file goes back out as it came: nothing is rescaled to [0, 1] or
+### The knots are kept as given
+
+A spline read from a file goes back out as it came: nothing is rescaled to [0, 1] or
 reordered, and the domain, `DomainStart` to `DomainEnd`, is whatever the knots say. Two kinds of parameter are told apart by name,
 as the other curves keep theirs. The members named for a **parameter** (`GetPointAtParameter`, `GetTangentAtParameter`,
 `GetCurvatureAtParameter`, `GetParameterAtPoint`, `GetDistanceAtParameter`, `Split`) take a share of the domain from 0 to 1, as
@@ -42,7 +47,9 @@ A closed spline is a clamped one whose first and last control points coincide, `
 join at the end. Asked about other shapes, one whose first and last control points are the same to the bit, as the closed flag of a DXF
 spline reads it, has no ends: its seam is a point of it like any other, where it comes in along its last span and goes on along its first.
 
-**It is made four ways.** `new GeoSpline2(degree, points, knots, weights)` takes the numbers. `FromControlPoints(degree, points)`
+### Making one
+
+`new GeoSpline2(degree, points, knots, weights)` takes the numbers. `FromControlPoints(degree, points)`
 spaces the knots evenly over [0, 1]: seven points of degree 3 have the knots 0, 0, 0, 0, 1/4, 1/2, 3/4, 1, 1, 1, 1.
 `Interpolate(fitPoints, degree = 3)` finds the curve through points, as AutoCAD's fit-point splines do, by global
 interpolation with chord-length parameters (Piegl and Tiller, 9.2.1): each point is met at the share of the chain's length
@@ -57,7 +64,9 @@ spline that is exactly the polyline, arc or circle: a circle is the nine control
 a quarter turn with the weights 1, 0.7071, 1, ..., and every point of it is at the radius to 4E-14 at a radius of 100, its last control point its first exactly, as for any whole turn; an arc of
 a hundred degrees is two pieces of fifty.
 
-**Everything is exact to rounding, nothing sampled.** The point at a parameter is de Boor's scheme in homogeneous coordinates, a
+### Exact to rounding
+
+The point at a parameter is de Boor's scheme in homogeneous coordinates, a
 weighted mean of the control points of the span (11.7 units of rounding, of 2.2E-16 times the size of the spline, at the worst of
 400 random splines of degrees up to 10 in the plane, checked against exact fractions). Derivatives to the tenth, the tangent
 and the curvature (signed in the plane, positive counter-clockwise; never negative in space) are those of the exact quotient,
@@ -73,7 +82,9 @@ by the speed times that). `Translate`, `TransformBy` and `PlanarMap.ToSpline3`/`
 is exact for every affine map: a circle scaled by 3 along X is the ellipse 300 by 100, all 400 points of it on it to 1E-12.
 A transformation that carries every control point to one point is refused.
 
-**Nearest point and distance.** `DistanceTo(point)`, `GetClosestPointOnBoundary`, `GetKnotAtPoint` (and `GetParameterAtPoint`, `GetDistanceAtPoint`), `GetShortestLineTo` and
+### Nearest point and distance
+
+`DistanceTo(point)`, `GetClosestPointOnBoundary`, `GetKnotAtPoint` (and `GetParameterAtPoint`, `GetDistanceAtPoint`), `GetShortestLineTo` and
 `IsPointOn` find the nearest point of the curve, which is a line and not a region, from either side to the bit
 (`point.DistanceTo(spline)`). On each Bézier span the distance stops falling where `(C(t) - q) . C'(t)` is nought, a polynomial
 in Bernstein form whose roots are all found by cutting in halves wherever its coefficients change sign twice or more, so a
@@ -95,7 +106,9 @@ A spline no longer than the point tolerance, which a chain would merge into one 
 part 0.000245 long that `Split(1E-6)` cuts off the fit through (0, 0), (30, 20), (60, -10), (100, 0) flattens to the chord from its start
 to its end, where it was refused. `Split` keeps such a part, exactly, as it keeps any other.
 
-**Writing, showing and reading.** `DxfWriter.Add(spline, layer)` writes a spline as the R2000 SPLINE entity AutoCAD reads: its degree, its
+### Writing, showing and reading
+
+`DxfWriter.Add(spline, layer)` writes a spline as the R2000 SPLINE entity AutoCAD reads: its degree, its
 knots, its weights where it is rational and its control points, at height nought, every number to the bit and no fit points, flagged
 closed only where its first and last control points are the same point exactly, rational where a weight is other than one, and planar with the extrusion (0, 0, 1).
 The arch above is a SPLINE of degree 3 with its 8 knots and 4 control points, and the extents of the drawing are its box, 300 by 112.5.
@@ -132,7 +145,9 @@ ring.GetShortestLineTo(square).Length;                                          
 arch.DistanceTo(arch + new GeoVector2(0, 20));                                             // 11.3359: the ends of the copy are nearer than 20
 ```
 
-**The rules are the other curves'.** A closed shape (a polygon, a rectangle, a triangle, a face, a circle, an ellipse, a curved loop)
+### The rules are the other curves'
+
+A closed shape (a polygon, a rectangle, a triangle, a face, a circle, an ellipse, a curved loop)
 is a region: a spline inside it, or in the material of a face, is nought from it, and one in a hole is the gap away from the hole's rim.
 The spline itself is a curve with no inside, so it has no `Contains` and no `SignedDistanceTo`. The distance is nought only where the two
 truly meet, a crossing or a touch found to rounding, and otherwise the gap, measured exactly: it never reads the tolerance, and a spline
@@ -142,7 +157,9 @@ splines, the same points bit for bit from either), and so is the shortest segmen
 length where they cross: the ring inside the square is nought from it and 50 from its outline. The place given is the point of the spline,
 which is the point of the shape too where they cross.
 
-**A place is a meeting or a least of the distance.** A crossing and a touch are found where the two meet, and a near touch and an end
+### A place is a meeting or a least of the distance
+
+A crossing and a touch are found where the two meet, and a near touch and an end
 that comes near where the distance of the spline from the shape is least within the point tolerance: the line 0.0005 over the top of
 the ring touches it at (0, 50) at the default tolerance and not at a tolerance of a ten-thousandth. A stationary point of the distance
 that is a greatest is not a place, nor is a point on a slope: a line 1E-6 inside the top of the ellipse of radii 100 and 50 meets its rim
@@ -170,7 +187,9 @@ that curves up too little to rise a snap a thousandth of the size of the spline 
 way, as in space: the cubic y = x³ / 100 turned by 0.7 of a radian a hundred thousand out was given its inflection, 0.0001 under the
 line y = 0.0001, besides the crossing at x = 0.21544, and is given the crossing alone.
 
-**Two crossings a hair apart.** Two curves that cross twice a hair apart run side by side between the crossings, and the nearest points of
+### Two crossings a hair apart
+
+Two curves that cross twice a hair apart run side by side between the crossings, and the nearest points of
 two straight parts there are the middle, a greatest of the distance, with no slope for Newton's method to go by; a crossing at a few
 millionths of a radian is as near as the digits tell for a long way either side of it. They are found by the offset of the one from the
 other along the normal, which changes sign where they cross and nowhere else: at a greatest the distance falls to nought either way
@@ -179,7 +198,9 @@ the last digit; and a part's ends are tried the same way. A line 40 or 4 000 lon
 0.004, 0.02, 0.1 or 1 meets the circle spline twice, at x = +-chord / 2, from either side, as it does the `GeoCircle2` (it met it once, or
 never, before), and the distance is nought.
 
-**Where the spline lies along the shape.** To rounding, along a segment, a ray, a line, a circle or an arc, a degree-one span along a
+### Where the spline lies along the shape
+
+To rounding, along a segment, a ray, a line, a circle or an arc, a degree-one span along a
 segment, a spline cut at a knot beside the whole, the spline of an arc beside the arc: it is nought from it and collides with it but
 crosses it nowhere, and no point is given along the stretch: the corner (0, 0), (100, 0), (100, 50) as a spline meets the segment from
 (-50, 0) to (150, 0) at (100, 0), where it leaves it, and its first span is not a crossing, as a polyline's is not. A spline and its own
@@ -245,7 +266,9 @@ tolerance and level all the way, and gives only the crossings that go more than 
 all in the first and last tenth of the fit. A touch is not level, its distance going from nought to the tolerance in a few units and past
 it, nor is a crossing at any angle a stretch of level distance of that length, so a tangent contact of curves of any curvature is a place.
 
-**How each is solved.** Against a segment, a ray or a line without ends, the signed offset of each Bézier span from the line is a
+### How each is solved
+
+Against a segment, a ray or a line without ends, the signed offset of each Bézier span from the line is a
 polynomial in Bernstein form, and the places the span crosses it are its roots, all of them found by cutting in halves wherever the
 coefficients change sign, to rounding; its critical points give the touches and the nearest approach, and the ends of the segment
 and of the spline are measured too. A ray or a line without ends is cut to the stretch the spline's hull can reach. Against a circle,
@@ -322,10 +345,17 @@ origin. A run of four times the draws, which the environment variable SPLINE_FUZ
 for a spline all on one line against an ellipse of size 700, where the hair was a hundred-millionth of the size; it is a billionth now,
 the run is clean, and that draw is a test of its own.
 
-**Not offered, and why.** `SignedDistanceTo`, `Contains` and `GetClosestEdge` (a spline has neither an inside nor edges), and a
+### Not offered, and why
+
+`SignedDistanceTo`, `Contains` and `GetClosestEdge` (a spline has neither an inside nor edges), and a
 `TryIntersectWith` that gives one point (a spline can meet a shape many times, so it gives the places as an array, as an arc does). A point
 asks the spline with `IsPointOn` and `DistanceTo`, as before. Shapes in space (`GeoSpline3` against a plane, a box, a body) follow with the
 spline in space.
 
 Not in this release, and why: an `Offset` (the offset of a spline is not a spline; it would be an approximation to a tolerance),
 splines as the edges of a [`GeoPolylineArc2`](xref:GeometryHelper.Geometry.GeoPolylineArc2) chain, periodic knot vectors, and surfaces.
+
+## See also
+
+- [Circles, ellipses, rays and infinite lines](curves.md).
+- [Ellipses and splines in space](../solid/curves.md).

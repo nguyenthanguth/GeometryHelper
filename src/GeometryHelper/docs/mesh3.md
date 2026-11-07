@@ -72,7 +72,9 @@ GeoMesh3 own = plate.ToMesh(MeshOptions.Grid(600, 400), MeshPlacement3.Own);   /
 
 ![A plate 2400 by 1200 lying askew: on the left its grid runs level, on the right along its own sides](images/mesh3/plate-own.svg)
 
-**An origin.** `At(origin)` puts a cell's first corner on a point of space, put onto the shape's plane along its normal,
+#### An origin
+
+`At(origin)` puts a cell's first corner on a point of space, put onto the shape's plane along its normal,
 and takes the place of the alignments. Walls laid from one origin have their rows at the same heights, and their columns
 where the origin's lines cross them:
 
@@ -167,7 +169,9 @@ GeoCellGrid3 grid = box.ToCells(CellOptions3.Grid(300, 300, 300));    // 16 cell
 
 ![A cylinder of 600 in cells of 300 by 300 by 500: 64 cells, the core 16 whole, the rim cut](images/mesh3/cylinder.svg)
 
-**Where the cells stand.** The [`GridAlignment`](xref:GeometryHelper.Meshing.GridAlignment) of the plane says where the cut cells go along each axis divided by size,
+#### Where the cells stand
+
+The [`GridAlignment`](xref:GeometryHelper.Meshing.GridAlignment) of the plane says where the cut cells go along each axis divided by size,
 measured between the body's furthest corners along it: `Start`, `End`, `CenterCell` or `CenterJoint`. A column poured in
 lifts of 1000 from its foot:
 
@@ -177,7 +181,9 @@ GeoCellGrid3 lifts = column.ToCells(CellOptions3.Layers(1000));   // 1000, 1000,
 
 ![A column 400 square and 3500 high in lifts of 1000](images/mesh3/lifts.svg)
 
-**Joints.** `joint` is the gap between two neighbouring cells along each axis divided, as the joints between blocks.
+#### Joints
+
+`joint` is the gap between two neighbouring cells along each axis divided, as the joints between blocks.
 There is no gap at the body's boundary, where the cells are cut to it. Blocks of 390 by 190 with joints of 10:
 
 ```csharp
@@ -215,7 +221,9 @@ GeoCellGrid3 world = wall.ToCells(CellOptions3.Grid(1000, 0, 1000));            
 
 ### Pieces, snapping and joints
 
-**Pieces.** A cell the body holds in several pieces, as the cell across the notch of a U holds two, comes as one [`GeoCell3`](xref:GeometryHelper.Meshing.GeoCell3)
+#### Pieces
+
+A cell the body holds in several pieces, as the cell across the notch of a U holds two, comes as one [`GeoCell3`](xref:GeometryHelper.Meshing.GeoCell3)
 a piece, with the same indexes, `Piece` telling them apart, numbered up Z, along Y and along X by their middles. Two pieces
 of one cell never share a face; `GetAdjacentCells` gives the cells that do, found where their material meets across the
 planes between them rather than by their indexes, and none where joints stand between. Two cells a place apart across
@@ -227,7 +235,9 @@ in space, cut into twelve cells, gave 25 pairs of neighbours, the cells a place 
 
 ![A U cut into two rows: the row over the arms holds two pieces, each a cell of its own](images/mesh3/u-pieces.svg)
 
-**Snapping.** Each cut is settled against the part of the body it cuts, in turn. One that would take off no more than the
+#### Snapping
+
+Each cut is settled against the part of the body it cuts, in turn. One that would take off no more than the
 snap distance from a side of the part, or four point tolerances however small the snap distance is, is not made: the slice
 stays with the cell beside, so that no cell is cut thinner than the snap distance where the body leaves room. A part that
 thin both ways, as a plate thinner than the snap distance lying across a line of cells, goes whole to the side holding
@@ -244,10 +254,14 @@ GeoCellGrid3 cells = footing.ToCells(options);   // the step 30 past a line of c
 
 ![An L-shaped footing whose step stands 30 past a line of cells: with the point tolerance the slice 30 thick is a cell of its own, on the left; with a snap distance of 50 it goes with the cell beside, on the right](images/mesh3/snap.svg)
 
-**Joints and snapping.** With a joint the cuts bound the joints, and are snapped, and slices left on, within the point
+#### Joints and snapping
+
+With a joint the cuts bound the joints, and are snapped, and slices left on, within the point
 tolerance only, so that no cell is carried into a joint.
 
-**A cut that cannot be made.** The point of a needle past a plane, a part thinner across than the point tolerance where
+#### A cut that cannot be made
+
+The point of a needle past a plane, a part thinner across than the point tolerance where
 the plane meets it, stays with the cell that holds the rest of it. A cut the body will not take, which a closed body
 should not give, leaves the part whole in the cell its middle stands in, or in the cell beside where the other side is a
 joint or past the last cell, so that nothing is lost, and says so in [`GeometryHelperLog`](xref:GeometryHelper.GeometryHelperLog).
@@ -287,3 +301,8 @@ box, built as a body only when its `Solid` is asked for.
   inwards, as a mirror leaves one, is read the right way out, and its cells are wound outwards.
 - The bodies are cut by planes, along X first, then each slab along Y and each bar along Z, on every processor unless
   `maxDegreeOfParallelism` says otherwise; the cells come out the same on one thread as on many.
+
+## See also
+
+- [Meshing the plane](mesh.md).
+- [Closing, making, weighing and merging](solid/making.md).

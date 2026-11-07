@@ -177,3 +177,8 @@ and with both options set six, filled 65.8 %:
 - Every box that fits the usable area of a sheet is placed: when one sheet is full, the next is begun.
 - A box is only moved: `ViewBox` is the box given, moved by `Translation`.
 - The same boxes and options give the same result; the boxes, the sheet and the options are only read.
+
+## See also
+
+- [Label placement](arrange.md).
+- [Geometry in the plane](plane.md).

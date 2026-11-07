@@ -1,5 +1,7 @@
 # Circles, ellipses, rays and infinite lines
 
+Circles, ellipses, rays and infinite lines of the plane: as polygons, in a local frame, and against the other shapes.
+
 ## Circles as polygons
 
 A circle can be cut into straight pieces three ways, and each answers a different question.
@@ -121,7 +123,9 @@ to a point takes about a third of one. `Contains` for another ellipse searches t
 quick reading leaves it in doubt, and so does the touch between two ellipses, which is looked for in the
 gap itself only where the rims come near enough to touch.
 
-**Exact only to about 1E-6 near tangency.** Whether two shapes overlap is decided from the sign of an equation that is
+### Exact only to about 1E-6 near tangency
+
+Whether two shapes overlap is decided from the sign of an equation that is
 rounding where they only just touch, so a gap or a crossing smaller than about 1E-6 can be misread. Two ellipses are the
 main case: of 400 000 readings of pairs placed up to 1 apart, 240 were off and every one was at 1E-6 or less, and two
 ellipses 1000 by 1 placed 1E-9 apart sometimes read 0. A small arc against a very thin ellipse is the other: an arc of
@@ -263,3 +267,9 @@ refused by all of them with an `ArgumentException`, and a length that is negativ
 `ArgumentOutOfRangeException`. The viewer (`tools/GeometryHelper.Viewer`) draws a `GeoXLine2` through the box of the scene with a dot at
 its origin, gives its origin and direction among its properties, picks it and snaps to the nearest point of it, and reads an XLINE of a
 DXF file back as the line in space.
+
+## See also
+
+- [Arcs](arcs.md).
+- [Splines](splines.md).
+- [Ellipses and splines in space](../solid/curves.md).

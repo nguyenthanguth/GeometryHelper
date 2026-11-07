@@ -1,5 +1,7 @@
 # Geometric Types
 
+The shapes of space, from points to bodies: their types, flatness, the two kinds of box, and solids with openings.
+
 The shapes split into three families, and which family a shape belongs to decides what you can ask of it:
 
 | Family | Types | Encloses an area | Encloses a volume |
@@ -243,7 +245,9 @@ check.Issues;      // four OpenEdge stretches round the rim of the gap, each 10 
 check.Issues[0];   // SolidIssue3[OpenEdge 10 long at (5, 10, 10), face 2; 1 one way, 0 the other]
 ```
 
-**Every question takes the openings into account.** The faces of a pierced body run straight across its
+### Every question takes the openings into account
+
+The faces of a pierced body run straight across its
 openings — a plate's top face is a whole square even where a bolt hole passes through it — so nothing reads
 the faces alone as where the material ends. A pin through a bolt hole touches nothing, a ray down the hole
 crosses nothing, and a point in the hole is measured to its walls:
@@ -318,3 +322,9 @@ corners are read within rounding now, so the wall is its 75.0075 and the plate h
 left with a needle of a face, every ear of it blocked by corners within rounding of its sides, the face is cut into
 strips too, where the needle was dropped: a plate 81.43 by 17.44 with a hole 0.0000016 above its bottom lost 0.000066 at
 a millionth.
+
+## See also
+
+- [Asking a body](asking.md).
+- [Asking every shape](shapes.md).
+- [How do I](../howto.md).

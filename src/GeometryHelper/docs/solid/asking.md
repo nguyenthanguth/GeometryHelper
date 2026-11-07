@@ -1,5 +1,8 @@
 # Asking a body
 
+The questions a body answers about what is around it: where a point stands, what a segment crosses, how deep inside,
+and a body asked many questions at once.
+
 ## Operations
 
 | Class | Answers |
@@ -299,3 +302,8 @@ foreach (GeoSolid3 bolt in bolts)
 `Material` is the body with its openings cut in, `Surface` the mesh and `Index` the tree over it, for whatever
 the prepared body does not ask itself. Preparing costs a cut of every opening and a sort of the mesh, so it
 pays from the second question on; a body asked one thing is quicker asked directly.
+
+## See also
+
+- [Asking every shape](shapes.md).
+- [Combining bodies](booleans.md).

@@ -1,5 +1,7 @@
 # Infinite lines and balls
 
+Infinite lines (GeoXLine3) and balls (GeoSphere3) of space, and what each is asked.
+
 ## Infinite lines
 
 [`GeoXLine3`](xref:GeometryHelper.Geometry.GeoXLine3) is a line that runs both ways for ever: a point on it and a direction of unit length, the space
@@ -39,7 +41,9 @@ line answers as that segment does, and shares its faults: an ellipse reads the p
 plane, so a line that passes its rim at 0.0009 at a slant, within the tolerance of a thousandth, may not be seen to touch
 it, whatever the length of the segment.
 
-**Two lines in space are skew unless they happen to meet.** They are as far apart as the common perpendicular between
+### Two lines in space are skew unless they happen to meet
+
+They are as far apart as the common perpendicular between
 them is long: the line through the origin along X and the one through (0, 0, 30) along Y are 30 apart, as is the one through
 (0, 0, 30) along -X, whichever way it runs, and nought where they cross. The perpendicular is worked out to a rounding of its
 own, each component of the cross product of the directions as the difference of two products taken exactly, so that two
@@ -119,7 +123,9 @@ ball.TryGetIntersectionCircle(new GeoPlane3(new GeoPoint3(0, 0, 30), GeoVector3.
 GeoSolid3 mesh = ball.ToSolid(0.01);               // 30 420 triangles, none further than 0.01 from the sphere
 ```
 
-**It is asked what a ray is asked, and more.** A ball is a point grown by its radius, so its gap to any shape is the distance
+### It is asked what a ray is asked, and more
+
+A ball is a point grown by its radius, so its gap to any shape is the distance
 from its centre to that shape less the radius, and nought where the shape reaches into it. The shape's own distance to a point
 does the measuring, so every shape is read as it reads a point: a point, a curve and a plane as they are, a polygon, a triangle and
 a face as filled surfaces (a hole is not material: a ball of radius 30 about (5, 0, 0) is 5 from the square 200 by 200 with a hole 80 by
@@ -160,7 +166,9 @@ side (for two balls halfway between the surfaces on the line of centres, so with
 tolerance, so shells that cross within it of each other, or a plane that cuts less than it deep, touch at a point though the true circle can be a few units across: sqrt(2 R tol), 4.5 for a radius R of 10 000; balls on one centre share the whole surface or none of it, and give neither. Asked from either ball the
 circle is the same to the bit but for the sign of its normal.
 
-**Meshing.** `ToSolid(chordTolerance)` is a closed body of triangles facing outwards and `TriangulateSurface(chordTolerance)` its triangles: an
+### Meshing
+
+`ToSolid(chordTolerance)` is a closed body of triangles facing outwards and `TriangulateSurface(chordTolerance)` its triangles: an
 icosahedron of twenty triangles, each cut into n by n by lines parallel to its sides, with every corner pushed out onto the sphere and the least n
 for which no triangle strays further than the tolerance from it. A ball of radius 50 within 0.1 is 20 by 13 by 13, 3 380 triangles, and within 0.01
 20 by 39 by 39, 30 420, which hold 0.036 % less than `Volume`, as the corners lie on the sphere and the body inside it. A tolerance that needs more
@@ -168,7 +176,9 @@ than 1 048 576 triangles is refused, as it is for the chords of a circle: radius
 cut within 5.7E-6 and not 5E-6. A tolerance of nought picks 0.2 % of the radius. A default ball is refused, and one of a radius below about 0.01 has triangles thinner than the point tolerance and may mesh into a body the library calls open at the default tolerance. A corner shared by two triangles is the same to the bit in both, so the
 body is closed with no weld. A ball goes into a clash as `ball.ToSolid(0.01)`, which is as exact as the tolerance.
 
-**Writing, showing and reading from IFC.** [`ObjWriter`](xref:GeometryHelper.Export.ObjWriter), [`DxfWriter`](xref:GeometryHelper.Dxf.DxfWriter) and [`Wkt`](xref:GeometryHelper.Export.Wkt) take a ball with a chord tolerance and write the triangles of
+### Writing, showing and reading from IFC
+
+[`ObjWriter`](xref:GeometryHelper.Export.ObjWriter), [`DxfWriter`](xref:GeometryHelper.Dxf.DxfWriter) and [`Wkt`](xref:GeometryHelper.Export.Wkt) take a ball with a chord tolerance and write the triangles of
 `TriangulateSurface(chordTolerance)`, as they write a body: the ball of radius 50 within 0.1 is 3 380 triangles in each (a 3DFACE apiece in DXF, a
 `POLYHEDRALSURFACE Z` in WKT), the tolerance a finite number above nought and one that needs more than 1 048 576 triangles refused; see
 [Common](../common.md) for the writers. The viewer shows a ball as that mesh cut at its chord tolerance (a tenth of the point tolerance of the scene) in
@@ -181,3 +191,8 @@ instead, 3 808 800 triangles, and the scene is warned of it once. From an IFC fi
 root of an `IfcCsgSolid` among them, or in a mapped item (placed by the mapping, a uniform scale of it scaling the ball), with its position and radius as the
 file gives them, where `GetSolids` gives the same ball as the engine's mesh, 1.2 % under its volume for a radius of 0.5 m. An element that openings cut
 gives no ball when `ApplyVoids` is set, a ball with a void in it not being a ball.
+
+## See also
+
+- [Asking every shape](shapes.md).
+- [Infinite lines in the plane](../plane/curves.md#infinite-lines).

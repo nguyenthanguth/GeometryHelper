@@ -32,6 +32,8 @@
       href: solid/splitting.md
     - name: Combining bodies
       href: solid/booleans.md
+    - name: "Combining bodies: far out, openings and touching"
+      href: solid/booleans-more.md
     - name: Closing, making, weighing and merging
       href: solid/making.md
     - name: Arcs in space

@@ -1,5 +1,8 @@
 # Extending, offsetting and combining
 
+The drafting operations of the plane: extending and trimming lines, offsetting curves and regions, combining regions,
+cutting and rounding corners, hulls.
+
 ## Extending and trimming
 
 [`Lengthen2`](xref:GeometryHelper.Core.Lengthen2) changes how long a segment is while keeping it on its own line, as AutoCAD's LENGTHEN, EXTEND and TRIM do. A segment has no picked point to say which end is meant, so each method takes a [`LineEnd`](xref:GeometryHelper.Enums.LineEnd); the other end never moves, and the segment never turns round.
@@ -25,7 +28,9 @@ new GeoLine2(0, 0, 1, 1).TryIntersectWith(new GeoLine2(10, 0, 11, -1), LineExten
 
 `TryExtendTo` only ever lengthens: the end runs outward to the nearest place the line meets the boundary, which can be a point (the foot of the perpendicular), a segment, a polyline, a polygon, a circle or a rectangle. `TryTrimTo` only ever shortens, back to the nearest crossing still within the segment. An end already on the boundary, within tolerance, satisfies both and is left there, so `line.TryExtendTo(b, end, out fit) || line.TryTrimTo(b, end, out fit)` fits an end to a boundary whichever side of it the end starts on. A boundary segment counts only where it is drawn, as with AutoCAD's default EDGEMODE; to reach the line carrying it, intersect with `LineExtension.Both` and extend to that point.
 
-**Arcs, chains and edges.** A segment is not the only thing that can be lengthened. An arc is lengthened
+### Arcs, chains and edges
+
+A segment is not the only thing that can be lengthened. An arc is lengthened
 **along itself** — the centre and the radius stay, the sweep grows, and the distance asked for is arc
 length and not chord, which is the only reading that leaves the curve where it was. A chain is lengthened
 by its **end leg**, along that leg, so every other leg and bend survives.
@@ -83,7 +88,9 @@ The corners that open up on the outside of a turn are closed by the join, the th
 
 [`OffsetOptions`](xref:GeometryHelper.OffsetOptions) sets the rest: `MiterLimit` (default 10) cuts a sharp corner off square once it would reach that many distances from its vertex, and `ArcTolerance` bounds the gap between a round corner's chords and the true arc (by default 0.2 % of the distance).
 
-**What comes back.** The offset of a region is exact, not the edges moved one by one, so a polygon does not always give one polygon back. `polygon.Offset` returns the boundary loops of the result: a shrinking polygon that pinches off gives one per piece, one that shrinks past its own width gives none, and a growing polygon that closes a gap around empty space gives that space as a hole, wound the other way so that signed areas add up. `face.Offset` on a [`GeoFace2`](xref:GeometryHelper.Geometry.GeoFace2) returns faces with their holes attached, and its holes shrink as the boundary grows. A polyline's parallel curve has the loops a tight turn would make cut away, and comes back in pieces when a turn cuts it clean through. A [`GeoPolyline2`](xref:GeometryHelper.Geometry.GeoPolyline2) gives the edge of the band it sweeps sideways, so a strip that crosses another leg of the polyline stays; a curved chain, offset as a [`GeoPolylineArc2`](xref:GeometryHelper.Geometry.GeoPolylineArc2), keeps only what stands exactly the distance from it. At a turn on the inside sharper than a right angle, the stretch of a moved segment that runs on past the other leg goes with the loop. Where the band's edge lies along another part of the polyline, within the tolerance, it is the polyline itself and goes too: the step (0, 0), (10, 0), (10, 1), (−5, 1) offset by 1 gives only (0, 0) to (−5, 0). Pieces come in order by where most of each lies. [`GeoCircle2`](xref:GeometryHelper.Geometry.GeoCircle2) and [`GeoRectangle2`](xref:GeometryHelper.Geometry.GeoRectangle2) offer `TryOffset`, which keeps them what they are.
+### What comes back
+
+The offset of a region is exact, not the edges moved one by one, so a polygon does not always give one polygon back. `polygon.Offset` returns the boundary loops of the result: a shrinking polygon that pinches off gives one per piece, one that shrinks past its own width gives none, and a growing polygon that closes a gap around empty space gives that space as a hole, wound the other way so that signed areas add up. `face.Offset` on a [`GeoFace2`](xref:GeometryHelper.Geometry.GeoFace2) returns faces with their holes attached, and its holes shrink as the boundary grows. A polyline's parallel curve has the loops a tight turn would make cut away, and comes back in pieces when a turn cuts it clean through. A [`GeoPolyline2`](xref:GeometryHelper.Geometry.GeoPolyline2) gives the edge of the band it sweeps sideways, so a strip that crosses another leg of the polyline stays; a curved chain, offset as a [`GeoPolylineArc2`](xref:GeometryHelper.Geometry.GeoPolylineArc2), keeps only what stands exactly the distance from it. At a turn on the inside sharper than a right angle, the stretch of a moved segment that runs on past the other leg goes with the loop. Where the band's edge lies along another part of the polyline, within the tolerance, it is the polyline itself and goes too: the step (0, 0), (10, 0), (10, 1), (−5, 1) offset by 1 gives only (0, 0) to (−5, 0). Pieces come in order by where most of each lies. [`GeoCircle2`](xref:GeometryHelper.Geometry.GeoCircle2) and [`GeoRectangle2`](xref:GeometryHelper.Geometry.GeoRectangle2) offer `TryOffset`, which keeps them what they are.
 
 ## Combining regions
 
@@ -146,7 +153,9 @@ A corner that was cut becomes two vertices, so a rectangle chamfered at every co
 octagon. The two distances follow the way the shape runs, so reversing a polygon swaps them. Rounding a
 corner into an arc instead is [Fillet](#rounding-corners), which needs a shape that can hold one.
 
-**Corners that are left alone.** A cut has to fit on the edges it is measured along, and neighbouring
+### Corners that are left alone
+
+A cut has to fit on the edges it is measured along, and neighbouring
 corners eat into the edge between them:
 
 | Left alone when | Why |
@@ -166,7 +175,9 @@ by 0.0003 has six corners, where they were put back together within the global t
 ends of each cut were one corner, and the chain turned at (9.9997, 0) alone and the triangle came back three. Within a
 tenth, the chain cut by 0.03 turns once, at (9.97, 0), where its cut 0.042 long was kept.
 
-**Rounding them instead.** A straight chain or a straight polygon can be rounded as well as chamfered. A
+### Rounding them instead
+
+A straight chain or a straight polygon can be rounded as well as chamfered. A
 rounded corner is an arc, so the answer is the curved type — `GeoPolylineArc2` for a chain,
 `GeoPolygonArc2` for a loop — and the rules for which corners are left alone are the chamfer's.
 
@@ -223,7 +234,9 @@ rounded.Flatten();                                                 // back to a 
 A filleted corner becomes an arc between two shortened edges, so a rectangle filleted at every corner
 comes back eight edges: four sides and four quarter turns.
 
-**One radius per corner.** `Fillet` also takes a list, read the way `GetBulgeAt` is read: the entry at an
+### One radius per corner
+
+`Fillet` also takes a list, read the way `GetBulgeAt` is read: the entry at an
 index belongs to the vertex at that index, and a zero leaves that corner alone.
 
 ```csharp
@@ -284,3 +297,9 @@ A side shorter than a hundredth of a millimetre is a side to round beside like a
 by 10 at the origin with its corner (0, 0) cut off by a side 0.000007 long is rounded by 0.00001 at (0.000005, 0), where
 the side had no direction within the global vector tolerance of 1E-5, no circle was found touching it, and the corner
 was left alone.
+
+## See also
+
+- [Geometric types](types.md).
+- [Arcs](arcs.md): offsetting chains that curve.
+- [Meshing the plane](../mesh.md).

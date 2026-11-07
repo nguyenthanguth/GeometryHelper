@@ -20,7 +20,9 @@ compares coordinates with `==`.
 | `EqualAngleRad` | 1° | Angular difference for parallel and perpendicular tests. |
 | `EqualPlanar` | `1E-3` | Distance from a plane below which a point counts as lying on it. |
 
-**Use the defaults.** They suit a model in millimetres: a thousandth of a millimetre for points and for
+### Use the defaults
+
+They suit a model in millimetres: a thousandth of a millimetre for points and for
 flatness alike, so a point that is one with another is on every plane that other is on. That is as fine as
 the corners of a modelled part are exact to. Two parts a hundredth apart are apart, and a thin overlap holds
 what it holds: of 218 pairs of slabs from a Tekla model that share material, the common part came out within
@@ -76,7 +78,9 @@ Only the solid half of the library uses it. A boolean cuts and glues within a pl
 wider than `EqualPoint`, so that the glue closes whatever a cut leaves: given a wider `EqualPlanar`,
 it first splits a face that is flat only to that into triangles on its own corners.
 
-**Whether two things cross is not a question of angle.** `EqualAngleRad` answers `IsParallelTo` and
+### Whether two things cross is not a question of angle
+
+`EqualAngleRad` answers `IsParallelTo` and
 `IsPerpendicularTo`, which are about directions. Where two members cross is a point, and two members
 are parallel for that purpose only when they draw apart by less than `EqualPoint` along the longer of
 them; a flat shape meets a plane wherever it stands off it by more than `EqualPlanar`. So two

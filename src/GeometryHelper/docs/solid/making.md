@@ -1,5 +1,7 @@
 # Closing, making, weighing and merging
 
+Closing a body that is open, making bodies, weighing and cutting them, fitting boxes and hulls, and merging faces.
+
 ## Closing an open solid
 
 A body read out of a model can come in open: two faces meeting on copies of an edge a few thousandths apart, a
@@ -28,13 +30,17 @@ else
 part.TryClose(out closed, Tolerance.Default, 0.01);   // welds within the gap, and fills no hole
 ```
 
-**The gap has to be given.** `MaxGap` is how far apart the corners across a gap may stand and still be made one, and
+### The gap has to be given
+
+`MaxGap` is how far apart the corners across a gap may stand and still be made one, and
 how far a corner may stand off an edge and still be put on it. It is a question of how the body was made, not of the
 tolerance it is judged within: a boolean cut within a hundredth closes within a hundredth, so read within the default
 thousandth it can be open by copies of an edge up to a hundredth apart, which a gap of a hundredth reaches. A face left
 out is another matter, which no weld closes.
 
-**Nothing is filled unless asked.** `MaxHoleArea`, the most a hole may enclose and still be filled, is nought by
+### Nothing is filled unless asked
+
+`MaxHoleArea`, the most a hole may enclose and still be filled, is nought by
 default, and `double.PositiveInfinity` fills any. `MaxOffFlat`, how far out of flat a hole may stand and still be filled
 by triangles, is nought by default too, so that only holes flat within the planar tolerance are filled. `Fill` says
 which holes are: `FillStrategy.WhenUnambiguous`, the default, only those that can be filled one way as far as the
@@ -109,7 +115,9 @@ wide missing along the top of a box is too wide for a gap of 0.005, and closed b
 `MaxHoleArea` is at least 0.6. The reason given for a body not closed is that of the first step that could not go on,
 where none after it closed the body either.
 
-**What it refuses, and why.** `Failure` says, and `FailureLocation` is a point at the trouble:
+### What it refuses, and why
+
+`Failure` says, and `FailureLocation` is a point at the trouble:
 
 | [`ClosingFailure`](xref:GeometryHelper.Enums.ClosingFailure) | |
 |---|---|
@@ -138,7 +146,9 @@ open.TryClose(out GeoSolid3 whole, leastArea, out SolidClosing3 filled);
 // filled.Repairs: one Fill of 20; whole.GetVolume() is 10
 ```
 
-**Reading the report.** `Repairs` lists each change in the order it was made, a [`SolidRepair3`](xref:GeometryHelper.SolidRepair3) of a [`SolidRepairKind`](xref:GeometryHelper.Enums.SolidRepairKind)
+### Reading the report
+
+`Repairs` lists each change in the order it was made, a [`SolidRepair3`](xref:GeometryHelper.SolidRepair3) of a [`SolidRepairKind`](xref:GeometryHelper.Enums.SolidRepairKind)
 whose `Size` is the kind's: a `Drop` of the area dropped, a `Flip` of the area turned over, a `Weld` of the furthest a
 corner of the group moved, a `SplitEdge` of how far the corner stood off the edge, and a `Fill`, one per hole, of the
 area added across it, its `Location` the middle of the faces added. `AddedArea` is the area of the faces added.
@@ -149,7 +159,9 @@ by no more than the gap times the area they touched. A body not closed reports n
 nought moved, with the reason and the point. The openings of the body are carried to the result as they are, the same
 instances.
 
-**On real parts.** The 1 989 parts of a Tekla model, each valid as read, were damaged five ways and closed within a gap
+### On real parts
+
+The 1 989 parts of a Tekla model, each valid as read, were damaged five ways and closed within a gap
 of 0.005, holes of any size filled and up to 0.01 out of flat: 9 736 bodies of the 9 945 closed, each valid and none
 further from the part's volume as read than 13 parts in a million, in 0.8 milliseconds as a median. With its largest
 face left out a part closed 98.6 % of the time, with a face at random 99.9 %, with every face on copies of its corners
@@ -206,7 +218,9 @@ Like every other question, both read the material: a bolt hole comes out of the 
 and is a hole in the section. A section is one face per region the plane cuts, facing along the plane's normal;
 a plane that misses the body, or only lies along one of its faces, gives none.
 
-**Reading the faces more than one way.** [`Measure3`](xref:GeometryHelper.Core.Measure3) measures a body by the method asked, and every method side by side:
+### Reading the faces more than one way
+
+[`Measure3`](xref:GeometryHelper.Core.Measure3) measures a body by the method asked, and every method side by side:
 
 ```csharp
 double net    = Measure3.Volume(plate, VolumeMethod.Surface);        // the material, openings cut in
@@ -316,3 +330,8 @@ thinner than the tolerance keeps its area: its two long sides are within the tol
 face beside it shares one of them exactly. A side 2 000 by 300 cut by a line from one bottom corner to 0.0011
 over the other, and across by four more, merges back into the one face of 600 000 square millimetres it was,
 where it came out 0.53 short.
+
+## See also
+
+- [Combining bodies](booleans.md).
+- [Meshing in space](../mesh3.md).

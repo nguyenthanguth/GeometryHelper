@@ -1,5 +1,8 @@
 # Arcs in space
 
+Arcs and the chains that curve in space (GeoArc3, GeoEdge3, GeoPolylineArc3, GeoPolygonArc3): bars bent at every
+corner, loops that lie flat, cutting to a schedule, and what is exact.
+
 A [`GeoPolyline3`](xref:GeometryHelper.Geometry.GeoPolyline3) is straight by definition, so a chain that curves is its own type, exactly as it is in the
 plane. [`GeoEdge3`](xref:GeometryHelper.Geometry.GeoEdge3) is one piece of it, and it carries the one thing space needs that the plane does not:
 
@@ -252,7 +255,9 @@ stirrup.GetClosestEdge(point);             // which edge that was
 stirrup.GetShortestLineTo(coplanarPlate);  // to a shape in the same plane
 ```
 
-**A point needs no coplanarity and every other shape does.** That is not a compromise: a point off the
+### A point needs no coplanarity and every other shape does
+
+That is not a compromise: a point off the
 plane stands at the same height above every point of the boundary, so the nearest place to it is the
 nearest place to its shadow, and the answer is exact. Two shapes in different planes have no such
 shortcut, so they are refused. The plane is read within the planar tolerance, so at a tolerance of nought a shape is
@@ -325,3 +330,8 @@ radius 100 about the origin in the plan and an arc of radius 50 leaning 0.01 rad
 0.0005 above (0, 100, 0) and running square to the first there, touch at (0, 100, 0.00025), and 0.0011 above, not at
 all. Of 2 000 pairs of circles drawn to pass within 0.0012 of each other at tilts up to a radian, 1 034 collided and
 were given no place, and of arcs cut from them 288; none is now. Two arcs of one circle still name no place.
+
+## See also
+
+- [Arcs in the plane](../plane/arcs.md).
+- [Clashes and large meshes](clash.md): bars by their centre line.

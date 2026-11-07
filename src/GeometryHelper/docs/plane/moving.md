@@ -1,5 +1,8 @@
 # Moving and asking
 
+Moving shapes of the plane (translations, turns, scales, mirrors, frames), asking where a point is, and the chains of
+points.
+
 ## Moving geometry
 
 [`GeoTransform2`](xref:GeometryHelper.Geometry.GeoTransform2) is a 3x3 homogeneous matrix covering translation, rotation, scaling and mirroring, the
@@ -50,7 +53,9 @@ A chain, a polygon or a face goes into a frame in space and comes out of one sid
 `ToPolygon3`, `ToFace3` and the `ProjectTo…2` of space: a chain with a step of 0.0004 keeps the step, and only a side
 seen end-on, along the Z axis of the frame, goes ([Between the plane and space](../solid/frames.md#between-the-plane-and-space)).
 
-**What a transformation cannot do.** A circle stays a circle only when every direction is stretched by the
+### What a transformation cannot do
+
+A circle stays a circle only when every direction is stretched by the
 same amount: when the two axes come out so nearly equally long and square to each other that the circle moved lands
 within the global point tolerance of where the transformation puts each of its points, as a ball in space is read. A turn
 whose numbers are rounded to six places or to a float on their own keeps the two axes alike to the last digit and moves
@@ -87,7 +92,9 @@ and is refused under a skew as the circle is, and so, with an `ArgumentException
 the skew brings within the global point tolerance of each other. Under a transformation that carries a circle without
 being an exact turn, a turn whose numbers are rounded to six places, such an arc is moved whole as the whole turn is.
 
-**Mirroring turns shapes round.** A polygon that ran counter-clockwise comes back clockwise, its
+### Mirroring turns shapes round
+
+A polygon that ran counter-clockwise comes back clockwise, its
 `SignedArea` changes sign and its `Area` does not. `GetDeterminant` says so in advance: it is the factor
 areas are multiplied by, negative when the transformation reverses winding.
 
@@ -167,3 +174,8 @@ of the one kept before it is dropped like any other, so re-append it yourself wh
 `ToGeoLine2s` leaves the chain open — nothing joins the last point back to the first, so a ring has to
 repeat its first point at the end. It does not filter coincident neighbours either, so run
 `RemoveConsecutiveNearPoints` first if zero length segments would be a problem.
+
+## See also
+
+- [Geometric types](types.md).
+- [Between the plane and space, and local frames](../solid/frames.md).

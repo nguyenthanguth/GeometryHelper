@@ -84,12 +84,16 @@ is split across it, through the middle of the hole, so that no face has a hole.
 
 ![A rounded plate on a 500 grid: each of the three cells holding a hole whole comes back as two faces](images/mesh/plate-split.svg)
 
-**Joints.** `joint` is the gap between two neighbouring cells, along both axes, as the joints between panels or tiles.
+### Joints
+
+`joint` is the gap between two neighbouring cells, along both axes, as the joints between panels or tiles.
 The cells stand `cellWidth + joint` apart. There is no gap at the boundary: a cell there is cut to it. When a gap is
 wanted along a wall, offset the region inwards first. Faces with joints between them touch no other face, so
 `GetAdjacentFaces` gives none.
 
-**Where the grid stands.** A shape is seldom a whole number of cells wide, and the alignment along each axis says where
+### Where the grid stands
+
+A shape is seldom a whole number of cells wide, and the alignment along each axis says where
 the cut cells go. Measured between the shape's furthest corners, a strip 1000 wide in cells of 300 is laid as:
 
 | [`GridAlignment`](xref:GeometryHelper.Meshing.GridAlignment) | Cells, from the left |
@@ -107,7 +111,9 @@ The two centred ones cut the same at both ends. A tiler picks between them so th
 
 ![A plain wall 7000 by 3000, panels 1200 by 600 centred on a cell: the cut panels are 491 wide at both ends and 594 high at top and bottom](images/mesh/wall-centred.svg)
 
-**An origin and an angle.** An origin puts a cell's first corner on a point, and takes the place of the alignments. An
+### An origin and an angle
+
+An origin puts a cell's first corner on a point, and takes the place of the alignments. An
 angle turns the grid's first axis counter-clockwise from the X axis:
 
 ```csharp
@@ -117,7 +123,9 @@ GeoMesh2 mesh = slab.ToMesh(options);   // a cell's corner on the column at (240
 
 ![The L-shaped slab on cells of 900 a joint of 20 apart, the grid turned 30 degrees](images/mesh/slab-grid.svg)
 
-**Rectangles.** A rectangle's grid runs along its own sides unless an angle is given, and starts at its lower left corner.
+### Rectangles
+
+A rectangle's grid runs along its own sides unless an angle is given, and starts at its lower left corner.
 `Divide(columns, rows)` gives the same cells as rectangles, when they fit evenly:
 
 ```csharp
@@ -127,7 +135,9 @@ GeoMesh2 mesh = plate.ToMesh(MeshOptions.Grid(600, 400));   // 12 whole cells, t
 GeoRectangle2[] cells = plate.Divide(4, 3);                 // the same 12, as rectangles
 ```
 
-**Curves.** A loop with arcs is flattened first, and so is a circle or an ellipse, each arc cut so that it strays no further than
+### Curves
+
+A loop with arcs is flattened first, and so is a circle or an ellipse, each arc cut so that it strays no further than
 the options' chord tolerance. Nought picks the automatic share of each radius, the minor one for an ellipse.
 
 ![A disc 3000 across on cells of 400, centred both ways](images/mesh/disc.svg)
@@ -185,3 +195,8 @@ that the material is covered.
 A grid's cell has to be larger than the point tolerance both ways. A grid that would lay more than 4 000 000 cells over
 the shape is refused as cells far smaller than were meant; 320 000 cells over a slab of 3 200 m2 take about a second and
 a half.
+
+## See also
+
+- [Meshing in space](mesh3.md).
+- [Extending, offsetting and combining](plane/editing.md#triangles-and-meshes).

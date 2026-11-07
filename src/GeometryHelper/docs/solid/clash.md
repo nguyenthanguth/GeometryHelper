@@ -1,5 +1,8 @@
 # Clashes and large meshes
 
+Checking parts against each other (overlap, contact, gap and how deep a clash runs), bars by their centre line, and
+indexes over large meshes.
+
 ## Checking parts against each other
 
 `Clash3.Find` checks a whole set of parts, or one set against another, and says what every pair that clashes
@@ -168,19 +171,25 @@ tree.GetIntersections(ray);        // every crossing of the surface; a GeoXLine3
 tree.CollidesWith(otherTree);      // surface contact between two meshes
 ```
 
-**When it is worth building.** When the *same* body is asked *many* questions. Building costs a sort of the
+### When it is worth building
+
+When the *same* body is asked *many* questions. Building costs a sort of the
 triangles, so it pays for itself over repeated queries and never on the first one — one distance to one point
 is quicker asked of the body. Every geometry type here is immutable, so a mesh never goes stale under its
 index: build it once, keep it as long as the body lives. It is called `BuildIndex` and not `GetIndex` because
 it does work, and calling it inside the loop it was meant to speed up is slower than not having it.
 
-**Where the library already builds one for you.** Two pairs are expensive enough that they index on their own
+### Where the library already builds one for you
+
+Two pairs are expensive enough that they index on their own
 and you need do nothing: `Collision3.CollidesWith(solid, solid)` indexes both when the triangle counts
 multiplied pass 64 × 64, below which the plain scan wins; and `Distance3.DistanceTo(solid, solid)` indexes
 both every time, since two meshes that miss each other have no cheap answer. Everything else takes the body
 as it finds it, which is why a loop of your own is where an index of your own pays.
 
-**The index is over triangles and the body is not.** `tree.GetIntersections(ray)` reports one hit per
+### The index is over triangles and the body is not
+
+`tree.GetIntersections(ray)` reports one hit per
 triangle, so a ray landing on the diagonal that two triangles share is named twice, while
 `solid.GetIntersections(ray)` names each place once. Ask the body when you want places; ask the tree when you
 want speed and can keep clear of the edges.
@@ -247,3 +256,8 @@ of the one kept before it is dropped like any other, so re-append it yourself wh
 `ToGeoLine3s` leaves the chain open — nothing joins the last point back to the first, so a ring has to
 repeat its first point at the end. It does not filter coincident neighbours either, so run
 `RemoveConsecutiveNearPoints` first if zero length segments would be a problem.
+
+## See also
+
+- [Combining bodies](booleans.md).
+- [Asking a body](asking.md#a-body-asked-many-questions).

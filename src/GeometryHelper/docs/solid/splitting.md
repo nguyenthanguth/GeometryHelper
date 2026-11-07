@@ -1,5 +1,7 @@
 # Splitting, extending and offsetting
 
+Splitting bodies and shapes of space, extending and trimming their lines, and offsetting them.
+
 ## Splitting
 
 [`Splition3`](xref:GeometryHelper.Core.Splition3) cuts a curve at a position along it or wherever a plane crosses it, and cuts a region or a
@@ -183,7 +185,9 @@ asks that they pass within `EqualPoint` of each other. Where they do, each keeps
 end at the meeting point; where they pass wider than that, it reports `false` rather than inventing a
 corner one of them does not touch.
 
-**Arcs, chains and edges.** An arc is lengthened **along itself** — the centre, the radius and the plane
+### Arcs, chains and edges
+
+An arc is lengthened **along itself** — the centre, the radius and the plane
 stay, the sweep grows, and the distance asked for is arc length and not chord. A chain is lengthened by its
 **end leg**, along that leg, which is how a bar's end is pulled out for anchorage without disturbing a bend.
 
@@ -247,7 +251,9 @@ through [`OffsetJoin`](xref:GeometryHelper.Enums.OffsetJoin) or [`OffsetOptions`
 [shared types](../common.md)
 package they come from.
 
-**What comes back.** The offset of a region is exact, not its edges moved one by one, so a polygon does
+### What comes back
+
+The offset of a region is exact, not its edges moved one by one, so a polygon does
 not always give one polygon back. `Offset` returns the boundary loops of the result: none when it shrinks
 past its own width, one per piece when it pinches off, and, where a growing polygon closes a gap around
 empty space, that space as a hole wound against its outer loop so that signed areas add up. [`GeoFace3`](xref:GeometryHelper.Geometry.GeoFace3)
@@ -260,3 +266,8 @@ themselves are resolved by the library's own winding-number solver, where the pl
 part to Clipper2. The test suite checks the two against each other. The solver finds where edges cross by
 sweeping them along the axis of the frame they overlap least along, so a comb of 4 000 teeth whose teeth
 run along the frame's first axis is offset in 0.14 seconds, where sweeping along the teeth took 4.7.
+
+## See also
+
+- [Combining bodies](booleans.md).
+- [Extending, offsetting and combining in the plane](../plane/editing.md).

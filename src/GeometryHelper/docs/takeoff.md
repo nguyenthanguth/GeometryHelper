@@ -142,3 +142,8 @@ Tekla leaves between parts, which the contact takes as touching, are taken off.
   `TrySubtractAll` cuts.
 - Only volumes are taken off. A formwork area, or the net bodies themselves, come from cutting each part by the parts
   ranked before it: `GeoSolid3.TrySubtractAll`, with closing where a cut would be skipped.
+
+## See also
+
+- [Combining bodies](solid/booleans.md).
+- [Closing, making, weighing and merging](solid/making.md#weighing-a-body-and-cutting-it).

@@ -1,5 +1,8 @@
 # Asking every shape
 
+Every shape of space answers the questions a body does: distance, the nearest point, crossings and touching, and
+parametrization along curves.
+
 ## And every shape can be asked, not only the body
 
 For a long time a body could be asked about a segment and the segment could not be asked about the body.
@@ -329,3 +332,8 @@ square.GetPointAtParameter(1.25);   // the same point again — wraps
 
 A polygon is measured around its boundary starting at its first vertex, and a circle around its
 circumference. Both wrap, so there is no out-of-range parameter for a closed curve.
+
+## See also
+
+- [Asking a body](asking.md).
+- [Infinite lines and balls](lines-balls.md).

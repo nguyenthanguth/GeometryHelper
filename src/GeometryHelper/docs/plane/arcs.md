@@ -1,5 +1,8 @@
 # Arcs
 
+Arcs and the chains that curve (GeoArc2, GeoEdge2, GeoPolylineArc2, GeoPolygonArc2): made, asked, offset without
+straightening, indexed and flattened.
+
 [`GeoArc2`](xref:GeometryHelper.Geometry.GeoArc2) is a piece of a circle: a centre, a radius, the angle it starts at and the angle it sweeps. The
 sweep is signed, so the arc knows which way round it goes, and it is what tells a half turn from the rest
 of the circle left behind.
@@ -307,7 +310,9 @@ before it to no longer than the tolerance is mitered along the edge it was moved
 (3.416, -7.019) of a loop that crosses itself, grown by 0.3 at 1E-3, is mitered 1.546 out, as at 1E-4, where it was rounded
 off.
 
-**What still needs flattening.** The four boolean operations do, because a boolean cannot be done piece by
+### What still needs flattening
+
+The four boolean operations do, because a boolean cannot be done piece by
 piece. They take an optional chord tolerance and hand back the straight types, which say plainly that the
 arcs are gone:
 
@@ -333,7 +338,9 @@ index.DistanceTo(other);
 index.CollidesWith(other);
 ```
 
-**When it is worth building.** When the *same* shape is asked *many* questions. Building costs a sort of the
+### When it is worth building
+
+When the *same* shape is asked *many* questions. Building costs a sort of the
 edges, so it pays for itself over repeated queries and never on the first one; for a handful of questions, or
 a shape of a handful of edges, the plain methods on the shape are quicker because they build nothing. Every
 shape here is immutable, so a tree never goes stale under it: build it once, keep it as long as the shape
@@ -346,7 +353,9 @@ speed up is slower than not having it at all.
 — the reading the whole library keeps for a face. So a point sitting in a bolt hole is answered by the rim it
 sits in, not by the outline far away.
 
-**Every edge of an index is a side of a shape.** Two indexes are measured, and collide, edge against edge as the
+### Every edge of an index is a side of a shape
+
+Two indexes are measured, and collide, edge against edge as the
 shapes they were built from measure their sides: each the side it is however short, never a segment read as its
 start, and the tolerance changes nothing in the distance. At a thousandth, the index over the chain coming down from
 (5, 5) to (5, 0.0015) and on to (5, 0.0006) is 0.0006 from the one over the segment from the origin to (10, 0), and
@@ -389,3 +398,8 @@ radius r, 5E-7 on a radius of 1. The writers ([`ObjWriter`](xref:GeometryHelper.
 A loop or a chain so small that the merge would leave too few corners to be a polygon or a chain keeps every corner of
 its chords instead: the square 0.0005 by 0.0005 flattens to its four corners, and with its sides bowed by a bulge of 0.2
 to the corners of their chords, where both were refused for having fewer than three.
+
+## See also
+
+- [Circles, ellipses, rays and infinite lines](curves.md).
+- [Arcs in space](../solid/arcs.md).

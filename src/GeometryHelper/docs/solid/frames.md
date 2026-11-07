@@ -1,5 +1,7 @@
 # Between the plane and space, and local frames
 
+Taking flat shapes of space into the plane and back, working in a local frame, and the Tekla Structures bridge.
+
 ## Between the plane and space
 
 A plate, a face, a chain marked on a face: flat geometry lying in a plane in space. [`PlanarMap`](xref:GeometryHelper.Core.PlanarMap) lays it
@@ -29,7 +31,9 @@ Every flat type makes the trip: [`GeoPoint3`](xref:GeometryHelper.Geometry.GeoPo
 space goes out as an ellipse, `GeoCircle3.ProjectToEllipse2(frame)`, which is a circle again when it lies
 flat in the frame.
 
-**Off the plane.** Flattening drops the local Z, so a point that does not lie on the plane has no honest
+### Off the plane
+
+Flattening drops the local Z, so a point that does not lie on the plane has no honest
 answer. `ProjectToPoint2` projects it and says so in its name; `TryToPoint2` refuses it when it is farther
 away than `Tolerance.EqualPlanar`, which is how to check that geometry really is where you think it is.
 
@@ -38,14 +42,18 @@ point.TryToPoint2(frame, out GeoPoint2 flat);   // false when the point is off t
 point.ProjectToPoint2(frame);                   // always answers, by projecting
 ```
 
-**Short sides.** A chain, a polygon or a face goes out and comes back side for side, however short a side: the
+### Short sides
+
+A chain, a polygon or a face goes out and comes back side for side, however short a side: the
 square 10 by 10 with a corner cut by 0.0005, laid out in a frame tilted 60 degrees to it, keeps its five corners,
 where the global tolerance of a thousandth put the cut corner back, and a chain with a step of 0.0004 keeps the step
 both ways. Only a side seen end-on, along the Z axis of the frame, goes. A polygon or a face seen edge-on is refused,
 as one that encloses no area is when it is built, where it came out as a line of corners; one a ten-thousandth of a
 radian off edge-on comes out as a sliver. A chain seen end-on, a point in the frame, is refused as it was.
 
-**Winding.** A frame whose Z axis agrees with the shape's normal keeps the shape running the way it did;
+### Winding
+
+A frame whose Z axis agrees with the shape's normal keeps the shape running the way it did;
 one that opposes it mirrors the plan view, so a counter-clockwise polygon comes out clockwise. A frame
 taken from the shape itself always agrees.
 
@@ -119,3 +127,8 @@ take a volume from `TryGetVolume`, and trust it where that returns true.
 Tekla models in millimetres with coordinates that can run to hundreds of thousands, and a face of a twelve
 metre member is rarely flat to the last decimal. The default `EqualPlanar` is often too tight for that, so
 pass a [`Tolerance`](xref:GeometryHelper.Tolerance) suited to the model rather than relying on the default.
+
+## See also
+
+- [Moving and asking in the plane](../plane/moving.md).
+- [Tekla Structures bridge](../../../GeometryHelper.TeklaConvert/README.md).

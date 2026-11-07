@@ -1,5 +1,7 @@
 # Ellipses and splines in space
 
+Ellipses and NURBS splines of space: made, measured, seen from elsewhere, and asked against the other shapes.
+
 ## Ellipses in space
 
 [`GeoEllipse3`](xref:GeometryHelper.Geometry.GeoEllipse3) is the ellipse of [the plane half](../plane/curves.md#ellipses) standing in space: a centre, the normal of
@@ -21,7 +23,9 @@ A major axis given a little out of the plane is laid into it; one along the norm
 axis is the normal crossed with the major one, so the angle runs counter-clockwise seen from the tip of the
 normal, as a circle's does.
 
-**A disc for distance, the rim for crossings.** A point is in the ellipse when it lies within the planar
+### A disc for distance, the rim for crossings
+
+A point is in the ellipse when it lies within the planar
 tolerance of the plane and inside the outline, and its distance is to the nearest point of the filled disc.
 A point above the disc is measured straight down to it; one beside it, to the rim. The rim points are all
 at the same height above the plane, so the nearest of them to a point in space is the nearest to its foot,
@@ -143,7 +147,9 @@ the world origin, which keeps the crossings within 2E-7 of where they are on pla
 apart, a thousand from the origin. Whether a line grazes the rim is judged in drawing units, so an ellipse 210
 by 0.23 touched by a plane is touched at one point.
 
-**Seen from elsewhere.** A circle in space stays a circle only under an even scaling, and refuses any other, a
+### Seen from elsewhere
+
+A circle in space stays a circle only under an even scaling, and refuses any other, a
 shear or a skew that keeps both lengths among them: round means that the two axes of its plane come out of the
 transformation so nearly equally long and square to each other that the circle moved lands within the global point
 tolerance of where the transformation puts each of its points, as a ball is read: a turn whose numbers are rounded to six
@@ -221,7 +227,9 @@ before the tree. `Interpolate` takes a
 plane of a frame, and `GeoSpline2.ToSpline3(frame)` and `PlanarMap.ToSpline3` put one back, the weights and knots unchanged. A spline
 that stands square to the plane has no spline to give there, and is refused.
 
-**Writing, showing and reading from IFC.** `DxfWriter.Add(spline, layer)` writes a spline in space as the SPLINE it is, as
+### Writing, showing and reading from IFC
+
+`DxfWriter.Add(spline, layer)` writes a spline in space as the SPLINE it is, as
 [in the plane](../plane/splines.md), its control points in world coordinates: flagged planar, with the plane's normal turned up in its largest
 component as the extrusion, where its control points lie in one plane to the rounding of their coordinates (the circle of radius 25 on the
 normal (1, 1, 0) has the extrusion (0.7071, 0.7071, 0)), and with no flag and no extrusion where they do not, as for the cubic through
@@ -255,7 +263,9 @@ arch.GetIntersections(new GeoAabb3(new GeoPoint3(100, -10, 100), new GeoPoint3(2
 ring.GetShortestLineTo(new GeoAabb3(new GeoPoint3(-100, -100, -10), new GeoPoint3(100, 100, 10))).Length;  // 10: the ring is inside the box, and the floor and roof are 10 off
 ```
 
-**The rules are the other curves'.** A flat shape, a triangle, a polygon or a face (the material of it, holes left open), is filled: a spline that
+#### The rules are the other curves'
+
+A flat shape, a triangle, a polygon or a face (the material of it, holes left open), is filled: a spline that
 pierces it, or lies in it, is nought from it, and its shortest segment is of no length there. A circle and an ellipse are the discs they are
 for the distance, as their own distance to a point reads them, and rims for the crossings: a ring through the middle of a standing disc is
 nought from it, collides with it and crosses nothing. A box, an oriented box, a solid (its openings cut in) and a ball are material: a spline
@@ -267,7 +277,9 @@ measured exactly: it is never read through the tolerance, the planar tolerance i
 more than the point tolerance, exactly, so the two never disagree. A segment you give no longer than the point tolerance, or a straight edge that
 short, is read as its start where it does not truly meet the spline, as every shape reads one.
 
-**A place is a least of the distance.** Two curves in space seldom meet, so a place is where the distance of the spline from the shape is least
+#### A place is a least of the distance
+
+Two curves in space seldom meet, so a place is where the distance of the spline from the shape is least
 within the point tolerance: a crossing is a place where it comes to nought, a touch within the tolerance is another, and the tolerance alone
 tells a touch from a near miss (the line 0.0005 over the top of the ring touches it at (0, 50, 0) and the line 0.002 over it touches nothing; a
 spline that passes a ten-thousandth of a millimetre from a line is at a place as one that crosses it is). A flat shape is pierced where the spline
@@ -286,7 +298,9 @@ tilted plane a million out touches it once, where it was given three places), an
 last control points the same to the bit, has no ends, as in the plane: a line 0.0002 off the plane of a circle spline of radius 100, tangent to it
 0.003 of a radian past its seam, touches it once, where the seam was given too.
 
-**How each pair is solved.** Against a segment, a ray or a line without ends the part of a span's offset that stands square to the line is taken
+#### How each pair is solved
+
+Against a segment, a ray or a line without ends the part of a span's offset that stands square to the line is taken
 as two signed polynomials in Bernstein form, along two directions square to the line: the span meets the line where both are nought, and a span in
 a plane through the line has one of them nought all along and the other its signed offset in that plane, whose roots are the crossings however
 shallow (a line a millionth of a radian off the tangent of a cubic in its plane crosses it and is nought from it, where the square of the offset
@@ -302,7 +316,9 @@ by Newton's method, as it is in the plane (an arc, a circle and an ellipse are e
 line or a ball when it is within a share of the size of the coordinates of it, 1E-13, which a polygon turned about in space, a hundred thousand out,
 carries into the numbers it is made of: two splines in one plane, either tilted and a million from the origin, give what they give in the plane.
 
-**Two curves in one plane, and two that share none.** Two splines that lie in one plane, every control point of both within a snap of it, are
+#### Two curves in one plane, and two that share none
+
+Two splines that lie in one plane, every control point of both within a snap of it, are
 worked out in that plane as two splines of the plane are, and the points found are put back in space, so they give the plane's answers: the sign
 of the offset of one from the other tells two curves a hair apart that cross twice, two circles of radius 1 000 and 1 000.00002 with their centres
 1E-4 apart cross at an angle of 1E-7 in two places in any plane at a tolerance of a hundred-thousandth (and are one circle at the default one, as
@@ -331,7 +347,9 @@ millimetres round each crossing: it has the places the rounding gives. A touch o
 snap or two from nought (6E-11 to 1.7E-10 for a spline about 1 000 across, where the snap is 1E-10), Newton's method following the valley of the
 nearest pairs until a step gains less than a snap.
 
-**Limits, and what is not offered.** The cutting for the nearest approach of two curves is bounded as it is in the plane (past 40 000 pairs of
+#### Limits, and what is not offered
+
+The cutting for the nearest approach of two curves is bounded as it is in the plane (past 40 000 pairs of
 parts the answer is the best of the real pairs found, with the nearest bound left in a Debug line), as is the cutting for the places (two million
 pairs); two circle splines in one plane are met in closed form as the circles are, as in the plane (of radius 100 000 and 100 000.0005 with
 centres 2E-4 apart they are 0.0003 apart in a third of a millisecond, and with centres 0.01 apart cross twice), and two that share no plane are
@@ -344,3 +362,8 @@ place is given along the stretch but a crossing, and for two that share no plane
 splines that share no plane and stay within the tolerance of each other round a turn tighter than a millimetre have their parts measured once both
 are no larger than the tolerance: the copy of a degree-four spline of ten points, moved 0.00074 along its plane and lifted 0.0002 off it, takes
 about 0.1 s for its places in any plane.
+
+## See also
+
+- [Splines in the plane](../plane/splines.md).
+- [Arcs in space](arcs.md).

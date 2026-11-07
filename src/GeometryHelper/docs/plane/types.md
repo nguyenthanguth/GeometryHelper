@@ -1,5 +1,8 @@
 # Geometric Types
 
+The shapes of the plane and the questions every pair of them answers: collision, crossings, the nearest point, how
+deep inside, splitting.
+
 [`GeoPoint2`](xref:GeometryHelper.Geometry.GeoPoint2), [`GeoVector2`](xref:GeometryHelper.Geometry.GeoVector2), [`GeoLine2`](xref:GeometryHelper.Geometry.GeoLine2), [`GeoRay2`](xref:GeometryHelper.Geometry.GeoRay2) (a half-line), [`GeoXLine2`](xref:GeometryHelper.Geometry.GeoXLine2) (an infinite line), [`GeoArc2`](xref:GeometryHelper.Geometry.GeoArc2), [`GeoCircle2`](xref:GeometryHelper.Geometry.GeoCircle2), [`GeoEllipse2`](xref:GeometryHelper.Geometry.GeoEllipse2), [`GeoSpline2`](xref:GeometryHelper.Geometry.GeoSpline2) (a NURBS curve), [`GeoRectangle2`](xref:GeometryHelper.Geometry.GeoRectangle2) (rotated rectangle — OBB), [`GeoTriangle2`](xref:GeometryHelper.Geometry.GeoTriangle2), [`GeoPolygon2`](xref:GeometryHelper.Geometry.GeoPolygon2), [`GeoFace2`](xref:GeometryHelper.Geometry.GeoFace2) (a polygon with holes), [`GeoPolyline2`](xref:GeometryHelper.Geometry.GeoPolyline2), and the chains that may curve: [`GeoEdge2`](xref:GeometryHelper.Geometry.GeoEdge2), [`GeoPolylineArc2`](xref:GeometryHelper.Geometry.GeoPolylineArc2), [`GeoPolygonArc2`](xref:GeometryHelper.Geometry.GeoPolygonArc2).
 
 ## Regions and curves
@@ -52,7 +55,9 @@ one holds the other, or where their boundaries pass within `EqualPoint`, measure
 count as filled and open curves as curves, so the answer is the same whichever way round they are asked and
 whatever kind holds the edges.
 
-**`DistanceTo` reads nought only where two shapes truly meet.** That is where they cross, touch or overlap, or one holds
+### `DistanceTo` reads nought only where two shapes truly meet
+
+That is where they cross, touch or overlap, or one holds
 the other, a point on a rim counting as held. Everywhere else it is the gap, measured exactly however small, and the
 same whichever way round it is asked. A collision is therefore a distance of at most `EqualPoint`, and a gap smaller
 than that collides without being nought. Measured, at a tolerance of a thousandth:
@@ -82,7 +87,9 @@ largest coordinate or radius in the scene (the audit's worst was 4.7E-11, an arc
 across, 3.2E-16 of its size). Compare a distance with a tolerance, with
 `d <= tolerance.EqualPoint` or with `CollidesWith`, and never with `== 0`.
 
-**A segment you give, shorter than the point tolerance, is read as its start.** `DistanceTo`, `CollidesWith` and
+### A segment you give, shorter than the point tolerance, is read as its start
+
+`DistanceTo`, `CollidesWith` and
 `GetShortestLineTo` read a `GeoLine2`, or a straight `GeoEdge2`, no longer than `EqualPoint` as the point at its start
 where it does not truly meet the other shape, against every shape in the plane and either way round, as space reads it:
 at a thousandth, the segment from (5, 0.0015) to (5, 0.0006), pointing at the segment from the origin to (10, 0) and
@@ -388,13 +395,21 @@ polyline.TrySplitBy(polygon, out GeoPolyline2[] insideRuns, out GeoPolyline2[] o
 
 The instance methods live on the shape being cut, not on the cutter: `polygon.Split(line)` would leave it unclear which of the two comes back in pieces.
 
-**What the return value means.** `false` says nothing was cut, not that the call failed. The out parameters are always usable: an array form hands back the subject as a single piece, and a polygon form puts it in whichever of the two arrays matches the side it lies on, leaving the other empty.
+### What the return value means
 
-**What gets skipped.** Cut positions outside the subject, or landing on one of its endpoints, are not splits. Positions closer together than the tolerance merge into one, and a position within a tolerance of an existing vertex snaps onto it, so no piece and no edge is ever shorter than the tolerance. A point that does not lie on the subject is refused rather than projected onto it — cutting at its projection would be cutting somewhere nobody asked for.
+`false` says nothing was cut, not that the call failed. The out parameters are always usable: an array form hands back the subject as a single piece, and a polygon form puts it in whichever of the two arrays matches the side it lies on, leaving the other empty.
 
-**However short.** A segment is measured along as it is however much shorter than the global tolerance, whatever cuts it: at a billionth, the segment from (5, 0.0004) to (5, -0.0005) is cut at (5, 0) by a point there or by a line, a polyline or a polygon crossing it there, where the place was measured at the global thousandth, at the segment's start, and the segment came back whole.
+### What gets skipped
 
-**Against a polygon.** A part running along the boundary counts as inside, matching `Contains`. A path that merely touches the boundary and turns back has not crossed it, so it comes back whole instead of split in two at the touch.
+Cut positions outside the subject, or landing on one of its endpoints, are not splits. Positions closer together than the tolerance merge into one, and a position within a tolerance of an existing vertex snaps onto it, so no piece and no edge is ever shorter than the tolerance. A point that does not lie on the subject is refused rather than projected onto it — cutting at its projection would be cutting somewhere nobody asked for.
+
+### However short
+
+A segment is measured along as it is however much shorter than the global tolerance, whatever cuts it: at a billionth, the segment from (5, 0.0004) to (5, -0.0005) is cut at (5, 0) by a point there or by a line, a polyline or a polygon crossing it there, where the place was measured at the global thousandth, at the segment's start, and the segment came back whole.
+
+### Against a polygon
+
+A part running along the boundary counts as inside, matching `Contains`. A path that merely touches the boundary and turns back has not crossed it, so it comes back whole instead of split in two at the touch.
 
 ## Cutting a region into regions
 
@@ -428,3 +443,9 @@ The region and its pieces are taken corner for corner at the tolerance asked, by
 than the global tolerance stays: at a millionth, the line through (0.0005, 0) and (0, 0.0005) cuts the square 10 by 10 at
 the origin into its corner, a triangle of 0.000000125 square units, and the rest, where the global tolerance of a
 thousandth read the corner as no polygon and threw.
+
+## See also
+
+- [Extending, offsetting and combining](editing.md).
+- [Moving and asking](moving.md).
+- [How do I](../howto.md).

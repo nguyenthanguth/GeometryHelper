@@ -282,3 +282,8 @@ To build and run:
 ## Licence
 
 MIT.
+
+## See also
+
+- [Geometry in the plane](plane.md).
+- [Packing boxes onto sheets](packing.md).
