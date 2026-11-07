@@ -1,33 +1,33 @@
-# L5: the DXF
+# L5: file DXF
 
-`DrawingDxfWriter` turns a `Drawing` into a `DxfDatabase` and saves it. Nothing else in the module writes DXF.
+`DrawingDxfWriter` chuyển một `Drawing` thành `DxfDatabase` rồi lưu file. Ngoài nó ra, không phần nào của module ghi DXF.
 
-## Layout (D1)
+## Bố trí (D1)
 
-The sheet at 1:1 in model space, in millimetres. Each view is drawn at its scale where L4 placed it. Dimensions use a
-dimension style whose `DIMLFAC` is the view's scale (one style per scale used), so they read model lengths.
+Tờ giấy tỉ lệ 1:1 trong model space, đơn vị mm. Mỗi view vẽ theo scale của nó, tại chỗ L4 đã xếp. Dimension dùng
+dimension style có `DIMLFAC` bằng scale của view (mỗi scale được dùng có một style), nên vẫn ghi độ dài thật của model.
 
-## What goes where
+## Vẽ gì, ở đâu
 
-| Drawn | Entity | Layer (names a setting) |
+| Vẽ | Entity | Layer (tên là thiết lập) |
 |---|---|---|
-| visible lines | LINE, ARC, CIRCLE | Visible |
-| hidden lines | LINE, ARC, CIRCLE with the HIDDEN linetype | Hidden |
-| centre lines | LINE with the CENTER linetype | Centre |
-| section faces | HATCH | Hatch |
-| dimensions | DIMENSION (rotated, aligned, radial, diametric, ordinate) | Dimension |
-| marks | MLEADER | Mark |
-| title block | INSERT of a block with attributes | Sheet |
-| part list, revisions | TABLE | Sheet |
-| frame, view titles, texts | LWPOLYLINE, MTEXT | Sheet |
+| nét thấy | LINE, ARC, CIRCLE | Visible |
+| nét khuất | LINE, ARC, CIRCLE với linetype HIDDEN | Hidden |
+| đường tâm | LINE với linetype CENTER | Centre |
+| mặt cắt | HATCH | Hatch |
+| dimension | DIMENSION (rotated, aligned, radial, diametric, ordinate) | Dimension |
+| mark | MLEADER | Mark |
+| khung tên | INSERT một block có attribute | Sheet |
+| bảng vật tư, revision | TABLE | Sheet |
+| khung, tiêu đề view, chữ | LWPOLYLINE, MTEXT | Sheet |
 
-The linetypes come from the standard definitions loaded into the drawing (`DxfDatabase`'s linetypes from a file, or
-written in code). The text style and the dimension styles are made by the writer from the settings.
+Linetype lấy từ các định nghĩa chuẩn nạp vào bản vẽ (nạp linetype từ file của `DxfDatabase`, hoặc tạo bằng code). Text
+style và dimension style do writer tạo theo thiết lập.
 
-## Checks
+## Kiểm tra
 
-- Opened in AutoCAD 2021 through accoreconsole: no error, AUDIT finds nothing to fix, the counts of entities per layer as
-  expected.
-- Read back by `DxfReader`: the lines of every view are the ones of the `Drawing`, to the point tolerance.
-- The same drawing saved twice gives the same bytes (handles and order fixed).
-- Version AC1027 (D8) unless G0 finds a reason for another.
+- Mở trong AutoCAD 2021 qua accoreconsole: không lỗi, AUDIT không có gì phải sửa, số entity trên mỗi layer đúng như dự
+  kiến.
+- Đọc lại bằng `DxfReader`: nét của mọi view đúng như trong `Drawing`, trong point tolerance.
+- Lưu cùng một bản vẽ hai lần ra cùng các byte (handle và thứ tự cố định).
+- Version AC1027 (D8), trừ khi G0 thấy lý do dùng version khác.

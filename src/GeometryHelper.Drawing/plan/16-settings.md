@@ -1,27 +1,28 @@
-# L6: settings
+# L6: thiết lập
 
-`DrawingSettings` holds everything a drawing may vary, as C# objects (D5). One part per layer:
+`DrawingSettings` chứa mọi thứ một bản vẽ có thể thay đổi, dưới dạng object C# (D5). Mỗi lớp một phần:
 
-| Part | Holds |
+| Phần | Chứa |
 |---|---|
-| `Views` | which views, the projection method (D9), sections and details asked for, the margin of a crop, the smooth angle of L1 |
-| `Scales` | the allowed scales, largest first (Q4) |
-| `Dimensions` | the rules switched on, the tier spacing, the text height and rounding, whether equal dimensions merge |
-| `Marks` | what each kind of mark shows (Q5), its text height, its frame |
-| `Sheet` | the sheet sizes allowed, the title block (Q2), the part list's columns, the revision table |
-| `Layers` | the layer names, colours and linetypes of L5 |
-| `Text` | the font and the heights |
+| `Views` | những view nào, phép chiếu (D9), các mặt cắt và chi tiết cần có, lề của vùng cắt, góc trơn của L1 |
+| `Scales` | các scale cho phép, lớn nhất trước (Q4) |
+| `Dimensions` | các quy tắc được bật, khoảng cách giữa các tầng, chiều cao chữ và cách làm tròn, có gộp dimension bằng nhau hay không |
+| `Marks` | mỗi loại mark hiển thị gì (Q5), chiều cao chữ, khung |
+| `Sheet` | các khổ giấy cho phép, khung tên (Q2), các cột của bảng vật tư, bảng revision |
+| `Layers` | tên, màu và linetype của các layer ở L5 |
+| `Text` | font và các chiều cao chữ |
 
-## Presets
+## Preset
 
-The one kind of drawing (A1) takes its look from a preset:
+Một loại bản vẽ duy nhất (A1) lấy cách thể hiện từ một preset:
 
-| Preset | For | Differs in |
+| Preset | Dùng cho | Khác ở |
 |---|---|---|
-| `DrawingSettings.Part` | one part | three views and sections of the part, every hole dimensioned, part mark only |
-| `DrawingSettings.Assembly` | an assembly | the main part's frame, fittings dimensioned from the main part, part marks of the fittings, part list |
-| `DrawingSettings.General` | many assemblies | plans and elevations, assembly marks, grid lines and levels, no part dimensions |
+| `DrawingSettings.Part` | một cấu kiện | ba view và mặt cắt của cấu kiện, ghi dimension mọi lỗ, chỉ có mark cấu kiện |
+| `DrawingSettings.Assembly` | một assembly | hệ trục của cấu kiện chính, dimension chi tiết gắn thêm tính từ cấu kiện chính, mark các chi tiết, bảng vật tư |
+| `DrawingSettings.General` | nhiều assembly | mặt bằng và mặt đứng, mark assembly, lưới trục và cao độ, không ghi dimension từng cấu kiện |
 
-A preset is only a settings object; a drawing made with `Part` from an assembly is valid and draws every object given.
+Preset chỉ là một object thiết lập. Một bản vẽ tạo bằng preset `Part` từ một assembly vẫn hợp lệ và vẽ mọi đối tượng được
+đưa vào.
 
-Settings are copied when a drawing is built, so changing them afterwards changes nothing already made.
+Thiết lập được sao chép khi tạo bản vẽ, nên sửa thiết lập sau đó không làm thay đổi bản vẽ đã tạo.

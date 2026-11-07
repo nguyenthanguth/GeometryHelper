@@ -1,27 +1,27 @@
-# The Tekla bridge
+# Cầu nối Tekla
 
-`DrawingSourceConvert` in `GeometryHelper.TeklaConvert` turns Tekla model objects into a `DrawingSource`. It is the only
-code of this work that touches Tekla, and it only reads.
+`DrawingSourceConvert` trong `GeometryHelper.TeklaConvert` chuyển đối tượng model Tekla thành `DrawingSource`. Đây là
+phần code duy nhất của module này chạm vào Tekla, và nó chỉ đọc.
 
-## What it reads
+## Đọc gì
 
-| From Tekla | Into |
+| Từ Tekla | Thành |
 |---|---|
-| an `Assembly`: its main part and secondaries, sub-assemblies | `DrawingObject`s of kind Part, `IsMain` on the main part, `ParentId` the assembly |
-| a part's solid (`GetSolid`), through `SolidConvert.TryToGeoSolid3` | `Solid` |
-| a part's coordinate system | `Frame` |
-| position, profile, material, name, and the report properties the settings ask for | `Mark`, `Profile`, `Material`, `Name`, `Attributes` |
-| bolt groups: positions, diameter, hole sizes, the parts bolted | objects of kind Bolt and Hole |
-| welds: type, size, the parts joined, the path | objects of kind Weld |
-| reinforcement (later), through `ReinforcementConvert` | objects of kind Rebar |
+| một `Assembly`: cấu kiện chính và phụ, các sub-assembly | các `DrawingObject` loại Part, `IsMain` cho cấu kiện chính, `ParentId` là assembly |
+| solid của part (`GetSolid`), qua `SolidConvert.TryToGeoSolid3` | `Solid` |
+| hệ trục của part | `Frame` |
+| position, profile, vật liệu, tên, và các report property mà thiết lập yêu cầu | `Mark`, `Profile`, `Material`, `Name`, `Attributes` |
+| bolt group: vị trí, đường kính, kích thước lỗ, các cấu kiện được bắt bulông | đối tượng loại Bolt và Hole |
+| mối hàn: loại, kích thước, các cấu kiện được hàn, đường hàn | đối tượng loại Weld |
+| cốt thép (sau này), qua `ReinforcementConvert` | đối tượng loại Rebar |
 
-The exact calls are settled in G0 against the Open API of Tekla 2020, 2025 and 2026, since the bridge is built for each.
+Các lời gọi API cụ thể sẽ chốt ở G0, theo Open API của Tekla 2020, 2025 và 2026, vì cầu nối được build cho từng version.
 
-## Rules
+## Quy tắc
 
-- Read only: the model is never changed.
-- Each Tekla version's build is tested in code, as the other TeklaConvert members are.
-- A run against the maintainer's running Tekla needs their go-ahead first, every time.
-- Logging as the bridges do: Warn for a caught exception, one aggregated Debug line for skipped objects, one Info summary
-  per public call.
-- Model data from the maintainer's projects never goes into the repository; tests build objects in code.
+- Chỉ đọc: không bao giờ thay đổi model.
+- Build cho từng version Tekla đều có test chạy bằng code, như các thành viên khác của TeklaConvert.
+- Chạy thử với Tekla đang mở của maintainer phải được maintainer đồng ý trước, mỗi lần chạy.
+- Log theo quy ước của các cầu nối: Warn cho exception bắt được, một dòng Debug gộp cho các đối tượng bị bỏ qua, một dòng
+  Info tóm tắt cho mỗi lần gọi hàm công khai.
+- Dữ liệu model từ dự án của maintainer không bao giờ đưa vào repo; test dựng đối tượng bằng code.

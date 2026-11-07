@@ -1,80 +1,87 @@
-# Phases
+# Các giai đoạn
 
-Every phase ends with the full verify of CLAUDE.md green, the DXF of the test bodies opened in AutoCAD with nothing for
-AUDIT to fix, and the maintainer looking at the files before the next phase starts. Each step is written
-`[step] -> verify: [check]`.
+Mỗi giai đoạn kết thúc khi:
+- bước verify đầy đủ trong CLAUDE.md xanh;
+- file DXF của các cấu kiện mẫu mở được trong AutoCAD và AUDIT không có gì phải sửa;
+- maintainer đã xem các file trước khi sang giai đoạn sau.
 
-| Phase | What | Status |
+Mỗi bước ghi theo dạng `[bước] -> verify: [kiểm tra]`.
+
+| Giai đoạn | Nội dung | Trạng thái |
 |---|---|---|
-| G0 | Research and spec | not started |
-| G1 | Hidden-line projection, written to DXF | not started |
-| G2 | Views | not started |
-| G3 | Dimensions | not started |
-| G4 | Marks and symbols | not started |
-| G5 | The sheet | not started |
-| G6 | Presets, the Tekla bridge, comparison with Tekla | not started |
-| G7 | Docs, changelog, release | not started |
+| G0 | Nghiên cứu và đặc tả | chưa bắt đầu |
+| G1 | Chiếu nét thấy/khuất, ghi ra DXF | chưa bắt đầu |
+| G2 | View | chưa bắt đầu |
+| G3 | Dimension | chưa bắt đầu |
+| G4 | Mark và ký hiệu | chưa bắt đầu |
+| G5 | Tờ giấy | chưa bắt đầu |
+| G6 | Preset, cầu nối Tekla, so sánh với Tekla | chưa bắt đầu |
+| G7 | Docs, changelog, release | chưa bắt đầu |
 
-## G0: research and spec
+## G0: nghiên cứu và đặc tả
 
-1. Study FreeCAD TechDraw, OpenCascade's HLR and build123d's projection, and Tekla's user documentation on drawings
-   -> verify: [30-research.md](30-research.md) says what each does and what is taken from it.
-2. Collect the faults of Tekla's drawings from the maintainer -> verify: each in [40-tekla-bugs.md](40-tekla-bugs.md) with
-   what Tekla does and what is right.
-3. Build the test bodies of [20-test-cases.md](20-test-cases.md) in code -> verify: each is a closed, valid `GeoSolid3` (by
-   `Validate`) and its volume is the one worked out by hand.
-4. Settle the proposed decisions and the names of the public types -> verify: every D in
-   [03-decisions.md](03-decisions.md) approved or replaced, and the layer files carry the final names.
+1. Nghiên cứu FreeCAD TechDraw, HLR của OpenCascade, phép chiếu của build123d, và tài liệu người dùng về drawing của
+   Tekla -> verify: [30-research.md](30-research.md) ghi rõ mỗi nguồn làm gì và lấy gì từ đó.
+2. Thu thập các lỗi drawing của Tekla từ maintainer -> verify: mỗi lỗi có trong [40-tekla-bugs.md](40-tekla-bugs.md),
+   kèm Tekla làm sai thế nào và đúng phải là gì.
+3. Dựng các cấu kiện mẫu của [20-test-cases.md](20-test-cases.md) bằng code -> verify: mỗi cấu kiện là một `GeoSolid3`
+   kín và hợp lệ (theo `Validate`), và thể tích đúng bằng thể tích tính tay.
+4. Chốt các quyết định đề xuất và tên các type công khai -> verify: mọi D trong [03-decisions.md](03-decisions.md) đã
+   được duyệt hoặc thay thế, và các file của từng lớp đã ghi tên cuối cùng.
 
-## G1: hidden-line projection
+## G1: chiếu nét thấy và nét khuất
 
-1. Edge extraction: sharp edges, silhouettes, smooth edges dropped -> verify: counts per test body worked out by hand.
-2. Occlusion: each edge cut into visible and hidden pieces -> verify: the three main views of every test body against
-   lines worked out by hand, to the point tolerance.
-3. Edges shared by touching objects drawn once -> verify: TC8 gives no doubled line.
-4. Arcs fitted to faceted circles (D6) -> verify: every hole of TC1 and TC2 comes out as one circle of its diameter.
-5. Sections: the cut faces and what lies behind the cut -> verify: section areas against `GeoSolid3.Section`.
-6. A first DXF of the three views, lines on layers by visibility -> verify: opens in AutoCAD, AUDIT clean; the maintainer
-   looks at it.
-7. Speed -> verify: benchmark on TC10, timings recorded, and a fuzz run of random boxes and cuts with no exception and no
-   edge both visible and hidden.
+1. Lấy cạnh: cạnh sắc, đường bao, bỏ cạnh trơn -> verify: số cạnh của từng cấu kiện mẫu đúng như tính tay.
+2. Che khuất: mỗi cạnh được chia thành đoạn thấy và đoạn khuất -> verify: ba view chính của mọi cấu kiện mẫu khớp với nét
+   tính tay, trong point tolerance.
+3. Cạnh chung của hai đối tượng chạm nhau chỉ vẽ một lần -> verify: TC8 không có nét nào bị vẽ trùng.
+4. Khớp cung cho đường tròn bị chia mặt (D6) -> verify: mọi lỗ của TC1 và TC2 ra đúng một đường tròn đúng đường kính.
+5. Mặt cắt: các mặt bị cắt và phần nằm sau mặt cắt -> verify: diện tích mặt cắt khớp với `GeoSolid3.Section`.
+6. File DXF đầu tiên có ba view, nét đặt trên layer theo thấy/khuất -> verify: mở được trong AutoCAD, AUDIT sạch;
+   maintainer xem file.
+7. Tốc độ -> verify:
+   - benchmark trên TC10, ghi lại thời gian;
+   - một lượt fuzz với các khối hộp và vết cắt ngẫu nhiên: không exception nào, không cạnh nào vừa thấy vừa khuất.
 
-## G2: views
+## G2: view
 
-1. The drawing frame from the source (the main object's coordinate system) -> verify: TC2 lying along any axis gives the
-   same views.
-2. Views along the axes, chosen by settings; sections and details; isometric -> verify: per view, the lines of G1.
-3. Scale chosen from the allowed list, crop to the objects, depth limits -> verify: each view fits its space on the sheet.
+1. Hệ trục bản vẽ lấy từ nguồn (hệ trục của đối tượng chính) -> verify: TC2 đặt dọc theo trục nào cũng cho cùng các view.
+2. View theo các trục do thiết lập chọn; mặt cắt và chi tiết; isometric -> verify: mỗi view có đúng các nét của G1.
+3. Chọn scale từ danh sách cho phép, cắt vùng theo đối tượng, giới hạn độ sâu -> verify: mỗi view vừa chỗ của nó trên
+   tờ giấy.
 
-## G3: dimensions
+## G3: dimension
 
-1. Points of interest of a view: ends, outline corners, hole and bolt centres, work points -> verify: per test body.
-2. Rules: overall, chain, cumulative, ordinate, holes by group -> verify: dimension values against the model.
-3. Tiers outside the view, spacing, no dimension crossing another or the text of another -> verify: a test counts
-   overlaps, and it is zero on every test body.
+1. Các điểm cần đo của một view: hai đầu, góc của đường bao, tâm lỗ và bulông, work point -> verify: theo từng cấu kiện
+   mẫu.
+2. Quy tắc: tổng, chuỗi, cộng dồn, ordinate, lỗ theo nhóm -> verify: giá trị dimension khớp với model.
+3. Đặt dimension thành tầng ngoài view, đúng khoảng cách, không dimension nào cắt dimension khác hay đè lên chữ của
+   dimension khác -> verify: có test đếm chỗ chồng nhau, và kết quả bằng 0 trên mọi cấu kiện mẫu.
 
-## G4: marks and symbols
+## G4: mark và ký hiệu
 
-1. Part, assembly and bolt marks placed through `Arranging` -> verify: no overlaps, every leader on its object.
-2. Centre lines, section and detail marks, levels, weld symbols -> verify: per test body.
+1. Mark cấu kiện, mark assembly, mark bulông đặt qua `Arranging` -> verify: không chồng nhau, mọi đường dẫn chỉ đúng
+   vào đối tượng của nó.
+2. Đường tâm, ký hiệu mặt cắt và chi tiết, cao độ, ký hiệu hàn -> verify: theo từng cấu kiện mẫu.
 
-## G5: the sheet
+## G5: tờ giấy
 
-1. Sheet size and frame, title block filled from the source and settings -> verify: attribute values in the DXF.
-2. Part list as a DXF table -> verify: rows and quantities against the source.
-3. Views placed through `SheetPacker` with their annotation -> verify: nothing overlaps, nothing off the sheet.
+1. Khổ giấy và khung, khung tên điền từ nguồn và thiết lập -> verify: giá trị các attribute trong DXF.
+2. Bảng vật tư là một table DXF -> verify: các dòng và số lượng khớp với nguồn.
+3. Xếp view cùng chú thích của nó qua `SheetPacker` -> verify: không gì chồng nhau, không gì ra ngoài tờ giấy.
 
-## G6: presets, Tekla bridge, comparison
+## G6: preset, cầu nối Tekla, so sánh
 
-1. Presets for a part, an assembly and a general arrangement -> verify: each test body drawn with each preset.
-2. `DrawingSourceConvert` reading assemblies, parts, bolts and welds -> verify: TeklaConvert tests in code; a run against
-   the maintainer's running Tekla only with their go-ahead.
-3. Side-by-side with Tekla's exported drawing of the same objects -> verify: each fault of
-   [40-tekla-bugs.md](40-tekla-bugs.md) shown right in ours.
+1. Preset cho một cấu kiện, một assembly và GA -> verify: mỗi cấu kiện mẫu được vẽ với từng preset.
+2. `DrawingSourceConvert` đọc assembly, part, bulông và mối hàn -> verify:
+   - test TeklaConvert chạy bằng code;
+   - chạy thử với Tekla đang mở của maintainer chỉ khi được maintainer đồng ý.
+3. Đặt cạnh bản vẽ Tekla xuất ra cho cùng đối tượng -> verify: mỗi lỗi trong [40-tekla-bugs.md](40-tekla-bugs.md) đều
+   đúng ở bản vẽ của ta.
 
 ## G7: docs, changelog, release
 
-1. Guides in plain English with measured examples, a group in the docs site with its own index page -> verify: docfx
-   `--warningsAsErrors` 0 warnings, no menu node without an href.
-2. Changelog **NEW.** entries, package release notes -> verify: the release check.
-3. Release as CLAUDE.md says -> verify: all three workflows green.
+1. Hướng dẫn bằng tiếng Anh đơn giản, có ví dụ đo được, thành một nhóm trên site docs có trang mở đầu riêng -> verify:
+   docfx `--warningsAsErrors` 0 cảnh báo, không mục menu nào thiếu href.
+2. Mục **NEW.** trong changelog, release notes của package -> verify: release check.
+3. Release theo CLAUDE.md -> verify: cả ba workflow xanh.

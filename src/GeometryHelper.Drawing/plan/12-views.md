@@ -1,37 +1,36 @@
-# L2: views
+# L2: view
 
-## The drawing frame
+## Hệ trục bản vẽ
 
-A drawing has one frame, by default the main object's own (a Tekla part's coordinate system: x along its length, y up
-in its cross-section). Every view is set in that frame, so a beam lying along any axis of the model gives the same
-drawing.
+Mỗi bản vẽ có một hệ trục, mặc định là hệ trục riêng của đối tượng chính (với part của Tekla: x dọc theo chiều dài, y
+hướng lên trong mặt cắt ngang). Mọi view đặt trong hệ trục đó, nên một dầm nằm dọc theo trục nào của model cũng cho cùng
+một bản vẽ.
 
-## Kinds of view
+## Các loại view
 
-| `ViewKind` | Looks | Notes |
+| `ViewKind` | Hướng nhìn | Ghi chú |
 |---|---|---|
-| Front | along the frame's -y or +y, by the projection method (D9) | the main view |
-| Top, Bottom | along the frame's z | placed above or below the front view by the projection method |
-| Left, Right (end views) | along the frame's x | |
-| Back | opposite the front | rarely asked for |
-| Section | across a cut plane, one side kept | a section mark in the view it is cut from (L3) |
-| Detail | a part of another view, cropped by a circle or a rectangle, at a larger scale | a detail mark in the view it comes from |
-| Isometric | along a fixed oblique direction | no dimensions by default |
+| Front | theo -y hoặc +y của hệ trục bản vẽ, tuỳ phép chiếu (D9) | view chính |
+| Top, Bottom | theo z của hệ trục | đặt trên hoặc dưới view đứng, tuỳ phép chiếu |
+| Left, Right (view đầu) | theo x của hệ trục | |
+| Back | ngược với view đứng | ít khi dùng |
+| Section | qua một mặt phẳng cắt, giữ một phía | ký hiệu mặt cắt đặt trong view chứa vết cắt (L3) |
+| Detail | một phần của view khác, cắt theo hình tròn hoặc chữ nhật, scale lớn hơn | ký hiệu chi tiết đặt trong view gốc |
+| Isometric | theo một hướng xiên cố định | mặc định không có dimension |
 
-Which views a drawing has is a setting (L6). A view with no lines in it is not made.
+Bản vẽ có những view nào là do thiết lập (L6) quyết định. View không có nét nào thì không tạo.
 
 ## DrawingView
 
-- its kind and `ViewFrame3`;
-- its scale, from the allowed list (Q4): the largest whose view, with room for its dimensions, fits the space the sheet
-  gives it;
-- its crop: by default the box of the objects seen plus a margin; a depth range in front of and behind the frame;
-- its projected lines from L1, scaled to sheet millimetres;
-- its annotation from L3;
-- its title (for example "SECTION A-A 1:10") and its place on the sheet (L4).
+- loại view và `ViewFrame3`;
+- scale, chọn từ danh sách cho phép (Q4): scale lớn nhất mà view, cộng chỗ cho dimension, vừa với phần giấy dành cho nó;
+- vùng cắt: mặc định là hộp bao các đối tượng nhìn thấy cộng một lề; khoảng độ sâu trước và sau hệ trục;
+- các nét chiếu từ L1, đổi sang mm trên giấy;
+- chú thích từ L3;
+- tiêu đề (ví dụ "SECTION A-A 1:10") và vị trí trên tờ giấy (L4).
 
-## Views of long parts
+## View của cấu kiện dài
 
-A long part at a scale that fits the sheet can come out too small to read. A setting allows a view to be shortened:
-the length between the features is cut out and the view drawn with break lines, dimensions keeping the true lengths.
-This comes after G2's first steps, once the plain views work.
+Cấu kiện dài vẽ ở scale vừa tờ giấy có thể ra quá nhỏ để đọc. Một thiết lập cho phép rút ngắn view: cắt bỏ đoạn giữa
+các chi tiết, vẽ đường ngắt, dimension vẫn giữ độ dài thật. Phần này làm sau các bước đầu của G2, khi view thường đã chạy
+được.

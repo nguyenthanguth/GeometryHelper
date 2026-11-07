@@ -1,86 +1,85 @@
-# Project structure
+# Cấu trúc dự án
 
-## The project
+## Project
 
-`src/GeometryHelper.Drawing/GeometryHelper.Drawing.csproj`, made in G1 when the first code is written:
+`src/GeometryHelper.Drawing/GeometryHelper.Drawing.csproj`, tạo ở G1 khi bắt đầu có code:
 
-- targets netstandard2.0, as the other libraries do;
-- references `GeometryHelper` only, never Tekla;
-- version from `GeometryHelperVersion` in `Directory.Build.props`, packed as `GeometryHelper.Drawing` and released with
-  the other packages as one set;
-- XML documentation on every public member (CS1591 fails the `-warnaserror` build without it);
-- added to `GeometryHelper.slnx`.
+- target netstandard2.0 như các thư viện khác;
+- chỉ tham chiếu `GeometryHelper`, không bao giờ tham chiếu Tekla;
+- version lấy từ `GeometryHelperVersion` trong `Directory.Build.props`, đóng gói thành `GeometryHelper.Drawing` và phát
+  hành cùng lúc với các package khác;
+- mọi thành viên public có XML documentation (thiếu thì build `-warnaserror` báo lỗi CS1591);
+- thêm vào `GeometryHelper.slnx`.
 
-## Folders
+## Thư mục
 
 ```
 src/GeometryHelper.Drawing/
-  README.md                       what the module is, and the plan's index
-  plan/                           this plan (*.md)
+  README.md                       giới thiệu module và mục lục kế hoạch
+  plan/                           kế hoạch này (*.md)
   GeometryHelper.Drawing.csproj
-  Drawing.cs                      the result: views and sheet in sheet millimetres
-  DrawingBuilder.cs               source + settings -> Drawing
+  Drawing.cs                      kết quả: các view và tờ giấy, theo mm trên giấy
+  DrawingBuilder.cs               nguồn + thiết lập -> Drawing
   Source/
-    DrawingObject.cs              one object: solid, kind, name, mark, profile, material, parent, attributes
+    DrawingObject.cs              một đối tượng: solid, loại, tên, mark, profile, vật liệu, cha, thuộc tính
     DrawingObjectKind.cs          Part, Bolt, Hole, Weld, Rebar, ...
-    DrawingSource.cs              the objects of one drawing, and its frame
+    DrawingSource.cs              các đối tượng của một bản vẽ, và hệ trục của bản vẽ
   Projection/
-    ViewProjector.cs              L1 entry point
-    ProjectedView2.cs             the lines and section faces of one view
-    ProjectedEdge2.cs             a 2D segment or arc, its visibility, kind and object
+    ViewProjector.cs              điểm vào của L1
+    ProjectedView2.cs             các nét và mặt cắt của một view
+    ProjectedEdge2.cs             một đoạn thẳng hoặc cung 2D, thấy/khuất, loại nét, đối tượng
     EdgeVisibility.cs             Visible, Hidden
     EdgeKind.cs                   Sharp, Silhouette, SectionOutline, ...
-    Internal/                     edge extraction, occlusion, spatial index
+    Internal/                     lấy cạnh, tính che khuất, chỉ mục không gian
   Views/
-    DrawingView.cs                one view: frame, scale, crop, depth, projected lines, annotation
+    DrawingView.cs                một view: hệ trục, scale, vùng cắt, độ sâu, nét chiếu, chú thích
     ViewKind.cs                   Front, Top, Bottom, Left, Right, Back, Section, Detail, Isometric
-    ViewFrame3.cs                 the view's coordinate system and its depth range
-    ViewBuilder.cs                the views a drawing's settings ask for
+    ViewFrame3.cs                 hệ trục của view và khoảng độ sâu
+    ViewBuilder.cs                các view mà thiết lập yêu cầu
   Annotation/
-    Dimensions/                   points of interest, dimension rules, chains, tiers
-    Marks/                        part, assembly and bolt marks, leaders
-    Symbols/                      centre lines, weld symbols, levels, section and detail marks
+    Dimensions/                   điểm cần đo, quy tắc dimension, chuỗi, các tầng
+    Marks/                        mark cấu kiện, assembly, bulông, đường dẫn
+    Symbols/                      đường tâm, ký hiệu hàn, cao độ, ký hiệu mặt cắt và chi tiết
   Sheets/
-    DrawingSheet.cs               the sheet: size, frame, title block, tables
+    DrawingSheet.cs               tờ giấy: khổ, khung, khung tên, các bảng
     TitleBlock.cs
     PartList.cs
-    SheetLayout.cs                view placement through SheetPacker
+    SheetLayout.cs                xếp view qua SheetPacker
   Output/
     DrawingDxfWriter.cs           Drawing -> DxfDatabase -> file
   Settings/
-    DrawingSettings.cs            and its parts per layer, and the presets
+    DrawingSettings.cs            và các phần theo từng lớp, và các preset
 
 src/GeometryHelper.TeklaConvert/
-  DrawingSourceConvert.cs         Tekla assemblies and parts -> DrawingSource
+  DrawingSourceConvert.cs         assembly và part của Tekla -> DrawingSource
 
-tests/GeometryHelper.Drawing.UnitTest/       net48 xUnit, as the other suites
-  TestBodies.cs                   the bodies of 20-test-cases.md, built in code
+tests/GeometryHelper.Drawing.UnitTest/       xUnit net48, như các bộ test khác
+  TestBodies.cs                   các cấu kiện của 20-test-cases.md, dựng bằng code
   Projection/ Views/ Annotation/ Sheets/ Output/ Builder/
 
 benchmarks/GeometryHelper.Benchmarks/Scenarios/
-  Drawing*.cs                     projection and whole drawings, timed and signed
+  Drawing*.cs                     đo thời gian chiếu nét và cả bản vẽ, có chữ ký kết quả
 
-src/GeometryHelper/docs/drawing/  (or a docs folder of this project, decided in G7)
-  index.md and one page per layer, a group of the site's menu with its own index page
+src/GeometryHelper/docs/drawing/  (hoặc thư mục docs của project này, quyết định ở G7)
+  index.md và mỗi lớp một trang, thành một nhóm trong menu docs có trang mở đầu riêng
 ```
 
-A separate test project keeps the drawing suite from slowing the core suite, and matches one test project per library.
-Whether it stays separate or joins `GeometryHelper.UnitTest` is decision D7 in [03-decisions.md](03-decisions.md).
+Để test ở project riêng thì bộ test drawing không làm chậm bộ test lõi, và khớp với cách mỗi thư viện một bộ test. Giữ
+riêng hay gộp vào `GeometryHelper.UnitTest` là quyết định D7 trong [03-decisions.md](03-decisions.md).
 
 ## Verify
 
-Once the project exists, CLAUDE.md's verify gains one line:
+Khi đã có project, bước verify trong CLAUDE.md thêm một dòng:
 
 ```bash
 dotnet test tests/GeometryHelper.Drawing.UnitTest/GeometryHelper.Drawing.UnitTest.csproj -c Release --no-build
 ```
 
-and the build of `GeometryHelper.slnx` takes the new projects in. A change to a path the benchmarks time is checked by
-them too.
+và lệnh build `GeometryHelper.slnx` sẽ build luôn các project mới. Thay đổi nào chạm tới đường code mà benchmark đo thì
+chạy cả benchmark.
 
-## Looking at the output
+## Xem kết quả
 
-- AutoCAD 2021, through accoreconsole with the leader's own plugins (open, AUDIT, count the entities), as for the DXF
-  work before.
-- The repository's viewer (`tools/GeometryHelper.Viewer`), which opens DXF.
-- An SVG of a view through `SvgWriter`, for a quick look in a browser while working on L1.
+- AutoCAD 2021 qua accoreconsole, với plugin của leader (mở file, AUDIT, đếm entity), như các lần làm DXF trước.
+- Viewer có sẵn trong repo (`tools/GeometryHelper.Viewer`), đọc được DXF.
+- Ghi SVG của một view qua `SvgWriter` để xem nhanh trên trình duyệt khi đang làm L1.

@@ -1,48 +1,48 @@
-# L3: annotation
+# L3: chú thích
 
-## Points of interest
+## Các điểm cần đo
 
-Before anything is dimensioned, each view lists what can be measured to, each point with the object and the feature it
-comes from:
+Trước khi ghi dimension, mỗi view liệt kê những điểm có thể đo tới, mỗi điểm kèm đối tượng và chi tiết sinh ra nó:
 
-- the ends and the outline corners of each part, as seen in the view;
-- the centres of holes and bolts, with their group;
-- work points and the reference line of the main part;
-- the edges of cuts, chamfers and fittings.
+- hai đầu và các góc đường bao của mỗi cấu kiện, như nhìn thấy trong view;
+- tâm lỗ và tâm bulông, kèm nhóm của chúng;
+- work point và đường tham chiếu của cấu kiện chính;
+- mép các vết cắt, vát và chi tiết gắn thêm.
 
-## Dimensions
+## Dimension
 
-Rules, chosen by settings, decide which points are dimensioned and how:
+Các quy tắc, bật tắt qua thiết lập, quyết định điểm nào được đo và đo thế nào:
 
-| Rule | What it gives |
+| Quy tắc | Cho ra |
 |---|---|
-| Overall | the overall length, width and height of the main part |
-| Chain | dimensions end to end between consecutive points |
-| Cumulative | all from one origin, as one ordinate-like line |
-| Holes by group | a bolt group's pitch as "n x p = total" and its distance to the part's end |
-| Fittings | the position of each fitting from the main part's end or work point |
+| Tổng | chiều dài, rộng, cao tổng của cấu kiện chính |
+| Chuỗi | dimension nối tiếp giữa các điểm liên tiếp |
+| Cộng dồn | tất cả tính từ một gốc, trên một đường giống ordinate |
+| Lỗ theo nhóm | bước lỗ của bolt group dạng "n x p = tổng" và khoảng cách tới đầu cấu kiện |
+| Chi tiết gắn thêm | vị trí mỗi chi tiết tính từ đầu hoặc work point của cấu kiện chính |
 
-Placement:
+Cách đặt:
 
-- dimension lines in tiers outside the view, the overall dimension outermost, the spacing a setting in paper millimetres;
-- no dimension line crossing another, no text over a line or another text; a test counts overlaps on every test body
-  and wants none;
-- equal neighbouring dimensions may be merged into "n x p";
-- a dimension is never doubled by another in the same view;
-- the value is the model length (D1: `DIMLFAC`), rounded as the settings say.
+- các đường dimension xếp thành tầng ngoài view, dimension tổng nằm ngoài cùng, khoảng cách giữa các tầng là thiết lập
+  theo mm trên giấy;
+- không đường dimension nào cắt đường khác, không chữ nào đè lên nét hay chữ khác; có test đếm chỗ chồng nhau trên mọi
+  cấu kiện mẫu và yêu cầu bằng 0;
+- các dimension bằng nhau liền kề có thể gộp thành "n x p";
+- trong một view không có dimension nào bị ghi lặp;
+- giá trị là độ dài thật của model (D1: `DIMLFAC`), làm tròn theo thiết lập.
 
-The dimensions are written as real DIMENSION entities (L5), so that a user can move them in CAD and the value stays.
+Dimension ghi ra là entity DIMENSION thật (L5), nên người dùng kéo được trong CAD mà giá trị vẫn đúng.
 
-## Marks
+## Mark
 
-- part marks, assembly marks and bolt marks, with what each shows set by the settings (Q5);
-- placed through `Arranging` (`Arranger.Run`), with the view's lines and dimensions as obstacles, so that no mark covers
-  another, a dimension or a line where it can be avoided;
-- a leader from each mark to a point inside its object, as an MLEADER.
+- mark cấu kiện, mark assembly và mark bulông; mỗi loại hiển thị gì do thiết lập quyết định (Q5);
+- đặt qua `Arranging` (`Arranger.Run`), lấy nét và dimension của view làm vật cản, để mark không che mark khác, không
+  che dimension, và không che nét ở chỗ tránh được;
+- đường dẫn từ mỗi mark tới một điểm bên trong đối tượng của nó, ghi bằng MLEADER.
 
-## Symbols
+## Ký hiệu
 
-- centre lines of holes, bolt groups and tubes;
-- section marks (the cut line with its letters and arrows) and detail marks (a circle and its letter);
-- weld symbols (Q3) on a leader to the weld;
-- level marks for general arrangement drawings.
+- đường tâm của lỗ, bolt group và ống;
+- ký hiệu mặt cắt (đường cắt kèm chữ và mũi tên) và ký hiệu chi tiết (vòng tròn kèm chữ);
+- ký hiệu hàn (Q3) trên đường dẫn tới mối hàn;
+- ký hiệu cao độ cho bản vẽ GA.
