@@ -1,5 +1,10 @@
 # Tables of cells
 
+Tables of cells (ACAD_TABLE): their cells and values, their structure, merging, grid lines, formulas and series, and
+their links to data.
+
+## The table and its cells
+
 An ACAD_TABLE is a [`DxfTable`](xref:GeometryHelper.Dxf.DxfTable): its `NumRows`, `NumColumns`, `RowHeight(row)`, `ColumnWidth(col)`, and each cell's
 `TextString`, `Value`, `CellType`, merging (`IsMergedCell`, `GetMergeRange`), corners (`GetCellExtents`), block and
 attribute values, and the look it holds of its own, `Alignment`, `TextHeight`, `TextStyle` and the colours, null where it
@@ -25,6 +30,8 @@ table names, else the drawing's Standard, else AutoCAD's own Standard, the title
 drawing of millimetres (`$MEASUREMENT` 1), 0.25 and 0.18 in one of inches. The table of point 54 scaled by 2 has the two
 cells of its title 12 high and the others 9, its cell of its own 3.5 now 7. AutoCAD read the heights written as the table's
 own instead as 0.18 in every cell, so none is written there. Its rows are still not measured by AutoCAD's font.
+
+## Values and their kinds
 
 A cell's value has its kind, `DataType` (`Long`, `Double` or `String`, the value's 90 from R2007 on), what its number
 measures, `UnitType`, and its format, `Format` (`%lu2%pr2`), each in the cell's `301 CELL_VALUE`.
@@ -90,6 +97,9 @@ row put in before it, and in a row put in that takes the title's look, the title
 groups after its last cell, or in its head after those flags and before its heights, where AutoCAD 2021 writes them),
 in one pass over the table's groups: the cells of a table of 16 001 rows of 2 columns, half
 of them of three overrides, are cleared in 0.19 s, where taking each group out on its own took 6.6 s.
+
+### Clearing overrides
+
 `ClearTableStyleOverrides` of 0 or 2 leaves each cell of no value the empty value of no kind (`93 5`, `90 512`) and each
 block cell without its flag 0x40000, and of 2 gives each cell the table's own looks of its row's kind as its own, as
 AutoCAD 2021 wrote them, so that a table of its own data of 9, GH_TXT, red and top left still shows them in each cell. A
@@ -114,6 +124,9 @@ again gives the table its looks back as they were (`93 6886016`), and B-12 taken
 it none. The kinds of the rows are read from the TABLECONTENT once for each writing of it, and only where it holds
 more rows of the title's or the header's style than the table shows: a clear of a table of 400 rows takes as long as it
 did before the kinds were read, and taking away the overrides of its cells one by one too.
+
+## Walking and setting cells
+
 The cells are
 walked row by row (`foreach (DxfCell cell in table)`), and `table.Cells[1, 0]` is a [`DxfCell`](xref:GeometryHelper.Dxf.DxfCell) that reads and sets one,
 `cell.TextString = "Count"`, `cell.Alignment = DxfCellAlignment.MiddleCenter`; `table.Rows[0].Height` and
@@ -129,6 +142,8 @@ placed at the top middle at (320, -74.06, 0). None of these draws the table's bl
 has no group for is not there: a cell's state, tooltip, cell style, margins of its own, content layout, custom data and
 merging of all, and a column's name; nor are the forms by row type (`SetAlignment(align, rowTypes)` and the like), whose
 groups after the last cell the DXF reference lists without their order.
+
+## Changing the structure
 
 A table's structure changes as AutoCAD's does, each change written in one writing of its record, its block left for
 AutoCAD to draw anew. `InsertRows(row, height, rows)` and `InsertColumns(col, width, columns)` put in rows and columns
@@ -181,6 +196,9 @@ space or nought beside it, a block, or a block merged down from it, stays as it 
 unmerged and given X beside Parts stays unmerged. A table read and not edited is written as it was read. The hidden
 cell of a row of the title's kind moved down keeps the title's looks, `140 6.0` of AutoCAD's Standard, and is given them
 where it held a height of its own, as AutoCAD 2021 kept them.
+
+### Resizing
+
 `SetSize(numRows, numCols)` cuts or carries on the table from its bottom and right, the new rows 4/3 of the text
 height the table style gives the data and twice the margin above and below (9 for AutoCAD's Standard of 4.5 and 1.5,
 6.333 for a style of 2.5, 12 for the table's own margin of 3, whatever the rows above) and the new columns as wide as
@@ -191,6 +209,9 @@ title merged across it, which has no row whose new cell is merged with none. No 
 put in after it: a title merged across some of the columns, or a column merged down to the last row, stays as it is, and
 grows only by rows or columns put in among it, as AutoCAD 2021 left them; `CanInsertRow`, `CanInsertColumn`, `CanDeleteRows` and `CanDeleteColumns` say whether they can, one row and one
 column at least kept. 16 000 rows go in or out in about 0.3 s on .NET 10, as one setter of a cell takes.
+
+### Merging
+
 `MergeCells(range)` gives the top left cell of the range the width and height of the block (175, 176) and `173 0`, and
 marks the others merged (173 of 1), as AutoCAD 2021 writes them, a block within the range taken into it and one across
 its edge refused, and `UnmergeCells` takes back each block the range meets, its top left cell given `175 1` and `176 1`,
@@ -211,6 +232,9 @@ wherever its group stands, and
 two cells is one line, the edge of one cell: AutoCAD 2021 writes it as the top or left of the cell below or right of it,
 and reads it from that cell where the cell holds the edge (its edge flag and one of the edge's overrides at least), else
 from the bottom or right of the other where that one holds it, each property of the line from the edge that holds it.
+
+### Grid lines
+
 So `GetGridColor`, `GetGridLineWeight`, `GetGridVisibility`, `GetGridProperty` and `GridColor(row, col, edge)` read the
 bottom of (1, 1) as the top of (2, 1) where (2, 1) holds its top, green there and red in (1, 1) reading green, and the
 top of (2, 1) of a colour alone with the bottom of (1, 1) of a lineweight alone reading no lineweight; null where no edge
@@ -235,6 +259,9 @@ is erased with its children where the table owns it and nothing else of the file
 which holds its original's fields, an XRECORD, another field), and taken out of the drawing's ACAD_FIELDLIST; a field
 kept whose owner goes is given to a field that names it, else to the table. A copy of a table in its own drawing shares
 the original's fields: erasing the original table leaves the copy's 344s naming nothing, a limit listed for later;
+
+### Formulas
+
 `GetFormula` and `HasFormula` read one back, or one AutoCAD wrote as a field of text holding it, from the cell's field in
 the table's TABLECONTENT where the cell's 344 names no record, as AutoCAD 2021 wrote the formula of a linked cell; the
 link taken away, such a formula is written in the cell's own FIELD, as AutoCAD read none there until the cell had one. `CopyFrom(source,
@@ -257,6 +284,9 @@ title's second cell filled from Parts staying empty; `CopyContent` the content a
 `CopyFormat` the look and kind alone (a cell of no value given one of none of that kind, one of a value of another kind
 turned into it as `SetDataType` turns it, the text 12 under the look of 1.5 the number 12 shown 12.0000), both the cell
 whole, into the header and the title as into rows of data;
+
+### Filling a series
+
 `GenerateSeries` carries the numbers on from the source's last, wherever the fill range stands, 10 and 20 to 30 and 40,
 each rounded to the places of the source and the step, to 15 figures (0.1 and 0.2 to 0.3, shown 0.300000; 1, 2 and 4 to
 5.5 and 7), and with `Reverse` back from the source's first, the fill range's last cell next to it, 10 and 20 to -20, -10
@@ -265,6 +295,8 @@ AutoCAD refuses it; a text is a number only before R2007, and dates are not carr
 `SetFromStyle()` takes the table's and its cells' overrides away, as `ClearTableStyleOverrides(0)` does. What a file of
 these versions has no group for is not there: several contents in one cell, and a line's style, linetype and the spacing
 of a double line.
+
+## Links to data
 
 A range of a table's cells is linked to data as AutoCAD links one to a spreadsheet, from R2007 on; the library reads
 such links, takes them away and puts them in. A [`DxfDataLink`](xref:GeometryHelper.Dxf.DxfDataLink) is a DATALINK of the drawing's
@@ -338,3 +370,8 @@ each, what it owns (360) and its custom data between `305 CUSTOMDATA`, `1 DATAMA
 it, is SkipFormat (0x20000) and AllowSourceUpdate (0x100000), which make 1 179 648, and a 0x1 no flag of AutoCAD's
 `UpdateOption` explains. The breaking of a table into parts (`BreakEnabled` and the rest) is not there either: its
 groups are in no reference.
+
+## See also
+
+- [Hatches, leaders and dimensions](annotation.md).
+- [Editing rules and what the model does not do](rules.md).

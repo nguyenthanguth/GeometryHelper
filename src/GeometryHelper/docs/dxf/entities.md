@@ -1,5 +1,8 @@
 # Entities and curves
 
+What every entity has (its look, its box, its shapes), the curves and how they are walked, cut, converted and joined,
+and each entity's shape given typed.
+
 ## What every entity has
 
 Every entity has AutoCAD's `Layer`, `Color`, `ColorIndex`, `TrueColor`, `Linetype`, `LinetypeScale`, `LineWeight`,
@@ -24,6 +27,8 @@ of them: a TEXT of contexts handed over to an MTEXT keeping its dictionary throw
 to a TEXT, an INSERT to a TEXT and a TEXT to an INSERT. A TEXT, an ATTDEF and an ATTRIB take one another's contexts, which
 AutoCAD read; a LINE, never annotative, takes any. Not keeping the dictionary, the new entity writes contexts of its own.
 
+### Its box and its shapes
+
 `GeometricExtents` is the box of its shapes, a [`GeoAabb3`](xref:GeometryHelper.Geometry.GeoAabb3); an entity with none, a REGION or a LINE of no length, throws, as
 AutoCAD throws for an entity with no extents. A text has no fonts here, so its box is the point it stands at. `GetPlane()`
 gives the plane it lies in, that of its extrusion through its first point where all of it lies there, else the one its shapes
@@ -38,12 +43,16 @@ gives where the boxes of two entities meet.
 
 ## Curves
 
+### Lines, circles, arcs and the rest
+
 Lines, circles, arcs, ellipses, points, rays and xlines are [`DxfLine`](xref:GeometryHelper.Dxf.DxfLine), [`DxfCircle`](xref:GeometryHelper.Dxf.DxfCircle), [`DxfArc`](xref:GeometryHelper.Dxf.DxfArc), [`DxfEllipse`](xref:GeometryHelper.Dxf.DxfEllipse), [`DxfDBPoint`](xref:GeometryHelper.Dxf.DxfDBPoint),
 [`DxfRay`](xref:GeometryHelper.Dxf.DxfRay) and [`DxfXline`](xref:GeometryHelper.Dxf.DxfXline), with AutoCAD's members. A CIRCLE whose groups 10, 20 and 30 are (10, 20, 5) on the extrusion
 (0, 0, -1) has its `Center` at (-10, 20, -5), as AutoCAD gives it; setting `Normal` keeps that centre where it is in the
 world. An arc's `StartAngle` and `EndAngle` are radians from nought up to 2 pi, written as degrees. On the ellipse with major
 axis (10, 0, 0) and ratio 0.5, `StartParam` 0.7854 (pi / 4) is the point (7.071, 3.536, 0), whose `StartAngle` is 0.4636.
 `new DxfArc(center, normal, 10, 0, Math.PI / 2)` then `db.ModelSpace.AppendEntity(arc)` adds a quarter circle.
+
+### Lightweight polylines
 
 A LWPOLYLINE is a [`DxfPolyline`](xref:GeometryHelper.Dxf.DxfPolyline): `pl.GetPoint2dAt(1)` is its second vertex in the plane of its normal, `pl.GetPoint3dAt(1)`
 the same in the world (every vertex of a polyline of 10 000 in 15 ms), `pl.AddVertexAt(2, point, bulge, 0, 0)` puts one in, and `pl.SetBulgeAt(1, 1.0)` makes the segment
@@ -54,6 +63,8 @@ is a [`DxfSpline`](xref:GeometryHelper.Dxf.DxfSpline) of its `Degree`, `ControlP
 (`GetVertexAt`, `IsEdgeVisibleAt`), a SOLID a [`DxfSolid`](xref:GeometryHelper.Dxf.DxfSolid) (`GetPointAt`), and the meshes a [`DxfPolyFaceMesh`](xref:GeometryHelper.Dxf.DxfPolyFaceMesh) and a
 [`DxfPolygonMesh`](xref:GeometryHelper.Dxf.DxfPolygonMesh), whose vertices and face records are walked as their polyline's are. A point or face of a polyface mesh
 erased keeps the mesh's counts and the faces' numbers of its points true.
+
+### Walking a curve
 
 A curve is a [`DxfCurve`](xref:GeometryHelper.Dxf.DxfCurve), walked as AutoCAD walks one: the line from (0, 0, 0) to (30, 40, 0) is 50 long, its parameter the
 distance from its start; a circle or an arc is walked by its angle, an ellipse by its eccentric angle, a ray or an xline by
@@ -69,6 +80,8 @@ pl.Extend(pl.EndParam + 0.5);                                         // the las
 DxfSpline spline = pl.Spline;                                         // the spline that is exactly the polyline
 DxfCurve flat = spline.GetOrthoProjectedCurve(new GeoPlane3(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1)));
 ```
+
+### Cutting a curve
 
 A segment cut keeps the part of its arc and its widths read off along it: the polyline above cut at 1.5 is (0, 0), (10, 0),
 (15, 5) and (15, 5), (10, 10), each arc of bulge 0.414. An offset keeps arcs as arcs and runs the corners on until they meet,
@@ -100,6 +113,8 @@ the B-spline it is fitted with, on its frame, as AutoCAD 2021's `Polyline2d.Spli
 drawn. A curve projected keeps its kind where it can: a circle of
 radius 10 on the floor projected along (0, 0, 1) onto the plane y + z = 0 is an ellipse of radii 14.14 and 10.
 
+### Turning one polyline into another
+
 `DxfPolyline.ConvertFrom(polyline2d, true)` and `ConvertTo(true)` turn a LWPOLYLINE into a POLYLINE of the plane and back
 in its place, its handle, owner, look, extended data and extension dictionary kept, the old object erased, as AutoCAD hands
 the object id over; with `false` the new polyline is made in no file and the old one kept. A polyline of the plane is
@@ -112,6 +127,8 @@ a fitted polyline along the vertices the fitting made, and a smoothed mesh as it
 the polyline's layer, linetype, colour, lineweight, linetype scale, visibility, true colour and transparency, written on it
 when it is made and when the polyline's are set, as AutoCAD keeps them (its AUDIT reports a vertex of another colour); a
 face of a polyface mesh keeps a colour of its own.
+
+### Splines
 
 A spline is periodic (`IsPeriodic`) by the flag 2048 of its group 70 on a curve that runs on round its seam, as AutoCAD
 2021 reads it: AutoCAD writes the flag 2 on its closed splines of a smooth seam too and reads no period from it, its
@@ -132,6 +149,8 @@ fitted, `NumFitPoints`, `FitPoints`, `GetFitPointAt` and `FitData` give the poin
 to its end, as AutoCAD gives them: (0, 0), (30, 0), (30, 15), (20, 15) and (0, 0) for its 3115 of the knots 0, 30, 45, 55
 and 80; its fit data taken out (`SetNurbsData`, `PurgeFitData`) take the flag 1024 off, and `SetNurbsData` the flag 32
 of fit data set as well, as AutoCAD saved its 3115 given its own data back 2059.
+
+### Fit data
 
 Fit data set (`FitData`) keep a closed spline closed and give it the flags 32 and 1024 of fit data, as AutoCAD 2021 saved
 its closed cubic of 70 1035 given fit data 70 1067. Set periodic, they give AutoCAD's periodic cubic through the points
@@ -175,6 +194,8 @@ after), take the fit data out, the flags 32 and 1024 with them (its 1064 is save
 its fit points at its knots (70 1288), where fit points left in AutoCAD would fit anew of one control point fewer, and so
 do `ModifyPositionAndTangent` (70 1288, a closed spline 1289) and the pieces of `GetSplitCurves`, as AutoCAD 2021 kept them.
 
+### A spline's data whole
+
 A spline gives and takes its `NurbsData` and `FitData` whole. `ElevateDegree` raises its degree with the curve kept to the
 rounding, `InsertControlPointAt` and `RemoveControlPointAt` put a control point in and take one out with a knot,
 `InsertFitPointAt`, `SetFitPointAt` and `RemoveFitPointAt` fit it anew through its points (its knots the lengths of the
@@ -215,6 +236,8 @@ was seen to give the cubic of one span 33 vertices for every n from 2 to 50 and 
 every n from 3 to 99, and the cubic of three spans 78 for every n from 4 to 99, about what it gives at precision 0, and to
 refuse the smaller n (2 for two spans, 2 and 3 for three) with `eInvalidInput`.
 
+### Joining curves
+
 Curves are joined as AutoCAD's JOIN joins them, by `JoinEntity(other)` and `JoinEntities(others)` of the entity they join
 into: its record is written anew to run over them, and the others are left as they are, for the caller to erase. A
 `DxfLine` takes lines along its line, gaps and overlaps and all, and runs from the lowest of their ends to the highest: the
@@ -237,6 +260,8 @@ drawn twice is: the line from (10, 0) back to (0, 0) does not close the polyline
 closed curve, a fitted polyline and a polyline of no vertices are not joined, and a POLYLINE's vertices are written anew,
 each with a handle of its own.
 
+### What it costs
+
 What it costs: a vertex of a POLYLINE appended or set one at a time costs about the same however many the polyline has, 20 000
 appended one by one in a fifth of a second and 10 000 points of a polyface mesh in a twentieth; a LWPOLYLINE's vertex put in,
 set or taken out rewrites only that vertex's groups and the count, 10 000 put in one by one in 0.8 s and set one by one in
@@ -246,6 +271,8 @@ vertices takes 0.04 s, and one of 1 000 spans is rebuilt of 5 000 control points
 joined into a LWPOLYLINE in 0.23 s and into a SPLINE in 0.19 s, all on .NET 10.
 
 ## Typed shapes
+
+### The kinds given
 
 Each class gives its shape as the library's, typed, by the names CadConvert gives AutoCAD's: `line.ToGeoLine3()` where
 `GetGeCurve()` gives an `object` to be cast. A conversion of space (`...3`) is the shape `GetGeometry()` gives, to the bit;
@@ -267,6 +294,8 @@ reason (a LINE of no length, an ELLIPSE of no axis, a number that is not finite)
 | [`DxfLeader`](xref:GeometryHelper.Dxf.DxfLeader) | `ToGeoPolyline3` of a straight one, `ToGeoSpline3` of a splined one | `ToGeoPolyline2`, `ToGeoSpline2` |
 | `DxfFace`, `DxfSolid` | `ToGeoPolygon3` | `ToGeoPolygon2` |
 
+### Polylines
+
 A polyline is given as the kind asked for, as CadConvert gives one, built by the reader's own chain and loop. A loop
 (`...Polygon...`) joins its last vertex to its first whether the polyline is closed or not, the bulge of the last vertex that
 of the closing edge, and is refused where it encloses no area (three vertices on a line) or, in space, does not lie in one
@@ -280,6 +309,8 @@ and a part of one the spline that is exactly that part, each refusing the other 
 `GetLineSegment2dAt` and `GetArcSegment2dAt` of a `DxfPolyline` give a segment in the system of its normal, of the vertices
 of `GetPoint2dAt` and the arc as its bulge turns there, as AutoCAD's do: on a tilted or mirrored normal, the segment of
 `GetLineSegmentAt` or `GetArcSegmentAt` taken into that system.
+
+### The way back
 
 The way back, `SetFromGeCurve`, takes the shape of the plane too, written at z = 0 on the normal (0, 0, 1) as [`DxfWriter`](xref:GeometryHelper.Dxf.DxfWriter)
 writes it, and `ToGeoX2()` gives it back to the bit, but the angles of an arc, which go through degrees; a clockwise
@@ -311,3 +342,9 @@ db.Save("plan-grown.dxf");
 
 A conversion of space at the default tolerance gives the shape `GetGeometry()` keeps; one of the plane, or one of a
 polyline of a kind other than the file's, reads the record anew.
+
+## See also
+
+- [Editing rules and what the model does not do](rules.md): how each class moves and explodes.
+- [AutoCAD and GeometryHelper](autocad.md).
+- [How do I](../howto.md).

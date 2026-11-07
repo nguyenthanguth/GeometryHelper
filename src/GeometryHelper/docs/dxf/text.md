@@ -1,6 +1,11 @@
 # Fonts and text
 
+Texts, multiline texts and fields, and the fonts they are measured by: a drawing measures its words only with the
+fonts it is told where to find.
+
 ## Fonts
+
+### Where the fonts are
 
 A drawing reads no font unless it is told where to look. `DxfDatabase.FontSearchPath` takes folders separated by semicolons,
 searched in their order as AutoCAD searches its support path, and is empty when a drawing is opened or made: empty, nothing is
@@ -37,6 +42,8 @@ db.ModelSpace.AppendEntity(text);   // Position (94.667, 50, 0): the ink of "ABC
 - A locked attribute definition is taken into a flip and kept readable, its box mirrored: "L1" 5 high at (20, 60) flipped
   about x = 45 stands at (63.33, 60). A leader whose words sit above its line explodes with its hook running on to their end.
 
+### TrueType fonts
+
 A TrueType font (.ttf, .ttc or .otf of glyf outlines) is measured by the boxes its letters' glyf headers give, as AutoCAD 2021
 measures it (check F2):
 
@@ -56,6 +63,8 @@ measures it (check F2):
   as the style says, as AutoCAD draws such a style by its typeface: arial.ttf named Arial bold is not measured, since AutoCAD
   draws it in arialbd.ttf. A collection (.ttc) is measured by its first face where the style names that face's typeface;
   AutoCAD loads none of a style that names no typeface.
+
+### Big fonts
 
 A style's big font (`BigFontFileName`: gbcbig.shx, chineset.shx, extfont.shx) is read from the same folders, and its letters
 are drawn beside the style's SHX font as AutoCAD 2021 draws them (check F3):
@@ -87,6 +96,8 @@ letters are boxed as AutoCAD boxes them, and 158 of 158 letters with whole circl
 with a big font, 15 382 measured give AutoCAD's place and box and 68 do not: 64 that the font gives without a big font too
 (isocp.shx's stand-in for a letter it has not, romans.shx's Ą, txt.shx's "i" aligned on two points) and 4 of an ideographic
 space alone aligned on two points.
+
+### Multiline text laid out
 
 An MTEXT of several lines is laid out as AutoCAD 2021 lays it out (check F4), in any of the fonts above:
 
@@ -127,6 +138,8 @@ its words of one line only. Of 14 750 MTEXTs AutoCAD 2021 measured in five round
 them give AutoCAD's sizes, extents and every exploded TEXT; the most of the others explode with %% codes, where AutoCAD's
 own TEXTs do not follow its lines, or are of isocp.shx, whose heights are up to 0.01 off as they were for a line.
 
+### Results and machines
+
 The results follow the fonts supplied, so they differ between machines and between versions of a font, as AutoCAD's drawings
 do. Fonts of shapes are not measured, nor the lines of `%%u`, `%%o` and `%%k` of an SHX font
 and of `%%k` of a TrueType one; nor TrueType fonts of CFF outlines or of symbols (Symbol, Wingdings, some of whose letters
@@ -139,6 +152,8 @@ nothing throws. No other folder is looked in, not the Fonts folder of Windows, a
 AutoCAD's FONTALT puts one.
 
 ## Text
+
+### TEXT
 
 A TEXT is a [`DxfDBText`](xref:GeometryHelper.Dxf.DxfDBText) (`TextString`, `Position`, `AlignmentPoint`, `Height`, `Rotation`, `WidthFactor`, `Oblique`,
 `HorizontalMode`, `VerticalMode`, `IsMirroredInX` and the rest of AutoCAD's) and an MTEXT a [`DxfMText`](xref:GeometryHelper.Dxf.DxfMText) (`Contents` with
@@ -178,6 +193,8 @@ drawing that has no style of that name, by `AppendEntity`, by `AppendAttribute`,
 appended; a copy of a drawing that has the style brings it instead. In a drawing of R12 an MTEXT of a style the drawing has not
 is refused before it would become TEXTs.
 
+### How a text is held
+
 A TEXT, an attribute definition or an attribute not aligned left on its baseline is held by its `AlignmentPoint`, the
 origin where its record gives none, and always writes it, as AutoCAD 2021 wrote `11 0 21 0 31 0` for the TEXT it made
 centred on its middle with no alignment point given (check D30): `Justify`, `HorizontalMode` and `VerticalMode` give the
@@ -185,6 +202,8 @@ origin to a text of none, and `AlignmentPoint` set to the origin writes it. Move
 alignment point, the origin among them: an attribute definition centred on (0, 0) gives the attribute
 `SetAttributeFromBlock` fills for an INSERT at (6000, 1000) the alignment point (6000, 1000), where the library wrote none
 and AutoCAD put the attribute at the world's origin.
+
+### Columns of an MTEXT
 
 An MTEXT is set in columns as AutoCAD sets one: `SetStaticColumns(12.5, 2.5, 3)` is three columns 12.5 wide with gutters of
 2.5, 42.5 across, the MTEXT's group 41 (and 40 of its embedded object) made 42.5 from R2018 and 12.5, the width of a
@@ -215,6 +234,8 @@ MTEXTs: AutoCAD 2021 read three MTEXTs of R2000 given the column data alone as o
 defined height of 15 that high, and so does the library, which refuses columns to such an MTEXT (`SetStaticColumns`,
 `SetDynamicColumns`, `ColumnType`), as it makes no column MTEXT.
 
+### Fields
+
 The words of a text can hold fields, kept as AutoCAD keeps them: a [`DxfField`](xref:GeometryHelper.Dxf.DxfField), AutoCAD's `Field`, is a FIELD the object's
 extension dictionary names in its dictionary ACAD_FIELD under the property TEXT. `GetField()` gives the field of an object's
 words, `GetField(propertyName)` that of another property, and `SetField(new DxfField("Drawn %<\AcVar Date>%", true))` gives
@@ -233,6 +254,8 @@ what AutoCAD last showed. A dimension's `FieldFromMText` and `FieldToMText` copy
 its own drawing, every group of it kept and a field two others name copied once, and `RemoveTextField` takes it out. A field's
 `GetChildren()` gives its children in the order of its 360s, null in the place of a handle that names no FIELD, so that each
 keeps the index of its placeholder `%<\_FldIdx n>%`.
+
+### Annotative texts
 
 An object can be annotative, which AutoCAD draws at the size its scale gives it on the sheet. The drawing's list of scales
 is `db.ObjectContextManager.GetContextCollection("ACDB_ANNOTATIONSCALES")`, AutoCAD's `ObjectContextCollection`: each a
@@ -289,6 +312,8 @@ centred or right on its baseline is held by the top left, centre or right of its
 or its second point where it is not left, whatever the font, its first point kept: the value B-12 2.5 high at (50, 59)
 becomes the MTEXT held by its top left at (50, 61.5).
 
+### Copies of annotative objects
+
 A copy (`Clone`, `GetTransformedCopy`) of an annotative text, attribute, MTEXT or INSERT carries the contexts of its
 original, and those of an INSERT's ATTRIBs, as AutoCAD 2021's copy keeps them: in no file it is shown at its original's
 scales and reads where its original is read; added to a drawing, it is given an extension dictionary of those contexts, as
@@ -306,6 +331,8 @@ moves it by the width of the context it is read at and writes that context, its 
 (46) is stretched with it, in columns or not. The point of a text not aligned left and an MTEXT's extents, which AutoCAD
 works out from the font, are not read as AutoCAD reads them.
 
+### Normal
+
 `Normal` set keeps what AutoCAD 2021 keeps, annotative or not: a TEXT, an ATTDEF, an ATTRIB, an INSERT, a SOLID, an LWPOLYLINE,
 a POLYLINE and a HATCH keep their points, turn and contexts in their plane, the new normal written alone, so that a TEXT at
 (11, 12, 0) turned 0.3 given (0, 0.6, 0.8) stands at (-11, -9.6, 7.2), still turned 0.3, and an INSERT at (300, 100, 0) at
@@ -313,6 +340,8 @@ a POLYLINE and a HATCH keep their points, turn and contexts in their plane, the 
 (-1, 0, 0); a LINE, a POINT, a CIRCLE and an ARC keep their points or centre in the world. A DIMENSION keeps its points in
 the world, where AutoCAD lays its dimension line and text on the new plane. An attribute of letters 0.7 wide made of
 several lines keeps its width factor, its MTEXT's words opening with `\W0.7000;`.
+
+### The codes of an MTEXT
 
 `DxfMText` names the codes of an MTEXT as AutoCAD's `MText` does: `ParagraphBreak` and `LineBreak` are `\P`, `UnderlineOn` is
 `\L`, `HeightChange` `\H`, `BlockBegin` `{`, and so the 19 of them. `ContentsRTF` gives its words as RTF, the style's font
@@ -326,6 +355,8 @@ out, and a stack is its two parts with a slash between. `B-12\P{\C1;\LM16\l}` in
 a font's file marked by the group `{\*\ghfontfile}` other readers pass over and the last paragraph closed by a mark, which
 `SetContentsRtf` leaves out; that RTF comes back as `B-12\P\C1;\LM16`, the same words in the same look, `abc\P` as `abc\P`
 and `\Fromans;abc` as `\Fromans;abc`.
+
+### Symbols
 
 **Symbols.** [`DxfTextSymbols`](xref:GeometryHelper.Dxf.DxfTextSymbols) holds the symbols of AutoCAD's text editor, so that the words of a TEXT, an MTEXT, an
 attribute or a dimension, written by hand or by an AI, take one without its code: the 21 letters its Symbol menu enters
@@ -346,3 +377,9 @@ R2018, was read back by AutoCAD 2021 as the same letter in all 210 readings, and
 same bytes. The four of the private range, `BoundaryLine`, `FlowLine`, `InitialLength` and `MonumentLine`, show only in
 AutoCAD's own fonts. `%%c` is read as ∅, `Diameter`, by `Text` and [`DxfReader`](xref:GeometryHelper.Dxf.DxfReader), as AutoCAD 2021 gives it in an MTEXT's
 `Text`.
+
+## See also
+
+- [Blocks and attributes](blocks.md): attributes.
+- [Hatches, leaders and dimensions](annotation.md): dimension texts.
+- [Editing rules and what the model does not do](rules.md).

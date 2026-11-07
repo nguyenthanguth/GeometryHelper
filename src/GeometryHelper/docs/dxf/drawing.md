@@ -1,5 +1,8 @@
 # The drawing, its tables and layouts
 
+The drawing as a whole: opening and saving it, its header, its tables (blocks, layers, linetypes, dimension styles),
+its dictionaries and groups, other drawings and external references, and its layouts.
+
 ## Opening and saving
 
 `DxfDatabase.Open(path)` and `Open(stream)` read the bytes of a file, `Parse(text)` its text; `Save(path)` and `Save(stream)`
@@ -26,6 +29,8 @@ ezdxf reads each value as set, and every untouched record keeps its bytes (186, 
 more the header has, `$PEXTMIN` and `$PEXTMAX`, which ezdxf leaves empty, grow to hold what the edits draw in paper space).
 
 ## The drawing
+
+### The header
 
 The header is read and set raw by `GetHeader("$INSUNITS")` and `SetHeader("$LTSCALE", new DxfTypedValue(40, "2"))`, and
 through AutoCAD's properties: `Clayer`, `Insunits`, `Extmin`, `Extmax`, `Handseed`, `Celtype`, `Cecolor`, `Celweight`,
@@ -59,6 +64,8 @@ A few read differently from the file:
   opened from; for a drawing parsed from text or opened from a stream the second is null, and the first until it is saved
   to a path.
 
+### Dimension variables
+
 The dimension variables of the header, those new dimensions take, are properties too, by AutoCAD's names: `db.Dimasz`
 is `$DIMASZ`, `db.Dimfxlen` is `$DIMFXL`, 77 of them. Where the header gives none, a variable reads as AutoCAD's metric
 drawing (acadiso.dwt) has it, as a new drawing of ezdxf 1.4.5 does: arrowheads and texts 2.5, extension lines 1.25 past the
@@ -84,6 +91,8 @@ value before it writes any; a record that names no text style leaves the text st
   not is passed over where the record holds AutoCAD's own value and refused where it holds another, as their properties
   refuse it; a whole number out of AutoCAD's range, a `Dimdec` of 9, and a size of the arrows, the text or the scale below
   nought are refused, as the header refuses them.
+
+### Extents
 
 `$EXTMIN` and `$EXTMAX` hold model space and paper space. They grow to hold what is appended or moved, each axis on its
 own, and an erase does not shrink them: an entity whose own record is written whole, as a LINE moved or a POLYLINE given a
@@ -114,6 +123,8 @@ to the bit, is not written. A header that still reaches (5110, 300, 0) for a lin
 radius 5 about (100, 50) left in model space, is given (95, 45, 0) to (105, 55, 0). The library takes an INSERT's placed
 shapes either way, so `doBestFit` changes nothing.
 
+### Variables kept out of the header, and the drawing's properties
+
 The drawing reads and sets the variables AutoCAD keeps out of the header, as DICTIONARYVAR objects of the dictionary
 AcDbVariableDictionary: `Cannoscale` (a scale of the drawing's list of scales), `Cetransparency` (the number an entity's
 440 holds, as AutoCAD 2021 reads it: the alpha 127 is 33554559, and a per cent written before reads BYLAYER), `Tablestyle`, `MLeaderstyle`, `DetailViewStyle` and `SectionViewStyle` (by name, one of the drawing's),
@@ -138,6 +149,8 @@ header's `$HYPERLINKBASE` too, where AutoCAD reads it, and read from there where
 
 ## The tables
 
+### Blocks
+
 `ModelSpace`, `PaperSpace` and each block of the `BlockTable` are a [`DxfBlockTableRecord`](xref:GeometryHelper.Dxf.DxfBlockTableRecord): its `Name`, `Origin`,
 `IsLayout`, `IsAnonymous` and `IsFromExternalReference`, and its entities, each the [`DxfEntity`](xref:GeometryHelper.Dxf.DxfEntity) of its type's class or a
 [`DxfUnknownEntity`](xref:GeometryHelper.Dxf.DxfUnknownEntity). Model space and paper space are named `*Model_Space` and `*Paper_Space`, as AutoCAD names them,
@@ -159,6 +172,8 @@ drawing into it, each keeping its handle, out of the draw order (SORTENTSTABLE) 
 that of the block it enters. 3 000 blocks nested one inside the next are built from the bottom up, each added and given an
 INSERT of the one before, in 0.11 seconds, and erased one by one, each looked up by name, in 0.2 seconds.
 
+### Layers
+
 The `LayerTable` holds a [`DxfLayerTableRecord`](xref:GeometryHelper.Dxf.DxfLayerTableRecord) for each layer, found by its name in either case: its `Color`, `ColorIndex`,
 `TrueColor`, `LinetypeName`, `LineWeight`, `IsOff`, `IsFrozen`, `IsLocked` and `IsPlottable`; its `Description` and
 `Transparency`, kept in the extended data of AcAecLayerStandard and AcCmTransparency as AutoCAD keeps them;
@@ -175,6 +190,8 @@ A layer's look in a viewport is `layer.GetViewportOverrides(viewport)`, a [`DxfL
 linetype, lineweight and transparency there, each the override AutoCAD keeps in the layer's extension dictionary
 (ADSK_XREC_LAYER_COLOR_OVR and the three others) else the layer's own; `RemoveAllOverrides()` takes them out, and erasing a
 viewport takes its overrides out of the layers.
+
+### Layer states and filters
 
 The layer states and layer filters a drawing keeps in the layer table's extension dictionary are read and listed:
 `db.LayerStateManager.GetLayerStateNames()` gives the entries of ACAD_LAYERSTATES, Plan and Sections for a drawing with the
@@ -204,6 +221,8 @@ has its points of the mesh read from its groups 12 and 13, as a comment of ezdxf
 no points from it; it is not given a north direction or points of its mesh. Taking a point to latitude and longitude needs
 the coordinate system's projection and is not there.
 
+### Linetypes
+
 The `LinetypeTable` holds a [`DxfLinetypeTableRecord`](xref:GeometryHelper.Dxf.DxfLinetypeTableRecord) for each linetype: its `AsciiDescription`, `PatternLength`,
 `NumDashes` and `DashLengthAt`, a new one of simple dashes added by `Add`. A linetype's dashes carry their shapes and texts:
 AutoCAD's gas line is `SetTextAt(1, "GAS")`, `SetShapeStyleAt(1, db.TextStyleTable["Standard"])`, `SetShapeScaleAt(1, 0.1)`
@@ -212,6 +231,8 @@ handle `, 46 0.1, 50 0, 44 -0.1, 45 -0.05, 9 GAS`; a dash of a file has its leng
 with is erased. A text style is added to the `TextStyleTable`,
 `new DxfTextStyleTableRecord { Name = "ROMANS", FileName = "romans.shx", TextSize = 2.5 }`, and its font, height, width,
 slant and TrueType `Font` (a [`DxfFontDescriptor`](xref:GeometryHelper.Dxf.DxfFontDescriptor), `1001 ACAD, 1000 Arial, 1071 34` as AutoCAD keeps it) are set.
+
+### Dimension styles
 
 The dimension styles are the `DimStyleTable`, each a `DxfDimStyleTableRecord` with AutoCAD's 74 variables of a DXF file,
 each read and set in its group: `Dimasz` 41, `Dimtxt` 140, `Dimdec` 271, `Dimjogang` 50 (radians; the file writes degrees),
@@ -226,6 +247,8 @@ dimensions, leaders and tolerances drawn in it, the styles AutoCAD keeps for its
 
 ## Dictionaries, records of data and groups
 
+### Dictionaries
+
 The drawing's own dictionaries are objects: `NamedObjectsDictionary`, and those it names, `GroupDictionary` (ACAD_GROUP),
 `LayoutDictionary` (ACAD_LAYOUT), `MLeaderStyleDictionary`, `TableStyleDictionary` and the others AutoCAD's `Database`
 names by id; null where a drawing has none, as one of R12. `SetAt` adds a [`DxfDBDictionary`](xref:GeometryHelper.Dxf.DxfDBDictionary), a [`DxfXrecord`](xref:GeometryHelper.Dxf.DxfXrecord) or a [`DxfGroup`](xref:GeometryHelper.Dxf.DxfGroup)
@@ -239,6 +262,8 @@ db.NamedObjectsDictionary.SetAt("GH_PLATE", new DxfXrecord
     Data = new[] { new DxfTypedValue(1, "B-12"), new DxfTypedValue(40, "12.5") },   // a text and a real kept with the drawing
 });
 ```
+
+### Extension dictionaries and extended data
 
 Every object can be given an extension dictionary, `CreateExtensionDictionary()`, an empty DICTIONARY owned by it and
 written as AutoCAD writes one, reached as its `ExtensionDictionary`: `SetAt("GH_DATA", new DxfDBDictionary())` adds an
@@ -255,6 +280,8 @@ the file's code page has not, written as `\U+0110`, comes back as the letter it 
 extended data as AutoCAD moves it: a position of the world (1011) moved, a displacement (1012) turned and scaled, a direction
 (1013) turned, a distance (1041) and a scale factor (1042) scaled, a plain point (1010) kept.
 
+### Groups
+
 A group is a `DxfGroup`, named by its entry of the group dictionary:
 `db.GroupDictionary.SetAt("BEAMS", new DxfGroup("Beams of grid A", true))`, then `group.Append(beam)`, which writes the
 beam's handle last among the group's (340) and the group into the beam's reactors, as AutoCAD writes a member. `Prepend`, `InsertAt`, `Remove`, `RemoveAt`, `Replace`,
@@ -268,6 +295,8 @@ member erased, `Clear`, `RemoveAt`, or never given one; the anonymous *A1, *A2 a
 saves, each of no member.
 
 ## Other drawings, external references and tidying up
+
+### Inserting another drawing
 
 `db.Insert(transform, other, true)` inserts another drawing into model space, as AutoCAD's `Database.Insert` does: every
 entity of its model space copied, as `WblockCloneObjects` copies entities together, and moved by the transformation, and the
@@ -317,6 +346,8 @@ but what is read of it once, under a lock or kept by the first thread to read it
 them, so that several threads may copy from it at once, its dynamic blocks and all. The walks down nested blocks keep no limit of depth, but exploding and the reader's placing stop at 64
 deep, as they did.
 
+### External references
+
 `db.AttachXref("column.dwg", "COLUMN")` attaches a drawing as an external reference: a block whose BLOCK is flagged 4 (12
 for `OverlayXref`) and names the path in its group 1, with no entities, which AutoCAD fills when it opens the drawing; an
 INSERT of the block places it. `XrefStatus`, of the new [`DxfXrefStatus`](xref:GeometryHelper.Dxf.DxfXrefStatus), says where one stands, from its flags, its INSERTs
@@ -324,6 +355,8 @@ and its path: `Unreferenced` while no INSERT places it, `FileNotFound` where the
 folder of the drawing's `Filename`, `Resolved` where AutoCAD saved it resolved (70 of 36), else `Unresolved`; no DXF says one
 is unloaded. `db.DetachXref(block)` erases its INSERTs, the records it brought, those named `COLUMN|...` in the layer,
 linetype, text style, dimension style and block tables, and its block.
+
+### Linetypes from a file
 
 `db.LoadLineTypeFile("GAS_LINE", "acad.lin")` adds a linetype of a file of linetypes as AutoCAD loads one: its description and
 dashes, a dash's text in the text style the file names, and a shape found by its name in the compiled file of shapes beside
@@ -336,6 +369,8 @@ simple linetypes alone. `db.LoadMlineStyleFile("STANDARD", "acad.mln")` adds a m
 multiline styles, made where the drawing has none, each of its elements drawn with a linetype the drawing has. A style of
 that dictionary is a [`DxfMlineStyle`](xref:GeometryHelper.Dxf.DxfMlineStyle), read as AutoCAD's `MlineStyle`: its `Elements` (each a [`DxfMlineStyleElement`](xref:GeometryHelper.Dxf.DxfMlineStyleElement) of
 `Offset`, `Color` and `Linetype`), `Filled`, `FillColor`, the caps and the angles of its ends.
+
+### Tidying up
 
 `db.CountEmptyObjects((int)DxfEraseFlags.ZeroLengthCurve)` and `EraseEmptyObjects` count and erase the empty objects of every
 space and block by AutoCAD's flags: the curves of no length and the texts of no words, a TEXT of spaces and an MTEXT of
@@ -365,6 +400,8 @@ erased and the purge run again, as AutoCAD's is.
 
 ## Layouts and viewports
 
+### Layouts
+
 The layouts are `db.Layouts`, [`DxfLayout`](xref:GeometryHelper.Dxf.DxfLayout) objects in the order of their tabs: `LayoutName` (set, the layout dictionary's
 entry renamed with it; Model keeps its name), `TabOrder`, `TabSelected` (the layout the drawing opens on), `Limits`,
 `Extents` (empty for a layout never worked out, as ezdxf's 1E+20 above -1E+20 says), `BlockTableRecord` and
@@ -381,6 +418,8 @@ turned off, as AutoCAD 2021 gives it once the layout is shown (it gives -1 for e
 file does not say); the id of one turned off is kept, and not given to a new one. The viewport 1 of a layout of paper space, which shows the sheet itself, is
 not erased, as AutoCAD keeps it; erasing another takes the overrides the layers keep for it out of their extension
 dictionaries, and a layout whose last active viewport (331) it was names its viewport 1 instead, as AutoCAD 2021 does.
+
+### Making a layout
 
 A layout is made as AutoCAD makes one, `var plan = new DxfLayout { LayoutName = "Plan 1-50" }`, then
 `plan.AddToLayoutDictionary(db, null)`: a LAYOUT in the layout dictionary on the tab after the last, with the plot
@@ -403,3 +442,9 @@ and 54 000 seconds past midnight), `IsDaylightSavingsOn`, `ShadowsOn`, `ShadowTy
 `ShadowMapSoftness` read and set, a new sun's ezdxf's (AutoCAD's own not confirmed). Where the sun stands in the sky is AutoCAD's to work out from the
 drawing's location, and a viewport's `ToneOperatorParameters` and `Transparent` are not there: neither the DXF reference
 nor ezdxf gives where a file keeps them.
+
+## See also
+
+- [Entities and curves](entities.md): what every entity has.
+- [Blocks and attributes](blocks.md): INSERTs of the blocks.
+- [Editing rules and what the model does not do](rules.md).

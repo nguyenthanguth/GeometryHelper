@@ -1,5 +1,7 @@
 # Hatches, leaders and dimensions
 
+Hatches and their patterns, leaders and multileaders, and dimensions: the annotation of a drawing.
+
 ## Hatches
 
 A HATCH is a [`DxfHatch`](xref:GeometryHelper.Dxf.DxfHatch). Its loops are given in the world as the library's shapes: `hatch.GetLoopAt(0).Polyline` is the
@@ -14,6 +16,8 @@ off as `HatchStyle` says: a square 30 by 20 round a circle of radius 5 fills 521
 even-odd rule counts it, a square given twice filling nothing. `GetPlane()` is the plane of its normal at its elevation and
 `GeometricExtents` the box of its loops.
 
+### Patterns
+
 `SetHatchPattern(DxfHatchPatternType.PreDefined, "SOLID")` fills it solid, and any other pattern of AutoCAD's file is
 written by its name with a count of no lines (78 of 0), which AutoCAD 2021 refuses a file without, unless
 `PatternSearchPath` finds it (below); `PatternScale` and `PatternAngle` scale and turn
@@ -25,6 +29,8 @@ pale yellow, gives (128, 128, 204). `GetHatchLinesData()` gives the lines `Explo
 the plane's own system, and `NumberOfHatchLines` and `GetHatchLineDataAt(i)` the same one by one, worked out once while
 the hatch is not changed: the square 30 by 20 of a pattern made by the user, lines at 45 degrees 3.175 apart, draws 11. A
 file older than R2000 has no HATCH and refuses one.
+
+### Pattern files
 
 A drawing reads no pattern file unless it is told where to look, and the library carries none of AutoCAD's.
 `DxfDatabase.PatternSearchPath` takes folders separated by semicolons, searched in their order as AutoCAD searches its
@@ -70,6 +76,8 @@ db.ModelSpace.AppendEntity(hatch);   // one line at 45 degrees, offset (-2.245, 
 
 ## Leaders and multileaders
 
+### Leaders
+
 A LEADER is a [`DxfLeader`](xref:GeometryHelper.Dxf.DxfLeader), a curve through its vertices (`AppendVertex`, `SetVertexAt`, `VertexAt`) that points to its
 `Annotation`, an MTEXT, a TOLERANCE or an INSERT of the drawing, which lists the leader among its reactors, as AutoCAD keeps
 it; a leader of fewer than two vertices is refused by `AppendEntity`, as AutoCAD refuses one. `Dimasz`, `Dimgap`, `Dimclrd`
@@ -95,6 +103,8 @@ answers false and changes nothing. `SetPlane(plane)` gives the leader the plane'
 and moves each vertex straight onto the plane, the direction of its hook laid in it: the leader through (0, 0, 5),
 (10, 10, 5) and (20, 10, 8) put in the floor runs through (0, 0, 0), (10, 10, 0) and (20, 10, 0), and a leader put in its own
 plane changes nothing.
+
+### Multileaders
 
 A MULTILEADER is a [`DxfMLeader`](xref:GeometryHelper.Dxf.DxfMLeader): its words (`MText`, `TextLocation`, `TextHeight`) or block (`BlockContent`,
 `BlockPosition`, `BlockScale`, `BlockRotation`, `SetBlockAttribute`), its look, and its leaders and their lines by AutoCAD's
@@ -124,6 +134,8 @@ multileader's away. `ArrowSize` set is written anew even where it is the size th
 arrows drawn its size times the `Scale`, as AutoCAD writes it: 5 at a scale of 2 draws them 10. `TextAttachmentType` is the
 left side's, as AutoCAD's; the right is set by `SetTextAttachmentType`.
 
+### Sizes
+
 The sizes are read and set unscaled, as AutoCAD 2021's API reads and sets them, and drawn times the `Scale`: `TextHeight`
 and `LandingGap` the context's 41 and 145 over the scale, `ArrowSize` its 140 over the scale (else the multileader's own
 42, which a line of no size of its own reads), `DoglegLength` the first leader's dogleg over the scale (else the
@@ -145,6 +157,8 @@ and mirrored across the YZ plane read on the right. A new multileader is of word
 though it holds none (`HasContent` false), as AutoCAD 2021 makes one; its first leader line is landed at its point, its
 dogleg towards the base point, the line of that one vertex: from (30, 40, 0), a dogleg along -x from there.
 
+### Words and landings
+
 Words given put the base point of the content (10 of the context data), where AutoCAD lands a leader it adds, where a
 leader from the left would meet them, as AutoCAD 2021 puts it where no leader is landed yet (check D38b): the landing gap
 short of the place given and as far below as the left's attachment says, which needs no font. "ABC" 4 high given at
@@ -158,6 +172,8 @@ their leaders move to meet the first, at (10, 2, 0) for a line landed at (0, 0, 
 them where no leader is landed yet, its x axis their direction, as AutoCAD 2021 turns it: "ABC" turned half round make the
 x axis (-1, 0, 0) and the base point (102, 52, 0), are met from (250, 0, 0) by a dogleg from (110, 52, 0) along -x, and move
 as words along the plane do.
+
+### Adding leader lines
 
 `AddLeaderLine(point)` lands a new leader where AutoCAD 2021 lands it, where it can without a font: from a point on the
 left of words held at their top left and met on their sides, the dogleg runs along the plane's x axis to the landing gap
@@ -200,6 +216,8 @@ the drawing's `FontSearchPath` measures them; with no font they are left, as bef
 again at a scale of 2, at (102, 52, 0), and met at the bottom line on the left, at (100, 52.8, 0), as AutoCAD 2021 moves
 them; met only on their right, the left set puts the base point where it now meets them (check D38b).
 
+### Laying leaders out again
+
 Each of these lays the leaders out again as AutoCAD 2021 does, so a leader moved off its landing (by `SetLastVertex` of
 another, say) is landed anew on the left of the words or on either side of a block: of two leaders on the left of "ABC" at
 (160, 40, 0), the second moved off to (40, 70, 0), a dogleg given to either, `DoglegLength`, `LandingGap`, `TextHeight` or
@@ -217,6 +235,8 @@ quarter draws it turned 120.
 Attachment 8, the underline of every line, underlines the words as AutoCAD 2021 writes it: where a leader meets them on a
 side of that attachment, "ABC" is written `\LABC`, whether the attachment, the leader or the words come last; words that
 begin with `\L` or have no letters are left, and the attachment set away from 8 takes the `\L` off again.
+
+### Doglegs
 
 The length of the doglegs is written as AutoCAD 2021 writes it: the
 multileader's own (`DoglegLength`, 41) unscaled, each leader's (40) times the `Scale`, `GetDoglegLength` the leader's over
@@ -253,6 +273,8 @@ arrow (0.585 on the multileader below, splined, its arrow 4 long). The line from
 dogleg from (790, -1.25, 0) to (798, -1.25, 0) is met by the line y = -3 at (790, -3, 0) and by the line x = 794 at
 (794, -1.25, 0). Its words or block, its arrowheads and invisible leaders are not met. An INSERT of a block holding a
 multileader is met on its lines too.
+
+### Multileader styles
 
 The multileader style a multileader is drawn with is a [`DxfMLeaderStyle`](xref:GeometryHelper.Dxf.DxfMLeaderStyle), as AutoCAD's `MLeaderStyle`: the styles of
 `db.MLeaderStyleDictionary` are read as the file holds them (`TextHeight`, `ArrowSize`, `LandingGap`, `DoglegLength`,
@@ -294,6 +316,8 @@ An ordinate measures along the user's axes its 51 gives (the negative of their a
 which a move or a turn carries, so its measurement stays. `Dimtxtdirection` is DIMTXTDIRECTION, the override 1070 294 from
 R2010.
 
+### The measurement's text
+
 `dim.FormatMeasurement(dim.Measurement, dim.DimensionText)` gives the text AutoCAD writes for a measurement, from the
 variables the dimension reads. A length is multiplied by `Dimlfac` (a negative one taken as its size in paper space and as 1
 elsewhere), rounded by `Dimrnd` and written in `Dimlunit`: scientific `1.55E+01`, decimal `15.50`, engineering `1'-3.50"`,
@@ -309,9 +333,17 @@ figures, a .NET decimal, so 2.675 to two places is 2.68 under .NET Framework and
 lies just below it and ezdxf's `format_text`, rounding that double, gives 2.67. Tolerances, limits, the arc symbol and the R
 or diameter sign before a radius are not part of the text.
 
+### The block that draws a dimension
+
 What draws a dimension is the block AutoCAD drew for it, `DimBlock` (`*D7`), placed at `DimBlockPosition`: the library
 writes a point, a text or a variable and leaves that block as it was, for AutoCAD to draw anew when it next draws the
 dimension, so AutoCAD shows the old picture until then. A dimension made in code is given its `DimBlock`, a block of the
 drawing, before it is appended. A block, linetype or text style set on a dimension in no drawing, or on a copy, is held as
 the record it is (a `Clone()` holds it too) and taken to the record of its name in the drawing it is added to, refused where
 there is none of that name to take it to.
+
+## See also
+
+- [Tables of cells](tables.md).
+- [Fonts and text](text.md): the words of leaders and dimensions.
+- [Editing rules and what the model does not do](rules.md).

@@ -1,5 +1,8 @@
 # Reading and writing shapes
 
+DxfReader reads a DXF file into the library's shapes, read only, and DxfWriter writes the library's shapes into a new
+file. To change a drawing and save it, use DxfDatabase ([DXF files](index.md)).
+
 ## Reading DXF
 
 [`DxfReader`](xref:GeometryHelper.Dxf.DxfReader) reads a DXF file into the library's shapes: what [`DxfWriter`](xref:GeometryHelper.Dxf.DxfWriter) writes, and what AutoCAD and the other CAD
@@ -18,6 +21,8 @@ foreach (DxfShape entity in drawing.OnLayer("steel")) { ... }                 //
 DxfDocument text = DxfReader.Parse(dxfText);                                   // or Read(stream)
 ```
 
+### The document
+
 A [`DxfDocument`](xref:GeometryHelper.Dxf.DxfDocument) holds the `Shapes` in the order of the file, the `Layers` (those of the layer table in file order,
 then any an entity is on that the table does not list, two names differing only in case being one, as in AutoCAD), the
 `LayerTable` with the colour and state of each layer of the table, the
@@ -34,6 +39,8 @@ lost. Of a POLYLINE they run on through its VERTEX records and its SEQEND. `Bloc
 blocks and the INSERTs an entity was placed through, empty for an entity of the drawing itself. `KeepGroups = false` leaves the groups out, for a large file: 100 000 entities (34 MB) are held in 41 MB
 without them and 157 MB with them. A `DxfShape` can also be made in code, of a shape and its look, to be written by
 `DxfWriter.Add(entity)`: `new DxfShape(plate, "steel", colour: 1)`.
+
+### What each entity is read as
 
 What each entity is read as, shapes of space unless `PlanAs2D` is set and the entity lies on the floor: one in world
 coordinates (POINT, LINE, RAY, XLINE, SPLINE, 3D POLYLINE) where every height of it is nought, whatever its extrusion; one
@@ -56,6 +63,8 @@ extrusion is (0, 0, 1) or (0, 0, -1) exactly, or not given, and every height nou
 | LEADER | `GeoPolyline3` through its vertices; splined, the `GeoSpline3` `DxfLeader.Explode()` fits through them; its arrowhead and hook line not read | `GeoPolyline2`, `GeoSpline2` |
 | MULTILEADER | a `GeoPolyline3` for each leader line, from where its arrow points to the end of its dogleg; splined, a `GeoSpline3` fitted through the same points; its words or block and arrowheads not read | `GeoPolyline2`, `GeoSpline2` |
 
+### Leaders
+
 A LEADER is read as its curve, as AutoCAD's `IntersectWith` meets a leader: its vertices are in world coordinates, a
 vertex within the point tolerance of the one kept before it is left out, and a leader of fewer than two vertices apart has
 no shape. Splined, it is the cubic through its vertices that leaves along its first segment and reaches along its last,
@@ -66,6 +75,8 @@ fitted through the scaled vertices. `Explode()` of such an INSERT gives the lead
 anew where it is drawn, so under a scale unlike along its axes the two splines part: by 2.21 for the leader through
 (0, 0, 0), (10, 10, 0) and (20, 10, 0) under an INSERT scaled 3 along y. A MULTILEADER is read so, each leader line as the chain or the spline [`DxfMLeader`](xref:GeometryHelper.Dxf.DxfMLeader) sets
 out (see [Leaders and multileaders](annotation.md#leaders-and-multileaders)).
+
+### Coordinates
 
 The coordinates of a CIRCLE, ARC, LWPOLYLINE, 2D POLYLINE, SOLID and TRACE are in the system of their extrusion's plane
 and are taken to the world by the arbitrary axis algorithm, as `DxfWriter` writes them: the CIRCLE at (10, 20, 5) on
@@ -87,6 +98,8 @@ in space does not lie in one plane, is a chain that ends on its first vertex, in
 says so. Of a POLYLINE fitted with a spline the curve drawn is read and the frame left out. A point or vector group
 missing a part reads it as nought, as the DXF reference has it: the extrusion 210 = 1, 230 = 1 is (0.7071, 0, 0.7071).
 
+### Numbers
+
 Every number is read as the file prints it, the double nearest it, on .NET Framework as on .NET 10, whose parsers do not
 always agree: so a file `DxfWriter` wrote gives back every coordinate, radius, bulge, knot and weight it holds to the bit.
 What the file holds in another form comes back to the last place or two: the angles of an ARC are degrees, an ELLIPSE
@@ -95,6 +108,8 @@ coordinates in that plane's system, so an arc of radius 40 on the normal (1, 2, 
 A chain or loop with arcs that lies flat at one height can carry a normal a hair off up, (1.6E-19, 0, 1) as the library
 fits its plane; the writer writes that extrusion, and such a chain comes back to the rounding of that plane, within
 1E-12 of its largest coordinate.
+
+### What is not read
 
 DIMENSION, HATCH, IMAGE, MESH, MLINE, REGION, 3DSOLID, BODY, ATTDEF, ATTRIB, VIEWPORT and any other type are
 not read and are counted in `Skipped`. So is an entity with no shape to it, the reason said once for each type in a Debug
@@ -111,6 +126,8 @@ counted as one with a number that is not finite, and such a thickness is left ou
 system of a tilted extrusion takes there: the CIRCLE at y = -1.7E308 and a height of 1.7E308 on the extrusion
 (0.6, 0, 0.8) would be at an x of 2.38E308. The entities of paper space are not read, and a warning counts them, a POLYLINE with its
 vertices one. One Info line for each call says how many entities were read and how many skipped, by type.
+
+### Files refused
 
 A file that is not a DXF, or is cut short, is refused with a `FormatException` that names the line: a group code that
 is not a whole number, a code with no value after it, no EOF, a section with no ENDSEC, no ENTITIES section. A binary
@@ -136,6 +153,8 @@ code page and two bytes, is read as the letter of those bytes where they are one
 and nought, as AutoCAD reads it. A number is read from its first 19 digits and checked in integers,
 the digits past 800 counting only as whether any is not nought: a number of 300 000 digits takes 2.2 ms on .NET 10.
 
+### Units and speed
+
 The numbers are kept as the file has them unless `ToMillimeters` is set, which scales points, radii, elevations,
 thicknesses and the lengths of axes by the unit of the header: a drawing in metres has its numbers times 1 000, one in
 inches times 25.4. Angles, bulges, ratios, weights, knots and directions have no unit and are kept. A file with no unit,
@@ -143,6 +162,8 @@ or one the reference does not list, is not scaled, and a warning says so.
 
 Reading 100 000 entities of eight kinds (34 MB) takes 0.54 s on .NET 10 and 0.90 s on .NET Framework 4.8 with the
 groups, the document holding 157 MB, and 0.35 s and 0.58 s without them, holding 41 MB.
+
+### Writing back what was read
 
 `DxfWriter.Add(entity)` writes an entity read back: its shape by the overload of `Add` for it, on its layer, with its
 colour, true colour, linetype and lineweight after the layer, in the order AutoCAD writes them, and its thickness on the
@@ -254,6 +275,8 @@ foreach (DxfShape entity in drawing.Shapes) { ... }   // the bolts of the block 
 foreach (DxfBlock block in drawing.Blocks) { ... }        // Name, BasePoint, Flags and its own Entities, unplaced
 ```
 
+### How an INSERT places its block
+
 An INSERT places its block as AutoCAD does: the block's base point taken to the origin, the scales along x, y and z
 (groups 41, 42 and 43, each 1 where not given), the turn about z (50, degrees, exact for a whole number of quarter turns),
 the shift to the insertion point (10, 20, 30, in the system of the INSERT's extrusion), then that system (210). A
@@ -268,6 +291,8 @@ placed is counted in `Skipped` and said in a warning, the rest read: one of a bl
 `A > B > A`), one nested deeper than 64, one of an external reference (a block of flag 4, whose drawing is another file),
 one of the block of a layout, and one that would take the entities placed from blocks past `MaxPlacedEntities`. The blocks of the layouts, `*Model_Space` and `*Paper_Space`, are not among the
 `Blocks`, and a warning counts their entities: the drawing is read from its ENTITIES section.
+
+### Blocks inside blocks
 
 Blocks placed inside blocks multiply: a block of 100 INSERTs of a block of 100 INSERTs of a block of 100 INSERTs of a line
 is a file of 18 KB that places 100 000 000 lines. `DxfReadOptions.MaxPlacedEntities` (2 000 000 by default, above nought)
@@ -316,6 +341,8 @@ in the plan and placed turned about z, scaled or mirrored is read as shapes of t
 extrusion as shapes of space. Held against ezdxf 1.4.5 on a drawing of 168 entities placed every way an INSERT places
 them, every point read is within 1E-9 of where ezdxf puts it; ezdxf's own virtual INSERT of a block inside a block is
 wrong under an uneven outer scaling with an inner turn, so there the two matrices ezdxf gives are composed.
+
+### Layers of placed entities
 
 An entity of a block on layer 0 is on the layer of the INSERT that placed it, and one whose colour, linetype or
 lineweight is BYBLOCK has the INSERT's, its true colour too where it has none of its own, through every level of
@@ -388,3 +415,8 @@ in its header and the view opened on them.
 A drawing `DxfWriter` writes is also where a drawing made from nothing begins for the editing model:
 `DxfDatabase.Parse(new DxfWriter().Add(outline, "plate").ToString())` opens it to be edited as any other (see [The
 model](index.md#the-model)).
+
+## See also
+
+- [DXF files](index.md): the three ways in.
+- [Entities and curves](entities.md#typed-shapes): an entity's shape, typed.

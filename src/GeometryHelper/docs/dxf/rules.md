@@ -1,13 +1,20 @@
 # Editing rules and what the model does not do
 
+The rules every class keeps when the drawing is edited: what a setter writes, appending, erasing, moving, exploding,
+copying and versions; then what the model does not do.
+
 ## Editing rules
 
-**A property given the value it has writes nothing.** Every setter of an entity, a table record, the header and the
+### A value it has writes nothing
+
+Every setter of an entity, a table record, the header and the
 dictionaries compares first: given the value it has, it changes nothing, to the byte, and never throws, whatever the file
 holds. A change writes the record it is about anew in the file's own style, or, for a vertex of a long polyline, the knots of a
 spline or a loop of a hatch, the run of groups it is about, and every other record keeps its bytes.
 
-**Appending.** `AppendEntity` writes an entity made in code at the end of the ENTITIES section, or before the ENDBLK of a
+### Appending
+
+`AppendEntity` writes an entity made in code at the end of the ENTITIES section, or before the ENDBLK of a
 block, with a handle above every handle of the file and every handle something points at, `$HANDSEED` set above it, the
 block's BLOCK_RECORD as its owner from R13 on and group 67 in paper space, the blocks of its other layouts
 (`*Paper_Space0` and on) among it. Its layer is added to the layer table where it is
@@ -23,18 +30,24 @@ appended in its place and the MTEXT stays in no file: an MTEXT of two lines 2.5 
 out as two TEXTs on the baselines 17.5 and 13.33 high. A paragraph is not wrapped at the MTEXT's width, as AutoCAD's SAVEAS to
 R12 wraps it by the letters of its font, which the library does not read.
 
-**Walking while editing.** A block is walked over the entities it holds when the walk begins, so that
+### Walking while editing
+
+A block is walked over the entities it holds when the walk begins, so that
 `foreach (DxfEntity e in db.ModelSpace) e.Erase();` erases them all, as it does in AutoCAD: an entity erased on the way is
 passed over, one appended on the way is not reached, and nothing throws.
 
-**Erasing.** `Erase()` takes an entity out with every record of it, a POLYLINE its vertices and end and an INSERT its
+### Erasing
+
+`Erase()` takes an entity out with every record of it, a POLYLINE its vertices and end and an INSERT its
 attributes, and its handle is not given again; when the file is saved, a GROUP no longer lists it, and one it leaves empty
 goes, a list of reactors, a SORTENTSTABLE and a dictionary no longer hold it, the objects it owned go with it, and any other
 pointer at it, as a table cell's at an erased attribute definition or an XRECORD's at an erased entity, stays where it stands,
 the saving naming up to ten of them in the log (Warn) once, not again at each saving after. A table record and a block are
 erased only where nothing uses them, as each says above.
 
-**Moving.** `TransformBy` moves, turns, scales or mirrors an entity as AutoCAD's does: its record is written anew with the
+### Moving
+
+`TransformBy` moves, turns, scales or mirrors an entity as AutoCAD's does: its record is written anew with the
 new geometry, its look kept, and its extended data moved with it in the same writing, a POLYLINE that of its vertices and an
 INSERT that of its attributes; one with none of the groups `XDataTransformBy` moves keeps the bytes of its extended data.
 `GetTransformedCopy` moves a copy. Each class refuses what it cannot hold, with an `ArgumentException` and nothing written,
@@ -62,7 +75,9 @@ hatch, a dimension) refuses a transformation that flattens that plane:
 | [`DxfOle2Frame`](xref:GeometryHelper.Dxf.DxfOle2Frame) | a move, a scale by one factor and a mirror about a line along x or y, the corners written into the head of its binary that AutoCAD reads; mirrored, the box of its corners, the picture not turned over, as AutoCAD 2021 mirrors one | a turn, a shear, a stretch or a move out of the plane xy, with `ArgumentException`: AutoCAD 2021 keeps a frame upright |
 | [`DxfUnknownEntity`](xref:GeometryHelper.Dxf.DxfUnknownEntity) | nothing | everything, with `NotSupportedException`: its geometry is kept as the file has it |
 
-**Exploding.** `Explode()` is every entity's, as AutoCAD's is, and gives new entities in no file, to be appended. Each class
+### Exploding
+
+`Explode()` is every entity's, as AutoCAD's is, and gives new entities in no file, to be appended. Each class
 breaks as AutoCAD breaks it:
 
 | Class | Breaks into |
@@ -111,7 +126,9 @@ axes, the parts appended before it are erased again. A MINSERT gives its first c
 first cell's, and its `GeometryExtentsBestFit` is refused, as AutoCAD 2021's were, while the drawing's extents take in
 every cell.
 
-**Copying.** `Clone()` copies any entity as it is, as AutoCAD's `Clone` does, a `DxfUnknownEntity` among them, an INSERT with
+### Copying
+
+`Clone()` copies any entity as it is, as AutoCAD's `Clone` does, a `DxfUnknownEntity` among them, an INSERT with
 its attributes, and `GetTransformedCopy` copies and moves one; a copy is of the class of its original, a vertex a vertex, in
 no file until it is appended. An erased entity refuses to be copied. A copy appended to the drawing it came from points at what
 its original points at, and shares the block that draws it, a dimension's `*D`, a table's `*T`, an INSERT's `*U`. A copy of a
@@ -199,7 +216,9 @@ definition, and loses those of a block the drawing has of its own, each pointer 
 count (179) made to agree; a copy of the first column of an MTEXT of linked columns holds the words of them all and links to
 none.
 
-**Versions.** An entity of a file of R12, or a copy of one (`GetTransformedCopy`, `GetOffsetCurves`, `GetSplitCurves`),
+### Versions
+
+An entity of a file of R12, or a copy of one (`GetTransformedCopy`, `GetOffsetCurves`, `GetSplitCurves`),
 appended to a drawing of R13 or later is written in the forms AutoCAD writes there: its subclass markers in AutoCAD's order,
 the marker AcDbEntity, its owner and a handle of its own. One of R13 or later appended to a drawing of R12 is written in the
 forms of R12, as AutoCAD saves a drawing as R12: each record keeps the groups R12 has for its type, each read from the part of
@@ -230,7 +249,9 @@ the versions taken as ezdxf gives them. In a drawing of R12 an override of an ar
 out, said in the log, where it has none. A record set on a dimension in no drawing for a variable the version has not is
 refused.
 
-**Memory.** A copy in no file, and an entity made in code, holds its own records alone: one file holds every copy of a
+### Memory
+
+A copy in no file, and an entity made in code, holds its own records alone: one file holds every copy of a
 drawing and keeps none of them, about 460 bytes a copy, so that the explode of an INSERT of 1 000 000 lines holds 440 MB.
 
 ## What the model does not do
@@ -324,3 +345,8 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
 
 What is still to be checked in AutoCAD itself is listed in [Checking against AutoCAD](../dxf-autocad-checks.md), and a whole
 session of editing, run against the library, is in [Editing a drawing, step by step](../dxf-editing-example.md).
+
+## See also
+
+- [Entities and curves](entities.md).
+- [The DXF checks against AutoCAD](../dxf-autocad-checks.md).
