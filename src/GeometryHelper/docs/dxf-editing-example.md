@@ -37,7 +37,7 @@ foreach (DxfLayerTableRecord layer in plan.LayerTable)
 }
 ```
 
-The layers come in the order of the layer table, each a `DxfLayerTableRecord`, and model space is walked as its entities:
+The layers come in the order of the layer table, each a [`DxfLayerTableRecord`](xref:GeometryHelper.Dxf.DxfLayerTableRecord), and model space is walked as its entities:
 
 ```text
 0          colour   7  0 entities
@@ -121,7 +121,7 @@ Console.WriteLine(hatch.NumberOfLoops + " loops, " + hatch.Area.ToString("F2") +
 ```
 
 It prints `3 loops, 59597.88 filled`: the plate's 60 000 less two holes of radius 8, 201.06 each, about the bolts where they
-stand now. The loops are the library's shapes in the world, the outline a `GeoPolygonArc3` and each hole a `GeoCircle3`, and
+stand now. The loops are the library's shapes in the world, the outline a [`GeoPolygonArc3`](xref:GeometryHelper.Geometry.GeoPolygonArc3) and each hole a [`GeoCircle3`](xref:GeometryHelper.Geometry.GeoCircle3), and
 the islands are taken off as the hatch's style, `Normal`, says. The hatch is appended before its loops are given, as
 AutoCAD's own samples do it; the library takes them either way. A solid fill needs no pattern lines.
 
@@ -175,6 +175,6 @@ sheet.Save("sheet-edited.dxf");
 ```
 
 Opened again, plan-edited.dxf holds the hatch of 59 597.88, the style GH_25 with its text 3.5 high and the note in 2 columns;
-`DxfReader` reads sheet-edited.dxf as the 3 shapes of the bolt placed, its circle and two lines, and counts the ATTDEF, the
+[`DxfReader`](xref:GeometryHelper.Dxf.DxfReader) reads sheet-edited.dxf as the 3 shapes of the bolt placed, its circle and two lines, and counts the ATTDEF, the
 ATTRIB and the DIMENSION it does not read among `Skipped`. ezdxf 1.4.5 recovers and audits both files with no error and nothing
 to fix.

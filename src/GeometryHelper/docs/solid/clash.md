@@ -3,8 +3,8 @@
 ## Checking parts against each other
 
 `Clash3.Find` checks a whole set of parts, or one set against another, and says what every pair that clashes
-does. It lives in `GeometryHelper.Clash` with everything it takes and gives: `ClashOptions`, `ClashResult` and
-`ClashKind`.
+does. It lives in `GeometryHelper.Clash` with everything it takes and gives: [`ClashOptions`](xref:GeometryHelper.Clash.ClashOptions), [`ClashResult`](xref:GeometryHelper.Clash.ClashResult) and
+[`ClashKind`](xref:GeometryHelper.Clash.ClashKind).
 
 ```csharp
 using GeometryHelper.Clash;
@@ -112,7 +112,7 @@ all when touching is not asked for. Both are nought unless given, and every over
 
 ### Reinforcement by its centre line
 
-A bar need not be built as a body to be checked. `ClashBar` is its centre line and its radius, and it runs into
+A bar need not be built as a body to be checked. [`ClashBar`](xref:GeometryHelper.Clash.ClashBar) is its centre line and its radius, and it runs into
 a part where the part comes nearer the centre line than the radius:
 
 ```csharp
@@ -155,7 +155,7 @@ left out: such a bar is measured to the crossing, as before. Three things read d
 ## Working with large meshes
 
 Every operation above looks at the whole of what it is given, because nothing rules any of it out in
-advance. `GeoBvh3` is the index that does: a tree of nested boxes over a triangle mesh, in which a ray that
+advance. [`GeoBvh3`](xref:GeometryHelper.Spatial.GeoBvh3) is the index that does: a tree of nested boxes over a triangle mesh, in which a ray that
 misses a box misses everything inside it, and a box farther away than the best answer so far cannot hold
 anything nearer.
 
@@ -213,7 +213,7 @@ it, and falls back to comparing every pair below that — below the threshold, t
 
 One caveat, shared with any triangle mesh: a ray running exactly along an edge is reported by both
 triangles that share it. Anything counting crossings to tell inside from outside must keep clear of edges,
-which is why `Containment3` throws its ray again in another direction when a hit lands near one.
+which is why [`Containment3`](xref:GeometryHelper.Core.Containment3) throws its ray again in another direction when a hit lands near one.
 
 ## Point chains
 

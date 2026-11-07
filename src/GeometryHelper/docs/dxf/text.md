@@ -140,8 +140,8 @@ AutoCAD's FONTALT puts one.
 
 ## Text
 
-A TEXT is a `DxfDBText` (`TextString`, `Position`, `AlignmentPoint`, `Height`, `Rotation`, `WidthFactor`, `Oblique`,
-`HorizontalMode`, `VerticalMode`, `IsMirroredInX` and the rest of AutoCAD's) and an MTEXT a `DxfMText` (`Contents` with
+A TEXT is a [`DxfDBText`](xref:GeometryHelper.Dxf.DxfDBText) (`TextString`, `Position`, `AlignmentPoint`, `Height`, `Rotation`, `WidthFactor`, `Oblique`,
+`HorizontalMode`, `VerticalMode`, `IsMirroredInX` and the rest of AutoCAD's) and an MTEXT a [`DxfMText`](xref:GeometryHelper.Dxf.DxfMText) (`Contents` with
 its codes, `Text` without them, `Location`, `TextHeight`, `Width`, `Attachment`). `Contents` reads a letter written as its
 escape as the letter, as AutoCAD 2021 reads it in a drawing of any version, where a drawing of R2004 or older writes so
 each letter the code page has not: `a\U+0110b` is aĐb, and `\U+D83D\U+DE00`, the escapes of the two halves of a letter
@@ -168,7 +168,7 @@ DXF: every reader reads them as Đ, and AutoCAD's own writer writes them as they
 times single spacing, 5/3 of the letters' height: 5 for letters 3 high. `SetAttachmentMovingLocation` holds the MTEXT by
 another of its points where it stands, by its width and the height of its words (43): the MTEXT 40 wide at (20, 40, 0) held at
 its top centre stands at (40, 40, 0). `ShowBorders` draws its text frame, and `BackgroundTransparency` is a
-`DxfTransparency`. `BackgroundFill` or `UseBackgroundColor` turned on writes the background's colour (63) and scale (45)
+[`DxfTransparency`](xref:GeometryHelper.Dxf.DxfTransparency). `BackgroundFill` or `UseBackgroundColor` turned on writes the background's colour (63) and scale (45)
 where the MTEXT has none, BYLAYER and 1.5, and from R2007 its transparency (441) by layer: AutoCAD 2021 refuses the whole
 file over an MTEXT whose background is on without a 63 and a 45. A text's, an attribute's and an MTEXT's style is set by its name, `TextStyleName`, written as the
 drawing's table names it, letters of either case the same, or as its record, `TextStyle` (AutoCAD's `TextStyleId`):
@@ -215,7 +215,7 @@ MTEXTs: AutoCAD 2021 read three MTEXTs of R2000 given the column data alone as o
 defined height of 15 that high, and so does the library, which refuses columns to such an MTEXT (`SetStaticColumns`,
 `SetDynamicColumns`, `ColumnType`), as it makes no column MTEXT.
 
-The words of a text can hold fields, kept as AutoCAD keeps them: a `DxfField`, AutoCAD's `Field`, is a FIELD the object's
+The words of a text can hold fields, kept as AutoCAD keeps them: a [`DxfField`](xref:GeometryHelper.Dxf.DxfField), AutoCAD's `Field`, is a FIELD the object's
 extension dictionary names in its dictionary ACAD_FIELD under the property TEXT. `GetField()` gives the field of an object's
 words, `GetField(propertyName)` that of another property, and `SetField(new DxfField("Drawn %<\AcVar Date>%", true))` gives
 a TEXT, an MTEXT, an attribute or a dimension one, from R2004 on, written in the groups the DXF reference gives a FIELD: the
@@ -236,7 +236,7 @@ keeps the index of its placeholder `%<\_FldIdx n>%`.
 
 An object can be annotative, which AutoCAD draws at the size its scale gives it on the sheet. The drawing's list of scales
 is `db.ObjectContextManager.GetContextCollection("ACDB_ANNOTATIONSCALES")`, AutoCAD's `ObjectContextCollection`: each a
-`DxfAnnotationScale`, a SCALE of ACAD_SCALELIST with its `Name`, `PaperUnits` and `DrawingUnits`, so that 1:50 is 1 to 50 and
+[`DxfAnnotationScale`](xref:GeometryHelper.Dxf.DxfAnnotationScale), a SCALE of ACAD_SCALELIST with its `Name`, `PaperUnits` and `DrawingUnits`, so that 1:50 is 1 to 50 and
 its `Scale` 0.02, in the order of the dictionary; `CurrentContext` is the one `Cannoscale` names, and renaming it renames
 CANNOSCALE, refused before anything is written where the drawing cannot write that variable.
 `AddContext(new DxfAnnotationScale { Name = "1:100", PaperUnits = 1, DrawingUnits = 100 })` adds a scale under the entry
@@ -327,10 +327,10 @@ a font's file marked by the group `{\*\ghfontfile}` other readers pass over and 
 `SetContentsRtf` leaves out; that RTF comes back as `B-12\P\C1;\LM16`, the same words in the same look, `abc\P` as `abc\P`
 and `\Fromans;abc` as `\Fromans;abc`.
 
-**Symbols.** `DxfTextSymbols` holds the symbols of AutoCAD's text editor, so that the words of a TEXT, an MTEXT, an
+**Symbols.** [`DxfTextSymbols`](xref:GeometryHelper.Dxf.DxfTextSymbols) holds the symbols of AutoCAD's text editor, so that the words of a TEXT, an MTEXT, an
 attribute or a dimension, written by hand or by an AI, take one without its code: the 21 letters its Symbol menu enters
 and its help lists, each the letter itself, `Degree` °, `PlusMinus` ±, `Diameter` ∅ (U+2205, not the Latin letter Ø),
-`AlmostEqual`, `Angle`, `BoundaryLine`, `CenterLine`, `Delta`, `ElectricalPhase`, `FlowLine`, `Identity`,
+`AlmostEqual`, [`Angle`](xref:GeometryHelper.Angle), `BoundaryLine`, `CenterLine`, `Delta`, `ElectricalPhase`, `FlowLine`, `Identity`,
 `InitialLength`, `MonumentLine`, `NotEqual`, `Ohm`, `Omega`, `PropertyLine`, `Subscript2`, `Squared`, `Cubed` and
 `NonBreakingSpace`, and the menu's control codes `DegreeCode` (`%%d`), `PlusMinusCode` (`%%p`) and `DiameterCode`
 (`%%c`), which the words keep as written and AutoCAD draws as the signs:
@@ -344,5 +344,5 @@ A letter is written as AutoCAD writes it: as it is from R2007 on, and before as 
 is `\U+220520`. Each of the 21, written by the library into an MTEXT, a TEXT, an attribute and a dimension of R2004 and of
 R2018, was read back by AutoCAD 2021 as the same letter in all 210 readings, and AutoCAD wrote its own texts of them in the
 same bytes. The four of the private range, `BoundaryLine`, `FlowLine`, `InitialLength` and `MonumentLine`, show only in
-AutoCAD's own fonts. `%%c` is read as ∅, `Diameter`, by `Text` and `DxfReader`, as AutoCAD 2021 gives it in an MTEXT's
+AutoCAD's own fonts. `%%c` is read as ∅, `Diameter`, by `Text` and [`DxfReader`](xref:GeometryHelper.Dxf.DxfReader), as AutoCAD 2021 gives it in an MTEXT's
 `Text`.

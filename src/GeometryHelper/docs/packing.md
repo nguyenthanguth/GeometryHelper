@@ -1,7 +1,7 @@
 # Packing boxes onto sheets
 
 `GeometryHelper.Packing` lays boxes out on sheets of paper: drawing views, schedules, anything that can be brought
-to a `GeoRectangle2`. Every box goes inside the part of a sheet its offsets leave, each group of boxes that belong
+to a [`GeoRectangle2`](xref:GeometryHelper.Geometry.GeoRectangle2). Every box goes inside the part of a sheet its offsets leave, each group of boxes that belong
 together is kept together, and when a sheet is full the next one is begun beside it. The boxes are only moved,
 never turned or resized: what comes back for each is how far it moves.
 
@@ -43,7 +43,7 @@ the one A3, filling 50.7 % of the part inside the offsets:
 
 ## The sheet
 
-A `Sheet` is the size of the paper, the scale it is drawn at, the offsets round its edges that nothing goes into,
+A [`Sheet`](xref:GeometryHelper.Packing.Sheet) is the size of the paper, the scale it is drawn at, the offsets round its edges that nothing goes into,
 and where it lies.
 
 | Size | Millimetres | | Size | Millimetres |
@@ -86,7 +86,7 @@ begun to the right of the one before when it is full:
 
 Each `GeoRectangle2[]` is a group of boxes that belong together, packed onto a sheet as one block:
 
-| `GroupLayout` | The boxes of a group |
+| [`GroupLayout`](xref:GeometryHelper.Packing.GroupLayout) | The boxes of a group |
 |---|---|
 | `Compact` (default) | laid out afresh, as close together as they go, in their order from the start corner: the first box, the main view, at that corner of its block, the upper left unless `StartCorner` says another |
 | `Keep` | as they stand to one another: a layout already drawn moves as one block, its boxes overlapping or not |
@@ -154,7 +154,7 @@ corner every time:
 
 Two options trade the order of the groups for fewer sheets:
 
-| `PackOptions` | Default | When set |
+| [`PackOptions`](xref:GeometryHelper.Packing.PackOptions) | Default | When set |
 |---|---|---|
 | `LargestGroupsFirst` | false, the groups in their order | the largest blocks first: they pack tighter |
 | `FillEarlierSheets` | false, each sheet filled before the next, no group going back | a group goes onto the first sheet with room for it |

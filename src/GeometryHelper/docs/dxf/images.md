@@ -2,9 +2,9 @@
 
 ## Images and wipeouts
 
-An IMAGE is a `DxfRasterImage` and a WIPEOUT a `DxfWipeout`, as AutoCAD's `RasterImage` and `Wipeout`; the IMAGEDEF an
-image shows is a `DxfRasterImageDef` (`image.ImageDef`), under its name in the dictionary of images
-(`DxfRasterImageDef.GetImageDictionary(db)`), and the drawing's RASTERVARIABLES a `DxfRasterVariables` (the entry
+An IMAGE is a [`DxfRasterImage`](xref:GeometryHelper.Dxf.DxfRasterImage) and a WIPEOUT a [`DxfWipeout`](xref:GeometryHelper.Dxf.DxfWipeout), as AutoCAD's `RasterImage` and `Wipeout`; the IMAGEDEF an
+image shows is a [`DxfRasterImageDef`](xref:GeometryHelper.Dxf.DxfRasterImageDef) (`image.ImageDef`), under its name in the dictionary of images
+(`DxfRasterImageDef.GetImageDictionary(db)`), and the drawing's RASTERVARIABLES a [`DxfRasterVariables`](xref:GeometryHelper.Dxf.DxfRasterVariables) (the entry
 ACAD_IMAGE_VARS of the named object dictionary). No pixel is read: the library places, moves and clips the image as its
 record says, and the path of the picture is kept as the file writes it.
 
@@ -15,7 +15,7 @@ the pixels along them, square or not. Its clip boundary is in pixels counted fro
 (`PixelToModelTransform` takes them to the world, the pixel (0, 0) to (15, 45, 0)): AutoCAD writes a rectangle as two
 corners and a polygon with its first corner again at the end. The image is clipped where `IsClipped` (flag 4 of its
 display options, which AutoCAD sets on every new image) is on and a boundary was set (280 of 1): `GetVertices()`,
-`GetGeometry()` (a closed `GeoPolyline3`), `GeometricExtents` and `Explode()` follow the boundary then, and the frame
+`GetGeometry()` (a closed [`GeoPolyline3`](xref:GeometryHelper.Geometry.GeoPolyline3)), `GeometricExtents` and `Explode()` follow the boundary then, and the frame
 otherwise, as AutoCAD 2021 does. Clipped by the triangle of the pixels (0, 0), (3, 0), (1.5, 2.5), the picture shows the
 triangle (15, 45, 0), (45, 45, 0), (30, 20, 0), its box (15, 20, 0) to (45, 45, 0); clipped inverted (`IsClipInverted`),
 showing what lies outside it, its vertices and lines are still the triangle's and its box the frame's, (10, 20, 0) to (50,
@@ -40,7 +40,7 @@ dictionary of images made where that drawing has none, once for any number of im
 lists none, each counted 1, and a row of the class of what was written counted 0 is counted 1, as AutoCAD 2021 ignores the
 images and wipeouts of a drawing that lists no class of them and passes over those of a class counted 0, as ezdxf 1.4.5
 counts its own. An image erased takes its IMAGEDEF_REACTOR with it and leaves the IMAGEDEF. A drawing of
-R12 takes neither. `DxfReader` reads no IMAGE and no WIPEOUT, as before.
+R12 takes neither. [`DxfReader`](xref:GeometryHelper.Dxf.DxfReader) reads no IMAGE and no WIPEOUT, as before.
 
 They are made in code as AutoCAD 2021's API makes them. A definition is given its path and its size in pixels, which
 AutoCAD reads from the file and the library cannot, and added to the dictionary of images under the name `SuggestName`
@@ -95,7 +95,7 @@ as it is, its polygon not closed, as the library cannot tell which corners AutoC
 
 ## OLE objects
 
-An OLE2FRAME is a `DxfOle2Frame`, as AutoCAD's `Ole2Frame`: a picture pasted, a sheet of Excel or a file embedded, or a
+An OLE2FRAME is a [`DxfOle2Frame`](xref:GeometryHelper.Dxf.DxfOle2Frame), as AutoCAD's `Ole2Frame`: a picture pasted, a sheet of Excel or a file embedded, or a
 document linked, shown in a frame. The object is the frame's binary (its groups 310): AutoCAD's head of 128 bytes, which
 holds the four corners of the frame in world coordinates, then the compound file Windows' OLE saved the object in.
 AutoCAD 2021 reads the frame from those corners and not from groups 10 and 11, which are copies of two of them; the
@@ -104,7 +104,7 @@ difference said once in the log at Debug.
 
 A picture of 3 by 2 pixels pasted with its lower left corner at (10, 20, 0) and stretched to 30 by 20 gives `Location`
 (10, 20, 0), its lower left corner, as AutoCAD 2021 gives it, where the DXF reference has the upper left of group 10;
-`Position3d` its four corners as a `DxfRectangle3d`, as they are held, turned, sheared or out of the plane xy; `WcsWidth`
+`Position3d` its four corners as a [`DxfRectangle3d`](xref:GeometryHelper.Dxf.DxfRectangle3d), as they are held, turned, sheared or out of the plane xy; `WcsWidth`
 30 and `WcsHeight` 20, the run of its top along x and of its left along y, so that the frame turned 30 degrees is 25.98
 wide, as AutoCAD 2021 works them out; `ScaleWidth` and `ScaleHeight` its size in percent of the size AutoCAD keeps for
 it at 100 percent (codes 41 and 42 of the extended data), 100 for the picture as pasted and 50 once scaled by a half;
@@ -192,4 +192,4 @@ logo.Position3d = new DxfRectangle3d(new GeoPoint3(0, 50, 0), new GeoPoint3(120,
 `OleObject`, the
 object of the running application, and `Position2d`, the frame in the pixels of the window it is shown in, are not given:
 a file holds neither. The OLEFRAME of R13, an object of OLE 1 that AutoCAD's .NET API has no class for, stays a
-`DxfUnknownEntity`. `DxfReader` reads no OLE2FRAME, as before.
+[`DxfUnknownEntity`](xref:GeometryHelper.Dxf.DxfUnknownEntity). `DxfReader` reads no OLE2FRAME, as before.

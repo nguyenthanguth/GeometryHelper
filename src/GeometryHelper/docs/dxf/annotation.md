@@ -2,9 +2,9 @@
 
 ## Hatches
 
-A HATCH is a `DxfHatch`. Its loops are given in the world as the library's shapes: `hatch.GetLoopAt(0).Polyline` is the
-`GeoPolygonArc3` of a loop of a polyline, and `Curves` the lines, arcs, circles, ellipses and splines of a loop of edges,
-each running the way the loop runs, a part of an ellipse as the `GeoSpline3` that is exactly it.
+A HATCH is a [`DxfHatch`](xref:GeometryHelper.Dxf.DxfHatch). Its loops are given in the world as the library's shapes: `hatch.GetLoopAt(0).Polyline` is the
+[`GeoPolygonArc3`](xref:GeometryHelper.Geometry.GeoPolygonArc3) of a loop of a polyline, and `Curves` the lines, arcs, circles, ellipses and splines of a loop of edges,
+each running the way the loop runs, a part of an ellipse as the [`GeoSpline3`](xref:GeometryHelper.Geometry.GeoSpline3) that is exactly it.
 `AppendLoop(new DxfHatchLoop(DxfHatchLoopTypes.External, square))` adds one from shapes in the hatch's plane, and
 `AppendLoop(type, points, bulges)` one of AutoCAD's vertices and bulges in the plane's own system; a loop read from a hatch
 is written back as it was read. A change to the loops of an associative hatch takes its association away with the handles of its boundary objects,
@@ -19,9 +19,9 @@ written by its name with a count of no lines (78 of 0), which AutoCAD 2021 refus
 `PatternSearchPath` finds it (below); `PatternScale` and `PatternAngle` scale and turn
 the lines of its pattern with them (`GetPatternDefinitionAt`), and a pattern made by the user (`_USER`, `PatternSpace`,
 `PatternDouble`) is given its lines as AutoCAD makes them. `SetGradient` fills it with one of AutoCAD's gradients from
-R2004, its colours `DxfGradientColor`s, and `EvaluateGradientColorAt(0.5f)` is the colour halfway along it by the
+R2004, its colours [`DxfGradientColor`](xref:GeometryHelper.Dxf.DxfGradientColor)s, and `EvaluateGradientColorAt(0.5f)` is the colour halfway along it by the
 library's rules, red, green and blue mixed in proportion, not checked against AutoCAD: AutoCAD's new gradient, blue to a
-pale yellow, gives (128, 128, 204). `GetHatchLinesData()` gives the lines `Explode()` draws, to the bit, as `GeoLine2`s in
+pale yellow, gives (128, 128, 204). `GetHatchLinesData()` gives the lines `Explode()` draws, to the bit, as [`GeoLine2`](xref:GeometryHelper.Geometry.GeoLine2)s in
 the plane's own system, and `NumberOfHatchLines` and `GetHatchLineDataAt(i)` the same one by one, worked out once while
 the hatch is not changed: the square 30 by 20 of a pattern made by the user, lines at 45 degrees 3.175 apart, draws 11. A
 file older than R2000 has no HATCH and refuses one.
@@ -70,7 +70,7 @@ db.ModelSpace.AppendEntity(hatch);   // one line at 45 degrees, offset (-2.245, 
 
 ## Leaders and multileaders
 
-A LEADER is a `DxfLeader`, a curve through its vertices (`AppendVertex`, `SetVertexAt`, `VertexAt`) that points to its
+A LEADER is a [`DxfLeader`](xref:GeometryHelper.Dxf.DxfLeader), a curve through its vertices (`AppendVertex`, `SetVertexAt`, `VertexAt`) that points to its
 `Annotation`, an MTEXT, a TOLERANCE or an INSERT of the drawing, which lists the leader among its reactors, as AutoCAD keeps
 it; a leader of fewer than two vertices is refused by `AppendEntity`, as AutoCAD refuses one. `Dimasz`, `Dimgap`, `Dimclrd`
 and the other overrides read the extended data of ACAD (`DSTYLE`) where the leader has them and its dimension style where it
@@ -81,12 +81,12 @@ its `Spline` is that spline: through (0, 0, 0), (10, 10, 0) and (20, 10, 0) it r
 past its vertices, but its `GeometricExtents` is the box of its vertices, (0, 0, 0) to (20, 10, 0), as AutoCAD gives it. The
 spline is fitted once and kept until the drawing is next changed, so that a hundred points along a leader of 4 000 vertices
 take a fraction of a millisecond, not 1.6 s. `GetGeometry()` gives the leader's curve, the polyline of its vertices or that
-spline, as `DxfReader` reads a LEADER, and `IntersectWith` meets the leader on it, as AutoCAD's does: the leader from
+spline, as [`DxfReader`](xref:GeometryHelper.Dxf.DxfReader) reads a LEADER, and `IntersectWith` meets the leader on it, as AutoCAD's does: the leader from
 (0, 0, 0) to (10, 5, 0) meets the line x = 5 at (5, 2.5, 0). An INSERT of a block holding a leader is met on it too, and its
 `GeometricExtents` hold it: the block holding that leader, inserted at (100, 0, 0) scaled 2, is met by the line x = 110 at
 (110, 5, 0). `IsPlanar` agrees with `GetPlane()`: false where a vertex lies off the plane of its normal.
 `GetDimstyleData()` gives every variable the leader is drawn with, its override else its style's, as a
-`DxfDimStyleTableRecord` in no table; `SetDimstyleData(style)` writes those that differ from what the leader reads as
+[`DxfDimStyleTableRecord`](xref:GeometryHelper.Dxf.DxfDimStyleTableRecord) in no table; `SetDimstyleData(style)` writes those that differ from what the leader reads as
 overrides, a block by its handle, so that `plain.SetDimstyleData(styled.GetDimstyleData())` gives one leader the arrow and
 gap of another, and a leader given its own data changes nothing. `SetFromStyle()` takes the overrides away, the list DSTYLE of
 its extended data, so that a leader of `Dimasz` 3.5 over the style Standard reads Standard's 2.5 again, and answers true, as
@@ -96,7 +96,7 @@ and moves each vertex straight onto the plane, the direction of its hook laid in
 (10, 10, 5) and (20, 10, 8) put in the floor runs through (0, 0, 0), (10, 10, 0) and (20, 10, 0), and a leader put in its own
 plane changes nothing.
 
-A MULTILEADER is a `DxfMLeader`: its words (`MText`, `TextLocation`, `TextHeight`) or block (`BlockContent`,
+A MULTILEADER is a [`DxfMLeader`](xref:GeometryHelper.Dxf.DxfMLeader): its words (`MText`, `TextLocation`, `TextHeight`) or block (`BlockContent`,
 `BlockPosition`, `BlockScale`, `BlockRotation`, `SetBlockAttribute`), its look, and its leaders and their lines by AutoCAD's
 indices (`AddLeader`, `AddLeaderLine`, `GetVertex`, `SetVertex`). A line's last vertex is the point its leader's dogleg
 starts at, which every line of the leader ends at: `mleader.GetLastVertex(0)` is that point, and `SetLastVertex` moves it
@@ -245,7 +245,7 @@ D38b): across the XZ plane, or a plane of normal (0.2, 1, 0), "ABC" met from (0,
 again by the mirrored leader at its attachment, standing at (100, -46, 0) for a landing at (90, -48, 0); across the XY plane
 it runs against x, as above; turned a quarter first, across XY, it runs up y still.
 `GetGeometry()` gives the lines of its leaders, as `DxfReader` reads a MULTILEADER, and `IntersectWith` meets the
-multileader on them: each leader line a `GeoPolyline3` from its first vertex, where its arrow points, through its vertices
+multileader on them: each leader line a [`GeoPolyline3`](xref:GeometryHelper.Geometry.GeoPolyline3) from its first vertex, where its arrow points, through its vertices
 and the last point of its leader to the end of the dogleg, the path `Explode()` draws; splined, a `GeoSpline3` fitted
 through those points with the tangents `Explode()` fits with. Both start at the arrow's point, where `Explode()` starts the
 line at the back of the arrow, so that a splined line and the spline exploded part by up to about the arrow's size near the
@@ -254,7 +254,7 @@ dogleg from (790, -1.25, 0) to (798, -1.25, 0) is met by the line y = -3 at (790
 (794, -1.25, 0). Its words or block, its arrowheads and invisible leaders are not met. An INSERT of a block holding a
 multileader is met on its lines too.
 
-The multileader style a multileader is drawn with is a `DxfMLeaderStyle`, as AutoCAD's `MLeaderStyle`: the styles of
+The multileader style a multileader is drawn with is a [`DxfMLeaderStyle`](xref:GeometryHelper.Dxf.DxfMLeaderStyle), as AutoCAD's `MLeaderStyle`: the styles of
 `db.MLeaderStyleDictionary` are read as the file holds them (`TextHeight`, `ArrowSize`, `LandingGap`, `DoglegLength`,
 `LeaderLineType`, `LeaderLineLinetype`, `TextStyle`, `Block` and the rest of its look), and
 `mleader.GetOverridedMLeaderStyle(style)`, AutoCAD's `getOverridedMLeaderStyle` named as the library names its members, gives
@@ -282,9 +282,9 @@ among what it keeps.
 
 ## Dimensions
 
-A DIMENSION is a `DxfRotatedDimension`, `DxfAlignedDimension`, `DxfRadialDimension`, `DxfDiametricDimension`,
-`DxfLineAngularDimension2`, `DxfPoint3AngularDimension` or `DxfOrdinateDimension` by its kind, an ARC_DIMENSION a
-`DxfArcDimension` and a LARGE_RADIAL_DIMENSION a `DxfRadialDimensionLarge`, each a `DxfDimension` with AutoCAD's points
+A DIMENSION is a [`DxfRotatedDimension`](xref:GeometryHelper.Dxf.DxfRotatedDimension), [`DxfAlignedDimension`](xref:GeometryHelper.Dxf.DxfAlignedDimension), [`DxfRadialDimension`](xref:GeometryHelper.Dxf.DxfRadialDimension), [`DxfDiametricDimension`](xref:GeometryHelper.Dxf.DxfDiametricDimension),
+[`DxfLineAngularDimension2`](xref:GeometryHelper.Dxf.DxfLineAngularDimension2), [`DxfPoint3AngularDimension`](xref:GeometryHelper.Dxf.DxfPoint3AngularDimension) or [`DxfOrdinateDimension`](xref:GeometryHelper.Dxf.DxfOrdinateDimension) by its kind, an ARC_DIMENSION a
+[`DxfArcDimension`](xref:GeometryHelper.Dxf.DxfArcDimension) and a LARGE_RADIAL_DIMENSION a [`DxfRadialDimensionLarge`](xref:GeometryHelper.Dxf.DxfRadialDimensionLarge), each a [`DxfDimension`](xref:GeometryHelper.Dxf.DxfDimension) with AutoCAD's points
 in world coordinates (`XLine1Point`, `DimLinePoint`, `Center`, `ChordPoint`, `ArcPoint` ...), `TextPosition`,
 `DimensionText`, `DimensionStyle` and `Measurement`, worked out from the points as AutoCAD works it out: the rotated
 dimension of (0, 0, 0) and (100, 20, 0) along 30 degrees measures 96.60, the angle of a level line and one at 45 degrees

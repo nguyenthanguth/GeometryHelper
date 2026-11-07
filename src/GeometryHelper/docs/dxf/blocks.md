@@ -1,16 +1,15 @@
 # Blocks and attributes
 
-
-An INSERT is a `DxfBlockReference`. The INSERT of BOLT at (50, 60, 0) turned by 45 degrees and scaled by (1.5, -1.5, 2) has
+An INSERT is a [`DxfBlockReference`](xref:GeometryHelper.Dxf.DxfBlockReference). The INSERT of BOLT at (50, 60, 0) turned by 45 degrees and scaled by (1.5, -1.5, 2) has
 `Position` (50, 60, 0), `Rotation` 0.785 and a `BlockTransform` that takes BOLT's origin (1, 2, 0) to the insertion point;
 the block's point (0, 0, 0) lands at (46.82, 61.06, 0). Setting `Position` to (60, 55, 1) moves its ATTRIB MARK from
 (50, 59, 0) to (60, 54, 1): an INSERT moved, turned, scaled or given a new normal carries its attributes with it. `Name` is
 the block it places, `BlockTableRecord` that block; `BlockName` is the block it is in.
 `new DxfBlockReference(position, block)` places a block of the drawing.
 
-Its attributes are `DxfAttributeReference` objects (`Tag`, `TextString`, owned by the INSERT) in its
+Its attributes are [`DxfAttributeReference`](xref:GeometryHelper.Dxf.DxfAttributeReference) objects (`Tag`, `TextString`, owned by the INSERT) in its
 `AttributeCollection`: `AppendAttribute` adds one, `SetAttributeFromBlock` fills one from its ATTDEF, and erasing one keeps
-the others' handles. An ATTDEF is a `DxfAttributeDefinition` with its `Prompt`. An attribute of several lines embeds an
+the others' handles. An ATTDEF is a [`DxfAttributeDefinition`](xref:GeometryHelper.Dxf.DxfAttributeDefinition) with its `Prompt`. An attribute of several lines embeds an
 MTEXT from R2018: `IsMTextAttribute` makes one of its value where its text stands, or takes it out, `MTextAttribute` gives
 and takes the MTEXT, its text made to agree as ezdxf's `set_mtext` makes it but for its value, the words of every line joined
 by spaces as AutoCAD 2021 reads it (`LINE ONE LINE TWO LINE THREE` for three lines, where ezdxf writes the first). AutoCAD
@@ -22,7 +21,7 @@ MTEXT joined by spaces, whatever its group 1 holds, as AutoCAD 2021 reads both: 
 definition above, and of an ATTRIB AutoCAD wrote with an empty group 1. Setting it sets the words of the MTEXT, which keeps
 its place and look, its backslashes and braces written as codes, and its group 1 made to agree: the ATTRIB of three lines set
 to `M24 GALV` is an MTEXT of one line `M24 GALV`, still an attribute of several lines. `UpdateMTextAttribute()` places the MTEXT
-again where the text stands, after the attribute is moved or set from its definition. A MINSERT is a `DxfMInsertBlock` with
+again where the text stands, after the attribute is moved or set from its definition. A MINSERT is a [`DxfMInsertBlock`](xref:GeometryHelper.Dxf.DxfMInsertBlock) with
 its `Columns`, `Rows`, `ColumnSpacing` and `RowSpacing`.
 
 `UnitFactor` takes the block's units to the drawing's (`$INSUNITS`): 25.4 for a block in inches inserted in millimetres, 1
@@ -33,7 +32,7 @@ where either gives none. `GeometryExtentsBestFit()` is the box of the shapes pla
 R12.
 
 **Dynamic blocks for an AI.** A dynamic block is made in a drawing of R2010 or later (`new DxfDatabase("AC1024")`) by one
-call on its `DxfBlockTableRecord` for each parameter and one for each action, each written as AutoCAD 2021 saved its own
+call on its [`DxfBlockTableRecord`](xref:GeometryHelper.Dxf.DxfBlockTableRecord) for each parameter and one for each action, each written as AutoCAD 2021 saved its own
 sample of it, and an INSERT of it is set by
 `insert.DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == name).Value`. The kinds, each written and set
 as AutoCAD 2021 read and set it:
@@ -45,16 +44,16 @@ as AutoCAD 2021 read and set it:
 - a distance and an angle: `AddPolarParameter`, with `AddPolarStretchAction`, `AddStretchAction` or `AddMoveAction`;
 - a position: `AddPointParameter`, with `AddMoveAction`;
 - an angle: `AddRotationParameter`, with `AddRotateAction`;
-- the values a distance or an angle may take: a `DxfBlockParameterValueSet` given to `AddLinearParameter`,
+- the values a distance or an angle may take: a [`DxfBlockParameterValueSet`](xref:GeometryHelper.Dxf.DxfBlockParameterValueSet) given to `AddLinearParameter`,
   `AddPolarParameter`, and the overloads of `AddXYParameter` and `AddRotationParameter` that take one;
 - a mirror: `AddFlipParameter`, with `AddFlipAction`;
-- the entities shown: `AddVisibilityParameter`, each state a `DxfBlockVisibilityState`;
-- named sizes: `AddLookupParameter`, its inputs `DxfBlockLookupInput` (a linear or a polar distance, the x or the y of a
-  point, the distances of an XY parameter, the angle of a polar or a rotation parameter) and its rows `DxfBlockLookupRow`,
+- the entities shown: `AddVisibilityParameter`, each state a [`DxfBlockVisibilityState`](xref:GeometryHelper.Dxf.DxfBlockVisibilityState);
+- named sizes: `AddLookupParameter`, its inputs [`DxfBlockLookupInput`](xref:GeometryHelper.Dxf.DxfBlockLookupInput) (a linear or a polar distance, the x or the y of a
+  point, the distances of an XY parameter, the angle of a polar or a rotation parameter) and its rows [`DxfBlockLookupRow`](xref:GeometryHelper.Dxf.DxfBlockLookupRow),
   the parameter and its action in one call;
 - several properties and attributes set at once by rows: `AddBlockPropertiesTable`, its columns
-  `DxfBlockPropertiesTableColumn` (the properties a lookup input takes, and `Attribute(definition)`) and its rows
-  `DxfBlockPropertiesTableRow`, read back by the block's `BlockPropertiesTable`;
+  [`DxfBlockPropertiesTableColumn`](xref:GeometryHelper.Dxf.DxfBlockPropertiesTableColumn) (the properties a lookup input takes, and `Attribute(definition)`) and its rows
+  [`DxfBlockPropertiesTableRow`](xref:GeometryHelper.Dxf.DxfBlockPropertiesTableRow), read back by the block's `BlockPropertiesTable`;
 - grips for placing the block, of no property: `AddAlignmentParameter` and `AddBasePointParameter`.
 
 Two things are refused with `NotSupportedException` before anything is written, either given second: a flip parameter
@@ -541,7 +540,7 @@ the values of Small above it, it reads Small, as AutoCAD 2021 read it (check D25
 
 A block properties table (`AddBlockPropertiesTable`, AutoCAD's Block Properties Table) sets several properties and
 attributes at once: its columns are properties of the block's parameters, as a lookup's inputs are
-(`DxfBlockPropertiesTableColumn.Distance`, `X`, `Y`, `Angle`), or attribute definitions of the block
+(`DxfBlockPropertiesTableColumn.Distance`, `X`, `Y`, [`Angle`](xref:GeometryHelper.Angle)), or attribute definitions of the block
 (`DxfBlockPropertiesTableColumn.Attribute`), and each row (`DxfBlockPropertiesTableRow`) gives a number to each parameter's
 column, in the block's units, and a text to each attribute's. Every INSERT shows the property Block Table1, a `short`: the
 index of the first row whose parameters' values it shows, -1 where none does; set to a row's index, it sets each parameter

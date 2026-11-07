@@ -1,7 +1,6 @@
 # Splines
 
-
-`GeoSpline2` is a curve that is one smooth sweep and not a chain of pieces: a NURBS, a B-spline whose control points may pull
+[`GeoSpline2`](xref:GeometryHelper.Geometry.GeoSpline2) is a curve that is one smooth sweep and not a chain of pieces: a NURBS, a B-spline whose control points may pull
 on it with different strengths, which is what the SPLINE of AutoCAD and the B-spline curves of IFC hold. It is given by its
 degree (1 to 10), its control points, its knots and, when it is rational, its weights. The curve is clamped, so it starts at its
 first control point and ends at its last, and the control polygon through the points shows where it goes without touching it.
@@ -110,7 +109,7 @@ tolerance of the scene (a tenth of its point tolerance) and turns no more than 2
 40 000 control points is drawn in 0.8 s; it snaps to the two
 ends of a spline and to the nearest point of it, picks it, gives its degree, control points, rational or not, domain, closedness and length
 among its properties, and reads a SPLINE of a DXF file back by its control points, knots and weights to the bit; one given by its fit points
-alone, and a periodic one, are left out with a warning. GeometryHelper.CadConvert converts AutoCAD's `Spline` to and from `GeoSpline3`
+alone, and a periodic one, are left out with a warning. GeometryHelper.CadConvert converts AutoCAD's `Spline` to and from [`GeoSpline3`](xref:GeometryHelper.Geometry.GeoSpline3)
 through its `NurbsData`, and to a `GeoSpline2` as it is seen in plan (`ToGeoSpline2`, or `TryToGeoSpline2` for false in place of a throw),
 which is exact, since a spline seen square onto a plane is the spline of its control points seen so.
 
@@ -155,7 +154,7 @@ snap is 1E-13 of the size of the numbers: where a curve touches another the roun
 as the digits tell all along a stretch, and each near touch it finds there is the one). Two meetings are one place only when they are
 within the tolerance of each other, whatever lies between them, as the exact curves have it: two crossings 6E-4 apart are one place at a
 thousandth and two at a ten-thousandth, and a line that cuts a circle of radius 30 a million from the origin in a chord of 0.009 meets it
-twice, for the spline as for the `GeoCircle2`. A line tangent to a circle of radius 1 000 touches it once, however the line is cut into
+twice, for the spline as for the [`GeoCircle2`](xref:GeometryHelper.Geometry.GeoCircle2). A line tangent to a circle of radius 1 000 touches it once, however the line is cut into
 segments (a polyline of 10 000 segments, 100 000 out): a million out the numbers are 1.2E-10 apart and the two are within a snap of each
 other for 0.014 either side of the touch, where the places are the crossings of the rounding, up to five, all within that hundredth of a
 millimetre. The snap is 1E-13 of the size of the numbers, which for a line, a segment or a polyline is the sum of its coordinates' sizes:
@@ -212,7 +211,7 @@ those two lie to either side and even where not, wherever a change between two s
 or after the last gives none. A cubic whose offset from a line goes from 1.1E-4 under it to 4.4E-4 over it, crossing it at 20, 40 and 60
 with lobes of 7E-6 between, crosses it once in the plane, at 40 at the origin, whichever is asked and however turned, where it was given
 three; a million out the crossing at 40 runs along the line within the snap for 0.1 either side (1E-7, 1E-13 of the largest coordinate of the
-control points of the two splines; a `GeoLine2` reads the sum of its coordinates, 2E-7 there), and the one at 60 is given; laid in
+control points of the two splines; a [`GeoLine2`](xref:GeometryHelper.Geometry.GeoLine2) reads the sum of its coordinates, 2E-7 there), and the one at 60 is given; laid in
 a tilted plane of space the pair lies in no plane the digits can tell, and is measured in space, where no lobes are read, at all three. A
 zigzag of degree one and its copy moved 2.6E-5 along it cross at each corner where the edges either side are 1.8E-5 off each other, and
 once across two shallow edges 8.7E-7 off each other, where the exact polylines cross three times. Of 400 random polylines that never turn
@@ -239,7 +238,7 @@ the same asked either way and turned. A copy of a polyline still crosses it at a
 other curve that comes back within about three sixty-fourths of a stretch along of where it left is not told from the branch the
 stretch runs along. A
 sine of 21 fit points and a copy moved 0.0005 up are along each other and cross nowhere, where 15 101 places came before, after 22 seconds,
-and none comes now in a few milliseconds. The fit through 37 points of a quarter circle against `GeoArc2` of the same arc, which is
+and none comes now in a few milliseconds. The fit through 37 points of a quarter circle against [`GeoArc2`](xref:GeometryHelper.Geometry.GeoArc2) of the same arc, which is
 solved exactly, gives its true crossings, 72 of them, the fit being the arc to rounding only in the places it was made to pass through,
 and off it a little between, to one side then the other; against the circle spline of the same arc, which is a spline and is cut like one, it is a stretch along, within the
 tolerance and level all the way, and gives only the crossings that go more than 1E-5 to each side: ten,
@@ -329,4 +328,4 @@ asks the spline with `IsPointOn` and `DistanceTo`, as before. Shapes in space (`
 spline in space.
 
 Not in this release, and why: an `Offset` (the offset of a spline is not a spline; it would be an approximation to a tolerance),
-splines as the edges of a `GeoPolylineArc2` chain, periodic knot vectors, and surfaces.
+splines as the edges of a [`GeoPolylineArc2`](xref:GeometryHelper.Geometry.GeoPolylineArc2) chain, periodic knot vectors, and surfaces.

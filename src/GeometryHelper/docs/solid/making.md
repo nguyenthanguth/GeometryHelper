@@ -4,7 +4,7 @@
 
 A body read out of a model can come in open: two faces meeting on copies of an edge a few thousandths apart, a
 corner standing off the edge of the face beside it, a face left out. `Validate()` says where. `TryClose` closes it with
-the least change that does it, and says in a `SolidClosing3` what it changed; where the change is not certain it
+the least change that does it, and says in a [`SolidClosing3`](xref:GeometryHelper.SolidClosing3) what it changed; where the change is not certain it
 changes nothing, returns `false`, and says why and where. The body given is not changed, and one valid already comes
 back as the very instance, nothing done. Valid here is as the booleans read a body, within the tolerance as given and
 the edges paired by overlap along a line only, not as `Validate()` reads it, which pairs two copies of an edge by
@@ -111,7 +111,7 @@ where none after it closed the body either.
 
 **What it refuses, and why.** `Failure` says, and `FailureLocation` is a point at the trouble:
 
-| `ClosingFailure` | |
+| [`ClosingFailure`](xref:GeometryHelper.Enums.ClosingFailure) | |
 |---|---|
 | `NonManifold` | an edge left open past a fin longer than the gap, a corner two holes meet at, or a shell that cannot be wound alike, as a Möbius strip |
 | `GapTooWide` | corners further apart than the gap across a gap only a weld closes; the point is where the gap is widest |
@@ -138,7 +138,7 @@ open.TryClose(out GeoSolid3 whole, leastArea, out SolidClosing3 filled);
 // filled.Repairs: one Fill of 20; whole.GetVolume() is 10
 ```
 
-**Reading the report.** `Repairs` lists each change in the order it was made, a `SolidRepair3` of a `SolidRepairKind`
+**Reading the report.** `Repairs` lists each change in the order it was made, a [`SolidRepair3`](xref:GeometryHelper.SolidRepair3) of a [`SolidRepairKind`](xref:GeometryHelper.Enums.SolidRepairKind)
 whose `Size` is the kind's: a `Drop` of the area dropped, a `Flip` of the area turned over, a `Weld` of the furthest a
 corner of the group moved, a `SplitEdge` of how far the corner stood off the edge, and a `Fill`, one per hole, of the
 area added across it, its `Location` the middle of the faces added. `AddedArea` is the area of the faces added.
@@ -206,7 +206,7 @@ Like every other question, both read the material: a bolt hole comes out of the 
 and is a hole in the section. A section is one face per region the plane cuts, facing along the plane's normal;
 a plane that misses the body, or only lies along one of its faces, gives none.
 
-**Reading the faces more than one way.** `Measure3` measures a body by the method asked, and every method side by side:
+**Reading the faces more than one way.** [`Measure3`](xref:GeometryHelper.Core.Measure3) measures a body by the method asked, and every method side by side:
 
 ```csharp
 double net    = Measure3.Volume(plate, VolumeMethod.Surface);        // the material, openings cut in
@@ -220,7 +220,7 @@ every.VolumeSpread;                  // how far apart the methods come
 every.ReferenceSpread;               // how far the faces fall short of closing
 ```
 
-| `VolumeMethod` | Each face read as | |
+| [`VolumeMethod`](xref:GeometryHelper.Enums.VolumeMethod) | Each face read as | |
 |---|---|---|
 | `Fan` | the fan of its boundary from its first corner, less its holes' | the quickest; what `GeoSolid3.GetVolume` sums |
 | `Surface` | the triangles lying in it, on its own corners, holes left open | a closed surface of triangles; what `GetMassProperties` sums |
@@ -284,7 +284,7 @@ GeoObb3 box = GeoObb3.Fit(part.Faces.SelectMany(face => face.Boundary.Vertices))
 
 ## Merging
 
-`Merge3` is the other direction. `ConsecutiveLines` and `ConsecutivePolylines` take the pieces in the order
+[`Merge3`](xref:GeometryHelper.Core.Merge3) is the other direction. `ConsecutiveLines` and `ConsecutivePolylines` take the pieces in the order
 given and only ever join a piece to the one after it. `Join` ignores order and direction and reassembles
 whatever chains the set actually forms, which is what a bag of edges out of a model needs:
 

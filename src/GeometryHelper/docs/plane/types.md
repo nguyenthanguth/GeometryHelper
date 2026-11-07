@@ -1,7 +1,6 @@
 # Geometric Types
 
-
-`GeoPoint2`, `GeoVector2`, `GeoLine2`, `GeoRay2` (a half-line), `GeoXLine2` (an infinite line), `GeoArc2`, `GeoCircle2`, `GeoEllipse2`, `GeoSpline2` (a NURBS curve), `GeoRectangle2` (rotated rectangle — OBB), `GeoTriangle2`, `GeoPolygon2`, `GeoFace2` (a polygon with holes), `GeoPolyline2`, and the chains that may curve: `GeoEdge2`, `GeoPolylineArc2`, `GeoPolygonArc2`.
+[`GeoPoint2`](xref:GeometryHelper.Geometry.GeoPoint2), [`GeoVector2`](xref:GeometryHelper.Geometry.GeoVector2), [`GeoLine2`](xref:GeometryHelper.Geometry.GeoLine2), [`GeoRay2`](xref:GeometryHelper.Geometry.GeoRay2) (a half-line), [`GeoXLine2`](xref:GeometryHelper.Geometry.GeoXLine2) (an infinite line), [`GeoArc2`](xref:GeometryHelper.Geometry.GeoArc2), [`GeoCircle2`](xref:GeometryHelper.Geometry.GeoCircle2), [`GeoEllipse2`](xref:GeometryHelper.Geometry.GeoEllipse2), [`GeoSpline2`](xref:GeometryHelper.Geometry.GeoSpline2) (a NURBS curve), [`GeoRectangle2`](xref:GeometryHelper.Geometry.GeoRectangle2) (rotated rectangle — OBB), [`GeoTriangle2`](xref:GeometryHelper.Geometry.GeoTriangle2), [`GeoPolygon2`](xref:GeometryHelper.Geometry.GeoPolygon2), [`GeoFace2`](xref:GeometryHelper.Geometry.GeoFace2) (a polygon with holes), [`GeoPolyline2`](xref:GeometryHelper.Geometry.GeoPolyline2), and the chains that may curve: [`GeoEdge2`](xref:GeometryHelper.Geometry.GeoEdge2), [`GeoPolylineArc2`](xref:GeometryHelper.Geometry.GeoPolylineArc2), [`GeoPolygonArc2`](xref:GeometryHelper.Geometry.GeoPolygonArc2).
 
 ## Regions and curves
 
@@ -37,7 +36,7 @@ A `GeoPolygon2` is not checked for self-intersection when it is built, because t
 
 ## Collision and intersection
 
-`CollidesWith` answers whether two shapes overlap, `GetIntersections` returns the crossing points. Every pair is available from both directions, and each has an overload taking an explicit `Tolerance`:
+`CollidesWith` answers whether two shapes overlap, `GetIntersections` returns the crossing points. Every pair is available from both directions, and each has an overload taking an explicit [`Tolerance`](xref:GeometryHelper.Tolerance):
 
 ```csharp
 rect.CollidesWith(line);        line.CollidesWith(rect);
@@ -343,7 +342,7 @@ carried the same idea for a flat surface all along.
 
 ## Splitting
 
-`Splition2` cuts a `GeoLine2` or a `GeoPolyline2` — at a position along it, or wherever a cutter meets it. Pieces come back in order along the subject, so the first piece always holds its start point and the last holds its end point.
+[`Splition2`](xref:GeometryHelper.Core.Splition2) cuts a `GeoLine2` or a `GeoPolyline2` — at a position along it, or wherever a cutter meets it. Pieces come back in order along the subject, so the first piece always holds its start point and the last holds its end point.
 
 Cutting at a position:
 

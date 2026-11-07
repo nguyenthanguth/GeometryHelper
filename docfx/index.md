@@ -13,8 +13,9 @@ dotnet add package GeometryHelper
 
 | | |
 |---|---|
+| [How do I](../src/GeometryHelper/docs/howto.md) | a task, the call that does it, and the page that tells the rest |
 | [Shared types](../src/GeometryHelper/docs/common.md) | `Tolerance`, `Angle`, the enumerations, `OffsetOptions`, `GeometryHelperLog` |
-| [DXF](../src/GeometryHelper/docs/dxf/index.md) | reading, writing and editing DXF files with AutoCAD's classes and members; [a drawing edited step by step](../src/GeometryHelper/docs/dxf-editing-example.md) and [the points to check in AutoCAD](../src/GeometryHelper/docs/dxf-autocad-checks.md) |
+| [DXF](../src/GeometryHelper/docs/dxf/index.md) | reading, writing and editing DXF files with AutoCAD's classes and members, [AutoCAD's patterns side by side](../src/GeometryHelper/docs/dxf/autocad.md); [a drawing edited step by step](../src/GeometryHelper/docs/dxf-editing-example.md) and [the points to check in AutoCAD](../src/GeometryHelper/docs/dxf-autocad-checks.md) |
 | [Geometry in the plane](../src/GeometryHelper/docs/plane.md) | points to polygons and faces; arcs, offsetting, combining regions |
 | [Meshing the plane](../src/GeometryHelper/docs/mesh.md) | triangles, grids of panels or tiles with joints and alignment, strips and convex pieces, edge to edge |
 | [Geometry in space](../src/GeometryHelper/docs/solid.md) | points to solids; splitting, boolean bodies, meshes, local frames |

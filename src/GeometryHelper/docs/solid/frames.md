@@ -2,7 +2,7 @@
 
 ## Between the plane and space
 
-A plate, a face, a chain marked on a face: flat geometry lying in a plane in space. `PlanarMap` lays it
+A plate, a face, a chain marked on a face: flat geometry lying in a plane in space. [`PlanarMap`](xref:GeometryHelper.Core.PlanarMap) lays it
 out in two dimensions, so that everything [the plane half](../plane.md) can do — offsetting, the booleans,
 splitting, containment with holes — applies to it, and puts the answer back where it came from.
 
@@ -23,8 +23,8 @@ somewhere else, so hold on to it. Where the frame comes from decides what the lo
 | `PlanarMap.FrameOf(plane)` | the plane's own origin and axes | several shapes have to share one set of local coordinates |
 | `new GeoCoordinateSystem3(origin, xAxis, yAxis)` | whatever you name | the local coordinates mean something to you |
 
-Every flat type makes the trip: `GeoPoint3`, `GeoVector3`, `GeoLine3`, `GeoPolyline3`, `GeoPolygon3` and
-`GeoFace3` go out with `ProjectTo…`, and `GeoPoint2` … `GeoFace2` come back with `To…3`. An ellipse does too:
+Every flat type makes the trip: [`GeoPoint3`](xref:GeometryHelper.Geometry.GeoPoint3), [`GeoVector3`](xref:GeometryHelper.Geometry.GeoVector3), [`GeoLine3`](xref:GeometryHelper.Geometry.GeoLine3), [`GeoPolyline3`](xref:GeometryHelper.Geometry.GeoPolyline3), [`GeoPolygon3`](xref:GeometryHelper.Geometry.GeoPolygon3) and
+[`GeoFace3`](xref:GeometryHelper.Geometry.GeoFace3) go out with `ProjectTo…`, and [`GeoPoint2`](xref:GeometryHelper.Geometry.GeoPoint2) … [`GeoFace2`](xref:GeometryHelper.Geometry.GeoFace2) come back with `To…3`. An ellipse does too:
 `GeoEllipse3.ProjectToEllipse2(frame)` goes out, and `GeoEllipse2.ToEllipse3(frame)` comes back; a circle in
 space goes out as an ellipse, `GeoCircle3.ProjectToEllipse2(frame)`, which is a circle again when it lies
 flat in the frame.
@@ -51,7 +51,7 @@ taken from the shape itself always agrees.
 
 ## Working in a local frame
 
-`GeoCoordinateSystem3` moves geometry between world coordinates and a local frame, and its axes are always
+[`GeoCoordinateSystem3`](xref:GeometryHelper.Geometry.GeoCoordinateSystem3) moves geometry between world coordinates and a local frame, and its axes are always
 orthonormal whatever is passed in. `ToLocal` and `ToGlobal` are exact inverses of each other.
 
 Two directions span a frame by the angle between them, whatever their lengths: they are parallel where the sine of it
@@ -82,7 +82,7 @@ GeoPolygon3 inFrame = outline.TransformBy(GeoTransform3.ToCoordinateSystem(frame
 GeoPolygon3 back = inFrame.TransformBy(GeoTransform3.FromCoordinateSystem(frame));
 ```
 
-`GeoTransform3` is a 4x4 matrix applied on the left, so `a.Multiply(b)` means "apply b, then a". A plane
+[`GeoTransform3`](xref:GeometryHelper.Geometry.GeoTransform3) is a 4x4 matrix applied on the left, so `a.Multiply(b)` means "apply b, then a". A plane
 normal is carried by the inverse transpose rather than by the matrix itself, so it stays perpendicular to
 the surface even under a non-uniform scaling.
 
@@ -118,4 +118,4 @@ take a volume from `TryGetVolume`, and trust it where that returns true.
 
 Tekla models in millimetres with coordinates that can run to hundreds of thousands, and a face of a twelve
 metre member is rarely flat to the last decimal. The default `EqualPlanar` is often too tight for that, so
-pass a `Tolerance` suited to the model rather than relying on the default.
+pass a [`Tolerance`](xref:GeometryHelper.Tolerance) suited to the model rather than relying on the default.

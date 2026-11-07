@@ -2,10 +2,10 @@
 
 ## Reading DXF
 
-`DxfReader` reads a DXF file into the library's shapes: what `DxfWriter` writes, and what AutoCAD and the other CAD
+[`DxfReader`](xref:GeometryHelper.Dxf.DxfReader) reads a DXF file into the library's shapes: what [`DxfWriter`](xref:GeometryHelper.Dxf.DxfWriter) writes, and what AutoCAD and the other CAD
 programs write of the same kinds, ASCII files of R12 (AC1009) to R2018 (AC1032). An INSERT is read as the entities of its
 block, placed where it puts them, and the blocks themselves are there too (see Blocks and INSERTs below); a TEXT and an MTEXT
-are read as a `DxfText` (see Texts), and the layer table into `LayerTable` (see The layer table).
+are read as a [`DxfText`](xref:GeometryHelper.Dxf.DxfText) (see Texts), and the layer table into `LayerTable` (see The layer table).
 
 ```csharp
 using GeometryHelper.Dxf;
@@ -18,12 +18,12 @@ foreach (DxfShape entity in drawing.OnLayer("steel")) { ... }                 //
 DxfDocument text = DxfReader.Parse(dxfText);                                   // or Read(stream)
 ```
 
-A `DxfDocument` holds the `Shapes` in the order of the file, the `Layers` (those of the layer table in file order,
+A [`DxfDocument`](xref:GeometryHelper.Dxf.DxfDocument) holds the `Shapes` in the order of the file, the `Layers` (those of the layer table in file order,
 then any an entity is on that the table does not list, two names differing only in case being one, as in AutoCAD), the
 `LayerTable` with the colour and state of each layer of the table, the
-`Units` the header gives (`$INSUNITS`, as the `DxfUnits` enum numbers them: `Millimetres` is 4), the `Version`
+`Units` the header gives (`$INSUNITS`, as the [`DxfUnits`](xref:GeometryHelper.Dxf.DxfUnits) enum numbers them: `Millimetres` is 4), the `Version`
 (`$ACADVER`, `AC1015` for R2000), what was `Skipped`, counted by type in the order of the type names, and the `Warnings`.
-Each `DxfShape` has its `Shape`, its `Type` as the file names it, its `Layer`, `Colour` (an AutoCAD colour index from 1
+Each [`DxfShape`](xref:GeometryHelper.Dxf.DxfShape) has its `Shape`, its `Type` as the file names it, its `Layer`, `Colour` (an AutoCAD colour index from 1
 to 255, null by layer or by block), `TrueColour` (0xRRGGBB, group 420), `Linetype` (group 6, null by layer),
 `Lineweight` (group 370 in hundredths of a millimetre, one of AutoCAD's 0, 5, 9, 13, 15, 18, 20, 25, 30, 35, 40, 50, 53,
 60, 70, 80, 90, 100, 106, 120, 140, 158, 200 and 211, null by layer, by block, default or any other number, which a
@@ -42,15 +42,15 @@ extrusion is (0, 0, 1) or (0, 0, -1) exactly, or not given, and every height nou
 
 | Entity | Shape | With `PlanAs2D`, on the floor |
 |---|---|---|
-| POINT, LINE, RAY, XLINE | `GeoPoint3`, `GeoLine3`, `GeoRay3`, `GeoXLine3` | `GeoPoint2`, `GeoLine2`, `GeoRay2`, `GeoXLine2` |
-| LWPOLYLINE, POLYLINE of the plane | `GeoPolyline3` or `GeoPolygon3` (closed); `GeoPolylineArc3` or `GeoPolygonArc3` where an edge has a bulge | `GeoPolyline2`, `GeoPolygon2`, `GeoPolylineArc2`, `GeoPolygonArc2` |
+| POINT, LINE, RAY, XLINE | [`GeoPoint3`](xref:GeometryHelper.Geometry.GeoPoint3), [`GeoLine3`](xref:GeometryHelper.Geometry.GeoLine3), [`GeoRay3`](xref:GeometryHelper.Geometry.GeoRay3), [`GeoXLine3`](xref:GeometryHelper.Geometry.GeoXLine3) | [`GeoPoint2`](xref:GeometryHelper.Geometry.GeoPoint2), [`GeoLine2`](xref:GeometryHelper.Geometry.GeoLine2), [`GeoRay2`](xref:GeometryHelper.Geometry.GeoRay2), [`GeoXLine2`](xref:GeometryHelper.Geometry.GeoXLine2) |
+| LWPOLYLINE, POLYLINE of the plane | [`GeoPolyline3`](xref:GeometryHelper.Geometry.GeoPolyline3) or [`GeoPolygon3`](xref:GeometryHelper.Geometry.GeoPolygon3) (closed); [`GeoPolylineArc3`](xref:GeometryHelper.Geometry.GeoPolylineArc3) or [`GeoPolygonArc3`](xref:GeometryHelper.Geometry.GeoPolygonArc3) where an edge has a bulge | [`GeoPolyline2`](xref:GeometryHelper.Geometry.GeoPolyline2), [`GeoPolygon2`](xref:GeometryHelper.Geometry.GeoPolygon2), [`GeoPolylineArc2`](xref:GeometryHelper.Geometry.GeoPolylineArc2), [`GeoPolygonArc2`](xref:GeometryHelper.Geometry.GeoPolygonArc2) |
 | 3D POLYLINE | `GeoPolyline3` or `GeoPolygon3` | `GeoPolyline2` or `GeoPolygon2` |
-| polyface mesh, polygon mesh | `GeoSolid3` of its faces, closed or not as they are; fewer than four faces, each a `GeoFace3` | the same |
-| CIRCLE, ARC | `GeoCircle3`, `GeoArc3` | `GeoCircle2`, `GeoArc2` |
-| ELLIPSE, whole | `GeoEllipse3` | `GeoEllipse2` |
-| ELLIPSE, a part | `GeoSpline3`, exactly the part | `GeoSpline2` |
+| polyface mesh, polygon mesh | [`GeoSolid3`](xref:GeometryHelper.Geometry.GeoSolid3) of its faces, closed or not as they are; fewer than four faces, each a [`GeoFace3`](xref:GeometryHelper.Geometry.GeoFace3) | the same |
+| CIRCLE, ARC | [`GeoCircle3`](xref:GeometryHelper.Geometry.GeoCircle3), [`GeoArc3`](xref:GeometryHelper.Geometry.GeoArc3) | [`GeoCircle2`](xref:GeometryHelper.Geometry.GeoCircle2), [`GeoArc2`](xref:GeometryHelper.Geometry.GeoArc2) |
+| ELLIPSE, whole | [`GeoEllipse3`](xref:GeometryHelper.Geometry.GeoEllipse3) | [`GeoEllipse2`](xref:GeometryHelper.Geometry.GeoEllipse2) |
+| ELLIPSE, a part | [`GeoSpline3`](xref:GeometryHelper.Geometry.GeoSpline3), exactly the part | [`GeoSpline2`](xref:GeometryHelper.Geometry.GeoSpline2) |
 | SPLINE | `GeoSpline3` of its degree, knots, weights and control points; one of fit points alone, the spline `Interpolate` passes through them | `GeoSpline2` |
-| 3DFACE | `GeoTriangle3` of three corners; `GeoFace3` of four in one plane within the planar tolerance; two `GeoTriangle3` cut along the shorter diagonal where they are not | the same |
+| 3DFACE | [`GeoTriangle3`](xref:GeometryHelper.Geometry.GeoTriangle3) of three corners; `GeoFace3` of four in one plane within the planar tolerance; two `GeoTriangle3` cut along the shorter diagonal where they are not | the same |
 | SOLID, TRACE | `GeoPolygon3` of its corners in DXF's order 1, 2, 4, 3 | `GeoPolygon2` |
 | TEXT, MTEXT | `DxfText`: where it stands, its normal, height, rotation and words | the same |
 | LEADER | `GeoPolyline3` through its vertices; splined, the `GeoSpline3` `DxfLeader.Explode()` fits through them; its arrowhead and hook line not read | `GeoPolyline2`, `GeoSpline2` |
@@ -64,7 +64,7 @@ rises to y = 10.43. In a block, the spline is fitted through the vertices where 
 AutoCAD draws the leader in its block: an INSERT scaled 2 along x places the control points scaled so, not a spline
 fitted through the scaled vertices. `Explode()` of such an INSERT gives the leader with its vertices placed, which is fitted
 anew where it is drawn, so under a scale unlike along its axes the two splines part: by 2.21 for the leader through
-(0, 0, 0), (10, 10, 0) and (20, 10, 0) under an INSERT scaled 3 along y. A MULTILEADER is read so, each leader line as the chain or the spline `DxfMLeader` sets
+(0, 0, 0), (10, 10, 0) and (20, 10, 0) under an INSERT scaled 3 along y. A MULTILEADER is read so, each leader line as the chain or the spline [`DxfMLeader`](xref:GeometryHelper.Dxf.DxfMLeader) sets
 out (see [Leaders and multileaders](annotation.md#leaders-and-multileaders)).
 
 The coordinates of a CIRCLE, ARC, LWPOLYLINE, 2D POLYLINE, SOLID and TRACE are in the system of their extrusion's plane
@@ -98,7 +98,7 @@ fits its plane; the writer writes that extrusion, and such a chain comes back to
 
 DIMENSION, HATCH, IMAGE, MESH, MLINE, REGION, 3DSOLID, BODY, ATTDEF, ATTRIB, VIEWPORT and any other type are
 not read and are counted in `Skipped`. So is an entity with no shape to it, the reason said once for each type in a Debug
-line of `GeometryHelperLog`: a LINE no longer than the point tolerance, a polyline or LEADER of fewer than two distinct vertices, a MULTILEADER with no leader line of two, a
+line of [`GeometryHelperLog`](xref:GeometryHelper.GeometryHelperLog): a LINE no longer than the point tolerance, a polyline or LEADER of fewer than two distinct vertices, a MULTILEADER with no leader line of two, a
 CIRCLE or ARC of no radius, an ELLIPSE of no axis, a TEXT or MTEXT of no height, or with none given, a number that is not
 a finite number, a SPLINE the library does not take (a periodic one among them whose knots cannot be clamped, which a
 warning names too), a 3DFACE of fewer than three distinct corners. `DxfReadOptions.Tolerance` (the default tolerance unless set; the global
@@ -157,7 +157,7 @@ from its end to its start, comes back counter-clockwise over the same points, wi
 an arc in space on an extrusion that points down is written about its normal turned up, so a mirrored arc comes back
 running the other way over the same points too; a
 linetype is written as the table spells it, so BYBLOCK comes back ByBlock; the entity's `Groups` are not written, and it
-is given a handle of its own. A shape with no overload of `Add`, a `GeoSphere3` among them, which needs a chord
+is given a handle of its own. A shape with no overload of `Add`, a [`GeoSphere3`](xref:GeometryHelper.Geometry.GeoSphere3) among them, which needs a chord
 tolerance, is refused with an `ArgumentException` naming its type. The overloads that were there write the same bytes as
 before.
 
@@ -228,7 +228,7 @@ words, which comes back as the character it stands for. ezdxf recovers and audit
 
 ### The layer table
 
-`LayerTable` holds the layers of the layer table in its order, each a `DxfLayer`: its `Name`, its `Colour` (the AutoCAD
+`LayerTable` holds the layers of the layer table in its order, each a [`DxfLayer`](xref:GeometryHelper.Dxf.DxfLayer): its `Name`, its `Colour` (the AutoCAD
 colour index, 1 to 255, whether the layer is on or off; null where the table gives none or one outside that range), its
 `TrueColour` (group 420), `Linetype` (6) and `Lineweight` (370, null for the default -3), and whether it `IsOff` (the
 table writes the colour of a layer turned off below nought), `IsFrozen` (flag 1 of group 70), `IsLocked` (flag 4) and
@@ -352,10 +352,10 @@ included, are one layer, named as first seen. In the plane a shape is written as
 chords: a polygon, rectangle, triangle or ring of a face as a closed lightweight polyline, a chain or loop with arcs as
 one with the bulge of each arc edge (the same number `GeoEdge2.Bulge` gives, 1 for a semicircle), a circle, an arc, an
 ellipse, a ray, a line without ends and a spline as a CIRCLE, ARC, ELLIPSE, RAY, XLINE and SPLINE. DXF arcs run counter-clockwise only, so a clockwise `GeoArc2` is
-written from its end to its start; a face is its rings, not a filled area, which `SvgWriter` draws. In space a point,
+written from its end to its start; a face is its rings, not a filled area, which [`SvgWriter`](xref:GeometryHelper.Export.SvgWriter) draws. In space a point,
 segment, ray, line without ends, ellipse and spline are written as they are, a chain and a polygon as a 3D polyline, and anything with a surface as
 3DFACEs: one per triangle of a face or a body (a box 100 by 100 by 20 with a hole 20 by 20 through it is 64), one per
-face of a mesh that has three or four corners and turns one way, and six for a `GeoAabb3` or `GeoObb3`, written from its
+face of a mesh that has three or four corners and turns one way, and six for a [`GeoAabb3`](xref:GeometryHelper.Geometry.GeoAabb3) or [`GeoObb3`](xref:GeometryHelper.Geometry.GeoObb3), written from its
 corners, so a box 100 by 100 by 0.002, or by nothing, is written too, and an empty `GeoAabb3` is refused with an
 `InvalidOperationException`, as `ToObb` refuses it. Where a face, a side of a body or a face of a mesh is cut into
 triangles, the edges between its own triangles are marked invisible, so a wireframe shows its outline; triangles given

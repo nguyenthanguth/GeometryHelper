@@ -2,7 +2,7 @@
 
 ## Splitting
 
-`Splition3` cuts a curve at a position along it or wherever a plane crosses it, and cuts a region or a
+[`Splition3`](xref:GeometryHelper.Core.Splition3) cuts a curve at a position along it or wherever a plane crosses it, and cuts a region or a
 body by a plane. Pieces of a curve come back in order along the subject, so the first piece always holds
 its start point and the last holds its end point. Every overload reports `false` when there was nothing to
 cut and still hands back the subject as a single piece, so the result is usable either way. Each split is
@@ -46,7 +46,7 @@ chain.TrySplitBy(solid, out GeoPolyline3[] inside, out GeoPolyline3[] outside);
 // inside holds the stretch within the body, outside the two stretches beyond it
 ```
 
-The same works against a `GeoObb3` or a `GeoAabb3`, which are cheaper because the crossings come from the
+The same works against a [`GeoObb3`](xref:GeometryHelper.Geometry.GeoObb3) or a [`GeoAabb3`](xref:GeometryHelper.Geometry.GeoAabb3), which are cheaper because the crossings come from the
 slab test rather than from walking a surface. Neighbouring pieces that end up on the same side are joined
 back up, so what comes out is the longest run on each side rather than a chain chopped at positions that
 separate nothing — a chain running down the shaft of an opening meets the caps at each end without ever
@@ -122,7 +122,7 @@ a few: a comb face of 5 000 teeth cut across them comes back in its 5 001 pieces
 asking every pair took 1.2.
 
 Two consequences worth knowing. A cut can leave one half as **several disconnected shells** — a plane
-across both arms of a U leaves two bodies above it — and they come back as one `GeoSolid3`, which measures
+across both arms of a U leaves two bodies above it — and they come back as one [`GeoSolid3`](xref:GeometryHelper.Geometry.GeoSolid3), which measures
 and answers containment correctly because each shell is closed and wound outwards. And a plane passing
 through a **hole** in a face turns that rim into part of the boundary, so the piece on each side has no
 hole where the subject had one.
@@ -156,8 +156,8 @@ back covers each side exactly, though it may be in more pieces than strictly nec
 
 ## Extending and trimming
 
-`Lengthen3` changes how long a segment is while keeping it on its own line, as AutoCAD's LENGTHEN, EXTEND
-and TRIM do. A segment has no picked point to say which end is meant, so each method takes a `LineEnd`;
+[`Lengthen3`](xref:GeometryHelper.Core.Lengthen3) changes how long a segment is while keeping it on its own line, as AutoCAD's LENGTHEN, EXTEND
+and TRIM do. A segment has no picked point to say which end is meant, so each method takes a [`LineEnd`](xref:GeometryHelper.Enums.LineEnd);
 the other end never moves, and the segment never turns round.
 
 ```csharp
@@ -204,12 +204,12 @@ bar.TryTrimTo(bar.GetPointAtDistance(200.0), LineEnd.End, out GeoPolylineArc3 ba
 
 A whole turn is the limit for an arc, so an extension past it is refused rather than wrapped. **A chain is
 carried outwards only** — shortening one belongs to the splitting family, which keeps its bends, and
-`TryTrimTo` is that cut with the end named rather than the piece. A `GeoEdge3` answers both ways too:
+`TryTrimTo` is that cut with the end named rather than the piece. A [`GeoEdge3`](xref:GeometryHelper.Geometry.GeoEdge3) answers both ways too:
 straight on if it is a leg, round if it is a bend.
 
 ## Offsetting
 
-`Offset3` moves a segment sideways and grows or shrinks a flat region within its own plane.
+[`Offset3`](xref:GeometryHelper.Core.Offset3) moves a segment sideways and grows or shrinks a flat region within its own plane.
 
 A segment in space has no left until a plane is named, so every line offset takes a direction as well as
 a distance:
@@ -243,14 +243,14 @@ A flat chain has its plane even when it encloses no area: the Z through (0, 0, 2
 (10, 10, 2) lies in z = 2, and a curved chain whose vertices lie on one line takes the plane its arcs turn in.
 
 The corner joins are the same three AutoCAD's OFFSETGAPTYPE offers — `Miter`, `Round`, `Chamfer`, set
-through `OffsetJoin` or `OffsetOptions`, which is documented with the
+through [`OffsetJoin`](xref:GeometryHelper.Enums.OffsetJoin) or [`OffsetOptions`](xref:GeometryHelper.OffsetOptions), which is documented with the
 [shared types](../common.md)
 package they come from.
 
 **What comes back.** The offset of a region is exact, not its edges moved one by one, so a polygon does
 not always give one polygon back. `Offset` returns the boundary loops of the result: none when it shrinks
 past its own width, one per piece when it pinches off, and, where a growing polygon closes a gap around
-empty space, that space as a hole wound against its outer loop so that signed areas add up. `GeoFace3`
+empty space, that space as a hole wound against its outer loop so that signed areas add up. [`GeoFace3`](xref:GeometryHelper.Geometry.GeoFace3)
 returns faces with their holes attached. A polyline's parallel curve has the loops a tight turn would
 make cut away and comes back in pieces when a turn cuts it clean through.
 

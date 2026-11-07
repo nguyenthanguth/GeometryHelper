@@ -1,7 +1,6 @@
 # Arcs
 
-
-`GeoArc2` is a piece of a circle: a centre, a radius, the angle it starts at and the angle it sweeps. The
+[`GeoArc2`](xref:GeometryHelper.Geometry.GeoArc2) is a piece of a circle: a centre, a radius, the angle it starts at and the angle it sweeps. The
 sweep is signed, so the arc knows which way round it goes, and it is what tells a half turn from the rest
 of the circle left behind.
 
@@ -34,7 +33,7 @@ the radius, which keeps the ends of a nearly straight arc on its circle to the l
 its last bits: its end lands within a few parts in 1E16 of how far it reaches from the origin, a hair further than
 before on a third of them and nearer on the rest.
 
-`Arc2` holds the operations, and they mirror the ones for a line: `ProjectToArc`, `DistanceTo` (to a
+[`Arc2`](xref:GeometryHelper.Core.Arc2) holds the operations, and they mirror the ones for a line: `ProjectToArc`, `DistanceTo` (to a
 point, a segment or another arc), `IsPointOn`, `Locate`, `TryIntersectWith` and `GetIntersections`,
 `TrySplitAt`. Moving an arc is `Translate`, `RotateBy` and `TransformBy`; scaling it evenly is fine, a
 scaling uneven between the axes or a skew gives the arc through where its ends and its middle land where that lands within
@@ -55,7 +54,7 @@ tolerance are still one centre where the rounding of the numbers leaves the line
 particular: where the rounding of the largest coordinate or radius, times the sum of the radii over the distance
 between the centres, is more than the point tolerance.
 
-`GeoArc3` is the same arc in its own plane, carrying a `Normal` as well. It adds `GetAabb()`, which is
+[`GeoArc3`](xref:GeometryHelper.Geometry.GeoArc3) is the same arc in its own plane, carrying a `Normal` as well. It adds `GetAabb()`, which is
 exact rather than the box round the whole circle, and `ProjectToArc2(frame)` to bring it into the plane. An arc
 comes down as the whole circle only when it sweeps a whole turn; one within a degree of it is laid out from its
 centre, its start and its end too near each other for a circle through three of its points, but from where it starts
@@ -66,7 +65,7 @@ centre, stands off where its points come down: some 0.056 for that arc with its 
 
 ## Chains that curve
 
-A `GeoPolyline2` is straight by definition, so an arc-carrying chain is its own type. `GeoEdge2` is one
+A [`GeoPolyline2`](xref:GeometryHelper.Geometry.GeoPolyline2) is straight by definition, so an arc-carrying chain is its own type. [`GeoEdge2`](xref:GeometryHelper.Geometry.GeoEdge2) is one
 piece of it — two ends and a bulge — and it is a straight segment until the bulge is not zero:
 
 ```csharp
@@ -91,7 +90,7 @@ arc put it before was 4.9E-5; a square 8 614 across, 74 million square units, ca
 their bulge nought; `HasArcs` counts it as no arc. The reading follows how far the edge reaches from the origin along
 the axes, so moving or turning an edge close to the threshold can change it.
 
-`GeoPolylineArc2` is an open chain of those, and `GeoPolygonArc2` the closed loop, laid out the way a
+[`GeoPolylineArc2`](xref:GeometryHelper.Geometry.GeoPolylineArc2) is an open chain of those, and [`GeoPolygonArc2`](xref:GeometryHelper.Geometry.GeoPolygonArc2) the closed loop, laid out the way a
 drawing holds them: vertices, with the bulge of the edge *leaving* each one.
 
 ```csharp
@@ -164,7 +163,7 @@ slot.Offset(20.0, OffsetJoin.Round);                           // Round, Miter o
 ```
 
 A corner that closes up is trimmed to where the two moved pieces cross; one that opens is bridged the way
-`OffsetJoin` says. `Round` bridges it with a true arc of the offset distance, and `Miter` — the default —
+[`OffsetJoin`](xref:GeometryHelper.Enums.OffsetJoin) says. `Round` bridges it with a true arc of the offset distance, and `Miter` — the default —
 runs both pieces on until they meet, an arc reaching further round its own circle rather than being cut
 across, which is what AutoCAD's OFFSET does. Where they would meet further away than
 `OffsetOptions.MiterLimit` allows, the corner is squared off at the limit, as the straight offsets square
@@ -319,7 +318,7 @@ Boolean2.Subtract(slot, opening, 0.05);               // or name the chord toler
 
 ## An index over the edges
 
-`GeoBvh2` is the counterpart of `GeoBvh3` in space: a bounding volume hierarchy over `GeoEdge2`, so one
+[`GeoBvh2`](xref:GeometryHelper.Spatial.GeoBvh2) is the counterpart of [`GeoBvh3`](xref:GeometryHelper.Spatial.GeoBvh3) in space: a bounding volume hierarchy over `GeoEdge2`, so one
 index serves a straight chain and a curved one alike, with the arcs held as arcs.
 
 ```csharp
@@ -385,7 +384,7 @@ merge points closer together than the point tolerance (1E-3 by default): an arc 
 asks for 1 119 pieces and keeps 559, straying 3.99E-7 from the arc, where the old cut, which stopped at 4 096 a turn, gave 652
 pieces straying 2.94E-7. So where the chords fall under the point tolerance the merged result can stray further than a
 coarser cut that kept its corners: merged chords of up to twice the point tolerance stray up to (2E-3)² / 8 r from an arc of
-radius r, 5E-7 on a radius of 1. The writers (`ObjWriter`, `Wkt`, `DxfWriter`) keep every chord.
+radius r, 5E-7 on a radius of 1. The writers ([`ObjWriter`](xref:GeometryHelper.Export.ObjWriter), [`Wkt`](xref:GeometryHelper.Export.Wkt), [`DxfWriter`](xref:GeometryHelper.Dxf.DxfWriter)) keep every chord.
 
 A loop or a chain so small that the merge would leave too few corners to be a polygon or a chain keeps every corner of
 its chords instead: the square 0.0005 by 0.0005 flattens to its four corners, and with its sides bowed by a bulge of 0.2

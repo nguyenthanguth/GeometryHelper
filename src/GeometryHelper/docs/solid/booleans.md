@@ -1,7 +1,6 @@
 # Combining bodies
 
-
-`Boolean3` joins two solids, keeps the part they share, or takes one out of the other:
+[`Boolean3`](xref:GeometryHelper.Core.Boolean3) joins two solids, keeps the part they share, or takes one out of the other:
 
 ```csharp
 first.TryUnion(second, out GeoSolid3 joined);
@@ -297,7 +296,7 @@ and 10 to 13 % less at a millionth.
 `SignedDistanceTo`, `GetClosestPointOnBoundary` and `GetShortestLineTo` of a point, and `CollidesWith`, `DistanceTo`,
 `GetIntersections` and `GetShortestLineTo` of a ray, a segment and a line move such a body into the same frame, once,
 keeping the moved body with it, move the probe in coordinate by coordinate and what has a place back out; a probe near
-the body moves exactly and comes back as it was given. A `GeoPreparedSolid3` of such a body is prepared again in the
+the body moves exactly and comes back as it was given. A [`GeoPreparedSolid3`](xref:GeometryHelper.Spatial.GeoPreparedSolid3) of such a body is prepared again in the
 frame the first time it is asked so, and asked there from then on; its `Material`, `Surface` and `Index`, and what it
 weighs another body by, stay where the body stands. Where it stood, the material those questions read was cut and read
 within a trillionth of the coordinates: of 636 points half a thousandth in and out from the plate above with ceilings
@@ -452,7 +451,7 @@ times. Welded with the corners the column's face lies round weighed by the face 
 **Parts drawn against each other.** The tolerance says how exact a boolean is; how near two faces of two parts
 have to be to touch is a question of the model. Tekla Structures draws parts against each other a few thousandths
 of a millimetre into or off each other, and cut within a thousandth, a part whose cutter's face stood 0.0049 inside
-its own keeps a skin of itself that thick: 110 square metres of surface on a part of 119. `SolidBooleanOptions`
+its own keeps a skin of itself that thick: 110 square metres of surface on a part of 119. [`SolidBooleanOptions`](xref:GeometryHelper.SolidBooleanOptions)
 says how near is touching: each face of the second body lying parallel to a face of the first with every corner
 within `Contact` of its plane is put onto that plane first, and the first body is not moved.
 
@@ -486,7 +485,7 @@ Of the 79 864 parts of a Tekla model each cut so by the parts it meets, 3 344 ca
 with more than 1 % more surface than within a hundredth, 5 466 square metres in all, and 203 with a contact of a
 hundredth, 220 square metres. A contact of two hundredths starts to take what is there.
 
-A cut skipped can be closed instead. Given `SolidClosingOptions` as well, `TrySubtractAll` closes a cut it would skip
+A cut skipped can be closed instead. Given [`SolidClosingOptions`](xref:GeometryHelper.SolidClosingOptions) as well, `TrySubtractAll` closes a cut it would skip
 with `TryClose`, the cut within the tolerance first and then the one within the fallback, and takes the body closed only
 where it is valid within the booleans' tolerance and holds what a cut can leave: no more than the part before it, and no
 less than that less the whole cutter, each within the tolerance times their area. No cut is closed where the part before
@@ -531,10 +530,10 @@ first.TryUnion(second, out GeoSolid3 both);   // a GeoSolid3: a boolean of two b
 first.TryExpand(10.0, out GeoObb3 bigger);    // and a margin on every face, keeping the axes
 ```
 
-Everything comes back as `GeoFace3` because joining two areas can leave a hole in the middle and only a
+Everything comes back as [`GeoFace3`](xref:GeometryHelper.Geometry.GeoFace3) because joining two areas can leave a hole in the middle and only a
 face can hold one — four bars round a square give one face with one hole. **A shape that does not lie in
 the first one's plane is refused**, with an `ArgumentException`: projecting it in would report two plates a
 metre apart as overlapping and say nothing about it. The whole of the shape has to lie in the plane, every
 corner and the middle of every arc: a plate turned half a degree about one of its corners is refused too,
 though its plane is parallel within the angle tolerance and passes through that corner. `SharesPlaneWith`
-asks beforehand, on `GeoPolygon3`, `GeoFace3` and `GeoPolygonArc3` alike.
+asks beforehand, on [`GeoPolygon3`](xref:GeometryHelper.Geometry.GeoPolygon3), `GeoFace3` and [`GeoPolygonArc3`](xref:GeometryHelper.Geometry.GeoPolygonArc3) alike.

@@ -2,8 +2,8 @@
 
 `GeometryHelper.Meshing` meshes the flat shapes of space as it meshes the plane, and cuts bodies into the cells of a
 grid. A polygon, a face with holes, a loop with arcs, a disc or a triangle standing anywhere in space breaks into a
-`GeoMesh3`: the faces a `GeoMesh2` would give, standing in the shape's plane. A body, an oriented box or an axis-aligned
-box cuts into a `GeoCellGrid3`: blocks, bays or lifts, each cell a closed body of what the body holds of it.
+[`GeoMesh3`](xref:GeometryHelper.Meshing.GeoMesh3): the faces a [`GeoMesh2`](xref:GeometryHelper.Meshing.GeoMesh2) would give, standing in the shape's plane. A body, an oriented box or an axis-aligned
+box cuts into a [`GeoCellGrid3`](xref:GeometryHelper.Meshing.GeoCellGrid3): blocks, bays or lifts, each cell a closed body of what the body holds of it.
 
 The cases of this guide, and how the meshing and the cells were checked, are drawn and measured in
 [Meshing in space: cases and checks](mesh3-report.md).
@@ -33,7 +33,7 @@ GeoVector3 up = panels.Frame.YAxis;                                         // (
 ```
 
 `WallBox(x0, z0, x1, z1)` stands for the rectangle with corners `(x, 0, z)`, wound so that the wall faces -Y. The wall
-is laid out in a frame of its plane, meshed there as [the plane](mesh.md) meshes, with the same `MeshOptions`, and put
+is laid out in a frame of its plane, meshed there as [the plane](mesh.md) meshes, with the same [`MeshOptions`](xref:GeometryHelper.Meshing.MeshOptions), and put
 back: 29 panels, 13 of them whole, as its elevation gives in the plane.
 
 ![Panels on a wall standing in space; the arrows are the frame's axes, the grid's first axis red, its second green and the normal blue](images/mesh3/wall.svg)
@@ -44,7 +44,7 @@ on the plane. The faces run counter-clockwise seen from the side the normal poin
 
 ### Which way the grid runs
 
-A `MeshPlacement3` says which way the grid's first axis, or the strips, run in the shape's plane:
+A [`MeshPlacement3`](xref:GeometryHelper.Meshing.MeshPlacement3) says which way the grid's first axis, or the strips, run in the shape's plane:
 
 | `MeshPlacement3` | The first axis |
 |---|---|
@@ -93,7 +93,7 @@ In space a grid's origin is a point of space. `MeshOptions.Origin`, a point of t
 
 ### Other flat shapes
 
-`GeoPolygon3`, `GeoFace3`, `GeoPolygonArc3`, `GeoCircle3`, `GeoEllipse3` and `GeoTriangle3` all mesh the same way, with `ToMesh`. A
+[`GeoPolygon3`](xref:GeometryHelper.Geometry.GeoPolygon3), [`GeoFace3`](xref:GeometryHelper.Geometry.GeoFace3), [`GeoPolygonArc3`](xref:GeometryHelper.Geometry.GeoPolygonArc3), [`GeoCircle3`](xref:GeometryHelper.Geometry.GeoCircle3), [`GeoEllipse3`](xref:GeometryHelper.Geometry.GeoEllipse3) and [`GeoTriangle3`](xref:GeometryHelper.Geometry.GeoTriangle3) all mesh the same way, with `ToMesh`. A
 loop with arcs is flattened in space by the options' chord tolerance first, its corners kept where they are and the points
 of each arc on the arc, and its mesh's normal is the one the loop runs counter-clockwise about; a disc's triangles are
 fanned from its center, its normal the circle's, and a disc of no size has no faces; a triangle's normal runs from A by B
@@ -146,9 +146,9 @@ they meet.
 
 ### Dividing the axes
 
-Each of the grid's three axes is divided on its own, as its `CellAxis` says. The factories give the usual ones:
+Each of the grid's three axes is divided on its own, as its [`CellAxis`](xref:GeometryHelper.Meshing.CellAxis) says. The factories give the usual ones:
 
-| `CellOptions3` | Cuts |
+| [`CellOptions3`](xref:GeometryHelper.Meshing.CellOptions3) | Cuts |
 |---|---|
 | `Grid(sizeX, sizeY, sizeZ, joint, alignment)` | cells of a size along each axis; a size of nought leaves the body whole that way |
 | `Layers(thickness, joint, alignment)` | lifts up the grid's Z axis, the body whole across them |
@@ -167,7 +167,7 @@ GeoCellGrid3 grid = box.ToCells(CellOptions3.Grid(300, 300, 300));    // 16 cell
 
 ![A cylinder of 600 in cells of 300 by 300 by 500: 64 cells, the core 16 whole, the rim cut](images/mesh3/cylinder.svg)
 
-**Where the cells stand.** The `GridAlignment` of the plane says where the cut cells go along each axis divided by size,
+**Where the cells stand.** The [`GridAlignment`](xref:GeometryHelper.Meshing.GridAlignment) of the plane says where the cut cells go along each axis divided by size,
 measured between the body's furthest corners along it: `Start`, `End`, `CenterCell` or `CenterJoint`. A column poured in
 lifts of 1000 from its foot:
 
@@ -215,7 +215,7 @@ GeoCellGrid3 world = wall.ToCells(CellOptions3.Grid(1000, 0, 1000));            
 
 ### Pieces, snapping and joints
 
-**Pieces.** A cell the body holds in several pieces, as the cell across the notch of a U holds two, comes as one `GeoCell3`
+**Pieces.** A cell the body holds in several pieces, as the cell across the notch of a U holds two, comes as one [`GeoCell3`](xref:GeometryHelper.Meshing.GeoCell3)
 a piece, with the same indexes, `Piece` telling them apart, numbered up Z, along Y and along X by their middles. Two pieces
 of one cell never share a face; `GetAdjacentCells` gives the cells that do, found where their material meets across the
 planes between them rather than by their indexes, and none where joints stand between. Two cells a place apart across
@@ -250,7 +250,7 @@ tolerance only, so that no cell is carried into a joint.
 **A cut that cannot be made.** The point of a needle past a plane, a part thinner across than the point tolerance where
 the plane meets it, stays with the cell that holds the rest of it. A cut the body will not take, which a closed body
 should not give, leaves the part whole in the cell its middle stands in, or in the cell beside where the other side is a
-joint or past the last cell, so that nothing is lost, and says so in `GeometryHelperLog`.
+joint or past the last cell, so that nothing is lost, and says so in [`GeometryHelperLog`](xref:GeometryHelper.GeometryHelperLog).
 
 ### The cells
 

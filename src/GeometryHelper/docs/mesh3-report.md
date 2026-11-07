@@ -146,7 +146,7 @@ test that failed without it.
 | A plane parting a body without crossing it refused | `GeoSolid3.TrySplitBy` | a cut between the two arms of a U, or along the edge where two parts of a body meet, was taken for a plane that misses the body |
 | A ray grazing the rim of a hole counted | `GeoSolid3.Locate`, `Contains` | a point of a plate whose first ray rose through a hole a hair short of its rim came out of the plate |
 | A hole with every corner on the rim taken for material | `GeoFace3.TrySplitBy`, `GeoSolid3.TrySplitBy` | a cut through a hole touching its face's boundary gave the hole back as a face; a cell of a plate held 49 000 cm3 more than the plate |
-| A face of a hull smaller than a polygon of the tolerance | `ConvexHull3`, `GeoObb3.Fit` | three corners a tenth of a millimetre apart made the hull throw |
+| A face of a hull smaller than a polygon of the tolerance | [`ConvexHull3`](xref:GeometryHelper.Core.ConvexHull3), `GeoObb3.Fit` | three corners a tenth of a millimetre apart made the hull throw |
 
 The same runs shaped the cutting itself, in two more of the seven fixes: no cut takes off less than four point
 tolerances, and the point of a needle a cut cannot take off stays with the rest of it. Before the cells were committed they
@@ -167,7 +167,7 @@ A review of the code since, and the harder fuzz, found these, each fixed with a 
 | An outline a hair out of flat merged | `Merge3.CoplanarFaces` | threw, and the openings it glues were not cut |
 | A cell called whole with the body cut inside it | `GeoCell3.IsWhole` | a cell with a shaft 8 across through it was whole |
 | Neighbours found by their indexes | `GetAdjacentCells` | the cells either side of an L's step were not neighbours; a turned L lost up to a fifth of its contacts |
-| Cells checked against the global tolerance | `GetAdjacentCells`, `ObjWriter`, `TriangulateSurface` | a grid cut within a finer tolerance threw |
+| Cells checked against the global tolerance | `GetAdjacentCells`, [`ObjWriter`](xref:GeometryHelper.Export.ObjWriter), `TriangulateSurface` | a grid cut within a finer tolerance threw |
 | A loop with arcs put back onto its corners by their places | `GeoPolygonArc3.ToMesh` | two corners closer than the tolerance in its plane halved a rectangle's mesh |
 | Cells from an origin laid along each face's own axes | `MeshPlacement3.At` | the joints of the back of a box stood a joint off those of its top |
 | A mesh's frame rebuilt through the global tolerance | `GeoMesh3.TransformBy` | a scaling of 1:20 threw |
@@ -193,7 +193,7 @@ A review of the code since, and the harder fuzz, found these, each fixed with a 
   corner. A face a hair out of flat then counts a third of its area times how far that corner stands off the face's
   middle plane, and a cut through a corner of a thin part leaves large faces with a corner so: the two halves of a piece
   of a column with a ledge hold it to a hundred-millionth read as the triangles lying in their faces, and to a
-  ten-thousandth by `GetVolume()`. `Measure3` reads a cell the other ways.
+  ten-thousandth by `GetVolume()`. [`Measure3`](xref:GeometryHelper.Core.Measure3) reads a cell the other ways.
 - A cell keeps the point of a needle a cut could not take off: a part thinner across than the point tolerance where the cut
   meets it, standing up to a hundred point tolerances past the cell's box.
 - The cells are bodies of their own. Neighbours meet on the planes between them, but a vertex of one does not have to be a

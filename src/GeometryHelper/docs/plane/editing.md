@@ -2,7 +2,7 @@
 
 ## Extending and trimming
 
-`Lengthen2` changes how long a segment is while keeping it on its own line, as AutoCAD's LENGTHEN, EXTEND and TRIM do. A segment has no picked point to say which end is meant, so each method takes a `LineEnd`; the other end never moves, and the segment never turns round.
+[`Lengthen2`](xref:GeometryHelper.Core.Lengthen2) changes how long a segment is while keeping it on its own line, as AutoCAD's LENGTHEN, EXTEND and TRIM do. A segment has no picked point to say which end is meant, so each method takes a [`LineEnd`](xref:GeometryHelper.Enums.LineEnd); the other end never moves, and the segment never turns round.
 
 ```csharp
 var beam = new GeoLine2(0, 0, 10, 0);
@@ -55,7 +55,7 @@ hands back an edge either way.
 
 ## Offsetting
 
-`Offset2` moves curves sideways and grows or shrinks regions, as AutoCAD's OFFSET does.
+[`Offset2`](xref:GeometryHelper.Core.Offset2) moves curves sideways and grows or shrinks regions, as AutoCAD's OFFSET does.
 
 ```csharp
 // A curve goes to the left of its direction for a positive distance, to the right for a negative one.
@@ -75,19 +75,19 @@ square.Offset(-5.0);                      // none: it shrinks away
 
 The corners that open up on the outside of a turn are closed by the join, the three kinds AutoCAD's OFFSETGAPTYPE offers:
 
-| `OffsetJoin` | Corner | AutoCAD |
+| [`OffsetJoin`](xref:GeometryHelper.Enums.OffsetJoin) | Corner | AutoCAD |
 |---|---|---|
 | `Miter` (default) | the offset edges carried on until they meet | Extend |
 | `Round` | an arc about the original vertex, drawn as chords | Fillet |
 | `Chamfer` | one segment, square to the corner's bisector at the offset distance | Chamfer |
 
-`OffsetOptions` sets the rest: `MiterLimit` (default 10) cuts a sharp corner off square once it would reach that many distances from its vertex, and `ArcTolerance` bounds the gap between a round corner's chords and the true arc (by default 0.2 % of the distance).
+[`OffsetOptions`](xref:GeometryHelper.OffsetOptions) sets the rest: `MiterLimit` (default 10) cuts a sharp corner off square once it would reach that many distances from its vertex, and `ArcTolerance` bounds the gap between a round corner's chords and the true arc (by default 0.2 % of the distance).
 
-**What comes back.** The offset of a region is exact, not the edges moved one by one, so a polygon does not always give one polygon back. `polygon.Offset` returns the boundary loops of the result: a shrinking polygon that pinches off gives one per piece, one that shrinks past its own width gives none, and a growing polygon that closes a gap around empty space gives that space as a hole, wound the other way so that signed areas add up. `face.Offset` on a `GeoFace2` returns faces with their holes attached, and its holes shrink as the boundary grows. A polyline's parallel curve has the loops a tight turn would make cut away, and comes back in pieces when a turn cuts it clean through. A `GeoPolyline2` gives the edge of the band it sweeps sideways, so a strip that crosses another leg of the polyline stays; a curved chain, offset as a `GeoPolylineArc2`, keeps only what stands exactly the distance from it. At a turn on the inside sharper than a right angle, the stretch of a moved segment that runs on past the other leg goes with the loop. Where the band's edge lies along another part of the polyline, within the tolerance, it is the polyline itself and goes too: the step (0, 0), (10, 0), (10, 1), (−5, 1) offset by 1 gives only (0, 0) to (−5, 0). Pieces come in order by where most of each lies. `GeoCircle2` and `GeoRectangle2` offer `TryOffset`, which keeps them what they are.
+**What comes back.** The offset of a region is exact, not the edges moved one by one, so a polygon does not always give one polygon back. `polygon.Offset` returns the boundary loops of the result: a shrinking polygon that pinches off gives one per piece, one that shrinks past its own width gives none, and a growing polygon that closes a gap around empty space gives that space as a hole, wound the other way so that signed areas add up. `face.Offset` on a [`GeoFace2`](xref:GeometryHelper.Geometry.GeoFace2) returns faces with their holes attached, and its holes shrink as the boundary grows. A polyline's parallel curve has the loops a tight turn would make cut away, and comes back in pieces when a turn cuts it clean through. A [`GeoPolyline2`](xref:GeometryHelper.Geometry.GeoPolyline2) gives the edge of the band it sweeps sideways, so a strip that crosses another leg of the polyline stays; a curved chain, offset as a [`GeoPolylineArc2`](xref:GeometryHelper.Geometry.GeoPolylineArc2), keeps only what stands exactly the distance from it. At a turn on the inside sharper than a right angle, the stretch of a moved segment that runs on past the other leg goes with the loop. Where the band's edge lies along another part of the polyline, within the tolerance, it is the polyline itself and goes too: the step (0, 0), (10, 0), (10, 1), (−5, 1) offset by 1 gives only (0, 0) to (−5, 0). Pieces come in order by where most of each lies. [`GeoCircle2`](xref:GeometryHelper.Geometry.GeoCircle2) and [`GeoRectangle2`](xref:GeometryHelper.Geometry.GeoRectangle2) offer `TryOffset`, which keeps them what they are.
 
 ## Combining regions
 
-`Boolean2` combines regions, as AutoCAD's UNION, INTERSECT and SUBTRACT do. A polygon is read under the even-odd rule, as `Contains` reads it, and a face as its boundary less its holes. The answer is always a set of faces, largest first, with boundaries counter-clockwise and holes clockwise.
+[`Boolean2`](xref:GeometryHelper.Core.Boolean2) combines regions, as AutoCAD's UNION, INTERSECT and SUBTRACT do. A polygon is read under the even-odd rule, as `Contains` reads it, and a face as its boundary less its holes. The answer is always a set of faces, largest first, with boundaries counter-clockwise and holes clockwise.
 
 ```csharp
 var a = new GeoPolygon2(new GeoPoint2(0, 0), new GeoPoint2(10, 0), new GeoPoint2(10, 10), new GeoPoint2(0, 10));
@@ -107,7 +107,7 @@ Region operations, the booleans and the offsets alike, are resolved by [Clipper2
 
 ## Triangles and meshes
 
-`GeoTriangle2` is the triangle of the plane, as `GeoTriangle3` is the triangle of space. It has its signed area and
+[`GeoTriangle2`](xref:GeometryHelper.Geometry.GeoTriangle2) is the triangle of the plane, as [`GeoTriangle3`](xref:GeometryHelper.Geometry.GeoTriangle3) is the triangle of space. It has its signed area and
 winding, perimeter, centroid and angles, its circumcircle and incircle, barycentric coordinates, and where a point is.
 It stands in the matrix of the plane as `GeoRectangle2` does, every shape asking it the questions it asks any other, and
 answers them as the polygon of its corners does, by its own sides however short or thin: only a triangle whose corners
@@ -122,14 +122,14 @@ double off = t.DistanceTo(new GeoPoint2(4, 3));         // 2.4, to the long side
 t.TryGetCircumcircle(out GeoCircle2 circle);            // centre (2, 1.5), radius 2.5
 ```
 
-`TriangulateSurface` on `GeoPolygon2`, `GeoFace2`, `GeoPolygonArc2`, `GeoRectangle2` and `GeoCircle2` breaks the shape
+`TriangulateSurface` on [`GeoPolygon2`](xref:GeometryHelper.Geometry.GeoPolygon2), `GeoFace2`, [`GeoPolygonArc2`](xref:GeometryHelper.Geometry.GeoPolygonArc2), `GeoRectangle2` and `GeoCircle2` breaks the shape
 into triangles that lie within its material, holes left open, all counter-clockwise. `ToMesh` breaks it into the faces
-of a `GeoMesh2` instead: triangles, the cells of a grid as formwork panels or tiles are laid, strips, or convex pieces.
+of a [`GeoMesh2`](xref:GeometryHelper.Meshing.GeoMesh2) instead: triangles, the cells of a grid as formwork panels or tiles are laid, strips, or convex pieces.
 [Meshing the plane](../mesh.md) tells how.
 
 ## Cutting corners
 
-`Corner2` chamfers a corner: one straight cut across it, measured back along each of the two edges that
+[`Corner2`](xref:GeometryHelper.Core.Corner2) chamfers a corner: one straight cut across it, measured back along each of the two edges that
 meet there, as AutoCAD's CHAMFER does. Cutting a corner square adds no curvature, so what comes back is
 the kind of shape that went in — a polygon gives a polygon, a chain gives a chain, and the result goes
 straight on into the region operations with nothing to convert.
@@ -155,7 +155,7 @@ corners eat into the edge between them:
 | two neighbours together ask for more than the shared edge is long | the one taking more of that edge is dropped, which may leave room for the rest |
 | the corner is straighter than `Tolerance.EqualAngleRad` | the cut would be an edge of zero length |
 
-What was skipped, and why, is written to `GeometryHelperLog`. `TryChamferAt` reports `false` instead, for
+What was skipped, and why, is written to [`GeometryHelperLog`](xref:GeometryHelper.GeometryHelperLog). `TryChamferAt` reports `false` instead, for
 a caller who needs to know about one corner in particular. Every cut is measured on the shape as it came
 in, never on a shape half cut already, so the answer does not depend on which vertex the walk began at.
 

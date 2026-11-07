@@ -9,7 +9,9 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 **CHANGED.** The guides are split into pages of a few hundred lines each, their words unchanged: the plane into
 `plane/`, space into `solid/`, and the DXF half of the shared types into `dxf/`, each page in the site's menu. The old
 pages stay, each with a list of its pages; a bookmark to a section that moved lands on that list, by the link to the
-page the section is on now.
+page the section is on now. A page "How do I" gives a task, the call that does it and the page that tells the rest; the
+AutoCAD patterns of the DXF model have a page of their own; and the first mention of each public type on a page links to
+its page of the API reference.
 
 ## 13.11.0 (2026-11-07)
 

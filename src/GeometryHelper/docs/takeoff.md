@@ -27,7 +27,7 @@ foreach (VolumeTakeoffResult result in results)
 }
 ```
 
-`VolumeTakeoff.Run(items, options)` takes a `VolumeTakeoffOptions`: the `SolidBooleanOptions` every common part is
+`VolumeTakeoff.Run(items, options)` takes a [`VolumeTakeoffOptions`](xref:GeometryHelper.Takeoff.VolumeTakeoffOptions): the [`SolidBooleanOptions`](xref:GeometryHelper.SolidBooleanOptions) every common part is
 worked out with, and `MaxDegreeOfParallelism`, -1 for every processor (the default) or a count.
 
 ## Who keeps the overlap

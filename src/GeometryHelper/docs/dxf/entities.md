@@ -4,9 +4,9 @@
 
 Every entity has AutoCAD's `Layer`, `Color`, `ColorIndex`, `TrueColor`, `Linetype`, `LinetypeScale`, `LineWeight`,
 `Visible` and `Transparency`, its `Handle`, `OwnerHandle`, `XData`, `Hyperlinks` and `ExtensionDictionary`, its `Owner` and
-`BlockName`, and `GetGeometry()`, the library's shapes for it as `DxfReader` reads it, a LEADER its curve and a
+`BlockName`, and `GetGeometry()`, the library's shapes for it as [`DxfReader`](xref:GeometryHelper.Dxf.DxfReader) reads it, a LEADER its curve and a
 MULTILEADER the lines of its leaders. A true colour's `Color` carries the
-index nearest it, orange (0xFF8000) the index 30, and is written with it. `Transparency`, group 440, is a `DxfTransparency`:
+index nearest it, orange (0xFF8000) the index 30, and is written with it. `Transparency`, group 440, is a [`DxfTransparency`](xref:GeometryHelper.Dxf.DxfTransparency):
 BYLAYER where the record gives none, BYBLOCK, or an alpha from 0, clear, to 255, solid, `new DxfTransparency(127)` the 50 per
 cent of AutoCAD's dialog, written 33 554 559 (0x0200007F); a file older than R2004 has none and refuses one. Its
 `Hyperlinks` are those of its extended data of PE_URL, written as AutoCAD writes them:
@@ -24,7 +24,7 @@ of them: a TEXT of contexts handed over to an MTEXT keeping its dictionary throw
 to a TEXT, an INSERT to a TEXT and a TEXT to an INSERT. A TEXT, an ATTDEF and an ATTRIB take one another's contexts, which
 AutoCAD read; a LINE, never annotative, takes any. Not keeping the dictionary, the new entity writes contexts of its own.
 
-`GeometricExtents` is the box of its shapes, a `GeoAabb3`; an entity with none, a REGION or a LINE of no length, throws, as
+`GeometricExtents` is the box of its shapes, a [`GeoAabb3`](xref:GeometryHelper.Geometry.GeoAabb3); an entity with none, a REGION or a LINE of no length, throws, as
 AutoCAD throws for an entity with no extents. A text has no fonts here, so its box is the point it stands at. `GetPlane()`
 gives the plane it lies in, that of its extrusion through its first point where all of it lies there, else the one its shapes
 span, to `Tolerance.Default`, and `IsPlanar` whether there is one: a 3D polyline with a corner 0.002 off the plane of the
@@ -38,24 +38,24 @@ gives where the boxes of two entities meet.
 
 ## Curves
 
-Lines, circles, arcs, ellipses, points, rays and xlines are `DxfLine`, `DxfCircle`, `DxfArc`, `DxfEllipse`, `DxfDBPoint`,
-`DxfRay` and `DxfXline`, with AutoCAD's members. A CIRCLE whose groups 10, 20 and 30 are (10, 20, 5) on the extrusion
+Lines, circles, arcs, ellipses, points, rays and xlines are [`DxfLine`](xref:GeometryHelper.Dxf.DxfLine), [`DxfCircle`](xref:GeometryHelper.Dxf.DxfCircle), [`DxfArc`](xref:GeometryHelper.Dxf.DxfArc), [`DxfEllipse`](xref:GeometryHelper.Dxf.DxfEllipse), [`DxfDBPoint`](xref:GeometryHelper.Dxf.DxfDBPoint),
+[`DxfRay`](xref:GeometryHelper.Dxf.DxfRay) and [`DxfXline`](xref:GeometryHelper.Dxf.DxfXline), with AutoCAD's members. A CIRCLE whose groups 10, 20 and 30 are (10, 20, 5) on the extrusion
 (0, 0, -1) has its `Center` at (-10, 20, -5), as AutoCAD gives it; setting `Normal` keeps that centre where it is in the
 world. An arc's `StartAngle` and `EndAngle` are radians from nought up to 2 pi, written as degrees. On the ellipse with major
 axis (10, 0, 0) and ratio 0.5, `StartParam` 0.7854 (pi / 4) is the point (7.071, 3.536, 0), whose `StartAngle` is 0.4636.
 `new DxfArc(center, normal, 10, 0, Math.PI / 2)` then `db.ModelSpace.AppendEntity(arc)` adds a quarter circle.
 
-A LWPOLYLINE is a `DxfPolyline`: `pl.GetPoint2dAt(1)` is its second vertex in the plane of its normal, `pl.GetPoint3dAt(1)`
+A LWPOLYLINE is a [`DxfPolyline`](xref:GeometryHelper.Dxf.DxfPolyline): `pl.GetPoint2dAt(1)` is its second vertex in the plane of its normal, `pl.GetPoint3dAt(1)`
 the same in the world (every vertex of a polyline of 10 000 in 15 ms), `pl.AddVertexAt(2, point, bulge, 0, 0)` puts one in, and `pl.SetBulgeAt(1, 1.0)` makes the segment
-leaving it a half circle. A POLYLINE is a `DxfPolyline2d` or a `DxfPolyline3d`, walked as AutoCAD walks one,
+leaving it a half circle. A POLYLINE is a [`DxfPolyline2d`](xref:GeometryHelper.Dxf.DxfPolyline2d) or a [`DxfPolyline3d`](xref:GeometryHelper.Dxf.DxfPolyline3d), walked as AutoCAD walks one,
 `foreach (DxfVertex2d v in polyline2d) v.Bulge = 0;`, and grows by `AppendVertex(new DxfVertex2d(point, 0, 0, 0, 0))`; a
 vertex is written, put in or taken out as its own record, the others keeping their handles, and its `Owner` is the polyline. A SPLINE
-is a `DxfSpline` of its `Degree`, `ControlPoints`, `Knots`, `Weights` and `FitPoints`, a 3DFACE a `DxfFace`
-(`GetVertexAt`, `IsEdgeVisibleAt`), a SOLID a `DxfSolid` (`GetPointAt`), and the meshes a `DxfPolyFaceMesh` and a
-`DxfPolygonMesh`, whose vertices and face records are walked as their polyline's are. A point or face of a polyface mesh
+is a [`DxfSpline`](xref:GeometryHelper.Dxf.DxfSpline) of its `Degree`, `ControlPoints`, `Knots`, `Weights` and `FitPoints`, a 3DFACE a [`DxfFace`](xref:GeometryHelper.Dxf.DxfFace)
+(`GetVertexAt`, `IsEdgeVisibleAt`), a SOLID a [`DxfSolid`](xref:GeometryHelper.Dxf.DxfSolid) (`GetPointAt`), and the meshes a [`DxfPolyFaceMesh`](xref:GeometryHelper.Dxf.DxfPolyFaceMesh) and a
+[`DxfPolygonMesh`](xref:GeometryHelper.Dxf.DxfPolygonMesh), whose vertices and face records are walked as their polyline's are. A point or face of a polyface mesh
 erased keeps the mesh's counts and the faces' numbers of its points true.
 
-A curve is a `DxfCurve`, walked as AutoCAD walks one: the line from (0, 0, 0) to (30, 40, 0) is 50 long, its parameter the
+A curve is a [`DxfCurve`](xref:GeometryHelper.Dxf.DxfCurve), walked as AutoCAD walks one: the line from (0, 0, 0) to (30, 40, 0) is 50 long, its parameter the
 distance from its start; a circle or an arc is walked by its angle, an ellipse by its eccentric angle, a ray or an xline by
 the distance from its base point, a polyline by the index of a vertex plus how far along its segment, and a spline by its knot
 value. The polyline (0, 0), (10, 0), (10, 10) with a bulge of 1 on its second vertex is 25.71 long, and its parameter 1.5 is
@@ -81,7 +81,7 @@ bow tie (-10, 1), (10, -1), (10, 1), (-10, -1) at the origin, and the square (0,
 offset inwards and outwards one running out to x = 206 on a square 10 wide. A corner that only touches another side, both
 its own sides on one side of it, as (5, 0) of (0, 0), (10, 0), (10, 10), (5, 0), (0, 10), is no crossing, nor is a spike
 narrower than the point tolerance (1E-3) at its foot, nor a corner given twice: such a polyline, and an open one that crosses
-itself, is offset as before. `Offset2.Offset` of a `GeoPolygonArc2` that crosses itself is not changed by this: it reads the
+itself, is offset as before. `Offset2.Offset` of a [`GeoPolygonArc2`](xref:GeometryHelper.Geometry.GeoPolygonArc2) that crosses itself is not changed by this: it reads the
 loop even-odd, as it did. A polyline and a spline offset to that side, the right of their way seen from the tip of their normal, where an arc's
 radius grows, as AutoCAD 2021 offsets them; a line, a ray and an xline to the left, as AutoCAD offsets a line: the line from
 (0, 0, 0) to (30, 40, 0) offset by 5 runs from (-4, 3, 0). The exceptions
@@ -252,7 +252,7 @@ Each class gives its shape as the library's, typed, by the names CadConvert give
 one of the plane (`...2`) is what `DxfReader` reads with `PlanAs2D`, to the bit, within the default tolerance or the one
 given (`ToGeoLine2(tolerance)`). An entity that does not lie on the floor, its heights not all nought or, in the system of
 its extrusion, its extrusion not (0, 0, 1) or (0, 0, -1), is refused with an `InvalidOperationException` rather than
-flattened: the line from (0, 0, 0) to (100, 50, 0) is the `GeoLine2` from (0, 0) to (100, 50), and with a z of 5 at one end
+flattened: the line from (0, 0, 0) to (100, 50, 0) is the [`GeoLine2`](xref:GeometryHelper.Geometry.GeoLine2) from (0, 0) to (100, 50), and with a z of 5 at one end
 `ToGeoLine2` refuses it, where CadConvert's drops z. On (0, 0, -1), as AutoCAD writes a mirrored entity, x is turned over,
 an arc runs clockwise and a bulge is negated, as the reader reads them. So is an entity with no shape, with the reader's
 reason (a LINE of no length, an ELLIPSE of no axis, a number that is not finite), and one that is erased.
@@ -264,7 +264,7 @@ reason (a LINE of no length, an ELLIPSE of no axis, a number that is not finite)
 | `DxfRay`, `DxfXline`, `DxfSpline`, `DxfDBPoint` | `ToGeoRay3`, `ToGeoXLine3`, `ToGeoSpline3`, `ToGeoPoint3` | `ToGeoRay2`, `ToGeoXLine2`, `ToGeoSpline2`, `ToGeoPoint2` |
 | `DxfPolyline`, `DxfPolyline2d` | `ToGeoPolyline3`, `ToGeoPolylineArc3`, `ToGeoPolygon3`, `ToGeoPolygonArc3` | `ToGeoPolyline2`, `ToGeoPolylineArc2`, `ToGeoPolygon2`, `ToGeoPolygonArc2` |
 | `DxfPolyline3d` | `ToGeoPolyline3`, `ToGeoPolygon3` | `ToGeoPolyline2`, `ToGeoPolygon2` |
-| `DxfLeader` | `ToGeoPolyline3` of a straight one, `ToGeoSpline3` of a splined one | `ToGeoPolyline2`, `ToGeoSpline2` |
+| [`DxfLeader`](xref:GeometryHelper.Dxf.DxfLeader) | `ToGeoPolyline3` of a straight one, `ToGeoSpline3` of a splined one | `ToGeoPolyline2`, `ToGeoSpline2` |
 | `DxfFace`, `DxfSolid` | `ToGeoPolygon3` | `ToGeoPolygon2` |
 
 A polyline is given as the kind asked for, as CadConvert gives one, built by the reader's own chain and loop. A loop
@@ -275,17 +275,17 @@ with an arc, its arcs never cut into chords here, and the kinds with arcs give o
 the one before it is left out and a closed polyline of two vertices with an arc has its first arc halved, as the reader
 reads them; a polyline fitted with a spline is read through the vertices of the spline drawn, its frame left out, and its
 widths are no part of the shape. A 3DFACE is the polygon of its corners where they are in one plane, and refused where the
-reader cuts it into two triangles; a SOLID is its corners in DXF's order 1, 2, 4, 3. An ELLIPSE whole is a `GeoEllipse3`
+reader cuts it into two triangles; a SOLID is its corners in DXF's order 1, 2, 4, 3. An ELLIPSE whole is a [`GeoEllipse3`](xref:GeometryHelper.Geometry.GeoEllipse3)
 and a part of one the spline that is exactly that part, each refusing the other (`Spline` gives a whole one as a spline).
 `GetLineSegment2dAt` and `GetArcSegment2dAt` of a `DxfPolyline` give a segment in the system of its normal, of the vertices
 of `GetPoint2dAt` and the arc as its bulge turns there, as AutoCAD's do: on a tilted or mirrored normal, the segment of
 `GetLineSegmentAt` or `GetArcSegmentAt` taken into that system.
 
-The way back, `SetFromGeCurve`, takes the shape of the plane too, written at z = 0 on the normal (0, 0, 1) as `DxfWriter`
+The way back, `SetFromGeCurve`, takes the shape of the plane too, written at z = 0 on the normal (0, 0, 1) as [`DxfWriter`](xref:GeometryHelper.Dxf.DxfWriter)
 writes it, and `ToGeoX2()` gives it back to the bit, but the angles of an arc, which go through degrees; a clockwise
-`GeoArc2` comes back counter-clockwise over the same points. A `DxfPolyline` takes a `GeoPolyline2`, `GeoPolylineArc2`,
-`GeoPolygon2` or `GeoPolygonArc2` (closed for a loop), or the same of space; a `DxfPolyline2d` the same, written as a
-POLYLINE of the plane; a `DxfPolyline3d` a `GeoPolyline3` or `GeoPolygon3`, or a `GeoPolyline2` or `GeoPolygon2` at
+[`GeoArc2`](xref:GeometryHelper.Geometry.GeoArc2) comes back counter-clockwise over the same points. A `DxfPolyline` takes a [`GeoPolyline2`](xref:GeometryHelper.Geometry.GeoPolyline2), [`GeoPolylineArc2`](xref:GeometryHelper.Geometry.GeoPolylineArc2),
+[`GeoPolygon2`](xref:GeometryHelper.Geometry.GeoPolygon2) or `GeoPolygonArc2` (closed for a loop), or the same of space; a `DxfPolyline2d` the same, written as a
+POLYLINE of the plane; a `DxfPolyline3d` a [`GeoPolyline3`](xref:GeometryHelper.Geometry.GeoPolyline3) or [`GeoPolygon3`](xref:GeometryHelper.Geometry.GeoPolygon3), or a `GeoPolyline2` or `GeoPolygon2` at
 z = 0. A chain or loop of space whose every vertex is within the point tolerance of the plane through its first vertex
 square to the polyline's own normal, and no point of its arcs further off it than the planar tolerance, is written in the
 system of that normal (a half circle of radius 100 turned 0.001 out of that plane stands 0.1 off it, and is written in its

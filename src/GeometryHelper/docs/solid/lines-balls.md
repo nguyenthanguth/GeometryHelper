@@ -2,8 +2,8 @@
 
 ## Infinite lines
 
-`GeoXLine3` is a line that runs both ways for ever: a point on it and a direction of unit length, the space
-counterpart of [`GeoXLine2`](../plane.md) and of the XLINE of AutoCAD, and `GeoRay3` with no start. A direction of
+[`GeoXLine3`](xref:GeometryHelper.Geometry.GeoXLine3) is a line that runs both ways for ever: a point on it and a direction of unit length, the space
+counterpart of [`GeoXLine2`](../plane.md) and of the XLINE of AutoCAD, and [`GeoRay3`](xref:GeometryHelper.Geometry.GeoRay3) with no start. A direction of
 no length is refused.
 
 ```csharp
@@ -80,7 +80,7 @@ A line lies in the plane of a frame as a line of the plane, `line.ProjectToXLine
 stands in space again with `xline.ToXLine3(frame)`; a line along the normal of the frame has no direction in its plane and is
 refused.
 
-`GeoBvh3.GetIntersections` and `GeoPreparedSolid3.GetIntersections` and `CollidesWith` take a line as they take a ray (the prepared body names a seam once, in the order along the line, as the body does), and `GeoBvh3` gives what the plain scan gives, each triangle asked
+`GeoBvh3.GetIntersections` and `GeoPreparedSolid3.GetIntersections` and `CollidesWith` take a line as they take a ray (the prepared body names a seam once, in the order along the line, as the body does), and [`GeoBvh3`](xref:GeometryHelper.Spatial.GeoBvh3) gives what the plain scan gives, each triangle asked
 `line.TryIntersectWith(triangle, ...)`: the branches whose box, grown by the larger of the point and planar tolerances, the line
 never enters are not looked at, and the line runs both ways from its origin, so the answer is the same whether the origin lies before
 the mesh, inside it or past it, but for a crossing within rounding of the tolerance. The line through (3, 6, 4) along Z crosses the mesh of the box 10 by 10 by 10 from the origin at
@@ -96,7 +96,7 @@ after a round trip, and an entity whose direction has no length is refused with 
 
 ## Balls
 
-`GeoSphere3` is a solid ball: a centre and a radius above nought (nought, a negative radius, an infinite one and a number that is
+[`GeoSphere3`](xref:GeometryHelper.Geometry.GeoSphere3) is a solid ball: a centre and a radius above nought (nought, a negative radius, an infinite one and a number that is
 not one are refused). It is a volume, so it offers `Contains` and `Locate`, `Volume` (a ball of radius 50 holds 523 598.8) and
 `SurfaceArea` (31 415.9), `GetAabb()`, `SignedDistanceTo` (negative inside, tied to `Locate` as for the other volumes) and
 `DistanceToSurface`, which measures to the shell from either side. It moves with `Translate` and `TransformBy`, which keeps a ball
@@ -168,7 +168,7 @@ than 1 048 576 triangles is refused, as it is for the chords of a circle: radius
 cut within 5.7E-6 and not 5E-6. A tolerance of nought picks 0.2 % of the radius. A default ball is refused, and one of a radius below about 0.01 has triangles thinner than the point tolerance and may mesh into a body the library calls open at the default tolerance. A corner shared by two triangles is the same to the bit in both, so the
 body is closed with no weld. A ball goes into a clash as `ball.ToSolid(0.01)`, which is as exact as the tolerance.
 
-**Writing, showing and reading from IFC.** `ObjWriter`, `DxfWriter` and `Wkt` take a ball with a chord tolerance and write the triangles of
+**Writing, showing and reading from IFC.** [`ObjWriter`](xref:GeometryHelper.Export.ObjWriter), [`DxfWriter`](xref:GeometryHelper.Dxf.DxfWriter) and [`Wkt`](xref:GeometryHelper.Export.Wkt) take a ball with a chord tolerance and write the triangles of
 `TriangulateSurface(chordTolerance)`, as they write a body: the ball of radius 50 within 0.1 is 3 380 triangles in each (a 3DFACE apiece in DXF, a
 `POLYHEDRALSURFACE Z` in WKT), the tolerance a finite number above nought and one that needs more than 1 048 576 triangles refused; see
 [Common](../common.md) for the writers. The viewer shows a ball as that mesh cut at its chord tolerance (a tenth of the point tolerance of the scene) in

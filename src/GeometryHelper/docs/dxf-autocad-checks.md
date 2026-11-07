@@ -411,7 +411,7 @@ and the 3D polyline of point 13 fitted at SPLINETYPE 5 its `Type mismatch`, as A
       `SetFitPointAt` give the fit anew; `SetControlPointAt`, `UpdateFitData` and `PurgeFitData` leave no fit data (1064 saved
       8, 1067 11, 3115 2059); `InsertKnot` keeps the fit points at the knots (1064 saved 1288, 1067 1291, 3115 3339);
       `SetWeightAt` keeps the fit data and weights, which AutoCAD drops when it reads the file again.
-    - Now (D32): fit data not periodic, the reader's spline of fit points alone and `DxfSpline`'s are AutoCAD's cubic, and a
+    - Now (D32): fit data not periodic, the reader's spline of fit points alone and [`DxfSpline`](xref:GeometryHelper.Dxf.DxfSpline)'s are AutoCAD's cubic, and a
       record whose control points are not its fit is read as the fit (its own to the bit where they are); the library's 87
       edited files of AutoCAD's cubics through five points read back in AutoCAD as the library reads them to 3.5E-14, but
       those of a fit tolerance of 0.5 (0.49 off, the fit within a tolerance not done) and of a weight set (AutoCAD's own
@@ -1195,7 +1195,7 @@ and the 3D polyline of point 13 fitted at SPLINETYPE 5 its `Type mismatch`, as A
       reference point (`ScaleEstMethodReferencePoint`), the rest as ezdxf's; and it refuses paper space as the block
       (`eInvalidInput` from `BlockTableRecordId`). The library's GEODATA in paper space it opens, but `GeoDataObject` finds
       none.
-    - Now: a `DxfGeoData` made in code is AutoCAD's new one, and `BlockTableRecord` and `PostToDb` refuse any block but model
+    - Now: a [`DxfGeoData`](xref:GeometryHelper.Dxf.DxfGeoData) made in code is AutoCAD's new one, and `BlockTableRecord` and `PostToDb` refuse any block but model
       space.
 
 69. **Where AutoCAD 2018 keeps layer filters.**
@@ -1430,7 +1430,7 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
     - Before D12: the crossing is no corner. The two lobes' offsets are joined where they cross, the bow tie's at (0, ±1.004988),
       and the thin one's at (0, ±1); its tips are not run on, which with the unlimited miter `GetOffsetCurves` uses
       would reach x = ±1 000. The square grows to the square from (-1, -1.01005) to (11, 11), its bottom rising from
-      -1.01005 at the corners to (5, -0.95005). `Offset2.Offset` of a `GeoPolygonArc2` grown with miters or chamfers miters or cuts each tip of two
+      -1.01005 at the corners to (5, -0.95005). `Offset2.Offset` of a [`GeoPolygonArc2`](xref:GeometryHelper.Geometry.GeoPolygonArc2) grown with miters or chamfers miters or cuts each tip of two
       lobes as a corner, as the straight path does.
     - AutoCAD 2021: `GetOffsetCurves` gives no curve of either bow tie, either way; of the curled square, outwards (+1) one
       closed polyline of 11 vertices that runs out to x = 206 and -196 at the level of the crossing, inwards none.

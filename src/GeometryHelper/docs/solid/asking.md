@@ -4,18 +4,18 @@
 
 | Class | Answers |
 |---|---|
-| `Parallel3` | is this parallel, perpendicular, coplanar with that |
-| `Containment3` | where does a point sit relative to a shape |
-| `Distance3` | how far apart are two shapes |
-| `Projection3` | which point of a shape is closest to a point |
-| `Intersection3` | where exactly do two shapes meet |
-| `Lengthen3` | extend or trim a segment along its own line |
-| `Offset3` | move a segment sideways, grow or shrink a flat region |
-| `Collision3` | do two shapes overlap at all |
-| `Parametrization3` | which point sits at a position along a curve |
-| `Merge3` | put curves that meet end to end back together |
-| `Splition3` | cut a curve, a region or a body into pieces |
-| `Boolean3` | join two bodies, keep what they share, take one out of the other |
+| [`Parallel3`](xref:GeometryHelper.Core.Parallel3) | is this parallel, perpendicular, coplanar with that |
+| [`Containment3`](xref:GeometryHelper.Core.Containment3) | where does a point sit relative to a shape |
+| [`Distance3`](xref:GeometryHelper.Core.Distance3) | how far apart are two shapes |
+| [`Projection3`](xref:GeometryHelper.Core.Projection3) | which point of a shape is closest to a point |
+| [`Intersection3`](xref:GeometryHelper.Core.Intersection3) | where exactly do two shapes meet |
+| [`Lengthen3`](xref:GeometryHelper.Core.Lengthen3) | extend or trim a segment along its own line |
+| [`Offset3`](xref:GeometryHelper.Core.Offset3) | move a segment sideways, grow or shrink a flat region |
+| [`Collision3`](xref:GeometryHelper.Core.Collision3) | do two shapes overlap at all |
+| [`Parametrization3`](xref:GeometryHelper.Core.Parametrization3) | which point sits at a position along a curve |
+| [`Merge3`](xref:GeometryHelper.Core.Merge3) | put curves that meet end to end back together |
+| [`Splition3`](xref:GeometryHelper.Core.Splition3) | cut a curve, a region or a body into pieces |
+| [`Boolean3`](xref:GeometryHelper.Core.Boolean3) | join two bodies, keep what they share, take one out of the other |
 
 Every operation is reachable both ways. The static form names the larger shape first and the point or
 curve second; the instance form sits on whichever of the two reads better where you are calling from:
@@ -57,7 +57,7 @@ first.CollidesWith(apart);  // false
 
 ## Asking a body about what is around it
 
-A `GeoSolid3` answers the same questions the flat shapes do, and against every shape in the library that a
+A [`GeoSolid3`](xref:GeometryHelper.Geometry.GeoSolid3) answers the same questions the flat shapes do, and against every shape in the library that a
 body can be measured against at all:
 
 ```csharp
@@ -218,7 +218,7 @@ the rounding, 2E-6. At a millionth and above, the default tolerance among them, 
 they were, to the bit, but for walls of openings standing apart within the tolerance of one plane. A body `ToCells`
 refuses at the tolerance asked it still refuses.
 
-A `GeoCircle3` is not on the list. The distance from a circle in space to a flat face has no closed form,
+A [`GeoCircle3`](xref:GeometryHelper.Geometry.GeoCircle3) is not on the list. The distance from a circle in space to a flat face has no closed form,
 and the library does not guess: turn it into a chain first, which says in the call how close an answer you
 are asking for.
 
@@ -230,7 +230,7 @@ slab.DistanceTo(circle.ToPolylineByChordTolerance(0.1));
 
 `DistanceTo` reads a body as solid through, so a point anywhere inside one is nought away and how far in it
 sits cannot be got back out of the answer. `SignedDistanceTo` keeps it, for the three shapes that enclose a
-volume — `GeoSolid3`, `GeoObb3` and `GeoAabb3` — and by a `GeoPoint3`, which asks the same thing from the
+volume — `GeoSolid3`, [`GeoObb3`](xref:GeometryHelper.Geometry.GeoObb3) and [`GeoAabb3`](xref:GeometryHelper.Geometry.GeoAabb3) — and by a [`GeoPoint3`](xref:GeometryHelper.Geometry.GeoPoint3), which asks the same thing from the
 other side.
 
 ```csharp
@@ -266,7 +266,7 @@ pierced.SignedDistanceTo(new GeoPoint3(50, 50, 50));   //  10.0 — in the duct,
 A duct bored right through runs out past both faces, and the part of its wall out there bounds nothing, so
 each candidate is held against the body and kept only where the body agrees it is on the boundary.
 
-The flat shapes in space are not offered one. A `GeoTriangle3`, a `GeoPolygon3` and a `GeoCircle3` enclose no
+The flat shapes in space are not offered one. A [`GeoTriangle3`](xref:GeometryHelper.Geometry.GeoTriangle3), a [`GeoPolygon3`](xref:GeometryHelper.Geometry.GeoPolygon3) and a `GeoCircle3` enclose no
 volume, so a point is inside one only when it is also on its plane: a sign for them would be negative on a
 set of no thickness and would read as though it meant more. `GeoPlane3.SignedDistanceTo` answers the question
 that does make sense for something flat, which is which side of it a point lies on.
@@ -274,7 +274,7 @@ that does make sense for something flat, which is which side of it a point lies 
 ## A body asked many questions
 
 `Prepare()` does once what the body's own questions do every time they are asked: it cuts the openings in,
-meshes where the material ends and indexes the mesh, and keeps the box. The `GeoPreparedSolid3` it gives back
+meshes where the material ends and indexes the mesh, and keeps the box. The [`GeoPreparedSolid3`](xref:GeometryHelper.Spatial.GeoPreparedSolid3) it gives back
 answers as the body does — the same locations, distances, crossings and clashes — only without paying for any
 of that again. It is a snapshot, immutable and safe to ask from many threads at once.
 

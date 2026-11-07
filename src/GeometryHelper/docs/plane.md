@@ -13,12 +13,12 @@ measured with the same [shared types](common.md).
 
 | Namespace | Holds |
 |---|---|
-| `GeometryHelper.Geometry` | `GeoPoint2`, `GeoVector2`, `GeoLine2`, `GeoRay2`, `GeoXLine2`, `GeoPolyline2`, `GeoPolygon2`, `GeoFace2`, `GeoCircle2`, `GeoEllipse2`, `GeoSpline2`, `GeoRectangle2`, `GeoTriangle2`, `GeoTransform2` |
-| `GeometryHelper.Core` | `Boolean2`, `Collision2`, `Containment2`, `Corner2`, `Distance2`, `Ellipse2`, `Intersection2`, `Lengthen2`, `Merge2`, `Offset2`, `Parallel2`, `Parametrization2`, `Projection2`, `Splition2`, `Triangle2`, `PlanarMap` |
-| `GeometryHelper.Meshing` | `GeoMesh2`, `Mesh2`, `MeshKind`, `MeshOptions`, `GridAlignment`: see [meshing the plane](mesh.md) |
-| `GeometryHelper.Extension` | `EnumerableExtension` |
-| `GeometryHelper` | `Tolerance`, `Angle`, `OffsetOptions`, `GeometryHelperLog` |
-| `GeometryHelper.Enums` | `PointLocation`, `LineSide`, `LineEnd`, `LineExtension`, `OffsetJoin` |
+| `GeometryHelper.Geometry` | [`GeoPoint2`](xref:GeometryHelper.Geometry.GeoPoint2), [`GeoVector2`](xref:GeometryHelper.Geometry.GeoVector2), [`GeoLine2`](xref:GeometryHelper.Geometry.GeoLine2), [`GeoRay2`](xref:GeometryHelper.Geometry.GeoRay2), [`GeoXLine2`](xref:GeometryHelper.Geometry.GeoXLine2), [`GeoPolyline2`](xref:GeometryHelper.Geometry.GeoPolyline2), [`GeoPolygon2`](xref:GeometryHelper.Geometry.GeoPolygon2), [`GeoFace2`](xref:GeometryHelper.Geometry.GeoFace2), [`GeoCircle2`](xref:GeometryHelper.Geometry.GeoCircle2), [`GeoEllipse2`](xref:GeometryHelper.Geometry.GeoEllipse2), [`GeoSpline2`](xref:GeometryHelper.Geometry.GeoSpline2), [`GeoRectangle2`](xref:GeometryHelper.Geometry.GeoRectangle2), [`GeoTriangle2`](xref:GeometryHelper.Geometry.GeoTriangle2), [`GeoTransform2`](xref:GeometryHelper.Geometry.GeoTransform2) |
+| `GeometryHelper.Core` | [`Boolean2`](xref:GeometryHelper.Core.Boolean2), [`Collision2`](xref:GeometryHelper.Core.Collision2), [`Containment2`](xref:GeometryHelper.Core.Containment2), [`Corner2`](xref:GeometryHelper.Core.Corner2), [`Distance2`](xref:GeometryHelper.Core.Distance2), [`Ellipse2`](xref:GeometryHelper.Core.Ellipse2), [`Intersection2`](xref:GeometryHelper.Core.Intersection2), [`Lengthen2`](xref:GeometryHelper.Core.Lengthen2), [`Merge2`](xref:GeometryHelper.Core.Merge2), [`Offset2`](xref:GeometryHelper.Core.Offset2), [`Parallel2`](xref:GeometryHelper.Core.Parallel2), [`Parametrization2`](xref:GeometryHelper.Core.Parametrization2), [`Projection2`](xref:GeometryHelper.Core.Projection2), [`Splition2`](xref:GeometryHelper.Core.Splition2), [`Triangle2`](xref:GeometryHelper.Core.Triangle2), [`PlanarMap`](xref:GeometryHelper.Core.PlanarMap) |
+| `GeometryHelper.Meshing` | [`GeoMesh2`](xref:GeometryHelper.Meshing.GeoMesh2), [`Mesh2`](xref:GeometryHelper.Meshing.Mesh2), [`MeshKind`](xref:GeometryHelper.Meshing.MeshKind), [`MeshOptions`](xref:GeometryHelper.Meshing.MeshOptions), [`GridAlignment`](xref:GeometryHelper.Meshing.GridAlignment): see [meshing the plane](mesh.md) |
+| `GeometryHelper.Extension` | [`EnumerableExtension`](xref:GeometryHelper.Extension.EnumerableExtension) |
+| `GeometryHelper` | [`Tolerance`](xref:GeometryHelper.Tolerance), [`Angle`](xref:GeometryHelper.Angle), [`OffsetOptions`](xref:GeometryHelper.OffsetOptions), [`GeometryHelperLog`](xref:GeometryHelper.GeometryHelperLog) |
+| `GeometryHelper.Enums` | [`PointLocation`](xref:GeometryHelper.Enums.PointLocation), [`LineSide`](xref:GeometryHelper.Enums.LineSide), [`LineEnd`](xref:GeometryHelper.Enums.LineEnd), [`LineExtension`](xref:GeometryHelper.Enums.LineExtension), [`OffsetJoin`](xref:GeometryHelper.Enums.OffsetJoin) |
 
 Every type carries a `2`, matching the `3` on the solid types, so a program working in both dimensions
 imports one namespace and nothing collides.

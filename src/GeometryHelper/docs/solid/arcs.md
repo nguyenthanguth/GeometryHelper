@@ -1,12 +1,11 @@
 # Arcs in space
 
-
-A `GeoPolyline3` is straight by definition, so a chain that curves is its own type, exactly as it is in the
-plane. `GeoEdge3` is one piece of it, and it carries the one thing space needs that the plane does not:
+A [`GeoPolyline3`](xref:GeometryHelper.Geometry.GeoPolyline3) is straight by definition, so a chain that curves is its own type, exactly as it is in the
+plane. [`GeoEdge3`](xref:GeometryHelper.Geometry.GeoEdge3) is one piece of it, and it carries the one thing space needs that the plane does not:
 
 | | Stored per piece |
 |---|---|
-| `GeoEdge2` | `StartPoint`, `EndPoint`, `Bulge` |
+| [`GeoEdge2`](xref:GeometryHelper.Geometry.GeoEdge2) | `StartPoint`, `EndPoint`, `Bulge` |
 | `GeoEdge3` | `StartPoint`, `EndPoint`, `Bulge`, **`Normal`** |
 
 The bulge keeps its meaning — the tangent of a quarter of the swept angle — and the normal says which plane
@@ -25,7 +24,7 @@ bulged.GetPlane();  // the plane it bulges in
 
 Any bulge but nought is an arc, however little it bows, until it bows less than its arc can place its points to:
 an edge 0.01 long with a bulge of a thousandth stands 0.000005 off its chord, well inside the point tolerance, and
-is measured, cut, moved and asked about as the arc it is. Its `GeoArc3` is built from its circle, and a move is the
+is measured, cut, moved and asked about as the arc it is. Its [`GeoArc3`](xref:GeometryHelper.Geometry.GeoArc3) is built from its circle, and a move is the
 arc through where its two ends and its middle land, that middle worked out across the chord; neither is refused for
 three points lying within a tolerance of one line. A move that stretches the arc's plane unevenly makes part of an
 ellipse of it, and the arc through those three points stands for it, as it always has. An arc is kept as its centre
@@ -35,7 +34,7 @@ false, and measures, cuts and flattens as the segment, keeping its bulge: the ed
 billionth, of radius 2.5E10, whose arc placed its points 0.00001 off, and the one with a bulge of 1E-12, whose middle
 stood 0.008 off, are segments, and one with a bulge of 1E-7 is an arc. Read so, an edge's middle and length are the
 chord's, off the true arc's by no more than its sag, which is less than the rounding of the arc's centre; split, its
-pieces are straight, their bulge nought; `DxfWriter` writes it as its chord, with no bulge; and the reading follows how
+pieces are straight, their bulge nought; [`DxfWriter`](xref:GeometryHelper.Dxf.DxfWriter) writes it as its chord, with no bulge; and the reading follows how
 far the edge reaches from the origin along the axes, so moving or turning an edge close to the threshold can change it.
 However short the chord, an edge is built: only two ends that are one point to the last digit are refused, as an edge
 in the plane refuses only a chord of nought, so an edge 1E-6 long is built, read and moved, and a piece split off an
@@ -83,7 +82,7 @@ corner is kept, however short a side: at a millionth, the filleted chain flatten
 0.0007 apart, and the rectangle 100 by 50 standing in the plane x = 20 filleted at 0.0005 to its eight corners, where
 both were put back together within the global tolerance, the chain turning once and the rectangle with four corners.
 The polygon a loop flattens to is still checked flat and enclosing an area within the global tolerance, as any
-`GeoPolygon3` is: the half disc of radius 1 built at a millionth with its diameter bent to (1, 0.000002, 0), whose three
+[`GeoPolygon3`](xref:GeometryHelper.Geometry.GeoPolygon3) is: the half disc of radius 1 built at a millionth with its diameter bent to (1, 0.000002, 0), whose three
 corners enclose a sliver of 0.000002 square units, is refused as the polygon of those corners is, where it flattened to
 the sliver; the half disc of radius 50 bent so, whose corners enclose 0.0001 square units, flattens to them.
 
@@ -126,7 +125,7 @@ which need not be the plane of the corner, so there is no one plane to do the ar
 
 ## Closed loops have to lie flat
 
-`GeoPolylineArc3` requires no plane, as `GeoPolyline3` requires none. `GeoPolygonArc3` does require one, and
+[`GeoPolylineArc3`](xref:GeometryHelper.Geometry.GeoPolylineArc3) requires no plane, as `GeoPolyline3` requires none. [`GeoPolygonArc3`](xref:GeometryHelper.Geometry.GeoPolygonArc3) does require one, and
 enforces it at construction exactly as `GeoPolygon3` does: a loop that is not flat encloses nothing and has no
 inside. A bar bent out of one plane whose ends happen to meet is a `GeoPolylineArc3`, not a loop.
 
@@ -134,13 +133,13 @@ An arc lies in the plane when no point of it stands further off the plane than `
 corners pass. The angle between its own plane and the loop's decides nothing on its own: a half circle 1 000
 across turned 0.99 degrees out of the loop stands 8.64 off it and is refused, and a side 100 long bowing a
 ten-millionth of its chord lies in the loop however its own plane is turned. `IsPlanar`, `TryGetPlane` and
-the `PlanarMap` layouts read an arc the same way. The stand-off is read from the chord, as the corner of the
+the [`PlanarMap`](xref:GeometryHelper.Core.PlanarMap) layouts read an arc the same way. The stand-off is read from the chord, as the corner of the
 box round the arc that stands furthest off, so an arc of a huge radius is judged as surely as a half circle;
 the box can stand off a little further than the arc, up to two thirds more, which errs on refusing an arc right
 at the tolerance. An arc past a half turn is read round its circle, exactly.
 
 That one rule is what makes everything else exact. Area, centroid, what is inside, offsetting and rounding
-are all answered by laying the loop out in its own plane as a `GeoPolygonArc2`, working there, and lifting
+are all answered by laying the loop out in its own plane as a [`GeoPolygonArc2`](xref:GeometryHelper.Geometry.GeoPolygonArc2), working there, and lifting
 the answer back:
 
 ```csharp
@@ -285,7 +284,7 @@ bar.ToPolyline3(0.1).CollidesWith(slab);
 ```
 
 A sampled chain lies inside the arcs it stands for, so it is never nearer to anything outside the bar than
-the bar is: a clearance worked out this way errs on the safe side. The same bargain `GeoCircle3` offers
+the bar is: a clearance worked out this way errs on the safe side. The same bargain [`GeoCircle3`](xref:GeometryHelper.Geometry.GeoCircle3) offers
 through `ToPolylineByChordTolerance`.
 
 Two coplanar circles that stay within the point tolerance of each other all the way round, their centres and their

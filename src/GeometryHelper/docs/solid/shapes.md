@@ -154,7 +154,7 @@ Seven things are read otherwise, on purpose:
   and the point, past their rounding: a point 0.052 outside a U 5E7 out is outside it.
 * **A segment you give, no longer than the point tolerance, is read as its start** where it does not truly meet the other
   shape, as it is in the plane, by `DistanceTo`, `CollidesWith`, `GetShortestLineTo`, `GetIntersections` and
-  `TryIntersectWith` alike, and so is a straight `GeoEdge3` that short. At a thousandth, the segment from (5, 5, 0.0015)
+  `TryIntersectWith` alike, and so is a straight [`GeoEdge3`](xref:GeometryHelper.Geometry.GeoEdge3) that short. At a thousandth, the segment from (5, 5, 0.0015)
   down to (5, 5, 0.0006), stopping 0.0006 above the square 10 by 10 in the floor, is 0.0015 from it, joined to it from its
   start and meets it nowhere, as it is to a triangle, a face, a body, a ray, a ball and a spline so aimed; the one from
   (5, 5, 0.0004) to (5, 5, -0.0005), passing through the square, is nought from it, joined to it by a line of no length at
@@ -233,7 +233,7 @@ piercing.CollidesWith(flat);   // true
 flat.CollidesWith(piercing);   // true
 ```
 
-A `GeoFace3` is material with holes in it, so a run down the middle of a hole touches nothing at all:
+A [`GeoFace3`](xref:GeometryHelper.Geometry.GeoFace3) is material with holes in it, so a run down the middle of a hole touches nothing at all:
 
 ```csharp
 var plate = new GeoFace3(
@@ -268,7 +268,7 @@ Triangles, polygons and faces in space say whether and where they meet each othe
 far apart they are, from either side. They are read filled, a face by its material. Two in planes that are not one meet
 where an edge of either reaches the other, because the ends of every stretch they share lie on an edge of one of them,
 so the crossings named are those ends, however finely a side is cut into pieces; two within the point tolerance of
-each other touch, and their distance is the gap, 0.0004 for a square lying level 0.0004 over another; two in one plane are laid out with `PlanarMap` and the plane half
+each other touch, and their distance is the gap, 0.0004 for a square lying level 0.0004 over another; two in one plane are laid out with [`PlanarMap`](xref:GeometryHelper.Core.PlanarMap) and the plane half
 answers:
 
 ```csharp

@@ -2,9 +2,9 @@
 
 ## Ellipses in space
 
-`GeoEllipse3` is the ellipse of [the plane half](../plane/curves.md#ellipses) standing in space: a centre, the normal of
+[`GeoEllipse3`](xref:GeometryHelper.Geometry.GeoEllipse3) is the ellipse of [the plane half](../plane/curves.md#ellipses) standing in space: a centre, the normal of
 its plane, the direction of its major axis in that plane, and the two semi-axes. It is read the way a
-`GeoCircle3` is read, as a flat disc, and everything it does in its own plane is the plane ellipse's
+[`GeoCircle3`](xref:GeometryHelper.Geometry.GeoCircle3) is read, as a flat disc, and everything it does in its own plane is the plane ellipse's
 arithmetic, so its length, its walking and its flattening are the plane ellipse's to the last bit.
 
 ```csharp
@@ -188,11 +188,11 @@ which `ToPolylineByChordTolerance` gives a chain that errs on the safe side.
 
 ## Splines in space
 
-`GeoSpline3` is the NURBS curve of [the plane half](../plane/splines.md) in space: a degree from 1 to 10, control points, knots kept as
+[`GeoSpline3`](xref:GeometryHelper.Geometry.GeoSpline3) is the NURBS curve of [the plane half](../plane/splines.md) in space: a degree from 1 to 10, control points, knots kept as
 they were given and, when it is rational, weights; clamped, so it starts at its first control point and ends at its last. It is made,
 read, cut and measured as the plane's is, by the same engine, so everything said there about its exactness holds here: the point at a
-parameter, derivatives, tangent, `Length`, `GetAabb` (a `GeoAabb3`), `Split`, `Reverse`, `Flatten(chordTolerance)` into a
-`GeoPolyline3` (a part no longer than the point tolerance, as `Split` cuts off near an end, the chain of its corners as they are), and the two kinds of parameter: the members named for a parameter (`GetPointAtParameter`, `GetParameterAtPoint`, `Split`)
+parameter, derivatives, tangent, `Length`, `GetAabb` (a [`GeoAabb3`](xref:GeometryHelper.Geometry.GeoAabb3)), `Split`, `Reverse`, `Flatten(chordTolerance)` into a
+[`GeoPolyline3`](xref:GeometryHelper.Geometry.GeoPolyline3) (a part no longer than the point tolerance, as `Split` cuts off near an end, the chain of its corners as they are), and the two kinds of parameter: the members named for a parameter (`GetPointAtParameter`, `GetParameterAtPoint`, `Split`)
 take a share of the domain from 0 to 1, those named for a knot (`GetPointAtKnot`, `GetKnotAtPoint`, `SplitAtKnot`) a value of the
 knots, and those named for a distance (`GetPointAtDistance`, `GetParameterAtDistance`, `GetDistanceAtPoint`) a length. In space a curve has no left to turn to, so `GetCurvatureAtParameter` and `GetCurvatureAtKnot` are never negative.
 
@@ -216,7 +216,7 @@ nearest point is found as it is there, from the roots of a polynomial on each sp
 the boxes of the spans are kept in a tree, built on the first query, so the spans near the point are reached without looking at the rest and
 a query takes the logarithm of the number of spans (about 0.01 ms at 100 000, where it took 0.5), with every answer the same to the bit as it was
 before the tree. `Interpolate` takes a
-`Tolerance` that decides which neighbouring fit points are one point; points just above it make the curve swing far, as in the plane. A spline is carried by
+[`Tolerance`](xref:GeometryHelper.Tolerance) that decides which neighbouring fit points are one point; points just above it make the curve swing far, as in the plane. A spline is carried by
 `TransformBy(GeoTransform3)` by its control points, exactly for every affine map; `ProjectToSpline2(frame)` lays it square onto the
 plane of a frame, and `GeoSpline2.ToSpline3(frame)` and `PlanarMap.ToSpline3` put one back, the weights and knots unchanged. A spline
 that stands square to the plane has no spline to give there, and is refused.
@@ -228,7 +228,7 @@ normal (1, 1, 0) has the extrusion (0.7071, 0.7071, 0)), and with no flag and no
 (0, 0, 0), (100, 0, 0), (100, 100, 0), (100, 100, 100). `ObjWriter.Add(spline, chordTolerance, name)` and `Wkt.Write(spline, chordTolerance)`
 write the line of its chords, every corner of `Flatten` kept and the ends exact, as an OBJ line and a `LINESTRING Z`. The viewer draws,
 measures, snaps to and reads a spline in space as it does one in the plane; a SPLINE of a DXF file that lies on the floor with its extrusion
-up comes back as a `GeoSpline2`, and any other as a `GeoSpline3`. From an IFC file, `IfcStoreCache.GetSplines(guid)` of
+up comes back as a [`GeoSpline2`](xref:GeometryHelper.Geometry.GeoSpline2), and any other as a `GeoSpline3`. From an IFC file, `IfcStoreCache.GetSplines(guid)` of
 GeometryHelper.IfcConvert gives the `GeoSpline3` of each `IfcBSplineCurveWithKnots` and `IfcRationalBSplineCurveWithKnots` of a product: an
 item of any of its representations, the 'Axis' of a member above all, an element of a geometric set, the parent curve of a segment of a
 composite curve, the directrix of a swept disk (the part of it the disk runs along, from its `StartParam` to its `EndParam`, which are

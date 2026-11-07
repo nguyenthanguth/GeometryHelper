@@ -19,12 +19,12 @@ does: about 0.26 % less at the fifty edges the automatic tolerance gives.
 A circumference rarely divides by a spacing exactly, so the spacing is a limit rather than a step: the
 vertices are spread evenly and no two are further apart than asked, which leaves no short edge at the end.
 
-`GeoCircle3`, `GeoArc2` and `GeoArc3` answer all of it the same way — an arc gives a chain rather than a
+[`GeoCircle3`](xref:GeometryHelper.Geometry.GeoCircle3), [`GeoArc2`](xref:GeometryHelper.Geometry.GeoArc2) and [`GeoArc3`](xref:GeometryHelper.Geometry.GeoArc3) answer all of it the same way — an arc gives a chain rather than a
 loop, since it does not close.
 
 ### Working in a local frame
 
-`GeoCoordinateSystem2` is where a drawing sits, the counterpart of `GeoCoordinateSystem3` in space. A
+[`GeoCoordinateSystem2`](xref:GeometryHelper.Geometry.GeoCoordinateSystem2) is where a drawing sits, the counterpart of [`GeoCoordinateSystem3`](xref:GeometryHelper.Geometry.GeoCoordinateSystem3) in space. A
 transformation can say the same thing, and `ToTransform()` hands it over in that form, but a
 transformation may also scale, mirror or shear, and reading one backwards means inverting a matrix. A
 frame is rigid by construction, and reading it backwards is turning the axes round:
@@ -47,8 +47,8 @@ A frame follows a transformation however small its scaling: scaled by a milliont
 by 1E-5 or less was refused as leaving it none. It is built along an X axis of any length but none the same way:
 (6E-7, 8E-7) points it along (0.6, 0.8), where an axis shorter than the global vector tolerance of 1E-5 was refused.
 
-`GeoRectangle2` is the rotated rectangle — the OBB of the plane — so it carries a frame exactly as
-`GeoObb3` does in space.
+[`GeoRectangle2`](xref:GeometryHelper.Geometry.GeoRectangle2) is the rotated rectangle — the OBB of the plane — so it carries a frame exactly as
+[`GeoObb3`](xref:GeometryHelper.Geometry.GeoObb3) does in space.
 
 A loop can be turned round with `Reverse()`, which is what decides winding and which way round a pair of
 chamfer distances goes. A curved loop is turned round edge for edge: at a millionth, the rectangle 100 by 50 filleted at
@@ -57,7 +57,7 @@ tolerance and came back its four corners.
 
 ## Ellipses
 
-`GeoEllipse2` is a region, as a circle is: a centre, the direction of its major axis, and the two
+[`GeoEllipse2`](xref:GeometryHelper.Geometry.GeoEllipse2) is a region, as a circle is: a centre, the direction of its major axis, and the two
 semi-axes, the major one at least as long as the minor. A minor radius larger than the major one is
 refused rather than swapped, so every ellipse has one way of being written down.
 
@@ -147,8 +147,8 @@ flattened rim as it does a circle's.
 
 ## Rays
 
-`GeoRay2` is a half-line: an origin, and a direction of unit length it runs along for ever, the
-counterpart of `GeoRay3` in space. A direction of no length is refused.
+[`GeoRay2`](xref:GeometryHelper.Geometry.GeoRay2) is a half-line: an origin, and a direction of unit length it runs along for ever, the
+counterpart of [`GeoRay3`](xref:GeometryHelper.Geometry.GeoRay3) in space. A direction of no length is refused.
 
 ```csharp
 var square = new GeoPolygon2(new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) });
@@ -164,7 +164,7 @@ ray.IsPointOn(new GeoPoint2(-60, 50));        // false: behind the origin
 
 **It is asked what a segment is asked**, and every answer reads as the segment's does: a closed shape is
 filled for the distance and the collision, so a ray starting inside the square is nought from it, while
-the shortest line runs to the outline. Every shape that takes a `GeoLine2` takes a `GeoRay2` too, so
+the shortest line runs to the outline. Every shape that takes a [`GeoLine2`](xref:GeometryHelper.Geometry.GeoLine2) takes a `GeoRay2` too, so
 `square.DistanceTo(ray)` gives the same 0. An ellipse is asked from the ellipse, as it is for a segment.
 
 Against any shape but another ray, the ray is answered as the segment from its origin to a point past
@@ -194,7 +194,7 @@ round everything and crossed it at (0, 0); 200 diagonal rays over 90 000 edges t
 
 ## Infinite lines
 
-`GeoXLine2` is a line that runs both ways for ever: a point on it and a direction of unit length, the
+[`GeoXLine2`](xref:GeometryHelper.Geometry.GeoXLine2) is a line that runs both ways for ever: a point on it and a direction of unit length, the
 counterpart of the XLINE of AutoCAD and of `GeoRay2` with no start. A direction of no length is refused.
 
 ```csharp

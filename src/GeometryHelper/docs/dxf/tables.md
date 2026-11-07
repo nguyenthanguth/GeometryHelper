@@ -1,7 +1,6 @@
 # Tables of cells
 
-
-An ACAD_TABLE is a `DxfTable`: its `NumRows`, `NumColumns`, `RowHeight(row)`, `ColumnWidth(col)`, and each cell's
+An ACAD_TABLE is a [`DxfTable`](xref:GeometryHelper.Dxf.DxfTable): its `NumRows`, `NumColumns`, `RowHeight(row)`, `ColumnWidth(col)`, and each cell's
 `TextString`, `Value`, `CellType`, merging (`IsMergedCell`, `GetMergeRange`), corners (`GetCellExtents`), block and
 attribute values, and the look it holds of its own, `Alignment`, `TextHeight`, `TextStyle` and the colours, null where it
 has none and takes its table style's, which the library does not read. Its record is read once while it stands, every cell
@@ -116,7 +115,7 @@ it none. The kinds of the rows are read from the TABLECONTENT once for each writ
 more rows of the title's or the header's style than the table shows: a clear of a table of 400 rows takes as long as it
 did before the kinds were read, and taking away the overrides of its cells one by one too.
 The cells are
-walked row by row (`foreach (DxfCell cell in table)`), and `table.Cells[1, 0]` is a `DxfCell` that reads and sets one,
+walked row by row (`foreach (DxfCell cell in table)`), and `table.Cells[1, 0]` is a [`DxfCell`](xref:GeometryHelper.Dxf.DxfCell) that reads and sets one,
 `cell.TextString = "Count"`, `cell.Alignment = DxfCellAlignment.MiddleCenter`; `table.Rows[0].Height` and
 `table.Columns[1].Width` are read and set, and the block of merged cells `GetMergeRange(0, 1)` gives reads its cells,
 `range[0, 0].TextString`. `HitTest(point, viewVector)` gives the cell a point hits, carried along the direction it is
@@ -228,7 +227,7 @@ last cell only where the table holds its own there already; `HorizontalCellMargi
 heights), and a table scaled scales the text heights it gives its rows there. A table of no margin of its own takes its
 style's (the TABLESTYLE's 40 and 41), else that of AutoCAD's own Standard, 1.5 in a drawing of millimetres and 0.06 in
 one of inches, as AutoCAD 2021 reads it, read from the style once and kept until the drawing is changed. `SetFormula(row, column, 0, "=A2+B2")`, from R2004 on,
-adds a FIELD of AutoCAD's expressions (AcExpr, field code `\AcExpr (A2+B2)`) owned by the table, written as `DxfField`
+adds a FIELD of AutoCAD's expressions (AcExpr, field code `\AcExpr (A2+B2)`) owned by the table, written as [`DxfField`](xref:GeometryHelper.Dxf.DxfField)
 writes one with the class FIELD listed, and points the cell's 344 at it, after its turn (145) and before its 92, as
 AutoCAD 2021 wrote one, its value left for AutoCAD to work out; a field
 a cell lets go of, by a text, a value or a formula set, by its row or column taken out or by a copy or a fill over it,
@@ -268,7 +267,7 @@ these versions has no group for is not there: several contents in one cell, and 
 of a double line.
 
 A range of a table's cells is linked to data as AutoCAD links one to a spreadsheet, from R2007 on; the library reads
-such links, takes them away and puts them in. A `DxfDataLink` is a DATALINK of the drawing's
+such links, takes them away and puts them in. A [`DxfDataLink`](xref:GeometryHelper.Dxf.DxfDataLink) is a DATALINK of the drawing's
 `DataLinkDictionary` (ACAD_DATALINK), read with its `DataAdapterId` (`AcExcel`), `ConnectionString`
 (`parts.xlsx!Sheet1!A1:B2`), `Description`, `ToolTip`, `DataLinkOption`, `UpdateOption`, `IsValid` and
 `GetUpdateStatus`; its `Name` set renames its entry. AutoCAD 2021 names a link in the TABLECONTENT it keeps for the table,

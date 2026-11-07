@@ -1,3 +1,5 @@
+- name: How do I
+  href: howto.md
 - name: Shared types
   href: common.md
 - name: Geometry in the plane
@@ -43,6 +45,8 @@
 - name: DXF
   href: dxf/index.md
   items:
+    - name: AutoCAD and GeometryHelper
+      href: dxf/autocad.md
     - name: The drawing, its tables and layouts
       href: dxf/drawing.md
     - name: Entities and curves

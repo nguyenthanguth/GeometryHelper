@@ -1,7 +1,7 @@
 # Shared types
 
-What both halves of the library are measured and described with: `Tolerance`, `Angle`, the
-enumerations, `OffsetOptions`, and `GeometryHelperLog`. They sit at the root of the `GeometryHelper`
+What both halves of the library are measured and described with: [`Tolerance`](xref:GeometryHelper.Tolerance), [`Angle`](xref:GeometryHelper.Angle), the
+enumerations, [`OffsetOptions`](xref:GeometryHelper.OffsetOptions), and [`GeometryHelperLog`](xref:GeometryHelper.GeometryHelperLog). They sit at the root of the `GeometryHelper`
 namespace, so one `using GeometryHelper;` brings them all in.
 
 They know nothing about any particular shape, which is why one `Tolerance` and one `Angle` serve
@@ -52,7 +52,7 @@ plane is 0.0005 from it and collides at a thousandth, and one 0.0012 off its cor
 `EqualPlanar` is not laid flat for its distance; it is as far in space as it is, and a triangle with no area is the segment
 it has collapsed to, touching as its distance says. Seven things are read otherwise, on purpose,
 and [space](solid/shapes.md#how-near-is-touching-in-space) gives each with its numbers: `DistanceTo` between two bodies, or an oriented box and an oriented or axis-aligned box, reads
-nought within `EqualPoint` (only `GeoAabb3` against `GeoAabb3` is exact); a plane reads a ray, a chain, a region, a box or a
+nought within `EqualPoint` (only [`GeoAabb3`](xref:GeometryHelper.Geometry.GeoAabb3) against `GeoAabb3` is exact); a plane reads a ray, a chain, a region, a box or a
 body within `EqualPoint` of it as on it, so the plane z = 0 is nought from a square 0.0004 above it; a shape a billionth of a
 millimetre outside a body (further out than a million, 1E-15 of the largest coordinate) reads as in it; a segment you
 give, no longer than `EqualPoint`, is read as its start; a circle collides as its rim and a loop of arcs as its outline;
@@ -183,7 +183,7 @@ The end that is not named stays where it is, and the segment never turns round.
 ## LineSide
 
 Which side of a directed segment a point lies on: `Left`, `Right` or `On`, seen looking along the segment
-from its start to its end. It is the counterpart in the plane of `PlaneSide` in space, and a segment is
+from its start to its end. It is the counterpart in the plane of [`PlaneSide`](xref:GeometryHelper.Enums.PlaneSide) in space, and a segment is
 read as the infinite line carrying it, so a point beyond either end still has a side.
 
 ## LineExtension
@@ -200,7 +200,7 @@ corner when a region grows, at a concave one when it shrinks. On the inside of a
 overlap instead and are cut where they meet, whatever the join. The three kinds are AutoCAD's offset gap
 types.
 
-| `OffsetJoin` | Corner | OFFSETGAPTYPE |
+| [`OffsetJoin`](xref:GeometryHelper.Enums.OffsetJoin) | Corner | OFFSETGAPTYPE |
 |---|---|---|
 | `Miter` | the offset edges carried on until they meet | 0, Extend |
 | `Round` | an arc about the original vertex, drawn as chords | 1, Fillet |
@@ -309,10 +309,10 @@ What each writer takes:
 
 | Writer | Shapes |
 |---|---|
-| `ObjWriter` | `GeoSolid3`, `GeoFace3`, `GeoPolygon3` (each with a `Tolerance` overload), `GeoTriangle3`, triangles, `GeoMesh3`, `GeoCellGrid3` and `GeoCell3`, `GeoAabb3` and `GeoObb3` (as their 12 triangles), `GeoPoint3` (a dot), `GeoLine3`, `GeoPolyline3`; with a chord tolerance `GeoPolylineArc3`, `GeoPolygonArc3`, `GeoArc3`, `GeoCircle3`, `GeoEllipse3`, `GeoSpline3`, `GeoSphere3` (as the triangles of its surface); `GeoRay3` and `GeoXLine3` with a length |
-| `SvgWriter` | `GeoPoint2`, `GeoLine2`, `GeoArc2`, `GeoEdge2`, `GeoCircle2`, `GeoEllipse2`, `GeoPolyline2`, `GeoPolylineArc2`, `GeoPolygon2`, `GeoPolygonArc2`, `GeoRectangle2`, `GeoTriangle2` and lists of `GeoTriangle2`, `GeoMesh2`, `GeoFace2`, `GeoRay2`, `GeoXLine2`, `GeoSpline2` (with a chord tolerance, for the splines SVG has no curve for), and `Text` for a label |
-| `Wkt` | `GeoPoint2` and `GeoPoint3`, segments, chains, polygons, `GeoRectangle2`, `GeoTriangle2` and `GeoTriangle3`, `GeoFace2` and `GeoFace3`; lists of points as `MULTIPOINT`, of segments and chains as `MULTILINESTRING`, of `GeoFace2` and `GeoFace3` as `MULTIPOLYGON`; `GeoMesh2` and `GeoMesh3` as `MULTIPOLYGON`; `GeoSolid3` as a `POLYHEDRALSURFACE Z`, and with a chord tolerance `GeoSphere3` as one; with a chord tolerance too the circles, arcs, ellipses, splines and chains and loops with arcs, in the plane and in space; `GeoRay2`, `GeoRay3`, `GeoXLine2` and `GeoXLine3` with a length |
-| `DxfWriter` | in the plane `GeoPoint2`, `GeoLine2`, `GeoRay2`, `GeoXLine2`, `GeoArc2`, `GeoCircle2`, `GeoEllipse2`, `GeoPolyline2`, `GeoPolylineArc2`, `GeoPolygon2`, `GeoPolygonArc2`, `GeoRectangle2`, `GeoTriangle2`, `GeoFace2`, `GeoSpline2` (as a SPLINE); in space `GeoPoint3`, `GeoLine3`, `GeoRay3`, `GeoXLine3`, `GeoEllipse3`, `GeoSpline3` (as a SPLINE), `GeoPolyline3`, `GeoPolygon3`, `GeoTriangle3`, triangles, `GeoFace3` and `GeoSolid3` (each with a `Tolerance` overload), `GeoMesh3`, `GeoAabb3` and `GeoObb3` (as six faces), `GeoSphere3` (with a chord tolerance, a 3DFACE for each triangle of its surface), and `GeoArc3`, `GeoCircle3`, `GeoPolylineArc3` and `GeoPolygonArc3` as the curves they are (each also with a chord tolerance, for chords); a `DxfText` as a TEXT or an MTEXT; each on a layer; and a `DxfShape` `DxfReader` read, with its look (see Reading DXF) |
+| [`ObjWriter`](xref:GeometryHelper.Export.ObjWriter) | [`GeoSolid3`](xref:GeometryHelper.Geometry.GeoSolid3), [`GeoFace3`](xref:GeometryHelper.Geometry.GeoFace3), [`GeoPolygon3`](xref:GeometryHelper.Geometry.GeoPolygon3) (each with a `Tolerance` overload), [`GeoTriangle3`](xref:GeometryHelper.Geometry.GeoTriangle3), triangles, [`GeoMesh3`](xref:GeometryHelper.Meshing.GeoMesh3), [`GeoCellGrid3`](xref:GeometryHelper.Meshing.GeoCellGrid3) and [`GeoCell3`](xref:GeometryHelper.Meshing.GeoCell3), `GeoAabb3` and [`GeoObb3`](xref:GeometryHelper.Geometry.GeoObb3) (as their 12 triangles), [`GeoPoint3`](xref:GeometryHelper.Geometry.GeoPoint3) (a dot), [`GeoLine3`](xref:GeometryHelper.Geometry.GeoLine3), [`GeoPolyline3`](xref:GeometryHelper.Geometry.GeoPolyline3); with a chord tolerance [`GeoPolylineArc3`](xref:GeometryHelper.Geometry.GeoPolylineArc3), [`GeoPolygonArc3`](xref:GeometryHelper.Geometry.GeoPolygonArc3), [`GeoArc3`](xref:GeometryHelper.Geometry.GeoArc3), [`GeoCircle3`](xref:GeometryHelper.Geometry.GeoCircle3), [`GeoEllipse3`](xref:GeometryHelper.Geometry.GeoEllipse3), [`GeoSpline3`](xref:GeometryHelper.Geometry.GeoSpline3), [`GeoSphere3`](xref:GeometryHelper.Geometry.GeoSphere3) (as the triangles of its surface); [`GeoRay3`](xref:GeometryHelper.Geometry.GeoRay3) and [`GeoXLine3`](xref:GeometryHelper.Geometry.GeoXLine3) with a length |
+| [`SvgWriter`](xref:GeometryHelper.Export.SvgWriter) | [`GeoPoint2`](xref:GeometryHelper.Geometry.GeoPoint2), [`GeoLine2`](xref:GeometryHelper.Geometry.GeoLine2), [`GeoArc2`](xref:GeometryHelper.Geometry.GeoArc2), [`GeoEdge2`](xref:GeometryHelper.Geometry.GeoEdge2), [`GeoCircle2`](xref:GeometryHelper.Geometry.GeoCircle2), [`GeoEllipse2`](xref:GeometryHelper.Geometry.GeoEllipse2), [`GeoPolyline2`](xref:GeometryHelper.Geometry.GeoPolyline2), [`GeoPolylineArc2`](xref:GeometryHelper.Geometry.GeoPolylineArc2), [`GeoPolygon2`](xref:GeometryHelper.Geometry.GeoPolygon2), [`GeoPolygonArc2`](xref:GeometryHelper.Geometry.GeoPolygonArc2), [`GeoRectangle2`](xref:GeometryHelper.Geometry.GeoRectangle2), [`GeoTriangle2`](xref:GeometryHelper.Geometry.GeoTriangle2) and lists of `GeoTriangle2`, [`GeoMesh2`](xref:GeometryHelper.Meshing.GeoMesh2), [`GeoFace2`](xref:GeometryHelper.Geometry.GeoFace2), [`GeoRay2`](xref:GeometryHelper.Geometry.GeoRay2), [`GeoXLine2`](xref:GeometryHelper.Geometry.GeoXLine2), [`GeoSpline2`](xref:GeometryHelper.Geometry.GeoSpline2) (with a chord tolerance, for the splines SVG has no curve for), and `Text` for a label |
+| [`Wkt`](xref:GeometryHelper.Export.Wkt) | `GeoPoint2` and `GeoPoint3`, segments, chains, polygons, `GeoRectangle2`, `GeoTriangle2` and `GeoTriangle3`, `GeoFace2` and `GeoFace3`; lists of points as `MULTIPOINT`, of segments and chains as `MULTILINESTRING`, of `GeoFace2` and `GeoFace3` as `MULTIPOLYGON`; `GeoMesh2` and `GeoMesh3` as `MULTIPOLYGON`; `GeoSolid3` as a `POLYHEDRALSURFACE Z`, and with a chord tolerance `GeoSphere3` as one; with a chord tolerance too the circles, arcs, ellipses, splines and chains and loops with arcs, in the plane and in space; `GeoRay2`, `GeoRay3`, `GeoXLine2` and `GeoXLine3` with a length |
+| [`DxfWriter`](xref:GeometryHelper.Dxf.DxfWriter) | in the plane `GeoPoint2`, `GeoLine2`, `GeoRay2`, `GeoXLine2`, `GeoArc2`, `GeoCircle2`, `GeoEllipse2`, `GeoPolyline2`, `GeoPolylineArc2`, `GeoPolygon2`, `GeoPolygonArc2`, `GeoRectangle2`, `GeoTriangle2`, `GeoFace2`, `GeoSpline2` (as a SPLINE); in space `GeoPoint3`, `GeoLine3`, `GeoRay3`, `GeoXLine3`, `GeoEllipse3`, `GeoSpline3` (as a SPLINE), `GeoPolyline3`, `GeoPolygon3`, `GeoTriangle3`, triangles, `GeoFace3` and `GeoSolid3` (each with a `Tolerance` overload), `GeoMesh3`, `GeoAabb3` and `GeoObb3` (as six faces), `GeoSphere3` (with a chord tolerance, a 3DFACE for each triangle of its surface), and `GeoArc3`, `GeoCircle3`, `GeoPolylineArc3` and `GeoPolygonArc3` as the curves they are (each also with a chord tolerance, for chords); a [`DxfText`](xref:GeometryHelper.Dxf.DxfText) as a TEXT or an MTEXT; each on a layer; and a [`DxfShape`](xref:GeometryHelper.Dxf.DxfShape) [`DxfReader`](xref:GeometryHelper.Dxf.DxfReader) read, with its look (see Reading DXF) |
 
 OBJ and WKT have no curves, so a curve is written through chords and the caller says how far from the curve they may
 stray: a circle of radius 100 at a chord tolerance of 0.1 is 71 chords, none more than 0.1 inside it. The tolerance has

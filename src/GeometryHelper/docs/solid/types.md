@@ -1,13 +1,12 @@
 # Geometric Types
 
-
 The shapes split into three families, and which family a shape belongs to decides what you can ask of it:
 
 | Family | Types | Encloses an area | Encloses a volume |
 |---|---|---|---|
-| Curve | `GeoLine3`, `GeoRay3`, `GeoXLine3`, `GeoPolyline3` | no | no |
-| Planar region | `GeoTriangle3`, `GeoPolygon3`, `GeoCircle3`, `GeoEllipse3`, `GeoFace3` | yes | no |
-| Volume | `GeoObb3`, `GeoAabb3`, `GeoSolid3`, `GeoSphere3` | yes | yes |
+| Curve | [`GeoLine3`](xref:GeometryHelper.Geometry.GeoLine3), [`GeoRay3`](xref:GeometryHelper.Geometry.GeoRay3), [`GeoXLine3`](xref:GeometryHelper.Geometry.GeoXLine3), [`GeoPolyline3`](xref:GeometryHelper.Geometry.GeoPolyline3) | no | no |
+| Planar region | [`GeoTriangle3`](xref:GeometryHelper.Geometry.GeoTriangle3), [`GeoPolygon3`](xref:GeometryHelper.Geometry.GeoPolygon3), [`GeoCircle3`](xref:GeometryHelper.Geometry.GeoCircle3), [`GeoEllipse3`](xref:GeometryHelper.Geometry.GeoEllipse3), [`GeoFace3`](xref:GeometryHelper.Geometry.GeoFace3) | yes | no |
+| Volume | [`GeoObb3`](xref:GeometryHelper.Geometry.GeoObb3), [`GeoAabb3`](xref:GeometryHelper.Geometry.GeoAabb3), [`GeoSolid3`](xref:GeometryHelper.Geometry.GeoSolid3), [`GeoSphere3`](xref:GeometryHelper.Geometry.GeoSphere3) | yes | yes |
 
 Only regions and volumes offer `Contains`. Every shape offers `Locate`, and a curve can only ever
 answer `OnSide` or `OutSide`, because a curve has no interior for a point to be inside of.
@@ -168,7 +167,7 @@ pierced.Locate(new GeoPoint3(5, 5, 5)); // OutSide — inside the duct
 walls of the openings part of the surface. A body without openings — every part `GeometryHelper.TeklaConvert`
 reads is one, its cuts already in its faces — is measured by its faces at once, and nothing is cut. A body with
 openings has them cut out once for the tolerance, and the cut is kept, so the three, `GetMassProperties` and
-`Measure3` describe one material for the price of one cut. An opening that cannot be cut out is left in the material
+[`Measure3`](xref:GeometryHelper.Core.Measure3) describe one material for the price of one cut. An opening that cannot be cut out is left in the material
 and the log warns of it; `TryGetVolume` says whether the volume can be trusted, every opening cut out and the
 material closed. Cut in at once, the body is parted by the planes of its openings and each piece is judged by one point
 of it, so a plane that runs through a piece and will not cut it, leaving it part in an opening and part out, has the
@@ -228,8 +227,8 @@ even number of faces. A long edge beside two short ones is matched stretch by st
 along an edge put four faces on it and are closed; a missing face leaves a stretch with one, and a fin
 standing off the surface one with three.
 
-`Validate()` says where. It matches the edges as `IsClosed()` does, and gives a `SolidValidation3`: whether the faces
-bound a body, closed, wound alike and outwards, and each thing found, a `SolidIssue3` with its kind, where it is, how
+`Validate()` says where. It matches the edges as `IsClosed()` does, and gives a [`SolidValidation3`](xref:GeometryHelper.SolidValidation3): whether the faces
+bound a body, closed, wound alike and outwards, and each thing found, a [`SolidIssue3`](xref:GeometryHelper.SolidIssue3) with its kind, where it is, how
 large, and the faces it is of. A stretch of edge an odd number of faces meet on is an `OpenEdge`. A stretch the two
 faces on it run the same way is a `SameWayEdge`: a face wound the wrong way round, which `IsClosed()` counts as
 closed. Faces wound inwards are `InsideOut`. Edges four faces meet on, short edges, faces thinner than the tolerance
@@ -303,7 +302,7 @@ under the vector tolerance in area is kept where it has width in the same way, s
 meshes read no area as they did, and the queries of a triangle read it by `IsDegenerate` (see
 [how near is touching](shapes.md#how-near-is-touching-in-space)). A face thinner than the tolerance is a seam at
 it and has no triangle: a slab 100 by 100 and 0.0008 thick, built within 1E-5, is 12 triangles at 1E-5 and 4 at 0.001,
-its four sides gone, and a Debug line in `GeometryHelperLog` says how many faces were left out whole and how much area
+its four sides gone, and a Debug line in [`GeometryHelperLog`](xref:GeometryHelper.GeometryHelperLog) says how many faces were left out whole and how much area
 they had; a face meshed in part is not counted. Such a mesh is closed within the tolerance, the top and the bottom
 meeting where the sides were, but not edge by edge: the slab's 4 triangles leave 8 edges with no triangle on the other
 side. Triangulate at the tolerance the body was built within for a mesh closed edge by edge, the slab's 12 triangles at

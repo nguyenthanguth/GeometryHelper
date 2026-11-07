@@ -2,7 +2,7 @@
 
 `GeometryHelper.Meshing` breaks a closed shape of the plane into smaller faces: triangles, the cells of a grid, strips,
 or convex pieces. Polygons, faces with holes, loops with arcs, rectangles, circles and ellipses all mesh the same way, with
-`ToMesh`. What comes back is a `GeoMesh2`. Its faces are simple polygons with no hole, running counter-clockwise.
+`ToMesh`. What comes back is a [`GeoMesh2`](xref:GeometryHelper.Meshing.GeoMesh2). Its faces are simple polygons with no hole, running counter-clockwise.
 They share their corners, and two faces side by side meet along the same edge.
 
 The flat shapes of space mesh the same way, standing in their own plane, and bodies cut into the cells of a grid:
@@ -39,7 +39,7 @@ cuts is cut to it, and `IsWhole` tells the 13 whole panels from the 16 cut ones.
 
 ## Four kinds
 
-| `MeshKind` | The faces | For |
+| [`MeshKind`](xref:GeometryHelper.Meshing.MeshKind) | The faces | For |
 |---|---|---|
 | `Triangles` | triangles on the shape's own corners, as few as cover it | drawing, measuring, export |
 | `Grid` | the cells of a regular grid, cut where the boundary or a hole crosses them | formwork, tiles, cladding, pour bays |
@@ -92,7 +92,7 @@ wanted along a wall, offset the region inwards first. Faces with joints between 
 **Where the grid stands.** A shape is seldom a whole number of cells wide, and the alignment along each axis says where
 the cut cells go. Measured between the shape's furthest corners, a strip 1000 wide in cells of 300 is laid as:
 
-| `GridAlignment` | Cells, from the left |
+| [`GridAlignment`](xref:GeometryHelper.Meshing.GridAlignment) | Cells, from the left |
 |---|---|
 | `Start` | 300, 300, 300, 100 |
 | `End` | 100, 300, 300, 300 |
@@ -160,7 +160,7 @@ var face = new GeoFace2(Box(0, 0, 1000, 1000), new[] { Box(400, 400, 600, 600) }
 GeoTriangle2[] triangles = face.TriangulateSurface();
 ```
 
-A disc is fanned from its center. `GeoTriangle2` is the triangle of the plane, and is described with the
+A disc is fanned from its center. [`GeoTriangle2`](xref:GeometryHelper.Geometry.GeoTriangle2) is the triangle of the plane, and is described with the
 [geometry in the plane](plane.md).
 
 ## What is promised

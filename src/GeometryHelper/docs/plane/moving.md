@@ -2,8 +2,8 @@
 
 ## Moving geometry
 
-`GeoTransform2` is a 3x3 homogeneous matrix covering translation, rotation, scaling and mirroring, the
-counterpart of `GeoTransform3` in space. It is applied on the left, so `a.Multiply(b)` means "apply b,
+[`GeoTransform2`](xref:GeometryHelper.Geometry.GeoTransform2) is a 3x3 homogeneous matrix covering translation, rotation, scaling and mirroring, the
+counterpart of [`GeoTransform3`](xref:GeometryHelper.Geometry.GeoTransform3) in space. It is applied on the left, so `a.Multiply(b)` means "apply b,
 then a", and instances are immutable.
 
 ```csharp
@@ -133,7 +133,7 @@ have none, and are averaged. A face's centroid weighs its holes the same way: th
 ## Flat shapes that live in space
 
 A plate or a face in a 3D model is flat, so everything here applies to it: lay it out in its own plane
-with `PlanarMap`, work on it as an ordinary `GeoPolygon2` or `GeoFace2`, and put the answer back. See
+with [`PlanarMap`](xref:GeometryHelper.Core.PlanarMap), work on it as an ordinary [`GeoPolygon2`](xref:GeometryHelper.Geometry.GeoPolygon2) or [`GeoFace2`](xref:GeometryHelper.Geometry.GeoFace2), and put the answer back. See
 [between the plane and space](../solid/frames.md#between-the-plane-and-space).
 
 ## Point chains

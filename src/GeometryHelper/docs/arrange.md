@@ -58,7 +58,7 @@ for (int i = 0; i < items.Count; i++)
 }
 ```
 
-`Arranger.Run` only reads the items. What becomes of each comes back as an `ArrangeResult`: `Translation`,
+`Arranger.Run` only reads the items. What becomes of each comes back as an [`ArrangeResult`](xref:GeometryHelper.Arranging.ArrangeResult): `Translation`,
 how far to move the label, and `Placed`, whether it ends up clear of every other label and of every block.
 The same list can therefore be run again, with other options or on another thread, to compare. A null entry
 is passed over and answered with `default`: not moved, not placed.
@@ -68,7 +68,7 @@ leaves overlapping something are tried once more with the block lines lifted, ke
 already placed. `Placed` is judged afterwards, on the final layout as a whole, so a label that another one fell
 back onto is not reported clear.
 
-To fine-tune the placement, pass `ArrangeOptions`:
+To fine-tune the placement, pass [`ArrangeOptions`](xref:GeometryHelper.Arranging.ArrangeOptions):
 
 ```csharp
 var options = new ArrangeOptions
@@ -80,7 +80,7 @@ var options = new ArrangeOptions
 ArrangeResult[] results = Arranger.Run(items, options);
 ```
 
-`ArrangeOptions` is the shared configuration for the entire list. `Offset` is set per `ArrangeItem` because each label may require a different offset:
+`ArrangeOptions` is the shared configuration for the entire list. `Offset` is set per [`ArrangeItem`](xref:GeometryHelper.Arranging.ArrangeItem) because each label may require a different offset:
 
 ```csharp
 var smallTextLabel = new ArrangeItem
@@ -103,7 +103,7 @@ ArrangeResult[] results = Arranger.Run(new List<ArrangeItem> { smallTextLabel, l
 A label can stand one gap off above its leader and another below it. `OffsetTop` is the gap on the side of the
 leader that faces up in the drawing and `OffsetBottom` the gap on the side that faces down, 50 each unless set.
 Which side faces up does not depend on which way the leader was drawn, and a vertical leader, to within the angle
-of the options' `Tolerance`, has its top on the left, where the text of a vertical dimension stands. Every gap has
+of the options' [`Tolerance`](xref:GeometryHelper.Tolerance), has its top on the left, where the text of a vertical dimension stands. Every gap has
 to be a finite number:
 
 ```csharp
