@@ -1,22 +1,83 @@
 - name: Shared types
   href: common.md
-- name: "Editing a DXF drawing, step by step"
-  href: dxf-editing-example.md
-- name: "DXF: checking against AutoCAD"
-  href: dxf-autocad-checks.md
 - name: Geometry in the plane
   href: plane.md
-- name: Meshing the plane
-  href: mesh.md
+  items:
+    - name: Geometric types
+      href: plane/types.md
+    - name: Extending, offsetting and combining
+      href: plane/editing.md
+    - name: Arcs
+      href: plane/arcs.md
+    - name: Circles, ellipses, rays and infinite lines
+      href: plane/curves.md
+    - name: Splines
+      href: plane/splines.md
+    - name: Moving and asking
+      href: plane/moving.md
 - name: Geometry in space
   href: solid.md
-- name: Meshing in space
-  href: mesh3.md
-- name: "Meshing in space: cases and checks"
-  href: mesh3-report.md
+  items:
+    - name: Geometric types
+      href: solid/types.md
+    - name: Asking a body
+      href: solid/asking.md
+    - name: Asking every shape
+      href: solid/shapes.md
+    - name: Infinite lines and balls
+      href: solid/lines-balls.md
+    - name: Splitting, extending and offsetting
+      href: solid/splitting.md
+    - name: Combining bodies
+      href: solid/booleans.md
+    - name: Closing, making, weighing and merging
+      href: solid/making.md
+    - name: Arcs in space
+      href: solid/arcs.md
+    - name: Ellipses and splines in space
+      href: solid/curves.md
+    - name: Clashes and large meshes
+      href: solid/clash.md
+    - name: Between the plane and space, and local frames
+      href: solid/frames.md
+- name: DXF
+  href: dxf/index.md
+  items:
+    - name: The drawing, its tables and layouts
+      href: dxf/drawing.md
+    - name: Entities and curves
+      href: dxf/entities.md
+    - name: Fonts and text
+      href: dxf/text.md
+    - name: Blocks and attributes
+      href: dxf/blocks.md
+    - name: Hatches, leaders and dimensions
+      href: dxf/annotation.md
+    - name: Tables of cells
+      href: dxf/tables.md
+    - name: Images, wipeouts and OLE objects
+      href: dxf/images.md
+    - name: Editing rules and what the model does not do
+      href: dxf/rules.md
+    - name: Reading and writing shapes
+      href: dxf/reader.md
+    - name: "Editing a DXF drawing, step by step"
+      href: dxf-editing-example.md
+- name: Meshing
+  items:
+    - name: Meshing the plane
+      href: mesh.md
+    - name: Meshing in space
+      href: mesh3.md
 - name: Label placement
   href: arrange.md
 - name: Packing boxes onto sheets
   href: packing.md
 - name: Volume take-off
   href: takeoff.md
+- name: Checks and reports
+  items:
+    - name: "DXF: checking against AutoCAD"
+      href: dxf-autocad-checks.md
+    - name: "Meshing in space: cases and checks"
+      href: mesh3-report.md

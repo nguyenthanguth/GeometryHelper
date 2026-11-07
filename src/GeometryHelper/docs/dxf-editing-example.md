@@ -1,6 +1,6 @@
 # Editing a drawing, step by step
 
-One drawing is opened, edited and saved here with the editing model of [Shared types](common.md#editing-a-dxf-file), the
+One drawing is opened, edited and saved here with the editing model of [Shared types](dxf/index.md#editing-a-dxf-file), the
 way a plugin of AutoCAD would edit it, and two of its entities are copied into a second drawing. Every snippet was built and run
 against the library on .NET 8, one after the other as a single program, and every number in the text is what it printed.
 

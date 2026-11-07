@@ -1,6 +1,6 @@
 # Checking against AutoCAD
 
-The editing model of [Shared types](common.md#editing-a-dxf-file) was held against ezdxf 1.4.5, which recovered and audited
+The editing model of [Shared types](dxf/index.md#editing-a-dxf-file) was held against ezdxf 1.4.5, which recovered and audited
 every file it wrote with nothing to fix and read back every value set, and against the members AutoCAD's .NET API declares.
 What neither can say is what AutoCAD itself makes of a few of the files: the points below were decided from the DXF
 reference, ezdxf and the files AutoCAD writes, and are for the maintainer to try in AutoCAD. Each says what to try, what the

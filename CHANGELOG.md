@@ -6,6 +6,11 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** The guides are split into pages of a few hundred lines each, their words unchanged: the plane into
+`plane/`, space into `solid/`, and the DXF half of the shared types into `dxf/`, each page in the site's menu. The old
+pages stay, each with a list of its pages; a bookmark to a section that moved lands on that list, by the link to the
+page the section is on now.
+
 ## 13.11.0 (2026-11-07)
 
 A minor release: public types and members are added and none is removed or renamed in any of the four libraries. OLE
