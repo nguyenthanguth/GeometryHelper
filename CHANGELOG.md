@@ -6,6 +6,17 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+## 13.11.0 (2026-11-07)
+
+A minor release: public types and members are added and none is removed or renamed in any of the four libraries. OLE
+objects in DXF drawings, a picture pasted, a sheet of Excel embedded or a document linked, read until now as
+`DxfUnknownEntity`, are `DxfOle2Frame`: read as AutoCAD 2021 reads them, from the corners in the head of their binary,
+with the picture of a static one given back as its .bmp, .wmf or .emf; moved, scaled, mirrored and sized upright as
+AutoCAD 2021 does; and made in code from a .bmp or a .png, which AutoCAD's .NET API cannot. Checked in AutoCAD 2021,
+whose console read back every frame the library read, moved or made, AUDIT finding no error, and whose GUI drew the
+pictures the library made and moved, and against drawings its GUI saved after ROTATE, SCALE, MIRROR and a paste into
+paper space. A drawing only read and saved is written as it was, to the byte.
+
 **NEW.** OLE2FRAME entities get a class of their own, `DxfOle2Frame`, as AutoCAD's `Ole2Frame`, with `DxfRectangle3d`,
 `DxfOle2FrameItemType` and `DxfOlePictureFormat`. The frame is read from the four corners in the head of its binary, as
 AutoCAD 2021 reads it, not from groups 10 and 11, which it ignores: a picture of 3 by 2 pixels pasted with its lower

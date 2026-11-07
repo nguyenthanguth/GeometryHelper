@@ -29,6 +29,10 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>
+      NEW IN 13.11.0
+      - GeometryHelper.TeklaConvert is released at 13.11.0 with GeometryHelper, which reads, moves and makes OLE objects
+        in DXF drawings as AutoCAD 2021 does; nothing in TeklaConvert changes.
+
       NEW IN 13.10.0
       - GeometryHelper.TeklaConvert is released at 13.10.0 with GeometryHelper, whose DXF entities give their shapes
         typed and take shapes of the plane back; nothing in TeklaConvert changes.

@@ -14,28 +14,32 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement bin-packing sheet-layout cad autocad tekla bim drawing</PackageTags>
     <PackageReleaseNotes>
-      NEW IN 13.10.0
+      NEW IN 13.11.0
 
-      A minor release: public members added, none removed or renamed. A drawing only read and saved is written as it
-      was, to the byte.
+      A minor release: public types and members added, none removed or renamed. A drawing only read and saved is
+      written as it was, to the byte.
 
-      NEW, DXF: shapes typed
-      - The entities give their shapes typed, by CadConvert's names: DxfLine.ToGeoLine3() and ToGeoLine2(), and the same
-        on DxfCircle, DxfArc, DxfEllipse (ToGeoEllipse of a whole one, ToGeoSpline of a part), DxfRay, DxfXline,
-        DxfSpline, DxfDBPoint, DxfLeader, DxfFace, DxfSolid, and the polylines (ToGeoPolyline, ToGeoPolylineArc,
-        ToGeoPolygon, ToGeoPolygonArc; the straight two on DxfPolyline3d).
-      - In space, the shape GetGeometry() gives, to the bit; in the plane, what DxfReader reads with PlanAs2D, to the
-        bit, an entity off the floor refused rather than its z dropped: the line from (0, 0, 0) to (100, 50, 0) is the
-        GeoLine2 from (0, 0) to (100, 50), and with a z of 5 at one end ToGeoLine2 refuses it.
-      - A polyline is given as the kind asked for: a loop joins the last vertex to the first, a chain of a closed one
-        runs back to its first vertex, a straight kind refuses an arc rather than cut it into chords.
+      NEW, DXF: OLE objects
+      - OLE2FRAME entities, read until now as DxfUnknownEntity, are DxfOle2Frame, after AutoCAD's Ole2Frame, with
+        DxfRectangle3d, DxfOle2FrameItemType and DxfOlePictureFormat. The frame is read from the four corners in the head
+        of its binary, as AutoCAD 2021 reads it, not from groups 10 and 11: Location (the lower left corner), Position3d,
+        WcsWidth, WcsHeight, ScaleWidth, ScaleHeight, Rotation, LockAspect, OutputQuality, AutoOutputQuality.
+      - What the object is comes from its compound file, read by the library's own MS-CFB reader: Type (static, embedded,
+        linked), UserType, IsLinked, LinkName, LinkPath; GetCompoundDocument() and GetPictureData(out format) give the
+        compound file and the .bmp, .wmf or .emf of a static picture.
+      - TransformBy moves, scales by one factor and mirrors a frame about a line along x or y, as AutoCAD 2021 keeps it
+        upright, writing the corners into the head AutoCAD reads; a turn, shear or stretch is refused. Position3d,
+        WcsWidth, WcsHeight, ScaleWidth, ScaleHeight, LockAspect and OutputQuality are set as AutoCAD sets them; a frame
+        copied into model or paper space gets that space's marks.
+      - new DxfOle2Frame(bytes) makes a static picture of a .bmp or a .png (every kind of PNG, alpha laid over white),
+        which AutoCAD's .NET API cannot, at its natural size in millimetres: 610 by 224 pixels of 96 dots an inch are
+        161.38 by 59.26.
+      - Checked in AutoCAD 2021: its console read back every frame read, moved or made, AUDIT finding no error; Windows'
+        OLE loaded every compound file made; AutoCAD's GUI drew the pictures made and moved.
 
-      NEW, DXF: the way back
-      - SetFromGeCurve takes the shapes of the plane (written at z 0 on the normal up), and the polylines take chains
-        and loops: within the point tolerance of the polyline's own plane on its own normal, so a mirrored polyline
-        stays mirrored; otherwise in their own plane; a chain on a line off that plane is refused, never flattened.
-      - The handle, layer, look and extended data are kept; a shape written as the current one leaves the record as it
-        is, widths and fitting and all.
+      CHANGED, DXF: results callers will see change
+      - An OLE2FRAME read from a file is a DxfOle2Frame, not a DxfUnknownEntity; its GetGeometry, GeometricExtents and
+        Explode give its frame, and UpdateExt takes it into the extents.
 
       Details in CHANGELOG.md.
 
