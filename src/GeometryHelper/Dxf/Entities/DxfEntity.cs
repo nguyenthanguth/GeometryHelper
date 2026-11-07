@@ -699,7 +699,7 @@ namespace GeometryHelper.Dxf
         /// shear it; nothing is written then.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the entity is erased.</exception>
         /// <exception cref="NotSupportedException">Thrown for an entity whose type the library keeps as it is, a
-        /// <see cref="DxfUnknownEntity"/>, and for a <see cref="DxfOle2Frame"/>, which it does not move yet.</exception>
+        /// <see cref="DxfUnknownEntity"/>.</exception>
         public void TransformBy(GeoTransform3 transform)
         {
             if (transform == null)
@@ -777,8 +777,8 @@ namespace GeometryHelper.Dxf
         /// MTEXT or an INSERT. The identity, to the bit, gives the entity's <see cref="Clone"/>, of any class.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the entity is erased, as AutoCAD refuses an erased object.</exception>
-        /// <exception cref="NotSupportedException">Thrown for a <see cref="DxfUnknownEntity"/> or a <see cref="DxfOle2Frame"/>
-        /// given another transformation than the identity.</exception>
+        /// <exception cref="NotSupportedException">Thrown for a <see cref="DxfUnknownEntity"/> given another transformation
+        /// than the identity.</exception>
         public DxfEntity GetTransformedCopy(GeoTransform3 transform) => TransformedCopy(transform, true);
 
         /// <summary>

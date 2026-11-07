@@ -47,8 +47,8 @@ namespace GeometryHelper.Dxf
         /// Every entity is checked before anything is written, its copy and its copy moved, so that a drawing this one cannot
         /// hold, a SPLINE into one of R12 or an INSERT the transformation would shear, changes nothing; nor does a drawing whose
         /// model space holds an entity of a type the library has no class for (<see cref="DxfUnknownEntity"/>, as a SHAPE or
-        /// a REGION) or an OLE2FRAME, whose geometry is not moved, by any transformation but the identity. The extents of the
-        /// header grow by the entities where they are moved to. The other drawing is left as it is.
+        /// a REGION), by any transformation but the identity, nor one holding an OLE2FRAME by one that would turn it. The
+        /// extents of the header grow by the entities where they are moved to. The other drawing is left as it is.
         /// </para>
         /// </remarks>
         /// <param name="transform">The transformation the entities are moved by.</param>
@@ -64,7 +64,7 @@ namespace GeometryHelper.Dxf
         /// before anything is written: this drawing's P holding an INSERT of M, the other's A a line and M an INSERT of P,
         /// neither A nor M is merged.</exception>
         /// <exception cref="NotSupportedException">Thrown when the transformation is not the identity and model space holds an
-        /// entity of a type the library has no class for, or an OLE2FRAME; nothing is written then.</exception>
+        /// entity of a type the library has no class for; nothing is written then.</exception>
         public void Insert(GeoTransform3 transform, DxfDatabase dataBase, bool preserveSourceDatabase)
         {
             if (transform == null)

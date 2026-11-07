@@ -267,25 +267,25 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AFrame_IsNotMovedYet_ButIsCopiedAsItIs_AndAnInsertExplodedLeavesItOutAsBefore()
+        public void AFrameCopiedMoved_IsACopyAtItsNewPlace_TheFrameLeftWhereItWas()
         {
             DxfDatabase db = DxfDatabase.Parse(DxfOle2FrameDrawings.R2018);
             DxfOle2Frame frame = Of(db, "D10");
             byte[] before = Saved(db);
 
-            Assert.Throws<NotSupportedException>(() => frame.TransformBy(GeoTransform3.Translation(new GeoVector3(5, 0, 0))));
-            Assert.Throws<NotSupportedException>(() => frame.GetTransformedCopy(GeoTransform3.Translation(new GeoVector3(5, 0, 0))));
+            var copy = Assert.IsType<DxfOle2Frame>(frame.GetTransformedCopy(GeoTransform3.Translation(new GeoVector3(5, 0, 0))));
             Assert.Equal(before, Saved(db));
+            Same(P(15, 20, 0), copy.Location);
             Assert.IsType<DxfOle2Frame>(frame.GetTransformedCopy(GeoTransform3.Identity));
 
-            // In a block, the frame is left out of what its INSERT explodes into, as a type the library does not move.
+            // In a block, the frame is placed with the rest of what its INSERT at the origin explodes into.
             var block = new DxfBlockTableRecord { Name = "PICTURE" };
             db.BlockTable.Add(block);
             block.AppendEntity(frame.Clone());
             block.AppendEntity(new DxfLine(P(0, 0, 0), P(10, 0, 0)));
             var insert = new DxfBlockReference(P(0, 0, 0), block);
             db.ModelSpace.AppendEntity(insert);
-            Assert.IsType<DxfLine>(Assert.Single(insert.Explode()));
+            Assert.Equal(2, insert.Explode().Count);
         }
 
         [Fact]

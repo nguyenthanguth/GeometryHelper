@@ -1736,8 +1736,8 @@ namespace GeometryHelper.Dxf
 
             foreach (DxfEntity entity in entities)
             {
-                // An OLE2FRAME, which the library does not move yet, is left out as a type it keeps as it is, whatever the placing.
-                if (!(entity is DxfUnknownEntity || entity is DxfOle2Frame))
+                // An OLE2FRAME is copied where the placing keeps it upright, and left out, as AutoCAD cannot turn it, where not.
+                if (!(entity is DxfUnknownEntity))
                 {
                     try
                     {

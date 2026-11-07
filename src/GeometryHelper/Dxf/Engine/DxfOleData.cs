@@ -93,6 +93,55 @@ namespace GeometryHelper.Dxf
             return bytes;
         }
 
+        /// <summary>
+        /// The lines of binary given, written anew with the bytes they hold from the first replaced by <paramref name="bytes"/>,
+        /// each line keeping its count of bytes and the case of its letters, so that a line those bytes are not in comes back as
+        /// it was; null where a line holds anything but pairs of hexadecimal digits, which could not be written back as it was,
+        /// or the lines hold fewer bytes than given.
+        /// </summary>
+        internal static string[] Patched(IReadOnlyList<string> lines, byte[] bytes)
+        {
+            var written = new string[lines.Count];
+            int at = 0;
+
+            for (int i = 0; i < lines.Count; i++)
+            {
+                string line = lines[i] ?? string.Empty;
+
+                if (line.Length % 2 != 0 || Digits(line) != line.Length)
+                {
+                    return null;
+                }
+
+                bool lower = false;
+
+                foreach (char c in line)
+                {
+                    lower |= c >= 'a' && c <= 'f';
+                }
+
+                string digits = lower ? "0123456789abcdef" : "0123456789ABCDEF";
+                var text = new StringBuilder(line.Length);
+
+                for (int k = 0; k < line.Length; k += 2)
+                {
+                    if (at < bytes.Length)
+                    {
+                        text.Append(digits[bytes[at] >> 4]).Append(digits[bytes[at] & 15]);
+                        at++;
+                    }
+                    else
+                    {
+                        text.Append(line, k, 2);
+                    }
+                }
+
+                written[i] = text.ToString();
+            }
+
+            return at < bytes.Length ? null : written;
+        }
+
         /// <summary>The hexadecimal digits of a line of binary, each half a byte, as <see cref="Binary"/> reads them.</summary>
         internal static int Digits(string line)
         {

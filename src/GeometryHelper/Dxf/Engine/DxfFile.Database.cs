@@ -3526,21 +3526,34 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            // An IMAGE or a WIPEOUT, which the reader reads no shape of, grows them by its own extents. An object made here
-            // only to read them is not kept, so that the entity being appended, bound to the record next, is still the one
-            // its space gives back.
-            if (IsRaster(item.Type))
+            // An IMAGE, a WIPEOUT or an OLE2FRAME, which the reader reads no shape of, grows them by its own extents. An object
+            // made here only to read them is not kept, so that the entity being appended, bound to the record next, is still
+            // the one its space gives back.
+            bool ole = string.Equals(item.Type, "OLE2FRAME", StringComparison.Ordinal);
+
+            if (IsRaster(item.Type) || ole)
             {
                 bool kept = item.Wrapper != null;
-                DxfRasterImage image = DxfEntity.Of(item) as DxfRasterImage;
+                DxfEntity entity = DxfEntity.Of(item);
                 if (!kept)
                 {
                     item.ReplaceWrapper(null);
                 }
 
-                if (image != null)
+                if (entity is DxfRasterImage || entity is DxfOle2Frame)
                 {
-                    Geometry.GeoAabb3 box = image.GeometricExtents;
+                    Geometry.GeoAabb3 box;
+
+                    try
+                    {
+                        box = entity.GeometricExtents;
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // A frame of no corners has no extents to grow them by.
+                        return;
+                    }
+
                     Grow(new[] { box.Min.X, box.Min.Y, box.Min.Z, box.Max.X, box.Max.Y, box.Max.Z }, item.IsPaper);
                     return;
                 }

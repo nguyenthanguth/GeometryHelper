@@ -501,7 +501,7 @@ Dxf in front and their members' names.
 | `DBText`, `MText` | `DxfDBText`, `DxfMText` | No fonts: a text's `GeometricExtents` is its insertion point, and `AdjustAlignment` is not there. `TextStyleId` is `TextStyle`, the record, beside `TextStyleName`. |
 | `BlockReference`, `MInsertBlock`, `AttributeReference`, `AttributeDefinition` | `DxfBlockReference`, `DxfMInsertBlock`, `DxfAttributeReference`, `DxfAttributeDefinition` | `new DxfBlockReference(position, block)` takes the block record, not its id; `AttributeCollection.AppendAttribute` takes the attribute itself. |
 | `RasterImage`, `Wipeout`, `RasterImageDef`, `RasterVariables` | `DxfRasterImage`, `DxfWipeout`, `DxfRasterImageDef`, `DxfRasterVariables` | Read, moved, clipped and copied; no pixel is read. `Orientation` is `GetOrientation` and `SetOrientation`, an origin and two sides of their lengths, where `GeoCoordinateSystem3` would make them unit and square. `ImageDefId` is `ImageDef`, the object. See [Images and wipeouts](#images-and-wipeouts). |
-| `Ole2Frame`, `Rectangle3d`, `Ole2Frame.ItemType` | `DxfOle2Frame`, `DxfRectangle3d`, `DxfOle2FrameItemType` | Read and copied; not moved or made yet. The frame is read from the corners in its binary, as AutoCAD reads it; `GetCompoundDocument()` and `GetPictureData(out format)` are the library's own. `OleObject` and `Position2d`, of the running application and its window, are not there. See [OLE objects](#ole-objects). |
+| `Ole2Frame`, `Rectangle3d`, `Ole2Frame.ItemType` | `DxfOle2Frame`, `DxfRectangle3d`, `DxfOle2FrameItemType` | Read, copied, moved and sized as AutoCAD 2021 does, upright; not made yet. The frame is read from and written to the corners in its binary, as AutoCAD reads it; `GetCompoundDocument()` and `GetPictureData(out format)` are the library's own. `OleObject` and `Position2d`, of the running application and its window, are not there. See [OLE objects](#ole-objects). |
 | `Hatch`, `Leader`, `MLeader` | `DxfHatch`, `DxfLeader`, `DxfMLeader` | A loop is a `DxfHatchLoop` of the library's shapes; a line of `GetHatchLinesData` is a `GeoLine2`; `EvaluateLeader` is not there. |
 | `RotatedDimension`, `AlignedDimension`, `RadialDimension`, `DiametricDimension`, `LineAngularDimension2`, `Point3AngularDimension`, `ArcDimension`, `OrdinateDimension`, `RadialDimensionLarge` | the same with Dxf in front | `RecomputeDimensionBlock` is not there: the block that draws a dimension is left for AutoCAD to draw anew. |
 | `Table` | `DxfTable` | Cells read and set; its block is left for AutoCAD to draw anew (`RecomputeTableBlock` is not there); a shear or a scale unlike along its axes refused. `table.Cells[r, c]` is a `DxfCell`, `Rows` and `Columns` lists of `DxfRow` and `DxfColumn`; `SetTextStyle` takes the record, not its id. The forms by row type (`SetAlignment(align, rowTypes)` and the like) are not there. |
@@ -3137,7 +3137,8 @@ A picture of 3 by 2 pixels pasted with its lower left corner at (10, 20, 0) and 
 (10, 20, 0), its lower left corner, as AutoCAD 2021 gives it, where the DXF reference has the upper left of group 10;
 `Position3d` its four corners as a `DxfRectangle3d`, as they are held, turned, sheared or out of the plane xy; `WcsWidth`
 30 and `WcsHeight` 20, the run of its top along x and of its left along y, so that the frame turned 30 degrees is 25.98
-wide, as AutoCAD 2021 works them out; `ScaleWidth` and `ScaleHeight` 100, as AutoCAD 2021 gives every frame it reads;
+wide, as AutoCAD 2021 works them out; `ScaleWidth` and `ScaleHeight` its size in percent of the size AutoCAD keeps for
+it at 100 percent (codes 41 and 42 of the extended data), 100 for the picture as pasted and 50 once scaled by a half;
 `GeometricExtents` the box of the corners, (10, 20, 0) to (40, 40, 0); `GetGeometry()` the closed `GeoPolyline3` of the
 corners from the upper left, which `IntersectWith` crosses; and `Explode()` four LINEs along its edges, as AutoCAD 2021
 gives four. `Rotation` (in radians), `LockAspect` and `AutoOutputQuality` are read from the extended data AutoCAD keeps
@@ -3174,10 +3175,34 @@ drawing, its corners and user type gone, and says nothing. `Rotation` is the num
 stored given as it is; AutoCAD 2021 writes 0 for the NaN it holds in memory after a quarter turn.
 
 A frame is copied as it is, by `Clone()` into its own drawing or another, or into a block, its binary and extended data
-byte for byte; a drawing only read and saved is written as it was. It is not moved yet: `TransformBy`, and
-`GetTransformedCopy` with anything but the identity, throw `NotSupportedException`, as AutoCAD reads the frame from the
-corners in the binary, which the library does not rewrite; an INSERT exploded leaves it out, and the actions of a dynamic
-block refuse it, as for an entity of a type the library keeps as it is. Nor does the library make one. `OleObject`, the
+byte for byte, and given the marks AutoCAD 2021 writes for the space it is copied into: the head's signature 0x5580
+and its u32 at 102 of 1 in model space, 0x5581 and 0 in paper space, and group 72 of 0 and 1. A drawing only read and
+saved is written as it was.
+
+AutoCAD 2021 keeps a frame upright: its ROTATE leaves a picture along x and y, its MIRROR puts it on the other side not
+turned over, its SCALE scales the corners and keeps the size at 100 percent. `TransformBy` moves a frame so: a move, a
+scale by one factor and a mirror about a line along x or y are taken, the corners written into the head of the binary,
+which AutoCAD reads, and into groups 10 and 11, only the lines of binary the head is in written anew; mirrored or turned
+half round, the frame is the box of its corners so moved; scaled, the size of its text (code 43) is scaled with it. A
+turn, a shear, a stretch along one axis or a move out of the plane xy is refused with `ArgumentException`, nothing
+written, and so is an INSERT exploded whose placing would do one of those, which leaves the frame out; the actions of a
+dynamic block refuse a frame. The picture 30 by 20 at (10, 20) scaled by a half about (10, 20) is 15 by 10 there, its
+`ScaleWidth` 50; mirrored about x = 40 it stands from (40, 20) to (70, 40).
+
+```csharp
+frame.TransformBy(GeoTransform3.Translation(new GeoVector3(100, 0, 0)));   // moved, as AutoCAD moves it
+frame.WcsWidth = 60;                 // 60 wide from its upper left corner, as high in measure where LockAspect
+frame.ScaleWidth = 50;               // half the width AutoCAD keeps at 100 percent
+frame.Position3d = new DxfRectangle3d(new GeoPoint3(10, 60, 0), new GeoPoint3(70, 60, 0),
+                                      new GeoPoint3(10, 20, 0), new GeoPoint3(70, 20, 0));
+frame.OutputQuality = 0;             // plotted monochrome (group 73)
+```
+
+`Position3d` takes a rectangle along x and y only; `WcsWidth`, `WcsHeight`, `ScaleWidth` and `ScaleHeight` keep the
+upper left corner, as AutoCAD 2021's do, and size the other side in the same measure where `LockAspect` is true;
+`LockAspect` and `OutputQuality` (0, 1 or 2) are written where AutoCAD keeps them, the extended data AutoCAD writes for a
+frame made where a record has none. `Rotation` and `AutoOutputQuality` are read only: AutoCAD 2021 turns no frame, and
+its setter of the second also changes the quality. Nor does the library make a frame yet. `OleObject`, the
 object of the running application, and `Position2d`, the frame in the pixels of the window it is shown in, are not given:
 a file holds neither. The OLEFRAME of R13, an object of OLE 1 that AutoCAD's .NET API has no class for, stays a
 `DxfUnknownEntity`. `DxfReader` reads no OLE2FRAME, as before.
@@ -3282,7 +3307,7 @@ hatch, a dimension) refuses a transformation that flattens that plane:
 | `DxfTable` | a move, a turn, a tilt, a mirror and a scale alike in every direction, its sizes scaled with it, the block with it where no other entity names it | a shear or a scale unlike along its axes, which would make its cells other than the rectangles AutoCAD lays it out in |
 | `DxfViewport` | a move and a scale alike, on its sheet, its view kept | a turn, a mirror or a stretch |
 | `DxfRasterImage`, `DxfWipeout` | any, as AutoCAD 2021's `TransformBy` takes it: the corner moved, the pixel across and up turned and scaled, a shear leaning the sides and a mirror showing the image from behind; `GetTransformedCopy` of a wipeout refuses an uneven scale and a shear, as AutoCAD answers eCannotScaleNonUniformly | one that takes a side to no length, or the two onto one line |
-| `DxfOle2Frame` | nothing yet | everything, with `NotSupportedException`: AutoCAD reads the frame from the corners in its binary, which the library does not rewrite yet |
+| `DxfOle2Frame` | a move, a scale by one factor and a mirror about a line along x or y, the corners written into the head of its binary that AutoCAD reads; mirrored, the box of its corners, the picture not turned over, as AutoCAD 2021 mirrors one | a turn, a shear, a stretch or a move out of the plane xy, with `ArgumentException`: AutoCAD 2021 keeps a frame upright |
 | `DxfUnknownEntity` | nothing | everything, with `NotSupportedException`: its geometry is kept as the file has it |
 
 **Exploding.** `Explode()` is every entity's, as AutoCAD's is, and gives new entities in no file, to be appended. Each class

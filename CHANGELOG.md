@@ -8,33 +8,44 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 **NEW.** OLE2FRAME entities get a class of their own, `DxfOle2Frame`, as AutoCAD's `Ole2Frame`, with `DxfRectangle3d`,
 `DxfOle2FrameItemType` and `DxfOlePictureFormat`. The frame is read from the four corners in the head of its binary, as
-AutoCAD 2021 reads it, not from groups 10 and 11, which it ignores: a picture of 3 by 2 pixels pasted with its lower left
-corner at (10, 20, 0) and stretched to 30 by 20 gives `Location` (10, 20, 0), the lower left corner, as AutoCAD 2021
-gives it; `Position3d` the four corners as held, turned, sheared or tilted; `WcsWidth` 30 and `WcsHeight` 20, the runs
-along x and y as AutoCAD works them out (25.98 for the frame 30 wide turned 30 degrees); `ScaleWidth` and `ScaleHeight`
-100, as AutoCAD 2021 gives every frame it reads; `Rotation` (radians), `LockAspect` and `AutoOutputQuality` from the
-extended data between OLEBEGIN and OLEEND, and `OutputQuality` from group 73. What the object is comes from its compound
-file, read by the library's own reader of MS-CFB (FAT, DIFAT past 109 sectors, mini stream, directory tree): `Type`
-(static, embedded or linked, as MFC finds it), `UserType` (`Picture (Device Independent Bitmap)`, `OLE Package`),
+AutoCAD 2021 reads it, not from groups 10 and 11, which it ignores: a picture of 3 by 2 pixels pasted with its lower
+left corner at (10, 20, 0) and stretched to 30 by 20 gives `Location` (10, 20, 0), the lower left corner, as AutoCAD
+2021 gives it; `Position3d` the four corners as held, turned, sheared or tilted; `WcsWidth` 30 and `WcsHeight` 20, the
+runs along x and y as AutoCAD works them out (25.98 for the frame 30 wide turned 30 degrees); `ScaleWidth` and
+`ScaleHeight` against the size AutoCAD keeps at 100 percent; `Rotation` (radians), `LockAspect` and `AutoOutputQuality`
+from the extended data between OLEBEGIN and OLEEND, and `OutputQuality` from group 73. What the object is comes from its
+compound file, read by the library's own reader of MS-CFB (FAT, DIFAT past 109 sectors, mini stream, directory tree):
+`Type` (static, embedded or linked, as MFC finds it), `UserType` (`Picture (Device Independent Bitmap)`, `OLE Package`),
 `IsLinked`, and `LinkName` and `LinkPath` of a link's moniker (`C:\Drawings\cost.xlsx!Sheet1!R1C1:R4C3`,
 `C:\Drawings\cost.xlsx`). The library's own `GetCompoundDocument()` gives the compound file as written, and
 `GetPictureData(out format)` the picture of a static object as a .bmp, a placeable .wmf or an .emf. `GeometricExtents`
 is the box of the corners, `GetGeometry()` their closed `GeoPolyline3`, which `IntersectWith` crosses, and `Explode()`
-gives four LINEs along the edges, as AutoCAD 2021 gives four. A frame is copied by `Clone()` into its own drawing, another
-or a block with its binary and extended data byte for byte, and a drawing only read and saved is written as it was. A
-binary damaged never makes a getter throw: the corners come from 10 and 11 where the head holds none, the kind and user
-type from groups 71 and 3 where the compound file cannot be read or names none, and there is no picture, said in the log
-at Debug. A frame of no corners at all, as accoreconsole writes one it could not read, stands at the origin and explodes
-into nothing, and `GeometricExtents` throws `InvalidOperationException` for it, as for any entity with no extents, so
-that `UpdateExt` passes it over. `Rotation` is the number stored, a NaN another writer stored given as it is. The rules
-are AutoCAD 2021's own, which read the frame from the head where 10 and 11 said otherwise and gave the lower left corner
-as `Location`. A frame is not moved or made yet: `TransformBy` throws `NotSupportedException`, as before. The OLEFRAME of
-R13 stays a `DxfUnknownEntity`.
+gives four LINEs along the edges, as AutoCAD 2021 gives four. A frame is copied by `Clone()` into its own drawing,
+another or a block with its binary and extended data byte for byte, and a drawing only read and saved is written as it
+was. A binary damaged never makes a getter throw: the corners come from 10 and 11 where the head holds none, the kind
+and user type from groups 71 and 3 where the compound file cannot be read or names none, and there is no picture, said
+in the log at Debug. A frame of no corners at all, as accoreconsole writes one it could not read, stands at the origin
+and explodes into nothing, and `GeometricExtents` throws `InvalidOperationException` for it, as for any entity with no
+extents, so that `UpdateExt` passes it over. `Rotation` is the number stored, a NaN another writer stored given as it
+is. The rules are AutoCAD 2021's own, which read the frame from the head where 10 and 11 said otherwise and gave the
+lower left corner as `Location`. The OLEFRAME of R13 stays a `DxfUnknownEntity`.
+
+**NEW.** A `DxfOle2Frame` is moved and sized as AutoCAD 2021 does, upright, checked against drawings its GUI saved:
+`TransformBy` takes a move, a scale by one factor and a mirror about a line along x or y, writing the corners into the
+head of the binary, which AutoCAD reads, and into groups 10 and 11, only the lines of binary the head is in written
+anew; a mirrored frame is the box of its corners, the picture not turned over, and a scaled one keeps its size at 100
+percent and scales its text size, as AutoCAD's SCALE does. A turn, a shear or a stretch is refused with
+`ArgumentException`. The picture 30 by 20 at (10, 20) scaled by a half is 15 by 10, its `ScaleWidth` 50, which is now
+the size against the one AutoCAD keeps at 100 percent (codes 41 and 42 of the extended data). `Position3d`, `WcsWidth`,
+`WcsHeight`, `ScaleWidth`, `ScaleHeight`, `LockAspect` and `OutputQuality` are set as AutoCAD 2021 sets them, the upper
+left corner kept. A frame copied into model or paper space is given the head's signature, u32 and group 72 AutoCAD
+writes for that space; an INSERT exploded places its frames where the placing keeps them upright.
 
 **CHANGED.** An OLE2FRAME read from a file is a `DxfOle2Frame`, not a `DxfUnknownEntity`: code that found one by
-`DxfUnknownEntity.DxfName == "OLE2FRAME"` finds it by its class. Its `GetGeometry()` and `GeometricExtents` give its frame
-where they gave nothing and threw, so `UpdateExt` takes it into the extents; `Explode()` gives four LINEs where it threw;
-`IntersectWith` crosses its frame. `TransformBy` still refuses it, an INSERT exploded still leaves it out, and the actions
+`DxfUnknownEntity.DxfName == "OLE2FRAME"` finds it by its class. Its `GetGeometry()` and `GeometricExtents` give its
+frame where they gave nothing and threw, so `UpdateExt` takes it into the extents; `Explode()` gives four LINEs where it
+threw; `IntersectWith` crosses its frame. `TransformBy` moves it where the transformation keeps it upright and refuses
+it with `ArgumentException` where not, an INSERT exploded places it where its placing keeps it upright, and the actions
 of a dynamic block still refuse it. `DxfReader` reads none, as before.
 
 ## 13.10.0 (2026-11-05)
