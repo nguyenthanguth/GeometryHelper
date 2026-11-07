@@ -41,6 +41,13 @@ the size against the one AutoCAD keeps at 100 percent (codes 41 and 42 of the ex
 left corner kept. A frame copied into model or paper space is given the head's signature, u32 and group 72 AutoCAD
 writes for that space; an INSERT exploded places its frames where the placing keeps them upright.
 
+**NEW.** `new DxfOle2Frame(bytes)` makes a static picture of a .bmp or a .png, as AutoCAD 2021 makes one of a picture
+pasted, which AutoCAD's .NET API cannot: the bitmap in a compound file of the class StaticDib written by the library's
+own writer (MS-CFB version 3, a DIFAT past 7 MB), behind AutoCAD's head and with its extended data. A PNG of any kind is
+read by the library's own decoder into a bitmap of 32 bits a pixel, its alpha laid over white. The frame stands at the
+picture's natural size in millimetres, 610 by 224 pixels of 96 dots an inch being 161.38 by 59.26, and the same picture
+gives the same bytes each time.
+
 **CHANGED.** An OLE2FRAME read from a file is a `DxfOle2Frame`, not a `DxfUnknownEntity`: code that found one by
 `DxfUnknownEntity.DxfName == "OLE2FRAME"` finds it by its class. Its `GetGeometry()` and `GeometricExtents` give its
 frame where they gave nothing and threw, so `UpdateExt` takes it into the extents; `Explode()` gives four LINEs where it

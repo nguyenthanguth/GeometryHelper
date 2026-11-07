@@ -501,7 +501,7 @@ Dxf in front and their members' names.
 | `DBText`, `MText` | `DxfDBText`, `DxfMText` | No fonts: a text's `GeometricExtents` is its insertion point, and `AdjustAlignment` is not there. `TextStyleId` is `TextStyle`, the record, beside `TextStyleName`. |
 | `BlockReference`, `MInsertBlock`, `AttributeReference`, `AttributeDefinition` | `DxfBlockReference`, `DxfMInsertBlock`, `DxfAttributeReference`, `DxfAttributeDefinition` | `new DxfBlockReference(position, block)` takes the block record, not its id; `AttributeCollection.AppendAttribute` takes the attribute itself. |
 | `RasterImage`, `Wipeout`, `RasterImageDef`, `RasterVariables` | `DxfRasterImage`, `DxfWipeout`, `DxfRasterImageDef`, `DxfRasterVariables` | Read, moved, clipped and copied; no pixel is read. `Orientation` is `GetOrientation` and `SetOrientation`, an origin and two sides of their lengths, where `GeoCoordinateSystem3` would make them unit and square. `ImageDefId` is `ImageDef`, the object. See [Images and wipeouts](#images-and-wipeouts). |
-| `Ole2Frame`, `Rectangle3d`, `Ole2Frame.ItemType` | `DxfOle2Frame`, `DxfRectangle3d`, `DxfOle2FrameItemType` | Read, copied, moved and sized as AutoCAD 2021 does, upright; not made yet. The frame is read from and written to the corners in its binary, as AutoCAD reads it; `GetCompoundDocument()` and `GetPictureData(out format)` are the library's own. `OleObject` and `Position2d`, of the running application and its window, are not there. See [OLE objects](#ole-objects). |
+| `Ole2Frame`, `Rectangle3d`, `Ole2Frame.ItemType` | `DxfOle2Frame`, `DxfRectangle3d`, `DxfOle2FrameItemType` | Read, copied, moved and sized as AutoCAD 2021 does, upright; a static picture made of a .bmp or a .png by `new DxfOle2Frame(bytes)`, which AutoCAD's .NET API cannot. The frame is read from and written to the corners in its binary, as AutoCAD reads it; `GetCompoundDocument()` and `GetPictureData(out format)` are the library's own. `OleObject` and `Position2d`, of the running application and its window, are not there. See [OLE objects](#ole-objects). |
 | `Hatch`, `Leader`, `MLeader` | `DxfHatch`, `DxfLeader`, `DxfMLeader` | A loop is a `DxfHatchLoop` of the library's shapes; a line of `GetHatchLinesData` is a `GeoLine2`; `EvaluateLeader` is not there. |
 | `RotatedDimension`, `AlignedDimension`, `RadialDimension`, `DiametricDimension`, `LineAngularDimension2`, `Point3AngularDimension`, `ArcDimension`, `OrdinateDimension`, `RadialDimensionLarge` | the same with Dxf in front | `RecomputeDimensionBlock` is not there: the block that draws a dimension is left for AutoCAD to draw anew. |
 | `Table` | `DxfTable` | Cells read and set; its block is left for AutoCAD to draw anew (`RecomputeTableBlock` is not there); a shear or a scale unlike along its axes refused. `table.Cells[r, c]` is a `DxfCell`, `Rows` and `Columns` lists of `DxfRow` and `DxfColumn`; `SetTextStyle` takes the record, not its id. The forms by row type (`SetAlignment(align, rowTypes)` and the like) are not there. |
@@ -3202,7 +3202,25 @@ frame.OutputQuality = 0;             // plotted monochrome (group 73)
 upper left corner, as AutoCAD 2021's do, and size the other side in the same measure where `LockAspect` is true;
 `LockAspect` and `OutputQuality` (0, 1 or 2) are written where AutoCAD keeps them, the extended data AutoCAD writes for a
 frame made where a record has none. `Rotation` and `AutoOutputQuality` are read only: AutoCAD 2021 turns no frame, and
-its setter of the second also changes the quality. Nor does the library make a frame yet. `OleObject`, the
+its setter of the second also changes the quality.
+
+`new DxfOle2Frame(bytes)` makes a static picture of a .bmp or a .png, as AutoCAD 2021 makes one of a picture pasted,
+which its .NET API cannot: the bitmap as the stream CONTENTS of a compound file of the class StaticDib, as Windows' OLE
+saves it, behind AutoCAD's head and with the extended data AutoCAD writes. A PNG of any kind (grey, true colour or a
+palette, with or without alpha, 1 to 16 bits a sample, interlaced or not, of up to 64 million pixels) is read into a
+bitmap of 32 bits a pixel, its alpha laid over white; a JPEG or another kind is refused, the caller turning it into one
+of these first. The frame stands with its lower left corner at the origin at the picture's natural size in millimetres,
+its pixels over its pixels a metre (3 780, 96 dots an inch, where it gives none): 610 by 224 pixels of 96 dots an inch
+are 161.38 by 59.26. The same picture gives the same bytes each time.
+
+```csharp
+var logo = new DxfOle2Frame(File.ReadAllBytes("logo.png"));
+db.ModelSpace.AppendEntity(logo);                       // given the marks of model space
+logo.Position3d = new DxfRectangle3d(new GeoPoint3(0, 50, 0), new GeoPoint3(120, 50, 0),
+                                     new GeoPoint3(0, 0, 0), new GeoPoint3(120, 0, 0));
+```
+
+`OleObject`, the
 object of the running application, and `Position2d`, the frame in the pixels of the window it is shown in, are not given:
 a file holds neither. The OLEFRAME of R13, an object of OLE 1 that AutoCAD's .NET API has no class for, stays a
 `DxfUnknownEntity`. `DxfReader` reads no OLE2FRAME, as before.

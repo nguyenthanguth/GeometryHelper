@@ -54,6 +54,31 @@ namespace GeometryHelper.Dxf
         // Whether 10 and 11 have been checked against the head's corners for the log, or the log told the head holds none.
         private bool _told;
 
+        /// <summary>
+        /// Makes a static picture of a bitmap or a PNG, as AutoCAD 2021 makes one of a bitmap pasted: the .bmp given, or the
+        /// .bmp of 32 bits a pixel the PNG is read into, its alpha laid over white, as the stream <c>CONTENTS</c> of a compound
+        /// file of the class <c>StaticDib</c>, as Windows' OLE saves it, behind AutoCAD's head of 128 bytes and with the
+        /// extended data AutoCAD writes for it. The library's own: AutoCAD's .NET API makes no OLE
+        /// object. The frame stands along x and y with its lower left corner at the origin, at the picture's natural size in
+        /// millimetres, its pixels across and up over its pixels a metre (3 780, 96 dots an inch, where the picture gives none):
+        /// a picture of 610 by 224 pixels of 96 dots an inch is 161.38 by 59.26. Placed and sized by <see cref="Position3d"/>,
+        /// <see cref="WcsWidth"/> or <see cref="DxfEntity.TransformBy"/>; added to a drawing by
+        /// <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>, which gives it the marks of its space.
+        /// </summary>
+        /// <param name="picture">The bytes of a .bmp file (a BITMAPFILEHEADER, then a BITMAPINFOHEADER of 40 bytes or one of its
+        /// later forms, of 1, 4, 8, 16, 24 or 32 bits a pixel, not compressed: BI_RGB, or BI_BITFIELDS for 16 and 32), or of a
+        /// .png file of any kind PNG has, of no more than 64 million pixels. A JPEG or another kind is refused: the library
+        /// reads no other, and the caller turns it into one of these first.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the picture is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the bytes are not such a picture, with the reason.</exception>
+        public DxfOle2Frame(byte[] picture)
+            : base("OLE2FRAME", NewGroups(picture))
+        {
+            var data = new List<DxfTypedValue> { new DxfTypedValue(1001, "ACAD") };
+            data.AddRange(NewOleData(WcsWidth, WcsHeight));
+            XData = data;
+        }
+
         private DxfOle2Frame(DxfItem item)
             : base(item)
         {
@@ -516,6 +541,57 @@ namespace GeometryHelper.Dxf
 
         /// <summary>The bytes of the binary (310), all of them.</summary>
         private byte[] Binary() => DxfOleData.Binary(GetOwnGroups(0), -1);
+
+        /// <summary>
+        /// The own groups of a static picture of a bitmap, as AutoCAD 2021 writes one pasted in model space: the user type, its
+        /// upper left and lower right corners, static (71 of 3), high graphics (73 of 2), the binary in lines of 32 bytes and
+        /// the closing <c>OLE</c>.
+        /// </summary>
+        private static DxfTypedValue[] NewGroups(byte[] picture)
+        {
+            if (picture == null)
+            {
+                throw new ArgumentNullException(nameof(picture));
+            }
+
+            byte[] bitmap = picture;
+            string why;
+
+            if (DxfPng.IsPng(picture) && (bitmap = DxfPng.ToBitmap(picture, out why)) == null)
+            {
+                throw new ArgumentException("The bytes are not a PNG an OLE frame takes: " + why + ".", nameof(picture));
+            }
+
+            if (!DxfOleData.TryBitmap(bitmap, out int across, out int up, out int perMetreX, out int perMetreY, out why))
+            {
+                throw new ArgumentException("The bytes are not a bitmap or a PNG an OLE frame takes: " + why + ".", nameof(picture));
+            }
+
+            double width = across * 1000.0 / perMetreX;
+            double height = up * 1000.0 / perMetreY;
+            GeoPoint3[] corners = { new GeoPoint3(0.0, height, 0.0), new GeoPoint3(width, height, 0.0), new GeoPoint3(width, 0.0, 0.0), Origin };
+            byte[] binary = DxfOleData.StaticPicture(bitmap, corners, (int)(across * 100000L / perMetreX), (int)(up * 100000L / perMetreY));
+            var groups = new List<DxfTypedValue>
+            {
+                new DxfTypedValue(100, "AcDbOle2Frame"),
+                new DxfTypedValue(70, "2"),
+                new DxfTypedValue(3, DxfOleData.DibUserType),
+                new DxfTypedValue(10, Numbers.Exact(corners[0].X)), new DxfTypedValue(20, Numbers.Exact(corners[0].Y)), new DxfTypedValue(30, "0.0"),
+                new DxfTypedValue(11, Numbers.Exact(corners[2].X)), new DxfTypedValue(21, Numbers.Exact(corners[2].Y)), new DxfTypedValue(31, "0.0"),
+                new DxfTypedValue(71, "3"),
+                new DxfTypedValue(72, "0"),
+                new DxfTypedValue(73, "2"),
+                new DxfTypedValue(90, binary.Length.ToString(CultureInfo.InvariantCulture)),
+            };
+
+            for (int at = 0; at < binary.Length; at += 32)
+            {
+                groups.Add(new DxfTypedValue(310, BitConverter.ToString(binary, at, Math.Min(32, binary.Length - at)).Replace("-", string.Empty)));
+            }
+
+            groups.Add(new DxfTypedValue(1, "OLE"));
+            return groups.ToArray();
+        }
 
         /// <summary>
         /// The one scale of a transformation that keeps a frame along x and y: x taken along x, y along y and z along z, either

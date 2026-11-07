@@ -93,6 +93,131 @@ namespace GeometryHelper.Dxf
             return bytes;
         }
 
+        /// <summary>The name Windows gives the class of a static bitmap, AutoCAD's user type of a bitmap pasted.</summary>
+        internal const string DibUserType = "Picture (Device Independent Bitmap)";
+
+        /// <summary>
+        /// Whether bytes are a .bmp a static picture can hold: a BITMAPFILEHEADER (BM) then a BITMAPINFOHEADER of 40 bytes or
+        /// one of its later forms (52, 56, 108, 124), one plane of 1, 4, 8, 16, 24 or 32 bits a pixel, not compressed (BI_RGB,
+        /// or BI_BITFIELDS for 16 and 32 bits), its pixels within the bytes; its size in pixels and its pixels a metre, 3 780
+        /// (96 dots an inch) where it gives none. False, with the reason, for any other.
+        /// </summary>
+        internal static bool TryBitmap(byte[] bmp, out int across, out int up, out int perMetreX, out int perMetreY, out string why)
+        {
+            across = up = perMetreX = perMetreY = 0;
+            why = null;
+
+            if (bmp.Length < 54 || bmp[0] != (byte)'B' || bmp[1] != (byte)'M')
+            {
+                why = "a .bmp begins with BM and holds at least the 54 bytes of its headers";
+                return false;
+            }
+
+            uint header = DxfCompoundFile.U32(bmp, 14);
+            uint offBits = DxfCompoundFile.U32(bmp, 10);
+
+            if (header != 40 && header != 52 && header != 56 && header != 108 && header != 124)
+            {
+                why = "its header of " + header + " bytes is not a BITMAPINFOHEADER of 40 bytes or a later form";
+                return false;
+            }
+
+            int width = BitConverter.ToInt32(bmp, 18);
+            int height = BitConverter.ToInt32(bmp, 22);
+            int planes = BitConverter.ToUInt16(bmp, 26);
+            int bits = BitConverter.ToUInt16(bmp, 28);
+            uint compression = DxfCompoundFile.U32(bmp, 30);
+
+            if (!(width > 0) || height == 0 || height == int.MinValue || planes != 1)
+            {
+                why = "it is " + width + " by " + height + " pixels in " + planes + " planes, not one plane of some pixels";
+                return false;
+            }
+
+            if (bits != 1 && bits != 4 && bits != 8 && bits != 16 && bits != 24 && bits != 32)
+            {
+                why = "its " + bits + " bits a pixel are not 1, 4, 8, 16, 24 or 32";
+                return false;
+            }
+
+            if (compression != 0 && !(compression == 3 && (bits == 16 || bits == 32)))
+            {
+                why = "it is compressed (" + compression + "), and a static picture holds a bitmap of its pixels as they are";
+                return false;
+            }
+
+            long row = ((long)width * bits + 31) / 32 * 4;
+            long pixels = row * Math.Abs((long)height);
+
+            if (offBits < 14 + header || offBits + pixels > bmp.Length)
+            {
+                why = "its pixels, " + pixels + " bytes from " + offBits + ", are not within its " + bmp.Length + " bytes";
+                return false;
+            }
+
+            across = width;
+            up = Math.Abs(height);
+            int x = BitConverter.ToInt32(bmp, 38);
+            int y = BitConverter.ToInt32(bmp, 42);
+            perMetreX = x > 0 ? x : 3780;
+            perMetreY = y > 0 ? y : 3780;
+            return true;
+        }
+
+        /// <summary>
+        /// The binary of a static picture of a bitmap, as AutoCAD 2021 writes one pasted in model space: its head (the signature
+        /// 0x80 0x55, the corners upper left, upper right, lower right and lower left, the natural size in hundredths of a
+        /// millimetre, each kept to 16 bits as AutoCAD keeps them, 1, then MFC's 256, item 1, aspect 0, no moniker, drawing
+        /// aspect 1 and the length), then the compound file Windows' OLE saves a static bitmap in.
+        /// </summary>
+        internal static byte[] StaticPicture(byte[] bmp, GeoPoint3[] corners, int himetricWidth, int himetricHeight)
+        {
+            byte[] compound = DxfCompoundFileWriter.Write(StaticDib, new[]
+            {
+                new KeyValuePair<string, byte[]>("\u0001Ole", new byte[] { 0x01, 0x00, 0x00, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }),
+                new KeyValuePair<string, byte[]>("\u0001CompObj", DibCompObj()),
+                new KeyValuePair<string, byte[]>("CONTENTS", bmp),
+            });
+
+            var binary = new byte[HeadSize + compound.Length];
+            binary[0] = 0x80;
+            binary[1] = 0x55;
+
+            for (int k = 0; k < 4; k++)
+            {
+                Array.Copy(BitConverter.GetBytes(corners[k].X), 0, binary, 2 + 24 * k, 8);
+                Array.Copy(BitConverter.GetBytes(corners[k].Y), 0, binary, 10 + 24 * k, 8);
+                Array.Copy(BitConverter.GetBytes(corners[k].Z), 0, binary, 18 + 24 * k, 8);
+            }
+
+            Array.Copy(BitConverter.GetBytes((ushort)himetricWidth), 0, binary, 98, 2);
+            Array.Copy(BitConverter.GetBytes((ushort)himetricHeight), 0, binary, 100, 2);
+            Array.Copy(BitConverter.GetBytes(1), 0, binary, 102, 4);
+            Array.Copy(BitConverter.GetBytes(256), 0, binary, 106, 4);
+            Array.Copy(BitConverter.GetBytes(1), 0, binary, 110, 4);
+            Array.Copy(BitConverter.GetBytes(1), 0, binary, 120, 4);
+            Array.Copy(BitConverter.GetBytes(compound.Length), 0, binary, 124, 4);
+            compound.CopyTo(binary, HeadSize);
+            return binary;
+        }
+
+        /// <summary>The <c>\1CompObj</c> stream of a static bitmap as Windows writes it (MS-OLEDS 2.3.8): the class, its user type, clipboard format 8 (CF_DIB) and its ProgID.</summary>
+        private static byte[] DibCompObj()
+        {
+            var b = new List<byte>();
+            b.AddRange(new byte[] { 0x01, 0x00, 0xFE, 0xFF, 0x03, 0x0A, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF });
+            b.AddRange(StaticDib.ToByteArray());
+            byte[] user = Encoding.ASCII.GetBytes(DibUserType + "\0");
+            b.AddRange(BitConverter.GetBytes(user.Length));
+            b.AddRange(user);
+            b.AddRange(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0x08, 0x00, 0x00, 0x00 });
+            byte[] progId = Encoding.ASCII.GetBytes("StaticDib\0");
+            b.AddRange(BitConverter.GetBytes(progId.Length));
+            b.AddRange(progId);
+            b.AddRange(new byte[] { 0xF4, 0x39, 0xB2, 0x71, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 });
+            return b.ToArray();
+        }
+
         /// <summary>
         /// The lines of binary given, written anew with the bytes they hold from the first replaced by <paramref name="bytes"/>,
         /// each line keeping its count of bytes and the case of its letters, so that a line those bytes are not in comes back as
