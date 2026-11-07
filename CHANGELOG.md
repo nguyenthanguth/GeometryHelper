@@ -13,7 +13,8 @@ page the section is on now. A page "How do I" gives a task, the call that does i
 AutoCAD patterns of the DXF model have a page of their own; and the first mention of each public type on a page links to
 its page of the API reference. Every page opens with what it is for, is cut into sections with headings (a bold lead that
 opened a paragraph is now a heading), and ends with "See also"; the blocks page is four, two of them on dynamic blocks,
-and combining bodies two. No guide page is over 500 lines.
+and combining bodies two. No guide page is over 500 lines. Each group of the menu opens on a page listing its pages,
+meshing and the checks and reports among them.
 
 ## 13.11.0 (2026-11-07)
 
