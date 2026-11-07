@@ -4190,6 +4190,52 @@ namespace GeometryHelper.Dxf
         internal IReadOnlyList<DxfTypedValue> OwnGroupsOf(DxfItem item, int index) => OwnGroupsOf(item, index, null);
 
         /// <summary>
+        /// The first groups of the own part of an entity's record, as <see cref="OwnGroupsOf(DxfItem, int)"/> gives them, read up to
+        /// and with the group <paramref name="last"/> says is the last wanted: the head of an OLE2FRAME's binary from its first
+        /// lines of 310, the thousands of lines after them not read.
+        /// </summary>
+        internal List<DxfTypedValue> OwnGroupsUpTo(DxfItem item, Func<DxfTypedValue, bool> last)
+        {
+            Rec record = HeadOf(item);
+            var walk = new GroupWalk(record);
+            var groups = new List<DxfTypedValue>();
+            bool braced = false;
+            bool own = false;
+
+            while (walk.Next(out int code, out int start, out int end) && code != 1001)
+            {
+                if (code == 102)
+                {
+                    braced = Text(record, start, end).Trim().StartsWith("{", StringComparison.Ordinal);
+                    continue;
+                }
+
+                if (braced)
+                {
+                    continue;
+                }
+
+                DxfTypedValue group = DxfTypedValue.Read(code, Text(record, start, end));
+
+                // The groups before the first subclass marker of the type's own are its groups only in a file of R12, which has none.
+                if (!own && code == 100 && group.Value?.Trim() != "AcDbEntity")
+                {
+                    own = true;
+                    groups.Clear();
+                }
+
+                groups.Add(group);
+
+                if (own && last(group))
+                {
+                    break;
+                }
+            }
+
+            return groups;
+        }
+
+        /// <summary>
         /// The own groups as <see cref="OwnGroupsOf(DxfItem, int)"/> gives them, and where each stands in the record where asked:
         /// two numbers a group, where its code line begins and where the next group begins, counted in bytes from the record's
         /// start, for <see cref="SpliceRecord"/>.

@@ -594,10 +594,11 @@ namespace GeometryHelper.Dxf
         /// spline <see cref="DxfLeader.Explode"/> fits through them; none where fewer than two of its vertices are apart. A
         /// MULTILEADER gives the lines of its leaders, as <see cref="DxfMLeader"/> says, and not its words or block. An IMAGE and a
         /// WIPEOUT, which the reader does not read, give the closed <see cref="GeoPolyline3"/> of their
-        /// <see cref="DxfRasterImage.GetVertices"/>, the frame of the image or its boundary where it is clipped.
+        /// <see cref="DxfRasterImage.GetVertices"/>, the frame of the image or its boundary where it is clipped; an OLE2FRAME the
+        /// closed <see cref="GeoPolyline3"/> of the four corners of its <see cref="DxfOle2Frame.Position3d"/>.
         /// </summary>
-        /// <returns>The shapes, in the coordinates of the file, the same list until the entity is changed; of an IMAGE and a
-        /// WIPEOUT, a new list on each call.</returns>
+        /// <returns>The shapes, in the coordinates of the file, the same list until the entity is changed; of an IMAGE, a
+        /// WIPEOUT and an OLE2FRAME, a new list on each call.</returns>
         public IReadOnlyList<object> GetGeometry()
         {
             if (Item.Type != "INSERT")
@@ -698,7 +699,7 @@ namespace GeometryHelper.Dxf
         /// shear it; nothing is written then.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the entity is erased.</exception>
         /// <exception cref="NotSupportedException">Thrown for an entity whose type the library keeps as it is, a
-        /// <see cref="DxfUnknownEntity"/>.</exception>
+        /// <see cref="DxfUnknownEntity"/>, and for a <see cref="DxfOle2Frame"/>, which it does not move yet.</exception>
         public void TransformBy(GeoTransform3 transform)
         {
             if (transform == null)
@@ -776,8 +777,8 @@ namespace GeometryHelper.Dxf
         /// MTEXT or an INSERT. The identity, to the bit, gives the entity's <see cref="Clone"/>, of any class.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the entity is erased, as AutoCAD refuses an erased object.</exception>
-        /// <exception cref="NotSupportedException">Thrown for a <see cref="DxfUnknownEntity"/> given another transformation than
-        /// the identity.</exception>
+        /// <exception cref="NotSupportedException">Thrown for a <see cref="DxfUnknownEntity"/> or a <see cref="DxfOle2Frame"/>
+        /// given another transformation than the identity.</exception>
         public DxfEntity GetTransformedCopy(GeoTransform3 transform) => TransformedCopy(transform, true);
 
         /// <summary>

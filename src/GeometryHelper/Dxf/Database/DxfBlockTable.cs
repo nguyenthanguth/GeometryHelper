@@ -1919,7 +1919,7 @@ namespace GeometryHelper.Dxf
                     throw new ArgumentException("The entity " + (entity.Handle ?? string.Empty) + " to turn only is not of the block " + Name + ", or is erased.", nameof(rotateOnly));
                 }
 
-                if (entity is DxfUnknownEntity)
+                if (entity is DxfUnknownEntity || entity is DxfOle2Frame)
                 {
                     throw new ArgumentException("The entity " + entity.Handle + " to turn only is of a type the library keeps as it is, which an action of the library does not take.", nameof(rotateOnly));
                 }
@@ -2422,7 +2422,8 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentNullException">Thrown when the parameter, the entities or one of them is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the parameter is of another block or no longer in its graph, there
         /// are no entities, or an entity is not of this block, is erased, is an attribute definition not locked in the block, or
-        /// is of a type the library keeps as it is (<see cref="DxfUnknownEntity"/>). Nothing is written then.</exception>
+        /// is of a type the library keeps as it is (<see cref="DxfUnknownEntity"/>, and an OLE2FRAME, which it does not move yet).
+        /// Nothing is written then.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the block cannot be dynamic, as <see cref="AddLinearParameter"/> says.</exception>
         /// <exception cref="NotSupportedException">Thrown when the block has a flip action, or an entity is also copied by an
         /// array action or turned by a polar stretch, or turned or scaled by a rotate or a scale action: AutoCAD 2021 worked a flip with a stretch out from
@@ -2901,7 +2902,7 @@ namespace GeometryHelper.Dxf
 
                 // A move, a scale and a rotate take an attribute definition locked in the block, as AutoCAD's Block Editor does; a
                 // flip one whose words the drawing's fonts measure, which it keeps readable (check D34).
-                if ((entity is DxfAttributeDefinition definition && what != "move" && what != "scale" && what != "turn" && !(what == "flip" && definition.IsMeasured)) || entity is DxfUnknownEntity)
+                if ((entity is DxfAttributeDefinition definition && what != "move" && what != "scale" && what != "turn" && !(what == "flip" && definition.IsMeasured)) || entity is DxfUnknownEntity || entity is DxfOle2Frame)
                 {
                     throw new ArgumentException("The entity " + entity.Handle + " to " + what + " is an attribute definition or of a type the library keeps as it is, which an action of the library does not take.", nameof(entities));
                 }

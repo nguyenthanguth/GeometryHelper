@@ -501,6 +501,7 @@ Dxf in front and their members' names.
 | `DBText`, `MText` | `DxfDBText`, `DxfMText` | No fonts: a text's `GeometricExtents` is its insertion point, and `AdjustAlignment` is not there. `TextStyleId` is `TextStyle`, the record, beside `TextStyleName`. |
 | `BlockReference`, `MInsertBlock`, `AttributeReference`, `AttributeDefinition` | `DxfBlockReference`, `DxfMInsertBlock`, `DxfAttributeReference`, `DxfAttributeDefinition` | `new DxfBlockReference(position, block)` takes the block record, not its id; `AttributeCollection.AppendAttribute` takes the attribute itself. |
 | `RasterImage`, `Wipeout`, `RasterImageDef`, `RasterVariables` | `DxfRasterImage`, `DxfWipeout`, `DxfRasterImageDef`, `DxfRasterVariables` | Read, moved, clipped and copied; no pixel is read. `Orientation` is `GetOrientation` and `SetOrientation`, an origin and two sides of their lengths, where `GeoCoordinateSystem3` would make them unit and square. `ImageDefId` is `ImageDef`, the object. See [Images and wipeouts](#images-and-wipeouts). |
+| `Ole2Frame`, `Rectangle3d`, `Ole2Frame.ItemType` | `DxfOle2Frame`, `DxfRectangle3d`, `DxfOle2FrameItemType` | Read and copied; not moved or made yet. The frame is read from the corners in its binary, as AutoCAD reads it; `GetCompoundDocument()` and `GetPictureData(out format)` are the library's own. `OleObject` and `Position2d`, of the running application and its window, are not there. See [OLE objects](#ole-objects). |
 | `Hatch`, `Leader`, `MLeader` | `DxfHatch`, `DxfLeader`, `DxfMLeader` | A loop is a `DxfHatchLoop` of the library's shapes; a line of `GetHatchLinesData` is a `GeoLine2`; `EvaluateLeader` is not there. |
 | `RotatedDimension`, `AlignedDimension`, `RadialDimension`, `DiametricDimension`, `LineAngularDimension2`, `Point3AngularDimension`, `ArcDimension`, `OrdinateDimension`, `RadialDimensionLarge` | the same with Dxf in front | `RecomputeDimensionBlock` is not there: the block that draws a dimension is left for AutoCAD to draw anew. |
 | `Table` | `DxfTable` | Cells read and set; its block is left for AutoCAD to draw anew (`RecomputeTableBlock` is not there); a shear or a scale unlike along its axes refused. `table.Cells[r, c]` is a `DxfCell`, `Rows` and `Columns` lists of `DxfRow` and `DxfColumn`; `SetTextStyle` takes the record, not its id. The forms by row type (`SetAlignment(align, rowTypes)` and the like) are not there. |
@@ -3123,6 +3124,64 @@ loaded; and `Wipeout.HasFrame`, which AutoCAD 2021 gave true for every wipeout w
 Known limits: a copied image or wipeout whose count of corners (91) does not match the corners its record holds is written
 as it is, its polygon not closed, as the library cannot tell which corners AutoCAD would take.
 
+### OLE objects
+
+An OLE2FRAME is a `DxfOle2Frame`, as AutoCAD's `Ole2Frame`: a picture pasted, a sheet of Excel or a file embedded, or a
+document linked, shown in a frame. The object is the frame's binary (its groups 310): AutoCAD's head of 128 bytes, which
+holds the four corners of the frame in world coordinates, then the compound file Windows' OLE saved the object in.
+AutoCAD 2021 reads the frame from those corners and not from groups 10 and 11, which are copies of two of them; the
+library does the same, so that a file another writer moved by 10 and 11 alone shows the frame where AutoCAD shows it, the
+difference said once in the log at Debug.
+
+A picture of 3 by 2 pixels pasted with its lower left corner at (10, 20, 0) and stretched to 30 by 20 gives `Location`
+(10, 20, 0), its lower left corner, as AutoCAD 2021 gives it, where the DXF reference has the upper left of group 10;
+`Position3d` its four corners as a `DxfRectangle3d`, as they are held, turned, sheared or out of the plane xy; `WcsWidth`
+30 and `WcsHeight` 20, the run of its top along x and of its left along y, so that the frame turned 30 degrees is 25.98
+wide, as AutoCAD 2021 works them out; `ScaleWidth` and `ScaleHeight` 100, as AutoCAD 2021 gives every frame it reads;
+`GeometricExtents` the box of the corners, (10, 20, 0) to (40, 40, 0); `GetGeometry()` the closed `GeoPolyline3` of the
+corners from the upper left, which `IntersectWith` crosses; and `Explode()` four LINEs along its edges, as AutoCAD 2021
+gives four. `Rotation` (in radians), `LockAspect` and `AutoOutputQuality` are read from the extended data AutoCAD keeps
+beside the binary (of ACAD, between OLEBEGIN and OLEEND: its codes 40, 71 and 70), and `OutputQuality` from group 73; a
+frame with no such data reads 0, true and 1, as AutoCAD 2021 reads one.
+
+What the object is comes from its compound file, read by the library's own reader of MS-CFB. `Type` is `Static` for a
+bitmap, a metafile or an enhanced metafile pasted, `Link` for a link and `Embedded` for any other, as MFC's
+`COleClientItem::GetType` finds it; `UserType` is the name of a static picture's class as Windows names it (`Picture
+(Device Independent Bitmap)`), and of another the name its `\1CompObj` stream holds (`OLE Package`), where AutoCAD asks
+the registry of its machine; `LinkName` and `LinkPath` are the source of a link, the display name of its moniker and its
+file (`C:\Drawings\cost.xlsx!Sheet1!R1C1:R4C3` and `C:\Drawings\cost.xlsx`), empty for an object not linked. Two members
+are the library's own: `GetCompoundDocument()` gives the compound file as written, which Windows opens as a file of
+structured storage, and `GetPictureData(out format)` the picture of a static object as the bytes of its file, a .bmp
+(`DxfOlePictureFormat.Dib`, 78 bytes for the picture of 3 by 2 pixels of 24 bits), a placeable .wmf or an .emf; null for
+an object embedded or linked, which AutoCAD draws through its application.
+
+```csharp
+foreach (DxfOle2Frame frame in db.ModelSpace.OfType<DxfOle2Frame>())
+{
+    byte[] picture = frame.GetPictureData(out DxfOlePictureFormat format);   // a .bmp, .wmf or .emf; null where none
+    if (format == DxfOlePictureFormat.Dib) File.WriteAllBytes(frame.Handle + ".bmp", picture);
+    GeoAabb3 box = frame.GeometricExtents;                                   // (10, 20, 0) to (40, 40, 0)
+}
+```
+
+A binary damaged is read as far as it holds, and no getter throws: the corners from the head where it holds them, else
+those of a frame along x and y from 10 to 11; the kind and the user type from groups 71 and 3 where the compound file
+cannot be read, or holds no user type, and no picture, which is said in the log at Debug. A frame of no corners at all,
+as accoreconsole writes one it could not read (70, 73 and its extended data alone), stands at the origin with no width,
+as AutoCAD 2021 gives it, has no extents (`GeometricExtents` throws `InvalidOperationException`, and `UpdateExt` passes
+it over) and explodes into nothing. AutoCAD 2021 empties a frame whose compound file it cannot read when it opens the
+drawing, its corners and user type gone, and says nothing. `Rotation` is the number stored, a NaN another writer
+stored given as it is; AutoCAD 2021 writes 0 for the NaN it holds in memory after a quarter turn.
+
+A frame is copied as it is, by `Clone()` into its own drawing or another, or into a block, its binary and extended data
+byte for byte; a drawing only read and saved is written as it was. It is not moved yet: `TransformBy`, and
+`GetTransformedCopy` with anything but the identity, throw `NotSupportedException`, as AutoCAD reads the frame from the
+corners in the binary, which the library does not rewrite; an INSERT exploded leaves it out, and the actions of a dynamic
+block refuse it, as for an entity of a type the library keeps as it is. Nor does the library make one. `OleObject`, the
+object of the running application, and `Position2d`, the frame in the pixels of the window it is shown in, are not given:
+a file holds neither. The OLEFRAME of R13, an object of OLE 1 that AutoCAD's .NET API has no class for, stays a
+`DxfUnknownEntity`. `DxfReader` reads no OLE2FRAME, as before.
+
 ### Layouts and viewports
 
 The layouts are `db.Layouts`, `DxfLayout` objects in the order of their tabs: `LayoutName` (set, the layout dictionary's
@@ -3223,6 +3282,7 @@ hatch, a dimension) refuses a transformation that flattens that plane:
 | `DxfTable` | a move, a turn, a tilt, a mirror and a scale alike in every direction, its sizes scaled with it, the block with it where no other entity names it | a shear or a scale unlike along its axes, which would make its cells other than the rectangles AutoCAD lays it out in |
 | `DxfViewport` | a move and a scale alike, on its sheet, its view kept | a turn, a mirror or a stretch |
 | `DxfRasterImage`, `DxfWipeout` | any, as AutoCAD 2021's `TransformBy` takes it: the corner moved, the pixel across and up turned and scaled, a shear leaning the sides and a mirror showing the image from behind; `GetTransformedCopy` of a wipeout refuses an uneven scale and a shear, as AutoCAD answers eCannotScaleNonUniformly | one that takes a side to no length, or the two onto one line |
+| `DxfOle2Frame` | nothing yet | everything, with `NotSupportedException`: AutoCAD reads the frame from the corners in its binary, which the library does not rewrite yet |
 | `DxfUnknownEntity` | nothing | everything, with `NotSupportedException`: its geometry is kept as the file has it |
 
 **Exploding.** `Explode()` is every entity's, as AutoCAD's is, and gives new entities in no file, to be appended. Each class
@@ -3245,6 +3305,7 @@ breaks as AutoCAD breaks it:
 | a MESH (`DxfUnknownEntity`) not smoothed | a 3DFACE for each face, in the order of its list of faces, with the MESH's look and every edge drawn: a face of four corners a 3DFACE of them, a triangle one ending on its third corner, as ezdxf's `MeshBuilder` renders them; a cube 10 by 10 by 10 of eight vertices and six faces gives six 3DFACEs. A face of more than four corners breaks into a strip of triangles, as AutoCAD 2021 breaks one: from two corners on, the rest taken by turns from the far end and the near one, each triangle after the first the other way round, from its first two corners, or from its last two back the other way where it faces into a closed MESH, whose faces AutoCAD turns to face out: the corners 0 to 4 alone, or in an open MESH, give (0, 1, 4), (2, 4, 1) and (4, 2, 3), as the base of a pyramid facing up into it (4, 3, 0), (2, 0, 3) and (0, 2, 1); 0 to 5 alone (0, 1, 5), (2, 5, 1), (5, 2, 4) and (3, 4, 2), as such a base (5, 4, 0), (3, 0, 4), (0, 3, 1) and (2, 1, 3). A face of four corners or three that faces into a closed MESH is turned too, its corners read from its last back, as AutoCAD 2021 explodes one: the square base (0, 1, 2, 3) of a pyramid facing up into it gives the 3DFACE of (3, 2, 1, 0), a side (0, 3, 4) facing in (4, 3, 0); every other face is given as the file holds it. A face given a colour of its own keeps it on its 3DFACEs. A MESH smoothed (level 1 or more), and one that gives a face a material or a transparency of its own, or an edge or a vertex anything of its own, are refused with `NotSupportedException`, saying which |
 | `DxfHatch` of a pattern | the dashes of each line of its pattern, as the HATCH holds them, cut by the loops its style fills by the even-odd rule, each a LINE, a dot a LINE of no length, laid from the base point of its line, as ezdxf's `hatch_entity` draws them; an arc, an ellipse and a polyline's bulge cut exactly, a spline within each sixteenth of a span of its knots. A dot that falls on a loop where its line crosses it is kept, and a line that runs along a straight edge gives nothing there, as AutoCAD 2021 gives nothing: DOTS 1.5875 apart in a square 30 by 20 from its corner give 228 dots, none on its bottom edge. In the outer style the loops flagged external or outermost are those it is cut by, as AutoCAD and ezdxf take them, ignoring islands those flagged external; where none is flagged, by how deep each lies. A square 30 by 20 of ANSI31 gives 11 lines; round a circle of radius 5 about its middle in the normal style, 14, the three lines that cross the circle broken in two. A pattern that would give more than 2 000 000 parts, or cross its loops more than 32 000 000 times (half a gigabyte of crossings), is refused before anything is made, and so is one whose loops lie more than 2^52 of its spacings or dash lengths from its base point |
 | `DxfRasterImage`, `DxfWipeout` | a LINE along each side of `GetVertices()`, as AutoCAD 2021's `Explode` gives them, each with the image's look (AutoCAD's have none of their own): the frame of an image not clipped, four LINEs from the corner it is placed at up its left side and round, and the boundary of one clipped, three for a triangle; a side of no length left out |
+| `DxfOle2Frame` | four LINEs along the edges of its frame, as AutoCAD 2021's `Explode` gives four, from the upper left corner round by the upper right, each with the frame's look; a side of no length left out, so that a frame of no corners gives none, where AutoCAD 2021 gives four of no length; the object itself is not kept |
 
 The library explodes exactly these classes. Every other entity refuses with `NotSupportedException`: those AutoCAD does not
 break, a LINE or a CIRCLE, as AutoCAD answers eNotApplicable for them, and some AutoCAD does break, listed under [What the

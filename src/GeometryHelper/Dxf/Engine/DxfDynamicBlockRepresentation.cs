@@ -2767,7 +2767,7 @@ namespace GeometryHelper.Dxf
                 foreach (string handle in acted)
                 {
                     // An attribute definition a flip mirrors is worked out where the drawing's fonts measure its words.
-                    if (Kind != ActionKind.Stretch && (!entities.TryGetValue(handle, out DxfEntity entity) || entity is DxfUnknownEntity || (entity is DxfAttributeDefinition definition && Kind != ActionKind.Move && Kind != ActionKind.Scale && Kind != ActionKind.Rotate && Kind != ActionKind.PolarStretch && !(Kind == ActionKind.Flip && definition.IsMeasured))))
+                    if (Kind != ActionKind.Stretch && (!entities.TryGetValue(handle, out DxfEntity entity) || entity is DxfUnknownEntity || entity is DxfOle2Frame || (entity is DxfAttributeDefinition definition && Kind != ActionKind.Move && Kind != ActionKind.Scale && Kind != ActionKind.Rotate && Kind != ActionKind.PolarStretch && !(Kind == ActionKind.Flip && definition.IsMeasured))))
                     {
                         throw new NotSupportedException("A " + Kind.ToString().ToLowerInvariant() + " action of the block " + name + " works on " + handle + ", which is not an entity of the block the library works out: it may be another parameter or a grip, moved with it.");
                     }

@@ -960,8 +960,8 @@ namespace GeometryHelper.Dxf
         /// <see cref="DxfWriter"/> writes them, an ELLIPSE for that circle, with its look; nothing nested is placed for it. An
         /// INSERT in the block that cannot hold the placing, one turned in its block under a scale unlike along the world's
         /// axes, is exploded in its turn and its parts placed, so that what is drawn stays where it was. A type the library
-        /// neither moves nor reads, as a REGION, is left out, and so are a MULTILEADER and an ACAD_TABLE under a placing that
-        /// scales them unlike along their axes or shears them, which they do not hold.
+        /// neither moves nor reads, as a REGION or an OLE2FRAME, is left out, and so are a MULTILEADER and an ACAD_TABLE under a
+        /// placing that scales them unlike along their axes or shears them, which they do not hold.
         /// </para>
         /// <para>
         /// The entities are made in a drawing of R2018: an ELLIPSE or a SPLINE that a circle or an arc comes out as under a scale
@@ -1736,7 +1736,8 @@ namespace GeometryHelper.Dxf
 
             foreach (DxfEntity entity in entities)
             {
-                if (!(entity is DxfUnknownEntity))
+                // An OLE2FRAME, which the library does not move yet, is left out as a type it keeps as it is, whatever the placing.
+                if (!(entity is DxfUnknownEntity || entity is DxfOle2Frame))
                 {
                     try
                     {

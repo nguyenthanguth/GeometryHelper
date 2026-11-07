@@ -6,6 +6,37 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** OLE2FRAME entities get a class of their own, `DxfOle2Frame`, as AutoCAD's `Ole2Frame`, with `DxfRectangle3d`,
+`DxfOle2FrameItemType` and `DxfOlePictureFormat`. The frame is read from the four corners in the head of its binary, as
+AutoCAD 2021 reads it, not from groups 10 and 11, which it ignores: a picture of 3 by 2 pixels pasted with its lower left
+corner at (10, 20, 0) and stretched to 30 by 20 gives `Location` (10, 20, 0), the lower left corner, as AutoCAD 2021
+gives it; `Position3d` the four corners as held, turned, sheared or tilted; `WcsWidth` 30 and `WcsHeight` 20, the runs
+along x and y as AutoCAD works them out (25.98 for the frame 30 wide turned 30 degrees); `ScaleWidth` and `ScaleHeight`
+100, as AutoCAD 2021 gives every frame it reads; `Rotation` (radians), `LockAspect` and `AutoOutputQuality` from the
+extended data between OLEBEGIN and OLEEND, and `OutputQuality` from group 73. What the object is comes from its compound
+file, read by the library's own reader of MS-CFB (FAT, DIFAT past 109 sectors, mini stream, directory tree): `Type`
+(static, embedded or linked, as MFC finds it), `UserType` (`Picture (Device Independent Bitmap)`, `OLE Package`),
+`IsLinked`, and `LinkName` and `LinkPath` of a link's moniker (`C:\Drawings\cost.xlsx!Sheet1!R1C1:R4C3`,
+`C:\Drawings\cost.xlsx`). The library's own `GetCompoundDocument()` gives the compound file as written, and
+`GetPictureData(out format)` the picture of a static object as a .bmp, a placeable .wmf or an .emf. `GeometricExtents`
+is the box of the corners, `GetGeometry()` their closed `GeoPolyline3`, which `IntersectWith` crosses, and `Explode()`
+gives four LINEs along the edges, as AutoCAD 2021 gives four. A frame is copied by `Clone()` into its own drawing, another
+or a block with its binary and extended data byte for byte, and a drawing only read and saved is written as it was. A
+binary damaged never makes a getter throw: the corners come from 10 and 11 where the head holds none, the kind and user
+type from groups 71 and 3 where the compound file cannot be read or names none, and there is no picture, said in the log
+at Debug. A frame of no corners at all, as accoreconsole writes one it could not read, stands at the origin and explodes
+into nothing, and `GeometricExtents` throws `InvalidOperationException` for it, as for any entity with no extents, so
+that `UpdateExt` passes it over. `Rotation` is the number stored, a NaN another writer stored given as it is. The rules
+are AutoCAD 2021's own, which read the frame from the head where 10 and 11 said otherwise and gave the lower left corner
+as `Location`. A frame is not moved or made yet: `TransformBy` throws `NotSupportedException`, as before. The OLEFRAME of
+R13 stays a `DxfUnknownEntity`.
+
+**CHANGED.** An OLE2FRAME read from a file is a `DxfOle2Frame`, not a `DxfUnknownEntity`: code that found one by
+`DxfUnknownEntity.DxfName == "OLE2FRAME"` finds it by its class. Its `GetGeometry()` and `GeometricExtents` give its frame
+where they gave nothing and threw, so `UpdateExt` takes it into the extents; `Explode()` gives four LINEs where it threw;
+`IntersectWith` crosses its frame. `TransformBy` still refuses it, an INSERT exploded still leaves it out, and the actions
+of a dynamic block still refuse it. `DxfReader` reads none, as before.
+
 ## 13.10.0 (2026-11-05)
 
 A minor release: public members are added and none is removed or renamed in any of the four libraries. The DXF entities
