@@ -55,6 +55,12 @@
       href: dxf/text.md
     - name: Blocks and attributes
       href: dxf/blocks.md
+    - name: Dynamic blocks
+      href: dxf/dynamic-blocks.md
+    - name: "Dynamic blocks: parameters and actions"
+      href: dxf/dynamic-actions.md
+    - name: "Dynamic blocks: lookups, tables and constraints"
+      href: dxf/dynamic-tables.md
     - name: Hatches, leaders and dimensions
       href: dxf/annotation.md
     - name: Tables of cells

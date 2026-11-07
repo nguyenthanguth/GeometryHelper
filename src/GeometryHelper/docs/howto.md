@@ -66,7 +66,7 @@ where it compares coordinates; the pages say which.
 | move, turn or mirror an entity | `entity.TransformBy(GeoTransform3.Translation(...))` | [Editing rules and what the model does not do](dxf/rules.md#editing-rules) |
 | break an entity or an INSERT into parts | `entity.Explode()` | [Editing rules and what the model does not do](dxf/rules.md#editing-rules) |
 | offset or split a curve as AutoCAD does | `curve.GetOffsetCurves(distance)`, `curve.GetSplitCurves(...)` | [Entities and curves](dxf/entities.md#curves) |
-| make a dynamic block | `AddLinearParameter`, `AddStretchAction`, `AddLookupParameter`, ... | [Blocks and attributes](dxf/blocks.md) |
+| make a dynamic block | `AddLinearParameter`, `AddStretchAction`, `AddLookupParameter`, ... | [Dynamic blocks](dxf/dynamic-blocks.md) |
 | fill a boundary with a hatch | `hatch.AppendLoop(...)`, `hatch.SetHatchPattern(...)` | [Hatches, leaders and dimensions](dxf/annotation.md#hatches) |
 | place a picture by its file | `new DxfRasterImageDef(path, size)`, `new DxfRasterImage(definition)`, `SetOrientation` | [Images, wipeouts and OLE objects](dxf/images.md#images-and-wipeouts) |
 | take the picture out of an OLE object | `frame.GetPictureData(out format)` | [Images, wipeouts and OLE objects](dxf/images.md#ole-objects) |
