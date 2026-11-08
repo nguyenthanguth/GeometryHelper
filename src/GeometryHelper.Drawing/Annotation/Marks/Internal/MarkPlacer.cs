@@ -7,17 +7,22 @@ using GeometryHelper.Geometry;
 namespace GeometryHelper.Drawing.Annotation
 {
     /// <summary>
-    /// The work of <see cref="Marker.Mark"/>: which objects of a view are marked and with what text, and where each mark
+    /// The work of <see cref="Marker"/>.Mark: which objects of a view are marked and with what text, and where each mark
     /// goes, through <see cref="Arranger"/>, in rounds until every mark is clear of the dimensions and of the others or
     /// has been tried at every row.
     /// </summary>
     internal sealed class MarkPlacer
     {
         /// <summary>
-        /// The rounds of placing: on the side of its line away from its object only, at the gap of the settings, three rows;
-        /// then on either side, eight rows; then on either side at no more than half the text's height off, sixteen rows.
+        /// The rounds of placing: first on either side, four rows, clear of the box of every object of the view, so that a
+        /// text stands off the parts rather than over the face of one; then on the side of its line away from its object
+        /// only, at the gap of the settings, three rows; then on either side, eight rows; then on either side at no more than
+        /// half the text's height off, sixteen rows.
         /// </summary>
-        private static readonly (bool OutsideOnly, bool NearGap, int Levels)[] Rounds = { (true, false, 3), (false, false, 8), (false, true, 16) };
+        private static readonly (bool OutsideOnly, bool NearGap, int Levels, bool ClearOfObjects)[] Rounds =
+        {
+            (false, false, 4, true), (true, false, 3, false), (false, false, 8, false), (false, true, 16, false),
+        };
 
         private readonly List<DrawingObject> _objects;
         private readonly GeoCoordinateSystem3 _frame;
@@ -27,12 +32,16 @@ namespace GeometryHelper.Drawing.Annotation
         private readonly Tolerance _tolerance;
         private readonly double _tol;
         private readonly ProjectedView2 _view;
+        private readonly List<GeoRectangle2> _clearBoxes;
+        private readonly List<GeoLine2> _clearLines;
 
         // Looked up by id only, never walked, so nothing here follows its order.
         private readonly Dictionary<string, List<ProjectedEdge2>> _visible = new Dictionary<string, List<ProjectedEdge2>>(StringComparer.Ordinal);
 
-        internal MarkPlacer(ProjectedView2 view, List<DrawingObject> objects, GeoCoordinateSystem3 frame, List<DrawingDimension> dimensions, double height, double gap, Tolerance tolerance)
+        internal MarkPlacer(ProjectedView2 view, List<DrawingObject> objects, GeoCoordinateSystem3 frame, List<DrawingDimension> dimensions, List<GeoRectangle2> clearBoxes, List<GeoLine2> clearLines, double height, double gap, Tolerance tolerance)
         {
+            _clearBoxes = clearBoxes;
+            _clearLines = clearLines;
             _view = view;
             _objects = objects;
             _frame = frame;
@@ -157,7 +166,7 @@ namespace GeometryHelper.Drawing.Annotation
         /// Places the marks, round by round: each round runs <see cref="Arranger"/> on the marks not yet placed, with the
         /// dimensions and the marks placed before kept clear of, and keeps each mark that meets nothing it may not.
         /// </summary>
-        internal List<ObjectMark> Place(List<Candidate> candidates, double scale, out List<string> dropped)
+        internal List<DrawingMark> Place(List<Candidate> candidates, double scale, out List<string> dropped)
         {
             double thin = Math.Max(0.1 * _height, 2.0 * _tol);
             var hard = new List<GeoPolygon2>();
@@ -177,6 +186,17 @@ namespace GeometryHelper.Drawing.Annotation
                 }
             }
 
+            // The symbols of the view are kept clear of as the dimensions are: their texts and outlines, and their lines.
+            foreach (GeoRectangle2 box in _clearBoxes)
+            {
+                hard.Add(new GeoPolygon2(box.GetVertices()));
+            }
+
+            foreach (GeoLine2 line in _clearLines)
+            {
+                hard.Add(Box2.Around(line.StartPoint, line.EndPoint, thin));
+            }
+
             List<GeoLine2> lines = ViewLines();
             var accepted = new List<Placed>();
             List<Candidate> pending = candidates;
@@ -188,10 +208,15 @@ namespace GeometryHelper.Drawing.Annotation
                     break;
                 }
 
-                (bool outsideOnly, bool nearGap, int levels) = Rounds[round];
+                (bool outsideOnly, bool nearGap, int levels, bool clearOfObjects) = Rounds[round];
                 bool lastRound = round == Rounds.Length - 1;
 
                 var blocks = new List<GeoPolygon2>(hard);
+
+                if (clearOfObjects)
+                {
+                    blocks.AddRange(ObjectBoxes());
+                }
 
                 foreach (Placed p in accepted)
                 {
@@ -251,7 +276,7 @@ namespace GeometryHelper.Drawing.Annotation
 
             dropped = left.ConvertAll(c => c.Id + " " + c.Text);
             accepted.Sort((a, b) => string.CompareOrdinal(a.Candidate.Id, b.Candidate.Id));
-            return accepted.ConvertAll(p => new ObjectMark(
+            return accepted.ConvertAll(p => new DrawingMark(
                 p.Candidate.Id,
                 p.Candidate.Kind,
                 p.Target.Object.Id,
@@ -303,7 +328,7 @@ namespace GeometryHelper.Drawing.Annotation
         /// </summary>
         private Placed Search(Candidate c, List<Placed> accepted, List<GeoLine2> lines)
         {
-            (bool outsideOnly, bool nearGap, int levels) = Rounds[Rounds.Length - 1];
+            (bool outsideOnly, bool nearGap, int levels, _) = Rounds[Rounds.Length - 1];
             Placed fallback = null;
 
             foreach (GeoPoint2 middle in Item(c, outsideOnly, nearGap).GetPlacePoints(Options(levels)))
@@ -312,6 +337,7 @@ namespace GeometryHelper.Drawing.Annotation
                 Placed placed = Attach(c, new GeoRectangle2(middle, SymbolDxf.TextWidth(c.Text, _height), _height), room);
 
                 if (Marker.DimensionClash(c.Id, room, placed.Start, placed.Anchor, _dimensions, _tol, null)
+                    || Marker.SymbolClash(c.Id, room, placed.Start, placed.Anchor, _clearBoxes, _clearLines, _tol, null)
                     || accepted.Exists(p => Box2.Overlap(room, p.Room, _tol))
                     || Clashes(placed, accepted))
                 {
@@ -465,10 +491,11 @@ namespace GeometryHelper.Drawing.Annotation
             return new Placed { Candidate = c, Target = best, Text = text, Room = room, Start = Box2.Nearest(text, anchor), Anchor = anchor };
         }
 
-        /// <summary>Whether a placed mark meets a dimension, or a mark placed before it, as <see cref="Marker.FindOverlaps"/> counts it.</summary>
+        /// <summary>Whether a placed mark meets a dimension, or a mark placed before it, as Marker.FindOverlaps counts it.</summary>
         private bool Clashes(Placed placed, List<Placed> accepted)
         {
-            if (Marker.DimensionClash(placed.Candidate.Id, placed.Text, placed.Start, placed.Anchor, _dimensions, _tol, null))
+            if (Marker.DimensionClash(placed.Candidate.Id, placed.Text, placed.Start, placed.Anchor, _dimensions, _tol, null)
+                || Marker.SymbolClash(placed.Candidate.Id, placed.Text, placed.Start, placed.Anchor, _clearBoxes, _clearLines, _tol, null))
             {
                 return true;
             }
@@ -484,7 +511,59 @@ namespace GeometryHelper.Drawing.Annotation
             return false;
         }
 
-        /// <summary>Every line of the view, seen and hidden, an arc as chords no more than 15 degrees each.</summary>
+        /// <summary>
+        /// The box of each object's visible lines, an arc taken whole as its circle's box, in the order of the objects; none
+        /// for an object with no visible line.
+        /// </summary>
+        private List<GeoPolygon2> ObjectBoxes()
+        {
+            var boxes = new List<GeoPolygon2>();
+
+            foreach (DrawingObject item in _objects)
+            {
+                if (!_visible.TryGetValue(item.Id, out List<ProjectedEdge2> edges))
+                {
+                    continue;
+                }
+
+                double x0 = double.PositiveInfinity, y0 = double.PositiveInfinity, x1 = double.NegativeInfinity, y1 = double.NegativeInfinity;
+
+                foreach (ProjectedEdge2 edge in edges)
+                {
+                    if (edge.IsArc)
+                    {
+                        GeoArc2 arc = edge.Arc;
+                        x0 = Math.Min(x0, arc.Center.X - arc.Radius);
+                        y0 = Math.Min(y0, arc.Center.Y - arc.Radius);
+                        x1 = Math.Max(x1, arc.Center.X + arc.Radius);
+                        y1 = Math.Max(y1, arc.Center.Y + arc.Radius);
+                        continue;
+                    }
+
+                    foreach (GeoPoint2 p in new[] { edge.Line.StartPoint, edge.Line.EndPoint })
+                    {
+                        x0 = Math.Min(x0, p.X);
+                        y0 = Math.Min(y0, p.Y);
+                        x1 = Math.Max(x1, p.X);
+                        y1 = Math.Max(y1, p.Y);
+                    }
+                }
+
+                // A box seen edge on, a line, is kept clear of as a thin one.
+                double half = Math.Max(0.05 * _height, _tol);
+                boxes.Add(new GeoPolygon2(new[]
+                {
+                    new GeoPoint2(x0 - half, y0 - half), new GeoPoint2(x1 + half, y0 - half), new GeoPoint2(x1 + half, y1 + half), new GeoPoint2(x0 - half, y1 + half),
+                }));
+            }
+
+            return boxes;
+        }
+
+        /// <summary>
+        /// Every line of the view, seen and hidden, an arc as chords: of 45 degrees where it is no larger than the text is
+        /// high, of no more than 15 degrees where it is larger.
+        /// </summary>
         private List<GeoLine2> ViewLines()
         {
             var lines = new List<GeoLine2>();
@@ -504,7 +583,10 @@ namespace GeometryHelper.Drawing.Annotation
                     }
 
                     GeoArc2 arc = edge.Arc;
-                    int steps = Math.Max(2, (int)Math.Ceiling(Math.Abs(arc.SweptAngle) / (Math.PI / 12.0)));
+                    // An arc no larger than the text is high is taken in eighths of a turn, its chords less than a tenth of the
+                    // text's height off it; a larger one in fifteen degrees.
+                    double step = arc.Radius <= _height ? Math.PI / 4.0 : Math.PI / 12.0;
+                    int steps = Math.Max(2, (int)Math.Ceiling(Math.Abs(arc.SweptAngle) / step));
                     GeoPoint2 previous = arc.StartPoint;
 
                     for (int k = 1; k <= steps; k++)

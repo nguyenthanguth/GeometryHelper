@@ -24,10 +24,12 @@ namespace GeometryHelper.Drawing
     /// view at its scale, and its dimensions in the style GH_ and the scale, whose DIMLFAC is the scale.
     /// </para>
     /// <para>
-    /// The layers are Visible, Hidden (linetype HIDDEN), Centre (CENTER), Hatch, Dimension, Mark, Sheet and Viewport, the
-    /// last not plotted. Lines beyond a view's crop are cut at it, so that model space holds what the viewports show. The
-    /// title block is an INSERT of the block GH_TITLE with its texts as attributes; the part list is drawn in lines and
-    /// texts, since the library makes no TABLE of its own.
+    /// The layers are Visible, Hidden (linetype HIDDEN), Centre (CENTER, the centre lines too), Hatch, Dimension, Mark,
+    /// Symbol (section, detail and level marks, weld symbols), Sheet and Viewport, the last not plotted. Lines beyond a
+    /// view's crop are cut at it, so that model space holds what the viewports show. The title block is an INSERT of the
+    /// block GH_TITLE with its texts as attributes; the part list is drawn in lines and texts, since the library makes no
+    /// TABLE of its own. The layout's sheet is the paper of its size, ISO_A2_(594.00_x_420.00_MM) for an A2 on its side,
+    /// its margins nought, so that the paper is the sheet's edge.
     /// </para>
     /// <para>
     /// The same drawing gives the same DXF to the byte: everything is written in the order of the views, the objects and
@@ -104,7 +106,7 @@ namespace GeometryHelper.Drawing
             bool layout = settings.ExportMode == DrawingExportMode.LayoutAndViewports;
             Prepare(database);
             SortedDictionary<string, List<DrawingEdit>> byId = ById(edits);
-            DxfBlockTableRecord sheetSpace = layout ? SheetLayout(database).BlockTableRecord : database.ModelSpace;
+            DxfBlockTableRecord sheetSpace = layout ? SheetLayout(database, content.Sheet).BlockTableRecord : database.ModelSpace;
             var dimensionIds = new SortedDictionary<string, string>(StringComparer.Ordinal);
             var styles = new SortedDictionary<string, double>(StringComparer.Ordinal);
             var texts = new SortedDictionary<string, string>(StringComparer.Ordinal);
@@ -126,9 +128,10 @@ namespace GeometryHelper.Drawing
 
                 foreach (DrawingMark mark in view.Marks)
                 {
-                    GeoVector2 offset = Offset(byId, mark.Id);
-                    WriteMark(database.ModelSpace, mark, place, layout ? offset : new GeoVector2(offset.X * view.Scale, offset.Y * view.Scale));
+                    WriteMark(database, view.Id, DrawingBuilder.MarkId(view, mark), mark, place, byId);
                 }
+
+                WriteSymbols(database, view, new ViewPlacement2(view.Id, place.Origin, place.Scale));
 
                 GeoRectangle2 box = SheetBox(view, sheetOrigin);
 
@@ -150,26 +153,46 @@ namespace GeometryHelper.Drawing
         }
 
         /// <summary>
-        /// Writes one mark: its leader from its point on the part to the lower left corner of its text, and its text, both
-        /// tagged with the mark's id and its view's.
+        /// Writes one mark into model space as <see cref="DrawingMark.WriteTo"/> draws it, tagged with the drawing's id for
+        /// it and its view's, its text and leader moved by the moves made of it by hand, its arrow left on its object.
         /// </summary>
-        internal static void WriteMark(DxfBlockTableRecord space, DrawingMark mark, Placement place, GeoVector2 offset)
+        internal static void WriteMark(DxfDatabase database, string viewId, string id, DrawingMark mark, Placement place, SortedDictionary<string, List<DrawingEdit>> byId)
         {
-            GeoPoint2 at = new GeoPoint2(mark.TextPosition.X + offset.X, mark.TextPosition.Y + offset.Y);
-            var leader = new DxfLine(place.ToSpace(mark.Anchor), place.ToSpace(at)) { Layer = DrawingMark.Layer };
-            space.AppendEntity(leader);
-            DrawingEntityTags.Tag(leader, mark.Id, mark.ViewId);
-            var text = new DxfMText
-            {
-                Location = place.ToSpace(at),
-                TextHeight = mark.TextHeight / place.Scale,
-                Attachment = DxfAttachmentPoint.BottomLeft,
-                Contents = mark.Text,
-                Layer = DrawingMark.Layer,
-            };
+            // A move by hand is in the units of the space it was made in; the view's millimetres are those times the scale.
+            GeoVector2 offset = Offset(byId, id);
+            mark.MovedBy(new GeoVector2(offset.X * place.Scale, offset.Y * place.Scale)).Write(database, new ViewPlacement2(viewId, place.Origin, place.Scale), id);
+        }
 
-            space.AppendEntity(text);
-            DrawingEntityTags.Tag(text, mark.Id, mark.ViewId);
+        /// <summary>
+        /// Writes the symbols of a view into model space: its centre lines, weld symbols, section, detail and level marks,
+        /// each tagged with the drawing's id for it, the view's id, / and its own, and the view's id.
+        /// </summary>
+        private static void WriteSymbols(DxfDatabase database, DrawingView view, ViewPlacement2 placement)
+        {
+            foreach (DrawingCentreLine line in view.CentreLines)
+            {
+                line.Write(database, placement, DrawingBuilder.SymbolId(view, line.Id));
+            }
+
+            foreach (WeldSymbol weld in view.WeldSymbols)
+            {
+                weld.Write(database, placement, DrawingBuilder.SymbolId(view, weld.Id));
+            }
+
+            foreach (SectionMark section in view.SectionMarks)
+            {
+                section.Write(database, placement, DrawingBuilder.SymbolId(view, section.Id));
+            }
+
+            foreach (DetailMark detail in view.DetailMarks)
+            {
+                detail.Write(database, placement, DrawingBuilder.SymbolId(view, detail.Id));
+            }
+
+            foreach (LevelMark level in view.LevelMarks)
+            {
+                level.Write(database, placement, DrawingBuilder.SymbolId(view, level.Id));
+            }
         }
 
         /// <summary>
@@ -177,14 +200,21 @@ namespace GeometryHelper.Drawing
         /// The text is overridden in the block that draws it too, so that it shows at once: the measured text, as the drawing
         /// wrote it, stands for &lt;&gt; in the override, and comes back where the override is empty.
         /// </summary>
-        internal static void ApplyDimensionEdit(DxfDimension dimension, DrawingEdit edit, string measured)
+        internal static void ApplyDimensionEdit(DxfDatabase database, DxfDimension dimension, DrawingEdit edit, string measured)
         {
             switch (edit.Kind)
             {
                 case Dxf.Viewer.CadEditKind.Erase:
                     if (!dimension.IsErased)
                     {
+                        // Its picture goes with it, where it is its own.
+                        DxfBlockTableRecord picture = dimension.DimBlock;
                         dimension.Erase();
+
+                        if (picture != null && picture.IsAnonymous && !picture.IsErased && !DrawsWith(database, picture))
+                        {
+                            picture.Erase();
+                        }
                     }
 
                     return;
@@ -215,6 +245,28 @@ namespace GeometryHelper.Drawing
 
                     return;
             }
+        }
+
+        /// <summary>Whether a live dimension of model space or a layout draws with a block.</summary>
+        private static bool DrawsWith(DxfDatabase database, DxfBlockTableRecord picture)
+        {
+            foreach (DxfLayout layout in database.Layouts)
+            {
+                if (layout.BlockTableRecord == null)
+                {
+                    continue;
+                }
+
+                foreach (DxfEntity entity in layout.BlockTableRecord)
+                {
+                    if (!entity.IsErased && entity is DxfDimension other && other.DimBlock != null && string.Equals(other.DimBlock.Name, picture.Name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         /// <summary>Reads a displacement "dx,dy" as an edit's value gives it.</summary>
@@ -280,8 +332,11 @@ namespace GeometryHelper.Drawing
             return byId;
         }
 
-        /// <summary>The layout of the sheet: the one of its name, else an empty Layout1 renamed, else a new one.</summary>
-        internal static DxfLayout SheetLayout(DxfDatabase database)
+        /// <summary>
+        /// The layout of the sheet: the one of its name, else an empty Layout1 renamed, else a new one; given a sheet, on the
+        /// paper of its size, set before the layout is first made ready so that its limits and paper viewport fit the paper.
+        /// </summary>
+        internal static DxfLayout SheetLayout(DxfDatabase database, DrawingSheet sheet = null)
         {
             DxfLayout empty = null;
 
@@ -294,6 +349,7 @@ namespace GeometryHelper.Drawing
 
                 if (string.Equals(layout.LayoutName, LayoutName, StringComparison.OrdinalIgnoreCase))
                 {
+                    SetPaper(layout, sheet);
                     return layout;
                 }
 
@@ -306,14 +362,45 @@ namespace GeometryHelper.Drawing
             if (empty != null)
             {
                 empty.LayoutName = LayoutName;
+                SetPaper(empty, sheet);
                 empty.Initialize();
                 return empty;
             }
 
             var made = new DxfLayout { LayoutName = LayoutName };
             made.AddToLayoutDictionary(database, null);
+            SetPaper(made, sheet);
             made.Initialize();
             return made;
+        }
+
+        /// <summary>
+        /// The name a plotter gives the paper of a sheet, as AutoCAD names the sheets of no plotter: ISO_A2_(594.00_x_420.00_MM)
+        /// for an A2 on its side, ISO_A2_(420.00_x_594.00_MM) upright, Custom_(1000.00_x_500.00_MM) for a sheet of its own size.
+        /// </summary>
+        internal static string MediaName(DrawingSheet sheet)
+        {
+            string size = sheet.Width.ToString("0.00", CultureInfo.InvariantCulture) + "_x_" + sheet.Height.ToString("0.00", CultureInfo.InvariantCulture) + "_MM";
+            bool iso = sheet.SizeName.Length == 2 && sheet.SizeName[0] == 'A' && sheet.SizeName[1] >= '0' && sheet.SizeName[1] <= '4';
+            return (iso ? "ISO_" + sheet.SizeName : "Custom") + "_(" + size + ")";
+        }
+
+        /// <summary>
+        /// Puts a layout on the paper of a sheet, in millimetres, unturned, with no margins and its plot at the paper's
+        /// corner, so that the paper is the sheet's edge as the drawing draws it, from (0, 0); nothing where no sheet is given.
+        /// </summary>
+        private static void SetPaper(DxfLayout layout, DrawingSheet sheet)
+        {
+            if (sheet == null)
+            {
+                return;
+            }
+
+            layout.PlotPaperUnits = DxfPlotPaperUnit.Millimeters;
+            layout.PlotRotation = DxfPlotRotation.Degrees000;
+            layout.PlotPaperMargins = new DxfExtents2d(new GeoPoint2(0.0, 0.0), new GeoPoint2(0.0, 0.0));
+            layout.CanonicalMediaName = MediaName(sheet);
+            layout.PlotOrigin = new GeoPoint2(0.0, 0.0);
         }
 
         /// <summary>A view's place on the sheet, in paper millimetres, at a sheet origin.</summary>
@@ -358,6 +445,7 @@ namespace GeometryHelper.Drawing
             AddLayer(database, ProjectedView2.HatchLayer, 8, null);
             AddLayer(database, DrawingDimension.Layer, 3, null);
             AddLayer(database, DrawingMark.Layer, 2, null);
+            AddLayer(database, SymbolSettings.Layer, 6, null);
             AddLayer(database, SheetLayer, 7, null);
             AddLayer(database, ViewportLayer, 8, null);
             database.LayerTable[ViewportLayer].IsPlottable = false;
@@ -477,12 +565,10 @@ namespace GeometryHelper.Drawing
         }
 
         /// <summary>
-        /// Gives each dimension written the drawing's id for it in its tag, its style in model space, and its hand edits;
-        /// and takes out the blocks of dimensions no longer drawn.
+        /// Gives each dimension written the drawing's id for it in its tag, its style in model space, and its hand edits.
         /// </summary>
         private static void FinishDimensions(DxfDatabase database, SortedDictionary<string, string> ids, SortedDictionary<string, double> scales, SortedDictionary<string, string> texts, bool layout, DrawingSettings settings, SortedDictionary<string, List<DrawingEdit>> byId)
         {
-            var used = new SortedSet<string>(StringComparer.Ordinal);
             var written = new List<DxfDimension>();
 
             foreach (DxfEntity entity in database.ModelSpace)
@@ -517,24 +603,8 @@ namespace GeometryHelper.Drawing
                 {
                     foreach (DrawingEdit edit in edits)
                     {
-                        ApplyDimensionEdit(dimension, edit, texts[id]);
+                        ApplyDimensionEdit(database, dimension, edit, texts[id]);
                     }
-                }
-            }
-
-            foreach (DxfDimension dimension in written)
-            {
-                if (!dimension.IsErased && dimension.DimBlock != null)
-                {
-                    used.Add(dimension.DimBlock.Name);
-                }
-            }
-
-            foreach (DxfBlockTableRecord block in database.BlockTable)
-            {
-                if (!block.IsErased && block.Name.StartsWith("GH_D_", StringComparison.Ordinal) && !used.Contains(block.Name))
-                {
-                    block.Erase();
                 }
             }
         }

@@ -1,0 +1,296 @@
+<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.PluginManagerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+        Title="Plugin manager" Width="900" Height="700" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Background="#262B33">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml" />
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Icons.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <local:BoolToVisibilityConverter x:Key="Shown" />
+
+            <Style x:Key="Primary" TargetType="Button" BasedOn="{StaticResource GhFlatButton}">
+                <Setter Property="Background" Value="{StaticResource GhAccent}" />
+                <Setter Property="Foreground" Value="{StaticResource GhAccentInk}" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Padding" Value="12,5" />
+                <Setter Property="Margin" Value="0,0,6,0" />
+            </Style>
+            <Style x:Key="Secondary" TargetType="Button" BasedOn="{StaticResource GhDialogButton}">
+                <Setter Property="Margin" Value="0,0,6,0" />
+                <Style.Triggers>
+                    <Trigger Property="IsEnabled" Value="False">
+                        <Setter Property="Opacity" Value="0.5" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+            <Style x:Key="Head" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                <Setter Property="FontSize" Value="11" />
+                <Setter Property="FontWeight" Value="Medium" />
+                <Setter Property="Margin" Value="8,6" />
+            </Style>
+            <Style x:Key="Cell" TargetType="TextBlock">
+                <Setter Property="Margin" Value="8,6" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            </Style>
+            <Style x:Key="Card" TargetType="Border">
+                <Setter Property="Background" Value="{StaticResource GhInput}" />
+                <Setter Property="CornerRadius" Value="4" />
+                <Setter Property="Padding" Value="12,10" />
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="6"
+            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
+            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+        <DockPanel>
+            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" CornerRadius="6,6,0,0" MouseLeftButtonDown="OnHeaderDown">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhFlatButton}" Width="24" Height="24" Click="OnClose" ToolTip="Close">
+                        <local:IconView Size="14" StrokeThickness="2" Stroke="{StaticResource GhTextMuted}" Data="{StaticResource GhIconClose}" />
+                    </Button>
+                    <TextBlock Text="Plugin manager" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <!-- The actions: load, install, then those of the plugin selected. -->
+            <Border DockPanel.Dock="Top" BorderBrush="{StaticResource GhBorder}" BorderThickness="0,0,0,1" Padding="16,10">
+                <StackPanel Orientation="Horizontal">
+                    <Button Style="{StaticResource Primary}" Content="Load .dll… (NETLOAD)" Command="{Binding LoadCommand}" />
+                    <Button Style="{StaticResource Secondary}" Content="Install .ghplugin…" Command="{Binding InstallCommand}" />
+                    <Rectangle Width="1" Fill="{StaticResource GhBorder}" Margin="4,0,10,0" />
+                    <Button Style="{StaticResource Secondary}" Content="Reload" Command="{Binding ReloadCommand}" />
+                    <Button Style="{StaticResource Secondary}" Content="Unload" Command="{Binding UnloadCommand}" />
+                    <Button Style="{StaticResource Secondary}" Content="Remove" Command="{Binding RemoveCommand}" Foreground="{StaticResource GhError}"
+                            ToolTip="Uninstall: the plugin's folder is taken out of the plugin folder" />
+                </StackPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10" CornerRadius="0,0,6,6">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource Secondary}" Content="Close" Margin="0" Click="OnClose" />
+                    <TextBlock Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center"
+                               Text="Each plugin run is one undo step. Loading a .dll runs its code with your rights." />
+                </DockPanel>
+            </Border>
+
+            <Grid Margin="16,12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="250" />
+                </Grid.RowDefinitions>
+
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                    <RadioButton Style="{StaticResource GhChip}" Content="{Binding AllChipText}" Command="{Binding FilterCommand}" CommandParameter="All" IsChecked="True" Margin="0,0,6,0" />
+                    <RadioButton Style="{StaticResource GhChip}" Content="{Binding CommandChipText}" Command="{Binding FilterCommand}" CommandParameter="Command" Margin="0,0,6,0" />
+                    <RadioButton Style="{StaticResource GhChip}" Content="{Binding DrawingChipText}" Command="{Binding FilterCommand}" CommandParameter="Drawing" />
+                </StackPanel>
+
+                <!-- The plugins known in this session. -->
+                <Border Grid.Row="1" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4">
+                    <DockPanel>
+                        <Grid DockPanel.Dock="Top" Background="{StaticResource GhHeader}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="40" />
+                                <ColumnDefinition Width="1.2*" />
+                                <ColumnDefinition Width="90" />
+                                <ColumnDefinition Width="70" />
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="70" />
+                                <ColumnDefinition Width="64" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Style="{StaticResource Head}" Text="On" />
+                            <TextBlock Grid.Column="1" Style="{StaticResource Head}" Text="Name" />
+                            <TextBlock Grid.Column="2" Style="{StaticResource Head}" Text="Kind" />
+                            <TextBlock Grid.Column="3" Style="{StaticResource Head}" Text="Version" />
+                            <TextBlock Grid.Column="4" Style="{StaticResource Head}" Text="Command" />
+                            <TextBlock Grid.Column="5" Style="{StaticResource Head}" Text="File" />
+                            <TextBlock Grid.Column="6" Style="{StaticResource Head}" Text="Trusted" />
+                            <TextBlock Grid.Column="7" Style="{StaticResource Head}" Text="At start" />
+                        </Grid>
+                        <Grid>
+                            <TextBlock Margin="12" Foreground="{StaticResource GhTextMuted}" Text="No plugin is known in this session. Load a .dll, or install a .ghplugin.">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Rows.Count}" Value="0">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected, Mode=TwoWay}" Background="Transparent" BorderThickness="0"
+                                     Foreground="{StaticResource GhText}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="ListBoxItem">
+                                                    <Border x:Name="Row" Background="Transparent" BorderBrush="{StaticResource GhHeader}" BorderThickness="0,1,0,0">
+                                                        <ContentPresenter />
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsSelected" Value="True">
+                                                            <Setter TargetName="Row" Property="Background" Value="{StaticResource GhSelected}" />
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type local:PluginRowViewModel}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="40" />
+                                                <ColumnDefinition Width="1.2*" />
+                                                <ColumnDefinition Width="90" />
+                                                <ColumnDefinition Width="70" />
+                                                <ColumnDefinition Width="110" />
+                                                <ColumnDefinition Width="2*" />
+                                                <ColumnDefinition Width="70" />
+                                                <ColumnDefinition Width="64" />
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox Style="{StaticResource GhCheckBox}" IsChecked="{Binding IsLoaded, Mode=OneWay}" Margin="10,0,0,0" VerticalAlignment="Center"
+                                                      Command="{Binding DataContext.ToggleLoadedCommand, RelativeSource={RelativeSource AncestorType=ListBox}}" CommandParameter="{Binding}"
+                                                      ToolTip="Loaded: untick to unload, tick to load again" />
+                                            <TextBlock Grid.Column="1" Style="{StaticResource Cell}" Text="{Binding Name}" FontWeight="SemiBold" ToolTip="{Binding Name}" />
+                                            <TextBlock x:Name="Kind" Grid.Column="2" Style="{StaticResource Cell}" Text="{Binding Kind}" Foreground="#6CB6FF" />
+                                            <TextBlock Grid.Column="3" Style="{StaticResource Cell}" Text="{Binding Version}" FontFamily="{StaticResource GhMonoFont}" />
+                                            <TextBlock Grid.Column="4" Style="{StaticResource Cell}" Text="{Binding Commands}" FontFamily="{StaticResource GhMonoFont}" ToolTip="{Binding Commands}" />
+                                            <TextBlock Grid.Column="5" Style="{StaticResource Cell}" Text="{Binding File}" FontFamily="{StaticResource GhMonoFont}"
+                                                       Foreground="{StaticResource GhTextMuted}" ToolTip="{Binding File}" />
+                                            <TextBlock x:Name="Trusted" Grid.Column="6" Style="{StaticResource Cell}" Text="{Binding Trusted}" Foreground="{StaticResource GhWarn}" />
+                                            <TextBlock Grid.Column="7" Style="{StaticResource Cell}" Text="{Binding AtStart}" Foreground="{StaticResource GhTextMuted}" />
+                                        </Grid>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding IsCommandKind}" Value="True">
+                                                <Setter TargetName="Kind" Property="Foreground" Value="{StaticResource GhOk}" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IsTrusted}" Value="True">
+                                                <Setter TargetName="Trusted" Property="Foreground" Value="{StaticResource GhOk}" />
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
+                    </DockPanel>
+                </Border>
+
+                <TextBlock Grid.Row="2" Text="{Binding Message}" TextWrapping="Wrap" Margin="0,8,0,0">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{StaticResource GhOk}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding MessageFailed}" Value="True">
+                                    <Setter Property="Foreground" Value="{StaticResource GhWarn}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Message}" Value="">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <Grid Grid.Row="3" Margin="0,10,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- The plugin selected, and the trusted folders. -->
+                    <Border Style="{StaticResource Card}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
+                            <StackPanel>
+                                <TextBlock Text="{Binding SelectedTitle}" FontSize="13" FontWeight="SemiBold" />
+                                <ItemsControl ItemsSource="{Binding SelectedCommands}" Margin="0,4,0,0" Focusable="False">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Text="{Binding SelectedAuthor}" Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                <TextBlock Text="{Binding SelectedProblems}" Foreground="{StaticResource GhWarn}" TextWrapping="Wrap" />
+                                <DockPanel Margin="0,6,0,0">
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource Secondary}" Content="Settings…" Command="{Binding SettingsCommand}" Margin="0" Padding="10,3" />
+                                    <CheckBox Style="{StaticResource GhCheckBox}" IsChecked="{Binding SelectedLoadAtStart, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Load at every start" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                </DockPanel>
+                                <TextBlock Text="TRUSTED FOLDERS" Foreground="{StaticResource GhTextMuted}" FontSize="11" FontWeight="Medium" Margin="0,10,0,4" />
+                                <ListBox ItemsSource="{Binding TrustedFolders}" SelectedItem="{Binding SelectedFolder, Mode=TwoWay}" Background="Transparent" BorderThickness="0"
+                                         Foreground="{StaticResource GhText}" FontFamily="{StaticResource GhMonoFont}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem">
+                                            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="ListBoxItem">
+                                                        <Border x:Name="Row" Background="Transparent" Padding="2,1">
+                                                            <TextBlock Text="{Binding}" TextTrimming="CharacterEllipsis" ToolTip="{Binding}" />
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsSelected" Value="True">
+                                                                <Setter TargetName="Row" Property="Background" Value="{StaticResource GhSelected}" />
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                </ListBox>
+                                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                    <Button Style="{StaticResource Secondary}" Content="Add folder…" Command="{Binding AddFolderCommand}" Padding="10,3" />
+                                    <Button Style="{StaticResource Secondary}" Content="Remove folder" Command="{Binding RemoveFolderCommand}" Padding="10,3" />
+                                </StackPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+
+                    <!-- The load log. -->
+                    <Border Grid.Column="2" Style="{StaticResource Card}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Top" Text="Log" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,4" />
+                            <ScrollViewer x:Name="LogScroll" VerticalScrollBarVisibility="Auto" Focusable="False">
+                                <ItemsControl ItemsSource="{Binding LogLines}" Focusable="False" TextElement.FontFamily="{StaticResource GhMonoFont}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type local:PluginLogLine}">
+                                            <DockPanel Margin="0,0,0,2">
+                                                <TextBlock DockPanel.Dock="Left" Text="{Binding Time}" Foreground="{StaticResource GhTextMuted}" Margin="0,0,8,0" />
+                                                <TextBlock x:Name="Line" Text="{Binding Text}" TextWrapping="Wrap" />
+                                            </DockPanel>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding IsWarning}" Value="True">
+                                                    <Setter TargetName="Line" Property="Foreground" Value="{StaticResource GhWarn}" />
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </DockPanel>
+                    </Border>
+                </Grid>
+            </Grid>
+        </DockPanel>
+    </Border>
+</Window>

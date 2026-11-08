@@ -77,6 +77,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private CadFileState _state;
 
+        /// <summary>Gets whether the file is open, so that its row shows the small x that closes it (CLOSE).</summary>
+        public bool IsOpen { get; internal set; }
+
         /// <inheritdoc/>
         public override string ToString() => Label;
     }

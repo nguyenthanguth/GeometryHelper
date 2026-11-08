@@ -236,6 +236,11 @@ namespace GeometryHelper.Drawing
 
         private DrawingView Section(SectionViewRequest request, double scale)
         {
+            if (request.CutLine.HasValue)
+            {
+                return SectionAlong(request, scale);
+            }
+
             GeoCoordinateSystem3 axes = StandardViews.GetFrame(_source.Frame, request.LookingAs).CoordinateSystem;
             double low = double.PositiveInfinity;
             double high = double.NegativeInfinity;
@@ -259,6 +264,25 @@ namespace GeometryHelper.Drawing
             GeoPoint3 origin = axes.Origin.Add(axes.ZAxis.Multiply(at));
             var frame = new ViewFrame3(origin, axes.ZAxis.Negate(), axes.YAxis, 0.0, _settings.Views.SectionDepth, _tolerance);
             var plane = new GeoPlane3(origin, axes.ZAxis);
+            return Make("V-SECTION-" + Clean(request.Name), ViewKind.Section, "SECTION " + request.Name + "-" + request.Name, frame, plane, null, null, scale);
+        }
+
+        /// <summary>
+        /// A section cut along a line drawn in a view along the axes: the plane through the line square to the view, looking
+        /// to the right of the line, up the view's up where it can, else along the way the view looks from.
+        /// </summary>
+        private DrawingView SectionAlong(SectionViewRequest request, double scale)
+        {
+            GeoCoordinateSystem3 cs = StandardViews.GetFrame(_source.Frame, request.LookingAs).CoordinateSystem;
+            GeoLine2 line = request.CutLine.Value;
+            GeoVector2 look2 = request.LookInView();
+            GeoVector3 look = cs.XAxis.Multiply(look2.X).Add(cs.YAxis.Multiply(look2.Y));
+            GeoPoint3 origin = cs.Origin.Add(cs.XAxis.Multiply(line.StartPoint.X)).Add(cs.YAxis.Multiply(line.StartPoint.Y));
+
+            // Looking up or down the view, the section's up is the way the view looks from, so that it reads as a plan does.
+            GeoVector3 up = Math.Abs(look2.Y) < 0.99 ? cs.YAxis : (look2.Y < 0.0 ? cs.ZAxis.Negate() : cs.ZAxis);
+            var frame = new ViewFrame3(origin, look, up, 0.0, request.Depth, _tolerance);
+            var plane = new GeoPlane3(origin, look.Negate());
             return Make("V-SECTION-" + Clean(request.Name), ViewKind.Section, "SECTION " + request.Name + "-" + request.Name, frame, plane, null, null, scale);
         }
 

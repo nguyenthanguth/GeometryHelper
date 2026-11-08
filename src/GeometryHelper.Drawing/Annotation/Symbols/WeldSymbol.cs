@@ -275,36 +275,42 @@ namespace GeometryHelper.Drawing.Annotation
                 throw new ArgumentNullException(nameof(database));
             }
 
+            Write(database, placement, Id);
+        }
+
+        /// <summary>Writes the symbol as <see cref="WriteTo"/> does, its entities tagged with an id the caller gives.</summary>
+        internal void Write(DxfDatabase database, ViewPlacement2 placement, string id)
+        {
             SymbolDxf.SymbolLayer(database);
             string layer = SymbolSettings.Layer;
             double h = TextHeight;
-            SymbolDxf.Line(database, placement, Knee, ArrowTip, layer, Id);
+            SymbolDxf.Line(database, placement, Knee, ArrowTip, layer, id);
             double run = Knee.DistanceTo(ArrowTip);
-            SymbolDxf.Arrow(database, placement, ArrowTip, new GeoVector2((ArrowTip.X - Knee.X) / run, (ArrowTip.Y - Knee.Y) / run), 0.5 * h, layer, Id);
-            SymbolDxf.Line(database, placement, ReferenceLine.StartPoint, ReferenceLine.EndPoint, layer, Id);
+            SymbolDxf.Arrow(database, placement, ArrowTip, new GeoVector2((ArrowTip.X - Knee.X) / run, (ArrowTip.Y - Knee.Y) / run), 0.5 * h, layer, id);
+            SymbolDxf.Line(database, placement, ReferenceLine.StartPoint, ReferenceLine.EndPoint, layer, id);
             double dashed = Knee.Y - 0.5 * h;
 
             if (Side != WeldSide.Both)
             {
                 SymbolDxf.HiddenLinetype(database);
-                DxfLine line = SymbolDxf.Line(database, placement, new GeoPoint2(Knee.X, dashed), new GeoPoint2(ReferenceLine.EndPoint.X, dashed), layer, Id);
+                DxfLine line = SymbolDxf.Line(database, placement, new GeoPoint2(Knee.X, dashed), new GeoPoint2(ReferenceLine.EndPoint.X, dashed), layer, id);
                 line.Linetype = "HIDDEN";
                 line.LinetypeScale = SymbolChecks.PatternScale(h, placement);
             }
 
             if (Side == WeldSide.Arrow || Side == WeldSide.Both)
             {
-                Band(database, placement, Knee.Y, 1.0);
+                Band(database, placement, Knee.Y, 1.0, id);
             }
 
             if (Side == WeldSide.Other)
             {
-                Band(database, placement, dashed, -1.0);
+                Band(database, placement, dashed, -1.0, id);
             }
 
             if (Side == WeldSide.Both)
             {
-                Band(database, placement, Knee.Y, -1.0);
+                Band(database, placement, Knee.Y, -1.0, id);
             }
         }
 
@@ -333,14 +339,14 @@ namespace GeometryHelper.Drawing.Annotation
         }
 
         /// <summary>The basic symbol on one side of a line, with the size left of it and the length right of it.</summary>
-        private void Band(DxfDatabase database, ViewPlacement2 placement, double baseY, double sign)
+        private void Band(DxfDatabase database, ViewPlacement2 placement, double baseY, double sign, string id)
         {
             string layer = SymbolSettings.Layer;
             double h = TextHeight;
 
             foreach (GeoLine2 stroke in Strokes(baseY, sign))
             {
-                SymbolDxf.Line(database, placement, stroke.StartPoint, stroke.EndPoint, layer, Id);
+                SymbolDxf.Line(database, placement, stroke.StartPoint, stroke.EndPoint, layer, id);
             }
 
             double middle = baseY + sign * 0.5 * h;
@@ -348,13 +354,13 @@ namespace GeometryHelper.Drawing.Annotation
             if (Size.Length > 0)
             {
                 double width = SymbolDxf.TextWidth(Size, h);
-                SymbolDxf.Text(database, placement, new GeoPoint2(SymbolStart - 0.3 * h - 0.5 * width, middle), h, Size, layer, Id);
+                SymbolDxf.Text(database, placement, new GeoPoint2(SymbolStart - 0.3 * h - 0.5 * width, middle), h, Size, layer, id);
             }
 
             if (Length.Length > 0)
             {
                 double width = SymbolDxf.TextWidth(Length, h);
-                SymbolDxf.Text(database, placement, new GeoPoint2(SymbolStart + 1.3 * h + 0.5 * width, middle), h, Length, layer, Id);
+                SymbolDxf.Text(database, placement, new GeoPoint2(SymbolStart + 1.3 * h + 0.5 * width, middle), h, Length, layer, id);
             }
         }
 

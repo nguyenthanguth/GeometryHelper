@@ -6,8 +6,15 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Threading;
+using GeometryHelper.Drawing.Wpf;
+using GeometryHelper.Dxf;
 using GeometryHelper.Dxf.Viewer;
+using GeometryHelper.Dxf.Viewer.Plugins;
 using GeometryHelper.Dxf.Viewer.Wpf;
+using GeometryHelper.Dxf.Viewer.Wpf.Plugins;
 
 namespace GeometryHelper.Drawing.App
 {
@@ -19,6 +26,13 @@ namespace GeometryHelper.Drawing.App
     /// <c>--run</c> types lines on the command line, parted by semicolons; <c>--cursor</c> puts the cursor on a point of the
     /// drawing, showing the snap and the rubber band of the prompt waiting; <c>--toggle</c> switches status toggles, as GRID;
     /// <c>--layers</c> draws the Layer manager instead.
+    /// <c>--new-drawing "Test bodies" Assembly</c> makes a model drawing from a source with a preset and shows it, as New drawing
+    /// does; <c>--tab Drawing</c> shows the Drawing ribbon tab; <c>--pick view|dimension|mark|line</c> selects the first entity of
+    /// the drawing that draws one; <c>--hand-edit</c> moves its first dimension by hand; <c>--dialog new|new-source|new-settings|update|
+    /// settings[:Tab]|export|message</c> draws that dialog of the model drawing instead of the window; <c>--plugin path.dll</c> loads a
+    /// command plugin, <c>--tab Plugins</c> shows its tab, <c>--dialog plugins|plugin-settings|plugin-untrusted</c> draws the Plugin manager,
+    /// the plugin's settings or the question before an untrusted load; <c>--dialog options</c> or <c>--dialog "settings:Canvas and
+    /// cursor"</c> draws Global settings on a category.
     /// </summary>
     public static class Program
     {
@@ -38,6 +52,20 @@ namespace GeometryHelper.Drawing.App
             var app = new Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
             var model = new MainViewModel();
             var window = new MainWindow(model);
+            window.WorkspaceView.AddModelDrawings(model, DrawingWorkspaceExtensions.DefaultSources(Tolerance.Default), Tolerance.Default);
+
+            // Global settings: read from the user's file, a value that does not read falling back to its default; applied at once.
+            model.SettingsPath = GlobalSettings.DefaultPath;
+            model.ApplySettings(GlobalSettings.Load(model.SettingsPath));
+
+            // The command plugins: those installed and on the startup list loaded now, each result a line of the command line.
+            string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            var plugins = new CadPluginManager(
+                new CadPluginAssemblyLoader(),
+                Path.Combine(appData, "GeometryHelper", "Drawing", "Plugins"),
+                Path.Combine(appData, "GeometryHelper", "Drawing", "plugins.json"));
+            plugins.ConfirmUntrusted = path => CadQuestionWindow.ConfirmUntrustedPlugin(window, path);
+            model.UsePlugins(plugins, loadAtStart: true);
             string file = args.FirstOrDefault(a => !a.StartsWith("--", StringComparison.Ordinal));
 
             if (file != null)
@@ -45,7 +73,14 @@ namespace GeometryHelper.Drawing.App
                 model.Open(file);
             }
 
-            return app.Run(window);
+            try
+            {
+                return app.Run(window);
+            }
+            finally
+            {
+                plugins.Dispose();
+            }
         }
 
         /// <summary>Draws the window with a drawing open into a PNG, with no window shown.</summary>
@@ -57,6 +92,13 @@ namespace GeometryHelper.Drawing.App
             string run = null;
             double[] cursor = null;
             bool layers = false;
+            string sourceName = null;
+            string preset = null;
+            string tab = null;
+            string pick = null;
+            string dialogName = null;
+            bool handEdit = false;
+            string pluginPath = null;
             var toggles = new List<string>();
             var select = new List<string>();
             int width = 1600;
@@ -95,6 +137,31 @@ namespace GeometryHelper.Drawing.App
                 {
                     layers = true;
                 }
+                else if (string.Equals(arg, "--new-drawing", StringComparison.OrdinalIgnoreCase) && i + 2 < args.Length)
+                {
+                    sourceName = args[++i];
+                    preset = args[++i];
+                }
+                else if (string.Equals(arg, "--tab", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+                {
+                    tab = args[++i];
+                }
+                else if (string.Equals(arg, "--pick", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+                {
+                    pick = args[++i];
+                }
+                else if (string.Equals(arg, "--dialog", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+                {
+                    dialogName = args[++i];
+                }
+                else if (string.Equals(arg, "--plugin", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+                {
+                    pluginPath = Path.GetFullPath(args[++i]);
+                }
+                else if (string.Equals(arg, "--hand-edit", StringComparison.OrdinalIgnoreCase))
+                {
+                    handEdit = true;
+                }
                 else if (output == null)
                 {
                     output = arg;
@@ -107,12 +174,51 @@ namespace GeometryHelper.Drawing.App
 
             if (output == null || width < 100 || height < 100 || (cursor != null && cursor.Length != 2))
             {
-                Console.Error.WriteLine("Usage: GeometryHelper.Drawing.App --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers]");
+                Console.Error.WriteLine("Usage: GeometryHelper.Drawing.App --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--new-drawing \"Test bodies\" Assembly] [--tab Drawing] [--pick view|dimension|mark|line] [--hand-edit] [--dialog new|new-source|new-settings|update|settings[:Tab]|export|message|plugins|plugin-settings|plugin-untrusted] [--plugin path.dll]");
                 return 2;
             }
 
             _ = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+            SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
             var model = new MainViewModel();
+
+            // The model drawing, its dialogs not hooked: a dialog asked for is drawn below, not shown.
+            var drawings = new DrawingWorkspace(model, DrawingWorkspaceExtensions.DefaultSources(Tolerance.Default), Tolerance.Default);
+            drawings.TabContent = new DrawingRibbonTab { DataContext = drawings };
+            ModelDrawing made = null;
+
+            // Command plugins, kept in a folder of this run under the temporary folder, every file trusted.
+            if (pluginPath != null || (dialogName ?? string.Empty).StartsWith("plugin", StringComparison.OrdinalIgnoreCase))
+            {
+                string pluginRoot = Path.Combine(Path.GetTempPath(), "GeometryHelper", "ScreenshotPlugins", Environment.ProcessId.ToString(CultureInfo.InvariantCulture));
+                var plugins = new CadPluginManager(new CadPluginAssemblyLoader(), Path.Combine(pluginRoot, "plugins"), Path.Combine(pluginRoot, "plugins.json"), Path.Combine(pluginRoot, "copies"))
+                {
+                    ConfirmUntrusted = path => true,
+                };
+                model.UsePlugins(plugins, loadAtStart: false);
+
+                if (pluginPath != null && model.LoadPlugin(pluginPath)?.Succeeded != true)
+                {
+                    Console.Error.WriteLine(model.History.Last());
+                    return 2;
+                }
+            }
+
+            if (sourceName != null)
+            {
+                made = MakeDrawing(drawings, sourceName, preset);
+
+                if (made == null)
+                {
+                    return 2;
+                }
+
+                if (handEdit && !HandEdit(made))
+                {
+                    Console.Error.WriteLine("The drawing has no dimension to move.");
+                    return 2;
+                }
+            }
 
             foreach (StatusToggleViewModel toggle in model.Toggles.Where(t => toggles.Contains(t.Name)))
             {
@@ -158,15 +264,117 @@ namespace GeometryHelper.Drawing.App
                 width = (int)dialog.Width;
                 height = (int)dialog.Height;
             }
+            else if (string.Equals(dialogName, "save-changes", StringComparison.OrdinalIgnoreCase))
+            {
+                // The question CLOSE asks of a drawing with changes not saved.
+                var question = CadQuestionWindow.ForSave(new[] { made?.Document ?? CadDocument.From(new DxfDatabase("AC1027"), "plan-level2.dxf") });
+                root = question.Body;
+                window = question;
+                width = (int)question.Width;
+                height = MeasuredHeight(root, width);
+            }
+            else if (dialogName != null && GlobalCategory(dialogName, out string category))
+            {
+                // Global settings on a category, as OPTIONS shows it: --dialog options, or --dialog "settings:Canvas and cursor".
+                var dialog = new GlobalSettingsWindow(model.CreateGlobalSettings(category));
+                root = dialog.Body;
+                window = dialog;
+                width = (int)dialog.Width;
+                height = (int)dialog.Height;
+            }
+            else if (dialogName != null && dialogName.StartsWith("plugin", StringComparison.OrdinalIgnoreCase))
+            {
+                // The Plugin manager, the settings of the plugin loaded, or the question asked before an untrusted load.
+                PluginManagerViewModel manager = model.CreatePluginManager();
+
+                if (string.Equals(dialogName, "plugin-untrusted", StringComparison.OrdinalIgnoreCase))
+                {
+                    var question = new CadQuestionWindow("Load a plugin from a folder that is not trusted?",
+                        "Loading a plugin runs its code with your rights. Load it only if you know where it comes from; to stop being asked, add its folder to the trusted folders in the Plugin manager.",
+                        pluginPath ?? @"D:\Dev\CircleTools\bin\Debug\CircleTools.dll", "Load", "Don't load");
+                    root = question.Body;
+                    window = question;
+                    width = (int)question.Width;
+                    height = MeasuredHeight(root, width);
+                }
+                else if (string.Equals(dialogName, "plugin-settings", StringComparison.OrdinalIgnoreCase) && manager?.CreateSettings() is PluginSettingsViewModel settings)
+                {
+                    var dialog = new PluginSettingsWindow(settings);
+                    root = dialog.Body;
+                    window = dialog;
+                    width = (int)dialog.Width;
+                    height = MeasuredHeight(root, width);
+                }
+                else if (manager != null)
+                {
+                    var dialog = new PluginManagerWindow(manager);
+                    root = dialog.Body;
+                    window = dialog;
+                    width = (int)dialog.Width;
+                    height = (int)dialog.Height;
+                }
+                else
+                {
+                    Console.Error.WriteLine("--dialog " + dialogName + ": needs --plugin.");
+                    return 2;
+                }
+            }
+            else if (dialogName != null)
+            {
+                DialogViewModel dialog = Dialog(drawings, dialogName);
+
+                if (dialog == null)
+                {
+                    Console.Error.WriteLine("--dialog " + dialogName + ": no such dialog, or it needs --new-drawing first.");
+                    return 2;
+                }
+
+                var dialogWindow = DrawingWorkspaceExtensions.CreateDialog(dialog);
+                root = dialogWindow.Body;
+                window = dialogWindow;
+                width = (int)dialogWindow.Width;
+                height = double.IsNaN(dialogWindow.Height) ? MeasuredHeight(root, width) : (int)dialogWindow.Height;
+            }
             else
             {
                 window = new MainWindow(model);
+                model.ApplySettings(new GlobalSettings());
                 root = (FrameworkElement)window.Content;
             }
 
             window.Content = null;
-            root.DataContext = layers ? (object)((LayerManagerWindow)window).Model : model;
+            object context = layers ? (object)((LayerManagerWindow)window).Model : dialogName != null ? window.DataContext : model;
+            root.DataContext = context;
+
+            // A dialog sized to its content is measured again out of its window, its rows bound now.
+            if (dialogName != null && window.SizeToContent != SizeToContent.Manual)
+            {
+                height = MeasuredHeight(root, width);
+            }
+
             Layout(root, width, height);
+
+            if (tab != null)
+            {
+                model.SelectedTab = string.Equals(tab, "Plugins", StringComparison.OrdinalIgnoreCase) ? model.PluginsTab
+                    : string.Equals(tab, "Settings", StringComparison.OrdinalIgnoreCase) ? model.SettingsTab
+                    : model.Extensions.FirstOrDefault(e => string.Equals(e.TabHeader, tab, StringComparison.OrdinalIgnoreCase));
+                Layout(root, width, height);
+            }
+
+            if (pick != null && made != null)
+            {
+                string handle = Pick(made, pick);
+
+                if (handle == null)
+                {
+                    Console.Error.WriteLine("--pick " + pick + ": the drawing has no such entity in the space shown.");
+                    return 2;
+                }
+
+                made.Document.Selection.Set(new[] { handle });
+                Layout(root, width, height);
+            }
 
             if (select.Count > 0 && model.Document != null)
             {
@@ -206,6 +414,153 @@ namespace GeometryHelper.Drawing.App
             window.Close();
             Console.WriteLine("Wrote " + Path.GetFullPath(output) + " (" + width + " by " + height + ").");
             return 0;
+        }
+
+        /// <summary>Makes a model drawing through the New drawing dialog's steps: the source named, the preset, Create.</summary>
+        private static ModelDrawing MakeDrawing(DrawingWorkspace drawings, string sourceName, string preset)
+        {
+            NewDrawingViewModel dialog = drawings.ShowNewDrawing();
+            SourceOption source = dialog.Sources.FirstOrDefault(s => string.Equals(s.Name, sourceName, StringComparison.OrdinalIgnoreCase));
+
+            if (source == null || !source.IsAvailable)
+            {
+                Console.Error.WriteLine("--new-drawing: no source named " + sourceName + " can give objects; there are " + string.Join(", ", dialog.Sources.Select(s => s.Name)) + ".");
+                return null;
+            }
+
+            source.IsSelected = true;
+            Pump(dialog.NextAsync());
+
+            if (!NewDrawingViewModel.PresetNames.Contains(preset, StringComparer.OrdinalIgnoreCase))
+            {
+                Console.Error.WriteLine("--new-drawing: the preset is Part, Assembly or General.");
+                return null;
+            }
+
+            dialog.Preset = NewDrawingViewModel.PresetNames.First(p => string.Equals(p, preset, StringComparison.OrdinalIgnoreCase));
+            Pump(dialog.NextAsync());
+            ModelDrawing made = Pump(dialog.NextAsync());
+
+            if (made == null)
+            {
+                Console.Error.WriteLine("--new-drawing: the drawing was not made. " + dialog.Notice);
+            }
+
+            return made;
+        }
+
+        /// <summary>Moves the first dimension of a drawing 25 up by hand, through its owner, as a grip drag does.</summary>
+        private static bool HandEdit(ModelDrawing made)
+        {
+            string handle = Pick(made, "dimension", anySpace: true);
+            return handle != null && made.Document.Owners.TryApply(made.Document, new CadEdit(handle, CadEditKind.Move, null, null, "0,25"));
+        }
+
+        /// <summary>The view model of a dialog of the model drawing, at the step or tab named after a colon.</summary>
+        private static DialogViewModel Dialog(DrawingWorkspace drawings, string name)
+        {
+            string[] parts = name.Split(':');
+
+            switch (parts[0].ToLowerInvariant())
+            {
+                case "new":
+                case "new-objects":
+                    NewDrawingViewModel objects = drawings.ShowNewDrawing();
+                    Pump(objects.NextAsync());
+                    return objects;
+                case "new-source":
+                    return drawings.ShowNewDrawing();
+                case "new-settings":
+                    NewDrawingViewModel settings = drawings.ShowNewDrawing();
+                    Pump(settings.NextAsync());
+                    Pump(settings.NextAsync());
+                    return settings;
+                case "update":
+                    UpdateFromModelViewModel update = drawings.ShowUpdate();
+
+                    if (update != null)
+                    {
+                        update.Source = drawings.Providers.FirstOrDefault(p => p.IsAvailable && p.Name.EndsWith("changed", StringComparison.Ordinal)) ?? update.Source;
+                        Pump(update.PreviewAsync());
+                    }
+
+                    return update;
+                case "settings":
+                    DrawingSettingsViewModel tabs = drawings.ShowSettings();
+
+                    if (tabs != null && parts.Length > 1)
+                    {
+                        tabs.Tab = parts[1];
+                    }
+
+                    return tabs;
+                case "export":
+                    return drawings.ShowExport();
+                case "message":
+                    return MessageViewModel.Failure("Drawing not made", "B-105 could not be made from 4 parts.", new ArgumentException("The settings allow no scale."));
+                default:
+                    return null;
+            }
+        }
+
+        /// <summary>The first entity of a drawing, in the space shown, that draws a view, a dimension, a mark or a line of the model.</summary>
+        private static string Pick(ModelDrawing made, string kind, bool anySpace = false)
+        {
+            var kinds = made.Drawing.Elements.GroupBy(e => e.Id, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First().Kind, StringComparer.Ordinal);
+
+            foreach (DxfEntity entity in DrawingEntityTags.Find(made.Document.Database))
+            {
+                if (entity.IsErased || !DrawingEntityTags.TryRead(entity, out string id, out _)
+                    || (!anySpace && made.Document.FindSpace(entity.Handle) != made.Document.CurrentSpace))
+                {
+                    continue;
+                }
+
+                bool line = !kinds.ContainsKey(id) && entity is DxfLine;
+
+                if (string.Equals(kind, "line", StringComparison.OrdinalIgnoreCase) ? line : kinds.TryGetValue(id, out string found) && string.Equals(found, kind, StringComparison.OrdinalIgnoreCase))
+                {
+                    return entity.Handle;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>Whether a --dialog names Global settings: options, or settings: and one of its categories, given back.</summary>
+        private static bool GlobalCategory(string dialogName, out string category)
+        {
+            string[] categories = { "Appearance", "Canvas and cursor", "Drawing defaults", "Units and rounding", "Layers, colours and lines", "Text and fonts", "Data sources", "Shortcuts", "Save and export" };
+            category = null;
+
+            if (string.Equals(dialogName, "options", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (!dialogName.StartsWith("settings:", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            category = categories.FirstOrDefault(c => string.Equals(c, dialogName.Substring("settings:".Length), StringComparison.OrdinalIgnoreCase));
+            return category != null;
+        }
+
+        /// <summary>Waits for a task while the dispatcher runs, so that its awaits come back to this thread.</summary>
+        private static T Pump<T>(Task<T> task)
+        {
+            var frame = new DispatcherFrame();
+            task.ContinueWith(_ => frame.Continue = false, TaskScheduler.Default);
+            Dispatcher.PushFrame(frame);
+            return task.GetAwaiter().GetResult();
+        }
+
+        /// <summary>The height a dialog sized to its content takes at a width.</summary>
+        private static int MeasuredHeight(FrameworkElement root, int width)
+        {
+            root.Measure(new Size(width, double.PositiveInfinity));
+            return (int)Math.Ceiling(root.DesiredSize.Height);
         }
 
         /// <summary>Lays the content out at a size and draws the canvas at once, as no frame will come to draw it.</summary>

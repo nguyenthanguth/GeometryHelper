@@ -28,6 +28,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets or sets the name of the font the text is drawn in.</summary>
         public string FontName { get; set; } = "Arial";
+
+        /// <summary>Gets or sets what white and black lines (AutoCAD's colour 7) are drawn as on a dark canvas, 0xRRGGBB: white by default.</summary>
+        public int VisibleLineColor { get; set; } = 0xFFFFFF;
+
+        /// <summary>
+        /// Gets or sets the colour the entities of the layer <see cref="HiddenLayerName"/> are drawn in, 0xRRGGBB, as Global
+        /// settings gives hidden lines; null, the default, for their own colour.
+        /// </summary>
+        public int? HiddenLineColor { get; set; }
+
+        /// <summary>Gets or sets the layer of the hidden lines <see cref="HiddenLineColor"/> colours: Hidden by default, as a model drawing names it.</summary>
+        public string HiddenLayerName { get; set; } = "Hidden";
+
+        /// <summary>Gets or sets the colour of the grips as 0xRRGGBB: #3D9BFF by default.</summary>
+        public int GripColor { get; set; } = 0x3D9BFF;
     }
 
     /// <summary>
@@ -89,18 +104,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>
         /// White drawn on a light background would vanish, as would black on a dark one: AutoCAD's colour 7 turns black on
         /// white paper and white on black. Only white and black are turned; yellow on white paper and blue on black stay as
-        /// they are, as AutoCAD shows them.
+        /// they are, as AutoCAD shows them. On a dark background both are drawn in the colour Global settings gives visible
+        /// lines, white by default.
         /// </summary>
-        private static int Visible(int rgb, int background)
+        private static int Visible(int rgb, int background, int onDark = 0xFFFFFF)
         {
             if (Luminance(background) > 0.6 && Luminance(rgb) >= 0.98)
             {
                 return 0x000000;
             }
 
-            if (Luminance(background) < 0.4 && Luminance(rgb) <= 0.02)
+            if (Luminance(background) < 0.4 && (Luminance(rgb) <= 0.02 || (Luminance(rgb) >= 0.98 && onDark != 0xFFFFFF)))
             {
-                return 0xFFFFFF;
+                return onDark;
             }
 
             return rgb;
@@ -161,7 +177,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void DrawItem(SKCanvas canvas, DisplayItem2 item, Affine2 m, double zoom, CanvasOptions options, SKPaint stroke, SKPaint fill, bool isSelected, bool isHover, int background)
         {
-            int rgb = isSelected ? options.SelectionColor : Visible(item.Style.Rgb, background);
+            int own = options.HiddenLineColor.HasValue && item.Layer != null && string.Equals(item.Layer, options.HiddenLayerName, StringComparison.OrdinalIgnoreCase)
+                ? options.HiddenLineColor.Value
+                : item.Style.Rgb;
+            int rgb = isSelected ? options.SelectionColor : Visible(own, background, options.VisibleLineColor);
             byte alpha = isHover && !isSelected ? (byte)170 : (byte)255;
             SKColor color = Color(rgb, alpha);
             float width = options.ShowLineWeights ? (float)Math.Max(1.0, item.Style.LineWeight * 96.0 / 25.4) : 1f;

@@ -108,10 +108,10 @@ namespace GeometryHelper.Drawing.UnitTest.Builder
         }
 
         /// <summary>
-        /// Draws a space of a drawing, as the presenter shows it, into a PNG under %TEMP%/gk/drawing/build; gives the path.
-        /// The layout is drawn on its paper, model space on what it draws.
+        /// Draws a space of a drawing, as the presenter shows it, into a PNG under %TEMP%/gk/drawing/build or a folder given;
+        /// gives the path. The layout is drawn on its paper, model space on what it draws.
         /// </summary>
-        public static string SavePicture(DxfDatabase database, string spaceName, string name)
+        public static string SavePicture(DxfDatabase database, string spaceName, string name, string folder = null)
         {
             CadDocument document = CadDocument.From(database, name + ".dxf");
             CadSpace space = document.Spaces.Single(s => s.Name == spaceName);
@@ -124,7 +124,12 @@ namespace GeometryHelper.Drawing.UnitTest.Builder
                 cad.ZoomTo(box, 0.02);
             }
 
-            string path = Path.Combine(Folder(), name + ".png");
+            if (folder != null)
+            {
+                Directory.CreateDirectory(folder);
+            }
+
+            string path = Path.Combine(folder ?? Folder(), name + ".png");
 
             using (var bitmap = new SKBitmap(width, height))
             using (var canvas = new SKCanvas(bitmap))

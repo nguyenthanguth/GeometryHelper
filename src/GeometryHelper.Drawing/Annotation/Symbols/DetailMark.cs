@@ -119,20 +119,26 @@ namespace GeometryHelper.Drawing.Annotation
                 throw new ArgumentNullException(nameof(database));
             }
 
+            Write(database, placement, Id);
+        }
+
+        /// <summary>Writes the symbol as <see cref="WriteTo"/> does, its entities tagged with an id the caller gives.</summary>
+        internal void Write(DxfDatabase database, ViewPlacement2 placement, string id)
+        {
             SymbolDxf.SymbolLayer(database);
 
             if (Shape == DetailMarkShape.Circle)
             {
                 var circle = new DxfCircle(placement.ToSheet(Bounds.Center), GeoVector3.ZAxis, 0.5 * Bounds.Width / placement.Scale) { Layer = SymbolSettings.Layer };
                 database.ModelSpace.AppendEntity(circle);
-                DrawingEntityTags.Tag(circle, Id, placement.ViewId);
+                DrawingEntityTags.Tag(circle, id, placement.ViewId);
             }
             else
             {
-                SymbolDxf.Outline(database, placement, new[] { Bounds.LowerLeft, Bounds.LowerRight, Bounds.UpperRight, Bounds.UpperLeft }, SymbolSettings.Layer, Id);
+                SymbolDxf.Outline(database, placement, new[] { Bounds.LowerLeft, Bounds.LowerRight, Bounds.UpperRight, Bounds.UpperLeft }, SymbolSettings.Layer, id);
             }
 
-            SymbolDxf.Text(database, placement, LetterBox.Center, TextHeight, Letter, SymbolSettings.Layer, Id);
+            SymbolDxf.Text(database, placement, LetterBox.Center, TextHeight, Letter, SymbolSettings.Layer, id);
         }
 
         /// <inheritdoc/>

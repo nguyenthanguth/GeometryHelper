@@ -445,7 +445,11 @@ namespace GeometryHelper.Dxf.Viewer
 
         internal List<DisplayBox> Views { get; } = new List<DisplayBox>();
 
-        internal Dictionary<string, double> Remembered { get; } = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        /// <summary>
+        /// Gets the values the commands remember from one run to the next, by name, as TEXT the height last typed
+        /// ("text.height"); a host sets a default here, as Global settings sets the text height of TEXT and MTEXT.
+        /// </summary>
+        public Dictionary<string, double> Remembered { get; } = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
 
         internal void EnsureGroup(string name)
         {

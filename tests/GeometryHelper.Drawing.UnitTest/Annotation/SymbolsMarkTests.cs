@@ -21,8 +21,8 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             Near(1, mark.Direction.X);
             Near(0, mark.Direction.Y);
 
-            // The letters' boxes start 20 past the tips of arrows 100 long: their middles 140 off the cut line.
-            Near(1640, mark.LetterBoxes[0].Center.X);
+            // The letters' boxes start 20 past the tips of arrows 100 long, each 50 wide: their middles 145 off the cut line.
+            Near(1645, mark.LetterBoxes[0].Center.X);
             Near(-200, mark.LetterBoxes[0].Center.Y);
             Near(200, mark.LetterBoxes[1].Center.Y);
         }
@@ -52,8 +52,8 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             DetailMark circle = DetailMark.Circle("D-B", "B", new GeoPoint2(0, 0), 250, 50);
             DetailMark rectangle = DetailMark.Rectangle("D-C", "C", new GeoRectangle2(new GeoPoint2(100, 50), 200, 100), 50);
 
-            Near(191.78, Math.Round(circle.LetterBox.Center.X - 20, 2));
-            Near(235, rectangle.LetterBox.Center.X);
+            Near(191.78, Math.Round(circle.LetterBox.Center.X - 25, 2));
+            Near(240, rectangle.LetterBox.Center.X);
             Near(140, rectangle.LetterBox.Center.Y);
 
             var database = new DxfDatabase("AC1027");

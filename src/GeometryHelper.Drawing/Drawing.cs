@@ -16,10 +16,18 @@ namespace GeometryHelper.Drawing
     /// <remarks>
     /// <para>
     /// A drawing is made by <see cref="DrawingBuilder.Build"/>, saved by <see cref="Save"/> as one DXF and opened again by
-    /// <see cref="Open"/>. <see cref="Update"/> makes it again from the model as it is now: it takes out only the entities it
+    /// <see cref="Open"/>. <see cref="Update(DrawingSource)"/> makes it again from the model as it is now: it takes out only the entities it
     /// wrote, writes them anew, applies the hand edits that still apply and reports those that no longer do; what was drawn
     /// by hand on it stays. A beam drawn 3 000 long and updated to 3 500 has its overall dimension read 3500, a mark moved 40
     /// to the right still 40 to the right of where the drawing puts it, and a line drawn by hand on the sheet still there.
+    /// </para>
+    /// <para>
+    /// <see cref="Update(DrawingSource, DrawingSettings)"/> makes it again with other settings, its hand edits and what was
+    /// drawn by hand kept the same way; <see cref="Prepare"/> and <see cref="Apply"/> split that in two, so that a window
+    /// makes the drawing on a thread of its own and writes it on its own. <see cref="ReDimension"/>, <see cref="ReMark"/>,
+    /// <see cref="ReCentreLines"/>, <see cref="AddView"/>, <see cref="AddSection"/> and <see cref="AddDetail"/> change the
+    /// settings for one view and make it again: TC2 given the right end view dimensioned and a section B-B cut along a line
+    /// at 1 000 keeps both through later updates.
     /// </para>
     /// <para>
     /// <see cref="OpenInPresenter"/> shows the drawing in the 2D presenter with its owner registered: a projected line there
@@ -28,7 +36,8 @@ namespace GeometryHelper.Drawing
     /// </remarks>
     public sealed class Drawing
     {
-        private readonly DrawingSettings _settings;
+        private readonly List<State> _states = new List<State>();
+        private DrawingSettings _settings;
         private DrawingSource _source;
         private DrawingContent _content;
         private DxfDatabase _database;
@@ -147,7 +156,7 @@ namespace GeometryHelper.Drawing
         /// <param name="path">The path of the DXF.</param>
         /// <param name="source">The objects the drawing was made from, to compare an update with; null where they are not at hand.</param>
         /// <param name="tolerance">The tolerance the drawing is made within when it is updated.</param>
-        /// <returns>The drawing: its elements, edits and plugin runs as saved, its views empty until <see cref="Update"/>.</returns>
+        /// <returns>The drawing: its elements, edits and plugin runs as saved, its views empty until <see cref="Update(DrawingSource)"/>.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the DXF carries no drawing document.</exception>
         public static Drawing Open(string path, DrawingSource source, Tolerance tolerance)
@@ -219,28 +228,100 @@ namespace GeometryHelper.Drawing
         }
 
         /// <summary>
-        /// Makes the drawing again from the model as it is now: views, dimensions, marks and sheet, with the settings it has.
-        /// Only the entities it wrote are taken out and written anew; the hand edits that still apply are applied again, those
-        /// that no longer do are taken out and reported; the plugin runs are kept and reported as to be run again.
+        /// Makes the drawing again from the model as it is now: views, dimensions, marks, symbols and sheet, with the settings
+        /// it has. Only the entities it wrote are taken out and written anew; the hand edits that still apply are applied
+        /// again, those that no longer do are taken out and reported; the plugin runs are kept and reported as to be run again.
         /// </summary>
         /// <param name="newSource">The objects as they are now.</param>
         /// <returns>What changed and what became of the hand edits.</returns>
         /// <remarks>
-        /// Shown in the presenter, the update is one undo step there. Undoing it brings back the DXF and the hand edits as they
-        /// were; <see cref="Views"/> keeps the views of the update until the drawing is updated again.
+        /// Shown in the presenter, the update is one undo step there. Undoing it brings back the DXF, the hand edits, the
+        /// settings and the views as they were. The same as <c>Apply(Prepare(newSource, null))</c>.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the source is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the presenter refuses or fails the update, as while a
         /// command of it runs; the drawing is then left as it was.</exception>
-        public UpdateReport Update(DrawingSource newSource)
+        public UpdateReport Update(DrawingSource newSource) => Update(newSource, null);
+
+        /// <summary>
+        /// Makes the drawing again from the model as it is now with other settings: other views, scales, sheet, dimensions,
+        /// marks or symbols, the hand edits that still apply kept and what was drawn by hand left as it is, as
+        /// <see cref="Update(DrawingSource)"/> keeps them.
+        /// </summary>
+        /// <param name="newSource">The objects as they are now.</param>
+        /// <param name="settings">The settings to make it with from now on, copied; null for those it has.</param>
+        /// <returns>What changed and what became of the hand edits.</returns>
+        /// <remarks>
+        /// TC2 drawn on an A3 and made again on an A2 with its top view taken out keeps the mark of its end plate where it was
+        /// dragged to, and the line drawn by hand on the sheet; the edits of the top view's dimensions are dropped and said.
+        /// Shown in the presenter, it is one undo step there, which takes the settings back with the rest. The same as
+        /// <c>Apply(Prepare(newSource, settings))</c>.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the source is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the settings allow no scale, or one that is not a finite number
+        /// above nought, or ask for a sheet of its own size with no width or height.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the presenter refuses or fails the update; the drawing is then
+        /// left as it was.</exception>
+        public UpdateReport Update(DrawingSource newSource, DrawingSettings settings) => Apply(Prepare(newSource, settings));
+
+        /// <summary>
+        /// Makes the drawing again from a source with settings, without writing it: the slow part of an update, which touches
+        /// neither the drawing nor its DXF and may run on a thread of its own while the drawing is not changed.
+        /// </summary>
+        /// <param name="newSource">The objects as they are now.</param>
+        /// <param name="settings">The settings to make it with, copied; null for those the drawing has.</param>
+        /// <returns>The update, to be written by <see cref="Apply"/>.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the source is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the settings allow no scale, or one that is not a finite number
+        /// above nought, or ask for a sheet of its own size with no width or height.</exception>
+        public PreparedUpdate Prepare(DrawingSource newSource, DrawingSettings settings)
         {
             if (newSource == null)
             {
                 throw new ArgumentNullException(nameof(newSource));
             }
 
-            DrawingContent content = DrawingBuilder.Make(newSource, _settings, Tolerance);
-            DrawingBuilder.Elements(content, _settings, out List<DrawingElement> views, out List<DrawingElement> annotations);
+            DrawingSettings copy = (settings ?? _settings).Clone();
+            DrawingContent content = DrawingBuilder.Make(newSource, copy, Tolerance);
+            DrawingBuilder.Elements(content, copy, out List<DrawingElement> views, out List<DrawingElement> annotations);
+            return new PreparedUpdate(this, newSource, copy, content, views, annotations);
+        }
+
+        /// <summary>
+        /// Writes an update this drawing prepared into its DXF, as <see cref="Update(DrawingSource, DrawingSettings)"/> does: the
+        /// entities it wrote taken out and written anew, the hand edits that still apply applied again, what was drawn by hand
+        /// left; shown in the presenter, one undo step there.
+        /// </summary>
+        /// <param name="update">The update, from <see cref="Prepare"/>.</param>
+        /// <returns>What changed and what became of the hand edits.</returns>
+        /// <remarks>
+        /// The hand edits are judged as they are when the update is applied, so that an edit made while it was prepared is
+        /// kept, or reported, as any other. Run it on the thread the presenter runs on.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the update is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the update was prepared by another drawing.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the update has been applied already, or the presenter
+        /// refuses or fails it; the drawing is then left as it was.</exception>
+        public UpdateReport Apply(PreparedUpdate update)
+        {
+            if (update == null)
+            {
+                throw new ArgumentNullException(nameof(update));
+            }
+
+            if (!ReferenceEquals(update.Drawing, this))
+            {
+                throw new ArgumentException("The update was prepared by another drawing.", nameof(update));
+            }
+
+            if (update.IsApplied)
+            {
+                throw new InvalidOperationException("The update has been applied already.");
+            }
+
+            DrawingSource newSource = update.Source;
+            DrawingContent content = update.Content;
+            List<DrawingElement> views = update.Views, annotations = update.Annotations;
             var next = Index(views, annotations);
             var objectIds = new HashSet<string>(StringComparer.Ordinal);
 
@@ -269,14 +350,10 @@ namespace GeometryHelper.Drawing
             UpdateReport report = Compare(newSource, next, kept, dropped);
 
             // The state is taken first, so that the records written are the new ones; it is put back if the presenter fails.
-            DrawingSource oldSource = _source;
-            DrawingContent oldContent = _content;
-            List<DrawingElement> oldViews = _views, oldAnnotations = _annotations;
-            Dictionary<string, DrawingElement> oldElements = _elements;
+            State before = Current();
             List<DrawingEdit> oldEdits = _edits;
-            List<string> oldWarnings = _warnings;
-            double oldScale = _scale;
             _source = newSource;
+            _settings = update.SettingsInUse;
             _content = content;
             _views = views;
             _annotations = annotations;
@@ -306,20 +383,266 @@ namespace GeometryHelper.Drawing
 
                 if (!result.Succeeded)
                 {
-                    _source = oldSource;
-                    _content = oldContent;
-                    _views = oldViews;
-                    _annotations = oldAnnotations;
-                    _elements = oldElements;
+                    Restore(before);
                     _edits = oldEdits;
-                    _warnings = oldWarnings;
-                    _scale = oldScale;
                     throw new InvalidOperationException("The presenter did not take the update: " + result.Message);
+                }
+
+                // Undoing the step reads the document back from the DXF; these let the views, settings and source come back
+                // with it.
+                Remember(before);
+                Remember(Current());
+            }
+
+            update.IsApplied = true;
+            GeometryHelperLog.Info("Drawing.Update: " + Id + ": " + report + ".");
+            return report;
+        }
+
+        /// <summary>
+        /// Dimensions one view by the rules of the settings, whatever its kind, and keeps it dimensioned through later updates
+        /// (<see cref="ViewSettings.DimensionedViews"/>): the drawing made again from its source, its hand edits kept.
+        /// </summary>
+        /// <param name="viewId">The id of the view, V-RIGHT.</param>
+        /// <returns>What changed: the view's dimensions among <see cref="UpdateReport.AddedElements"/>, and what became of the
+        /// hand edits.</returns>
+        /// <remarks>
+        /// The right end view of TC2 with the assembly preset, which dimensions the front and top views only, gets the overall
+        /// height of the end plate and the pitch of its holes. A view dimensioned already is dimensioned again, as an update
+        /// dimensions it. Shown in the presenter, it is one undo step there.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the id is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the drawing has no view of the id.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the drawing was opened and not updated, so that it has no
+        /// source to make it from, or the presenter refuses the step.</exception>
+        public UpdateReport ReDimension(string viewId) => ForView(viewId, s => AddOnce(s.Views.DimensionedViews, viewId));
+
+        /// <summary>
+        /// Marks one view as the settings mark the first, and keeps it marked through later updates
+        /// (<see cref="ViewSettings.MarkedViews"/>): the drawing made again from its source, its hand edits kept.
+        /// </summary>
+        /// <param name="viewId">The id of the view, V-TOP.</param>
+        /// <returns>What changed: the view's marks among <see cref="UpdateReport.AddedElements"/>, and what became of the hand
+        /// edits.</returns>
+        /// <remarks>
+        /// The first view along the axes is always marked: marking it again places its marks again, a mark dragged by hand
+        /// keeping its move. Shown in the presenter, it is one undo step there.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the id is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the drawing has no view of the id.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the drawing was opened and not updated, or the presenter
+        /// refuses the step.</exception>
+        public UpdateReport ReMark(string viewId) => ForView(viewId, s => AddOnce(s.Views.MarkedViews, viewId));
+
+        /// <summary>
+        /// Draws the centre lines of one view again from the holes, bolts and tubes it sees: the drawing made again from its
+        /// source with the settings it has, its hand edits kept.
+        /// </summary>
+        /// <param name="viewId">The id of the view, V-FRONT.</param>
+        /// <returns>What changed and what became of the hand edits; nothing where the source has not changed.</returns>
+        /// <remarks>Every view has its centre lines; shown in the presenter, this is one undo step there.</remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the id is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the drawing has no view of the id.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the drawing was opened and not updated, or the presenter
+        /// refuses the step.</exception>
+        public UpdateReport ReCentreLines(string viewId) => ForView(viewId, s => { });
+
+        /// <summary>
+        /// Adds a view along the axes, or the isometric view, and makes the drawing again with it, its hand edits kept.
+        /// </summary>
+        /// <param name="kind">The view: front, top, bottom, left, right, back or isometric.</param>
+        /// <returns>What changed: the view, V-BACK, among <see cref="UpdateReport.AddedElements"/>.</returns>
+        /// <remarks>
+        /// TC2 with the assembly preset given its back view has V-BACK beside its front view, as the projection method puts
+        /// it. A view the drawing has already changes nothing but is made again. Shown in the presenter, one undo step.
+        /// </remarks>
+        /// <exception cref="ArgumentException">Thrown when the kind is a section, a detail or a free view.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the drawing was opened and not updated, or the presenter
+        /// refuses the step.</exception>
+        public UpdateReport AddView(ViewKind kind)
+        {
+            if (kind == ViewKind.Section || kind == ViewKind.Detail || kind == ViewKind.Free || !Enum.IsDefined(typeof(ViewKind), kind))
+            {
+                throw new ArgumentException("A view added is one along the axes or the isometric one; a section or a detail is added by its own call.", nameof(kind));
+            }
+
+            return Change(s => AddOnce(s.Views.Kinds, kind));
+        }
+
+        /// <summary>
+        /// Adds a section cut along a line drawn in a view along the axes and makes the drawing again with it, its hand edits
+        /// kept: the section looks to the right of the line from its first point to its second and sees as far as a depth
+        /// behind the cut (<see cref="SectionViewRequest(string, ViewKind, GeoLine2, double)"/>).
+        /// </summary>
+        /// <param name="name">The letter of the section, "B" for SECTION B-B; its view is V-SECTION-B.</param>
+        /// <param name="viewId">The id of the view the line is drawn in: one along the axes, V-FRONT.</param>
+        /// <param name="cutLine">The line, in the view's millimetres at 1:1.</param>
+        /// <param name="depth">How far behind the cut the section sees, in model millimetres; infinity to see all.</param>
+        /// <returns>What changed: the section view and its mark among <see cref="UpdateReport.AddedElements"/>.</returns>
+        /// <remarks>
+        /// TC2 cut along the line from (1000, -200) to (1000, 200) in its front view, 100 deep, gets SECTION B-B: the I of the
+        /// beam seen looking towards its far end, and the letter B at both ends of the cut in the front view.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the name or the id is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the name is empty or names a section the drawing has, the drawing has
+        /// no view of the id or it is not one along the axes, or the line has no length.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the depth is negative or not a number.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the drawing was opened and not updated, or the presenter
+        /// refuses the step.</exception>
+        public UpdateReport AddSection(string name, string viewId, GeoLine2 cutLine, double depth)
+        {
+            ViewKind kind = KindOf(viewId);
+            var request = new SectionViewRequest(name, kind, cutLine, depth);
+            NewName(name, Names(_settings.Views.Sections, s => s.Name));
+            return Change(s => s.Views.Sections.Add(request));
+        }
+
+        /// <summary>
+        /// Adds a detail of a rectangle of a view along the axes, drawn at a scale of its own, and makes the drawing again
+        /// with it, its hand edits kept.
+        /// </summary>
+        /// <param name="name">The letter of the detail, "C" for DETAIL C; its view is V-DETAIL-C.</param>
+        /// <param name="viewId">The id of the view the rectangle is drawn in: one along the axes or the isometric one.</param>
+        /// <param name="area">The rectangle, in the view's millimetres at 1:1.</param>
+        /// <param name="scale">The scale the detail is drawn at, 5 for 1:5: no smaller than the view's; the nearest of the
+        /// drawing's scales no smaller is taken.</param>
+        /// <returns>What changed: the detail view and its mark among <see cref="UpdateReport.AddedElements"/>.</returns>
+        /// <remarks>
+        /// The end of TC2, from (2800, -200) to (3100, 200) in its front view at 1:10, drawn at 1:5, is a detail twice as large
+        /// as the view, and stays twice as large where a later update takes another scale for the views.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the name or the id is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the name is empty or names a detail the drawing has, the drawing has
+        /// no view of the id or it is a section or a detail, or the rectangle has no area.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the scale is not a finite number above nought, or draws
+        /// the detail smaller than its view.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the drawing was opened and not updated, or the presenter
+        /// refuses the step.</exception>
+        public UpdateReport AddDetail(string name, string viewId, GeoRectangle2 area, double scale)
+        {
+            ViewKind kind = KindOf(viewId);
+
+            if (!(scale > 0.0) || double.IsInfinity(scale))
+            {
+                throw new ArgumentOutOfRangeException(nameof(scale), scale, "A scale has to be a finite number above nought.");
+            }
+
+            var request = new DetailViewRequest(name, kind, area, ViewScale(viewId) / scale);
+            NewName(name, Names(_settings.Views.Details, d => d.Name));
+            return Change(s => s.Views.Details.Add(request));
+        }
+
+        /// <summary>The drawing made again from its source with its settings changed.</summary>
+        private UpdateReport Change(Action<DrawingSettings> change)
+        {
+            if (_source == null)
+            {
+                throw new InvalidOperationException("A drawing opened from a file is changed once it is updated from its source.");
+            }
+
+            DrawingSettings settings = _settings.Clone();
+            change(settings);
+            return Update(_source, settings);
+        }
+
+        /// <summary>A change of the settings for one view the drawing has.</summary>
+        private UpdateReport ForView(string viewId, Action<DrawingSettings> change)
+        {
+            KindOf(viewId);
+            return Change(change);
+        }
+
+        /// <summary>The kind of a view the drawing has, found by its id.</summary>
+        private ViewKind KindOf(string viewId)
+        {
+            if (viewId == null)
+            {
+                throw new ArgumentNullException(nameof(viewId));
+            }
+
+            if (_content == null)
+            {
+                throw new InvalidOperationException("A drawing opened from a file is changed once it is updated from its source.");
+            }
+
+            foreach (DrawingView view in _content.Views)
+            {
+                if (string.Equals(view.Id, viewId, StringComparison.Ordinal))
+                {
+                    return view.Kind;
                 }
             }
 
-            GeometryHelperLog.Info("Drawing.Update: " + Id + ": " + report + ".");
-            return report;
+            throw new ArgumentException("The drawing has no view " + viewId + ".", nameof(viewId));
+        }
+
+        private double ViewScale(string viewId)
+        {
+            foreach (DrawingView view in _content.Views)
+            {
+                if (string.Equals(view.Id, viewId, StringComparison.Ordinal))
+                {
+                    return view.Scale;
+                }
+            }
+
+            return _scale;
+        }
+
+        private static List<string> Names<T>(IEnumerable<T> items, Func<T, string> name)
+        {
+            var names = new List<string>();
+
+            foreach (T item in items)
+            {
+                names.Add(name(item));
+            }
+
+            return names;
+        }
+
+        private static void NewName(string name, List<string> names)
+        {
+            if (name != null && names.Exists(n => string.Equals(ViewBuilder.Clean(n), ViewBuilder.Clean(name), StringComparison.Ordinal)))
+            {
+                throw new ArgumentException("The drawing has a view named " + name + " already.", nameof(name));
+            }
+        }
+
+        private static void AddOnce<T>(IList<T> list, T item)
+        {
+            if (!list.Contains(item))
+            {
+                list.Add(item);
+            }
+        }
+
+        /// <summary>What the drawing is made of now: its source, settings, views and document elements.</summary>
+        private State Current() => new State(_source, _settings, _content, _views, _annotations, _warnings, _scale);
+
+        /// <summary>Puts the drawing back as a state had it; the hand edits are not part of it.</summary>
+        private void Restore(State state)
+        {
+            _source = state.Source;
+            _settings = state.Settings;
+            _content = state.Content;
+            _views = state.Views;
+            _annotations = state.Annotations;
+            _elements = Index(_views, _annotations);
+            _warnings = state.Warnings;
+            _scale = state.Scale;
+        }
+
+        /// <summary>Keeps a state an undo or a redo may bring back, the last twenty.</summary>
+        private void Remember(State state)
+        {
+            _states.RemoveAll(s => s.Same(state.Views, state.Annotations));
+            _states.Add(state);
+
+            if (_states.Count > 20)
+            {
+                _states.RemoveAt(0);
+            }
         }
 
         /// <summary>The document as records, for the store.</summary>
@@ -381,9 +704,85 @@ namespace GeometryHelper.Drawing
 
             DrawingDocumentRecords records = DrawingDocumentStore.Read(_presenter.Database);
 
-            if (records != null)
+            if (records == null)
             {
-                Read(records);
+                return;
+            }
+
+            Read(records);
+
+            // An update undone or redone: the views, settings and source it was made of come back with its document.
+            State state = _states.Find(s => s.Same(records.Views, records.Annotations));
+
+            if (state != null)
+            {
+                Restore(state);
+                return;
+            }
+
+            foreach (DrawingElement element in records.Annotations)
+            {
+                if (element.Id == DrawingBuilder.SettingsId)
+                {
+                    _settings = DrawingSettings.FromValues(element.Values);
+                    break;
+                }
+            }
+        }
+
+        /// <summary>What a drawing is made of but its hand edits: its source, settings, views and the elements of its document.</summary>
+        private sealed class State
+        {
+            public State(DrawingSource source, DrawingSettings settings, DrawingContent content, List<DrawingElement> views, List<DrawingElement> annotations, List<string> warnings, double scale)
+            {
+                Source = source;
+                Settings = settings;
+                Content = content;
+                Views = views;
+                Annotations = annotations;
+                Warnings = warnings;
+                Scale = scale;
+            }
+
+            public DrawingSource Source { get; }
+
+            public DrawingSettings Settings { get; }
+
+            public DrawingContent Content { get; }
+
+            public List<DrawingElement> Views { get; }
+
+            public List<DrawingElement> Annotations { get; }
+
+            public List<string> Warnings { get; }
+
+            public double Scale { get; }
+
+            /// <summary>Whether the state has these elements, in this order.</summary>
+            public bool Same(IReadOnlyList<DrawingElement> views, IReadOnlyList<DrawingElement> annotations)
+            {
+                if (views.Count != Views.Count || annotations.Count != Annotations.Count)
+                {
+                    return false;
+                }
+
+                for (int i = 0; i < views.Count; i++)
+                {
+                    if (!views[i].Equals(Views[i]))
+                    {
+                        return false;
+                    }
+                }
+
+                for (int i = 0; i < annotations.Count; i++)
+                {
+                    if (!annotations[i].Equals(Annotations[i]))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
             }
         }
 

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace GeometryHelper.Drawing
 {
     /// <summary>
-    /// What an update of a drawing from the model did (<see cref="Drawing.Update"/>): the objects of the model added, taken
+    /// What an update of a drawing from the model did (<see cref="Drawing.Update(DrawingSource)"/>): the objects of the model added, taken
     /// away and changed, the views, dimensions and marks added, taken away and changed, the hand edits kept and those that no
     /// longer apply with why, and the plugin runs to run again.
     /// </summary>

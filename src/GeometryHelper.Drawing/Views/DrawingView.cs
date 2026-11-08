@@ -10,7 +10,7 @@ namespace GeometryHelper.Drawing
     /// <summary>
     /// One view of a drawing (L2): a window into the model, as a Tekla view or an AutoCAD MVIEW is, with its direction and
     /// depth (<see cref="Frame"/>), its crop, its scale, the lines L1 made for it, and, once the drawing is made, its
-    /// dimensions, its marks and where it stands on the sheet.
+    /// dimensions, its marks, its symbols and where it stands on the sheet.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -105,16 +105,41 @@ namespace GeometryHelper.Drawing
         /// </summary>
         public IReadOnlyList<string> DimensionIds { get; internal set; } = new string[0];
 
-        /// <summary>Gets the marks of the view, as the drawing made them; empty for a view not marked.</summary>
+        /// <summary>
+        /// Gets the marks of the view, as <see cref="Marker"/> placed them; empty for a view not marked. The drawing knows each
+        /// by the view's id, / and the mark's id: V-FRONT/M-P-1.
+        /// </summary>
         public IReadOnlyList<DrawingMark> Marks
         {
             get => _marks;
             internal set => _marks = value;
         }
 
+        /// <summary>Gets the centre lines of the holes, bolts and tubes the view sees as circles; empty until the drawing is made.</summary>
+        public IReadOnlyList<DrawingCentreLine> CentreLines { get; internal set; } = new DrawingCentreLine[0];
+
+        /// <summary>Gets the symbols of the welds the view sees; empty until the drawing is made.</summary>
+        public IReadOnlyList<WeldSymbol> WeldSymbols { get; internal set; } = new WeldSymbol[0];
+
         /// <summary>
-        /// Gets the box of everything the view draws, its crop, its dimensions and its marks, in view millimetres at 1:1;
-        /// its crop until the drawing is made.
+        /// Gets the marks of the sections cut across what the view sees, each where the section's plane meets the view, its
+        /// letter the section's name: SECTION A-A of an end view has its mark A in the front view. Empty until the drawing is
+        /// made.
+        /// </summary>
+        public IReadOnlyList<SectionMark> SectionMarks { get; internal set; } = new SectionMark[0];
+
+        /// <summary>Gets the marks of the details taken from the view, each round its detail's crop; empty until the drawing is made.</summary>
+        public IReadOnlyList<DetailMark> DetailMarks { get; internal set; } = new DetailMark[0];
+
+        /// <summary>
+        /// Gets the level marks of the view, one for each object that gives its elevation, where the settings ask for them
+        /// (<see cref="SymbolSettings.LevelMarks"/>); empty until the drawing is made.
+        /// </summary>
+        public IReadOnlyList<LevelMark> LevelMarks { get; internal set; } = new LevelMark[0];
+
+        /// <summary>
+        /// Gets the box of everything the view draws, its crop, its dimensions, its marks and its symbols, in view
+        /// millimetres at 1:1; its crop until the drawing is made.
         /// </summary>
         public GeoRectangle2 Box { get; internal set; }
 

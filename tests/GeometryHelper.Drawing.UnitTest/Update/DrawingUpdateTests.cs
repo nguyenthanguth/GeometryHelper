@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using GeometryHelper.Drawing.Annotation;
 using GeometryHelper.Dxf;
 using GeometryHelper.Dxf.Viewer;
 using GeometryHelper.Geometry;
@@ -82,10 +83,10 @@ namespace GeometryHelper.Drawing.UnitTest.Update
 
             // The end plate's mark stands 40 to the right of where the drawing puts it, at the plate's new place.
             DrawingView front = drawing.Views[0];
-            DrawingMark mark = front.Marks.Single(m => m.Id == MarkId);
+            DrawingMark mark = front.Marks.Single(m => "V-FRONT/" + m.Id == MarkId);
             DxfMText text = MarkText(after, MarkId);
-            Assert.Equal(front.ModelOrigin.X + mark.TextPosition.X + 40, text.Location.X, 9);
-            Assert.Equal(front.ModelOrigin.Y + mark.TextPosition.Y, text.Location.Y, 9);
+            Assert.Equal(front.ModelOrigin.X + mark.TextBox.Center.X + 40, text.Location.X, 9);
+            Assert.Equal(front.ModelOrigin.Y + mark.TextBox.Center.Y, text.Location.Y, 9);
             Assert.True(mark.Anchor.X > 3000, "The anchor of the mark is on the plate, now past 3 500.");
 
             // The line drawn by hand is still there; the edit of the plate taken out is reported and dropped.

@@ -26,7 +26,7 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             public GeoCoordinateSystem3 Frame;
             public ProjectedView2 View;
             public IReadOnlyList<DrawingDimension> Dimensions;
-            public IReadOnlyList<ObjectMark> Marks;
+            public IReadOnlyList<DrawingMark> Marks;
             public double Scale;
         }
 
@@ -36,7 +36,7 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             DrawingObject[] list = objects.ToArray();
             ProjectedView2 view = AnnotationKit.Project(list, frame);
             IReadOnlyList<DrawingDimension> made = dimensions ? Annotator.Dimension(view, list, frame, new DimensionSettings { Scale = scale }, Tol) : new DrawingDimension[0];
-            IReadOnlyList<ObjectMark> marks = Marker.Mark(view, list, frame, made, settings ?? new MarkSettings(), content ?? new MarkContent(), scale, Tol);
+            IReadOnlyList<DrawingMark> marks = Marker.Mark(view, list, frame, made, settings ?? new MarkSettings(), content ?? new MarkContent(), scale, Tol);
             return new Marked { Objects = list, Frame = frame, View = view, Dimensions = made, Marks = marks, Scale = scale };
         }
 
@@ -48,7 +48,7 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         {
             var found = new List<string>();
 
-            foreach (ObjectMark mark in marked.Marks)
+            foreach (DrawingMark mark in marked.Marks)
             {
                 GeoPoint2 end = mark.Anchor;
                 ProjectedEdge2[] edges = marked.View.VisibleEdges.Where(e => e.ObjectIds.Contains(mark.ObjectId)).ToArray();
@@ -81,7 +81,7 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         }
 
         /// <summary>A mark as text, its numbers to the bit, for comparing two runs.</summary>
-        public static string Signature(ObjectMark m)
+        public static string Signature(DrawingMark m)
         {
             string Bits(double v) => BitConverter.DoubleToInt64Bits(v).ToString("X16");
             return m.Id + " " + m.Kind + " " + m.Text + " " + m.ObjectId + " " + Bits(m.TextBox.Center.X) + Bits(m.TextBox.Center.Y)

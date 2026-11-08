@@ -152,6 +152,24 @@ namespace GeometryHelper.TeklaConvert
         }
 
         /// <summary>A Tekla coordinate system as a frame; null where its axes are parallel or of no length.</summary>
+        private static GeoCoordinateSystem3? BoltFrame(TSG.CoordinateSystem system)
+        {
+            if (system == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                return DrawingSourceBuild.BoltFrame(system.Origin.ToGeoPoint3(), system.AxisX.ToGeoVector3(), system.AxisY.ToGeoVector3());
+            }
+            catch (ArgumentException)
+            {
+                // Axes that pin down no frame: the group is counted among those left out, not warned of.
+                return null;
+            }
+        }
+
         private static GeoCoordinateSystem3? Frame(TSG.CoordinateSystem system)
         {
             if (system == null)
@@ -440,7 +458,7 @@ namespace GeometryHelper.TeklaConvert
                         return;
                     }
 
-                    GeoCoordinateSystem3? frame = Frame(group.GetCoordinateSystem());
+                    GeoCoordinateSystem3? frame = BoltFrame(group.GetCoordinateSystem());
 
                     if (!frame.HasValue)
                     {
@@ -474,7 +492,7 @@ namespace GeometryHelper.TeklaConvert
                         HasBolt = group.Bolt,
                         Diameter = group.BoltSize,
                         HoleTolerance = group.Tolerance,
-                        Length = group.Length,
+                        Length = group.Length > 0.0 ? group.Length : group.CutLength,
                         Standard = group.BoltStandard,
                         Frame = frame.Value,
                         Positions = positions,

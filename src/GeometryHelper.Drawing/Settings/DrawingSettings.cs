@@ -2,15 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using GeometryHelper.Drawing.Annotation;
+using GeometryHelper.Geometry;
 using GeometryHelper.Packing;
 
 namespace GeometryHelper.Drawing
 {
     /// <summary>
-    /// Everything one drawing may vary (16-settings.md): its views, the scales allowed, its dimensions, its marks, its sheet,
-    /// how the views go round the front view and how the DXF is laid out. There is one kind of drawing; a single-part, an
-    /// assembly and a general arrangement drawing are the presets <see cref="Part"/>, <see cref="Assembly"/> and
-    /// <see cref="General"/>.
+    /// Everything one drawing may vary (16-settings.md): its views, the scales allowed, its dimensions, its marks, its
+    /// symbols, its sheet, how the views go round the front view and how the DXF is laid out. There is one kind of drawing;
+    /// a single-part, an assembly and a general arrangement drawing are the presets <see cref="Part"/>,
+    /// <see cref="Assembly"/> and <see cref="General"/>.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -27,9 +28,16 @@ namespace GeometryHelper.Drawing
     {
         private static readonly double[] DefaultScales = { 1, 2, 5, 10, 15, 20, 25, 50, 100, 200, 500 };
 
+        /// <summary>The fields a mark's format names but attributes, as the document reads them back.</summary>
+        private static readonly MarkField[] Fields =
+        {
+            MarkField.Mark, MarkField.Name, MarkField.Profile, MarkField.Material, MarkField.Length, MarkField.Count, MarkField.Diameter,
+        };
+
         private DimensionSettings _dimensions = new DimensionSettings();
         private ViewSettings _views = new ViewSettings();
         private MarkSettings _marks = new MarkSettings();
+        private SymbolSettings _symbols = new SymbolSettings();
         private SheetSettings _sheet = new SheetSettings();
 
         /// <summary>
@@ -67,7 +75,8 @@ namespace GeometryHelper.Drawing
 
         /// <summary>
         /// Gets the settings of a general arrangement drawing of many assemblies: a plan from above and an elevation from the
-        /// front, no dimensions of parts, the main part of each assembly marked, no hidden lines, on an A1.
+        /// front, no dimensions of parts, the main part of each assembly marked, the levels of the objects that give one
+        /// (<see cref="SymbolSettings.LevelMarks"/>), no hidden lines, on an A1.
         /// </summary>
         public static DrawingSettings General
         {
@@ -80,6 +89,7 @@ namespace GeometryHelper.Drawing
                 settings.Marks.MainParts = true;
                 settings.Marks.Fittings = false;
                 settings.Sheet.Size = PaperSize.A1;
+                settings.Symbols.LevelMarks = true;
                 settings.Sheet.PartList = false;
                 return settings;
             }
@@ -116,6 +126,14 @@ namespace GeometryHelper.Drawing
             set => _marks = value ?? throw new ArgumentNullException(nameof(Marks));
         }
 
+        /// <summary>Gets or sets how the symbols are drawn: centre lines, weld symbols, section, detail and level marks.</summary>
+        /// <exception cref="ArgumentNullException">Thrown when the value set is null.</exception>
+        public SymbolSettings Symbols
+        {
+            get => _symbols;
+            set => _symbols = value ?? throw new ArgumentNullException(nameof(Symbols));
+        }
+
         /// <summary>Gets or sets the sheet.</summary>
         /// <exception cref="ArgumentNullException">Thrown when the value set is null.</exception>
         public SheetSettings Sheet
@@ -139,6 +157,7 @@ namespace GeometryHelper.Drawing
                 _views = _views.Clone(),
                 _dimensions = CloneDimensions(_dimensions),
                 _marks = _marks.Clone(),
+                _symbols = _symbols.Clone(),
                 _sheet = _sheet.Clone(),
                 ProjectionMethod = ProjectionMethod,
                 ExportMode = ExportMode,
@@ -204,6 +223,8 @@ namespace GeometryHelper.Drawing
 
             Add("Views.Kinds", string.Join(",", Names(_views.Kinds)));
             Add("Views.Dimensioned", string.Join(",", Names(_views.Dimensioned)));
+            Add("Views.DimensionedViews", string.Join(",", _views.DimensionedViews));
+            Add("Views.MarkedViews", string.Join(",", _views.MarkedViews));
             Number("Views.CropMargin", _views.CropMargin);
             Number("Views.SectionDepth", _views.SectionDepth);
             Number("Views.SmoothAngle", _views.SmoothAngleRad);
@@ -217,6 +238,13 @@ namespace GeometryHelper.Drawing
                 Add(key + ".Name", section.Name);
                 Add(key + ".LookingAs", section.LookingAs.ToString());
                 Number(key + ".Share", section.Share);
+
+                if (section.CutLine.HasValue)
+                {
+                    GeoLine2 cut = section.CutLine.Value;
+                    Add(key + ".CutLine", string.Join(",", Write(cut.StartPoint.X), Write(cut.StartPoint.Y), Write(cut.EndPoint.X), Write(cut.EndPoint.Y)));
+                    Number(key + ".Depth", section.Depth);
+                }
             }
 
             Add("Views.Details", _views.Details.Count.ToString(CultureInfo.InvariantCulture));
@@ -255,6 +283,24 @@ namespace GeometryHelper.Drawing
             Flag("Marks.Fittings", _marks.Fittings);
             Number("Marks.TextHeight", _marks.TextHeight);
             Number("Marks.Offset", _marks.Offset);
+
+            foreach ((string kind, MarkFormat format) in new[] { ("Part", _marks.Content.Part), ("Assembly", _marks.Content.Assembly), ("Bolt", _marks.Content.Bolt) })
+            {
+                string key = "Marks.Content." + kind;
+                Add(key + ".Separator", format.Separator);
+                Add(key + ".Fields", format.Fields.Count.ToString(CultureInfo.InvariantCulture));
+
+                for (int i = 0; i < format.Fields.Count; i++)
+                {
+                    MarkField field = format.Fields[i];
+                    Add(key + ".Field." + i.ToString(CultureInfo.InvariantCulture), field.Kind == MarkFieldKind.Attribute ? "Attribute:" + field.AttributeName : field.Kind.ToString());
+                }
+            }
+
+            Number("Symbols.TextHeight", _symbols.TextHeight);
+            Number("Symbols.CentreLineExtension", _symbols.CentreLineExtension);
+            Add("Symbols.WeldStandard", _symbols.WeldStandard.ToString());
+            Flag("Symbols.LevelMarks", _symbols.LevelMarks);
             Add("Sheet.Size", _sheet.Size.ToString());
             Add("Sheet.Orientation", _sheet.Orientation.ToString());
             Number("Sheet.CustomWidth", _sheet.CustomWidth);
@@ -304,6 +350,8 @@ namespace GeometryHelper.Drawing
                 ViewSettings.Refill(views.Dimensioned, Kinds(dimensioned));
             }
 
+            ViewSettings.Refill(views.DimensionedViews, Ids(read, "Views.DimensionedViews"));
+            ViewSettings.Refill(views.MarkedViews, Ids(read, "Views.MarkedViews"));
             Try(read, "Views.CropMargin", v => views.CropMargin = v);
             Try(read, "Views.SectionDepth", v => views.SectionDepth = v);
             Try(read, "Views.SmoothAngle", v => views.SmoothAngleRad = v);
@@ -313,7 +361,35 @@ namespace GeometryHelper.Drawing
             {
                 string key = "Views.Section." + i.ToString(CultureInfo.InvariantCulture);
 
-                if (read.TryGetValue(key + ".Name", out string name) && TryKind(read, key + ".LookingAs", out ViewKind kind) && TryNumber(read, key + ".Share", out double share))
+                if (!read.TryGetValue(key + ".Name", out string name) || name.Length == 0 || !TryKind(read, key + ".LookingAs", out ViewKind kind))
+                {
+                    continue;
+                }
+
+                if (read.TryGetValue(key + ".CutLine", out string cut))
+                {
+                    string[] parts = cut.Split(',');
+                    var numbers = new double[parts.Length];
+                    bool read4 = parts.Length == 4;
+
+                    for (int k = 0; k < parts.Length && read4; k++)
+                    {
+                        read4 = double.TryParse(parts[k], NumberStyles.Float, CultureInfo.InvariantCulture, out numbers[k]);
+                    }
+
+                    if (read4 && TryNumber(read, key + ".Depth", out double depth))
+                    {
+                        try
+                        {
+                            views.Sections.Add(new SectionViewRequest(name, kind, new GeoLine2(numbers[0], numbers[1], numbers[2], numbers[3]), depth));
+                        }
+                        catch (ArgumentException)
+                        {
+                            // A section that does not read is left out.
+                        }
+                    }
+                }
+                else if (TryNumber(read, key + ".Share", out double share))
                 {
                     views.Sections.Add(new SectionViewRequest(name, kind, share));
                 }
@@ -365,6 +441,33 @@ namespace GeometryHelper.Drawing
             TryFlag(read, "Marks.Fittings", v => marks.Fittings = v);
             Try(read, "Marks.TextHeight", v => marks.TextHeight = v);
             Try(read, "Marks.Offset", v => marks.Offset = v);
+            MarkContent content = marks.Content;
+
+            if (TryFormat(read, "Marks.Content.Part", out MarkFormat partFormat))
+            {
+                content.Part = partFormat;
+            }
+
+            if (TryFormat(read, "Marks.Content.Assembly", out MarkFormat assembly))
+            {
+                content.Assembly = assembly;
+            }
+
+            if (TryFormat(read, "Marks.Content.Bolt", out MarkFormat bolt))
+            {
+                content.Bolt = bolt;
+            }
+
+            SymbolSettings symbols = settings.Symbols;
+            Try(read, "Symbols.TextHeight", v => symbols.TextHeight = v);
+            Try(read, "Symbols.CentreLineExtension", v => symbols.CentreLineExtension = v);
+
+            if (read.TryGetValue("Symbols.WeldStandard", out string standard) && Enum.TryParse(standard, out WeldStandard weld) && Enum.IsDefined(typeof(WeldStandard), weld))
+            {
+                symbols.WeldStandard = weld;
+            }
+
+            TryFlag(read, "Symbols.LevelMarks", v => symbols.LevelMarks = v);
             SheetSettings sheet = settings.Sheet;
 
             if (read.TryGetValue("Sheet.Size", out string size) && Enum.TryParse(size, out PaperSize paper) && Enum.IsDefined(typeof(PaperSize), paper))
@@ -439,6 +542,10 @@ namespace GeometryHelper.Drawing
             return kinds;
         }
 
+        /// <summary>The ids of a list written with commas between them, the empty ones left out.</summary>
+        private static List<string> Ids(SortedDictionary<string, string> read, string key)
+            => read.TryGetValue(key, out string written) ? new List<string>(written.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)) : new List<string>();
+
         private static int Count(SortedDictionary<string, string> read, string key)
             => read.TryGetValue(key, out string written) && int.TryParse(written, NumberStyles.Integer, CultureInfo.InvariantCulture, out int count) && count > 0 ? count : 0;
 
@@ -452,6 +559,46 @@ namespace GeometryHelper.Drawing
         {
             kind = ViewKind.Front;
             return read.TryGetValue(key, out string written) && Enum.TryParse(written, out kind) && Enum.IsDefined(typeof(ViewKind), kind);
+        }
+
+        /// <summary>A mark's format read back: its separator and every field, or nothing where one of them does not read.</summary>
+        private static bool TryFormat(SortedDictionary<string, string> read, string key, out MarkFormat format)
+        {
+            format = null;
+
+            if (!read.TryGetValue(key + ".Separator", out string separator) || !read.TryGetValue(key + ".Fields", out string written)
+                || !int.TryParse(written, NumberStyles.Integer, CultureInfo.InvariantCulture, out int count) || count < 0)
+            {
+                return false;
+            }
+
+            var fields = new List<MarkField>();
+
+            for (int i = 0; i < count; i++)
+            {
+                if (!read.TryGetValue(key + ".Field." + i.ToString(CultureInfo.InvariantCulture), out string name))
+                {
+                    return false;
+                }
+
+                if (name.StartsWith("Attribute:", StringComparison.Ordinal) && name.Length > "Attribute:".Length)
+                {
+                    fields.Add(MarkField.Attribute(name.Substring("Attribute:".Length)));
+                    continue;
+                }
+
+                MarkField field = Array.Find(Fields, f => string.Equals(f.Kind.ToString(), name, StringComparison.Ordinal));
+
+                if (field == null)
+                {
+                    return false;
+                }
+
+                fields.Add(field);
+            }
+
+            format = new MarkFormat(fields, separator);
+            return true;
         }
 
         private static void Try(SortedDictionary<string, string> read, string key, Action<double> set)

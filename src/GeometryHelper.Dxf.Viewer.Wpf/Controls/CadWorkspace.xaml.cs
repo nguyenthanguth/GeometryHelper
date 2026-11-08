@@ -15,7 +15,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <see cref="MainViewModel"/>; a window or a host such as a Tekla plugin puts it in and lets it run.
     /// </summary>
     /// <remarks>
-    /// Keys as AutoCAD's: Esc cancels the command, then clears the selection; Ctrl+O opens a DXF, Ctrl+N asks a host for a new
+    /// Keys as AutoCAD's: Esc cancels the command, then clears the selection; Ctrl+O opens a DXF, Ctrl+W closes it, Ctrl+N asks a host for a new
     /// drawing from a model (<see cref="MainViewModel.NewFromModelRequested"/>), Ctrl+S saves, Ctrl+Shift+S
     /// saves as, Ctrl+Z undoes and Ctrl+Y redoes, Delete erases the selection; F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR.
     /// Letters typed with the focus on the canvas go to the command line, where Enter or Space runs the line (Space types a
@@ -28,7 +28,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public static readonly DependencyProperty TitleBarContentProperty = DependencyProperty.Register(
             nameof(TitleBarContent), typeof(object), typeof(CadWorkspace), new PropertyMetadata(null));
 
+        private readonly System.Windows.Threading.DispatcherTimer _autosave = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
         private MainViewModel _model;
+        private DateTime _lastAutosave = DateTime.UtcNow;
 
         /// <summary>Makes the workspace.</summary>
         public CadWorkspace()
@@ -41,6 +43,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CanvasView.PixelSizeChanged += (s, e) => _model?.SetCanvasSize(CanvasView.PixelWidth, CanvasView.PixelHeight);
             CanvasView.HistoryWritten += (s, e) => _model?.RefreshHistory();
             CanvasView.SelectionChanged += (s, e) => _model?.RefreshHistory();
+
+            // Autosave (Global settings › Save and export): looked at every minute while the workspace is shown.
+            _autosave.Tick += (s, e) => AutosaveIfDue();
+            Loaded += (s, e) => _autosave.Start();
+            Unloaded += (s, e) => _autosave.Stop();
         }
 
         /// <summary>Gets or sets what the far right of the title bar holds, as a window's minimise, maximise and close buttons.</summary>
@@ -118,6 +125,33 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             dialog.ShowDialog();
         }
 
+        /// <summary>Shows the Plugin manager of the window's plugins, as a dialog over the window; nothing without a plugin manager.</summary>
+        public void ShowPluginManager()
+        {
+            PluginManagerViewModel manager = _model?.CreatePluginManager();
+
+            if (manager == null)
+            {
+                return;
+            }
+
+            var dialog = new PluginManagerWindow(manager) { Owner = Window.GetWindow(this) };
+            dialog.ShowDialog();
+        }
+
+        /// <summary>Shows Global settings as a dialog over the window, on a category; null for the first.</summary>
+        /// <param name="category">The category, as Shortcuts.</param>
+        public void ShowGlobalSettings(string category = null)
+        {
+            if (_model == null)
+            {
+                return;
+            }
+
+            var dialog = new GlobalSettingsWindow(_model.CreateGlobalSettings(category)) { Owner = Window.GetWindow(this) };
+            dialog.ShowDialog();
+        }
+
         /// <inheritdoc/>
         protected override void OnPreviewKeyDown(KeyEventArgs e)
         {
@@ -144,6 +178,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             else if (modifiers == ModifierKeys.Control && key == Key.O)
             {
                 ShowOpenDialog();
+                e.Handled = true;
+            }
+            else if (modifiers == ModifierKeys.Control && key == Key.W && _model.HasDocument)
+            {
+                _model.CloseDocument();
                 e.Handled = true;
             }
             else if (modifiers == ModifierKeys.Control && key == Key.N && _model.NewFromModelCommand.CanExecute(null))
@@ -178,6 +217,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
             else if (modifiers == ModifierKeys.None && Toggle(key))
             {
+                e.Handled = true;
+            }
+            else if (!inEditor && (modifiers != ModifierKeys.None || (key >= Key.F1 && key <= Key.F24)) && _model.RunKey(Gesture(key, modifiers)))
+            {
+                // A key the shortcuts give a command or a toggle (Global settings › Shortcuts), as Ctrl+1 gives PROPERTIES.
                 e.Handled = true;
             }
         }
@@ -231,6 +275,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     _model.Open(file);
                 }
 
+                // A plugin package dropped is installed, as the Plugin manager's Install does.
+                foreach (string file in files.Where(f => f.EndsWith(".ghplugin", StringComparison.OrdinalIgnoreCase)))
+                {
+                    _model.InstallPlugin(file);
+                }
+
                 e.Handled = true;
             }
         }
@@ -241,7 +291,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             switch (key)
             {
-                case Key.F3:
+                case Key.F3 when _model.Settings.F3TogglesSnaps:
                     name = "OSNAP";
                     break;
                 case Key.F7:
@@ -272,6 +322,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.OpenRequested -= OnOpenRequested;
                 _model.SaveAsRequested -= OnSaveAsRequested;
                 _model.LayerManagerRequested -= OnLayerManagerRequested;
+                _model.PluginLoadRequested -= OnPluginLoadRequested;
+                _model.PluginInstallRequested -= OnPluginInstallRequested;
+                _model.PluginManagerRequested -= OnPluginManagerRequested;
+                _model.SettingsRequested -= OnSettingsRequested;
+                _model.SettingsApplied -= OnSettingsApplied;
+                _model.CloseRequested -= OnCloseRequested;
             }
 
             _model = e.NewValue as MainViewModel;
@@ -281,6 +337,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.OpenRequested += OnOpenRequested;
                 _model.SaveAsRequested += OnSaveAsRequested;
                 _model.LayerManagerRequested += OnLayerManagerRequested;
+                _model.PluginLoadRequested += OnPluginLoadRequested;
+                _model.PluginInstallRequested += OnPluginInstallRequested;
+                _model.PluginManagerRequested += OnPluginManagerRequested;
+                _model.SettingsRequested += OnSettingsRequested;
+                _model.SettingsApplied += OnSettingsApplied;
+                _model.CloseRequested += OnCloseRequested;
+                _model.AskSaveChanges = document => CadQuestionWindow.AskSave(Window.GetWindow(this), new[] { document });
+                _model.AskSaveAll = documents => CadQuestionWindow.AskSave(Window.GetWindow(this), documents);
 
                 if (CanvasView.PixelWidth > 0 && CanvasView.PixelHeight > 0)
                 {
@@ -294,6 +358,64 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private void OnSaveAsRequested(object sender, EventArgs e) => ShowSaveAsDialog();
 
         private void OnLayerManagerRequested(object sender, EventArgs e) => ShowLayerManager();
+
+        private void OnPluginLoadRequested(object sender, EventArgs e) => PluginManagerWindow.PickPlugin(Window.GetWindow(this), path => _model.LoadPlugin(path));
+
+        private void OnPluginInstallRequested(object sender, EventArgs e) => PluginManagerWindow.PickPackage(Window.GetWindow(this), path => _model.InstallPlugin(path));
+
+        private void OnPluginManagerRequested(object sender, EventArgs e) => ShowPluginManager();
+
+        private void OnSettingsRequested(object sender, string category) => ShowGlobalSettings(category);
+
+        /// <summary>CLOSE typed: the drawing shown closed once the command has ended.</summary>
+        private void OnCloseRequested(object sender, EventArgs e) => Dispatcher.BeginInvoke(new Action(() => _model?.CloseDocument()));
+
+        /// <summary>Saves the copies of the drawings with changes once the minutes of Global settings have gone by since the last.</summary>
+        private void AutosaveIfDue()
+        {
+            int minutes = _model?.Settings.AutosaveMinutes ?? 0;
+
+            if (minutes > 0 && (DateTime.UtcNow - _lastAutosave).TotalMinutes >= minutes)
+            {
+                _lastAutosave = DateTime.UtcNow;
+                _model.Autosave();
+            }
+        }
+
+        /// <summary>Gives the canvas what Global settings say of it: colours, lineweights, font, wheel zoom, pickbox and aperture.</summary>
+        private void OnSettingsApplied(object sender, EventArgs e)
+        {
+            GlobalSettings settings = _model.Settings;
+            CanvasView.Options.Background = settings.CanvasBackground;
+            CanvasView.Options.Paper = settings.Paper;
+            CanvasView.Options.SelectionColor = settings.Selection;
+            CanvasView.Options.ShowLineWeights = settings.ShowLineWeights;
+            CanvasView.Options.FontName = settings.DrawingFont;
+            CanvasView.WheelZoomFactor = settings.WheelZoomFactor;
+            CanvasView.PickboxPixels = settings.PickboxPixels;
+            CanvasView.AperturePixels = settings.AperturePixels;
+            CanvasView.Options.VisibleLineColor = settings.VisibleLines;
+            CanvasView.Options.HiddenLineColor = settings.HiddenLines;
+            CanvasView.Options.GripColor = settings.Grip;
+            CanvasView.CrosshairPercent = settings.CrosshairPercent;
+
+            if (CanvasView.PixelWidth > 0 && CanvasView.PixelHeight > 0)
+            {
+                CanvasView.RenderNow();
+            }
+
+            CanvasView.InvalidateVisual();
+        }
+
+        /// <summary>The key pressed as the shortcuts write it: Ctrl+1, Ctrl+Shift+P, F3.</summary>
+        private static string Gesture(Key key, ModifierKeys modifiers)
+        {
+            string name = key >= Key.D0 && key <= Key.D9 ? ((int)(key - Key.D0)).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                : key >= Key.NumPad0 && key <= Key.NumPad9 ? ((int)(key - Key.NumPad0)).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                : key.ToString();
+            return ((modifiers & ModifierKeys.Control) != 0 ? "Ctrl+" : string.Empty) + ((modifiers & ModifierKeys.Alt) != 0 ? "Alt+" : string.Empty)
+                + ((modifiers & ModifierKeys.Shift) != 0 ? "Shift+" : string.Empty) + name;
+        }
 
         private void OnCommandKeyDown(object sender, KeyEventArgs e)
         {

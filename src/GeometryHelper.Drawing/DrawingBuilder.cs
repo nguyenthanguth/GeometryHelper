@@ -9,8 +9,8 @@ using GeometryHelper.Packing;
 namespace GeometryHelper.Drawing
 {
     /// <summary>
-    /// Makes a drawing from a source and its settings: the views (L2), their dimensions and marks (L3), the sheet with the
-    /// views placed on it (L4), the DXF (L5) and the document that keeps it all (L7).
+    /// Makes a drawing from a source and its settings: the views (L2), their dimensions, marks and symbols (L3), the sheet
+    /// with the views placed on it (L4), the DXF (L5) and the document that keeps it all (L7).
     /// </summary>
     /// <remarks>
     /// <para>
@@ -32,6 +32,16 @@ namespace GeometryHelper.Drawing
     /// is the main object's id, a view V-FRONT or V-SECTION-A, a dimension its view's id, /D-, its kind, its axis and its
     /// number among those of its kind and axis (V-FRONT/D-Overall-X-1), a mark its view's id, /M- and the part's id.
     /// </para>
+    /// <para>
+    /// Every view gets the centre lines of its holes, bolts and tubes (<see cref="DrawingCentreLine"/>) and the symbols of
+    /// its welds (<see cref="WeldSymbol"/>); the first view along the axes that sees a section's plane edge on gets its
+    /// <see cref="SectionMark"/>, and the view a detail is taken from its <see cref="DetailMark"/>, each with the letter of
+    /// its name; with <see cref="SymbolSettings.LevelMarks"/> on, as in the general arrangement preset, each elevation
+    /// marks the level of every object that gives its attribute Elevation (<see cref="LevelMark"/>). The marks are placed
+    /// last, by <see cref="Marker"/>, in the first view along the axes and those <see cref="ViewSettings.MarkedViews"/> names,
+    /// clear of the view's dimensions and symbols: the mark P1 of the plate of TC1 stands beside the cut of its section A-A,
+    /// not over it.
+    /// </para>
     /// </remarks>
     public static class DrawingBuilder
     {
@@ -47,6 +57,9 @@ namespace GeometryHelper.Drawing
         /// <summary>The id of the part list.</summary>
         internal const string PartListId = "GH-PARTLIST";
 
+        /// <summary>What the id of a level mark starts with, before the id of its object.</summary>
+        private const string LevelPrefix = "L-";
+
         private static readonly ViewKind[] SlotKinds = { ViewKind.Front, ViewKind.Top, ViewKind.Bottom, ViewKind.Left, ViewKind.Right, ViewKind.Back };
 
         /// <summary>
@@ -61,6 +74,8 @@ namespace GeometryHelper.Drawing
         /// <exception cref="ArgumentNullException">Thrown when the source or the settings are null.</exception>
         /// <exception cref="ArgumentException">Thrown when the settings allow no scale, or one that is not a finite number
         /// above nought, or ask for a sheet of its own size with no width or height.</exception>
+        /// <exception cref="NotSupportedException">Thrown when the settings ask for weld symbols to
+        /// <see cref="WeldStandard.AwsA24"/>, which are not drawn yet (<see cref="WeldSymbol.Find"/>).</exception>
         public static Drawing Build(DrawingSource source, DrawingSettings settings, Tolerance tolerance)
         {
             if (source == null)
@@ -118,7 +133,14 @@ namespace GeometryHelper.Drawing
                         continue;
                     }
 
-                    List<DrawingView> views = Annotate(made, scale, settings, objects, tolerance);
+                    // Marks and symbols only make a view's box larger, so a scale at which the views and their dimensions alone
+                    // find no place is passed over before the marks are placed, which takes the longest.
+                    if (!Place(Annotate(made, scale, settings, objects, tolerance, false), settings, sheet, rows, tolerance).AllPlaced)
+                    {
+                        continue;
+                    }
+
+                    List<DrawingView> views = Annotate(made, scale, settings, objects, tolerance, true);
                     Layout tried = Place(views, settings, sheet, rows, tolerance);
 
                     if (tried.AllPlaced)
@@ -140,7 +162,7 @@ namespace GeometryHelper.Drawing
             if (placed == null)
             {
                 size = sizes[sizes.Count - 1];
-                placed = Annotate(made, chosen, settings, objects, tolerance);
+                placed = Annotate(made, chosen, settings, objects, tolerance, true);
                 layout = Place(placed, settings, NewSheet(settings.Sheet, size), rows, tolerance);
                 warnings.Add(string.Format(CultureInfo.InvariantCulture, "The views do not fit the sheet at any scale allowed; they are drawn at 1:{0} and {1} of them stand off the sheet.", Write(chosen), layout.Unplaced));
                 GeometryHelperLog.Warn("DrawingBuilder: " + warnings[warnings.Count - 1]);
@@ -190,9 +212,55 @@ namespace GeometryHelper.Drawing
 
                 foreach (DrawingMark mark in view.Marks)
                 {
-                    annotations.Add(new DrawingElement(mark.Id, "Mark", view.Id, mark.Links, mark.ToValues()));
+                    annotations.Add(new DrawingElement(MarkId(view, mark), "Mark", view.Id, mark.Links, mark.ToValues()));
+                }
+
+                foreach (DrawingCentreLine line in view.CentreLines)
+                {
+                    annotations.Add(Symbol(view, line.Id, "CentreLine", line.Links, null));
+                }
+
+                foreach (WeldSymbol weld in view.WeldSymbols)
+                {
+                    annotations.Add(Symbol(view, weld.Id, "Weld", weld.Links, null));
+                }
+
+                foreach (SectionMark section in view.SectionMarks)
+                {
+                    annotations.Add(Symbol(view, section.Id, "SectionMark", null, section.Letter));
+                }
+
+                foreach (DetailMark detail in view.DetailMarks)
+                {
+                    annotations.Add(Symbol(view, detail.Id, "DetailMark", null, detail.Letter));
+                }
+
+                foreach (LevelMark level in view.LevelMarks)
+                {
+                    annotations.Add(Symbol(view, level.Id, "LevelMark", new DrawingLinks(new[] { level.Id.Substring(LevelPrefix.Length) }), level.Text));
                 }
             }
+        }
+
+        /// <summary>The id the drawing knows a mark by: its view's id, / and its own, V-FRONT/M-P-1.</summary>
+        internal static string MarkId(DrawingView view, DrawingMark mark) => view.Id + "/" + mark.Id;
+
+        /// <summary>The id the drawing knows a symbol by: its view's id, / and its own, V-FRONT/CL-1 or V-FRONT/SM-A.</summary>
+        internal static string SymbolId(DrawingView view, string id) => view.Id + "/" + id;
+
+        /// <summary>
+        /// The element of a symbol: kind Symbol, which the presenter leaves as it is, with what symbol it is and its text.
+        /// </summary>
+        private static DrawingElement Symbol(DrawingView view, string id, string kind, DrawingLinks links, string text)
+        {
+            var values = new List<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Kind", kind) };
+
+            if (text != null)
+            {
+                values.Add(new KeyValuePair<string, string>("Text", text));
+            }
+
+            return new DrawingElement(SymbolId(view, id), "Symbol", view.Id, links, values);
         }
 
         /// <summary>The drawing's id: the main object's, the one marked main with the lowest id, else the lowest id.</summary>
@@ -294,11 +362,15 @@ namespace GeometryHelper.Drawing
             return best;
         }
 
-        /// <summary>The views at a scale, each dimensioned and marked as the settings say, and the box of what each draws.</summary>
-        private static List<DrawingView> Annotate(IReadOnlyList<DrawingView> made, double scale, DrawingSettings settings, Dictionary<string, DrawingObject> objects, Tolerance tolerance)
+        /// <summary>
+        /// The views at a scale, each dimensioned as the settings say, with its marks and symbols where asked, and the box of
+        /// what each draws.
+        /// </summary>
+        private static List<DrawingView> Annotate(IReadOnlyList<DrawingView> made, double scale, DrawingSettings settings, Dictionary<string, DrawingObject> objects, Tolerance tolerance, bool annotated)
         {
             var views = new List<DrawingView>(made.Count);
             DrawingView marked = null;
+            var toMark = new List<(DrawingView View, List<DrawingObject> Objects)>();
 
             foreach (DrawingView view in made)
             {
@@ -320,23 +392,269 @@ namespace GeometryHelper.Drawing
                     inView.Add(objects[objectId]);
                 }
 
-                if (view.Kind != ViewKind.Detail && view.Kind != ViewKind.Isometric && settings.Views.Dimensioned.Contains(view.Kind))
+                if (view.Kind != ViewKind.Isometric && ((view.Kind != ViewKind.Detail && settings.Views.Dimensioned.Contains(view.Kind)) || settings.Views.DimensionedViews.Contains(view.Id)))
                 {
                     IReadOnlyList<DrawingDimension> dimensions = Annotator.Dimension(view.Lines, inView, view.Frame.CoordinateSystem, DrawingSettings.CloneDimensions(settings.Dimensions, s), tolerance);
                     view.Dimensions = dimensions;
                     view.DimensionIds = DimensionIds(view.Id, dimensions);
                 }
 
-                if (ReferenceEquals(source, marked))
+                views.Add(view);
+
+                if (!annotated)
                 {
-                    view.Marks = Marks(view, inView, settings.Marks, s);
+                    continue;
                 }
 
+                if (ReferenceEquals(source, marked) || settings.Views.MarkedViews.Contains(view.Id))
+                {
+                    toMark.Add((view, inView));
+                }
+
+                view.CentreLines = DrawingCentreLine.Find(view.Lines, inView, settings.Symbols, s, tolerance);
+                view.WeldSymbols = WeldSymbol.Find(view.Lines, inView, view.Frame.CoordinateSystem, settings.Symbols, s);
+
+                if (settings.Symbols.LevelMarks && Array.IndexOf(SlotKinds, view.Kind) >= 0)
+                {
+                    view.LevelMarks = Levels(view, inView, settings.Symbols, s, tolerance);
+                }
+            }
+
+            if (annotated)
+            {
+                SectionAndDetailMarks(views, settings, tolerance);
+
+                // The marks last, clear of every symbol of their view as of its dimensions.
+                foreach ((DrawingView view, List<DrawingObject> inView) in toMark)
+                {
+                    SymbolObstacles(view, out List<GeoRectangle2> boxes, out List<GeoLine2> lines);
+                    view.Marks = Marker.Mark(view.Lines, inView, view.Frame.CoordinateSystem, view.Dimensions, boxes, lines, settings.Marks, settings.Marks.Content, view.Scale, tolerance);
+                }
+            }
+
+            foreach (DrawingView view in views)
+            {
                 view.Box = BoxOf(view);
-                views.Add(view);
             }
 
             return views;
+        }
+
+        /// <summary>
+        /// What the marks of a view keep clear of besides its dimensions: the boxes of the texts of its symbols and of its weld
+        /// symbols, and the lines of its symbols, centre lines, cut lines, arrows and outlines.
+        /// </summary>
+        internal static void SymbolObstacles(DrawingView view, out List<GeoRectangle2> boxes, out List<GeoLine2> lines)
+        {
+            boxes = new List<GeoRectangle2>();
+            lines = new List<GeoLine2>();
+
+            foreach (DrawingCentreLine line in view.CentreLines)
+            {
+                lines.Add(line.Line);
+            }
+
+            foreach (WeldSymbol weld in view.WeldSymbols)
+            {
+                boxes.Add(weld.Bounds);
+                lines.Add(new GeoLine2(weld.Knee, weld.ArrowTip));
+            }
+
+            foreach (SectionMark section in view.SectionMarks)
+            {
+                lines.Add(section.CutLine);
+
+                foreach (GeoPoint2 end in new[] { section.CutLine.StartPoint, section.CutLine.EndPoint })
+                {
+                    lines.Add(new GeoLine2(end, new GeoPoint2(end.X + section.Direction.X * 2.0 * section.TextHeight, end.Y + section.Direction.Y * 2.0 * section.TextHeight)));
+                }
+
+                boxes.AddRange(section.LetterBoxes);
+            }
+
+            foreach (DetailMark detail in view.DetailMarks)
+            {
+                GeoPoint2[] corners = detail.Bounds.GetVertices();
+
+                for (int i = 0; i < corners.Length; i++)
+                {
+                    lines.Add(new GeoLine2(corners[i], corners[(i + 1) % corners.Length]));
+                }
+
+                boxes.Add(detail.LetterBox);
+            }
+
+            foreach (LevelMark level in view.LevelMarks)
+            {
+                double half = 0.5 * level.TextHeight;
+                GeoRectangle2 text = level.TextBox;
+                boxes.Add(Box(level.Point.X - half, level.Point.Y, text.Center.X + 0.5 * text.Width + 0.2 * level.TextHeight, text.Center.Y + 0.5 * text.Height));
+            }
+        }
+
+        private static GeoRectangle2 Box(double x0, double y0, double x1, double y1) => new GeoRectangle2(new GeoPoint2((x0 + x1) / 2.0, (y0 + y1) / 2.0), x1 - x0, y1 - y0);
+
+        /// <summary>
+        /// Gives each section its mark in the first view along the axes that sees its plane edge on, and each detail its mark
+        /// in the view it is taken from, round its crop; each letter the section's or detail's name.
+        /// </summary>
+        private static void SectionAndDetailMarks(List<DrawingView> views, DrawingSettings settings, Tolerance tolerance)
+        {
+            var sections = new Dictionary<string, List<SectionMark>>(StringComparer.Ordinal);
+            var details = new Dictionary<string, List<DetailMark>>(StringComparer.Ordinal);
+
+            foreach (SectionViewRequest request in settings.Views.Sections)
+            {
+                DrawingView section = views.Find(v => string.Equals(v.Id, "V-SECTION-" + ViewBuilder.Clean(request.Name), StringComparison.Ordinal));
+
+                if (section == null || !section.SectionPlane.HasValue)
+                {
+                    continue;
+                }
+
+                if (request.CutLine.HasValue)
+                {
+                    // Cut along a line drawn in a view: the mark is that line, in that view.
+                    DrawingView drawnIn = views.Find(v => v.Kind == request.LookingAs);
+
+                    if (drawnIn != null)
+                    {
+                        Add(sections, drawnIn.Id, new SectionMark("SM-" + ViewBuilder.Clean(request.Name), request.Name, request.CutLine.Value, request.LookInView(), settings.Symbols.TextHeight * drawnIn.Scale));
+                    }
+
+                    continue;
+                }
+
+                foreach (DrawingView parent in views)
+                {
+                    if (Array.IndexOf(SlotKinds, parent.Kind) >= 0 && TryCutLine(parent, section.SectionPlane.Value, tolerance, out GeoLine2 cut, out GeoVector2 look))
+                    {
+                        double height = settings.Symbols.TextHeight * parent.Scale;
+                        Add(sections, parent.Id, new SectionMark("SM-" + ViewBuilder.Clean(request.Name), request.Name, cut, look, height));
+                        break;
+                    }
+                }
+            }
+
+            foreach (DetailViewRequest request in settings.Views.Details)
+            {
+                DrawingView detail = views.Find(v => string.Equals(v.Id, "V-DETAIL-" + ViewBuilder.Clean(request.Name), StringComparison.Ordinal));
+                DrawingView parent = detail == null ? null : views.Find(v => string.Equals(v.Id, detail.ParentViewId, StringComparison.Ordinal));
+
+                if (parent != null)
+                {
+                    double height = settings.Symbols.TextHeight * parent.Scale;
+                    Add(details, parent.Id, DetailMark.Rectangle("DM-" + ViewBuilder.Clean(request.Name), request.Name, detail.Crop, height));
+                }
+            }
+
+            foreach (DrawingView view in views)
+            {
+                if (sections.TryGetValue(view.Id, out List<SectionMark> s))
+                {
+                    view.SectionMarks = s.ToArray();
+                }
+
+                if (details.TryGetValue(view.Id, out List<DetailMark> d))
+                {
+                    view.DetailMarks = d.ToArray();
+                }
+            }
+        }
+
+        private static void Add<T>(Dictionary<string, List<T>> lists, string key, T item)
+        {
+            if (!lists.TryGetValue(key, out List<T> list))
+            {
+                lists.Add(key, list = new List<T>());
+            }
+
+            list.Add(item);
+        }
+
+        /// <summary>
+        /// Where a section's plane meets a view that sees it edge on, across the view's crop, and the way the section looks
+        /// in the view; false where the view does not see the plane edge on.
+        /// </summary>
+        private static bool TryCutLine(DrawingView view, GeoPlane3 plane, Tolerance tolerance, out GeoLine2 cut, out GeoVector2 look)
+        {
+            cut = default;
+            look = default;
+            GeoCoordinateSystem3 cs = view.Frame.CoordinateSystem;
+            double a = plane.Normal.DotProduct(cs.XAxis), b = plane.Normal.DotProduct(cs.YAxis), length = Math.Sqrt(a * a + b * b);
+
+            if (!(length > 0.0) || Math.Abs(plane.Normal.DotProduct(cs.ZAxis)) > tolerance.EqualVector * length)
+            {
+                return false;
+            }
+
+            a /= length;
+            b /= length;
+            double c = plane.Normal.DotProduct(cs.Origin.GetVectorTo(plane.Origin)) / length;
+            var through = new GeoPoint2(a * c, b * c);
+            var along = new GeoVector2(-b, a);
+            var crop = new Extent(view.Crop);
+            double low = double.PositiveInfinity, high = double.NegativeInfinity;
+
+            foreach (GeoPoint2 corner in new[] { new GeoPoint2(crop.X0, crop.Y0), new GeoPoint2(crop.X1, crop.Y0), new GeoPoint2(crop.X1, crop.Y1), new GeoPoint2(crop.X0, crop.Y1) })
+            {
+                double t = (corner.X - through.X) * along.X + (corner.Y - through.Y) * along.Y;
+                low = Math.Min(low, t);
+                high = Math.Max(high, t);
+            }
+
+            cut = new GeoLine2(new GeoPoint2(through.X + along.X * low, through.Y + along.Y * low), new GeoPoint2(through.X + along.X * high, through.Y + along.Y * high));
+
+            // The section looks away from its viewer, against the plane's normal.
+            look = new GeoVector2(-a, -b);
+            return high - low > tolerance.EqualPoint;
+        }
+
+        /// <summary>
+        /// The level marks of a view along the axes whose up is the model's Z: one for each object of it whose attribute
+        /// Elevation reads as a number, its point just right of the upper right corner of the object's box, in the order of
+        /// the objects' ids.
+        /// </summary>
+        private static LevelMark[] Levels(DrawingView view, List<DrawingObject> inView, SymbolSettings settings, double scale, Tolerance tolerance)
+        {
+            GeoCoordinateSystem3 cs = view.Frame.CoordinateSystem;
+
+            if (!cs.YAxis.IsEqualTo(GeoVector3.ZAxis, tolerance))
+            {
+                return new LevelMark[0];
+            }
+
+            double height = settings.TextHeight * scale;
+            var marks = new List<LevelMark>();
+
+            foreach (DrawingObject item in inView)
+            {
+                if (!item.Attributes.TryGetValue(LevelMark.ElevationAttribute, out string written)
+                    || !double.TryParse(written, NumberStyles.Float, CultureInfo.InvariantCulture, out double elevation)
+                    || double.IsNaN(elevation) || double.IsInfinity(elevation))
+                {
+                    continue;
+                }
+
+                double right = double.NegativeInfinity, top = double.NegativeInfinity;
+
+                foreach (GeoFace3 face in item.Solid.Faces)
+                {
+                    foreach (GeoPoint3 p in face.Boundary.Vertices)
+                    {
+                        GeoPoint3 local = cs.ToLocal(p);
+                        right = Math.Max(right, local.X);
+                        top = Math.Max(top, local.Y);
+                    }
+                }
+
+                if (!double.IsInfinity(right))
+                {
+                    marks.Add(new LevelMark(LevelPrefix + item.Id, new GeoPoint2(right + height, top), elevation, height));
+                }
+            }
+
+            return marks.ToArray();
         }
 
         /// <summary>The ids of a view's dimensions: the view's, /D-, the kind, the axis and the number among those alike.</summary>
@@ -357,77 +675,9 @@ namespace GeometryHelper.Drawing
         }
 
         /// <summary>
-        /// The marks of a view: each part the settings mark, with a mark, at the middle of its longest visible line, its text
-        /// up and to the right by the offset.
+        /// The box of what a view draws: its crop, its dimensions, its marks with their leaders, and its symbols, in view
+        /// millimetres.
         /// </summary>
-        private static DrawingMark[] Marks(DrawingView view, List<DrawingObject> inView, MarkSettings settings, double scale)
-        {
-            var longest = new Dictionary<string, ProjectedEdge2>(StringComparer.Ordinal);
-
-            foreach (ProjectedEdge2 edge in view.Lines.VisibleEdges)
-            {
-                if (!longest.TryGetValue(edge.ObjectId, out ProjectedEdge2 found) || edge.Length > found.Length)
-                {
-                    longest[edge.ObjectId] = edge;
-                }
-            }
-
-            var marks = new List<DrawingMark>();
-            double offset = settings.Offset * scale;
-            double height = settings.TextHeight * scale;
-
-            // The objects are in the order of their ids, so the marks are too.
-            foreach (DrawingObject item in inView)
-            {
-                bool wanted = item.Kind == DrawingObjectKind.Part && item.Mark.Length > 0 && (item.IsMain ? settings.MainParts : settings.Fittings);
-
-                if (!wanted || !longest.TryGetValue(item.Id, out ProjectedEdge2 edge))
-                {
-                    continue;
-                }
-
-                GeoPoint2 anchor = Middle(edge);
-                var text = new GeoPoint2(anchor.X + offset, anchor.Y + offset);
-                marks.Add(new DrawingMark(view.Id + "/M-" + item.Id, view.Id, item.Id, item.Mark, anchor, text, height, Centre(item.Solid)));
-            }
-
-            return marks.ToArray();
-        }
-
-        private static GeoPoint2 Middle(ProjectedEdge2 edge)
-        {
-            if (!edge.IsArc)
-            {
-                return new GeoPoint2((edge.Line.StartPoint.X + edge.Line.EndPoint.X) / 2.0, (edge.Line.StartPoint.Y + edge.Line.EndPoint.Y) / 2.0);
-            }
-
-            GeoArc2 arc = edge.Arc;
-            double angle = arc.StartAngle + arc.SweptAngle / 2.0;
-            return new GeoPoint2(arc.Center.X + arc.Radius * Math.Cos(angle), arc.Center.Y + arc.Radius * Math.Sin(angle));
-        }
-
-        private static GeoPoint3 Centre(GeoSolid3 solid)
-        {
-            double x0 = double.PositiveInfinity, y0 = double.PositiveInfinity, z0 = double.PositiveInfinity;
-            double x1 = double.NegativeInfinity, y1 = double.NegativeInfinity, z1 = double.NegativeInfinity;
-
-            foreach (GeoFace3 face in solid.Faces)
-            {
-                foreach (GeoPoint3 p in face.Boundary.Vertices)
-                {
-                    x0 = Math.Min(x0, p.X);
-                    y0 = Math.Min(y0, p.Y);
-                    z0 = Math.Min(z0, p.Z);
-                    x1 = Math.Max(x1, p.X);
-                    y1 = Math.Max(y1, p.Y);
-                    z1 = Math.Max(z1, p.Z);
-                }
-            }
-
-            return x0 > x1 ? new GeoPoint3(0.0, 0.0, 0.0) : new GeoPoint3((x0 + x1) / 2.0, (y0 + y1) / 2.0, (z0 + z1) / 2.0);
-        }
-
-        /// <summary>The box of what a view draws: its crop, its dimensions and its marks, in view millimetres.</summary>
         internal static GeoRectangle2 BoxOf(DrawingView view)
         {
             var box = new Extent(view.Crop);
@@ -451,8 +701,54 @@ namespace GeometryHelper.Drawing
 
             foreach (DrawingMark mark in view.Marks)
             {
-                box.Add(mark.Anchor);
+                foreach (GeoPoint2 p in mark.Leader)
+                {
+                    box.Add(p);
+                }
+
                 box.Add(mark.TextBox);
+            }
+
+            foreach (DrawingCentreLine line in view.CentreLines)
+            {
+                box.Add(line.Line.StartPoint);
+                box.Add(line.Line.EndPoint);
+            }
+
+            foreach (WeldSymbol weld in view.WeldSymbols)
+            {
+                box.Add(weld.ArrowTip);
+                box.Add(weld.Bounds);
+            }
+
+            foreach (SectionMark section in view.SectionMarks)
+            {
+                foreach (GeoPoint2 end in new[] { section.CutLine.StartPoint, section.CutLine.EndPoint })
+                {
+                    box.Add(end);
+                    box.Add(new GeoPoint2(end.X + section.Direction.X * 2.0 * section.TextHeight, end.Y + section.Direction.Y * 2.0 * section.TextHeight));
+                }
+
+                foreach (GeoRectangle2 letter in section.LetterBoxes)
+                {
+                    box.Add(letter);
+                }
+            }
+
+            foreach (DetailMark detail in view.DetailMarks)
+            {
+                box.Add(detail.Bounds);
+                box.Add(detail.LetterBox);
+            }
+
+            foreach (LevelMark level in view.LevelMarks)
+            {
+                double half = 0.5 * level.TextHeight;
+                box.Add(new GeoPoint2(level.Point.X - half, level.Point.Y));
+                box.Add(new GeoPoint2(level.Point.X + half, level.Point.Y + 0.8 * level.TextHeight));
+                box.Add(level.TextBox);
+                GeoRectangle2 text = level.TextBox;
+                box.Add(new GeoPoint2(text.Center.X + 0.5 * text.Width + 0.2 * level.TextHeight, text.Center.Y));
             }
 
             // The title of the view stands below what it draws, on paper, each character taken as 0.9 of its height wide.

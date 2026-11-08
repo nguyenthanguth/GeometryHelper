@@ -40,8 +40,8 @@ namespace GeometryHelper.Drawing.Annotation
     /// </para>
     /// <para>
     /// The plate P1 of TC1, 300 by 200 with four holes, seen from above at 1:5 with its default dimensions above it and to
-    /// its right, gets the part mark "P1" 17.5 high in the view under its lower side, the top of the text 40 below it, the
-    /// offset of 8 at 1:5, and its leader running 40 straight up to that side. Each mark's text keeps 0.8 of its height
+    /// its right, gets the part mark "P1" 17.5 high in the view under its lower side, the top of the text 20 below it, the
+    /// offset of 4 at 1:5, and its leader running 20 straight up to that side. Each mark's text keeps 0.8 of its height
     /// clear of every other mark's and at least 0.4 of it clear of the dimensions.
     /// </para>
     /// </remarks>
@@ -65,7 +65,7 @@ namespace GeometryHelper.Drawing.Annotation
         /// <exception cref="ArgumentException">Thrown when the frame is not a frame of three unit axes square to each other,
         /// an object or a dimension is null, or two objects have the same id.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the scale is not a finite number above nought.</exception>
-        public static IReadOnlyList<ObjectMark> Mark(
+        public static IReadOnlyList<DrawingMark> Mark(
             ProjectedView2 view,
             IEnumerable<DrawingObject> objects,
             GeoCoordinateSystem3 frame,
@@ -74,7 +74,58 @@ namespace GeometryHelper.Drawing.Annotation
             MarkContent content,
             double scale,
             Tolerance tolerance)
+            => Mark(view, objects, frame, dimensions, new GeoRectangle2[0], new GeoLine2[0], settings, content, scale, tolerance);
+
+        /// <summary>
+        /// Marks the objects of a view, placed clear of its dimensions, of boxes and lines given, as the texts and lines of
+        /// the view's symbols, and of one another.
+        /// </summary>
+        /// <param name="view">The lines of the view, as <see cref="ViewProjector"/> gives them.</param>
+        /// <param name="objects">The objects the view was projected from; those with no visible line in it are not marked.</param>
+        /// <param name="frame">The frame the view was projected in.</param>
+        /// <param name="dimensions">The dimensions of the view, as <see cref="Annotator.Dimension"/> gives them; none for a view
+        /// with no dimensions.</param>
+        /// <param name="clearOfBoxes">Boxes no text may overlap and no leader cross, in view millimetres: the letters of a
+        /// section mark, a weld symbol; none for none.</param>
+        /// <param name="clearOfLines">Lines no text may stand over, in view millimetres: centre lines, a section's cut line; a
+        /// leader may cross them, as it may a dimension line; none for none.</param>
+        /// <param name="settings">Which parts are marked, the height of the text and how far it stands off its part on paper.</param>
+        /// <param name="content">What the text of each kind of mark shows.</param>
+        /// <param name="scale">The scale the view is drawn at: 20 for 1:20.</param>
+        /// <param name="tolerance">The tolerance points are told apart within, and overlaps measured to.</param>
+        /// <returns>The marks, in the ordinal order of their ids.</returns>
+        /// <remarks>
+        /// The boxes and lines are kept clear of in every round as the dimensions are, so that a mark found no place clear of
+        /// them is left out rather than laid over them: the mark P1 of the plate of TC1, seen on its face at 1:2 with the
+        /// section A-A cut across its middle, stands beside the plate clear of the cut line and its letters.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the view, the objects, the dimensions, the boxes, the lines, the
+        /// settings or the content are null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the frame is not a frame of three unit axes square to each other,
+        /// an object or a dimension is null, or two objects have the same id.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the scale is not a finite number above nought.</exception>
+        public static IReadOnlyList<DrawingMark> Mark(
+            ProjectedView2 view,
+            IEnumerable<DrawingObject> objects,
+            GeoCoordinateSystem3 frame,
+            IEnumerable<DrawingDimension> dimensions,
+            IEnumerable<GeoRectangle2> clearOfBoxes,
+            IEnumerable<GeoLine2> clearOfLines,
+            MarkSettings settings,
+            MarkContent content,
+            double scale,
+            Tolerance tolerance)
         {
+            if (clearOfBoxes == null)
+            {
+                throw new ArgumentNullException(nameof(clearOfBoxes));
+            }
+
+            if (clearOfLines == null)
+            {
+                throw new ArgumentNullException(nameof(clearOfLines));
+            }
+
             if (view == null)
             {
                 throw new ArgumentNullException(nameof(view));
@@ -104,9 +155,9 @@ namespace GeometryHelper.Drawing.Annotation
             List<DrawingDimension> dims = Dimensions(dimensions);
             double tol = tolerance.EqualPoint;
             double height = settings.TextHeight * scale;
-            var placer = new MarkPlacer(view, sorted, frame, dims, height, settings.Offset * scale, tolerance);
+            var placer = new MarkPlacer(view, sorted, frame, dims, new List<GeoRectangle2>(clearOfBoxes), new List<GeoLine2>(clearOfLines), height, settings.Offset * scale, tolerance);
             List<MarkPlacer.Candidate> candidates = placer.Candidates(settings, content);
-            List<ObjectMark> marks = placer.Place(candidates, scale, out List<string> dropped);
+            List<DrawingMark> marks = placer.Place(candidates, scale, out List<string> dropped);
 
             if (dropped.Count > 0)
             {
@@ -126,22 +177,22 @@ namespace GeometryHelper.Drawing.Annotation
         /// <param name="tolerance">The tolerance: boxes and lines meeting within it are not counted.</param>
         /// <returns>One line of words for each overlap, the marks in their order, each pair once; empty where none overlaps.</returns>
         /// <remarks>
-        /// Each text is taken as its box, <see cref="ObjectMark.TextBox"/> and <see cref="DrawingDimension.TextBox"/>. A leader
+        /// Each text is taken as its box, <see cref="DrawingMark.TextBox"/> and <see cref="DrawingDimension.TextBox"/>. A leader
         /// across a dimension's line or extension line is not counted, as a draughtsman lets one cross; nor is a mark over
-        /// the view's own lines, which <see cref="Mark"/> keeps clear of only where it can.
+        /// the view's own lines, which <see cref="Mark(ProjectedView2, IEnumerable{DrawingObject}, GeoCoordinateSystem3, IEnumerable{DrawingDimension}, MarkSettings, MarkContent, double, Tolerance)"/> keeps clear of only where it can.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the marks or the dimensions are null.</exception>
         /// <exception cref="ArgumentException">Thrown when a mark or a dimension is null.</exception>
-        public static IReadOnlyList<string> FindOverlaps(IEnumerable<ObjectMark> marks, IEnumerable<DrawingDimension> dimensions, Tolerance tolerance)
+        public static IReadOnlyList<string> FindOverlaps(IEnumerable<DrawingMark> marks, IEnumerable<DrawingDimension> dimensions, Tolerance tolerance)
         {
             if (marks == null)
             {
                 throw new ArgumentNullException(nameof(marks));
             }
 
-            var list = new List<ObjectMark>();
+            var list = new List<DrawingMark>();
 
-            foreach (ObjectMark mark in marks)
+            foreach (DrawingMark mark in marks)
             {
                 list.Add(mark ?? throw new ArgumentException("A mark cannot be null.", nameof(marks)));
             }
@@ -152,7 +203,7 @@ namespace GeometryHelper.Drawing.Annotation
 
             for (int i = 0; i < list.Count; i++)
             {
-                ObjectMark a = list[i];
+                DrawingMark a = list[i];
                 DimensionClash(a.Id, a.TextBox, a.Leader[0], a.Anchor, dims, tol, found);
 
                 for (int j = i + 1; j < list.Count; j++)
@@ -162,6 +213,84 @@ namespace GeometryHelper.Drawing.Annotation
             }
 
             return found;
+        }
+
+        /// <summary>
+        /// Finds where marks overlap one another, the dimensions of their view, or boxes and lines kept clear of: a text over
+        /// a box or a line, a leader across a box, as well as all <see cref="FindOverlaps(IEnumerable{DrawingMark}, IEnumerable{DrawingDimension}, Tolerance)"/>
+        /// finds.
+        /// </summary>
+        /// <param name="marks">The marks of one view.</param>
+        /// <param name="dimensions">The dimensions of the same view; none where it has none.</param>
+        /// <param name="clearOfBoxes">The boxes the marks were to keep clear of, as given to <see cref="Mark(ProjectedView2, IEnumerable{DrawingObject}, GeoCoordinateSystem3, IEnumerable{DrawingDimension}, IEnumerable{GeoRectangle2}, IEnumerable{GeoLine2}, MarkSettings, MarkContent, double, Tolerance)"/>.</param>
+        /// <param name="clearOfLines">The lines the marks were to keep clear of.</param>
+        /// <param name="tolerance">The tolerance: boxes and lines meeting within it are not counted.</param>
+        /// <returns>One line of words for each overlap, the marks in their order; empty where none overlaps.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the marks, the dimensions, the boxes or the lines are null.</exception>
+        /// <exception cref="ArgumentException">Thrown when a mark or a dimension is null.</exception>
+        public static IReadOnlyList<string> FindOverlaps(IEnumerable<DrawingMark> marks, IEnumerable<DrawingDimension> dimensions, IEnumerable<GeoRectangle2> clearOfBoxes, IEnumerable<GeoLine2> clearOfLines, Tolerance tolerance)
+        {
+            if (clearOfBoxes == null)
+            {
+                throw new ArgumentNullException(nameof(clearOfBoxes));
+            }
+
+            if (clearOfLines == null)
+            {
+                throw new ArgumentNullException(nameof(clearOfLines));
+            }
+
+            var found = new List<string>(FindOverlaps(marks, dimensions, tolerance));
+            var boxes = new List<GeoRectangle2>(clearOfBoxes);
+            var lines = new List<GeoLine2>(clearOfLines);
+
+            foreach (DrawingMark mark in marks)
+            {
+                SymbolClash(mark.Id, mark.TextBox, mark.Leader[0], mark.Anchor, boxes, lines, tolerance.EqualPoint, found);
+            }
+
+            return found;
+        }
+
+        /// <summary>
+        /// Adds a line for each way a mark meets the boxes and lines kept clear of: its text over a box or a line, its leader
+        /// across a box; with no list, stops at the first and says whether there was one.
+        /// </summary>
+        internal static bool SymbolClash(string id, GeoRectangle2 text, GeoPoint2 a, GeoPoint2 b, List<GeoRectangle2> boxes, List<GeoLine2> lines, double tol, List<string> found)
+        {
+            bool any = false;
+
+            for (int i = 0; i < boxes.Count; i++)
+            {
+                if (Box2.Overlap(text, boxes[i], tol) || Box2.Crosses(boxes[i], a, b, tol))
+                {
+                    any = true;
+
+                    if (found == null)
+                    {
+                        return true;
+                    }
+
+                    found.Add(id + " over the symbol box " + i.ToString(CultureInfo.InvariantCulture));
+                }
+            }
+
+            for (int i = 0; i < lines.Count; i++)
+            {
+                if (Box2.Crosses(text, lines[i].StartPoint, lines[i].EndPoint, tol))
+                {
+                    any = true;
+
+                    if (found == null)
+                    {
+                        return true;
+                    }
+
+                    found.Add(id + " text over the symbol line " + i.ToString(CultureInfo.InvariantCulture));
+                }
+            }
+
+            return any;
         }
 
         /// <summary>

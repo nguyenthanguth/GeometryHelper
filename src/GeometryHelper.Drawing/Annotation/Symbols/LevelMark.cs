@@ -16,6 +16,12 @@ namespace GeometryHelper.Drawing.Annotation
     public sealed class LevelMark
     {
         /// <summary>
+        /// The attribute of an object a drawing reads its elevation from, where <see cref="SymbolSettings.LevelMarks"/> is on:
+        /// "Elevation", the level of the object's top in model millimetres, written with a point for decimals.
+        /// </summary>
+        public const string ElevationAttribute = "Elevation";
+
+        /// <summary>
         /// Makes a level mark.
         /// </summary>
         /// <param name="id">The id of the mark, unique in its view.</param>
@@ -83,12 +89,18 @@ namespace GeometryHelper.Drawing.Annotation
                 throw new ArgumentNullException(nameof(database));
             }
 
+            Write(database, placement, Id);
+        }
+
+        /// <summary>Writes the symbol as <see cref="WriteTo"/> does, its entities tagged with an id the caller gives.</summary>
+        internal void Write(DxfDatabase database, ViewPlacement2 placement, string id)
+        {
             SymbolDxf.SymbolLayer(database);
             double half = 0.5 * TextHeight, top = Point.Y + 0.8 * TextHeight;
-            SymbolDxf.Outline(database, placement, new[] { Point, new GeoPoint2(Point.X + half, top), new GeoPoint2(Point.X - half, top) }, SymbolSettings.Layer, Id);
+            SymbolDxf.Outline(database, placement, new[] { Point, new GeoPoint2(Point.X + half, top), new GeoPoint2(Point.X - half, top) }, SymbolSettings.Layer, id);
             GeoRectangle2 box = TextBox;
-            SymbolDxf.Line(database, placement, new GeoPoint2(Point.X - half, top), new GeoPoint2(box.Center.X + 0.5 * box.Width + 0.2 * TextHeight, top), SymbolSettings.Layer, Id);
-            SymbolDxf.Text(database, placement, box.Center, TextHeight, Text, SymbolSettings.Layer, Id);
+            SymbolDxf.Line(database, placement, new GeoPoint2(Point.X - half, top), new GeoPoint2(box.Center.X + 0.5 * box.Width + 0.2 * TextHeight, top), SymbolSettings.Layer, id);
+            SymbolDxf.Text(database, placement, box.Center, TextHeight, Text, SymbolSettings.Layer, id);
         }
 
         /// <inheritdoc/>

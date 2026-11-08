@@ -9,8 +9,10 @@ namespace GeometryHelper.Drawing.UnitTest.Builder
 {
     /// <summary>
     /// Times whole drawings, views, dimensions, marks, sheet and DXF: an assembly of 50 parts, and a frame of 1 000 members
-    /// in a general arrangement; the limits are those of the overview, loose until they are measured and set.
+    /// in a general arrangement; the limits are those of the overview, loose until they are measured and set. They run
+    /// alone, no other test beside them, so that what is timed is the drawing and not the tests running with it.
     /// </summary>
+    [Collection(DrawingSpeedCollection.Name)]
     public class DrawingSpeedTests
     {
         private readonly ITestOutputHelper _output;
@@ -52,5 +54,13 @@ namespace GeometryHelper.Drawing.UnitTest.Builder
             _output.WriteLine(SavePicture(drawing.Database, DrawingDxfWriter.LayoutName, "tc10-10x10-layout"));
             Assert.True(watch.Elapsed.TotalSeconds < 60.0, watch.Elapsed.ToString());
         }
+    }
+
+    /// <summary>The tests that time a drawing, run with no other test beside them.</summary>
+    [CollectionDefinition(Name, DisableParallelization = true)]
+    public class DrawingSpeedCollection
+    {
+        /// <summary>The name of the collection.</summary>
+        public const string Name = "Drawing speed";
     }
 }

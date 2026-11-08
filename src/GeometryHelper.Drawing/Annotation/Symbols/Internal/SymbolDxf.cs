@@ -10,7 +10,7 @@ namespace GeometryHelper.Drawing.Annotation
     internal static class SymbolDxf
     {
         /// <summary>The layer of marks, in colour 2, as the drawing's writer makes it.</summary>
-        internal static void MarkLayer(DxfDatabase database) => AddLayer(database, ObjectMark.Layer, 2, null);
+        internal static void MarkLayer(DxfDatabase database) => AddLayer(database, DrawingMark.Layer, 2, null);
 
         /// <summary>The layer of symbols, in colour 6.</summary>
         internal static void SymbolLayer(DxfDatabase database) => AddLayer(database, SymbolSettings.Layer, 6, null);
@@ -81,8 +81,11 @@ namespace GeometryHelper.Drawing.Annotation
             Append(database, text, placement, id);
         }
 
-        /// <summary>The width a text is taken to fill: each character 0.8 of its height, as dimensions take it.</summary>
-        internal static double TextWidth(string text, double height) => System.Math.Max(1, text.Length) * 0.8 * height;
+        /// <summary>
+        /// The width a text is taken to fill: each character as wide as the text is high, as AutoCAD's txt font and the
+        /// presenter draw it: "4 x M20 x 80" 1 high is inked 11.4 wide there, and taken as 12.
+        /// </summary>
+        internal static double TextWidth(string text, double height) => System.Math.Max(1, text.Length) * height;
 
         private static T Append<T>(DxfDatabase database, T entity, ViewPlacement2 placement, string id)
             where T : DxfEntity

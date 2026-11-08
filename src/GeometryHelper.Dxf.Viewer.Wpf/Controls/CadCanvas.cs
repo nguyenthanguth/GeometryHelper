@@ -77,10 +77,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             nameof(GridSpacing), typeof(double), typeof(CadCanvas), new PropertyMetadata(10.0, OnSceneChanged));
 
         private const double GridPixels = 8.0;
-        private const double PickPixels = 5.0;
-        private const double AperturePixels = 10.0;
         private const double DragPixels = 4.0;
-        private const double WheelFactor = 1.2;
         private const double GripSize = 8.0;
         private const int GripLimit = 100;
 
@@ -88,9 +85,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private static readonly Brush CrossingFill = Frozen(new SolidColorBrush(Color.FromArgb(26, 0x3F, 0xB9, 0x50)));
         private static readonly Pen WindowPen = Frozen(new Pen(Solid(0x3D9BFF), 1.0));
         private static readonly Pen CrossingPen = Frozen(new Pen(Solid(0x3FB950), 1.0) { DashStyle = new DashStyle(new[] { 4.0, 3.0 }, 0.0) });
-        private static readonly Brush GripBrush = Solid(0x3D9BFF);
+        private static readonly Brush DefaultGripBrush = Solid(0x3D9BFF);
         private static readonly Brush HotGripBrush = Solid(0xF85149);
         private static readonly Brush DragGripBrush = Solid(0x3FB950);
+        private static readonly Pen CrossPenLight = Frozen(new Pen(Solid(0xE6E9ED), 1.0));
+        private static readonly Pen CrossPenDark = Frozen(new Pen(Solid(0x1A1A1A), 1.0));
         private static readonly Pen GhostPen = Frozen(new Pen(Solid(0x3D9BFF), 1.2) { DashStyle = new DashStyle(new[] { 6.0, 3.0 }, 0.0) });
         private static readonly Pen RubberPen =Frozen(new Pen(Solid(0x3D9BFF), 1.0) { DashStyle = new DashStyle(new[] { 4.0, 3.0 }, 0.0) });
         private static readonly Pen MarkerPen = Frozen(new Pen(Solid(0xE0A800), 2.0));
@@ -114,6 +113,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private bool _boxing;
         private Point? _pointDown;
         private GeoPoint2? _cursor;
+        private Point? _mouse;
+        private double _crosshairPercent;
+        private int _gripRgb = 0x3D9BFF;
+        private Brush _gripBrush = DefaultGripBrush;
         private CadSnapResult _snapped;
         private int _hotGrip = -1;
         private int _dragGrip = -1;
@@ -125,7 +128,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Focusable = true;
             FocusVisualStyle = null;
             ClipToBounds = true;
-            Cursor = Cursors.Cross;
+            Cursor = IdleCursor;
             Loaded += (s, e) => RequestRender();
             Unloaded += (s, e) =>
             {
@@ -215,6 +218,48 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets how the space is drawn: background, paper and selection colours, the entity under the cursor.</summary>
         public CanvasOptions Options { get; } = new CanvasOptions();
 
+        /// <summary>Gets or sets how much a notch of the wheel zooms: 1.2 by default, as AutoCAD's ZOOMFACTOR (Global settings › Canvas and cursor).</summary>
+        public double WheelZoomFactor { get; set; } = 1.2;
+
+        /// <summary>Gets or sets how far from the cursor a click picks an entity, in device-independent pixels: 5 by default, as AutoCAD's PICKBOX.</summary>
+        public double PickboxPixels { get; set; } = 5.0;
+
+        /// <summary>Gets or sets how far from the cursor a point snaps, in device-independent pixels: 10 by default, as AutoCAD's APERTURE.</summary>
+        public double AperturePixels { get; set; } = 10.0;
+
+        /// <summary>
+        /// Gets or sets the size of the crosshair drawn at the cursor, in per cent of the canvas's larger side, with the pickbox
+        /// at its middle while no point is asked for, as AutoCAD's CURSORSIZE: 0, the default, for the system's cross.
+        /// </summary>
+        public double CrosshairPercent
+        {
+            get => _crosshairPercent;
+            set
+            {
+                _crosshairPercent = Math.Max(0.0, Math.Min(100.0, value));
+                Cursor = IdleCursor;
+                InvalidateVisual();
+            }
+        }
+
+        /// <summary>The cursor while nothing is dragged: none where the crosshair is drawn, else the system's cross.</summary>
+        private Cursor IdleCursor => _crosshairPercent > 0.0 ? Cursors.None : Cursors.Cross;
+
+        /// <summary>The brush of the grips, in the colour of <see cref="CanvasOptions.GripColor"/>.</summary>
+        private Brush GripBrush
+        {
+            get
+            {
+                if (_gripRgb != Options.GripColor)
+                {
+                    _gripRgb = Options.GripColor;
+                    _gripBrush = _gripRgb == 0x3D9BFF ? DefaultGripBrush : Solid(_gripRgb);
+                }
+
+                return _gripBrush;
+            }
+        }
+
         /// <summary>
         /// Gets the spacing the grid is drawn at: the spacing asked, times 5, 10, 50, 100 and on, the first whose dots lie at
         /// least a number of pixels apart. A grid of 10 at 0.18 pixels to the unit is drawn every 50, 9 pixels apart.
@@ -279,7 +324,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             view.DrawingToPixel(x, y, out double px, out double py);
             double scale = PixelScale;
-            Track(new Point(px / scale, py / scale));
+            var at = new Point(px / scale, py / scale);
+            Track(at);
+
+            if (_crosshairPercent > 0.0)
+            {
+                _mouse = at;
+                InvalidateVisual();
+            }
         }
 
         /// <summary>Draws the space now rather than at the next frame, as a screenshot taken with no window showing needs.</summary>
@@ -434,6 +486,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 DrawTags(drawingContext, view, scale);
                 DrawGrips(drawingContext, view, scale);
                 DrawPrompt(drawingContext, view, scale);
+                DrawCrosshair(drawingContext);
             }
 
             if (_boxing && _boxFrom.HasValue)
@@ -471,7 +524,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             Point p = PositionOf(e);
             double scale = PixelScale;
-            view.ZoomAt(p.X * scale, p.Y * scale, Math.Pow(WheelFactor, e.Delta / 120.0));
+            view.ZoomAt(p.X * scale, p.Y * scale, Math.Pow(WheelZoomFactor, e.Delta / 120.0));
             e.Handled = true;
             ViewChanged?.Invoke(this, EventArgs.Empty);
             RequestRender();
@@ -530,7 +583,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         protected override void OnMouseMove(MouseEventArgs e)
         {
             base.OnMouseMove(e);
-            Track(PositionOf(e));
+            Point at = PositionOf(e);
+            Track(at);
+
+            if (_crosshairPercent > 0.0)
+            {
+                _mouse = at;
+                InvalidateVisual();
+            }
         }
 
         /// <inheritdoc/>
@@ -542,7 +602,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (e.ChangedButton == MouseButton.Middle && _panFrom.HasValue)
             {
                 _panFrom = null;
-                Cursor = Cursors.Cross;
+                Cursor = IdleCursor;
                 ReleaseMouseCapture();
                 e.Handled = true;
             }
@@ -605,6 +665,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         protected override void OnMouseLeave(MouseEventArgs e)
         {
             base.OnMouseLeave(e);
+
+            if (_mouse.HasValue)
+            {
+                _mouse = null;
+                InvalidateVisual();
+            }
 
             if (Options.Hover != null)
             {
@@ -819,7 +885,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             view.ScreenToDrawing(p.X * scale, p.Y * scale, out double x, out double y);
             var cursor = new GeoPoint2(x, y);
             _cursor = cursor;
-            double pick = PickPixels * scale / view.PixelsPerUnit;
+            double pick = PickboxPixels * scale / view.PixelsPerUnit;
             double aperture = AperturePixels * scale / view.PixelsPerUnit;
             CadCommandSession session = Session;
 
@@ -925,7 +991,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             double scale = PixelScale;
             view.ScreenToDrawing(p.X * scale, p.Y * scale, out double x, out double y);
-            double aperture = (CadPicking.WantsPoint(Session) ? AperturePixels : PickPixels) * scale / view.PixelsPerUnit;
+            double aperture = (CadPicking.WantsPoint(Session) ? AperturePixels : PickboxPixels) * scale / view.PixelsPerUnit;
 
             if (CadPicking.Click(document, Space, Session, Snap, new GeoPoint2(x, y), aperture, shift))
             {
@@ -1035,6 +1101,36 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             view.DrawingToPixel(point.X, point.Y, out double px, out double py);
             return new Point(px / scale, py / scale);
+        }
+
+        /// <summary>
+        /// The crosshair at the cursor, as AutoCAD draws it: two lines across a share of the canvas, in the colour that shows on
+        /// its background, and the pickbox square at their meeting while no point is asked for.
+        /// </summary>
+        private void DrawCrosshair(DrawingContext dc)
+        {
+            if (_crosshairPercent <= 0.0 || !_mouse.HasValue || _panFrom.HasValue)
+            {
+                return;
+            }
+
+            int rgb = Space != null && !Space.IsModel ? Options.Paper : Options.Background;
+            double luminance = (0.2126 * ((rgb >> 16) & 0xFF) + 0.7152 * ((rgb >> 8) & 0xFF) + 0.0722 * (rgb & 0xFF)) / 255.0;
+            Pen pen = luminance < 0.5 ? CrossPenLight : CrossPenDark;
+            Point at = _mouse.Value;
+            double half = _crosshairPercent / 100.0 * Math.Max(ActualWidth, ActualHeight) / 2.0;
+            double box = PickboxPixels;
+            bool picking = !CadPicking.WantsPoint(Session);
+            double gap = picking ? box : 0.0;
+            dc.DrawLine(pen, new Point(at.X - half, at.Y), new Point(at.X - gap, at.Y));
+            dc.DrawLine(pen, new Point(at.X + gap, at.Y), new Point(at.X + half, at.Y));
+            dc.DrawLine(pen, new Point(at.X, at.Y - half), new Point(at.X, at.Y - gap));
+            dc.DrawLine(pen, new Point(at.X, at.Y + gap), new Point(at.X, at.Y + half));
+
+            if (picking)
+            {
+                dc.DrawRectangle(null, pen, new Rect(at.X - box, at.Y - box, 2.0 * box, 2.0 * box));
+            }
         }
 
         private void DrawGrips(DrawingContext dc, CadView view, double scale)

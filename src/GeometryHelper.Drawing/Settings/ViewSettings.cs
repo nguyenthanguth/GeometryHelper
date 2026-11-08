@@ -39,6 +39,20 @@ namespace GeometryHelper.Drawing
         public IList<ViewKind> Dimensioned { get; } = new List<ViewKind> { ViewKind.Front, ViewKind.Top, ViewKind.Section };
 
         /// <summary>
+        /// Gets the ids of the views dimensioned whatever their kind, as <see cref="Drawing.ReDimension"/> adds them: V-RIGHT
+        /// dimensions the right end view of the assembly preset, which <see cref="Dimensioned"/> leaves out; a detail too. None
+        /// by default; an id no view has is passed over.
+        /// </summary>
+        public IList<string> DimensionedViews { get; } = new List<string>();
+
+        /// <summary>
+        /// Gets the ids of the views marked besides the first view along the axes, which is always marked, as
+        /// <see cref="Drawing.ReMark"/> adds them: V-TOP marks the top view too. None by default; an id no view has is passed
+        /// over.
+        /// </summary>
+        public IList<string> MarkedViews { get; } = new List<string>();
+
+        /// <summary>
         /// Gets or sets how far a view's crop stands off the box of its lines, in model millimetres; 10 by default.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value set is not a finite number of nought or more.</exception>
@@ -102,6 +116,8 @@ namespace GeometryHelper.Drawing
             Refill(copy.Sections, Sections);
             Refill(copy.Details, Details);
             Refill(copy.Dimensioned, Dimensioned);
+            Refill(copy.DimensionedViews, DimensionedViews);
+            Refill(copy.MarkedViews, MarkedViews);
             return copy;
         }
 

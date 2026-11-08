@@ -6,6 +6,32 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `GeometryHelper.Dxf.Viewer`, `GeometryHelper.Dxf.Viewer.Wpf` and the `GeometryHelper.Drawing.App` window are a 2D
+presenter for any DXF, built as AutoCAD behaves (not packed yet). A file opens as a `CadDocument` drawn from display
+lists through SkiaSharp: 100 000 entities open in 0.9 s, a click picks in 0.007 ms and a window of 1 000 entities draws
+in under 1 ms. It edits as AutoCAD does, with a command line that has AutoCAD's prompts, names and aliases, object snaps,
+grips, Properties edited in place, a layer manager, and undo and redo that give the start file back byte for byte.
+Command plugins load and unload at run time (collectible load contexts on .NET 8), and global settings are kept as JSON:
+colours, crosshair size, text height and autosave copies that never touch the file. CLOSE, Ctrl+W and the x on a row of
+the file list close a drawing, asking first about unsaved changes. An owner (`CadOwnerRegistry`, tag `GH_OWNER`) keeps
+control of the entities it wrote: an edit of one goes to its owner in the same undo step, or is refused in the words the
+command line shows.
+
+**NEW.** `GeometryHelper.Drawing` makes a model drawing, in the manner of Tekla's, from a `DrawingSource` of
+`DrawingObject` bodies: views along the axes and an isometric view with exact hidden-line projection (2 000 objects in
+the front view take 0.3 s), sections with ANSI31 hatches, details, dimensions by rule, marks that keep clear of the
+symbols and dimensions, centre lines, weld symbols to ISO 2553, section, detail and level marks. A drawing is one DXF that
+also carries its own document, so it opens again with its settings. `Drawing.Update(source, settings)` makes it again with
+other settings or a changed model and keeps what was moved or drawn by hand; `Prepare` makes the update on a thread of
+its own and `Apply` writes it as one undo step. `ReDimension`, `ReMark`, `ReCentreLines`, `AddView`, `AddSection` (a cut
+along a line drawn in a view) and `AddDetail` change one view and are kept through later updates. A general arrangement
+of 1 000 members is drawn in 1.2 s. The dialogs, the Drawing tab and the commands VIEWSECTION and VIEWDETAIL are in
+`GeometryHelper.Drawing.Wpf`.
+
+**CHANGED.** Placing labels among many blocks is faster, with the same results to the bit: `Arranger.Run` skips the
+obstacles whose box lies farther than the nearest distance already found, and asks the spatial index for the
+neighbourhood of each place, not all of them. The densest arranging benchmark goes from 55.8 ms to 49.9 ms.
+
 **CHANGED.** The guides are split into pages of a few hundred lines each, their words unchanged: the plane into
 `plane/`, space into `solid/`, and the DXF half of the shared types into `dxf/`, each page in the site's menu. The old
 pages stay, each with a list of its pages; a bookmark to a section that moved lands on that list, by the link to the

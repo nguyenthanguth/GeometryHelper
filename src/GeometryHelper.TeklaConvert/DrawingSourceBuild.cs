@@ -200,6 +200,11 @@ namespace GeometryHelper.TeklaConvert
 
                 if (!found)
                 {
+                    found = TryAxisSpan(position, axis, SortedBodies(group.BoltedPartIds, bodies), tolerance, out min, out max);
+                }
+
+                if (!found)
+                {
                     found = TrySpan(position, axis, HoleReach * 0.5 * holeDiameter, partCorners, out min, out max);
                 }
 
@@ -207,6 +212,20 @@ namespace GeometryHelper.TeklaConvert
                 {
                     data.Skip(what + " of no length along their axis", id);
                     continue;
+                }
+
+                if (group.HasBolt && group.Length > 0.0 && max - min > group.Length + tolerance.EqualPoint)
+                {
+                    // The axis can run on through a part that lies the same way (a bolt into a column end): the bolt is no longer
+                    // than Tekla says, from the end of the run nearest its position.
+                    if (Math.Abs(min) <= Math.Abs(max))
+                    {
+                        max = min + group.Length;
+                    }
+                    else
+                    {
+                        min = max - group.Length;
+                    }
                 }
 
                 GeoPoint3 start = position.Add(axis.Multiply(min));
@@ -331,6 +350,37 @@ namespace GeometryHelper.TeklaConvert
         }
 
         /// <summary>
+        /// The frame a bolt group is read with, from the axes Tekla gives its coordinate system. Tekla's X is the bolt's own
+        /// axis (the way it runs through the parts, its length the length of the vector Tekla stores) and its Y points from
+        /// the first position towards the second; the module wants X from the first position towards the second and Z along
+        /// the bolts. Read from a running Tekla 2025: a group of four M20 with origin (7200, 29850, 7121), X (0, 0, -371) and
+        /// Y (0, -1000, 0) comes out with Z straight down and X along -Y.
+        /// </summary>
+        /// <param name="origin">The origin of Tekla's coordinate system.</param>
+        /// <param name="teklaX">Tekla's X axis: along the bolt, of any length.</param>
+        /// <param name="teklaY">Tekla's Y axis: towards the second position, of any length.</param>
+        /// <returns>The frame; null where the axes are of no length or lie along one another.</returns>
+        internal static GeoCoordinateSystem3? BoltFrame(GeoPoint3 origin, GeoVector3 teklaX, GeoVector3 teklaY)
+        {
+            if (!(teklaX.Length > 0.0) || !(teklaY.Length > 0.0))
+            {
+                return null;
+            }
+
+            GeoVector3 along = teklaX.Multiply(1.0 / teklaX.Length);
+            GeoVector3 toSecond = teklaY.Multiply(1.0 / teklaY.Length);
+            GeoVector3 across = along.CrossProduct(toSecond);
+
+            if (!(across.Length > 1E-9))
+            {
+                return null;
+            }
+
+            var frame = new GeoCoordinateSystem3(origin, toSecond, across.Multiply(1.0 / across.Length));
+            return frame.IsValid ? frame : (GeoCoordinateSystem3?)null;
+        }
+
+        /// <summary>
         /// How far along an axis through a point the corners within a reach of that axis run, from the point; false where
         /// no corner is within the reach.
         /// </summary>
@@ -417,6 +467,113 @@ namespace GeometryHelper.TeklaConvert
         }
 
         /// <summary>Every corner of the bodies of the parts bolted that are in the source, their holes' corners among them.</summary>
+        private static List<GeoSolid3> SortedBodies(IReadOnlyList<string> boltedPartIds, IReadOnlyDictionary<string, GeoSolid3> bodies)
+        {
+            var solids = new List<GeoSolid3>();
+
+            foreach (string id in Sorted(boltedPartIds))
+            {
+                if (bodies.TryGetValue(id, out GeoSolid3 body))
+                {
+                    solids.Add(body);
+                }
+            }
+
+            return solids;
+        }
+
+        /// <summary>
+        /// Where the bolt's axis runs through the material of the parts it bolts: the line through a position along the axis
+        /// is cut by each part, the crossings are paired as in and out, the stretches inside are joined where they touch (a
+        /// stack of plates is one run), and the run nearest the position is the bolt's. Unlike the corners near the axis
+        /// (<see cref="TrySpan"/>), this stays right where a part runs the same way as the bolt: a column the bolt goes down
+        /// has corners along its whole height near the axis, but the axis is inside it only for the flange.
+        /// </summary>
+        /// <param name="position">The bolt's position on its axis.</param>
+        /// <param name="axis">The unit direction of the axis.</param>
+        /// <param name="solids">The bodies of the parts bolted.</param>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <param name="min">Where the run starts along the axis from the position.</param>
+        /// <param name="max">Where it ends.</param>
+        /// <returns>False where the axis meets no material.</returns>
+        internal static bool TryAxisSpan(GeoPoint3 position, GeoVector3 axis, IReadOnlyList<GeoSolid3> solids, Tolerance tolerance, out double min, out double max)
+        {
+            min = 0.0;
+            max = 0.0;
+            var runs = new List<double[]>();
+            GeoXLine3 line = new GeoLine3(position, position.Add(axis)).ToXLine();
+
+            foreach (GeoSolid3 solid in solids)
+            {
+                GeoPoint3[] hits = solid.GetIntersections(line, tolerance);
+                var ts = new List<double>();
+
+                foreach (GeoPoint3 hit in hits)
+                {
+                    ts.Add(axis.DotProduct(position.GetVectorTo(hit)));
+                }
+
+                ts.Sort();
+                var distinct = new List<double>();
+
+                foreach (double t in ts)
+                {
+                    if (distinct.Count == 0 || t - distinct[distinct.Count - 1] > tolerance.EqualPoint)
+                    {
+                        distinct.Add(t);
+                    }
+                }
+
+                for (int i = 0; i + 1 < distinct.Count; i += 2)
+                {
+                    runs.Add(new[] { distinct[i], distinct[i + 1] });
+                }
+            }
+
+            if (runs.Count == 0)
+            {
+                return false;
+            }
+
+            runs.Sort((a, b) =>
+            {
+                int byStart = a[0].CompareTo(b[0]);
+                return byStart != 0 ? byStart : a[1].CompareTo(b[1]);
+            });
+
+            var merged = new List<double[]>();
+
+            foreach (double[] run in runs)
+            {
+                double[] last = merged.Count == 0 ? null : merged[merged.Count - 1];
+
+                if (last != null && run[0] <= last[1] + tolerance.EqualPoint)
+                {
+                    last[1] = Math.Max(last[1], run[1]);
+                }
+                else
+                {
+                    merged.Add(new[] { run[0], run[1] });
+                }
+            }
+
+            double best = double.PositiveInfinity;
+
+            foreach (double[] run in merged)
+            {
+                double distance = run[0] <= 0.0 && run[1] >= 0.0 ? 0.0 : Math.Min(Math.Abs(run[0]), Math.Abs(run[1]));
+
+                if (distance < best)
+                {
+                    best = distance;
+                    min = run[0];
+                    max = run[1];
+                }
+            }
+
+            return true;
+        }
+
         private static List<GeoPoint3> PartCorners(IReadOnlyList<string> boltedPartIds, IReadOnlyDictionary<string, GeoSolid3> bodies)
         {
             var corners = new List<GeoPoint3>();

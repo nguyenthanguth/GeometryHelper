@@ -15,6 +15,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\GeometryHelper.Drawing.Wpf\GeometryHelper.Drawing.Wpf.csproj" />
+    <ProjectReference Include="..\GeometryHelper.Drawing\GeometryHelper.Drawing.csproj" />
     <ProjectReference Include="..\GeometryHelper.Dxf.Viewer.Wpf\GeometryHelper.Dxf.Viewer.Wpf.csproj" />
     <ProjectReference Include="..\GeometryHelper.Dxf.Viewer\GeometryHelper.Dxf.Viewer.csproj" />
     <ProjectReference Include="..\GeometryHelper\GeometryHelper.csproj" />

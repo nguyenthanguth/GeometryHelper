@@ -43,9 +43,9 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             Near(80, symbol.Knee.Y);
             Assert.Equal(new[] { "W-1", "P-1", "P-2" }, symbol.Links.ObjectIds);
 
-            // Half a height, "a5" and 0.3 of a height, the triangle a height, 0.3 and "200", half a height: 0.5 + 1.6 + 0.3 +
-            // 1 + 0.3 + 2.4 + 0.5 = 6.6 heights of 25.
-            Near(6.6 * 25, symbol.ReferenceLine.Length);
+            // Half a height, "a5" and 0.3 of a height, the triangle a height, 0.3 and "200", half a height, each character a
+            // height wide: 0.5 + 2 + 0.3 + 1 + 0.3 + 3 + 0.5 = 7.6 heights of 25.
+            Near(7.6 * 25, symbol.ReferenceLine.Length);
 
             DxfDatabase database = Write(symbol);
             DxfLine[] lines = database.ModelSpace.OfType<DxfLine>().ToArray();

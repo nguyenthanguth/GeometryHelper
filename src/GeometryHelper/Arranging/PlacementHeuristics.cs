@@ -208,9 +208,26 @@ namespace GeometryHelper.Arranging
         internal static double MeasureClearance(List<Obstacle> obstacles, GeoRectangle2 moved, Tolerance tolerance)
         {
             double best = double.MaxValue;
+            Bounds box = Bounds.Of(moved);
+
+            // An obstacle whose box stands further off than the nearest found so far cannot be nearer, and is passed over
+            // unmeasured: the gap between the boxes is never more than the distance itself. It is passed over only where that
+            // gap beats the nearest by more than any rounding, and is well beyond what a distance reads as nought within, so
+            // that the nearest comes out as it does when every obstacle is measured.
+            double nought = 10.0 * Math.Max(tolerance.EqualPoint, Tolerance.Global.EqualPoint);
 
             foreach (Obstacle obstacle in obstacles)
             {
+                if (best < double.MaxValue)
+                {
+                    double gap = box.GapTo(obstacle.Box);
+
+                    if (gap > nought && gap > best + 1E-9 * (1.0 + gap))
+                    {
+                        continue;
+                    }
+                }
+
                 double distance = double.MaxValue;
 
                 switch (obstacle.Type)

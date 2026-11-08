@@ -63,7 +63,7 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
                     line.WriteTo(database, placement);
                 }
 
-                foreach (ObjectMark mark in marked.Marks)
+                foreach (DrawingMark mark in marked.Marks)
                 {
                     mark.WriteTo(database, placement);
                 }

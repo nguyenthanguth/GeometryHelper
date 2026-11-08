@@ -26,25 +26,25 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         {
             Marked marked = Mark(Objects(TestBodies.TC1()), Top, 5);
 
-            ObjectMark mark = Assert.Single(marked.Marks);
+            DrawingMark mark = Assert.Single(marked.Marks);
             Assert.Equal("M-TC1-plate", mark.Id);
             Assert.Equal(MarkKind.Part, mark.Kind);
             Assert.Equal("P1", mark.Text);
             Assert.Equal(new[] { "TC1-plate" }, mark.ObjectIds);
             Near(17.5, mark.TextHeight);
             Near(17.5, mark.TextBox.Height);
-            Near(2 * 0.8 * 17.5, mark.TextBox.Width);
+            Near(2 * 17.5, mark.TextBox.Width);
             Assert.NotEmpty(marked.Dimensions);
             Assert.Empty(Marker.FindOverlaps(marked.Marks, marked.Dimensions, Tol));
             Assert.Empty(LeadersOffTheirObjects(marked));
 
-            // The text stands below the plate, away from it and its dimensions, 8 off on paper, 40 at 1:5: the leader runs
-            // 40 from the top of its box to the plate's lower side.
+            // The text stands below the plate, away from it and its dimensions, 4 off on paper, 20 at 1:5: the leader runs
+            // 20 from the top of its box to the plate's lower side.
             Assert.Equal(2, mark.Leader.Count);
-            Near(-40 - 17.5 / 2, mark.TextBox.Center.Y);
-            Near(-40, mark.Leader[0].Y);
+            Near(-20 - 17.5 / 2, mark.TextBox.Center.Y);
+            Near(-20, mark.Leader[0].Y);
             Near(0, mark.Anchor.Y);
-            Near(40, mark.Leader[0].DistanceTo(mark.Anchor));
+            Near(20, mark.Leader[0].DistanceTo(mark.Anchor));
             Assert.Equal(new DrawingLinks(new[] { "TC1-plate" }, new[] { new DrawingLinkPoint3("TC1-plate", new GeoPoint3(150, 100, 10)) }), mark.Links);
         }
 
@@ -114,7 +114,7 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         {
             Marked marked = Mark(Objects(TestBodies.TC5()), Top, 10);
 
-            ObjectMark bolts = Assert.Single(marked.Marks, m => m.Kind == MarkKind.Bolt);
+            DrawingMark bolts = Assert.Single(marked.Marks, m => m.Kind == MarkKind.Bolt);
             Assert.Equal("4 x M20 x 80", bolts.Text);
             Assert.Equal("M-TC5-bolt-1", bolts.Id);
             Assert.Equal(new[] { "TC5-bolt-1", "TC5-bolt-2", "TC5-bolt-3", "TC5-bolt-4" }, bolts.ObjectIds);
@@ -215,8 +215,8 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         public void FindOverlapsNamesATextOverAnotherAndALeaderAcrossAText()
         {
             Marked marked = Mark(Objects(TestBodies.TC5()), Front, 10);
-            ObjectMark a = marked.Marks[0];
-            ObjectMark b = marked.Marks[1];
+            DrawingMark a = marked.Marks[0];
+            DrawingMark b = marked.Marks[1];
 
             Assert.Empty(Marker.FindOverlaps(new[] { a, b }, new DrawingDimension[0], Tol));
             Assert.Contains(Marker.FindOverlaps(new[] { a, a }, new DrawingDimension[0], Tol), o => o.Contains("text over the text of " + a.Id));

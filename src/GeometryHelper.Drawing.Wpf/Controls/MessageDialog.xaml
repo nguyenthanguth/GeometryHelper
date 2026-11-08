@@ -1,0 +1,58 @@
+<local:DrawingDialogWindow x:Class="GeometryHelper.Drawing.Wpf.MessageDialog"
+                           xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                           xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                           xmlns:local="clr-namespace:GeometryHelper.Drawing.Wpf"
+                           Title="{Binding Title}" Width="420" SizeToContent="Height" Background="#262B33">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Drawing.Wpf;component/Themes/Dialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border x:Name="Root" Style="{StaticResource DialogRoot}" Width="420">
+        <StackPanel>
+            <DockPanel Margin="16" MouseLeftButtonDown="OnHeaderDown" Background="Transparent">
+                <!-- The icon of the kind: a circle with a mark for an error or a notice, a triangle for a warning, a tick for work done. -->
+                <Path x:Name="KindIcon" DockPanel.Dock="Left" Width="22" Height="22" Stretch="Uniform" StrokeThickness="2" Margin="0,0,12,0" VerticalAlignment="Top"
+                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round">
+                    <Path.Style>
+                        <Style TargetType="Path">
+                            <Setter Property="Stroke" Value="{StaticResource GhAccent}" />
+                            <Setter Property="Data" Value="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0M12 11v6M12 7.5h.01" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Kind}" Value="Error">
+                                    <Setter Property="Stroke" Value="{StaticResource GhError}" />
+                                    <Setter Property="Data" Value="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0M12 7v6M12 16h.01" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Kind}" Value="Warning">
+                                    <Setter Property="Stroke" Value="{StaticResource GhWarn}" />
+                                    <Setter Property="Data" Value="M12 3 2 20h20zM12 10v5M12 17.5h.01" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Kind}" Value="Done">
+                                    <Setter Property="Stroke" Value="{StaticResource GhOk}" />
+                                    <Setter Property="Data" Value="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0M8 12l3 3 5-6" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Path.Style>
+                </Path>
+                <StackPanel>
+                    <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding Text}" Foreground="{StaticResource GhIcon}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                    <TextBlock Text="{Binding Detail}" Foreground="{StaticResource GhTextMuted}" FontFamily="{StaticResource GhMonoFont}" TextWrapping="Wrap" Margin="0,6,0,0"
+                               Visibility="{Binding HasDetail, Converter={StaticResource Shown}}" />
+                </StackPanel>
+            </DockPanel>
+            <Border Style="{StaticResource DialogBand}" CornerRadius="0,0,6,6">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Style="{StaticResource SecondaryButton}" Content="{Binding ActionText}" Command="{Binding ActionCommand}"
+                            Visibility="{Binding HasAction, Converter={StaticResource Shown}}" />
+                    <Button Style="{StaticResource PrimaryButton}" Content="OK" Command="{Binding OkCommand}" IsDefault="True" IsCancel="True" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </Border>
+</local:DrawingDialogWindow>

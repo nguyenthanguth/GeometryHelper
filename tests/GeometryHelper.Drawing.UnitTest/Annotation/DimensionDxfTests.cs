@@ -37,7 +37,8 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
 
             DxfRotatedDimension written = database.ModelSpace.OfType<DxfRotatedDimension>().Single();
             DxfBlockTableRecord block = written.DimBlock;
-            Assert.Equal("GH_D_V-1_D-1", block.Name);
+            Assert.Equal("*D1", block.Name);
+            Assert.True(block.IsAnonymous);
             Assert.Equal(3, block.OfType<DxfLine>().Count());
             Assert.Equal(2, block.OfType<DxfSolid>().Count());
             Assert.Equal("300", block.OfType<DxfMText>().Single().Contents);
@@ -98,7 +99,7 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         }
 
         [Fact]
-        public void WritingADimensionAgainFillsItsBlockAgain()
+        public void WritingADimensionAgainDrawsItWithABlockOfItsOwnAndErasesTheOldOne()
         {
             DrawingObject[] objects = { Part("plate", Box(0, 0, 0, 300, 200, 20), true) };
             DrawingDimension overall = Dimension(objects, Top).First();
@@ -106,12 +107,16 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             var placement = new ViewPlacement2("V-1", new GeoPoint2(0, 0), 1.0);
 
             overall.WriteTo(database, placement);
-            int blocks = database.BlockTable.Count();
+            DxfBlockTableRecord first = database.ModelSpace.OfType<DxfDimension>().Single().DimBlock;
+            int blocks = database.BlockTable.Count(b => !b.IsErased);
             DrawingEntityTags.RemoveAll(database);
             overall.WriteTo(database, placement);
 
-            Assert.Equal(blocks, database.BlockTable.Count());
-            Assert.Equal(6, database.BlockTable["GH_D_V-1_D-1"].Count(e => !e.IsErased));
+            DxfDimension again = database.ModelSpace.OfType<DxfDimension>().Single(d => !d.IsErased);
+            Assert.True(first.IsErased);
+            Assert.Equal(blocks, database.BlockTable.Count(b => !b.IsErased));
+            Assert.True(again.DimBlock.IsAnonymous);
+            Assert.Equal(6, again.DimBlock.Count(e => !e.IsErased));
             Assert.Single(DrawingEntityTags.Find(database));
         }
 

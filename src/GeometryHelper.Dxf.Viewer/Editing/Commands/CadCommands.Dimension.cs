@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Text.RegularExpressions;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -9,17 +8,14 @@ namespace GeometryHelper.Dxf.Viewer
 {
     /// <summary>The dimension commands: DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER, DIMANGULAR.</summary>
     /// <remarks>
-    /// The library does not draw a dimension: what draws one is its block (<c>*D1</c>), which AutoCAD draws and names itself,
-    /// and a block of such a name cannot be added in code. So a dimension is made with its picture (its extension lines,
-    /// dimension line, arrowheads as SOLIDs, its words as an MTEXT and its points of definition on Defpoints, from the
-    /// variables of the current dimension style) in a scratch drawing of the same version, its block named for the moment,
-    /// renamed to <c>*D1</c> in the scratch drawing's text, and copied into the document by
-    /// <see cref="DxfDatabase.WblockCloneObjects"/>, which gives the copy a block of AutoCAD's own name the drawing has not.
+    /// The library does not draw a dimension: what draws one is its block (<c>*D1</c>), which AutoCAD draws and names itself.
+    /// So a dimension is made with its picture (its extension lines, dimension line, arrowheads as SOLIDs, its words as an
+    /// MTEXT and its points of definition on Defpoints, from the variables of the current dimension style) in an anonymous
+    /// block added as <c>*D</c>, which the block table names as AutoCAD names its own, the first <c>*D</c> number the drawing
+    /// has not.
     /// </remarks>
     internal static partial class CadCommands
     {
-        private const string PictureName = "GHVIEWERDIMENSIONPICTURE";
-
         private static IEnumerable<CadPrompt> DimLinear(CadCommandContext c) => DimLine(c, false);
 
         private static IEnumerable<CadPrompt> DimAligned(CadCommandContext c) => DimLine(c, true);
@@ -693,59 +689,35 @@ namespace GeometryHelper.Dxf.Viewer
             return entity;
         }
 
+
         /// <summary>
-        /// Adds a dimension with its picture to the space: the dimension and its block made in a scratch drawing, the block
-        /// renamed *D1 in its text, and the dimension copied into the document, which gives it a *D block of its own.
+        /// Adds a dimension with its picture to the space: the picture appended to an anonymous block *D, which the block
+        /// table names as AutoCAD names its own (*D1, *D2), and given to the dimension as its block.
         /// </summary>
         private static void Place(CadCommandContext c, DxfDimStyleTableRecord style, DxfDimension dimension, List<DxfEntity> picture)
         {
-            DxfDatabase scratch = new DxfDatabase(c.Database.Version);
-            DxfDimStyleTableRecord scratchStyle = scratch.DimStyleTable.Has(style.Name) ? scratch.DimStyleTable[style.Name] : null;
-
-            if (scratchStyle == null)
-            {
-                scratchStyle = new DxfDimStyleTableRecord { Name = style.Name };
-                scratch.DimStyleTable.Add(scratchStyle);
-            }
-
-            var block = new DxfBlockTableRecord { Name = PictureName };
-            scratch.BlockTable.Add(block);
-
-            foreach (DxfEntity entity in picture)
-            {
-                if (entity.Layer == null || entity.Layer.Length == 0)
-                {
-                    entity.Layer = "0";
-                }
-
-                block.AppendEntity(entity);
-            }
-
-            dimension.DimensionStyle = scratchStyle;
-            dimension.DimBlock = block;
-            dimension.Layer = c.Database.Clayer;
-            scratch.ModelSpace.AppendEntity(dimension);
-
-            // The BLOCK is marked as one AutoCAD names itself (flag 1 of its 70), as a dimension's *D is, then every name changed.
-            string text = Regex.Replace(scratch.ToText(), @"(AcDbBlockBegin\r?\n *2\r?\n)" + PictureName + @"(\r?\n *70\r?\n) *0(\r?\n)", "${1}*D1${2}1${3}");
-            DxfDatabase named = DxfDatabase.Parse(text.Replace(PictureName, "*D1"));
-            DxfEntity source = null;
-
-            foreach (DxfEntity entity in named.ModelSpace)
-            {
-                if (entity is DxfDimension)
-                {
-                    source = entity;
-                }
-            }
-
             CadSpace space = c.Space;
             c.Apply(null, s =>
             {
-                IReadOnlyList<DxfEntity> copies = named.WblockCloneObjects(new[] { source }, space.Block);
-                DxfEntity copy = copies[0];
-                copy.SetDatabaseDefaults(s.Database);
-                s.Added(space, copy);
+                var block = new DxfBlockTableRecord { Name = "*D" };
+                s.Database.BlockTable.Add(block);
+
+                foreach (DxfEntity entity in picture)
+                {
+                    if (entity.Layer == null || entity.Layer.Length == 0)
+                    {
+                        entity.Layer = "0";
+                    }
+
+                    block.AppendEntity(entity);
+                }
+
+                dimension.DimensionStyle = style;
+                dimension.DimBlock = block;
+                dimension.Layer = s.Database.Clayer;
+                space.Block.AppendEntity(dimension);
+                dimension.SetDatabaseDefaults(s.Database);
+                s.Added(space, dimension);
             });
         }
     }

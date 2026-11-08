@@ -128,6 +128,19 @@ namespace GeometryHelper.Arranging
             return new Bounds(Math.Min(MinX, other.MinX), Math.Min(MinY, other.MinY),
                 Math.Max(MaxX, other.MaxX), Math.Max(MaxY, other.MaxY));
         }
+        /// <summary>
+        /// The distance between these bounds and other bounds: nought where they overlap or touch. No shape inside the one
+        /// stands closer than this to a shape inside the other.
+        /// </summary>
+        /// <param name="other">The other bounds.</param>
+        /// <returns>The gap.</returns>
+        internal double GapTo(Bounds other)
+        {
+            double dx = Math.Max(0.0, Math.Max(other.MinX - MaxX, MinX - other.MaxX));
+            double dy = Math.Max(0.0, Math.Max(other.MinY - MaxY, MinY - other.MaxY));
+            return Math.Sqrt(dx * dx + dy * dy);
+        }
+
 
         /// <summary>
         /// Checks whether these bounds overlap other bounds.

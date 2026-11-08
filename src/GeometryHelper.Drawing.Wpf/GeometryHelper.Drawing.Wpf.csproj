@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net48;net8.0-windows</TargetFrameworks>
+    <UseWPF>true</UseWPF>
+    <PlatformTarget>x64</PlatformTarget>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <RootNamespace>GeometryHelper.Drawing.Wpf</RootNamespace>
+    <AssemblyName>GeometryHelper.Drawing.Wpf</AssemblyName>
+    <Description>The model drawing UI of GeometryHelper Drawing (Part B): the Drawing ribbon tab, the New drawing, Drawing settings, Update from model and Export dialogs, model drawings in the file list and their links in Properties.</Description>
+    <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);MSB3277</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GeometryHelper.Drawing\GeometryHelper.Drawing.csproj" />
+    <ProjectReference Include="..\GeometryHelper.Dxf.Viewer.Wpf\GeometryHelper.Dxf.Viewer.Wpf.csproj" />
+    <ProjectReference Include="..\GeometryHelper.Dxf.Viewer\GeometryHelper.Dxf.Viewer.csproj" />
+    <ProjectReference Include="..\GeometryHelper\GeometryHelper.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="GeometryHelper.Drawing.Wpf.UnitTest" />
+  </ItemGroup>
+
+</Project>

@@ -65,7 +65,7 @@ namespace GeometryHelper.TeklaConvert
         /// <summary>How much larger than the bolt its hole is (BoltGroup.Tolerance), in millimetres.</summary>
         internal double HoleTolerance { get; set; }
 
-        /// <summary>The bolt's length (BoltGroup.Length), in millimetres.</summary>
+        /// <summary>The bolt's length (BoltGroup.Length, or its cut length where Tekla leaves that nought, as it does for bolts it sizes itself), in millimetres.</summary>
         internal double Length { get; set; }
 
         /// <summary>The bolt standard, such as "8.8XOX".</summary>

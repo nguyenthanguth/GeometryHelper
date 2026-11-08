@@ -184,7 +184,7 @@ namespace GeometryHelper.Drawing.Annotation
         /// <para>
         /// A merged dimension keeps its count in its text, "3 x 100 = &lt;&gt;", so that AutoCAD writes the total it measures.
         /// The block that draws it, the extension lines, the dimension line, the arrows as SOLIDs and the text as an MTEXT,
-        /// is made with it, under the name GH_D_, the view id and the dimension id.
+        /// is made with it, an anonymous block named as AutoCAD names its own: *D1, *D2 and on.
         /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the drawing is null.</exception>

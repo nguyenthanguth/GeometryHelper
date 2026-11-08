@@ -519,5 +519,62 @@ namespace GeometryHelper.TeklaConvert.UnitTest
                 Assert.Equal("DrawingSourceConvert.FromObjects: left out 2: 2 objects of a kind not drawn (Grid, Grid).", debug.Message);
             }
         }
+
+        [Fact]
+        public void ABoltGroupAsARunningTeklaGaveItIsReadWithZAlongTheBoltAndXTowardsTheSecondPosition()
+        {
+            // Read from Tekla Structures 2025: four M20, origin (7200, 29850, 7121), X (0, 0, -371) along the bolt, Y (0, -1000, 0).
+            GeoCoordinateSystem3? read = DrawingSourceBuild.BoltFrame(new GeoPoint3(7200, 29850, 7121), new GeoVector3(0, 0, -371), new GeoVector3(0, -1000, 0));
+
+            Assert.True(read.HasValue);
+            GeoCoordinateSystem3 frame = read.Value;
+            Assert.True(frame.Origin.IsEqualTo(new GeoPoint3(7200, 29850, 7121), Tol));
+            Assert.True(frame.ZAxis.IsCodirectionalTo(new GeoVector3(0, 0, -1), Tol));
+            Assert.True(frame.XAxis.IsCodirectionalTo(new GeoVector3(0, -1, 0), Tol));
+            Assert.True(frame.IsValid);
+        }
+
+        [Fact]
+        public void BoltGroupAxesOfNoLengthOrAlongOneAnother_GiveNoFrame()
+        {
+            Assert.Null(DrawingSourceBuild.BoltFrame(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 0), new GeoVector3(0, 1, 0)));
+            Assert.Null(DrawingSourceBuild.BoltFrame(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 5), new GeoVector3(0, 0, -7)));
+        }
+
+        [Fact]
+        public void AStackOfTouchingPlatesIsOneRunOfTheBoltAndAPlateApartIsNotPartOfIt()
+        {
+            GeoSolid3 Plate(double z0, double z1) => Box(-60, -60, z0, 60, 60, z1);
+
+            // Plates 0 to 10 and 10 to 30 touch; a third at 100 to 110 stands apart, up the axis. The bolt starts at z = 30 and goes down.
+            Assert.True(DrawingSourceBuild.TryAxisSpan(new GeoPoint3(0, 0, 30), GeoVector3.ZAxis.Multiply(-1.0), new[] { Plate(0, 10), Plate(10, 30), Plate(100, 110) }, Tol, out double min, out double max));
+
+            Assert.Equal(0.0, min, 6);
+            Assert.Equal(30.0, max, 6);
+        }
+
+        [Fact]
+        public void AnAxisThatMeetsNoMaterialGivesNoSpan()
+        {
+            GeoSolid3 block = Box(0, 0, 0, 10, 10, 10);
+
+            Assert.False(DrawingSourceBuild.TryAxisSpan(new GeoPoint3(100, 100, 5), GeoVector3.ZAxis, new[] { block }, Tol, out _, out _));
+        }
+
+        [Fact]
+        public void ABoltIsNoLongerThanTeklaSaysEvenWhereItsAxisRunsOnThroughAPart()
+        {
+            var data = new TeklaDrawingData();
+            data.Parts.Add(Plate("PLATE"));
+            TeklaBoltGroupData group = FourBolts("PLATE");
+            group.BodyCorners = Array.Empty<GeoPoint3>();
+            group.Length = 8;
+            data.BoltGroups.Add(group);
+
+            DrawingObject bolt = Build(data).Objects.First(o => o.Kind == DrawingObjectKind.Bolt);
+
+            Assert.Equal(PrismVolume(10, 8), bolt.Solid.GetVolume(Tol), PrismVolume(10, 8) * 1E-9);
+            Assert.True(bolt.Frame.Origin.IsEqualTo(new GeoPoint3(50, 50, 12), Tol));
+        }
     }
 }

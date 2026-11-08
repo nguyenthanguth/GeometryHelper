@@ -72,8 +72,8 @@ namespace GeometryHelper.Drawing.Annotation
         public double TextHeight { get; }
 
         /// <summary>
-        /// Gets the boxes of the two letters, at the start of the cut line first, square to the view's axes: each 0.8 of the
-        /// height wide for each character.
+        /// Gets the boxes of the two letters, at the start of the cut line first, square to the view's axes: each as wide as the
+        /// letters are high for each character.
         /// </summary>
         public IReadOnlyList<GeoRectangle2> LetterBoxes => new[] { LetterBox(CutLine.StartPoint), LetterBox(CutLine.EndPoint) };
 
@@ -98,25 +98,31 @@ namespace GeometryHelper.Drawing.Annotation
                 throw new ArgumentNullException(nameof(database));
             }
 
+            Write(database, placement, Id);
+        }
+
+        /// <summary>Writes the symbol as <see cref="WriteTo"/> does, its entities tagged with an id the caller gives.</summary>
+        internal void Write(DxfDatabase database, ViewPlacement2 placement, string id)
+        {
             SymbolDxf.SymbolLayer(database);
             SymbolDxf.CentreLayer(database);
             string layer = SymbolSettings.Layer;
             GeoPoint2 a = CutLine.StartPoint, b = CutLine.EndPoint;
             double length = CutLine.Length;
             var along = new GeoVector2((b.X - a.X) / length, (b.Y - a.Y) / length);
-            DxfLine chain = SymbolDxf.Line(database, placement, a, b, layer, Id);
+            DxfLine chain = SymbolDxf.Line(database, placement, a, b, layer, id);
             chain.Linetype = "CENTER";
             chain.LinetypeScale = SymbolChecks.PatternScale(TextHeight, placement);
             double stroke = Math.Min(TextHeight, 0.5 * length);
 
             foreach ((GeoPoint2 end, GeoVector2 inward) in new[] { (a, along), (b, new GeoVector2(-along.X, -along.Y)) })
             {
-                DxfLine thick = SymbolDxf.Line(database, placement, end, new GeoPoint2(end.X + inward.X * stroke, end.Y + inward.Y * stroke), layer, Id);
+                DxfLine thick = SymbolDxf.Line(database, placement, end, new GeoPoint2(end.X + inward.X * stroke, end.Y + inward.Y * stroke), layer, id);
                 thick.LineWeight = DxfLineWeight.LineWeight050;
                 var tip = new GeoPoint2(end.X + Direction.X * 2.0 * TextHeight, end.Y + Direction.Y * 2.0 * TextHeight);
-                SymbolDxf.Line(database, placement, end, tip, layer, Id);
-                SymbolDxf.Arrow(database, placement, tip, Direction, 0.5 * TextHeight, layer, Id);
-                SymbolDxf.Text(database, placement, LetterBox(end).Center, TextHeight, Letter, layer, Id);
+                SymbolDxf.Line(database, placement, end, tip, layer, id);
+                SymbolDxf.Arrow(database, placement, tip, Direction, 0.5 * TextHeight, layer, id);
+                SymbolDxf.Text(database, placement, LetterBox(end).Center, TextHeight, Letter, layer, id);
             }
         }
 

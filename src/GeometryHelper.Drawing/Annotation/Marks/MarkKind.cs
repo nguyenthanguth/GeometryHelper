@@ -1,7 +1,7 @@
 namespace GeometryHelper.Drawing.Annotation
 {
     /// <summary>
-    /// What an <see cref="ObjectMark"/> marks, which decides the fields of <see cref="MarkContent"/> its text is made of.
+    /// What an <see cref="DrawingMark"/> marks, which decides the fields of <see cref="MarkContent"/> its text is made of.
     /// </summary>
     public enum MarkKind
     {

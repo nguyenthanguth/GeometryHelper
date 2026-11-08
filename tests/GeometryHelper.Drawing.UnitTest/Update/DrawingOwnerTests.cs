@@ -47,20 +47,23 @@ namespace GeometryHelper.Drawing.UnitTest.Update
             DxfMText text = MarkText(document);
             GeoPoint3 before = text.Location;
             DxfLine leader = Tagged(document.Database.ModelSpace.Cast<DxfEntity>(), MarkId).OfType<DxfLine>().Single();
-            GeoPoint3 anchor = leader.StartPoint;
+            GeoPoint3 start = leader.StartPoint, anchor = leader.EndPoint;
 
             Assert.Equal(CadEditRule.MoveOnly, document.Owners.GetEditRule(text));
-            Assert.True(document.Owners.TryApply(document, new CadEdit(text.Handle, CadEditKind.Move, newValue: "40,0")));
+            Assert.True(document.Owners.TryApply(document, new CadEdit(text.Handle, CadEditKind.Move, newValue: "0,50")));
 
             DrawingEdit edit = Assert.Single(drawing.Edits);
-            Assert.Equal(new DrawingEdit(MarkId, CadEditKind.Move, newValue: "40,0"), edit);
+            Assert.Equal(new DrawingEdit(MarkId, CadEditKind.Move, newValue: "0,50"), edit);
             Assert.Equal(new[] { edit }, DrawingDocumentStore.Read(document.Database).Edits);
             DxfMText moved = MarkText(document);
-            Assert.Equal(before.X + 40, moved.Location.X, 9);
-            Assert.Equal(before.Y, moved.Location.Y, 9);
+            Assert.Equal(before.X, moved.Location.X, 9);
+            Assert.Equal(before.Y + 50, moved.Location.Y, 9);
             DxfLine newLeader = Tagged(document.Database.ModelSpace.Cast<DxfEntity>(), MarkId).OfType<DxfLine>().Single();
-            Assert.Equal(anchor, newLeader.StartPoint);
-            Assert.Equal(moved.Location, newLeader.EndPoint);
+
+            // The leader starts 50 higher with its text, and its arrow stays on the plate.
+            Assert.Equal(anchor, newLeader.EndPoint);
+            Assert.Equal(start.X, newLeader.StartPoint.X, 9);
+            Assert.Equal(start.Y + 50, newLeader.StartPoint.Y, 9);
             Assert.Equal(1, document.NextUndo.Records.Count(r => r.Kind == CadEditRecordKind.Transformed));
 
             Assert.True(document.Undo());

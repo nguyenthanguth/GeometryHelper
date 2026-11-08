@@ -18,6 +18,9 @@ namespace GeometryHelper.Drawing.App
             InitializeComponent();
             DataContext = model;
             StateChanged += (s, e) => Workspace.Margin = WindowState == WindowState.Maximized ? new Thickness(7) : new Thickness(0);
+
+            // Drawings with changes not saved are asked about once, for all of them, before the window closes.
+            Closing += (s, e) => e.Cancel = !Model.ConfirmExit();
         }
 
         /// <summary>Gets the view model.</summary>

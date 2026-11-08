@@ -120,6 +120,75 @@
                 <Setter Property="ToolTip" Value="Comes in a later step" />
             </Style>
 
+            <!-- The groups of the Plugins tab: a button per command of each plugin loaded, then Manage. -->
+            <DataTemplate DataType="{x:Type local:PluginRibbonViewModel}">
+                <StackPanel Orientation="Horizontal">
+                    <Border Style="{StaticResource GroupBorder}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Command plugins" />
+                            <Grid>
+                                <TextBlock Text="No command plugin is loaded.&#x0a;Load .dll adds one." Foreground="{StaticResource GhTextMuted}" Margin="4,8,8,0"
+                                           Visibility="{Binding HasCommands, Converter={StaticResource Hidden}}" />
+                                <ItemsControl ItemsSource="{Binding Commands}" Focusable="False">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type local:PluginCommandButton}">
+                                            <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconPluginCommand}" Content="{Binding Label}" ToolTip="{Binding ToolTip}"
+                                                    IsEnabled="True" Command="{Binding DataContext.RunCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                    CommandParameter="{Binding}">
+                                                <!-- A command's name is one long word: kept on one line, cut with an ellipsis past 96 pixels. -->
+                                                <Button.ContentTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel>
+                                                            <local:IconView Size="26" StrokeThickness="1.6" HorizontalAlignment="Center"
+                                                                            Data="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                                            <TextBlock Text="{Binding}" Margin="0,4,0,0" HorizontalAlignment="Center" MaxWidth="96" TextTrimming="CharacterEllipsis" />
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </Button.ContentTemplate>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Grid>
+                        </DockPanel>
+                    </Border>
+                    <Border Style="{StaticResource GroupBorder}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Manage" />
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconPluginLoad}" Content="Load .dll" IsEnabled="True" Command="{Binding LoadCommand}" ToolTip="Load a plugin (PLUGINLOAD, NETLOAD)" />
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconRefresh}" Content="Reload" IsEnabled="True" Command="{Binding ReloadCommand}" ToolTip="Load the plugin again from its file (PLUGINRELOAD)" />
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconPluginUnload}" Content="Unload" IsEnabled="True" Command="{Binding UnloadCommand}" ToolTip="Unload the plugin (PLUGINUNLOAD)" />
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconPluginManager}" Content="Plugin manager" IsEnabled="True" Command="{Binding ManagerCommand}" Margin="0" ToolTip="Load, install, unload and trust plugins" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
+            </DataTemplate>
+
+            <!-- The groups of the Settings tab: Global settings, opened on a category. -->
+            <DataTemplate DataType="{x:Type local:SettingsRibbonViewModel}">
+                <StackPanel Orientation="Horizontal">
+                    <Border Style="{StaticResource GroupBorder}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Global settings" />
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconGear}" Content="Options" IsEnabled="True" Command="{Binding OpenCommand}" ToolTip="Global settings (OPTIONS)" />
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconPalette}" Content="Appearance" IsEnabled="True" Command="{Binding OpenCommand}" CommandParameter="Appearance" />
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconExtents}" Content="Canvas" IsEnabled="True" Command="{Binding OpenCommand}" CommandParameter="Canvas and cursor" />
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconKeyboard}" Content="Shortcuts" IsEnabled="True" Command="{Binding OpenCommand}" CommandParameter="Shortcuts" />
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconSave}" Content="Save and export" IsEnabled="True" Command="{Binding OpenCommand}" CommandParameter="Save and export" Margin="0" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
+            </DataTemplate>
+
             <DataTemplate x:Key="LayerItem">
                 <StackPanel Orientation="Horizontal">
                     <Border Width="10" Height="10" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" Margin="0,0,6,0"
@@ -213,13 +282,25 @@
                     </ItemsControl>
                     <ToggleButton Style="{StaticResource GhRibbonTab}" Content="Annotate" IsEnabled="False" Margin="0,0,4,0" />
                     <ToggleButton Style="{StaticResource GhRibbonTab}" Content="View" IsEnabled="False" Margin="0,0,4,0" />
-                    <ToggleButton Style="{StaticResource GhRibbonTab}" Content="Plugins" IsEnabled="False" Margin="0,0,4,0" />
-                    <ToggleButton Style="{StaticResource GhRibbonTab}" Content="Settings" IsEnabled="False" />
+                    <ToggleButton Style="{StaticResource GhRibbonTab}" Content="Plugins" IsChecked="{Binding PluginsTab.IsTabSelected, Mode=OneWay}"
+                                  Command="{Binding SelectTabCommand}" CommandParameter="{Binding PluginsTab}" Margin="0,0,4,0" />
+                    <ToggleButton Style="{StaticResource GhRibbonTab}" Content="Settings" IsChecked="{Binding SettingsTab.IsTabSelected, Mode=OneWay}"
+                                  Command="{Binding SelectTabCommand}" CommandParameter="{Binding SettingsTab}" />
                 </StackPanel>
                 <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="0,1,0,0" Padding="12,6">
                     <Grid>
                     <ContentPresenter Content="{Binding SelectedTab.TabContent}" Visibility="{Binding IsHomeTabSelected, Converter={StaticResource Hidden}}" />
-                    <StackPanel Orientation="Horizontal" Visibility="{Binding IsHomeTabSelected, Converter={StaticResource Shown}}">
+                    <!-- Home is hidden, not collapsed, under another tab, so that the ribbon keeps its height and the canvas stays put. -->
+                    <StackPanel Orientation="Horizontal">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsHomeTabSelected}" Value="False">
+                                        <Setter Property="Visibility" Value="Hidden" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
                         <Border Style="{StaticResource GroupBorder}">
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Draw" />
@@ -365,9 +446,9 @@
                     <WrapPanel DockPanel.Dock="Top" Margin="12,4,12,8" Visibility="{Binding HasDocument, Converter={StaticResource Shown}}">
                         <RadioButton Style="{StaticResource GhChip}" Content="{Binding AllChipText}" IsChecked="{Binding FilterAll}" Margin="0,0,6,0" />
                         <RadioButton Style="{StaticResource GhChip}" Content="{Binding DxfChipText}" IsChecked="{Binding FilterDxf}" />
-                        <RadioButton Style="{StaticResource GhChip}" Content="{Binding OwnChipText}" IsChecked="{Binding FilterOwn}" Margin="6,0,0,0"
+                        <RadioButton Style="{StaticResource GhChip}" Content="{Binding OwnChipText}" IsChecked="{Binding FilterOwn}" Margin="6,0,6,6"
                                      Visibility="{Binding HasOwnFiles, Converter={StaticResource Shown}}" />
-                        <RadioButton Style="{StaticResource GhChip}" Content="{Binding OutOfDateChipText}" IsChecked="{Binding FilterOutOfDate}" Margin="6,0,0,0"
+                        <RadioButton Style="{StaticResource GhChip}" Content="{Binding OutOfDateChipText}" IsChecked="{Binding FilterOutOfDate}" Margin="0,0,6,6"
                                      Visibility="{Binding HasOwnFiles, Converter={StaticResource Shown}}" />
                     </WrapPanel>
                     <TextBlock DockPanel.Dock="Top" Margin="12,16" Foreground="{StaticResource GhTextMuted}" TextAlignment="Center"
@@ -387,6 +468,11 @@
                                                 <DockPanel>
                                                     <Ellipse x:Name="Dot" Width="8" Height="8" Fill="{StaticResource GhAccent}" Margin="0,0,8,0" VerticalAlignment="Center"
                                                              Visibility="Collapsed" />
+                                                    <Button DockPanel.Dock="Right" Style="{StaticResource GhFlatButton}" Width="18" Height="18" Margin="6,0,0,0" VerticalAlignment="Center"
+                                                            Visibility="{Binding IsOpen, Converter={StaticResource Shown}}" ToolTip="Close (CLOSE, Ctrl+W)"
+                                                            Command="{Binding DataContext.CloseFileCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
+                                                        <local:IconView Size="10" StrokeThickness="2" Stroke="{StaticResource GhTextMuted}" Data="{StaticResource GhIconClose}" />
+                                                    </Button>
                                                     <TextBlock DockPanel.Dock="Right" Text="{Binding Right}" FontSize="11" FontWeight="Medium" Margin="8,0,0,0"
                                                                Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
                                                     <StackPanel>

@@ -49,6 +49,26 @@ namespace GeometryHelper.Drawing.Annotation
             set => _weldStandard = Enum.IsDefined(typeof(WeldStandard), value) ? value : throw new ArgumentOutOfRangeException(nameof(WeldStandard), value, "The standard has to be one of WeldStandard.");
         }
 
+        /// <summary>
+        /// Gets or sets whether the elevations of the objects are marked with level marks (<see cref="LevelMark"/>); off by
+        /// default, on in the general arrangement preset.
+        /// </summary>
+        /// <remarks>
+        /// An object is marked where the source gives it the attribute "Elevation" (<see cref="LevelMark.ElevationAttribute"/>),
+        /// its level in model millimetres written with a point for decimals: "3600" for a beam whose top is at 3 600. Its
+        /// mark stands just right of the upper right corner of its box, at the height of its top, in every view along the
+        /// axes whose up is the model's Z, as a front or an end elevation; a plan has none.
+        /// </remarks>
+        public bool LevelMarks { get; set; }
+
+        internal SymbolSettings Clone() => new SymbolSettings
+        {
+            _textHeight = _textHeight,
+            _centreLineExtension = _centreLineExtension,
+            _weldStandard = _weldStandard,
+            LevelMarks = LevelMarks,
+        };
+
         private static double Positive(double value, string name)
         {
             if (!(value > 0.0) || double.IsInfinity(value))

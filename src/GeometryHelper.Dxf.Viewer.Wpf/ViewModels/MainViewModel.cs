@@ -24,7 +24,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <see cref="CadCommandRegistry.CreateDefault"/>, with two of the Layers panel added: LAYMCUR (Make Current) and LAYMCH
     /// (Match Layer). The status toggles drive <see cref="Snap"/>: OSNAP its object snaps, ORTHO, POLAR, and SNAP a grid of 10.
     /// </remarks>
-    public sealed class MainViewModel : ObservableObject
+    public sealed partial class MainViewModel : ObservableObject
     {
         /// <summary>The line the command line shows before anything has been written to it.</summary>
         public const string WelcomeText = "Welcome. Ctrl+O opens a DXF, Ctrl+N makes a drawing from a model.";
@@ -127,7 +127,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private EventHandler _newFromModel;
 
         /// <summary>Gets the extensions added, in the order they were added; their ribbon tabs follow Home in that order.</summary>
-        public IReadOnlyList<CadWorkspaceExtension> Extensions => _extensions;
+        /// <remarks>Each read gives a new list, so that a window bound to it before an extension was added shows its tab.</remarks>
+        public IReadOnlyList<CadWorkspaceExtension> Extensions => _extensions.ToList().AsReadOnly();
 
         /// <summary>Gets or sets the extension whose ribbon tab is shown; null for Home. A tab hidden while shown gives Home back.</summary>
         public CadWorkspaceExtension SelectedTab
@@ -135,14 +136,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             get => _selectedTab;
             set
             {
-                if (value != null && (!_extensions.Contains(value) || !value.IsTabVisible))
+                if (value != null && ((!_extensions.Contains(value) && !_builtInTabs.Contains(value)) || !value.IsTabVisible))
                 {
                     value = null;
                 }
 
                 if (Set(ref _selectedTab, value))
                 {
-                    foreach (CadWorkspaceExtension extension in _extensions)
+                    foreach (CadWorkspaceExtension extension in _extensions.Concat(_builtInTabs))
                     {
                         extension.IsTabSelected = extension == value;
                     }
@@ -559,6 +560,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (!_files.TryGetValue(key, out KnownFile known) || known.Document != document)
             {
+                // The document shown under the key before is closed: its command line lets the plugins go.
+                if (known?.Session != null)
+                {
+                    DetachPlugins(known.Session.Registry);
+                }
+
                 known = new KnownFile(key, folder);
                 Attach(known, document);
                 _files[key] = known;
@@ -1006,7 +1013,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Sets the coordinates the status bar shows.</summary>
         /// <param name="x">The X of the drawing point under the cursor.</param>
         /// <param name="y">The Y.</param>
-        public void SetCursor(double x, double y) => CursorText = Coordinates(x, y);
+        public void SetCursor(double x, double y) => CursorText = "X " + _settings.FormatNumber(x, _settings.CoordinateDecimals) + "   Y " + _settings.FormatNumber(y, _settings.CoordinateDecimals);
 
         /// <summary>Formats a whole number as the design writes it, thousands set apart by a space: 2 418.</summary>
         /// <param name="value">The number.</param>
@@ -1021,11 +1028,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CadCommandRegistry registry = CadCommandRegistry.CreateDefault();
             registry.Add(new CadCommand("LAYMCUR", MakeCurrent, true));
             registry.Add(new CadCommand("LAYMCH", MatchLayer, true));
+            registry.Add(new CadCommand("CLOSE", CloseCommandBody));
+            AttachPlugins(registry);
 
             foreach (CadWorkspaceExtension extension in _extensions)
             {
                 extension.AddCommands(registry);
             }
+
+            ApplyShortcuts(registry);
 
             return registry;
         }
@@ -1104,6 +1115,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             file.Session = new CadCommandSession(document, Commands());
             file.Session.PromptChanged += OnPromptChanged;
             file.Session.UiRequested += OnUiRequested;
+            ApplyTextDefaults(file.Session);
             document.Changed += OnDocumentChanged;
         }
 
@@ -1182,7 +1194,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                     break;
                 case "OPTIONS":
-                    ((CadCommandSession)sender).Write("Global settings come in a later step.");
+                    if (_settingsRequested != null)
+                    {
+                        RequestSettings(null);
+                    }
+                    else
+                    {
+                        ((CadCommandSession)sender).Write("Global settings are shown by the window.");
+                    }
+
                     e.Handled = true;
                     break;
                 case "QSAVE":
@@ -1330,6 +1350,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             foreach (string path in found)
             {
                 string full = System.IO.Path.GetFullPath(path);
+
+                // The copies autosave keeps beside a file are not listed.
+                if (IsAutosaveCopy(full))
+                {
+                    continue;
+                }
 
                 if (!_files.ContainsKey(full))
                 {
@@ -1515,6 +1541,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         HasUnsavedChanges = item.File.Document != null && item.File.Document.IsModified,
                         Right = item.Info?.Right,
                         State = StateOf(item.File, item.Info),
+                        IsOpen = item.File.Document != null,
                     });
                 }
             }
@@ -1767,6 +1794,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             banner = null;
             return shown;
+        }
+
+        /// <summary>Tells the extension a document has been closed (CLOSE), so that it lets go of what it kept of it.</summary>
+        /// <param name="document">The document closed.</param>
+        public virtual void DocumentClosed(CadDocument document)
+        {
         }
     }
 }

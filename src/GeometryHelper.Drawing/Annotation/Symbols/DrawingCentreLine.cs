@@ -219,8 +219,14 @@ namespace GeometryHelper.Drawing.Annotation
                 throw new ArgumentNullException(nameof(database));
             }
 
+            Write(database, placement, Id);
+        }
+
+        /// <summary>Writes the symbol as <see cref="WriteTo"/> does, its entities tagged with an id the caller gives.</summary>
+        internal void Write(DxfDatabase database, ViewPlacement2 placement, string id)
+        {
             SymbolDxf.CentreLayer(database);
-            DxfLine line = SymbolDxf.Line(database, placement, Line.StartPoint, Line.EndPoint, ProjectedView2.CentreLayer, Id);
+            DxfLine line = SymbolDxf.Line(database, placement, Line.StartPoint, Line.EndPoint, ProjectedView2.CentreLayer, id);
             line.LinetypeScale = 0.1 * Scale / placement.Scale;
         }
 

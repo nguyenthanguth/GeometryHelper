@@ -54,6 +54,12 @@ namespace GeometryHelper.Arranging
             // one obstacle more would count in the clearance below, and could change the place chosen.
             List<Obstacle> nearby = occupied.Overlapping(region);
 
+            // The obstacles a place could meet, found by the index for its own box and kept to those of the neighbourhood:
+            // whether any of them collides does not hang on their order, so this finds a collision just where going over
+            // the whole neighbourhood does, at the cost of the few near the place.
+            var near = new List<int>();
+            var touching = new List<Obstacle>();
+
             GeoVector2 chosen = GeoVector2.Zero;
             GeoVector2 firstCandidate = GeoVector2.Zero;
             double bestClearance = double.NegativeInfinity;
@@ -75,7 +81,7 @@ namespace GeometryHelper.Arranging
                 GeoRectangle2 moved = item.Box.Translate(translation);
 
                 // Detailed collision check
-                if (Obstacle.AnyCollides(nearby, moved, options.Tolerance))
+                if (CollidesNear(occupied, region, moved, options.Tolerance, near, touching))
                 {
                     continue;
                 }
@@ -143,6 +149,29 @@ namespace GeometryHelper.Arranging
 
             // Ignore negligible tiny movements
             return chosen.Length > options.MinimumMoveDistance ? chosen : GeoVector2.Zero;
+        }
+
+        /// <summary>
+        /// Whether a place collides with an obstacle of the index whose box the region overlaps: the same answer
+        /// <see cref="Obstacle.AnyCollides"/> gives over <c>occupied.Overlapping(region)</c>, the obstacles near the place
+        /// found by the index for its own box rather than the whole neighbourhood gone over.
+        /// </summary>
+        internal static bool CollidesNear(ObstacleSpatialIndex occupied, Bounds region, GeoRectangle2 moved, Tolerance tolerance, List<int> near, List<Obstacle> touching)
+        {
+            occupied.Query(Bounds.Of(moved).Expand(tolerance.EqualPoint), near);
+            touching.Clear();
+
+            foreach (int ordinal in near)
+            {
+                Obstacle obstacle = occupied[ordinal];
+
+                if (region.Overlaps(obstacle.Box))
+                {
+                    touching.Add(obstacle);
+                }
+            }
+
+            return Obstacle.AnyCollides(touching, moved, tolerance);
         }
 
         /// <summary>

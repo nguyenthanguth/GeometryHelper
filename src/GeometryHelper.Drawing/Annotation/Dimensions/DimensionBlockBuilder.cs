@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -20,10 +17,10 @@ namespace GeometryHelper.Drawing.Annotation
     /// 0 in the colour BYBLOCK, as AutoCAD makes them, so the dimension's layer gives their colour.
     /// </para>
     /// <para>
-    /// The block is named GH_D_, the view's id and the dimension's id, the characters a name cannot hold written as _:
-    /// GH_D_V-1_D-3. The library adds no block under a name AutoCAD gives itself (*D3) from outside it, so the block has a
-    /// name of its own; AutoCAD draws the dimension anew into a block of its own the first time the dimension is edited
-    /// there. A block of the name the drawing has already, from an earlier writing, is emptied and filled again.
+    /// The block is an anonymous one named as AutoCAD names its own, <c>*D</c> and the first number no block of the drawing
+    /// has (<c>*D1</c>, <c>*D2</c>), a new one each time a dimension is written; the dimension keeps it as its
+    /// <see cref="DxfDimension.DimBlock"/>, and an update that erases the dimension erases its block with it
+    /// (<see cref="DrawingEntityTags.RemoveAll"/>).
     /// </para>
     /// </remarks>
     internal static class DimensionBlockBuilder
@@ -33,27 +30,8 @@ namespace GeometryHelper.Drawing.Annotation
         /// </summary>
         internal static DxfBlockTableRecord Build(DxfDatabase database, DrawingDimension dimension, ViewPlacement2 placement)
         {
-            string name = "GH_D_" + Clean(placement.ViewId ?? string.Empty) + "_" + Clean(dimension.Id);
-            DxfBlockTableRecord block;
-
-            if (database.BlockTable.Has(name))
-            {
-                block = database.BlockTable[name];
-
-                foreach (DxfEntity old in new List<DxfEntity>(block))
-                {
-                    if (!old.IsErased)
-                    {
-                        old.Erase();
-                    }
-                }
-            }
-            else
-            {
-                block = new DxfBlockTableRecord { Name = name, Origin = new GeoPoint3(0.0, 0.0, 0.0) };
-                database.BlockTable.Add(block);
-            }
-
+            var block = new DxfBlockTableRecord { Name = "*D", Origin = new GeoPoint3(0.0, 0.0, 0.0) };
+            database.BlockTable.Add(block);
             double arrow = dimension.TextHeight / placement.Scale;
 
             foreach (GeoLine2 extension in dimension.ExtensionLines)
@@ -110,19 +88,6 @@ namespace GeometryHelper.Drawing.Annotation
             entity.Layer = "0";
             entity.ColorIndex = 0;
             block.AppendEntity(entity);
-        }
-
-        /// <summary>A name with every character other than a letter, a digit, - or _ written as _.</summary>
-        private static string Clean(string id)
-        {
-            var name = new StringBuilder(id.Length);
-
-            foreach (char c in id)
-            {
-                name.Append(c < 128 && (char.IsLetterOrDigit(c) || c == '-' || c == '_') ? c : '_');
-            }
-
-            return name.ToString();
         }
     }
 }

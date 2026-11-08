@@ -95,7 +95,8 @@ namespace GeometryHelper.Drawing
 
         /// <summary>
         /// Erases the drawing's entities, as an update does before it writes them again; entities with no tag, or the tag of
-        /// another owner, are left as they are.
+        /// another owner, are left as they are. The anonymous block a dimension erased was drawn by (<c>*D1</c>) is erased
+        /// with it, where no dimension left draws with it.
         /// </summary>
         /// <param name="database">The drawing.</param>
         /// <returns>How many entities were erased.</returns>
@@ -103,12 +104,43 @@ namespace GeometryHelper.Drawing
         public static int RemoveAll(DxfDatabase database)
         {
             IReadOnlyList<DxfEntity> found = Find(database);
+            var pictures = new List<DxfBlockTableRecord>();
 
             foreach (DxfEntity entity in found)
             {
                 if (!entity.IsErased)
                 {
+                    if (entity is DxfDimension dimension && dimension.DimBlock != null && dimension.DimBlock.IsAnonymous)
+                    {
+                        pictures.Add(dimension.DimBlock);
+                    }
+
                     entity.Erase();
+                }
+            }
+
+            if (pictures.Count > 0)
+            {
+                // The blocks the dimensions left draw with, found by name, letters of either case the same as the table finds them.
+                var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (DxfBlockTableRecord space in Spaces(database))
+                {
+                    foreach (DxfEntity entity in space)
+                    {
+                        if (!entity.IsErased && entity is DxfDimension left && left.DimBlock != null)
+                        {
+                            used.Add(left.DimBlock.Name);
+                        }
+                    }
+                }
+
+                foreach (DxfBlockTableRecord picture in pictures)
+                {
+                    if (!picture.IsErased && !used.Contains(picture.Name))
+                    {
+                        picture.Erase();
+                    }
                 }
             }
 

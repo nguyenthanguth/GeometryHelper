@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using GeometryHelper.Drawing.Annotation;
 using GeometryHelper.Dxf;
 using GeometryHelper.Dxf.Viewer;
 using GeometryHelper.Geometry;
@@ -13,15 +14,16 @@ namespace GeometryHelper.Drawing
     /// <remarks>
     /// <para>
     /// The rule follows what the entity draws, found by the id in its tag (<see cref="DrawingEntityTags"/>): a projected
-    /// line, a section's hatch, the frame, the title block and the part list are <see cref="CadEditRule.ReadOnly"/>, since
-    /// they are the model and the sheet; a mark and a view (its viewport or its title) are <see cref="CadEditRule.MoveOnly"/>;
-    /// a dimension is <see cref="CadEditRule.Edit"/>, and keeps a move, a text override and its erasing.
+    /// line, a section's hatch, a symbol (a centre line, a weld symbol, a section, detail or level mark), the frame, the
+    /// title block and the part list are <see cref="CadEditRule.ReadOnly"/>, since they are the model and the sheet; a mark
+    /// and a view (its viewport or its title) are <see cref="CadEditRule.MoveOnly"/>; a dimension is
+    /// <see cref="CadEditRule.Edit"/>, and keeps a move, a text override and its erasing.
     /// </para>
     /// <para>
     /// An edit taken is one undo step of the presenter (<see cref="CadDocument.ApplyEdit"/>): its entities changed and the
     /// hand edit recorded in the drawing document in the DXF at once, so that undoing the step takes the record back with
-    /// it. A mark P1 dragged 40 to the right is the hand edit <c>V-FRONT/M-P-1 Move 40,0</c>; its leader still starts on its
-    /// part, and its text stands 40 to the right of where the drawing puts it, after an update too.
+    /// it. A mark P1 dragged 40 up is the hand edit <c>V-FRONT/M-P-1 Move 0,40</c>; its text and the start of its leader
+    /// stand 40 above where the drawing puts them, after an update too, and its arrow still ends on its part.
     /// </para>
     /// </remarks>
     public sealed class DrawingOwner : ICadEntityOwner
@@ -151,7 +153,7 @@ namespace GeometryHelper.Drawing
                     {
                         if (entity is DxfDimension dimension)
                         {
-                            DrawingDxfWriter.ApplyDimensionEdit(dimension, record, ValueOf(element, "Text") ?? string.Empty);
+                            DrawingDxfWriter.ApplyDimensionEdit(database, dimension, record, ValueOf(element, "Text") ?? string.Empty);
                         }
                     }
 
@@ -172,7 +174,7 @@ namespace GeometryHelper.Drawing
                 case "Mark":
                     DrawingMark mark = DrawingMark.FromElement(element);
 
-                    if (mark == null || !_drawing.TryGetElement(mark.ViewId ?? string.Empty, out DrawingElement view) || !ViewPlace(view, out GeoPoint2 sheetOrigin, out GeoPoint2 modelOrigin, out double scale))
+                    if (mark == null || !_drawing.TryGetElement(element.ViewId ?? string.Empty, out DrawingElement view) || !ViewPlace(view, out GeoPoint2 sheetOrigin, out GeoPoint2 modelOrigin, out double scale))
                     {
                         throw new InvalidOperationException("The mark " + element.Id + " cannot be drawn again: its values or its view do not read.");
                     }
@@ -183,11 +185,10 @@ namespace GeometryHelper.Drawing
                     }
 
                     SortedDictionary<string, List<DrawingEdit>> byId = DrawingDxfWriter.ById(_drawing.Edits);
-                    GeoVector2 offset = DrawingDxfWriter.Offset(byId, mark.Id);
                     DrawingDxfWriter.Placement place = layout
                         ? new DrawingDxfWriter.Placement(modelOrigin, 1.0)
                         : new DrawingDxfWriter.Placement(DrawingDxfWriter.Moved(sheetOrigin, byId, view.Id), scale);
-                    DrawingDxfWriter.WriteMark(database.ModelSpace, mark, place, layout ? offset : new GeoVector2(offset.X * scale, offset.Y * scale));
+                    DrawingDxfWriter.WriteMark(database, view.Id, element.Id, mark, place, byId);
 
                     foreach (DxfEntity entity in Tagged(database.ModelSpace, element.Id, null))
                     {

@@ -55,7 +55,7 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
                         leftOut.Add(seed + " at 1:" + scale);
                     }
 
-                    foreach (ObjectMark mark in marked.Marks)
+                    foreach (DrawingMark mark in marked.Marks)
                     {
                         if (!seen.Contains(mark.ObjectId))
                         {
