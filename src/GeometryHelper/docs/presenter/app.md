@@ -147,6 +147,10 @@ it cannot read. `--space "Layout1"` shows a layout, `--select H1,H2` selects ent
 command line, parted by semicolons, `--cursor x,y` puts the cursor on a point to show the snap and the rubber band, `--toggle`
 switches the status toggles, and `--layers` draws the Layer manager instead.
 
+## The ribbon
+
+The window's ribbon has the tabs Home (Draw, Modify, Annotation, Layers, Properties, Utilities, View), Annotate (Single Line and Multiline Text; Linear, Aligned, Angular, Radius and Diameter dimensions; Multileader), View (Zoom Extents, Window, Previous, In and Out, Pan, Regen; Model and Layout; the Drawings list and the Properties panel shown or hidden; Grid, Snap, Ortho, Polar and Osnap), Plugins and Settings. Every button runs a command through the same path as typing it. A thing that is not built yet (Paste, PDF and Print, Insert, Manage and Output) has no button, or one that says so; the comparison with AutoCAD 2021, tab by tab, is in the drawing plan, 72-autocad-gap.md.
+
 ## See also
 
 - [Editing as AutoCAD does](editing.md): the shortcuts these settings replace.

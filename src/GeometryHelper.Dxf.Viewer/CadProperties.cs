@@ -419,7 +419,7 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The name AutoCAD's palette gives an entity's kind: Line, Circle, Polyline, Block Reference, Rotated Dimension.</summary>
-        private static string KindOf(DxfEntity entity)
+        internal static string KindOf(DxfEntity entity)
         {
             switch (entity)
             {

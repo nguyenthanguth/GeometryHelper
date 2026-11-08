@@ -240,6 +240,11 @@ namespace GeometryHelper.Dxf.Viewer
             _byHandle = null;
             _entityCount = null;
 
+            if (records.Exists(r => r.Kind == CadEditRecordKind.TableChanged))
+            {
+                AddNewSpaces();
+            }
+
             if (_groupDepth > 0)
             {
                 _groupRecords.AddRange(records);
@@ -737,6 +742,18 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             Selection.Set(alive);
+        }
+
+        /// <summary>Gives each layout an edit added (LAYOUT New) a space of its own, after the others, as its tab is the last.</summary>
+        private void AddNewSpaces()
+        {
+            foreach (DxfLayout layout in LayoutsOf(Database))
+            {
+                if (!_spaces.Exists(s => !s.IsModel && string.Equals(s.Name, layout.LayoutName, StringComparison.OrdinalIgnoreCase)))
+                {
+                    _spaces.Add(new CadSpace(this, layout.LayoutName, false, layout.BlockTableRecord, layout));
+                }
+            }
         }
 
         /// <summary>The spaces a list of edits touched: their own, every layout too where model space is among them (a viewport draws it), all where a table changed.</summary>

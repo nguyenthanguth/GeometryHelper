@@ -93,6 +93,21 @@ another file of the folder was opened, or once it was saved with Save and shown 
 now says, for example, "Test bodies (from file)" until the drawing is made again. The out-of-date dot now shows on such a
 drawing too, checked in the source its file names without changing it.
 
+**NEW.** The presenter's Annotate tab (Single Line and Multiline Text; Linear, Aligned, Angular, Radius and Diameter
+dimensions; Multileader) and View tab (Zoom Extents, Window, Previous, In, Out, Pan, Regen; Model and Layout; the Drawings
+list and the Properties panel shown or hidden; Grid, Snap, Ortho, Polar, Osnap). The Home tab gains Rectangle, Ellipse,
+Point and a Utilities group (Distance, Area, ID Point, List).
+
+**NEW.** Presenter commands: NEW makes Drawing1.dxf, SAVEAS, LAYOUT New and ?, also the + after the layout tabs; DIST, AREA,
+ID and LIST in AutoCAD's words (DIST from (0, 0) to (100, 100) reads "Distance = 141.4214"); ELLIPSE; POINT; PROPERTIESCLOSE;
+GRID, SNAP, ORTHO, POLAR and OSNAP typed. Each drawing command is one undo step.
+
+**CHANGED.** The presenter's buttons for what is not built are hidden (Paste) or say "not built yet"; the comparison with
+AutoCAD 2021's six ribbon tabs is in the drawing plan, 72-autocad-gap.md.
+
+**FIXED.** A screenshot run of the app that left a drawing changed waited for ever on the question to save it when the
+window closed; it answers "Don't save".
+
 **NEW.** Drawing plugins, shaped as Tekla's drawing plugins are. A class derived from `DrawingPlugin` says what it needs in
 `DefineInput` and adds dimensions to a view in `Run`. `Drawing.RunPlugin` runs it and keeps the run in the drawing's DXF, and
 every update runs it again, so its dimensions follow the model. The sample Bolt dimensions gives the pitch 300 of TC5's

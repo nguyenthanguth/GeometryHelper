@@ -25,7 +25,8 @@
                 <Setter Property="Margin" Value="0,0,4,0" />
                 <Setter Property="VerticalAlignment" Value="Top" />
                 <Setter Property="IsEnabled" Value="False" />
-                <Setter Property="ToolTip" Value="Comes in a later step" />
+                <Setter Property="ToolTip" Value="Not built yet" />
+                <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
                 <Setter Property="ContentTemplate">
                     <Setter.Value>
                         <DataTemplate>
@@ -45,7 +46,8 @@
                 <Setter Property="Margin" Value="0,0,8,2" />
                 <Setter Property="HorizontalAlignment" Value="Left" />
                 <Setter Property="IsEnabled" Value="False" />
-                <Setter Property="ToolTip" Value="Comes in a later step" />
+                <Setter Property="ToolTip" Value="Not built yet" />
+                <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
                 <Setter Property="ContentTemplate">
                     <Setter.Value>
                         <DataTemplate>
@@ -53,6 +55,44 @@
                                 <local:IconView Size="16" StrokeThickness="1.8"
                                                 Data="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}}" />
                                 <TextBlock Text="{Binding}" Margin="6,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- A small toggle of the ribbon, as the drafting toggles of View: lit while on, as the status bar's are. -->
+            <Style x:Key="SmallToggle" TargetType="ToggleButton" BasedOn="{StaticResource GhStatusToggle}">
+                <Setter Property="Padding" Value="4,2" />
+                <Setter Property="Margin" Value="0,0,8,2" />
+                <Setter Property="HorizontalAlignment" Value="Left" />
+                <Setter Property="VerticalAlignment" Value="Top" />
+                <Setter Property="ContentTemplate">
+                    <Setter.Value>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <local:IconView Size="16" StrokeThickness="1.8"
+                                                Data="{Binding Tag, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                                <TextBlock Text="{Binding}" Margin="6,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- A big toggle of the ribbon, as the panels of View › Interface. -->
+            <Style x:Key="BigToggle" TargetType="ToggleButton" BasedOn="{StaticResource GhStatusToggle}">
+                <Setter Property="MinWidth" Value="50" />
+                <Setter Property="Padding" Value="6,4" />
+                <Setter Property="Margin" Value="0,0,4,0" />
+                <Setter Property="VerticalAlignment" Value="Top" />
+                <Setter Property="ContentTemplate">
+                    <Setter.Value>
+                        <DataTemplate>
+                            <StackPanel>
+                                <local:IconView Size="26" StrokeThickness="1.6" HorizontalAlignment="Center"
+                                                Data="{Binding Tag, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                                <TextBlock Text="{Binding}" Margin="0,4,0,0" HorizontalAlignment="Center" MaxWidth="66" TextWrapping="Wrap" TextAlignment="Center" />
                             </StackPanel>
                         </DataTemplate>
                     </Setter.Value>
@@ -90,7 +130,7 @@
                 <Setter Property="CornerRadius" Value="2" />
                 <Setter Property="Padding" Value="6,2" />
                 <Setter Property="Margin" Value="0,0,0,4" />
-                <Setter Property="ToolTip" Value="Comes in a later step" />
+                <Setter Property="ToolTip" Value="Not built yet: the colour, linetype and lineweight of new objects; set an object's in Properties" />
             </Style>
 
             <Style x:Key="PanelTitle" TargetType="TextBlock">
@@ -117,7 +157,7 @@
                 <Setter Property="Padding" Value="18,10" />
                 <Setter Property="Margin" Value="0,0,10,0" />
                 <Setter Property="IsEnabled" Value="False" />
-                <Setter Property="ToolTip" Value="Comes in a later step" />
+                <Setter Property="ToolTip" Value="Not built yet" />
             </Style>
 
             <!-- The groups of the Plugins tab: a button per command of each plugin loaded, then Manage. -->
@@ -179,11 +219,98 @@
                             <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Global settings" />
                             <StackPanel Orientation="Horizontal">
                                 <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconGear}" Content="Options" IsEnabled="True" Command="{Binding OpenCommand}" ToolTip="Global settings (OPTIONS)" />
-                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconPalette}" Content="Appearance" IsEnabled="True" Command="{Binding OpenCommand}" CommandParameter="Appearance" />
-                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconExtents}" Content="Canvas" IsEnabled="True" Command="{Binding OpenCommand}" CommandParameter="Canvas and cursor" />
-                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconKeyboard}" Content="Shortcuts" IsEnabled="True" Command="{Binding OpenCommand}" CommandParameter="Shortcuts" />
-                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconSave}" Content="Save and export" IsEnabled="True" Command="{Binding OpenCommand}" CommandParameter="Save and export" Margin="0" />
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconPalette}" Content="Appearance" IsEnabled="True" Command="{Binding OpenCommand}" CommandParameter="Appearance" ToolTip="Global settings › Appearance" />
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconExtents}" Content="Canvas" IsEnabled="True" Command="{Binding OpenCommand}" CommandParameter="Canvas and cursor" ToolTip="Global settings › Canvas and cursor" />
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconKeyboard}" Content="Shortcuts" IsEnabled="True" Command="{Binding OpenCommand}" CommandParameter="Shortcuts" ToolTip="Global settings › Shortcuts" />
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconSave}" Content="Save and export" IsEnabled="True" Command="{Binding OpenCommand}" CommandParameter="Save and export" Margin="0" ToolTip="Global settings › Save and export" />
                             </StackPanel>
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
+            </DataTemplate>
+
+            <!-- The groups of the Annotate tab: Text, Dimensions, Leaders, each button starting its command as Home's do. -->
+            <DataTemplate DataType="{x:Type local:AnnotateRibbonViewModel}">
+                <StackPanel Orientation="Horizontal">
+                    <Border Style="{StaticResource GroupBorder}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Text" />
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconMText}" Content="Multiline Text" IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="MTEXT" ToolTip="MTEXT" />
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconText}" Content="Single Line" IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="TEXT" ToolTip="TEXT" Margin="0" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Style="{StaticResource GroupBorder}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Dimensions" />
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconDimension}" Content="Linear" IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="DIMLINEAR" ToolTip="DIMLINEAR" />
+                                <WrapPanel Style="{StaticResource SmallColumn}">
+                                    <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconAligned}" Content="Aligned" IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="DIMALIGNED" ToolTip="DIMALIGNED" />
+                                    <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconAngular}" Content="Angular" IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="DIMANGULAR" ToolTip="DIMANGULAR" />
+                                    <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconRadius}" Content="Radius" IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="DIMRADIUS" ToolTip="DIMRADIUS" />
+                                    <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconDiameter}" Content="Diameter" IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="DIMDIAMETER" ToolTip="DIMDIAMETER" />
+                                </WrapPanel>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Style="{StaticResource GroupBorder}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Leaders" />
+                            <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconLeader}" Content="Multileader" IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="MLEADER" ToolTip="MLEADER" Margin="0" />
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
+            </DataTemplate>
+
+            <!-- The groups of the View tab: Navigate, Views, Interface and the drafting toggles of the status bar. -->
+            <DataTemplate DataType="{x:Type local:ViewRibbonViewModel}">
+                <StackPanel Orientation="Horizontal">
+                    <Border Style="{StaticResource GroupBorder}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Navigate" />
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconExtents}" Content="Extents" IsEnabled="{Binding Model.HasDocument}" Command="{Binding RunCommand}" CommandParameter="ZOOM E" ToolTip="ZOOM Extents" />
+                                <WrapPanel Style="{StaticResource SmallColumn}">
+                                    <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconZoomWindow}" Content="Window" IsEnabled="{Binding Model.HasDocument}" Command="{Binding RunCommand}" CommandParameter="ZOOM W" ToolTip="ZOOM Window" />
+                                    <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconZoomPrevious}" Content="Previous" IsEnabled="{Binding Model.HasDocument}" Command="{Binding RunCommand}" CommandParameter="ZOOM P" ToolTip="ZOOM Previous" />
+                                    <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconPan}" Content="Pan" IsEnabled="{Binding Model.HasDocument}" Command="{Binding RunCommand}" CommandParameter="PAN" ToolTip="PAN" />
+                                    <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconZoomIn}" Content="Zoom In" IsEnabled="{Binding Model.HasDocument}" Command="{Binding RunCommand}" CommandParameter="ZOOM 2X" ToolTip="ZOOM 2X" />
+                                    <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconZoomOut}" Content="Zoom Out" IsEnabled="{Binding Model.HasDocument}" Command="{Binding RunCommand}" CommandParameter="ZOOM 0.5X" ToolTip="ZOOM 0.5X" />
+                                    <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconRefresh}" Content="Regen" IsEnabled="{Binding Model.HasDocument}" Command="{Binding RunCommand}" CommandParameter="REGEN" ToolTip="REGEN" />
+                                </WrapPanel>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Style="{StaticResource GroupBorder}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Views" />
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconModel}" Content="Model" IsEnabled="{Binding Model.HasDocument}" Command="{Binding ModelSpaceCommand}" ToolTip="Show model space" />
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconLayout}" Content="Layout" IsEnabled="{Binding Model.HasDocument}" Command="{Binding LayoutCommand}" ToolTip="Show the first layout" Margin="0" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Style="{StaticResource GroupBorder}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Interface" />
+                            <StackPanel Orientation="Horizontal">
+                                <ToggleButton Style="{StaticResource BigToggle}" Tag="{StaticResource GhIconPanelLeft}" Content="Drawings" IsChecked="{Binding Model.IsFileListShown, Mode=TwoWay}" ToolTip="Show or hide the DRAWINGS list" />
+                                <ToggleButton Style="{StaticResource BigToggle}" Tag="{StaticResource GhIconPanelRight}" Content="Properties" IsChecked="{Binding Model.IsPropertiesPanelShown, Mode=TwoWay}" ToolTip="Show or hide Properties (PROPERTIES, PROPERTIESCLOSE)" Margin="0" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Style="{StaticResource GroupBorder}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Drafting" />
+                            <WrapPanel Style="{StaticResource SmallColumn}">
+                                <ToggleButton Style="{StaticResource SmallToggle}" Tag="{StaticResource GhIconGrid}" Content="Grid" IsChecked="{Binding Grid.IsOn, Mode=TwoWay}" ToolTip="GRID (F7)" />
+                                <ToggleButton Style="{StaticResource SmallToggle}" Tag="{StaticResource GhIconSnap}" Content="Snap" IsChecked="{Binding Snap.IsOn, Mode=TwoWay}" ToolTip="SNAP (F9)" />
+                                <ToggleButton Style="{StaticResource SmallToggle}" Tag="{StaticResource GhIconOrtho}" Content="Ortho" IsChecked="{Binding Ortho.IsOn, Mode=TwoWay}" ToolTip="ORTHO (F8)" />
+                                <ToggleButton Style="{StaticResource SmallToggle}" Tag="{StaticResource GhIconPolar}" Content="Polar" IsChecked="{Binding Polar.IsOn, Mode=TwoWay}" ToolTip="POLAR (F10)" />
+                                <ToggleButton Style="{StaticResource SmallToggle}" Tag="{StaticResource GhIconOsnap}" Content="Osnap" IsChecked="{Binding Osnap.IsOn, Mode=TwoWay}" ToolTip="OSNAP (F3)" />
+                            </WrapPanel>
                         </DockPanel>
                     </Border>
                 </StackPanel>
@@ -221,7 +348,8 @@
                                HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Border>
                 <StackPanel Orientation="Horizontal" Margin="14,0,0,0">
-                    <Button Style="{StaticResource GhFlatButton}" IsEnabled="False" ToolTip="New: comes in a later step" Margin="0,0,10,0">
+                    <Button Style="{StaticResource GhFlatButton}" Command="{Binding NewCommand}" ToolTip="New: an empty drawing (NEW)" Margin="0,0,10,0"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True">
                         <local:IconView Size="16" Data="{StaticResource GhIconNew}" />
                     </Button>
                     <Button Style="{StaticResource GhFlatButton}" Command="{Binding OpenCommand}" ToolTip="Open (Ctrl+O)" Margin="0,0,10,0"
@@ -230,6 +358,9 @@
                     </Button>
                     <Button Style="{StaticResource GhFlatButton}" IsEnabled="{Binding HasDocument}" Command="{Binding SaveCommand}" ToolTip="Save (Ctrl+S)" shell:WindowChrome.IsHitTestVisibleInChrome="True" Margin="0,0,10,0">
                         <local:IconView Size="16" Data="{StaticResource GhIconSave}" />
+                    </Button>
+                    <Button Style="{StaticResource GhFlatButton}" IsEnabled="{Binding HasDocument}" Command="{Binding SaveAsCommand}" ToolTip="Save As (SAVEAS, Ctrl+Shift+S)" shell:WindowChrome.IsHitTestVisibleInChrome="True" Margin="0,0,10,0">
+                        <local:IconView Size="16" Data="{StaticResource GhIconSaveAs}" />
                     </Button>
                     <Button Style="{StaticResource GhFlatButton}" IsEnabled="{Binding HasDocument}" Command="{Binding UndoCommand}" ToolTip="Undo (Ctrl+Z)" shell:WindowChrome.IsHitTestVisibleInChrome="True" Margin="0,0,10,0">
                         <local:IconView Size="16" Data="{StaticResource GhIconUndo}" />
@@ -247,7 +378,7 @@
                 <DockPanel>
                     <local:IconView Size="13" StrokeThickness="2" Stroke="{StaticResource GhTextMuted}" Data="{StaticResource GhIconSearch}"
                                     Margin="0,0,6,0" VerticalAlignment="Center" />
-                    <TextBox Style="{StaticResource GhTextBox}" Tag="Type a keyword or phrase" ToolTip="Searching commands comes in a later step" />
+                    <TextBox Style="{StaticResource GhTextBox}" Tag="Type a keyword or phrase" ToolTip="Searching commands is not built yet: type a command in the command line" />
                 </DockPanel>
             </Border>
             <ContentPresenter Grid.Column="3" Content="{Binding TitleBarContent, RelativeSource={RelativeSource AncestorType=UserControl}}" />
@@ -280,8 +411,10 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <ToggleButton Style="{StaticResource GhRibbonTab}" Content="Annotate" IsEnabled="False" Margin="0,0,4,0" />
-                    <ToggleButton Style="{StaticResource GhRibbonTab}" Content="View" IsEnabled="False" Margin="0,0,4,0" />
+                    <ToggleButton Style="{StaticResource GhRibbonTab}" Content="Annotate" IsChecked="{Binding AnnotateTab.IsTabSelected, Mode=OneWay}"
+                                  Command="{Binding SelectTabCommand}" CommandParameter="{Binding AnnotateTab}" Margin="0,0,4,0" />
+                    <ToggleButton Style="{StaticResource GhRibbonTab}" Content="View" IsChecked="{Binding ViewTab.IsTabSelected, Mode=OneWay}"
+                                  Command="{Binding SelectTabCommand}" CommandParameter="{Binding ViewTab}" Margin="0,0,4,0" />
                     <ToggleButton Style="{StaticResource GhRibbonTab}" Content="Plugins" IsChecked="{Binding PluginsTab.IsTabSelected, Mode=OneWay}"
                                   Command="{Binding SelectTabCommand}" CommandParameter="{Binding PluginsTab}" Margin="0,0,4,0" />
                     <ToggleButton Style="{StaticResource GhRibbonTab}" Content="Settings" IsChecked="{Binding SettingsTab.IsTabSelected, Mode=OneWay}"
@@ -308,7 +441,12 @@
                                     <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconLine}" Content="Line" IsEnabled="{Binding HasDocument}" Command="{Binding StartCommandCommand}" CommandParameter="LINE" ToolTip="LINE" />
                                     <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconPolyline}" Content="Polyline" IsEnabled="{Binding HasDocument}" Command="{Binding StartCommandCommand}" CommandParameter="PLINE" ToolTip="PLINE" />
                                     <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconCircle}" Content="Circle" IsEnabled="{Binding HasDocument}" Command="{Binding StartCommandCommand}" CommandParameter="CIRCLE" ToolTip="CIRCLE" />
-                                    <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconArc}" Content="Arc" IsEnabled="{Binding HasDocument}" Command="{Binding StartCommandCommand}" CommandParameter="ARC" ToolTip="ARC" Margin="0" />
+                                    <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconArc}" Content="Arc" IsEnabled="{Binding HasDocument}" Command="{Binding StartCommandCommand}" CommandParameter="ARC" ToolTip="ARC" />
+                                    <WrapPanel Style="{StaticResource SmallColumn}">
+                                        <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconRectangle}" Content="Rectangle" IsEnabled="{Binding HasDocument}" Command="{Binding StartCommandCommand}" CommandParameter="RECTANG" ToolTip="RECTANG" />
+                                        <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconEllipse}" Content="Ellipse" IsEnabled="{Binding HasDocument}" Command="{Binding StartCommandCommand}" CommandParameter="ELLIPSE" ToolTip="ELLIPSE" />
+                                        <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconPoint}" Content="Point" IsEnabled="{Binding HasDocument}" Command="{Binding StartCommandCommand}" CommandParameter="POINT" ToolTip="POINT" />
+                                    </WrapPanel>
                                 </StackPanel>
                             </DockPanel>
                         </Border>
@@ -389,10 +527,22 @@
                                 </StackPanel>
                             </DockPanel>
                         </Border>
-                        <Border Style="{StaticResource GroupBorder}">
+                        <!-- Clipboard is hidden until COPYCLIP and PASTECLIP are built: a button for what does not exist is not shown. -->
+                        <Border Style="{StaticResource GroupBorder}" Visibility="Collapsed">
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Clipboard" />
                                 <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconPaste}" Content="Paste" Margin="0" />
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource GroupBorder}">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Utilities" />
+                                <WrapPanel Style="{StaticResource SmallColumn}">
+                                    <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconDistance}" Content="Distance" IsEnabled="{Binding HasDocument}" Command="{Binding StartCommandCommand}" CommandParameter="DIST" ToolTip="DIST" />
+                                    <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconArea}" Content="Area" IsEnabled="{Binding HasDocument}" Command="{Binding StartCommandCommand}" CommandParameter="AREA" ToolTip="AREA" />
+                                    <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconId}" Content="ID Point" IsEnabled="{Binding HasDocument}" Command="{Binding StartCommandCommand}" CommandParameter="ID" ToolTip="ID" />
+                                    <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconList}" Content="List" IsEnabled="{Binding HasDocument}" Command="{Binding StartCommandCommand}" CommandParameter="LIST" ToolTip="LIST" />
+                                </WrapPanel>
                             </DockPanel>
                         </Border>
                         <Border Style="{StaticResource GroupBorder}">
@@ -414,13 +564,14 @@
 
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="288" />
+                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="312" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <!-- Left panel: DRAWINGS, the files only (A20). -->
-            <Border Grid.Column="0" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="0,0,1,0">
+            <!-- Left panel: DRAWINGS, the files only (A20); View › Interface hides it. -->
+            <Border Grid.Column="0" Width="288" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="0,0,1,0"
+                    Visibility="{Binding IsFileListShown, Converter={StaticResource Shown}}">
                 <DockPanel>
                     <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="12,8">
                         <DockPanel>
@@ -533,7 +684,7 @@
                             <Button Style="{StaticResource PrimaryButton}" Content="Open DXF…  ·  Ctrl+O" Command="{Binding OpenCommand}" />
                             <Button Style="{StaticResource SecondaryButton}" Content="New drawing from a model…  ·  Ctrl+N" IsEnabled="True"
                                     Command="{Binding NewFromModelCommand}" ToolTip="Make a drawing from the objects of a model (DRAWINGNEW)" />
-                            <Button Style="{StaticResource SecondaryButton}" Content="Blank drawing" />
+                            <Button Style="{StaticResource SecondaryButton}" Content="Blank drawing" IsEnabled="True" Command="{Binding NewCommand}" ToolTip="A new empty drawing (NEW)" />
                         </StackPanel>
                     </StackPanel>
                 </Grid>
@@ -566,8 +717,9 @@
                 </Border>
             </Grid>
 
-            <!-- Right panel: PROPERTIES of the selection. -->
-            <Border Grid.Column="2" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1,0,0,0">
+            <!-- Right panel: PROPERTIES of the selection; PROPERTIESCLOSE and View › Interface hide it, PROPERTIES shows it. -->
+            <Border Grid.Column="2" Width="312" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1,0,0,0"
+                    Visibility="{Binding IsPropertiesPanelShown, Converter={StaticResource Shown}}">
                 <DockPanel>
                     <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="12,8">
                         <TextBlock Style="{StaticResource PanelTitle}" Text="PROPERTIES" />
@@ -699,7 +851,7 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                     <Button Style="{StaticResource GhFlatButton}" Content="+" Width="24" Height="22" Foreground="{StaticResource GhTextMuted}"
-                            IsEnabled="False" ToolTip="New layout: comes in a later step" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                            Command="{Binding NewLayoutCommand}" ToolTip="New layout (LAYOUT New)" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
                             Visibility="{Binding HasDocument, Converter={StaticResource Shown}}" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">

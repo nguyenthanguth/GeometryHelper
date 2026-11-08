@@ -271,6 +271,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CadCommandRegistry registry = CadCommandRegistry.CreateDefault();
             registry.Add(new CadCommand("LAYMCUR", MakeCurrent, true));
             registry.Add(new CadCommand("LAYMCH", MatchLayer, true));
+            AddWindowCommands(registry);
 
             foreach (CadWorkspaceExtension extension in _extensions)
             {

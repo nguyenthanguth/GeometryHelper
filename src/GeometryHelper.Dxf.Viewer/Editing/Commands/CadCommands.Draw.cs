@@ -6,7 +6,7 @@ using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Dxf.Viewer
 {
-    /// <summary>The draw commands: LINE, PLINE, CIRCLE, ARC, RECTANG, TEXT, MTEXT, MLEADER, MVIEW.</summary>
+    /// <summary>The draw commands: LINE, PLINE, CIRCLE, ARC, RECTANG, ELLIPSE, POINT, TEXT, MTEXT, MLEADER, MVIEW.</summary>
     internal static partial class CadCommands
     {
         private static IEnumerable<CadPrompt> Line(CadCommandContext c)
@@ -382,6 +382,106 @@ namespace GeometryHelper.Dxf.Viewer
                 rectangle.Closed = true;
                 s.Append(c.Space, Current(c, rectangle));
             });
+        }
+
+        /// <summary>ELLIPSE, whole, by the ends of one axis or by its centre and one end, then the other axis's half or a rotation.</summary>
+        private static IEnumerable<CadPrompt> Ellipse(CadCommandContext c)
+        {
+            yield return CadPrompt.ForPoint("Specify axis endpoint of ellipse", null, new[] { "Center" });
+            GeoPoint2 center;
+            GeoVector2 half;
+
+            if (c.Input.Is("Center"))
+            {
+                yield return CadPrompt.ForPoint("Specify center of ellipse");
+
+                if (!c.Input.IsPoint)
+                {
+                    yield break;
+                }
+
+                center = c.Input.Point;
+                yield return CadPrompt.ForPoint("Specify endpoint of axis", center);
+
+                if (!c.Input.IsPoint)
+                {
+                    yield break;
+                }
+
+                half = c.Input.Point - center;
+            }
+            else if (c.Input.IsPoint)
+            {
+                GeoPoint2 a = c.Input.Point;
+                yield return CadPrompt.ForPoint("Specify other endpoint of axis", a);
+
+                if (!c.Input.IsPoint)
+                {
+                    yield break;
+                }
+
+                center = new GeoPoint2((a.X + c.Input.Point.X) / 2.0, (a.Y + c.Input.Point.Y) / 2.0);
+                half = c.Input.Point - center;
+            }
+            else
+            {
+                yield break;
+            }
+
+            if (half.Length <= c.Session.Tolerance.EqualPoint)
+            {
+                c.Write("*Invalid* The ends of the axis are one point.");
+                yield break;
+            }
+
+            yield return CadPrompt.ForDistance("Specify distance to other axis", center, new[] { "Rotation" });
+            double other;
+
+            if (c.Input.Is("Rotation"))
+            {
+                yield return CadPrompt.ForAngle("Specify rotation around major axis", center);
+
+                // AutoCAD takes a rotation below 89.4 degrees, the other half the first's times its cosine.
+                if (c.Input.Kind != CadInputKind.Number || Math.Abs(Math.Cos(c.Input.Number)) < Math.Cos(89.4 * Math.PI / 180.0))
+                {
+                    c.Write("*Invalid* Requires an angle from 0 to 89.4 degrees.");
+                    yield break;
+                }
+
+                other = half.Length * Math.Abs(Math.Cos(c.Input.Number));
+            }
+            else if (c.Input.Kind == CadInputKind.Number)
+            {
+                other = Math.Abs(c.Input.Number);
+            }
+            else
+            {
+                yield break;
+            }
+
+            if (other <= c.Session.Tolerance.EqualPoint)
+            {
+                c.Write("*Invalid* The other axis has no length.");
+                yield break;
+            }
+
+            // The longer half is the major axis; the shorter lies square to it.
+            GeoVector2 major = other > half.Length ? new GeoVector2(-half.Y, half.X) / half.Length * other : half;
+            double ratio = Math.Min(other, half.Length) / Math.Max(other, half.Length);
+            c.Apply(null, s => s.Append(c.Space, Current(c, new DxfEllipse(P3(center), new GeoVector3(0.0, 0.0, 1.0), new GeoVector3(major.X, major.Y, 0.0), ratio, 0.0, 2.0 * Math.PI))));
+        }
+
+        /// <summary>POINT: one point object where the point is given, drawn as the drawing's PDMODE says.</summary>
+        private static IEnumerable<CadPrompt> Point(CadCommandContext c)
+        {
+            c.Write("Current point modes:  PDMODE=" + c.Database.Pdmode.ToString(CultureInfo.InvariantCulture) + "  PDSIZE=" + Length(c.Database.Pdsize));
+            yield return CadPrompt.ForPoint("Specify a point");
+
+            if (c.Input.IsPoint)
+            {
+                GeoPoint2 at = c.Input.Point;
+                c.Apply(null, s => s.Append(c.Space, Current(c, new DxfDBPoint(P3(at)))));
+            }
         }
 
         private static IEnumerable<CadPrompt> Text(CadCommandContext c)

@@ -94,17 +94,18 @@ A command that fails part way has its edits taken back. Its outcome is `session.
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 32 commands, named as AutoCAD names them:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 39 commands, named as AutoCAD names them:
 
 | Group | Commands |
 |---|---|
 | view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`), PAN, REGEN, PROPERTIES, OPTIONS, QSAVE |
 | edit | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR, EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
-| draw | LINE, PLINE, CIRCLE, ARC, RECTANG, TEXT, MTEXT, MLEADER, MVIEW |
+| draw | LINE, PLINE, CIRCLE, ARC, RECTANG, ELLIPSE, POINT, TEXT, MTEXT, MLEADER, MVIEW, LAYOUT (New, ?) |
+| inquiry | DIST, AREA, ID, LIST |
 | dimension | DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER, DIMANGULAR |
 
 PROPERTIES, OPTIONS, LAYER and QSAVE ask the window for its panel or dialog (`UiRequested`), and say "is shown by the window"
-where none is listening. The window adds CLOSE, LAYMCUR and LAYMCH, and the plugin commands. Each command is a
+where none is listening. The window adds CLOSE, NEW, SAVEAS, PROPERTIESCLOSE, GRID, SNAP, ORTHO, POLAR, OSNAP, LAYMCUR and LAYMCH, and the plugin commands. The inquiry commands print in AutoCAD's words: DIST from (0, 0) to (100, 100) says `Distance = 141.4214,  Angle in XY Plane = 45,  Angle from XY Plane = 0`; AREA by points or by an object says `Area = 5000.0000, Perimeter = 300.0000`. Each command is a
 [`CadCommand`](xref:GeometryHelper.Dxf.Viewer.CadCommand): a name and an iterator that yields each
 [`CadPrompt`](xref:GeometryHelper.Dxf.Viewer.CadPrompt) and reads the answer from [`CadCommandContext`](xref:GeometryHelper.Dxf.Viewer.CadCommandContext)`.Input`, so it reads top
 to bottom as its prompts do, and a [command plugin](plugins.md) is written the same way.
@@ -112,7 +113,7 @@ to bottom as its prompts do, and a [command plugin](plugins.md) is written the s
 ### Aliases and keys
 
 [`CadShortcuts`](xref:GeometryHelper.Dxf.Viewer.CadShortcuts) holds the aliases and the keys as data. The defaults are
-AutoCAD's: 31 aliases (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
+AutoCAD's: 38 aliases (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
 DIMLINEAR, `MV` MVIEW, and the rest) and 11 keys (F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR, F12 DYN, Delete ERASE,
 Ctrl+Z U, Ctrl+Y REDO, Ctrl+S QSAVE, Ctrl+1 PROPERTIES). A registry's `Shortcuts` is replaced, from
 [global settings](app.md#global-settings), by another set; letters of either case are the same, and a name wins over an

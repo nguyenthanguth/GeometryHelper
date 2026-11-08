@@ -123,8 +123,8 @@
                 <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Export" />
                 <StackPanel Orientation="Horizontal">
                     <Button Style="{StaticResource BigButton}" Tag="{StaticResource IconDxf}" Content="DXF" Command="{Binding ExportDxfCommand}" ToolTip="Export DXF (EXPORTDXF)" />
-                    <Button Style="{StaticResource BigButton}" Tag="{StaticResource IconPdf}" Content="PDF" IsEnabled="False" ToolTip="PDF comes in a later step" />
-                    <Button Style="{StaticResource BigButton}" Tag="{StaticResource IconPrint}" Content="Print" IsEnabled="False" ToolTip="Print comes in a later step" Margin="0" />
+                    <Button Style="{StaticResource BigButton}" Tag="{StaticResource IconPdf}" Content="PDF" IsEnabled="False" ToolTip="PDF: not built yet" ToolTipService.ShowOnDisabled="True" />
+                    <Button Style="{StaticResource BigButton}" Tag="{StaticResource IconPrint}" Content="Print" IsEnabled="False" ToolTip="Print: not built yet" ToolTipService.ShowOnDisabled="True" Margin="0" />
                 </StackPanel>
             </DockPanel>
         </Border>

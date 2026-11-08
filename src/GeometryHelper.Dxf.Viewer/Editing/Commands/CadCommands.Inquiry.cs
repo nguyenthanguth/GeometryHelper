@@ -1,0 +1,215 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using GeometryHelper.Dxf;
+using GeometryHelper.Geometry;
+
+namespace GeometryHelper.Dxf.Viewer
+{
+    /// <summary>
+    /// The inquiry commands: DIST, AREA, ID and LIST, which measure and change nothing, writing what they find on the command
+    /// line in AutoCAD's words: DIST from (0, 0) to (100, 100) writes "Distance = 141.4214,  Angle in XY Plane = 45,  Angle
+    /// from XY Plane = 0" in a drawing whose angles are shown to whole degrees ($AUPREC 0), its angles to that precision.
+    /// </summary>
+    internal static partial class CadCommands
+    {
+        private static IEnumerable<CadPrompt> Dist(CadCommandContext c)
+        {
+            yield return CadPrompt.ForPoint("Specify first point");
+
+            if (!c.Input.IsPoint)
+            {
+                yield break;
+            }
+
+            GeoPoint2 a = c.Input.Point;
+            yield return CadPrompt.ForPoint("Specify second point", a);
+
+            if (!c.Input.IsPoint)
+            {
+                yield break;
+            }
+
+            GeoVector2 d = c.Input.Point - a;
+            c.Write("Distance = " + Length(d.Length) + ",  Angle in XY Plane = " + Degrees(c, Math.Atan2(d.Y, d.X)) + ",  Angle from XY Plane = " + Degrees(c, 0.0));
+            c.Write("Delta X = " + Length(d.X) + ",  Delta Y = " + Length(d.Y) + ",  Delta Z = " + Length(0.0));
+        }
+
+        private static IEnumerable<CadPrompt> Id(CadCommandContext c)
+        {
+            yield return CadPrompt.ForPoint("Specify point");
+
+            if (c.Input.IsPoint)
+            {
+                c.Write("X = " + Length(c.Input.Point.X) + "     Y = " + Length(c.Input.Point.Y) + "     Z = " + Length(0.0));
+            }
+        }
+
+        /// <summary>AREA of points picked, closed back to the first, or of a closed object: a circle, a closed polyline, an ellipse.</summary>
+        private static IEnumerable<CadPrompt> Area(CadCommandContext c)
+        {
+            yield return CadPrompt.ForPoint("Specify first corner point", null, new[] { "Object" }, "Object");
+
+            if (c.Input.Is("Object"))
+            {
+                yield return CadPrompt.ForEntity("Select objects");
+
+                if (c.Input.Kind != CadInputKind.Selection)
+                {
+                    yield break;
+                }
+
+                if (!(c.Document.FindEntity(c.Input.Handles[0]) is DxfCurve curve) || curve is DxfLine || curve is DxfXline || curve is DxfRay)
+                {
+                    c.Write("Selected object does not have an area.");
+                    yield break;
+                }
+
+                double length = curve.GetDistanceAtParameter(curve.EndParam);
+                string around = curve is DxfCircle ? "Circumference" : curve.Closed ? "Perimeter" : "Length";
+                c.Write("Area = " + Length(curve.Closed ? curve.Area : 0.0) + ", " + around + " = " + Length(length));
+                yield break;
+            }
+
+            if (!c.Input.IsPoint)
+            {
+                yield break;
+            }
+
+            var points = new List<GeoPoint2> { c.Input.Point };
+
+            while (true)
+            {
+                bool total = points.Count >= 3;
+                yield return CadPrompt.ForPoint("Specify next point", points[points.Count - 1], total ? new[] { "Undo", "Total" } : new[] { "Undo" }, total ? "Total" : null);
+
+                if (c.Input.IsPoint)
+                {
+                    points.Add(c.Input.Point);
+                }
+                else if (c.Input.Is("Undo"))
+                {
+                    if (points.Count > 1)
+                    {
+                        points.RemoveAt(points.Count - 1);
+                    }
+                }
+                else if (c.Input.Is("Total") || points.Count >= 2)
+                {
+                    break;
+                }
+                else
+                {
+                    yield break;
+                }
+            }
+
+            // The shoelace sum of the polygon closed back to its first point, and the length round it.
+            double twice = 0.0;
+            double perimeter = 0.0;
+
+            for (int i = 0; i < points.Count; i++)
+            {
+                GeoPoint2 p = points[i];
+                GeoPoint2 q = points[(i + 1) % points.Count];
+                twice += p.X * q.Y - q.X * p.Y;
+                perimeter += (q - p).Length;
+            }
+
+            c.Write("Area = " + Length(Math.Abs(twice) / 2.0) + ", Perimeter = " + Length(perimeter));
+        }
+
+        /// <summary>LIST: each object selected as AutoCAD lists it, its kind, layer, space and handle, then its shape.</summary>
+        private static IEnumerable<CadPrompt> ListObjects(CadCommandContext c)
+        {
+            foreach (CadPrompt prompt in c.SelectObjects())
+            {
+                yield return prompt;
+            }
+
+            foreach (string handle in c.Selected)
+            {
+                DxfEntity entity = c.Document.FindEntity(handle);
+                CadSpace space = c.Document.FindSpace(handle);
+                c.Write(new string(' ', 18) + CadProperties.KindOf(entity).ToUpperInvariant().PadRight(10) + "Layer: \"" + entity.Layer + "\"");
+                c.Write(new string(' ', 28) + "Space: " + (space == null || space.IsModel ? "Model space" : "Paper space"));
+                c.Write(new string(' ', 19) + "Handle = " + handle.ToLowerInvariant());
+
+                foreach (string line in Listed(c, entity, handle, space))
+                {
+                    c.Write(line);
+                }
+            }
+        }
+
+        /// <summary>The lines LIST writes of an object's shape: AutoCAD's for a line, a circle, an arc, a polyline and a point, the rows Properties shows for the others.</summary>
+        private static IEnumerable<string> Listed(CadCommandContext c, DxfEntity entity, string handle, CadSpace space)
+        {
+            switch (entity)
+            {
+                case DxfLine line:
+                    GeoVector3 d = line.Delta;
+                    yield return "              from point, " + At(line.StartPoint);
+                    yield return "                to point, " + At(line.EndPoint);
+                    yield return "          Length = " + Length(line.Length) + ",  Angle in XY Plane = " + Degrees(c, Math.Atan2(d.Y, d.X)).PadLeft(6);
+                    yield return "                  Delta X = " + Length(d.X) + ", Delta Y = " + Length(d.Y) + ", Delta Z = " + Length(d.Z);
+                    yield break;
+                case DxfCircle circle:
+                    yield return "            center point, " + At(circle.Center);
+                    yield return "            radius " + Length(circle.Radius).PadLeft(9);
+                    yield return "     circumference " + Length(circle.Circumference).PadLeft(9);
+                    yield return "              area " + Length(circle.Area).PadLeft(9);
+                    yield break;
+                case DxfArc arc:
+                    yield return "            center point, " + At(arc.Center);
+                    yield return "            radius " + Length(arc.Radius).PadLeft(9);
+                    yield return "             start angle " + Degrees(c, arc.StartAngle).PadLeft(6);
+                    yield return "               end angle " + Degrees(c, arc.EndAngle).PadLeft(6);
+                    yield return "                  length " + Length(arc.Length).PadLeft(9);
+                    yield break;
+                case DxfPolyline polyline:
+                    yield return "                            " + (polyline.Closed ? "Closed" : "Open");
+                    yield return "                    area   " + Length(polyline.Closed ? polyline.Area : 0.0);
+                    yield return "                " + (polyline.Closed ? "perimeter " : "   length ") + Length(polyline.Length);
+
+                    for (int i = 0; i < polyline.NumberOfVertices; i++)
+                    {
+                        yield return "                at point  " + At(polyline.GetPoint3dAt(i));
+                    }
+
+                    yield break;
+                case DxfDBPoint point:
+                    yield return "                at point, " + At(point.Position);
+                    yield break;
+            }
+
+            foreach (CadPropertyGroup group in CadProperties.Describe(c.Document, space, new[] { handle }).Groups)
+            {
+                if (group.Title == "General" || group.Title == "Plot style" || group.Title == "View")
+                {
+                    continue;
+                }
+
+                foreach (CadPropertyRow row in group.Rows)
+                {
+                    yield return "                  " + row.Label + " = " + row.Value;
+                }
+            }
+        }
+
+        /// <summary>A point as LIST writes one: "X= 100.0000  Y=   0.0000  Z=   0.0000".</summary>
+        private static string At(GeoPoint3 p) => "X=" + Length(p.X).PadLeft(9) + "  Y=" + Length(p.Y).PadLeft(9) + "  Z=" + Length(p.Z).PadLeft(9);
+
+        /// <summary>An angle in degrees from 0 to 360, to the places of the drawing's $AUPREC: 45 at 0, as AutoCAD's template has it, 45.00 at 2.</summary>
+        private static string Degrees(CadCommandContext c, double radians)
+        {
+            string format = "F" + Math.Max(0, Math.Min(8, c.Database.Auprec)).ToString(CultureInfo.InvariantCulture);
+            double degrees = radians * 180.0 / Math.PI % 360.0;
+
+            // Nought added makes -0 nought; a turn that rounds to 360 is written as nought, as AutoCAD writes it.
+            degrees = (degrees < 0.0 ? degrees + 360.0 : degrees) + 0.0;
+            string text = degrees.ToString(format, CultureInfo.InvariantCulture);
+            return text == 360.0.ToString(format, CultureInfo.InvariantCulture) ? 0.0.ToString(format, CultureInfo.InvariantCulture) : text;
+        }
+    }
+}

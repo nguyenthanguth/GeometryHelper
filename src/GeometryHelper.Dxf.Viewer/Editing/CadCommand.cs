@@ -105,6 +105,13 @@ namespace GeometryHelper.Dxf.Viewer
                 ["DAN"] = "DIMANGULAR",
                 ["MLD"] = "MLEADER",
                 ["MV"] = "MVIEW",
+                ["EL"] = "ELLIPSE",
+                ["PO"] = "POINT",
+                ["LO"] = "LAYOUT",
+                ["DI"] = "DIST",
+                ["AA"] = "AREA",
+                ["LI"] = "LIST",
+                ["LS"] = "LIST",
             },
             new Dictionary<string, string>
             {

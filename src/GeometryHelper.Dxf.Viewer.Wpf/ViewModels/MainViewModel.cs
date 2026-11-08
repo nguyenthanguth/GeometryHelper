@@ -785,7 +785,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     Say("Command: " + line.Trim().ToUpperInvariant());
 
-                    if (!_extensions.Any(e => e.TryRunWithoutDocument(line.Trim())))
+                    // NEW needs no drawing open: it makes one.
+                    if (string.Equals(line.Trim(), "NEW", StringComparison.OrdinalIgnoreCase))
+                    {
+                        NewDrawing();
+                    }
+                    else if (!_extensions.Any(e => e.TryRunWithoutDocument(line.Trim())))
                     {
                         Say("No drawing is open: Ctrl+O opens a DXF.");
                     }
@@ -816,6 +821,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             SyncHistory();
+            RunAfterCommand();
         }
 
         /// <summary>Starts a command by its name, as a button of the ribbon does, ending any command running first.</summary>
@@ -829,6 +835,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             _current.Session.Start(name);
             SyncHistory();
+            RunAfterCommand();
         }
 
         /// <summary>Erases the selected objects, as the Delete key does; nothing with none selected or a command running.</summary>
@@ -1079,6 +1086,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             registry.Add(new CadCommand("LAYMCUR", MakeCurrent, true));
             registry.Add(new CadCommand("LAYMCH", MatchLayer, true));
             registry.Add(new CadCommand("CLOSE", CloseCommandBody));
+            AddWindowCommands(registry);
             AttachPlugins(registry);
 
             foreach (CadWorkspaceExtension extension in _extensions)
@@ -1232,6 +1240,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             switch (e.Name)
             {
                 case "PROPERTIES":
+                    IsPropertiesPanelShown = true;
                     PropertiesRequested?.Invoke(this, EventArgs.Empty);
                     e.Handled = true;
                     break;
@@ -1289,6 +1298,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 return;
             }
+
+            SyncSpaceTabs();
 
             if (e.TablesChanged || e.Kind == CadChangeKind.Undo || e.Kind == CadChangeKind.Redo)
             {
