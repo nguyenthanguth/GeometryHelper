@@ -191,14 +191,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        /// <summary>The commands of the window this file adds: NEW, SAVEAS, PROPERTIESCLOSE and the five toggles of the status bar.</summary>
+        /// <summary>The commands of the window this file adds: NEW, SAVEAS, PROPERTIESCLOSE and the six toggles of the status bar, DYN the last.</summary>
         private void AddWindowCommands(CadCommandRegistry registry)
         {
             registry.Add(new CadCommand("NEW", NewBody));
             registry.Add(new CadCommand("SAVEAS", SaveAsBody));
             registry.Add(new CadCommand("PROPERTIESCLOSE", PropertiesCloseBody));
 
-            foreach (string name in new[] { "GRID", "SNAP", "ORTHO", "POLAR", "OSNAP" })
+            foreach (string name in new[] { "GRID", "SNAP", "ORTHO", "POLAR", "OSNAP", "DYN" })
             {
                 registry.Add(new CadCommand(name, c => ToggleBody(c, name)));
             }
@@ -260,10 +260,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return Array.Empty<CadPrompt>();
         }
 
-        /// <summary>GRID, SNAP, ORTHO, POLAR, OSNAP typed: "Enter mode [ON/OFF] &lt;OFF&gt;:", the same toggle as the status bar's; SNAP also takes a spacing, which turns it on.</summary>
+        /// <summary>GRID, SNAP, ORTHO, POLAR, OSNAP, DYN typed: "Enter mode [ON/OFF] &lt;OFF&gt;:", the same toggle as the status bar's; SNAP also takes a spacing, which turns it on.</summary>
         private IEnumerable<CadPrompt> ToggleBody(CadCommandContext c, string name)
         {
-            StatusToggleViewModel toggle = Toggles.First(t => t.Name == name);
+            StatusToggleViewModel toggle = FindToggle(name);
             bool spacing = name == "SNAP";
             string[] modes = { "ON", "OFF" };
             yield return spacing

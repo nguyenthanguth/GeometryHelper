@@ -74,7 +74,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
-        public void TheGridsDotsAreDrawnLighterThanTheBackgroundAndOnlyWhereNothingIsDrawn()
+        public void TheGridIsDrawnAsLinesUnderTheDrawingEveryFifthStrongerAndNoneCloserThanSixPixels()
         {
             OnCanvas(false, (model, canvas, viewport) =>
             {
@@ -85,7 +85,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 bitmap.Render(canvas);
                 var pixels = new int[Width * Height];
                 bitmap.CopyPixels(pixels, Width * 4, 0);
-                double step = CadCanvas.GridStep(canvas.View.PixelsPerUnit, 10, 8);
+
+                // A grid of 10 at 0.18 pixels to the unit is drawn every 50, 9 pixels apart; every fifth line, from the origin, is major.
+                double step = CadCanvas.GridStep(canvas.View.PixelsPerUnit, 10, 6);
+                Assert.Equal(50.0, step);
 
                 int Pixel(double x, double y)
                 {
@@ -93,15 +96,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     return pixels[(int)Math.Round(py) * Width + (int)Math.Round(px)] & 0xFFFFFF;
                 }
 
-                int dots = pixels.Count(p => (p & 0xFFFFFF) == 0x333333);
-                Assert.True(dots > 1000, dots + " dots");
+                // Minor lines 8 per cent lighter than the black background, the major 18 per cent, all along the canvas.
+                int minor = pixels.Count(p => (p & 0xFFFFFF) == 0x141414);
+                Assert.True(minor > 10000, minor + " pixels of minor lines");
 
-                // A grid point inside the room, where nothing is drawn, is a dot; one on the bottom wall stays the wall's.
-                Assert.Equal(0x333333, Pixel(step * Math.Round(1000 / step), step * Math.Round(1000 / step)));
-                Assert.NotEqual(0x333333, Pixel(step * Math.Round(1000 / step), 0));
+                // Between two horizontal lines, at x 1 000 (the twentieth line, major) and 1 050 (minor); between both, black.
+                Assert.Equal(0x2D2D2D, Pixel(1000, 1025));
+                Assert.Equal(0x141414, Pixel(1050, 1025));
+                Assert.Equal(0x000000, Pixel(1025, 1025));
 
-                // Between two grid points the background stays black.
-                Assert.Equal(0x000000, Pixel(step * Math.Round(1000 / step) + step / 2, step * Math.Round(1000 / step) + step / 2));
+                // Where the bottom wall is drawn, the line goes under it: the pixel stays the wall's.
+                Assert.NotEqual(0x141414, Pixel(1050, 0));
             });
         }
     }

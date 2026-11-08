@@ -238,6 +238,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets the number of segments.</summary>
         public int Count => _xy.Length / 4;
 
+        /// <summary>
+        /// Gets the loops of the hatch the segments are the pattern of, X and Y in turn, as the display list placed them: the
+        /// canvas fills them with a tint where the lines come closer than 2 pixels, as a hatch of ANSI31 at spacing 3 does on
+        /// a sheet of 80 metres shown whole. Empty where the segments have no loops.
+        /// </summary>
+        public IReadOnlyList<double[]> Rings { get; internal set; } = Array.Empty<double[]>();
+
         /// <inheritdoc/>
         public override DisplayBox Bounds => _bounds;
 

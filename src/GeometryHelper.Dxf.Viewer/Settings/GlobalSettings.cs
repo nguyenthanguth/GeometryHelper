@@ -180,6 +180,18 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets or sets whether F3 switches the snaps: on by default.</summary>
         public bool F3TogglesSnaps { get; set; } = true;
 
+        /// <summary>
+        /// Gets or sets whether a selection box can also be dragged, pressed at one corner and let go at the other, as AutoCAD's
+        /// PICKDRAG 1: off by default, a box then clicked at one corner and then at the other, as PICKDRAG 0.
+        /// </summary>
+        public bool SelectByDragging { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether dynamic input is on (DYN, F12), as AutoCAD's DYNMODE: the prompt of the command running and the
+        /// cursor's coordinates, or its distance and angle from the base point, shown beside the cursor. On by default, as in AutoCAD.
+        /// </summary>
+        public bool DynamicInput { get; set; } = true;
+
         // ---- Drawing defaults (model drawings)
 
         /// <summary>Gets or sets the preset of a new drawing: Part, Assembly or General; Assembly by default.</summary>
@@ -459,6 +471,8 @@ namespace GeometryHelper.Dxf.Viewer
             w.Value("snaps", string.Join(",", SnapNames(Snaps)));
             w.Value("aperturePixels", _aperturePixels);
             w.Value("f3TogglesSnaps", F3TogglesSnaps);
+            w.Value("selectByDragging", SelectByDragging);
+            w.Value("dynamicInput", DynamicInput);
             w.Close();
             w.Open("drawingDefaults");
             w.Value("preset", _preset);
@@ -615,6 +629,8 @@ namespace GeometryHelper.Dxf.Viewer
                 Text("canvas", "snaps", v => _s.Snaps = Snaps(v));
                 Number("canvas", "aperturePixels", v => _s.AperturePixels = Whole(v));
                 Flag("canvas", "f3TogglesSnaps", v => _s.F3TogglesSnaps = v);
+                Flag("canvas", "selectByDragging", v => _s.SelectByDragging = v);
+                Flag("canvas", "dynamicInput", v => _s.DynamicInput = v);
                 Text("drawingDefaults", "preset", v => _s.DefaultPreset = v);
                 Text("drawingDefaults", "sheetSize", v => _s.DefaultSheetSize = v);
                 Text("drawingDefaults", "orientation", v => _s.DefaultOrientation = v);

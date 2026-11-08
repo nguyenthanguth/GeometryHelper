@@ -120,8 +120,9 @@ The function keys, Delete and the Ctrl keys of [the defaults](editing.md#aliases
 | wheel | zooms about the cursor, 1.2 times a notch |
 | middle button dragged | pans |
 | middle button double-clicked | zooms to the extents, the paper included in a layout |
-| left click, no command running | picks within the pickbox; Shift+click adds or removes; a click on nothing clears |
-| left button dragged, no command running | left to right, a window in solid blue; right to left, a crossing in dashed green |
+| left click, no command running | picks within the pickbox; Shift+click adds or removes; a click on nothing starts a box |
+| left button dragged, no command running | with Select by dragging on, a box as above; off, the box waits for a click at its other corner (left to right a window in solid blue, right to left a crossing in dashed green) |
+| cursor over an entity | drawn 2 pixels wide in its colour taken halfway to the selection colour |
 | a grip dragged | drags that grip |
 | left click, a command running | answers its prompt: a point taken through the snaps, with a rubber band from the base point; or objects, by a click or a box |
 | right click, a command running | Enter |
@@ -150,6 +151,8 @@ switches the status toggles, and `--layers` draws the Layer manager instead.
 ## The ribbon
 
 The window's ribbon has the tabs Home (Draw, Modify, Annotation, Layers, Properties, Utilities, View), Annotate (Single Line and Multiline Text; Linear, Aligned, Angular, Radius and Diameter dimensions; Multileader), View (Zoom Extents, Window, Previous, In and Out, Pan, Regen; Model and Layout; the Drawings list and the Properties panel shown or hidden; Grid, Snap, Ortho, Polar and Osnap), Plugins and Settings. Every button runs a command through the same path as typing it. A thing that is not built yet (Paste, PDF and Print, Insert, Manage and Output) has no button, or one that says so; the comparison with AutoCAD 2021, tab by tab, is in the drawing plan, 72-autocad-gap.md.
+
+F12 (DYN) shows the prompt, the cursor's coordinates or its distance and angle from the base point, and what you type beside the cursor; Global settings > Canvas and cursor > Input sets it on or off at start. Ctrl+9 hides or shows the command line; typing still reaches it while hidden. `--dialog color` and `--dialog truecolor` draw Select Color in screenshot mode, and `--toggle DYN` switches dynamic input.
 
 ## See also
 

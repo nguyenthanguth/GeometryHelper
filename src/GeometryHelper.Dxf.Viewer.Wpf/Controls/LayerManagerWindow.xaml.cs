@@ -18,6 +18,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Model = model ?? throw new ArgumentNullException(nameof(model));
             InitializeComponent();
             DataContext = model;
+            model.PickColor = dialog => SelectColorWindow.Pick(this, dialog);
             Closed += (s, e) => Model.Dispose();
         }
 

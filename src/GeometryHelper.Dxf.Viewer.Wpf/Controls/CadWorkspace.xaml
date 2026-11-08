@@ -675,6 +675,28 @@
                                      Revision="{Binding Revision}" Visibility="{Binding HasDocument, Converter={StaticResource Shown}}" />
                     <TextBlock Text="{Binding ViewportLabel}" FontFamily="{StaticResource GhMonoFont}" FontSize="11" Foreground="{StaticResource GhTextMuted}"
                                HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,8,0,0" IsHitTestVisible="False" />
+                    <!-- Dynamic input (DYN, F12): the prompt, then the coordinates, the distance and angle, or what is typed, beside the cursor. -->
+                    <Canvas IsHitTestVisible="False" Visibility="{Binding IsDynamicInputShown, Converter={StaticResource Shown}}">
+                        <Border x:Name="DynamicInputBox" Background="{StaticResource GhHeader}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
+                                CornerRadius="2" Padding="6,3" TextElement.FontFamily="{StaticResource GhMonoFont}" TextElement.FontSize="11">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding DynamicInputPrompt}" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                                <Border BorderBrush="{StaticResource GhAccent}" BorderThickness="1" Background="{StaticResource GhInput}" Margin="6,0,0,0"
+                                        Padding="4,0" MinWidth="64">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding DynamicInputValue}" Value="">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding DynamicInputValue}" Foreground="{StaticResource GhText}" />
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                    </Canvas>
                     <StackPanel Width="680" HorizontalAlignment="Center" VerticalAlignment="Center"
                                 Visibility="{Binding HasDocument, Converter={StaticResource Hidden}}">
                         <TextBlock Text="GeometryHelper Drawing" FontSize="28" FontWeight="Bold" />
@@ -689,7 +711,8 @@
                     </StackPanel>
                 </Grid>
                 <Border Grid.Row="1" Background="{StaticResource GhInput}" BorderBrush="{StaticResource GhBorder}" BorderThickness="0,1,0,0"
-                        TextElement.FontFamily="{StaticResource GhMonoFont}" TextElement.FontSize="12">
+                        TextElement.FontFamily="{StaticResource GhMonoFont}" TextElement.FontSize="12"
+                        Visibility="{Binding IsCommandLineShown, Converter={StaticResource Shown}}">
                     <StackPanel>
                         <DockPanel Margin="12,6,12,4">
                             <local:IconView Size="14" StrokeThickness="2" Stroke="{StaticResource GhTextMuted}" Data="{StaticResource GhIconClose}"
@@ -895,6 +918,9 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+                    <ToggleButton Style="{StaticResource GhStatusToggle}" Content="{Binding DynamicInput.Name}" IsChecked="{Binding DynamicInput.IsOn, Mode=TwoWay}"
+                                  Margin="0,0,12,0" FontSize="11" Visibility="{Binding HasDocument, Converter={StaticResource Shown}}"
+                                  ToolTip="Dynamic input (DYN, F12): the prompt, the coordinates and what you type, beside the cursor. Ctrl+9 shows or hides the command line." />
                     <TextBlock Text="1:1" VerticalAlignment="Center" />
                 </StackPanel>
             </DockPanel>

@@ -384,16 +384,26 @@ namespace GeometryHelper.Dxf.Viewer
             });
         }
 
-        /// <summary>ELLIPSE, whole, by the ends of one axis or by its centre and one end, then the other axis's half or a rotation.</summary>
+        /// <summary>
+        /// ELLIPSE, whole or an Arc of it, by the ends of one axis or by its centre and one end, then the other axis's half or a
+        /// rotation; an arc's start and end angles are counter-clockwise from the first end of an axis given, as AutoCAD's.
+        /// </summary>
         private static IEnumerable<CadPrompt> Ellipse(CadCommandContext c)
         {
-            yield return CadPrompt.ForPoint("Specify axis endpoint of ellipse", null, new[] { "Center" });
+            yield return CadPrompt.ForPoint("Specify axis endpoint of ellipse", null, new[] { "Arc", "Center" });
+            bool arc = c.Input.Is("Arc");
             GeoPoint2 center;
             GeoVector2 half;
+            GeoVector2 axis;
+
+            if (arc)
+            {
+                yield return CadPrompt.ForPoint("Specify axis endpoint of elliptical arc", null, new[] { "Center" });
+            }
 
             if (c.Input.Is("Center"))
             {
-                yield return CadPrompt.ForPoint("Specify center of ellipse");
+                yield return CadPrompt.ForPoint(arc ? "Specify center of elliptical arc" : "Specify center of ellipse");
 
                 if (!c.Input.IsPoint)
                 {
@@ -409,6 +419,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 half = c.Input.Point - center;
+                axis = half;
             }
             else if (c.Input.IsPoint)
             {
@@ -422,6 +433,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 center = new GeoPoint2((a.X + c.Input.Point.X) / 2.0, (a.Y + c.Input.Point.Y) / 2.0);
                 half = c.Input.Point - center;
+                axis = a - center;
             }
             else
             {
@@ -468,7 +480,44 @@ namespace GeometryHelper.Dxf.Viewer
             // The longer half is the major axis; the shorter lies square to it.
             GeoVector2 major = other > half.Length ? new GeoVector2(-half.Y, half.X) / half.Length * other : half;
             double ratio = Math.Min(other, half.Length) / Math.Max(other, half.Length);
-            c.Apply(null, s => s.Append(c.Space, Current(c, new DxfEllipse(P3(center), new GeoVector3(0.0, 0.0, 1.0), new GeoVector3(major.X, major.Y, 0.0), ratio, 0.0, 2.0 * Math.PI))));
+            double start = 0.0;
+            double end = 2.0 * Math.PI;
+
+            if (arc)
+            {
+                // An angle typed is from the first axis end; one picked is the way to the point, made from that end too.
+                double from = Math.Atan2(axis.Y, axis.X);
+                yield return CadPrompt.ForAngle("Specify start angle", center);
+
+                if (c.Input.Kind != CadInputKind.Number)
+                {
+                    yield break;
+                }
+
+                start = Typed(c.Input) ? c.Input.Number : c.Input.Number - from;
+                yield return CadPrompt.ForAngle("Specify end angle", center, new[] { "Included angle" });
+
+                if (c.Input.Is("Included angle"))
+                {
+                    yield return CadPrompt.ForAngle("Specify included angle for arc", center, null, "180");
+                    end = c.Input.IsNone ? start + Math.PI : c.Input.Kind != CadInputKind.Number ? double.NaN : Typed(c.Input) ? start + c.Input.Number : c.Input.Number - from;
+                }
+                else
+                {
+                    end = c.Input.Kind == CadInputKind.Number ? (Typed(c.Input) ? c.Input.Number : c.Input.Number - from) : double.NaN;
+                }
+
+                if (double.IsNaN(end))
+                {
+                    yield break;
+                }
+
+                // The ellipse measures its angles from its major axis.
+                start += from - Math.Atan2(major.Y, major.X);
+                end += from - Math.Atan2(major.Y, major.X);
+            }
+
+            c.Apply(null, s => s.Append(c.Space, Current(c, new DxfEllipse(P3(center), new GeoVector3(0.0, 0.0, 1.0), new GeoVector3(major.X, major.Y, 0.0), ratio, start, end))));
         }
 
         /// <summary>POINT: one point object where the point is given, drawn as the drawing's PDMODE says.</summary>

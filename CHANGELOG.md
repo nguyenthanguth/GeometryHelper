@@ -93,6 +93,36 @@ another file of the folder was opened, or once it was saved with Save and shown 
 now says, for example, "Test bodies (from file)" until the drawing is made again. The out-of-date dot now shows on such a
 drawing too, checked in the source its file names without changing it.
 
+**CHANGED.** The presenter's canvas keeps a picture of the drawing and draws the selection and the entity under the cursor
+over it: moving the mouse over a sheet set of 107 565 items costs 3.3 ms, where it cost 254 ms; zooming and panning move the
+picture and draw it again once the view is still. Detail no eye could see is spared: items under half a pixel are one pixel,
+text under 3 pixels is left out, and a hatch whose lines come closer than 2 pixels is filled with a tint of its colour. The
+sheet set shown whole draws in 26 to 84 ms instead of 261 to 281.
+
+**CHANGED.** A box is clicked corner to corner, as AutoCAD does with PICKDRAG 0, and a click on nothing starts one rather than
+clearing the selection. **NEW.** Global settings > Canvas and cursor > Select by dragging lets a box be dragged too.
+Selected and hovered objects are drawn solid in a highlight colour, 2 pixels wide, no longer dashed; the grid is drawn as
+lines, every fifth stronger. **NEW.** `PickIndex.IndicesOf` and `IndicesIn`, `DisplaySegments2.Rings`,
+`CadCanvas.SelectByDragging`, `GlobalSettings.SelectByDragging`.
+
+**NEW.** The presenter's Select Color dialog, as AutoCAD's: the 255 colours of the index laid out as AutoCAD lays them, and a
+True Color tab with red, green and blue, hue, saturation and luminance, and hex. It opens from a layer's colour cell in the
+Layer manager and from "Select Color..." of the Color row of Properties. A layer given red, green and blue 10, 20, 30 is
+written 420 = 660510, with the nearest index in 62. `CadLayerEditor.SetColor(document, name, DxfColor)`. **CHANGED.** Giving a
+layer a colour of the index now takes out a true colour it had.
+
+**NEW.** Dynamic input (DYN, F12, the status bar, DYN typed, Global settings > Canvas and cursor > Input). Beside the cursor it
+shows the prompt of the command running, the cursor's coordinates, or the distance and angle from the base point ("500.00 <
+53.1°"), and what is typed. Ctrl+9 shows or hides the command line.
+
+**NEW.** The presenter's command line knows 17 more of AutoCAD's commands, in AutoCAD's prompts and with its aliases, each run
+one undo step: XLINE (XL), RAY, POLYGON (POL), DONUT (DO), SELECTALL (Ctrl+A); LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK,
+LAYISO, LAYUNISO; MEASUREGEOM (MEA: distance, radius, angle, area), UNITS and -UNITS (UN, $LUNITS, $LUPREC, $AUNITS, $AUPREC,
+$ANGBASE, $ANGDIR), and SCRIPT (SCR). A polygon of 6 sides inscribed in a circle of radius 10 is a closed polyline of area
+259.8076, its bottom side level; a donut of diameters 10 and 20 is a closed polyline of width 5. ELLIPSE draws an elliptical
+Arc; AREA keeps a total with Add area and Subtract area; LAYOUT renames a layout (Rename) and shows one (Set); LAYOUT Delete
+waits for the DXF library to erase a layout.
+
 **NEW.** The presenter's Annotate tab (Single Line and Multiline Text; Linear, Aligned, Angular, Radius and Diameter
 dimensions; Multileader) and View tab (Zoom Extents, Window, Previous, In, Out, Pan, Regen; Model and Layout; the Drawings
 list and the Properties panel shown or hidden; Grid, Snap, Ortho, Polar, Osnap). The Home tab gains Rectangle, Ellipse,

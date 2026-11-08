@@ -744,9 +744,29 @@ namespace GeometryHelper.Dxf.Viewer
             Selection.Set(alive);
         }
 
-        /// <summary>Gives each layout an edit added (LAYOUT New) a space of its own, after the others, as its tab is the last.</summary>
+        /// <summary>
+        /// Gives each layout an edit added (LAYOUT New) a space of its own, after the others, as its tab is the last; a layout an
+        /// edit renamed (LAYOUT Rename) a space of its new name in the place of its old one.
+        /// </summary>
         private void AddNewSpaces()
         {
+            for (int i = 0; i < _spaces.Count; i++)
+            {
+                CadSpace space = _spaces[i];
+
+                if (!space.IsModel && space.Layout != null && !string.Equals(space.Name, space.Layout.LayoutName, StringComparison.Ordinal))
+                {
+                    _spaces[i] = new CadSpace(this, space.Layout.LayoutName, false, space.Block, space.Layout);
+                    _displays.Remove(space);
+                    _indexes.Remove(space);
+
+                    if (CurrentSpace == space)
+                    {
+                        CurrentSpace = _spaces[i];
+                    }
+                }
+            }
+
             foreach (DxfLayout layout in LayoutsOf(Database))
             {
                 if (!_spaces.Exists(s => !s.IsModel && string.Equals(s.Name, layout.LayoutName, StringComparison.OrdinalIgnoreCase)))

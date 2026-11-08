@@ -264,5 +264,83 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 Assert.True(Count(bitmap, 240, 38, 298, 60, c => c.Green > 200 && c.Red < 60) > 30);
             }
         }
+
+        [Fact]
+        public void ASelectedLineIsDrawnSolidInTheSelectionColourWithNoGapsAlongIt()
+        {
+            CadDocument document = CadDocument.From(TestDrawings.Drawing(null, null, TestDrawings.Line(20, 74.5, 180, 74.5, color: 1, handle: "A1")));
+            var options = new CanvasOptions { Selected = new[] { "A1" } };
+
+            using (SKBitmap bitmap = Render("selected-solid", document, document.ModelSpace, PixelView(), options))
+            {
+                Func<SKColor, bool> selection = c => Math.Abs(c.Red - 0x3D) < 30 && Math.Abs(c.Green - 0x9B) < 30 && Math.Abs(c.Blue - 0xFF) < 30;
+
+                // Every pixel of the row along the line, not three in five as a dash of 6 and a gap of 4 would leave.
+                for (int x = 22; x <= 178; x++)
+                {
+                    Assert.True(selection(bitmap.GetPixel(x, 75)), "pixel " + x);
+                }
+            }
+        }
+
+        [Fact]
+        public void AHoveredLineIsDrawnTwoPixelsWideInItsColourTakenHalfwayToTheSelectionColour()
+        {
+            // The line along y = 75, the border of the rows 74 and 75 on the screen: 2 pixels wide, it fills both.
+            CadDocument document = CadDocument.From(TestDrawings.Drawing(null, null, TestDrawings.Line(20, 75, 180, 75, color: 1, handle: "A1")));
+            var options = new CanvasOptions { Hover = "A1" };
+
+            using (SKBitmap bitmap = Render("hovered", document, document.ModelSpace, PixelView(), options))
+            {
+                // Red (255, 0, 0) halfway to #3D9BFF is (158, 77, 127), at full strength, not red faded.
+                foreach (int row in new[] { 74, 75 })
+                {
+                    SKColor c = bitmap.GetPixel(100, row);
+                    Assert.InRange(c.Red, 155, 161);
+                    Assert.InRange(c.Green, 74, 80);
+                    Assert.InRange(c.Blue, 124, 130);
+                }
+            }
+        }
+
+        [Fact]
+        public void AHatchWhoseLinesComeCloserThanTwoPixelsIsFilledWithAnEvenTintInsideItsBoundary()
+        {
+            // Lines 1.5 apart at a pixel to the unit: drawn one by one they would leave rows of two strengths.
+            var database = new DxfDatabase("AC1018");
+            var hatch = new DxfHatch();
+            hatch.SetHatchPattern(DxfHatchPatternType.UserDefined, "_USER");
+            hatch.PatternAngle = 0.0;
+            hatch.PatternSpace = 1.5;
+            hatch.AppendLoop(DxfHatchLoopTypes.External, new[] { new GeoPoint2(20, 20), new GeoPoint2(180, 20), new GeoPoint2(180, 130), new GeoPoint2(20, 130) }, null);
+            database.ModelSpace.AppendEntity(hatch);
+            hatch.ColorIndex = 1;
+            CadDocument document = CadDocument.From(database);
+
+            using (SKBitmap bitmap = Render("hatch-tint", document, document.ModelSpace, PixelView()))
+            {
+                // Inside, every pixel the same tint of red, 1 / 1.5 of full; outside, nothing.
+                SKColor tint = bitmap.GetPixel(100, 75);
+                Assert.InRange(tint.Red, 160, 180);
+                Assert.Equal(0, Count(bitmap, 25, 25, 175, 125, c => c != tint));
+                Assert.Equal(0, Count(bitmap, 0, 0, 17, 149, IsLit));
+                Assert.Equal(0, Count(bitmap, 183, 0, 199, 149, IsLit));
+            }
+        }
+
+        [Fact]
+        public void ACircleUnderHalfAPixelIsOnePixelOfItsColourAndATextUnderThreePixelsIsLeftOut()
+        {
+            // A circle 0.2 across at (100.25, 75.75), inside the pixel (100, 74); a text 2.8 high at (20, 40).
+            CadDocument document = CadDocument.From(TestDrawings.Drawing(null, null,
+                TestDrawings.Circle(100.25, 75.75, 0.1, color: 3, handle: "C1"),
+                TestDrawings.Text(20, 40, 2.8, "SMALL", handle: "T1")));
+
+            using (SKBitmap bitmap = Render("tiny", document, document.ModelSpace, PixelView()))
+            {
+                Assert.Equal(new SKColor(0, 255, 0), bitmap.GetPixel(100, 74));
+                Assert.Equal(1, Count(bitmap, 0, 0, 199, 149, IsLit));
+            }
+        }
     }
 }

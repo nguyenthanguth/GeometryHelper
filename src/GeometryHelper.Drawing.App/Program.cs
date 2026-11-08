@@ -33,7 +33,8 @@ namespace GeometryHelper.Drawing.App
     /// settings[:Tab]|export|message|run-plugin</c> draws that dialog of the model drawing instead of the window; <c>--plugin path.dll</c>
     /// loads a command plugin or a drawing plugin, <c>--tab Plugins</c> shows its tab, <c>--dialog plugins|plugin-settings|plugin-untrusted</c> draws the Plugin manager,
     /// the plugin's settings or the question before an untrusted load; <c>--dialog options</c> or <c>--dialog "settings:Canvas and
-    /// cursor"</c> draws Global settings on a category.
+    /// cursor"</c> draws Global settings on a category; <c>--dialog color</c> or <c>--dialog truecolor</c> draws Select Color on
+    /// index 30, on its Index Color or True Color tab.
     /// </summary>
     public static class Program
     {
@@ -58,6 +59,19 @@ namespace GeometryHelper.Drawing.App
             // Global settings: read from the user's file, a value that does not read falling back to its default; applied at once.
             model.SettingsPath = GlobalSettings.DefaultPath;
             model.ApplySettings(GlobalSettings.Load(model.SettingsPath));
+
+            // DYN switched (F12, the status bar, DYN typed) is kept in the settings file at once, as AutoCAD keeps DYNMODE.
+            model.DynamicInput.PropertyChanged += (s, e) =>
+            {
+                try
+                {
+                    model.Settings.Save(model.SettingsPath);
+                }
+                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+                {
+                    GeometryHelperLog.Warn("Program: the settings could not be saved after DYN was switched.", ex);
+                }
+            };
 
             // The command plugins: those installed and on the startup list loaded now, each result a line of the command line.
             string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
@@ -178,7 +192,7 @@ namespace GeometryHelper.Drawing.App
 
             if (output == null || width < 100 || height < 100 || (cursor != null && cursor.Length != 2))
             {
-                Console.Error.WriteLine("Usage: GeometryHelper.Drawing.App --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--new-drawing \"Test bodies\" Assembly] [--tab Drawing] [--pick view|dimension|mark|line] [--hand-edit] [--dialog new|new-source|new-settings|update|settings[:Tab]|export|message|run-plugin|plugins|plugin-settings|plugin-untrusted] [--plugin path.dll]");
+                Console.Error.WriteLine("Usage: GeometryHelper.Drawing.App --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--new-drawing \"Test bodies\" Assembly] [--tab Drawing] [--pick view|dimension|mark|line] [--hand-edit] [--dialog new|new-source|new-settings|update|settings[:Tab]|export|message|run-plugin|plugins|plugin-settings|plugin-untrusted|color|truecolor] [--plugin path.dll]");
                 return 2;
             }
 
@@ -225,7 +239,7 @@ namespace GeometryHelper.Drawing.App
                 }
             }
 
-            foreach (StatusToggleViewModel toggle in model.Toggles.Where(t => toggles.Contains(t.Name)))
+            foreach (StatusToggleViewModel toggle in model.Toggles.Concat(new[] { model.DynamicInput }).Where(t => toggles.Contains(t.Name)))
             {
                 toggle.IsOn = !toggle.IsOn;
             }
@@ -277,6 +291,16 @@ namespace GeometryHelper.Drawing.App
                 window = question;
                 width = (int)question.Width;
                 height = MeasuredHeight(root, width);
+            }
+            else if (string.Equals(dialogName, "color", StringComparison.OrdinalIgnoreCase) || string.Equals(dialogName, "truecolor", StringComparison.OrdinalIgnoreCase))
+            {
+                // Select Color on index 30, as the Layer manager shows it for a layer's colour cell.
+                var dialog = new SelectColorWindow(new SelectColorViewModel(DxfColor.FromColorIndex(DxfColorMethod.ByAci, 30), true));
+                dialog.Model.IsTrueColorTab = string.Equals(dialogName, "truecolor", StringComparison.OrdinalIgnoreCase);
+                root = dialog.Body;
+                window = dialog;
+                width = (int)dialog.Width;
+                height = (int)dialog.Height;
             }
             else if (dialogName != null && GlobalCategory(dialogName, out string category))
             {

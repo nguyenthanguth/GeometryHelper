@@ -64,7 +64,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Plan();
             CadCommandSession session = Measure(document, "AA");
 
-            Assert.Equal("Specify first corner point or [Object] <Object>:", session.PromptText);
+            Assert.Equal("Specify first corner point or [Object/Add area/Subtract area] <Object>:", session.PromptText);
             Run(session, P(0, 0), P(100, 0));
             Assert.Equal("Specify next point or [Undo]:", session.PromptText);
             Run(session, P(100, 50), P(0, 50));
@@ -130,7 +130,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Blank();
 
             CadCommandSession session = Measure(document, "EL");
-            Assert.Equal("Specify axis endpoint of ellipse or [Center]:", session.PromptText);
+            Assert.Equal("Specify axis endpoint of ellipse or [Arc/Center]:", session.PromptText);
             Run(session, P(0, 0), P(100, 0));
             Assert.Equal("Specify distance to other axis or [Rotation]:", session.PromptText);
             Run(session, "25");
@@ -188,7 +188,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(new[] { "Model", "Layout1" }, document.Spaces.Select(s => s.Name));
 
             CadCommandSession session = Measure(document, "LO");
-            Assert.Equal("Enter layout option [New/?] <New>:", session.PromptText);
+            Assert.Equal("Enter layout option [New/Rename/Set/?] <New>:", session.PromptText);
             Run(session, Enter);
             Assert.Equal("Enter name of new layout <Layout2>:", session.PromptText);
             Run(session, Enter);

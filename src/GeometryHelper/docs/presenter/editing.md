@@ -94,14 +94,16 @@ A command that fails part way has its edits taken back. Its outcome is `session.
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 39 commands, named as AutoCAD names them:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 56 commands, named as AutoCAD names them:
 
 | Group | Commands |
 |---|---|
 | view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`), PAN, REGEN, PROPERTIES, OPTIONS, QSAVE |
 | edit | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR, EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
-| draw | LINE, PLINE, CIRCLE, ARC, RECTANG, ELLIPSE, POINT, TEXT, MTEXT, MLEADER, MVIEW, LAYOUT (New, ?) |
-| inquiry | DIST, AREA, ID, LIST |
+| draw | LINE, PLINE, CIRCLE, ARC, RECTANG, ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT, MTEXT, MLEADER, MVIEW, LAYOUT (New, Rename, Set, ?) |
+| inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
+| layers | LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO |
+| utilities | SELECTALL, UNITS, -UNITS, SCRIPT |
 | dimension | DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER, DIMANGULAR |
 
 PROPERTIES, OPTIONS, LAYER and QSAVE ask the window for its panel or dialog (`UiRequested`), and say "is shown by the window"
@@ -113,9 +115,9 @@ to bottom as its prompts do, and a [command plugin](plugins.md) is written the s
 ### Aliases and keys
 
 [`CadShortcuts`](xref:GeometryHelper.Dxf.Viewer.CadShortcuts) holds the aliases and the keys as data. The defaults are
-AutoCAD's: 38 aliases (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
-DIMLINEAR, `MV` MVIEW, and the rest) and 11 keys (F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR, F12 DYN, Delete ERASE,
-Ctrl+Z U, Ctrl+Y REDO, Ctrl+S QSAVE, Ctrl+1 PROPERTIES). A registry's `Shortcuts` is replaced, from
+AutoCAD's: 45 aliases (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
+DIMLINEAR, `MV` MVIEW, and the rest) and 12 keys (F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR, F12 DYN, Delete ERASE,
+Ctrl+Z U, Ctrl+Y REDO, Ctrl+S QSAVE, Ctrl+1 PROPERTIES, Ctrl+A SELECTALL). A registry's `Shortcuts` is replaced, from
 [global settings](app.md#global-settings), by another set; letters of either case are the same, and a name wins over an
 alias of the same letters.
 
@@ -194,6 +196,8 @@ and one undo takes it back. On a model drawing the edit goes through its owner a
 [Owners](owners.md#what-the-model-drawing-makes-of-each)).
 
 ## Layers
+
+Click a layer's colour in the Layer manager to choose it in Select Color: a colour of the index (1 to 255) or a true colour. A true colour is kept in the file as red, green and blue (group 420), with the nearest colour of the index beside it (group 62) for programs that read only the index. AREA after Add area keeps a total: a rectangle 100 by 50 added and a circle of radius 10 taken away leave `Total area = 4685.8407`. SCRIPT feeds each line of a .scr file to the command line as typed, a blank line being Enter, and stops at the first line refused.
 
 [`CadLayerEditor`](xref:GeometryHelper.Dxf.Viewer.CadLayerEditor) makes the edits of the layer table that the layer box, the
 Layer manager and the LAYER command make, each one undo step, refused where AutoCAD refuses:

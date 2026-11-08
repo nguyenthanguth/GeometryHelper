@@ -129,12 +129,32 @@ namespace GeometryHelper.Dxf.Viewer
             return Set(document, layer, "Lock", layer.IsLocked, locked, l => l.IsLocked = locked);
         }
 
-        /// <summary>Gives a layer a colour of AutoCAD's index, 1 to 255.</summary>
+        /// <summary>Gives a layer a colour of AutoCAD's index, 1 to 255; a true colour it had is taken out, as AutoCAD's index colour does.</summary>
         /// <param name="document">The document.</param>
         /// <param name="name">The layer's name.</param>
         /// <param name="colorIndex">The index.</param>
         /// <returns>What came of it.</returns>
         public static CadEditResult SetColor(CadDocument document, string name, int colorIndex)
+        {
+            if (colorIndex < 1 || colorIndex > 255)
+            {
+                return Find(document, name, out CadEditResult refused) == null ? refused : Refuse("A layer's colour is 1 to 255.");
+            }
+
+            return SetColor(document, name, DxfColor.FromColorIndex(DxfColorMethod.ByAci, (short)colorIndex));
+        }
+
+        /// <summary>
+        /// Gives a layer a colour as AutoCAD's Select Color dialog does: one of the index, written to group 62 (below nought
+        /// while the layer is off), or a true colour, written to group 420 with the index nearest it in 62, so that red, green
+        /// and blue 10, 20, 30 is written 420 = 660510 beside the nearest index. ByLayer and ByBlock are refused, as a layer cannot take
+        /// them, and a true colour in a file older than AutoCAD 2004 (AC1018), which has none.
+        /// </summary>
+        /// <param name="document">The document.</param>
+        /// <param name="name">The layer's name.</param>
+        /// <param name="color">The colour.</param>
+        /// <returns>What came of it.</returns>
+        public static CadEditResult SetColor(CadDocument document, string name, DxfColor color)
         {
             DxfLayerTableRecord layer = Find(document, name, out CadEditResult refused);
 
@@ -143,15 +163,19 @@ namespace GeometryHelper.Dxf.Viewer
                 return refused;
             }
 
-            if (colorIndex < 1 || colorIndex > 255)
+            if (color == null || (!color.IsByAci && !color.IsByColor))
             {
-                return Refuse("A layer's colour is 1 to 255.");
+                return Refuse("A layer's colour is one of the index, 1 to 255, or a true colour; not ByLayer or ByBlock.");
             }
 
-            string old = layer.ColorIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            string set = colorIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            if (color.IsByColor && string.CompareOrdinal(document.Database.Version, "AC1018") < 0)
+            {
+                return Refuse("A drawing older than AutoCAD 2004 has no true colours: pick a colour of the index.");
+            }
+
             string layerName = layer.Name;
-            return document.ApplyEdit("LAYER", new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Color of " + layerName, old, set) }, s => s.Database.LayerTable[layerName].ColorIndex = (short)colorIndex);
+            var record = new CadEditRecord(CadEditRecordKind.TableChanged, null, "Color of " + layerName, layer.Color.ToString(), color.ToString());
+            return document.ApplyEdit("LAYER", new[] { record }, s => s.Database.LayerTable[layerName].Color = color);
         }
 
         /// <summary>

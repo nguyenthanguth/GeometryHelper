@@ -329,5 +329,45 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Null(failure);
             Assert.All(shots, s => Assert.True(s.Value > 30, s.Key + ": " + s.Value + " colours"));
         }
+
+        [Fact]
+        public void SelectByDraggingIsOffByDefaultIsSwitchedInTheDialogSavedAndGivenToTheCanvas()
+        {
+            Assert.False(new GlobalSettings().SelectByDragging);
+
+            var model = new MainViewModel { SettingsPath = Path.Combine(_folder.FullPath, "settings.json") };
+            GlobalSettingsViewModel dialog = model.CreateGlobalSettings();
+            GlobalSettingRow row = dialog.Row("Canvas and cursor", "Select by dragging");
+
+            Assert.False(row.IsOn);
+
+            row.IsOn = true;
+            Assert.True(dialog.Ok());
+
+            Assert.True(model.Settings.SelectByDragging);
+            Assert.True(GlobalSettings.Load(model.SettingsPath).SelectByDragging);
+
+            bool dragging = false;
+            Exception failure = null;
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    var workspace = new CadWorkspace { DataContext = model };
+                    model.ApplySettings(model.Settings);
+                    dragging = workspace.DrawingCanvas.SelectByDragging;
+                }
+                catch (Exception ex)
+                {
+                    failure = ex;
+                }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+
+            Assert.Null(failure);
+            Assert.True(dragging);
+        }
     }
 }

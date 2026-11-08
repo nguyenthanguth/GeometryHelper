@@ -17,7 +17,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <remarks>
     /// Keys as AutoCAD's: Esc cancels the command, then clears the selection; Ctrl+O opens a DXF, Ctrl+W closes it, Ctrl+N asks a host for a new
     /// drawing from a model (<see cref="MainViewModel.NewFromModelRequested"/>), Ctrl+S saves, Ctrl+Shift+S
-    /// saves as, Ctrl+Z undoes and Ctrl+Y redoes, Delete erases the selection; F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR.
+    /// saves as, Ctrl+Z undoes and Ctrl+Y redoes, Delete erases the selection; F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR,
+    /// F12 DYN (the prompt and what is typed shown beside the cursor), and Ctrl+9 shows or hides the command line.
     /// Letters typed with the focus on the canvas go to the command line, where Enter or Space runs the line (Space types a
     /// space at a prompt for text) and Up and Down recall what was typed before. A value of Properties is committed by Enter
     /// or by leaving it, and Esc puts the old one back. DXF files dropped on it are opened.
@@ -38,7 +39,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             InitializeComponent();
             AllowDrop = true;
             DataContextChanged += OnDataContextChanged;
-            CanvasView.CursorMoved += (s, e) => _model?.SetCursor(e.X, e.Y);
+            CanvasView.CursorMoved += (s, e) =>
+            {
+                _model?.SetCursor(e.X, e.Y);
+                PlaceDynamicInput(e.X, e.Y);
+            };
             CanvasView.ViewChanged += (s, e) => _model?.NotifyViewChangedByUser();
             CanvasView.PixelSizeChanged += (s, e) => _model?.SetCanvasSize(CanvasView.PixelWidth, CanvasView.PixelHeight);
             CanvasView.HistoryWritten += (s, e) => _model?.RefreshHistory();
@@ -221,7 +226,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
             else if (!inEditor && (modifiers != ModifierKeys.None || (key >= Key.F1 && key <= Key.F24)) && _model.RunKey(Gesture(key, modifiers)))
             {
-                // A key the shortcuts give a command or a toggle (Global settings › Shortcuts), as Ctrl+1 gives PROPERTIES.
+                // A key the shortcuts give a command or a toggle (Global settings › Shortcuts), as Ctrl+1 gives PROPERTIES; Ctrl+9
+                // hides the command line, and the canvas then takes the keys typed.
+                if (!_model.IsCommandLineShown && CommandBox.IsKeyboardFocusWithin)
+                {
+                    CanvasView.Focus();
+                }
+
                 e.Handled = true;
             }
         }
@@ -231,13 +242,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             base.OnPreviewTextInput(e);
 
-            // As in AutoCAD, typing with the focus on the canvas types into the command line.
+            // As in AutoCAD, typing with the focus on the canvas types into the command line; hidden (Ctrl+9), the text is kept
+            // there all the same, and dynamic input shows it beside the cursor.
             if (!(Keyboard.FocusedElement is TextBox) && !(Keyboard.FocusedElement is ComboBox) && !string.IsNullOrEmpty(e.Text)
                 && !char.IsControl(e.Text[0]) && e.Text != " " && _model != null)
             {
                 _model.CommandText += e.Text;
-                CommandBox.Focus();
-                CommandBox.CaretIndex = CommandBox.Text.Length;
+
+                if (_model.IsCommandLineShown)
+                {
+                    CommandBox.Focus();
+                    CommandBox.CaretIndex = CommandBox.Text.Length;
+                }
+
                 e.Handled = true;
             }
         }
@@ -247,9 +264,31 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             base.OnKeyDown(e);
 
-            // Space or Enter with the focus on the canvas is Enter, as in AutoCAD: it ends a command or runs the last again.
-            if (_model != null && (e.Key == Key.Space || e.Key == Key.Enter) && !(Keyboard.FocusedElement is TextBox) && !(Keyboard.FocusedElement is ButtonBase))
+            if (_model == null || Keyboard.FocusedElement is TextBox || Keyboard.FocusedElement is ButtonBase)
             {
+                return;
+            }
+
+            // Text typed with the command line hidden: Backspace takes a letter back, Enter or Space runs it (Space types a
+            // space at a prompt for text).
+            if (_model.CommandText.Length > 0 && e.Key == Key.Back)
+            {
+                _model.CommandText = _model.CommandText.Substring(0, _model.CommandText.Length - 1);
+                e.Handled = true;
+            }
+            else if (_model.CommandText.Length > 0 && e.Key == Key.Space && _model.PromptTakesSpaces)
+            {
+                _model.CommandText += " ";
+                e.Handled = true;
+            }
+            else if (_model.CommandText.Length > 0 && (e.Key == Key.Space || e.Key == Key.Enter))
+            {
+                _model.SubmitCommand();
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Space || e.Key == Key.Enter)
+            {
+                // Space or Enter with the focus on the canvas is Enter, as in AutoCAD: it ends a command or runs the last again.
                 _model.Enter();
                 e.Handled = true;
             }
@@ -345,6 +384,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.CloseRequested += OnCloseRequested;
                 _model.AskSaveChanges = document => CadQuestionWindow.AskSave(Window.GetWindow(this), new[] { document });
                 _model.AskSaveAll = documents => CadQuestionWindow.AskSave(Window.GetWindow(this), documents);
+                _model.PickColor = dialog => SelectColorWindow.Pick(Window.GetWindow(this), dialog);
 
                 if (CanvasView.PixelWidth > 0 && CanvasView.PixelHeight > 0)
                 {
@@ -382,7 +422,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        /// <summary>Gives the canvas what Global settings say of it: colours, lineweights, font, wheel zoom, pickbox and aperture.</summary>
+        /// <summary>Gives the canvas what Global settings say of it: colours, lineweights, font, wheel zoom, pickbox, aperture and whether a box may be dragged.</summary>
         private void OnSettingsApplied(object sender, EventArgs e)
         {
             GlobalSettings settings = _model.Settings;
@@ -394,6 +434,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CanvasView.WheelZoomFactor = settings.WheelZoomFactor;
             CanvasView.PickboxPixels = settings.PickboxPixels;
             CanvasView.AperturePixels = settings.AperturePixels;
+            CanvasView.SelectByDragging = settings.SelectByDragging;
             CanvasView.Options.VisibleLineColor = settings.VisibleLines;
             CanvasView.Options.HiddenLineColor = settings.HiddenLines;
             CanvasView.Options.GripColor = settings.Grip;
@@ -405,6 +446,39 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             CanvasView.InvalidateVisual();
+        }
+
+        /// <summary>
+        /// Puts the box of dynamic input below and to the right of the cursor, as AutoCAD's tooltip, or on the other side of it
+        /// where it would leave the canvas.
+        /// </summary>
+        private void PlaceDynamicInput(double x, double y)
+        {
+            CadView view = CanvasView.View;
+
+            if (view == null || CanvasView.ActualWidth <= 0.0 || CanvasView.PixelWidth <= 0)
+            {
+                return;
+            }
+
+            const double Offset = 18.0;
+            double scale = CanvasView.PixelWidth / CanvasView.ActualWidth;
+            view.DrawingToPixel(x, y, out double px, out double py);
+            double left = px / scale + Offset;
+            double top = py / scale + Offset;
+
+            if (left + DynamicInputBox.ActualWidth > CanvasView.ActualWidth)
+            {
+                left = Math.Max(0.0, px / scale - Offset - DynamicInputBox.ActualWidth);
+            }
+
+            if (top + DynamicInputBox.ActualHeight > CanvasView.ActualHeight)
+            {
+                top = Math.Max(0.0, py / scale - Offset - DynamicInputBox.ActualHeight);
+            }
+
+            Canvas.SetLeft(DynamicInputBox, left);
+            Canvas.SetTop(DynamicInputBox, top);
         }
 
         /// <summary>The key pressed as the shortcuts write it: Ctrl+1, Ctrl+Shift+P, F3.</summary>

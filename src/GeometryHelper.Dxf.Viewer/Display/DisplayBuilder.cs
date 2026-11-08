@@ -25,6 +25,9 @@ namespace GeometryHelper.Dxf.Viewer
         private readonly Dictionary<string, TextFont> _fonts = new Dictionary<string, TextFont>(StringComparer.OrdinalIgnoreCase);
         private readonly double _ltScale;
         private readonly DisplayStyle _defaultStyle = new DisplayStyle(0xFFFFFF, 0.0, null);
+
+        /// <summary>The patterns of the hatches met in the <see cref="Build"/> running, null for one drawn by its boundary; looked up only, never listed.</summary>
+        private readonly Dictionary<DxfHatch, HatchPattern> _patterns = new Dictionary<DxfHatch, HatchPattern>();
         private DisplayList2 _modelCache;
 
         public DisplayBuilder(DxfDatabase database)
@@ -59,6 +62,9 @@ namespace GeometryHelper.Dxf.Viewer
             var list = new DisplayList2();
             var root = new Frame(Affine2.Identity);
 
+            // The patterns are kept for this build only: an edit between two builds may have changed a hatch.
+            _patterns.Clear();
+
             foreach (DxfEntity entity in space)
             {
                 try
@@ -70,6 +76,8 @@ namespace GeometryHelper.Dxf.Viewer
                     // One entity that cannot be drawn never stops the others.
                 }
             }
+
+            _patterns.Clear();
 
             if (isModel)
             {
@@ -744,7 +752,7 @@ namespace GeometryHelper.Dxf.Viewer
             if (lines != null)
             {
                 // The pattern's own dashes are in its lines; the hatch's linetype is not laid over them, as AutoCAD lays none.
-                list.Add(new DisplaySegments2(lines, new DisplayStyle(style.Rgb, style.LineWeight, null), handle, layerName));
+                list.Add(new DisplaySegments2(lines, new DisplayStyle(style.Rgb, style.LineWeight, null), handle, layerName) { Rings = rings });
                 return;
             }
 
@@ -756,11 +764,44 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// The lines of a hatch's pattern cut by its loops, as <see cref="DxfHatch.GetHatchLinesData"/> gives them, placed in
-        /// the drawing; null where the hatch holds no lines of its pattern or would draw more than <see cref="MaxHatchLines"/>,
-        /// which a rough count from the spacing and the dashes refuses before the lines are worked out.
+        /// The lines of a hatch's pattern cut by its loops, placed in the drawing; null where the hatch holds no lines of its
+        /// pattern or would draw more than <see cref="MaxHatchLines"/>. A hatch of a block is read once per
+        /// <see cref="Build"/> however many INSERTs show it, and placed by each: a wall block of 3 hatches inserted 1 500 times
+        /// reads 3.
         /// </summary>
-        private static double[] PatternLines(DxfHatch hatch, Affine2 m)
+        private double[] PatternLines(DxfHatch hatch, Affine2 m)
+        {
+            if (!_patterns.TryGetValue(hatch, out HatchPattern pattern))
+            {
+                pattern = ReadPattern(hatch);
+                _patterns[hatch] = pattern;
+            }
+
+            if (pattern == null)
+            {
+                return null;
+            }
+
+            IReadOnlyList<GeoLine2> lines = pattern.Lines;
+            var xy = new double[lines.Count * 4];
+
+            for (int i = 0; i < lines.Count; i++)
+            {
+                GeoLine2 line = lines[i];
+                Place(pattern.Ecs, m, line.StartPoint.X, line.StartPoint.Y, pattern.Elevation, out xy[4 * i], out xy[4 * i + 1]);
+                Place(pattern.Ecs, m, line.EndPoint.X, line.EndPoint.Y, pattern.Elevation, out xy[4 * i + 2], out xy[4 * i + 3]);
+            }
+
+            return xy;
+        }
+
+        /// <summary>
+        /// The lines of a hatch's pattern cut by its loops, as <see cref="DxfHatch.GetHatchLinesData"/> gives them in the
+        /// hatch's own system, with that system; null where the hatch holds none or would draw more than
+        /// <see cref="MaxHatchLines"/>, which a rough count from the spacing and the dashes refuses before the lines are
+        /// worked out.
+        /// </summary>
+        private static HatchPattern ReadPattern(DxfHatch hatch)
         {
             try
             {
@@ -817,23 +858,29 @@ namespace GeometryHelper.Dxf.Viewer
                     return null;
                 }
 
-                GeoTransform3 ecs = hatch.Ecs;
-                double elevation = hatch.Elevation;
-                var xy = new double[lines.Count * 4];
-
-                for (int i = 0; i < lines.Count; i++)
-                {
-                    GeoLine2 line = lines[i];
-                    Place(ecs, m, line.StartPoint.X, line.StartPoint.Y, elevation, out xy[4 * i], out xy[4 * i + 1]);
-                    Place(ecs, m, line.EndPoint.X, line.EndPoint.Y, elevation, out xy[4 * i + 2], out xy[4 * i + 3]);
-                }
-
-                return xy;
+                return new HatchPattern(lines, hatch.Ecs, hatch.Elevation);
             }
             catch (Exception)
             {
                 return null;
             }
+        }
+
+        /// <summary>The lines of a hatch's pattern in its own system, the system and its elevation, as read once.</summary>
+        private sealed class HatchPattern
+        {
+            public HatchPattern(IReadOnlyList<GeoLine2> lines, GeoTransform3 ecs, double elevation)
+            {
+                Lines = lines;
+                Ecs = ecs;
+                Elevation = elevation;
+            }
+
+            public IReadOnlyList<GeoLine2> Lines { get; }
+
+            public GeoTransform3 Ecs { get; }
+
+            public double Elevation { get; }
         }
 
         /// <summary>A point of an entity's own system taken to the world and then into the drawing.</summary>

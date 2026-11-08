@@ -112,6 +112,13 @@ namespace GeometryHelper.Dxf.Viewer
                 ["AA"] = "AREA",
                 ["LI"] = "LIST",
                 ["LS"] = "LIST",
+                ["XL"] = "XLINE",
+                ["POL"] = "POLYGON",
+                ["DO"] = "DONUT",
+                ["MEA"] = "MEASUREGEOM",
+                ["UN"] = "UNITS",
+                ["-UN"] = "-UNITS",
+                ["SCR"] = "SCRIPT",
             },
             new Dictionary<string, string>
             {
@@ -126,6 +133,7 @@ namespace GeometryHelper.Dxf.Viewer
                 ["Ctrl+Y"] = "REDO",
                 ["Ctrl+S"] = "QSAVE",
                 ["Ctrl+1"] = "PROPERTIES",
+                ["Ctrl+A"] = "SELECTALL",
             });
 
         private static IReadOnlyDictionary<string, string> Copy(IEnumerable<KeyValuePair<string, string>> pairs)

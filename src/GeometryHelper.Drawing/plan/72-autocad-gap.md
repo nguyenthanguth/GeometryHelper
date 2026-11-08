@@ -4,7 +4,8 @@ A list, made on 2026-11-08 after the user found the Annotate and View tabs dead,
 tabs Home, Insert, Annotate, View, Manage, Output), quick access toolbar, status bar and command set have, against what
 Part A (the 2D presenter: `GeometryHelper.Dxf.Viewer`, `.Dxf.Viewer.Wpf`, `Drawing.App`) has. Each item is marked:
 
-- **built**: there, and reached from where AutoCAD puts it; **(r1)** marks what the round "ribbon1" added.
+- **built**: there, and reached from where AutoCAD puts it; **(r1)** marks what the round "ribbon1" added, **(g1)** what
+  the round "cmdgaps" added (commands typed only: no ribbon button yet).
 - **cheap**: under some 150 lines on what the library and the presenter have now.
 - **big**: needs a new part (a dialog, a clipboard format, a geometry tool, a block editor).
 - **out**: out of scope for a 2D presenter of DXF (3D, rendering, cloud, sheet sets).
@@ -20,18 +21,18 @@ PDF, Print) stays, disabled, its tooltip saying "not built yet".
 |---|---|---|---|
 | Draw | Line, Polyline, Circle (centre-radius, 2P, 3P), Arc | LINE, PLINE, CIRCLE (2P, 3P), ARC | built |
 | Draw | Rectangle | RECTANG | built; button (r1) |
-| Draw | Ellipse (axis, centre) | ELLIPSE by axis ends or centre, other half or rotation | built (r1); elliptical arc cheap |
+| Draw | Ellipse (axis, centre) | ELLIPSE by axis ends or centre, other half or rotation; Arc (start, end or included angle) | built (r1); Arc built (g1) |
 | Draw | Multiple Points | POINT, one point a run | built (r1); PTYPE dialog cheap |
 | Draw | Circle TTR / TTT, Arc's eleven ways | the common ways only | cheap each |
 | Draw | Hatch, Gradient, Boundary | hatches drawn, not made | big (C4) |
-| Draw | Polygon, Construction Line, Ray, Spline, Donut, Revision Cloud, Wipeout, Region, Divide, Measure | none | cheap each (XLINE, RAY, POLYGON, DONUT); big (SPLINE fit, REVCLOUD, REGION) |
+| Draw | Polygon, Construction Line, Ray, Spline, Donut, Revision Cloud, Wipeout, Region, Divide, Measure | XLINE (no Offset, no Reference), RAY, POLYGON, DONUT | built (g1); big (SPLINE fit, REVCLOUD, REGION) |
 | Modify | Move, Copy, Rotate, Mirror, Scale, Erase, Explode | all | built |
 | Modify | Trim, Extend, Offset, Fillet, Chamfer, Stretch, Array, Break, Join, Lengthen | none | big (C4, on hold) |
 | Modify | Edit Polyline, Edit Spline, Edit Hatch, Draworder, Align, Overkill, Reverse | none | big (C4) except DRAWORDER, REVERSE cheap |
 | Annotation | Text (Multiline, Single Line), Dimension (Linear, Aligned, Angular, Radius, Diameter), Leader | all | built |
 | Annotation | Arc length, Jogged, Ordinate dimensions; Table; style boxes (text, dimension, multileader, table) | none | big (dimension kinds), cheap (a read-only style box each) |
 | Layers | Layer Properties, layer box, Make Current, Match Layer | all | built |
-| Layers | Off, Isolate, Freeze, Lock, Unisolate, Thaw all, Unlock, Layer Previous, Merge, Delete, Walk | the Layer manager does on, freeze, lock, delete | cheap each (LAYOFF, LAYFRZ, LAYLCK, LAYON, LAYTHW, LAYULK); big (LAYISO, LAYWALK, LAYMRG) |
+| Layers | Off, Isolate, Freeze, Lock, Unisolate, Thaw all, Unlock, Layer Previous, Merge, Delete, Walk | the Layer manager does on, freeze, lock, delete; LAYOFF, LAYFRZ, LAYLCK, LAYON, LAYTHW, LAYULK, LAYISO (Off mode), LAYUNISO typed | built (g1), no buttons yet; big (LAYWALK, LAYMRG) |
 | Layers | colour picker of the layer dialog | queued | queued |
 | Block | Insert, Create, Edit, Edit Attributes | blocks drawn, attributes shown | big |
 | Properties | Match Properties | MATCHPROP | built |
@@ -39,9 +40,9 @@ PDF, Print) stays, disabled, its tooltip saying "not built yet".
 | Properties | List | LIST | built (r1), in Utilities |
 | Groups | Group, Ungroup, Group Edit | none | big |
 | Utilities | Measure: Distance, Area | DIST, AREA (points or a closed object) | built (r1) |
-| Utilities | Measure: Radius, Angle, Volume, Quick | none | cheap (MEASUREGEOM Radius and Angle) |
+| Utilities | Measure: Radius, Angle, Volume, Quick | MEASUREGEOM (MEA): Distance, Radius, Angle, ARea | built (g1); Volume, Quick out |
 | Utilities | ID Point | ID | built (r1) |
-| Utilities | Quick Select, Select All, Point Style | ALL at "Select objects:" only | cheap (SELECTALL, Ctrl+A); big (QSELECT) |
+| Utilities | Quick Select, Select All, Point Style | ALL at "Select objects:"; SELECTALL, Ctrl+A | built (g1); big (QSELECT) |
 | Clipboard | Paste, Cut, Copy Clip, Copy with Base Point | none; the group is hidden (r1) | big (a clipboard format of our own and AutoCAD's) |
 | View | Base view (from 3D) | none | out (Part B makes drawings from models) |
 
@@ -90,10 +91,10 @@ The tab is left out: nothing in it is real yet.
 |---|---|---|---|
 | Action Recorder | Record, Play | none | out |
 | Customization | User Interface, Tool Palettes, Import, Export | Global settings › Shortcuts (aliases and keys) | built in the Settings tab |
-| Applications | Load Application (APPLOAD), Run Script, Visual LISP, VBA | PLUGINLOAD, the Plugin manager | built in the Plugins tab; SCRIPT cheap; LISP and VBA out |
+| Applications | Load Application (APPLOAD), Run Script, Visual LISP, VBA | PLUGINLOAD, the Plugin manager | built in the Plugins tab; SCRIPT (SCR) built (g1), typed; LISP and VBA out |
 | CAD Standards | Configure, Check, Layer Translator | none | out |
 | Cleanup | Purge, Overkill | none | big (PURGE needs the library to say what is unused) |
-| Drawing utilities (application menu) | Audit, Recover, Units | none | big (AUDIT); cheap (UNITS dialog of LUNITS, LUPREC, AUPREC) |
+| Drawing utilities (application menu) | Audit, Recover, Units | UNITS and -UNITS (UN, -UN) as -UNITS's prompts | big (AUDIT); UNITS built (g1) on the command line, its dialog cheap |
 
 The tab is left out: what it has that is real lives in Plugins and Settings already.
 
@@ -140,17 +141,18 @@ What the command line knows, under AutoCAD's names and aliases:
 - Layers and settings: LAYER, LAYMCUR, LAYMCH, PROPERTIES, PROPERTIESCLOSE (r1), OPTIONS, GRID, SNAP, ORTHO, POLAR,
   OSNAP typed (r1: "Enter mode [ON/OFF]", SNAP also a spacing).
 - Inquiry (r1): DIST (DI), AREA (AA), ID, LIST (LI, LS).
-- Files: NEW (r1), QSAVE, SAVEAS (r1), CLOSE, LAYOUT New and ? (r1, LO).
+- Files: NEW (r1), QSAVE, SAVEAS (r1), CLOSE, LAYOUT New and ? (r1, LO), Rename and Set (g1).
+- Round g1: XLINE (XL), RAY, POLYGON (POL), DONUT (DO), SELECTALL (Ctrl+A), LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK,
+  LAYISO, LAYUNISO, MEASUREGEOM (MEA), UNITS (UN), -UNITS (-UN), SCRIPT (SCR); ELLIPSE Arc; AREA Add area and Subtract area.
 - Undo: UNDO, U, REDO.
 - Plugins: PLUGINLOAD (NETLOAD), PLUGINUNLOAD, PLUGINRELOAD; Part B: DRAWINGNEW, DRAWINGUPDATE, DRAWINGSETTINGS,
   EXPORTDXF, VIEWSECTION, VIEWDETAIL, AUTODIM, AUTOMARK.
 
 Missing, by the mark:
 
-- **cheap**: XLINE, RAY, POLYGON, DONUT, DRAWORDER, REVERSE, SELECTALL, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK,
-  CENTERMARK, MEASUREGEOM (Radius, Angle), UNITS, SCRIPT, COPYBASE without paste, LAYOUT Rename, Delete and Set,
-  ELLIPSE Arc, AREA Add and Subtract, DIST Multiple points, MODEL (TILEMODE), the drafting toggles' AutoCAD prompts in full
-  (GRID's spacing).
+- **cheap**: DRAWORDER, REVERSE, CENTERMARK, COPYBASE without paste, DIST Multiple points, MODEL (TILEMODE), the drafting
+  toggles' AutoCAD prompts in full (GRID's spacing); XLINE Offset and Ang Reference; the UNITS dialog; buttons for the g1
+  layer commands. LAYOUT Delete needs the library to erase a layout (`DxfLayout` is not erased yet): big.
 - **big**: TRIM, EXTEND, OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, BREAK, JOIN, LENGTHEN, PEDIT, HATCH and HATCHEDIT (C4,
   on hold); COPYCLIP, CUTCLIP, PASTECLIP; BLOCK, INSERT, WBLOCK, ATTDEF, EATTEDIT, BEDIT; DIM, QDIM, DIMCONTINUE,
   DIMBASELINE, DIMSTYLE, STYLE, MLEADERSTYLE; TABLE; GROUP; QSELECT; PURGE, AUDIT; PLOT, EXPORTPDF; SPLINE; REVCLOUD;

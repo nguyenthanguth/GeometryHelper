@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using GeometryHelper.Geometry;
 using SkiaSharp;
 
@@ -33,14 +36,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// The canvas of the presenter: one space of a <see cref="CadDocument"/> drawn through <see cref="SkiaCanvasRenderer"/> into
     /// a bitmap of the device's pixels, and handled with the mouse as AutoCAD is. The wheel zooms about the cursor, 1.2 times
     /// a notch; dragging with the middle button pans and double-clicking it zooms to the extents. With no command running a
-    /// left click picks within 5 pixels (Shift+click adds or removes, a click on nothing clears), dragging left to right
-    /// selects by a solid blue window and right to left by a dashed green crossing, and the selected entities show their
-    /// grips, which drag. With a command of <see cref="Session"/> running a click answers its prompt: a point prompt takes
-    /// the point <see cref="Snap"/> gives, drawn with its marker and a rubber band from the prompt's base point, and
-    /// "Select objects:" takes a click or a box; while MOVE, COPY, ROTATE, SCALE or MIRROR waits for its second point, a
-    /// dashed ghost of the objects follows the cursor. A right click is Enter; Esc cancels. <see cref="ShowGrid"/> draws a dot
-    /// grid under the drawing. It draws the drawing again only when something has changed, once per frame at most; the
-    /// cursor's marks are drawn over it without drawing it again.
+    /// left click picks within 5 pixels (Shift+click adds or removes), and a click on nothing starts a box, as AutoCAD does
+    /// with PICKDRAG 0: the box follows the cursor to the click that ends it, left to right a solid blue window that takes
+    /// what lies wholly inside, right to left a dashed green crossing that takes what it touches, Esc dropping it;
+    /// <see cref="SelectByDragging"/> lets a box be dragged too. The selected entities show their grips, which drag. With a
+    /// command of <see cref="Session"/> running a click answers its prompt: a point prompt takes the point
+    /// <see cref="Snap"/> gives, drawn with its marker and a rubber band from the prompt's base point, and "Select objects:"
+    /// takes a click or a box; while MOVE, COPY, ROTATE, SCALE or MIRROR waits for its second point, a dashed ghost of the
+    /// objects follows the cursor. A right click is Enter; Esc cancels. <see cref="ShowGrid"/> draws grid lines under the
+    /// drawing.
+    /// <para>
+    /// The drawing is kept as a picture and drawn again only when what it shows changes: the drawing, its layers, the view,
+    /// the size or the colours. The selection is drawn over a copy of that picture and the entity under the cursor over the
+    /// selection, so moving the mouse over a sheet of 100 000 items costs a copy of the picture and the one entity. While
+    /// the wheel zooms or the middle button pans, the picture is moved and scaled with the view and drawn again once the
+    /// view has been still for 80 milliseconds.
+    /// </para>
     /// </summary>
     public sealed class CadCanvas : FrameworkElement, IDisposable
     {
@@ -76,8 +87,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public static readonly DependencyProperty GridSpacingProperty = DependencyProperty.Register(
             nameof(GridSpacing), typeof(double), typeof(CadCanvas), new PropertyMetadata(10.0, OnSceneChanged));
 
-        private const double GridPixels = 8.0;
+        private const double GridPixels = 6.0;
         private const double DragPixels = 4.0;
+        private const int SettleMilliseconds = 80;
         private const double GripSize = 8.0;
         private const int GripLimit = 100;
 
@@ -106,11 +118,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private readonly List<ViewportTag> _tags = new List<ViewportTag>();
         private readonly CadGhost _ghost = new CadGhost();
         private WriteableBitmap _bitmap;
+        private SKBitmap _scene;
+        private SKBitmap _marked;
+        private SceneKey _sceneKey;
+        private string _marking;
+        private bool _markedDirty = true;
+        private double[] _shown;
+        private DispatcherTimer _settle;
         private bool _renderQueued;
         private Point? _panFrom;
         private Point? _boxFrom;
         private Point _boxTo;
         private bool _boxing;
+        private bool _boxOpen;
+        private bool _pressOnObject;
+        private bool _swallowUp;
         private Point? _pointDown;
         private GeoPoint2? _cursor;
         private Point? _mouse;
@@ -134,6 +156,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 _renderQueued = false;
                 StopQueue();
+                _settle?.Stop();
             };
         }
 
@@ -198,9 +221,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// Gets or sets whether model space shows the grid (GRID, F7): dots a little lighter than the background, under the
-        /// drawing, every <see cref="GridSpacing"/> units or, where those would come closer than 8 pixels, every 5, 10, 50,
-        /// 100 times that.
+        /// Gets or sets whether model space shows the grid (GRID, F7): lines across and up a little lighter than the
+        /// background, every fifth a little stronger as AutoCAD's major lines, under the drawing, every
+        /// <see cref="GridSpacing"/> units or, where those would come closer than 6 pixels, every 5, 10, 50, 100 times that.
         /// </summary>
         public bool ShowGrid
         {
@@ -226,6 +249,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets or sets how far from the cursor a point snaps, in device-independent pixels: 10 by default, as AutoCAD's APERTURE.</summary>
         public double AperturePixels { get; set; } = 10.0;
+
+        /// <summary>
+        /// Gets or sets whether a box can also be dragged, pressed at one corner and released at the other, as AutoCAD's
+        /// PICKDRAG 1: off by default, when a box is only clicked at one corner and then at the other, as PICKDRAG 0. Either
+        /// way a click on nothing starts a box that the next click ends.
+        /// </summary>
+        public bool SelectByDragging { get; set; }
 
         /// <summary>
         /// Gets or sets the size of the crosshair drawn at the cursor, in per cent of the canvas's larger side, with the pickbox
@@ -261,12 +291,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// Gets the spacing the grid is drawn at: the spacing asked, times 5, 10, 50, 100 and on, the first whose dots lie at
+        /// Gets the spacing the grid is drawn at: the spacing asked, times 5, 10, 50, 100 and on, the first whose lines lie at
         /// least a number of pixels apart. A grid of 10 at 0.18 pixels to the unit is drawn every 50, 9 pixels apart.
         /// </summary>
         /// <param name="pixelsPerUnit">The zoom.</param>
         /// <param name="spacing">The spacing asked, in drawing units.</param>
-        /// <param name="leastPixels">The least distance between dots, in pixels.</param>
+        /// <param name="leastPixels">The least distance between lines, in pixels.</param>
         /// <returns>The spacing drawn, in drawing units; 0 where the spacing or the zoom is not above nought.</returns>
         public static double GridStep(double pixelsPerUnit, double spacing, double leastPixels)
         {
@@ -334,11 +364,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        /// <summary>Draws the space now rather than at the next frame, as a screenshot taken with no window showing needs.</summary>
+        /// <summary>Gets how many times the drawing itself has been drawn, not counting the selection and the hover drawn over it; a test reads it.</summary>
+        internal int SceneRenders { get; private set; }
+
+        /// <summary>Gets whether the view has moved since the picture was drawn and the canvas waits for it to be still before drawing it again.</summary>
+        internal bool IsSettling => _settle != null && _settle.IsEnabled;
+
+        /// <summary>
+        /// Draws the space now rather than at the next frame, as a screenshot taken with no window showing needs. The drawing
+        /// itself is drawn again only where what it shows has changed; the selection and the entity under the cursor always.
+        /// </summary>
         public void RenderNow()
         {
             _renderQueued = false;
             StopQueue();
+            _settle?.Stop();
             double scale = PixelScale;
             int width = (int)Math.Ceiling(ActualWidth * scale);
             int height = (int)Math.Ceiling(ActualHeight * scale);
@@ -376,34 +416,40 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 view.Resize(width, height);
             }
 
+            CadDocument document = Document;
+            CadSpace space = Space;
+            var info = new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Premul);
+            bool empty = document == null || space == null || view == null;
+
+            if (!empty)
+            {
+                DrawScene(document, space, view, info, scale);
+                DrawMarked(document, space, view, info);
+            }
+
             _bitmap.Lock();
 
             try
             {
-                var info = new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Premul);
-
                 using (SKSurface surface = SKSurface.Create(info, _bitmap.BackBuffer, _bitmap.BackBufferStride))
                 {
-                    CadDocument document = Document;
-                    CadSpace space = Space;
-
-                    if (document == null || space == null || view == null)
+                    if (empty)
                     {
                         int rgb = Options.Background;
                         surface.Canvas.Clear(new SKColor((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb));
                     }
                     else
                     {
-                        Options.Selected = Highlighted(document);
-                        _renderer.Render(surface.Canvas, document, space, view, Options);
+                        Copy(_marked ?? _scene, info, _bitmap.BackBuffer, _bitmap.BackBufferStride);
+                        string hover = Options.Hover;
+
+                        if (hover != null && !(Options.Selected is ICollection<string> marked && marked.Contains(hover)))
+                        {
+                            _renderer.RenderHighlight(surface.Canvas, document, space, view, Options, new[] { hover }, true);
+                        }
                     }
 
                     surface.Canvas.Flush();
-                }
-
-                if (ShowGrid && Document != null && Space != null && Space.IsModel && view != null)
-                {
-                    DrawGrid(view, width, height, scale);
                 }
 
                 _bitmap.AddDirtyRect(new Int32Rect(0, 0, width, height));
@@ -413,7 +459,155 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _bitmap.Unlock();
             }
 
+            if (empty)
+            {
+                _sceneKey = null;
+                _shown = null;
+                FindGrips();
+            }
+            else
+            {
+                _shown = new[] { view.CenterX, view.CenterY, view.PixelsPerUnit, view.Width, view.Height };
+            }
+
+            InvalidateVisual();
+        }
+
+        /// <summary>The drawing and its grid, into the kept picture, where what it shows has changed since it was last drawn.</summary>
+        private void DrawScene(CadDocument document, CadSpace space, CadView view, SKImageInfo info, double scale)
+        {
+            var o = Options;
+            DisplayBox paper = space.PaperBounds;
+            string numbers = string.Join("|", new object[]
+            {
+                view.CenterX, view.CenterY, view.PixelsPerUnit, view.Width, view.Height, info.Width, info.Height, scale,
+                o.Background, o.Paper, o.ShowLineWeights, o.FontName, o.VisibleLineColor, o.HiddenLineColor, o.HiddenLayerName,
+                ShowGrid, GridSpacing, paper.MinX, paper.MinY, paper.MaxX, paper.MaxY,
+            }.Select(v => Convert.ToString(v, CultureInfo.InvariantCulture)));
+            var key = new SceneKey(document.GetDisplay(space), numbers);
+
+            if (_scene != null && _scene.Width == info.Width && _scene.Height == info.Height && key.Same(_sceneKey))
+            {
+                return;
+            }
+
+            Fit(ref _scene, info);
+
+            using (SKSurface surface = SKSurface.Create(info, _scene.GetPixels(), _scene.RowBytes))
+            {
+                _renderer.RenderScene(surface.Canvas, document, space, view, Options);
+                surface.Canvas.Flush();
+            }
+
+            if (ShowGrid && space.IsModel)
+            {
+                DrawGrid(_scene, view, scale);
+            }
+
+            _sceneKey = key;
+            _markedDirty = true;
+            SceneRenders++;
+        }
+
+        /// <summary>
+        /// The selection, and while "Select objects:" waits the objects it has gathered, drawn over a copy of the kept picture
+        /// where either or the picture has changed; nothing kept where nothing is highlighted. The grips follow.
+        /// </summary>
+        private void DrawMarked(CadDocument document, CadSpace space, CadView view, SKImageInfo info)
+        {
+            CadCommandSession session = Session;
+            string marking = string.Join("|", Options.SelectionColor, Options.ShowLineWeights, IsRunning, document.Selection.Count, session?.Gathering.Count ?? 0);
+
+            if (!_markedDirty && marking == _marking && (_marked == null || (_marked.Width == info.Width && _marked.Height == info.Height)))
+            {
+                return;
+            }
+
+            IReadOnlyCollection<string> highlighted = Highlighted(document);
+            Options.Selected = highlighted;
+
+            if (highlighted.Count == 0)
+            {
+                _marked?.Dispose();
+                _marked = null;
+            }
+            else
+            {
+                Fit(ref _marked, info);
+
+                using (SKSurface surface = SKSurface.Create(info, _marked.GetPixels(), _marked.RowBytes))
+                {
+                    Copy(_scene, info, _marked.GetPixels(), _marked.RowBytes);
+                    _renderer.RenderHighlight(surface.Canvas, document, space, view, Options, highlighted, false);
+                    surface.Canvas.Flush();
+                }
+            }
+
+            _marking = marking;
+            _markedDirty = false;
             FindGrips();
+        }
+
+        /// <summary>A kept picture of the canvas's size, made anew where it has none or one of another size.</summary>
+        private static void Fit(ref SKBitmap bitmap, SKImageInfo info)
+        {
+            if (bitmap != null && bitmap.Width == info.Width && bitmap.Height == info.Height)
+            {
+                return;
+            }
+
+            bitmap?.Dispose();
+            bitmap = new SKBitmap(info);
+        }
+
+        /// <summary>Copies a kept picture, pixel for pixel, into a buffer of the same size.</summary>
+        private static void Copy(SKBitmap from, SKImageInfo info, IntPtr to, int rowBytes)
+        {
+            using (SKPixmap pixels = from.PeekPixels())
+            {
+                pixels.ReadPixels(info, to, rowBytes);
+            }
+        }
+
+        /// <summary>
+        /// How the picture shown has to move to follow a view zoomed or panned since it was drawn, in device-independent
+        /// units: scaled by the change of zoom about the canvas's corner and moved by the change of centre; null where the
+        /// view is the one it was drawn at.
+        /// </summary>
+        private Transform MovedSinceDrawn(CadView view, double scale)
+        {
+            double[] shown = _shown;
+
+            if (view == null || shown == null || (shown[0] == view.CenterX && shown[1] == view.CenterY && shown[2] == view.PixelsPerUnit && shown[3] == view.Width && shown[4] == view.Height))
+            {
+                return null;
+            }
+
+            double s = view.PixelsPerUnit / shown[2];
+            double tx = view.Width / 2.0 + (shown[0] - view.CenterX) * view.PixelsPerUnit - shown[3] / 2.0 * s;
+            double ty = view.Height / 2.0 - (shown[1] - view.CenterY) * view.PixelsPerUnit - shown[4] / 2.0 * s;
+            var moved = new MatrixTransform(s, 0.0, 0.0, s, tx / scale, ty / scale);
+            moved.Freeze();
+            return moved;
+        }
+
+        /// <summary>The view zoomed or panned by the mouse: the picture follows it at once and is drawn again once the view is still.</summary>
+        private void ViewMoved()
+        {
+            ViewChanged?.Invoke(this, EventArgs.Empty);
+
+            if (_settle == null)
+            {
+                _settle = new DispatcherTimer(DispatcherPriority.Render, Dispatcher) { Interval = TimeSpan.FromMilliseconds(SettleMilliseconds) };
+                _settle.Tick += (s, e) =>
+                {
+                    _settle.Stop();
+                    RenderNow();
+                };
+            }
+
+            _settle.Stop();
+            _settle.Start();
             InvalidateVisual();
         }
 
@@ -448,6 +642,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             bool any = _boxFrom.HasValue || _dragGrip >= 0;
             _boxFrom = null;
             _boxing = false;
+            _boxOpen = false;
             _dragGrip = -1;
 
             if (any)
@@ -459,11 +654,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return any;
         }
 
-        /// <summary>Releases the typefaces of the renderer.</summary>
+        /// <summary>Releases the typefaces of the renderer and the kept pictures.</summary>
         public void Dispose()
         {
             StopQueue();
+            _settle?.Stop();
             _renderer.Dispose();
+            _scene?.Dispose();
+            _scene = null;
+            _marked?.Dispose();
+            _marked = null;
+            _sceneKey = null;
         }
 
         /// <inheritdoc/>
@@ -474,12 +675,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             drawingContext.DrawRectangle(new SolidColorBrush(Color.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb)), null, whole);
             double scale = PixelScale;
 
+            CadView view = View;
+
             if (_bitmap != null)
             {
-                drawingContext.DrawImage(_bitmap, new Rect(0, 0, _bitmap.PixelWidth / scale, _bitmap.PixelHeight / scale));
-            }
+                Transform moved = MovedSinceDrawn(view, scale);
 
-            CadView view = View;
+                if (moved != null)
+                {
+                    drawingContext.PushTransform(moved);
+                }
+
+                drawingContext.DrawImage(_bitmap, new Rect(0, 0, _bitmap.PixelWidth / scale, _bitmap.PixelHeight / scale));
+
+                if (moved != null)
+                {
+                    drawingContext.Pop();
+                }
+            }
 
             if (view != null)
             {
@@ -526,8 +739,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             double scale = PixelScale;
             view.ZoomAt(p.X * scale, p.Y * scale, Math.Pow(WheelZoomFactor, e.Delta / 120.0));
             e.Handled = true;
-            ViewChanged?.Invoke(this, EventArgs.Empty);
-            RequestRender();
+            ViewMoved();
         }
 
         /// <inheritdoc/>
@@ -560,6 +772,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     _pointDown = p;
                 }
+                else if (_boxOpen && _boxFrom.HasValue)
+                {
+                    // The click that ends a box started by a click; its release is not a click of its own.
+                    Point from = _boxFrom.Value;
+                    CancelGesture();
+                    _swallowUp = true;
+                    SelectBox(from, p, (Keyboard.Modifiers & ModifierKeys.Shift) != 0);
+                }
                 else if (!IsRunning && _hotGrip >= 0)
                 {
                     _dragGrip = _hotGrip;
@@ -572,6 +792,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     _boxFrom = p;
                     _boxTo = p;
                     _boxing = false;
+                    _pressOnObject = IsObjectAt(p);
                     CaptureMouse();
                 }
 
@@ -604,6 +825,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _panFrom = null;
                 Cursor = IdleCursor;
                 ReleaseMouseCapture();
+
+                if (IsSettling)
+                {
+                    // The pan has ended: the picture is drawn at the next frame rather than after the wait.
+                    _settle.Stop();
+                    RequestRender();
+                }
+
                 e.Handled = true;
             }
             else if (e.ChangedButton == MouseButton.Left && _dragGrip >= 0)
@@ -631,23 +860,36 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Click(at, false);
                 e.Handled = true;
             }
-            else if (e.ChangedButton == MouseButton.Left && _boxFrom.HasValue)
+            else if (e.ChangedButton == MouseButton.Left && _swallowUp)
+            {
+                _swallowUp = false;
+                e.Handled = true;
+            }
+            else if (e.ChangedButton == MouseButton.Left && _boxFrom.HasValue && !_boxOpen)
             {
                 Point from = _boxFrom.Value;
                 bool boxing = _boxing;
-                _boxFrom = null;
-                _boxing = false;
                 ReleaseMouseCapture();
                 bool shift = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
 
-                if (boxing)
+                if (boxing && SelectByDragging)
                 {
+                    CancelGesture();
                     SelectBox(from, at, shift);
-                    InvalidateVisual();
+                }
+                else if (_pressOnObject || !TakesBox)
+                {
+                    // An object pressed is the one picked, wherever the button is let go.
+                    CancelGesture();
+                    Click(_pressOnObject ? from : at, shift);
                 }
                 else
                 {
-                    Click(at, shift);
+                    // A press on nothing leaves the box open, following the cursor to the click that ends it.
+                    _boxOpen = true;
+                    _boxing = true;
+                    _boxTo = at;
+                    InvalidateVisual();
                 }
 
                 e.Handled = true;
@@ -758,20 +1000,33 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             canvas.RequestRender();
         }
 
-        private void OnSelectionChanged(object sender, EventArgs e) => RequestRender();
+        private void OnSelectionChanged(object sender, EventArgs e)
+        {
+            _markedDirty = true;
+            RequestRender();
+        }
 
         private void OnPromptChanged(object sender, EventArgs e)
         {
             _snapped = null;
             _ghost.Follow(Session);
+            _markedDirty = true;
+
+            if (_boxOpen)
+            {
+                // A command started or a prompt answered drops a box waiting for its second corner.
+                CancelGesture();
+            }
+
             RequestRender();
         }
 
         /// <summary>
-        /// The grid's dots, put into the bitmap the drawing was drawn into only where it shows the background, so that they
-        /// lie under the drawing.
+        /// The grid's lines, across and up, put into the picture of the drawing only where it shows the background, so that
+        /// they lie under the drawing: one pixel wide, 8 per cent lighter than the background, every fifth from the origin 18
+        /// per cent lighter, as AutoCAD draws its major lines.
         /// </summary>
-        private void DrawGrid(CadView view, int width, int height, double scale)
+        private void DrawGrid(SKBitmap picture, CadView view, double scale)
         {
             double step = GridStep(view.PixelsPerUnit, GridSpacing, GridPixels * scale);
 
@@ -780,35 +1035,71 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
+            int width = picture.Width;
+            int height = picture.Height;
+            int stride = picture.RowBytes / 4;
             int rgb = Options.Background & 0xFFFFFF;
             int background = unchecked((int)0xFF000000) | rgb;
-            int Lighter(int channel) => channel + (int)((255 - channel) * 0.2);
-            int dot = unchecked((int)0xFF000000) | (Lighter((rgb >> 16) & 0xFF) << 16) | (Lighter((rgb >> 8) & 0xFF) << 8) | Lighter(rgb & 0xFF);
+            int Lighter(double share) => unchecked((int)0xFF000000) | (Lift((rgb >> 16) & 0xFF, share) << 16) | (Lift((rgb >> 8) & 0xFF, share) << 8) | Lift(rgb & 0xFF, share);
+            int minor = Lighter(0.08);
+            int major = Lighter(0.18);
+            var pixels = new int[stride * height];
+            Marshal.Copy(picture.GetPixels(), pixels, 0, pixels.Length);
             DisplayBox visible = view.VisibleBox;
-            IntPtr buffer = _bitmap.BackBuffer;
-            int stride = _bitmap.BackBufferStride;
 
-            for (double x = Math.Ceiling(visible.MinX / step) * step; x <= visible.MaxX; x += step)
+            for (long k = (long)Math.Ceiling(visible.MinX / step); k * step <= visible.MaxX; k++)
             {
-                for (double y = Math.Ceiling(visible.MinY / step) * step; y <= visible.MaxY; y += step)
+                view.DrawingToPixel(k * step, 0.0, out double px, out _);
+                int ix = (int)Math.Round(px);
+                int color = k % 5 == 0 ? major : minor;
+
+                for (int iy = 0; ix >= 0 && ix < width && iy < height; iy++)
                 {
-                    view.DrawingToPixel(x, y, out double px, out double py);
-                    int ix = (int)Math.Round(px);
-                    int iy = (int)Math.Round(py);
-
-                    if (ix < 0 || iy < 0 || ix >= width || iy >= height)
+                    if (pixels[iy * stride + ix] == background)
                     {
-                        continue;
-                    }
-
-                    int offset = iy * stride + ix * 4;
-
-                    if (System.Runtime.InteropServices.Marshal.ReadInt32(buffer, offset) == background)
-                    {
-                        System.Runtime.InteropServices.Marshal.WriteInt32(buffer, offset, dot);
+                        pixels[iy * stride + ix] = color;
                     }
                 }
             }
+
+            for (long k = (long)Math.Ceiling(visible.MinY / step); k * step <= visible.MaxY; k++)
+            {
+                view.DrawingToPixel(0.0, k * step, out _, out double py);
+                int iy = (int)Math.Round(py);
+                int color = k % 5 == 0 ? major : minor;
+
+                for (int ix = 0; iy >= 0 && iy < height && ix < width; ix++)
+                {
+                    if (pixels[iy * stride + ix] == background)
+                    {
+                        pixels[iy * stride + ix] = color;
+                    }
+                }
+            }
+
+            Marshal.Copy(pixels, 0, picture.GetPixels(), pixels.Length);
+        }
+
+        /// <summary>A channel of a colour taken a share of the way to white.</summary>
+        private static int Lift(int channel, double share) => channel + (int)((255 - channel) * share);
+
+        /// <summary>Gets whether a box may start here: with no command running, or while "Select objects:" waits.</summary>
+        private bool TakesBox => !IsRunning || Session.Prompt?.Kind == CadPromptKind.Selection;
+
+        /// <summary>Whether an entity lies within the pickbox of a point of the canvas.</summary>
+        private bool IsObjectAt(Point p)
+        {
+            CadDocument document = Document;
+            CadView view = View;
+
+            if (document == null || Space == null || view == null)
+            {
+                return false;
+            }
+
+            double scale = PixelScale;
+            view.ScreenToDrawing(p.X * scale, p.Y * scale, out double x, out double y);
+            return document.GetPickIndex(Space).Pick(x, y, PickboxPixels * scale / view.PixelsPerUnit).Count > 0;
         }
 
         /// <summary>The ghost copy of the objects a transforming command took, dashed in the selection colour, under the transformation the cursor gives.</summary>
@@ -902,8 +1193,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Point from = _panFrom.Value;
                 view.Pan((p.X - from.X) * scale, (p.Y - from.Y) * scale);
                 _panFrom = p;
-                ViewChanged?.Invoke(this, EventArgs.Empty);
-                RequestRender();
+                ViewMoved();
                 return;
             }
 
@@ -920,7 +1210,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 _boxTo = p;
                 Vector moved = p - _boxFrom.Value;
-                _boxing |= Math.Abs(moved.X) > DragPixels || Math.Abs(moved.Y) > DragPixels;
+
+                // A press on an object picks it unless a box may be dragged.
+                _boxing |= (Math.Abs(moved.X) > DragPixels || Math.Abs(moved.Y) > DragPixels) && (SelectByDragging || !_pressOnObject);
 
                 if (_boxing)
                 {
@@ -1302,10 +1594,35 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             StopQueue();
 
+            if (IsSettling)
+            {
+                // The view is moving: the picture follows it and is drawn once the view is still.
+                _renderQueued = false;
+                return;
+            }
+
             if (_renderQueued)
             {
                 RenderNow();
             }
+        }
+
+        /// <summary>
+        /// What the kept picture shows: the display list, which the document makes anew when the drawing or its layers
+        /// change, and the view, the size, the colours and the grid, written out.
+        /// </summary>
+        private sealed class SceneKey
+        {
+            private readonly DisplayList2 _list;
+            private readonly string _numbers;
+
+            public SceneKey(DisplayList2 list, string numbers)
+            {
+                _list = list;
+                _numbers = numbers;
+            }
+
+            public bool Same(SceneKey other) => other != null && ReferenceEquals(_list, other._list) && string.Equals(_numbers, other._numbers, StringComparison.Ordinal);
         }
 
         /// <summary>A grip of a selected entity.</summary>

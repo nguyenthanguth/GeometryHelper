@@ -137,12 +137,15 @@
                                         <CheckBox Grid.Column="2" Style="{StaticResource Check}" IsChecked="{Binding IsOn}" ToolTip="On" />
                                         <CheckBox Grid.Column="3" Style="{StaticResource Check}" IsChecked="{Binding IsFrozen}" ToolTip="Frozen" />
                                         <CheckBox Grid.Column="4" Style="{StaticResource Check}" IsChecked="{Binding IsLocked}" ToolTip="Locked" />
-                                        <DockPanel Grid.Column="5" Margin="8,2">
-                                            <Border Width="12" Height="12" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" Margin="0,0,6,0"
-                                                    Background="{Binding Rgb, Converter={StaticResource RgbBrush}}" VerticalAlignment="Center" />
-                                            <ComboBox Style="{StaticResource GhComboBox}" ItemsSource="{Binding ColorOptions}"
-                                                      SelectedItem="{Binding ColorName, Mode=TwoWay}" ToolTip="Colour" />
-                                        </DockPanel>
+                                        <!-- The colour cell, clicked: AutoCAD's Select Color dialog. -->
+                                        <Button Grid.Column="5" Margin="8,2" Style="{StaticResource GhFlatButton}" HorizontalContentAlignment="Left" Padding="4,3"
+                                                Command="{Binding ChooseColorCommand}" ToolTip="Colour: click to choose one of the index or a true colour">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Border Width="12" Height="12" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" Margin="0,0,6,0"
+                                                        Background="{Binding Rgb, Converter={StaticResource RgbBrush}}" VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding ColorName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                        </Button>
                                         <ComboBox Grid.Column="6" Style="{StaticResource GhComboBox}" Margin="8,2" FontFamily="{StaticResource GhMonoFont}"
                                                   ItemsSource="{Binding LinetypeOptions}" SelectedItem="{Binding Linetype, Mode=TwoWay}" ToolTip="Linetype" />
                                         <ComboBox Grid.Column="7" Style="{StaticResource GhComboBox}" Margin="8,2" FontFamily="{StaticResource GhMonoFont}"

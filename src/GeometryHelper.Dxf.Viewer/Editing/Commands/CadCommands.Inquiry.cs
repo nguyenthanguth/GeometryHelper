@@ -7,9 +7,10 @@ using GeometryHelper.Geometry;
 namespace GeometryHelper.Dxf.Viewer
 {
     /// <summary>
-    /// The inquiry commands: DIST, AREA, ID and LIST, which measure and change nothing, writing what they find on the command
-    /// line in AutoCAD's words: DIST from (0, 0) to (100, 100) writes "Distance = 141.4214,  Angle in XY Plane = 45,  Angle
-    /// from XY Plane = 0" in a drawing whose angles are shown to whole degrees ($AUPREC 0), its angles to that precision.
+    /// The inquiry commands: DIST, AREA (with its Add area and Subtract area modes), ID and LIST, which measure and change
+    /// nothing, writing what they find on the command line in AutoCAD's words: DIST from (0, 0) to (100, 100) writes "Distance
+    /// = 141.4214,  Angle in XY Plane = 45,  Angle from XY Plane = 0" in a drawing whose angles are shown to whole degrees
+    /// ($AUPREC 0), its angles to that precision.
     /// </summary>
     internal static partial class CadCommands
     {
@@ -45,14 +46,65 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>AREA of points picked, closed back to the first, or of a closed object: a circle, a closed polyline, an ellipse.</summary>
+        /// <summary>
+        /// AREA of points picked, closed back to the first, or of a closed object: a circle, a closed polyline, an ellipse; or,
+        /// after Add area or Subtract area, a total each area measured is added to or taken from until Enter: a rectangle 100 by
+        /// 50 added and a circle of radius 10 taken out leave "Total area = 4685.8407".
+        /// </summary>
         private static IEnumerable<CadPrompt> Area(CadCommandContext c)
         {
-            yield return CadPrompt.ForPoint("Specify first corner point", null, new[] { "Object" }, "Object");
+            yield return CadPrompt.ForPoint("Specify first corner point", null, new[] { "Object", "Add area", "Subtract area" }, "Object");
 
-            if (c.Input.Is("Object"))
+            if (!c.Input.Is("Add area") && !c.Input.Is("Subtract area"))
             {
-                yield return CadPrompt.ForEntity("Select objects");
+                foreach (CadPrompt prompt in AreaOf(c, null, null))
+                {
+                    yield return prompt;
+                }
+
+                yield break;
+            }
+
+            double sum = 0.0;
+            bool adding = c.Input.Is("Add area");
+
+            while (true)
+            {
+                yield return CadPrompt.ForPoint("Specify first corner point", null, new[] { "Object", adding ? "Subtract area" : "Add area" });
+
+                if (c.Input.Is("Add area") || c.Input.Is("Subtract area"))
+                {
+                    adding = c.Input.Is("Add area");
+                    continue;
+                }
+
+                if (!c.Input.IsPoint && !c.Input.Is("Object"))
+                {
+                    yield break;
+                }
+
+                foreach (CadPrompt prompt in AreaOf(c, adding ? "ADD" : "SUBTRACT", area =>
+                {
+                    sum += adding ? area : -area;
+                    c.Write("Total area = " + Length(sum));
+                }))
+                {
+                    yield return prompt;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Measures from the answer given to "Specify first corner point": the points that follow it, or with Object the object
+        /// picked; in a mode of AREA (ADD, SUBTRACT) its prompts say so, objects are picked until Enter, and each area is handed on.
+        /// </summary>
+        private static IEnumerable<CadPrompt> AreaOf(CadCommandContext c, string mode, Action<double> measured)
+        {
+            string before = mode == null ? string.Empty : "(" + mode + " mode) ";
+
+            while (c.Input.Is("Object") || (mode != null && c.Input.Kind == CadInputKind.Selection))
+            {
+                yield return CadPrompt.ForEntity(before + "Select objects");
 
                 if (c.Input.Kind != CadInputKind.Selection)
                 {
@@ -62,13 +114,25 @@ namespace GeometryHelper.Dxf.Viewer
                 if (!(c.Document.FindEntity(c.Input.Handles[0]) is DxfCurve curve) || curve is DxfLine || curve is DxfXline || curve is DxfRay)
                 {
                     c.Write("Selected object does not have an area.");
-                    yield break;
+
+                    if (mode == null)
+                    {
+                        yield break;
+                    }
+
+                    continue;
                 }
 
                 double length = curve.GetDistanceAtParameter(curve.EndParam);
                 string around = curve is DxfCircle ? "Circumference" : curve.Closed ? "Perimeter" : "Length";
                 c.Write("Area = " + Length(curve.Closed ? curve.Area : 0.0) + ", " + around + " = " + Length(length));
-                yield break;
+
+                if (mode == null)
+                {
+                    yield break;
+                }
+
+                measured(curve.Closed ? curve.Area : 0.0);
             }
 
             if (!c.Input.IsPoint)
@@ -81,7 +145,7 @@ namespace GeometryHelper.Dxf.Viewer
             while (true)
             {
                 bool total = points.Count >= 3;
-                yield return CadPrompt.ForPoint("Specify next point", points[points.Count - 1], total ? new[] { "Undo", "Total" } : new[] { "Undo" }, total ? "Total" : null);
+                yield return CadPrompt.ForPoint(before + "Specify next point", points[points.Count - 1], total ? new[] { "Undo", "Total" } : new[] { "Undo" }, total ? "Total" : null);
 
                 if (c.Input.IsPoint)
                 {
@@ -117,6 +181,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             c.Write("Area = " + Length(Math.Abs(twice) / 2.0) + ", Perimeter = " + Length(perimeter));
+            measured?.Invoke(Math.Abs(twice) / 2.0);
         }
 
         /// <summary>LIST: each object selected as AutoCAD lists it, its kind, layer, space and handle, then its shape.</summary>

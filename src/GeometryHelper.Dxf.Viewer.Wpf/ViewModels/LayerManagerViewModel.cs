@@ -104,6 +104,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the command that deletes the chosen layer; one in use, the current layer, 0 and Defpoints are refused.</summary>
         public ICommand DeleteCommand { get; }
 
+        /// <summary>
+        /// Gets or sets what shows AutoCAD's Select Color dialog for a row's colour cell, as the window shows
+        /// <see cref="SelectColorWindow"/>: given the dialog's logic, it says whether OK was pressed. Null for none, when the
+        /// cell does nothing.
+        /// </summary>
+        public Func<SelectColorViewModel, bool> PickColor { get; set; }
+
         /// <summary>Adds a layer named Layer1, or the first LayerN the drawing has not, and chooses it.</summary>
         /// <returns>The name added, or null where it was refused.</returns>
         public string NewLayer()
@@ -168,7 +175,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 DxfLayerTableRecord record = Document.Database.LayerTable.Has(layer.Name) ? Document.Database.LayerTable[layer.Name] : null;
                 int index = record == null ? 7 : Math.Abs(record.ColorIndex);
                 DxfLineWeight weight = record == null ? DxfLineWeight.ByLineWeightDefault : record.LineWeight;
-                Rows.Add(new LayerRowViewModel(this, layer, index, weight, string.Equals(layer.Name, current, StringComparison.OrdinalIgnoreCase)));
+                DxfColor color = record == null ? DxfColor.FromColorIndex(DxfColorMethod.ByAci, 7) : record.Color;
+                Rows.Add(new LayerRowViewModel(this, layer, index, color, weight, string.Equals(layer.Name, current, StringComparison.OrdinalIgnoreCase)));
             }
 
             _selected = chosen == null ? null : Rows.FirstOrDefault(r => string.Equals(r.Name, chosen, StringComparison.OrdinalIgnoreCase));
@@ -186,6 +194,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public static string ColorName(int index) => index >= 1 && index <= 7 ? ColorNames[index - 1] : "Color " + index.ToString(CultureInfo.InvariantCulture);
 
         internal void Say(string line) => _say(line);
+
+        /// <summary>Shows Select Color for a row and gives its layer the colour chosen, one undo step; nothing on Cancel.</summary>
+        internal void ChooseColor(LayerRowViewModel row)
+        {
+            var dialog = new SelectColorViewModel(row.Color, false);
+
+            if (PickColor != null && PickColor(dialog) && !dialog.Color.Equals(row.Color))
+            {
+                Done(CadLayerEditor.SetColor(Document, row.Name, dialog.Color));
+            }
+        }
 
         internal bool Done(CadEditResult result)
         {
@@ -215,13 +234,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private readonly int _colorIndex;
         private readonly DxfLineWeight _weight;
 
-        internal LayerRowViewModel(LayerManagerViewModel owner, CadLayerInfo layer, int colorIndex, DxfLineWeight weight, bool isCurrent)
+        internal LayerRowViewModel(LayerManagerViewModel owner, CadLayerInfo layer, int colorIndex, DxfColor color, DxfLineWeight weight, bool isCurrent)
         {
             _owner = owner;
             _layer = layer;
             _colorIndex = colorIndex;
+            Color = color;
             _weight = weight;
             IsCurrent = isCurrent;
+            ChooseColorCommand = new DelegateCommand(_ => _owner.ChooseColor(this));
         }
 
         /// <summary>Gets the name.</summary>
@@ -257,10 +278,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the colour as 0xRRGGBB, the swatch.</summary>
         public int Rgb => _layer.Rgb;
 
-        /// <summary>Gets or sets the colour by name (Red to White) or by AutoCAD's index (1 to 255).</summary>
+        /// <summary>Gets the colour of the layer: one of the index, or a true colour.</summary>
+        public DxfColor Color { get; }
+
+        /// <summary>Gets the command that shows Select Color for the layer, the colour cell clicked, as in AutoCAD's Layer manager.</summary>
+        public ICommand ChooseColorCommand { get; }
+
+        /// <summary>Gets or sets the colour by name (Red to White) or by AutoCAD's index (1 to 255); a true colour reads as its red, green and blue, 10,20,30.</summary>
         public string ColorName
         {
-            get => LayerManagerViewModel.ColorName(_colorIndex);
+            get => Color.IsByColor ? SelectColorViewModel.Text(Color) : LayerManagerViewModel.ColorName(_colorIndex);
             set
             {
                 string typed = (value ?? string.Empty).Trim();

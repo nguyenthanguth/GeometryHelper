@@ -322,6 +322,88 @@ namespace GeometryHelper.Dxf.Viewer
             return items;
         }
 
+        /// <summary>
+        /// Gets the items an entity is drawn as, by their place in <see cref="List"/>, in the order they are drawn: a block
+        /// of 40 lines inserted once gives 40 places. The canvas draws a hovered or selected entity again over the drawing
+        /// from them, without looking at the other items.
+        /// </summary>
+        /// <param name="handle">The handle of the entity.</param>
+        /// <returns>The places, ascending; empty where the entity draws nothing.</returns>
+        public IReadOnlyList<int> IndicesOf(string handle)
+        {
+            return handle != null && _byHandle.TryGetValue(handle, out List<int> group) ? group : (IReadOnlyList<int>)Array.Empty<int>();
+        }
+
+        /// <summary>
+        /// Gets the items whose box meets a box, by their place in <see cref="List"/>, in the order they are drawn, items with
+        /// no handle among them: what the canvas draws of a view. A view of a tenth of a drawing of 100 000 items looks at
+        /// about a tenth of them.
+        /// </summary>
+        /// <param name="box">The box, in drawing units.</param>
+        /// <returns>The places, ascending.</returns>
+        public IReadOnlyList<int> IndicesIn(DisplayBox box)
+        {
+            var found = new List<int>();
+
+            if (box.IsEmpty)
+            {
+                return found;
+            }
+
+            IReadOnlyList<DisplayItem2> items = _list.Items;
+
+            if (box.Contains(_list.Bounds))
+            {
+                for (int i = 0; i < items.Count; i++)
+                {
+                    if (items[i].Bounds.Intersects(box))
+                    {
+                        found.Add(i);
+                    }
+                }
+
+                return found;
+            }
+
+            var seen = new bool[items.Count];
+
+            foreach (int i in _large)
+            {
+                if (!seen[i] && items[i].Bounds.Intersects(box))
+                {
+                    seen[i] = true;
+                    found.Add(i);
+                }
+            }
+
+            CellRange(box, out int ix0, out int iy0, out int ix1, out int iy1);
+
+            for (int iy = iy0; iy <= iy1; iy++)
+            {
+                for (int ix = ix0; ix <= ix1; ix++)
+                {
+                    List<int> cell = _cells[iy * _n + ix];
+
+                    if (cell == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (int i in cell)
+                    {
+                        if (!seen[i] && items[i].Bounds.Intersects(box))
+                        {
+                            seen[i] = true;
+                            found.Add(i);
+                        }
+                    }
+                }
+            }
+
+            found.Sort();
+            return found;
+        }
+
         private IEnumerable<int> Candidates(DisplayBox box)
         {
             var seen = new HashSet<int>();

@@ -99,5 +99,38 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(3, changes);
             Assert.Equal(0, selection.Count);
         }
+
+        [Fact]
+        public void TheItemsInABoxComeInDrawingOrderAndAreThoseEveryItemsBoxWouldGive()
+        {
+            // 900 lines and circles on a grid 30 apart, and a line across them all, which the index keeps aside as large.
+            var entities = new System.Collections.Generic.List<string>();
+
+            for (int i = 0; i < 900; i++)
+            {
+                double x = (i % 30) * 30.0;
+                double y = (i / 30) * 30.0;
+                entities.Add(i % 2 == 0 ? TestDrawings.Line(x, y, x + 20, y + 5) : TestDrawings.Circle(x + 10, y + 10, 4));
+            }
+
+            entities.Add(TestDrawings.Line(-10, -10, 900, 900, handle: "BIG"));
+            PickIndex index = Index(entities.ToArray());
+            var random = new Random(3);
+
+            for (int k = 0; k < 200; k++)
+            {
+                double x0 = random.NextDouble() * 1000 - 50;
+                double y0 = random.NextDouble() * 1000 - 50;
+                var box = new DisplayBox(x0, y0, x0 + random.NextDouble() * 300, y0 + random.NextDouble() * 300);
+                int[] expected = Enumerable.Range(0, index.List.Count).Where(i => index.List.Items[i].Bounds.Intersects(box)).ToArray();
+
+                Assert.Equal(expected, index.IndicesIn(box));
+            }
+
+            // A box over everything gives every item; each entity's own items come back by its handle.
+            Assert.Equal(Enumerable.Range(0, index.List.Count), index.IndicesIn(index.List.Bounds.Inflate(1)));
+            Assert.Equal(new[] { index.List.Count - 1 }, index.IndicesOf("BIG"));
+            Assert.Empty(index.IndicesOf("NONE"));
+        }
     }
 }

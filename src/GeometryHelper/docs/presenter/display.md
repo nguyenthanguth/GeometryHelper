@@ -128,6 +128,7 @@ with its display list.
 | Call | Gives |
 |---|---|
 | `Pick(x, y, tolerance)` | the handles of the entities drawn within `tolerance` of the point, the nearest first, a tie by handle |
+| `IndicesIn(box)` | the places of the items whose box meets the box, in drawing order: what the canvas draws of a view |
 | `Window(box)` | the entities drawn wholly inside the box, as a window selection takes them |
 | `Crossing(box)` | the entities that cross or lie in the box, as a crossing selection takes them |
 | `ItemsNear(box)` | the items whose box meets the box, in drawing order, as object snaps ask for what lies under the aperture |
@@ -158,8 +159,8 @@ document.Selection.Changed += (s, e) => { /* Properties and grips follow */ };
 ```
 
 `Add`, `Remove`, `Toggle`, `Set` and `Clear` raise `Changed` only when the set changes. On the canvas a click picks within the
-pickbox, Shift+click toggles, a click on nothing clears, a box dragged left to right is a window and one dragged right to
-left a crossing (see [Settings, autosave and the window](app.md#the-keys-and-the-mouse)).
+pickbox, Shift+click toggles, and a click on nothing starts a box that the next click ends: left to right a window, right to left
+a crossing, Esc dropping it (Select by dragging in Global settings lets it be dragged too) (see [Settings, autosave and the window](app.md#the-keys-and-the-mouse)).
 
 ## See also
 

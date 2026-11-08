@@ -149,6 +149,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         {
             OnCanvas((model, canvas, bottom, column) =>
             {
+                // A box is dragged only with Select by dragging on, as AutoCAD's PICKDRAG 1; off, it is clicked at both corners.
+                canvas.SelectByDragging = true;
                 Drag(canvas, At(canvas, 2150, 1450), At(canvas, 1950, 1550));
 
                 Assert.Equal(new[] { column }, model.Document.Selection.Handles);

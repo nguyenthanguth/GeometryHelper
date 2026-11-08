@@ -741,6 +741,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     Info("Window, left to right", "On"),
                     Info("Crossing, right to left", "On"),
                     Info("Select first, then command", "On"),
+                    Toggle("Select by dragging", () => s.SelectByDragging, v => s.SelectByDragging = v),
                 }),
                 new GlobalSettingSection("Object snaps", new[]
                 {
@@ -748,6 +749,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         () => (s.Snaps & m) != 0, on => { s.Snaps = on ? s.Snaps | m : s.Snaps & ~m; Changed(); })).ToList()),
                     Number("Aperture", "px", () => s.AperturePixels, v => s.AperturePixels = Whole(v)),
                     Toggle("F3 toggles snaps", () => s.F3TogglesSnaps, v => s.F3TogglesSnaps = v),
+                }),
+                new GlobalSettingSection("Input", new[]
+                {
+                    Toggle("Dynamic input at the cursor (DYN, F12)", () => s.DynamicInput, v => s.DynamicInput = v),
+                    Info("Command line", "Ctrl+9 shows or hides it"),
                 }),
             };
 

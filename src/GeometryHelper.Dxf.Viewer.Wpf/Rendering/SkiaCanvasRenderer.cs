@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using SkiaSharp;
 
 namespace GeometryHelper.Dxf.Viewer.Wpf
@@ -20,10 +21,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets or sets whether line weights are drawn; off, every line is one pixel wide, as AutoCAD shows a drawing with lineweights hidden.</summary>
         public bool ShowLineWeights { get; set; }
 
-        /// <summary>Gets or sets the handles of the selected entities; may be null.</summary>
+        /// <summary>Gets or sets the handles of the selected entities, drawn in the selection colour and at least 2 pixels wide; may be null.</summary>
         public IReadOnlyCollection<string> Selected { get; set; }
 
-        /// <summary>Gets or sets the handle of the entity under the cursor, drawn lighter; may be null.</summary>
+        /// <summary>
+        /// Gets or sets the handle of the entity under the cursor, drawn at least 2 pixels wide in its colour taken halfway to
+        /// the selection colour, so that a white line under the cursor turns a light blue; may be null.
+        /// </summary>
         public string Hover { get; set; }
 
         /// <summary>Gets or sets the name of the font the text is drawn in.</summary>
@@ -48,10 +52,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <summary>
     /// Draws a display list onto a SkiaSharp canvas: lines, arcs flattened to the pixel, fills, text, and the viewports of
     /// a layout clipped to their frames. It draws what the list holds and asks nothing of the drawing, so it can draw to
-    /// a window's bitmap or to a PNG for a test.
+    /// a window's bitmap or to a PNG for a test. It draws only the items the view shows, found through the space's
+    /// <see cref="PickIndex"/>, and spares the detail no eye could see: an item under half a pixel is one pixel of its colour,
+    /// a text under 3 pixels high is left out, and a hatch whose lines come closer than 2 pixels is filled with a tint of
+    /// its colour. A selected or hovered entity is always drawn whole.
     /// </summary>
     public sealed class SkiaCanvasRenderer : IDisposable
     {
+        /// <summary>An item whose box is smaller than this many pixels each way is drawn as one pixel.</summary>
+        private const double TinyPixels = 0.5;
+
+        /// <summary>A text less than this many pixels high is not drawn.</summary>
+        private const double LeastTextPixels = 3.0;
+
+        /// <summary>A hatch whose lines come closer than this many pixels is filled with a tint.</summary>
+        private const double DenseHatchPixels = 2.0;
+
+        private static readonly ConditionalWeakTable<DisplaySegments2, double[]> SpacingsOf = new ConditionalWeakTable<DisplaySegments2, double[]>();
+
         private readonly Dictionary<string, SKTypeface> _faces = new Dictionary<string, SKTypeface>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>Draws a space of a document.</summary>
@@ -61,6 +79,90 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="view">What part of it is shown and at what zoom.</param>
         /// <param name="options">How to draw it.</param>
         public void Render(SKCanvas canvas, CadDocument document, CadSpace space, CadView view, CanvasOptions options)
+        {
+            options = options ?? new CanvasOptions();
+            Draw(canvas, document, space, view, options, options.Selected, options.Hover);
+        }
+
+        /// <summary>
+        /// Draws a space with nothing selected or hovered: the scene the canvas keeps and draws its highlights over, so that a
+        /// change of the entity under the cursor costs the entity, not the drawing.
+        /// </summary>
+        internal void RenderScene(SKCanvas canvas, CadDocument document, CadSpace space, CadView view, CanvasOptions options)
+        {
+            Draw(canvas, document, space, view, options ?? new CanvasOptions(), null, null);
+        }
+
+        /// <summary>
+        /// Draws entities highlighted over what the canvas holds, as <see cref="Render"/> draws them selected or hovered: only
+        /// their items, in the order of the drawing. A viewport is drawn by its frame and a wipeout by its outline, so that
+        /// neither covers what was drawn over it.
+        /// </summary>
+        /// <param name="canvas">The canvas holding the scene.</param>
+        /// <param name="document">The document.</param>
+        /// <param name="space">The space shown.</param>
+        /// <param name="view">The view the scene was drawn at.</param>
+        /// <param name="options">How the scene was drawn.</param>
+        /// <param name="handles">The entities.</param>
+        /// <param name="hover">True to draw them as hovered, false as selected.</param>
+        internal void RenderHighlight(SKCanvas canvas, CadDocument document, CadSpace space, CadView view, CanvasOptions options, IReadOnlyCollection<string> handles, bool hover)
+        {
+            if (handles == null || handles.Count == 0)
+            {
+                return;
+            }
+
+            PickIndex index = document.GetPickIndex(space);
+            var places = new List<int>();
+
+            foreach (string handle in handles)
+            {
+                places.AddRange(index.IndicesOf(handle));
+            }
+
+            places.Sort();
+            Affine2 m = view.DrawingToScreen;
+            double zoom = m.Scale;
+            DisplayBox visible = view.VisibleBox;
+            int background = space.IsModel ? options.Background : options.Paper;
+
+            if (zoom <= 0.0)
+            {
+                return;
+            }
+
+            using (var stroke = new SKPaint { IsStroke = true, IsAntialias = true, StrokeCap = SKStrokeCap.Butt, StrokeJoin = SKStrokeJoin.Miter })
+            using (var fill = new SKPaint { IsStroke = false, IsAntialias = true })
+            {
+                for (int k = 0; k < places.Count; k++)
+                {
+                    DisplayItem2 item = index.List.Items[places[k]];
+
+                    if ((k > 0 && places[k] == places[k - 1]) || !item.Bounds.Intersects(visible))
+                    {
+                        continue;
+                    }
+
+                    if (item is DisplayViewport2 || (item is DisplayFill2 area && area.IsMask))
+                    {
+                        stroke.Color = ColorOf(item, options, !hover, hover, background);
+                        stroke.StrokeWidth = 2f;
+                        IReadOnlyList<double[]> rings = item is DisplayFill2 mask ? mask.Rings : new[] { Frame(item.Bounds) };
+
+                        using (SKPath path = RingsPath(rings, m))
+                        {
+                            canvas.DrawPath(path, stroke);
+                        }
+
+                        continue;
+                    }
+
+                    DrawItem(canvas, document, item, m, zoom, options, stroke, fill, !hover, hover, background);
+                }
+            }
+        }
+
+        private void Draw(SKCanvas canvas, CadDocument document, CadSpace space, CadView view, CanvasOptions options, IReadOnlyCollection<string> selection, string hover)
         {
             if (canvas == null)
             {
@@ -72,7 +174,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 throw new ArgumentNullException(nameof(document));
             }
 
-            options = options ?? new CanvasOptions();
             canvas.Clear(Color(options.Background, 255));
             DisplayList2 list = document.GetDisplay(space);
             Affine2 m = view.DrawingToScreen;
@@ -82,9 +183,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 DrawPaper(canvas, space.PaperBounds, m, options);
             }
 
-            var selected = options.Selected == null ? null : new HashSet<string>(options.Selected, StringComparer.OrdinalIgnoreCase);
-            DrawList(canvas, list, m, view.VisibleBox, options, selected, null, space.IsModel ? options.Background : options.Paper);
+            var selected = selection == null ? null : new HashSet<string>(selection, StringComparer.OrdinalIgnoreCase);
+            DrawList(canvas, document, space, list, m, view.VisibleBox, options, selected, hover, null, space.IsModel ? options.Background : options.Paper);
         }
+
+        /// <summary>The ring of a box, its four corners.</summary>
+        private static double[] Frame(DisplayBox box) => new[] { box.MinX, box.MinY, box.MaxX, box.MinY, box.MaxX, box.MaxY, box.MinX, box.MaxY };
 
         /// <summary>Releases the typefaces.</summary>
         public void Dispose()
@@ -144,7 +248,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        private void DrawList(SKCanvas canvas, DisplayList2 list, Affine2 m, DisplayBox visible, CanvasOptions options, HashSet<string> selected, ISet<string> frozen, int background)
+        /// <summary>
+        /// The items of a list the view shows, in the order of the list: through the space's pick index where the list is one
+        /// the document indexes, else by looking at each. Items under half a pixel are gathered into runs of single pixels of
+        /// one colour, each run drawn before the next item larger than that, so the order holds.
+        /// </summary>
+        private void DrawList(SKCanvas canvas, CadDocument document, CadSpace model, DisplayList2 list, Affine2 m, DisplayBox visible, CanvasOptions options, HashSet<string> selected, string hover, ISet<string> frozen, int background)
         {
             double zoom = m.Scale;
 
@@ -153,12 +262,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
+            IReadOnlyList<DisplayItem2> items = list.Items;
+            IReadOnlyList<int> shown = IndexOf(document, list, model)?.IndicesIn(visible);
+            int count = shown?.Count ?? items.Count;
+
             using (var stroke = new SKPaint { IsStroke = true, IsAntialias = true, StrokeCap = SKStrokeCap.Butt, StrokeJoin = SKStrokeJoin.Miter })
             using (var fill = new SKPaint { IsStroke = false, IsAntialias = true })
+            using (var dots = new Dots())
             {
-                foreach (DisplayItem2 item in list.Items)
+                for (int k = 0; k < count; k++)
                 {
-                    if (!item.Bounds.Intersects(visible))
+                    DisplayItem2 item = items[shown == null ? k : shown[k]];
+
+                    if (shown == null && !item.Bounds.Intersects(visible))
                     {
                         continue;
                     }
@@ -169,33 +285,88 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     }
 
                     bool isSelected = selected != null && item.Handle != null && selected.Contains(item.Handle);
-                    bool isHover = options.Hover != null && string.Equals(item.Handle, options.Hover, StringComparison.OrdinalIgnoreCase);
-                    DrawItem(canvas, item, m, zoom, options, stroke, fill, isSelected, isHover, background);
+                    bool isHover = hover != null && string.Equals(item.Handle, hover, StringComparison.OrdinalIgnoreCase);
+
+                    if (!isSelected && !isHover && IsTiny(item, zoom))
+                    {
+                        // A text or a wipeout that small shows nothing; anything else one pixel of its colour.
+                        if (!(item is DisplayText2) && !(item is DisplayFill2 area && area.IsMask))
+                        {
+                            DisplayBox b = item.Bounds;
+                            double cx = (b.MinX + b.MaxX) / 2.0;
+                            double cy = (b.MinY + b.MaxY) / 2.0;
+                            dots.Add(canvas, (float)m.X(cx, cy), (float)m.Y(cx, cy), ColorOf(item, options, false, false, background));
+                        }
+
+                        continue;
+                    }
+
+                    dots.Flush(canvas);
+                    DrawItem(canvas, document, item, m, zoom, options, stroke, fill, isSelected, isHover, background);
                 }
+
+                dots.Flush(canvas);
             }
         }
 
-        private void DrawItem(SKCanvas canvas, DisplayItem2 item, Affine2 m, double zoom, CanvasOptions options, SKPaint stroke, SKPaint fill, bool isSelected, bool isHover, int background)
+        /// <summary>The pick index of the list of a space the document keeps, model space's for a viewport's; null for a list it no longer keeps.</summary>
+        private static PickIndex IndexOf(CadDocument document, DisplayList2 list, CadSpace space)
+        {
+            if (document == null || space == null)
+            {
+                return null;
+            }
+
+            PickIndex index = document.GetPickIndex(space);
+            return ReferenceEquals(index.List, list) ? index : null;
+        }
+
+        /// <summary>Whether an item is under half a pixel each way; a point, drawn as a dot of 3 pixels, and a viewport never are.</summary>
+        private static bool IsTiny(DisplayItem2 item, double zoom)
+        {
+            if (item is DisplayViewport2 || (item is DisplayPolyline2 chain && chain.Count == 1))
+            {
+                return false;
+            }
+
+            DisplayBox b = item.Bounds;
+            return Math.Max(b.Width, b.Height) * zoom < TinyPixels;
+        }
+
+        /// <summary>
+        /// The colour an item is drawn in: its own, the hidden lines' on their layer, turned to show on the background; the
+        /// selection colour when selected; its own taken halfway to the selection colour when under the cursor.
+        /// </summary>
+        private static SKColor ColorOf(DisplayItem2 item, CanvasOptions options, bool isSelected, bool isHover, int background)
         {
             int own = options.HiddenLineColor.HasValue && item.Layer != null && string.Equals(item.Layer, options.HiddenLayerName, StringComparison.OrdinalIgnoreCase)
                 ? options.HiddenLineColor.Value
                 : item.Style.Rgb;
             int rgb = isSelected ? options.SelectionColor : Visible(own, background, options.VisibleLineColor);
-            byte alpha = isHover && !isSelected ? (byte)170 : (byte)255;
-            SKColor color = Color(rgb, alpha);
+
+            if (isHover && !isSelected)
+            {
+                int s = options.SelectionColor;
+                rgb = ((((rgb >> 16) & 0xFF) + ((s >> 16) & 0xFF)) / 2 << 16) | ((((rgb >> 8) & 0xFF) + ((s >> 8) & 0xFF)) / 2 << 8) | (((rgb & 0xFF) + (s & 0xFF)) / 2);
+            }
+
+            return Color(rgb, 255);
+        }
+
+        private void DrawItem(SKCanvas canvas, CadDocument document, DisplayItem2 item, Affine2 m, double zoom, CanvasOptions options, SKPaint stroke, SKPaint fill, bool isSelected, bool isHover, int background)
+        {
+            // A selected or hovered entity is only coloured and thickened: its own dashes stay, as AutoCAD keeps a linetype
+            // when it highlights.
+            SKColor color = ColorOf(item, options, isSelected, isHover, background);
             float width = options.ShowLineWeights ? (float)Math.Max(1.0, item.Style.LineWeight * 96.0 / 25.4) : 1f;
             stroke.Color = color;
             stroke.StrokeWidth = isSelected || isHover ? Math.Max(width, 2f) : width;
             stroke.PathEffect = null;
             double[] dashes = item.Style.Dashes;
 
-            if (dashes != null && dashes.Length > 0 && !isSelected)
+            if (dashes != null && dashes.Length > 0)
             {
                 stroke.PathEffect = DashEffect(dashes, zoom);
-            }
-            else if (isSelected)
-            {
-                stroke.PathEffect = SKPathEffect.CreateDash(new[] { 6f, 4f }, 0f);
             }
 
             switch (item)
@@ -204,19 +375,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     DrawChain(canvas, chain, m, stroke, fill, color);
                     break;
                 case DisplaySegments2 segments:
-                    DrawSegments(canvas, segments, m, stroke);
+                    DrawSegments(canvas, segments, m, zoom, stroke, fill, color);
                     break;
                 case DisplayArc2 arc:
                     DrawArc(canvas, arc, m, zoom, stroke);
                     break;
                 case DisplayFill2 area:
-                    DrawFill(canvas, area, m, fill, options, background, item.Style.Rgb, isSelected, color);
+                    DrawFill(canvas, area, m, fill, options, background, item.Style.Rgb, isSelected || isHover, color);
                     break;
                 case DisplayText2 text:
                     DrawText(canvas, text, m, zoom, fill, color, options);
                     break;
                 case DisplayViewport2 viewport:
-                    DrawViewport(canvas, viewport, m, options, stroke, background, isSelected);
+                    DrawViewport(canvas, document, viewport, m, options, stroke, background, isSelected);
                     break;
             }
 
@@ -275,8 +446,35 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        private static void DrawSegments(SKCanvas canvas, DisplaySegments2 segments, Affine2 m, SKPaint stroke)
+        /// <summary>
+        /// The lines of a hatch's pattern; where in every direction they run they come closer than 2 pixels, the hatch's
+        /// loops filled with its colour as thin as the lines would cover them: lines 1 pixel wide 1.6 apart one way fill 62
+        /// per cent, a grid of them both ways 86.
+        /// </summary>
+        private static void DrawSegments(SKCanvas canvas, DisplaySegments2 segments, Affine2 m, double zoom, SKPaint stroke, SKPaint fill, SKColor color)
         {
+            double[] spacings = segments.Rings.Count > 0 ? Spacings(segments) : null;
+            double widest = 0.0;
+            double bare = 1.0;
+
+            foreach (double spacing in spacings ?? Array.Empty<double>())
+            {
+                widest = Math.Max(widest, spacing * zoom);
+                bare *= 1.0 - Math.Min(1.0, stroke.StrokeWidth / (spacing * zoom));
+            }
+
+            if (widest > 0.0 && widest < DenseHatchPixels)
+            {
+                fill.Color = color.WithAlpha((byte)Math.Round(color.Alpha * (1.0 - bare)));
+
+                using (SKPath path = RingsPath(segments.Rings, m))
+                {
+                    canvas.DrawPath(path, fill);
+                }
+
+                return;
+            }
+
             IReadOnlyList<double> xy = segments.Xy;
 
             using (var builder = new SKPathBuilder())
@@ -327,11 +525,112 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        private static void DrawFill(SKCanvas canvas, DisplayFill2 area, Affine2 m, SKPaint fill, CanvasOptions options, int background, int styleRgb, bool isSelected, SKColor color)
+        /// <summary>
+        /// The mean distance between the lines of a hatch's pattern in each direction they run, to the nearest degree, that
+        /// holds a twentieth of their length at least: the area of the loops over the length of the lines that way, worked out
+        /// once per hatch. A grid of lines 3 apart both ways over a square 300 by 300 gives 3 and 3; a dash of a tenth of the
+        /// length gives a direction of its own, as far apart as its dashes are thin.
+        /// </summary>
+        private static double[] Spacings(DisplaySegments2 segments)
+        {
+            return SpacingsOf.GetValue(segments, s =>
+            {
+                IReadOnlyList<double> xy = s.Xy;
+                var lengths = new double[180];
+                double total = 0.0;
+
+                for (int i = 0; i + 3 < xy.Count; i += 4)
+                {
+                    double dx = xy[i + 2] - xy[i];
+                    double dy = xy[i + 3] - xy[i + 1];
+                    double length = Math.Sqrt(dx * dx + dy * dy);
+                    int degree = ((int)Math.Round(Math.Atan2(dy, dx) * 180.0 / Math.PI) % 180 + 180) % 180;
+                    lengths[degree] += length;
+                    total += length;
+                }
+
+                double area = RingsArea(s.Rings);
+                var spacings = new List<double>();
+
+                for (int degree = 0; degree < 180; degree++)
+                {
+                    if (lengths[degree] > 0.0 && lengths[degree] >= total / 20.0)
+                    {
+                        spacings.Add(area / lengths[degree]);
+                    }
+                }
+
+                return spacings.ToArray();
+            });
+        }
+
+        /// <summary>
+        /// The area rings fill even-odd: a ring inside an odd number of others is a hole. A square 100 by 100 with a column
+        /// 10 by 10 inside it fills 9 900.
+        /// </summary>
+        private static double RingsArea(IReadOnlyList<double[]> rings)
+        {
+            double area = 0.0;
+
+            for (int i = 0; i < rings.Count; i++)
+            {
+                double[] ring = rings[i];
+                int n = ring.Length / 2;
+
+                if (n < 3)
+                {
+                    continue;
+                }
+
+                double twice = 0.0;
+
+                for (int k = 0; k < n; k++)
+                {
+                    int next = (k + 1) % n;
+                    twice += ring[2 * k] * ring[2 * next + 1] - ring[2 * next] * ring[2 * k + 1];
+                }
+
+                int depth = 0;
+
+                for (int j = 0; j < rings.Count; j++)
+                {
+                    depth += j != i && rings[j].Length >= 6 && Inside(rings[j], ring[0], ring[1]) ? 1 : 0;
+                }
+
+                area += (depth % 2 == 0 ? 0.5 : -0.5) * Math.Abs(twice);
+            }
+
+            return Math.Max(area, 0.0);
+        }
+
+        /// <summary>Whether a point lies inside a ring, by the crossings of a ray to the right.</summary>
+        private static bool Inside(double[] ring, double x, double y)
+        {
+            bool inside = false;
+            int n = ring.Length / 2;
+
+            for (int k = 0, prev = n - 1; k < n; prev = k++)
+            {
+                double xk = ring[2 * k];
+                double yk = ring[2 * k + 1];
+                double xp = ring[2 * prev];
+                double yp = ring[2 * prev + 1];
+
+                if ((yk > y) != (yp > y) && x < (xp - xk) * (y - yk) / (yp - yk) + xk)
+                {
+                    inside = !inside;
+                }
+            }
+
+            return inside;
+        }
+
+        /// <summary>The rings of a fill as one path on the screen, filled even-odd so that a ring inside another is a hole.</summary>
+        private static SKPath RingsPath(IReadOnlyList<double[]> rings, Affine2 m)
         {
             using (var builder = new SKPathBuilder { FillType = SKPathFillType.EvenOdd })
             {
-                foreach (double[] ring in area.Rings)
+                foreach (double[] ring in rings)
                 {
                     int n = ring.Length / 2;
 
@@ -350,9 +649,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     builder.Close();
                 }
 
-                fill.Color = area.IsMask ? Color(options.Paper == 0 ? background : background, 255) : (isSelected ? new SKColor(color.Red, color.Green, color.Blue, 140) : color);
-                using (SKPath path = builder.Detach()) canvas.DrawPath(path, fill);
+                return builder.Detach();
             }
+        }
+
+        private static void DrawFill(SKCanvas canvas, DisplayFill2 area, Affine2 m, SKPaint fill, CanvasOptions options, int background, int styleRgb, bool isSelected, SKColor color)
+        {
+            fill.Color = area.IsMask ? Color(options.Paper == 0 ? background : background, 255) : (isSelected ? new SKColor(color.Red, color.Green, color.Blue, 140) : color);
+            using (SKPath path = RingsPath(area.Rings, m)) canvas.DrawPath(path, fill);
         }
 
         /// <summary>
@@ -393,7 +697,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             double heightPx = text.Height * zoom;
 
-            if (heightPx < 2.5)
+            if (heightPx < LeastTextPixels)
             {
                 return;
             }
@@ -437,7 +741,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        private void DrawViewport(SKCanvas canvas, DisplayViewport2 viewport, Affine2 m, CanvasOptions options, SKPaint stroke, int background, bool isSelected)
+        private void DrawViewport(SKCanvas canvas, CadDocument document, DisplayViewport2 viewport, Affine2 m, CanvasOptions options, SKPaint stroke, int background, bool isSelected)
         {
             float x0 = (float)m.X(viewport.Bounds.MinX, viewport.Bounds.MaxY);
             float y0 = (float)m.Y(viewport.Bounds.MinX, viewport.Bounds.MaxY);
@@ -454,7 +758,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             double halfH = viewport.Height / 2.0 / viewport.Scale;
             double reach = Math.Sqrt(halfW * halfW + halfH * halfH);
             var visible = new DisplayBox(viewport.ViewCenterX - reach, viewport.ViewCenterY - reach, viewport.ViewCenterX + reach, viewport.ViewCenterY + reach);
-            DrawList(canvas, viewport.Model, inner, visible, options, null, viewport.FrozenLayers, paperBackground);
+            DrawList(canvas, document, document?.ModelSpace, viewport.Model, inner, visible, options, null, null, viewport.FrozenLayers, paperBackground);
             canvas.Restore();
 
             if (cos == 0.0 && sin == 0.0)
@@ -465,6 +769,42 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             stroke.Color = isSelected ? Color(options.SelectionColor, 255) : Color(Visible(0x808080, paperBackground), 255);
             stroke.StrokeWidth = isSelected ? 2f : 1f;
             canvas.DrawRect(x0, y0, x1 - x0, y1 - y0, stroke);
+        }
+
+        /// <summary>
+        /// Single pixels of one colour gathered from items too small to draw, drawn in one call when the colour changes or a
+        /// larger item comes: 50 000 items of a sheet shown whole cost a few calls, not 50 000 paths.
+        /// </summary>
+        private sealed class Dots : IDisposable
+        {
+            private readonly List<SKPoint> _points = new List<SKPoint>();
+            private readonly SKPaint _paint = new SKPaint { IsAntialias = false, IsStroke = true, StrokeWidth = 0f };
+            private SKColor _color;
+
+            public void Add(SKCanvas canvas, float x, float y, SKColor color)
+            {
+                if (_points.Count > 0 && color != _color)
+                {
+                    Flush(canvas);
+                }
+
+                _color = color;
+                _points.Add(new SKPoint(x, y));
+            }
+
+            public void Flush(SKCanvas canvas)
+            {
+                if (_points.Count == 0)
+                {
+                    return;
+                }
+
+                _paint.Color = _color;
+                canvas.DrawPoints(SKPointMode.Points, _points.ToArray(), _paint);
+                _points.Clear();
+            }
+
+            public void Dispose() => _paint.Dispose();
         }
     }
 }

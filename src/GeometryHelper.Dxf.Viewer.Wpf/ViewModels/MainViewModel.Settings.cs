@@ -101,6 +101,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _settings = (settings ?? throw new ArgumentNullException(nameof(settings))).Clone();
             Snap.Modes = _settings.Snaps;
             Toggles.First(t => t.Name == "GRID").IsOn = _settings.Grid;
+            DynamicInput.IsOn = _settings.DynamicInput;
 
             foreach (KnownFile file in _files.Values.Where(f => f.Session != null))
             {
@@ -208,7 +209,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Runs what a key pressed is given in the shortcuts, as "Ctrl+1": a toggle of the status bar, or a command started on the
-        /// command line; nothing for a key given nothing.
+        /// command line; nothing for a key given nothing, but Ctrl+9, which shows or hides the command line as in AutoCAD.
         /// </summary>
         /// <param name="gesture">The key, as the shortcuts write it: Ctrl+1, F3, Ctrl+Shift+P.</param>
         /// <returns>Whether the key was given something, and it ran.</returns>
@@ -218,10 +219,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (string.IsNullOrEmpty(gesture) || !keys.TryGetValue(gesture, out string target))
             {
+                if (string.Equals(gesture, "Ctrl+9", StringComparison.OrdinalIgnoreCase))
+                {
+                    IsCommandLineShown = !IsCommandLineShown;
+                    return true;
+                }
+
                 return false;
             }
 
-            StatusToggleViewModel toggle = Toggles.FirstOrDefault(t => string.Equals(t.Name, target, StringComparison.OrdinalIgnoreCase));
+            StatusToggleViewModel toggle = FindToggle(target);
 
             if (toggle != null)
             {

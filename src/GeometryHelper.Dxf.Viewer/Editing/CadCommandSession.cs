@@ -54,6 +54,7 @@ namespace GeometryHelper.Dxf.Viewer
         private IEnumerator<CadPrompt> _body;
         private CadCommandContext _context;
         private bool _grouped;
+        private List<string> _script;
 
         /// <summary>Makes the command line of a document.</summary>
         /// <param name="document">The document.</param>
@@ -607,6 +608,37 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             Changed();
+            List<string> script = _script;
+            _script = null;
+
+            if (script != null && outcome == CadCommandOutcome.Completed)
+            {
+                RunScript(script);
+            }
+        }
+
+        /// <summary>Keeps the lines of a script for the end of the SCRIPT that read them, which feeds them then.</summary>
+        internal void QueueScript(List<string> lines) => _script = lines;
+
+        /// <summary>
+        /// Feeds each line of a script as typed and Enter pressed, a blank one as Enter and one that starts with a semicolon
+        /// passed over as a comment, stopping at the first refused with the number of its line in the file.
+        /// </summary>
+        private void RunScript(List<string> lines)
+        {
+            for (int i = 0; i < lines.Count; i++)
+            {
+                if (lines[i].TrimStart().StartsWith(";", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                if (!Feed(lines[i]))
+                {
+                    Write("Script stopped at line " + (i + 1).ToString(CultureInfo.InvariantCulture) + ": " + lines[i].Trim());
+                    return;
+                }
+            }
         }
 
         private void Changed() => PromptChanged?.Invoke(this, EventArgs.Empty);

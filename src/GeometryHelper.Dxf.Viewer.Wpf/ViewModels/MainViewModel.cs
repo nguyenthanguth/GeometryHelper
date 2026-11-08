@@ -34,7 +34,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private const int HistoryShown = 3;
         private static readonly NumberFormatInfo Spaced = new NumberFormatInfo { NumberGroupSeparator = " ", NumberDecimalSeparator = "." };
-        private static readonly string[] ColorOptions = { "ByLayer", "ByBlock", "Red", "Yellow", "Green", "Cyan", "Blue", "Magenta", "White" };
+        private static readonly string[] ColorOptions = { "ByLayer", "ByBlock", "Red", "Yellow", "Green", "Cyan", "Blue", "Magenta", "White", SelectColorOption };
 
         private static readonly string[] WeightOptions =
         {
@@ -88,6 +88,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             ApplyToggles();
+            DynamicInput = new StatusToggleViewModel("DYN", _settings.DynamicInput);
+            DynamicInput.PropertyChanged += OnDynamicInputChanged;
+            PropertyChanged += OnInputSourceChanged;
             ZoomExtentsCommand = new DelegateCommand(_ => Execute("ZOOM E"));
             PanCommand = new DelegateCommand(_ => StartCommand("PAN"));
             OpenCommand = new DelegateCommand(_ => OpenRequested?.Invoke(this, EventArgs.Empty));
@@ -1070,7 +1073,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Sets the coordinates the status bar shows.</summary>
         /// <param name="x">The X of the drawing point under the cursor.</param>
         /// <param name="y">The Y.</param>
-        public void SetCursor(double x, double y) => CursorText = "X " + _settings.FormatNumber(x, _settings.CoordinateDecimals) + "   Y " + _settings.FormatNumber(y, _settings.CoordinateDecimals);
+        public void SetCursor(double x, double y)
+        {
+            _cursorAt = new GeoPoint2(x, y);
+            CursorText = "X " + _settings.FormatNumber(x, _settings.CoordinateDecimals) + "   Y " + _settings.FormatNumber(y, _settings.CoordinateDecimals);
+        }
 
         /// <summary>Formats a whole number as the design writes it, thousands set apart by a space: 2 418.</summary>
         /// <param name="value">The number.</param>
@@ -1230,6 +1237,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (!_current.Session.IsRunning && (_current.Session.LastCommandName == "ZOOM" || _current.Session.LastCommandName == "PAN"))
             {
                 NotifyViewChangedByUser();
+            }
+
+            // LAYOUT Set shows another space from the command line: the tabs follow, as a tab clicked.
+            if (SpaceTabs.Any(t => t.IsActive != (t.Space == _current.Document.CurrentSpace)))
+            {
+                foreach (SpaceTabViewModel tab in SpaceTabs)
+                {
+                    tab.IsActive = tab.Space == _current.Document.CurrentSpace;
+                }
+
+                RaiseSpace();
             }
 
             Revision++;
@@ -1563,6 +1581,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return false;
             }
 
+            if (label == "Color" && text == SelectColorOption)
+            {
+                return PickPropertyColor(handles);
+            }
+
             CadEditResult result = CadPropertyEditor.Set(_current.Document, handles, label, text);
 
             if (!result.Succeeded)
@@ -1571,6 +1594,33 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             return result.Succeeded;
+        }
+
+        /// <summary>
+        /// "Select Color..." of the Color row: AutoCAD's Select Color dialog on the colour of the selection, ByLayer and ByBlock
+        /// offered, and the colour chosen given to it as one undo step. The row shows the colour the selection then has.
+        /// </summary>
+        private bool PickPropertyColor(IReadOnlyCollection<string> handles)
+        {
+            PropertyRowViewModel row = PropertyGroups.SelectMany(g => g.Rows).FirstOrDefault(r => r.Label == "Color");
+            SelectColorViewModel.TryParse(row?.Value, out DxfColor old);
+            var dialog = new SelectColorViewModel(old ?? DxfColor.ByLayer, true);
+
+            if (PickColor == null)
+            {
+                Say("The Select Color dialog is shown by the window.");
+            }
+            else if (PickColor(dialog) && (old == null || !dialog.Color.Equals(old)))
+            {
+                CadEditResult result = CadPropertyEditor.Set(_current.Document, handles, "Color", dialog.Color.ToString());
+
+                if (!result.Succeeded)
+                {
+                    Say(result.Message);
+                }
+            }
+
+            return false;
         }
 
         private void RebuildRows()

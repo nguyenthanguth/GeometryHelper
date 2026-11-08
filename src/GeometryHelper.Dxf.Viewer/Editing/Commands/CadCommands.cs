@@ -59,6 +59,24 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("AREA", Area));
             registry.Add(new CadCommand("ID", Id));
             registry.Add(new CadCommand("LIST", ListObjects, true));
+
+            registry.Add(new CadCommand("XLINE", XLine));
+            registry.Add(new CadCommand("RAY", Ray));
+            registry.Add(new CadCommand("POLYGON", Polygon));
+            registry.Add(new CadCommand("DONUT", Donut));
+            registry.Add(new CadCommand("SELECTALL", SelectAll));
+            registry.Add(new CadCommand("LAYOFF", LayerOff));
+            registry.Add(new CadCommand("LAYON", c => LayersAll(c, false)));
+            registry.Add(new CadCommand("LAYFRZ", LayerFreeze));
+            registry.Add(new CadCommand("LAYTHW", c => LayersAll(c, true)));
+            registry.Add(new CadCommand("LAYLCK", c => LayerLock(c, true)));
+            registry.Add(new CadCommand("LAYULK", c => LayerLock(c, false)));
+            registry.Add(new CadCommand("LAYISO", LayerIsolate));
+            registry.Add(new CadCommand("LAYUNISO", LayerUnisolate));
+            registry.Add(new CadCommand("MEASUREGEOM", MeasureGeom));
+            registry.Add(new CadCommand("UNITS", Units));
+            registry.Add(new CadCommand("-UNITS", UnitsTyped));
+            registry.Add(new CadCommand("SCRIPT", Script));
         }
 
         /// <summary>A point of the plan in space, at nought height.</summary>
@@ -270,11 +288,21 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// LAYOUT: New adds a layout after the last tab, a sheet of A3 with its viewport, named Layout2 where Layout1 is taken;
-        /// ? lists the layouts. One undo step takes a new layout back.
+        /// Rename renames one, Set shows one; ? lists the layouts. One undo step takes a new layout or a new name back.
         /// </summary>
         private static IEnumerable<CadPrompt> Layout(CadCommandContext c)
         {
-            yield return CadPrompt.ForKeyword("Enter layout option", new[] { "New", "?" }, "New");
+            yield return CadPrompt.ForKeyword("Enter layout option", new[] { "New", "Rename", "Set", "?" }, "New");
+
+            if (c.Input.Is("Rename") || c.Input.Is("Set"))
+            {
+                foreach (CadPrompt prompt in c.Input.Is("Set") ? LayoutSet(c) : LayoutRename(c))
+                {
+                    yield return prompt;
+                }
+
+                yield break;
+            }
 
             if (c.Input.Is("?"))
             {
