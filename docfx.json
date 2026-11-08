@@ -5,9 +5,13 @@
         {
           "files": [
             "src/GeometryHelper/GeometryHelper.csproj",
+            "src/GeometryHelper.Dxf.Viewer/GeometryHelper.Dxf.Viewer.csproj"
+          ]
+        },
+        {
+          "files": [
             "src/GeometryHelper.CadConvert/GeometryHelper.CadConvert.csproj",
             "src/GeometryHelper.IfcConvert/GeometryHelper.IfcConvert.csproj",
-            "src/GeometryHelper.Dxf.Viewer/GeometryHelper.Dxf.Viewer.csproj",
             "src/GeometryHelper.Drawing/GeometryHelper.Drawing.csproj",
             "src/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj"
           ]
