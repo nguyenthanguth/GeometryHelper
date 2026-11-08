@@ -187,12 +187,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return at >= 0 && name.Length > at + 9 && name.Substring(at + 9).All(char.IsDigit);
         }
 
-        /// <summary>Gives a command line the text height of Global settings as the default of TEXT and MTEXT, once settings are applied.</summary>
+        /// <summary>
+        /// Gives a command line, once settings are applied, the text height of Global settings as the default of TEXT and MTEXT
+        /// and the height of the text of the dimensions DIM* makes, and their width factor as that of TEXT and MTEXT.
+        /// </summary>
         private void ApplyTextDefaults(CadCommandSession session)
         {
             if (_settingsApplied)
             {
                 session.Remembered["text.height"] = _settings.TextHeight;
+                session.Remembered["text.widthFactor"] = _settings.WidthFactor;
+                session.Remembered["dim.text.height"] = _settings.TextHeight;
             }
         }
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -30,12 +31,19 @@ namespace GeometryHelper.Drawing.Wpf
     /// drawings" as B-101, its Drawing tab shown while it is, and Properties with nothing selected shows its number, name,
     /// revision, preset, state, sheet and source.
     /// </para>
+    /// <para>
+    /// Once Global settings are applied, as the app does when it starts, a drawing made is saved at once into their save
+    /// folder, or where that is empty into "GeometryHelper Drawing" in the user's Documents, the folder made where it is
+    /// not there: named by its number, B-101.dxf, or B-101 (2).dxf where a file of that name is there already, so that no
+    /// file is written over. It then has a file, which Save writes to and autosave keeps copies beside.
+    /// </para>
     /// </remarks>
     public sealed partial class DrawingWorkspace : CadWorkspaceExtension
     {
         private readonly List<IDrawingSourceProvider> _providers;
         private readonly ObservableCollection<ModelDrawing> _drawings = new ObservableCollection<ModelDrawing>();
         private ModelDrawing _current;
+        private bool _settingsApplied;
 
         /// <summary>Makes the model drawing of a presenter and adds it to the presenter.</summary>
         /// <param name="model">The presenter's view model.</param>
@@ -61,6 +69,7 @@ namespace GeometryHelper.Drawing.Wpf
             ExportDxfCommand = new DelegateCommand(_ => ShowExport(), _ => _drawings.Count > 0);
 
             model.NewFromModelRequested += (s, e) => ShowNewDrawing();
+            model.SettingsApplied += (s, e) => _settingsApplied = true;
             model.PropertyChanged += OnModelChanged;
             model.SettingsSources = _providers.Select(p => new CadSourceInfo(p.Name, p.AvailabilityText, p.IsAvailable)).ToList();
             model.AddExtension(this);
@@ -211,7 +220,50 @@ namespace GeometryHelper.Drawing.Wpf
             Show(entry);
             Say("Made " + entry.Number + " (" + entry.Name + ") from " + provider.Name + ": " + drawing.Views.Count.ToString(CultureInfo.InvariantCulture)
                 + " views at 1:" + DialogViewModel.Length(drawing.Scale) + " on " + entry.SheetSize + "." + Warnings(drawing));
+            SaveNew(entry);
             return entry;
+        }
+
+        /// <summary>
+        /// Saves a drawing just made into the save folder of Global settings, once they are applied, under a name no file there
+        /// has; a folder that cannot be made or written to is said on the command line, and the drawing stays without a file.
+        /// </summary>
+        private void SaveNew(ModelDrawing entry)
+        {
+            if (!_settingsApplied)
+            {
+                return;
+            }
+
+            string folder = Model.Settings.SaveFolder.Length > 0
+                ? Model.Settings.SaveFolder
+                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "GeometryHelper Drawing");
+            string name = entry.Number;
+
+            foreach (char bad in Path.GetInvalidFileNameChars())
+            {
+                name = name.Replace(bad, '_');
+            }
+
+            try
+            {
+                folder = Path.GetFullPath(folder);
+                Directory.CreateDirectory(folder);
+                string path = Path.Combine(folder, name + ".dxf");
+
+                for (int i = 2; File.Exists(path); i++)
+                {
+                    path = Path.Combine(folder, name + " (" + i.ToString(CultureInfo.InvariantCulture) + ").dxf");
+                }
+
+                entry.Document.SaveAs(path);
+                Say("Saved " + entry.Number + " as " + path + ".");
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException || ex is NotSupportedException)
+            {
+                GeometryHelperLog.Warn("DrawingWorkspace: " + entry.Number + " could not be saved into " + folder + ".", ex);
+                Say("Could not save " + entry.Number + " into " + folder + ": " + ex.Message + " Save it with Save As.");
+            }
         }
 
         /// <summary>Shows a model drawing again: its document, on its sheet's layout.</summary>

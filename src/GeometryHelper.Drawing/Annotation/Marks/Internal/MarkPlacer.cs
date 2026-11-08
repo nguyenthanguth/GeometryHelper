@@ -197,7 +197,7 @@ namespace GeometryHelper.Drawing.Annotation
                 hard.Add(Box2.Around(line.StartPoint, line.EndPoint, thin));
             }
 
-            List<GeoLine2> lines = ViewLines();
+            List<GeoLine2> lines = ViewLines(_view, _height, _tol);
             var accepted = new List<Placed>();
             List<Candidate> pending = candidates;
 
@@ -564,17 +564,17 @@ namespace GeometryHelper.Drawing.Annotation
         /// Every line of the view, seen and hidden, an arc as chords: of 45 degrees where it is no larger than the text is
         /// high, of no more than 15 degrees where it is larger.
         /// </summary>
-        private List<GeoLine2> ViewLines()
+        internal static List<GeoLine2> ViewLines(ProjectedView2 view, double height, double tol)
         {
             var lines = new List<GeoLine2>();
 
-            foreach (IReadOnlyList<ProjectedEdge2> list in new[] { _view.VisibleEdges, _view.HiddenEdges })
+            foreach (IReadOnlyList<ProjectedEdge2> list in new[] { view.VisibleEdges, view.HiddenEdges })
             {
                 foreach (ProjectedEdge2 edge in list)
                 {
                     if (!edge.IsArc)
                     {
-                        if (edge.Length > _tol)
+                        if (edge.Length > tol)
                         {
                             lines.Add(edge.Line);
                         }
@@ -585,7 +585,7 @@ namespace GeometryHelper.Drawing.Annotation
                     GeoArc2 arc = edge.Arc;
                     // An arc no larger than the text is high is taken in eighths of a turn, its chords less than a tenth of the
                     // text's height off it; a larger one in fifteen degrees.
-                    double step = arc.Radius <= _height ? Math.PI / 4.0 : Math.PI / 12.0;
+                    double step = arc.Radius <= height ? Math.PI / 4.0 : Math.PI / 12.0;
                     int steps = Math.Max(2, (int)Math.Ceiling(Math.Abs(arc.SweptAngle) / step));
                     GeoPoint2 previous = arc.StartPoint;
 
@@ -594,7 +594,7 @@ namespace GeometryHelper.Drawing.Annotation
                         double angle = arc.StartAngle + arc.SweptAngle * k / steps;
                         var next = new GeoPoint2(arc.Center.X + arc.Radius * Math.Cos(angle), arc.Center.Y + arc.Radius * Math.Sin(angle));
 
-                        if (previous.DistanceTo(next) > _tol)
+                        if (previous.DistanceTo(next) > tol)
                         {
                             lines.Add(new GeoLine2(previous, next));
                             previous = next;

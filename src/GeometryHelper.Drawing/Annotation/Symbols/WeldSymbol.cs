@@ -36,7 +36,15 @@ namespace GeometryHelper.Drawing.Annotation
     /// in the view; its reference line runs to the right from a knee twice the text's height up and to the right of it.
     /// A fillet weld "a5" 200 long on the arrow side, with a text 2.5 high at 1:10, has its knee 50 up and 50 to the right
     /// of the weld's middle, the triangle 25 high standing on the reference line, "a5" left of it and "200" right.
-    /// Symbols are placed by this rule only, not yet kept clear of marks and dimensions.
+    /// </para>
+    /// <para>
+    /// Given the dimensions of the view and what else to keep clear of, <see cref="Find(ProjectedView2, IEnumerable{DrawingObject}, GeoCoordinateSystem3, IEnumerable{DrawingDimension}, IEnumerable{GeoRectangle2}, IEnumerable{GeoLine2}, SymbolSettings, double, Tolerance)"/>
+    /// moves a symbol off that place where something is in the way: its knee is tried up and right of the weld, up and
+    /// left, down and right, down and left, two heights off and further, the nearest place first, until the box of the
+    /// symbol, with 0.4 of the text's height round it, is clear of the dimensions, of the centre lines and other
+    /// symbols, and of the weld symbols placed before it, and its arrow crosses no text. A symbol left of its weld has its
+    /// reference line run to the left. The arrow always ends at the weld's middle; the marks of the view are placed after
+    /// the symbols and keep clear of them.
     /// </para>
     /// <para>A symbol does not change once made.</para>
     /// </remarks>
@@ -58,6 +66,11 @@ namespace GeometryHelper.Drawing.Annotation
         public const string SecondaryPartAttribute = "WeldSecondaryPart";
 
         private WeldSymbol(string weldId, WeldType type, WeldSide side, string size, string length, GeoPoint2 tip, double textHeight, DrawingLinks links)
+            : this(weldId, type, side, size, length, tip, new GeoPoint2(tip.X + 2.0 * textHeight, tip.Y + 2.0 * textHeight), false, textHeight, links)
+        {
+        }
+
+        private WeldSymbol(string weldId, WeldType type, WeldSide side, string size, string length, GeoPoint2 tip, GeoPoint2 knee, bool leftward, double textHeight, DrawingLinks links)
         {
             Id = "W-" + weldId;
             WeldId = weldId;
@@ -68,11 +81,21 @@ namespace GeometryHelper.Drawing.Annotation
             ArrowTip = tip;
             TextHeight = textHeight;
             Links = links;
-            Knee = new GeoPoint2(tip.X + 2.0 * textHeight, tip.Y + 2.0 * textHeight);
+            Knee = knee;
             double sizeWidth = size.Length > 0 ? SymbolDxf.TextWidth(size, textHeight) + 0.3 * textHeight : 0.0;
             double lengthWidth = length.Length > 0 ? 0.3 * textHeight + SymbolDxf.TextWidth(length, textHeight) : 0.0;
-            SymbolStart = Knee.X + 0.5 * textHeight + sizeWidth;
-            ReferenceLine = new GeoLine2(Knee, new GeoPoint2(SymbolStart + textHeight + lengthWidth + 0.5 * textHeight, Knee.Y));
+
+            if (!leftward)
+            {
+                SymbolStart = Knee.X + 0.5 * textHeight + sizeWidth;
+                ReferenceLine = new GeoLine2(Knee, new GeoPoint2(SymbolStart + textHeight + lengthWidth + 0.5 * textHeight, Knee.Y));
+                return;
+            }
+
+            // Run to the left, the symbol and its texts read from left to right as they are on a line run to the right.
+            double end = Knee.X - (0.5 * textHeight + sizeWidth + textHeight + lengthWidth + 0.5 * textHeight);
+            SymbolStart = end + 0.5 * textHeight + sizeWidth;
+            ReferenceLine = new GeoLine2(Knee, new GeoPoint2(end, Knee.Y));
         }
 
         /// <summary>Gets the id of the symbol, unique among the weld symbols of its view: W- and the weld's id.</summary>
@@ -99,7 +122,10 @@ namespace GeometryHelper.Drawing.Annotation
         /// <summary>Gets where the arrow line meets the reference line, in view millimetres.</summary>
         public GeoPoint2 Knee { get; }
 
-        /// <summary>Gets the continuous reference line, from the knee to the right, in view millimetres.</summary>
+        /// <summary>
+        /// Gets the continuous reference line, from the knee to the right, or to the left where the symbol is placed left of
+        /// its weld, in view millimetres.
+        /// </summary>
         public GeoLine2 ReferenceLine { get; }
 
         /// <summary>Gets the height of the text in the view, in view millimetres, which the symbol is as high as.</summary>
@@ -115,7 +141,7 @@ namespace GeometryHelper.Drawing.Annotation
             {
                 double below = Side == WeldSide.Arrow ? 0.5 * TextHeight : Side == WeldSide.Other ? 1.5 * TextHeight : TextHeight;
                 double above = Side == WeldSide.Other ? 0.0 : TextHeight;
-                return Box2.FromCorner(Knee.X, Knee.Y - below, ReferenceLine.Length, below + above);
+                return Box2.FromCorner(Math.Min(Knee.X, ReferenceLine.EndPoint.X), Knee.Y - below, ReferenceLine.Length, below + above);
             }
         }
 
@@ -138,6 +164,151 @@ namespace GeometryHelper.Drawing.Annotation
         /// <exception cref="NotSupportedException">Thrown when the settings ask for <see cref="WeldStandard.AwsA24"/>: which
         /// standard the drawings use is open question Q3 of the drawing plan, and only ISO 2553 is drawn until it is answered.</exception>
         public static IReadOnlyList<WeldSymbol> Find(ProjectedView2 view, IEnumerable<DrawingObject> objects, GeoCoordinateSystem3 frame, SymbolSettings settings, double scale)
+        {
+            List<WeldSymbol> symbols = Ruled(view, objects, frame, settings, scale, out int welds);
+            GeometryHelperLog.Info(string.Format(CultureInfo.InvariantCulture, "WeldSymbol.Find: {0} welds gave {1} symbols.", welds, symbols.Count));
+            return symbols;
+        }
+
+        /// <summary>
+        /// Makes the symbols of the welds of a view, each weld with a line in it, seen or hidden, and places each clear of the
+        /// view's dimensions, of boxes and lines given, as the centre lines and the other symbols of the view, and of the
+        /// weld symbols placed before it.
+        /// </summary>
+        /// <param name="view">The lines of the view, as <see cref="ViewProjector"/> gives them.</param>
+        /// <param name="objects">The objects the view was projected from; those that are not welds are passed over.</param>
+        /// <param name="frame">The frame the view was projected in.</param>
+        /// <param name="dimensions">The dimensions of the view, as <see cref="Annotator.Dimension"/> gives them; none for a view
+        /// with no dimensions.</param>
+        /// <param name="clearOfBoxes">Boxes no symbol may overlap and no arrow cross, in view millimetres: the letters of a
+        /// section mark, a level mark; none for none.</param>
+        /// <param name="clearOfLines">Lines no symbol may stand over, in view millimetres: centre lines, a section's cut line;
+        /// an arrow may cross them, as it may a dimension line; none for none.</param>
+        /// <param name="settings">The height of the text on paper and the standard.</param>
+        /// <param name="scale">The scale the view is drawn at: 20 for 1:20.</param>
+        /// <param name="tolerance">The tolerance overlaps are measured to.</param>
+        /// <returns>The symbols, in the ordinal order of their welds' ids.</returns>
+        /// <remarks>
+        /// Each symbol is tried first where <see cref="Find(ProjectedView2, IEnumerable{DrawingObject}, GeoCoordinateSystem3, SymbolSettings, double)"/>
+        /// puts it, then further off its weld, as the remarks of the class say: within eight heights of the text it is kept
+        /// only where its box is clear of the view's lines too, beyond that over them where it must. A symbol that finds no
+        /// place clear within thirty heights is left where the rule puts it, and named in one Debug line. The fillet weld
+        /// a6 where the flange of the column of TC5 meets its base plate, seen from the front at 1:10, would stand over a
+        /// dimension line and a dimension's text at the rule's place; it is put down and to the left of its weld instead,
+        /// under the base plate, its reference line run to the left.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the view, the objects, the dimensions, the boxes, the lines or the
+        /// settings are null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the frame is not a frame of three unit axes square to each other, an
+        /// object or a dimension is null or two objects have the same id.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the scale is not a finite number above nought.</exception>
+        /// <exception cref="NotSupportedException">Thrown when the settings ask for <see cref="WeldStandard.AwsA24"/>, as
+        /// <see cref="Find(ProjectedView2, IEnumerable{DrawingObject}, GeoCoordinateSystem3, SymbolSettings, double)"/> is.</exception>
+        public static IReadOnlyList<WeldSymbol> Find(
+            ProjectedView2 view,
+            IEnumerable<DrawingObject> objects,
+            GeoCoordinateSystem3 frame,
+            IEnumerable<DrawingDimension> dimensions,
+            IEnumerable<GeoRectangle2> clearOfBoxes,
+            IEnumerable<GeoLine2> clearOfLines,
+            SymbolSettings settings,
+            double scale,
+            Tolerance tolerance)
+        {
+            List<DrawingDimension> dims = Dimensions(dimensions);
+
+            if (clearOfBoxes == null)
+            {
+                throw new ArgumentNullException(nameof(clearOfBoxes));
+            }
+
+            if (clearOfLines == null)
+            {
+                throw new ArgumentNullException(nameof(clearOfLines));
+            }
+
+            List<WeldSymbol> ruled = Ruled(view, objects, frame, settings, scale, out int welds);
+            List<WeldSymbol> symbols = WeldPlacer.Place(ruled, view, dims, new List<GeoRectangle2>(clearOfBoxes), new List<GeoLine2>(clearOfLines), tolerance, out List<string> stuck);
+
+            if (stuck.Count > 0)
+            {
+                GeometryHelperLog.Debug(string.Format(CultureInfo.InvariantCulture, "WeldSymbol.Find: {0} symbols found no place clear of the dimensions and the other symbols and were left where the rule puts them: {1}.", stuck.Count, string.Join(", ", stuck)));
+            }
+
+            GeometryHelperLog.Info(string.Format(CultureInfo.InvariantCulture, "WeldSymbol.Find: {0} welds gave {1} symbols, {2} left over something (tolerance {3}).", welds, symbols.Count, stuck.Count, tolerance.EqualPoint));
+            return symbols;
+        }
+
+        /// <summary>
+        /// Finds where weld symbols overlap the dimensions of their view, boxes and lines kept clear of, or one another: a
+        /// symbol's box over a dimension's text, line or extension line, over a box or a line, or over another symbol's box;
+        /// an arrow across a dimension's text, a box, or another symbol's box.
+        /// </summary>
+        /// <param name="symbols">The weld symbols of one view.</param>
+        /// <param name="dimensions">The dimensions of the same view; none where it has none.</param>
+        /// <param name="clearOfBoxes">The boxes the symbols were to keep clear of; none for none.</param>
+        /// <param name="clearOfLines">The lines the symbols were to keep clear of; none for none.</param>
+        /// <param name="tolerance">The tolerance: boxes and lines meeting within it are not counted.</param>
+        /// <returns>One line of words for each overlap, the symbols in their order; empty where none overlaps.</returns>
+        /// <remarks>
+        /// Each symbol is taken as its <see cref="Bounds"/> and its arrow as the line from its <see cref="Knee"/> to its
+        /// <see cref="ArrowTip"/>; a dimension line shorter than two arrows is taken run on by an arrow at each end, as it is
+        /// drawn with its arrows outside. An arrow across a dimension line, an extension line or a line kept clear of is not
+        /// counted, as a draughtsman lets one cross.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the symbols, the dimensions, the boxes or the lines are null.</exception>
+        /// <exception cref="ArgumentException">Thrown when a symbol or a dimension is null.</exception>
+        public static IReadOnlyList<string> FindOverlaps(IEnumerable<WeldSymbol> symbols, IEnumerable<DrawingDimension> dimensions, IEnumerable<GeoRectangle2> clearOfBoxes, IEnumerable<GeoLine2> clearOfLines, Tolerance tolerance)
+        {
+            if (symbols == null)
+            {
+                throw new ArgumentNullException(nameof(symbols));
+            }
+
+            if (clearOfBoxes == null)
+            {
+                throw new ArgumentNullException(nameof(clearOfBoxes));
+            }
+
+            if (clearOfLines == null)
+            {
+                throw new ArgumentNullException(nameof(clearOfLines));
+            }
+
+            var list = new List<WeldSymbol>();
+
+            foreach (WeldSymbol symbol in symbols)
+            {
+                list.Add(symbol ?? throw new ArgumentException("A weld symbol cannot be null.", nameof(symbols)));
+            }
+
+            List<DrawingDimension> dims = Dimensions(dimensions);
+            var boxes = new List<GeoRectangle2>(clearOfBoxes);
+            var lines = new List<GeoLine2>(clearOfLines);
+            double tol = tolerance.EqualPoint;
+            var found = new List<string>();
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                WeldSymbol a = list[i];
+                WeldPlacer.DimensionClash(a, a.Bounds, dims, tol, found);
+                Marker.SymbolClash(a.Id, a.Bounds, a.Knee, a.ArrowTip, boxes, lines, tol, found);
+
+                for (int j = i + 1; j < list.Count; j++)
+                {
+                    Marker.MarkClash(a.Id, a.Bounds, a.Knee, a.ArrowTip, list[j].Id, list[j].Bounds, list[j].Knee, list[j].ArrowTip, tol, found);
+                }
+            }
+
+            return found;
+        }
+
+        /// <summary>The symbol of the same weld with its knee at a point, its reference line run to the left or to the right.</summary>
+        internal WeldSymbol At(GeoPoint2 knee, bool leftward)
+            => new WeldSymbol(WeldId, Type, Side, Size, Length, ArrowTip, knee, leftward, TextHeight, Links);
+
+        /// <summary>The symbols of a view's welds at the places the rule gives them, and how many welds the objects hold.</summary>
+        private static List<WeldSymbol> Ruled(ProjectedView2 view, IEnumerable<DrawingObject> objects, GeoCoordinateSystem3 frame, SymbolSettings settings, double scale, out int weldCount)
         {
             if (view == null)
             {
@@ -247,8 +418,25 @@ namespace GeometryHelper.Drawing.Annotation
                 GeometryHelperLog.Debug(string.Format(CultureInfo.InvariantCulture, "WeldSymbol.Find: {0} welds of a kind or side not known got no symbol: {1}.", skipped.Count, string.Join(", ", skipped)));
             }
 
-            GeometryHelperLog.Info(string.Format(CultureInfo.InvariantCulture, "WeldSymbol.Find: {0} welds gave {1} symbols.", welds.Count, symbols.Count));
+            weldCount = welds.Count;
             return symbols;
+        }
+
+        private static List<DrawingDimension> Dimensions(IEnumerable<DrawingDimension> dimensions)
+        {
+            if (dimensions == null)
+            {
+                throw new ArgumentNullException(nameof(dimensions));
+            }
+
+            var list = new List<DrawingDimension>();
+
+            foreach (DrawingDimension d in dimensions)
+            {
+                list.Add(d ?? throw new ArgumentException("A dimension cannot be null.", nameof(dimensions)));
+            }
+
+            return list;
         }
 
         /// <summary>

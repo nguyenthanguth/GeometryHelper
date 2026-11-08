@@ -12,7 +12,9 @@ namespace GeometryHelper.Dxf.Viewer
     /// So a dimension is made with its picture (its extension lines, dimension line, arrowheads as SOLIDs, its words as an
     /// MTEXT and its points of definition on Defpoints, from the variables of the current dimension style) in an anonymous
     /// block added as <c>*D</c>, which the block table names as AutoCAD names its own, the first <c>*D</c> number the drawing
-    /// has not.
+    /// has not. The height of the words is the style's DIMTXT, or the host's default where it sets one ("dim.text.height" of
+    /// <see cref="CadCommandSession.Remembered"/>, as the presenter sets Global settings' text height), written then as an
+    /// override of the dimension.
     /// </remarks>
     internal static partial class CadCommands
     {
@@ -124,7 +126,8 @@ namespace GeometryHelper.Dxf.Viewer
                 : new DxfRotatedDimension(angle, P3(p1), P3(p2), P3(q2), text ?? string.Empty, null);
             string words = Words(style, made, measured, text, string.Empty);
             c.Write("Dimension text = " + words);
-            Place(c, style, made, Linear(style, p1, p2, q1, q2, words));
+            double textHeight = TextHeight(c, style);
+            Place(c, style, textHeight, made, Linear(style, textHeight, p1, p2, q1, q2, words));
         }
 
         private static IEnumerable<CadPrompt> DimRadial(CadCommandContext c, bool diameter)
@@ -211,7 +214,8 @@ namespace GeometryHelper.Dxf.Viewer
                 ? (DxfDimension)new DxfDiametricDimension(P3(chord), P3(far), leader, text ?? string.Empty, null)
                 : new DxfRadialDimension(P3(center), P3(chord), leader, text ?? string.Empty, null);
             string words = Words(style, made, measured, text, prefix);
-            Place(c, style, made, Radial(style, center, radius, chord, far, location, diameter, words));
+            double textHeight = TextHeight(c, style);
+            Place(c, style, textHeight, made, Radial(style, textHeight, center, radius, chord, far, location, diameter, words));
         }
 
         private static IEnumerable<CadPrompt> DimAngular(CadCommandContext c)
@@ -388,7 +392,8 @@ namespace GeometryHelper.Dxf.Viewer
                 : new DxfPoint3AngularDimension(P3(vertex), P3(points[0]), P3(points[1]), P3(location), text ?? string.Empty, null);
             string words = Words(style, made, sweep, text, string.Empty);
             c.Write("Dimension text = " + words);
-            Place(c, style, made, Angular(style, vertex, radius, from, sweep, near, far, words));
+            double textHeight = TextHeight(c, style);
+            Place(c, style, textHeight, made, Angular(style, textHeight, vertex, radius, from, sweep, near, far, words));
         }
 
         private static GeoVector2 Along(DxfLine line)
@@ -453,9 +458,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// The picture of an angular dimension: the arc of the dimension line about the vertex, an arrowhead at each end, the
         /// extension lines from the objects out to the arc (or in to it), and the words outside the arc at its middle.
         /// </summary>
-        private static List<DxfEntity> Angular(DxfDimStyleTableRecord style, GeoPoint2 vertex, double radius, double from, double sweep, double[] near, double[] far, string words)
+        private static List<DxfEntity> Angular(DxfDimStyleTableRecord style, double textHeight, GeoPoint2 vertex, double radius, double from, double sweep, double[] near, double[] far, string words)
         {
-            Sizes(style, out double scale, out double arrow, out double height, out double gap, out double offset, out double beyond);
+            Sizes(style, textHeight, out double scale, out double arrow, out double height, out double gap, out double offset, out double beyond);
             var picture = new List<DxfEntity>();
             double to = from + sweep;
             picture.Add(new DxfArc(P3(vertex), radius, Turned(from), Turned(to)));
@@ -575,9 +580,9 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The picture of a linear dimension: the extension lines, the dimension line, two arrowheads and the words above the line.</summary>
-        private static List<DxfEntity> Linear(DxfDimStyleTableRecord style, GeoPoint2 p1, GeoPoint2 p2, GeoPoint2 q1, GeoPoint2 q2, string words)
+        private static List<DxfEntity> Linear(DxfDimStyleTableRecord style, double textHeight, GeoPoint2 p1, GeoPoint2 p2, GeoPoint2 q1, GeoPoint2 q2, string words)
         {
-            Sizes(style, out double scale, out double arrow, out double height, out double gap, out double offset, out double beyond);
+            Sizes(style, textHeight, out double scale, out double arrow, out double height, out double gap, out double offset, out double beyond);
             var picture = new List<DxfEntity>();
 
             foreach (KeyValuePair<GeoPoint2, GeoPoint2> pair in new[] { new KeyValuePair<GeoPoint2, GeoPoint2>(p1, q1), new KeyValuePair<GeoPoint2, GeoPoint2>(p2, q2) })
@@ -615,9 +620,9 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The picture of a radius or a diameter: the line to the words, the arrowheads on the rim, the words, a centre mark.</summary>
-        private static List<DxfEntity> Radial(DxfDimStyleTableRecord style, GeoPoint2 center, double radius, GeoPoint2 chord, GeoPoint2 far, GeoPoint2 location, bool diameter, string words)
+        private static List<DxfEntity> Radial(DxfDimStyleTableRecord style, double textHeight, GeoPoint2 center, double radius, GeoPoint2 chord, GeoPoint2 far, GeoPoint2 location, bool diameter, string words)
         {
-            Sizes(style, out double scale, out double arrow, out double height, out double gap, out _, out _);
+            Sizes(style, textHeight, out double scale, out double arrow, out double height, out double gap, out _, out _);
             var picture = new List<DxfEntity>();
             GeoVector2 outward = (chord - center) / radius;
             bool outside = (location - center).Length > radius;
@@ -655,11 +660,11 @@ namespace GeometryHelper.Dxf.Viewer
             return picture;
         }
 
-        private static void Sizes(DxfDimStyleTableRecord style, out double scale, out double arrow, out double height, out double gap, out double offset, out double beyond)
+        private static void Sizes(DxfDimStyleTableRecord style, double textHeight, out double scale, out double arrow, out double height, out double gap, out double offset, out double beyond)
         {
             scale = style.Dimscale > 0.0 ? style.Dimscale : 1.0;
             arrow = style.Dimasz * scale;
-            height = style.Dimtxt * scale;
+            height = textHeight * scale;
             gap = Math.Abs(style.Dimgap) * scale;
             offset = style.Dimexo * scale;
             beyond = style.Dimexe * scale;
@@ -691,10 +696,17 @@ namespace GeometryHelper.Dxf.Viewer
 
 
         /// <summary>
-        /// Adds a dimension with its picture to the space: the picture appended to an anonymous block *D, which the block
-        /// table names as AutoCAD names its own (*D1, *D2), and given to the dimension as its block.
+        /// The height of the text of a dimension to be made, before the style's scale: the host's default where it gives one
+        /// ("dim.text.height", as Global settings' text height), else the style's DIMTXT.
         /// </summary>
-        private static void Place(CadCommandContext c, DxfDimStyleTableRecord style, DxfDimension dimension, List<DxfEntity> picture)
+        private static double TextHeight(CadCommandContext c, DxfDimStyleTableRecord style) => c.Remembered("dim.text.height", style.Dimtxt);
+
+        /// <summary>
+        /// Adds a dimension with its picture to the space: the picture appended to an anonymous block *D, which the block
+        /// table names as AutoCAD names its own (*D1, *D2), and given to the dimension as its block, its text height an
+        /// override where it is not the style's.
+        /// </summary>
+        private static void Place(CadCommandContext c, DxfDimStyleTableRecord style, double textHeight, DxfDimension dimension, List<DxfEntity> picture)
         {
             CadSpace space = c.Space;
             c.Apply(null, s =>
@@ -717,6 +729,10 @@ namespace GeometryHelper.Dxf.Viewer
                 dimension.Layer = s.Database.Clayer;
                 space.Block.AppendEntity(dimension);
                 dimension.SetDatabaseDefaults(s.Database);
+
+                // A text height other than the style's is an override, as DIMOVERRIDE writes one, so that a CAD drawing the
+                // dimension again from its style draws its text as high as its picture has it.
+                dimension.Dimtxt = textHeight;
                 s.Added(space, dimension);
             });
         }

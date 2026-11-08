@@ -265,7 +265,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// <exception cref="ArgumentException">Thrown when the value is empty.</exception>
         public string DrawingFont { get => _drawingFont; set => _drawingFont = Name(value, nameof(DrawingFont)); }
 
-        /// <summary>Gets or sets the height of the text of a new model drawing on paper, in millimetres: 2.5 by default.</summary>
+        /// <summary>
+        /// Gets or sets the height of the text of a new model drawing on paper, in millimetres, which TEXT and MTEXT start
+        /// from and the dimensions DIM* makes are written with: 2.5 by default.
+        /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is not above 0 and up to 100.</exception>
         public double TextHeight { get => _textHeight; set => _textHeight = Range(value, 0.1, 100.0, nameof(TextHeight)); }
 
@@ -273,7 +276,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is not above 0 and up to 100.</exception>
         public double TitleTextHeight { get => _titleTextHeight; set => _titleTextHeight = Range(value, 0.1, 100.0, nameof(TitleTextHeight)); }
 
-        /// <summary>Gets or sets the width factor of the drawing text, 0.1 to 10: 0.8 by default.</summary>
+        /// <summary>Gets or sets the width factor of the drawing text, which TEXT and MTEXT write, 0.1 to 10: 0.8 by default.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
         public double WidthFactor { get => _widthFactor; set => _widthFactor = Range(value, 0.1, 10.0, nameof(WidthFactor)); }
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -419,6 +420,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             c.Remember("text.height", height);
             c.Remember("text.rotation", rotation);
+            double widthFactor = c.Remembered("text.widthFactor", 1.0);
 
             // Line after line until an empty one, each a TEXT of its own five thirds of the height below the one before, as DTEXT
             // goes on; the lines of one run are one undo step.
@@ -437,7 +439,7 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoPoint2 line = at;
                 c.Apply(null, s =>
                 {
-                    var text = new DxfDBText { Position = P3(line), Height = height, Rotation = rotation, TextString = words };
+                    var text = new DxfDBText { Position = P3(line), Height = height, Rotation = rotation, TextString = words, WidthFactor = widthFactor };
 
                     if (style != null)
                     {
@@ -497,6 +499,14 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             string words = c.Input.Text;
+            double widthFactor = c.Remembered("text.widthFactor", 1.0);
+
+            // Letters of another width open the words with the code AutoCAD writes for them, \W0.8000; for 0.8.
+            if (Math.Abs(widthFactor - 1.0) > 1E-9)
+            {
+                words = DxfMText.WidthChange + widthFactor.ToString("0.0000", CultureInfo.InvariantCulture) + ";" + words;
+            }
+
             double width = Math.Abs(b.X - a.X);
             var corner = new GeoPoint2(Math.Min(a.X, b.X), Math.Max(a.Y, b.Y));
             c.Remember("text.height", height);

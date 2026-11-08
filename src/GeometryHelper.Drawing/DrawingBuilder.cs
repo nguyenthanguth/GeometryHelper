@@ -37,8 +37,9 @@ namespace GeometryHelper.Drawing
     /// its welds (<see cref="WeldSymbol"/>); the first view along the axes that sees a section's plane edge on gets its
     /// <see cref="SectionMark"/>, and the view a detail is taken from its <see cref="DetailMark"/>, each with the letter of
     /// its name; with <see cref="SymbolSettings.LevelMarks"/> on, as in the general arrangement preset, each elevation
-    /// marks the level of every object that gives its attribute Elevation (<see cref="LevelMark"/>). The marks are placed
-    /// last, by <see cref="Marker"/>, in the first view along the axes and those <see cref="ViewSettings.MarkedViews"/> names,
+    /// marks the level of every object that gives its attribute Elevation (<see cref="LevelMark"/>). The weld symbols are
+    /// placed once the other symbols are known, clear of the view's dimensions, centre lines and symbols, each arrow still
+    /// on its weld. The marks are placed last, by <see cref="Marker"/>, in the first view along the axes and those <see cref="ViewSettings.MarkedViews"/> names,
     /// clear of the view's dimensions and symbols: the mark P1 of the plate of TC1 stands beside the cut of its section A-A,
     /// not over it.
     /// </para>
@@ -75,7 +76,7 @@ namespace GeometryHelper.Drawing
         /// <exception cref="ArgumentException">Thrown when the settings allow no scale, or one that is not a finite number
         /// above nought, or ask for a sheet of its own size with no width or height.</exception>
         /// <exception cref="NotSupportedException">Thrown when the settings ask for weld symbols to
-        /// <see cref="WeldStandard.AwsA24"/>, which are not drawn yet (<see cref="WeldSymbol.Find"/>).</exception>
+        /// <see cref="WeldStandard.AwsA24"/>, which are not drawn yet (<see cref="WeldSymbol.Find(ProjectedView2, IEnumerable{DrawingObject}, GeoCoordinateSystem3, SymbolSettings, double)"/>).</exception>
         public static Drawing Build(DrawingSource source, DrawingSettings settings, Tolerance tolerance)
         {
             if (source == null)
@@ -371,6 +372,7 @@ namespace GeometryHelper.Drawing
             var views = new List<DrawingView>(made.Count);
             DrawingView marked = null;
             var toMark = new List<(DrawingView View, List<DrawingObject> Objects)>();
+            var toWeld = new List<(DrawingView View, List<DrawingObject> Objects)>();
 
             foreach (DrawingView view in made)
             {
@@ -412,7 +414,7 @@ namespace GeometryHelper.Drawing
                 }
 
                 view.CentreLines = DrawingCentreLine.Find(view.Lines, inView, settings.Symbols, s, tolerance);
-                view.WeldSymbols = WeldSymbol.Find(view.Lines, inView, view.Frame.CoordinateSystem, settings.Symbols, s);
+                toWeld.Add((view, inView));
 
                 if (settings.Symbols.LevelMarks && Array.IndexOf(SlotKinds, view.Kind) >= 0)
                 {
@@ -423,6 +425,13 @@ namespace GeometryHelper.Drawing
             if (annotated)
             {
                 SectionAndDetailMarks(views, settings, tolerance);
+
+                // The weld symbols once the other symbols are known, clear of them and of the dimensions.
+                foreach ((DrawingView view, List<DrawingObject> inView) in toWeld)
+                {
+                    SymbolObstacles(view, out List<GeoRectangle2> boxes, out List<GeoLine2> lines);
+                    view.WeldSymbols = WeldSymbol.Find(view.Lines, inView, view.Frame.CoordinateSystem, view.Dimensions, boxes, lines, settings.Symbols, view.Scale, tolerance);
+                }
 
                 // The marks last, clear of every symbol of their view as of its dimensions.
                 foreach ((DrawingView view, List<DrawingObject> inView) in toMark)

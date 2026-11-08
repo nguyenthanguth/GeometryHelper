@@ -257,21 +257,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            using (var path = new SKPath())
+            using (var builder = new SKPathBuilder())
             {
-                path.MoveTo((float)m.X(xy[0], xy[1]), (float)m.Y(xy[0], xy[1]));
+                builder.MoveTo((float)m.X(xy[0], xy[1]), (float)m.Y(xy[0], xy[1]));
 
                 for (int i = 1; i < n; i++)
                 {
-                    path.LineTo((float)m.X(xy[2 * i], xy[2 * i + 1]), (float)m.Y(xy[2 * i], xy[2 * i + 1]));
+                    builder.LineTo((float)m.X(xy[2 * i], xy[2 * i + 1]), (float)m.Y(xy[2 * i], xy[2 * i + 1]));
                 }
 
                 if (chain.Closed)
                 {
-                    path.Close();
+                    builder.Close();
                 }
 
-                canvas.DrawPath(path, stroke);
+                using (SKPath path = builder.Detach()) canvas.DrawPath(path, stroke);
             }
         }
 
@@ -279,7 +279,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             IReadOnlyList<double> xy = segments.Xy;
 
-            using (var path = new SKPath())
+            using (var builder = new SKPathBuilder())
             {
                 for (int i = 0; i + 3 < xy.Count; i += 4)
                 {
@@ -291,15 +291,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     if (Math.Abs(x1 - x0) < 0.5f && Math.Abs(y1 - y0) < 0.5f)
                     {
                         // A dot of the pattern, a segment of no length, is drawn as a pixel.
-                        path.AddRect(new SKRect(x0 - 0.5f, y0 - 0.5f, x0 + 0.5f, y0 + 0.5f));
+                        builder.AddRect(new SKRect(x0 - 0.5f, y0 - 0.5f, x0 + 0.5f, y0 + 0.5f));
                         continue;
                     }
 
-                    path.MoveTo(x0, y0);
-                    path.LineTo(x1, y1);
+                    builder.MoveTo(x0, y0);
+                    builder.LineTo(x1, y1);
                 }
 
-                canvas.DrawPath(path, stroke);
+                using (SKPath path = builder.Detach()) canvas.DrawPath(path, stroke);
             }
         }
 
@@ -309,27 +309,27 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             double[] xy = arc.Flatten(tolerance);
             int n = xy.Length / 2;
 
-            using (var path = new SKPath())
+            using (var builder = new SKPathBuilder())
             {
-                path.MoveTo((float)m.X(xy[0], xy[1]), (float)m.Y(xy[0], xy[1]));
+                builder.MoveTo((float)m.X(xy[0], xy[1]), (float)m.Y(xy[0], xy[1]));
 
                 for (int i = 1; i < n; i++)
                 {
-                    path.LineTo((float)m.X(xy[2 * i], xy[2 * i + 1]), (float)m.Y(xy[2 * i], xy[2 * i + 1]));
+                    builder.LineTo((float)m.X(xy[2 * i], xy[2 * i + 1]), (float)m.Y(xy[2 * i], xy[2 * i + 1]));
                 }
 
                 if (arc.IsCircle)
                 {
-                    path.Close();
+                    builder.Close();
                 }
 
-                canvas.DrawPath(path, stroke);
+                using (SKPath path = builder.Detach()) canvas.DrawPath(path, stroke);
             }
         }
 
         private static void DrawFill(SKCanvas canvas, DisplayFill2 area, Affine2 m, SKPaint fill, CanvasOptions options, int background, int styleRgb, bool isSelected, SKColor color)
         {
-            using (var path = new SKPath { FillType = SKPathFillType.EvenOdd })
+            using (var builder = new SKPathBuilder { FillType = SKPathFillType.EvenOdd })
             {
                 foreach (double[] ring in area.Rings)
                 {
@@ -340,18 +340,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         continue;
                     }
 
-                    path.MoveTo((float)m.X(ring[0], ring[1]), (float)m.Y(ring[0], ring[1]));
+                    builder.MoveTo((float)m.X(ring[0], ring[1]), (float)m.Y(ring[0], ring[1]));
 
                     for (int i = 1; i < n; i++)
                     {
-                        path.LineTo((float)m.X(ring[2 * i], ring[2 * i + 1]), (float)m.Y(ring[2 * i], ring[2 * i + 1]));
+                        builder.LineTo((float)m.X(ring[2 * i], ring[2 * i + 1]), (float)m.Y(ring[2 * i], ring[2 * i + 1]));
                     }
 
-                    path.Close();
+                    builder.Close();
                 }
 
                 fill.Color = area.IsMask ? Color(options.Paper == 0 ? background : background, 255) : (isSelected ? new SKColor(color.Red, color.Green, color.Blue, 140) : color);
-                canvas.DrawPath(path, fill);
+                using (SKPath path = builder.Detach()) canvas.DrawPath(path, fill);
             }
         }
 

@@ -15,7 +15,7 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
     <!-- SkiaSharp, under the presenter's renderer the projection tests draw PNGs with, brings System.Memory. Compiled
          against, it turns array.Reverse() into MemoryExtensions.Reverse(Span) under C# 14; it is kept for running only. -->
-    <PackageReference Include="System.Memory" Version="4.5.5" ExcludeAssets="compile" />
+    <PackageReference Include="System.Memory" Version="4.6.3" ExcludeAssets="compile" />
   </ItemGroup>
 
   <ItemGroup>

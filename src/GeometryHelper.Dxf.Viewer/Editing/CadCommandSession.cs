@@ -447,7 +447,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Gets the values the commands remember from one run to the next, by name, as TEXT the height last typed
-        /// ("text.height"); a host sets a default here, as Global settings sets the text height of TEXT and MTEXT.
+        /// ("text.height"); a host sets a default here, as Global settings sets the text height of TEXT and MTEXT, their width
+        /// factor ("text.widthFactor") and the height of the text of the dimensions DIM* makes ("dim.text.height").
         /// </summary>
         public Dictionary<string, double> Remembered { get; } = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
 
