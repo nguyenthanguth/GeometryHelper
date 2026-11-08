@@ -276,10 +276,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets the text of the chip All, with the number of files: "All 3".</summary>
-        public string AllChipText => "All " + Count(_files.Count);
+        public string AllChipText => "All " + Count(Listed().Count());
 
         /// <summary>Gets the text of the chip DXF, with the number of DXF files no extension describes: "DXF 3".</summary>
-        public string DxfChipText => "DXF " + Count(_files.Values.Count(f => f.IsDxf && f.Info(_extensions) == null));
+        public string DxfChipText => "DXF " + Count(Listed().Count(f => f.IsDxf && f.Info(_extensions) == null));
 
         /// <summary>Gets whether an extension is added that names its files, so that its chips show.</summary>
         public bool HasOwnFiles => _extensions.Any(e => !string.IsNullOrEmpty(e.FileKindName));
@@ -563,7 +563,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Shows a document already in memory under a key of its own in the list, so that two documents of one name are both
-        /// listed; a document given again under its key replaces the one shown there, as a drawing made again does.
+        /// listed; a document given again under its key replaces the one shown there, as a drawing made again does. A document
+        /// listed already, under its file since it was saved there, is shown in its row, not listed twice; and a file of a
+        /// folder that a document listed under a key of its own is saved to has no row of its own while that document is open.
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="key">The key; null for its file name or title.</param>
@@ -581,15 +583,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (!_files.TryGetValue(key, out KnownFile known) || known.Document != document)
             {
-                // The document shown under the key before is closed: its command line lets the plugins go.
-                if (known?.Session != null)
-                {
-                    DetachPlugins(known.Session.Registry);
-                }
+                // A document listed already under another key, as one saved since under its file, is shown there.
+                KnownFile listed = _files.Values.Where(f => f.Document == document).OrderBy(f => f.Path, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(f => f.Path, StringComparer.Ordinal).FirstOrDefault();
 
-                known = new KnownFile(key, folder);
-                Attach(known, document);
-                _files[key] = known;
+                if (listed != null)
+                {
+                    known = listed;
+                }
+                else
+                {
+                    // The document shown under the key before is closed: its command line lets the plugins go.
+                    if (known?.Session != null)
+                    {
+                        DetachPlugins(known.Session.Registry);
+                    }
+
+                    known = new KnownFile(key, folder);
+                    Attach(known, document);
+                    _files[key] = known;
+                }
             }
 
             Show(known);
@@ -1538,7 +1551,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             FileRows.Clear();
 
             // A file an extension describes is listed under the group it names, after the folders of plain DXF files.
-            var shown = _files.Values
+            var shown = Listed()
                 .Select(f => new { File = f, Info = f.Info(_extensions) })
                 .Where(f => (!_dxfOnly || (f.File.IsDxf && f.Info == null)) && (!_ownOnly || f.Info != null)
                             && (!_outOfDateOnly || f.Info?.State == CadFileState.OutOfDate)
@@ -1572,6 +1585,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Raise(nameof(HasOwnFiles));
             Raise(nameof(OwnChipText));
             Raise(nameof(OutOfDateChipText));
+        }
+
+        /// <summary>
+        /// The files the list shows: all but a file found in a folder that a document listed under another key is saved to,
+        /// as a model drawing just made is saved; the document's row stands for it.
+        /// </summary>
+        private IEnumerable<KnownFile> Listed()
+        {
+            var saved = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (KnownFile file in _files.Values)
+            {
+                if (file.Document != null && !string.IsNullOrEmpty(file.Document.FileName) && System.IO.Path.IsPathRooted(file.Document.FileName))
+                {
+                    saved.Add(file.Document.FileName);
+                }
+            }
+
+            return _files.Values.Where(f => f.Document != null || !saved.Contains(f.Path));
         }
 
         /// <summary>The view of one space and whether it is still fitted to the space's extents.</summary>

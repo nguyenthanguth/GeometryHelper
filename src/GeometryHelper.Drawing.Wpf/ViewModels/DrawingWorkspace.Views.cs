@@ -157,6 +157,11 @@ namespace GeometryHelper.Drawing.Wpf
                 yield break;
             }
 
+            if (MakeFirst(c))
+            {
+                yield break;
+            }
+
             yield return CadPrompt.ForPoint("Specify first point of the cut line in a view");
 
             if (c.Input.Kind != CadInputKind.Point)
@@ -205,6 +210,11 @@ namespace GeometryHelper.Drawing.Wpf
                 yield break;
             }
 
+            if (MakeFirst(c))
+            {
+                yield break;
+            }
+
             yield return CadPrompt.ForPoint("Specify first corner of the detail in a view");
 
             if (c.Input.Kind != CadInputKind.Point)
@@ -238,6 +248,45 @@ namespace GeometryHelper.Drawing.Wpf
 
             c.Write("Detail of " + view.Name + " at 1:" + Number(scale) + ": the drawing is made again.");
             Later(() => AddDetail(first, second, scale));
+        }
+
+        /// <summary>
+        /// VIEWSECTION and VIEWDETAIL on a drawing opened from its file and not made again, which has no views to pick in: the
+        /// drawing made again from the source <see cref="SourceToMakeFrom"/> finds once the command has ended, one undo step
+        /// as the other commands make it, and the command started again to ask for its points; where no source is at hand,
+        /// said in plain words. False for a drawing that has its views.
+        /// </summary>
+        private bool MakeFirst(CadCommandContext c)
+        {
+            ModelDrawing entry = Find(c.Document);
+
+            if (entry.Drawing.Source != null)
+            {
+                return false;
+            }
+
+            IDrawingSourceProvider source;
+
+            try
+            {
+                source = SourceToMakeFrom(entry);
+            }
+            catch (InvalidOperationException ex)
+            {
+                c.Write(ex.Message);
+                return true;
+            }
+
+            string command = c.Command.Name;
+            c.Write(entry.Number + " was opened from its file: it is made again from " + source.Name + " first, then the points are picked.");
+            Later(() =>
+            {
+                if (_current == entry && Run("Views of " + entry.Number, (e, provider) => e.Drawing.Apply(e.Drawing.Prepare(ObjectsToMakeFrom(e, provider), null)), entry.PresetName) != null)
+                {
+                    Model.StartCommand(command);
+                }
+            });
+            return true;
         }
 
         /// <summary>AUTODIM, AUTOMARK: the selected view's dimensions or marks made again once the command has ended.</summary>
@@ -281,8 +330,8 @@ namespace GeometryHelper.Drawing.Wpf
             });
         }
 
-        /// <summary>Runs a change of the drawing shown, one undo step, and says what came of it.</summary>
-        private UpdateReport Run(string what, Func<ModelDrawing, IDrawingSourceProvider, UpdateReport> change)
+        /// <summary>Runs a change of the drawing shown, one undo step, and says what came of it; its preset is known as "Changed" then, or by the name given.</summary>
+        private UpdateReport Run(string what, Func<ModelDrawing, IDrawingSourceProvider, UpdateReport> change, string presetName = "Changed")
         {
             ModelDrawing entry = _current;
 
@@ -297,7 +346,7 @@ namespace GeometryHelper.Drawing.Wpf
             try
             {
                 IDrawingSourceProvider provider = SourceToMakeFrom(entry);
-                report = WriteChange(entry, provider, "Changed", () => change(entry, provider));
+                report = WriteChange(entry, provider, presetName, () => change(entry, provider));
             }
             catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
             {

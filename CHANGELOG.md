@@ -83,6 +83,16 @@ find a place instead of 185, and every other mark is the same to the bit; two of
 **FIXED.** The presenter draws an MTEXT at its text style's width factor when its words set none of their own, as it
 already took the style's slant. ROMANS 2.5 high in a style of width 0.75 is drawn 6.75 wide, and `\W1.2x;` makes it 0.9.
 
+**FIXED.** VIEWSECTION and VIEWDETAIL on a model drawing opened again from its file said "No view of the drawing is
+there."; they now make it again from the source its file names first, or say to pick the source in Update from model.
+
+**FIXED.** A model drawing just made and saved into the save folder was listed twice: as the drawing, and as its file once
+another file of the folder was opened, or once it was saved with Save and shown again. It is now one row.
+
+**FIXED.** Properties of a model drawing opened again said "Opened from a file" for its source though its file names it; it
+now says, for example, "Test bodies (from file)" until the drawing is made again. The out-of-date dot now shows on such a
+drawing too, checked in the source its file names without changing it.
+
 **NEW.** `DrawingDocumentStore.WriteValues` and `ReadValues`: named values the app keeps with a drawing in the XRECORD
 `VALUES` of GH_DRAWING. A file without them reads as none, and writing none leaves a drawing as one never given any, byte
 for byte.

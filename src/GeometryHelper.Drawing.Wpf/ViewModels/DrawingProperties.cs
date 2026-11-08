@@ -164,7 +164,8 @@ namespace GeometryHelper.Drawing.Wpf
                 }),
                 new CadPropertyGroup("Source", new[]
                 {
-                    Row("Source", entry.Provider.Name),
+                    // A drawing opened from its file and not made again names the source its file keeps.
+                    Row("Source", drawing.Source == null && !string.IsNullOrEmpty(entry.SourceName) ? entry.SourceName + " (from file)" : entry.Provider.Name),
                     Row("Objects", drawing.Source == null ? "Not at hand" : Objects(drawing.Source.Objects)),
                     Row("Last update", entry.LastMade.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)),
                 }),

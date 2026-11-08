@@ -31,6 +31,8 @@ Opened in the app, by Open or from the file list, a DXF that carries a drawing d
 
 The file keeps the name of the source a drawing was made from, its preset and the assemblies it draws whole: B1 made from the test bodies with the assembly preset keeps Test bodies, Assembly and B1. Opened again, Update from model chooses that source, and Drawing settings, Add view, Auto dimension and Auto marks make the drawing from it at once. A file that names no source, as one saved before this version, is made from the source Update from model last found its objects in; until then they refuse with `B1 was opened from its file, and the source it was made from is not at hand: pick its source in Update from model first.`
 
+VIEWSECTION and VIEWDETAIL on a drawing opened again and not yet made again first make it from the source its file names, one undo step of its own, and then ask for the points on its views: `B1 was opened from its file: it is made again from Test bodies first, then the points are picked.` With no source at hand they say to pick its source in Update from model first and change nothing. Until it is made again, Properties names its source as `Test bodies (from file)`, and the out-of-date check looks at it in that source: a drawing whose views draw an object the source no longer has, or not a fitting added to an assembly it draws whole, gets the amber dot, and nothing of it is changed.
+
 ```
 opened id B1, 0 views, 16 elements, 0 edits, scale 10, sheet A3
 ```

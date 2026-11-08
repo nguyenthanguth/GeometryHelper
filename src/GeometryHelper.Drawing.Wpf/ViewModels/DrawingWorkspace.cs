@@ -158,10 +158,16 @@ namespace GeometryHelper.Drawing.Wpf
         /// <summary>Gets the command of Add view, given the kind of view, as a <see cref="ViewKind"/> or its name.</summary>
         public ICommand AddViewCommand { get; }
 
-        /// <summary>Gets the command of Section: VIEWSECTION started, its cut line picked on the canvas.</summary>
+        /// <summary>
+        /// Gets the command of Section: VIEWSECTION started, its cut line picked on the canvas. A drawing opened from its file
+        /// and not made again, which has no views to pick in, is made again from its source first, as Add view makes it.
+        /// </summary>
         public ICommand SectionCommand { get; }
 
-        /// <summary>Gets the command of Detail: VIEWDETAIL started, its rectangle picked on the canvas.</summary>
+        /// <summary>
+        /// Gets the command of Detail: VIEWDETAIL started, its rectangle picked on the canvas; a drawing opened from its file is
+        /// made again from its source first, as for a section.
+        /// </summary>
         public ICommand DetailCommand { get; }
 
         /// <summary>Gets the command of Auto dimension: the selected view dimensioned again (AUTODIM).</summary>
@@ -377,20 +383,29 @@ namespace GeometryHelper.Drawing.Wpf
             }
         }
 
-        /// <summary>Looks again whether each drawing's source still gives the objects it was made from, and marks those that do not out of date.</summary>
+        /// <summary>
+        /// Looks again whether each drawing's source still gives the objects it was made from, and marks those that do not out
+        /// of date. A drawing opened from its file and not made again is looked at in the source its file names, where that is
+        /// connected, against the objects its views draw: one of them gone, or a fitting added to an assembly it draws whole,
+        /// marks it out of date, and nothing of it is changed. One whose source is not at hand is left as it is.
+        /// </summary>
         public void CheckSources()
         {
             foreach (ModelDrawing entry in _drawings)
             {
-                if (entry.Drawing.Source == null || !entry.Provider.IsAvailable)
+                IDrawingSourceProvider provider = entry.Drawing.Source != null ? entry.Provider : NamedSource(entry);
+
+                if (provider == null || !provider.IsAvailable)
                 {
                     continue;
                 }
 
                 try
                 {
-                    DrawingSource now = SourceFor(entry, entry.Provider.CreateObjects());
-                    entry.IsOutOfDate = !SourceComparer.Same(entry.Drawing.Source, now);
+                    DrawingSource now = SourceFor(entry, provider.CreateObjects());
+                    entry.IsOutOfDate = entry.Drawing.Source != null
+                        ? !SourceComparer.Same(entry.Drawing.Source, now)
+                        : !new HashSet<string>(Drawn(entry), StringComparer.Ordinal).SetEquals(now.Objects.Select(o => o.Id));
                 }
                 catch (Exception ex) when (!(ex is OutOfMemoryException))
                 {
@@ -494,7 +509,7 @@ namespace GeometryHelper.Drawing.Wpf
         /// Takes a model drawing saved and opened again back as one: where the DXF carries a drawing document, the drawing is
         /// opened over the document with its owner registered, listed under "Opened from a file · model drawings" and shown
         /// on its sheet's layout, so that its mark can be moved and its projected lines cannot, as in a drawing just made.
-        /// Its source is not kept in the file: Update from model asks for one. A DXF with no drawing document is left as it is.
+        /// The file keeps the name of its source, its preset and its whole assemblies, not the source itself: Update from model, or a source of that name already connected, gives the objects. A DXF with no drawing document is left as it is.
         /// </summary>
         /// <param name="document">The document opened.</param>
         public override void DocumentOpened(CadDocument document)
@@ -597,14 +612,21 @@ namespace GeometryHelper.Drawing.Wpf
         /// </summary>
         internal static DrawingSource SourceFor(ModelDrawing entry, IReadOnlyList<DrawingObject> now)
         {
-            IEnumerable<string> drawn = entry.Drawing.Source != null
-                ? entry.Drawing.Source.Objects.Select(o => o.Id)
-                : entry.Drawing.Elements.Where(e => e.Kind == "View").SelectMany(e => e.Links.ObjectIds);
-            var ids = new HashSet<string>(drawn, StringComparer.Ordinal);
+            var ids = new HashSet<string>(Drawn(entry), StringComparer.Ordinal);
             var whole = new HashSet<string>(entry.WholeAssemblies, StringComparer.Ordinal);
             List<DrawingObject> objects = now.Where(o => ids.Contains(o.Id) || (o.ParentId != null && whole.Contains(o.ParentId))).ToList();
             return new DrawingSource(objects);
         }
+
+        /// <summary>The ids of the objects a drawing was made from; for a drawing opened from its file, those its views draw.</summary>
+        private static IEnumerable<string> Drawn(ModelDrawing entry)
+            => entry.Drawing.Source != null
+                ? entry.Drawing.Source.Objects.Select(o => o.Id)
+                : entry.Drawing.Elements.Where(e => e.Kind == "View").SelectMany(e => e.Links.ObjectIds);
+
+        /// <summary>The source of the name a drawing's file keeps, or Update from model last found its objects in, connected; null for none.</summary>
+        private IDrawingSourceProvider NamedSource(ModelDrawing entry)
+            => _providers.FirstOrDefault(p => p.IsAvailable && string.Equals(p.Name, entry.SourceName, StringComparison.Ordinal));
 
         /// <summary>
         /// The source a change of a drawing's settings makes it again from: the one it was made from; for a drawing opened from
@@ -618,7 +640,7 @@ namespace GeometryHelper.Drawing.Wpf
                 return entry.Provider;
             }
 
-            return _providers.FirstOrDefault(p => p.IsAvailable && string.Equals(p.Name, entry.SourceName, StringComparison.Ordinal))
+            return NamedSource(entry)
                 ?? throw new InvalidOperationException(entry.Number + " was opened from its file, and the source it was made from is not at hand: pick its source in Update from model first.");
         }
 
