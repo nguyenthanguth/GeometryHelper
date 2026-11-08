@@ -80,6 +80,8 @@ tier where nothing it draws overlaps what is already placed, as `FindOverlaps` c
 side and what comes after it inside it or on the other side. A dimension that finds no place on either side is left out and
 named in one Debug line of [`GeometryHelperLog`](xref:GeometryHelper.GeometryHelperLog).
 
+Within a group, the texts that fit in the middle of their lines take it first; a text too long for its step goes past the upper end of its line, else past the lower end, beside them and never beside another dimension line along the same axis, where it would read as that line's value. Every text keeps a quarter of its height clear of the others and of the arrowheads: TC5's base plate seen from its end at 1:20 reads 50, 300, 50 with the 300 in its middle and each 50 past an end of the row.
+
 A dimension is written as a real DIMENSION: the linear ones as rotated dimensions along the axes of the view, the cumulative
 and ordinate ones as ordinate dimensions, in a dimension style of the scale (`GH_MODEL_10` at 1:10). The dimension of the beam's
 overall length measures 3000 and its text is `<>`, so that AutoCAD writes the measurement, and a user can move it in CAD and the

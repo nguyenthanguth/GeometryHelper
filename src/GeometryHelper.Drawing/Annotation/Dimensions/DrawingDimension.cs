@@ -179,21 +179,7 @@ namespace GeometryHelper.Drawing.Annotation
                     return _arrowheads;
                 }
 
-                if (!DimensionLine.HasValue)
-                {
-                    return _arrowheads = new GeoRectangle2[0];
-                }
-
-                GeoLine2 line = DimensionLine.Value;
-                double length = line.Length, arrow = TextHeight;
-                double ux = length > 0.0 ? (line.EndPoint.X - line.StartPoint.X) / length : 1.0;
-                double uy = length > 0.0 ? (line.EndPoint.Y - line.StartPoint.Y) / length : 0.0;
-                double inward = length >= 2.0 * arrow ? 1.0 : -1.0;
-                return _arrowheads = new[]
-                {
-                    ArrowBox(line.StartPoint, inward * ux, inward * uy, arrow),
-                    ArrowBox(line.EndPoint, -inward * ux, -inward * uy, arrow),
-                };
+                return _arrowheads = DimensionLine.HasValue ? ArrowheadsOf(DimensionLine.Value, TextHeight) : new GeoRectangle2[0];
             }
         }
 
@@ -318,6 +304,23 @@ namespace GeometryHelper.Drawing.Annotation
             }
 
             return 8;
+        }
+
+        /// <summary>
+        /// The boxes round the two arrowheads of a dimension line, each an arrow's length long: pointing out of a line at least
+        /// two arrows long, into a shorter one from outside it.
+        /// </summary>
+        internal static GeoRectangle2[] ArrowheadsOf(GeoLine2 line, double arrow)
+        {
+            double length = line.Length;
+            double ux = length > 0.0 ? (line.EndPoint.X - line.StartPoint.X) / length : 1.0;
+            double uy = length > 0.0 ? (line.EndPoint.Y - line.StartPoint.Y) / length : 0.0;
+            double inward = length >= 2.0 * arrow ? 1.0 : -1.0;
+            return new[]
+            {
+                ArrowBox(line.StartPoint, inward * ux, inward * uy, arrow),
+                ArrowBox(line.EndPoint, -inward * ux, -inward * uy, arrow),
+            };
         }
 
         /// <summary>The box round an arrow, its tip at a point, its back an arrow's length along a unit direction from it.</summary>

@@ -30,10 +30,12 @@ namespace GeometryHelper.Drawing.Annotation
     /// whole, to the centre of the bolt nearest it.
     /// </para>
     /// <para>
-    /// The marks are placed in three rounds, each taking only the marks the rounds before could not. The first tries the
-    /// side of the line away from the object, three rows deep, and keeps a mark only where it is clear of the view's lines
-    /// too; the second tries both sides, eight rows deep, on the same terms; the third tries both sides sixteen rows deep,
-    /// no more than half the text's height off the line, and keeps a mark over the view's lines where it must. In every
+    /// The marks are placed in four rounds, each taking only the marks the rounds before could not. The first tries both
+    /// sides of the line, four rows deep, and keeps a mark only where it is clear of the view's lines and of the box of
+    /// every object of the view, so that a text stands off the parts rather than over the face of one; the second tries the
+    /// side of the line away from the object, three rows deep, and keeps a mark only where it is clear of the view's lines;
+    /// the third tries both sides, eight rows deep, on the same terms; the fourth tries both sides sixteen rows deep, no
+    /// more than half the text's height off the line, and keeps a mark over the view's lines where it must. In every
     /// round a mark is kept only where its text is clear of the dimensions and of the marks kept before, its leader crosses
     /// no text, and no leader kept before crosses its text. What the rounds leave is tried at the places of the last one,
     /// its text and margin clear of everything kept clear of; and what is left then, where marks crowd round it, once more

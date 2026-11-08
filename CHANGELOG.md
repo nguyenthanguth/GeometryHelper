@@ -93,6 +93,14 @@ another file of the folder was opened, or once it was saved with Save and shown 
 now says, for example, "Test bodies (from file)" until the drawing is made again. The out-of-date dot now shows on such a
 drawing too, checked in the source its file names without changing it.
 
+**FIXED.** The texts of short neighbouring dimensions no longer stand side by side as one number. In a chain 50, 300, 50
+at 1:20 the two 50s took the 300's place and read as "5050"; now a text that fits in the middle of its line keeps it, a text
+too long for its step goes past the end of the row, and every text keeps a quarter of its height clear of other texts and of
+arrowheads. `Annotator.FindOverlaps` now counts texts closer than that, a text over an arrowhead, and a text put past its
+line beside another dimension line along the same axis. Of 954 dimensions on the test bodies at 1:2 to 1:20, 788 are the same
+to the bit; the measured values and the ids are the same except in the crowded TC9 front view, which drops two more
+hole-edge dimensions at 1:20.
+
 **NEW.** `DrawingDocumentStore.WriteValues` and `ReadValues`: named values the app keeps with a drawing in the XRECORD
 `VALUES` of GH_DRAWING. A file without them reads as none, and writing none leaves a drawing as one never given any, byte
 for byte.

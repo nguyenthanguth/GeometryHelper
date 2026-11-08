@@ -10,7 +10,9 @@ namespace GeometryHelper.Drawing.Annotation
     /// </summary>
     internal sealed class DimensionShape
     {
-        public DimensionShape(GeoLine2? line, GeoLine2[] extensions, double minX, double minY, double maxX, double maxY, double textRotation)
+        private GeoRectangle2[] _arrowheads;
+
+        public DimensionShape(GeoLine2? line, GeoLine2[] extensions, double minX, double minY, double maxX, double maxY, double textRotation, double textHeight)
         {
             Line = line;
             Extensions = extensions;
@@ -19,6 +21,7 @@ namespace GeometryHelper.Drawing.Annotation
             MaxX = maxX;
             MaxY = maxY;
             TextRotation = textRotation;
+            TextHeight = textHeight;
         }
 
         public GeoLine2? Line { get; }
@@ -34,6 +37,29 @@ namespace GeometryHelper.Drawing.Annotation
         public double MaxY { get; }
 
         public double TextRotation { get; }
+
+        /// <summary>The height of the text, which the arrows are as long as; the text keeps a quarter of it clear round it.</summary>
+        public double TextHeight { get; }
+
+        /// <summary>The boxes round the arrowheads, as <see cref="DrawingDimension.ArrowheadsOf"/> gives them; none without a line.</summary>
+        public GeoRectangle2[] Arrowheads => _arrowheads ?? (_arrowheads = Line.HasValue ? DrawingDimension.ArrowheadsOf(Line.Value, TextHeight) : new GeoRectangle2[0]);
+
+        /// <summary>Whether the text stands past an end of the dimension line, as a text too long for its line does.</summary>
+        public bool TextOutside
+        {
+            get
+            {
+                if (!Line.HasValue)
+                {
+                    return false;
+                }
+
+                GeoLine2 line = Line.Value;
+                double dx = line.EndPoint.X - line.StartPoint.X, dy = line.EndPoint.Y - line.StartPoint.Y;
+                double at = (0.5 * (MinX + MaxX) - line.StartPoint.X) * dx + (0.5 * (MinY + MaxY) - line.StartPoint.Y) * dy;
+                return at < 0.0 || at > dx * dx + dy * dy;
+            }
+        }
 
         public GeoRectangle2 TextBox => new GeoRectangle2(new GeoPoint2(0.5 * (MinX + MaxX), 0.5 * (MinY + MaxY)), MaxX - MinX, MaxY - MinY);
 
@@ -54,13 +80,15 @@ namespace GeometryHelper.Drawing.Annotation
                 box.Center.Y - 0.5 * box.Height,
                 box.Center.X + 0.5 * box.Width,
                 box.Center.Y + 0.5 * box.Height,
-                dimension.TextRotation);
+                dimension.TextRotation,
+                dimension.TextHeight);
         }
 
         /// <summary>
         /// Says how two dimensions overlap, or null where they do not: a dimension line on or across another, an extension
-        /// line or leader across a dimension line, a text over a line or over another text. Extension lines meeting
-        /// extension lines are not counted, nor anything where two lines only meet at their ends.
+        /// line or leader across a dimension line, a text over a line, over an arrowhead or over another text, or two texts
+        /// closer than a quarter of the height of each, so that two texts 50 side by side never read as 5050. Extension lines
+        /// meeting extension lines are not counted, nor anything where two lines only meet at their ends.
         /// </summary>
         public static string Conflict(DimensionShape a, DimensionShape b, double tol)
         {
@@ -96,6 +124,36 @@ namespace GeometryHelper.Drawing.Annotation
                 return "text over text";
             }
 
+            // The texts in the middle of two neighbouring dimension lines can be as close as a gap each; none comes closer.
+            double clear = 0.25 * (a.TextHeight + b.TextHeight);
+
+            if (Math.Min(a.MaxX, b.MaxX) - Math.Max(a.MinX, b.MinX) + clear > tol && Math.Min(a.MaxY, b.MaxY) - Math.Max(a.MinY, b.MinY) + clear > tol)
+            {
+                return "text against text";
+            }
+
+            if (TextOverArrows(a, b, tol))
+            {
+                return "text over an arrowhead";
+            }
+
+            if (TextOverArrows(b, a, tol))
+            {
+                return "arrowhead over the text";
+            }
+
+            // A text put past the end of its own line does not stand by another dimension's line, where it would read as
+            // that one's value.
+            if (a.TextOutside && Math.Abs(a.TextRotation - b.TextRotation) <= 1E-9 && b.Line.HasValue && CrossesBox(b.Line.Value, Grown(a, 0.5 * a.TextHeight), tol))
+            {
+                return "text past its line by another dimension line";
+            }
+
+            if (b.TextOutside && Math.Abs(a.TextRotation - b.TextRotation) <= 1E-9 && a.Line.HasValue && CrossesBox(a.Line.Value, Grown(b, 0.5 * b.TextHeight), tol))
+            {
+                return "dimension line by a text past its own line";
+            }
+
             if (TextOverLines(a, b, tol))
             {
                 return "text over a line";
@@ -107,6 +165,25 @@ namespace GeometryHelper.Drawing.Annotation
             }
 
             return null;
+        }
+
+        private static DimensionShape Grown(DimensionShape text, double by)
+            => new DimensionShape(null, new GeoLine2[0], text.MinX - by, text.MinY - by, text.MaxX + by, text.MaxY + by, text.TextRotation, text.TextHeight);
+
+        private static bool TextOverArrows(DimensionShape text, DimensionShape arrows, double tol)
+        {
+            foreach (GeoRectangle2 box in arrows.Arrowheads)
+            {
+                double x0 = box.Center.X - 0.5 * box.Width, x1 = box.Center.X + 0.5 * box.Width;
+                double y0 = box.Center.Y - 0.5 * box.Height, y1 = box.Center.Y + 0.5 * box.Height;
+
+                if (Math.Min(text.MaxX, x1) - Math.Max(text.MinX, x0) > tol && Math.Min(text.MaxY, y1) - Math.Max(text.MinY, y0) > tol)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static bool TextOverLines(DimensionShape text, DimensionShape lines, double tol)

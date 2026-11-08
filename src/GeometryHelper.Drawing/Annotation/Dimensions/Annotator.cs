@@ -184,7 +184,8 @@ namespace GeometryHelper.Drawing.Annotation
 
         /// <summary>
         /// Finds where dimensions overlap: a dimension line on or across another, an extension line or a leader across a
-        /// dimension line, a text over a line or over another text.
+        /// dimension line, a text over a line, over an arrowhead or over another text, two texts closer than a quarter of the
+        /// height of each, and a text put past the end of its line standing by another dimension line along the same axis.
         /// </summary>
         /// <param name="dimensions">The dimensions of one view.</param>
         /// <param name="tolerance">The tolerance: lines meeting at their ends within it, or overlapping by no more than it,
@@ -193,7 +194,11 @@ namespace GeometryHelper.Drawing.Annotation
         /// <remarks>
         /// Extension lines meeting extension lines are not counted: those of a chain and its overall dimension run on one
         /// another, as a draughtsman draws them. Nor is a dimension line meeting another at the end of both, as the steps of
-        /// a chain meet. Each text is taken as a box 0.8 of its height wide for each character.
+        /// a chain meet. Each text is taken as a box 0.8 of its height wide for each character, each arrowhead as the box round
+        /// it. Two texts 50 of a chain 50, 300, 50 at 1:20, put side by side over the 300 with 15 between them, read as 5050
+        /// and are counted; the texts in the middle of two neighbouring lines stand at least half a text's height apart and are
+        /// not. A text put past the end of its line is counted where another dimension line along the same axis runs within
+        /// half the text's height of it, where it would read as that line's value.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the dimensions are null.</exception>
         /// <exception cref="ArgumentException">Thrown when a dimension is null.</exception>

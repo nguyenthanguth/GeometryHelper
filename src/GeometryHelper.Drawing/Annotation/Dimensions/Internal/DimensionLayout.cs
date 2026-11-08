@@ -80,7 +80,8 @@ namespace GeometryHelper.Drawing.Annotation
     /// A group, the chain of one axis or the dimensions of one row of holes, is placed on one tier together where it can be,
     /// on the nearest tier of the first side where every one of it fits; else each of it alone. A text goes in the middle of
     /// its dimension line where it fits between the extension lines with a gap each side, else past the line's upper end,
-    /// else past its lower end. A dimension placed outermost goes on a tier beyond every tier used on its side, and those
+    /// else past its lower end; the texts of a group that fit in the middle take their places first, so that one that does
+    /// not, put past an end, goes beside them rather than over a neighbour's line. A dimension placed outermost goes on a tier beyond every tier used on its side, and those
     /// placed after it on that side stay inside it. A dimension that fits on no tier of either side is left out.
     /// </remarks>
     internal sealed class DimensionLayout
@@ -150,6 +151,7 @@ namespace GeometryHelper.Drawing.Annotation
             }
         }
 
+        /// <summary>Places a group on the nearest tier of the first side where every one of it fits.</summary>
         private bool TryPlace(List<DimensionCandidate> group, bool outermost)
         {
             int axis = group[0].Axis;
@@ -165,10 +167,25 @@ namespace GeometryHelper.Drawing.Annotation
                     var shapes = new DimensionShape[group.Count];
                     bool fits = true;
 
+                    // The texts that fit in the middle of their lines take their places first, so that a text that does
+                    // not fit, put past an end of its line, keeps clear of them rather than taking a neighbour's place.
+                    for (int i = 0; i < group.Count; i++)
+                    {
+                        DimensionShape middle = Shape(group[i], side, tier, 0);
+
+                        if (middle != null && IsFree(middle, shapes))
+                        {
+                            shapes[i] = middle;
+                        }
+                    }
+
                     for (int i = 0; i < group.Count && fits; i++)
                     {
-                        shapes[i] = Fit(group[i], side, tier, shapes, i);
-                        fits = shapes[i] != null;
+                        if (shapes[i] == null)
+                        {
+                            shapes[i] = Fit(group[i], side, tier, shapes);
+                            fits = shapes[i] != null;
+                        }
                     }
 
                     if (!fits)
@@ -198,14 +215,17 @@ namespace GeometryHelper.Drawing.Annotation
             return false;
         }
 
-        /// <summary>The first way of drawing a dimension on a tier that overlaps nothing placed, nor the group's own before it.</summary>
-        private DimensionShape Fit(DimensionCandidate candidate, int side, int tier, DimensionShape[] group, int count)
+        /// <summary>
+        /// The first way of drawing a dimension whose text found no place in the middle, past an end of its line, that
+        /// overlaps nothing placed, nor the shapes of its group given so far.
+        /// </summary>
+        private DimensionShape Fit(DimensionCandidate candidate, int side, int tier, DimensionShape[] group)
         {
-            for (int option = 0; option < 3; option++)
+            for (int option = 1; option < 3; option++)
             {
                 DimensionShape shape = Shape(candidate, side, tier, option);
 
-                if (shape != null && IsFree(shape, group, count))
+                if (shape != null && IsFree(shape, group))
                 {
                     return shape;
                 }
@@ -214,7 +234,7 @@ namespace GeometryHelper.Drawing.Annotation
             return null;
         }
 
-        private bool IsFree(DimensionShape shape, DimensionShape[] group, int count)
+        private bool IsFree(DimensionShape shape, DimensionShape[] group)
         {
             foreach (DimensionCandidate placed in _placed)
             {
@@ -224,9 +244,9 @@ namespace GeometryHelper.Drawing.Annotation
                 }
             }
 
-            for (int i = 0; i < count; i++)
+            foreach (DimensionShape other in group)
             {
-                if (DimensionShape.Conflict(shape, group[i], _tol) != null)
+                if (other != null && DimensionShape.Conflict(shape, other, _tol) != null)
                 {
                     return false;
                 }
@@ -260,12 +280,12 @@ namespace GeometryHelper.Drawing.Annotation
                 if (alongX)
                 {
                     var leader = new GeoLine2(p.X, p.Y + side * _offPoint, p.X, line);
-                    return new DimensionShape(null, new[] { leader }, p.X - 0.5 * h, start, p.X + 0.5 * h, start + w, 0.5 * Math.PI);
+                    return new DimensionShape(null, new[] { leader }, p.X - 0.5 * h, start, p.X + 0.5 * h, start + w, 0.5 * Math.PI, h);
                 }
                 else
                 {
                     var leader = new GeoLine2(p.X + side * _offPoint, p.Y, line, p.Y);
-                    return new DimensionShape(null, new[] { leader }, start, p.Y - 0.5 * h, start + w, p.Y + 0.5 * h, 0.0);
+                    return new DimensionShape(null, new[] { leader }, start, p.Y - 0.5 * h, start + w, p.Y + 0.5 * h, 0.0, h);
                 }
             }
 
@@ -302,7 +322,7 @@ namespace GeometryHelper.Drawing.Annotation
                 };
 
                 // The text stands above its line, read from below, whichever side of the view the line is on.
-                return new DimensionShape(dimensionLine, extensions, textLow, line + _gap, textLow + w, line + _gap + h, 0.0);
+                return new DimensionShape(dimensionLine, extensions, textLow, line + _gap, textLow + w, line + _gap + h, 0.0, h);
             }
             else
             {
@@ -314,7 +334,7 @@ namespace GeometryHelper.Drawing.Annotation
                 };
 
                 // Read from the right, the text's top is towards -X: it stands on the left of its line.
-                return new DimensionShape(dimensionLine, extensions, line - _gap - h, textLow, line - _gap, textLow + w, 0.5 * Math.PI);
+                return new DimensionShape(dimensionLine, extensions, line - _gap - h, textLow, line - _gap, textLow + w, 0.5 * Math.PI, h);
             }
         }
     }
