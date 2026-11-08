@@ -126,6 +126,30 @@ namespace GeometryHelper.Drawing.UnitTest.Update
         }
 
         [Fact]
+        public void ADimensionsTextOverrideTypedIntoPropertiesIsAHandEditAndUndoTakesItBack()
+        {
+            Drawing drawing = DrawingBuilder.Build(TC2(), AssemblyOnA3(), Tol);
+            CadDocument document = drawing.OpenInPresenter();
+            DxfDimension overall = Dimension(document.Database, OverallId);
+            string before = overall.DimensionText;
+            Assert.False(CadProperties.Describe(document, null, new[] { overall.Handle }).Groups.SelectMany(g => g.Rows).Single(r => r.Label == "Text override").IsReadOnly);
+
+            CadEditResult set = CadPropertyEditor.Set(document, new[] { overall.Handle }, "Text override", "<> (cut on site)");
+
+            Assert.True(set.Succeeded, set.Message);
+            DrawingEdit edit = Assert.Single(drawing.Edits);
+            Assert.Equal(CadEditKind.Property, edit.Kind);
+            Assert.Equal("Text override", edit.Property);
+            Assert.Equal("<> (cut on site)", edit.NewValue);
+            Assert.Contains(Dimension(document.Database, OverallId).DimBlock.Cast<DxfEntity>().OfType<DxfMText>(), t => t.Contents == "3000 (cut on site)");
+
+            Assert.True(document.Undo());
+
+            Assert.Empty(drawing.Edits);
+            Assert.Equal(before, Dimension(document.Database, OverallId).DimensionText);
+        }
+
+        [Fact]
         public void AViewIsMovedOnTheSheetByItsViewportAndItsTitleGoesWithIt()
         {
             Drawing drawing = DrawingBuilder.Build(TC2(), AssemblyOnA3(), Tol);

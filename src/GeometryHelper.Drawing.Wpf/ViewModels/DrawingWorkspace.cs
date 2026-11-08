@@ -40,6 +40,12 @@ namespace GeometryHelper.Drawing.Wpf
     /// </remarks>
     public sealed partial class DrawingWorkspace : CadWorkspaceExtension
     {
+        /// <summary>The source of a drawing opened from its file, which does not keep where it was made from.</summary>
+        private static readonly IDrawingSourceProvider OpenedFromFile = new UnconnectedSourceProvider(
+            "Opened from a file",
+            "A model drawing opened from its DXF, which does not keep the source it was made from",
+            "Not connected · choose the source in Update from model");
+
         private readonly List<IDrawingSourceProvider> _providers;
         private readonly ObservableCollection<ModelDrawing> _drawings = new ObservableCollection<ModelDrawing>();
         private ModelDrawing _current;
@@ -476,6 +482,44 @@ namespace GeometryHelper.Drawing.Wpf
                 outOfDate == 0 ? null : Count(outOfDate, "drawing") + " out of date");
         }
 
+        /// <summary>
+        /// Takes a model drawing saved and opened again back as one: where the DXF carries a drawing document, the drawing is
+        /// opened over the document with its owner registered, listed under "Opened from a file · model drawings" and shown
+        /// on its sheet's layout, so that its mark can be moved and its projected lines cannot, as in a drawing just made.
+        /// Its source is not kept in the file: Update from model asks for one. A DXF with no drawing document is left as it is.
+        /// </summary>
+        /// <param name="document">The document opened.</param>
+        public override void DocumentOpened(CadDocument document)
+        {
+            if (document == null || Find(document) != null || DrawingDocumentStore.Read(document.Database) == null)
+            {
+                return;
+            }
+
+            Drawing drawing;
+
+            try
+            {
+                drawing = Drawing.Open(document, null, Tolerance);
+            }
+            catch (Exception ex) when (!(ex is OutOfMemoryException))
+            {
+                GeometryHelperLog.Warn("DrawingWorkspace: the model drawing of " + document.Title + " could not be opened; it is shown as a DXF.", ex);
+                return;
+            }
+
+            var entry = new ModelDrawing(document.FileName ?? UniqueKey(drawing), drawing, document, OpenedFromFile, null, null);
+            _drawings.Add(entry);
+            document.Changed += OnDocumentChanged;
+            ((DelegateCommand)ExportDxfCommand).RaiseCanExecuteChanged();
+            CadSpace sheet = document.Spaces.FirstOrDefault(s => !s.IsModel && string.Equals(s.Name, DrawingDxfWriter.LayoutName, StringComparison.OrdinalIgnoreCase));
+
+            if (sheet != null)
+            {
+                document.CurrentSpace = sheet;
+            }
+        }
+
         /// <summary>Lets go of a model drawing closed (CLOSE): it leaves the list of drawings, and the Drawing tab hides.</summary>
         /// <param name="document">The document closed.</param>
         public override void DocumentClosed(CadDocument document)
@@ -519,10 +563,16 @@ namespace GeometryHelper.Drawing.Wpf
             return DrawingProperties.Describe(entry, document, handles, shown, out banner);
         }
 
-        /// <summary>The objects of a drawing as its source gives them now: those it has, and the fittings added to the assemblies it draws whole.</summary>
+        /// <summary>
+        /// The objects of a drawing as its source gives them now: those it has, and the fittings added to the assemblies it
+        /// draws whole; for a drawing opened from its file, with no source, those its views draw.
+        /// </summary>
         internal static DrawingSource SourceFor(ModelDrawing entry, IReadOnlyList<DrawingObject> now)
         {
-            var ids = new HashSet<string>(entry.Drawing.Source.Objects.Select(o => o.Id), StringComparer.Ordinal);
+            IEnumerable<string> drawn = entry.Drawing.Source != null
+                ? entry.Drawing.Source.Objects.Select(o => o.Id)
+                : entry.Drawing.Elements.Where(e => e.Kind == "View").SelectMany(e => e.Links.ObjectIds);
+            var ids = new HashSet<string>(drawn, StringComparer.Ordinal);
             var whole = new HashSet<string>(entry.WholeAssemblies, StringComparer.Ordinal);
             List<DrawingObject> objects = now.Where(o => ids.Contains(o.Id) || (o.ParentId != null && whole.Contains(o.ParentId))).ToList();
             return new DrawingSource(objects);

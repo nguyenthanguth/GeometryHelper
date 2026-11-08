@@ -80,7 +80,7 @@ out 0.027 s. `RemoveAll` erases the anonymous block a dimension was drawn with (
 ## The owner
 
 `DrawingOwner` is the [owner](../presenter/owners.md) of those entities in the presenter, made by
-[`Drawing.OpenInPresenter`](update.md#showing-a-drawing-in-the-presenter) and named `GeometryHelper.Drawing`
+[`Drawing.OpenInPresenter`](update.md#showing-a-drawing-in-the-presenter), or by `Drawing.Open(document, ...)` over a document the app already holds, and named `GeometryHelper.Drawing`
 (`DrawingEntityTags.OwnerName`). It reads the id in the tag, finds the element, and answers by the element's kind:
 
 | Element | Rule | Why |

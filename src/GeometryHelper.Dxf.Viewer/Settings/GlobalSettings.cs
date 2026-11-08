@@ -238,7 +238,11 @@ namespace GeometryHelper.Dxf.Viewer
 
         // ---- Layers, colours and lines
 
-        /// <summary>Gets or sets the layer table written to new drawings, in order: Visible, Hidden, Centre, Hatch, Dimension, Mark and Sheet by default.</summary>
+        /// <summary>
+        /// Gets or sets the layer table written to new drawings, in order: by default the layers a model drawing writes, Visible,
+        /// Hidden, Centre, Hatch, Dimension, Mark, Symbol, Sheet and Viewport, the last not plotted. A file that lists its own
+        /// table is read as it lists it, so one written before Symbol and Viewport were added keeps the seven it has.
+        /// </summary>
         /// <exception cref="ArgumentException">Thrown when the value is null, holds a null layer, or holds two layers of one name.</exception>
         public IReadOnlyList<GlobalLayer> Layers
         {
@@ -576,7 +580,9 @@ namespace GeometryHelper.Dxf.Viewer
             new GlobalLayer("Hatch", 0x9AA4B1, "Continuous", 0.13),
             new GlobalLayer("Dimension", 0x3FB950, "Continuous", 0.18),
             new GlobalLayer("Mark", 0x39C5CF, "Continuous", 0.18),
+            new GlobalLayer("Symbol", 0xBC8CFF, "Continuous", 0.18),
             new GlobalLayer("Sheet", 0xFFFFFF, "Continuous", 0.25),
+            new GlobalLayer("Viewport", 0x9AA4B1, "Continuous", 0.13, plot: false),
         };
 
         /// <summary>Reads the values of the JSON file, each on its own: a value that is not valid falls back to its default with a Warn.</summary>

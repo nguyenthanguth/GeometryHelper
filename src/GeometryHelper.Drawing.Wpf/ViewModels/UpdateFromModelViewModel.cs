@@ -186,9 +186,11 @@ namespace GeometryHelper.Drawing.Wpf
             IDrawingSourceProvider provider = _provider;
             DrawingSource old = Drawing.Drawing.Source;
 
-            if (provider == null || old == null)
+            if (provider == null)
             {
-                Summary = old == null ? "The drawing has no source to compare with." : "No source can give objects now.";
+                Summary = old == null
+                    ? "The model " + Drawing.Number + " was made from is not at hand: the drawing was opened from its file, and no source can give objects now."
+                    : "No source can give objects now.";
                 return null;
             }
 
@@ -204,6 +206,13 @@ namespace GeometryHelper.Drawing.Wpf
                 var result = await RunAsync("Finding what changed in " + provider.Name + "…", () =>
                 {
                     DrawingSource source = DrawingWorkspace.SourceFor(Drawing, provider.CreateObjects());
+
+                    // A drawing opened from its file does not know its source: one that has none of its objects is not it.
+                    if (old == null && source.Objects.Count == 0)
+                    {
+                        return new KeyValuePair<DrawingSource, UpdateReport>(null, null);
+                    }
+
                     var scratch = global::GeometryHelper.Drawing.Drawing.Open(copy, old, tolerance);
                     return new KeyValuePair<DrawingSource, UpdateReport>(source, scratch.Update(source));
                 });
@@ -233,6 +242,14 @@ namespace GeometryHelper.Drawing.Wpf
             if (preview != _previews)
             {
                 return report;
+            }
+
+            if (newSource == null)
+            {
+                Summary = "None of the objects " + Drawing.Number + " draws is in " + provider.Name + ": choose the source the drawing was made from.";
+                _newSource = null;
+                ((DelegateCommand)UpdateCommand).RaiseCanExecuteChanged();
+                return null;
             }
 
             _newSource = newSource;
@@ -304,7 +321,7 @@ namespace GeometryHelper.Drawing.Wpf
 
             foreach (string id in report.ChangedObjects)
             {
-                if (old.TryGetObject(id, out DrawingObject before) && now.TryGetObject(id, out DrawingObject after))
+                if (old != null && old.TryGetObject(id, out DrawingObject before) && now.TryGetObject(id, out DrawingObject after))
                 {
                     rows.Add(new ModelChangeRow(Name(after), ModelChangeKind.Changed, SourceComparer.Describe(before, after, _workspace.Tolerance)));
                 }
@@ -321,7 +338,7 @@ namespace GeometryHelper.Drawing.Wpf
 
             foreach (string id in report.RemovedObjects)
             {
-                rows.Add(new ModelChangeRow(old.TryGetObject(id, out DrawingObject removed) ? Name(removed) : id, ModelChangeKind.Removed, "No longer in the model"));
+                rows.Add(new ModelChangeRow(old != null && old.TryGetObject(id, out DrawingObject removed) ? Name(removed) : id, ModelChangeKind.Removed, "No longer in the model"));
             }
 
             Changes = rows;
@@ -345,7 +362,11 @@ namespace GeometryHelper.Drawing.Wpf
 
             Edits = edits;
             string since = Drawing.LastMade.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
-            Summary = HasChanges
+            Summary = old == null
+                ? "The drawing was opened from its file, which does not keep the model it was made from: Update makes it again from " + _provider.Name
+                  + ", " + report.AddedObjects.Count.ToString(CultureInfo.InvariantCulture) + " added, " + report.RemovedObjects.Count.ToString(CultureInfo.InvariantCulture)
+                  + " removed; hand edits that still apply are kept."
+                : HasChanges
                 ? "The model changed since " + since + ": " + report.ChangedObjects.Count.ToString(CultureInfo.InvariantCulture) + " changed, "
                   + report.AddedObjects.Count.ToString(CultureInfo.InvariantCulture) + " added, " + report.RemovedObjects.Count.ToString(CultureInfo.InvariantCulture)
                   + " removed. The drawing will be made again; hand edits that still apply are kept."

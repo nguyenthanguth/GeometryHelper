@@ -16,7 +16,8 @@ namespace GeometryHelper.Dxf.Viewer
     /// 255,128,0), Layer (a layer of the drawing), Linetype (ByLayer, ByBlock or a linetype of the drawing), Linetype scale (above
     /// nought) and Lineweight (ByLayer, ByBlock, Default, or one of AutoCAD's widths in millimetres as 0.25 mm) of every entity;
     /// the ends of a line; the centre, radius, diameter and circumference of a circle; the centre, radius and the start and end
-    /// angles (in degrees) of an arc; the contents, height, rotation (in degrees) and position of a text and of an MTEXT. With
+    /// angles (in degrees) of an arc; the contents, height, rotation (in degrees) and position of a text and of an MTEXT; the
+    /// text override of a dimension, "&lt;&gt; TYP" showing 3000 TYP on a dimension of 3 000 and an empty one its measurement. With
     /// no entity selected, the first five set the drawing's current settings, which new entities take.
     /// </remarks>
     public static class CadPropertyEditor
@@ -198,6 +199,10 @@ namespace GeometryHelper.Dxf.Viewer
                         write = e => e.LineWeight = weight;
                         return error;
                     }
+
+                case "Text override" when entity is DxfDimension:
+                    write = e => Override(db, (DxfDimension)e, text);
+                    return null;
             }
 
             return Own(label, text, entity, ref write);
@@ -320,6 +325,64 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return document.ApplyEdit("Properties", new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, label, null, text) }, s => write(s.Database));
+        }
+
+        /// <summary>
+        /// Sets a dimension's text override, as AutoCAD's palette sets it, and the words of its picture with it, so that it shows at
+        /// once: the measurement where the text is empty, in the place of a &lt;&gt; of it. A picture another dimension draws with
+        /// too, as a copy's, is left for AutoCAD to draw anew.
+        /// </summary>
+        private static void Override(DxfDatabase db, DxfDimension dimension, string text)
+        {
+            dimension.DimensionText = text;
+            DxfBlockTableRecord picture = dimension.DimBlock;
+
+            if (picture == null || double.IsNaN(dimension.Measurement) || double.IsInfinity(dimension.Measurement) || SharesPicture(db, dimension, picture))
+            {
+                return;
+            }
+
+            string words = dimension.FormatMeasurement(dimension.Measurement, text);
+
+            foreach (DxfEntity entity in picture)
+            {
+                if (entity.IsErased)
+                {
+                    continue;
+                }
+
+                if (entity is DxfMText mtext)
+                {
+                    mtext.Contents = words;
+                }
+                else if (entity is DxfDBText single)
+                {
+                    single.TextString = words;
+                }
+            }
+        }
+
+        /// <summary>Whether another dimension of model space or a layout draws with the same picture.</summary>
+        private static bool SharesPicture(DxfDatabase db, DxfDimension dimension, DxfBlockTableRecord picture)
+        {
+            foreach (DxfLayout layout in db.Layouts)
+            {
+                if (layout.BlockTableRecord == null)
+                {
+                    continue;
+                }
+
+                foreach (DxfEntity entity in layout.BlockTableRecord)
+                {
+                    if (!entity.IsErased && entity is DxfDimension other && !ReferenceEquals(other, dimension) && other.DimBlock != null
+                        && string.Equals(other.DimBlock.Name, picture.Name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         private static void Shift(DxfEntity entity, double dx, double dy, double dz) => entity.TransformBy(GeoTransform3.Translation(new GeoVector3(dx, dy, dz)));

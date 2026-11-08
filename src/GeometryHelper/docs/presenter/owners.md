@@ -50,7 +50,7 @@ which finds the owner an entity's tag names:
 The third row is what a saved model drawing opens as in the plain presenter: a beam drawing of 95 tagged entities, its
 projected lines, symbols, marks, dimensions and views, is read-only throughout until a
 [`Drawing`](xref:GeometryHelper.Drawing.Drawing) opens the file and registers its owner (see
-[Update](../drawing/update.md#showing-a-drawing-in-the-presenter)).
+[Update](../drawing/update.md#showing-a-drawing-in-the-presenter)). The app does that itself when it opens a DXF that carries a drawing document.
 
 ## What an edit is
 

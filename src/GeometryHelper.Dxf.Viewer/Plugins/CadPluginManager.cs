@@ -54,6 +54,7 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
         private readonly List<CadPluginLogEntry> _log = new List<CadPluginLogEntry>();
         private readonly List<string> _startup = new List<string>();
         private readonly List<string> _trusted = new List<string>();
+        private readonly HashSet<string> _confirmed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private readonly CadCommand[] _commands;
         private int _loads;
 
@@ -109,6 +110,11 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
         /// Gets or sets what is asked before a plugin outside the trusted folders is loaded: given the file's full path, it
         /// says whether to load it, as a dialog that asks the user does. Null, as it is until set, loads none.
         /// </summary>
+        /// <remarks>
+        /// A yes is kept for the file's folder for the rest of the session, not on disk: a plugin loaded from C:\Dev\Labels\bin
+        /// is reloaded with PLUGINRELOAD, as its author builds it again and again, without the question, and the other files of
+        /// that folder load without it too. A no is not kept, so the next load of the file asks again.
+        /// </remarks>
         public Func<string, bool> ConfirmUntrusted { get; set; }
 
         /// <summary>Gets the trusted folders, full paths: the plugin folder first, then those added, in the order they were added.</summary>
@@ -791,8 +797,16 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
         private bool IsLoaded(string path)
             => _plugins.Exists(p => p.IsLoaded && string.Equals(p.Path, path.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase));
 
+        /// <summary>Whether a file outside the trusted folders may be loaded: asked until it is confirmed for its folder in the session.</summary>
         private bool Confirmed(string path)
         {
+            string folder = Directory.Exists(path) ? path : Path.GetDirectoryName(path) ?? path;
+
+            if (_confirmed.Contains(folder))
+            {
+                return true;
+            }
+
             Func<string, bool> confirm = ConfirmUntrusted;
 
             if (confirm == null)
@@ -802,7 +816,13 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
 
             try
             {
-                return confirm(path);
+                if (!confirm(path))
+                {
+                    return false;
+                }
+
+                _confirmed.Add(folder);
+                return true;
             }
             catch (Exception exception)
             {

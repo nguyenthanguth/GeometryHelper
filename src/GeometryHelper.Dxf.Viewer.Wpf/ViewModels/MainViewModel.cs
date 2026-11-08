@@ -486,7 +486,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Opens a DXF file, or shows it again where it is open already, and lists the other DXF files of its folder. A file that
-        /// cannot be read leaves the drawing shown as it was and says why on the command line.
+        /// cannot be read leaves the drawing shown as it was and says why on the command line. Each extension is told of the
+        /// document before it is shown (<see cref="CadWorkspaceExtension.DocumentOpened"/>).
         /// </summary>
         /// <param name="path">The path of the file.</param>
         /// <returns>True when the file is shown.</returns>
@@ -525,6 +526,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 Say("Cannot open " + System.IO.Path.GetFileName(full) + ": " + ex.Message);
                 return false;
+            }
+
+            foreach (CadWorkspaceExtension extension in _extensions)
+            {
+                extension.DocumentOpened(document);
             }
 
             known = known ?? new KnownFile(full, System.IO.Path.GetDirectoryName(full));
@@ -1794,6 +1800,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             banner = null;
             return shown;
+        }
+
+        /// <summary>
+        /// Tells the extension a DXF file has been opened (Open, or a row of the file list), before it is shown, so that it can
+        /// take a document of its own back: a model drawing saved and opened again registers its owner here.
+        /// </summary>
+        /// <param name="document">The document opened.</param>
+        public virtual void DocumentOpened(CadDocument document)
+        {
         }
 
         /// <summary>Tells the extension a document has been closed (CLOSE), so that it lets go of what it kept of it.</summary>

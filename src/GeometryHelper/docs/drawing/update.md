@@ -27,6 +27,8 @@ Drawing again = Drawing.Open("beam.dxf", source, Tolerance.Default);            
 a DXF of any other kind throws `ArgumentException`, `The file ... carries no model drawing.` The drawing opened has its
 elements, its edits and its settings as saved, and its views empty: its lines are in its DXF, not in `Views`.
 
+Opened in the app, by Open or from the file list, a DXF that carries a drawing document is opened as `Drawing.Open(document, null, tolerance)` opens it: over the presenter's document, its owner registered, so that a mark is `MoveOnly` there at once and saving writes to the file it came from. It is listed under "Opened from a file · model drawings" until it is updated from a source, which Update from model asks for, since the file does not keep where the drawing was made from. A host that calls `OpenDocument` with a document it read itself gets no drawing: only `MainViewModel.Open(path)` tells the extensions.
+
 ```
 opened id B1, 0 views, 16 elements, 0 edits, scale 10, sheet A3
 ```

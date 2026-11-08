@@ -181,6 +181,45 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
         }
 
         [Fact]
+        public void AFolderConfirmedOnceIsNotAskedAboutAgainWhenThePluginIsReloadedButAnotherFolderIs()
+        {
+            string path = _files.Sample();
+            string other = _files.Sample("other");
+            var asked = new List<string>();
+
+            using (CadPluginManager manager = _files.Manager())
+            {
+                manager.ConfirmUntrusted = p =>
+                {
+                    asked.Add(p);
+                    return true;
+                };
+
+                Assert.True(manager.Load(path).Succeeded);
+                Assert.True(manager.Reload(PluginFiles.SampleName).Succeeded);
+                Assert.True(manager.Reload(PluginFiles.SampleName).Succeeded);
+                Assert.True(manager.Unload(PluginFiles.SampleName).Succeeded);
+                Assert.True(manager.Load(other).Succeeded);
+
+                Assert.Equal(new[] { path, other }, asked);
+                Assert.All(manager.Log, l => Assert.False(l.Trusted));
+            }
+
+            // Not on disk: a manager made again asks again.
+            using (var again = new CadPluginManager(new Wpf.Plugins.CadPluginAssemblyLoader(), _files.PluginFolder, _files.SettingsPath, Path.Combine(_files.ShadowFolder, "again")))
+            {
+                again.ConfirmUntrusted = p =>
+                {
+                    asked.Add(p);
+                    return true;
+                };
+
+                Assert.True(again.Load(path).Succeeded);
+                Assert.Equal(new[] { path, other, path }, asked);
+            }
+        }
+
+        [Fact]
         public void APluginWhoseFileHasGoneIsNotReloadedAndStaysLoaded()
         {
             string path = _files.Sample();

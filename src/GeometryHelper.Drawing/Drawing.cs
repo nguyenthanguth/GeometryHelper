@@ -16,7 +16,7 @@ namespace GeometryHelper.Drawing
     /// <remarks>
     /// <para>
     /// A drawing is made by <see cref="DrawingBuilder.Build"/>, saved by <see cref="Save"/> as one DXF and opened again by
-    /// <see cref="Open"/>. <see cref="Update(DrawingSource)"/> makes it again from the model as it is now: it takes out only the entities it
+    /// <see cref="Open(string, DrawingSource, Tolerance)"/>. <see cref="Update(DrawingSource)"/> makes it again from the model as it is now: it takes out only the entities it
     /// wrote, writes them anew, applies the hand edits that still apply and reports those that no longer do; what was drawn
     /// by hand on it stays. A beam drawn 3 000 long and updated to 3 500 has its overall dimension read 3500, a mark moved 40
     /// to the right still 40 to the right of where the drawing puts it, and a line drawn by hand on the sheet still there.
@@ -166,12 +166,42 @@ namespace GeometryHelper.Drawing
                 throw new ArgumentNullException(nameof(path));
             }
 
-            DxfDatabase database = DxfDatabase.Open(path);
+            return Read(DxfDatabase.Open(path), path, source, tolerance, nameof(path));
+        }
+
+        /// <summary>
+        /// Opens the drawing a document of the presenter holds, as a DXF saved by <see cref="Save"/> and opened there is: its
+        /// document read back from the DXF, and the drawing's owner registered with the document as
+        /// <see cref="OpenInPresenter"/> registers it, so that a mark can be moved there and a projected line cannot.
+        /// </summary>
+        /// <param name="document">The document; it keeps its file, so that saving it writes the file it was opened from.</param>
+        /// <param name="source">The objects the drawing was made from, to compare an update with; null where they are not at hand.</param>
+        /// <param name="tolerance">The tolerance the drawing is made within when it is updated.</param>
+        /// <returns>The drawing, following the document: its elements, edits and plugin runs as saved, its views empty until
+        /// <see cref="Update(DrawingSource)"/>.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the document is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the document's DXF carries no drawing document, or the drawing's
+        /// owner is registered with the document already.</exception>
+        public static Drawing Open(CadDocument document, DrawingSource source, Tolerance tolerance)
+        {
+            if (document == null)
+            {
+                throw new ArgumentNullException(nameof(document));
+            }
+
+            Drawing drawing = Read(document.Database, document.FileName ?? document.Title, source, tolerance, nameof(document));
+            drawing.Follow(document);
+            return drawing;
+        }
+
+        /// <summary>The drawing a DXF holds; an <see cref="ArgumentException"/> of the parameter named where it holds none.</summary>
+        private static Drawing Read(DxfDatabase database, string path, DrawingSource source, Tolerance tolerance, string parameter)
+        {
             DrawingDocumentRecords records = DrawingDocumentStore.Read(database);
 
             if (records == null)
             {
-                throw new ArgumentException("The file " + path + " carries no model drawing.", nameof(path));
+                throw new ArgumentException("The file " + path + " carries no model drawing.", parameter);
             }
 
             DrawingSettings settings = new DrawingSettings();
@@ -214,6 +244,13 @@ namespace GeometryHelper.Drawing
         public CadDocument OpenInPresenter()
         {
             CadDocument document = CadDocument.From(Database, Id + ".dxf");
+            Follow(document);
+            return document;
+        }
+
+        /// <summary>Registers the drawing's owner with a document and follows the document from then on.</summary>
+        private void Follow(CadDocument document)
+        {
             document.Owners.Register(new DrawingOwner(this));
             document.Changed += OnPresenterChanged;
 
@@ -224,7 +261,6 @@ namespace GeometryHelper.Drawing
 
             _presenter = document;
             GeometryHelperLog.Info("Drawing.OpenInPresenter: " + Id + " shown with its owner registered.");
-            return document;
         }
 
         /// <summary>

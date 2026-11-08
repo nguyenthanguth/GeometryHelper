@@ -56,6 +56,22 @@ marks on five test bodies, 18 moved, all in views with short dimensions.
 **FIXED.** The 2D presenter draws an MTEXT at the width factor its words open with (`\W0.8000;` for 0.8, as the T
 command and AutoCAD write it) and measures it at that width, as it does a TEXT.
 
+**FIXED.** A model drawing saved and opened again from its DXF, by Open or from the file list, is a model drawing again,
+not a plain read-only DXF: its owner is registered, so a mark can be moved and a projected line cannot, it is listed under
+"Opened from a file · model drawings" with the Drawing tab, and saving writes to the file it came from. Update from model
+asks for the source, since the file does not keep it, and says in words when none is at hand or when the source holds none
+of the drawing's objects. **NEW.** `Drawing.Open(CadDocument, DrawingSource, Tolerance)` and
+`CadWorkspaceExtension.DocumentOpened`.
+
+**FIXED.** The Text override of a dimension can be set in Properties, as in AutoCAD: `<> TYP` shows `3000 TYP` on a
+dimension of 3 000, and an empty text shows the measurement. On a model drawing it is a hand edit and one undo step.
+
+**FIXED.** PLUGINRELOAD no longer asks again whether to load a plugin from a folder outside the trusted folders: a yes is
+kept for that folder for the session, never on disk; a no is asked again.
+
+**CHANGED.** Global settings' Layers lists Symbol and Viewport (not plotted) by default, every layer a model drawing
+writes. A settings file that lists its own table keeps it.
+
 **CHANGED.** Placing labels among many blocks is faster, with the same results to the bit: `Arranger.Run` skips the
 obstacles whose box lies farther than the nearest distance already found, and asks the spatial index for the
 neighbourhood of each place, not all of them. The densest arranging benchmark goes from 55.8 ms to 49.9 ms.

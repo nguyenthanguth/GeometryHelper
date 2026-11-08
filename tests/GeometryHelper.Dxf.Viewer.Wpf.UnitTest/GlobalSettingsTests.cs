@@ -32,7 +32,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal(CadSnapModes.All & ~CadSnapModes.Nearest, settings.Snaps);
             Assert.Equal(CadShortcuts.Default.Aliases, settings.Aliases);
             Assert.Equal(CadShortcuts.Default.Keys, settings.Keys);
-            Assert.Equal(new[] { "Visible", "Hidden", "Centre", "Hatch", "Dimension", "Mark", "Sheet" }, settings.Layers.Select(l => l.Name));
+            Assert.Equal(new[] { "Visible", "Hidden", "Centre", "Hatch", "Dimension", "Mark", "Symbol", "Sheet", "Viewport" }, settings.Layers.Select(l => l.Name));
             Assert.Equal("Assembly", settings.DefaultPreset);
             Assert.Equal("A2", settings.DefaultSheetSize);
             Assert.Equal("LayoutAndViewports", settings.ExportLayout);
@@ -117,6 +117,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             File.WriteAllText(path, "{ this is not JSON");
             Assert.Equal(new GlobalSettings().ToJson(), GlobalSettings.Load(path).ToJson());
             Assert.Equal(new GlobalSettings().ToJson(), GlobalSettings.Load(Path.Combine(_folder.FullPath, "none.json")).ToJson());
+        }
+
+        [Fact]
+        public void TheSymbolAndViewportLayersAreDefaultsTheViewportNotPlotted_AndAnOlderFileReadsWithItsOwnTable()
+        {
+            var settings = new GlobalSettings();
+            GlobalLayer symbol = settings.Layers.Single(l => l.Name == "Symbol");
+            GlobalLayer viewport = settings.Layers.Single(l => l.Name == "Viewport");
+            Assert.True(symbol.Plot);
+            Assert.False(viewport.Plot);
+            Assert.Equal("Continuous", viewport.Linetype);
+
+            // A file with no layers, as one with only the canvas set, takes the default table.
+            string path = Path.Combine(_folder.FullPath, "settings.json");
+            File.WriteAllText(path, "{ \"canvas\": { \"wheelZoomFactor\": 1.5 } }");
+            Assert.Equal(settings.Layers.Select(l => l.Name), GlobalSettings.Load(path).Layers.Select(l => l.Name));
+
+            // A file written before Symbol and Viewport were defaults reads as written.
+            var older = new GlobalSettings { Layers = settings.Layers.Where(l => l.Name != "Symbol" && l.Name != "Viewport").ToList() };
+            older.Save(path);
+            GlobalSettings read = GlobalSettings.Load(path);
+            Assert.Equal(new[] { "Visible", "Hidden", "Centre", "Hatch", "Dimension", "Mark", "Sheet" }, read.Layers.Select(l => l.Name));
+            Assert.Equal(1.2, read.WheelZoomFactor);
         }
 
         [Fact]

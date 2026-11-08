@@ -187,8 +187,9 @@ that cannot be taken, a row that cannot be set and an entity on a locked layer a
 locked, setting the radius gives `Refused: The circle 105 is on a locked layer.` With nothing selected the first five rows set
 the drawing's current settings, which new entities take.
 
-The row "Text override" of a dimension is shown, but `CadPropertyEditor` does not set it: it answers that the property of a
-rotated dimension cannot be set here. A model drawing takes that edit through its owner (see
+The row "Text override" of a dimension is set as in AutoCAD: `<>` stands for the measurement, so `<> TYP` on a dimension of
+3 000 shows `3000 TYP`, and an empty text shows the measurement. The text of the dimension's own picture is written again
+and one undo takes it back. On a model drawing the edit goes through its owner as a hand edit (see
 [Owners](owners.md#what-the-model-drawing-makes-of-each)).
 
 ## Layers

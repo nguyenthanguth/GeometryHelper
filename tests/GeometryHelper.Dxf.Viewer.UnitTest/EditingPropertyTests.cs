@@ -35,6 +35,32 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void TheTextOverrideOfADimensionIsSetAndShownAtOnce_AndUndoTakesItBack()
+        {
+            CadDocument document = Blank();
+            Run(Session(document), "DLI", P(0, 0), P(300, 0), P(150, -30));
+            string handle = Assert.Single(All<DxfRotatedDimension>(document.ModelSpace)).Handle;
+            string Words() => Entity<DxfRotatedDimension>(document, handle).DimBlock.OfType<DxfMText>().Single().Contents;
+            string measured = Words();
+
+            CadEditResult result = CadPropertyEditor.Set(document, new[] { handle }, "Text override", "<> TYP");
+
+            Assert.True(result.Succeeded, result.Message);
+            Assert.Equal("<> TYP", Shown(document, handle, "Text override"));
+            Assert.Equal(measured + " TYP", Words());
+            Assert.Equal("Properties", document.NextUndo.Name);
+
+            Assert.True(CadPropertyEditor.Set(document, new[] { handle }, "Text override", "Hold").Succeeded);
+            Assert.Equal("Hold", Words());
+
+            Assert.True(document.Undo());
+            Assert.True(document.Undo());
+
+            Assert.Equal(string.Empty, Shown(document, handle, "Text override"));
+            Assert.Equal(measured, Words());
+        }
+
+        [Fact]
         public void TheLookOfALineIsSetAsThePaletteWritesIt()
         {
             CadDocument document = Plan();
