@@ -69,6 +69,20 @@ dimension of 3 000, and an empty text shows the measurement. On a model drawing 
 **FIXED.** PLUGINRELOAD no longer asks again whether to load a plugin from a folder outside the trusted folders: a yes is
 kept for that folder for the session, never on disk; a no is asked again.
 
+**FIXED.** Marks and weld symbols keep clear of the full width of every dimension arrow, inside a dimension line as well
+as outside a short one. Each arrow is taken as the box round it, as long as the dimension's text is high and a third of
+that wide. `Marker.FindOverlaps` and `WeldSymbol.FindOverlaps` name "over an arrow of dimension D-3". With the presets' text
+sizes one mark and one weld symbol of the test bodies moved; with a dimension text four times the marks', 19 of 120 marks and
+6 of 72 weld symbols moved off arrows.
+
+**CHANGED.** A mark that the placing leaves out is tried once more, keeping only its text, not its margin, clear of the
+centre lines and cut lines, as `FindOverlaps` counts them. In the general arrangement of 1 000 members 191 of 200 marks now
+find a place instead of 185, and every other mark is the same to the bit; two of the six marks rescued have leaders of 10 and
+15 m (51 and 77 mm on the paper).
+
+**FIXED.** The presenter draws an MTEXT at its text style's width factor when its words set none of their own, as it
+already took the style's slant. ROMANS 2.5 high in a style of width 0.75 is drawn 6.75 wide, and `\W1.2x;` makes it 0.9.
+
 **NEW.** `DrawingDocumentStore.WriteValues` and `ReadValues`: named values the app keeps with a drawing in the XRECORD
 `VALUES` of GH_DRAWING. A file without them reads as none, and writing none leaves a drawing as one never given any, byte
 for byte.

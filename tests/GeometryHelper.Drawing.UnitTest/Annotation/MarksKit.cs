@@ -80,6 +80,40 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
             return edge.Arc.DistanceTo(p, Tol);
         }
 
+        /// <summary>
+        /// The box round each arrowhead of a dimension, as the dimension's block draws it: as long as the text is high and a
+        /// third of that wide, its tip at an end of the line, pointing out of a line at least two arrows long and into a
+        /// shorter one from outside it; none for a dimension with no line.
+        /// </summary>
+        public static List<(double MinX, double MinY, double MaxX, double MaxY)> Arrowheads(DrawingDimension d)
+        {
+            var boxes = new List<(double, double, double, double)>();
+
+            if (!d.DimensionLine.HasValue)
+            {
+                return boxes;
+            }
+
+            GeoLine2 line = d.DimensionLine.Value;
+            double length = line.Length, h = d.TextHeight;
+            double ux = (line.EndPoint.X - line.StartPoint.X) / length, uy = (line.EndPoint.Y - line.StartPoint.Y) / length;
+            double inward = length >= 2.0 * h ? 1.0 : -1.0;
+
+            foreach ((GeoPoint2 tip, double sign) in new[] { (line.StartPoint, inward), (line.EndPoint, -inward) })
+            {
+                var back = new GeoPoint2(tip.X + sign * ux * h, tip.Y + sign * uy * h);
+                boxes.Add((Math.Min(tip.X, back.X) - Math.Abs(uy) * h / 6, Math.Min(tip.Y, back.Y) - Math.Abs(ux) * h / 6,
+                    Math.Max(tip.X, back.X) + Math.Abs(uy) * h / 6, Math.Max(tip.Y, back.Y) + Math.Abs(ux) * h / 6));
+            }
+
+            return boxes;
+        }
+
+        /// <summary>Whether a box square to the axes overlaps a box given by its least and most X and Y by more than the point tolerance both ways.</summary>
+        public static bool Overlaps(GeoRectangle2 box, (double MinX, double MinY, double MaxX, double MaxY) other)
+            => box.Center.X - box.Width / 2 < other.MaxX - Tol.EqualPoint && box.Center.X + box.Width / 2 > other.MinX + Tol.EqualPoint
+                && box.Center.Y - box.Height / 2 < other.MaxY - Tol.EqualPoint && box.Center.Y + box.Height / 2 > other.MinY + Tol.EqualPoint;
+
         /// <summary>A mark as text, its numbers to the bit, for comparing two runs.</summary>
         public static string Signature(DrawingMark m)
         {

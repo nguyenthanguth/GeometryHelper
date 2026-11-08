@@ -263,13 +263,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The slant of a text style's letters in radians.</summary>
         private double ObliqueOf(string styleName) => Style(styleName).Oblique;
 
+        /// <summary>How wide a text style's letters are for their height: 1 where the style gives none or is not found.</summary>
+        private double WidthFactorOf(string styleName) => Style(styleName).WidthFactor;
+
         private TextFont Style(string styleName)
         {
             string key = styleName ?? string.Empty;
 
             if (!_fonts.TryGetValue(key, out TextFont font))
             {
-                font = new TextFont(null, 0.0);
+                font = new TextFont(null, 0.0, 1.0);
 
                 try
                 {
@@ -278,12 +281,12 @@ namespace GeometryHelper.Dxf.Viewer
                     if (record != null)
                     {
                         string typeFace = record.Font.TypeFace;
-                        font = new TextFont(string.IsNullOrEmpty(typeFace) ? record.FileName : typeFace, record.ObliquingAngle);
+                        font = new TextFont(string.IsNullOrEmpty(typeFace) ? record.FileName : typeFace, record.ObliquingAngle, record.XScale);
                     }
                 }
                 catch (Exception)
                 {
-                    font = new TextFont(null, 0.0);
+                    font = new TextFont(null, 0.0, 1.0);
                 }
 
                 _fonts[key] = font;
@@ -294,15 +297,18 @@ namespace GeometryHelper.Dxf.Viewer
 
         private sealed class TextFont
         {
-            public TextFont(string name, double oblique)
+            public TextFont(string name, double oblique, double widthFactor)
             {
                 Name = string.IsNullOrEmpty(name) ? null : name;
                 Oblique = oblique;
+                WidthFactor = widthFactor > 0.0 && !double.IsInfinity(widthFactor) ? widthFactor : 1.0;
             }
 
             public string Name { get; }
 
             public double Oblique { get; }
+
+            public double WidthFactor { get; }
         }
 
         private void Draw(DxfEntity entity, Frame frame, DisplayList2 list, string forcedHandle)
@@ -582,17 +588,17 @@ namespace GeometryHelper.Dxf.Viewer
             double rotation = Math.Atan2(direction.Y, direction.X);
             Affine2 m = frame.Matrix;
             double turn = Orient(m, rotation, false, false, out bool backward);
-            list.Add(new DisplayText2(value, m.X(at.X, at.Y), m.Y(at.X, at.Y), text.TextHeight * m.Scale, turn, WidthOf(text.Contents), horizontal, vertical, style, handle, layerName, FontOf(text.TextStyleName), ObliqueOf(text.TextStyleName), backward));
+            list.Add(new DisplayText2(value, m.X(at.X, at.Y), m.Y(at.X, at.Y), text.TextHeight * m.Scale, turn, WidthOf(text.Contents, WidthFactorOf(text.TextStyleName)), horizontal, vertical, style, handle, layerName, FontOf(text.TextStyleName), ObliqueOf(text.TextStyleName), backward));
         }
 
         /// <summary>
         /// The width factor of an MTEXT's letters: that its codes set before the first of its words, <c>\W0.8000;</c> for 0.8 as
-        /// AutoCAD writes it, a factor ending in x taken of the one before; 1 where they set none. A width set later in the words
-        /// is not read, as the words are drawn at one width.
+        /// AutoCAD writes it, a factor ending in x taken of the one before; the width of its text style where they set none, as
+        /// its style's slant is taken. A width set later in the words is not read, as the words are drawn at one width.
         /// </summary>
-        private static double WidthOf(string contents)
+        private static double WidthOf(string contents, double styleFactor)
         {
-            double factor = 1.0;
+            double factor = styleFactor;
             int i = 0;
 
             while (i < contents.Length)

@@ -390,6 +390,87 @@ namespace GeometryHelper.Drawing.UnitTest.Builder
         }
 
         [Fact]
+        public void NoMarkOrWeldSymbolOfTC1TC2OrTC5StandsOnADimensionArrowInsideOrOutsideItsLineAtOneToFiveTenOrTwenty()
+        {
+            // TC5 with three welds: a fillet on the outside of each flange at the base plate, one of them on both sides, and a
+            // V butt weld on the other side at the foot of a stiffener of the web.
+            var tc5 = TestBodies.TC5().ToSource().Objects.ToList();
+            tc5.Add(Weld("TC5-weld-1", new GeoPoint3(130, 0, 30), "Fillet", "Arrow", "a6", "250", "TC5-base", "TC5-column"));
+            tc5.Add(Weld("TC5-weld-2", new GeoPoint3(-130, 0, 30), "Fillet", "Both", "a6", "250", "TC5-base", "TC5-column"));
+            tc5.Add(Weld("TC5-weld-3", new GeoPoint3(10, 100, 30), "VButt", "Other", "s8", null, "TC5-base", "TC5-stiffener-3"));
+            var found = new List<string>();
+            int arrows = 0, marks = 0, symbols = 0, views = 0;
+
+            foreach ((bool big, double scale) in new[] { (false, 5.0), (false, 10.0), (false, 20.0), (true, 5.0), (true, 10.0), (true, 20.0) })
+            {
+                foreach ((string name, DrawingSource source) in new[] { ("TC1", TestBodies.TC1().ToSource()), ("TC2", TC2()), ("TC5", new DrawingSource(tc5)) })
+                {
+                    foreach (DrawingSettings settings in new[] { DrawingSettings.Part, DrawingSettings.Assembly })
+                    {
+                        settings.Scales.Clear();
+                        settings.Scales.Add(scale);
+                        settings.Sheet.Size = PaperSize.A0;
+
+                        // The presets' own texts, and a dimension text four times the marks' and ten times the weld symbols', its
+                        // arrows then wider than the margins the marks and symbols keep off lines.
+                        if (big)
+                        {
+                            settings.Dimensions.TextHeight = 10;
+                            settings.Marks.TextHeight = 2.5;
+                            settings.Symbols.TextHeight = 1;
+                        }
+
+                        foreach (string id in new[] { "V-FRONT", "V-TOP", "V-RIGHT" })
+                        {
+                            settings.Views.MarkedViews.Add(id);
+                        }
+
+                        Drawing drawing = DrawingBuilder.Build(source, settings, Tol);
+
+                        foreach (DrawingView view in drawing.Views.Where(v => v.Kind == ViewKind.Front || v.Kind == ViewKind.Top || v.Kind == ViewKind.Right))
+                        {
+                            Assert.Equal(scale, view.Scale);
+                            views++;
+                            marks += view.Marks.Count;
+                            symbols += view.WeldSymbols.Count;
+
+                            foreach (DrawingDimension d in view.Dimensions)
+                            {
+                                foreach (var arrow in Arrowheads(d))
+                                {
+                                    arrows++;
+                                    found.AddRange(view.Marks.Where(m => Overlaps(m.TextBox, arrow)).Select(m => name + " " + view.Id + " 1:" + scale + (big ? " big" : string.Empty) + ": " + m.Id + " over an arrow of " + d.Id));
+                                    found.AddRange(view.WeldSymbols.Where(w => Overlaps(w.Bounds, arrow)).Select(w => name + " " + view.Id + " 1:" + scale + (big ? " big" : string.Empty) + ": " + w.Id + " over an arrow of " + d.Id));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            found.ForEach(_output.WriteLine);
+            _output.WriteLine($"{views} views, {marks} marks and {symbols} weld symbols kept off {arrows} arrows");
+            Assert.True(arrows > 100 && marks > 30 && symbols > 10, $"{arrows} arrows, {marks} marks, {symbols} symbols");
+            Assert.Empty(found);
+        }
+
+        [Fact]
+        public void InTheGeneralArrangementOfAHundredColumnBasesABoltMarkCrowdedOffTheMarginOfTheCentreLinesStandsClearOfThemByItsText()
+        {
+            // The plan at 1:200: a column mark C1 and a bolt mark "4 x M20 x 80", some 6 000 wide, for each of the 100 bases
+            // 6 000 apart, and the 400 centre lines of their bolts.
+            Drawing drawing = DrawingBuilder.Build(TestBodies.TC10(10, 10).ToSource(), DrawingSettings.General, Tol);
+            DrawingView plan = drawing.Views.Single(v => v.Marks.Count > 0);
+            Symbols(plan, out List<GeoRectangle2> boxes, out List<GeoLine2> lines);
+
+            Assert.Equal(200.0, plan.Scale);
+            Assert.Equal(400, lines.Count);
+            Assert.Equal(100, plan.Marks.Count(m => m.Kind == MarkKind.Assembly));
+            Assert.Equal(91, plan.Marks.Count(m => m.Kind == MarkKind.Bolt));
+            Assert.Empty(Marker.FindOverlaps(plan.Marks, plan.Dimensions, boxes, lines, Tol));
+        }
+
+        [Fact]
         public void TheTextOfAMarkIsTakenAsWideAsThePresenterDrawsIt()
         {
             Drawing drawing = DrawingBuilder.Build(TC5WithAWeld(), DrawingSettings.Assembly, Tol);

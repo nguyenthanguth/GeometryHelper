@@ -135,9 +135,9 @@ namespace GeometryHelper.Drawing.Annotation
 
         /// <summary>
         /// Adds a line for each way a symbol, taken as a box, meets the dimensions as they are drawn: the box over a
-        /// dimension's text, its line or an extension line, its arrow across a dimension's text; with no list, says whether
-        /// there was one. A dimension line shorter than two arrows is taken run on by an arrow at each end, as it is drawn
-        /// with its arrows outside.
+        /// dimension's text, its line, an arrow or an extension line, its arrow across a dimension's text; with no list, says
+        /// whether there was one. A dimension line shorter than two arrows is taken run on by an arrow at each end, as it is
+        /// drawn with its arrows outside, and each arrow as the box round it.
         /// </summary>
         internal static bool DimensionClash(WeldSymbol symbol, GeoRectangle2 box, List<DrawingDimension> dimensions, double tol, List<string> found)
         {
@@ -161,6 +161,15 @@ namespace GeometryHelper.Drawing.Annotation
                     if (Box2.Crosses(box, line.StartPoint, line.EndPoint, tol))
                     {
                         hits.Add(" over the line of dimension ");
+                    }
+                }
+
+                foreach (GeoRectangle2 arrow in d.Arrowheads)
+                {
+                    if (Box2.Overlap(box, arrow, tol))
+                    {
+                        hits.Add(" over an arrow of dimension ");
+                        break;
                     }
                 }
 

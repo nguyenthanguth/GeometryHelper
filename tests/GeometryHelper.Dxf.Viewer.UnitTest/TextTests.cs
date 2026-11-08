@@ -93,5 +93,24 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal("romans.shx", shown.FontName);
             Assert.Equal(10.0 * Math.PI / 180.0, shown.Oblique, 9);
         }
+
+        [Theory]
+        [InlineData(@"ROMANS", 0.75)]
+        [InlineData(@"\W0.5;ROMANS", 0.5)]
+        [InlineData(@"\W1.2x;ROMANS", 0.9)]
+        public void AnMTextOfAStyleOfNarrowLettersIsDrawnAtTheStylesWidthUnlessItsCodesSetOne(string contents, double factor)
+        {
+            DisplayText2 shown = MText(contents, (database, mtext) =>
+            {
+                var style = new DxfTextStyleTableRecord { Name = "GH_NARROW", FileName = "romans.shx" };
+                database.TextStyleTable.Add(style);
+                style.XScale = 0.75;
+                mtext.TextStyleName = "GH_NARROW";
+            });
+
+            // ROMANS 2.5 high, six letters each 0.6 of the height wide at a width factor of 1: 9 wide, 6.75 at the style's 0.75.
+            Assert.Equal(factor, shown.WidthFactor, 9);
+            Assert.Equal(6 * 2.5 * 0.6 * factor, shown.EstimatedWidth, 9);
+        }
     }
 }

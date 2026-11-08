@@ -241,8 +241,8 @@ namespace GeometryHelper.Drawing.Annotation
 
         /// <summary>
         /// Finds where weld symbols overlap the dimensions of their view, boxes and lines kept clear of, or one another: a
-        /// symbol's box over a dimension's text, line or extension line, over a box or a line, or over another symbol's box;
-        /// an arrow across a dimension's text, a box, or another symbol's box.
+        /// symbol's box over a dimension's text, line, arrow or extension line, over a box or a line, or over another symbol's
+        /// box; an arrow across a dimension's text, a box, or another symbol's box.
         /// </summary>
         /// <param name="symbols">The weld symbols of one view.</param>
         /// <param name="dimensions">The dimensions of the same view; none where it has none.</param>
@@ -253,8 +253,9 @@ namespace GeometryHelper.Drawing.Annotation
         /// <remarks>
         /// Each symbol is taken as its <see cref="Bounds"/> and its arrow as the line from its <see cref="Knee"/> to its
         /// <see cref="ArrowTip"/>; a dimension line shorter than two arrows is taken run on by an arrow at each end, as it is
-        /// drawn with its arrows outside. An arrow across a dimension line, an extension line or a line kept clear of is not
-        /// counted, as a draughtsman lets one cross.
+        /// drawn with its arrows outside, and each of a dimension's arrows as the box round it, as long as the dimension's text
+        /// is high and a third of that wide, inside its line or outside it as it is drawn. An arrow across a dimension line, an
+        /// extension line or a line kept clear of is not counted, as a draughtsman lets one cross.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the symbols, the dimensions, the boxes or the lines are null.</exception>
         /// <exception cref="ArgumentException">Thrown when a symbol or a dimension is null.</exception>

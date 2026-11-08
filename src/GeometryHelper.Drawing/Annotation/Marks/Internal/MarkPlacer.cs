@@ -183,6 +183,12 @@ namespace GeometryHelper.Drawing.Annotation
                     hard.Add(Box2.Around(line.Value.StartPoint, line.Value.EndPoint, thin));
                 }
 
+                // The arrows, as wide as they are drawn, inside the line or outside it.
+                foreach (GeoRectangle2 arrow in d.Arrowheads)
+                {
+                    hard.Add(new GeoPolygon2(arrow.GetVertices()));
+                }
+
                 foreach (GeoLine2 extension in d.ExtensionLines)
                 {
                     hard.Add(Box2.Around(extension.StartPoint, extension.EndPoint, thin));
@@ -260,21 +266,29 @@ namespace GeometryHelper.Drawing.Annotation
             }
 
             // What the last round could not keep is tried at its places in the order the arranging tries them, the first
-            // clear of everything taken, else the first clear of all but the view's lines.
-            var left = new List<Candidate>();
+            // clear of everything taken, else the first clear of all but the view's lines. What is left then, where marks
+            // crowd round it, is tried once more with its text, not its margin, kept clear of the lines of the symbols.
+            List<Candidate> left = pending;
 
-            foreach (Candidate c in pending)
+            foreach (bool lineMargin in new[] { true, false })
             {
-                Placed placed = Search(c, accepted, lines);
+                var still = new List<Candidate>();
 
-                if (placed == null)
+                foreach (Candidate c in left)
                 {
-                    left.Add(c);
+                    Placed placed = Search(c, accepted, lines, lineMargin);
+
+                    if (placed == null)
+                    {
+                        still.Add(c);
+                    }
+                    else
+                    {
+                        accepted.Add(placed);
+                    }
                 }
-                else
-                {
-                    accepted.Add(placed);
-                }
+
+                left = still;
             }
 
             dropped = left.ConvertAll(c => c.Id + " " + c.Text);
@@ -326,12 +340,14 @@ namespace GeometryHelper.Drawing.Annotation
 
         /// <summary>
         /// The first of a mark's places, in the order the last round tries them, whose text and margin are clear of the
-        /// dimensions and the marks taken and whose leader crosses no text; of those, the first clear of the view's lines
-        /// too. Null where there is none.
+        /// dimensions, the symbols and the marks taken and whose leader crosses no text; of those, the first clear of the
+        /// view's lines too. Without the margin off the symbols' lines, their lines are kept clear of by the text only, as
+        /// Marker.FindOverlaps counts them. Null where there is none.
         /// </summary>
-        private Placed Search(Candidate c, List<Placed> accepted, List<GeoLine2> lines)
+        private Placed Search(Candidate c, List<Placed> accepted, List<GeoLine2> lines, bool lineMargin)
         {
             (bool outsideOnly, bool nearGap, int levels, _) = Rounds[Rounds.Length - 1];
+            List<GeoLine2> marginLines = lineMargin ? _clearLines : new List<GeoLine2>();
             Placed fallback = null;
 
             foreach (GeoPoint2 middle in Item(c, outsideOnly, nearGap).GetPlacePoints(Options(levels)))
@@ -339,8 +355,9 @@ namespace GeometryHelper.Drawing.Annotation
                 GeoRectangle2 room = Room(c, middle);
                 Placed placed = Attach(c, new GeoRectangle2(middle, SymbolDxf.TextWidth(c.Text, _height), _height), room);
 
+                // Clashes keeps the text itself clear of the symbols' lines either way.
                 if (Marker.DimensionClash(c.Id, room, placed.Start, placed.Anchor, _dimensions, _tol, null)
-                    || Marker.SymbolClash(c.Id, room, placed.Start, placed.Anchor, _clearBoxes, _clearLines, _tol, null)
+                    || Marker.SymbolClash(c.Id, room, placed.Start, placed.Anchor, _clearBoxes, marginLines, _tol, null)
                     || accepted.Exists(p => Box2.Overlap(room, p.Room, _tol))
                     || Clashes(placed, accepted))
                 {

@@ -141,6 +141,8 @@ and cut lines are kept clear of as the dimensions are, so that a mark that finds
 over them: the mark P1 of a plate seen on its face at 1:2, with the section A-A cut across its middle, stands beside the plate
 clear of the cut line and its letters. A bolt group gets one mark, `4 x M20 x 80`, its leader ending at the centre of one of the bolts.
 
+The dimensions' texts, lines, extension lines and arrows are kept clear of, each arrow taken as the box round it, as long as the dimension's text is high and a third of that wide, inside its line or outside a short one. A mark the rounds leave out is tried once more with its text alone, not its margin, kept clear of the centre lines and cut lines: in the general arrangement of 1 000 members at 1:200, 191 of 200 marks find a place, and the 9 bolt marks left out are named in the Debug line.
+
 Each mark is an element of the drawing document, known by its view's id, a slash and its own: `V-FRONT/M-P1`, and a mark dragged
 by hand keeps the move as a hand edit (see [Making it again](update.md#hand-edits)).
 
@@ -169,7 +171,7 @@ That is where the rule puts a symbol, and where it is tried first. A drawing pla
 known, and `WeldSymbol.Find`, given the view's dimensions and the boxes and lines to keep clear of, moves a symbol off that place
 where something is in the way. Its knee is tried up and right of the weld, up and left, down and right, down and left, then two
 heights off and further, the nearest place first, until the box of the symbol, with 0.4 of the text's height round it, is clear of the
-dimensions, the centre lines, the section, detail and level marks, and the symbols placed before it, and its arrow crosses no
+dimensions (their texts, lines, arrows and extension lines), the centre lines, the section, detail and level marks, and the symbols placed before it, and its arrow crosses no
 text. An arrow may cross a dimension line, an extension line or a centre line, as a draughtsman lets one cross. A symbol left of
 its weld has its reference line run to the left, its texts still reading from left to right; the arrow always ends at the weld's
 middle, and the marks of the view are placed after the symbols and keep clear of them. A symbol that finds no place clear within

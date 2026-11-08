@@ -30,6 +30,7 @@ namespace GeometryHelper.Drawing.Annotation
 
         private readonly DimensionPoint[] _points;
         private readonly GeoLine2[] _extensionLines;
+        private GeoRectangle2[] _arrowheads;
 
         /// <summary>
         /// Initializes a dimension placed in its view.
@@ -163,6 +164,40 @@ namespace GeometryHelper.Drawing.Annotation
         }
 
         /// <summary>
+        /// The arrowheads as they are drawn, for keeping clear of them: the box round each, square to the view's axes, as long
+        /// as the text is high and a third of that wide, its tip at an end of the dimension line; pointing out of a line at
+        /// least two arrows long, into a shorter one from outside it, as <see cref="DimensionBlockBuilder"/> draws them. The
+        /// arrows of a dimension 300 long at 1:10, its text 2.5 high on paper and so 25 in the view, are boxes 25 by 8.33
+        /// inside its ends. None for a dimension with no line.
+        /// </summary>
+        internal IReadOnlyList<GeoRectangle2> Arrowheads
+        {
+            get
+            {
+                if (_arrowheads != null)
+                {
+                    return _arrowheads;
+                }
+
+                if (!DimensionLine.HasValue)
+                {
+                    return _arrowheads = new GeoRectangle2[0];
+                }
+
+                GeoLine2 line = DimensionLine.Value;
+                double length = line.Length, arrow = TextHeight;
+                double ux = length > 0.0 ? (line.EndPoint.X - line.StartPoint.X) / length : 1.0;
+                double uy = length > 0.0 ? (line.EndPoint.Y - line.StartPoint.Y) / length : 0.0;
+                double inward = length >= 2.0 * arrow ? 1.0 : -1.0;
+                return _arrowheads = new[]
+                {
+                    ArrowBox(line.StartPoint, inward * ux, inward * uy, arrow),
+                    ArrowBox(line.EndPoint, -inward * ux, -inward * uy, arrow),
+                };
+            }
+        }
+
+        /// <summary>
         /// Gets the extension lines, from just off each point out to just past the dimension line; for a cumulative or ordinate
         /// dimension the one leader, from just off its point to its tier.
         /// </summary>
@@ -283,6 +318,16 @@ namespace GeometryHelper.Drawing.Annotation
             }
 
             return 8;
+        }
+
+        /// <summary>The box round an arrow, its tip at a point, its back an arrow's length along a unit direction from it.</summary>
+        private static GeoRectangle2 ArrowBox(GeoPoint2 tip, double bx, double by, double length)
+        {
+            double backX = tip.X + bx * length, backY = tip.Y + by * length;
+            double acrossX = Math.Abs(by) * length / 6.0, acrossY = Math.Abs(bx) * length / 6.0;
+            double x0 = Math.Min(tip.X, backX - acrossX), x1 = Math.Max(tip.X, backX + acrossX);
+            double y0 = Math.Min(tip.Y, backY - acrossY), y1 = Math.Max(tip.Y, backY + acrossY);
+            return Box2.FromCorner(x0, y0, x1 - x0, y1 - y0);
         }
 
         private DxfDimStyleTableRecord Style(DxfDatabase database, double scale)
