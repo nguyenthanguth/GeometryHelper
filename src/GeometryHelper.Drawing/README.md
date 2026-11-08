@@ -14,8 +14,25 @@ Part B uses Part A; Part A never refers to Part B. Open a DXF and you get Part A
 adds its panels, ribbon tab and commands on top. Both cores run with no UI; the UI is a set of reusable controls and a
 standalone app.
 
-**Status: planning and UI design.** There is no code yet. The plan below is the reference for building it: read it
-before starting a phase, and keep it current as decisions are taken.
+**Status: built, not yet packed.** Both parts exist and have guides; the plan below is still the reference for what is left.
+
+- **Part A, the 2D presenter,** is `GeometryHelper.Dxf.Viewer` (the core, no window), `GeometryHelper.Dxf.Viewer.Wpf` (the
+  controls) and `GeometryHelper.Drawing.App` (the window). It opens a DXF as a `CadDocument`, draws it from display lists,
+  picks and selects, edits as AutoCAD does (command line with 32 commands and their aliases, object snaps, grips, Properties,
+  layers, undo and redo that give the file back byte for byte), keeps the entities of an owner under the owner contract, loads
+  command plugins while it runs, keeps global settings as JSON, autosaves and closes drawings. The guides start at
+  [The 2D presenter](../GeometryHelper/docs/presenter/index.md).
+- **Part B, the model drawing,** is `GeometryHelper.Drawing` (the core) and `GeometryHelper.Drawing.Wpf` (the dialogs and the
+  Drawing tab), with `DrawingSourceConvert` in `GeometryHelper.TeklaConvert` reading Tekla. It makes views with exact
+  hidden-line removal, sections and details, dimensions by rule, marks, centre lines, weld, section, detail and level marks and
+  a sheet with its title block and part list, writes them into one DXF with its own document, and makes the drawing again from
+  the model with the hand edits kept. The guides start at [Model drawings](../GeometryHelper/docs/drawing/index.md).
+- **Not built yet:** the drawing plugins of [plan/60-plugins.md](plan/60-plugins.md) (the document records their runs, nothing
+  runs them), the drafting commands of C4 beyond the 32 of C2, weld symbols to AWS A2.4, and a circular crop of a detail.
+
+Where the plan and the code differ, the code and the guides are right: a command plugin, for one, is an iterator that yields
+its prompts, not the blocking method the plan's sample shows. Read the plan before starting a phase, and keep it current as
+decisions are taken.
 
 ## Where things live
 

@@ -72,6 +72,43 @@ where it compares coordinates; the pages say which.
 | take the picture out of an OLE object | `frame.GetPictureData(out format)` | [Images, wipeouts and OLE objects](dxf/images.md#ole-objects) |
 | embed a .bmp or a .png in the drawing | `new DxfOle2Frame(bytes)` | [Images, wipeouts and OLE objects](dxf/images.md#ole-objects) |
 
+## In the 2D presenter
+
+| To | Call | Page |
+|---|---|---|
+| open a drawing to show and edit | `CadDocument.Open(path)`; one in memory `CadDocument.From(database, name)` | [Opening, drawing and picking](presenter/display.md#the-document) |
+| ask what lies under a point or in a box | `document.GetPickIndex(space).Pick(x, y, tolerance)`, `Window(box)`, `Crossing(box)` | [Opening, drawing and picking](presenter/display.md#picking) |
+| show a box, or zoom about a pixel | `view.ZoomTo(box)`, `view.ZoomAt(px, py, 1.2)`, `view.Pan(dx, dy)` | [Opening, drawing and picking](presenter/display.md#the-view) |
+| select entities | `document.Selection.Set(handles)`, `Add`, `Toggle`, `Clear` | [Opening, drawing and picking](presenter/display.md#selecting) |
+| run a command as the user types it | `new CadCommandSession(document)`, `session.Feed("L")` | [Editing as AutoCAD does](presenter/editing.md#the-command-line) |
+| change the drawing as one undo step | `document.ApplyEdit(name, planned, scope => ...)` | [Editing as AutoCAD does](presenter/editing.md#one-edit-one-undo-step) |
+| undo and redo | `document.Undo()`, `document.Redo()` | [Editing as AutoCAD does](presenter/editing.md#undo-and-redo) |
+| snap a click to a point of the drawing | `new ObjectSnap(tolerance).Snap(index, cursor, aperture)` | [Editing as AutoCAD does](presenter/editing.md#object-snaps) |
+| list or drag the grips of an entity | `CadGrips.Of(entity)`, `document.GripDrag(handle, index, point)` | [Editing as AutoCAD does](presenter/editing.md#grips) |
+| set a property as Properties does | `CadPropertyEditor.Set(document, handles, "Radius", "12.5")` | [Editing as AutoCAD does](presenter/editing.md#properties) |
+| switch, freeze or lock a layer | `CadLayerEditor.SetOn`, `SetFrozen`, `SetLocked` | [Editing as AutoCAD does](presenter/editing.md#layers) |
+| keep the entities a program wrote out of the user's hands | `new CadOwnerTag(owner, id).WriteTo(entity)`, `document.Owners.Register(owner)` | [Owners](presenter/owners.md) |
+| add a command written in a .dll | `[CadCommand("NAME")]` on an iterator of `CadPrompt` | [Command plugins](presenter/plugins.md) |
+| load, unload and reload a plugin | `CadPluginManager.Load(path)`, `Unload(name)`, `Reload(name)` | [Command plugins](presenter/plugins.md#loading-and-unloading) |
+| keep settings between runs | `GlobalSettings.Load(path)`, `settings.Save(path)` | [Settings, autosave and the window](presenter/app.md#global-settings) |
+
+## Model drawings
+
+| To | Call | Page |
+|---|---|---|
+| give a drawing its objects | `new DrawingSource(new[] { new DrawingObject(id, kind, solid, frame, ...) })` | [Sources](drawing/source.md) |
+| read a selection of Tekla into a source | `DrawingSourceConvert.FromObjects(objects)`, `FromAssembly`, `FromPart` | [Sources](drawing/source.md#reading-tekla-structures) |
+| make a drawing | `DrawingBuilder.Build(source, DrawingSettings.Assembly, tolerance)` | [Settings, scale and sheet](drawing/settings.md) |
+| choose the sheet, the scales and the views | `settings.Sheet.Size`, `settings.Scales`, `settings.Views.Kinds` | [Settings, scale and sheet](drawing/settings.md#every-setting) |
+| find the lines seen and hidden of one view | `ViewProjector.Project(inputs, frame, tolerance)` | [Views, projection, sections and details](drawing/views.md#projection) |
+| dimension a view by rule | `Annotator.Dimension(view, objects, frame, settings, tolerance)` | [Dimensions, marks and symbols](drawing/annotation.md#dimensions) |
+| mark the parts of a view | `Marker.Mark(...)`; what a mark says `MarkContent`, `MarkFormat` | [Dimensions, marks and symbols](drawing/annotation.md#marks) |
+| save a drawing and open it again | `drawing.Save(path)`, `Drawing.Open(path, source, tolerance)` | [Making it again](drawing/update.md#made-saved-and-opened) |
+| show a drawing in the presenter | `drawing.OpenInPresenter()` | [Making it again](drawing/update.md#showing-a-drawing-in-the-presenter) |
+| make it again when the model changes | `drawing.Update(newSource)`; on a thread `Prepare` then `Apply` | [Making it again](drawing/update.md#update) |
+| add a section, a detail or a view | `drawing.AddSection(...)`, `AddDetail(...)`, `AddView(kind)` | [Making it again](drawing/update.md#adding-and-changing-one-view) |
+| find what was edited by hand | `drawing.Edits`, `UpdateReport.EditsKept`, `EditsDropped` | [Making it again](drawing/update.md#hand-edits) |
+
 ## Meshing, label placement and packing
 
 | To | Call | Page |

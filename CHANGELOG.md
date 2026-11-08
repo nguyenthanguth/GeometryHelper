@@ -23,10 +23,30 @@ the front view take 0.3 s), sections with ANSI31 hatches, details, dimensions by
 symbols and dimensions, centre lines, weld symbols to ISO 2553, section, detail and level marks. A drawing is one DXF that
 also carries its own document, so it opens again with its settings. `Drawing.Update(source, settings)` makes it again with
 other settings or a changed model and keeps what was moved or drawn by hand; `Prepare` makes the update on a thread of
-its own and `Apply` writes it as one undo step. `ReDimension`, `ReMark`, `ReCentreLines`, `AddView`, `AddSection` (a cut
-along a line drawn in a view) and `AddDetail` change one view and are kept through later updates. A general arrangement
+its own and `Apply` writes it as one undo step. `ReDimension`, `ReMark`, `AddView`, `AddSection` (a cut along a line drawn
+in a view) and `AddDetail` change the settings for one view and are kept through later updates; `ReCentreLines` makes the
+drawing again with the centre lines of one view drawn anew. A general arrangement
 of 1 000 members is drawn in 1.2 s. The dialogs, the Drawing tab and the commands VIEWSECTION and VIEWDETAIL are in
 `GeometryHelper.Drawing.Wpf`.
+
+**NEW.** Weld symbols are placed clear of the view's dimensions, centre lines, section, detail and level marks and of one
+another, as marks are: `WeldSymbol.Find` given the dimensions and what else to keep clear of tries the knee up and right of
+the weld, up and left, down and right and down and left, nearest first, and the arrow always ends at the weld's middle. A
+symbol left of its weld runs its reference line to the left. The fillet a6 of TC5 seen from the front at 1:10, which stood over
+a dimension line and a dimension's text, now stands under the base plate; the 36 symbols of TC5 in its front, top and right
+views at 1:2 to 1:20 have no overlap. `WeldSymbol.FindOverlaps` lists what overlaps, and the marks of a view are placed after
+the symbols and keep clear of them.
+
+**NEW.** A model drawing made in the app is saved at once, once the global settings are applied, into their save folder
+(the folder `GeometryHelper Drawing` in the user's Documents where it is empty), named by its number: `B-101.dxf`, or
+`B-101 (2).dxf` where that name is taken, so that no file is written over. It then has a file, which Save writes to, and
+autosave keeps copies beside it.
+
+**NEW.** TEXT and MTEXT write the width factor of the global settings (0.8 by default), and the dimension commands DIMLINEAR,
+DIMALIGNED, DIMRADIUS, DIMDIAMETER and DIMANGULAR write the text of a dimension at the text height of the global settings,
+kept as a DIMTXT override of the dimension, so that a CAD that draws it again from its style draws its text as high.
+
+**CHANGED.** The presenter's controls draw through SkiaSharp 4.155.0, where they used 3.119.1.
 
 **CHANGED.** Placing labels among many blocks is faster, with the same results to the bit: `Arranger.Run` skips the
 obstacles whose box lies farther than the nearest distance already found, and asks the spatial index for the

@@ -16,6 +16,8 @@ dotnet add package GeometryHelper
 | [How do I](../src/GeometryHelper/docs/howto.md) | a task, the call that does it, and the page that tells the rest |
 | [Shared types](../src/GeometryHelper/docs/common.md) | `Tolerance`, `Angle`, the enumerations, `OffsetOptions`, `GeometryHelperLog` |
 | [DXF](../src/GeometryHelper/docs/dxf/index.md) | reading, writing and editing DXF files with AutoCAD's classes and members, [AutoCAD's patterns side by side](../src/GeometryHelper/docs/dxf/autocad.md); [a drawing edited step by step](../src/GeometryHelper/docs/dxf-editing-example.md) and [the points to check in AutoCAD](../src/GeometryHelper/docs/dxf-autocad-checks.md) |
+| [The 2D presenter](../src/GeometryHelper/docs/presenter/index.md) | a DXF opened, drawn, picked and edited as AutoCAD does it: the command line and its aliases, snaps, grips, Properties, layers, undo, owners of what a program wrote, command plugins and global settings |
+| [Model drawings](../src/GeometryHelper/docs/drawing/index.md) | views with hidden lines removed, sections, details, dimensions by rule, marks and symbols of a 3D model, kept in one DXF and made again when the model changes, with the hand edits kept |
 | [Geometry in the plane](../src/GeometryHelper/docs/plane.md) | points to polygons and faces; arcs, offsetting, combining regions |
 | [Meshing the plane](../src/GeometryHelper/docs/mesh.md) | triangles, grids of panels or tiles with joints and alignment, strips and convex pieces, edge to edge |
 | [Geometry in space](../src/GeometryHelper/docs/solid.md) | points to solids; splitting, boolean bodies, meshes, local frames |
