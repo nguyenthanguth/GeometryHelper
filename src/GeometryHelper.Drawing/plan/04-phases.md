@@ -11,20 +11,20 @@ Part B shows its sheets in it.
 
 | Phase | Part | What | Status |
 |---|---|---|---|
-| C1 | A | The viewer: open a DXF, show it, zoom, pan, select, Properties (read), layers, layouts and viewports | not started |
-| C2 | A | Light editing: grips, move, copy, erase, rotate, scale, Properties edited, simple drawing commands, text and dimension edits, undo, save | not started |
-| C3 | A | Command plugins: load, unload, reload | not started |
+| C1 | A | The viewer: open a DXF, show it, zoom, pan, select, Properties (read), layers, layouts and viewports | built, awaiting review |
+| C2 | A | Light editing: grips, move, copy, erase, rotate, scale, Properties edited, simple drawing commands, text and dimension edits, undo, save | built, awaiting review |
+| C3 | A | Command plugins: load, unload, reload | built, awaiting review |
 | C4 | A | The full drafting commands (trim, extend, offset, fillet, hatch, ...), later, one by one, as they are needed (A18) | later |
-| G0 | B | Research and spec | not started |
-| G1 | B | Hidden-line projection, written to DXF | not started |
-| G2 | B | Views (viewports) and the drawing document L7, owners | not started |
-| G3 | B | Dimensions | not started |
-| G4 | B | Marks and symbols | not started |
-| G5 | B | The sheet | not started |
-| G6 | B | Presets, the Tekla bridge, update from the model, comparison with Tekla | not started |
-| U1 | B | Model drawing UI: drawing list, New drawing, model properties, Update, Export, Drawing settings | not started |
+| G0 | B | Research and spec | spec done; the maintainer's list of Tekla faults not collected |
+| G1 | B | Hidden-line projection, written to DXF | built, awaiting review |
+| G2 | B | Views (viewports) and the drawing document L7, owners | built, awaiting review |
+| G3 | B | Dimensions | built, awaiting review (chain texts fitting: in progress) |
+| G4 | B | Marks and symbols | built, awaiting review |
+| G5 | B | The sheet | built, awaiting review |
+| G6 | B | Presets, the Tekla bridge, update from the model, comparison with Tekla | steps 1 to 3 built; Tekla welds unreadable; step 4 not done |
+| U1 | B | Model drawing UI: drawing list, New drawing, model properties, Update, Export, Drawing settings | built; not yet checked against the maintainer's own UI design |
 | P1 | B | Drawing plugins: the API, a sample, the Plugin manager's Drawing tab | not started |
-| G7 | both | Docs, changelog, release | not started |
+| G7 | both | Docs, changelog, release | guides and changelog done; packages and release wait for the maintainer |
 
 The UI design is a claude.ai Design artifact (see the README), made first; each UI step is built against it.
 
