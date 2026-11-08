@@ -37,7 +37,8 @@ namespace GeometryHelper.Drawing
     /// version writes, or one that fails to read, is kept in <see cref="DrawingDocumentRecords.UnknownRecords"/> and
     /// written back as it was; a record that fails to read is said in one Warn line of <see cref="GeometryHelperLog"/>
     /// and stops none of the others. A newer layout of a kind is written under a new name, so that this version keeps it
-    /// rather than misreading it. Entries of GH_DRAWING other than HEADER and RECORDS are left as they are.
+    /// rather than misreading it. Entries of GH_DRAWING other than HEADER and RECORDS are left as they are; one of them,
+    /// VALUES, holds what the application showing the drawing keeps with it (<see cref="WriteValues"/>).
     /// </para>
     /// </remarks>
     public static class DrawingDocumentStore
@@ -50,6 +51,7 @@ namespace GeometryHelper.Drawing
 
         private const string HeaderName = "HEADER";
         private const string RecordsName = "RECORDS";
+        private const string ValuesName = "VALUES";
         private const string ViewList = "{GH_VIEW";
         private const string AnnotationList = "{GH_ANNOTATION";
         private const string EditList = "{GH_EDIT";
@@ -307,6 +309,89 @@ namespace GeometryHelper.Drawing
             var records = new DrawingDocumentRecords(drawingId, views, annotations, edits, runs, unknown);
             GeometryHelperLog.Info("DrawingDocumentStore.Read: " + records + " read from " + DictionaryName + ".");
             return records;
+        }
+
+        /// <summary>
+        /// Writes the values the application showing a drawing keeps with it, by name and in order, into the XRECORD VALUES of
+        /// GH_DRAWING, in place of what it held: the presenter keeps there the source a drawing was made from, its preset and
+        /// the assemblies it draws whole, so that a drawing opened again from its file is made again from the same source.
+        /// None of them is read by <see cref="Read"/> or by <see cref="Drawing"/>, and a drawing's own writes leave them.
+        /// </summary>
+        /// <param name="database">The drawing, carrying a drawing document.</param>
+        /// <param name="values">The values; none takes VALUES out, so that the drawing is as one never given any, byte for byte.</param>
+        /// <remarks>
+        /// A drawing of the beam B1 made from the test bodies with the assembly preset keeps <c>Source</c> "Test bodies",
+        /// <c>Preset</c> "Assembly" and <c>WholeAssembly</c> "B1". A name may come more than once.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the drawing or the values are null.</exception>
+        /// <exception cref="ArgumentException">Thrown when a value has no name.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the drawing carries no drawing document.</exception>
+        public static void WriteValues(DxfDatabase database, IEnumerable<KeyValuePair<string, string>> values)
+        {
+            if (database == null)
+            {
+                throw new ArgumentNullException(nameof(database));
+            }
+
+            if (values == null)
+            {
+                throw new ArgumentNullException(nameof(values));
+            }
+
+            KeyValuePair<string, string>[] list = DrawingRecordGroups.Values(values, nameof(values));
+            DxfDBDictionary document = (database.NamedObjectsDictionary != null && database.NamedObjectsDictionary.Contains(DictionaryName)
+                ? database.NamedObjectsDictionary.GetAt(DictionaryName) as DxfDBDictionary
+                : null) ?? throw new InvalidOperationException("The drawing carries no drawing document to keep values with.");
+
+            if (list.Length == 0)
+            {
+                if (document.Contains(ValuesName))
+                {
+                    document.Remove(ValuesName);
+                }
+
+                return;
+            }
+
+            var groups = new List<DxfTypedValue>();
+            new DrawingRecordGroups.Writer(groups).Values(list);
+            Put(document, ValuesName, groups);
+        }
+
+        /// <summary>Reads the values the application showing a drawing keeps with it (<see cref="WriteValues"/>), in the order written.</summary>
+        /// <param name="database">The drawing.</param>
+        /// <returns>The values; none where the drawing carries no drawing document, or one written before values were kept, or
+        /// VALUES cannot be read (said in a Warn line of <see cref="GeometryHelperLog"/>).</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the drawing is null.</exception>
+        public static IReadOnlyList<KeyValuePair<string, string>> ReadValues(DxfDatabase database)
+        {
+            if (database == null)
+            {
+                throw new ArgumentNullException(nameof(database));
+            }
+
+            DxfDBDictionary root = database.NamedObjectsDictionary;
+            IReadOnlyList<DxfTypedValue> groups = root != null && root.Contains(DictionaryName) && root.GetAt(DictionaryName) is DxfDBDictionary document
+                ? DataOf(document, ValuesName)
+                : null;
+
+            if (groups == null)
+            {
+                return new KeyValuePair<string, string>[0];
+            }
+
+            try
+            {
+                var reader = new DrawingRecordGroups.Reader(groups, 0, groups.Count);
+                KeyValuePair<string, string>[] values = reader.Values();
+                reader.End();
+                return values;
+            }
+            catch (Exception exception) when (exception is FormatException || exception is OverflowException)
+            {
+                GeometryHelperLog.Warn("DrawingDocumentStore.ReadValues: the VALUES of " + DictionaryName + " cannot be read; none are given.", exception);
+                return new KeyValuePair<string, string>[0];
+            }
         }
 
         private static void WriteElement(DrawingRecordGroups.Writer writer, DrawingElement element)

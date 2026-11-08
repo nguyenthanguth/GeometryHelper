@@ -57,15 +57,15 @@ namespace GeometryHelper.Drawing.Wpf
 
         /// <summary>Dimensions the selected view again by the rules of the settings, and keeps it dimensioned (AUTODIM).</summary>
         /// <returns>What changed; null, said on the command line, with no view selected or where it failed.</returns>
-        public UpdateReport ReDimensionSelectedView() => OnSelectedView("Dimensions", (d, v) => d.ReDimension(v));
+        public UpdateReport ReDimensionSelectedView() => OnSelectedView("Dimensions", (s, v) => AddOnce(s.Views.DimensionedViews, v));
 
         /// <summary>Marks the selected view again, and keeps it marked (AUTOMARK).</summary>
         /// <returns>What changed; null, said on the command line, with no view selected or where it failed.</returns>
-        public UpdateReport ReMarkSelectedView() => OnSelectedView("Marks", (d, v) => d.ReMark(v));
+        public UpdateReport ReMarkSelectedView() => OnSelectedView("Marks", (s, v) => AddOnce(s.Views.MarkedViews, v));
 
         /// <summary>Draws the centre lines of the selected view again.</summary>
         /// <returns>What changed; null, said on the command line, with no view selected or where it failed.</returns>
-        public UpdateReport ReCentreLinesSelectedView() => OnSelectedView("Centre lines", (d, v) => d.ReCentreLines(v));
+        public UpdateReport ReCentreLinesSelectedView() => OnSelectedView("Centre lines", (s, v) => { });
 
         /// <summary>
         /// Adds a section cut along two points picked in a view along the axes, in the space shown: the section looks to the
@@ -84,7 +84,7 @@ namespace GeometryHelper.Drawing.Wpf
             }
 
             string name = NextLetter();
-            return Run("Section " + name + "-" + name, d => d.AddSection(name, view.Id, new GeoLine2(a, b), depth));
+            return Run("Section " + name + "-" + name, (e, provider) => e.Drawing.AddSection(name, view.Id, new GeoLine2(a, b), depth));
         }
 
         /// <summary>Adds a detail of the rectangle of two corners picked in a view, in the space shown, drawn at a scale of its own.</summary>
@@ -102,7 +102,7 @@ namespace GeometryHelper.Drawing.Wpf
 
             string name = NextLetter();
             var area = new GeoRectangle2(new GeoPoint2((a.X + b.X) / 2.0, (a.Y + b.Y) / 2.0), Math.Abs(b.X - a.X), Math.Abs(b.Y - a.Y));
-            return Run("Detail " + name, d => d.AddDetail(name, view.Id, area, scale));
+            return Run("Detail " + name, (e, provider) => e.Drawing.AddDetail(name, view.Id, area, scale));
         }
 
         /// <summary>
@@ -259,7 +259,11 @@ namespace GeometryHelper.Drawing.Wpf
             return Array.Empty<CadPrompt>();
         }
 
-        private UpdateReport OnSelectedView(string what, Func<Drawing, string, UpdateReport> op)
+        /// <summary>
+        /// A change of the settings for the selected view, the drawing made again with it as the core's call for one view makes
+        /// it; a drawing opened from its file and not updated is made from the source <see cref="SourceToMakeFrom"/> finds.
+        /// </summary>
+        private UpdateReport OnSelectedView(string what, Action<DrawingSettings, string> change)
         {
             string viewId = SelectedViewId();
 
@@ -269,11 +273,16 @@ namespace GeometryHelper.Drawing.Wpf
                 return null;
             }
 
-            return Run(what + " of " + viewId, d => op(d, viewId));
+            return Run(what + " of " + viewId, (e, provider) =>
+            {
+                DrawingSettings settings = e.Drawing.Settings;
+                change(settings, viewId);
+                return e.Drawing.Apply(e.Drawing.Prepare(ObjectsToMakeFrom(e, provider), settings));
+            });
         }
 
         /// <summary>Runs a change of the drawing shown, one undo step, and says what came of it.</summary>
-        private UpdateReport Run(string what, Func<Drawing, UpdateReport> change)
+        private UpdateReport Run(string what, Func<ModelDrawing, IDrawingSourceProvider, UpdateReport> change)
         {
             ModelDrawing entry = _current;
 
@@ -287,7 +296,8 @@ namespace GeometryHelper.Drawing.Wpf
 
             try
             {
-                report = change(entry.Drawing);
+                IDrawingSourceProvider provider = SourceToMakeFrom(entry);
+                report = WriteChange(entry, provider, "Changed", () => change(entry, provider));
             }
             catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
             {
@@ -295,7 +305,6 @@ namespace GeometryHelper.Drawing.Wpf
                 return null;
             }
 
-            entry.PresetName = "Changed";
             Changed(entry);
             Say(what + ": " + Count(report.AddedElements.Count, "element") + " added, " + report.ChangedElements.Count.ToString(CultureInfo.InvariantCulture) + " changed, "
                 + report.RemovedElements.Count.ToString(CultureInfo.InvariantCulture) + " taken away; " + Count(report.EditsKept.Count, "hand edit") + " kept.");
@@ -340,5 +349,13 @@ namespace GeometryHelper.Drawing.Wpf
         }
 
         private static string Number(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
+
+        private static void AddOnce(IList<string> list, string item)
+        {
+            if (!list.Contains(item))
+            {
+                list.Add(item);
+            }
+        }
     }
 }

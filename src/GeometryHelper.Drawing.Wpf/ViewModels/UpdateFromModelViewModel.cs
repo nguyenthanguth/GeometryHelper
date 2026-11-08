@@ -99,7 +99,8 @@ namespace GeometryHelper.Drawing.Wpf
             _workspace = workspace ?? throw new ArgumentNullException(nameof(workspace));
             Drawing = drawing ?? throw new ArgumentNullException(nameof(drawing));
             Sources = workspace.Providers.Where(p => p.IsAvailable).ToList();
-            _provider = Sources.Contains(drawing.Provider) ? drawing.Provider : Sources.FirstOrDefault();
+            _provider = Sources.Contains(drawing.Provider) ? drawing.Provider
+                : Sources.FirstOrDefault(p => string.Equals(p.Name, drawing.SourceName, StringComparison.Ordinal)) ?? Sources.FirstOrDefault();
             UpdateCommand = new DelegateCommand(_ => _ = UpdateAsync(), _ => !IsBusy && _newSource != null);
             CancelCommand = new DelegateCommand(_ => Close(false));
         }
@@ -252,6 +253,12 @@ namespace GeometryHelper.Drawing.Wpf
                 return null;
             }
 
+            // A drawing opened from its file is made again from the source its objects were found in, by Drawing settings too.
+            if (old == null)
+            {
+                Drawing.SourceName = provider.Name;
+            }
+
             _newSource = newSource;
             _preview = report;
             Show(old, newSource, report);
@@ -284,7 +291,7 @@ namespace GeometryHelper.Drawing.Wpf
                 DrawingSource source = _newSource;
                 global::GeometryHelper.Drawing.Drawing drawing = Drawing.Drawing;
                 PreparedUpdate prepared = await RunAsync("Making " + Drawing.Number + " again from " + _provider.Name + "…", () => drawing.Prepare(source, null));
-                report = drawing.Apply(prepared);
+                report = _workspace.WriteChange(Drawing, _provider, Drawing.PresetName, () => drawing.Apply(prepared));
             }
             catch (OperationCanceledException)
             {
@@ -297,7 +304,6 @@ namespace GeometryHelper.Drawing.Wpf
             }
 
             Report = report;
-            Drawing.Provider = _provider;
             Drawing.IsOutOfDate = false;
             _workspace.Changed(Drawing);
             _workspace.Say(Drawing.Number + " updated: " + DrawingWorkspace.Count(report.EditsKept.Count, "hand edit") + " kept, "

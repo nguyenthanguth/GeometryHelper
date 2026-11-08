@@ -485,7 +485,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public ICommand MatchLayerCommand { get; }
 
         /// <summary>
-        /// Opens a DXF file, or shows it again where it is open already, and lists the other DXF files of its folder. A file that
+        /// Opens a DXF file, or shows it again where it is open already: opened from it, or shown under a key of its own and
+        /// saved to it, as an extension's drawing just made is. It lists the other DXF files of its folder. A file that
         /// cannot be read leaves the drawing shown as it was and says why on the command line. Each extension is told of the
         /// document before it is shown (<see cref="CadWorkspaceExtension.DocumentOpened"/>).
         /// </summary>
@@ -516,6 +517,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return true;
             }
 
+            // A document shown under a key of its own and saved to the file, as an extension's drawing just made is, is that file open already.
+            KnownFile saved = _files.Values.Where(f => f.Document != null && SamePath(f.Document.FileName, full))
+                .OrderBy(f => f.Path, StringComparer.OrdinalIgnoreCase).FirstOrDefault();
+
+            if (saved != null)
+            {
+                Show(saved);
+                return true;
+            }
+
             CadDocument document;
 
             try
@@ -541,6 +552,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Say("Opened " + document.Title + ": " + Count(document.EntityCount) + " entities, " + Count(document.Layers.Count) + " layers.");
             return true;
         }
+
+        /// <summary>Whether a document's file name is the full path of a file; a document with no file of its own has none.</summary>
+        private static bool SamePath(string fileName, string full)
+            => !string.IsNullOrEmpty(fileName) && System.IO.Path.IsPathRooted(fileName) && string.Equals(fileName, full, StringComparison.OrdinalIgnoreCase);
 
         /// <summary>Shows a document already in memory, as a host that made the drawing itself shows it.</summary>
         /// <param name="document">The document.</param>

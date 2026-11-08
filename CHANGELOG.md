@@ -69,6 +69,23 @@ dimension of 3 000, and an empty text shows the measurement. On a model drawing 
 **FIXED.** PLUGINRELOAD no longer asks again whether to load a plugin from a folder outside the trusted folders: a yes is
 kept for that folder for the session, never on disk; a no is asked again.
 
+**NEW.** `DrawingDocumentStore.WriteValues` and `ReadValues`: named values the app keeps with a drawing in the XRECORD
+`VALUES` of GH_DRAWING. A file without them reads as none, and writing none leaves a drawing as one never given any, byte
+for byte.
+
+**FIXED.** A model drawing saved and opened again keeps the source it was made from, its preset and the assemblies it
+draws whole. Update from model chooses that source when one of the name is connected, Properties shows the preset
+(Assembly, not Custom), and a fitting added to a whole assembly is drawn. Drawing settings, Add view, Auto dimension and
+Auto marks work on a drawing opened again from its file: they make it again from the source its file names, or the one
+Update from model found its objects in, in one undo step. With none at hand they say to pick its source in Update from
+model first, and a source with none of its objects is refused, leaving the drawing as it was.
+
+**FIXED.** Opening a file that a drawing just made was saved as shows that drawing instead of opening a second document
+over the same file.
+
+**FIXED.** A text override of a single space is kept, so the dimension shows no text, as in AutoCAD. Every other value is
+still trimmed.
+
 **CHANGED.** Global settings' Layers lists Symbol and Viewport (not plotted) by default, every layer a model drawing
 writes. A settings file that lists its own table keeps it.
 

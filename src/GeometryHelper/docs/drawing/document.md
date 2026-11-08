@@ -20,6 +20,7 @@ DrawingDocumentStore.Write(database, records);                                  
 |---|---|
 | `HEADER` | the format of the records (`DrawingDocumentStore.FormatVersion`, 1) as a group 90, and the drawing's id |
 | `RECORDS` | every record, each a list opened by a group 102 of its kind and closed by `102 }`: the views `{GH_VIEW`, the annotations `{GH_ANNOTATION`, the hand edits `{GH_EDIT` and the plugin runs `{GH_PLUGIN_RUN`, in that order, then the records it does not read, as they came |
+| `VALUES` | what the app keeps with the drawing, as named values in order: `Source`, `Preset` and a `WholeAssembly` for each assembly drawn whole (`DrawingDocumentStore.WriteValues`, `ReadValues`). A file written before them has none, and none is written for a drawing that has none |
 
 One XRECORD holds all the records because a dictionary takes its entries one at a time: a document of 10 000 records is written
 twice, saved, opened and read back in 0.14 s, where an XRECORD of its own for each record took 108 s. Each record holds its

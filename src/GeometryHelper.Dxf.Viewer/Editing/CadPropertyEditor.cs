@@ -17,7 +17,8 @@ namespace GeometryHelper.Dxf.Viewer
     /// nought) and Lineweight (ByLayer, ByBlock, Default, or one of AutoCAD's widths in millimetres as 0.25 mm) of every entity;
     /// the ends of a line; the centre, radius, diameter and circumference of a circle; the centre, radius and the start and end
     /// angles (in degrees) of an arc; the contents, height, rotation (in degrees) and position of a text and of an MTEXT; the
-    /// text override of a dimension, "&lt;&gt; TYP" showing 3000 TYP on a dimension of 3 000 and an empty one its measurement. With
+    /// text override of a dimension, "&lt;&gt; TYP" showing 3000 TYP on a dimension of 3 000, an empty one its measurement and
+    /// one of a single space, which is not trimmed as every other value is, no text at all, as AutoCAD reads it. With
     /// no entity selected, the first five set the drawing's current settings, which new entities take.
     /// </remarks>
     public static class CadPropertyEditor
@@ -134,7 +135,9 @@ namespace GeometryHelper.Dxf.Viewer
         private static string Writer(DxfDatabase db, string label, string value, DxfEntity entity, out Action<DxfEntity> write, out string normal)
         {
             write = null;
-            normal = value.Trim();
+
+            // AutoCAD reads a text override of one space as no text at all, so that one is kept as it is typed.
+            normal = label == "Text override" && value == " " ? value : value.Trim();
             string text = normal;
 
             switch (label)

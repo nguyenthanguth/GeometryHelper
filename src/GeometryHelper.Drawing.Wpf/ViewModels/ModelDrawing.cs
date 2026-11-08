@@ -28,6 +28,7 @@ namespace GeometryHelper.Drawing.Wpf
             _drawing = drawing;
             _document = document;
             Provider = provider;
+            SourceName = provider?.Name;
             PresetName = presetName ?? "Custom";
             WholeAssemblies = new SortedSet<string>(wholeAssemblies ?? Enumerable.Empty<string>(), StringComparer.Ordinal);
             LastMade = DateTime.Now;
@@ -52,6 +53,12 @@ namespace GeometryHelper.Drawing.Wpf
 
         /// <summary>Gets the source the drawing was last made from.</summary>
         public IDrawingSourceProvider Provider { get; internal set; }
+
+        /// <summary>
+        /// The name of the source the drawing is made again from: the one it was last made from; for a drawing opened from its
+        /// file, the one its file names or Update from model last found its objects in; null where none is known.
+        /// </summary>
+        internal string SourceName { get; set; }
 
         /// <summary>Gets the name of the preset it was made with, "Changed" once its settings were edited.</summary>
         public string PresetName { get; internal set; }

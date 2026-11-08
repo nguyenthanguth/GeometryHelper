@@ -29,6 +29,8 @@ elements, its edits and its settings as saved, and its views empty: its lines ar
 
 Opened in the app, by Open or from the file list, a DXF that carries a drawing document is opened as `Drawing.Open(document, null, tolerance)` opens it: over the presenter's document, its owner registered, so that a mark is `MoveOnly` there at once and saving writes to the file it came from. It is listed under "Opened from a file · model drawings" until it is updated from a source, which Update from model asks for, since the file does not keep where the drawing was made from. A host that calls `OpenDocument` with a document it read itself gets no drawing: only `MainViewModel.Open(path)` tells the extensions.
 
+The file keeps the name of the source a drawing was made from, its preset and the assemblies it draws whole: B1 made from the test bodies with the assembly preset keeps Test bodies, Assembly and B1. Opened again, Update from model chooses that source, and Drawing settings, Add view, Auto dimension and Auto marks make the drawing from it at once. A file that names no source, as one saved before this version, is made from the source Update from model last found its objects in; until then they refuse with `B1 was opened from its file, and the source it was made from is not at hand: pick its source in Update from model first.`
+
 ```
 opened id B1, 0 views, 16 elements, 0 edits, scale 10, sheet A3
 ```

@@ -46,6 +46,11 @@ namespace GeometryHelper.Drawing.Wpf
             "A model drawing opened from its DXF, which does not keep the source it was made from",
             "Not connected · choose the source in Update from model");
 
+        // The names of what a drawing's file keeps of where it was made from (DrawingDocumentStore.WriteValues).
+        private const string SourceKey = "Source";
+        private const string PresetKey = "Preset";
+        private const string WholeAssemblyKey = "WholeAssembly";
+
         private readonly List<IDrawingSourceProvider> _providers;
         private readonly ObservableCollection<ModelDrawing> _drawings = new ObservableCollection<ModelDrawing>();
         private ModelDrawing _current;
@@ -220,6 +225,7 @@ namespace GeometryHelper.Drawing.Wpf
 
             CadDocument document = drawing.OpenInPresenter();
             var entry = new ModelDrawing(UniqueKey(drawing), drawing, document, provider, presetName, wholeAssemblies);
+            KeepValues(entry, provider.Name, entry.PresetName);
             _drawings.Add(entry);
             document.Changed += OnDocumentChanged;
             ((DelegateCommand)ExportDxfCommand).RaiseCanExecuteChanged();
@@ -296,22 +302,24 @@ namespace GeometryHelper.Drawing.Wpf
         /// <summary>
         /// Makes the drawing shown again with other settings through the core's update: prepared off the UI thread, then
         /// written in one undo step of its document, its hand edits kept and what was drawn on it by hand left. Undo takes the
-        /// settings back with the rest.
+        /// settings back with the rest. A drawing opened from its file and not updated is made from the source
+        /// <see cref="SourceToMakeFrom"/> finds.
         /// </summary>
         /// <param name="entry">The model drawing.</param>
         /// <param name="settings">The settings.</param>
         /// <param name="presetName">The name shown for its preset from then on.</param>
         /// <param name="runner">Runs the preparing off the UI thread, showing a line while it does; null to run it on the caller's thread.</param>
         /// <returns>What changed and what became of the hand edits.</returns>
+        /// <exception cref="InvalidOperationException">Thrown, in words saying what to do, when a drawing opened from its file
+        /// has no source at hand that holds its objects.</exception>
         internal async Task<UpdateReport> ApplySettingsAsync(ModelDrawing entry, DrawingSettings settings, string presetName, Func<string, Func<PreparedUpdate>, Task<PreparedUpdate>> runner)
         {
             Drawing drawing = entry.Drawing;
-            DrawingSource source = drawing.Source ?? throw new InvalidOperationException("The drawing " + entry.Number + " has no source to be made again from.");
+            IDrawingSourceProvider provider = SourceToMakeFrom(entry);
             DrawingSettings copy = settings.Clone();
-            Func<PreparedUpdate> prepare = () => drawing.Prepare(source, copy);
+            Func<PreparedUpdate> prepare = () => drawing.Prepare(ObjectsToMakeFrom(entry, provider), copy);
             PreparedUpdate prepared = runner == null ? prepare() : await runner("Making " + entry.Number + " again with the new settings…", prepare);
-            UpdateReport report = drawing.Apply(prepared);
-            entry.PresetName = presetName ?? entry.PresetName;
+            UpdateReport report = WriteChange(entry, provider, presetName ?? entry.PresetName, () => drawing.Apply(prepared));
             Changed(entry);
             Say(entry.Number + " made again with the new settings: " + Count(report.EditsKept.Count, "hand edit") + " kept"
                 + (report.EditsDropped.Count == 0 ? string.Empty : ", " + Count(report.EditsDropped.Count, "hand edit") + " no longer apply") + "." + Warnings(drawing));
@@ -508,7 +516,27 @@ namespace GeometryHelper.Drawing.Wpf
                 return;
             }
 
-            var entry = new ModelDrawing(document.FileName ?? UniqueKey(drawing), drawing, document, OpenedFromFile, null, null);
+            // What the file keeps of where the drawing was made from; a file written before it kept any gives none.
+            string sourceName = null, presetName = null;
+            var whole = new List<string>();
+
+            foreach (KeyValuePair<string, string> value in DrawingDocumentStore.ReadValues(document.Database))
+            {
+                switch (value.Key)
+                {
+                    case SourceKey:
+                        sourceName = value.Value;
+                        break;
+                    case PresetKey:
+                        presetName = value.Value;
+                        break;
+                    case WholeAssemblyKey:
+                        whole.Add(value.Value);
+                        break;
+                }
+            }
+
+            var entry = new ModelDrawing(document.FileName ?? UniqueKey(drawing), drawing, document, OpenedFromFile, presetName, whole) { SourceName = sourceName };
             _drawings.Add(entry);
             document.Changed += OnDocumentChanged;
             ((DelegateCommand)ExportDxfCommand).RaiseCanExecuteChanged();
@@ -576,6 +604,86 @@ namespace GeometryHelper.Drawing.Wpf
             var whole = new HashSet<string>(entry.WholeAssemblies, StringComparer.Ordinal);
             List<DrawingObject> objects = now.Where(o => ids.Contains(o.Id) || (o.ParentId != null && whole.Contains(o.ParentId))).ToList();
             return new DrawingSource(objects);
+        }
+
+        /// <summary>
+        /// The source a change of a drawing's settings makes it again from: the one it was made from; for a drawing opened from
+        /// its file and not updated, the source its file names or Update from model last found its objects in, connected.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown, saying what to do, where no such source is at hand.</exception>
+        internal IDrawingSourceProvider SourceToMakeFrom(ModelDrawing entry)
+        {
+            if (entry.Drawing.Source != null)
+            {
+                return entry.Provider;
+            }
+
+            return _providers.FirstOrDefault(p => p.IsAvailable && string.Equals(p.Name, entry.SourceName, StringComparison.Ordinal))
+                ?? throw new InvalidOperationException(entry.Number + " was opened from its file, and the source it was made from is not at hand: pick its source in Update from model first.");
+        }
+
+        /// <summary>
+        /// The objects a change of a drawing's settings makes it again from: those it was made from; for a drawing opened from
+        /// its file, those its views draw as the source gives them now, as Update from model finds them. A source with none of
+        /// them is refused, so that no drawing is wiped.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown, saying what to do, where the source has none of the objects.</exception>
+        internal static DrawingSource ObjectsToMakeFrom(ModelDrawing entry, IDrawingSourceProvider provider)
+        {
+            if (entry.Drawing.Source != null)
+            {
+                return entry.Drawing.Source;
+            }
+
+            DrawingSource source = SourceFor(entry, provider.CreateObjects());
+            return source.Objects.Count > 0 ? source
+                : throw new InvalidOperationException("None of the objects " + entry.Number + " draws is in " + provider.Name + ": pick the source it was made from in Update from model first.");
+        }
+
+        /// <summary>
+        /// Writes a change of a drawing made from a source with a preset, one undo step of its document: what the file keeps of
+        /// the source and the preset is written first, so that the step holds it and undo and redo take it with the rest; put
+        /// back where the change fails. The drawing is then known by the source and the preset.
+        /// </summary>
+        internal UpdateReport WriteChange(ModelDrawing entry, IDrawingSourceProvider provider, string presetName, Func<UpdateReport> change)
+        {
+            KeepValues(entry, provider.Name, presetName);
+            UpdateReport report;
+
+            try
+            {
+                report = change();
+            }
+            catch (Exception)
+            {
+                KeepValues(entry, entry.SourceName, entry.PresetName);
+                throw;
+            }
+
+            entry.Provider = provider;
+            entry.SourceName = provider.Name;
+            entry.PresetName = presetName;
+            return report;
+        }
+
+        /// <summary>Writes into a drawing's file the name of its source, its preset and the assemblies it draws whole (<see cref="DrawingDocumentStore.WriteValues"/>).</summary>
+        private static void KeepValues(ModelDrawing entry, string sourceName, string presetName)
+        {
+            var values = new List<KeyValuePair<string, string>>();
+
+            if (sourceName != null)
+            {
+                values.Add(new KeyValuePair<string, string>(SourceKey, sourceName));
+            }
+
+            values.Add(new KeyValuePair<string, string>(PresetKey, presetName));
+
+            foreach (string id in entry.WholeAssemblies)
+            {
+                values.Add(new KeyValuePair<string, string>(WholeAssemblyKey, id));
+            }
+
+            DrawingDocumentStore.WriteValues(entry.Document.Database, values);
         }
 
         /// <summary>Tells the presenter the drawing changed state: made again, updated.</summary>
