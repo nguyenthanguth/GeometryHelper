@@ -103,7 +103,17 @@ public sealed class BoltDimensions : DrawingPlugin
 
 As built in P1: one view and one list of objects per run, as the run record (`GH_PLUGIN_RUN`) keeps them; settings are
 numbers; a plugin adds dimensions, made by `Annotator` so that they measure the model to the bit. `Drawing.RunPlugin`
-runs it, `Drawing.Plugins` (a `DrawingPluginCatalog`) gives the plugins an update finds by name.
+runs it, `Drawing.Plugins` (a `DrawingPluginCatalog`) gives the plugins an update finds by name. The dimension settings of
+the context's `Settings` keep the plugin's dimensions clear of those the view has already, on tiers past the outermost of
+each side: on TC5 the sample's 10 and 15 stand on tier 2 above the front view, its 50, 300, 50 on tier 1 on the left.
+
+In the app: Run plugin on the Drawing tab shows a dialog of the plugins loaded, the view (the one selected, else the
+first), the objects of the view of the kinds the plugin asks for, each ticked (all ticked gives the run none, so that it
+takes those an update adds too), and the plugin's settings with their defaults and ranges, checked as typed. `PLUGIN` asks
+for the plugin by name, the view (the first by default) and each setting in turn, Enter taking its default, and gives the
+plugin every object of the view of its kinds. Both run through the drawing's busy guard, as one undo step, on the window's
+thread (`Drawing.RunPlugin` prepares and applies in one call), and say the result or the failure on the command line.
+`PL` is PLINE's alias, as in AutoCAD, so `PLUGIN` has no alias yet. Picks on the canvas are not built.
 
 What a drawing plugin can do:
 
@@ -182,12 +192,15 @@ Command plugins (C3):
 
 Drawing plugins (P1):
 
-- [x] the sample runs on TC5 (in the tests, loaded from its .dll); in the standalone app and hosted in Tekla: not yet;
+- [x] the sample runs on TC5 (in the tests, loaded from its .dll); in the standalone app from the Drawing tab's Run plugin
+  and `PLUGIN` (view-model tests and screenshots); hosted in Tekla: not yet;
 - [x] after TC5's bolts move and the drawing is updated, its dimensions follow, a hand edit kept;
-- [x] a version that throws on purpose leaves the drawing unchanged;
-- [ ] it is rebuilt while loaded, reloaded, and runs the new code without a restart ([x] after unloading its load
-  context is collected, with the drawing it ran on kept: the Net8Runner);
-- [x] a .dll outside the trusted folders asks first (the same manager as command plugins).
+- [x] a version that throws on purpose leaves the drawing unchanged, said under the dialog and on the command line;
+- [x] it is rebuilt while loaded, reloaded, and runs the new code without a restart, and a drawing it ran on runs its run
+  again with the new build on update; after unloading its load context is collected, with the drawing it ran on kept
+  (the Net8Runner);
+- [x] a .dll outside the trusted folders asks first (the same manager as command plugins; a no leaves the catalog empty);
+- [x] its dimensions overlap none of the drawing's own in TC5's front view (`Annotator.FindOverlaps`).
 
 ## Questions
 

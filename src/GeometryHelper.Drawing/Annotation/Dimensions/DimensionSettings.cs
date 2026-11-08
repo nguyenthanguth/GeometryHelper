@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace GeometryHelper.Drawing.Annotation
 {
@@ -86,6 +87,12 @@ namespace GeometryHelper.Drawing.Annotation
             get => _rounding;
             set => _rounding = Positive(value, nameof(Rounding));
         }
+
+        /// <summary>
+        /// The dimensions of the view placed before, which those placed with these settings keep clear of and stand beyond:
+        /// a view's own, given to a drawing plugin through its context's settings. Not copied with the settings.
+        /// </summary>
+        internal IReadOnlyList<DrawingDimension> KeepClearOf { get; set; }
 
         private static double Positive(double value, string name)
         {

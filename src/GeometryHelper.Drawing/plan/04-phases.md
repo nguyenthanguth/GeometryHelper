@@ -23,7 +23,7 @@ Part B shows its sheets in it.
 | G5 | B | The sheet | built, awaiting review |
 | G6 | B | Presets, the Tekla bridge, update from the model, comparison with Tekla | steps 1 to 3 built; Tekla welds unreadable; step 4 not done |
 | U1 | B | Model drawing UI: drawing list, New drawing, model properties, Update, Export, Drawing settings | built; not yet checked against the maintainer's own UI design |
-| P1 | B | Drawing plugins: the API, a sample, the Plugin manager's Drawing tab | step 1 built; step 2 loading and the Drawing tab's list built, Run from the UI and `PLUGIN` not done |
+| P1 | B | Drawing plugins: the API, a sample, the Plugin manager's Drawing tab | built: Run plugin on the Drawing tab and `PLUGIN`; picks on the canvas and a Run button in the Plugin manager not done |
 | G7 | both | Docs, changelog, release | guides and changelog done; packages and release wait for the maintainer |
 
 The UI design is a claude.ai Design artifact (see the README), made first; each UI step is built against it.
@@ -175,8 +175,12 @@ Done so far: `DrawingPlugin`, `DrawingPluginInput`, `DrawingPluginContext`, `Dra
 Bolt dimensions in `tests/GeometryHelper.Drawing.SamplePlugin`, run on TC5 and followed when its bolts move 20 apart, a
 hand edit kept; drawing plugins loaded by the one `CadPluginManager` (`"kind": "drawing"`, its finder set by the
 catalog), the collectible unload checked on .NET 8 by the Net8Runner; the Drawing chip of the Plugin manager lists them,
-and its Load, Reload, Unload and Remove work on them. Not done: a Run button and the `PLUGIN` command with picks on the
-canvas, the dialog of a plugin's settings, marks and lines added by a plugin.
+and its Load, Reload, Unload and Remove work on them; Run plugin on the Drawing tab (a dialog of the plugin, the view,
+the objects ticked and the settings checked as typed) and `PLUGIN` on the command line, each one undo step through the
+drawing's busy guard; a plugin's dimensions kept clear of the view's own (no overlap on TC5); a drawing plugin rebuilt
+while loaded and reloaded runs its new code (the Net8Runner); a .dll from a folder not trusted asked about first. Not done:
+picks on the canvas, a Run button in the Plugin manager (it lives in Part A, which knows no drawing; it needs a seam in
+`MainViewModel.CreatePluginManager`), an alias for `PLUGIN` (`PL` is PLINE's), marks and lines added by a plugin.
 
 ## G7: docs, changelog, release
 

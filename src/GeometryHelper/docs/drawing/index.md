@@ -63,8 +63,7 @@ centre lines; the assembly preset dimensions the front and top views and not the
 
 ## What there is not
 
-- **No drawing plugins yet.** The document records the runs of a plugin (`Drawing.PluginRuns`) and an update reports them
-  (`UpdateReport.PluginRunsToRunAgain`), but nothing runs them: the plugin API for drawings is not written.
+- **Drawing plugins add dimensions only.** A plugin cannot yet add marks or lines to a view, and its run happens on the window's thread (see [Plugin runs](update.md#plugin-runs)).
 - **No AWS A2.4 weld symbols.** Asking for them throws `NotSupportedException`; ISO 2553 is drawn.
 - **No circular crop** of a detail: it is cut out by a rectangle.
 - **No 3D.** The model is used inside the core, to be projected into lines; what is shown is flat.

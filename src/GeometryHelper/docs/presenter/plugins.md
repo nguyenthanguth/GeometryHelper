@@ -184,6 +184,8 @@ every start.
 
 A plugin.json with `"kind": "drawing"` holds drawing plugins (classes derived from `DrawingPlugin`, see [Plugin runs](../drawing/update.md#plugin-runs)). The plugin manager loads them once a `DrawingPluginCatalog` is made over it, through the same shadow copy, trusted folders, startup list and log, and lists them under the Drawing chip of the Plugin manager; on .NET 8, unloading frees the plugin's code.
 
+Run plugin on the Drawing tab, or `PLUGIN` on the command line, runs a drawing plugin loaded on the drawing shown: the plugin, the view, the objects (all ticked by default, so that the run takes those an update adds too) and its settings, each checked against its range. The run is kept in the drawing and runs again on every update; Undo takes it back, and a plugin that fails leaves the drawing as it was.
+
 ## What the window adds
 
 The window shows a Plugins ribbon tab with a button for each command of each plugin loaded, a Plugin manager (a list with

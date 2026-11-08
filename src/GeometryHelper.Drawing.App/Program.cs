@@ -30,8 +30,8 @@ namespace GeometryHelper.Drawing.App
     /// <c>--new-drawing "Test bodies" Assembly</c> makes a model drawing from a source with a preset and shows it, as New drawing
     /// does; <c>--tab Drawing</c> shows the Drawing ribbon tab; <c>--pick view|dimension|mark|line</c> selects the first entity of
     /// the drawing that draws one; <c>--hand-edit</c> moves its first dimension by hand; <c>--dialog new|new-source|new-settings|update|
-    /// settings[:Tab]|export|message</c> draws that dialog of the model drawing instead of the window; <c>--plugin path.dll</c> loads a
-    /// command plugin, <c>--tab Plugins</c> shows its tab, <c>--dialog plugins|plugin-settings|plugin-untrusted</c> draws the Plugin manager,
+    /// settings[:Tab]|export|message|run-plugin</c> draws that dialog of the model drawing instead of the window; <c>--plugin path.dll</c>
+    /// loads a command plugin or a drawing plugin, <c>--tab Plugins</c> shows its tab, <c>--dialog plugins|plugin-settings|plugin-untrusted</c> draws the Plugin manager,
     /// the plugin's settings or the question before an untrusted load; <c>--dialog options</c> or <c>--dialog "settings:Canvas and
     /// cursor"</c> draws Global settings on a category.
     /// </summary>
@@ -178,7 +178,7 @@ namespace GeometryHelper.Drawing.App
 
             if (output == null || width < 100 || height < 100 || (cursor != null && cursor.Length != 2))
             {
-                Console.Error.WriteLine("Usage: GeometryHelper.Drawing.App --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--new-drawing \"Test bodies\" Assembly] [--tab Drawing] [--pick view|dimension|mark|line] [--hand-edit] [--dialog new|new-source|new-settings|update|settings[:Tab]|export|message|plugins|plugin-settings|plugin-untrusted] [--plugin path.dll]");
+                Console.Error.WriteLine("Usage: GeometryHelper.Drawing.App --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--new-drawing \"Test bodies\" Assembly] [--tab Drawing] [--pick view|dimension|mark|line] [--hand-edit] [--dialog new|new-source|new-settings|update|settings[:Tab]|export|message|run-plugin|plugins|plugin-settings|plugin-untrusted] [--plugin path.dll]");
                 return 2;
             }
 
@@ -191,7 +191,7 @@ namespace GeometryHelper.Drawing.App
             drawings.TabContent = new DrawingRibbonTab { DataContext = drawings };
             ModelDrawing made = null;
 
-            // Command plugins, kept in a folder of this run under the temporary folder, every file trusted.
+            // Command plugins and drawing plugins, kept in a folder of this run under the temporary folder, every file trusted.
             if (pluginPath != null || (dialogName ?? string.Empty).StartsWith("plugin", StringComparison.OrdinalIgnoreCase))
             {
                 string pluginRoot = Path.Combine(Path.GetTempPath(), "GeometryHelper", "ScreenshotPlugins", Environment.ProcessId.ToString(CultureInfo.InvariantCulture));
@@ -200,6 +200,7 @@ namespace GeometryHelper.Drawing.App
                     ConfirmUntrusted = path => true,
                 };
                 model.UsePlugins(plugins, loadAtStart: false);
+                drawings.Plugins = new DrawingPluginCatalog(plugins);
 
                 if (pluginPath != null && model.LoadPlugin(pluginPath)?.Succeeded != true)
                 {
@@ -419,7 +420,6 @@ namespace GeometryHelper.Drawing.App
 
             // A drawing --run changed is not asked about: the question is a dialog, which nobody answers here.
             model.AskSaveAll = documents => CadSaveChoice.DontSave;
-
             window.Close();
             Console.WriteLine("Wrote " + Path.GetFullPath(output) + " (" + width + " by " + height + ").");
             return 0;
@@ -507,6 +507,8 @@ namespace GeometryHelper.Drawing.App
                     return drawings.ShowExport();
                 case "message":
                     return MessageViewModel.Failure("Drawing not made", "B-105 could not be made from 4 parts.", new ArgumentException("The settings allow no scale."));
+                case "run-plugin":
+                    return drawings.ShowRunPlugin();
                 default:
                     return null;
             }

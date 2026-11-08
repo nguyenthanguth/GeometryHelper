@@ -114,6 +114,14 @@ every update runs it again, so its dimensions follow the model. The sample Bolt 
 base-plate bolts, and 340 once they are moved 20 further apart and the drawing is updated, a hand-moved dimension staying
 where it was put.
 
+**NEW.** Drawing plugins in the app: Run plugin on the Drawing tab shows the drawing plugins loaded, the view (the one
+selected, else the first), the objects of the view of the kinds the plugin asks for, each ticked, and the plugin's settings
+with their defaults and ranges, checked as typed. `PLUGIN` asks for the plugin by name, the view and each setting in turn.
+Each run is one undo step, refused in words while the drawing is being made again, and a plugin that fails leaves the drawing
+as it was and is said on the command line. The dimensions a plugin adds keep clear of those the view has already: on TC5 the
+sample's 50, 300, 50 stand on tier 1 on the left of the front view, outside the drawing's own, where before 7 pairs
+overlapped.
+
 **NEW.** The plugin manager loads drawing plugins from a `.dll` or a `.ghplugin` whose plugin.json says `"kind": "drawing"`,
 through a `DrawingPluginCatalog`. It uses the same shadow copy, trusted folders, startup list and log as command plugins; on
 .NET 8, unloading frees the plugin's code.

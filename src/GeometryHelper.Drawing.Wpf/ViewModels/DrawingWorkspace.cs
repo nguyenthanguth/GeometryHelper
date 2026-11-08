@@ -23,8 +23,8 @@ namespace GeometryHelper.Drawing.Wpf
     /// <remarks>
     /// <para>
     /// The commands are DRAWINGNEW (DN), DRAWINGUPDATE (DU), DRAWINGSETTINGS (DS), EXPORTDXF (EXD), AUTODIM (AD), AUTOMARK
-    /// (AM), VIEWSECTION (VS) and VIEWDETAIL (VD); Ctrl+N and the start screen's button make a new drawing too. A command that
-    /// needs a model drawing says so on the command line when a plain DXF is shown.
+    /// (AM), VIEWSECTION (VS), VIEWDETAIL (VD) and PLUGIN, which runs a drawing plugin; Ctrl+N and the start screen's button
+    /// make a new drawing too. A command that needs a model drawing says so on the command line when a plain DXF is shown.
     /// </para>
     /// <para>
     /// A dialog is asked for through <see cref="DialogRequested"/> with its view model; the window shows it after the command
@@ -83,6 +83,7 @@ namespace GeometryHelper.Drawing.Wpf
             AutoMarksCommand = new DelegateCommand(_ => ReMarkSelectedView(), _ => _current != null);
             CentreLinesCommand = new DelegateCommand(_ => ReCentreLinesSelectedView(), _ => _current != null);
             ExportDxfCommand = new DelegateCommand(_ => ShowExport(), _ => _drawings.Count > 0);
+            RunPluginCommand = new DelegateCommand(_ => ShowRunPlugin(), _ => _current != null);
 
             model.NewFromModelRequested += (s, e) => ShowNewDrawing();
             model.SettingsApplied += (s, e) => _settingsApplied = true;
@@ -142,7 +143,7 @@ namespace GeometryHelper.Drawing.Wpf
                     Raise(nameof(HasCurrent));
                     Raise(nameof(AddableViews));
 
-                    foreach (ICommand command in new[] { UpdateCommand, SettingsCommand, AddViewCommand, SectionCommand, DetailCommand, AutoDimensionCommand, AutoMarksCommand, CentreLinesCommand })
+                    foreach (ICommand command in new[] { UpdateCommand, SettingsCommand, AddViewCommand, SectionCommand, DetailCommand, AutoDimensionCommand, AutoMarksCommand, CentreLinesCommand, RunPluginCommand })
                     {
                         ((DelegateCommand)command).RaiseCanExecuteChanged();
                     }
@@ -204,6 +205,9 @@ namespace GeometryHelper.Drawing.Wpf
 
         /// <summary>Gets the command of Export DXF (EXPORTDXF).</summary>
         public ICommand ExportDxfCommand { get; }
+
+        /// <summary>Gets the command of Run plugin: the dialog that runs a drawing plugin loaded on the drawing shown (PLUGIN on the command line).</summary>
+        public ICommand RunPluginCommand { get; }
 
         /// <summary>Finds the model drawing a document shows; null for a document of none.</summary>
         /// <param name="document">The document.</param>
@@ -521,6 +525,7 @@ namespace GeometryHelper.Drawing.Wpf
             registry.Add(new CadCommand("AUTOMARK", c => OnViewCommand(c, ReMarkSelectedView), true));
             registry.Add(new CadCommand("VIEWSECTION", SectionPrompts));
             registry.Add(new CadCommand("VIEWDETAIL", DetailPrompts));
+            registry.Add(new CadCommand("PLUGIN", PluginPrompts));
 
             var aliases = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 

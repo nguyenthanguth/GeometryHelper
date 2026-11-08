@@ -22,6 +22,7 @@
             <Geometry x:Key="IconDxf">M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M12 11v6M9 14l3 3 3-3</Geometry>
             <Geometry x:Key="IconPdf">M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h6</Geometry>
             <Geometry x:Key="IconPrint">M7 9V3h10v6M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v7H7z</Geometry>
+            <Geometry x:Key="IconPlugin">M9 3v5M15 3v5M7 8h10v4a5 5 0 0 1-10 0zM12 17v4</Geometry>
 
             <!-- A big button of the ribbon, as Part A's: its Tag the icon, its Content the label; dimmed when disabled. -->
             <Style x:Key="BigButton" TargetType="Button" BasedOn="{StaticResource GhFlatButton}">
@@ -125,6 +126,15 @@
                     <Button Style="{StaticResource BigButton}" Tag="{StaticResource IconDxf}" Content="DXF" Command="{Binding ExportDxfCommand}" ToolTip="Export DXF (EXPORTDXF)" />
                     <Button Style="{StaticResource BigButton}" Tag="{StaticResource IconPdf}" Content="PDF" IsEnabled="False" ToolTip="PDF: not built yet" ToolTipService.ShowOnDisabled="True" />
                     <Button Style="{StaticResource BigButton}" Tag="{StaticResource IconPrint}" Content="Print" IsEnabled="False" ToolTip="Print: not built yet" ToolTipService.ShowOnDisabled="True" Margin="0" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+        <Border Style="{StaticResource GroupBorder}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Plugins" />
+                <StackPanel Orientation="Horizontal">
+                    <Button Style="{StaticResource BigButton}" Tag="{StaticResource IconPlugin}" Content="Run plugin" Command="{Binding RunPluginCommand}" Margin="0"
+                            ToolTip="Run a drawing plugin on a view of the drawing; it runs again on every update (PLUGIN)" />
                 </StackPanel>
             </DockPanel>
         </Border>

@@ -13,7 +13,10 @@ namespace GeometryHelper.Drawing.Plugins
     /// The dimensions added become the drawing's own, each with an id of its view, the run and its kind, as
     /// V-FRONT/R-1/D-HolesByGroup-X-1: written into the DXF tagged as the drawing's, edited in the presenter as any of its
     /// dimensions, and kept by a hand edit through later updates. They are made by <see cref="Annotator"/>, as the drawing's
-    /// own are, so that they measure the model to the bit.
+    /// own are, so that they measure the model to the bit; with the dimension settings of <see cref="Settings"/> they keep
+    /// clear of the dimensions the view has already, on tiers past the outermost of them. In TC5's front view the sample's 10
+    /// and 15 above it stand on tier 2, past the drawing's 1000; its 50, 300, 50, whose lines would cross a text of the
+    /// drawing's on the right, stand on tier 1 on the left, outside the drawing's own.
     /// </remarks>
     public sealed class DrawingPluginContext
     {
@@ -47,8 +50,20 @@ namespace GeometryHelper.Drawing.Plugins
         /// <summary>Gets the model the drawing is made from.</summary>
         public DrawingSource Source { get; }
 
-        /// <summary>Gets a copy of the drawing's settings, which the plugin may change for its own use; the drawing keeps its own.</summary>
-        public DrawingSettings Settings => _settings.Clone();
+        /// <summary>
+        /// Gets a copy of the drawing's settings, which the plugin may change for its own use; the drawing keeps its own. Its
+        /// dimension settings, given to <see cref="Annotator.Dimension"/>, place the plugin's dimensions clear of those the view
+        /// has already, on tiers past the outermost of them on each side.
+        /// </summary>
+        public DrawingSettings Settings
+        {
+            get
+            {
+                DrawingSettings copy = _settings.Clone();
+                copy.Dimensions.KeepClearOf = View.Dimensions;
+                return copy;
+            }
+        }
 
         /// <summary>Gets the tolerance the drawing is made within.</summary>
         public Tolerance Tolerance { get; }

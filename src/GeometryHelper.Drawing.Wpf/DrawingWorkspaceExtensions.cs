@@ -59,7 +59,7 @@ namespace GeometryHelper.Drawing.Wpf
         };
 
         /// <summary>Makes the window of a dialog's view model, not shown.</summary>
-        /// <param name="model">The view model: of New drawing, Update from model, Drawing settings, Export or a message.</param>
+        /// <param name="model">The view model: of New drawing, Update from model, Drawing settings, Export, Run plugin or a message.</param>
         /// <returns>The window.</returns>
         /// <exception cref="ArgumentException">Thrown when the view model is of no dialog known.</exception>
         public static DrawingDialogWindow CreateDialog(DialogViewModel model)
@@ -76,6 +76,8 @@ namespace GeometryHelper.Drawing.Wpf
                     return new ExportDialog(export);
                 case MessageViewModel message:
                     return new MessageDialog(message);
+                case PluginRunViewModel run:
+                    return new PluginRunDialog(run);
                 default:
                     throw new ArgumentException("No dialog shows a " + (model?.GetType().Name ?? "null") + ".", nameof(model));
             }

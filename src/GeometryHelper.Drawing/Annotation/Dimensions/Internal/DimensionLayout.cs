@@ -106,6 +106,11 @@ namespace GeometryHelper.Drawing.Annotation
         // The tier of the outermost dimension of each axis and side, below which those placed after it stay.
         private readonly int[] _cap = { int.MaxValue, int.MaxValue, int.MaxValue, int.MaxValue };
 
+        // The dimensions placed before to keep clear of (DimensionSettings.KeepClearOf), and the first tier of each axis and
+        // side past the outermost of them.
+        private readonly List<DimensionShape> _kept = new List<DimensionShape>();
+        private readonly int[] _start = { 0, 0, 0, 0 };
+
         public DimensionLayout(GeoRectangle2 bounds, DimensionSettings settings, double tol)
         {
             _minX = bounds.Center.X - 0.5 * bounds.Width;
@@ -120,6 +125,17 @@ namespace GeometryHelper.Drawing.Annotation
             _spacing = settings.TierSpacing * settings.Scale;
             _charWidth = 0.8 * _height;
             _tol = tol;
+
+            foreach (DrawingDimension kept in settings.KeepClearOf ?? new DrawingDimension[0])
+            {
+                // Its axis, and its side as its text stands by the middle of the box: above or right first, as Place has them.
+                int axis = kept.Direction.X > 0.5 ? 0 : 1;
+                bool first = axis == 0 ? kept.TextBox.Center.Y >= bounds.Center.Y : kept.TextBox.Center.X >= bounds.Center.X;
+                int index = 2 * axis + (first ? 0 : 1);
+                _kept.Add(DimensionShape.Of(kept));
+                _outer[index] = Math.Max(_outer[index], kept.Tier);
+                _start[index] = _outer[index] + 1;
+            }
         }
 
         /// <summary>Gets the dimensions placed, in the order they were placed.</summary>
@@ -159,7 +175,7 @@ namespace GeometryHelper.Drawing.Annotation
             for (int sideIndex = 0; sideIndex < 2; sideIndex++)
             {
                 int side = sideIndex == 0 ? 1 : -1;
-                int first = outermost ? _outer[2 * axis + sideIndex] + 1 : 0;
+                int first = outermost ? _outer[2 * axis + sideIndex] + 1 : _start[2 * axis + sideIndex];
                 int last = outermost ? first + MaxTiers : Math.Min(MaxTiers, _cap[2 * axis + sideIndex]);
 
                 for (int tier = first; tier < last; tier++)
@@ -236,6 +252,14 @@ namespace GeometryHelper.Drawing.Annotation
 
         private bool IsFree(DimensionShape shape, DimensionShape[] group)
         {
+            foreach (DimensionShape kept in _kept)
+            {
+                if (DimensionShape.Conflict(shape, kept, _tol) != null)
+                {
+                    return false;
+                }
+            }
+
             foreach (DimensionCandidate placed in _placed)
             {
                 if (DimensionShape.Conflict(shape, placed.Shape, _tol) != null)

@@ -63,7 +63,12 @@ namespace GeometryHelper.Drawing.Plugins
         private readonly List<DrawingObjectKind> _kinds = new List<DrawingObjectKind>();
         private readonly List<DrawingPluginSetting> _settings = new List<DrawingPluginSetting>();
 
-        internal DrawingPluginInput()
+        /// <summary>
+        /// Makes an empty input, for the app to ask a plugin what it needs before it runs it: given to
+        /// <see cref="DrawingPlugin.DefineInput"/>, the sample Bolt dimensions fills it with a view, the kind Bolt and the
+        /// setting Rounding, 1 by default, from 0.01 to 100.
+        /// </summary>
+        public DrawingPluginInput()
         {
         }
 

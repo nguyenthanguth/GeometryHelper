@@ -24,6 +24,9 @@ namespace GeometryHelper.Drawing.Wpf
 
         /// <summary>A message: an error, a warning, a notice of work done.</summary>
         Message,
+
+        /// <summary>Run plugin: a drawing plugin, its view, objects and settings.</summary>
+        RunPlugin,
     }
 
     /// <summary>A dialog the model drawing asks the window to show: its kind and its view model.</summary>
@@ -39,7 +42,8 @@ namespace GeometryHelper.Drawing.Wpf
         public DrawingDialogKind Kind { get; }
 
         /// <summary>Gets its view model: a <see cref="NewDrawingViewModel"/>, <see cref="UpdateFromModelViewModel"/>,
-        /// <see cref="DrawingSettingsViewModel"/>, <see cref="ExportViewModel"/> or <see cref="MessageViewModel"/>.</summary>
+        /// <see cref="DrawingSettingsViewModel"/>, <see cref="ExportViewModel"/>, <see cref="MessageViewModel"/> or
+        /// <see cref="PluginRunViewModel"/>.</summary>
         public DialogViewModel Model { get; }
     }
 
