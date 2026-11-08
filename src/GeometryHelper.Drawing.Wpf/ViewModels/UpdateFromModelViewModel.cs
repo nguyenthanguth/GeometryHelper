@@ -290,8 +290,18 @@ namespace GeometryHelper.Drawing.Wpf
                 // The slow part off the UI thread; the writing, one undo step of the document, on it.
                 DrawingSource source = _newSource;
                 global::GeometryHelper.Drawing.Drawing drawing = Drawing.Drawing;
-                PreparedUpdate prepared = await RunAsync("Making " + Drawing.Number + " again from " + _provider.Name + "…", () => drawing.Prepare(source, null));
-                report = _workspace.WriteChange(Drawing, _provider, Drawing.PresetName, () => drawing.Apply(prepared));
+                _workspace.Begin(Drawing);
+
+                try
+                {
+                    PreparedUpdate prepared = await RunAsync("Making " + Drawing.Number + " again from " + _provider.Name + "…", () => drawing.Prepare(source, null));
+                    _workspace.ThrowIfClosed(Drawing);
+                    report = _workspace.WriteChange(Drawing, _provider, Drawing.PresetName, () => drawing.Apply(prepared));
+                }
+                finally
+                {
+                    _workspace.End(Drawing);
+                }
             }
             catch (OperationCanceledException)
             {
@@ -377,9 +387,11 @@ namespace GeometryHelper.Drawing.Wpf
                   + report.AddedObjects.Count.ToString(CultureInfo.InvariantCulture) + " added, " + report.RemovedObjects.Count.ToString(CultureInfo.InvariantCulture)
                   + " removed. The drawing will be made again; hand edits that still apply are kept."
                 : "The model has not changed since " + since + ". Update makes the drawing again all the same; hand edits are kept.";
-            PluginText = report.PluginRunsToRunAgain.Count == 0
+            // The preview is made with no plugins, so every run the drawing keeps is among those to run again.
+            int runs = report.PluginRunsToRunAgain.Count + report.PluginRunsRun.Count + report.PluginRunsDropped.Count;
+            PluginText = runs == 0
                 ? "No plugin is set to run on update."
-                : DrawingWorkspace.Count(report.PluginRunsToRunAgain.Count, "plugin run") + " kept in the drawing; running them again comes with the drawing plugins.";
+                : DrawingWorkspace.Count(runs, "plugin run") + " kept in the drawing, run again with the drawing plugins loaded; a run whose objects have gone is dropped.";
             Raise(nameof(HasChanges));
         }
 

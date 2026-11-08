@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using GeometryHelper.Drawing.Plugins;
 using GeometryHelper.Dxf;
 using GeometryHelper.Dxf.Viewer;
 using GeometryHelper.Dxf.Viewer.Wpf;
@@ -53,6 +54,10 @@ namespace GeometryHelper.Drawing.Wpf
 
         private readonly List<IDrawingSourceProvider> _providers;
         private readonly ObservableCollection<ModelDrawing> _drawings = new ObservableCollection<ModelDrawing>();
+        private DrawingPluginCatalog _plugins;
+
+        // The drawings being made again off the UI thread: one change of a drawing at a time.
+        private readonly HashSet<ModelDrawing> _busy = new HashSet<ModelDrawing>();
         private ModelDrawing _current;
         private bool _settingsApplied;
 
@@ -103,6 +108,24 @@ namespace GeometryHelper.Drawing.Wpf
 
         /// <summary>Gets the tolerance drawings are made within.</summary>
         public Tolerance Tolerance { get; }
+
+        /// <summary>
+        /// Gets or sets the drawing plugins every drawing made or opened here runs its plugin runs again with on update
+        /// (<see cref="Drawing.Plugins"/>); null for none. Set, it is given to the drawings open too.
+        /// </summary>
+        public DrawingPluginCatalog Plugins
+        {
+            get => _plugins;
+            set
+            {
+                _plugins = value;
+
+                foreach (ModelDrawing entry in _drawings)
+                {
+                    entry.Drawing.Plugins = value;
+                }
+            }
+        }
 
         /// <summary>Gets the model drawings made or opened, in the order they were.</summary>
         public ReadOnlyObservableCollection<ModelDrawing> Drawings { get; }
@@ -231,6 +254,7 @@ namespace GeometryHelper.Drawing.Wpf
 
             CadDocument document = drawing.OpenInPresenter();
             var entry = new ModelDrawing(UniqueKey(drawing), drawing, document, provider, presetName, wholeAssemblies);
+            drawing.Plugins = _plugins;
             KeepValues(entry, provider.Name, entry.PresetName);
             _drawings.Add(entry);
             document.Changed += OnDocumentChanged;
@@ -317,15 +341,28 @@ namespace GeometryHelper.Drawing.Wpf
         /// <param name="runner">Runs the preparing off the UI thread, showing a line while it does; null to run it on the caller's thread.</param>
         /// <returns>What changed and what became of the hand edits.</returns>
         /// <exception cref="InvalidOperationException">Thrown, in words saying what to do, when a drawing opened from its file
-        /// has no source at hand that holds its objects.</exception>
+        /// has no source at hand that holds its objects, or the drawing is being made again already.</exception>
+        /// <exception cref="OperationCanceledException">Thrown when the drawing was closed while it was made; nothing is written.</exception>
         internal async Task<UpdateReport> ApplySettingsAsync(ModelDrawing entry, DrawingSettings settings, string presetName, Func<string, Func<PreparedUpdate>, Task<PreparedUpdate>> runner)
         {
             Drawing drawing = entry.Drawing;
             IDrawingSourceProvider provider = SourceToMakeFrom(entry);
             DrawingSettings copy = settings.Clone();
             Func<PreparedUpdate> prepare = () => drawing.Prepare(ObjectsToMakeFrom(entry, provider), copy);
-            PreparedUpdate prepared = runner == null ? prepare() : await runner("Making " + entry.Number + " again with the new settings…", prepare);
-            UpdateReport report = WriteChange(entry, provider, presetName ?? entry.PresetName, () => drawing.Apply(prepared));
+            UpdateReport report;
+            Begin(entry);
+
+            try
+            {
+                PreparedUpdate prepared = runner == null ? prepare() : await runner("Making " + entry.Number + " again with the new settings…", prepare);
+                ThrowIfClosed(entry);
+                report = WriteChange(entry, provider, presetName ?? entry.PresetName, () => drawing.Apply(prepared));
+            }
+            finally
+            {
+                End(entry);
+            }
+
             Changed(entry);
             Say(entry.Number + " made again with the new settings: " + Count(report.EditsKept.Count, "hand edit") + " kept"
                 + (report.EditsDropped.Count == 0 ? string.Empty : ", " + Count(report.EditsDropped.Count, "hand edit") + " no longer apply") + "." + Warnings(drawing));
@@ -341,6 +378,47 @@ namespace GeometryHelper.Drawing.Wpf
                 Say("  No longer applies: " + dropped.Edit.ObjectId + ": " + dropped.Reason + ".");
             }
         }
+
+        /// <summary>Says whether a drawing is being made again off the UI thread, and where it is, says so on the command line.</summary>
+        internal bool IsBusy(ModelDrawing entry)
+        {
+            if (!_busy.Contains(entry))
+            {
+                return false;
+            }
+
+            Say(BusyText(entry));
+            return true;
+        }
+
+        /// <summary>Marks a drawing as being made again off the UI thread, until <see cref="End"/>: one change of it at a time.</summary>
+        /// <exception cref="InvalidOperationException">Thrown, in words, when it is being made again already.</exception>
+        internal void Begin(ModelDrawing entry)
+        {
+            if (!_busy.Add(entry))
+            {
+                throw new InvalidOperationException(BusyText(entry));
+            }
+        }
+
+        /// <summary>Marks a drawing made again as done with.</summary>
+        internal void End(ModelDrawing entry) => _busy.Remove(entry);
+
+        /// <summary>
+        /// Drops a drawing made again off the UI thread whose document was closed meanwhile: said on the command line, and
+        /// nothing written into the closed document.
+        /// </summary>
+        /// <exception cref="OperationCanceledException">Thrown when the drawing was closed.</exception>
+        internal void ThrowIfClosed(ModelDrawing entry)
+        {
+            if (!_drawings.Contains(entry))
+            {
+                Say(entry.Number + " was closed while it was made again; nothing was written.");
+                throw new OperationCanceledException(entry.Number + " was closed while it was made again.");
+            }
+        }
+
+        private static string BusyText(ModelDrawing entry) => entry.Number + " is being made again; wait for it.";
 
         /// <summary>Adds a view along an axis, or the isometric one, to the drawing shown: its settings with the view, made again, hand edits kept.</summary>
         /// <param name="kind">The kind of view.</param>
@@ -361,6 +439,11 @@ namespace GeometryHelper.Drawing.Wpf
                 return false;
             }
 
+            if (IsBusy(entry))
+            {
+                return false;
+            }
+
             DrawingSettings settings = entry.Drawing.Settings;
 
             if (settings.Views.Kinds.Contains(kind))
@@ -375,6 +458,10 @@ namespace GeometryHelper.Drawing.Wpf
             {
                 await ApplySettingsAsync(entry, settings, "Changed", (text, work) => Task.Run(work));
                 return true;
+            }
+            catch (OperationCanceledException)
+            {
+                return false;
             }
             catch (Exception ex) when (!(ex is OutOfMemoryException))
             {
@@ -552,6 +639,7 @@ namespace GeometryHelper.Drawing.Wpf
             }
 
             var entry = new ModelDrawing(document.FileName ?? UniqueKey(drawing), drawing, document, OpenedFromFile, presetName, whole) { SourceName = sourceName };
+            drawing.Plugins = _plugins;
             _drawings.Add(entry);
             document.Changed += OnDocumentChanged;
             ((DelegateCommand)ExportDxfCommand).RaiseCanExecuteChanged();
@@ -669,6 +757,10 @@ namespace GeometryHelper.Drawing.Wpf
         /// </summary>
         internal UpdateReport WriteChange(ModelDrawing entry, IDrawingSourceProvider provider, string presetName, Func<UpdateReport> change)
         {
+            // A document with no step yet keeps itself as it stands at its first edit: a group opened and closed with no edit
+            // in it makes it do so now, before the values are written, so that undoing this first step takes them back too.
+            entry.Document.BeginGroup("UPDATE");
+            entry.Document.EndGroup();
             KeepValues(entry, provider.Name, presetName);
             UpdateReport report;
 
@@ -796,10 +888,30 @@ namespace GeometryHelper.Drawing.Wpf
         {
             ModelDrawing entry = Find(sender as CadDocument);
 
-            if (entry != null)
+            if (entry == null)
             {
-                entry.Refresh();
+                return;
             }
+
+            // Undone or redone, the source and the preset are those the file keeps at the step it stands at now.
+            if (e.Kind == CadChangeKind.Undo || e.Kind == CadChangeKind.Redo)
+            {
+                foreach (KeyValuePair<string, string> value in DrawingDocumentStore.ReadValues(entry.Document.Database))
+                {
+                    if (value.Key == SourceKey)
+                    {
+                        entry.SourceName = value.Value;
+                    }
+                    else if (value.Key == PresetKey)
+                    {
+                        entry.PresetName = value.Value;
+                    }
+                }
+
+                Model.RefreshFromExtensions();
+            }
+
+            entry.Refresh();
         }
     }
 }

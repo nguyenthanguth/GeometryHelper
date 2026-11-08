@@ -131,7 +131,7 @@ namespace GeometryHelper.Drawing
 
             if (!result.Succeeded)
             {
-                _drawing.RemoveLastEdit();
+                _drawing.RemoveEdit(record);
                 return false;
             }
 

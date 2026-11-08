@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using GeometryHelper.Drawing.Plugins;
 
 namespace GeometryHelper.Drawing
 {
@@ -9,11 +10,12 @@ namespace GeometryHelper.Drawing
     /// <remarks>
     /// Making is the slow part of an update and touches neither the drawing nor its DXF, so a window can prepare on a thread
     /// of its own and apply on its own thread: the 1 000 members of a general arrangement are prepared in about a second
-    /// and applied in a tenth of that. An update is applied once, to the drawing that prepared it; it does not change.
+    /// and applied in a tenth of that. An update is applied once, to the drawing that prepared it, and only while that drawing
+    /// has not been made again since; it does not change.
     /// </remarks>
     public sealed class PreparedUpdate
     {
-        internal PreparedUpdate(Drawing drawing, DrawingSource source, DrawingSettings settings, DrawingContent content, List<DrawingElement> views, List<DrawingElement> annotations)
+        internal PreparedUpdate(Drawing drawing, DrawingSource source, DrawingSettings settings, DrawingContent content, List<DrawingElement> views, List<DrawingElement> annotations, DrawingPluginRuns runs)
         {
             Drawing = drawing;
             Source = source;
@@ -21,6 +23,7 @@ namespace GeometryHelper.Drawing
             Content = content;
             Views = views;
             Annotations = annotations;
+            Runs = runs;
         }
 
         /// <summary>Gets the drawing the update was prepared for.</summary>
@@ -48,5 +51,11 @@ namespace GeometryHelper.Drawing
         internal List<DrawingElement> Views { get; }
 
         internal List<DrawingElement> Annotations { get; }
+
+        /// <summary>What became of the drawing's plugin runs, run again on the views made.</summary>
+        internal DrawingPluginRuns Runs { get; }
+
+        /// <summary>How many times the drawing had been made again when the update was prepared; applied only while it still is.</summary>
+        internal int Generation { get; set; }
     }
 }

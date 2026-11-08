@@ -146,7 +146,11 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
             }
         }
 
-        internal IReadOnlyList<Assembly> Assemblies { get; set; }
+        /// <summary>Gets the assemblies loaded for it while it is loaded; null once it is unloaded.</summary>
+        public IReadOnlyList<Assembly> Assemblies { get; internal set; }
+
+        /// <summary>Gets the names of the drawing plugins found in it while it is loaded (<see cref="CadPluginManager.DrawingPluginFinder"/>); empty for none.</summary>
+        public IReadOnlyList<string> DrawingPlugins { get; internal set; } = new string[0];
 
         internal string ShadowFolder { get; set; }
 

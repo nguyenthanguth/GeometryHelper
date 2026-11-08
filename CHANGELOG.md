@@ -93,6 +93,44 @@ another file of the folder was opened, or once it was saved with Save and shown 
 now says, for example, "Test bodies (from file)" until the drawing is made again. The out-of-date dot now shows on such a
 drawing too, checked in the source its file names without changing it.
 
+**NEW.** Drawing plugins, shaped as Tekla's drawing plugins are. A class derived from `DrawingPlugin` says what it needs in
+`DefineInput` and adds dimensions to a view in `Run`. `Drawing.RunPlugin` runs it and keeps the run in the drawing's DXF, and
+every update runs it again, so its dimensions follow the model. The sample Bolt dimensions gives the pitch 300 of TC5's
+base-plate bolts, and 340 once they are moved 20 further apart and the drawing is updated, a hand-moved dimension staying
+where it was put.
+
+**NEW.** The plugin manager loads drawing plugins from a `.dll` or a `.ghplugin` whose plugin.json says `"kind": "drawing"`,
+through a `DrawingPluginCatalog`. It uses the same shadow copy, trusted folders, startup list and log as command plugins; on
+.NET 8, unloading frees the plugin's code.
+
+**CHANGED.** `UpdateReport.PluginRunsToRunAgain` now lists only the runs whose plugin is not at hand. `PluginRunsRun` and
+`PluginRunsDropped` (with the reason) say what became of the others.
+
+**FIXED.** Installing a plugin whose id is "...", ". ." or ends in a dot or a space is refused: Windows read such an id as the
+plugin folder itself, and installing it deleted every plugin installed.
+
+**FIXED.** A hand edit whose writing fails is taken back alone: an earlier hand edit, a mark moved before, stays in the
+drawing and in its file.
+
+**FIXED.** EXPLODE of a dimension, mark or view of a model drawing is refused in words ("This dimension belongs to the model
+and cannot be exploded here."); before, the dimension was erased and recorded as a hand edit, and its pieces lost.
+
+**FIXED.** An update prepared before the drawing was made again is refused by `Drawing.Apply`: adding the top view and the
+isometric one at once no longer loses the first. In the presenter a second Add view, AUTODIM or AUTOMARK while B1 is being
+made says "B1 is being made again; wait for it.", and a drawing closed meanwhile is not written into.
+
+**FIXED.** Export no longer saves the drawing shown from a worker thread, nor ties its database to the exported or temporary
+file; the bytes written are unchanged.
+
+**FIXED.** Save As onto the file of another open document, B-101.dxf of a model drawing among them, is refused until that
+document is closed.
+
+**FIXED.** An error of any kind from a source during AUTODIM, AUTOMARK, centre lines, VIEWSECTION or VIEWDETAIL is said on
+the command line and logged, instead of ending the app or the Tekla it runs in.
+
+**FIXED.** Undoing the first change of a drawing takes its preset and source back in the file and in Properties; redo brings
+them again.
+
 **FIXED.** The texts of short neighbouring dimensions no longer stand side by side as one number. In a chain 50, 300, 50
 at 1:20 the two 50s took the 300's place and read as "5050"; now a text that fits in the middle of its line keeps it, a text
 too long for its step goes past the end of the row, and every text keeps a quarter of its height clear of other texts and of

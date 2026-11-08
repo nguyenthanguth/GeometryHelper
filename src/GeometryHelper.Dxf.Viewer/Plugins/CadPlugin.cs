@@ -65,7 +65,10 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
         /// <exception cref="ArgumentNullException">Thrown when the assemblies are null.</exception>
         /// <exception cref="CadPluginException">Thrown when the plugin needs a newer API, states an API version that is not
         /// one, or has no command.</exception>
-        public static CadPlugin FromAssemblies(string name, IEnumerable<Assembly> assemblies, string version = null)
+        public static CadPlugin FromAssemblies(string name, IEnumerable<Assembly> assemblies, string version = null) => MakeFrom(name, assemblies, version, true);
+
+        /// <summary>A plugin from its assemblies; one with no command refused only where commands are needed, as they are not for one that holds drawing plugins.</summary>
+        internal static CadPlugin MakeFrom(string name, IEnumerable<Assembly> assemblies, string version, bool needsCommand)
         {
             if (assemblies == null)
             {
@@ -119,7 +122,7 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
             var plugin = new CadPlugin(name, version ?? (sorted.Count > 0 ? VersionOf(sorted[0]) : string.Empty), required);
             plugin.Read(sorted);
 
-            if (plugin.Commands.Count == 0)
+            if (plugin.Commands.Count == 0 && needsCommand)
             {
                 string why = plugin.Problems.Count > 0 ? " " + string.Join(" ", plugin.Problems) : string.Empty;
                 throw new CadPluginException(name, "The plugin " + name + " has no command: no public method marked [CadCommand] that takes a CadCommandContext and returns IEnumerable<CadPrompt>." + why);

@@ -79,26 +79,31 @@ using GeometryHelper.Drawing.Plugins;
 public sealed class BoltDimensions : DrawingPlugin
 {
     public override string Name => "Bolt dimensions";
-    public override string Command => "BOLTDIM";
 
-    // Like Tekla's DefineInput: what the user picks before Run.
-    public override void DefineInput(PluginInput input)
+    // Like Tekla's DefineInput: what the user picks before Run, and the settings kept with each run.
+    public override void DefineInput(DrawingPluginInput input)
     {
         input.AddView("Pick a view");
-        input.AddObjects("Pick bolt groups", DrawingObjectKind.BoltGroup);
+        input.AddObjects("Pick bolts", DrawingObjectKind.Bolt);   // none picked: every bolt of the view
+        input.AddSetting("Rounding", 1.0, 0.01, 100.0);
     }
 
     public override void Run(DrawingPluginContext ctx)
     {
-        DrawingView view = ctx.View(0);
-        foreach (DrawingObject bolts in ctx.Objects(1))
-        {
-            IReadOnlyList<GeoPoint2> points = view.Project(bolts.HolePositions);   // model to view 2D
-            ctx.Drawing.AddDimension(view, points, DimensionKind.Chain, offset: 10, tiedTo: bolts);
-        }
+        var objects = new List<DrawingObject>(ctx.Objects);      // the bolts, and the parts of the view
+        // ... the parts of ctx.View added ...
+        DimensionSettings settings = ctx.Settings.Dimensions;    // a copy, changed for this plugin only
+        settings.Scale = ctx.View.Scale;
+        settings.Rounding = ctx.Setting("Rounding");
+        settings.Overall = settings.Chain = false;
+        ctx.AddDimensions(Annotator.Dimension(ctx.View.Lines, objects, ctx.View.Frame.CoordinateSystem, settings, ctx.Tolerance));
     }
 }
 ```
+
+As built in P1: one view and one list of objects per run, as the run record (`GH_PLUGIN_RUN`) keeps them; settings are
+numbers; a plugin adds dimensions, made by `Annotator` so that they measure the model to the bit. `Drawing.RunPlugin`
+runs it, `Drawing.Plugins` (a `DrawingPluginCatalog`) gives the plugins an update finds by name.
 
 What a drawing plugin can do:
 
@@ -177,9 +182,12 @@ Command plugins (C3):
 
 Drawing plugins (P1):
 
-- the sample runs on TC5 in the standalone app and hosted in Tekla, with no change to the modules' code;
-- after TC5's bolts move and the drawing is updated, its dimensions follow;
-- the same four checks as above.
+- [x] the sample runs on TC5 (in the tests, loaded from its .dll); in the standalone app and hosted in Tekla: not yet;
+- [x] after TC5's bolts move and the drawing is updated, its dimensions follow, a hand edit kept;
+- [x] a version that throws on purpose leaves the drawing unchanged;
+- [ ] it is rebuilt while loaded, reloaded, and runs the new code without a restart ([x] after unloading its load
+  context is collected, with the drawing it ran on kept: the Net8Runner);
+- [x] a .dll outside the trusted folders asks first (the same manager as command plugins).
 
 ## Questions
 

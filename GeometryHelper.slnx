@@ -21,6 +21,7 @@
     <Project Path="tests/GeometryHelper.Dxf.Viewer.Plugins.UnitTest/GeometryHelper.Dxf.Viewer.Plugins.UnitTest.csproj" />
     <Project Path="tests/GeometryHelper.Dxf.Viewer.Plugins.Net8Runner/GeometryHelper.Dxf.Viewer.Plugins.Net8Runner.csproj" />
     <Project Path="tests/GeometryHelper.Dxf.Viewer.SamplePlugin/GeometryHelper.Dxf.Viewer.SamplePlugin.csproj" />
+    <Project Path="tests/GeometryHelper.Drawing.SamplePlugin/GeometryHelper.Drawing.SamplePlugin.csproj" />
   </Folder>
   <Folder Name="/benchmarks/">
     <Project Path="benchmarks/GeometryHelper.Benchmarks/GeometryHelper.Benchmarks.csproj" />

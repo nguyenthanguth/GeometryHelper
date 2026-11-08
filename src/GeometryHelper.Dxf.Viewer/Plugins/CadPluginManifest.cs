@@ -32,6 +32,12 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
         /// <summary>The kind of a command plugin, the only kind this presenter loads: "command".</summary>
         public const string CommandKind = "command";
 
+        /// <summary>
+        /// The kind of a drawing plugin of GeometryHelper.Drawing: "drawing". The presenter alone refuses it; a manager given
+        /// a <see cref="CadPluginManager.DrawingPluginFinder"/> loads it.
+        /// </summary>
+        public const string DrawingKind = "drawing";
+
         private CadPluginManifest(Data data)
         {
             Name = data.Name.Trim();

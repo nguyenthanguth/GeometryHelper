@@ -117,6 +117,15 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
         /// </remarks>
         public Func<string, bool> ConfirmUntrusted { get; set; }
 
+        /// <summary>
+        /// Gets or sets what finds the drawing plugins in the assemblies of a plugin loaded, given its manifest (null for a bare
+        /// .dll), and gives their names: the catalog of GeometryHelper.Drawing sets it. Null, as it is until set, loads command
+        /// plugins only, and refuses a manifest of the kind "drawing". Where it is set, a plugin of the kind "drawing", or a
+        /// bare .dll, is loaded when it has a drawing plugin or a command; a reason it throws as a
+        /// <see cref="CadPluginException"/> is the reason the load is refused.
+        /// </summary>
+        public Func<CadPluginManifest, IReadOnlyList<Assembly>, IReadOnlyList<string>> DrawingPluginFinder { get; set; }
+
         /// <summary>Gets the trusted folders, full paths: the plugin folder first, then those added, in the order they were added.</summary>
         public IReadOnlyList<string> TrustedFolders
         {
@@ -355,7 +364,7 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
                 return Refuse(CadPluginAction.Install, file, path, false, "The package " + path + " cannot be read: " + exception.Message, exception);
             }
 
-            string refusal = manifest.Refusal();
+            string refusal = RefusalOf(manifest);
             bool trusted = IsTrusted(path);
 
             if (refusal != null)
@@ -363,7 +372,10 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
                 return Refuse(CadPluginAction.Install, manifest.Name, path, trusted, refusal);
             }
 
-            if (manifest.Id.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || manifest.Id == "." || manifest.Id == "..")
+            // Windows drops the dots and spaces a file name ends in, so "..." or ". ." would name the plugin folder itself and
+            // the delete below would take every installed plugin with it: the folder must lie strictly inside the plugin folder.
+            if (manifest.Id.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || manifest.Id.EndsWith(".", StringComparison.Ordinal)
+                || manifest.Id.EndsWith(" ", StringComparison.Ordinal) || !IsIn(Path.GetFullPath(Path.Combine(PluginFolder, manifest.Id)).TrimEnd(Path.DirectorySeparatorChar), PluginFolder))
             {
                 return Refuse(CadPluginAction.Install, manifest.Name, path, trusted, "The plugin's id \"" + manifest.Id + "\" cannot name a folder.");
             }
@@ -636,7 +648,7 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
                     return Refuse(action, file, full, trusted, "The manifest of " + full + " cannot be read: " + exception.Message, exception);
                 }
 
-                string refusal = manifest.Refusal();
+                string refusal = RefusalOf(manifest);
 
                 if (refusal != null)
                 {
@@ -662,12 +674,27 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
             string copies = Path.Combine(ShadowFolder, (++_loads).ToString("D3", CultureInfo.InvariantCulture) + "-" + Safe(name));
             IReadOnlyList<Assembly> assemblies = null;
             CadPlugin plugin;
+            IReadOnlyList<string> drawingPlugins = new string[0];
+
+            // A drawing plugin, or a bare .dll that may hold one, need not have a command.
+            Func<CadPluginManifest, IReadOnlyList<Assembly>, IReadOnlyList<string>> finder = DrawingPluginFinder;
+            bool mayDraw = finder != null && (manifest == null || string.Equals(manifest.Kind, CadPluginManifest.DrawingKind, StringComparison.Ordinal));
 
             try
             {
                 List<string> files = Copy(full, isFolder, isPackage, copies);
                 assemblies = _loader.Load(name, files, isDll ? Path.GetDirectoryName(full) : null);
-                plugin = CadPlugin.FromAssemblies(name, assemblies, manifest?.Version);
+                plugin = CadPlugin.MakeFrom(name, assemblies, manifest?.Version, !mayDraw);
+
+                if (mayDraw)
+                {
+                    drawingPlugins = finder(manifest, assemblies) ?? new string[0];
+
+                    if (plugin.Commands.Count == 0 && drawingPlugins.Count == 0)
+                    {
+                        throw new CadPluginException(name, "The plugin " + name + " has no command and no drawing plugin: no public method marked [CadCommand], and no public class derived from DrawingPlugin.");
+                    }
+                }
             }
             catch (Exception exception)
             {
@@ -699,6 +726,7 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
             {
                 Plugin = plugin,
                 Assemblies = assemblies,
+                DrawingPlugins = drawingPlugins,
                 ShadowFolder = copies,
                 LoadAtStartup = installed || _startup.Exists(p => string.Equals(p, full, StringComparison.OrdinalIgnoreCase)),
             };
@@ -712,6 +740,7 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
                 names.Add(command.Name);
             }
 
+            names.AddRange(drawingPlugins);
             string message = (action == CadPluginAction.Reload ? "Reloaded " : "Loaded ") + name + (plugin.Version.Length > 0 ? " " + plugin.Version : string.Empty) + ": " + string.Join(", ", names) + ".";
             Record(action, name, full, trusted, true, message + (warnings.Count > 0 ? " " + string.Join(" ", warnings) : string.Empty));
             Changed();
@@ -785,6 +814,7 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
             IReadOnlyList<Assembly> assemblies = plugin.Assemblies;
             plugin.Plugin = null;
             plugin.Assemblies = null;
+            plugin.DrawingPlugins = new string[0];
             _loader.Unload(assemblies);
 
             // On .NET Framework the files stay in use; they go at a later start.
@@ -830,6 +860,10 @@ namespace GeometryHelper.Dxf.Viewer.Plugins
                 return false;
             }
         }
+
+        /// <summary>Why a manifest's plugin is not loaded: none for a drawing plugin where they are found, whose API the finder judges.</summary>
+        private string RefusalOf(CadPluginManifest manifest)
+            => DrawingPluginFinder != null && string.Equals(manifest.Kind, CadPluginManifest.DrawingKind, StringComparison.Ordinal) ? null : manifest.Refusal();
 
         private static string NotTrusted(string path) => path + " is outside the trusted folders, and loading it was not confirmed.";
 

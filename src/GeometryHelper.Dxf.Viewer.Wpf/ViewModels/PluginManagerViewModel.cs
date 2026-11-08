@@ -22,12 +22,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets its name.</summary>
         public string Name => Plugin.Name;
 
-        /// <summary>Gets its kind as the manifest says, "Command" or "Drawing"; "Command" for a .dll with no manifest.</summary>
+        /// <summary>
+        /// Gets its kind as the manifest says, "Command" or "Drawing"; for a .dll with no manifest, "Drawing" where it holds
+        /// drawing plugins and no command, else "Command".
+        /// </summary>
         public string Kind
         {
             get
             {
-                string kind = Plugin.Manifest?.Kind;
+                bool drawingOnly = Plugin.DrawingPlugins.Count > 0 && Plugin.Plugin?.Commands.Count == 0;
+                string kind = Plugin.Manifest?.Kind ?? (drawingOnly ? CadPluginManifest.DrawingKind : null);
                 return string.IsNullOrEmpty(kind) ? "Command" : char.ToUpperInvariant(kind[0]) + kind.Substring(1).ToLowerInvariant();
             }
         }
@@ -38,8 +42,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets its version: the loaded plugin's, else the manifest's.</summary>
         public string Version => Plugin.Plugin?.Version ?? Plugin.Manifest?.Version ?? string.Empty;
 
-        /// <summary>Gets its commands' names, or the manifest's while it is not loaded.</summary>
-        public string Commands => string.Join(", ", (IEnumerable<string>)Plugin.Plugin?.Commands.Select(c => c.Name) ?? Plugin.Manifest?.Commands ?? Array.Empty<string>());
+        /// <summary>Gets its commands' names then its drawing plugins' while it is loaded, or the manifest's commands while it is not.</summary>
+        public string Commands => string.Join(", ", (IEnumerable<string>)Plugin.Plugin?.Commands.Select(c => c.Name).Concat(Plugin.DrawingPlugins) ?? Plugin.Manifest?.Commands ?? Array.Empty<string>());
 
         /// <summary>Gets the file it was loaded from.</summary>
         public string File => Plugin.Path;

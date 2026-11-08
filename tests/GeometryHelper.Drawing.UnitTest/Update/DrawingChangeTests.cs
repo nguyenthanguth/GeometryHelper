@@ -88,6 +88,35 @@ namespace GeometryHelper.Drawing.UnitTest.Update
         }
 
         [Fact]
+        public void AnUpdatePreparedBeforeTheDrawingWasMadeAgainIsRefusedAndTheViewAddedFirstStays()
+        {
+            Drawing drawing = DrawingBuilder.Build(TC2(), AssemblyOnA3(), Tol);
+            CadDocument document = drawing.OpenInPresenter();
+            DrawingSettings withBack = drawing.Settings;
+            withBack.Views.Kinds.Add(ViewKind.Back);
+            DrawingSettings withIsometric = drawing.Settings;
+            withIsometric.Views.Kinds.Add(ViewKind.Isometric);
+            PreparedUpdate back = drawing.Prepare(TC2(), withBack);
+            PreparedUpdate isometric = drawing.Prepare(TC2(), withIsometric);
+
+            drawing.Apply(back);
+            InvalidOperationException refused = Assert.Throws<InvalidOperationException>(() => drawing.Apply(isometric));
+
+            Assert.StartsWith("The drawing was made again while this update was prepared", refused.Message);
+            Assert.False(isometric.IsApplied);
+            Assert.Contains(ViewKind.Back, drawing.Settings.Views.Kinds);
+            Assert.Contains(drawing.Views, v => v.Kind == ViewKind.Back);
+            Assert.DoesNotContain(drawing.Views, v => v.Kind == ViewKind.Isometric);
+
+            // An undo makes the drawing again too: an update prepared before it is refused, one prepared after it applies.
+            PreparedUpdate late = drawing.Prepare(TC2(), withIsometric);
+            Assert.True(document.Undo());
+            Assert.Throws<InvalidOperationException>(() => drawing.Apply(late));
+            drawing.Apply(drawing.Prepare(TC2(), withIsometric));
+            Assert.Contains(drawing.Views, v => v.Kind == ViewKind.Isometric);
+        }
+
+        [Fact]
         public void AViewDimensionedAgainByHandStaysDimensionedThroughUpdatesAndTheUndoTakesItBack()
         {
             Drawing drawing = DrawingBuilder.Build(TC2(), AssemblyOnA3(), Tol);

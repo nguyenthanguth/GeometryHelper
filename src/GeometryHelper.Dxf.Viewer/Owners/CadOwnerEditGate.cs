@@ -80,7 +80,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        private static string Describe(DxfEntity entity)
+        internal static string Describe(DxfEntity entity)
         {
             string name = entity.GetType().Name;
 

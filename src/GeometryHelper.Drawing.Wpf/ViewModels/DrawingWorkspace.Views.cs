@@ -341,6 +341,11 @@ namespace GeometryHelper.Drawing.Wpf
                 return null;
             }
 
+            if (IsBusy(entry))
+            {
+                return null;
+            }
+
             UpdateReport report;
 
             try
@@ -348,8 +353,14 @@ namespace GeometryHelper.Drawing.Wpf
                 IDrawingSourceProvider provider = SourceToMakeFrom(entry);
                 report = WriteChange(entry, provider, presetName, () => change(entry, provider));
             }
-            catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
+            catch (Exception ex) when (!(ex is OutOfMemoryException))
             {
+                // Run from the dispatcher or a ribbon button, an error let through would end the app, or the Tekla it runs in.
+                if (!(ex is ArgumentException || ex is InvalidOperationException))
+                {
+                    GeometryHelperLog.Warn("DrawingWorkspace: " + what + " of " + entry.Number + " failed.", ex);
+                }
+
                 Say(what + " not made: " + ex.Message.Split('\n')[0].Trim());
                 return null;
             }

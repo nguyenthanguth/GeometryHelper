@@ -23,7 +23,7 @@ Part B shows its sheets in it.
 | G5 | B | The sheet | built, awaiting review |
 | G6 | B | Presets, the Tekla bridge, update from the model, comparison with Tekla | steps 1 to 3 built; Tekla welds unreadable; step 4 not done |
 | U1 | B | Model drawing UI: drawing list, New drawing, model properties, Update, Export, Drawing settings | built; not yet checked against the maintainer's own UI design |
-| P1 | B | Drawing plugins: the API, a sample, the Plugin manager's Drawing tab | not started |
+| P1 | B | Drawing plugins: the API, a sample, the Plugin manager's Drawing tab | step 1 built; step 2 loading and the Drawing tab's list built, Run from the UI and `PLUGIN` not done |
 | G7 | both | Docs, changelog, release | guides and changelog done; packages and release wait for the maintainer |
 
 The UI design is a claude.ai Design artifact (see the README), made first; each UI step is built against it.
@@ -169,6 +169,14 @@ Details: [60-plugins.md](60-plugins.md).
    changes and the drawing is updated its dimensions follow.
 2. The Drawing tab of the Plugin manager, `.ghplugin` packages, the startup list -> verify: install, load, unload,
    reload, run and remove a drawing plugin from the UI.
+
+Done so far: `DrawingPlugin`, `DrawingPluginInput`, `DrawingPluginContext`, `DrawingPluginCatalog`,
+`Drawing.RunPlugin` and `Drawing.Plugins`; runs kept as `GH_PLUGIN_RUN` records and run again in `Prepare`; the sample
+Bolt dimensions in `tests/GeometryHelper.Drawing.SamplePlugin`, run on TC5 and followed when its bolts move 20 apart, a
+hand edit kept; drawing plugins loaded by the one `CadPluginManager` (`"kind": "drawing"`, its finder set by the
+catalog), the collectible unload checked on .NET 8 by the Net8Runner; the Drawing chip of the Plugin manager lists them,
+and its Load, Reload, Unload and Remove work on them. Not done: a Run button and the `PLUGIN` command with picks on the
+canvas, the dialog of a plugin's settings, marks and lines added by a plugin.
 
 ## G7: docs, changelog, release
 

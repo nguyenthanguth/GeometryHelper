@@ -183,5 +183,58 @@ namespace GeometryHelper.Drawing.UnitTest.Update
             Assert.Equal(CadEditRule.Free, document.Owners.GetEditRule(document.FindEntity(byHand.Handle)));
             Assert.Equal(DrawingEntityTags.OwnerName, Assert.Single(document.Owners.Owners).Name);
         }
+
+        [Fact]
+        public void AHandEditWhoseWritingFailsIsTakenBackAndTheEarlierHandEditStays()
+        {
+            Drawing drawing = DrawingBuilder.Build(TC2(), AssemblyOnA3(), Tol);
+            CadDocument document = drawing.OpenInPresenter();
+            Assert.True(document.Owners.TryApply(document, new CadEdit(MarkText(document).Handle, CadEditKind.Move, newValue: "0,50")));
+            DrawingEdit first = Assert.Single(drawing.Edits);
+
+            // The document's dictionary swapped for a record outside any edit: writing the next hand edit throws, and the
+            // presenter takes the edit back to the drawing as it was after the first.
+            DxfDBDictionary root = document.Database.NamedObjectsDictionary;
+            root.Remove(DrawingDocumentStore.DictionaryName);
+            root.SetAt(DrawingDocumentStore.DictionaryName, new DxfXrecord());
+            DxfDimension overall = Dimension(document.Database, OverallId);
+
+            Assert.False(document.Owners.TryApply(document, new CadEdit(overall.Handle, CadEditKind.Property, "Text override", string.Empty, "<> (cut on site)")));
+
+            Assert.Equal(new[] { first }, drawing.Edits);
+            string path = System.IO.Path.Combine(Folder(), "tc2-failed-hand-edit.dxf");
+            drawing.Save(path);
+            Assert.Equal(new[] { first }, Drawing.Open(path, TC2(), Tol).Edits);
+        }
+
+        [Fact]
+        public void ExplodeRefusesADimensionOfTheModelInWordsAndExplodesAPolylineDrawnByHand()
+        {
+            Drawing drawing = DrawingBuilder.Build(TC2(), AssemblyOnA3(), Tol);
+            CadDocument document = drawing.OpenInPresenter();
+            DxfDimension overall = Dimension(document.Database, OverallId);
+            DxfPolyline byHand = null;
+            document.ApplyEdit("PLINE", null, scope =>
+            {
+                var polyline = new DxfPolyline();
+                polyline.AddVertexAt(0, new GeoPoint2(0, -500), 0, 0, 0);
+                polyline.AddVertexAt(1, new GeoPoint2(100, -500), 0, 0, 0);
+                polyline.AddVertexAt(2, new GeoPoint2(100, -400), 0, 0, 0);
+                byHand = scope.Append(document.ModelSpace, polyline);
+            });
+            int lines = document.Database.ModelSpace.Cast<DxfEntity>().Count(e => !e.IsErased && e is DxfLine);
+            document.CurrentSpace = document.ModelSpace;
+            var session = new CadCommandSession(document);
+
+            session.Feed("EXPLODE");
+            session.FeedSelection(new[] { overall.Handle, byHand.Handle });
+            session.Enter();
+
+            Assert.Contains("This dimension belongs to the model and cannot be exploded here.", session.History);
+            Assert.NotNull(document.FindEntity(overall.Handle));
+            Assert.Empty(drawing.Edits);
+            Assert.Null(document.FindEntity(byHand.Handle));
+            Assert.Equal(lines + 2, document.Database.ModelSpace.Cast<DxfEntity>().Count(e => !e.IsErased && e is DxfLine));
+        }
     }
 }

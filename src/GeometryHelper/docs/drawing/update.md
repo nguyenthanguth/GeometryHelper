@@ -143,6 +143,12 @@ drawing throws `ArgumentException`. The hand edits are judged as they are when t
 being prepared is kept, or reported, as any other. The beam is prepared in 9 ms and applied in 8; the class's own measure for the 1 000
 members of a general arrangement is about a second to prepare and a tenth of that to apply.
 
+An update is applied once, and only while the drawing has not been made again since it was prepared: a second update prepared alongside it is refused with `The drawing was made again while this update was prepared, and applying it would take that back: make the change again.` and is to be made again. In the presenter, a second Add view, AUTODIM or AUTOMARK while B1 is being made says `B1 is being made again; wait for it.`
+
+## Plugin runs
+
+A drawing keeps each run of a drawing plugin: the plugin's name and version, the view, the objects it was given and its settings. An update runs it again with the plugins of `Drawing.Plugins`, its old dimensions replaced. A run whose objects have gone from the model is dropped and named in `PluginRunsDropped`. A run whose plugin is not loaded is kept and named in `PluginRunsToRunAgain`; its dimensions are left out until an update with the plugin at hand. `Drawing.RunPlugin(plugin, viewId, objectIds, settings)` makes a run; a plugin that throws leaves the drawing as it was. The dimensions of a run are the drawing's own: written, tagged and edited by hand like any other, and added after the marks are placed, so marks do not avoid them.
+
 ## Adding and changing one view
 
 Six calls change the settings for one view and make the drawing again from its source, the hand edits kept, as `Update(source,

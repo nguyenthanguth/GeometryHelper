@@ -225,12 +225,15 @@ namespace GeometryHelper.Drawing.Wpf
 
                 try
                 {
+                    // The drawing's database is the one the presenter shows: it is saved here, on its own thread, and only its
+                    // bytes are written to the file on another.
+                    byte[] bytes = Bytes(entry.Drawing);
+
                     if (entry.Drawing.Settings.ExportMode == mode || entry.Drawing.Source == null)
                     {
-                        Drawing drawing = entry.Drawing;
                         await RunAsync("Writing " + Path.GetFileName(path) + "…", () =>
                         {
-                            drawing.Save(path);
+                            File.WriteAllBytes(path, bytes);
                             return true;
                         });
                     }
@@ -245,7 +248,7 @@ namespace GeometryHelper.Drawing.Wpf
                         Tolerance tolerance = _workspace.Tolerance;
                         string aside = Path.Combine(Path.GetTempPath(), "GeometryHelper", "Export", Guid.NewGuid().ToString("N") + ".dxf");
                         Directory.CreateDirectory(Path.GetDirectoryName(aside));
-                        entry.Drawing.Save(aside);
+                        File.WriteAllBytes(aside, bytes);
 
                         try
                         {
@@ -299,6 +302,16 @@ namespace GeometryHelper.Drawing.Wpf
 
         /// <inheritdoc/>
         protected override void OnBusyChanged() => RaiseExport();
+
+        /// <summary>The bytes of a drawing's DXF as <see cref="Drawing.Save"/> writes them, the database not taken to another file.</summary>
+        private static byte[] Bytes(Drawing drawing)
+        {
+            using (var stream = new MemoryStream())
+            {
+                drawing.Database.Save(stream);
+                return stream.ToArray();
+            }
+        }
 
         private static void TryDelete(string path)
         {

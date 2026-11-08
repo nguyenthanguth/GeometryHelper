@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The sample drawing plugin, Bolt dimensions, built for the drawing tests: they load its .dll as a user's plugin would be
+    loaded, through the plugin manager and the drawing plugin catalog. It references GeometryHelper.Drawing only, as a
+    drawing plugin does (D16), and does not copy it: the app gives a plugin its own.
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>GeometryHelper.Drawing.SamplePlugin</RootNamespace>
+    <AssemblyName>GeometryHelper.Drawing.SamplePlugin</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\GeometryHelper.Drawing\GeometryHelper.Drawing.csproj" Private="false" />
+  </ItemGroup>
+
+</Project>

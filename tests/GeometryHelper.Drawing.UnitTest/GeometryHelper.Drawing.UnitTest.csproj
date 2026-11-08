@@ -23,6 +23,16 @@
     <ProjectReference Include="..\..\src\GeometryHelper.Dxf.Viewer\GeometryHelper.Dxf.Viewer.csproj" />
     <ProjectReference Include="..\..\src\GeometryHelper.Drawing\GeometryHelper.Drawing.csproj" />
     <ProjectReference Include="..\..\src\GeometryHelper.Dxf.Viewer.Wpf\GeometryHelper.Dxf.Viewer.Wpf.csproj" />
+    <!-- Built first, never referenced: the plugin tests load its .dll as a drawing plugin, from SamplePlugin\ beside them. -->
+    <ProjectReference Include="..\GeometryHelper.Drawing.SamplePlugin\GeometryHelper.Drawing.SamplePlugin.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.IO.Compression" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\GeometryHelper.Drawing.SamplePlugin\bin\$(Configuration)\netstandard2.0\GeometryHelper.Drawing.SamplePlugin.dll" Link="SamplePlugin\GeometryHelper.Drawing.SamplePlugin.dll" CopyToOutputDirectory="PreserveNewest" Visible="false" />
   </ItemGroup>
 
 </Project>

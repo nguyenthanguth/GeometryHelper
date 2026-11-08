@@ -356,6 +356,13 @@ namespace GeometryHelper.Dxf.Viewer
                 DxfEntity entity = c.Document.FindEntity(handle);
                 IReadOnlyList<DxfEntity> pieces = null;
 
+                // An entity of an owner is not exploded: its owner would take the erase as its own and the pieces be lost.
+                if (entity != null && c.Document.Owners.GetEditRule(entity) != CadEditRule.Free)
+                {
+                    c.Write("This " + (entity is DxfDimension ? "dimension" : CadOwnerEditGate.Describe(entity)) + " belongs to the model and cannot be exploded here.");
+                    continue;
+                }
+
                 try
                 {
                     pieces = entity.Explode();

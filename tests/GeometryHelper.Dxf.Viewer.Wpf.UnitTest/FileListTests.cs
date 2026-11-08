@@ -50,5 +50,39 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.Single(model.FileRows, r => r.IsCurrent);
             }
         }
+
+        [Fact]
+        public void SaveAsOntoTheFileOfAnotherOpenDocumentIsRefusedWhetherItIsListedByItsFileOrByAKey()
+        {
+            using (var folder = new TestFolder())
+            {
+                var model = new MainViewModel();
+                string other = folder.Write("other.dxf", TestFiles.Room(out _, out _));
+                Assert.True(model.Open(other));
+                CadDocument opened = model.Document;
+                CadDocument first = CadDocument.From(TestFiles.Room(out _, out _), "B-101");
+                model.OpenDocument(first, "drawing:B1");
+                string saved = Path.Combine(folder.FullPath, "B-101.dxf");
+                Assert.True(model.SaveAs(saved));
+                byte[] before = File.ReadAllBytes(saved);
+                CadDocument second = CadDocument.From(TestFiles.Room(out _, out _), "B-102");
+                model.OpenDocument(second, "drawing:B2");
+
+                Assert.False(model.SaveAs(saved));
+                Assert.False(model.SaveAs(other));
+
+                Assert.Contains("B-101.dxf is open as another drawing; close it first.", model.History);
+                Assert.Contains("other.dxf is open as another drawing; close it first.", model.History);
+                Assert.False(second.HasFile);
+                Assert.Equal(before, File.ReadAllBytes(saved));
+                Assert.Same(second, model.Document);
+
+                // The documents refused are still open: each is shown again from its row.
+                model.OpenDocument(first, "drawing:B1");
+                Assert.Same(first, model.Document);
+                Assert.True(model.Open(other));
+                Assert.Same(opened, model.Document);
+            }
+        }
     }
 }

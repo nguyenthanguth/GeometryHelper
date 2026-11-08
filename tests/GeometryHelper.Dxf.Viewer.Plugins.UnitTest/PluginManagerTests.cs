@@ -451,6 +451,34 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
             }
         }
 
+        [Theory]
+        [InlineData("...", false)]
+        [InlineData(". .", false)]
+        [InlineData("..", false)]
+        [InlineData("a/..", false)]
+        [InlineData("circles.", false)]
+        [InlineData("other-circles", true)]
+        public void AnIdThatNamesThePluginFolderItselfIsRefusedAndNoInstalledPluginIsDeleted(string id, bool accepted)
+        {
+            string kept = Path.Combine(_files.PluginFolder, "installed-before", "kept.txt");
+            Directory.CreateDirectory(Path.GetDirectoryName(kept));
+            File.WriteAllText(kept, "an installed plugin");
+            string package = _files.Package(PluginFiles.Manifest(id, "Other circles"), "other.ghplugin");
+
+            using (CadPluginManager manager = _files.Manager(true))
+            {
+                CadPluginResult result = manager.Install(package);
+
+                Assert.Equal(accepted, result.Succeeded);
+                Assert.True(File.Exists(kept));
+
+                if (!accepted)
+                {
+                    Assert.Equal("The plugin's id \"" + id + "\" cannot name a folder.", result.Message);
+                }
+            }
+        }
+
         /// <summary>The loader of .NET Framework, keeping what it was given and what it gave.</summary>
         private sealed class RecordingLoader : CadPluginLoader
         {

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using GeometryHelper.Drawing.Plugins;
 using GeometryHelper.Dxf;
 using GeometryHelper.Dxf.Viewer;
 using GeometryHelper.Geometry;
@@ -50,6 +51,10 @@ namespace GeometryHelper.Drawing
         private List<DrawingPluginRun> _runs = new List<DrawingPluginRun>();
         private List<IReadOnlyList<DxfTypedValue>> _unknown = new List<IReadOnlyList<DxfTypedValue>>();
         private List<string> _warnings = new List<string>();
+
+        // Counts the times the drawing was made again (an update applied, or one undone or redone), so that an update prepared
+        // before one of them is not applied over it.
+        private int _generation;
 
         internal Drawing(string id, DrawingSource source, DrawingSettings settings, Tolerance tolerance, DrawingContent content)
         {
@@ -134,6 +139,14 @@ namespace GeometryHelper.Drawing
 
         /// <summary>Gets the plugin runs, in the order they ran.</summary>
         public IReadOnlyList<DrawingPluginRun> PluginRuns => _runs.AsReadOnly();
+
+        /// <summary>
+        /// Gets or sets the drawing plugins an update runs the plugin runs again with, each found by its name; null, as it is
+        /// until set, runs none, and keeps the runs to be run again once their plugins are at hand
+        /// (<see cref="UpdateReport.PluginRunsToRunAgain"/>). The drawing keeps no plugin of its own, so that a plugin unloaded
+        /// from the catalog can be freed.
+        /// </summary>
+        public DrawingPluginCatalog Plugins { get; set; }
 
         /// <summary>Gets what went wrong in making the drawing, in words: views that did not fit the sheet.</summary>
         public IReadOnlyList<string> Warnings => _warnings.AsReadOnly();
@@ -266,7 +279,8 @@ namespace GeometryHelper.Drawing
         /// <summary>
         /// Makes the drawing again from the model as it is now: views, dimensions, marks, symbols and sheet, with the settings
         /// it has. Only the entities it wrote are taken out and written anew; the hand edits that still apply are applied
-        /// again, those that no longer do are taken out and reported; the plugin runs are kept and reported as to be run again.
+        /// again, those that no longer do are taken out and reported; the plugin runs are run again with the plugins of
+        /// <see cref="Plugins"/>, their old dimensions replaced, and a run whose objects have gone is taken out and reported.
         /// </summary>
         /// <param name="newSource">The objects as they are now.</param>
         /// <returns>What changed and what became of the hand edits.</returns>
@@ -310,17 +324,143 @@ namespace GeometryHelper.Drawing
         /// <exception cref="ArgumentNullException">Thrown when the source is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the settings allow no scale, or one that is not a finite number
         /// above nought, or ask for a sheet of its own size with no width or height.</exception>
-        public PreparedUpdate Prepare(DrawingSource newSource, DrawingSettings settings)
+        /// <remarks>
+        /// The plugin runs the drawing keeps are run here again on the views made, with the plugins of <see cref="Plugins"/>,
+        /// on the thread that prepares.
+        /// </remarks>
+        public PreparedUpdate Prepare(DrawingSource newSource, DrawingSettings settings) => PrepareWith(newSource, settings, null, null);
+
+        /// <summary>An update prepared, the runs kept run again, and a run added with its plugin where given.</summary>
+        private PreparedUpdate PrepareWith(DrawingSource newSource, DrawingSettings settings, DrawingPluginRun added, DrawingPlugin addedPlugin)
         {
             if (newSource == null)
             {
                 throw new ArgumentNullException(nameof(newSource));
             }
 
+            int generation = System.Threading.Volatile.Read(ref _generation);
             DrawingSettings copy = (settings ?? _settings).Clone();
             DrawingContent content = DrawingBuilder.Make(newSource, copy, Tolerance);
+            DrawingPluginRuns runs = DrawingPluginRunner.Run(_runs.ToArray(), added, addedPlugin, Plugins, content, newSource, copy, Tolerance);
             DrawingBuilder.Elements(content, copy, out List<DrawingElement> views, out List<DrawingElement> annotations);
-            return new PreparedUpdate(this, newSource, copy, content, views, annotations);
+            return new PreparedUpdate(this, newSource, copy, content, views, annotations, runs) { Generation = generation };
+        }
+
+        /// <summary>
+        /// Runs a drawing plugin in a view and keeps the run: the drawing made again from its source with the dimensions the
+        /// plugin adds, its hand edits kept, and the run run again by every later update, so that its dimensions follow the
+        /// model.
+        /// </summary>
+        /// <param name="plugin">The plugin; later updates find it by its name in <see cref="Plugins"/>.</param>
+        /// <param name="viewId">The id of the view it runs in, V-FRONT.</param>
+        /// <param name="objectIds">The ids of the objects picked; null or none for every object of the view of the kinds the
+        /// plugin asks for.</param>
+        /// <param name="settings">Values of the settings the plugin declares, by name; null or one left out for its default.</param>
+        /// <returns>What changed: the plugin's dimensions among <see cref="UpdateReport.AddedElements"/>, and the run among
+        /// <see cref="UpdateReport.PluginRunsRun"/>.</returns>
+        /// <remarks>
+        /// The run is kept as R-1, R-2 and on, with the plugin's name and version, the view, the objects picked and every
+        /// setting the plugin declares, so that it runs again the same way. Shown in the presenter it is one undo step, which
+        /// takes the run back with its dimensions.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the plugin or the view's id is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the drawing has no view of the id, the model no object of an id
+        /// given, or the plugin no setting of a name given.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when a setting's value is outside its range.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the drawing was opened and not updated, the plugin throws
+        /// (the drawing is then left as it was, and the error logged), or the presenter refuses the step.</exception>
+        public UpdateReport RunPlugin(DrawingPlugin plugin, string viewId, IEnumerable<string> objectIds = null, IEnumerable<KeyValuePair<string, double>> settings = null)
+        {
+            if (plugin == null)
+            {
+                throw new ArgumentNullException(nameof(plugin));
+            }
+
+            // A drawing that has views has the source they were made from.
+            KindOf(viewId);
+            var ids = new List<string>(objectIds ?? new string[0]);
+            var run = new DrawingPluginRun(NextRunId(), plugin.Name, plugin.Version, viewId, new DrawingLinks(ids), RunSettings(plugin, settings));
+            string missing = DrawingPluginRunner.Missing(run, _source);
+
+            if (missing != null)
+            {
+                throw new ArgumentException("The plugin cannot run: " + missing + ".", nameof(objectIds));
+            }
+
+            PreparedUpdate update = PrepareWith(_source, null, run, plugin);
+
+            if (update.Runs.Failure != null)
+            {
+                throw new InvalidOperationException("The plugin " + plugin.Name + " failed: " + update.Runs.Failure.Message + " The drawing is left as it was.", update.Runs.Failure);
+            }
+
+            return Apply(update);
+        }
+
+        /// <summary>The next id of a run, one past the highest R- number the drawing has.</summary>
+        private string NextRunId()
+        {
+            int last = 0;
+
+            foreach (DrawingPluginRun run in _runs)
+            {
+                if (run.Id.StartsWith("R-", StringComparison.Ordinal) && int.TryParse(run.Id.Substring(2), NumberStyles.None, CultureInfo.InvariantCulture, out int n) && n > last)
+                {
+                    last = n;
+                }
+            }
+
+            return "R-" + (last + 1).ToString(CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>Every setting a plugin declares with the value given, or its default, written to the bit.</summary>
+        private static List<KeyValuePair<string, string>> RunSettings(DrawingPlugin plugin, IEnumerable<KeyValuePair<string, double>> given)
+        {
+            var input = new DrawingPluginInput();
+
+            try
+            {
+                plugin.DefineInput(input);
+            }
+            catch (Exception exception)
+            {
+                GeometryHelperLog.Warn("Drawing.RunPlugin: the plugin " + plugin.Name + " failed to say what it needs.", exception);
+                throw new InvalidOperationException("The plugin " + plugin.Name + " failed to say what it needs: " + exception.Message, exception);
+            }
+
+            var values = new Dictionary<string, double>(StringComparer.Ordinal);
+
+            foreach (KeyValuePair<string, double> value in given ?? new KeyValuePair<string, double>[0])
+            {
+                DrawingPluginSetting setting = null;
+
+                foreach (DrawingPluginSetting s in input.Settings)
+                {
+                    setting = string.Equals(s.Name, value.Key, StringComparison.Ordinal) ? s : setting;
+                }
+
+                if (setting == null)
+                {
+                    throw new ArgumentException("The plugin " + plugin.Name + " has no setting \"" + value.Key + "\".", "settings");
+                }
+
+                if (!(value.Value >= setting.Minimum && value.Value <= setting.Maximum))
+                {
+                    throw new ArgumentOutOfRangeException("settings", value.Value, "The setting " + value.Key + " of " + plugin.Name + " is outside its range.");
+                }
+
+                values[value.Key] = value.Value;
+            }
+
+            var written = new List<KeyValuePair<string, string>>();
+
+            foreach (DrawingPluginSetting setting in input.Settings)
+            {
+                double value = values.TryGetValue(setting.Name, out double v) ? v : setting.Default;
+                written.Add(new KeyValuePair<string, string>(setting.Name, value.ToString("R", CultureInfo.InvariantCulture)));
+            }
+
+            return written;
         }
 
         /// <summary>
@@ -332,12 +472,15 @@ namespace GeometryHelper.Drawing
         /// <returns>What changed and what became of the hand edits.</returns>
         /// <remarks>
         /// The hand edits are judged as they are when the update is applied, so that an edit made while it was prepared is
-        /// kept, or reported, as any other. Run it on the thread the presenter runs on.
+        /// kept, or reported, as any other. The drawing made again in the meantime is not: two updates prepared from one
+        /// drawing, one adding the top view and the other the isometric, apply the first and refuse the second, which would
+        /// take the top view away again. Run it on the thread the presenter runs on.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the update is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the update was prepared by another drawing.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when the update has been applied already, or the presenter
-        /// refuses or fails it; the drawing is then left as it was.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the update has been applied already, the drawing was made
+        /// again (updated, or an update undone or redone) since it was prepared, or the presenter refuses or fails it; the
+        /// drawing is then left as it was.</exception>
         public UpdateReport Apply(PreparedUpdate update)
         {
             if (update == null)
@@ -353,6 +496,11 @@ namespace GeometryHelper.Drawing
             if (update.IsApplied)
             {
                 throw new InvalidOperationException("The update has been applied already.");
+            }
+
+            if (update.Generation != _generation)
+            {
+                throw new InvalidOperationException("The drawing was made again while this update was prepared, and applying it would take that back: make the change again.");
             }
 
             DrawingSource newSource = update.Source;
@@ -383,11 +531,13 @@ namespace GeometryHelper.Drawing
                 }
             }
 
-            UpdateReport report = Compare(newSource, next, kept, dropped);
+            UpdateReport report = Compare(newSource, next, kept, dropped, update.Runs);
 
             // The state is taken first, so that the records written are the new ones; it is put back if the presenter fails.
             State before = Current();
             List<DrawingEdit> oldEdits = _edits;
+            List<DrawingPluginRun> oldRuns = _runs;
+            _runs = update.Runs.Kept;
             _source = newSource;
             _settings = update.SettingsInUse;
             _content = content;
@@ -421,6 +571,7 @@ namespace GeometryHelper.Drawing
                 {
                     Restore(before);
                     _edits = oldEdits;
+                    _runs = oldRuns;
                     throw new InvalidOperationException("The presenter did not take the update: " + result.Message);
                 }
 
@@ -431,6 +582,7 @@ namespace GeometryHelper.Drawing
             }
 
             update.IsApplied = true;
+            System.Threading.Interlocked.Increment(ref _generation);
             GeometryHelperLog.Info("Drawing.Update: " + Id + ": " + report + ".");
             return report;
         }
@@ -690,8 +842,19 @@ namespace GeometryHelper.Drawing
         /// <summary>Adds a hand edit taken through the presenter; the caller writes the records into the DXF with it.</summary>
         internal void AddEdit(DrawingEdit edit) => _edits.Add(edit);
 
-        /// <summary>Takes a hand edit back out where writing it failed.</summary>
-        internal void RemoveLastEdit() => _edits.RemoveAt(_edits.Count - 1);
+        /// <summary>
+        /// Takes a hand edit back out where writing it failed: that very record, found by reference, as a rollback of the
+        /// presenter may already have read the edits back from the DXF without it.
+        /// </summary>
+        internal void RemoveEdit(DrawingEdit edit)
+        {
+            int at = _edits.FindLastIndex(e => ReferenceEquals(e, edit));
+
+            if (at >= 0)
+            {
+                _edits.RemoveAt(at);
+            }
+        }
 
         /// <summary>The views elements by id, as an update and the owner find them.</summary>
         private static Dictionary<string, DrawingElement> Index(List<DrawingElement> views, List<DrawingElement> annotations)
@@ -752,9 +915,16 @@ namespace GeometryHelper.Drawing
 
             if (state != null)
             {
+                if (!ReferenceEquals(state.Settings, _settings) || !ReferenceEquals(state.Content, _content))
+                {
+                    System.Threading.Interlocked.Increment(ref _generation);
+                }
+
                 Restore(state);
                 return;
             }
+
+            System.Threading.Interlocked.Increment(ref _generation);
 
             foreach (DrawingElement element in records.Annotations)
             {
@@ -898,7 +1068,7 @@ namespace GeometryHelper.Drawing
         }
 
         /// <summary>What an update changes: the objects of the model and the elements of the drawing, each list in the order of the ids.</summary>
-        private UpdateReport Compare(DrawingSource newSource, Dictionary<string, DrawingElement> next, List<DrawingEdit> kept, List<DroppedEdit> dropped)
+        private UpdateReport Compare(DrawingSource newSource, Dictionary<string, DrawingElement> next, List<DrawingEdit> kept, List<DroppedEdit> dropped, DrawingPluginRuns runs)
         {
             var before = new SortedSet<string>(StringComparer.Ordinal);
             var after = new SortedSet<string>(StringComparer.Ordinal);
@@ -985,7 +1155,9 @@ namespace GeometryHelper.Drawing
                 changedElements.AsReadOnly(),
                 kept.AsReadOnly(),
                 dropped.AsReadOnly(),
-                new List<DrawingPluginRun>(_runs).AsReadOnly());
+                runs.Waiting.AsReadOnly(),
+                runs.Ran.AsReadOnly(),
+                runs.Dropped.AsReadOnly());
         }
     }
 

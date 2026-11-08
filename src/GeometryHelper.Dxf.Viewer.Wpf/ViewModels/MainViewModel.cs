@@ -894,7 +894,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return SaveAs(_current.Document.FileName);
         }
 
-        /// <summary>Saves the drawing to a file, which it is then known by in the list.</summary>
+        /// <summary>
+        /// Saves the drawing to a file, which it is then known by in the list. The file of another document open, a model
+        /// drawing saved as B-101.dxf among them, is refused until that document is closed.
+        /// </summary>
         /// <param name="path">The path of the file.</param>
         /// <returns>Whether it was saved; why not is said on the command line.</returns>
         public bool SaveAs(string path)
@@ -909,6 +912,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             try
             {
+                // A file another open document has, under its file or under a key of its own, is not written over: that document
+                // would leave the list unasked, and the two be saved to one file.
+                string target = System.IO.Path.GetFullPath(path);
+                bool taken = _files.Values.Any(f => f != _current && f.Document != null && f.Document != _current.Document
+                    && (string.Equals(f.Path, target, StringComparison.OrdinalIgnoreCase)
+                        || (f.Document.HasFile && string.Equals(System.IO.Path.GetFullPath(f.Document.FileName), target, StringComparison.OrdinalIgnoreCase))));
+
+                if (taken)
+                {
+                    Say(System.IO.Path.GetFileName(target) + " is open as another drawing; close it first.");
+                    return false;
+                }
+
                 _current.Document.SaveAs(path);
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException || ex is NotSupportedException)

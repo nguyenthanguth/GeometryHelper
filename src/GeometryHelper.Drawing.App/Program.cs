@@ -9,6 +9,7 @@ using System.Windows.Media.Imaging;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Threading;
+using GeometryHelper.Drawing.Plugins;
 using GeometryHelper.Drawing.Wpf;
 using GeometryHelper.Dxf;
 using GeometryHelper.Dxf.Viewer;
@@ -52,7 +53,7 @@ namespace GeometryHelper.Drawing.App
             var app = new Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
             var model = new MainViewModel();
             var window = new MainWindow(model);
-            window.WorkspaceView.AddModelDrawings(model, DrawingWorkspaceExtensions.DefaultSources(Tolerance.Default), Tolerance.Default);
+            DrawingWorkspace drawings = window.WorkspaceView.AddModelDrawings(model, DrawingWorkspaceExtensions.DefaultSources(Tolerance.Default), Tolerance.Default);
 
             // Global settings: read from the user's file, a value that does not read falling back to its default; applied at once.
             model.SettingsPath = GlobalSettings.DefaultPath;
@@ -65,6 +66,9 @@ namespace GeometryHelper.Drawing.App
                 Path.Combine(appData, "GeometryHelper", "Drawing", "Plugins"),
                 Path.Combine(appData, "GeometryHelper", "Drawing", "plugins.json"));
             plugins.ConfirmUntrusted = path => CadQuestionWindow.ConfirmUntrustedPlugin(window, path);
+
+            // The drawing plugins are loaded by the same manager, found before the plugins of the start are loaded.
+            drawings.Plugins = new DrawingPluginCatalog(plugins);
             model.UsePlugins(plugins, loadAtStart: true);
             string file = args.FirstOrDefault(a => !a.StartsWith("--", StringComparison.Ordinal));
 
