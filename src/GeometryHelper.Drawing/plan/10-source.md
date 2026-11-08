@@ -1,33 +1,33 @@
-# L0: nguồn
+# L0: the source
 
-Những gì dùng để tạo bản vẽ. Lớp này không biết gì về Tekla: cầu nối điền dữ liệu vào
-([17-tekla-bridge.md](17-tekla-bridge.md)), còn test thì dựng bằng code.
+What a drawing is made from. Nothing here knows Tekla; the bridge fills it ([17-tekla-bridge.md](17-tekla-bridge.md)),
+and tests build it in code.
 
 ## DrawingObject
 
-| Thành viên | Chứa gì |
+| Member | What it holds |
 |---|---|
-| `Id` | khoá duy nhất trong nguồn, không đổi giữa các lần chạy (GUID của Tekla, hoặc do code đặt) |
-| `Kind` | `DrawingObjectKind`: Part, Bolt, Hole, Weld, Rebar, sau này thêm loại khác |
-| `Solid` | `GeoSolid3` cần vẽ, theo mm của model; lỗ có thể chỉ mang trục và đường kính |
-| `Frame` | `GeoCoordinateSystem3` riêng của đối tượng (với part của Tekla là hệ trục của nó: x dọc theo chiều dài) |
-| `Name`, `Mark`, `Profile`, `Material` | các chữ hiển thị trên mark và bảng vật tư |
-| `ParentId` | assembly chứa đối tượng, nếu có |
-| `IsMain` | là cấu kiện chính của assembly; mặc định bản vẽ lấy hệ trục của nó |
-| `Attributes` | các giá trị có tên khác, dùng cho mark, khung tên và bảng vật tư (chuỗi sang chuỗi, sắp theo tên) |
+| `Id` | a key unique in the source, stable from one run to the next (Tekla's GUID, or one given in code) |
+| `Kind` | `DrawingObjectKind`: Part, Bolt, Hole, Weld, Rebar, and later others |
+| `Solid` | the `GeoSolid3` drawn, in model millimetres; a hole may carry its axis and diameter instead |
+| `Frame` | the object's own `GeoCoordinateSystem3` (for a Tekla part, its coordinate system: x along its length) |
+| `Name`, `Mark`, `Profile`, `Material` | the texts marks and part lists show |
+| `ParentId` | the assembly the object belongs to, if any |
+| `IsMain` | the main part of its assembly, whose frame a drawing takes by default |
+| `Attributes` | further named values for marks, the title block and the part list (string to string, ordered by name) |
 
-Bulông và lỗ mang những gì ký hiệu và dimension của chúng cần: trục, đường kính, bolt group chứa nó và cách bố trí của
-nhóm. Mối hàn mang loại, kích thước, các cấu kiện được hàn và đường hàn. Danh sách thành viên chính xác sẽ chốt ở G0,
-theo những gì Open API của Tekla cung cấp.
+Bolts and holes carry what their symbols and dimensions need: the axis, the diameter, the bolt group they belong to and
+its pattern. Welds carry their type, size, the parts they join and their path. The exact members are fixed in G0 against
+what Tekla's Open API gives.
 
 ## DrawingSource
 
-- các đối tượng, theo một thứ tự cố định (theo `Id`, để kết quả không phụ thuộc thứ tự model trả về);
-- hệ trục của bản vẽ: mặc định là hệ trục của đối tượng chính, hoặc do người gọi đặt;
-- các chữ của khung tên lấy từ model (dự án, số bản vẽ, revision).
+- the objects, in a fixed order (by `Id`, so that the output never follows the order the model gave them in);
+- the drawing's frame: by default the main object's frame, or one given;
+- the texts of the title block that come from the model (project, drawing number, revision).
 
-## Kiểm tra
+## Checks
 
-- Mọi solid phải kín và hợp lệ (`GeoSolid3.Validate`). Đối tượng nào không đạt vẫn được vẽ như nó đang có, ghi log một
-  lần kèm id, và được đếm trong báo cáo của bản vẽ; không bao giờ bị bỏ đi trong im lặng.
-- Id phải duy nhất; id trùng bị từ chối qua `Guard`.
+- Every solid must be closed and valid (`GeoSolid3.Validate`). An object that is not is drawn as it is, logged once with
+  its id, and counted in the drawing's report, never dropped in silence.
+- Ids are unique; a repeated id is refused (with the plain argument exceptions of the module, since `Guard` is internal to the core library).

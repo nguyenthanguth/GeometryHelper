@@ -1,74 +1,69 @@
-# L1: chiếu nét và nét khuất
+# L1: projection and hidden lines
 
-Lõi của mọi bản vẽ, và là phần thư viện chưa có. Với các solid và một hệ trục view cho trước, lớp này trả về các nét 2D
-của view: nét nào thấy, nét nào khuất, và các mặt bị mặt cắt cắt qua.
+The core of every drawing, and the part the library does not have yet. Given solids and a view frame, it gives the 2D
+lines of the view: which are seen, which are hidden, and the faces a section cuts.
 
-## Đầu vào và đầu ra
+## Input and output
 
-Đầu vào:
+In:
 
-- các solid, mỗi solid kèm id của đối tượng;
-- hệ trục view (`ViewFrame3`): x sang phải tờ giấy, y lên trên, z hướng về người nhìn; độ sâu gần và xa; với mặt cắt thì
-  thêm mặt phẳng cắt và phía được giữ lại;
-- một `Tolerance`.
+- the solids, each with its object's id;
+- a view frame (`ViewFrame3`): x to the right of the sheet, y up, z towards the viewer; a near and a far depth; for a
+  section, the cut plane and the side kept;
+- a `Tolerance`.
 
-Đầu ra, `ProjectedView2`:
+Out, `ProjectedView2`:
 
-- các `ProjectedEdge2`, mỗi cái gồm:
-  - hình: một `GeoLine2`, hoặc một `GeoArc2` sau khi khớp cung (D6);
-  - `EdgeVisibility`: Visible hoặc Hidden;
-  - `EdgeKind`: Sharp, Silhouette hoặc SectionOutline;
-  - id của đối tượng;
-- các mặt cắt: mỗi đối tượng bị cắt một `GeoFace2`, để vẽ hatch;
-- tất cả theo mm của view ở tỉ lệ 1:1; scale của view do L2 áp sau.
+- `ProjectedEdge2` items: a `GeoLine2` (or a `GeoArc2` after fitting, D6), `EdgeVisibility` Visible or Hidden, `EdgeKind`
+  Sharp, Silhouette or SectionOutline, and the object's id;
+- section faces: `GeoFace2` per object cut, for hatching;
+- all in view millimetres at 1:1; the view's scale is applied later, by L2.
 
-## Phương pháp (đề xuất, D2)
+## The method (proposed, D2)
 
-Solid là đa diện: mọi mặt là đa giác phẳng. Nét khuất được loại chính xác trên đó.
+The solids are polyhedra: every face is a flat polygon. Hidden lines are removed exactly on them.
 
-1. **Chuyển hệ trục.** Đưa mọi solid về hệ trục của view.
-2. **Cạnh ứng viên.** Với mỗi cạnh của solid và hai mặt kề nó:
-   - cạnh sắc (hai mặt gặp nhau ở góc lớn hơn góc trơn, là một thiết lập) là ứng viên;
-   - cạnh trơn (giữa hai mặt ghép của cùng một bề mặt cong, như ống hay góc lượn) chỉ là ứng viên ở chỗ nó là đường bao:
-     một mặt quay về phía người nhìn, mặt kia quay đi;
-   - cạnh nhìn thẳng từ đầu (hình chiếu ngắn hơn point tolerance) bị bỏ.
-3. **Mặt che.** Các mặt quay về phía người nhìn, chiếu xuống 2D, mỗi mặt kèm mặt phẳng của nó để tính độ sâu. Mặt nhìn
-   thấy dưới dạng một đường (edge-on) thì không che.
-4. **Che khuất.** Với mỗi cạnh ứng viên, tìm các mặt che có hộp 2D giao với hộp của cạnh, qua một chỉ mục không gian:
-   - cắt đoạn 2D của cạnh theo đa giác của mặt che (kể cả lỗ), được các khoảng tham số;
-   - trong mỗi khoảng, hiệu độ sâu giữa cạnh và mặt thay đổi tuyến tính dọc theo cạnh, nên đổi dấu nhiều nhất một lần:
-     chia cạnh tại đó, phần nằm sau mặt là phần khuất;
-   - các mặt chứa cạnh không bao giờ che cạnh đó; mặt mà cạnh nằm trên nó (trong tolerance) cũng không che.
-   Hợp các khoảng khuất là phần khuất; phần còn lại là phần thấy.
-5. **Dọn dẹp.**
-   - Bỏ các đoạn ngắn hơn point tolerance.
-   - Nối các đoạn thẳng hàng chạm nhau, cùng trạng thái thấy/khuất và cùng đối tượng.
-   - Hai đối tượng chạm nhau mà cạnh trùng lên nhau thì chỉ vẽ một nét: thấy được ưu tiên hơn khuất, và id nhỏ hơn giữ
-     nét, để mọi lần chạy cho cùng một kết quả.
-6. **Cung (D6).** Chuỗi đoạn ngắn nằm trên cùng một đường tròn trong tolerance được thay bằng một cung, hoặc một đường tròn
-   nếu khép kín.
-7. **Thứ tự.** Sắp các cạnh theo id đối tượng, loại nét, trạng thái thấy/khuất và toạ độ, có tie-break đầy đủ.
+1. **Transform** every solid into the view frame.
+2. **Candidate edges.** For each edge of a solid, with its two faces:
+   - a sharp edge (the faces meet at more than the smooth angle, a setting) is a candidate;
+   - a smooth edge (two facets of the same curved surface, a tube or a rounded corner) is a candidate only where it is a
+     silhouette: one face turned to the viewer and the other away;
+   - an edge seen end-on (its projection shorter than the point tolerance) is dropped.
+3. **Occluders.** The faces turned to the viewer, projected to 2D, each with its plane for depth. Faces seen edge-on are
+   not occluders.
+4. **Occlusion.** For each candidate edge, the occluders whose 2D box meets the edge's, found through a spatial index:
+   - clip the edge's 2D segment against the occluder's polygon (with its holes), giving parameter intervals;
+   - within an interval, the depth of the edge minus the depth of the face is linear along the edge, so it changes sign
+     at most once: split there, and the part behind the face is hidden;
+   - the faces the edge belongs to never hide it; a face the edge lies in, within tolerance, does not hide it either.
+   The union of the hidden intervals is hidden; the rest is visible.
+5. **Clean-up.**
+   - Pieces shorter than the point tolerance are dropped.
+   - Collinear pieces that touch, of the same visibility and object, are joined.
+   - Where two objects touch and their edges fall on one another, the line is drawn once: visible wins over hidden, and
+     the lower id keeps it, so that the result is the same every run.
+6. **Arcs (D6).** Chains of short segments that lie on one circle within tolerance become one arc, or one circle when
+   closed.
+7. **Order.** The edges are sorted by object id, kind, visibility and coordinates, with a full tie-break.
 
-## Mặt cắt
+## Sections
 
-- Các mặt bị cắt lấy từ `GeoSolid3.Section(plane, tolerance)`.
-- Phần nằm ở phía được giữ lại được vẽ bằng cách chiếu phần đó của mỗi solid. Có hai cách, G0 sẽ cho thấy cách nào chắc
-  chắn hơn:
-  - tách solid bằng `GeoSolid3.TrySplitBy`;
-  - hoặc cắt các cạnh ứng viên và mặt che theo nửa không gian.
-- Các mặt bị cắt che những gì nằm sau chúng.
+- The cut faces come from `GeoSolid3.Section(plane, tolerance)`.
+- What lies on the kept side is drawn by projecting the part of each solid on that side (`GeoSolid3.TrySplitBy`, or by
+  clipping the candidate edges and occluders by the half-space, whichever G0 shows is the more robust).
+- The cut faces hide what lies behind them.
 
-## Tốc độ
+## Speed
 
-- Chỉ mục không gian quét theo trục có ít cặp nhất, không theo một trục cố định (bẫy tốc độ trong CLAUDE.md).
-- Mục tiêu, chốt ở G0: ba view của một assembly 50 cấu kiện xong trong chưa tới 1 giây.
-- Benchmark ký kết quả đến từng bit, để mọi lần tăng tốc chứng minh được là không đổi kết quả.
+- The spatial index sweeps the axis with the fewest pairs, not a fixed one (CLAUDE.md's speed trap).
+- Target, set in G0: the three views of an assembly of 50 parts in well under a second.
+- Benchmarks sign the result bit for bit, so that a speed-up shows it changed nothing.
 
-## Các trường hợp khó cần test
+## Hard cases to test
 
-- Cạnh xuyên qua một mặt: khuất ở một phía, thấy ở phía kia.
-- Các mặt đồng phẳng của hai cấu kiện chạm nhau.
-- Mặt lệch phẳng một chút, như mặt cắt của Tekla (lịch sử tolerance 1E-2 của thư viện).
-- Ống nhìn dọc trục (chỉ thấy đường tròn), nhìn ngang (hai đường bao) và nhìn xiên.
-- Vật dài và mảnh dọc theo trục quét (bẫy bậc hai).
-- Lỗ ô van, lỗ xuyên qua cánh, bulông nằm trong lỗ.
+- An edge that pierces a face: hidden on one side, visible on the other.
+- Coplanar faces of two touching parts.
+- Faces a hair off flat, as Tekla's cut faces are (the library's 1E-2 tolerance history).
+- A tube seen along its axis (only circles), across it (two silhouette lines) and at an angle.
+- Long thin bodies along the sweep axis (the quadratic trap).
+- A slot, a hole through a flange, a bolt in its hole.

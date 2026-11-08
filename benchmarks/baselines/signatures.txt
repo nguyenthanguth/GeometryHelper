@@ -1,6 +1,6 @@
 # The result signatures approved for the benchmark cases: a name, a space, the SHA-256 of its result.
 # Written by --approve. What each case signs: benchmarks/GeometryHelper.Benchmarks/Scenarios.
-# Last approved on 19eff2e8342ff3ac4082bd9e69ac3b95d84c6865 with changes, .NET Framework 4.8.9310.0, X64.
+# Last approved on 3033d947c69e273faf4857e0499e8f8889c44211 with changes, .NET Framework 4.8.9310.0, X64.
 Arrange.Dense d13685e1d068f86f7f97b2d23a4bbb41aa5ed3fcb95312e9334ae944972cdc39
 Arrange.Sparse.100 f5369fa2a0cb3d90f98d5a033d850e2af6f25d3f081316401938cba195334bc7
 Arrange.Sparse.1000 c33f5f8ba1fb0b52632bbf0e1af020e8c75953e56c3d056e5fe0f934ac32b0f2
@@ -29,3 +29,6 @@ IsSimple.Small 953a2c7100e3a31778680430490e5c92915d1151046546450965125dcda214dc
 Plane.Offset.CombUp c06320f3561c27309b1b3f7a170792ea8d00c4d1bccb37c2fbd2b9c3e167353a
 Plane.Union.Squares 82dd0696cd3ec52e223f905adee4b0f382d47b50d14b9c4092ee15d1aa2c7121
 Plane.Union.Zigzag de5d56a74c3d26a00d8c42c90ae02889a2b8e98913c2792a789d9bfeb912bfb8
+Projection.FiftyParts fea88a7965dcc2921ccec130dc36a14477facd5a6d0f1c6d0e09bee9204bea2e
+Projection.Frame.Front 9af3a183880bdcb459cc2358184bf2c70aaf5071b49b848b9c4373b7856a455a
+Projection.Frame.Top 0d35450babdc63f115df9a75db68bf44fb96fc150059cba09e155d57a4c86073

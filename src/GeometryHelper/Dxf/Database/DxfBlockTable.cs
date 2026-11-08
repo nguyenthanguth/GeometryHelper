@@ -12,10 +12,21 @@ namespace GeometryHelper.Dxf
     /// <see cref="DxfBlockTableRecord"/>, in the order of the file, found by name and added to.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <c>db.BlockTable.Add(new DxfBlockTableRecord { Name = "BOLT", Origin = new GeoPoint3(1, 2, 0) })</c> adds the block BOLT
     /// drawn about (1, 2, 0), empty until entities are appended to it. In a file of R13 or later the table is its BLOCK_RECORD
     /// table, each record with its BLOCK; in one of R12 it is the blocks of the BLOCKS section, model space and paper space
     /// among them where the file has them as blocks and first where it does not.
+    /// </para>
+    /// <para>
+    /// A block named <c>*D</c> or <c>*U</c> is added as AutoCAD's <c>BlockTable.Add</c> adds one so named: an anonymous block
+    /// (<see cref="DxfBlockTableRecord.IsAnonymous"/>, flag 1 of its BLOCK's group 70), named by the table with the first
+    /// number from 1 up that no block of the drawing and no INSERT, dimension or table names. A drawing with no dimension
+    /// given <c>var picture = new DxfBlockTableRecord { Name = "*D" }</c> names it <c>*D1</c>, the next <c>*D2</c>; one whose
+    /// dimensions ezdxf drew as <c>*D1</c> to <c>*D11</c> names it <c>*D12</c>. Its lines and texts are appended to it as to
+    /// any block, and it is the <see cref="DxfDimension.DimBlock"/> of a dimension made in code, so that the dimension is drawn
+    /// before AutoCAD draws it anew.
+    /// </para>
     /// </remarks>
     public sealed class DxfBlockTable : DxfSymbolTable, IEnumerable<DxfBlockTableRecord>
     {
@@ -157,11 +168,37 @@ namespace GeometryHelper.Dxf
             }
 
             List<DxfBlockTableRecord> records = Read();
-            block.AddTo(_database.File);
+
+            // A block named *U or *D is anonymous, named by the table as AutoCAD names it: *D1, the first the drawing has not;
+            // given its name back where the file refuses it.
+            string given = block.Name;
+            int flags = block.MadeFlags;
+
+            if (IsAnonymousName(given))
+            {
+                block.Name = FreeAnonymousName("*" + char.ToUpperInvariant(given[1]).ToString());
+                block.MadeFlags = flags | 1;
+            }
+
+            try
+            {
+                block.AddTo(_database.File);
+            }
+            catch
+            {
+                block.Name = given;
+                block.MadeFlags = flags;
+                throw;
+            }
+
             records.Add(block);
             Index(_named, _twice, block);
             _byHandle = null;
         }
+
+        /// <summary>Whether a name is <c>*U</c> or <c>*D</c>, letters of either case, which AutoCAD takes for an anonymous block it names itself.</summary>
+        private protected override bool IsAnonymousName(string name)
+            => name != null && name.Length == 2 && name[0] == '*' && (name[1] == 'U' || name[1] == 'u' || name[1] == 'D' || name[1] == 'd');
 
         /// <summary>Reads the table as the drawing is opened, so that model space and paper space stand for their records from the first.</summary>
         internal void Load() => Read();
@@ -3421,7 +3458,11 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        /// <summary>Gets whether the block is one AutoCAD names itself, as a dimension's <c>*D1</c> (flag 1 of its BLOCK's group 70), as AutoCAD's <c>IsAnonymous</c>.</summary>
+        /// <summary>
+        /// Gets whether the block is one AutoCAD names itself, as a dimension's <c>*D1</c> (flag 1 of its BLOCK's group 70), as
+        /// AutoCAD's <c>IsAnonymous</c>: true of a block added named <c>*D</c> or <c>*U</c>, which the table names <c>*D1</c> or
+        /// <c>*U1</c> and on.
+        /// </summary>
         public bool IsAnonymous => (Flags & 1) != 0;
 
         /// <summary>Gets whether the block is an external reference (flag 4), as AutoCAD's <c>IsFromExternalReference</c>.</summary>

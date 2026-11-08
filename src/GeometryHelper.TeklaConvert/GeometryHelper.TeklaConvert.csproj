@@ -263,6 +263,8 @@
     <!-- IFC reference models (ReferenceModelConvert, ReferenceModelObjectConvert) are read through IfcConvert, so
          every GeometryHelper.TeklaConvert.{year} package depends on GeometryHelper.IfcConvert. -->
     <ProjectReference Include="..\GeometryHelper.IfcConvert\GeometryHelper.IfcConvert.csproj" />
+    <!-- DrawingSourceConvert reads a Tekla selection into the DrawingSource of GeometryHelper.Drawing. -->
+    <ProjectReference Include="..\GeometryHelper.Drawing\GeometryHelper.Drawing.csproj" />
   </ItemGroup>
 
   <ItemGroup>

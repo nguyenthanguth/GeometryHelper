@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <RootNamespace>GeometryHelper.Dxf.Viewer</RootNamespace>
+    <AssemblyName>GeometryHelper.Dxf.Viewer</AssemblyName>
+    <Description>The 2D presenter of GeometryHelper: opens a DXF as a document, turns its entities into 2D display lists, picks and selects them. No UI.</Description>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GeometryHelper\GeometryHelper.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -21,7 +21,9 @@ namespace GeometryHelper.Dxf
     /// A layout is read; its name is set, the entry of the layout dictionary renamed with it. One made in code is added as
     /// AutoCAD's is, <c>var plan = new DxfLayout { LayoutName = "Plan 1-50" }; plan.AddToLayoutDictionary(db, null);
     /// plan.Initialize();</c>: its LAYOUT, its block and its entry by <see cref="AddToLayoutDictionary"/>, the viewport that
-    /// shows its sheet by <see cref="Initialize"/>. The plot settings are read, not set.
+    /// shows its sheet by <see cref="Initialize"/>. Its sheet is set as AutoCAD's <c>PlotSettingsValidator</c> sets it, once
+    /// it is added: <c>plan.CanonicalMediaName = "ISO_A2_(594.00_x_420.00_MM)"</c> puts it on a sheet of A2 on its side, 594
+    /// by 420, its limits made (-7.5, -20) to (586.5, 400) with them; the rest of the plot settings are read, not set.
     /// </para>
     /// </remarks>
     public sealed class DxfLayout : DxfPlotSettings
@@ -151,7 +153,9 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets the limits of the layout (groups 10, 20 and 11, 21 of AcDbLayout), as AutoCAD's <c>Limits</c>: the sheet a layout
-        /// of paper space is drawn on, (0, 0) to (420, 297) for A3 on its side.
+        /// of paper space is drawn on, (0, 0) to (420, 297) for A3 on its side. A layout of paper space given a sheet, its
+        /// margins, origin, units or turn (<see cref="DxfPlotSettings.CanonicalMediaName"/> and the others) has them made the
+        /// sheet about its plotted area: (-7.5, -20) to (586.5, 400) for A2 on its side with margins 7.5 and 20.
         /// </summary>
         public DxfExtents2d Limits => new DxfExtents2d(new GeoPoint2(Real(Marker, 10, 0.0), Real(Marker, 20, 0.0)), new GeoPoint2(Real(Marker, 11, 0.0), Real(Marker, 21, 0.0)));
 
@@ -231,6 +235,8 @@ namespace GeometryHelper.Dxf
         /// lineweights, plot styles, the standard scale), shaded as displayed at the normal level of 300 dots an inch. The
         /// limits are the sheet about the corner of its plotted area, (-7.5, -20) to (412.5, 277), its extents empty, its user
         /// coordinate system the world's, and its flags 1 (PSLTSCALE), as ezdxf's layouts have them.
+        /// Another sheet is set once the layout is added, before <see cref="Initialize"/> sizes its viewport 1 by the limits:
+        /// <c>plan.CanonicalMediaName = "ISO_A1_(841.00_x_594.00_MM)"</c> for A1 on its side.
         /// </para>
         /// <para>
         /// Each layout added costs a little more the more the drawing has, its dictionary and block table written anew: 200
@@ -425,6 +431,8 @@ namespace GeometryHelper.Dxf
         /// AutoCAD and BricsCAD take for its sheet: a layout that has viewports and no viewport 1, as Layout1 given one 50 by 40
         /// turned on, has them moved after the new one, their handles kept, and those stacked on (68 of 1 or more) moved up one,
         /// the 50 by 40 from 1 to 2.
+        /// A viewport 1 keeps its size when the sheet is set after it is made, as AutoCAD draws it anew when it next shows the
+        /// layout: a sheet is best set before.
         /// </remarks>
         /// <returns>The viewport 1 of the layout, as AutoCAD gives its id: the one made, or the one it had.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the layout is in no drawing, is erased, or is Model, whose
@@ -507,11 +515,49 @@ namespace GeometryHelper.Dxf
             }
         }
 
+        private protected override IReadOnlyList<int> GroupOrder => Order;
+
+        /// <summary>
+        /// The limits made the sheet about its plotted area, as ezdxf's <c>reset_paper_limits</c> makes them after its
+        /// <c>page_setup</c>: the corner of the plotted area, the left and bottom margins and the plot's origin in from the
+        /// sheet's corner, at (0, 0), in the units of <see cref="DxfPlotSettings.PlotPaperUnits"/>; the sheet lying across, its
+        /// width and height and its left and bottom margins changing places, where the plot is turned a quarter or three
+        /// quarters, as the viewer draws its paper. Model keeps its limits, which are those of model space, and a layout whose
+        /// sheet has no size keeps its own.
+        /// </summary>
+        private protected override void SheetSet(DxfFile file)
+        {
+            GeoPoint2 size = PlotPaperSize;
+
+            if (ModelType || !(size.X > 0.0) || !(size.Y > 0.0))
+            {
+                return;
+            }
+
+            double unit = PlotPaperUnits == DxfPlotPaperUnit.Inches ? 25.4 : 1.0;
+            DxfExtents2d margins = PlotPaperMargins;
+            GeoPoint2 origin = PlotOrigin;
+            bool turned = PlotRotation == DxfPlotRotation.Degrees090 || PlotRotation == DxfPlotRotation.Degrees270;
+            double width = (turned ? size.Y : size.X) / unit;
+            double height = (turned ? size.X : size.Y) / unit;
+            double left = ((turned ? margins.MinPoint.Y : margins.MinPoint.X) + origin.X) / unit;
+            double bottom = ((turned ? margins.MinPoint.X : margins.MinPoint.Y) + origin.Y) / unit;
+            DxfExtents2d was = Limits;
+            var values = new List<KeyValuePair<int, string>>();
+            Changed(values, 10, -left, was.MinPoint.X);
+            Changed(values, 20, -bottom, was.MinPoint.Y);
+            Changed(values, 11, width - left, was.MaxPoint.X);
+            Changed(values, 21, height - bottom, was.MaxPoint.Y);
+
+            if (values.Count > 0)
+            {
+                file.SetValues(Item, values, Order, false);
+            }
+        }
+
         /// <summary>Gives the layout as a line for debugging: its type, handle, name and tab.</summary>
         /// <returns>The line, such as <c>LAYOUT 1E Layout1, tab 1</c>.</returns>
         public override string ToString() => "LAYOUT " + (Handle ?? string.Empty) + " " + LayoutName + ", tab " + TabOrder.ToString(CultureInfo.InvariantCulture);
-
-        private static KeyValuePair<int, string> Pair(int code, string value) => new KeyValuePair<int, string>(code, value);
 
         /// <summary>Whether a name is that of the block of a layout other than the one last shown, as AutoCAD names it: <c>*Paper_Space</c> and a number.</summary>
         private static bool IsNumberedPaperSpace(string name)

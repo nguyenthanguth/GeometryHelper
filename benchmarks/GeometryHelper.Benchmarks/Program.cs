@@ -185,6 +185,7 @@ namespace GeometryHelper.Benchmarks
             all.AddRange(EarClippingScenarios.All());
             all.AddRange(ArrangingScenarios.All());
             all.AddRange(PlaneScenarios.All());
+            all.AddRange(DrawingProjectionScenarios.All());
 
             var names = new HashSet<string>(StringComparer.Ordinal);
 

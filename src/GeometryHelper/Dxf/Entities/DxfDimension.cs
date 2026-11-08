@@ -46,7 +46,11 @@ namespace GeometryHelper.Dxf
     /// <para>
     /// A dimension made in code, <c>new DxfRotatedDimension(0, p1, p2, onLine, "", null)</c>, is drawn by no block until it is
     /// given one: <see cref="DimBlock"/>, a block of the drawing it is added to, is needed before
-    /// <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/> takes it. A copy added to another drawing brings a copy of its
+    /// <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/> takes it. Its picture is a block named <c>*D</c> added to the
+    /// drawing, which the block table names as AutoCAD names it, <c>*D1</c> the first, and marks anonymous, with the lines and
+    /// the text appended to it: <c>var picture = new DxfBlockTableRecord { Name = "*D" }; db.BlockTable.Add(picture);</c>,
+    /// then a line and an MTEXT appended to <c>picture</c> and the dimension given <c>DimBlock = picture</c>, saved and read
+    /// back as AutoCAD writes its own, the BLOCK <c>*D1</c> of flag 1. A copy added to another drawing brings a copy of its
     /// block where AutoCAD names the block itself (<c>*D1</c>), and needs one of the same name there where it does not. A copy
     /// added to the drawing it came from shares its original's block, and loses flag 32, so that moving the one leaves the
     /// other's picture where it is; one made in code is written without it. A copy of a dimension that names no block, as

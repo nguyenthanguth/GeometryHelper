@@ -1,0 +1,39 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Line icons on a 24 by 24 grid, the paths of the design (open-source shapes, never Autodesk's). -->
+    <Geometry x:Key="GhIconNew">M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5</Geometry>
+    <Geometry x:Key="GhIconOpen">M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z</Geometry>
+    <Geometry x:Key="GhIconSave">M5 3h11l3 3v15H5zM8 3v5h7V3M8 21v-7h8v7</Geometry>
+    <Geometry x:Key="GhIconUndo">M9 14 4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3</Geometry>
+    <Geometry x:Key="GhIconRedo">M15 14l5-5-5-5M20 9H10a6 6 0 0 0 0 12h3</Geometry>
+    <Geometry x:Key="GhIconSearch">M11 11m-7 0a7 7 0 1 0 14 0a7 7 0 1 0-14 0M20 20l-4-4</Geometry>
+    <Geometry x:Key="GhIconRefresh">M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6</Geometry>
+    <Geometry x:Key="GhIconClose">M6 6l12 12M18 6 6 18</Geometry>
+    <Geometry x:Key="GhIconPrompt">M4 17l6-6-6-6M12 19h8</Geometry>
+    <Geometry x:Key="GhIconChevron">M6 9l6 6 6-6</Geometry>
+
+    <Geometry x:Key="GhIconLine">M5 19 19 5M5 19h.01M19 5h.01</Geometry>
+    <Geometry x:Key="GhIconPolyline">M4 18l5-10 5 6 6-10</Geometry>
+    <Geometry x:Key="GhIconCircle">M12 12m-8 0a8 8 0 1 0 16 0a8 8 0 1 0-16 0</Geometry>
+    <Geometry x:Key="GhIconArc">M5 19a10 10 0 0 1 14-14</Geometry>
+    <Geometry x:Key="GhIconText">M5 6V4h14v2M12 4v16M9 20h6</Geometry>
+    <Geometry x:Key="GhIconMove">M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3</Geometry>
+    <Geometry x:Key="GhIconCopy">M9 9h11v11H9zM4 4h11v3M4 4v11h3</Geometry>
+    <Geometry x:Key="GhIconRotate">M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6</Geometry>
+    <Geometry x:Key="GhIconScale">M4 20V10h10v10zM14 10l6-6M14 4h6v6</Geometry>
+    <Geometry x:Key="GhIconMirror">M12 3v18M7 7 3 12l4 5zM17 7l4 5-4 5z</Geometry>
+    <Geometry x:Key="GhIconErase">M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3</Geometry>
+    <Geometry x:Key="GhIconDimension">M3 8v8M21 8v8M3 12h18M6 9l-3 3 3 3M18 9l3 3-3 3</Geometry>
+    <Geometry x:Key="GhIconAligned">M4 18 18 4M4 14v6h6M14 4h6v6</Geometry>
+    <Geometry x:Key="GhIconAngular">M4 20h16M4 20 15 5M11 20a7 7 0 0 0-2.1-5</Geometry>
+    <Geometry x:Key="GhIconLeader">M4 20 14 10l6 0M14 6l6 4</Geometry>
+    <Geometry x:Key="GhIconLayers">M12 3 3 8l9 5 9-5zM3 13l9 5 9-5M3 17l9 5 9-5</Geometry>
+    <Geometry x:Key="GhIconCurrent">M4 12l5 5L20 6</Geometry>
+    <Geometry x:Key="GhIconMatch">M4 4h10v6H4zM10 14h10v6H10zM9 10v4</Geometry>
+    <Geometry x:Key="GhIconMatchProperties">M5 3h10v6H5zM9 9v4M9 13h8v8H9z</Geometry>
+    <Geometry x:Key="GhIconPaste">M9 4h6v3H9zM6 5H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-1</Geometry>
+    <Geometry x:Key="GhIconPan">M9 11V5a2 2 0 0 1 4 0v6M13 9a2 2 0 0 1 4 0v4a7 7 0 0 1-14 0v-3a2 2 0 0 1 4 0</Geometry>
+    <Geometry x:Key="GhIconExtents">M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5</Geometry>
+
+</ResourceDictionary>

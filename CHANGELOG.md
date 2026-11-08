@@ -16,6 +16,42 @@ opened a paragraph is now a heading), and ends with "See also"; the blocks page 
 and combining bodies two. No guide page is over 500 lines. Each group of the menu opens on a page listing its pages,
 meshing and the checks and reports among them.
 
+**FIXED.** `DxfDBDictionary.SetAt` read and wrote every entry of the dictionary again for each entry added, so that
+10 000 XRECORDs added one by one to one dictionary took 84 s and 2 000 took 1.5 s. The entries are now found by name and
+by handle without reading the record again, and the entry added, replaced or removed is put into the record's bytes as
+they stand, written into one array of the record's new length rather than grown and copied, and as before to the byte:
+the 10 000 take 1.1 s and the 2 000 0.02 s. `GetAt`, `Contains`, `Remove` and the erasing of an XRECORD or a GROUP a
+dictionary names cost as little: 2 000 entries looked up one by one take 0.001 s, where they took 1.5 s. Every other
+edit that puts groups into a record's bytes gains as well: 10 000 vertices added one by one to a LWPOLYLINE in a drawing
+take 0.26 s, where they took 0.83 s, and 2 000 loops added to a hatch 0.32 s, where they took 0.56 s.
+
+**NEW.** `DrawingSourceConvert` in GeometryHelper.TeklaConvert reads Tekla model objects into the `DrawingSource` of
+GeometryHelper.Drawing, in the current work plane and without changing the model: `FromAssembly` the main part, the
+secondaries and the sub-assemblies, set in the main part's frame; `FromPart` one part in its own frame; `FromObjects` a
+selection. A part comes with its body, its frame, its name, its PART_POS as its mark, its profile, its material, its
+assembly as its parent and ASSEMBLY_POS, LENGTH and WEIGHT as attributes. A bolt is made from its group's data: an M20
+group of four, 60 long, gives four cylinders of 24 sides and 20 across along the group's Z axis, as long as the body
+Tekla draws for them, with Diameter "20", HoleDiameter "22", Length "60", Count "4", Standard and the parts bolted; a
+group with holes only gives holes of 22 through the parts bolted. A weld carries what its symbol reads: a fillet of 5
+above the line, 200 long, is WeldType "Fillet", WeldSide "Arrow", WeldSize "a5" and WeldLength "200". Each
+GeometryHelper.TeklaConvert.{year} package depends on GeometryHelper.Drawing from now on.
+
+**NEW.** The sheet of a DXF layout is set, as AutoCAD's `PlotSettingsValidator` sets it, where it was only read: a layout
+made in code lay on the A3 it was given. `CanonicalMediaName` takes a name that ends in the sheet's size in millimetres
+and sets `PlotPaperSize` from it: the ISO sheets A0 to A4 on their sides, `ISO_A2_(594.00_x_420.00_MM)`, or upright,
+`ISO_A2_(420.00_x_594.00_MM)`, and a size of one's own as ezdxf names one, `ezdxf_(1000.00_x_500.00_MM)`.
+`PlotPaperUnits`, `PlotRotation`, `PlotPaperMargins` and `PlotOrigin` are set too, and each makes the layout's limits the
+sheet about its plotted area again, as ezdxf's `page_setup` does. A layout made in code and set to A2 on its side with
+margins of 10 lies on a sheet 594 by 420, its limits (-10, -10) to (584, 410), and reads so after saving. A layout of a
+file reads as before, and a value set to what it has writes nothing.
+
+**NEW.** An anonymous block is added as AutoCAD adds one: `db.BlockTable.Add(new DxfBlockTableRecord { Name = "*D" })`
+adds a block the table names `*D1`, the first number no block, INSERT, dimension or table of the drawing names, marked
+anonymous (flag 1 of its BLOCK) and written as ezdxf writes the picture of a dimension; `*U` gives `*U1` and on. So a
+dimension made in code carries its own picture: a rotated dimension of 100 given a `*D1` that holds its line and the
+text 100 is saved and read back drawn by `*D1` with its two entities, where a block named so was refused before. A
+drawing whose dimensions ezdxf drew as `*D1` to `*D11` names the next `*D12`.
+
 ## 13.11.0 (2026-11-07)
 
 A minor release: public types and members are added and none is removed or renamed in any of the four libraries. OLE

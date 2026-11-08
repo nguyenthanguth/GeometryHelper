@@ -1,0 +1,307 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- The colour tokens of the design (50-ui.md), Dark set. -->
+    <Color x:Key="GhBgColor">#1E2228</Color>
+    <Color x:Key="GhPanelColor">#262B33</Color>
+    <Color x:Key="GhHeaderColor">#2E343D</Color>
+    <Color x:Key="GhInputColor">#1A1E24</Color>
+    <Color x:Key="GhCommandInputColor">#14181D</Color>
+    <Color x:Key="GhCanvasColor">#000000</Color>
+    <Color x:Key="GhSheetColor">#FFFFFF</Color>
+    <Color x:Key="GhSelectedColor">#1F4E79</Color>
+    <Color x:Key="GhBorderColor">#3A414C</Color>
+    <Color x:Key="GhTextColor">#E6E9ED</Color>
+    <Color x:Key="GhTextMutedColor">#9AA4B1</Color>
+    <Color x:Key="GhIconColor">#C9D1DB</Color>
+    <Color x:Key="GhAccentColor">#3D9BFF</Color>
+    <Color x:Key="GhAccentInkColor">#0B1220</Color>
+    <Color x:Key="GhOkColor">#3FB950</Color>
+    <Color x:Key="GhWarnColor">#D29922</Color>
+    <Color x:Key="GhErrorColor">#F85149</Color>
+
+    <SolidColorBrush x:Key="GhBg" Color="{StaticResource GhBgColor}" />
+    <SolidColorBrush x:Key="GhPanel" Color="{StaticResource GhPanelColor}" />
+    <SolidColorBrush x:Key="GhHeader" Color="{StaticResource GhHeaderColor}" />
+    <SolidColorBrush x:Key="GhInput" Color="{StaticResource GhInputColor}" />
+    <SolidColorBrush x:Key="GhCommandInput" Color="{StaticResource GhCommandInputColor}" />
+    <SolidColorBrush x:Key="GhCanvas" Color="{StaticResource GhCanvasColor}" />
+    <SolidColorBrush x:Key="GhSheet" Color="{StaticResource GhSheetColor}" />
+    <SolidColorBrush x:Key="GhSelected" Color="{StaticResource GhSelectedColor}" />
+    <SolidColorBrush x:Key="GhBorder" Color="{StaticResource GhBorderColor}" />
+    <SolidColorBrush x:Key="GhText" Color="{StaticResource GhTextColor}" />
+    <SolidColorBrush x:Key="GhTextMuted" Color="{StaticResource GhTextMutedColor}" />
+    <SolidColorBrush x:Key="GhIcon" Color="{StaticResource GhIconColor}" />
+    <SolidColorBrush x:Key="GhAccent" Color="{StaticResource GhAccentColor}" />
+    <SolidColorBrush x:Key="GhAccentInk" Color="{StaticResource GhAccentInkColor}" />
+    <SolidColorBrush x:Key="GhOk" Color="{StaticResource GhOkColor}" />
+    <SolidColorBrush x:Key="GhWarn" Color="{StaticResource GhWarnColor}" />
+    <SolidColorBrush x:Key="GhError" Color="{StaticResource GhErrorColor}" />
+    <SolidColorBrush x:Key="GhHover" Color="#323944" />
+
+    <!-- Type: Inter where it is installed, else Segoe UI (shipping Inter with the app is a later item, D11). -->
+    <FontFamily x:Key="GhFont">Inter, Segoe UI</FontFamily>
+    <FontFamily x:Key="GhMonoFont">JetBrains Mono, Cascadia Mono, Consolas</FontFamily>
+    <sys:Double x:Key="GhFontSize">12</sys:Double>
+    <sys:Double x:Key="GhSmallFontSize">11</sys:Double>
+
+    <!-- A button with no chrome: transparent, lighter under the mouse, nothing changed when disabled. -->
+    <Style x:Key="GhFlatButton" TargetType="ButtonBase">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource GhText}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="FontFamily" Value="{StaticResource GhFont}" />
+        <Setter Property="FontSize" Value="{StaticResource GhSmallFontSize}" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="Cursor" Value="Arrow" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ButtonBase">
+                    <Border x:Name="Chrome" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="2" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True" />
+                                <Condition Property="IsEnabled" Value="True" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource GhHover}" />
+                        </MultiTrigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource GhSelected}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A tab of the ribbon; checked is the tab shown. -->
+    <Style x:Key="GhRibbonTab" TargetType="ToggleButton" BasedOn="{StaticResource GhFlatButton}">
+        <Setter Property="Padding" Value="10,4" />
+        <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Chrome" Background="Transparent" CornerRadius="2,2,0,0" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource GhSelected}" />
+                            <Setter Property="Foreground" Value="{StaticResource GhText}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A toggle of the status bar (GRID, SNAP, ...): filled when on. -->
+    <Style x:Key="GhStatusToggle" TargetType="ToggleButton" BasedOn="{StaticResource GhFlatButton}">
+        <Setter Property="Padding" Value="6,2" />
+        <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Chrome" Background="Transparent" CornerRadius="2" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource GhHover}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource GhSelected}" />
+                            <Setter Property="Foreground" Value="{StaticResource GhText}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A filter chip of the file list: outlined, filled when chosen. -->
+    <Style x:Key="GhChip" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+        <Setter Property="FontFamily" Value="{StaticResource GhFont}" />
+        <Setter Property="FontSize" Value="{StaticResource GhSmallFontSize}" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="Chrome" Background="Transparent" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
+                            CornerRadius="4" Padding="7,1">
+                        <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource GhSelected}" />
+                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{StaticResource GhSelected}" />
+                            <Setter Property="Foreground" Value="{StaticResource GhText}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A button of a dialog: outlined, on the input colour. -->
+    <Style x:Key="GhDialogButton" TargetType="Button" BasedOn="{StaticResource GhFlatButton}">
+        <Setter Property="Background" Value="{StaticResource GhInput}" />
+        <Setter Property="BorderBrush" Value="{StaticResource GhBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="FontSize" Value="{StaticResource GhFontSize}" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Padding" Value="12,5" />
+        <Style.Triggers>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- A check box: a small box on the input colour, filled with the accent and ticked when checked. -->
+    <Style x:Key="GhCheckBox" TargetType="CheckBox">
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Cursor" Value="Arrow" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Border x:Name="Box" Width="13" Height="13" CornerRadius="2" Background="{StaticResource GhInput}"
+                            BorderBrush="{StaticResource GhTextMuted}" BorderThickness="1" HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <Path x:Name="Tick" Data="M2.5 6.5 5 9 10 3.5" Stroke="White" StrokeThickness="1.6" StrokeStartLineCap="Round"
+                              StrokeEndLineCap="Round" StrokeLineJoin="Round" Visibility="Collapsed" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Box" Property="Background" Value="{StaticResource GhAccent}" />
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource GhAccent}" />
+                            <Setter TargetName="Tick" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A text box on the input colour; its Tag is the placeholder shown while it is empty. -->
+    <Style x:Key="GhTextBox" TargetType="TextBox">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource GhText}" />
+        <Setter Property="CaretBrush" Value="{StaticResource GhText}" />
+        <Setter Property="SelectionBrush" Value="{StaticResource GhAccent}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="FontFamily" Value="{StaticResource GhFont}" />
+        <Setter Property="FontSize" Value="{StaticResource GhFontSize}" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Grid Background="{TemplateBinding Background}">
+                        <TextBlock x:Name="Placeholder" Text="{TemplateBinding Tag}" Foreground="{StaticResource GhTextMuted}"
+                                   VerticalAlignment="Center" Margin="2,0,0,0" Visibility="Collapsed" IsHitTestVisible="False" />
+                        <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" Focusable="False"
+                                      HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Text" Value="">
+                            <Setter TargetName="Placeholder" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A drop-down on the input colour, as the layer box of the ribbon. -->
+    <Style x:Key="GhComboBoxToggle" TargetType="ToggleButton">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="ClickMode" Value="Press" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border Background="Transparent" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="GhComboBox" TargetType="ComboBox">
+        <Setter Property="Foreground" Value="{StaticResource GhText}" />
+        <Setter Property="FontFamily" Value="{StaticResource GhFont}" />
+        <Setter Property="FontSize" Value="{StaticResource GhFontSize}" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBox">
+                    <Grid>
+                        <Border x:Name="Box" Background="{StaticResource GhInput}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
+                                CornerRadius="2" Padding="6,2">
+                            <DockPanel>
+                                <Path DockPanel.Dock="Right" Width="10" Height="10" Margin="6,0,0,0" VerticalAlignment="Center"
+                                      Data="M3 4.5 6 7.5 9 4.5" Stroke="{StaticResource GhTextMuted}" StrokeThickness="1.5"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" Stretch="None" RenderTransformOrigin="0,0">
+                                    <Path.RenderTransform>
+                                        <ScaleTransform ScaleX="0.8333" ScaleY="0.8333" />
+                                    </Path.RenderTransform>
+                                </Path>
+                                <ContentPresenter Content="{TemplateBinding SelectionBoxItem}"
+                                                  ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                  VerticalAlignment="Center" IsHitTestVisible="False" />
+                            </DockPanel>
+                        </Border>
+                        <ToggleButton Style="{StaticResource GhComboBoxToggle}"
+                                      IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" />
+                        <Popup x:Name="PART_Popup" Placement="Bottom" AllowsTransparency="True" Focusable="False"
+                               IsOpen="{TemplateBinding IsDropDownOpen}" PopupAnimation="None">
+                            <Border Background="{StaticResource GhInput}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
+                                    MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}" MaxHeight="320">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
+                                </ScrollViewer>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource GhTextMuted}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="ItemContainerStyle">
+            <Setter.Value>
+                <Style TargetType="ComboBoxItem">
+                    <Setter Property="Foreground" Value="{StaticResource GhText}" />
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ComboBoxItem">
+                                <Border x:Name="Row" Background="Transparent" Padding="6,3">
+                                    <ContentPresenter />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsHighlighted" Value="True">
+                                        <Setter TargetName="Row" Property="Background" Value="{StaticResource GhSelected}" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

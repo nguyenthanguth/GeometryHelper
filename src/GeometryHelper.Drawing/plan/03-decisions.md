@@ -1,39 +1,77 @@
-# Các quyết định
+# Decisions
 
-Mỗi quyết định có một số hiệu không bao giờ đổi. Quyết định ở trạng thái **đề xuất** cho tới khi maintainer duyệt, khi
-đó chuyển thành **đã duyệt**. Quyết định bị thay thế vẫn giữ trong danh sách, ghi **thay bằng Dn**, để không mất lý do.
+Each decision has a number that never changes. A decision is **proposed** until the maintainer approves it, then
+**approved**; a decision overturned stays in the list, marked **replaced by Dn**, so that the reason is not lost.
 
-## Đã duyệt
+## Approved
 
-| # | Quyết định | Lý do |
+| # | Decision | Why |
 |---|---|---|
-| A1 | Chỉ một loại bản vẽ. Single part, assembly và GA là các preset thiết lập, không phải kiểu riêng hay giai đoạn riêng. | Maintainer, 2026-11-08: khác nhau ở đối tượng và quy tắc, không ở code. |
-| A2 | Kết quả ghi ra DXF qua `DxfDatabase`. | Đã ghi được mọi entity bản vẽ cần và đã kiểm với AutoCAD 2021; bản vẽ mở được ở mọi CAD mà không cần Tekla. |
-| A3 | Chỉ tham khảo Tekla qua Open API, tài liệu người dùng và kết quả xuất ra. Không dịch ngược file nhị phân của Tekla. | Giấy phép của Tekla, và package MIT trên NuGet; maintainer hỏi về Drawings.dll ngày 2026-11-08 và đây là câu trả lời. |
-| A4 | Module nằm ở `src/GeometryHelper.Drawing`. | Maintainer tạo thư mục này, 2026-11-08. |
-| A5 | Lập kế hoạch cấu trúc trước khi viết code; G1 (chiếu nét thấy/khuất ra DXF) là giai đoạn code đầu tiên. | Maintainer, 2026-11-08. |
-| A6 | Các file kế hoạch viết bằng tiếng Việt; code, comment, docs thư viện và commit message vẫn bằng tiếng Anh. | Maintainer, 2026-11-08: để dễ review và cải thiện. |
+| A1 | One kind of drawing. Single-part, assembly and general arrangement drawings are presets of settings, not types or phases of their own. | The maintainer, 2026-11-08: the difference is which objects and which rules, not the code. |
+| A2 | The output is DXF written through `DxfDatabase`. | It already writes every entity a drawing needs and was checked against AutoCAD 2021; drawings then open in any CAD without Tekla. |
+| A3 | Tekla is a reference only through its Open API, its user documentation and its exported output. Its binaries are not decompiled. | Its licence, and the MIT package on NuGet; the maintainer asked about Drawings.dll on 2026-11-08 and this was the answer. |
+| A4 | The module lives in `src/GeometryHelper.Drawing`. | The maintainer made the folder, 2026-11-08. |
+| A5 | The structure is planned before any code; G1 (hidden-line projection to DXF) is the first phase of code in the core. | The maintainer, 2026-11-08. |
+| A6 | The plan files and the UI design are in English, as are code, comments, library docs and commit messages. The plan lives in these .md files only; the FigJam board made on 2026-11-08 was deleted the same day. | The maintainer, 2026-11-08 (first Vietnamese for review, then English the same day). |
+| A7 | GeometryHelper.Drawing is a standalone presenter of drawings, usable in many places, not only Tekla. Sources plug in. | The maintainer, 2026-11-08. |
+| A8 | An AutoCAD-like interface: a list on the left (the drawings in Part B; files, layouts and layers in Part A), the canvas in the middle, Properties on the right. The UI is designed first and the code follows the design. | The maintainer, 2026-11-08. The design moved from Figma to a claude.ai Design artifact the same day (see the README). |
+| A9 | A Global settings dialog is always there for the input values; change, then Apply. The canvas background is black by default. | The maintainer, 2026-11-08. |
+| A10 | Drawing plugins, as Tekla Structures has them. Since A16 they belong to Part B. | The maintainer, 2026-11-08. |
+| A11 | A view is a window into the model, like a Tekla view or AutoCAD's MVIEW. Part B makes views; Part A shows them as viewports of a layout. | The maintainer, 2026-11-08. |
+| A12 | Shortcuts and commands default to AutoCAD's (command names, aliases, function keys, mouse); they can be changed in Global settings. Since A16 they are Part A's; Part B adds its own commands in the same style. | The maintainer, 2026-11-08. The default table: [50-ui.md](50-ui.md). |
+| A13 | The app works in 2D only: the canvas shows the sheet flat, with zoom and pan; no 3D orbit or rotation, no 3D model window, no ViewCube. The 3D model is used only inside the core, where L1 projects it into the 2D lines of each view. | The maintainer, 2026-11-08: "only 2D, no 3D rotation needed". |
+| A14 | Plugins are .NET assemblies (.dll) that can be loaded at any time with a command, as AutoCAD's NETLOAD does (`PLUGINLOAD`, alias `NETLOAD`), and unloaded and reloaded while the app runs (`PLUGINUNLOAD`, `PLUGINRELOAD`). This holds for both kinds of plugin (A16). | The maintainer, 2026-11-08. Details: [60-plugins.md](60-plugins.md). |
+| A15 | Plugins work like Tekla's drawing plugins, with our own API; Tekla's plugin .dll files are not loaded. | The maintainer, 2026-11-08: similar functions, not Tekla's plugins. |
+| A16 | The work is split into two parts. Part A, a 2D presenter like AutoCAD, shows and edits any 2D drawing held in a `DxfDatabase`, with AutoCAD's commands and command plugins. Part B, a model drawing like Tekla's, makes drawings from a model, writes each sheet into Part A's document, and has the Tekla-like drawing plugins. Part B uses Part A; Part A never refers to Part B. | The maintainer, 2026-11-08: the plan had drifted into rebuilding AutoCAD, and Tekla-like plugins cannot work on plain 2D lines; splitting gives each its own job. Details: [00-overview.md](00-overview.md), [01-architecture.md](01-architecture.md). |
+| A17 | Part A is named `GeometryHelper.Dxf.Viewer` (with `GeometryHelper.Dxf.Viewer.Wpf` for its controls). The five projects are `GeometryHelper.Dxf.Viewer`, `GeometryHelper.Dxf.Viewer.Wpf`, `GeometryHelper.Drawing`, `GeometryHelper.Drawing.Wpf` and `GeometryHelper.Drawing.App`. | The maintainer, 2026-11-08: "GeometryHelper.Dxf.Viewer is more right". |
+| A18 | Part A starts with the basic commands only (C2): enough to open, look, select, move, copy, erase, rotate, scale, draw the simple entities and edit text and dimensions. The full drafting commands (C4) are added later, as they are needed. | The maintainer, 2026-11-08: "the basic functions first are enough, extend later". Closes Q9. |
+| A19 | A model drawing is saved as one DXF file: Part B's document (ids, model links, hand-edit records, plugin runs) is carried inside the DXF, in XRECORDs of a named dictionary and in the XDATA of the entities. No second file format. | The maintainer, 2026-11-08: "one DXF file, to avoid converting back and forth". The file opens in AutoCAD and in Part A as any DXF. Closes Q10. |
+| A21 | The types of Part A that the presenter itself adds are named with the prefix `Cad` (`CadDocument`, `CadSelection`, `CadView`, `CadEdit`, ...), and the types of the DXF module keep `Dxf`. | The maintainer, 2026-11-08, asked why not `Dxf*`: the prefix tells which layer a type belongs to, and `DxfDocument`, `DxfLayer`, `DxfSpace` already exist in the DXF module. Do not propose renaming. |
+| A20 | The window is laid out as AutoCAD's own: a ribbon of tabs and panels with a layer and a properties box, Properties on the right, the command line and the status bar at the bottom, and the Model / Layout tabs at the bottom left of the canvas. The left panel lists the drawing files only; it has no layouts or layers. There are no tabs of the open drawings above the canvas. | The maintainer, 2026-11-08, with a screenshot of AutoCAD 2021. Layers are in the ribbon and the Layer manager, layouts in the tabs under the canvas. |
 
-## Đề xuất
+## Proposed
 
-| # | Quyết định | Nên chọn vì | Cách còn lại |
+| # | Decision | Recommended because | The other way |
 |---|---|---|---|
-| D1 | File DXF là tờ giấy tỉ lệ 1:1 trong model space; mỗi view vẽ theo scale của nó; dimension đặt `DIMLFAC` bằng scale, nên vẫn ghi độ dài thật của model. | Mọi trình xem DXF đều hiển thị như khi in. Cách Tekla tự xuất DWG bố trí bản vẽ sẽ kiểm ở G0. | Model space tỉ lệ 1:1 theo model và mỗi view một viewport trong layout: đúng kiểu AutoCAD, nhưng nét khuất mỗi view khác nhau nên mỗi view vẫn cần một bản riêng, và nhiều trình xem chỉ hiện model space. |
-| D2 | Loại nét khuất chính xác trên các mặt phẳng của solid; cạnh giữa các mặt ghép của bề mặt cong chỉ giữ ở chỗ là đường bao (silhouette). | Solid vốn đã là đa diện; tính chính xác trên đó giữ được tolerance của thư viện. | Qua lưới tam giác và depth buffer: đơn giản hơn, nhưng nét chỉ chính xác tới mức pixel. |
-| D3 | Lỗ và bulông lấy từ dữ liệu của nguồn (bolt group và lỗ của Tekla) trước; nhận diện lỗ từ hình học thuần làm sau, cùng với IFC. | Tekla biết chính xác chúng; nhận diện từ hình học đã chia mặt là một dự án riêng. | Nhận diện từ hình học ngay từ đầu. |
-| D4 | `GeometryHelper.Drawing` là một package riêng, phát hành cùng version với các package khác. | Module lớn, người chỉ dùng phần hình học không cần kéo theo; thư mục A4 khớp với các package khác. | Một namespace trong package chính. |
-| D5 | Thiết lập là object C# có preset; đọc từ JSON làm sau nếu cần. | Ít code nhất; test dựng trực tiếp được. | Dùng JSON ngay từ đầu. |
-| D6 | Chuỗi đoạn thẳng ngắn do đường tròn hay cung bị chia mặt để lại (lỗ, ống, góc lượn) được khớp lại thành cung trước khi ghi dimension và ghi file. | Lỗ ghi dimension theo tâm và vẽ bằng CIRCLE là điều người vẽ mong đợi. | Giữ nguyên các đoạn. |
-| D7 | Test ở project riêng `tests/GeometryHelper.Drawing.UnitTest`. | Khớp cách mỗi thư viện một bộ test, và không làm chậm bộ test lõi. | Gộp vào `GeometryHelper.UnitTest`. |
-| D8 | DXF version AC1027 (AutoCAD 2013), trừ khi G0 thấy entity nào cần version khác. | MLEADER và table ghi tốt ở version này, và AutoCAD 2021 mở được. | R2000 như `DxfWriter` đang ghi, nhưng R2000 không có MLEADER. |
-| D9 | Mặc định phép chiếu góc thứ ba, phép chiếu góc thứ nhất là một tuỳ chọn. | Sẽ đối chiếu với thiết lập Tekla của maintainer ở G0. | Mặc định góc thứ nhất (ISO, châu Âu). |
+| D1 | **Replaced by D10.** The DXF is the sheet at 1:1 in model space; each view drawn at its scale; dimensions set `DIMLFAC` to the scale. | Every DXF viewer shows it as printed. | — |
+| D2 | Hidden lines are removed exactly on the planar faces of the solids; edges between faces of a faceted curved surface are kept only where they are silhouettes. | The solids are polyhedra already; exact work on them keeps the library's tolerances. | Through a triangle mesh and a depth buffer: simpler, but the lines come out at pixel accuracy. |
+| D3 | Holes and bolts come from the source's data (Tekla bolt groups and holes) first; finding holes in bare geometry comes later, with IFC. | Tekla knows them exactly; finding them in faceted geometry is a project of its own. | Find them in the geometry from the start. |
+| D4 | The cores and the controls of both parts (D23) are packages of their own, released with the others under one version. | Users of the geometry need not take the drawing module; users who only make drawings need not take WPF; users of the 2D presenter need not take Part B. | A namespace in the core package. |
+| D5 | Drawing settings (presets) are C# objects; reading them from JSON comes later if wanted. Global settings are saved as JSON (D13). | Least code; tests build them directly. | JSON for both from the start. |
+| D6 | Chains of short segments that a faceted circle or arc leaves (holes, tubes, rounded corners) are fitted back into arcs before they are dimensioned and written. | A hole dimensioned by its centre and drawn as a CIRCLE is what a draughtsman expects. | Keep the facets. |
+| D7 | Tests in projects of their own: `tests/GeometryHelper.Drawing.UnitTest`, and `tests/GeometryHelper.Drawing.Wpf.UnitTest` for the view models. | Matches one suite per library and keeps the core suite's time. | Inside `GeometryHelper.UnitTest`. |
+| D8 | DXF version AC1027 (AutoCAD 2013) unless G0 finds an entity that needs another. | MLEADER and tables are written well there, and AutoCAD 2021 opens it. | R2000 as `DxfWriter` writes, which has no MLEADER. |
+| D9 | Third-angle projection by default, first-angle as a setting. | To be checked against the maintainer's Tekla settings in G0. | First-angle by default (ISO in Europe). |
+| D10 | The DXF export has two ways, chosen in Global settings. Default: each view's lines at 1:1 in model space, and the sheet a layout with one viewport per view at its scale, as MVIEW does. Option: the sheet at 1:1 in model space as D1 had it. | Matches views as viewports (A11); AutoCAD opens it on the layouts and viewports its users know; `DxfDatabase` already writes layouts and viewports. | One way only, as D1. |
+| D11 | The UI font is Inter, shipped with the app. | The design tool has no Segoe UI; design and code use the same font; Inter is OFL-licensed and has Vietnamese diacritics. | Windows' Segoe UI: the design and the app would differ. |
+| D12 | The WPF controls are built for both net48 and net8.0-windows. | So that they can be hosted in a Tekla plugin (.NET Framework 4.8) and in AutoCAD or the standalone app (.NET 8). The runtime of each Tekla and AutoCAD version is checked in G0. | .NET 8 only: no hosting in Tekla running on .NET Framework. |
+| D13 | Global settings are saved in a JSON file of the user's (for example `%AppData%\GeometryHelper\Drawing\settings.json`), with defaults in code; Apply changes the UI at once, OK saves. | Kept from one run to the next; editable by hand; no database. | The registry. |
+| D14 | **Replaced by D26 and D27** (two kinds of plugin since A16). A plugin is a .NET assembly that implements `IDrawingPlugin` and works only through L7's public API; it is loaded from the plugin folder at start or with `PLUGINLOAD` (A14); each run is one undo step. | — | — |
+| D15 | L7 (the drawing document, model links, hand-edit records) is designed from G2, not left to the end. | The UI and plugins both edit drawings; keeping hand edits through an update is where Tekla fails, and it cannot be patched in later. | L7 after the core is done. |
+| D16 | Plugins target netstandard2.0 and reference only a core: a command plugin `GeometryHelper.Dxf.Viewer`, a drawing plugin `GeometryHelper.Drawing`. | One .dll then runs inside Tekla (.NET Framework 4.8) and in the standalone app (.NET 8). | One build per runtime. |
+| D17 | A plugin declares its settings (name, type, default, range); the app draws the dialog with its own components. | The plugin never touches WPF, which keeps D16 possible and every plugin dialog alike. | Each plugin draws its own WPF dialog: two builds, mixed looks. |
+| D18 | A plugin ships as one `.ghplugin` file (a zip of its .dll files and a `plugin.json`), installed from the Plugin manager or dropped on the window; a bare .dll is also accepted through `PLUGINLOAD`. | One file to hand round; the manifest gives name, version, least API version, commands and icon without loading the code. | Folders copied by hand. |
+| D19 | In the standalone app each plugin loads into a collectible `AssemblyLoadContext` of its own, from a shadow copy of its files. In Tekla (.NET Framework) `PLUGINUNLOAD` only switches a plugin off, and a new build is taken after Tekla restarts. | Unload and reload without restarting, a .dll that can be rebuilt while loaded, no clash of dependencies; .NET Framework cannot unload an assembly short of one AppDomain per plugin. | One AppDomain per plugin in Tekla: full unload there too, at the cost of every call crossing `MarshalByRefObject`. |
+| D20 | The plugin API has a version of its own; the core's NuGet package is the SDK; a `dotnet new ghdrawing-plugin` template starts a plugin. | A plugin states what it needs and is refused with a reason when the app is too old; new authors start from a working project. | No API version: failures at run time instead. |
+| D21 | Trusted folders, as AutoCAD's TRUSTEDPATHS: a .dll from outside them asks for confirmation, and every load is logged with its full path. | Loading a .dll runs code with the user's rights. | Load anything without asking. |
+| D22 | **Replaced by A15.** Tekla drawing plugin .dll files are not loaded as they are; a porting guide maps one to the other. | An unchanged Tekla plugin is driven by Tekla's core and changes Tekla's drawing. | — |
+| D23 | **Replaced by A17.** Five projects, Part A named `GeometryHelper.Cad2D`. | — | — |
+| D24 | Part B tags every entity it writes with its owner and object id in XDATA; Part A asks an `ICadEntityOwner` before it changes a tagged entity (the owner contract in [01-architecture.md](01-architecture.md)). On an update Part B rewrites only the entities it owns. | Hand edits on model objects become Part B's records and survive an update; lines drawn by hand on a model drawing are left alone; Part A stays free of Part B. | Part B keeps its own copy of the sheet and Part A only shows it: no hand drawing on a model drawing. |
+| D25 | Part A grows in steps: C1 shows (open, zoom, pan, select, Properties read, layers, layouts and viewports); C2 edits (grips, MOVE, COPY, ERASE, ROTATE, Properties edited, text and dimension edits, LINE, PLINE, CIRCLE, ARC, TEXT, MTEXT, undo, save); C3 command plugins; C4 the full drafting commands (TRIM, EXTEND, OFFSET, FILLET, HATCH, ...) later, one by one, as they are needed (A18). | Each step is useful by itself; the endless part (C4) is driven by need, and AutoCAD covers it meanwhile. | The whole command set before the app is used. |
+| D26 | A command plugin (Part A) is a class whose methods carry `[CadCommand("NAME")]` and take a `CadCommandContext` (document, prompts, selection, undo step), as AutoCAD's `[CommandMethod]`. | Anyone who has written an AutoCAD .NET plugin finds the same shape; one class can hold several commands. | One interface per command. |
+| D27 | A drawing plugin (Part B) derives from `DrawingPlugin`: `DefineInput` says what the user picks (views, model objects, points), `Run` gets the picks and works on the drawing document; its settings are declared (D17). A run's inputs and settings are kept in the drawing, and an update runs it again. | The shape of Tekla's `DrawingPluginBase` (DefineInput, Run, attributes); running again on update is what keeps a plugin's dimensions right when the model changes. | Results kept as hand edits: they go stale when the model changes. |
 
-## Câu hỏi còn mở
+## Open questions
 
-| # | Câu hỏi | Ai trả lời |
+| # | Question | Who |
 |---|---|---|
-| Q1 | Lỗi nào của drawing Tekla quan trọng nhất? Câu này quyết định thứ tự làm trong G3 đến G5. Ghi vào [40-tekla-bugs.md](40-tekla-bugs.md). | maintainer |
-| Q2 | Khung tên: dùng khung tên của maintainer (đọc bố cục từ một file DWG/DXF, không bao giờ commit vào repo) hay vẽ bằng code? | maintainer |
-| Q3 | Ký hiệu hàn theo chuẩn nào: ISO 2553 hay AWS A2.4? | maintainer |
-| Q4 | Các scale được dùng (ví dụ 1:1, 1:2, 1:5, 1:10, 1:15, 1:20, 1:25, 1:50, 1:100) và các khổ giấy được dùng. | maintainer, G0 đặt mặc định |
-| Q5 | Mark: mark cấu kiện và mark assembly hiển thị gì (position, profile, chiều dài, vật liệu). | maintainer, G0 đặt mặc định |
+| Q1 | Which faults of Tekla's drawings matter most? They set the order of work in G3 to G5. Collected in [40-tekla-bugs.md](40-tekla-bugs.md). | the maintainer |
+| Q2 | The title block: the maintainer's own (a DWG or DXF to read the layout from, never committed) or one drawn in code? | the maintainer |
+| Q3 | Which standard for weld symbols: ISO 2553 or AWS A2.4? | the maintainer |
+| Q4 | The scales allowed (for example 1:1, 1:2, 1:5, 1:10, 1:15, 1:20, 1:25, 1:50, 1:100) and the sheet sizes used. | the maintainer, defaults in G0 |
+| Q5 | The marks: what a part mark and an assembly mark show (position, profile, length, material). | the maintainer, defaults in G0 |
+| Q6 | Plugins: which are needed first (for example bolt dimensions, weld marks, hole numbering, a steel schedule)? | the maintainer |
+| Q7 | Should the UI be hosted in Tekla (a window inside Tekla) from the start, or the standalone app first? | the maintainer |
+| Q8 | How is the standalone app shipped: a zip, an installer, or internal use only? | the maintainer, before the first release of the app |
+| Q9 | **Closed by A18.** Which drafting commands C4 adds is decided when they are needed. | — |
+| Q10 | **Closed by A19.** A model drawing is one DXF. What remains for G0 is which named dictionary and which XRECORD layout carry the document. | — |

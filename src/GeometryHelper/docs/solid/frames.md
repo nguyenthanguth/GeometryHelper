@@ -128,6 +128,23 @@ Tekla models in millimetres with coordinates that can run to hundreds of thousan
 metre member is rarely flat to the last decimal. The default `EqualPlanar` is often too tight for that, so
 pass a [`Tolerance`](xref:GeometryHelper.Tolerance) suited to the model rather than relying on the default.
 
+`DrawingSourceConvert` reads Tekla model objects into the `DrawingSource` a drawing of GeometryHelper.Drawing is
+made from, in the current work plane and without changing the model. `FromAssembly` takes the main part, the
+secondaries and the sub-assemblies with their bolts and welds, set in the main part's frame; `FromPart` takes one part
+in its own frame; `FromObjects` takes a selection. A part and a weld keep their Tekla GUID as their id, and a bolt
+takes its group's GUID and its number, "-1" to "-4". A bolt is made from its group's data, not from Tekla's faceted
+body: an M20 group of four, 60 long, through a plate 20 thick gives four cylinders of 24 sides and 20 across along
+the group's Z axis, each with its Diameter "20", HoleDiameter "22", Length "60" and Count "4", and a group with holes
+only gives holes of 22 through the parts bolted. A weld carries what its symbol shows: a fillet of 5 above the line,
+200 long, is WeldType "Fillet", WeldSide "Arrow", WeldSize "a5", WeldLength "200".
+
+```csharp
+using GeometryHelper.Drawing;
+using GeometryHelper.TeklaConvert;
+
+DrawingSource source = DrawingSourceConvert.FromAssembly(assembly);
+```
+
 ## See also
 
 - [Moving and asking in the plane](../plane/moving.md).

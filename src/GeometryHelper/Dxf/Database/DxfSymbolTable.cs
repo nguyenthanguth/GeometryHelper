@@ -46,6 +46,8 @@ namespace GeometryHelper.Dxf
         /// Adds a record made in code to the table, as AutoCAD's <c>Add</c>: its record written before the table's ENDTAB in
         /// the file's own style, with a handle of its own, the table as its owner and the table's count raised by one. The same
         /// object is the record of the table from then on.
+        /// The block table takes a block named <c>*U</c> or <c>*D</c> as AutoCAD's takes one, an anonymous block it names
+        /// itself, <c>*D1</c> the first (see <see cref="DxfBlockTable"/>).
         /// </summary>
         /// <param name="value">The record, of the table's own kind, with its <c>Name</c> given.</param>
         /// <exception cref="ArgumentNullException">Thrown when the record is null.</exception>
@@ -71,11 +73,14 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentException("A record is added with its name given.", nameof(value));
             }
 
-            CheckName(name, nameof(value));
-
-            if (Has(name))
+            if (!IsAnonymousName(name))
             {
-                throw new ArgumentException("The table has a record named " + name + " already, letters of either case the same.", nameof(value));
+                CheckName(name, nameof(value));
+
+                if (Has(name))
+                {
+                    throw new ArgumentException("The table has a record named " + name + " already, letters of either case the same.", nameof(value));
+                }
             }
 
             AddRecord(value);
@@ -87,6 +92,9 @@ namespace GeometryHelper.Dxf
 
         /// <summary>The records, in the order of the file.</summary>
         private protected abstract IEnumerable<DxfSymbolTableRecord> Records();
+
+        /// <summary>Whether a name given is one the table names a record by itself, as AutoCAD's block table names a block <c>*U</c>: none of the other tables.</summary>
+        private protected virtual bool IsAnonymousName(string name) => false;
 
         /// <summary>Adds a record of the table's own kind, its name checked.</summary>
         private protected abstract void AddRecord(DxfSymbolTableRecord record);

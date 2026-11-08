@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\GeometryHelper\GeometryHelper.csproj" />
+    <ProjectReference Include="..\..\src\GeometryHelper.Drawing\GeometryHelper.Drawing.csproj" />
   </ItemGroup>
 
 </Project>

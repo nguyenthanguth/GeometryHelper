@@ -1,23 +1,22 @@
-# Các cấu kiện mẫu
+# Test cases
 
-Các cấu kiện dựng bằng code, nằm trong `TestBodies.cs` của bộ test drawing. Mọi giai đoạn đều kiểm tra trên chúng.
-Không cấu kiện nào lấy từ model của maintainer: model thật nào làm lộ ra lỗi thì dựng ở đây một cấu kiện cho thấy đúng
-điều đó.
+Bodies built in code, in `TestBodies.cs` of the drawing tests. Every phase is checked on them. None comes from the
+maintainer's models: where a real model showed a fault, a body is built here that shows the same thing.
 
-Nét và giá trị mong đợi của từng cấu kiện được tính tay ở G0 và ghi vào test.
+The expected lines and values of each are worked out by hand in G0 and written into the tests.
 
-| # | Cấu kiện | Kiểm tra gì |
+| # | Body | What it tests |
 |---|---|---|
-| TC1 | bản mã 300 x 200 x 20 có bốn lỗ 22 cách mép 50, đường tròn chia mặt như Tekla chia | lỗ ra đường tròn (D6), thành lỗ khuất trong view cạnh, dimension lỗ |
-| TC2 | thép chữ I cao 300, cánh 150 x 12, bụng 8, dài 3 000, có bản mã đầu dày 20 với sáu lỗ 22 | cạnh sắc và cạnh khuất của thép hình, dimension chi tiết gắn thêm tính từ cấu kiện chính |
-| TC3 | ống 168.3 x 6, dài 1 000, chia mặt | bỏ cạnh trơn, giữ đường bao; nhìn dọc, nhìn ngang và nhìn xiên 30 độ |
-| TC4 | thép góc 100 x 100 x 10, một đầu cắt vát và một góc khoét | cạnh vết cắt, cạnh xuyên qua mặt |
-| TC5 | cột chữ I 250 x 250 trên bản đế 400 x 400 x 25, bốn sườn và bốn bulông | assembly: nhiều đối tượng, bulông trong lỗ, mark các chi tiết |
-| TC6 | dầm có một đầu cắt xiên 30 độ và đầu kia khoét cánh | mặt cắt nghiêng, đường bao vết cắt |
-| TC7 | dầm bê tông 300 x 600 với bốn thanh 20 và đai 10 (giai đoạn sau) | vẽ cốt thép, khuất trong bê tông |
-| TC8 | hai bản mã chạm nhau theo mặt và theo cạnh | cạnh chung chỉ vẽ một lần, thấy ưu tiên hơn khuất |
-| TC9 | bản mã của TC1 xoay sao cho có mặt nhìn đúng thành một đường, và một bản lệch đi một chút | mặt nhìn thành đường, mặt lệch phẳng một chút |
-| TC10 | một khung 200 assembly như TC5 trên một lưới | tốc độ; bản vẽ GA |
+| TC1 | a plate 300 by 200 by 20 with four holes of 22 at 50 from the edges, the circles faceted as Tekla facets them | holes as circles (D6), hidden hole walls in the side views, hole dimensions |
+| TC2 | an I-section 300 deep, flanges 150 by 12, web 8, 3 000 long, with an end plate 20 thick and six holes of 22 through the plate | sharp and hidden edges of a profile, fittings dimensioned from the main part |
+| TC3 | a tube of 168.3 by 6, 1 000 long, faceted | smooth edges dropped, silhouettes kept; seen along, across and at 30 degrees |
+| TC4 | an angle 100 by 100 by 10 with a chamfer cut at one end and a corner notch | cut edges, edges piercing faces |
+| TC5 | a column 250 by 250 (I-section) on a base plate 400 by 400 by 25 with four stiffeners and four bolts | an assembly: several objects, bolts in holes, marks of the fittings |
+| TC6 | a beam with one end cut skew at 30 degrees and the other with a cope | sloping cut faces, outlines of cuts |
+| TC7 | a concrete beam 300 by 600 with four bars of 20 and stirrups of 10 (later phases) | rebar drawn, hidden inside concrete |
+| TC8 | three plates 10 thick: one lying on another face to face, a third beside it edge to edge | shared edges drawn once, visible over hidden |
+| TC9 | the plate of TC1 turned so that some faces are seen exactly edge-on, and a copy a hair off that | edge-on faces, faces a hair off flat |
+| TC10 | a frame of 200 assemblies like TC5 on a grid | speed; a general arrangement drawing |
 
-Trước hết mỗi cấu kiện được kiểm tra chính nó: kín và hợp lệ theo `GeoSolid3.Validate`, và thể tích đúng bằng thể tích
-tính từ đường bao.
+Each body is checked first for what it is: closed and valid by `GeoSolid3.Validate`, and its volume equal to the one
+worked out from its outline.

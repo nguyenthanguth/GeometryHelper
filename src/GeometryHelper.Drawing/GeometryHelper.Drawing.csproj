@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <RootNamespace>GeometryHelper.Drawing</RootNamespace>
+    <AssemblyName>GeometryHelper.Drawing</AssemblyName>
+    <Description>Drawings from a 3D model, like Tekla's: views with visible and hidden lines, dimensions and marks tied to model objects, a sheet, update from the model. No UI.</Description>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GeometryHelper\GeometryHelper.csproj" />
+    <ProjectReference Include="..\GeometryHelper.Dxf.Viewer\GeometryHelper.Dxf.Viewer.csproj" />
+  </ItemGroup>
+
+</Project>

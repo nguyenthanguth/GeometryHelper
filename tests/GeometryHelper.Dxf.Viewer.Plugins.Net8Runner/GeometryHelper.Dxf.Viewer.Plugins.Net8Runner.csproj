@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Checks on .NET 8 what the net48 plugin tests cannot: a plugin rebuilt while it is loaded and reloaded runs its new
+    code, and after unloading its collectible load context is collected (D19 of the plan). A console that prints PASS or
+    FAIL per check and exits 1 on a failure:
+
+      dotnet run -c Release (project tests/GeometryHelper.Dxf.Viewer.Plugins.Net8Runner)
+
+    It builds a second version of the sample plugin with the dotnet SDK, in a folder of the temporary folder.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <PlatformTarget>x64</PlatformTarget>
+    <IsPackable>false</IsPackable>
+    <Nullable>disable</Nullable>
+    <NoWarn>$(NoWarn);MSB3277</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\GeometryHelper\GeometryHelper.csproj" />
+    <ProjectReference Include="..\..\src\GeometryHelper.Dxf.Viewer\GeometryHelper.Dxf.Viewer.csproj" />
+    <ProjectReference Include="..\..\src\GeometryHelper.Dxf.Viewer.Wpf\GeometryHelper.Dxf.Viewer.Wpf.csproj" />
+    <!-- Built first, never referenced: the sample is loaded as a plugin, from SamplePlugin\ beside the runner. -->
+    <ProjectReference Include="..\GeometryHelper.Dxf.Viewer.SamplePlugin\GeometryHelper.Dxf.Viewer.SamplePlugin.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\GeometryHelper.Dxf.Viewer.SamplePlugin\bin\$(Configuration)\netstandard2.0\GeometryHelper.Dxf.Viewer.SamplePlugin.dll" Link="SamplePlugin\GeometryHelper.Dxf.Viewer.SamplePlugin.dll" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+    <None Include="..\GeometryHelper.Dxf.Viewer.SamplePlugin\CircleTools.cs" Link="SamplePlugin\CircleTools.cs.txt" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+  </ItemGroup>
+
+</Project>

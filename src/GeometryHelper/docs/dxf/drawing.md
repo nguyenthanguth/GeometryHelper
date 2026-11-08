@@ -157,7 +157,9 @@ header's `$HYPERLINKBASE` too, where AutoCAD reads it, and read from there where
 whatever the file calls them (ezdxf's files of R12 call them `$Model_Space` and `$Paper_Space`), and stand for their records
 from the moment the drawing is opened, with their handles and extended data.
 `BlockTable.Add(new DxfBlockTableRecord { Name = "BOLT", Origin = new GeoPoint3(0, 0, 0) })` adds a block, which is filled
-by its own `AppendEntity`. A block given an attribute definition is marked as one (`HasAttributeDefinitions`, flag 2 of its
+by its own `AppendEntity`. A block named `*D` or `*U` is added as AutoCAD's `Add` adds one so named, an anonymous block
+the table names itself: `*D1`, or `*U1`, the first number no block, INSERT, dimension or table of the drawing names (see
+[the block that draws a dimension](annotation.md#the-block-that-draws-a-dimension)). A block given an attribute definition is marked as one (`HasAttributeDefinitions`, flag 2 of its
 BLOCK), model space too, and keeps the mark when the definition is erased, as AutoCAD does; AutoCAD takes no value a
 multileader gives the attributes of a block without it. A block has its
 `Comments` (the BLOCK's 4), `Units`, `Explodable` and `BlockScaling` (its BLOCK_RECORD's 70, 280 and 281, from R2007 on),
@@ -442,6 +444,24 @@ and 54 000 seconds past midnight), `IsDaylightSavingsOn`, `ShadowsOn`, `ShadowTy
 `ShadowMapSoftness` read and set, a new sun's ezdxf's (AutoCAD's own not confirmed). Where the sun stands in the sky is AutoCAD's to work out from the
 drawing's location, and a viewport's `ToneOperatorParameters` and `Transparent` are not there: neither the DXF reference
 nor ezdxf gives where a file keeps them.
+
+### The sheet of a layout
+
+The sheet a layout is plotted on is set as AutoCAD's `PlotSettingsValidator` sets it, on a layout of a drawing or one made
+in code once it is added. `CanonicalMediaName` takes a name that ends in the sheet's size in millimetres, width then
+height, and sets `PlotPaperSize` from it: the ISO sheets on their sides, `ISO_A0_(1189.00_x_841.00_MM)`,
+`ISO_A1_(841.00_x_594.00_MM)`, `ISO_A2_(594.00_x_420.00_MM)`, `ISO_A3_(420.00_x_297.00_MM)` and
+`ISO_A4_(297.00_x_210.00_MM)`, the same upright with the sizes the other way round, and a size of one's own as ezdxf's
+`page_setup` names one, `ezdxf_(1000.00_x_500.00_MM)`; a name without its size, as `A2`, or in inches, is refused, since
+the size of a plotter's sheet is in its configuration, which a DXF does not hold. `PlotPaperMargins` (left, bottom, right,
+top) and `PlotOrigin` are set in millimetres whatever `PlotPaperUnits` says, `PlotPaperUnits` and `PlotRotation` as they
+read. Each makes the limits of a layout of paper space the sheet about its plotted area again, as ezdxf's `page_setup`
+does: `plan.CanonicalMediaName = "ISO_A2_(594.00_x_420.00_MM)"` with margins of 10 all round gives limits (-10, -10) to
+(584, 410), the paper the viewer draws 594 by 420; turned a quarter, an upright sheet lies across, its left and bottom
+margins changing places; in inches the limits are the millimetres divided by 25.4. Model keeps its limits. A sheet is best
+set before `Initialize`, which sizes the viewport 1 by the limits; a viewport 1 made already keeps its size, as AutoCAD
+draws it anew when it next shows the layout. A layout of a file reads as it did, and a value set to what it has writes
+nothing.
 
 ## See also
 

@@ -1,85 +1,127 @@
-# Cấu trúc dự án
+# Project structure
 
-## Project
+## The projects
 
-`src/GeometryHelper.Drawing/GeometryHelper.Drawing.csproj`, tạo ở G1 khi bắt đầu có code:
+Each part has a core with no UI and a project of WPF controls; one app holds both (A16, D23). Part A never references
+Part B.
 
-- target netstandard2.0 như các thư viện khác;
-- chỉ tham chiếu `GeometryHelper`, không bao giờ tham chiếu Tekla;
-- version lấy từ `GeometryHelperVersion` trong `Directory.Build.props`, đóng gói thành `GeometryHelper.Drawing` và phát
-  hành cùng lúc với các package khác;
-- mọi thành viên public có XML documentation (thiếu thì build `-warnaserror` báo lỗi CS1591);
-- thêm vào `GeometryHelper.slnx`.
+| Project | Part | Holds | Target | References |
+|---|---|---|---|---|
+| `src/GeometryHelper.Dxf.Viewer` | A | the document (K1), display lists (K2), commands, snaps and grips (K3), the command plugin API (K4), the owner contract; no WPF | netstandard2.0 | `GeometryHelper` |
+| `src/GeometryHelper.Dxf.Viewer.Wpf` | A | the canvas, Properties, the drawing-files panel, ribbon, command line, status bar, Global settings, Layer manager, Plugin manager; their view models | net48 and net8.0-windows (D12) | `GeometryHelper.Dxf.Viewer` |
+| `src/GeometryHelper.Drawing` | B | L0 to L7 and the drawing plugin API; no WPF | netstandard2.0 | `GeometryHelper`, `GeometryHelper.Dxf.Viewer` |
+| `src/GeometryHelper.Drawing.Wpf` | B | the drawing list, model properties, the Drawing ribbon tab, the New drawing, Drawing settings, Update and Export dialogs | net48 and net8.0-windows (D12) | `GeometryHelper.Drawing`, `GeometryHelper.Dxf.Viewer.Wpf` |
+| `src/GeometryHelper.Drawing.App` | both | the standalone app: one window built from the controls of both parts, plugin loading, opening files and sources | net8.0-windows | the four above, the bridges |
+| `src/GeometryHelper.TeklaConvert` (exists) | B | gains `DrawingSourceConvert`: Tekla model to `DrawingSource` | as now | `GeometryHelper.Drawing` |
 
-## Thư mục
+The cores and the controls are packed as NuGet packages under the same version as the others (`GeometryHelperVersion`
+in `Directory.Build.props`). The standalone app is not a NuGet package; how it is shipped is decided later (Q8).
+
+Every new project:
+
+- carries XML documentation on every public member (CS1591 fails the `-warnaserror` build without it);
+- is added to `GeometryHelper.slnx`;
+- is made when its first code is written: `Dxf.Viewer` and `Dxf.Viewer.Wpf` in C1, `Drawing` in G1, `Drawing.Wpf` in U1.
+
+## Folders
 
 ```
 src/GeometryHelper.Drawing/
-  README.md                       giới thiệu module và mục lục kế hoạch
-  plan/                           kế hoạch này (*.md)
-  GeometryHelper.Drawing.csproj
-  Drawing.cs                      kết quả: các view và tờ giấy, theo mm trên giấy
-  DrawingBuilder.cs               nguồn + thiết lập -> Drawing
-  Source/
-    DrawingObject.cs              một đối tượng: solid, loại, tên, mark, profile, vật liệu, cha, thuộc tính
-    DrawingObjectKind.cs          Part, Bolt, Hole, Weld, Rebar, ...
-    DrawingSource.cs              các đối tượng của một bản vẽ, và hệ trục của bản vẽ
-  Projection/
-    ViewProjector.cs              điểm vào của L1
-    ProjectedView2.cs             các nét và mặt cắt của một view
-    ProjectedEdge2.cs             một đoạn thẳng hoặc cung 2D, thấy/khuất, loại nét, đối tượng
-    EdgeVisibility.cs             Visible, Hidden
-    EdgeKind.cs                   Sharp, Silhouette, SectionOutline, ...
-    Internal/                     lấy cạnh, tính che khuất, chỉ mục không gian
-  Views/
-    DrawingView.cs                một view: hệ trục, scale, vùng cắt, độ sâu, nét chiếu, chú thích
-    ViewKind.cs                   Front, Top, Bottom, Left, Right, Back, Section, Detail, Isometric
-    ViewFrame3.cs                 hệ trục của view và khoảng độ sâu
-    ViewBuilder.cs                các view mà thiết lập yêu cầu
-  Annotation/
-    Dimensions/                   điểm cần đo, quy tắc dimension, chuỗi, các tầng
-    Marks/                        mark cấu kiện, assembly, bulông, đường dẫn
-    Symbols/                      đường tâm, ký hiệu hàn, cao độ, ký hiệu mặt cắt và chi tiết
-  Sheets/
-    DrawingSheet.cs               tờ giấy: khổ, khung, khung tên, các bảng
-    TitleBlock.cs
-    PartList.cs
-    SheetLayout.cs                xếp view qua SheetPacker
-  Output/
-    DrawingDxfWriter.cs           Drawing -> DxfDatabase -> file
+  README.md                       what the module is, and the plan's index (the plan covers both parts)
+  plan/                           this plan (*.md)
+
+src/GeometryHelper.Dxf.Viewer/                         Part A core
+  CadDocument.cs                  one DxfDatabase open for editing: file, undo, selection, owners
+  Owners/
+    ICadEntityOwner.cs            the owner contract (01-architecture.md)
+    CadEditRule.cs, CadEdit.cs
+  Display/
+    DisplayList2.cs               the 2D primitives of one space or viewport, cached
+    EntityRenderer.cs             entity -> primitives (lines, arcs, fills, glyphs), one per entity kind
+    PickIndex.cs                  spatial index for picking and snapping
+  Editing/
+    CadCommand.cs                 a command: name, aliases, its steps as prompts
+    CadPrompt.cs                  point, distance, selection, keyword, string prompts, as AutoCAD's
+    ObjectSnap.cs                 endpoint, midpoint, centre, intersection, perpendicular, nearest
+    Grips.cs                      grip points per entity kind, and what dragging one does
+    Commands/                     the built-in commands (ZOOM, MOVE, LINE, ...), one file each
+  Plugins/
+    CadCommandAttribute.cs        marks a plugin method as a command (60-plugins.md)
+    CadCommandContext.cs
   Settings/
-    DrawingSettings.cs            và các phần theo từng lớp, và các preset
+    GlobalSettings.cs             saved as JSON, with defaults, applied with Apply (D13)
 
-src/GeometryHelper.TeklaConvert/
-  DrawingSourceConvert.cs         assembly và part của Tekla -> DrawingSource
+src/GeometryHelper.Dxf.Viewer.Wpf/                     Part A controls
+  Controls/                       Canvas, PropertiesPanel, FilesPanel, LayoutsPanel, LayersPanel, Ribbon, CommandLine,
+                                  StatusBar, SettingsDialog, LayerManager, PluginManager
+  ViewModels/                     the logic of each control, testable without a window
+  Themes/                         colour, type and spacing resources from the design tokens (Dark, Light)
+  Fonts/                          Inter (OFL licence)
 
-tests/GeometryHelper.Drawing.UnitTest/       xUnit net48, như các bộ test khác
-  TestBodies.cs                   các cấu kiện của 20-test-cases.md, dựng bằng code
-  Projection/ Views/ Annotation/ Sheets/ Output/ Builder/
+src/GeometryHelper.Drawing/                       Part B core (the same folder as the plan)
+  GeometryHelper.Drawing.csproj
+  Drawing.cs                      the drawing document (L7)
+  DrawingBuilder.cs               source + settings -> Drawing; Update(source) rebuilds and keeps hand edits
+  Source/                         DrawingObject, DrawingObjectKind, DrawingSource
+  Projection/                     ViewProjector, ProjectedView2, ProjectedEdge2, EdgeVisibility, EdgeKind, Internal/
+  Views/                          DrawingView, ViewKind, ViewFrame3, ViewBuilder
+  Annotation/                     Dimensions/, Marks/, Symbols/
+  Sheets/                         DrawingSheet, TitleBlock, PartList, SheetLayout
+  Document/
+    DrawingEdit.cs                one hand-edit record (object, property, old value, new value)
+    DrawingLinks.cs               links from annotation and views to the model
+    DrawingOwner.cs               implements ICadEntityOwner: edits on its entities become hand edits
+    DrawingFile.cs                saving and opening the document in the DXF (A19)
+  Output/
+    DrawingDxfWriter.cs           Drawing -> DxfDatabase, every entity tagged with its owner and id
+  Settings/
+    DrawingSettings.cs            drawing settings and the presets
+  Plugins/
+    DrawingPlugin.cs              the drawing plugin base class, its input and run context (60-plugins.md)
+
+src/GeometryHelper.Drawing.Wpf/                   Part B controls
+  Controls/                       DrawingListPanel, ModelPropertiesSection, DrawingRibbonTab, NewDrawingDialog,
+                                  DrawingSettingsDialog, UpdateDialog, ExportDialog
+  ViewModels/
+
+src/GeometryHelper.Drawing.App/
+  MainWindow.xaml                 the controls laid out as in the UI design
+  App.xaml                        loads Global settings and plugins
+
+tests/GeometryHelper.Dxf.Viewer.UnitTest/         net48 xUnit: document, display, commands, snaps, owners
+tests/GeometryHelper.Drawing.UnitTest/       net48 xUnit, as the other suites
+  TestBodies.cs                   the bodies of 20-test-cases.md, built in code
+  Projection/ Views/ Annotation/ Sheets/ Document/ Output/ Settings/ Plugins/
+tests/GeometryHelper.Drawing.Wpf.UnitTest/   the view models of both parts' controls (from C1)
 
 benchmarks/GeometryHelper.Benchmarks/Scenarios/
-  Drawing*.cs                     đo thời gian chiếu nét và cả bản vẽ, có chữ ký kết quả
+  DxfViewer*.cs                       opening and drawing large DXF files, timed
+  Drawing*.cs                     projection and whole drawings, timed and signed
 
-src/GeometryHelper/docs/drawing/  (hoặc thư mục docs của project này, quyết định ở G7)
-  index.md và mỗi lớp một trang, thành một nhóm trong menu docs có trang mở đầu riêng
+src/GeometryHelper/docs/drawing/  (or a docs folder of this project, decided in G7)
+  index.md and one page per part and layer, a group of the site's menu with its own index page
 ```
 
-Để test ở project riêng thì bộ test drawing không làm chậm bộ test lõi, và khớp với cách mỗi thư viện một bộ test. Giữ
-riêng hay gộp vào `GeometryHelper.UnitTest` là quyết định D7 trong [03-decisions.md](03-decisions.md).
+The two sample plugins go in `examples/`, and as CLAUDE.md says, nothing under `examples/` is staged without asking the
+maintainer.
 
 ## Verify
 
-Khi đã có project, bước verify trong CLAUDE.md thêm một dòng:
+Once the projects exist, CLAUDE.md's verify gains:
 
 ```bash
+dotnet test tests/GeometryHelper.Dxf.Viewer.UnitTest/GeometryHelper.Dxf.Viewer.UnitTest.csproj -c Release --no-build
 dotnet test tests/GeometryHelper.Drawing.UnitTest/GeometryHelper.Drawing.UnitTest.csproj -c Release --no-build
+dotnet test tests/GeometryHelper.Drawing.Wpf.UnitTest/GeometryHelper.Drawing.Wpf.UnitTest.csproj -c Release --no-build
 ```
 
-và lệnh build `GeometryHelper.slnx` sẽ build luôn các project mới. Thay đổi nào chạm tới đường code mà benchmark đo thì
-chạy cả benchmark.
+and the build of `GeometryHelper.slnx` takes the new projects in. A change to a path the benchmarks time is checked by
+them too.
 
-## Xem kết quả
+## Looking at the output
 
-- AutoCAD 2021 qua accoreconsole, với plugin của leader (mở file, AUDIT, đếm entity), như các lần làm DXF trước.
-- Viewer có sẵn trong repo (`tools/GeometryHelper.Viewer`), đọc được DXF.
-- Ghi SVG của một view qua `SvgWriter` để xem nhanh trên trình duyệt khi đang làm L1.
+- The standalone app (from C1), opening any DXF and, from G1, the drawings of the test bodies.
+- AutoCAD 2021, through accoreconsole with the leader's own plugins (open, AUDIT, count the entities), as for the DXF
+  work before; and AutoCAD's screen beside Part A's for the same file.
+- An SVG of a view through `SvgWriter`, for a quick look in a browser while working on L1.
+- The UI set beside the design, screenshot by screenshot.

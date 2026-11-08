@@ -1,36 +1,70 @@
-# L2: view
+# L2: views
 
-## Hệ trục bản vẽ
+## A view is a window into the model (A11)
 
-Mỗi bản vẽ có một hệ trục, mặc định là hệ trục riêng của đối tượng chính (với part của Tekla: x dọc theo chiều dài, y
-hướng lên trong mặt cắt ngang). Mọi view đặt trong hệ trục đó, nên một dầm nằm dọc theo trục nào của model cũng cho cùng
-một bản vẽ.
+A view works as a Tekla view or an AutoCAD MVIEW does: a frame on the sheet that looks into the 3D model in one direction,
+at one scale, within one crop and one depth range. The lines in a view are **not dead lines**: L1 makes them again from the
+model whenever the model, the direction, the crop or the depth changes. Dimensions and marks in a view are tied to points
+of the model (L3, L7).
 
-## Các loại view
+Unlike AutoCAD's MVIEW, a view here has true hidden lines and sections, since L1 works them out from the solids; AutoCAD
+only shows the model as it was drawn.
 
-| `ViewKind` | Hướng nhìn | Ghi chú |
+## The drawing frame
+
+A drawing has one frame, by default the main object's own (a Tekla part's coordinate system: x along its length, y up
+in its cross-section). Every view is set in that frame, so a beam lying along any axis of the model gives the same
+drawing.
+
+## Kinds of view
+
+| `ViewKind` | Looks | Notes |
 |---|---|---|
-| Front | theo -y hoặc +y của hệ trục bản vẽ, tuỳ phép chiếu (D9) | view chính |
-| Top, Bottom | theo z của hệ trục | đặt trên hoặc dưới view đứng, tuỳ phép chiếu |
-| Left, Right (view đầu) | theo x của hệ trục | |
-| Back | ngược với view đứng | ít khi dùng |
-| Section | qua một mặt phẳng cắt, giữ một phía | ký hiệu mặt cắt đặt trong view chứa vết cắt (L3) |
-| Detail | một phần của view khác, cắt theo hình tròn hoặc chữ nhật, scale lớn hơn | ký hiệu chi tiết đặt trong view gốc |
-| Isometric | theo một hướng xiên cố định | mặc định không có dimension |
+| Front | from the frame's +Z, across X and up Y (Y is up in a view) | the main view; the projection method (D9) changes where the other views go round it, never what a view shows |
+| Top, Bottom | Top from +Y (across X, up -Z), Bottom from -Y (across X, up Z) | third angle puts Top above the front view and Bottom below; first angle the other way |
+| Left, Right (end views) | Right from +X (across -Z, up Y), Left from -X (across Z, up Y) | third angle puts Right on the right of the front view; first angle on the left |
+| Back | from -Z (across -X, up Y), opposite the front | rarely asked for; goes in column +2 either way |
+| Section | across a cut plane, one side kept | a section mark in the view it is cut from (L3) |
+| Detail | a part of another view, cropped by a circle or a rectangle, at a larger scale | a detail mark in the view it comes from |
+| Isometric | along a fixed oblique direction | no dimensions by default |
+| Free | a direction the user sets, as an MVIEW looking from any side | made from the UI or a plugin |
 
-Bản vẽ có những view nào là do thiết lập (L6) quyết định. View không có nét nào thì không tạo.
+Which views a drawing has is set by the settings (L6); the user adds, deletes and edits views in the UI (L8) or through a
+plugin (P). A view with no lines in it is not made.
 
 ## DrawingView
 
-- loại view và `ViewFrame3`;
-- scale, chọn từ danh sách cho phép (Q4): scale lớn nhất mà view, cộng chỗ cho dimension, vừa với phần giấy dành cho nó;
-- vùng cắt: mặc định là hộp bao các đối tượng nhìn thấy cộng một lề; khoảng độ sâu trước và sau hệ trục;
-- các nét chiếu từ L1, đổi sang mm trên giấy;
-- chú thích từ L3;
-- tiêu đề (ví dụ "SECTION A-A 1:10") và vị trí trên tờ giấy (L4).
+Its properties, which are also what Properties shows when a view is selected (see the "B2 · a view selected" board of the UI design):
 
-## View của cấu kiện dài
+| Group | Properties |
+|---|---|
+| View | name, kind, direction, scale (from the allowed list, Q4) |
+| Visible area | crop (by default the box of the objects seen plus a margin; dragged by the corner grips), depth in front, depth behind |
+| Display | hidden lines, centre lines, shortening of long views |
+| Content | the objects in the view; lines made again when the model changes |
+| On the sheet | place, title (for example "SECTION A-A 1:10") |
 
-Cấu kiện dài vẽ ở scale vừa tờ giấy có thể ra quá nhỏ để đọc. Một thiết lập cho phép rút ngắn view: cắt bỏ đoạn giữa
-các chi tiết, vẽ đường ngắt, dimension vẫn giữ độ dài thật. Phần này làm sau các bước đầu của G2, khi view thường đã chạy
-được.
+A view holds:
+
+- its `ViewFrame3` and the values above;
+- its projected lines from L1, scaled to sheet millimetres;
+- its annotation from L3;
+- a stable id (L7) for the UI, plugins and the next update to refer to.
+
+## When lines are made again
+
+- The model changes (updating the drawing): every view with a changed object.
+- The direction, crop, depth or hidden-line display changes: that view only.
+- The scale changes: no new lines, only the scale on the sheet; the annotation is placed again.
+
+## Views of long parts
+
+A long part at a scale that fits the sheet can come out too small to read. A setting allows a view to be shortened:
+the length between the features is cut out and the view drawn with break lines, dimensions keeping the true lengths.
+This comes after G2's first steps, once the plain views work.
+
+## In the DXF
+
+By D10, each view becomes by default one viewport in a layout of the DXF, at its scale, looking at the view's lines placed
+at 1:1 in model space, so that AutoCAD opens it on layouts and viewports as MVIEW makes them. The other way is the sheet
+at 1:1 in model space ([15-output-dxf.md](15-output-dxf.md)).

@@ -338,7 +338,12 @@ or diameter sign before a radius are not part of the text.
 What draws a dimension is the block AutoCAD drew for it, `DimBlock` (`*D7`), placed at `DimBlockPosition`: the library
 writes a point, a text or a variable and leaves that block as it was, for AutoCAD to draw anew when it next draws the
 dimension, so AutoCAD shows the old picture until then. A dimension made in code is given its `DimBlock`, a block of the
-drawing, before it is appended. A block, linetype or text style set on a dimension in no drawing, or on a copy, is held as
+drawing, before it is appended. Its picture is made as AutoCAD makes an anonymous block, a block named `*D` added to the
+drawing: `var picture = new DxfBlockTableRecord { Name = "*D" }; db.BlockTable.Add(picture);` names it `*D1`, the first
+number no block, INSERT, dimension or table of the drawing names, and marks it anonymous (`IsAnonymous`, flag 1 of its
+BLOCK), as ezdxf writes the picture of a dimension. A rotated dimension of 100 whose `*D1` holds its dimension line and an
+MTEXT `100` is saved and read back drawn by `*D1` with its two entities; a drawing whose dimensions ezdxf drew as `*D1` to
+`*D11` names the next `*D12`. A block, linetype or text style set on a dimension in no drawing, or on a copy, is held as
 the record it is (a `Clone()` holds it too) and taken to the record of its name in the drawing it is added to, refused where
 there is none of that name to take it to.
 
