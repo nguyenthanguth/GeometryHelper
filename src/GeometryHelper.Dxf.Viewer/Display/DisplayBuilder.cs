@@ -582,7 +582,59 @@ namespace GeometryHelper.Dxf.Viewer
             double rotation = Math.Atan2(direction.Y, direction.X);
             Affine2 m = frame.Matrix;
             double turn = Orient(m, rotation, false, false, out bool backward);
-            list.Add(new DisplayText2(value, m.X(at.X, at.Y), m.Y(at.X, at.Y), text.TextHeight * m.Scale, turn, 1.0, horizontal, vertical, style, handle, layerName, FontOf(text.TextStyleName), ObliqueOf(text.TextStyleName), backward));
+            list.Add(new DisplayText2(value, m.X(at.X, at.Y), m.Y(at.X, at.Y), text.TextHeight * m.Scale, turn, WidthOf(text.Contents), horizontal, vertical, style, handle, layerName, FontOf(text.TextStyleName), ObliqueOf(text.TextStyleName), backward));
+        }
+
+        /// <summary>
+        /// The width factor of an MTEXT's letters: that its codes set before the first of its words, <c>\W0.8000;</c> for 0.8 as
+        /// AutoCAD writes it, a factor ending in x taken of the one before; 1 where they set none. A width set later in the words
+        /// is not read, as the words are drawn at one width.
+        /// </summary>
+        private static double WidthOf(string contents)
+        {
+            double factor = 1.0;
+            int i = 0;
+
+            while (i < contents.Length)
+            {
+                if (contents[i] == '{')
+                {
+                    i++;
+                    continue;
+                }
+
+                if (contents[i] != '\\' || i + 1 >= contents.Length)
+                {
+                    break;
+                }
+
+                char code = contents[i + 1];
+
+                if ("LlOoKk".IndexOf(code) >= 0)
+                {
+                    i += 2;
+                    continue;
+                }
+
+                int end = contents.IndexOf(';', i + 2);
+
+                if ("ACcFfHQTWp".IndexOf(code) < 0 || end < 0)
+                {
+                    break;
+                }
+
+                string number = contents.Substring(i + 2, end - i - 2);
+                bool times = number.EndsWith("x", StringComparison.OrdinalIgnoreCase);
+
+                if (code == 'W' && double.TryParse(times ? number.Substring(0, number.Length - 1) : number, NumberStyles.Float, CultureInfo.InvariantCulture, out double read) && read > 0.0)
+                {
+                    factor = times ? factor * read : read;
+                }
+
+                i = end + 1;
+            }
+
+            return factor;
         }
 
         /// <summary>

@@ -48,6 +48,14 @@ kept as a DIMTXT override of the dimension, so that a CAD that draws it again fr
 
 **CHANGED.** The presenter's controls draw through SkiaSharp 4.155.0, where they used 3.119.1.
 
+**FIXED.** A part or bolt mark no longer stands on the arrows of a short dimension. A dimension line shorter than two
+arrows has its arrows drawn outside it, and marks now keep clear of the line run on by one arrow at each end, as weld
+symbols already did: the line of a 25 dimension at 1:20 with text 2.5 high is kept clear of 50 beyond each end. Of 114
+marks on five test bodies, 18 moved, all in views with short dimensions.
+
+**FIXED.** The 2D presenter draws an MTEXT at the width factor its words open with (`\W0.8000;` for 0.8, as the T
+command and AutoCAD write it) and measures it at that width, as it does a TEXT.
+
 **CHANGED.** Placing labels among many blocks is faster, with the same results to the bit: `Arranger.Run` skips the
 obstacles whose box lies farther than the nearest distance already found, and asks the spatial index for the
 neighbourhood of each place, not all of them. The densest arranging benchmark goes from 55.8 ms to 49.9 ms.

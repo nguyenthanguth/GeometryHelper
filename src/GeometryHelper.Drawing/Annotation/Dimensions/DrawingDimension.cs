@@ -137,6 +137,32 @@ namespace GeometryHelper.Drawing.Annotation
         public GeoLine2? DimensionLine { get; }
 
         /// <summary>
+        /// The dimension line as it is drawn, for keeping clear of it: one shorter than two arrows, which has its arrows outside,
+        /// run on by an arrow's length, the text's height, at each end; null for a dimension with no line.
+        /// </summary>
+        internal GeoLine2? DrawnLine
+        {
+            get
+            {
+                if (!DimensionLine.HasValue)
+                {
+                    return null;
+                }
+
+                GeoLine2 line = DimensionLine.Value;
+                double length = line.Length, arrow = TextHeight;
+
+                if (length >= 2.0 * arrow || !(length > 0.0))
+                {
+                    return line;
+                }
+
+                double ux = (line.EndPoint.X - line.StartPoint.X) / length * arrow, uy = (line.EndPoint.Y - line.StartPoint.Y) / length * arrow;
+                return new GeoLine2(line.StartPoint.X - ux, line.StartPoint.Y - uy, line.EndPoint.X + ux, line.EndPoint.Y + uy);
+            }
+        }
+
+        /// <summary>
         /// Gets the extension lines, from just off each point out to just past the dimension line; for a cumulative or ordinate
         /// dimension the one leader, from just off its point to its tier.
         /// </summary>

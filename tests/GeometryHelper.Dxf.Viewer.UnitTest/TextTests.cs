@@ -30,6 +30,36 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(shown, MText(contents).Text);
         }
 
+        [Theory]
+        [InlineData(@"\W0.8000;PLATE", 0.8)]
+        [InlineData(@"{\H1.2x;\W0.75;PLATE}", 0.75)]
+        [InlineData(@"\W2;\W0.4x;PLATE", 0.8)]
+        [InlineData(@"PLATE", 1.0)]
+        public void AnMTextIsDrawnAtTheWidthItsCodesSetBeforeItsWordsAndMeasuredAtIt(string contents, double factor)
+        {
+            DisplayText2 shown = MText(contents);
+
+            // PLATE 2.5 high, five letters each 0.6 of the height wide at a width factor of 1: 7.5 wide, 6 at 0.8.
+            Assert.Equal("PLATE", shown.Text);
+            Assert.Equal(factor, shown.WidthFactor, 9);
+            Assert.Equal(5 * 2.5 * 0.6 * factor, shown.EstimatedWidth, 9);
+        }
+
+        [Fact]
+        public void AnMTextWrittenByTheMTextCommandAtAWidthFactorIsDrawnAtItAsTheTextIs()
+        {
+            CadDocument document = EditingDrawings.Blank();
+            CadCommandSession session = EditingDrawings.Session(document);
+            session.Remembered["text.widthFactor"] = 0.8;
+
+            EditingDrawings.Run(session, "DT", EditingDrawings.P(0, 0), "2.5", "0", "PLATE", EditingDrawings.Enter);
+            EditingDrawings.Run(session, "T", EditingDrawings.P(0, 40), EditingDrawings.P(50, 30), "PLATE");
+
+            DisplayText2[] shown = document.GetDisplay(document.ModelSpace).Items.OfType<DisplayText2>().ToArray();
+            Assert.Equal(2, shown.Length);
+            Assert.All(shown, t => Assert.Equal(0.8, t.WidthFactor, 9));
+        }
+
         [Fact]
         public void ATextCarriesItsStylesTypefaceAndItsOwnSlant()
         {

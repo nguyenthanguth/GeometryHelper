@@ -152,9 +152,11 @@ namespace GeometryHelper.Drawing.Annotation
                     hits.Add(" over the text of dimension ");
                 }
 
-                if (d.DimensionLine.HasValue)
+                GeoLine2? drawn = d.DrawnLine;
+
+                if (drawn.HasValue)
                 {
-                    GeoLine2 line = Drawn(d.DimensionLine.Value, d.TextHeight);
+                    GeoLine2 line = drawn.Value;
 
                     if (Box2.Crosses(box, line.StartPoint, line.EndPoint, tol))
                     {
@@ -191,20 +193,6 @@ namespace GeometryHelper.Drawing.Annotation
             }
 
             return any;
-        }
-
-        /// <summary>A dimension line as it is drawn: run on by an arrow's length, the text's height, at each end where it is shorter than two.</summary>
-        private static GeoLine2 Drawn(GeoLine2 line, double arrow)
-        {
-            double length = line.Length;
-
-            if (length >= 2.0 * arrow || !(length > 0.0))
-            {
-                return line;
-            }
-
-            double ux = (line.EndPoint.X - line.StartPoint.X) / length * arrow, uy = (line.EndPoint.Y - line.StartPoint.Y) / length * arrow;
-            return new GeoLine2(line.StartPoint.X - ux, line.StartPoint.Y - uy, line.EndPoint.X + ux, line.EndPoint.Y + uy);
         }
 
         private static (int Across, int Up)[] MakeOffsets()

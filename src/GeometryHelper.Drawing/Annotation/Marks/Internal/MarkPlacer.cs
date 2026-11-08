@@ -175,9 +175,12 @@ namespace GeometryHelper.Drawing.Annotation
             {
                 hard.Add(new GeoPolygon2(d.TextBox.GetVertices()));
 
-                if (d.DimensionLine.HasValue)
+                // A short line is kept clear of with its arrows outside it.
+                GeoLine2? line = d.DrawnLine;
+
+                if (line.HasValue)
                 {
-                    hard.Add(Box2.Around(d.DimensionLine.Value.StartPoint, d.DimensionLine.Value.EndPoint, thin));
+                    hard.Add(Box2.Around(line.Value.StartPoint, line.Value.EndPoint, thin));
                 }
 
                 foreach (GeoLine2 extension in d.ExtensionLines)

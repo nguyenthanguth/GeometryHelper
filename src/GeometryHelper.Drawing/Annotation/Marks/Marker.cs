@@ -177,7 +177,10 @@ namespace GeometryHelper.Drawing.Annotation
         /// <param name="tolerance">The tolerance: boxes and lines meeting within it are not counted.</param>
         /// <returns>One line of words for each overlap, the marks in their order, each pair once; empty where none overlaps.</returns>
         /// <remarks>
-        /// Each text is taken as its box, <see cref="DrawingMark.TextBox"/> and <see cref="DrawingDimension.TextBox"/>. A leader
+        /// Each text is taken as its box, <see cref="DrawingMark.TextBox"/> and <see cref="DrawingDimension.TextBox"/>, and a
+        /// dimension line shorter than two arrows as run on by an arrow, the text's height, at each end, as it is drawn with
+        /// its arrows outside: the line of a 25 dimension at 1:20, its text 2.5 high on paper and so 50 in the view, is taken
+        /// run on by 50 at each end. A leader
         /// across a dimension's line or extension line is not counted, as a draughtsman lets one cross; nor is a mark over
         /// the view's own lines, which <see cref="Mark(ProjectedView2, IEnumerable{DrawingObject}, GeoCoordinateSystem3, IEnumerable{DrawingDimension}, MarkSettings, MarkContent, double, Tolerance)"/> keeps clear of only where it can.
         /// </remarks>
@@ -295,7 +298,8 @@ namespace GeometryHelper.Drawing.Annotation
 
         /// <summary>
         /// Adds a line for each way a mark meets the dimensions: its text over a dimension's text, line or extension line, its
-        /// leader across a dimension's text; with no list, stops at the first and says whether there was one.
+        /// leader across a dimension's text; with no list, stops at the first and says whether there was one. A dimension line
+        /// shorter than two arrows is taken run on by an arrow at each end, as it is drawn with its arrows outside.
         /// </summary>
         internal static bool DimensionClash(string id, GeoRectangle2 text, GeoPoint2 a, GeoPoint2 b, List<DrawingDimension> dims, double tol, List<string> found)
         {
@@ -309,7 +313,9 @@ namespace GeometryHelper.Drawing.Annotation
                     found?.Add(id + " text over the text of dimension " + d.Id);
                 }
 
-                if (d.DimensionLine.HasValue && Box2.Crosses(text, d.DimensionLine.Value.StartPoint, d.DimensionLine.Value.EndPoint, tol))
+                GeoLine2? line = d.DrawnLine;
+
+                if (line.HasValue && Box2.Crosses(text, line.Value.StartPoint, line.Value.EndPoint, tol))
                 {
                     any = true;
                     found?.Add(id + " text over the line of dimension " + d.Id);

@@ -96,6 +96,65 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         }
 
         [Fact]
+        public void NoMarkOfTC1TC2OrTC5SitsOnTheArrowsOfAShortDimensionDrawnOutsideIt()
+        {
+            var found = new List<string>();
+            int arrows = 0;
+
+            foreach (TestBody body in new[] { TestBodies.TC1(), TestBodies.TC2(), TestBodies.TC5() })
+            {
+                GeoCoordinateSystem3 frame = body.ToSource().Frame;
+
+                foreach (ViewKind kind in new[] { ViewKind.Front, ViewKind.Top, ViewKind.Right })
+                {
+                    foreach (double scale in new[] { 10.0, 20.0 })
+                    {
+                        Marked marked = Mark(Objects(body), StandardViews.GetFrame(frame, kind).CoordinateSystem, scale);
+
+                        foreach (DrawingDimension d in marked.Dimensions)
+                        {
+                            // A line shorter than two arrows has its arrows outside, each as long as the text is high and a
+                            // third of that wide, its tip at an end of the line: taken here as the box round it.
+                            if (!d.DimensionLine.HasValue || d.DimensionLine.Value.Length >= 2.0 * d.TextHeight)
+                            {
+                                continue;
+                            }
+
+                            GeoLine2 line = d.DimensionLine.Value;
+                            double length = line.Length, h = d.TextHeight;
+                            double ux = (line.EndPoint.X - line.StartPoint.X) / length, uy = (line.EndPoint.Y - line.StartPoint.Y) / length;
+
+                            foreach ((GeoPoint2 tip, double sign) in new[] { (line.StartPoint, -1.0), (line.EndPoint, 1.0) })
+                            {
+                                arrows++;
+                                var back = new GeoPoint2(tip.X + sign * ux * h, tip.Y + sign * uy * h);
+                                double minX = Math.Min(tip.X, back.X) - Math.Abs(uy) * h / 6, maxX = Math.Max(tip.X, back.X) + Math.Abs(uy) * h / 6;
+                                double minY = Math.Min(tip.Y, back.Y) - Math.Abs(ux) * h / 6, maxY = Math.Max(tip.Y, back.Y) + Math.Abs(ux) * h / 6;
+
+                                foreach (DrawingMark mark in marked.Marks)
+                                {
+                                    GeoRectangle2 box = mark.TextBox;
+                                    double left = box.Center.X - box.Width / 2, right = box.Center.X + box.Width / 2;
+                                    double bottom = box.Center.Y - box.Height / 2, top = box.Center.Y + box.Height / 2;
+
+                                    if (left < maxX - Tol.EqualPoint && right > minX + Tol.EqualPoint && bottom < maxY - Tol.EqualPoint && top > minY + Tol.EqualPoint)
+                                    {
+                                        found.Add(body.Name + " " + kind + " 1:" + scale + ": " + mark.Id + " over an arrow of " + d.Id);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            found.ForEach(_output.WriteLine);
+            _output.WriteLine(arrows + " arrows outside short dimensions");
+            Assert.NotEqual(0, arrows);
+            Assert.Empty(found);
+        }
+
+        [Fact]
         public void APlateHiddenWholeBehindAnotherGetsNoMark()
         {
             DrawingObject big = Part("A-big", Box(0, 0, 10, 400, 300, 30), true);
