@@ -26,8 +26,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// </remarks>
     public sealed partial class MainViewModel : ObservableObject
     {
-        /// <summary>The line the command line shows before anything has been written to it.</summary>
+        /// <summary>The line the command line shows before anything has been written to it, where a host makes drawings from a model.</summary>
         public const string WelcomeText = "Welcome. Ctrl+O opens a DXF, Ctrl+N makes a drawing from a model.";
+
+        /// <summary>The line the command line shows before anything has been written to it, where no host makes drawings from a model: GeometryHelper DXF's.</summary>
+        public const string NewDrawingWelcomeText = "Welcome. Ctrl+O opens a DXF, Ctrl+N starts a new drawing.";
 
         /// <summary>The label at the top left of the canvas in model space.</summary>
         public const string ModelViewportLabel = "[-][Model][2D Wireframe]";
@@ -114,24 +117,59 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Raised by Ctrl+N and the start screen's "New drawing from a model": a host that makes drawings from a model (Part B)
-        /// shows its New drawing dialog. With no handler the button is disabled and Ctrl+N does nothing.
+        /// shows its New drawing dialog. With no handler the button is hidden and Ctrl+N makes a new empty drawing (NEW).
         /// </summary>
         public event EventHandler NewFromModelRequested
         {
             add
             {
                 _newFromModel += value;
-                ((DelegateCommand)NewFromModelCommand).RaiseCanExecuteChanged();
+                OnNewFromModelChanged();
             }
 
             remove
             {
                 _newFromModel -= value;
-                ((DelegateCommand)NewFromModelCommand).RaiseCanExecuteChanged();
+                OnNewFromModelChanged();
             }
         }
 
         private EventHandler _newFromModel;
+
+        /// <summary>
+        /// Gets whether a host makes drawings from a model, handling <see cref="NewFromModelRequested"/>: the start screen then
+        /// offers "New drawing from a model" and Ctrl+N asks for one; without, as in GeometryHelper DXF, Ctrl+N is NEW.
+        /// </summary>
+        public bool CanMakeFromModel => _newFromModel != null;
+
+        /// <summary>Gets the line under the name of the app on the start screen.</summary>
+        public string StartScreenText => CanMakeFromModel
+            ? "Open and edit any 2D drawing, or make drawings from a model. No file is open."
+            : "Open and edit any 2D drawing. No file is open.";
+
+        /// <summary>
+        /// Ctrl+N: a new drawing from a model where a host makes them (<see cref="NewFromModelRequested"/>), else a new empty
+        /// drawing (NEW), as AutoCAD's Ctrl+N.
+        /// </summary>
+        public void NewByShortcut()
+        {
+            if (CanMakeFromModel)
+            {
+                NewFromModelCommand.Execute(null);
+            }
+            else
+            {
+                NewDrawing();
+            }
+        }
+
+        private void OnNewFromModelChanged()
+        {
+            ((DelegateCommand)NewFromModelCommand).RaiseCanExecuteChanged();
+            Raise(nameof(CanMakeFromModel));
+            Raise(nameof(StartScreenText));
+            Raise(nameof(RecentHistory));
+        }
 
         /// <summary>Gets the extensions added, in the order they were added; their ribbon tabs follow Home in that order.</summary>
         /// <remarks>Each read gives a new list, so that a window bound to it before an extension was added shows its tab.</remarks>
@@ -406,9 +444,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets every line the command line has written, the oldest first.</summary>
         public ObservableCollection<string> History { get; } = new ObservableCollection<string>();
 
-        /// <summary>Gets the last three lines of <see cref="History"/>, those the command line shows above its input; <see cref="WelcomeText"/> before any.</summary>
+        /// <summary>
+        /// Gets the last three lines of <see cref="History"/>, those the command line shows above its input; before any,
+        /// <see cref="WelcomeText"/> where a host makes drawings from a model and <see cref="NewDrawingWelcomeText"/> where none does.
+        /// </summary>
         public IReadOnlyList<string> RecentHistory => History.Count == 0
-            ? new[] { WelcomeText }
+            ? new[] { CanMakeFromModel ? WelcomeText : NewDrawingWelcomeText }
             : History.Skip(Math.Max(0, History.Count - HistoryShown)).ToList();
 
         /// <summary>Gets the prompt of the command running, empty with none.</summary>
@@ -420,11 +461,27 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets whether the prompt waiting takes text with spaces in it, so that Space types a space rather than ending the line.</summary>
         public bool PromptTakesSpaces => Session?.Prompt?.Kind == CadPromptKind.String;
 
-        /// <summary>Gets or sets the text typed in the command line.</summary>
+        /// <summary>Gets or sets the text typed in the command line; emptied, it closes the AutoComplete list.</summary>
         public string CommandText
         {
             get => _commandText;
-            set => Set(ref _commandText, value ?? string.Empty);
+            set
+            {
+                if (!Set(ref _commandText, value ?? string.Empty))
+                {
+                    return;
+                }
+
+                // With the AutoComplete list open it follows what is typed at once; emptied, it closes.
+                if (_commandText.Length == 0)
+                {
+                    CloseSuggestions();
+                }
+                else if (IsSuggestionListOpen)
+                {
+                    ShowSuggestions();
+                }
+            }
         }
 
         /// <summary>Gets the coordinates of the cursor as the status bar shows them: "X 1 234.50   Y 567.80".</summary>
@@ -521,6 +578,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (_files.TryGetValue(full, out KnownFile known) && known.Document != null)
             {
                 Show(known);
+                NoteRecentFile(full);
                 return true;
             }
 
@@ -531,6 +589,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (saved != null)
             {
                 Show(saved);
+                NoteRecentFile(full);
                 return true;
             }
 
@@ -556,6 +615,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ListFolder(known.Folder);
             Show(known);
             Say("Opened " + document.Title + ": " + Count(document.EntityCount) + " entities, " + Count(document.Layers.Count) + " layers.");
+            NoteRecentFile(full);
             OfferMissingFonts(document);
             return true;
         }
@@ -780,6 +840,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             string text = CommandText;
             CommandText = string.Empty;
+            CloseSuggestions();
             _recall = -1;
 
             if (!TakeDynamicInput(text))
@@ -825,6 +886,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             CadCommandSession session = _current.Session;
 
+            if (line.Trim().Length > 0 && !session.IsRunning)
+            {
+                NoteCommandTyped(session.Registry, line);
+            }
+
             if (line.Trim().Length == 0)
             {
                 session.Enter();
@@ -858,6 +924,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (_current == null || string.IsNullOrWhiteSpace(name))
             {
                 return;
+            }
+
+            string known = _current.Session.Registry.Find(name)?.Name ?? _current.Session.Registry.FindVariable(name)?.Name;
+
+            if (known != null)
+            {
+                NoteCommandUsed(known);
             }
 
             _current.Session.Start(name);

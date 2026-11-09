@@ -61,8 +61,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Raised when a value of Global settings is changed from the command line or a dialog other than Global settings:
-        /// PICKBOX, APERTURE, LWDISPLAY, POLARANG, or the increment of Drafting Settings. The window keeps the settings in use in
-        /// the settings file, as it keeps DYN and OSMODE.
+        /// PICKBOX, APERTURE, LWDISPLAY, POLARANG, the increment of Drafting Settings, the command line's Input Settings; and
+        /// when what the settings remember changes: a command used, a misspelling corrected, a file opened or pinned. The window
+        /// keeps the settings in use in the settings file, as it keeps DYN and OSMODE.
         /// </summary>
         public event EventHandler SettingsChanged;
 

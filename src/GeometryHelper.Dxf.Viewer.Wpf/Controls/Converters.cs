@@ -34,6 +34,55 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
     }
 
+    /// <summary>
+    /// Turns the key of an icon of the icon set, as GhIconLayers, into its drawing: the icon of a row of the command line's
+    /// AutoComplete list or of the application menu. A text that is no key of the set is read as path data, as
+    /// "M4 4h16v16H4z"; null, or a text that reads as neither, gives nothing.
+    /// </summary>
+    public sealed class IconKeyConverter : IValueConverter
+    {
+        private static ResourceDictionary _icons;
+
+        /// <summary>Finds the icon of a key.</summary>
+        /// <param name="value">The key.</param>
+        /// <param name="targetType">Not used.</param>
+        /// <param name="parameter">Not used.</param>
+        /// <param name="culture">Not used.</param>
+        /// <returns>The geometry, or null.</returns>
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (!(value is string key) || key.Length == 0)
+            {
+                return null;
+            }
+
+            _icons = _icons ?? new ResourceDictionary { Source = new Uri("pack://application:,,,/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Icons.xaml", UriKind.Absolute) };
+
+            if (_icons.Contains(key))
+            {
+                return _icons[key];
+            }
+
+            try
+            {
+                return System.Windows.Media.Geometry.Parse(key);
+            }
+            catch (FormatException)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>Not supported: the key is read, never written back.</summary>
+        /// <param name="value">Not used.</param>
+        /// <param name="targetType">Not used.</param>
+        /// <param name="parameter">Not used.</param>
+        /// <param name="culture">Not used.</param>
+        /// <returns>Nothing; it throws.</returns>
+        /// <exception cref="NotSupportedException">Always.</exception>
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
+    }
+
     /// <summary>Turns a colour given as 0xRRGGBB, as <see cref="CadLayerInfo.Rgb"/> gives it, into a brush: the swatch of a layer.</summary>
     public sealed class RgbBrushConverter : IValueConverter
     {

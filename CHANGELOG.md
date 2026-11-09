@@ -22,6 +22,35 @@ ZOOM and PAN change the viewport's view, one undo step each; `ZOOM 1/50XP` sets 
 display is locked keeps its view. The status bar's scale list and Properties' Standard scale, Custom scale and Display
 locked rows set a viewport's scale: 1:50 in a viewport 100 high shows 5 000 of model space. `CadDocument.EnterViewport`,
 `LeaveViewport`, `ActiveViewport`, `WorkingSpace`, `SetViewportView` and `CadViewports` are the API.
+
+**NEW.** The presenter's command line has AutoCAD 2021's AutoComplete. With a drawing open and no command running, the
+list opens above the command line 300 ms after the last key: LA typed lists LAYER first with "alias LA", then the commands
+that begin with LA, the most used first (each command run is counted, `GlobalSettings.CommandUses`, kept in the settings
+file), then the system variables marked {x}, then, below a rule, the names with LA inside (CLAYER, PLAN, POLAR). Enter or
+Space runs the row chosen, the arrows move it, Esc closes the list. Ten synonyms are built in (ROUND for FILLET, BEVEL for
+CHAMFER, DELETE and REMOVE for ERASE, DUPLICATE for COPY, FLIP for MIRROR, TURN for ROTATE, RESIZE for SCALE, SYMBOL for
+INSERT, PRINT for PLOT), shown as `ROUND (FILLET)`. AutoCorrect: LIEN followed by LINE three times has LINE offered first
+for LIEN (`GlobalSettings.NoteCorrection`, `CorrectionOf`). The command line's right-click menu has Recent Commands (the
+last 20), Input Settings (AutoComplete, AutoCorrect, Search System Variables, Mid-string Search, kept in the settings
+file; Search Content greyed; Delay Time…, `Enter the delay time in milliseconds <300>:`, the new INPUTSEARCHDELAY
+command), Copy, Copy History, Paste, Paste To CmdLine and Options…. `MainViewModel.ShowSuggestions`, `Suggestions`,
+`RunSuggestion`, `RecentCommands` and `CommandLineMenu` are the API.
+
+**NEW.** The G button of the presenter drops the application menu: a search box for the commands; New, Open, Save,
+Save As, Export (PDF through PLOT, PNG, JPG, BMP, WBLOCK), Print (Plot, Plot Preview, Page Setup) and Close (the drawing
+shown, or all), the entries not built greyed; Options and Exit. Recent Documents shows the pinned files first in the order
+pinned, then the others newest first, 9 in all; a file opened by the Open dialog, a drop, the app's command line or the
+lists goes to the top, and the list and its pins are kept in the settings file (`GlobalSettings.RecentFiles`,
+`NoteFileOpened`, `SetFilePinned`). Resting the pointer on a file shows its preview, path, version, date and size, read
+from the top and the end of the file only. `MainViewModel.CreateAppMenu`, `RecentDocuments` and `PinRecent` are the API.
+
+**NEW.** The start screen lists Recent Documents (pinned and recent, with their previews, as a list or as large pictures)
+and is GeometryHelper DXF's own where no host makes drawings from a model (`MainViewModel.CanMakeFromModel`): no "New
+drawing from a model", `New · Ctrl+N` instead of "Blank drawing", and "Ctrl+O opens a DXF, Ctrl+N starts a new drawing."
+on the command line. Ctrl+N makes a new drawing there (`MainViewModel.NewByShortcut`); GeometryHelper Drawing keeps its
+items. The screenshot mode draws the new menus with `--dialog app-menu[:export]`, `cmdline-menu`, `input-settings-menu`,
+`recent-commands-menu` and `autocomplete:LA`, and fills Recent Documents with `--recent`.
+
 **NEW.** The presenter has SETVAR and the system variables drafters set, typed as commands as in AutoCAD 2021: `Enter
 variable name or [?] <FILLETRAD>:`, then `Enter new value for FILLETRAD <10.0000>:`; a variable's name typed alone asks the
 same, and `?` lists those a pattern of wildcards matches. FILLETRAD 5 writes `$FILLETRAD` 5 into the header as one undo

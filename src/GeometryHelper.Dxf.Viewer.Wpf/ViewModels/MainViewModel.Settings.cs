@@ -119,6 +119,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             SetCursor(0.0, 0.0);
+            RebuildRecent();
             Raise(nameof(Settings));
             SettingsApplied?.Invoke(this, EventArgs.Empty);
         }

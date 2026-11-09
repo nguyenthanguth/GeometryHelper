@@ -716,10 +716,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return true;
         }
 
-        /// <summary>Puts every category back to its defaults, not applied until Apply or OK.</summary>
+        /// <summary>
+        /// Puts every category back to its defaults, not applied until Apply or OK; what the settings remember (the commands
+        /// used, the misspellings corrected, the recent files) is kept.
+        /// </summary>
         public void Reset()
         {
-            Load(new GlobalSettings());
+            var defaults = new GlobalSettings();
+            defaults.CopyRecordsFrom(_working);
+            Load(defaults);
             Notice = "Every category is back to its defaults; Apply or OK takes them.";
         }
 

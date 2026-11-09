@@ -12,6 +12,7 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml" />
                 <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Icons.xaml" />
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Recent.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
             <local:BoolToVisibilityConverter x:Key="Shown" />
@@ -1238,6 +1239,88 @@
                 </local:RibbonStrip>
             </DataTemplate>
 
+            <!-- Recent Documents of the start screen: the headings, a chromeless button to open a file, a row of the list and a large picture. -->
+            <Style x:Key="RecentHeading" TargetType="TextBlock">
+                <Setter Property="Margin" Value="0,8,0,2" />
+                <Setter Property="FontSize" Value="11" />
+                <Setter Property="FontWeight" Value="Medium" />
+                <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+            </Style>
+
+            <Style x:Key="RecentOpen" TargetType="Button">
+                <Setter Property="Foreground" Value="{StaticResource GhText}" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="Transparent">
+                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <DataTemplate x:Key="RecentPicture" DataType="{x:Type local:RecentDocumentViewModel}">
+                <Border Background="Black" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="2">
+                    <Grid>
+                        <Image Source="{Binding Thumbnail}" Stretch="Uniform" Margin="1" RenderOptions.BitmapScalingMode="HighQuality"
+                               Visibility="{Binding HasThumbnail, Converter={StaticResource Shown}}" />
+                        <local:IconView Size="20" StrokeThickness="1.6" Stroke="#5B6573" Data="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5"
+                                        HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding HasThumbnail, Converter={StaticResource Hidden}}" />
+                    </Grid>
+                </Border>
+            </DataTemplate>
+
+            <DataTemplate x:Key="RecentRow" DataType="{x:Type local:RecentDocumentViewModel}">
+                <Border x:Name="Row" BorderBrush="{StaticResource GhHeader}" BorderThickness="0,1,0,0" Padding="4" Background="Transparent">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource RecentPinButton}" Width="24" Height="24" Margin="8,0,0,0" Content="{Binding}"
+                                Command="{Binding PinCommand}" ToolTip="{Binding PinText}" AutomationProperties.Name="{Binding PinText}" />
+                        <Button Style="{StaticResource RecentOpen}" Command="{Binding OpenCommand}" ToolTip="{StaticResource RecentDocumentToolTip}"
+                                AutomationProperties.Name="{Binding Name}">
+                            <DockPanel>
+                                <ContentPresenter Width="56" Height="40" Content="{Binding}" ContentTemplate="{StaticResource RecentPicture}" />
+                                <TextBlock DockPanel.Dock="Right" Text="{Binding OpenedText}" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                                <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Path}" FontFamily="{StaticResource GhMonoFont}" FontSize="11" Foreground="{StaticResource GhTextMuted}"
+                                               TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Button>
+                    </DockPanel>
+                </Border>
+                <DataTemplate.Triggers>
+                    <Trigger SourceName="Row" Property="IsMouseOver" Value="True">
+                        <Setter TargetName="Row" Property="Background" Value="{StaticResource GhHeader}" />
+                    </Trigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
+            <DataTemplate x:Key="RecentTile" DataType="{x:Type local:RecentDocumentViewModel}">
+                <Border x:Name="Tile" Width="174" Margin="0,0,8,8" Padding="6" CornerRadius="4" Background="Transparent">
+                    <Grid>
+                        <Button Style="{StaticResource RecentOpen}" Command="{Binding OpenCommand}" ToolTip="{StaticResource RecentDocumentToolTip}"
+                                AutomationProperties.Name="{Binding Name}">
+                            <StackPanel>
+                                <ContentPresenter Height="110" Content="{Binding}" ContentTemplate="{StaticResource RecentPicture}" />
+                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Margin="0,6,0,0" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding OpenedText}" Foreground="{StaticResource GhTextMuted}" />
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource RecentPinButton}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,2,2,0" Content="{Binding}"
+                                Command="{Binding PinCommand}" ToolTip="{Binding PinText}" AutomationProperties.Name="{Binding PinText}" />
+                    </Grid>
+                </Border>
+                <DataTemplate.Triggers>
+                    <Trigger SourceName="Tile" Property="IsMouseOver" Value="True">
+                        <Setter TargetName="Tile" Property="Background" Value="{StaticResource GhHeader}" />
+                    </Trigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
             <DataTemplate x:Key="LayerItem">
                 <StackPanel Orientation="Horizontal">
                     <Border Width="10" Height="10" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" Margin="0,0,6,0"
@@ -1265,10 +1348,31 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <Border Width="22" Height="22" CornerRadius="4" Background="{StaticResource GhAccent}">
-                    <TextBlock Text="G" FontWeight="Bold" FontSize="12" Foreground="{StaticResource GhAccentInk}"
-                               HorizontalAlignment="Center" VerticalAlignment="Center" />
-                </Border>
+                <!-- The G button: the application menu dropped under it (design AppMenu). -->
+                <Button x:Name="AppMenuButton" Width="22" Height="22" Click="OnAppMenuButton" shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                        ToolTip="Application menu" AutomationProperties.Name="Application menu" Focusable="False">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Mark" CornerRadius="4" Background="{StaticResource GhAccent}">
+                                <TextBlock Text="G" FontWeight="Bold" FontSize="12" Foreground="{StaticResource GhAccentInk}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Mark" Property="Background" Value="#6CB6FF" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+                <Popup x:Name="AppMenuPopup" PlacementTarget="{Binding ElementName=AppMenuButton}" Placement="Bottom" VerticalOffset="2" HorizontalOffset="-4"
+                       StaysOpen="False" AllowsTransparency="True" Focusable="False" Closed="OnAppMenuClosed">
+                    <local:AppMenuView x:Name="AppMenu" Margin="0,0,8,8">
+                        <local:AppMenuView.Effect>
+                            <DropShadowEffect BlurRadius="20" ShadowDepth="6" Opacity="0.6" Color="Black" />
+                        </local:AppMenuView.Effect>
+                    </local:AppMenuView>
+                </Popup>
                 <StackPanel Orientation="Horizontal" Margin="14,0,0,0">
                     <Button Style="{StaticResource GhFlatButton}" Command="{Binding NewCommand}" ToolTip="New: an empty drawing (NEW)" Margin="0,0,10,0"
                             shell:WindowChrome.IsHitTestVisibleInChrome="True">
@@ -1902,17 +2006,88 @@
                                  PreviewKeyDown="OnInPlaceKey" LostKeyboardFocus="OnInPlaceLostFocus" />
                         <local:CadMTextEditBox x:Name="MTextEditorBox" Visibility="Collapsed" />
                     </Canvas>
-                    <StackPanel Width="680" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    <!--
+                    The start screen (design S1StartDxf): the app, Open, New, and Recent Documents as a list or as large pictures.
+                    "New drawing from a model" shows only where a host makes drawings from a model; without one, as GeometryHelper
+                    DXF, the third button is NEW with Ctrl+N.
+                    -->
+                    <StackPanel Width="760" HorizontalAlignment="Center" VerticalAlignment="Center"
                                 Visibility="{Binding HasDocument, Converter={StaticResource Hidden}}">
                         <TextBlock Text="{Binding AppName, RelativeSource={RelativeSource AncestorType=local:CadWorkspace}}" FontSize="28" FontWeight="Bold" />
-                        <TextBlock Text="Open and edit any 2D drawing, or make drawings from a model. No file is open."
-                                   Foreground="{StaticResource GhTextMuted}" Margin="0,6,0,20" />
+                        <TextBlock Text="{Binding StartScreenText}" Foreground="{StaticResource GhTextMuted}" Margin="0,6,0,20" />
                         <StackPanel Orientation="Horizontal">
                             <Button Style="{StaticResource PrimaryButton}" Content="Open DXF…  ·  Ctrl+O" Command="{Binding OpenCommand}" />
                             <Button Style="{StaticResource SecondaryButton}" Content="New drawing from a model…  ·  Ctrl+N" IsEnabled="True"
-                                    Command="{Binding NewFromModelCommand}" ToolTip="Make a drawing from the objects of a model (DRAWINGNEW)" />
-                            <Button Style="{StaticResource SecondaryButton}" Content="Blank drawing" IsEnabled="True" Command="{Binding NewCommand}" ToolTip="A new empty drawing (NEW)" />
+                                    Command="{Binding NewFromModelCommand}" ToolTip="Make a drawing from the objects of a model (DRAWINGNEW)"
+                                    Visibility="{Binding CanMakeFromModel, Converter={StaticResource Shown}}" />
+                            <Button IsEnabled="True" Command="{Binding NewCommand}" ToolTip="A new empty drawing (NEW)">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                                        <Setter Property="Content" Value="New  ·  Ctrl+N" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CanMakeFromModel}" Value="True">
+                                                <Setter Property="Content" Value="Blank drawing" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
                         </StackPanel>
+                        <Border Margin="0,20,0,0" Padding="12" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="6" Background="{StaticResource GhBg}">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,4">
+                                    <Button DockPanel.Dock="Right" Width="22" Height="20" Margin="2,0,0,0" Command="{Binding ShowRecentLargeCommand}"
+                                            ToolTip="Show as large images" AutomationProperties.Name="Show as large images">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource GhFlatButton}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsRecentLarge}" Value="True">
+                                                        <Setter Property="Background" Value="{StaticResource GhSelected}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                        <local:IconView Size="14" StrokeThickness="2" Stroke="{StaticResource GhTextMuted}" Data="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" />
+                                    </Button>
+                                    <Button DockPanel.Dock="Right" Width="22" Height="20" Margin="8,0,0,0" Command="{Binding ShowRecentAsListCommand}"
+                                            ToolTip="Show as a list" AutomationProperties.Name="Show as a list">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource GhFlatButton}">
+                                                <Setter Property="Background" Value="{StaticResource GhSelected}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsRecentLarge}" Value="True">
+                                                        <Setter Property="Background" Value="Transparent" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                        <local:IconView Size="14" StrokeThickness="2" Stroke="{StaticResource GhText}" Data="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" />
+                                    </Button>
+                                    <TextBlock DockPanel.Dock="Right" Text="By date opened" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Recent Documents" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                </DockPanel>
+                                <TextBlock Margin="0,8,0,4" Foreground="{StaticResource GhTextMuted}" Text="The drawings you open are listed here; a pin keeps one at the top."
+                                           Visibility="{Binding HasRecentDocuments, Converter={StaticResource Hidden}}" />
+
+                                <!-- As a list: PINNED, then RECENT; each row its preview, name, folder, date and pin. -->
+                                <StackPanel Visibility="{Binding IsRecentLarge, Converter={StaticResource Hidden}}">
+                                    <TextBlock Style="{StaticResource RecentHeading}" Text="PINNED" Visibility="{Binding HasPinnedDocuments, Converter={StaticResource Shown}}" />
+                                    <ItemsControl ItemsSource="{Binding PinnedDocuments}" ItemTemplate="{StaticResource RecentRow}" Focusable="False" />
+                                    <TextBlock Style="{StaticResource RecentHeading}" Text="RECENT" Visibility="{Binding HasUnpinnedDocuments, Converter={StaticResource Shown}}" />
+                                    <ItemsControl ItemsSource="{Binding UnpinnedDocuments}" ItemTemplate="{StaticResource RecentRow}" Focusable="False" />
+                                </StackPanel>
+
+                                <!-- As large pictures, in the same order. -->
+                                <ItemsControl ItemsSource="{Binding RecentDocuments}" ItemTemplate="{StaticResource RecentTile}" Focusable="False" Margin="0,8,0,0"
+                                              Visibility="{Binding IsRecentLarge, Converter={StaticResource Shown}}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </Grid>
                 <Border Grid.Row="1" Background="{StaticResource GhInput}" BorderBrush="{StaticResource GhBorder}" BorderThickness="0,1,0,0"
@@ -1930,9 +2105,18 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                         </DockPanel>
-                        <Border Margin="8,0,8,8" Padding="8,4" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="2"
-                                Background="{StaticResource GhCommandInput}">
+                        <!-- The input: right-click for its menu (Recent Commands, Input Settings, Copy, Paste, Options…); AutoComplete pops up above it. -->
+                        <Border x:Name="CommandInput" Margin="8,0,8,8" Padding="8,4" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="2"
+                                Background="{StaticResource GhCommandInput}" PreviewMouseRightButtonUp="OnCommandLineRightUp">
                             <DockPanel>
+                                <Popup x:Name="SuggestionPopup" PlacementTarget="{Binding ElementName=CommandInput}" Placement="Top" VerticalOffset="-2"
+                                       IsOpen="{Binding IsSuggestionListOpen, Mode=OneWay}" StaysOpen="True" AllowsTransparency="True" Focusable="False">
+                                    <local:CommandSuggestionList x:Name="SuggestionList" Margin="0,0,8,8">
+                                        <local:CommandSuggestionList.Effect>
+                                            <DropShadowEffect BlurRadius="16" ShadowDepth="6" Opacity="0.5" Color="Black" />
+                                        </local:CommandSuggestionList.Effect>
+                                    </local:CommandSuggestionList>
+                                </Popup>
                                 <local:IconView Size="14" StrokeThickness="2" Stroke="{StaticResource GhTextMuted}" Data="{StaticResource GhIconPrompt}"
                                                 VerticalAlignment="Center" Margin="0,0,8,0" />
                                 <TextBlock Text="{Binding Prompt}" VerticalAlignment="Center" Margin="0,0,8,0" />

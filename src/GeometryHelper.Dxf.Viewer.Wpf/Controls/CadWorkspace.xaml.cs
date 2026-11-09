@@ -16,8 +16,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <see cref="MainViewModel"/>; a window or a host such as a Tekla plugin puts it in and lets it run.
     /// </summary>
     /// <remarks>
-    /// Keys as AutoCAD's: Esc cancels the command, then clears the selection; Ctrl+O opens a DXF, Ctrl+W switches selection cycling, Ctrl+N asks a host for a new
-    /// drawing from a model (<see cref="MainViewModel.NewFromModelRequested"/>), Ctrl+S saves, Ctrl+Shift+S
+    /// Keys as AutoCAD's: Esc closes the AutoComplete list, then cancels the command, then clears the selection; Ctrl+O opens a
+    /// DXF, Ctrl+W switches selection cycling, Ctrl+N asks a host for a new drawing from a model
+    /// (<see cref="MainViewModel.NewFromModelRequested"/>) or, with no such host, makes a new drawing (NEW), Ctrl+S saves, Ctrl+Shift+S
     /// saves as, Ctrl+Z undoes and Ctrl+Y redoes, Delete erases the selection; F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR,
     /// F11 OTRACK, F12 DYN (the prompt and what is typed shown beside the cursor, Tab moving between its fields at a point prompt), and
     /// Ctrl+9 shows or hides the command line. In the DRAWINGS list a click selects a row, a double click or Enter opens it,
@@ -29,7 +30,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// narrows, Home's panels shrink as AutoCAD's do (<see cref="RibbonStrip"/>): at 1 600 pixels View, Clipboard, Utilities
     /// and Groups are each one button that drops the panel below it.
     /// Letters typed with the focus on the canvas go to the command line, where Enter or Space runs the line (Space types a
-    /// space at a prompt for text) and Up and Down recall what was typed before. A value of Properties is committed by Enter
+    /// space at a prompt for text) and Up and Down recall what was typed before. Once no key has come for the delay of Input
+    /// Settings, the AutoComplete list opens above the command line; while it is open the arrows move its row chosen and
+    /// Enter or Space runs that row. A right click on the command line gives its menu, and the G button the application
+    /// menu. A value of Properties is committed by Enter
     /// or by leaving it, and Esc puts the old one back. DXF files dropped on it are opened.
     /// </remarks>
     public partial class CadWorkspace : UserControl
@@ -43,6 +47,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             nameof(AppName), typeof(string), typeof(CadWorkspace), new PropertyMetadata("GeometryHelper Drawing"));
 
         private readonly System.Windows.Threading.DispatcherTimer _autosave = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
+        private readonly System.Windows.Threading.DispatcherTimer _suggest = new System.Windows.Threading.DispatcherTimer();
+        private AppMenuViewModel _appMenu;
         private MainViewModel _model;
         private DateTime _lastAutosave = DateTime.UtcNow;
 
@@ -82,6 +88,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _autosave.Tick += (s, e) => AutosaveIfDue();
             Loaded += (s, e) => _autosave.Start();
             Unloaded += (s, e) => _autosave.Stop();
+
+            // AutoComplete: the list opens once no key has come for the delay of Input Settings (300 ms by default).
+            _suggest.Tick += (s, e) =>
+            {
+                _suggest.Stop();
+                _model?.ShowSuggestions();
+            };
+            Loaded += (s, e) =>
+            {
+                Window window = Window.GetWindow(this);
+
+                if (window != null)
+                {
+                    window.Deactivated += (w, a) => _model?.CloseSuggestions();
+                }
+            };
         }
 
         /// <summary>Gets or sets what the far right of the title bar holds, as a window's minimise, maximise and close buttons.</summary>
@@ -234,6 +256,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 // Cells of a table selected: the arrows move them, Delete empties them, F2 opens one for typing, Esc lets them go.
                 e.Handled = true;
             }
+            else if (key == Key.Escape && _model.IsSuggestionListOpen)
+            {
+                // Esc closes the AutoComplete list first, keeping what is typed.
+                _model.CloseSuggestions();
+                e.Handled = true;
+            }
             else if (key == Key.Escape && !inEditor)
             {
                 if (!CanvasView.CancelGesture())
@@ -248,9 +276,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 ShowOpenDialog();
                 e.Handled = true;
             }
-            else if (modifiers == ModifierKeys.Control && key == Key.N && _model.NewFromModelCommand.CanExecute(null))
+            else if (modifiers == ModifierKeys.Control && key == Key.N)
             {
-                _model.NewFromModelCommand.Execute(null);
+                // A drawing from a model where the host makes them, else NEW, as in AutoCAD.
+                _model.NewByShortcut();
                 e.Handled = true;
             }
             else if (modifiers == ModifierKeys.Control && key == Key.S)
@@ -347,7 +376,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
             else if (_model.CommandText.Length > 0 && (e.Key == Key.Space || e.Key == Key.Enter))
             {
-                _model.SubmitCommand();
+                if (!_model.RunSuggestion())
+                {
+                    _model.SubmitCommand();
+                }
+
                 e.Handled = true;
             }
             else if (e.Key == Key.Space && Keyboard.Modifiers == ModifierKeys.Shift && _model.Document != null && _model.Document.SelectionCycling >= 1)
@@ -444,6 +477,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.StyleDialogRequested -= OnStyleDialogRequested;
                 _model.InPlaceEditChanged -= OnInPlaceEditChanged;
                 _model.TableCellChanged -= OnTableCellChanged;
+                _model.PropertyChanged -= OnModelPropertyChanged;
             }
 
             _model = e.NewValue as MainViewModel;
@@ -490,6 +524,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 MainViewModel shown = _model;
                 _model.ShowExternalReferences = palette => ExternalReferencesWindow.ShowPalette(Window.GetWindow(this), shown, palette);
                 _model.ShowAttachReference = dialog => AttachReferenceWindow.Show(Window.GetWindow(this), dialog);
+                _model.ReadClipboardText = () => Clipboard.ContainsText() ? Clipboard.GetText() : null;
+                _model.WriteClipboardText = text => Clipboard.SetText(text ?? string.Empty);
+                _model.PropertyChanged += OnModelPropertyChanged;
 
                 if (CanvasView.PixelWidth > 0 && CanvasView.PixelHeight > 0)
                 {
@@ -777,6 +814,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
+            if (_model.IsSuggestionListOpen)
+            {
+                // The AutoComplete list open: the arrows move the row chosen, Enter or Space runs it.
+                switch (e.Key)
+                {
+                    case Key.Up:
+                    case Key.Down:
+                        _model.MoveSuggestion(e.Key == Key.Down ? 1 : -1);
+                        BringChosenIntoView();
+                        e.Handled = true;
+                        return;
+                    case Key.Enter:
+                    case Key.Space:
+                        _suggest.Stop();
+                        _model.RunSuggestion();
+                        e.Handled = true;
+                        return;
+                }
+            }
+
             switch (e.Key)
             {
                 case Key.Space when _model.PromptTakesSpaces:
@@ -784,6 +841,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case Key.Enter:
                 case Key.Space:
                     // Space ends the line as Enter does, as in AutoCAD.
+                    _suggest.Stop();
                     _model.SubmitCommand();
                     e.Handled = true;
                     break;
@@ -798,6 +856,101 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     e.Handled = true;
                     break;
             }
+        }
+
+        /// <summary>What is typed changed: the AutoComplete list is asked for once the delay of Input Settings has gone by with no other key.</summary>
+        private void OnModelPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != nameof(MainViewModel.CommandText) || _model == null)
+            {
+                return;
+            }
+
+            _suggest.Stop();
+
+            if (_model.CommandText.Length > 0 && !_model.IsSuggestionListOpen)
+            {
+                _suggest.Interval = TimeSpan.FromMilliseconds(_model.Settings.AutoCompleteDelay);
+                _suggest.Start();
+            }
+        }
+
+        /// <summary>The row chosen of the AutoComplete list scrolled into sight after the arrows moved it.</summary>
+        private void BringChosenIntoView()
+        {
+            SuggestionList.UpdateLayout();
+            int index = _model.Suggestions.ToList().FindIndex(s => s.IsSelected);
+            ItemsControl rows = FindChild<ItemsControl>(SuggestionList);
+
+            if (index >= 0 && rows?.ItemContainerGenerator.ContainerFromIndex(index) is FrameworkElement row)
+            {
+                row.BringIntoView();
+            }
+        }
+
+        private static T FindChild<T>(DependencyObject parent) where T : DependencyObject
+        {
+            for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                DependencyObject child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+
+                if (child is T found)
+                {
+                    return found;
+                }
+
+                T deeper = FindChild<T>(child);
+
+                if (deeper != null)
+                {
+                    return deeper;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>A right click on the command line: its menu, as AutoCAD's (Recent Commands, Input Settings, Copy, Copy History, Paste, Paste To CmdLine, Options…).</summary>
+        private void OnCommandLineRightUp(object sender, MouseButtonEventArgs e)
+        {
+            if (_model != null)
+            {
+                ShowMenu(_model.CommandLineMenu(CommandBox.SelectedText), CommandInput);
+                e.Handled = true;
+            }
+        }
+
+        /// <summary>The G button: the application menu dropped under it, the keyboard in its search box.</summary>
+        private void OnAppMenuButton(object sender, RoutedEventArgs e)
+        {
+            if (_model == null)
+            {
+                return;
+            }
+
+            _model.CloseSuggestions();
+            _appMenu = _model.CreateAppMenu(AppName);
+            _appMenu.Chosen += OnAppMenuChosen;
+            _appMenu.ExitRequested += OnAppMenuExit;
+            AppMenu.DataContext = _appMenu;
+            AppMenuPopup.IsOpen = true;
+            AppMenu.FocusSearch();
+        }
+
+        private void OnAppMenuChosen(object sender, EventArgs e) => AppMenuPopup.IsOpen = false;
+
+        private void OnAppMenuExit(object sender, EventArgs e) => Dispatcher.BeginInvoke(new Action(() => Window.GetWindow(this)?.Close()));
+
+        private void OnAppMenuClosed(object sender, EventArgs e)
+        {
+            if (_appMenu != null)
+            {
+                _appMenu.Chosen -= OnAppMenuChosen;
+                _appMenu.ExitRequested -= OnAppMenuExit;
+                _appMenu = null;
+            }
+
+            AppMenu.DataContext = null;
         }
 
         /// <summary>A menu of the Text Editor tab: Symbol, Justification, Line Spacing, Case, Clear; the editor keeps the keyboard.</summary>

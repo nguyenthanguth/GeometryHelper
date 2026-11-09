@@ -40,8 +40,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <c>missing-shx-replace</c>, <c>ptype</c>, <c>linetype</c>, <c>linetype-load</c>, <c>select-linetype</c>, <c>hatch</c>,
     /// <c>hatch-gradient</c>, <c>hatch-user</c>, <c>hatch-solid</c>, <c>hatch-file</c>, <c>block</c>, <c>insert</c>,
     /// <c>wblock</c>, <c>attdef</c>, <c>eattedit[:Tab]</c>, <c>style</c>, <c>style-new</c>, <c>dimstyle</c>,
-    /// <c>dimstyle-new</c>, <c>dimstyle-modify[:Tab]</c>, <c>dimstyle-override[:Tab]</c>, <c>dimstyle-compare[:Other]</c> and
-    /// <c>pastespec</c>, the lines of <c>--run</c> typed first where the dialog needs them.
+    /// <c>dimstyle-new</c>, <c>dimstyle-modify[:Tab]</c>, <c>dimstyle-override[:Tab]</c>, <c>dimstyle-compare[:Other]</c>,
+    /// <c>pastespec</c>, <c>app-menu[:new|open|saveas|export|print|close]</c> (the application menu, on Recent Documents or the
+    /// list of an item), <c>cmdline-menu</c>, <c>input-settings-menu</c> and <c>recent-commands-menu</c> (the command line's
+    /// right-click menu and its two submenus) and <c>autocomplete:LA</c> (the AutoComplete list for what is typed), the lines of
+    /// <c>--run</c> typed first where the dialog needs them. <c>--recent "D:\a.dxf|*D:\b.dxf"</c> fills Recent Documents, the
+    /// newest first, a file written with * pinned.
     /// </para>
     /// <para>
     /// A host adds its own options through the protected members: <see cref="ReadOption"/> takes them off the command line,
@@ -77,7 +81,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Gets the line written to the error output when the arguments of <c>--screenshot</c> do not read: the options the
         /// presenter knows, after the name of the program.
         /// </summary>
-        protected virtual string Usage => "Usage: " + (Assembly.GetEntryAssembly()?.GetName().Name ?? "app") + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--tab Insert|Annotate|View|Plugins|Settings] [--dialog save-changes|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|pastespec] [--plugin path.dll]";
+        protected virtual string Usage => "Usage: " + (Assembly.GetEntryAssembly()?.GetName().Name ?? "app") + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--tab Insert|Annotate|View|Plugins|Settings] [--dialog save-changes|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
 
         /// <summary>
         /// Runs the app on the STA thread of its entry point: the window until it is closed, or the screenshot where the first
@@ -262,6 +266,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             string tab = null;
             string dialogName = null;
             string pluginPath = null;
+            string recent = null;
             var toggles = new List<string>();
             var select = new List<string>();
             int width = 1600;
@@ -311,6 +316,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 else if (string.Equals(arg, "--plugin", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
                 {
                     pluginPath = Path.GetFullPath(args[++i]);
+                }
+                else if (string.Equals(arg, "--recent", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+                {
+                    recent = args[++i];
                 }
                 else if (ReadOption(args, ref i))
                 {
@@ -435,7 +444,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 width = (int)dialog.Width;
                 height = (int)dialog.Height;
             }
-            else if (dialogName != null && dialogName.EndsWith("-menu", StringComparison.OrdinalIgnoreCase))
+            else if (dialogName != null && dialogName.EndsWith("-menu", StringComparison.OrdinalIgnoreCase) && !dialogName.StartsWith("app-menu", StringComparison.OrdinalIgnoreCase))
             {
                 // A menu of the window, drawn as it opens: the lines of --run typed first, for the menu of a point prompt.
                 // Each part is one line of the command line; an empty part is Enter.
@@ -455,6 +464,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 IReadOnlyList<CadMenuItemViewModel> items = string.Equals(dialogName, "osnap-menu", StringComparison.OrdinalIgnoreCase) ? model.OsnapMenu()
                     : string.Equals(dialogName, "snap-menu", StringComparison.OrdinalIgnoreCase) ? model.SnapOverrideMenu()
                     : string.Equals(dialogName, "drawings-menu", StringComparison.OrdinalIgnoreCase) ? model.FileRowMenu(row)
+                    : string.Equals(dialogName, "cmdline-menu", StringComparison.OrdinalIgnoreCase) ? model.CommandLineMenu()
+                    : string.Equals(dialogName, "recent-commands-menu", StringComparison.OrdinalIgnoreCase) ? model.CommandLineMenu()[0].Items
+                    : string.Equals(dialogName, "input-settings-menu", StringComparison.OrdinalIgnoreCase) ? model.CommandLineMenu()[1].Items
                     : Array.Empty<CadMenuItemViewModel>();
 
                 if (items.Count == 0)
@@ -547,6 +559,45 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 width = (int)window.Width;
                 height = double.IsNaN(window.Height) ? MeasuredHeight(root, width) : (int)window.Height;
             }
+            else if (dialogName != null && dialogName.StartsWith("app-menu", StringComparison.OrdinalIgnoreCase))
+            {
+                // The application menu of the G button, on Recent Documents or, after a colon, the list of an item: app-menu:export.
+                FillRecent(model, recent);
+                AppMenuViewModel menu = model.CreateAppMenu(AppName);
+                int colon = dialogName.IndexOf(':');
+
+                if (colon > 0)
+                {
+                    menu.ShownItem = menu.Items.FirstOrDefault(m => string.Equals(m.Key, dialogName.Substring(colon + 1), StringComparison.OrdinalIgnoreCase));
+                }
+
+                root = new AppMenuView { DataContext = menu };
+                window = new Window { DataContext = menu };
+                width = 620;
+                height = BoundHeight(root, width);
+            }
+            else if (dialogName != null && dialogName.StartsWith("autocomplete:", StringComparison.OrdinalIgnoreCase))
+            {
+                // The command line's AutoComplete list for what follows the colon, the lines of --run typed first.
+                foreach (string line in run == null ? Array.Empty<string>() : run.Split(';'))
+                {
+                    model.Execute(line);
+                }
+
+                run = null;
+
+                if (model.Document == null)
+                {
+                    model.NewDrawing();
+                }
+
+                model.CommandText = dialogName.Substring("autocomplete:".Length);
+                model.ShowSuggestions();
+                root = new CommandSuggestionList { DataContext = model };
+                window = new Window { DataContext = model };
+                width = 380;
+                height = BoundHeight(root, width);
+            }
             else if (dialogName != null && GlobalCategory(dialogName, out string category))
             {
                 // Global settings on a category, as OPTIONS shows it: --dialog options, or --dialog "settings:Canvas and cursor".
@@ -608,6 +659,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 window = new CadAppWindow(model, AppName);
                 model.ApplySettings(new GlobalSettings());
+                FillRecent(model, recent);
                 root = (FrameworkElement)window.Content;
             }
 
@@ -768,6 +820,34 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// The files of --recent put into Recent Documents, parted by |, the first opened last (an hour apart), a file written
+        /// with * pinned in the order written; nothing for null.
+        /// </summary>
+        private static void FillRecent(MainViewModel model, string recent)
+        {
+            if (recent == null)
+            {
+                return;
+            }
+
+            GlobalSettings settings = model.Settings.Clone();
+            string[] files = recent.Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
+            DateTime now = DateTime.UtcNow;
+
+            for (int i = files.Length - 1; i >= 0; i--)
+            {
+                settings.NoteFileOpened(Path.GetFullPath(files[i].TrimStart('*')), now.AddHours(-i));
+            }
+
+            foreach (string file in files.Where(f => f.StartsWith("*", StringComparison.Ordinal)))
+            {
+                settings.SetFilePinned(Path.GetFullPath(file.TrimStart('*')), true);
+            }
+
+            model.ApplySettings(settings);
         }
 
         /// <summary>Whether a --dialog names Global settings: options, or settings: and one of its categories, given back.</summary>
@@ -941,6 +1021,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 default:
                     return false;
             }
+        }
+
+        /// <summary>The height a view sized to its content takes at a width, its bindings to its data context let run first.</summary>
+        private static int BoundHeight(FrameworkElement root, int width)
+        {
+            root.Measure(new Size(width, double.PositiveInfinity));
+            Dispatcher.CurrentDispatcher.Invoke(new Action(() => { }), DispatcherPriority.Background);
+            return MeasuredHeight(root, width);
         }
 
         /// <summary>The height a dialog sized to its content takes at a width.</summary>

@@ -1,0 +1,60 @@
+<UserControl x:Class="GeometryHelper.Dxf.Viewer.Wpf.CommandSuggestionList"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+             Width="380" FontFamily="{DynamicResource GhFont}" FontSize="12" Foreground="{DynamicResource GhText}"
+             UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+
+    <!--
+    The command line's AutoComplete list (design CmdAutoComplete): a row per command, synonym or system variable, the letters
+    typed in bold accent, the variables with {x}, the names with the letters inside below a rule. Its data context is the
+    MainViewModel; a click runs a row.
+    -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml" />
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Icons.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <local:BoolToVisibilityConverter x:Key="Shown" />
+            <local:IconKeyConverter x:Key="Icon" />
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Border Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="2" Padding="0,2">
+        <ScrollViewer x:Name="Scroller" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False" MaxHeight="340">
+            <ItemsControl ItemsSource="{Binding Suggestions}" Focusable="False">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type local:CommandSuggestionViewModel}">
+                        <StackPanel>
+                            <Border Margin="0,3" BorderBrush="{StaticResource GhBorder}" BorderThickness="0,1,0,0"
+                                    Visibility="{Binding StartsMidString, Converter={StaticResource Shown}}" />
+                            <Border x:Name="Row" Padding="8,3" Background="Transparent" MouseLeftButtonUp="OnRowClick" Cursor="Hand"
+                                    AutomationProperties.Name="{Binding Name}">
+                                <DockPanel>
+                                    <Grid Width="18" Height="16" Margin="0,0,6,0">
+                                        <TextBlock Text="{}{x}" FontFamily="{StaticResource GhMonoFont}" FontSize="10" FontWeight="SemiBold" Foreground="#E3B341"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding IsVariable, Converter={StaticResource Shown}}" />
+                                        <local:IconView Size="16" StrokeThickness="1.8" Stroke="{StaticResource GhIcon}" Data="{Binding IconKey, Converter={StaticResource Icon}}"
+                                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Grid>
+                                    <TextBlock DockPanel.Dock="Right" Text="{Binding Note}" Foreground="{StaticResource GhTextMuted}" FontSize="11" FontWeight="Medium"
+                                               VerticalAlignment="Center" Margin="8,0,0,0" />
+                                    <TextBlock FontFamily="{StaticResource GhMonoFont}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"><Run Text="{Binding Before, Mode=OneWay}" /><Run Text="{Binding Hit, Mode=OneWay}" Foreground="#6CB6FF" FontWeight="Bold" /><Run Text="{Binding After, Mode=OneWay}" /><Run Text="{Binding Synonym, Mode=OneWay}" Foreground="{StaticResource GhTextMuted}" /></TextBlock>
+                                </DockPanel>
+                            </Border>
+                        </StackPanel>
+                        <DataTemplate.Triggers>
+                            <Trigger SourceName="Row" Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Row" Property="Background" Value="{StaticResource GhHover}" />
+                            </Trigger>
+                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                <Setter TargetName="Row" Property="Background" Value="{StaticResource GhSelected}" />
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </Border>
+</UserControl>

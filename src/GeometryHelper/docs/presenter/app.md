@@ -104,12 +104,13 @@ tab (see [Command plugins](plugins.md)), a Settings tab, and the tabs a host add
 
 | Key | Does |
 |---|---|
-| Esc | cancels the command; then clears the selection |
-| Space, Enter | ends a command or a prompt; Enter alone runs the last command again |
+| Esc | closes the AutoComplete list; then cancels the command; then clears the selection |
+| Space, Enter | runs the row chosen of the AutoComplete list; else ends a command or a prompt; Enter alone runs the last command again |
+| Up, Down | move the row chosen of the AutoComplete list; with the list closed, recall what was typed before |
 | Ctrl+O | opens a DXF |
 | Ctrl+W | switches selection cycling on and off, as AutoCAD 2021 |
 | Ctrl+S, Ctrl+Shift+S | saves, saves as |
-| Ctrl+N | asks a host for a new drawing from a model |
+| Ctrl+N | asks a host for a new drawing from a model; where no host makes them, as in GeometryHelper DXF, makes a new drawing (NEW) |
 | Ctrl+Z, Ctrl+Y | undo, redo |
 | Delete | erases the selection |
 | F3, F7, F8, F9, F10, F11, F12 | OSNAP, GRID, ORTHO, SNAP, POLAR, OTRACK, DYN |
@@ -134,6 +135,61 @@ The function keys, Delete and the Ctrl keys of [the defaults](editing.md#aliases
 
 While MOVE, COPY, ROTATE, SCALE or MIRROR waits for its second point, a dashed ghost of the objects follows the cursor; an
 XLINE or a RAY among them is drawn across the view as the canvas draws it, moved, turned, scaled or mirrored with the rest.
+
+### The command line
+
+With a drawing open and no command running, the command line lists what matches the letters typed once no key has come
+for 300 milliseconds, as AutoCAD 2021's AutoComplete. LA typed lists LAYER first with "alias LA" at its right, then the
+commands that begin with LA, the ones used most first and the rest by name, then the system variables that begin with LA
+(each marked {x}), then, below a rule, the names with LA inside: CLAYER, PLAN, POLAR. The first row is chosen: Enter or
+Space runs it, the arrows move it, a click runs another and Esc closes the list, keeping what is typed. Typing on with the
+list open updates it at once.
+
+- **Most used first.** Each command run is counted, and the counts are kept in the settings file, so that a command used
+  three times comes before one used once among those that begin with the same letters.
+- **Synonyms.** ROUND is offered as `ROUND (FILLET)` and runs FILLET; likewise BEVEL (CHAMFER), DELETE and REMOVE (ERASE),
+  DUPLICATE (COPY), FLIP (MIRROR), TURN (ROTATE), RESIZE (SCALE), SYMBOL (INSERT) and PRINT (PLOT).
+- **AutoCorrect.** A name no command has, followed by a command, is noted: LIEN typed three times, each followed by LINE,
+  has LINE offered first, marked AutoCorrect, the next time LIEN is typed. The corrections are kept in the settings file.
+
+A right click on the command line gives its menu: **Recent Commands** (the last 20 run, the newest first, each runs again),
+**Input Settings** (AutoComplete, AutoCorrect, Search System Variables and Mid-string Search, ticked when on and kept in the
+settings file; Search Content greyed; Delay Time…, which asks `Enter the delay time in milliseconds <300>:`, 100 to
+10 000), **Copy** (the text selected in the command line), **Copy History** (every line written), **Paste** (the first
+line of the clipboard added to what is typed), **Paste To CmdLine** (each line of the clipboard run in turn) and
+**Options…** (Global settings).
+
+### The application menu and Recent Documents
+
+The G button at the top left drops the application menu, as AutoCAD's: a search box for the commands, then New, Open,
+Save, Save As, Export, Print and Close, and Options and Exit at the foot. Resting the pointer on an item with ▸ shows its
+list at the right; a click on the item runs the first entry of its list.
+
+| Item | Entries |
+|---|---|
+| New | Drawing (NEW); Drawing from a model, where a host makes them |
+| Open | Drawing (the Open dialog, Ctrl+O) |
+| Save As | Drawing (SAVEAS); Drawing Template and Other Formats greyed |
+| Export | PDF (PLOT, to GeometryHelper PDF), PNG, JPG and BMP (PNGOUT, JPGOUT, BMPOUT), Block or objects to a DXF (WBLOCK); Other Formats greyed |
+| Print | Plot (PLOT), Plot Preview (PREVIEW), Page Setup (PAGESETUP); Batch Plot and Manage Plot Styles greyed |
+| Close | Current Drawing (CLOSE), All Drawings |
+
+With no item under the pointer, the right of the menu shows **Recent Documents**: the pinned files first in the order they
+were pinned, a rule, then the others by the date they were opened, newest first, 9 in all unless more are pinned. A file
+opened by any way (the Open dialog, a file dropped on the window, the app's command line, the lists themselves) goes to
+the top. The pin at the right of a row pins or unpins it. Resting the pointer on a name shows its preview picture, path,
+version, date and size: only the top of the file (for `$ACADVER`) and its end (for the THUMBNAILIMAGE section) are read,
+and only then, so a list of large files shows at once. The list and its pins are kept in the settings file.
+
+### The start screen
+
+With no drawing open the canvas shows the start screen: the name of the app, Open DXF… (Ctrl+O), New, and Recent
+Documents with the same files and pins as the application menu, under PINNED and RECENT headings, each row with its
+preview, folder and when it was opened (`today 09:14`, `yesterday 16:40`, `2026-10-30`); the two buttons at its top right
+show the files as a list or as large pictures. GeometryHelper DXF, which makes no drawing from a model, offers `New ·
+Ctrl+N` (NEW) and says "Ctrl+O opens a DXF, Ctrl+N starts a new drawing." on the command line; GeometryHelper Drawing adds
+"New drawing from a model… · Ctrl+N" and calls NEW "Blank drawing". The window tells the two apart by whether a host
+handles `MainViewModel.NewFromModelRequested` (`MainViewModel.CanMakeFromModel`).
 
 ## The apps
 
@@ -181,14 +237,18 @@ it cannot read. Both apps take these options:
 | `--plugin path.dll` | loads a command plugin, every file trusted, into a folder of the run under the temporary folder |
 | `--layers` | draws the Layer manager instead of the window |
 | `--dialog name` | draws a dialog or a menu instead of the window, the lines of `--run` typed first where it needs them |
+| `--recent "a.dxf\|*b.dxf"` | fills Recent Documents, the first the newest, a file written with `*` pinned |
 
 The dialogs are `save-changes`; `options` or `settings:Canvas and cursor` (Global settings on a category); `plugins`,
 `plugin-settings` and `plugin-untrusted`; `color`, `truecolor` and `truecolor-rgb` (Select Color on index 30);
 `dsettings[:Tab]`; the menus `osnap-menu`, `snap-menu` (after `--run "LINE"`) and `drawings-menu`; `missing-shx` and
 `missing-shx-replace`; `ptype`; `linetype`, `linetype-load`, `select-linetype`, `hatch`, `hatch-gradient`, `hatch-user`,
 `hatch-solid` and `hatch-file`; `block`, `insert`, `wblock`, `attdef` and `eattedit[:Tab]`; `style`, `style-new`,
-`dimstyle`, `dimstyle-new`, `dimstyle-modify[:Tab]`, `dimstyle-override[:Tab]` and `dimstyle-compare[:Other]`; and
-`pastespec`. A name neither app knows exits with 2: `--dialog update: no such dialog.` from GeometryHelper DXF.
+`dimstyle`, `dimstyle-new`, `dimstyle-modify[:Tab]`, `dimstyle-override[:Tab]` and `dimstyle-compare[:Other]`;
+`pastespec`; `app-menu` and `app-menu:export` (the application menu on Recent Documents, or on the list of New, Open,
+Save As, Export, Print or Close); the command line's menus `cmdline-menu`, `input-settings-menu` and `recent-commands-menu`;
+and `autocomplete:LA` (the AutoComplete list for LA). A popup of the running window cannot be drawn; these draw its
+content alone. A name neither app knows exits with 2: `--dialog update: no such dialog.` from GeometryHelper DXF.
 
 GeometryHelper Drawing adds its own: `--new-drawing "Test bodies" Assembly` makes a model drawing from a source with a
 preset and shows it, `--tab Drawing` shows its tab, `--pick view|dimension|mark|line` selects the first entity of the
