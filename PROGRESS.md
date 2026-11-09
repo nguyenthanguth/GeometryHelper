@@ -42,6 +42,8 @@ The list of work on the drawing stack: Part A, the 2D presenter (`GeometryHelper
       screenshot mode shared with Drawing.App through `CadAppHost`
 - [x] Blocks round 2: EATTEDIT live with Apply kept open, INSERT drags the block, -ATTEDIT picks one attribute, ATTSYNC,
       Block Definition previews the selection, redefine a block brought from another drawing
+- [x] Draw options: ARC every AutoCAD way and tangent continue, CIRCLE Ttr and Tan Tan Tan, PLINE widths and arc options,
+      TEXT Justify and Style, MTEXT Justify, Line spacing, Rotation, Style, Width, Columns
 - [x] Drafting aids: FROM, M2P/MTP, TT and point filters .X .Y .Z .XY .XZ .YZ, typed or from the Shift+right-click menu
 - [x] Dimensions round 2: linear pictures laid out by DIMTAD, DIMJUST, DIMGAP, DIMTIH, DIMTOH and the fit rules (checked
       against 89 pictures AutoCAD drew), DIMORDINATE, DIMJOGLINE, DIM
@@ -61,10 +63,8 @@ the ones wanted.
 - [ ] Selection: "Select objects:" options P, L, F, WP, CP, R, A, U, SI, G, BOX, AU and Shift+click to remove (M) (running)
 - [ ] Drafting aids: TK (TRACKING); check TT with OTRACK off, "(need YZ):" input and Enter at a modifier prompt
       against AutoCAD (S)
-- [ ] Draw: ARC every AutoCAD way (Center, End, Angle, Direction, Radius, Length) and Enter to continue tangent (M) (running)
-- [ ] Text: TEXT Justify and Style; MTEXT Justify, Line spacing, Rotation, Style, Width, Columns at the corner prompt (S) (running)
-- [ ] Draw: CIRCLE Ttr and Tan, Tan, Tan (S) (running)
-- [ ] Draw: PLINE Width, Halfwidth, Length and the arc options Angle, CEnter, Direction, Radius, Second pt (M) (running)
+- [ ] Draw: AUDIT a drawing made with every ARC, CIRCLE, PLINE, TEXT and MTEXT option, and compare ARC and PLINE entity
+      by entity with AutoCAD's own; check Ctrl, ANGDIR 1 and the MTEXT column defaults against AutoCAD (S)
 - [ ] Grips (running): grip modes (Space cycles Stretch, Move, Rotate, Scale, Mirror; Base point, Copy; Ctrl copies; several hot
       grips with Shift) (M)
 - [ ] Properties: editable rows for polylines, hatches, dimensions, MTEXT, INSERTs (attributes), viewports, multileaders (L)
