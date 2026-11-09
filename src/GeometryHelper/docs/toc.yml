@@ -82,6 +82,8 @@
       href: presenter/display.md
     - name: Editing as AutoCAD does
       href: presenter/editing.md
+    - name: Plotting to PDF
+      href: presenter/plot.md
     - name: Owners
       href: presenter/owners.md
     - name: Command plugins

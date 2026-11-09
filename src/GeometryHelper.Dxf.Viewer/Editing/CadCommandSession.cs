@@ -28,7 +28,10 @@ namespace GeometryHelper.Dxf.Viewer
             Payload = payload;
         }
 
-        /// <summary>Gets what is asked: PROPERTIES, LAYER, OPTIONS, QSAVE, RECOVER.</summary>
+        /// <summary>Gets the plot PLOT, PREVIEW, PAGESETUP or -PLOT hands the window, the <see cref="Payload"/> of those requests; null for every other request.</summary>
+        public CadPlotJob Plot => Payload as CadPlotJob;
+
+        /// <summary>Gets what is asked: PROPERTIES, LAYER, OPTIONS, QSAVE, RECOVER, PLOT, PREVIEW, PAGESETUP, or -PLOT to write a plot to a file.</summary>
         public string Name { get; }
 
         /// <summary>Gets the document to show, for RECOVER the drawing recovered; null for the other requests.</summary>

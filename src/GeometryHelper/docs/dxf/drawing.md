@@ -467,6 +467,11 @@ set before `Initialize`, which sizes the viewport 1 by the limits; a viewport 1 
 draws it anew when it next shows the layout. A layout of a file reads as it did, and a value set to what it has writes
 nothing.
 
+What is plotted and how is set as AutoCAD's validator sets it too: `PlotConfigurationName`, `CurrentStyleSheet`,
+`PlotType` with `PlotWindowArea`, `CustomPrintScale`, `StdScaleType` (writing group 147 with it) and `UseStandardScale`,
+and the flags `PlotCentered`, `PlotPlotStyles`, `ScaleLineweights` and `PrintLineweights`; a page setup of A3 at 1:20 with
+monochrome.ctb reads back as written.
+
 ## See also
 
 - [Entities and curves](entities.md): what every entity has.

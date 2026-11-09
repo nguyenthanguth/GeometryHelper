@@ -23,7 +23,8 @@ namespace GeometryHelper.Dxf
     /// plan.Initialize();</c>: its LAYOUT, its block and its entry by <see cref="AddToLayoutDictionary"/>, the viewport that
     /// shows its sheet by <see cref="Initialize"/>. Its sheet is set as AutoCAD's <c>PlotSettingsValidator</c> sets it, once
     /// it is added: <c>plan.CanonicalMediaName = "ISO_A2_(594.00_x_420.00_MM)"</c> puts it on a sheet of A2 on its side, 594
-    /// by 420, its limits made (-7.5, -20) to (586.5, 400) with them; the rest of the plot settings are read, not set.
+    /// by 420, its limits made (-7.5, -20) to (586.5, 400) with them; what is plotted, its scale, plot style table and flags
+    /// are set as <see cref="DxfPlotSettings"/> says, and the rest of the plot settings are read, not set.
     /// </para>
     /// </remarks>
     public sealed class DxfLayout : DxfPlotSettings

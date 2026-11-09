@@ -1355,6 +1355,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "PASTESPEC":
                     OnPasteSpecialRequested(e);
                     break;
+                case "PLOT":
+                case "PAGESETUP":
+                    OnPlotRequested(sender, e);
+                    break;
+                case "PREVIEW":
+                    OnPreviewRequested(sender, e);
+                    break;
+                case "-PLOT":
+                    OnPlotFileRequested(sender, e);
+                    break;
             }
         }
 

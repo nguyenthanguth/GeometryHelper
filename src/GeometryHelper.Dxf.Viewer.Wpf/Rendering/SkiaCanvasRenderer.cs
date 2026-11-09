@@ -71,7 +71,75 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private static readonly ConditionalWeakTable<DisplaySegments2, double[]> SpacingsOf = new ConditionalWeakTable<DisplaySegments2, double[]>();
 
         private static readonly Dictionary<string, SKTypeface> Measured = new Dictionary<string, SKTypeface>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>The flattening of an arc in a plot, in units of the canvas: a twentieth of a point on a PDF page.</summary>
+        private const double PlotArcTolerance = 0.05;
+
         private readonly Dictionary<string, SKTypeface> _faces = new Dictionary<string, SKTypeface>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>The rules of the plot being drawn; null on the screen.</summary>
+        private PlotRules _plot;
+
+        /// <summary>
+        /// Draws a plot laid on its sheet, as a PDF page or the preview shows it: the space's display list through the page's
+        /// transform and then <paramref name="sheetToCanvas"/>, clipped to the printable area and the area plotted, on white.
+        /// It draws as a plotter does, not as the screen: every item whatever its size, every text, a hatch's every line, arcs
+        /// flattened to a twentieth of a unit of the canvas, colours through the plot style table, and each line at its
+        /// lineweight in millimetres on the sheet (scaled with the plot where asked), the thinnest the device draws where
+        /// lineweights are off.
+        /// </summary>
+        /// <param name="canvas">The canvas, a PDF page or a bitmap.</param>
+        /// <param name="document">The document.</param>
+        /// <param name="space">The space plotted.</param>
+        /// <param name="page">The plot laid on its sheet.</param>
+        /// <param name="settings">How it is plotted.</param>
+        /// <param name="sheetToCanvas">From the sheet's millimetres, Y upward from its lower left corner, to the canvas.</param>
+        internal void RenderPlot(SKCanvas canvas, CadDocument document, CadSpace space, CadPlotPage page, CadPlotSettings settings, Affine2 sheetToCanvas)
+        {
+            if (page.IsEmpty)
+            {
+                return;
+            }
+
+            Affine2 m = page.DrawingToSheet.Then(sheetToCanvas);
+            DisplayBox drawn = DisplayBox.Empty;
+
+            foreach (double[] corner in new[] { new[] { page.Area.MinX, page.Area.MinY }, new[] { page.Area.MaxX, page.Area.MaxY } })
+            {
+                drawn = drawn.Add(page.DrawingToSheet.X(corner[0], corner[1]), page.DrawingToSheet.Y(corner[0], corner[1]));
+            }
+
+            var clip = new DisplayBox(
+                Math.Max(drawn.MinX, page.Printable.MinX),
+                Math.Max(drawn.MinY, page.Printable.MinY),
+                Math.Min(drawn.MaxX, page.Printable.MaxX),
+                Math.Min(drawn.MaxY, page.Printable.MaxY));
+
+            if (clip.IsEmpty)
+            {
+                return;
+            }
+
+            float x0 = (float)sheetToCanvas.X(clip.MinX, clip.MinY);
+            float y0 = (float)sheetToCanvas.Y(clip.MinX, clip.MinY);
+            float x1 = (float)sheetToCanvas.X(clip.MaxX, clip.MaxY);
+            float y1 = (float)sheetToCanvas.Y(clip.MaxX, clip.MaxY);
+            double perMillimetre = sheetToCanvas.Scale;
+            _plot = new PlotRules(settings.EffectiveStyleTable, settings.PlotLineweights ? perMillimetre * (settings.ScaleLineweights ? page.Scale : 1.0) : 0.0);
+            canvas.Save();
+
+            try
+            {
+                canvas.ClipRect(new SKRect(Math.Min(x0, x1), Math.Min(y0, y1), Math.Max(x0, x1), Math.Max(y0, y1)));
+                var options = new CanvasOptions { Background = 0xFFFFFF, Paper = 0xFFFFFF };
+                DrawList(canvas, document, space, document.GetDisplay(space), m, page.Area, options, null, null, null, 0xFFFFFF);
+            }
+            finally
+            {
+                canvas.Restore();
+                _plot = null;
+            }
+        }
 
         /// <summary>Draws a space of a document.</summary>
         /// <param name="canvas">The canvas to draw on.</param>
@@ -288,7 +356,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     bool isSelected = selected != null && item.Handle != null && selected.Contains(item.Handle);
                     bool isHover = hover != null && string.Equals(item.Handle, hover, StringComparison.OrdinalIgnoreCase);
 
-                    if (!isSelected && !isHover && IsTiny(item, zoom))
+                    if (_plot == null && !isSelected && !isHover && IsTiny(item, zoom))
                     {
                         // A text or a wipeout that small shows nothing; anything else one pixel of its colour.
                         if (!(item is DisplayText2) && !(item is DisplayFill2 area && area.IsMask))
@@ -338,8 +406,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// The colour an item is drawn in: its own, the hidden lines' on their layer, turned to show on the background; the
         /// selection colour when selected; its own taken halfway to the selection colour when under the cursor.
         /// </summary>
-        private static SKColor ColorOf(DisplayItem2 item, CanvasOptions options, bool isSelected, bool isHover, int background)
+        private SKColor ColorOf(DisplayItem2 item, CanvasOptions options, bool isSelected, bool isHover, int background)
         {
+            if (_plot != null)
+            {
+                return Color(CadPlotStyles.Map(_plot.Table, item.Style.Rgb), 255);
+            }
+
             int own = options.HiddenLineColor.HasValue && item.Layer != null && string.Equals(item.Layer, options.HiddenLayerName, StringComparison.OrdinalIgnoreCase)
                 ? options.HiddenLineColor.Value
                 : item.Style.Rgb;
@@ -359,7 +432,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             // A selected or hovered entity is only coloured and thickened: its own dashes stay, as AutoCAD keeps a linetype
             // when it highlights.
             SKColor color = ColorOf(item, options, isSelected, isHover, background);
-            float width = options.ShowLineWeights ? (float)Math.Max(1.0, item.Style.LineWeight * 96.0 / 25.4) : 1f;
+            float width = _plot != null
+                ? (float)(Math.Max(item.Style.LineWeight, 0.0) * _plot.LineweightScale)
+                : options.ShowLineWeights ? (float)Math.Max(1.0, item.Style.LineWeight * 96.0 / 25.4) : 1f;
             stroke.Color = color;
             stroke.StrokeWidth = isSelected || isHover ? Math.Max(width, 2f) : width;
             stroke.PathEffect = null;
@@ -376,13 +451,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     DrawChain(canvas, chain, m, stroke, fill, color);
                     break;
                 case DisplaySegments2 segments:
-                    DrawSegments(canvas, segments, m, zoom, stroke, fill, color);
+                    DrawSegments(canvas, segments, m, zoom, stroke, fill, color, _plot != null);
                     break;
                 case DisplayRay2 ray:
                     DrawRay(canvas, ray, m, stroke);
                     break;
                 case DisplayArc2 arc:
-                    DrawArc(canvas, arc, m, zoom, stroke);
+                    DrawArc(canvas, arc, m, zoom, stroke, _plot != null ? PlotArcTolerance : 0.3);
                     break;
                 case DisplayFill2 area:
                     DrawFill(canvas, area, m, fill, options, background, item.Style.Rgb, isSelected || isHover, color);
@@ -518,11 +593,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>
         /// The lines of a hatch's pattern; where in every direction they run they come closer than 2 pixels, the hatch's
         /// loops filled with its colour as thin as the lines would cover them: lines 1 pixel wide 1.6 apart one way fill 62
-        /// per cent, a grid of them both ways 86.
+        /// per cent, a grid of them both ways 86. A plot draws every line.
         /// </summary>
-        private static void DrawSegments(SKCanvas canvas, DisplaySegments2 segments, Affine2 m, double zoom, SKPaint stroke, SKPaint fill, SKColor color)
+        private static void DrawSegments(SKCanvas canvas, DisplaySegments2 segments, Affine2 m, double zoom, SKPaint stroke, SKPaint fill, SKColor color, bool plot)
         {
-            double[] spacings = segments.Rings.Count > 0 ? Spacings(segments) : null;
+            double[] spacings = !plot && segments.Rings.Count > 0 ? Spacings(segments) : null;
             double widest = 0.0;
             double bare = 1.0;
 
@@ -570,9 +645,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        private static void DrawArc(SKCanvas canvas, DisplayArc2 arc, Affine2 m, double zoom, SKPaint stroke)
+        private static void DrawArc(SKCanvas canvas, DisplayArc2 arc, Affine2 m, double zoom, SKPaint stroke, double pixels)
         {
-            double tolerance = 0.3 / zoom;
+            double tolerance = pixels / zoom;
             double[] xy = arc.Flatten(tolerance);
             int n = xy.Length / 2;
 
@@ -829,7 +904,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             double heightPx = text.Height * zoom;
 
-            if (heightPx < LeastTextPixels)
+            if (_plot == null && heightPx < LeastTextPixels)
             {
                 return;
             }
@@ -930,9 +1005,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            stroke.Color = isSelected ? Color(options.SelectionColor, 255) : Color(Visible(0x808080, paperBackground), 255);
-            stroke.StrokeWidth = isSelected ? 2f : 1f;
+            stroke.Color = isSelected ? Color(options.SelectionColor, 255) : _plot != null ? Color(CadPlotStyles.Map(_plot.Table, 0x808080), 255) : Color(Visible(0x808080, paperBackground), 255);
+            stroke.StrokeWidth = isSelected ? 2f : _plot != null ? 0f : 1f;
             canvas.DrawRect(x0, y0, x1 - x0, y1 - y0, stroke);
+        }
+
+        /// <summary>The rules a plot is drawn by: the table its colours go through, and the units of the canvas a millimetre of lineweight is, nought for the thinnest line.</summary>
+        private sealed class PlotRules
+        {
+            public PlotRules(CadPlotStyleTable table, double lineweightScale)
+            {
+                Table = table;
+                LineweightScale = lineweightScale;
+            }
+
+            public CadPlotStyleTable Table { get; }
+
+            public double LineweightScale { get; }
         }
 
         /// <summary>

@@ -189,6 +189,7 @@ namespace GeometryHelper.Dxf.Viewer
                 ["Ctrl+V"] = "PASTECLIP",
                 ["Ctrl+Shift+C"] = "COPYBASE",
                 ["Ctrl+Shift+V"] = "PASTEBLOCK",
+                ["Ctrl+P"] = "PLOT",
             });
 
         private static IReadOnlyDictionary<string, string> Copy(IEnumerable<KeyValuePair<string, string>> pairs)

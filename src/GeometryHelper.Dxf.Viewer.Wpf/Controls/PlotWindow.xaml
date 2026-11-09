@@ -1,0 +1,412 @@
+<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.PlotWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+        Title="{Binding Title}" Width="1040" Height="760" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Background="#262B33">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/StyleDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- A group of fields as the design's fieldset: framed and rounded, its legend in semibold over the frame's top. -->
+            <Style x:Key="Fieldset" TargetType="HeaderedContentControl">
+                <Setter Property="Focusable" Value="False" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="HeaderedContentControl">
+                            <Grid>
+                                <Border Margin="0,7,0,0" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" Padding="10,10,10,10">
+                                    <ContentPresenter />
+                                </Border>
+                                <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="6,0,0,0" Padding="4,0" Background="{StaticResource GhPanel}">
+                                    <ContentPresenter ContentSource="Header" TextElement.FontWeight="SemiBold" />
+                                </Border>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- A round button with its words: a ring, the accent dot inside when chosen. -->
+            <Style x:Key="PlainRadio" TargetType="RadioButton">
+                <Setter Property="Foreground" Value="{StaticResource GhText}" />
+                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="RadioButton">
+                            <StackPanel Orientation="Horizontal" Background="Transparent">
+                                <Grid Width="13" Height="13" Margin="0,0,6,0" VerticalAlignment="Center">
+                                    <Ellipse x:Name="Ring" Stroke="{StaticResource GhTextMuted}" StrokeThickness="1" Fill="{StaticResource GhInput}" />
+                                    <Ellipse x:Name="Dot" Width="7" Height="7" Fill="{StaticResource GhAccent}" Visibility="Collapsed" />
+                                </Grid>
+                                <ContentPresenter VerticalAlignment="Center" />
+                            </StackPanel>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Ring" Property="Stroke" Value="{StaticResource GhAccent}" />
+                                    <Setter TargetName="Dot" Property="Visibility" Value="Visible" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- A row of a list of the dialog that may be greyed: the selection's colour under the mouse, its words muted when off. -->
+            <Style x:Key="GreyableRow" TargetType="ComboBoxItem">
+                <Setter Property="Foreground" Value="{StaticResource GhText}" />
+                <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ComboBoxItem">
+                            <Border x:Name="Row" Background="Transparent" Padding="10,5">
+                                <ContentPresenter />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsHighlighted" Value="True">
+                                    <Setter TargetName="Row" Property="Background" Value="{StaticResource GhHover}" />
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter TargetName="Row" Property="Background" Value="{StaticResource GhSelected}" />
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="DeviceRow" TargetType="ComboBoxItem" BasedOn="{StaticResource GreyableRow}">
+                <Setter Property="IsEnabled" Value="{Binding IsEnabled}" />
+                <Setter Property="ToolTip" Value="Plotting to a printer of Windows is not built yet: plot to GeometryHelper PDF." />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsEnabled}" Value="True">
+                        <Setter Property="ToolTip" Value="{x:Null}" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="MutedText" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+            </Style>
+
+            <!-- Words shown in the drop-down only, not in the box of the chosen entry. -->
+            <Style x:Key="InListOnly" TargetType="TextBlock" BasedOn="{StaticResource MutedText}">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ComboBoxItem}, FallbackValue={x:Null}}" Value="{x:Null}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
+            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
+            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+        <DockPanel>
+            <!-- Header: Plot - Model, dragged to move the dialog, and the close cross. -->
+            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" MouseLeftButtonDown="OnHeaderDown">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Click="OnCancel" ToolTip="Close" />
+                    <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <!-- Footer: Preview…, Apply to Layout, the drawing and space, Cancel, OK and the fewer-options button. -->
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <DockPanel>
+                    <Button DockPanel.Dock="Left" Style="{StaticResource GhDialogButton}" Content="Preview…" Padding="14,5" Margin="0,0,8,0" Click="OnPreview" IsEnabled="{Binding CanPlot}" />
+                    <Button DockPanel.Dock="Left" Style="{StaticResource GhDialogButton}" Content="Apply to Layout" Padding="14,5" Margin="0,0,8,0" Click="OnApply" />
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button Style="{StaticResource GhDialogButton}" Content="Cancel" Padding="14,5" Margin="0,0,8,0" Click="OnCancel" IsCancel="True" />
+                        <Button Style="{StaticResource StylePrimaryButton}" Content="OK" Padding="14,5" Margin="0,0,8,0" Click="OnOk" IsDefault="True" IsEnabled="{Binding CanPlot}" />
+                        <Button Style="{StaticResource GhDialogButton}" Content="&lt;" Width="28" Padding="0,5" IsEnabled="False" AutomationProperties.Name="Fewer options"
+                                ToolTip="The shorter form of the dialog is not built: the dialog stays expanded." />
+                    </StackPanel>
+                    <TextBlock Text="{Binding Footer}" Style="{StaticResource MutedText}" />
+                </DockPanel>
+            </Border>
+
+            <Grid Margin="16,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="340" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <!-- Page setup: the name, and Add… -->
+                    <HeaderedContentControl Style="{StaticResource Fieldset}" Header="Page setup" Margin="0,0,0,10">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Text="Name:" Width="44" Style="{StaticResource MutedText}" Margin="0,0,8,0" />
+                            <Button DockPanel.Dock="Right" Style="{StaticResource GhDialogButton}" Content="Add…" Margin="8,0,0,0" IsEnabled="False"
+                                    ToolTip="Named page setups are read and chosen; adding one is not built yet." />
+                            <ComboBox Style="{StaticResource GhComboBox}" ItemsSource="{Binding PageSetups}" SelectedItem="{Binding PageSetup, Mode=TwoWay}" AutomationProperties.Name="Page setup name" />
+                        </DockPanel>
+                    </HeaderedContentControl>
+
+                    <!-- Printer/plotter: the plotter, what it is, Plot to file, and the sheet's small picture. -->
+                    <HeaderedContentControl Style="{StaticResource Fieldset}" Header="Printer/plotter" Margin="0,0,0,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="120" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,6">
+                                    <TextBlock DockPanel.Dock="Left" Text="Name:" Width="70" Style="{StaticResource MutedText}" Margin="0,0,8,0" />
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource GhDialogButton}" Content="Properties…" Padding="10,4" Margin="8,0,0,0" IsEnabled="False"
+                                            ToolTip="GeometryHelper PDF has no properties to set." />
+                                    <ComboBox x:Name="Devices" Style="{StaticResource GhComboBox}" ItemsSource="{Binding Devices}" SelectedItem="{Binding Device, Mode=TwoWay}"
+                                              ItemContainerStyle="{StaticResource DeviceRow}" AutomationProperties.Name="Printer or plotter">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type local:PlotDeviceRow}">
+                                                <DockPanel>
+                                                    <Border x:Name="Line" DockPanel.Dock="Top" Height="1" Margin="-10,-2,-10,5" Background="{StaticResource GhBorder}" Visibility="Collapsed" />
+                                                    <local:IconView x:Name="Icon" DockPanel.Dock="Left" Size="14" StrokeThickness="1.8" Stroke="{StaticResource GhIcon}" Margin="0,0,6,0"
+                                                                    Data="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h6" Visibility="Collapsed" />
+                                                    <TextBlock DockPanel.Dock="Right" Text="{Binding Kind}" Style="{StaticResource InListOnly}" Margin="12,0,0,0" />
+                                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                                                </DockPanel>
+                                                <DataTemplate.Triggers>
+                                                    <DataTrigger Binding="{Binding StartsGroup}" Value="True">
+                                                        <Setter TargetName="Line" Property="Visibility" Value="Visible" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Kind}" Value="built in">
+                                                        <Setter TargetName="Icon" Property="Visibility" Value="Visible" />
+                                                    </DataTrigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </DockPanel>
+                                <Grid Margin="0,0,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="70" />
+                                        <ColumnDefinition Width="8" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition />
+                                        <RowDefinition />
+                                        <RowDefinition />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Text="Plotter:" Style="{StaticResource MutedText}" Margin="0,0,0,3" />
+                                    <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding PlotterText}" Foreground="{StaticResource GhIcon}" Margin="0,0,0,3" />
+                                    <TextBlock Grid.Row="1" Text="Where:" Style="{StaticResource MutedText}" Margin="0,0,0,3" />
+                                    <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding WhereText}" Foreground="{StaticResource GhIcon}" Margin="0,0,0,3" />
+                                    <TextBlock Grid.Row="2" Text="Description:" Style="{StaticResource MutedText}" />
+                                    <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding DescriptionText}" Foreground="{StaticResource GhIcon}" TextWrapping="Wrap" />
+                                </Grid>
+                                <CheckBox Style="{StaticResource StyleCheck}" IsChecked="True" IsEnabled="False" Content="Plot to file (always, for PDF)" HorizontalAlignment="Left" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.FontFamily="{StaticResource GhMonoFont}" TextElement.FontSize="10"
+                                        AutomationProperties.Name="Paper preview, printable area shaded">
+                                <TextBlock Text="{Binding SheetWidthText}" Foreground="{StaticResource GhTextMuted}" HorizontalAlignment="Center" Margin="0,0,0,4" />
+                                <StackPanel Orientation="Horizontal">
+                                    <Border Background="White" Width="{Binding SheetPictureWidth}" Height="{Binding SheetPictureHeight}" Padding="{Binding SheetPictureMargins}">
+                                        <Rectangle Fill="#C9D7E8" Stroke="#1F4E79" StrokeThickness="1" StrokeDashArray="3 2" />
+                                    </Border>
+                                    <TextBlock Text="{Binding SheetHeightText}" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" Margin="4,0,0,0">
+                                        <TextBlock.LayoutTransform>
+                                            <RotateTransform Angle="90" />
+                                        </TextBlock.LayoutTransform>
+                                    </TextBlock>
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
+                    </HeaderedContentControl>
+
+                    <!-- Paper size beside Number of copies. -->
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="150" />
+                        </Grid.ColumnDefinitions>
+                        <HeaderedContentControl Style="{StaticResource Fieldset}" Header="Paper size">
+                            <ComboBox Style="{StaticResource GhComboBox}" ItemsSource="{Binding Papers}" SelectedItem="{Binding Paper, Mode=TwoWay}" DisplayMemberPath="Label" AutomationProperties.Name="Paper size" />
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Grid.Column="2" Style="{StaticResource Fieldset}" Header="Number of copies">
+                            <TextBox Style="{StaticResource StyleBox}" Text="1" Width="60" HorizontalAlignment="Left" IsEnabled="False" AutomationProperties.Name="Number of copies, 1 for a file" />
+                        </HeaderedContentControl>
+                    </Grid>
+
+                    <!-- Plot area beside Plot offset. -->
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <HeaderedContentControl Style="{StaticResource Fieldset}" Header="Plot area">
+                            <StackPanel>
+                                <TextBlock Text="What to plot:" Style="{StaticResource MutedText}" Margin="0,0,0,6" />
+                                <DockPanel Margin="0,0,0,6">
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource GhDialogButton}" Content="Window&lt;" Padding="10,3" Margin="6,0,0,0" Click="OnPickWindow"
+                                            Visibility="{Binding IsWindow, Converter={StaticResource Shown}}" ToolTip="Pick the window's two corners on the drawing" />
+                                    <ComboBox Style="{StaticResource GhComboBox}" ItemsSource="{Binding Areas}" SelectedItem="{Binding Area, Mode=TwoWay}" ItemContainerStyle="{StaticResource GreyableRow}"
+                                              AutomationProperties.Name="What to plot">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type local:PlotAreaRow}">
+                                                <DockPanel MinWidth="170">
+                                                    <TextBlock DockPanel.Dock="Right" Text="{Binding Hint}" Style="{StaticResource InListOnly}" Margin="12,0,0,0" />
+                                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </DockPanel>
+                                <TextBlock Text="{Binding WindowText}" Style="{StaticResource MutedText}" Visibility="{Binding IsWindow, Converter={StaticResource Shown}}" />
+                            </StackPanel>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Grid.Column="2" Style="{StaticResource Fieldset}" Header="Plot offset (origin set to printable area)">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="20" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="30" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="X:" Style="{StaticResource MutedText}" />
+                                <TextBox Grid.Column="1" Style="{StaticResource StyleBox}" Text="{Binding OffsetXText, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsOffsetEnabled}"
+                                         Margin="0,0,6,6" AutomationProperties.Name="Plot offset X" />
+                                <TextBlock Grid.Column="2" Text="mm" Style="{StaticResource MutedText}" Margin="0,0,0,6" />
+                                <TextBlock Grid.Row="1" Text="Y:" Style="{StaticResource MutedText}" />
+                                <TextBox Grid.Row="1" Grid.Column="1" Style="{StaticResource StyleBox}" Text="{Binding OffsetYText, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsOffsetEnabled}"
+                                         Margin="0,0,6,6" AutomationProperties.Name="Plot offset Y" />
+                                <TextBlock Grid.Row="1" Grid.Column="2" Text="mm" Style="{StaticResource MutedText}" Margin="0,0,0,6" />
+                                <CheckBox Grid.Row="2" Grid.Column="1" Style="{StaticResource StyleCheck}" IsChecked="{Binding Centered, Mode=TwoWay}" IsEnabled="{Binding IsCenterEnabled}"
+                                          Content="Center the plot" HorizontalAlignment="Left" />
+                            </Grid>
+                        </HeaderedContentControl>
+                    </Grid>
+
+                    <!-- Plot scale: Fit to paper, the scale, its two units, Scale lineweights. -->
+                    <HeaderedContentControl Style="{StaticResource Fieldset}" Header="Plot scale">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="16" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition />
+                                <RowDefinition />
+                                <RowDefinition />
+                            </Grid.RowDefinitions>
+                            <CheckBox Style="{StaticResource StyleCheck}" IsChecked="{Binding FitToPaper, Mode=TwoWay}" Content="Fit to paper" HorizontalAlignment="Left" Margin="0,0,0,6" />
+                            <DockPanel Grid.Column="2" Margin="0,0,0,6">
+                                <TextBlock DockPanel.Dock="Left" Text="Scale:" Width="40" Style="{StaticResource MutedText}" Margin="0,0,8,0" />
+                                <ComboBox Style="{StaticResource GhComboBox}" ItemsSource="{Binding ScaleNames}" SelectedItem="{Binding ScaleName, Mode=TwoWay}" IsEnabled="{Binding IsScaleEnabled}"
+                                          AutomationProperties.Name="Scale" />
+                            </DockPanel>
+                            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,6">
+                                <TextBox Style="{StaticResource StyleBox}" Width="70" Text="{Binding PaperUnitsText, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsScaleEnabled}"
+                                         AutomationProperties.Name="Paper millimetres" />
+                                <TextBlock Text="mm =" Style="{StaticResource MutedText}" Margin="6,0,0,0" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" Margin="0,0,0,6">
+                                <TextBox Style="{StaticResource StyleBox}" Width="70" Text="{Binding DrawingUnitsText, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsScaleEnabled}"
+                                         AutomationProperties.Name="Drawing units" />
+                                <TextBlock Text="units" Style="{StaticResource MutedText}" Margin="6,0,0,0" />
+                            </StackPanel>
+                            <CheckBox Grid.Row="2" Style="{StaticResource StyleCheck}" IsChecked="{Binding ScaleLineweights, Mode=TwoWay}" Content="Scale lineweights" HorizontalAlignment="Left" />
+                            <TextBlock Grid.Row="2" Grid.Column="2" Text="Scale list: 1:1 to 1:1000 and the drawing's own." Style="{StaticResource MutedText}" />
+                        </Grid>
+                    </HeaderedContentControl>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2">
+                    <!-- Plot style table: the table and the edit button, with what each does. -->
+                    <HeaderedContentControl Style="{StaticResource Fieldset}" Header="Plot style table (pen assignments)" Margin="0,0,0,10">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,6">
+                                <Button DockPanel.Dock="Right" Style="{StaticResource GhDialogButton}" Width="30" Padding="0,3" Margin="6,0,0,0" IsEnabled="False"
+                                        AutomationProperties.Name="Edit plot style table" ToolTip="The three tables are built in and are not edited.">
+                                    <local:IconView Size="14" StrokeThickness="1.8" Stroke="{StaticResource GhIcon}" Data="M4 20h4L20 8l-4-4L4 16z" />
+                                </Button>
+                                <ComboBox Style="{StaticResource GhComboBox}" ItemsSource="{Binding StyleTables}" SelectedItem="{Binding StyleTable, Mode=TwoWay}" AutomationProperties.Name="Plot style table" />
+                            </DockPanel>
+                            <TextBlock Text="Monochrome: every colour plots black (as monochrome.ctb). Grayscale: colours as greys. None: as displayed."
+                                       Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </HeaderedContentControl>
+
+                    <!-- Shaded viewport options: greyed, a 2D plot being as displayed. -->
+                    <HeaderedContentControl Style="{StaticResource Fieldset}" Header="Shaded viewport options" Margin="0,0,0,10">
+                        <Grid TextElement.Foreground="{StaticResource GhTextMuted}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition />
+                                <RowDefinition />
+                                <RowDefinition />
+                                <RowDefinition />
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="Shade plot" Style="{StaticResource MutedText}" />
+                            <ComboBox Grid.Column="2" Style="{StaticResource GhComboBox}" IsEnabled="False" SelectedIndex="0" Margin="0,0,0,6" AutomationProperties.Name="Shade plot">
+                                <ComboBoxItem Content="As displayed" />
+                            </ComboBox>
+                            <TextBlock Grid.Row="1" Text="Quality" Style="{StaticResource MutedText}" />
+                            <ComboBox Grid.Row="1" Grid.Column="2" Style="{StaticResource GhComboBox}" IsEnabled="False" SelectedIndex="0" Margin="0,0,0,6" AutomationProperties.Name="Quality">
+                                <ComboBoxItem Content="Normal" />
+                            </ComboBox>
+                            <TextBlock Grid.Row="2" Text="DPI" Style="{StaticResource MutedText}" />
+                            <TextBox Grid.Row="2" Grid.Column="2" Style="{StaticResource StyleBox}" Text="300" IsEnabled="False" Margin="0,0,0,6" AutomationProperties.Name="DPI" />
+                            <TextBlock Grid.Row="3" Grid.ColumnSpan="3" Text="2D only: kept grey, as AutoCAD shows them for 2D Wireframe." FontSize="11" Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap" />
+                        </Grid>
+                    </HeaderedContentControl>
+
+                    <!-- Plot options. -->
+                    <HeaderedContentControl Style="{StaticResource Fieldset}" Header="Plot options" Margin="0,0,0,10">
+                        <StackPanel>
+                            <CheckBox Style="{StaticResource StyleCheck}" Content="Plot in background" IsChecked="False" IsEnabled="False" HorizontalAlignment="Left" Margin="0,0,0,5" />
+                            <CheckBox Style="{StaticResource StyleCheck}" Content="Plot object lineweights" IsChecked="{Binding PlotLineweights, Mode=TwoWay}" HorizontalAlignment="Left" Margin="0,0,0,5" />
+                            <CheckBox Style="{StaticResource StyleCheck}" Content="Plot transparency" IsChecked="{Binding PlotTransparency, Mode=TwoWay}" HorizontalAlignment="Left" Margin="0,0,0,5" />
+                            <CheckBox Style="{StaticResource StyleCheck}" Content="Plot with plot styles" IsChecked="{Binding PlotWithPlotStyles, Mode=TwoWay}" HorizontalAlignment="Left" Margin="0,0,0,5" />
+                            <CheckBox Style="{StaticResource StyleCheck}" Content="Plot paperspace last" IsChecked="False" IsEnabled="False" HorizontalAlignment="Left" Margin="0,0,0,5" />
+                            <CheckBox Style="{StaticResource StyleCheck}" Content="Hide paperspace objects" IsChecked="False" IsEnabled="False" HorizontalAlignment="Left" Margin="0,0,0,5" />
+                            <CheckBox Style="{StaticResource StyleCheck}" Content="Plot stamp on" IsChecked="False" IsEnabled="False" HorizontalAlignment="Left" Margin="0,0,0,5"
+                                      ToolTip="A plot stamp is not built yet." />
+                            <CheckBox Style="{StaticResource StyleCheck}" Content="Save changes to layout" IsChecked="{Binding SaveChangesToLayout, Mode=TwoWay}" HorizontalAlignment="Left" />
+                        </StackPanel>
+                    </HeaderedContentControl>
+
+                    <!-- Drawing orientation: Portrait, Landscape, upside-down, and the letter A turned as the sheet. -->
+                    <HeaderedContentControl Style="{StaticResource Fieldset}" Header="Drawing orientation">
+                        <DockPanel>
+                            <Border DockPanel.Dock="Right" Width="52" Height="38" BorderBrush="{StaticResource GhTextMuted}" BorderThickness="1" Margin="12,0,0,0" VerticalAlignment="Center"
+                                    AutomationProperties.Name="Orientation">
+                                <Border.LayoutTransform>
+                                    <RotateTransform Angle="{Binding OrientationAngle}" />
+                                </Border.LayoutTransform>
+                                <TextBlock Text="A" FontSize="22" FontWeight="Bold" Foreground="{StaticResource GhIcon}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <StackPanel>
+                                <RadioButton Style="{StaticResource PlainRadio}" GroupName="Orientation" Content="Portrait" IsChecked="{Binding Portrait, Mode=TwoWay}" Margin="0,0,0,5" />
+                                <RadioButton Style="{StaticResource PlainRadio}" GroupName="Orientation" Content="Landscape" IsChecked="{Binding Landscape, Mode=TwoWay}" Margin="0,0,0,5" />
+                                <CheckBox Style="{StaticResource StyleCheck}" Content="Plot upside-down" IsChecked="{Binding UpsideDown, Mode=TwoWay}" HorizontalAlignment="Left" />
+                            </StackPanel>
+                        </DockPanel>
+                    </HeaderedContentControl>
+                </StackPanel>
+            </Grid>
+        </DockPanel>
+    </Border>
+</Window>

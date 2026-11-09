@@ -1,0 +1,97 @@
+<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.PlotPreviewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+        Title="Plot preview" Width="1400" Height="860" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Background="#1E2228">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/StyleDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- A tool of the preview's toolbar: an icon of 18 and its words, on the selection's colour when it is the tool in use. -->
+            <Style x:Key="PreviewTool" TargetType="ToggleButton" BasedOn="{StaticResource GhFlatButton}">
+                <Setter Property="Padding" Value="8,4" />
+                <Setter Property="Margin" Value="0,0,4,0" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border x:Name="Chrome" Background="Transparent" CornerRadius="2" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Chrome" Property="Background" Value="{StaticResource GhHover}" />
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Chrome" Property="Background" Value="{StaticResource GhSelected}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <DockPanel x:Name="Root" TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
+               UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+        <!-- The toolbar: Plot, the four tools of the view, Close Preview, and what is plotted at the right. -->
+        <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" BorderBrush="{StaticResource GhBorder}" BorderThickness="0,0,0,1" Padding="12,6">
+            <DockPanel>
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="PlotButton" Style="{StaticResource GhFlatButton}" Padding="8,4" Margin="0,0,4,0" Click="OnPlot" ToolTip="Plot" AutomationProperties.Name="Plot">
+                        <StackPanel Orientation="Horizontal">
+                            <local:IconView Size="18" StrokeThickness="1.8" Stroke="{StaticResource GhIcon}" Data="M7 9V3h10v6M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v7H7z" />
+                            <TextBlock Text="Plot" Margin="6,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <ToggleButton Style="{StaticResource PreviewTool}" IsChecked="{Binding IsPan, Mode=TwoWay}" ToolTip="Pan" AutomationProperties.Name="Pan">
+                        <local:IconView Size="18" StrokeThickness="1.8" Stroke="{StaticResource GhIcon}" Data="M9 11V5a2 2 0 0 1 4 0v6M13 9a2 2 0 0 1 4 0v4a7 7 0 0 1-14 0v-3a2 2 0 0 1 4 0" />
+                    </ToggleButton>
+                    <ToggleButton Style="{StaticResource PreviewTool}" IsChecked="{Binding IsZoom, Mode=TwoWay}" ToolTip="Zoom realtime" AutomationProperties.Name="Zoom realtime">
+                        <local:IconView Size="18" StrokeThickness="1.8" Stroke="{StaticResource GhIcon}" Data="M10 10m-6 0a6 6 0 1 0 12 0a6 6 0 1 0-12 0M14.5 14.5 20 20M10 7v6M7 10h6" />
+                    </ToggleButton>
+                    <ToggleButton Style="{StaticResource PreviewTool}" IsChecked="{Binding IsZoomWindow, Mode=TwoWay}" ToolTip="Zoom window" AutomationProperties.Name="Zoom window">
+                        <local:IconView Size="18" StrokeThickness="1.8" Stroke="{StaticResource GhIcon}" Data="M4 4h10v10H4zM14 14l6 6" />
+                    </ToggleButton>
+                    <Button Style="{StaticResource GhFlatButton}" Padding="8,4" Margin="0,0,4,0" Click="OnZoomOriginal" ToolTip="Zoom original" AutomationProperties.Name="Zoom original">
+                        <local:IconView Size="18" StrokeThickness="1.8" Stroke="{StaticResource GhIcon}" Data="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" />
+                    </Button>
+                    <Button Style="{StaticResource GhCloseButton}" FontSize="11" FontWeight="Medium" Padding="8,4" Click="OnExit" ToolTip="Close Preview" AutomationProperties.Name="Close Preview">
+                        <StackPanel Orientation="Horizontal">
+                            <local:IconView Size="18" StrokeThickness="1.8" Stroke="#FFFFFF" Data="M6 6l12 12M18 6 6 18" />
+                            <TextBlock Text="Close Preview" Margin="6,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+                <TextBlock Text="{Binding Summary}" Foreground="{StaticResource GhTextMuted}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+            </DockPanel>
+        </Border>
+
+        <!-- The status bar: how to leave, and the sheet. -->
+        <Border DockPanel.Dock="Bottom" Background="{StaticResource GhInput}" BorderBrush="{StaticResource GhBorder}" BorderThickness="0,1,0,0" Padding="12,6"
+                TextElement.FontFamily="{StaticResource GhMonoFont}" TextElement.Foreground="{StaticResource GhTextMuted}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Right" Text="{Binding PaperText}" Margin="12,0,0,0" />
+                <TextBlock Text="{Binding HelpText}" />
+            </DockPanel>
+        </Border>
+
+        <local:PlotPreviewCanvas x:Name="Sheet">
+            <local:PlotPreviewCanvas.ContextMenu>
+                <ContextMenu Style="{StaticResource GhContextMenu}">
+                    <MenuItem Style="{StaticResource GhMenuItem}" Header="Exit" Click="OnExit" />
+                    <MenuItem Style="{StaticResource GhMenuItem}" Header="Plot" Click="OnPlot" />
+                    <Separator Style="{StaticResource GhMenuSeparator}" />
+                    <MenuItem Style="{StaticResource GhMenuItem}" Header="Pan" IsCheckable="True" IsChecked="{Binding IsPan, Mode=TwoWay}" />
+                    <MenuItem Style="{StaticResource GhMenuItem}" Header="Zoom" IsCheckable="True" IsChecked="{Binding IsZoom, Mode=TwoWay}" />
+                    <MenuItem Style="{StaticResource GhMenuItem}" Header="Zoom Window" IsCheckable="True" IsChecked="{Binding IsZoomWindow, Mode=TwoWay}" />
+                    <MenuItem Style="{StaticResource GhMenuItem}" Header="Zoom Original" Click="OnZoomOriginal" />
+                </ContextMenu>
+            </local:PlotPreviewCanvas.ContextMenu>
+        </local:PlotPreviewCanvas>
+    </DockPanel>
+</Window>

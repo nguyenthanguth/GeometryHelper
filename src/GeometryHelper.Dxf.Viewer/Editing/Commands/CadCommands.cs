@@ -130,6 +130,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("PASTESPEC", PasteSpecial));
             registry.Add(new CadCommand("TEXTEDIT", TextEdit));
             registry.Add(new CadCommand("MTEDIT", MTextEdit));
+            AddPlotTo(registry);
         }
 
         /// <summary>A point of the plan in space, at nought height.</summary>

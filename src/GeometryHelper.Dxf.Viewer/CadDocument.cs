@@ -139,6 +139,9 @@ namespace GeometryHelper.Dxf.Viewer
             _paper = null;
         }
 
+        /// <summary>Drops the sheet worked out, so that the next <see cref="PaperBounds"/> reads the plot settings a page setup wrote.</summary>
+        internal void ForgetPaper() => _paper = null;
+
         /// <inheritdoc/>
         public override string ToString() => Name;
     }
