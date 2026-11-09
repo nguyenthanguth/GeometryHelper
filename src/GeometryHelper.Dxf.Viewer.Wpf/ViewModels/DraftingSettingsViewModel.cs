@@ -249,7 +249,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _model.Toggles.First(t => t.Name == "OTRACK").IsOn = _isTrackingOn;
             _model.Snap.GridX = x;
             _model.Snap.GridY = y;
-            _model.Snap.PolarAngle = degrees * Math.PI / 180.0;
+            _model.SetPolarAngle(degrees);
             Notice = string.Empty;
             return true;
         }

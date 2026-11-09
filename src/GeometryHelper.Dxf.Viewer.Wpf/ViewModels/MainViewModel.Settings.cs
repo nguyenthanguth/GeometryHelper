@@ -100,6 +100,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             _settings = (settings ?? throw new ArgumentNullException(nameof(settings))).Clone();
             Snap.Modes = _settings.Snaps;
+            Snap.PolarAngle = _settings.PolarAngle * Math.PI / 180.0;
             Toggles.First(t => t.Name == "GRID").IsOn = _settings.Grid;
             DynamicInput.IsOn = _settings.DynamicInput;
 

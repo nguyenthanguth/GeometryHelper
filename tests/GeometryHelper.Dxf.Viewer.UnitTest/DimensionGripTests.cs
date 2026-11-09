@@ -190,6 +190,21 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void StretchOfAGripEdit_OnADimensionsOrigin_MeasuresAnewAsTheDragDoes()
+        {
+            CadDocument document = WithDimension(out CadCommandSession session, out string handle);
+
+            Assert.True(session.StartGripEdit(new[] { new KeyValuePair<string, int>(handle, 1) }));
+            Run(session, P(150, 10));
+
+            var dimension = Entity<DxfRotatedDimension>(document, handle);
+            Assert.False(session.IsRunning);
+            Assert.Equal(150, dimension.Measurement, 9);
+            Near(new GeoPoint3(150, -30, 0), dimension.DimLinePoint);
+            Assert.Contains("150", Words(dimension), StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void AnOriginDraggedOntoTheOther_WouldMeasureNothingAndIsRefused()
         {
             CadDocument document = WithDimension(out _, out string handle);

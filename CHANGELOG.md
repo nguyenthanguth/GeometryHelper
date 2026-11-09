@@ -22,6 +22,33 @@ ZOOM and PAN change the viewport's view, one undo step each; `ZOOM 1/50XP` sets 
 display is locked keeps its view. The status bar's scale list and Properties' Standard scale, Custom scale and Display
 locked rows set a viewport's scale: 1:50 in a viewport 100 high shows 5 000 of model space. `CadDocument.EnterViewport`,
 `LeaveViewport`, `ActiveViewport`, `WorkingSpace`, `SetViewportView` and `CadViewports` are the API.
+**NEW.** The presenter has SETVAR and the system variables drafters set, typed as commands as in AutoCAD 2021: `Enter
+variable name or [?] <FILLETRAD>:`, then `Enter new value for FILLETRAD <10.0000>:`; a variable's name typed alone asks the
+same, and `?` lists those a pattern of wildcards matches. FILLETRAD 5 writes `$FILLETRAD` 5 into the header as one undo
+step; SORTENTS 200 is refused with `Requires an integer between 0 and 127.` and asked again; OSMODE 4133 ticks Endpoint,
+Center, Intersection and Extension, and 16391 ticks Endpoint, Midpoint and Center with OSNAP off; EXTMIN says
+`EXTMIN = 0.0000,0.0000,0.0000 (read only)`. 47 variables in the window: those of the drawing's header (CLAYER, CECOLOR,
+CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB,
+PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX) each one undo step; those of the
+session and the window (PICKSTYLE, SELECTIONCYCLING, PICKFIRST, OFFSETDIST, TILEMODE, OSMODE, ORTHOMODE, SNAPMODE, GRIDMODE,
+POLARANG, AUTOSNAP, DYNMODE, PICKBOX, APERTURE, LWDISPLAY) at once; and DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME,
+DWGPREFIX, DATE and CDATE read only. PICKFIRST 0 (`CadDocument.PickFirst`) makes MOVE ask `Select objects:` though a line
+is selected, as AutoCAD's. PICKBOX, APERTURE, LWDISPLAY and POLARANG are kept in the settings file as DYN and OSMODE are
+(`MainViewModel.SettingsChanged`), POLARANG 30 as `"polarAngle": 30` of the new `GlobalSettings.PolarAngle`, which Drafting
+Settings' increment sets too. PDMODE, PDSIZE, CELTSCALE, PICKSTYLE, SELECTIONCYCLING and IMAGEFRAME are variables of the
+table now rather than commands of their own, and CECOLOR, CELTYPE and LTSCALE keep their own prompts when typed alone; the
+registry holds 150 commands. `CadCommandRegistry.Variables`, `AddVariable` and `FindVariable`, and `CadSystemVariable`,
+are the API.
+
+**NEW.** The presenter's grips have AutoCAD 2021's grip modes. A click on a grip makes it hot and asks `** STRETCH **`,
+`Specify stretch point or [Base point/Copy/Undo/eXit]:`; Enter or Space goes on to MOVE, ROTATE (with Reference), SCALE
+(with Reference) and MIRROR and back, and STRETCH, MOVE, ROTATE, SCALE and MIRROR typed, or ST, MO, RO, SC and MI, go to a
+mode. The modes other than STRETCH take the objects selected, drawn as a ghost: of two lines from (0, 0), MO to (10, 20)
+moves both and RO 90 then turns them about (10, 20). Copy leaves the originals and asks again (`** MOVE (multiple) **`),
+Undo takes the last copy back, and a first point picked with Ctrl held turns Copy on. Shift+click makes several grips hot,
+which stretch together: a circle's centre and a quadrant move it by (10, 10) keeping its radius of 10. A grip pressed and
+let go elsewhere is stretched there, as before; the whole grip edit is one undo step. `CadCommandSession.StartGripEdit`,
+`IsGripEditing`, `Feed(point, shift, control)` and `CadInput.Control` are the API.
 
 **NEW.** The presenter takes AutoCAD's point modifiers at any prompt for a point, typed or from the top of the
 Shift+right-click menu (Temporary track point, From, Mid Between 2 Points, Point Filters with .X .Y .Z .XY .XZ .YZ), with

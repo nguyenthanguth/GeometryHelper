@@ -123,25 +123,25 @@ x = 40, is attached top right at (80, 0). At 1 they are mirrored with the rest.
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 156 commands, named as AutoCAD names them:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 150 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
-| view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`), PAN, REGEN, PROPERTIES, OPTIONS, QSAVE |
+| view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE |
 | edit | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR, EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
 | draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG, ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), MLEADER, MVIEW, LAYOUT (New, Rename, Set, ?) |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
 | layers | LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO |
-| utilities | SELECTALL, UNITS, -UNITS, SCRIPT, CECOLOR |
+| utilities | SELECTALL, UNITS, -UNITS, SCRIPT, SETVAR (?) |
 | modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPOLAR, -ARRAY, ALIGN |
 | blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select), BASE |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
 | plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT ([Plotting](plot.md)) |
 | dimension | DIM (Angular, Baseline, Continue, Ordinate, aLign, Distribute, LAyer, Undo), DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove) |
 | tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT |
-| selection | QSELECT, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, PICKSTYLE, SELECTIONCYCLING |
+| selection | QSELECT, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP |
 | housekeeping | PURGE, -PURGE (Blocks, Dimstyles, LAyers, LTypes, MUltileaderstyles, Plotstyles, SHapes, textSTyles, Tablestyles, Visualstyles, Regapps, Zero-length geometry, Empty text objects, All) |
-| references and images | XATTACH, IMAGEATTACH, XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), IMAGEFRAME, TRANSPARENCY |
+| references and images | XATTACH, IMAGEATTACH, XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), TRANSPARENCY |
 
 A dimension's picture is laid out from its style as AutoCAD 2021 lays it out: DIMTAD puts the words on the line, which
 is broken about them by DIMGAP (0), above it (1, and JIS, 3), on the side away from the points measured (2) or below it
@@ -226,6 +226,34 @@ DIMLINEAR, `MV` MVIEW, `MS` MSPACE, `PS` PSPACE, and the rest) and 21 keys (F3 O
 Ctrl+Z U, Ctrl+Y REDO, Ctrl+S QSAVE, Ctrl+1 PROPERTIES, Ctrl+A SELECTALL, Ctrl+C COPYCLIP, Ctrl+X CUTCLIP, Ctrl+V PASTECLIP, Ctrl+Shift+C COPYBASE, Ctrl+Shift+V PASTEBLOCK, Ctrl+P PLOT, Ctrl+Shift+A PICKSTYLE, Ctrl+W SELECTIONCYCLING). A registry's `Shortcuts` is replaced, from
 [global settings](app.md#global-settings), by another set; letters of either case are the same, and a name wins over an
 alias of the same letters.
+
+### System variables
+
+SETVAR asks as AutoCAD 2021 does, `Enter variable name or [?] <FILLETRAD>:` offering the variable named last, then `Enter
+new value for FILLETRAD <10.0000>:`; a variable's name typed alone, or an alias of it (`LTS`), asks the same where no
+command has the name. `?` lists those a pattern of wildcards matches, `CHAMFER?` giving CHAMFERA and CHAMFERB with their
+values. Enter keeps a value; a whole number out of range is refused in AutoCAD's words and asked again, `SORTENTS` 200
+saying `Requires an integer between 0 and 127.`, and a real nought where it must be above nought says `Value must be
+positive and nonzero.`; a variable read only says its value, `EXTMIN = 0.0000,0.0000,0.0000 (read only)`. Each one is read
+and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry):
+
+| Kept in | Variables | A change |
+|---|---|---|
+| the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
+| the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
+| the window: the status bar, the snaps and Global settings | OSMODE, ORTHOMODE, SNAPMODE, GRIDMODE, POLARANG, AUTOSNAP, DYNMODE, PICKBOX, APERTURE, LWDISPLAY | at once, no undo step; kept in the settings file |
+| read only | DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME, DWGPREFIX, DATE, CDATE | |
+
+FILLETRAD 5 writes `$FILLETRAD` 40 `5` into the header and U takes it back to 10. OSMODE 4133 ticks Endpoint, Center,
+Intersection and Extension, and 16391 ticks Endpoint, Midpoint and Center with OSNAP off. With no window, ORTHOMODE and
+LWDISPLAY are the drawing's `$ORTHOMODE` and `$LWDISPLAY`; the window answers them with its ORTHO and its lineweights.
+PICKFIRST 0 makes a command that works on objects ask `Select objects:` whatever is selected before it: with a line
+selected, MOVE asks for objects rather than its base point. The window keeps PICKBOX, APERTURE, LWDISPLAY and POLARANG in
+the settings file as it keeps DYN and the snaps, POLARANG 30 written `"polarAngle": 30`. POLARMODE, PICKADD, ATTREQ,
+ATTDIA, FILEDIA and CMDDIA are not variables of the presenter yet.
+CECOLOR, CELTYPE and LTSCALE typed alone ask their own prompts, as before (`Enter new object color [Truecolor/COlorbook]
+<BYLAYER>:`); SETVAR asks them in its words, a text in quotes, `<"ByLayer">`. A window adds its own with
+`registry.AddVariable(CadSystemVariable.Integer(...))` or `CadSystemVariable.Real(...)`.
 
 ## User coordinate systems
 
@@ -345,6 +373,21 @@ view's height to the frame's over the scale, about the same centre; Display lock
 [`CadViewports`](xref:GeometryHelper.Dxf.Viewer.CadViewports) has the arithmetic: the canvas's view in model units
 (`ModelView`) and the view a viewport takes back from it (`ViewOf`), a box fitted to the frame (`Fit`), and the scales'
 names. A viewport whose view is turned, or not a plan, is not entered.
+
+### Grip modes
+
+A click on a grip makes it hot and starts AutoCAD 2021's grip modes
+([`session.StartGripEdit(hotGrips)`](xref:GeometryHelper.Dxf.Viewer.CadCommandSession)): the command line says
+`** STRETCH **` and asks `Specify stretch point or [Base point/Copy/Undo/eXit]:`, the hot grip the base point. Enter or Space
+goes on to `** MOVE **` (`Specify move point`), `** ROTATE **` (`Specify rotation angle`, with Reference), `** SCALE **`
+(`Specify scale factor`, with Reference) and `** MIRROR **` (`Specify second point`), and back to STRETCH; STRETCH, MOVE,
+ROTATE, SCALE and MIRROR typed, or ST, MO, RO, SC and MI, go to that mode. STRETCH moves the hot grips; the other modes
+take the objects selected, drawn as a ghost as MOVE draws them. Base point gives another base, Copy leaves the originals
+and asks again until eXit, Enter or Esc (`** MOVE (multiple) **`), Undo takes the last copy back, and a first point picked
+with Ctrl held turns Copy on. Shift+click makes several grips hot, and they stretch together: a line's two ends move it
+whole, and a circle's centre and a quadrant move it keeping its radius. A grip pressed and let go elsewhere is stretched
+there, as before. The whole grip edit is one undo step, named GRIP, and Enter after it runs the command run last. Of two
+lines from (0, 0), the grip at (0, 0) and MO to (10, 20) moves both; RO 90 then turns them a quarter turn about (10, 20).
 
 ## Properties
 

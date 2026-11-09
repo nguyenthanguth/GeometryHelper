@@ -142,52 +142,6 @@ namespace GeometryHelper.Dxf.Viewer
             ExplodeGroups(c, groups);
         }
 
-        /// <summary>PICKSTYLE: "Enter new value for PICKSTYLE &lt;1&gt;:", 0 to 3, as AutoCAD takes it; the presenter's, not the drawing's.</summary>
-        private static IEnumerable<CadPrompt> PickStyleCommand(CadCommandContext c)
-        {
-            while (true)
-            {
-                yield return CadPrompt.ForInteger("Enter new value for PICKSTYLE", null, c.Document.PickStyle.ToString(CultureInfo.InvariantCulture));
-
-                if (c.Input.Kind != CadInputKind.Number)
-                {
-                    yield break;
-                }
-
-                if (c.Input.Number < 0 || c.Input.Number > 3)
-                {
-                    c.Write("Requires an integer between 0 and 3.");
-                    continue;
-                }
-
-                c.Document.PickStyle = (int)c.Input.Number;
-                yield break;
-            }
-        }
-
-        /// <summary>SELECTIONCYCLING: "Enter new value for SELECTIONCYCLING &lt;2&gt;:", 0 off, 1 Shift+Space only, 2 with the list.</summary>
-        private static IEnumerable<CadPrompt> SelectionCyclingCommand(CadCommandContext c)
-        {
-            while (true)
-            {
-                yield return CadPrompt.ForInteger("Enter new value for SELECTIONCYCLING", null, c.Document.SelectionCycling.ToString(CultureInfo.InvariantCulture));
-
-                if (c.Input.Kind != CadInputKind.Number)
-                {
-                    yield break;
-                }
-
-                if (c.Input.Number < 0 || c.Input.Number > 2)
-                {
-                    c.Write("Requires an integer between 0 and 2.");
-                    continue;
-                }
-
-                c.Document.SelectionCycling = (int)c.Input.Number;
-                yield break;
-            }
-        }
-
         private static IEnumerable<CadPrompt> AskNewGroupName(CadCommandContext c, string message, Action<string> take)
         {
             while (true)

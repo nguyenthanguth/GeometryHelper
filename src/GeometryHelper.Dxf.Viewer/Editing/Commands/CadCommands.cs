@@ -89,7 +89,6 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("UNITS", Units));
             registry.Add(new CadCommand("-UNITS", UnitsTyped));
             registry.Add(new CadCommand("SCRIPT", Script));
-            registry.Add(new CadCommand("CECOLOR", CurrentColor));
             registry.Add(new CadCommand("RECOVER", Recover));
             registry.Add(new CadCommand("AUDIT", Audit));
             registry.Add(new CadCommand("UCS", Ucs));
@@ -98,9 +97,6 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("UCSMAN", UcsManager));
             registry.Add(new CadCommand("LINETYPE", Linetype));
             registry.Add(new CadCommand("-LINETYPE", LinetypeTyped));
-            registry.Add(new CadCommand("CELTYPE", CurrentLinetype));
-            registry.Add(new CadCommand("LTSCALE", LinetypeScale));
-            registry.Add(new CadCommand("CELTSCALE", CurrentLinetypeScale));
             registry.Add(new CadCommand("HATCH", Hatch));
             registry.Add(new CadCommand("HATCHEDIT", HatchEdit));
             registry.Add(new CadCommand("BOUNDARY", Boundary));
@@ -109,8 +105,6 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("DIMSTYLE", DimStyleDialog));
             AddTablesTo(registry);
             registry.Add(new CadCommand("PTYPE", PointStyle));
-            registry.Add(new CadCommand("PDMODE", PointMode));
-            registry.Add(new CadCommand("PDSIZE", PointSize));
             registry.Add(new CadCommand("OFFSET", Offset));
             registry.Add(new CadCommand("FILLET", Fillet));
             registry.Add(new CadCommand("CHAMFER", Chamfer));
@@ -145,11 +139,10 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("GROUP", Group, true));
             registry.Add(new CadCommand("-GROUP", GroupTyped));
             registry.Add(new CadCommand("UNGROUP", Ungroup, true));
-            registry.Add(new CadCommand("PICKSTYLE", PickStyleCommand));
             registry.Add(new CadCommand("PURGE", PurgeTyped));
             registry.Add(new CadCommand("-PURGE", PurgeTyped));
-            registry.Add(new CadCommand("SELECTIONCYCLING", SelectionCyclingCommand));
             AddXrefsTo(registry);
+            AddVariablesTo(registry);
         }
 
         /// <summary>A point of the plan in space, at nought height.</summary>

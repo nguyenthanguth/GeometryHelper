@@ -134,6 +134,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
             };
 
+            // PICKBOX, APERTURE, LWDISPLAY and POLARANG set on the command line, and the increment of Drafting Settings, too.
+            model.SettingsChanged += (s, e) =>
+            {
+                try
+                {
+                    model.Settings.Save(model.SettingsPath);
+                }
+                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+                {
+                    GeometryHelperLog.Warn("Program: the settings could not be saved after a setting changed.", ex);
+                }
+            };
+
             // The command plugins: those installed and on the startup list loaded now, each result a line of the command line.
             var plugins = new CadPluginManager(
                 new CadPluginAssemblyLoader(),

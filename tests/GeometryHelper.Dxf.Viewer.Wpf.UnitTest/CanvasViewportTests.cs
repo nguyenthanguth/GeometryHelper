@@ -82,6 +82,30 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
+        public void AGripClickedThroughTheViewport_StretchesInModelSpace()
+        {
+            OnLayout((model, canvas, viewport) =>
+            {
+                model.Document.EnterViewport(viewport);
+                canvas.RenderNow();
+
+                // The bottom wall's end (4 000, 0) is shown at paper (250, 25); its grip clicked, then the point (4 000, 400)
+                // shown at (250, 45) clicked, the end goes there in model space.
+                Click(canvas, At(canvas, 200, 25));
+                canvas.RenderNow();
+                string wall = Assert.Single(model.Document.Selection.Handles);
+                Click(canvas, At(canvas, 249.99, 25));
+                Assert.True(model.Session.IsGripEditing);
+                Click(canvas, At(canvas, 250, 45));
+
+                var line = (DxfLine)model.Document.FindEntity(wall);
+                Assert.Equal(4000, line.EndPoint.X, 6);
+                Assert.Equal(400, line.EndPoint.Y, 6);
+                Assert.Same(model.Document.ModelSpace, model.Document.FindSpace(wall));
+            });
+        }
+
+        [Fact]
         public void TheWheelThroughTheViewport_ZoomsItsViewNotThePaper_OneUndoStepOnceStill()
         {
             OnLayout((model, canvas, viewport) =>

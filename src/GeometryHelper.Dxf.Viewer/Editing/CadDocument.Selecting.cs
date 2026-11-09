@@ -4,7 +4,7 @@ using GeometryHelper.Dxf;
 
 namespace GeometryHelper.Dxf.Viewer
 {
-    /// <summary>How objects are picked in the document: groups taken whole (PICKSTYLE) and overlapping objects cycled through (SELECTIONCYCLING).</summary>
+    /// <summary>How objects are picked in the document: groups taken whole (PICKSTYLE), overlapping objects cycled through (SELECTIONCYCLING), and objects selected before a command taken by it (PICKFIRST).</summary>
     public sealed partial class CadDocument
     {
         /// <summary>
@@ -22,6 +22,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// SELECTIONCYCLING sets it.
         /// </summary>
         public int SelectionCycling { get; set; } = 2;
+
+        /// <summary>
+        /// Gets or sets PICKFIRST, as AutoCAD's: 1 (the default) lets a command that works on objects (MOVE, ERASE) take those
+        /// selected before it started; 0 makes it ask "Select objects:" whatever is selected. Kept by the presenter, not in the
+        /// drawing, as AutoCAD keeps it in the registry; the variable PICKFIRST sets it.
+        /// </summary>
+        public int PickFirst { get; set; } = 1;
 
         /// <summary>
         /// Gets the objects a pick takes with PICKSTYLE on: those given, then the other members of each selectable group any of
