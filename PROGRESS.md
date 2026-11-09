@@ -65,12 +65,12 @@ the ones wanted.
 - [ ] Text: TEXT Justify and Style; MTEXT Justify, Line spacing, Rotation, Style, Width, Columns at the corner prompt (S) (running)
 - [ ] Draw: CIRCLE Ttr and Tan, Tan, Tan (S) (running)
 - [ ] Draw: PLINE Width, Halfwidth, Length and the arc options Angle, CEnter, Direction, Radius, Second pt (M) (running)
-- [ ] Grips: grip modes (Space cycles Stretch, Move, Rotate, Scale, Mirror; Base point, Copy; Ctrl copies; several hot
+- [ ] Grips (running): grip modes (Space cycles Stretch, Move, Rotate, Scale, Mirror; Base point, Copy; Ctrl copies; several hot
       grips with Shift) (M)
 - [ ] Properties: editable rows for polylines, hatches, dimensions, MTEXT, INSERTs (attributes), viewports, multileaders (L)
 - [ ] Properties: MATCHPROP Settings dialog and special properties (dimension, text, hatch, polyline, viewport, table,
       multileader) (M)
-- [ ] Utilities: SETVAR and system variable names typed at the command line, the variables drafters set first (M)
+- [ ] Utilities: SETVAR and system variable names typed at the command line, the variables drafters set first (M) (running)
 - [ ] Utilities: command line AutoComplete (suggestions as you type, mid-string search, most used first) (M)
 - [ ] Modify: PEDIT (Close/Open, Join, Width, Edit vertex, Fit/Spline/Decurve, Ltype gen, Reverse, Multiple; lines and
       arcs made a polyline) (L)
