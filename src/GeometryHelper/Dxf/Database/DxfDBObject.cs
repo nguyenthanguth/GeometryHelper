@@ -80,6 +80,15 @@ namespace GeometryHelper.Dxf
         public bool IsErased => _item != null && _item.IsRemoved;
 
         /// <summary>
+        /// Gets the handles of the object's reactors (the groups 330 of its <c>{ACAD_REACTORS</c>), in the order of its record, as
+        /// AutoCAD's <c>GetPersistentReactorIds</c> gives their ids: the DIMASSOC of each associative dimension tied to a line, the
+        /// GROUPs it is in. Empty for an object in no file or with none; a new list on each call, read as it was for one erased.
+        /// </summary>
+        /// <returns>The handles.</returns>
+        public IReadOnlyList<string> GetPersistentReactorIds()
+            => _item == null || !IsResident || HasNoRecord ? (IReadOnlyList<string>)Array.Empty<string>() : _item.File.ReactorsOf(_item).AsReadOnly();
+
+        /// <summary>
         /// Gets the object's extension dictionary, as AutoCAD's <c>ExtensionDictionary</c> gives its id: the DICTIONARY of the
         /// OBJECTS section its group <c>{ACAD_XDICTIONARY</c> names (360), which holds what applications keep with it; null
         /// where it has none, or names one the file has not.
@@ -391,7 +400,7 @@ namespace GeometryHelper.Dxf
         /// <see cref="DxfTableStyle"/> for a TABLESTYLE, a <see cref="DxfField"/> for a FIELD, a <see cref="DxfMlineStyle"/> for an MLINESTYLE, a <see cref="DxfSun"/> for a SUN,
         /// a <see cref="DxfGeoData"/> for a GEODATA, a <see cref="DxfDataLink"/> for a DATALINK, a <see cref="DxfRasterImageDef"/>
         /// for an IMAGEDEF, a <see cref="DxfRasterVariables"/> for a RASTERVARIABLES, a <see cref="DxfDrawOrderTable"/> for a
-        /// SORTENTSTABLE; else one of no class of its own.
+        /// SORTENTSTABLE, a <see cref="DxfDimAssoc"/> for a DIMASSOC; else one of no class of its own.
         /// </summary>
         internal static DxfDBObject OfObject(DxfItem item)
         {
@@ -449,6 +458,9 @@ namespace GeometryHelper.Dxf
                     break;
                 case "SORTENTSTABLE":
                     made = new DxfDrawOrderTable(item);
+                    break;
+                case "DIMASSOC":
+                    made = new DxfDimAssoc(item);
                     break;
                 default:
                     made = new DxfUnknownObject(item);

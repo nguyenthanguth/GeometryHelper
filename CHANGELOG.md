@@ -23,6 +23,18 @@ paper and MODEL a pressed one through a viewport; the scale opens AutoCAD's list
 viewport worked through or selected, its scale then grey; on the Model tab the place shows the annotation scale
 (CANNOSCALE) and its list the drawing's scales.
 
+**NEW.** Associative dimensions, as AutoCAD 2021 keeps them with DIMASSOC 2. The library reads and writes the DIMASSOC
+under ACAD_DIMASSOC in a dimension's extension dictionary: `DxfDimension.DimAssoc`, `SetDimAssoc` and `ReleaseDimAssoc`,
+`DxfDimAssoc`, `DxfOsnapPointRef` and `DxfOsnapType`, and `DxfDBObject.GetPersistentReactorIds`. In the presenter a
+dimension whose points were picked with an object snap (or a line selected for DIMLINEAR, a circle for DIMRADIUS, an arc
+for DIMANGULAR) is tied to its objects, and every edit of them carries it along in the same undo step, whatever command or
+grip makes the edit: a line from (0, 0) to (100, 0) moved by (10, 5) takes its dimension, 20 above, whole to a line at 25;
+its end stretched to (120, 30) measures 120 with the dimension line still 20 up; a circle of 25 scaled twice gives its
+radius 50. Erasing the object, or moving the dimension on its own, unties it, as AutoCAD's "Dimension disassociated.".
+DIMREASSOCIATE, DIMDISASSOCIATE and -DIMDISASSOCIATE are new commands and DIMASSOC (0 to 2, 2 by default) a system
+variable; `CadCommandSession.Feed(CadSnapResult, bool)` hands the window's snap with its point. AutoCAD 2021's AUDIT finds
+0 errors in a drawing of the presenter's six kinds of tied dimension, and its own MOVE and SCALE carry them.
+
 **NEW.** The presenter gives dimensions AutoCAD 2021's grips: a linear or aligned one its two extension line origins, the
 two ends of its dimension line and its words; a radius its chord point and words, a diameter its two chord points and
 words; an angle its vertex, line points, arc and words; an ordinate its feature and leader end. Dragging one rewrites the

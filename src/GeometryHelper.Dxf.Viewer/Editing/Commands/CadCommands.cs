@@ -64,6 +64,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("DIMORDINATE", DimOrdinate));
             registry.Add(new CadCommand("DIMJOGLINE", DimJogLine));
             registry.Add(new CadCommand("DIM", Dim));
+            AddDimensionAssociationTo(registry);
 
             registry.Add(new CadCommand("ELLIPSE", Ellipse));
             registry.Add(new CadCommand("POINT", Point));

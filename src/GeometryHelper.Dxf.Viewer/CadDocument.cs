@@ -375,6 +375,21 @@ namespace GeometryHelper.Dxf.Viewer
             return _byHandle.TryGetValue(handle, out DxfEntity found) && !found.IsErased ? found : null;
         }
 
+        /// <summary>
+        /// The entity of a handle as the index of handles holds it, erased or not: an entity an edit just erased is read still,
+        /// its reactors among it, until the index is next made again.
+        /// </summary>
+        internal DxfEntity FindKept(string handle)
+        {
+            if (string.IsNullOrEmpty(handle))
+            {
+                return null;
+            }
+
+            IndexHandles();
+            return _byHandle.TryGetValue(handle, out DxfEntity found) ? found : null;
+        }
+
         /// <summary>Gets the space an entity of a handle is in, or null where no space holds it.</summary>
         /// <param name="handle">The handle.</param>
         /// <returns>The space.</returns>

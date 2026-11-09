@@ -123,7 +123,7 @@ x = 40, is attached top right at (80, 0). At 1 they are mirrored with the rest.
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 156 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 159 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -137,7 +137,7 @@ x = 40, is attached top right at (80, 0). At 1 they are mirrored with the rest.
 | blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select), BASE |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
 | plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT ([Plotting](plot.md)) |
-| dimension | DIM (Angular, Baseline, Continue, Ordinate, aLign, Distribute, LAyer, Undo), DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove) |
+| dimension | DIM (Angular, Baseline, Continue, Ordinate, aLign, Distribute, LAyer, Undo), DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE |
 | tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT |
 | selection | QSELECT, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP |
 | housekeeping | PURGE, -PURGE (Blocks, Dimstyles, LAyers, LTypes, MUltileaderstyles, Plotstyles, SHapes, textSTyles, Tablestyles, Visualstyles, Regapps, Zero-length geometry, Empty text objects, All) |
@@ -156,6 +156,20 @@ DIMJOGLINE (DJL) puts a jog in the line of a linear dimension, kept as AutoCAD k
 drawn 1.5 times the height of the words; Remove takes it out. DIM dimensions what is clicked: a line, then where its
 dimension goes or a second line for the angle; a circle's diameter, an arc's radius; a click on nothing starts a linear
 dimension. Its options run the commands of their names, and LAyer puts the dimensions made next on a layer.
+
+A dimension made with DIMASSOC 2 (the default) whose points were picked with an object snap is associative, as in AutoCAD
+2021: DIMLINEAR and DIMALIGNED tie each origin snapped with ENDpoint, MIDpoint, CENter, QUAdrant, NODe or NEArest to its
+line, arc, circle, polyline segment or point (both ends where a line is selected), DIMRADIUS and DIMDIAMETER tie the center
+of the circle or arc, and DIMANGULAR of an arc its two ends and center, kept in a DIMASSOC as AutoCAD keeps it. Every edit
+that changes those objects, whatever command or grip makes it, carries the dimension with it in the same undo step: a line
+from (0, 0) to (100, 0) moved by (10, 5) takes its dimension, 20 above, whole to (10, 5), (110, 5) and a line at 25; its end
+stretched to (120, 30) moves the second origin there and measures 120, the dimension line staying 20 up; a circle of 25
+scaled twice about its center gives its radius 50 drawn out the same way. Erasing the object, or moving the dimension
+without it, unties the dimension, which keeps its points. DIMREASSOCIATE asks each selected dimension for its points again,
+`Specify first extension line origin or [Select object] <next>:`, and ties those snapped; DIMDISASSOCIATE (and
+-DIMDISASSOCIATE) unties those selected, `1 disassociated.`. A copy of a dimension is tied to nothing. The window hands the
+snap with its point through `CadCommandSession.Feed(CadSnapResult, bool)`; a point typed or fed with `Feed(GeoPoint2)` ties
+nothing.
 
 PEDIT (PE) asks AutoCAD 2021's prompts and stores what AutoCAD stores, checked against AutoCAD's own console. A line or an
 arc picked is made a LWPOLYLINE after `Do you want to turn it into one? <Y>`, an arc's from its start counter-clockwise:
@@ -272,7 +286,7 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 
 | Kept in | Variables | A change |
 |---|---|---|
-| the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
+| the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
 | the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
 | the window: the status bar, the snaps and Global settings | OSMODE, ORTHOMODE, SNAPMODE, GRIDMODE, POLARANG, AUTOSNAP, DYNMODE, PICKBOX, APERTURE, LWDISPLAY | at once, no undo step; kept in the settings file |
 | read only | DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME, DWGPREFIX, DATE, CDATE | |

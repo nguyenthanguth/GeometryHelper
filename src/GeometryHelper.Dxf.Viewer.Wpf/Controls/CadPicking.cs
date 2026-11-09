@@ -117,8 +117,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     }
 
                     // Ctrl held as the point is picked turns an arc of ARC or PLINE the other way, as in AutoCAD, and a grip
-                    // edit's first point copies.
-                    return session.Feed(snapped?.Point ?? cursor, false, control);
+                    // edit's first point copies. The snap goes with its point, so that a dimension ties the point to its object.
+                    return snapped != null && snapped.Handle != null ? session.Feed(snapped, control) : session.Feed(snapped?.Point ?? cursor, false, control);
                 }
 
                 return WantsObjects(session) && session.Feed(cursor, shift);

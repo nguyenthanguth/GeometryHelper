@@ -89,6 +89,9 @@ namespace GeometryHelper.Dxf.Viewer
         private readonly SortedSet<string> _whole = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
         private IEnumerator<CadPrompt> _body;
         private CadCommandContext _context;
+
+        // The snap of the point being fed by Feed(CadSnapResult), which the point answer carries; null otherwise.
+        private CadSnapResult _snapFed;
         private CadCommand _gripCommand;
         private bool _grouped;
         private List<string> _script;
@@ -380,6 +383,30 @@ namespace GeometryHelper.Dxf.Viewer
                     return TakeSelection(new[] { picked[0] }, point, shift);
                 default:
                     return Invalid("Point is not valid here.");
+            }
+        }
+
+        /// <summary>
+        /// Answers the prompt with a point an object snap gave on the canvas, as <see cref="Feed(GeoPoint2, bool, bool)"/> answers
+        /// with its point, keeping which snap and which object gave it: a dimension made with DIMASSOC 2 ties the point to the
+        /// object, as AutoCAD ties a point picked with ENDpoint, MIDpoint, CENter, QUAdrant, NODe or NEArest. The end of a line
+        /// snapped with ENDpoint at the first prompt of DIMLINEAR ties the dimension's first point to that end.
+        /// </summary>
+        /// <param name="snapped">The snap's result, as <see cref="ObjectSnap.Snap"/> gives it.</param>
+        /// <param name="control">Whether Ctrl was held as the point was picked.</param>
+        /// <returns>Whether the prompt took it.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the result is null.</exception>
+        public bool Feed(CadSnapResult snapped, bool control)
+        {
+            _snapFed = snapped ?? throw new ArgumentNullException(nameof(snapped));
+
+            try
+            {
+                return Feed(snapped.Point, false, control);
+            }
+            finally
+            {
+                _snapFed = null;
             }
         }
 
@@ -839,7 +866,7 @@ namespace GeometryHelper.Dxf.Viewer
             switch (Prompt.Kind)
             {
                 case CadPromptKind.Point:
-                    return Answer(new CadInput(CadInputKind.Point, point, 0.0, null, null) { Control = control }, echo, point);
+                    return Answer(new CadInput(CadInputKind.Point, point, 0.0, null, null) { Control = control, Snap = _snapFed }, echo, point);
                 case CadPromptKind.Distance:
                     if (Prompt.BasePoint == null)
                     {

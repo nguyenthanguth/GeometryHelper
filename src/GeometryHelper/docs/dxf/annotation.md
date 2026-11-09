@@ -355,6 +355,20 @@ MTEXT `100` is saved and read back drawn by `*D1` with its two entities; a drawi
 the record it is (a `Clone()` holds it too) and taken to the record of its name in the drawing it is added to, refused where
 there is none of that name to take it to.
 
+### Associative dimensions
+
+A dimension AutoCAD made with DIMASSOC 2 by object snaps keeps a DIMASSOC under ACAD_DIMASSOC in its extension dictionary:
+[`DimAssoc`](xref:GeometryHelper.Dxf.DxfDimension.DimAssoc) gives it, a [`DxfDimAssoc`](xref:GeometryHelper.Dxf.DxfDimAssoc)
+naming the dimension and listing its `PointReferences`, each a [`DxfOsnapPointRef`](xref:GeometryHelper.Dxf.DxfOsnapPointRef):
+the point of the dimension it ties, the snap it was taken by, the object and the parameter on it. AutoCAD 2021 ties a
+DIMLINEAR from the start of a line from (0, 0) to (100, 0) to its end with two references to the line, `StartPoint` of
+parameter 0 and `Endpoint` of parameter 1; a corner of a rectangle is the end of a segment, its marker the segment's number
+from 1. `SetDimAssoc` ties a dimension as AutoCAD writes it, the DIMASSOC among the reactors of the dimension and of each
+object (`GetPersistentReactorIds` lists them) and its class listed, and AutoCAD 2021's AUDIT finds nothing to fix in it;
+written again, it keeps its handle. `ReleaseDimAssoc` unties it, the extension dictionary released where it is left empty,
+as AutoCAD leaves a dimension it has disassociated. The library keeps the ties but does not move a dimension when its
+objects move: the presenter does that after each edit.
+
 ## See also
 
 - [Tables of cells](tables.md).

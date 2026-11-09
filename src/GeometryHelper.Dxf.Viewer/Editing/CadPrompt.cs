@@ -396,6 +396,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         internal IReadOnlyList<KeyValuePair<string, GeoPoint2>> Clicks { get; set; } = Array.Empty<KeyValuePair<string, GeoPoint2>>();
 
+        /// <summary>The object snap a point answer was picked with (<see cref="CadCommandSession.Feed(CadSnapResult, bool)"/>), which an associative dimension ties its point to; null for a point typed or picked with none.</summary>
+        internal CadSnapResult Snap { get; set; }
+
         /// <summary>Gets whether the answer is Enter with nothing typed.</summary>
         public bool IsNone => Kind == CadInputKind.None;
 
