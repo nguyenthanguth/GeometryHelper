@@ -38,7 +38,6 @@ which aims to work like AutoCAD 2021 and replace it, and Part B, model drawings 
 ### In progress
 
 - [ ] C18a Tables: TABLE, TABLESTYLE, editing cells, Table Cell tab (running)
-
 - [ ] Ribbon round 3: Insert tab, Annotate and View shrink to 1 280 px (running)
 
 ### To do
