@@ -42,13 +42,45 @@ The list of work on the drawing stack: Part A, the 2D presenter (`GeometryHelper
       screenshot mode shared with Drawing.App through `CadAppHost`
 - [x] Blocks round 2: EATTEDIT live with Apply kept open, INSERT drags the block, -ATTEDIT picks one attribute, ATTSYNC,
       Block Definition previews the selection, redefine a block brought from another drawing
+- [x] AutoCAD parity check: 101 gaps and 19 partial items, listed in full in
+      [73-autocad-parity.md](src/GeometryHelper.Drawing/plan/73-autocad-parity.md)
 
 ### In progress
 
-### To do
+### AutoCAD parity: High (daily use), in the order of value to a drafter
 
-- [ ] AutoCAD parity check (running): compare the presenter's commands, system variables, options, prompts and dialogs with
-      AutoCAD 2021's 2D set, list every gap here by area, ranked by how often a drafter uses it
+The Medium and Low items are in [73-autocad-parity.md](src/GeometryHelper.Drawing/plan/73-autocad-parity.md); copy here
+the ones wanted.
+
+- [ ] MIRRTEXT: check that MIRROR keeps text readable (MIRRTEXT 0, AutoCAD's default); nothing reads it now (S)
+- [ ] Selection: "Select objects:" options P, L, F, WP, CP, R, A, U, SI, G, BOX, AU and Shift+click to remove (M)
+- [ ] Drafting aids: FROM, M2P/MTP, TT and point filters .X .Y .XY at any point prompt (S)
+- [ ] Draw: ARC every AutoCAD way (Center, End, Angle, Direction, Radius, Length) and Enter to continue tangent (M)
+- [ ] Text: TEXT Justify and Style; MTEXT Justify, Line spacing, Rotation, Style, Width, Columns at the corner prompt (S)
+- [ ] Draw: CIRCLE Ttr and Tan, Tan, Tan (S)
+- [ ] Draw: PLINE Width, Halfwidth, Length and the arc options Angle, CEnter, Direction, Radius, Second pt (M)
+- [ ] Grips: grip modes (Space cycles Stretch, Move, Rotate, Scale, Mirror; Base point, Copy; Ctrl copies; several hot
+      grips with Shift) (M)
+- [ ] Properties: editable rows for polylines, hatches, dimensions, MTEXT, INSERTs (attributes), viewports, multileaders (L)
+- [ ] Properties: MATCHPROP Settings dialog and special properties (dimension, text, hatch, polyline, viewport, table,
+      multileader) (M)
+- [ ] Utilities: SETVAR and system variable names typed at the command line, the variables drafters set first (M)
+- [ ] Utilities: command line AutoComplete (suggestions as you type, mid-string search, most used first) (M)
+- [ ] Modify: PEDIT (Close/Open, Join, Width, Edit vertex, Fit/Spline/Decurve, Ltype gen, Reverse, Multiple; lines and
+      arcs made a polyline) (L)
+- [ ] Dimensions: dimension grips (text position, dimension line, extension origins) (M)
+- [ ] Layouts: MSPACE/PSPACE through a viewport (double click inside, the MODEL/PAPER button) and the viewport scale in
+      Properties and the status bar (L)
+- [ ] Files: recent files on the start screen and the application menu (S)
+- [ ] Draw: REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style) (M)
+- [ ] Layers: VP Freeze per viewport (VPLAYER, the Layer manager's VP columns, LAYVPI) (M)
+- [ ] Dimensions: MLEADERSTYLE, the Multileader Style Manager (M, design first)
+- [ ] Dimensions: associative dimensions that follow their geometry (DIMASSOC 2, DIMREASSOCIATE) (L)
+- [ ] Blocks: BEDIT, the Block Editor (L, design first)
+- [ ] Blocks: dynamic blocks in use: custom grips (visibility, lookup, stretch, flip, rotate, array) and their Properties
+      rows (L)
+
+### To do
 - [ ] Dxf.App: the start screen and welcome line still offer "New drawing from a model" and Ctrl+N; hide what belongs to
       Drawing when no host handles it (design first)
 - [ ] Dxf.App: an app icon, file association for .dxf (installer or registry), `--tab Home` in screenshot mode

@@ -1,5 +1,7 @@
 # What the presenter lacks against AutoCAD 2021
 
+Superseded on 2026-11-10 by [73-autocad-parity.md](73-autocad-parity.md); kept for its history.
+
 A list, made on 2026-11-08 after the user found the Annotate and View tabs dead, of what AutoCAD 2021's ribbon (its six
 tabs Home, Insert, Annotate, View, Manage, Output), quick access toolbar, status bar and command set have, against what
 Part A (the 2D presenter: `GeometryHelper.Dxf.Viewer`, `.Dxf.Viewer.Wpf`, `Drawing.App`) has. Each item is marked:
