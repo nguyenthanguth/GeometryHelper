@@ -511,6 +511,22 @@ namespace GeometryHelper.Dxf.Viewer
                 viewport.ViewCenter = viewCenter;
                 viewport.ViewHeight = viewHeight;
                 viewport.On = true;
+
+                // The layers frozen in new viewports (New VP Freeze, VPLAYER Vpvisdflt) are frozen in this one, as AutoCAD freezes them.
+                var frozen = new List<DxfLayerTableRecord>();
+
+                foreach (DxfLayerTableRecord layer in s.Database.LayerTable)
+                {
+                    if (layer.ViewportVisibilityDefault)
+                    {
+                        frozen.Add(layer);
+                    }
+                }
+
+                if (frozen.Count > 0)
+                {
+                    viewport.FreezeLayersInViewport(frozen);
+                }
             });
         }
 

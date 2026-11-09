@@ -127,11 +127,11 @@ x = 40, is attached top right at (80, 0). At 1 they are mirrored with the rest.
 
 | Group | Commands |
 |---|---|
-| view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE |
+| view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE |
 | edit | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR, EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
 | draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG, ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), MLEADER, MVIEW, LAYOUT (New, Rename, Set, ?) |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
-| layers | LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO |
+| layers | LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
 | utilities | SELECTALL, UNITS, -UNITS, SCRIPT, SETVAR (?) |
 | modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPOLAR, -ARRAY, ALIGN |
 | blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select), BASE |
@@ -369,7 +369,12 @@ The wheel, the middle button and ZOOM and PAN change the viewport's view, not th
 notches one step once the view is still). ZOOM `nXP` sets its scale, n paper units to the model unit: `1/50XP` in a
 viewport 100 high shows 5 000 of model space, 1:50. A viewport whose display is locked keeps its view, and the paper is
 zoomed instead. The status bar's scale list and Properties' Standard scale (1:1 to 100:1) and Custom scale (0.02) set the
-view's height to the frame's over the scale, about the same centre; Display locked is a row of Properties too.
+view's height to the frame's over the scale, about the same centre; Display locked is a row of Properties too. The list
+opens on a click of the scale, as AutoCAD 2021's: Scale to fit, which fits model space's extents to the frame, the standard
+scales, and Custom..., which runs VPSCALE: it writes `PS:MS == 1:20` and asks a new scale, as 1:37.5 (SCALELISTEDIT is not
+built). Beside it the padlock locks and unlocks the viewport's display, one undo step; a locked viewport's scale is grey and
+its list greyed. On the paper with no viewport selected neither shows; on the Model tab the place shows the annotation
+scale (CANNOSCALE), its list the drawing's scales, and MODEL is a label rather than a button.
 [`CadViewports`](xref:GeometryHelper.Dxf.Viewer.CadViewports) has the arithmetic: the canvas's view in model units
 (`ModelView`) and the view a viewport takes back from it (`ViewOf`), a box fitted to the frame (`Fit`), and the scales'
 names. A viewport whose view is turned, or not a plan, is not entered.
@@ -472,6 +477,37 @@ Layer manager and the LAYER command make, each one undo step, refused where Auto
 
 A layer turned off or frozen takes its entities out of the display lists; a locked layer keeps them drawn but out of any
 selection a command gathers. `IsLocked(database, name)` asks.
+
+### Layers in the viewports of a layout
+
+While a layout is current the Layer manager shows AutoCAD 2021's VP columns: VP Freeze, New VP Freeze, VP Color, VP
+Linetype, VP Lineweight, VP Transparency and VP Plot Style. They act on the viewport worked through, else on the one
+viewport selected on the paper, and are grey with neither; on the Model tab they are hidden. A value that differs from the
+layer's own in that viewport alone is marked blue. VP Plot Style reads `Color_7` and is grey in a drawing plotted by colour
+(a CTB table), as AutoCAD's. Its right-click menu has "VP Freeze Layer in All Viewports", "VP Thaw Layer in All Viewports",
+"New Layer VP Frozen in All Viewports" and "Remove Viewport Overrides for", on the layers chosen or all, in the current
+viewport or all. [`CadViewportLayerEditor`](xref:GeometryHelper.Dxf.Viewer.CadViewportLayerEditor) makes these edits, each
+one undo step:
+
+| Call | Does |
+|---|---|
+| `TargetViewport(document)` | the viewport the columns act on: the one worked through, else the one selected alone |
+| `SetFrozen(document, viewports, layers, frozen)`, `SetFrozenInAllViewports` | the layers frozen or thawed in viewports, the viewport's own list (group 331) |
+| `SetFrozenInNewViewports(document, layer, frozen)` | the layer frozen in each viewport made from now on (flag 2 of its group 70); MVIEW freezes it in the new one |
+| `AddFrozenInAllViewports(document, name)` | a new layer frozen in every viewport of every layout |
+| `SetColor`, `SetLinetype`, `SetLineWeight`, `SetTransparency`, `SetPlotStyle` | an override of the layer in one viewport |
+| `RemoveOverrides(document, layers, viewport)` | the overrides taken out, in one viewport or, given null, in all |
+
+The display draws a viewport without the layers frozen in it and with its overrides: the layer TEXT, cyan, overridden red
+in the plan viewport is drawn red there and cyan in the detail viewport. Transparency is not drawn, the layer's own nor an
+override.
+
+VPLAYER asks `Enter an option [?/Freeze/Thaw/Reset/Newfrz/Vpvisdflt]:` until Enter, all one undo step. Freeze, Thaw and
+Reset take layer names, with commas and wild cards (`D*,TEXT`), or on Enter the layers of objects selected, then the
+viewports: `[All/Select/Current/Except current] <Current>:`, All being those of the layout shown; on the Model tab every
+viewport of every layout. Reset sets each layer as its New VP Freeze says; Newfrz adds layers frozen in all viewports;
+Vpvisdflt sets New VP Freeze; `?` lists the layers frozen in a viewport. LAYVPI, through a viewport, freezes the layer of
+each object picked in every other viewport, of all layouts or of the current one (Settings), and Undo thaws the last again.
 
 ## See also
 

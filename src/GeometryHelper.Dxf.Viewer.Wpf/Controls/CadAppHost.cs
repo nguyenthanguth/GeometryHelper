@@ -36,7 +36,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <c>--layers</c> draws the Layer manager instead, and <c>--dialog</c> one of the presenter's dialogs or menus:
     /// <c>save-changes</c>, <c>options</c> or <c>settings:Category</c> (Global settings), <c>plugins</c>,
     /// <c>plugin-settings</c>, <c>plugin-untrusted</c>, <c>color</c>, <c>truecolor</c>, <c>truecolor-rgb</c>,
-    /// <c>dsettings[:Tab]</c>, <c>osnap-menu</c>, <c>snap-menu</c>, <c>drawings-menu</c>, <c>missing-shx</c>,
+    /// <c>dsettings[:Tab]</c>, <c>osnap-menu</c>, <c>snap-menu</c>, <c>drawings-menu</c>, <c>scale-menu</c>, <c>missing-shx</c>,
     /// <c>missing-shx-replace</c>, <c>ptype</c>, <c>linetype</c>, <c>linetype-load</c>, <c>select-linetype</c>, <c>hatch</c>,
     /// <c>hatch-gradient</c>, <c>hatch-user</c>, <c>hatch-solid</c>, <c>hatch-file</c>, <c>block</c>, <c>insert</c>,
     /// <c>wblock</c>, <c>attdef</c>, <c>eattedit[:Tab]</c>, <c>style</c>, <c>style-new</c>, <c>dimstyle</c>,
@@ -77,7 +77,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Gets the line written to the error output when the arguments of <c>--screenshot</c> do not read: the options the
         /// presenter knows, after the name of the program.
         /// </summary>
-        protected virtual string Usage => "Usage: " + (Assembly.GetEntryAssembly()?.GetName().Name ?? "app") + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--tab Insert|Annotate|View|Plugins|Settings] [--dialog save-changes|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|pastespec] [--plugin path.dll]";
+        protected virtual string Usage => "Usage: " + (Assembly.GetEntryAssembly()?.GetName().Name ?? "app") + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--tab Insert|Annotate|View|Plugins|Settings] [--dialog save-changes|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|pastespec] [--plugin path.dll]";
 
         /// <summary>
         /// Runs the app on the STA thread of its entry point: the window until it is closed, or the screenshot where the first
@@ -390,6 +390,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (layers)
             {
+                // The lines of --run typed first, as MSPACE to show the VP columns of a viewport.
+                foreach (string line in run == null ? Array.Empty<string>() : run.Split(';'))
+                {
+                    model.Execute(line);
+                }
+
+                run = null;
                 LayerManagerViewModel manager = model.CreateLayerManager();
 
                 if (manager == null)
@@ -455,11 +462,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 IReadOnlyList<CadMenuItemViewModel> items = string.Equals(dialogName, "osnap-menu", StringComparison.OrdinalIgnoreCase) ? model.OsnapMenu()
                     : string.Equals(dialogName, "snap-menu", StringComparison.OrdinalIgnoreCase) ? model.SnapOverrideMenu()
                     : string.Equals(dialogName, "drawings-menu", StringComparison.OrdinalIgnoreCase) ? model.FileRowMenu(row)
+                    : string.Equals(dialogName, "scale-menu", StringComparison.OrdinalIgnoreCase) ? model.ScaleMenu()
                     : Array.Empty<CadMenuItemViewModel>();
 
                 if (items.Count == 0)
                 {
-                    Console.Error.WriteLine("--dialog " + dialogName + ": no such menu, or nothing to show: snap-menu needs a point asked (--run \"LINE\"), drawings-menu a drawing.");
+                    Console.Error.WriteLine("--dialog " + dialogName + ": no such menu, or nothing to show: snap-menu needs a point asked (--run \"LINE\"), drawings-menu a drawing, scale-menu a scale shown.");
                     return 2;
                 }
 

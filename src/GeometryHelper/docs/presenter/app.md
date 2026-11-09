@@ -122,7 +122,7 @@ The function keys, Delete and the Ctrl keys of [the defaults](editing.md#aliases
 | middle button dragged | pans |
 | middle button double-clicked | zooms to the extents, the paper included in a layout; through a viewport, its view to model space's extents |
 | left double click in a layout | inside a viewport's frame works through it (MSPACE); off every frame goes back to the paper (PSPACE); a click in another viewport's frame works through that one |
-| MODEL / PAPER on the status bar, Ctrl+R | MSPACE or PSPACE in a layout; Ctrl+R the next viewport; the scale list beside it sets the scale of the viewport worked through or selected |
+| MODEL / PAPER on the status bar, Ctrl+R | in a layout a button, raised on the paper and pressed through a viewport: MSPACE or PSPACE; Ctrl+R the next viewport; on the Model tab a label. The scale beside it opens its list: in a layout the viewport's (Scale to fit, the standard scales, Custom...), grey while the padlock after it locks the viewport's display; on the Model tab the annotation scale (CANNOSCALE) |
 | left click, no command running | picks within the pickbox; Shift+click adds or removes; a click on nothing starts a box |
 | click / double click in DRAWINGS | selects the row / opens it; the right-click menu has Open, Close, Close Selected Drawings, Close All Other Drawings, Close All Drawings |
 | Shift+right-click, a point asked | the object snap menu; the snap chosen is taken for that point alone |
@@ -179,12 +179,12 @@ it cannot read. Both apps take these options:
 | `--toggle GRID,DYN` | switches status toggles |
 | `--tab Insert` | shows a ribbon tab: Insert, Annotate, View, Plugins, Settings, or a host's, as Drawing |
 | `--plugin path.dll` | loads a command plugin, every file trusted, into a folder of the run under the temporary folder |
-| `--layers` | draws the Layer manager instead of the window |
+| `--layers` | draws the Layer manager instead of the window, the lines of `--run` typed first: `--space Layout1 --run MS --layers` shows its VP columns |
 | `--dialog name` | draws a dialog or a menu instead of the window, the lines of `--run` typed first where it needs them |
 
 The dialogs are `save-changes`; `options` or `settings:Canvas and cursor` (Global settings on a category); `plugins`,
 `plugin-settings` and `plugin-untrusted`; `color`, `truecolor` and `truecolor-rgb` (Select Color on index 30);
-`dsettings[:Tab]`; the menus `osnap-menu`, `snap-menu` (after `--run "LINE"`) and `drawings-menu`; `missing-shx` and
+`dsettings[:Tab]`; the menus `osnap-menu`, `snap-menu` (after `--run "LINE"`), `drawings-menu` and `scale-menu` (the status bar's scale list); `missing-shx` and
 `missing-shx-replace`; `ptype`; `linetype`, `linetype-load`, `select-linetype`, `hatch`, `hatch-gradient`, `hatch-user`,
 `hatch-solid` and `hatch-file`; `block`, `insert`, `wblock`, `attdef` and `eattedit[:Tab]`; `style`, `style-new`,
 `dimstyle`, `dimstyle-new`, `dimstyle-modify[:Tab]`, `dimstyle-override[:Tab]` and `dimstyle-compare[:Other]`; and
