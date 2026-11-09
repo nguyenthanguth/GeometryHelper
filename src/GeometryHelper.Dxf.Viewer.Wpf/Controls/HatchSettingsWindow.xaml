@@ -1,0 +1,144 @@
+<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.HatchSettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+        Title="Hatch" Width="600" Height="520" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Background="#262B33">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml" />
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Icons.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <local:BoolToVisibilityConverter x:Key="Shown" />
+            <local:RgbBrushConverter x:Key="RgbBrush" />
+
+            <Style x:Key="Label" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="Width" Value="120" />
+            </Style>
+
+            <Style x:Key="Row" TargetType="StackPanel">
+                <Setter Property="Orientation" Value="Horizontal" />
+                <Setter Property="Margin" Value="0,0,0,8" />
+            </Style>
+
+            <Style x:Key="NumberBox" TargetType="TextBox" BasedOn="{StaticResource GhTextBox}">
+                <Setter Property="Width" Value="90" />
+                <Setter Property="Padding" Value="6,3" />
+                <Setter Property="Background" Value="{StaticResource GhInput}" />
+                <Setter Property="FontFamily" Value="{StaticResource GhMonoFont}" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
+            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
+            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+        <DockPanel>
+            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" MouseLeftButtonDown="OnHeaderDown">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhFlatButton}" Width="24" Height="24" Click="OnCancel" ToolTip="Close">
+                        <local:IconView Size="14" StrokeThickness="2" Stroke="{StaticResource GhTextMuted}" Data="{StaticResource GhIconClose}" />
+                    </Button>
+                    <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button Style="{StaticResource GhDialogButton}" Content="OK" Padding="18,5" Margin="0,0,6,0" Click="OnOk" IsDefault="True" />
+                        <Button Style="{StaticResource GhDialogButton}" Content="Cancel" Padding="14,5" Click="OnCancel" IsCancel="True" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding Message}" Foreground="{StaticResource GhWarn}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                </DockPanel>
+            </Border>
+
+            <!-- The preview, drawn by the presenter's own hatch display, and the type and pattern beside it. -->
+            <DockPanel Margin="16,14">
+                <StackPanel DockPanel.Dock="Right" Margin="16,0,0,0">
+                    <TextBlock Text="Preview" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,6" />
+                    <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" Width="162" Height="162">
+                        <Image Source="{Binding Preview}" Width="160" Height="160" />
+                    </Border>
+                    <TextBlock Text="{Binding Pattern.Description}" Foreground="{StaticResource GhTextMuted}" Margin="0,6,0,0" Width="162" TextWrapping="Wrap"
+                               Visibility="{Binding IsPattern, Converter={StaticResource Shown}}" />
+                </StackPanel>
+
+                <StackPanel>
+                    <TextBlock Text="Pattern" FontWeight="SemiBold" Margin="0,0,0,8" />
+                    <StackPanel Style="{StaticResource Row}">
+                        <TextBlock Style="{StaticResource Label}" Text="Hatch type:" />
+                        <ComboBox Style="{StaticResource GhComboBox}" Width="160" ItemsSource="{Binding Types}" SelectedItem="{Binding Type, Mode=TwoWay}" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Row}" Visibility="{Binding IsPattern, Converter={StaticResource Shown}}">
+                        <TextBlock Style="{StaticResource Label}" Text="Pattern:" />
+                        <ComboBox Style="{StaticResource GhComboBox}" Width="160" ItemsSource="{Binding Patterns}" SelectedItem="{Binding Pattern, Mode=TwoWay}"
+                                  FontFamily="{StaticResource GhMonoFont}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate DataType="{x:Type local:HatchPatternChoice}">
+                                    <TextBlock Text="{Binding Name}" ToolTip="{Binding Source}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Row}" Visibility="{Binding IsGradient, Converter={StaticResource Shown}}">
+                        <TextBlock Style="{StaticResource Label}" Text="Gradient:" />
+                        <ComboBox Style="{StaticResource GhComboBox}" Width="160" ItemsSource="{Binding GradientNames}" SelectedItem="{Binding GradientName, Mode=TwoWay}" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Row}" Visibility="{Binding IsGradient, Converter={StaticResource Shown}}">
+                        <TextBlock Style="{StaticResource Label}" Text="Colours:" />
+                        <Button Style="{StaticResource GhFlatButton}" Padding="2" Margin="0,0,6,0" Command="{Binding PickColor1Command}" ToolTip="Gradient colour 1">
+                            <Border Width="36" Height="16" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" Background="{Binding Color1Rgb, Converter={StaticResource RgbBrush}}" />
+                        </Button>
+                        <Button Style="{StaticResource GhFlatButton}" Padding="2" Margin="0,0,12,0" Command="{Binding PickColor2Command}" ToolTip="Gradient colour 2">
+                            <Border Width="36" Height="16" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" Background="{Binding Color2Rgb, Converter={StaticResource RgbBrush}}" />
+                        </Button>
+                        <CheckBox Style="{StaticResource GhCheckBox}" IsChecked="{Binding Centered, Mode=TwoWay}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock Text="Centered" VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <TextBlock Text="Properties" FontWeight="SemiBold" Margin="0,8,0,8" />
+                    <StackPanel Style="{StaticResource Row}" Visibility="{Binding HasAngle, Converter={StaticResource Shown}}">
+                        <TextBlock Style="{StaticResource Label}" Text="Angle:" />
+                        <TextBox Style="{StaticResource NumberBox}" Text="{Binding Angle, UpdateSourceTrigger=LostFocus}" KeyDown="OnBoxKeyDown" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Row}" Visibility="{Binding IsPattern, Converter={StaticResource Shown}}">
+                        <TextBlock Style="{StaticResource Label}" Text="Scale:" />
+                        <TextBox Style="{StaticResource NumberBox}" Text="{Binding Scale, UpdateSourceTrigger=LostFocus}" KeyDown="OnBoxKeyDown" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Row}" Visibility="{Binding IsIso, Converter={StaticResource Shown}}">
+                        <TextBlock Style="{StaticResource Label}" Text="ISO pen width:" />
+                        <ComboBox Style="{StaticResource GhComboBox}" Width="90" ItemsSource="{Binding IsoPenWidths}" SelectedItem="{Binding IsoPenWidth, Mode=TwoWay}" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Row}" Visibility="{Binding IsUserDefined, Converter={StaticResource Shown}}">
+                        <TextBlock Style="{StaticResource Label}" Text="Spacing:" />
+                        <TextBox Style="{StaticResource NumberBox}" Text="{Binding Spacing, UpdateSourceTrigger=LostFocus}" KeyDown="OnBoxKeyDown" Margin="0,0,12,0" />
+                        <CheckBox Style="{StaticResource GhCheckBox}" IsChecked="{Binding Double, Mode=TwoWay}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock Text="Double" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Row}" Visibility="{Binding IsPattern, Converter={StaticResource Shown}}">
+                        <TextBlock Style="{StaticResource Label}" Text="Origin X, Y:" />
+                        <TextBox Style="{StaticResource NumberBox}" Text="{Binding OriginX, UpdateSourceTrigger=LostFocus}" KeyDown="OnBoxKeyDown" Margin="0,0,6,0" />
+                        <TextBox Style="{StaticResource NumberBox}" Text="{Binding OriginY, UpdateSourceTrigger=LostFocus}" KeyDown="OnBoxKeyDown" />
+                    </StackPanel>
+
+                    <TextBlock Text="Options" FontWeight="SemiBold" Margin="0,8,0,8" />
+                    <StackPanel Style="{StaticResource Row}">
+                        <TextBlock Style="{StaticResource Label}" Text="Island detection:" />
+                        <ComboBox Style="{StaticResource GhComboBox}" Width="160" ItemsSource="{Binding IslandStyles}" SelectedItem="{Binding IslandStyle, Mode=TwoWay}" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Row}">
+                        <TextBlock Style="{StaticResource Label}" Text="Associative:" />
+                        <CheckBox Style="{StaticResource GhCheckBox}" IsChecked="{Binding Associative, Mode=TwoWay}" VerticalAlignment="Center"
+                                  ToolTip="The hatch keeps the handles of its boundary objects; it is not made anew when they move" />
+                    </StackPanel>
+                </StackPanel>
+            </DockPanel>
+        </DockPanel>
+    </Border>
+</Window>

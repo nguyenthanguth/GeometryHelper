@@ -424,7 +424,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Assert.All(shown, t => Assert.Equal("test.shx", t.FontName));
             Assert.All(shown, t => Assert.NotNull(t.Strokes));
-            Assert.Equal(new[] { "Font romans.shx not found: using test.shx." }, said);
+            // The drawing's Standard style names txt, missing too: AutoCAD lists the fonts of every style.
+            Assert.Equal(new[] { "Missing SHX files: romans.shx drawn in test.shx; txt drawn in test.shx." }, said);
         }
 
         [Fact]
@@ -439,7 +440,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Assert.Equal("romans.shx", shown.FontName);
             Assert.Null(shown.Strokes);
-            Assert.Equal(new[] { "Font romans.shx not found: using the drawing font." }, said);
+            Assert.Equal(new[] { "Missing SHX files: romans.shx drawn in the drawing font; txt drawn in the drawing font." }, said);
         }
 
         [Fact]
@@ -467,7 +468,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal("Arial", Shown(arial).FontName);
             Assert.Null(Shown(arial).Strokes);
             Assert.Equal("Arial", Shown(missing).FontName);
-            Assert.Equal(new[] { "Font No Such Face not found: using Arial." }, said);
+            // The typeface is no SHX file: said on its own, after the list of the Standard style's txt.
+            Assert.Equal(new[] { "Missing SHX files: txt drawn in Arial.", "Font No Such Face not found: using Arial." }, said);
         }
 
         [Fact]
@@ -498,54 +500,174 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Same(shown, document.GetDisplay(document.ModelSpace));
         }
 
-        // ---- The fonts of this machine
+        [Fact]
+        public void AFullPathInAStyleIsUsedAsItIs_AndABareNameTakesShx()
+        {
+            using (var elsewhere = new FontFolder())
+            {
+                string path = elsewhere.Write("mine.shx", ShxFiles.Unifont());
+                _folder.Write("bare.shx", ShxFiles.Unifont());
+                var fonts = new CadFonts(new[] { _folder.FullPath }, null, null);
+
+                Assert.Equal(path, fonts.Locate(path, null), StringComparer.OrdinalIgnoreCase);
+                Assert.Null(fonts.Locate("mine.shx", null));
+                Assert.Equal(Path.Combine(_folder.FullPath, "bare.shx"), fonts.Locate("bare", null), StringComparer.OrdinalIgnoreCase);
+            }
+        }
 
         [Fact]
-        public void TheShxFontsOfAutoCadOnThisMachineReadAndMeasureAbc123()
+        public void TheFontsStartWithNoFolder_NoneOfAutodesk()
         {
-            string folder = CadFonts.DefaultFolders.FirstOrDefault(f => File.Exists(Path.Combine(f, "romans.shx")));
+            Assert.Empty(CadFonts.DefaultFolders);
+            Assert.DoesNotContain(CadFonts.DefaultFolders, f => f.IndexOf("Autodesk", StringComparison.OrdinalIgnoreCase) >= 0);
+        }
 
-            if (folder == null)
+        // ---- The built-in font
+
+        [Fact]
+        public void TheBuiltInFontDrawsAbc123FromTheBaselineToTheCapitalsHeight()
+        {
+            ShxFont font = CadFonts.BuiltIn;
+            double advance = 0.0;
+            double top = double.MinValue;
+            double bottom = double.MaxValue;
+
+            foreach (char c in "ABC123")
             {
-                _output.WriteLine("No AutoCAD Fonts folder with romans.shx on this machine: the check of its fonts is passed over.");
-                return;
-            }
+                ShxGlyph glyph = font.GlyphOf(c);
+                Assert.NotEmpty(glyph.Strokes);
+                advance += glyph.Advance;
 
-            var fonts = new CadFonts(new[] { folder }, null, null);
-
-            foreach (string name in new[] { "txt.shx", "simplex.shx", "romans.shx", "isocp.shx" })
-            {
-                ShxFont font = CadFonts.Load(fonts.Locate(name, null));
-                Assert.NotNull(font);
-                Assert.True(font.Above > 0, name);
-                double advance = 0.0;
-                double top = double.MinValue;
-                double bottom = double.MaxValue;
-
-                foreach (char c in "ABC123")
+                foreach (double[] stroke in glyph.Strokes)
                 {
-                    ShxGlyph glyph = font.GlyphOf(c);
-                    Assert.NotNull(glyph);
-                    Assert.NotEmpty(glyph.Strokes);
-
-                    foreach (double[] stroke in glyph.Strokes)
+                    for (int k = 1; k < stroke.Length; k += 2)
                     {
-                        for (int k = 1; k < stroke.Length; k += 2)
-                        {
-                            top = Math.Max(top, stroke[k]);
-                            bottom = Math.Min(bottom, stroke[k]);
-                        }
+                        top = Math.Max(top, stroke[k]);
+                        bottom = Math.Min(bottom, stroke[k]);
                     }
-
-                    advance += glyph.Advance;
                 }
-
-                // Six letters wider than three heights and narrower than nine; their ink up to the capitals' height.
-                _output.WriteLine(name + ": above " + font.Above + ", ABC123 " + (advance / font.Above).ToString("0.000") + " heights wide, ink " + (bottom / font.Above).ToString("0.000") + " to " + (top / font.Above).ToString("0.000"));
-                Assert.InRange(advance / font.Above, 3.0, 9.0);
-                Assert.InRange(top / font.Above, 0.9, 1.1);
-                Assert.InRange(bottom / font.Above, -0.1, 0.1);
             }
+
+            // Hershey's Roman Simplex: capitals 21 above the baseline, descenders 7 below, as romans.shx; ABC123 is 18 + 21 + 21
+            // + 20 + 20 + 20 = 120 units wide, 5.7 heights, inked from the baseline to the capitals' top.
+            _output.WriteLine("ABC123: " + advance + " units, " + (advance / font.Above).ToString("0.000") + " heights wide, ink " + bottom + " to " + top);
+            Assert.Equal(ShxFontKind.Unifont, font.Kind);
+            Assert.Equal(98, font.Count);
+            Assert.Equal(21.0, font.Above);
+            Assert.Equal(7.0, font.Below);
+            Assert.Equal(120.0, advance, 9);
+            Assert.Equal(21.0, top, 9);
+            Assert.Equal(0.0, bottom, 9);
+            Assert.True(font.Has(0xB0));
+            Assert.True(font.Has(0xB1));
+            Assert.True(font.Has(0x2205));
+            Assert.Equal(-7.0, font.GlyphOf('g').Strokes.SelectMany(s => s.Where((v, k) => k % 2 == 1)).Min(), 9);
+        }
+
+        [Fact]
+        public void ATextInTheBuiltInFontHasItsCapitalsAsHighAsTheText()
+        {
+            CadDocument document = Drawing(CadFonts.BuiltInName, null, Text("ABC123", 2.5, t => t.Position = new GeoPoint3(10, 20, 0)));
+            var said = new List<string>();
+            document.FontMissing += (s, e) => said.Add(e.Message);
+            document.Fonts = new CadFonts(new[] { _folder.FullPath }, null, null);
+
+            DisplayText2 shown = Shown(document);
+            double[] ys = shown.Strokes.SelectMany(s => s.Where((v, k) => k % 2 == 1)).ToArray();
+            double[] xs = shown.Strokes.SelectMany(s => s.Where((v, k) => k % 2 == 0)).ToArray();
+
+            // 2.5 high in a font 21 above: the ink from the baseline at 20 to 22.5; 120 units across at 2.5 / 21 is 14.286, the
+            // ink a little within it, from the foot of the A 1 unit in to the right of the 3 at 117.
+            Assert.Equal(CadFonts.BuiltInName, shown.FontName);
+            Assert.Equal(20.0, ys.Min(), 9);
+            Assert.Equal(22.5, ys.Max(), 9);
+            Assert.Equal(10.0 + (2.5 / 21.0), xs.Min(), 9);
+            Assert.Equal(10.0 + (117.0 * 2.5 / 21.0), xs.Max(), 9);
+            Assert.Empty(said);
+        }
+
+        [Fact]
+        public void ARomansNotFoundInNoFolderIsDrawnInTheBuiltInFontAndSaidOnce()
+        {
+            CadDocument document = Drawing("romans.shx", null, Text("H", 5.0), Text("HH", 5.0));
+            var said = new List<string>();
+            document.FontMissing += (s, e) => said.Add(e.Message);
+            document.Fonts = new CadFonts(null, CadFonts.BuiltInName, null);
+
+            DisplayText2[] shown = document.GetDisplay(document.ModelSpace).Items.OfType<DisplayText2>().ToArray();
+            document.Regen();
+            document.GetDisplay(document.ModelSpace);
+
+            Assert.All(shown, t => Assert.Equal(CadFonts.BuiltInName, t.FontName));
+            Assert.All(shown, t => Assert.Equal(5.0, t.Strokes.SelectMany(s => s.Where((v, k) => k % 2 == 1)).Max(), 9));
+            Assert.Equal(new[] { "Missing SHX files: romans.shx drawn in GeometryHelper Simplex; txt drawn in GeometryHelper Simplex." }, said);
+        }
+
+        // ---- AutoCAD's ways with SHX fonts: FONTALT, FONTMAP, big fonts and the list of missing files
+
+        [Fact]
+        public void ABigFontNotFoundIsDrawnInTheBigHalfOfTheReplacement_AndWithNoneAsQuestionMarks()
+        {
+            _folder.Write("test.shx", ShxFiles.Unifont());
+            _folder.Write("gbcbig.shx", ShxFiles.Big());
+            Action<DxfDatabase> big = d => d.TextStyleTable["GH_SHX"].BigFontFileName = "nobig.shx";
+            CadDocument halved = Drawing("test.shx", big, Text("I中", 4.0));
+            CadDocument plain = Drawing("test.shx", big, Text("I中", 4.0));
+            var said = new List<string>();
+            halved.FontMissing += (s, e) => said.Add(e.Message);
+            plain.FontMissing += (s, e) => said.Add(e.Message);
+            halved.Fonts = Fonts("test.shx,gbcbig.shx");
+            plain.Fonts = Fonts("test.shx");
+
+            // 中 drawn from gbcbig.shx, its line up 4 at 1.6 + 1; with no big font, the question mark of test.shx draws nothing.
+            Assert.Equal(2, Shown(halved).Strokes.Count);
+            Point(2.6, 4, Shown(halved).Strokes[1], 1);
+            Assert.Single(Shown(plain).Strokes);
+            Assert.Equal(new[] { "Missing SHX files: nobig.shx (big font) drawn in gbcbig.shx; txt drawn in test.shx.", "Missing SHX files: nobig.shx (big font) drawn as question marks; txt drawn in test.shx." }, said);
+        }
+
+        [Fact]
+        public void AFontMappingFileMapsAFontBeforeItIsLookedFor()
+        {
+            _folder.Write("test.shx", ShxFiles.Unifont());
+            string map = Path.Combine(_folder.FullPath, "mine.fmp");
+            File.WriteAllText(map, "romans.shx;test.shx\r\n\r\nno semicolon\r\n;blank.shx\r\ntxt;\r\n");
+            CadDocument document = Drawing("romans.shx", null, Text("I", 5.0));
+            var said = new List<string>();
+            document.FontMissing += (s, e) => said.Add(e.Message);
+
+            IReadOnlyList<KeyValuePair<string, string>> pairs = CadFonts.ReadFontMap(map);
+            document.Fonts = Fonts(null, pairs);
+
+            Assert.Equal(new[] { new KeyValuePair<string, string>("romans.shx", "test.shx") }, pairs);
+            Assert.Equal("test.shx", Shown(document).FontName);
+            Assert.Empty(said);
+            Assert.Empty(CadFonts.ReadFontMap(Path.Combine(_folder.FullPath, "none.fmp")));
+        }
+
+        [Fact]
+        public void TheMissingShxFilesAreListedOnceInTheOrderOfTheirNames_AndOneGivenAFontOfItsOwnLeavesTheList()
+        {
+            _folder.Write("test.shx", ShxFiles.Unifont());
+            // A second style, used by no text, names isocp.shx: AutoCAD lists the fonts of every style, drawn or not. An MTEXT's
+            // \Fisocp after the list is the same font, not said again.
+            var mtext = new DxfMText { Contents = @"{\Fisocp|c0;I}", Location = new GeoPoint3(0, 20, 0), TextHeight = 5.0 };
+            CadDocument document = Drawing("romans.shx", d => d.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "GH_ISO", FileName = "isocp.shx" }), Text("I", 5.0), mtext);
+            var said = new List<string>();
+            document.FontMissing += (s, e) => said.Add(e.Message);
+            document.Fonts = Fonts(CadFonts.BuiltInName);
+
+            document.GetDisplay(document.ModelSpace);
+            document.Regen();
+            document.GetDisplay(document.ModelSpace);
+
+            Assert.Contains("isocp.shx drawn in GeometryHelper Simplex; romans.shx drawn in GeometryHelper Simplex", Assert.Single(said));
+            Assert.Equal(new[] { "isocp.shx", "romans.shx" }, document.FindMissingFonts().Select(f => f.Name).Where(n => n != "txt"));
+
+            document.Fonts = document.Fonts.WithSubstitution("romans.shx", "test.shx");
+
+            Assert.DoesNotContain(document.FindMissingFonts(), f => f.Name == "romans.shx");
+            Assert.Equal("test.shx", document.GetDisplay(document.ModelSpace).Items.OfType<DisplayText2>().First().FontName);
         }
     }
 }

@@ -84,6 +84,17 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("UCSICON", UcsIcon));
             registry.Add(new CadCommand("PLAN", Plan));
             registry.Add(new CadCommand("UCSMAN", UcsManager));
+            registry.Add(new CadCommand("LINETYPE", Linetype));
+            registry.Add(new CadCommand("-LINETYPE", LinetypeTyped));
+            registry.Add(new CadCommand("CELTYPE", CurrentLinetype));
+            registry.Add(new CadCommand("LTSCALE", LinetypeScale));
+            registry.Add(new CadCommand("CELTSCALE", CurrentLinetypeScale));
+            registry.Add(new CadCommand("HATCH", Hatch));
+            registry.Add(new CadCommand("HATCHEDIT", HatchEdit));
+            registry.Add(new CadCommand("BOUNDARY", Boundary));
+            registry.Add(new CadCommand("STYLE", StyleDialog));
+            registry.Add(new CadCommand("-STYLE", StyleTyped));
+            registry.Add(new CadCommand("DIMSTYLE", DimStyleDialog));
         }
 
         /// <summary>A point of the plan in space, at nought height.</summary>

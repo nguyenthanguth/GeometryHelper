@@ -114,6 +114,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 ApplyTextDefaults(file.Session);
                 file.Document.Fonts = _settings.ToFonts(SkiaCanvasRenderer.HasFamily);
+                file.Document.SupportFolders = _settings.SupportSearchFolders;
             }
 
             SetCursor(0.0, 0.0);

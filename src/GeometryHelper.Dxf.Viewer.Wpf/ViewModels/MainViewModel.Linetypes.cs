@@ -1,0 +1,155 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace GeometryHelper.Dxf.Viewer.Wpf
+{
+    /// <summary>
+    /// The linetype box of the ribbon's Properties panel ($CELTYPE), the Linetype Manager (LINETYPE) and the Hatch dialog of
+    /// HATCH's seTtings and HATCHEDIT, each shown through a function the workspace sets, so that a test drives them with none.
+    /// </summary>
+    public sealed partial class MainViewModel
+    {
+        /// <summary>The last choice of the linetype box: the Linetype Manager, as AutoCAD's Other... shows it.</summary>
+        public const string OtherLinetypeOption = "Other...";
+
+        /// <summary>Gets or sets how the workspace shows the Linetype Manager: true when OK was pressed, the manager then applied.</summary>
+        public Func<LinetypeManagerViewModel, bool> ShowLinetypeManager { get; set; }
+
+        /// <summary>Gets or sets how the workspace shows the Hatch dialog: true when OK was pressed.</summary>
+        public Func<HatchSettingsViewModel, bool> ShowHatchSettings { get; set; }
+
+        /// <summary>
+        /// Gets or sets the linetype of new objects, the drawing's $CELTYPE, as the linetype box of the ribbon's Properties panel
+        /// shows it: ByLayer, ByBlock or a linetype loaded. Setting one sets it as one undo step; <see cref="OtherLinetypeOption"/>
+        /// shows the Linetype Manager. Empty with no drawing open.
+        /// </summary>
+        public string CurrentLinetype
+        {
+            get => _current == null ? string.Empty : _current.Document.Database.Celtype;
+
+            set
+            {
+                if (_current == null || value == null || value == CurrentLinetype)
+                {
+                    return;
+                }
+
+                if (value == OtherLinetypeOption)
+                {
+                    OpenLinetypeManager();
+                }
+                else
+                {
+                    CadEditResult result = CadPropertyEditor.Set(_current.Document, null, "Linetype", value);
+
+                    if (!result.Succeeded)
+                    {
+                        Say(result.Message);
+                    }
+                }
+
+                RaiseCurrentLinetype();
+            }
+        }
+
+        /// <summary>Gets the choices of the linetype box: ByLayer, ByBlock, the linetypes loaded in the order of their names, and <see cref="OtherLinetypeOption"/>.</summary>
+        public IReadOnlyList<string> CurrentLinetypeOptions
+        {
+            get
+            {
+                var options = new List<string> { "ByLayer", "ByBlock" };
+
+                if (_current != null)
+                {
+                    options.AddRange(CadLinetypes.Names(_current.Document.Database));
+                }
+
+                options.Add(OtherLinetypeOption);
+                return options;
+            }
+        }
+
+        /// <summary>Makes the Linetype Manager of the drawing shown; null with none open.</summary>
+        /// <returns>The manager.</returns>
+        public LinetypeManagerViewModel CreateLinetypeManager() => _current == null ? null : new LinetypeManagerViewModel(_current.Document);
+
+        /// <summary>Makes the Hatch dialog on the settings of the next hatch of the drawing shown; null with none open.</summary>
+        /// <returns>The dialog.</returns>
+        public HatchSettingsViewModel CreateHatchSettings() => _current == null ? null : new HatchSettingsViewModel(_current.Document, _current.Document.HatchSettings, false);
+
+        /// <summary>Shows the Linetype Manager and applies it where OK is pressed, saying what it refused.</summary>
+        private bool OpenLinetypeManager()
+        {
+            LinetypeManagerViewModel manager = CreateLinetypeManager();
+
+            if (manager == null || ShowLinetypeManager == null)
+            {
+                return false;
+            }
+
+            if (ShowLinetypeManager(manager))
+            {
+                manager.Apply();
+
+                if (manager.Message.Length > 0)
+                {
+                    Say(manager.Message);
+                }
+            }
+
+            RaiseCurrentLinetype();
+            return true;
+        }
+
+        /// <summary>
+        /// The requests of LINETYPE, HATCH's seTtings and HATCHEDIT: the dialog shown where the workspace shows it, the
+        /// request handled; with none, the command asks on the command line.
+        /// </summary>
+        private void OnHatchOrLinetypeRequested(CadUiRequestEventArgs e)
+        {
+            CadDocument document = e.Document ?? _current?.Document;
+
+            if (document == null)
+            {
+                return;
+            }
+
+            switch (e.Name)
+            {
+                case "LINETYPE":
+                    e.Handled = OpenLinetypeManager();
+                    break;
+                case "HATCHSETTINGS":
+                    if (ShowHatchSettings != null)
+                    {
+                        var settings = new HatchSettingsViewModel(document, document.HatchSettings, false);
+
+                        if (ShowHatchSettings(settings))
+                        {
+                            document.HatchSettings = settings.Settings;
+                        }
+
+                        e.Handled = true;
+                    }
+
+                    break;
+                case "HATCHEDIT":
+                    if (ShowHatchSettings != null && document.HatchBeingEdited != null)
+                    {
+                        var edited = new HatchSettingsViewModel(document, document.HatchBeingEdited, true);
+                        document.HatchBeingEdited = ShowHatchSettings(edited) ? edited.Settings : null;
+                        e.Handled = true;
+                    }
+
+                    break;
+            }
+        }
+
+        private void RaiseCurrentLinetype()
+        {
+            Raise(nameof(CurrentLinetype));
+            Raise(nameof(CurrentLinetypeOptions));
+        }
+    }
+}

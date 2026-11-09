@@ -146,8 +146,11 @@
                                                 <TextBlock Text="{Binding ColorName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                             </StackPanel>
                                         </Button>
-                                        <ComboBox Grid.Column="6" Style="{StaticResource GhComboBox}" Margin="8,2" FontFamily="{StaticResource GhMonoFont}"
-                                                  ItemsSource="{Binding LinetypeOptions}" SelectedItem="{Binding Linetype, Mode=TwoWay}" ToolTip="Linetype" />
+                                        <!-- The linetype cell, clicked: AutoCAD's Select Linetype dialog. -->
+                                        <Button Grid.Column="6" Margin="8,2" Style="{StaticResource GhFlatButton}" HorizontalContentAlignment="Left" Padding="4,3"
+                                                Command="{Binding ChooseLinetypeCommand}" ToolTip="Linetype: click to choose one loaded, or load one">
+                                            <TextBlock Text="{Binding Linetype}" FontFamily="{StaticResource GhMonoFont}" TextTrimming="CharacterEllipsis" />
+                                        </Button>
                                         <ComboBox Grid.Column="7" Style="{StaticResource GhComboBox}" Margin="8,2" FontFamily="{StaticResource GhMonoFont}"
                                                   ItemsSource="{Binding WeightOptions}" SelectedItem="{Binding Weight, Mode=TwoWay}" ToolTip="Lineweight" />
                                         <TextBlock Grid.Column="8" Style="{StaticResource Cell}" Text="{Binding Owner}" Foreground="{StaticResource GhTextMuted}" />

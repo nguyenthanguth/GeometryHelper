@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Windows.Input;
+using System.Windows.Media;
 using GeometryHelper.Dxf;
 
 namespace GeometryHelper.Dxf.Viewer.Wpf
@@ -11,7 +12,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// The logic of AutoCAD's Select Color dialog, with no window: the Index Color tab, the 255 colours of AutoCAD's index as
     /// AutoCAD lays them out (the standard colours 1 to 9, the grid of 10 to 249 by hue and shade, the greys 250 to 255) with
     /// ByLayer and ByBlock where the caller offers them, and the True Color tab, red, green and blue, hue, saturation and
-    /// luminance, and the hexadecimal of a true colour. The colour each swatch shows is the one the canvas draws, read from
+    /// luminance, and the hexadecimal of a true colour, shown in the HSL model (a field of hue and saturation picked by a
+    /// click, a luminance bar) or the RGB model (a bar for each of red, green and blue). The colour each swatch shows is the one the canvas draws, read from
     /// <see cref="DxfColor"/>; picking index 30 gives orange, 255, 127, 0, and typing red, green and blue 10, 20, 30 gives
     /// the true colour 10,20,30. The colour the dialog was opened on is shown beside the one chosen.
     /// </summary>
@@ -24,6 +26,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         // then the paler shades, the palest at the bottom.
         private static readonly int[] Shades = { 0, 2, 4, 6, 8, 9, 7, 5, 3, 1 };
 
+        // The colour models of the True Color tab, and the size of the inside of its field and bar, in pixels.
+        private const string Hsl = "HSL";
+        private const string RgbModel = "RGB";
+        private const int FieldWidth = 218;
+        private const int FieldHeight = 198;
+
         private readonly List<AciSwatchViewModel> _swatches = new List<AciSwatchViewModel>();
         private DxfColor _color;
         private bool _trueColorTab;
@@ -33,6 +41,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private int _hue;
         private int _saturation;
         private int _luminance;
+        private string _model = Hsl;
 
         /// <summary>Makes the dialog's logic on a colour.</summary>
         /// <param name="current">The colour it opens on, shown as the old one; null for White (7).</param>
@@ -210,6 +219,143 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
+        /// <summary>Gets the colour models of the True Color tab, as its Color model list offers them: HSL and RGB.</summary>
+        public IReadOnlyList<string> ColorModels { get; } = new[] { Hsl, RgbModel };
+
+        /// <summary>
+        /// Gets or sets the colour model the True Color tab shows: HSL, the field of hue and saturation with the luminance bar
+        /// beside it, or RGB, a bar for each of red, green and blue. Another name is left. The colour is kept either way.
+        /// </summary>
+        public string ColorModel
+        {
+            get => _model;
+            set
+            {
+                if (ColorModels.Contains(value) && Set(ref _model, value))
+                {
+                    Raise(nameof(IsHslModel));
+                    Raise(nameof(IsRgbModel));
+                }
+            }
+        }
+
+        /// <summary>Gets whether the True Color tab shows the HSL model.</summary>
+        public bool IsHslModel => _model == Hsl;
+
+        /// <summary>Gets whether the True Color tab shows the RGB model.</summary>
+        public bool IsRgbModel => _model == RgbModel;
+
+        /// <summary>
+        /// Gets or sets the colour as the Color box of the True Color tab writes it, red, green and blue: "255,127,0". Text that
+        /// is not three numbers 0 to 255 is left and the box shows the colour chosen.
+        /// </summary>
+        public string TrueColorText
+        {
+            get => _red.ToString(CultureInfo.InvariantCulture) + "," + _green.ToString(CultureInfo.InvariantCulture) + "," + _blue.ToString(CultureInfo.InvariantCulture);
+            set
+            {
+                string[] parts = (value ?? string.Empty).Split(',');
+
+                if (parts.Length == 3 && byte.TryParse(parts[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out byte r)
+                    && byte.TryParse(parts[1].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out byte g)
+                    && byte.TryParse(parts[2].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out byte b))
+                {
+                    SetRgb(r, g, b);
+                }
+
+                Raise(nameof(TrueColorText));
+            }
+        }
+
+        /// <summary>Gets where the hue lies across the field, 0 at its left (0 degrees) to 1 at its right (360), for its marker.</summary>
+        public double HueAcross => _hue / 360.0;
+
+        /// <summary>Gets where the saturation lies down the field, 0 at its top (100 %) to 1 at its foot (0 %), for its marker.</summary>
+        public double SaturationDown => 1.0 - _saturation / 100.0;
+
+        /// <summary>Gets where the luminance lies down its bar, 0 at its top (100 %, white) to 1 at its foot (0 %, black), for its marker.</summary>
+        public double LuminanceDown => 1.0 - _luminance / 100.0;
+
+        /// <summary>Gets where the red lies along its bar, 0 at its left to 1 at its right (255).</summary>
+        public double RedAlong => _red / 255.0;
+
+        /// <summary>Gets where the green lies along its bar.</summary>
+        public double GreenAlong => _green / 255.0;
+
+        /// <summary>Gets where the blue lies along its bar.</summary>
+        public double BlueAlong => _blue / 255.0;
+
+        /// <summary>
+        /// Gets the field of the HSL model: hue from left to right, 0 to 360 degrees, saturation from the top, 100 %, to the
+        /// foot, 0 %, at a luminance of 50 %, as AutoCAD's. Drawn once for all the dialogs.
+        /// </summary>
+        public ImageSource HueSaturationField => ColorFieldBitmaps.Field(FieldWidth, FieldHeight);
+
+        /// <summary>Gets the luminance bar of the hue and saturation picked: white at its top, their colour at 50 %, black at its foot.</summary>
+        public ImageSource LuminanceBar => ColorFieldBitmaps.Luminance(_hue, _saturation, FieldHeight);
+
+        /// <summary>Gets the bar of red: from no red to full red, the green and blue as they are.</summary>
+        public ImageSource RedBar => ColorFieldBitmaps.Channel(0, _green, _blue);
+
+        /// <summary>Gets the bar of green: from no green to full green, the red and blue as they are.</summary>
+        public ImageSource GreenBar => ColorFieldBitmaps.Channel(1, _red, _blue);
+
+        /// <summary>Gets the bar of blue: from no blue to full blue, the red and green as they are.</summary>
+        public ImageSource BlueBar => ColorFieldBitmaps.Channel(2, _red, _green);
+
+        /// <summary>
+        /// Picks the hue and the saturation where the field of the HSL model is clicked or dragged, the luminance kept: the hue
+        /// from the left edge, 0, to the right, 360; the saturation from the top, 100, to the foot, 0. A point outside the field
+        /// is taken to its edge. A field 220 wide and 200 high clicked at 55, 50 picks hue 90 and saturation 75.
+        /// </summary>
+        /// <param name="x">Where across the field, from its left edge.</param>
+        /// <param name="y">Where down the field, from its top edge.</param>
+        /// <param name="width">The width of the field.</param>
+        /// <param name="height">The height of the field.</param>
+        public void PickField(double x, double y, double width, double height)
+        {
+            if (!(width > 0.0) || !(height > 0.0))
+            {
+                return;
+            }
+
+            SetHsl((int)Math.Round(Fraction(x / width) * 360.0), (int)Math.Round((1.0 - Fraction(y / height)) * 100.0), _luminance);
+        }
+
+        /// <summary>
+        /// Picks the luminance where its bar is clicked or dragged, the hue and saturation kept: from the top, 100, to the foot,
+        /// 0. A bar 200 high clicked at 50 picks 75.
+        /// </summary>
+        /// <param name="y">Where down the bar, from its top edge.</param>
+        /// <param name="height">The height of the bar.</param>
+        public void PickLuminance(double y, double height)
+        {
+            if (height > 0.0)
+            {
+                SetHsl(_hue, _saturation, (int)Math.Round((1.0 - Fraction(y / height)) * 100.0));
+            }
+        }
+
+        /// <summary>
+        /// Picks red, green or blue where its bar of the RGB model is clicked or dragged, the other two kept: from the left edge,
+        /// 0, to the right, 255.
+        /// </summary>
+        /// <param name="channel">0 red, 1 green, 2 blue.</param>
+        /// <param name="x">Where along the bar, from its left edge.</param>
+        /// <param name="width">The width of the bar.</param>
+        public void PickChannel(int channel, double x, double width)
+        {
+            if (!(width > 0.0) || channel < 0 || channel > 2)
+            {
+                return;
+            }
+
+            int value = (int)Math.Round(Fraction(x / width) * 255.0);
+            SetRgb(channel == 0 ? value : _red, channel == 1 ? value : _green, channel == 2 ? value : _blue);
+        }
+
+        private static double Fraction(double value) => double.IsNaN(value) ? 0.0 : Math.Max(0.0, Math.Min(1.0, value));
+
         /// <summary>Picks a colour of the index, 1 to 255; another number is left.</summary>
         /// <param name="index">The index.</param>
         public void PickIndex(int index)
@@ -331,15 +477,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The true colour of the hue, saturation and luminance shown, which are kept as typed.</summary>
         private void ChooseHsl()
         {
-            double h = _hue % 360 / 60.0;
-            double l = _luminance / 100.0;
-            double c = (1.0 - Math.Abs(2.0 * l - 1.0)) * (_saturation / 100.0);
+            int rgb = HslToRgb(_hue, _saturation, _luminance);
+            Choose(Rgb(rgb >> 16, (rgb >> 8) & 0xFF, rgb & 0xFF), true);
+        }
+
+        /// <summary>
+        /// The red, green and blue of a hue (degrees), a saturation and a luminance (0 to 100) as 0xRRGGBB, as AutoCAD's HSL
+        /// model gives them: hue 30, saturation 100 and luminance 50 are 255,128,0.
+        /// </summary>
+        internal static int HslToRgb(double hue, double saturation, double luminance)
+        {
+            double h = hue % 360 / 60.0;
+            double l = luminance / 100.0;
+            double c = (1.0 - Math.Abs(2.0 * l - 1.0)) * (saturation / 100.0);
             double x = c * (1.0 - Math.Abs(h % 2.0 - 1.0));
             double m = l - c / 2.0;
             double r = h < 1 ? c : h < 2 ? x : h < 4 ? 0.0 : h < 5 ? x : c;
             double g = h < 1 ? x : h < 3 ? c : h < 4 ? x : 0.0;
             double b = h < 2 ? 0.0 : h < 3 ? x : h < 5 ? c : x;
-            Choose(Rgb((int)Math.Round((r + m) * 255.0), (int)Math.Round((g + m) * 255.0), (int)Math.Round((b + m) * 255.0)), true);
+            return (Clamp((int)Math.Round((r + m) * 255.0), 0, 255) << 16) | (Clamp((int)Math.Round((g + m) * 255.0), 0, 255) << 8) | Clamp((int)Math.Round((b + m) * 255.0), 0, 255);
         }
 
         /// <summary>Makes a colour the one chosen and shows it on both tabs; the hue, saturation and luminance kept where they were typed.</summary>
@@ -374,7 +530,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 swatch.IsSelected = color.IsByAci && swatch.Index == color.ColorIndex;
             }
 
-            foreach (string name in new[] { nameof(Color), nameof(ColorRgb), nameof(ColorText), nameof(ColorBoxText), nameof(Red), nameof(Green), nameof(Blue), nameof(Hue), nameof(Saturation), nameof(Luminance), nameof(Hex) })
+            foreach (string name in new[] { nameof(Color), nameof(ColorRgb), nameof(ColorText), nameof(ColorBoxText), nameof(Red), nameof(Green), nameof(Blue), nameof(Hue), nameof(Saturation), nameof(Luminance), nameof(Hex),
+                nameof(TrueColorText), nameof(HueAcross), nameof(SaturationDown), nameof(LuminanceDown), nameof(RedAlong), nameof(GreenAlong), nameof(BlueAlong),
+                nameof(LuminanceBar), nameof(RedBar), nameof(GreenBar), nameof(BlueBar) })
             {
                 Raise(name);
             }

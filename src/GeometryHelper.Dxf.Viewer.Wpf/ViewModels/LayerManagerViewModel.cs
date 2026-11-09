@@ -111,6 +111,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// </summary>
         public Func<SelectColorViewModel, bool> PickColor { get; set; }
 
+        /// <summary>
+        /// Gets or sets what shows AutoCAD's Select Linetype dialog for a row's linetype cell, as the window shows
+        /// <see cref="SelectLinetypeWindow"/>: given the dialog's logic, it says whether OK was pressed. Null for none, when the
+        /// cell does nothing.
+        /// </summary>
+        public Func<SelectLinetypeViewModel, bool> PickLinetype { get; set; }
+
         /// <summary>Adds a layer named Layer1, or the first LayerN the drawing has not, and chooses it.</summary>
         /// <returns>The name added, or null where it was refused.</returns>
         public string NewLayer()
@@ -206,6 +213,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
+        /// <summary>Shows Select Linetype for a row and gives its layer the linetype chosen, one undo step; nothing on Cancel. A linetype loaded by its Load... is its own undo step.</summary>
+        internal void ChooseLinetype(LayerRowViewModel row)
+        {
+            var dialog = new SelectLinetypeViewModel(Document, row.Linetype);
+
+            if (PickLinetype != null && PickLinetype(dialog) && !string.Equals(dialog.Linetype, row.Linetype, StringComparison.OrdinalIgnoreCase))
+            {
+                Done(CadLayerEditor.SetLinetype(Document, row.Name, dialog.Linetype));
+            }
+        }
+
         internal bool Done(CadEditResult result)
         {
             if (result.Succeeded)
@@ -243,10 +261,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _weight = weight;
             IsCurrent = isCurrent;
             ChooseColorCommand = new DelegateCommand(_ => _owner.ChooseColor(this));
+            ChooseLinetypeCommand = new DelegateCommand(_ => _owner.ChooseLinetype(this));
         }
 
         /// <summary>Gets the name.</summary>
         public string Name => _layer.Name;
+
+        /// <summary>Gets the command of the linetype cell: AutoCAD's Select Linetype dialog, through <see cref="LayerManagerViewModel.PickLinetype"/>.</summary>
+        public ICommand ChooseLinetypeCommand { get; }
 
         /// <summary>Gets whether it is the current layer, marked with a tick.</summary>
         public bool IsCurrent { get; }

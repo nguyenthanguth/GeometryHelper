@@ -77,6 +77,11 @@ namespace GeometryHelper.Dxf
     /// its getter gives changes nothing. A style made in code is of the font txt, its texts of no fixed height, as wide as high
     /// and upright until it is given others, and is written when it is added to a <see cref="DxfTextStyleTable"/>.
     /// </para>
+    /// <para>
+    /// Renamed, the texts, MTEXTs, attributes and tables written in it and the header's <c>$TEXTSTYLE</c> follow; Standard keeps
+    /// its name, as AutoCAD keeps it. Erased, as
+    /// AutoCAD's Text Style dialog deletes one, only where nothing is written in it and it is neither Standard nor current.
+    /// </para>
     /// </remarks>
     public sealed class DxfTextStyleTableRecord : DxfSymbolTableRecord
     {
@@ -91,6 +96,12 @@ namespace GeometryHelper.Dxf
         private double _xScale = 1.0;
         private double _obliquing;
         private bool _vertical;
+        private byte _flagBits;
+
+        // The records that name a text style by its name (group 7), and the sections they are in.
+        private static readonly HashSet<string> Users = new HashSet<string>(StringComparer.Ordinal) { "TEXT", "MTEXT", "ATTDEF", "ATTRIB", "ACAD_TABLE", "TABLESTYLE" };
+
+        private static readonly string[] Naming = { "ENTITIES", "BLOCKS", "OBJECTS" };
 
         /// <summary>
         /// Initializes a style made in code, to be added to a <see cref="DxfTextStyleTable"/> with its
@@ -195,8 +206,35 @@ namespace GeometryHelper.Dxf
         /// <summary>Gets the height last used with the style (group 42), as AutoCAD's <c>PriorSize</c>: 2.5 for a style made in code.</summary>
         public double PriorSize => Item == null ? 2.5 : Real(42, 0.0);
 
-        /// <summary>Gets the flags of the style's text generation (group 71), as AutoCAD's <c>FlagBits</c>: 2 backwards, 4 upside down.</summary>
-        public byte FlagBits => Item == null ? (byte)0 : (byte)Whole(71);
+        /// <summary>Gets or sets the flags of the style's text generation (group 71), as AutoCAD's <c>FlagBits</c>: 2 backwards, 4 upside down.</summary>
+        /// <value>Set, 0, 2, 4 or 6, as AutoCAD's Text Style dialog writes them: a style both backwards and upside down is 6.</value>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the flags set have a bit other than 2 and 4.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the style is erased.</exception>
+        public byte FlagBits
+        {
+            get => Item == null ? _flagBits : (byte)Whole(71);
+
+            set
+            {
+                if ((value & ~6) != 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(value), value, "A style's flags of text generation are 2 (backwards) and 4 (upside down).");
+                }
+
+                if (value == FlagBits)
+                {
+                    return;
+                }
+
+                if (Item == null)
+                {
+                    _flagBits = value;
+                    return;
+                }
+
+                Set(71, value.ToString(CultureInfo.InvariantCulture));
+            }
+        }
 
         /// <summary>Gets whether the style is of shapes, not letters (flag 1 of group 70), as AutoCAD's <c>IsShapeFile</c>.</summary>
         public bool IsShapeFile => (Flags & 1) != 0;
@@ -285,6 +323,112 @@ namespace GeometryHelper.Dxf
             }
 
             Bind(item);
+
+            if (_flagBits != 0)
+            {
+                Set(71, _flagBits.ToString(CultureInfo.InvariantCulture));
+            }
+        }
+
+        /// <summary>
+        /// Erases the style from its table, as AutoCAD's <c>Erase</c> of a text style nothing is written in: its STYLE record taken
+        /// out, the table's count lowered by one, its handle not given again.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the style is in no file or is erased already; when it is
+        /// Standard or the current style (<c>$TEXTSTYLE</c>), which AutoCAD keeps, or the header's <c>$DIMTXSTY</c>; when a text,
+        /// an MTEXT, an attribute or a table is written in it; or when an object of the file points at it, as a dimension style
+        /// does by its DIMTXSTY.</exception>
+        public override void Erase()
+        {
+            if (Item == null)
+            {
+                throw new InvalidOperationException("The text style " + Name + " is in no file to be erased from.");
+            }
+
+            if (IsErased)
+            {
+                throw new InvalidOperationException("The text style " + Name + " is erased already.");
+            }
+
+            string name = Name;
+            DxfFile file = Item.File;
+
+            if (string.Equals(name, "Standard", StringComparison.OrdinalIgnoreCase) || Names(file, "$TEXTSTYLE", name) || Names(file, "$DIMTXSTY", name))
+            {
+                throw new InvalidOperationException("The text style " + name + " is Standard or the current style, which AutoCAD keeps.");
+            }
+
+            if (file.Names(Naming, (type, code) => code == 7 && Users.Contains(type), name) || file.PointedAt(Handle))
+            {
+                throw new InvalidOperationException("The text style " + name + " has texts written in it or a style pointing at it, and is not erased, as AutoCAD erases a style only when nothing uses it.");
+            }
+
+            file.RemoveTableRecord(Item, "STYLE");
+        }
+
+        /// <summary>
+        /// Renames the style with every reference to it by name: its STYLE record's 2; each group 7 of the texts, MTEXTs,
+        /// attributes and tables of model space, paper space and the blocks, and of the table styles; and the header's
+        /// <c>$TEXTSTYLE</c> and <c>$DIMTXSTY</c>. A dimension style points at it by its handle, which does not change.
+        /// </summary>
+        private protected override void Rename(string name)
+        {
+            DxfSymbolTable.CheckName(name, "value");
+            string old = Name;
+
+            if (string.Equals(old, "Standard", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("The text style " + old + " is not renamed, as AutoCAD keeps its name.");
+            }
+
+            if (IsDependent)
+            {
+                throw new InvalidOperationException("The text style " + old + " comes from an external reference, and is renamed in its own drawing.");
+            }
+
+            if (IsErased)
+            {
+                throw new InvalidOperationException("The text style " + old + " is erased, and is not changed.");
+            }
+
+            if (IsShapeFile)
+            {
+                throw new InvalidOperationException("The text style " + old + " is of shapes, whose name AutoCAD keeps.");
+            }
+
+            DxfFile file = Item.File;
+
+            foreach (DxfItem other in file.TableItems("STYLE"))
+            {
+                if (other != Item && string.Equals(DxfReader.NameOf(file.ValueOf(other, 2) ?? string.Empty), name, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new ArgumentException("The text style table has a style named " + name + " already, letters of either case the same.", "value");
+                }
+            }
+
+            bool current = Names(file, "$TEXTSTYLE", old);
+            bool dimensions = Names(file, "$DIMTXSTY", old);
+            Set(2, name);
+            file.Rename(Naming, (type, code) => code == 7 && Users.Contains(type), -1, old, name);
+
+            if (current)
+            {
+                file.SetHeader("$TEXTSTYLE", new[] { new DxfTypedValue(7, name) });
+            }
+
+            if (dimensions)
+            {
+                file.SetHeader("$DIMTXSTY", new[] { new DxfTypedValue(7, name) });
+            }
+
+            GeometryHelperLog.Info("DxfDatabase: the text style " + old + " was renamed " + name + ", with every text written in it.");
+        }
+
+        /// <summary>Whether a variable of the header names a style by its name, letters of either case the same.</summary>
+        private static bool Names(DxfFile file, string variable, string name)
+        {
+            IReadOnlyList<DxfTypedValue> groups = file.HeaderOf(variable);
+            return groups != null && groups.Count > 0 && string.Equals(DxfReader.NameOf(groups[0].Value), name, StringComparison.OrdinalIgnoreCase);
         }
 
         private void SetText(int code, string value, ref string field, string now)

@@ -1,0 +1,41 @@
+<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.StyleNameWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Style Name" Width="400" SizeToContent="Height" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Background="#262B33">
+
+    <Window.Resources>
+        <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/StyleDialogs.xaml" />
+    </Window.Resources>
+
+    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
+            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
+            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+        <DockPanel>
+            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10">
+                <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" />
+            </Border>
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button Style="{StaticResource GhDialogButton}" Content="Continue" Padding="14,5" Margin="0,0,6,0" Click="OnOk" IsDefault="True" />
+                        <Button Style="{StaticResource GhDialogButton}" Content="Cancel" Padding="14,5" Command="{Binding CancelCommand}" IsCancel="True" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding Notice}" Foreground="{StaticResource GhWarn}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                </DockPanel>
+            </Border>
+            <StackPanel Margin="16,12">
+                <TextBlock Style="{StaticResource StyleLabel}" Text="New Style Name:" Margin="0,0,0,3" />
+                <TextBox x:Name="NameBox" Style="{StaticResource StyleBox}" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+                <StackPanel Visibility="{Binding AsksStartWith, Converter={StaticResource Shown}}">
+                    <TextBlock Style="{StaticResource StyleLabel}" Text="Start With:" Margin="0,10,0,3" />
+                    <ComboBox Style="{StaticResource GhComboBox}" ItemsSource="{Binding StartWithOptions}" SelectedItem="{Binding StartWith, Mode=TwoWay}" />
+                    <TextBlock Style="{StaticResource StyleLabel}" Text="Use for:" Margin="0,10,0,3" />
+                    <ComboBox Style="{StaticResource GhComboBox}" IsEnabled="False" SelectedIndex="0">
+                        <ComboBoxItem Content="{Binding UseFor}" />
+                    </ComboBox>
+                </StackPanel>
+            </StackPanel>
+        </DockPanel>
+    </Border>
+</Window>

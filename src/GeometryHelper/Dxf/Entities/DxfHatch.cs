@@ -569,6 +569,63 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Sets the lines of the pattern (group 78, then each line's 53, 43, 44, 45, 46, 79 and 49), each as
+        /// <see cref="GetPatternDefinitionAt"/> gives it back: turned and scaled with the pattern, in the system of its normal;
+        /// for a pattern of the caller's own that no pattern file of the drawing holds. ANSI31 at the scale 1 is the one line at
+        /// pi / 4 through (0, 0), offset (-2.245, 2.245): a square 30 by 20 given it explodes to 11 LINEs, as AutoCAD draws it.
+        /// The name, type, angle and scale are kept as they are; a later <see cref="PatternAngle"/> or <see cref="PatternScale"/>
+        /// turns and scales these lines as it does those of a file.
+        /// </summary>
+        /// <param name="definitions">The lines, at least one.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the lines are null.</exception>
+        /// <exception cref="ArgumentException">Thrown when there is no line.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the HATCH is filled solid, its pattern is made by the user
+        /// (its lines follow its <see cref="PatternSpace"/>), or it is erased.</exception>
+        public void SetPatternDefinitions(IEnumerable<DxfPatternDefinition> definitions)
+        {
+            if (definitions == null)
+            {
+                throw new ArgumentNullException(nameof(definitions));
+            }
+
+            var lines = new List<double[]>();
+
+            foreach (DxfPatternDefinition definition in definitions)
+            {
+                IReadOnlyList<double> dashes = definition.GetDashes();
+                var line = new double[5 + dashes.Count];
+                line[0] = DxfOcsTransform.Degrees(definition.Angle);
+                line[1] = definition.BaseX;
+                line[2] = definition.BaseY;
+                line[3] = definition.OffsetX;
+                line[4] = definition.OffsetY;
+
+                for (int i = 0; i < dashes.Count; i++)
+                {
+                    line[5 + i] = dashes[i];
+                }
+
+                lines.Add(line);
+            }
+
+            if (lines.Count == 0)
+            {
+                throw new ArgumentException("A pattern has at least one line.", nameof(definitions));
+            }
+
+            Parts record = Patterned("lines");
+
+            if (PatternType == DxfHatchPatternType.UserDefined)
+            {
+                throw new InvalidOperationException("A pattern made by the user has the lines of its spacing: set its PatternSpace.");
+            }
+
+            _fromFiles = false;
+            record.SetPart(Kind.Pattern, LineGroups(lines));
+            Write(record);
+        }
+
+        /// <summary>
         /// Gets or sets which areas the loops close are filled (group 75), as AutoCAD's <c>HatchStyle</c>;
         /// <see cref="DxfHatchStyle.Normal"/> where the record gives none.
         /// </summary>

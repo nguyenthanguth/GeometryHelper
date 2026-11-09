@@ -345,6 +345,37 @@
                             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                                 <Button Style="{StaticResource Secondary}" Margin="0" Content="Add substitution" Command="{Binding AddFontSubstitutionCommand}" />
                             </StackPanel>
+
+                            <!-- The support file search folders: where .lin and .pat files are looked for, after the drawing's folder. -->
+                            <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" Margin="0,12,0,0">
+                                <StackPanel>
+                                    <Grid Background="{StaticResource GhHeader}">
+                                        <TextBlock Style="{StaticResource Head}" Text="Support file search folders (linetypes .lin, hatch patterns .pat), in order" />
+                                    </Grid>
+                                    <ItemsControl ItemsSource="{Binding SupportFolders}" Focusable="False">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type local:FontFolderRow}">
+                                                <Border BorderBrush="{StaticResource GhHeader}" BorderThickness="0,1,0,0">
+                                                    <Grid Margin="0,2">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="28" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBox Style="{StaticResource GhTextBox}" Text="{Binding Folder, UpdateSourceTrigger=LostFocus}" FontFamily="{StaticResource GhMonoFont}" Margin="8,0" />
+                                                        <Button Grid.Column="1" Style="{StaticResource GhFlatButton}" Width="20" Height="20" ToolTip="Take the folder out"
+                                                                Command="{Binding DataContext.RemoveSupportFolderCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
+                                                            <local:IconView Size="12" StrokeThickness="2" Stroke="{StaticResource GhTextMuted}" Data="{StaticResource GhIconClose}" />
+                                                        </Button>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                <Button Style="{StaticResource Secondary}" Margin="0" Content="Add folder" Command="{Binding AddSupportFolderCommand}" />
+                            </StackPanel>
                         </StackPanel>
 
                         <!-- Data sources: the model sources the host gives. -->

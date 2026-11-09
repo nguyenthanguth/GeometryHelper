@@ -93,10 +93,37 @@ another file of the folder was opened, or once it was saved with Save and shown 
 now says, for example, "Test bodies (from file)" until the drawing is made again. The out-of-date dot now shows on such a
 drawing too, checked in the source its file names without changing it.
 
-**NEW.** The presenter draws text in its style's SHX font, read from the user's AutoCAD Fonts folder and never shipped:
+**NEW.** The presenter carries one font of its own, GeometryHelper Simplex (`CadFonts.BuiltIn`, named `ghsimplex`): the Roman
+Simplex letters of the Hershey fonts (U.S. National Bureau of Standards, 1967; notice in the project's THIRD-PARTY-NOTICES.md),
+98 letters with the degree, plus-minus and diameter signs, drawn as an SHX font is, its capitals as high as the text. It is
+the default replacement font. No folder of AutoCAD's is looked for any more (`CadFonts.DefaultFolders` is empty), and a list
+saved before keeps what it holds. FONTALT takes a big-font half (`simplex.shx,gbcbig.shx`), Global settings > Fonts takes a
+font mapping file (`FontMapFile`, read by `CadFonts.ReadFontMap`), and the SHX files missing are said once in one line, as
+AutoCAD lists them (`CadDocument.FindMissingFonts`, `CadFonts.WithSubstitution`).
+
+**NEW.** The Text Style dialog (STYLE, ST, -STYLE), the Dimension Style Manager (DIMSTYLE, D, DDIM) with its New, Modify,
+Override and Compare dialogs, and Style and Height boxes on the Annotate tab, made from the design. Each field of a dimension
+style shows the variable it sets, and a style changed redraws the dimensions drawn in it, as one undo step. AutoCAD 2021's
+AUDIT finds nothing in a drawing of 4 new text styles, 4 new dimension styles and their dimensions. **FIXED.** The text style
+Standard keeps its name, as AutoCAD keeps it.
+
+**NEW.** Select Color's True Color tab picks in the HSL model, on a field of hue and saturation and a luminance bar, or in the
+RGB model, on a bar for each of red, green and blue, as AutoCAD's does.
+
+**NEW.** The presenter makes linetypes and hatches: LINETYPE with the Linetype Manager, -LINETYPE, CELTYPE, LTSCALE and
+CELTSCALE; HATCH by internal point or by objects, with the Normal, Outer and Ignore island styles, solid and gradient;
+HATCHEDIT; BOUNDARY. Its own linetypes (GeometryHelper.lin, 39) carry the names AutoCAD users type: BORDER, CENTER, DASHDOT,
+DASHED, DIVIDE, DOT, HIDDEN and PHANTOM, each with a half size (DASHED2, a dash 3 and a gap of 0.75) and a double size, and
+ACAD_ISO02W100 to ACAD_ISO15W100 drawn to ISO 128 for a pen of 1.0 mm. Its own patterns (48) are ANSI31 to ANSI38, the ISO and
+basic ones, and its own drawings under AR-B816, AR-BRSTD (bricks 200 by 100, joints of 10), AR-CONC, AR-HBONE, AR-PARQ1,
+AR-RROOF, AR-RSHKE and AR-SAND, at real size in millimetres. They are the default; a .lin or .pat is read only from a path or
+folder the user gives, and AutoCAD's own files are never looked for. AutoCAD 2021's AUDIT finds nothing in a drawing of these
+linetypes and seven kinds of hatch. **NEW.** `DxfHatch.SetPatternDefinitions` and `DxfHatch.SetAssociatedObjects`.
+
+**NEW.** The presenter draws text in its style's SHX font, read from the drawing's folder and the folders listed in Global settings, never shipped:
 shapes, unifont and big fonts, every pen code, single-stroke letters as AutoCAD draws them; a TEXT of romans.shx `ABC123` 10
 high right-aligned on x 100 is inked from 44.762 to 100, as AutoCAD puts it (the ink boxes of 14 fonts of AutoCAD 2021 agree
-with its own to 0.001 where the strokes are straight). A font not found is drawn in the replacement font (simplex.shx by
+with its own to 0.001 where the strokes are straight). A font not found is drawn in the replacement font (GeometryHelper Simplex by
 default, as FONTALT) and said once on the command line; Global settings > Fonts lists the search folders, the replacement and
 a substitution table. A drawing of 10 000 SHX texts builds in 171 ms where it took 47, and draws whole in 135 ms where it took
 38.

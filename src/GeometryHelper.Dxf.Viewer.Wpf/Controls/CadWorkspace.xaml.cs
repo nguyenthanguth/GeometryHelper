@@ -396,6 +396,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.SettingsApplied -= OnSettingsApplied;
                 _model.CloseRequested -= OnCloseRequested;
                 _model.DraftingSettingsRequested -= OnDraftingSettingsRequested;
+                _model.StyleDialogRequested -= OnStyleDialogRequested;
             }
 
             _model = e.NewValue as MainViewModel;
@@ -412,9 +413,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.SettingsApplied += OnSettingsApplied;
                 _model.CloseRequested += OnCloseRequested;
                 _model.DraftingSettingsRequested += OnDraftingSettingsRequested;
+                _model.StyleDialogRequested += OnStyleDialogRequested;
                 _model.AskSaveChanges = document => CadQuestionWindow.AskSave(Window.GetWindow(this), new[] { document });
                 _model.AskSaveAll = documents => CadQuestionWindow.AskSave(Window.GetWindow(this), documents);
                 _model.PickColor = dialog => SelectColorWindow.Pick(Window.GetWindow(this), dialog);
+                _model.ShowLinetypeManager = manager => LinetypeManagerWindow.Show(Window.GetWindow(this), manager);
+                _model.ShowHatchSettings = settings => HatchSettingsWindow.Show(Window.GetWindow(this), settings);
 
                 if (CanvasView.PixelWidth > 0 && CanvasView.PixelHeight > 0)
                 {
@@ -439,6 +443,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>DSETTINGS and the menus' settings item: Drafting Settings, after the menu or the command line is done with.</summary>
         private void OnDraftingSettingsRequested(object sender, EventArgs e) => Dispatcher.BeginInvoke(new Action(() => ShowDraftingSettings()));
+
+        /// <summary>STYLE, DIMSTYLE and the style boxes' last items: the Text Style dialog or the Dimension Style Manager, after the command or the box is done with.</summary>
+        private void OnStyleDialogRequested(object sender, string name) => Dispatcher.BeginInvoke(new Action(() => StyleDialogs.Show(Window.GetWindow(this), _model, name)));
 
         /// <summary>A click on a row of the DRAWINGS list selects it, Ctrl and Shift adding; a double click opens it.</summary>
         private void OnFileRowDown(object sender, MouseButtonEventArgs e)

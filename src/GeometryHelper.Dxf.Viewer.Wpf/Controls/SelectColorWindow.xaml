@@ -13,6 +13,7 @@
             </ResourceDictionary.MergedDictionaries>
             <local:RgbBrushConverter x:Key="RgbBrush" />
             <local:BoolToVisibilityConverter x:Key="Shown" />
+            <local:FractionToOffsetConverter x:Key="Offset" />
 
             <!-- A swatch of the index: its colour, a white frame while chosen, the accent while hovered. -->
             <Style x:Key="Swatch" TargetType="Button">
@@ -80,7 +81,8 @@
             <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                        <Button Style="{StaticResource GhDialogButton}" Content="OK" Padding="18,5" Margin="0,0,6,0" Click="OnOk" IsDefault="True" />
+                        <Button Style="{StaticResource GhDialogButton}" Content="OK" Padding="22,5" Margin="0,0,12,0" Click="OnOk" IsDefault="True"
+                                Background="{StaticResource GhAccent}" Foreground="{StaticResource GhAccentInk}" BorderThickness="0" FontWeight="SemiBold" />
                         <Button Style="{StaticResource GhDialogButton}" Content="Cancel" Padding="14,5" Click="OnCancel" IsCancel="True" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -89,24 +91,28 @@
                         <Border Width="34" Height="22" BorderBrush="{StaticResource GhBorder}" BorderThickness="0,1,1,1" Margin="0,0,10,0" ToolTip="The colour chosen"
                                 Background="{Binding ColorRgb, Converter={StaticResource RgbBrush}}" />
                         <StackPanel VerticalAlignment="Center">
-                            <TextBlock Foreground="{StaticResource GhTextMuted}" FontSize="11">
+                            <TextBlock Foreground="{StaticResource GhTextMuted}">
                                 <Run Text="Old:" /> <Run Text="{Binding OriginalText, Mode=OneWay}" />
                             </TextBlock>
-                            <TextBlock FontSize="11">
-                                <Run Text="New:" Foreground="{StaticResource GhTextMuted}" /> <Run Text="{Binding ColorText, Mode=OneWay}" />
+                            <TextBlock>
+                                <Run Text="New:" /> <Run Text="{Binding ColorText, Mode=OneWay}" />
                             </TextBlock>
                         </StackPanel>
                     </StackPanel>
                 </DockPanel>
             </Border>
 
-            <!-- The tabs: Index Color and True Color. -->
-            <Border DockPanel.Dock="Top" Padding="16,10,16,0">
+            <!-- The tabs: Index Color and True Color; on True Color, its colour model. -->
+            <DockPanel DockPanel.Dock="Top" Margin="16,12,16,0">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Visibility="{Binding IsTrueColorTab, Converter={StaticResource Shown}}">
+                    <TextBlock Style="{StaticResource Label}" Text="Color model:" Margin="0,0,6,0" />
+                    <ComboBox Style="{StaticResource GhComboBox}" Width="80" ItemsSource="{Binding ColorModels}" SelectedItem="{Binding ColorModel, Mode=TwoWay}" />
+                </StackPanel>
                 <StackPanel Orientation="Horizontal">
                     <RadioButton Style="{StaticResource GhChip}" Content="Index Color" IsChecked="{Binding IsIndexColorTab, Mode=TwoWay}" Margin="0,0,6,0" />
                     <RadioButton Style="{StaticResource GhChip}" Content="True Color" IsChecked="{Binding IsTrueColorTab, Mode=TwoWay}" />
                 </StackPanel>
-            </Border>
+            </DockPanel>
 
             <Grid Margin="16,12">
                 <!-- Index Color: the grid of 10 to 249, the standard colours with ByLayer and ByBlock, the greys, the Color box. -->
@@ -149,54 +155,115 @@
                     </StackPanel>
                 </StackPanel>
 
-                <!-- True Color: red, green and blue, hue, saturation and luminance, and the hexadecimal. -->
-                <Grid Visibility="{Binding IsTrueColorTab, Converter={StaticResource Shown}}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="90" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="34" />
-                        <RowDefinition Height="34" />
-                        <RowDefinition Height="34" />
-                        <RowDefinition Height="20" />
-                        <RowDefinition Height="34" />
-                        <RowDefinition Height="34" />
-                        <RowDefinition Height="34" />
-                        <RowDefinition Height="20" />
-                        <RowDefinition Height="34" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-                    <TextBlock Grid.Row="0" Style="{StaticResource Label}" Text="Red:" />
-                    <Slider Grid.Row="0" Grid.Column="1" Minimum="0" Maximum="255" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" Margin="0,0,12,0"
-                            Value="{Binding Red, Mode=TwoWay}" Focusable="False" />
-                    <TextBox Grid.Row="0" Grid.Column="2" Style="{StaticResource NumberBox}" Text="{Binding Red}" KeyDown="OnBoxKeyDown" />
-                    <TextBlock Grid.Row="1" Style="{StaticResource Label}" Text="Green:" />
-                    <Slider Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="255" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" Margin="0,0,12,0"
-                            Value="{Binding Green, Mode=TwoWay}" Focusable="False" />
-                    <TextBox Grid.Row="1" Grid.Column="2" Style="{StaticResource NumberBox}" Text="{Binding Green}" KeyDown="OnBoxKeyDown" />
-                    <TextBlock Grid.Row="2" Style="{StaticResource Label}" Text="Blue:" />
-                    <Slider Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="255" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" Margin="0,0,12,0"
-                            Value="{Binding Blue, Mode=TwoWay}" Focusable="False" />
-                    <TextBox Grid.Row="2" Grid.Column="2" Style="{StaticResource NumberBox}" Text="{Binding Blue}" KeyDown="OnBoxKeyDown" />
-                    <TextBlock Grid.Row="4" Style="{StaticResource Label}" Text="Hue:" />
-                    <Slider Grid.Row="4" Grid.Column="1" Minimum="0" Maximum="360" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" Margin="0,0,12,0"
-                            Value="{Binding Hue, Mode=TwoWay}" Focusable="False" />
-                    <TextBox Grid.Row="4" Grid.Column="2" Style="{StaticResource NumberBox}" Text="{Binding Hue}" KeyDown="OnBoxKeyDown" />
-                    <TextBlock Grid.Row="5" Style="{StaticResource Label}" Text="Saturation:" />
-                    <Slider Grid.Row="5" Grid.Column="1" Minimum="0" Maximum="100" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" Margin="0,0,12,0"
-                            Value="{Binding Saturation, Mode=TwoWay}" Focusable="False" />
-                    <TextBox Grid.Row="5" Grid.Column="2" Style="{StaticResource NumberBox}" Text="{Binding Saturation}" KeyDown="OnBoxKeyDown" />
-                    <TextBlock Grid.Row="6" Style="{StaticResource Label}" Text="Luminance:" />
-                    <Slider Grid.Row="6" Grid.Column="1" Minimum="0" Maximum="100" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" Margin="0,0,12,0"
-                            Value="{Binding Luminance, Mode=TwoWay}" Focusable="False" />
-                    <TextBox Grid.Row="6" Grid.Column="2" Style="{StaticResource NumberBox}" Text="{Binding Luminance}" KeyDown="OnBoxKeyDown" />
-                    <TextBlock Grid.Row="8" Style="{StaticResource Label}" Text="Hex:" />
-                    <TextBox Grid.Row="8" Grid.Column="1" Style="{StaticResource NumberBox}" Width="90" HorizontalAlignment="Left" Text="{Binding Hex}" KeyDown="OnBoxKeyDown" />
-                    <TextBlock Grid.Row="9" Grid.ColumnSpan="3" Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap" VerticalAlignment="Bottom"
-                               Text="A true colour is written to the DXF as red, green and blue (group 420), with the nearest colour of the index beside it (group 62) for programs that read only the index." />
-                </Grid>
+                <!--
+                True Color: the colour model's pictures, then the Color box and what is written. HSL: the field of hue (left to
+                right) and saturation (top to foot) with its crosshair, the luminance bar of the hue and saturation picked with
+                its arrow, both clicked or dragged, and the three boxes. RGB: a bar for each of red, green and blue, from none to
+                full with the other two as they are, its marker under it, and its box.
+                -->
+                <StackPanel Visibility="{Binding IsTrueColorTab, Converter={StaticResource Shown}}">
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0" Visibility="{Binding IsHslModel, Converter={StaticResource Shown}}">
+                        <Grid>
+                            <Border Width="220" Height="200" BorderBrush="{StaticResource GhBorder}" BorderThickness="1">
+                                <Grid x:Name="FieldArea" Width="218" Height="198" Background="Transparent" Cursor="Cross"
+                                      MouseLeftButtonDown="OnPickDown" MouseMove="OnPickMove" MouseLeftButtonUp="OnPickUp"
+                                      ToolTip="Hue from left to right, saturation from top to bottom: click or drag to pick">
+                                    <Image Source="{Binding HueSaturationField}" Stretch="Fill" />
+                                </Grid>
+                            </Border>
+                            <!-- The crosshair, over the field's frame so that it may stand past its edge, as the design draws it. -->
+                            <Canvas Margin="1" IsHitTestVisible="False" RenderOptions.EdgeMode="Aliased">
+                                <Path Data="M7 0V14M0 7H14" Stroke="Black" StrokeThickness="3"
+                                      Canvas.Left="{Binding HueAcross, Converter={StaticResource Offset}, ConverterParameter='218 -7'}"
+                                      Canvas.Top="{Binding SaturationDown, Converter={StaticResource Offset}, ConverterParameter='198 -7'}" />
+                                <Path Data="M7 0V14M0 7H14" Stroke="White" StrokeThickness="1"
+                                      Canvas.Left="{Binding HueAcross, Converter={StaticResource Offset}, ConverterParameter='218 -7'}"
+                                      Canvas.Top="{Binding SaturationDown, Converter={StaticResource Offset}, ConverterParameter='198 -7'}" />
+                            </Canvas>
+                        </Grid>
+                        <Grid Margin="14,0,0,0">
+                            <Border Width="22" Height="200" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" HorizontalAlignment="Left">
+                                <Grid x:Name="LuminanceArea" Width="20" Height="198" Background="Transparent" Cursor="Hand"
+                                      MouseLeftButtonDown="OnPickDown" MouseMove="OnPickMove" MouseLeftButtonUp="OnPickUp"
+                                      ToolTip="Luminance of the hue and saturation picked: click or drag to pick">
+                                    <Image Source="{Binding LuminanceBar}" Stretch="Fill" RenderOptions.BitmapScalingMode="NearestNeighbor" />
+                                </Grid>
+                            </Border>
+                            <Canvas Width="10" Margin="24,1,0,0" HorizontalAlignment="Left">
+                                <Path Data="M8 0V12L0 6z" Fill="{StaticResource GhText}" IsHitTestVisible="False"
+                                      Canvas.Top="{Binding LuminanceDown, Converter={StaticResource Offset}, ConverterParameter='198 -6'}" />
+                            </Canvas>
+                        </Grid>
+                        <StackPanel Margin="22,0,0,0">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <TextBlock Style="{StaticResource Label}" Text="Hue:" Width="70" Foreground="{StaticResource GhIcon}" />
+                                <TextBox Style="{StaticResource NumberBox}" Width="60" Text="{Binding Hue}" KeyDown="OnBoxKeyDown" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <TextBlock Style="{StaticResource Label}" Text="Saturation:" Width="70" Foreground="{StaticResource GhIcon}" />
+                                <TextBox Style="{StaticResource NumberBox}" Width="60" Text="{Binding Saturation}" KeyDown="OnBoxKeyDown" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <TextBlock Style="{StaticResource Label}" Text="Luminance:" Width="70" Foreground="{StaticResource GhIcon}" />
+                                <TextBox Style="{StaticResource NumberBox}" Width="60" Text="{Binding Luminance}" KeyDown="OnBoxKeyDown" />
+                            </StackPanel>
+                            <TextBlock Text="Hue 0 to 360, saturation and luminance 0 to 100." Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap" Width="200" Margin="0,4,0,0" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Margin="0,18,0,0" Visibility="{Binding IsRgbModel, Converter={StaticResource Shown}}">
+                        <DockPanel Margin="0,0,0,14">
+                            <TextBlock Style="{StaticResource Label}" Text="Red:" Width="50" Margin="0,2,12,0" VerticalAlignment="Top" Foreground="{StaticResource GhIcon}" />
+                            <TextBox DockPanel.Dock="Right" Style="{StaticResource NumberBox}" VerticalAlignment="Top" Margin="0,-1,0,0" Text="{Binding Red}" KeyDown="OnBoxKeyDown" />
+                            <Grid Height="28" Margin="0,0,12,0">
+                                <Border Width="438" Height="20" HorizontalAlignment="Left" VerticalAlignment="Top" BorderBrush="{StaticResource GhBorder}" BorderThickness="1">
+                                    <Image x:Name="RedArea" Tag="0" Source="{Binding RedBar}" Stretch="Fill" Width="436" Height="18" Cursor="Hand"
+                                           MouseLeftButtonDown="OnPickDown" MouseMove="OnPickMove" MouseLeftButtonUp="OnPickUp" ToolTip="Red: click or drag to pick" />
+                                </Border>
+                                <Canvas Margin="1,0,0,0">
+                                    <Path Data="M6 0 12 8H0z" Fill="{StaticResource GhText}" IsHitTestVisible="False" Canvas.Top="20"
+                                          Canvas.Left="{Binding RedAlong, Converter={StaticResource Offset}, ConverterParameter='436 -6'}" />
+                                </Canvas>
+                            </Grid>
+                        </DockPanel>
+                        <DockPanel Margin="0,0,0,14">
+                            <TextBlock Style="{StaticResource Label}" Text="Green:" Width="50" Margin="0,2,12,0" VerticalAlignment="Top" Foreground="{StaticResource GhIcon}" />
+                            <TextBox DockPanel.Dock="Right" Style="{StaticResource NumberBox}" VerticalAlignment="Top" Margin="0,-1,0,0" Text="{Binding Green}" KeyDown="OnBoxKeyDown" />
+                            <Grid Height="28" Margin="0,0,12,0">
+                                <Border Width="438" Height="20" HorizontalAlignment="Left" VerticalAlignment="Top" BorderBrush="{StaticResource GhBorder}" BorderThickness="1">
+                                    <Image x:Name="GreenArea" Tag="1" Source="{Binding GreenBar}" Stretch="Fill" Width="436" Height="18" Cursor="Hand"
+                                           MouseLeftButtonDown="OnPickDown" MouseMove="OnPickMove" MouseLeftButtonUp="OnPickUp" ToolTip="Green: click or drag to pick" />
+                                </Border>
+                                <Canvas Margin="1,0,0,0">
+                                    <Path Data="M6 0 12 8H0z" Fill="{StaticResource GhText}" IsHitTestVisible="False" Canvas.Top="20"
+                                          Canvas.Left="{Binding GreenAlong, Converter={StaticResource Offset}, ConverterParameter='436 -6'}" />
+                                </Canvas>
+                            </Grid>
+                        </DockPanel>
+                        <DockPanel>
+                            <TextBlock Style="{StaticResource Label}" Text="Blue:" Width="50" Margin="0,2,12,0" VerticalAlignment="Top" Foreground="{StaticResource GhIcon}" />
+                            <TextBox DockPanel.Dock="Right" Style="{StaticResource NumberBox}" VerticalAlignment="Top" Margin="0,-1,0,0" Text="{Binding Blue}" KeyDown="OnBoxKeyDown" />
+                            <Grid Height="28" Margin="0,0,12,0">
+                                <Border Width="438" Height="20" HorizontalAlignment="Left" VerticalAlignment="Top" BorderBrush="{StaticResource GhBorder}" BorderThickness="1">
+                                    <Image x:Name="BlueArea" Tag="2" Source="{Binding BlueBar}" Stretch="Fill" Width="436" Height="18" Cursor="Hand"
+                                           MouseLeftButtonDown="OnPickDown" MouseMove="OnPickMove" MouseLeftButtonUp="OnPickUp" ToolTip="Blue: click or drag to pick" />
+                                </Border>
+                                <Canvas Margin="1,0,0,0">
+                                    <Path Data="M6 0 12 8H0z" Fill="{StaticResource GhText}" IsHitTestVisible="False" Canvas.Top="20"
+                                          Canvas.Left="{Binding BlueAlong, Converter={StaticResource Offset}, ConverterParameter='436 -6'}" />
+                                </Canvas>
+                            </Grid>
+                        </DockPanel>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,14,0,8">
+                        <TextBlock Style="{StaticResource Label}" Text="Color:" Width="40" Margin="0,0,10,0" Foreground="{StaticResource GhIcon}" />
+                        <TextBox Style="{StaticResource NumberBox}" Width="150" Text="{Binding TrueColorText}" KeyDown="OnBoxKeyDown"
+                                 ToolTip="Red, green and blue, each 0 to 255, as 255,127,0" />
+                    </StackPanel>
+                    <TextBlock Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap"
+                               Text="A true colour is written to the DXF as red, green and blue (group 420), with the nearest colour of the index beside it (group 62)." />
+                </StackPanel>
             </Grid>
         </DockPanel>
     </Border>

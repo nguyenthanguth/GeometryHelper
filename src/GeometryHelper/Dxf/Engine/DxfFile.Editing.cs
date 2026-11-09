@@ -2345,7 +2345,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Adds a layer to the layer table where it does not list it, letters of either case the same: a plain LAYER record,
         /// in the colour 7 with the linetype CONTINUOUS as the table spells it, the lineweight and plot style of layer 0, before
-        /// the table's ENDTAB, the table's count raised by one; said in the log.
+        /// the table's ENDTAB, the table's count raised by one; said in the log. Defpoints is written not plotted (290 0) from
+        /// R2000 on, as AutoCAD 2021 reads no drawing whose Defpoints is plotted ("Invalid AcDbLayerTableRecord plot flag").
         /// </summary>
         private void EnsureLayer(string name)
         {
@@ -2413,6 +2414,11 @@ namespace GeometryHelper.Dxf
             b.Group(70, "0");
             b.Group(62, "7");
             b.Group(6, continuous);
+
+            if (style.Lineweights && string.Equals(plain, "Defpoints", StringComparison.OrdinalIgnoreCase))
+            {
+                b.Group(290, "0");
+            }
 
             // The lineweight and the plot style of layer 0, which a layer of R2000 on has.
             if (style.Markers)

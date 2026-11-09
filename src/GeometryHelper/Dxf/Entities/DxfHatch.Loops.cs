@@ -277,6 +277,73 @@ namespace GeometryHelper.Dxf
             Unreact(followed);
         }
 
+        /// <summary>
+        /// Makes the HATCH follow the objects each of its loops was made of, as AutoCAD keeps a HATCH made associative by picking
+        /// a point or selecting objects: each loop given the handles of its objects after their count (groups 97 and 330), group
+        /// 71 written 1 (<see cref="Associative"/>), and the HATCH put among the reactors of each object (102
+        /// <c>{ACAD_REACTORS</c>); the objects it followed before let go first. The loops are left as they are: a square hatched
+        /// from a point inside its four LINEs follows the four, and <see cref="GetAssociatedObjectsAt"/> gives them. AutoCAD makes
+        /// the loops anew when such an object changes; the library does not.
+        /// </summary>
+        /// <param name="objects">For each loop, in the order of the loops, the entities of the drawing it was made of; an empty
+        /// list for a loop made of none.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the list, a list of a loop or an entity is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the lists are not one for each loop, or an entity is not of the HATCH's
+        /// drawing or is erased.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the HATCH is in no drawing or is erased.</exception>
+        public void SetAssociatedObjects(IReadOnlyList<IReadOnlyList<DxfEntity>> objects)
+        {
+            if (objects == null)
+            {
+                throw new ArgumentNullException(nameof(objects));
+            }
+
+            if (!IsResident || IsErased)
+            {
+                throw new InvalidOperationException("The HATCH follows objects of its own drawing: add it to one first.");
+            }
+
+            int count = NumberOfLoops;
+
+            if (objects.Count != count)
+            {
+                throw new ArgumentException("The HATCH has " + count.ToString(CultureInfo.InvariantCulture) + " loops, and is given the objects of " + objects.Count.ToString(CultureInfo.InvariantCulture) + ".", nameof(objects));
+            }
+
+            foreach (IReadOnlyList<DxfEntity> loop in objects)
+            {
+                if (loop == null)
+                {
+                    throw new ArgumentNullException(nameof(objects), "The objects of a loop are null.");
+                }
+
+                foreach (DxfEntity entity in loop)
+                {
+                    if (entity == null)
+                    {
+                        throw new ArgumentNullException(nameof(objects), "An object of a loop is null.");
+                    }
+
+                    if (!entity.IsResident || entity.IsErased || entity.Item.File != Item.File)
+                    {
+                        throw new ArgumentException("A HATCH follows entities of its own drawing that are not erased.", nameof(objects));
+                    }
+                }
+            }
+
+            IReadOnlyList<DxfEntity> followed = GetAssociatedObjects();
+
+            if (followed.Count > 0)
+            {
+                Parts record = Record();
+                Unlinked(record);
+                Write(record);
+                Unreact(followed);
+            }
+
+            Follow(objects);
+        }
+
         /// <summary>The handles of the objects each loop follows (its 330s), loop by loop, in their order; empty lists where it follows none.</summary>
         internal List<List<string>> LoopSources()
         {

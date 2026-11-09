@@ -64,4 +64,34 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <exception cref="NotSupportedException">Always.</exception>
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
     }
+
+    /// <summary>
+    /// Turns where a value lies along a picture, 0 at its start to 1 at its end, into the offset of its marker: the fraction
+    /// times the length, plus a shift that centres the marker. With the parameter "218 -7", 0.5 gives 102.
+    /// </summary>
+    public sealed class FractionToOffsetConverter : IValueConverter
+    {
+        /// <summary>Turns a fraction into an offset.</summary>
+        /// <param name="value">The fraction, a double; anything else gives 0.</param>
+        /// <param name="targetType">Not used.</param>
+        /// <param name="parameter">The length and the shift, invariant numbers apart by a space, as "218 -7".</param>
+        /// <param name="culture">Not used.</param>
+        /// <returns>The offset, a double.</returns>
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            string[] parts = (parameter as string ?? string.Empty).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            double length = parts.Length > 0 && double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out double l) ? l : 0.0;
+            double shift = parts.Length > 1 && double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double s) ? s : 0.0;
+            return (value is double fraction ? fraction : 0.0) * length + shift;
+        }
+
+        /// <summary>Not supported: the offset is read, never written back.</summary>
+        /// <param name="value">Not used.</param>
+        /// <param name="targetType">Not used.</param>
+        /// <param name="parameter">Not used.</param>
+        /// <param name="culture">Not used.</param>
+        /// <returns>Nothing; it throws.</returns>
+        /// <exception cref="NotSupportedException">Always.</exception>
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
+    }
 }

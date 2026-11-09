@@ -540,7 +540,9 @@ namespace GeometryHelper.Dxf.Viewer
         private static IEnumerable<CadPrompt> Text(CadCommandContext c)
         {
             string style = TextStyle(c);
-            double height = c.Remembered("text.height", TextSize(c));
+            DxfTextStyleTableRecord record = StyleRecord(c, style);
+            double fixedHeight = record != null && record.TextSize > 0.0 ? record.TextSize : 0.0;
+            double height = fixedHeight > 0.0 ? fixedHeight : c.Remembered("text.height", TextSize(c));
             c.Write("Current text style:  \"" + (style ?? "Standard") + "\"  Text height:  " + Length(height) + "  Annotative:  No  Justify:  Left");
             yield return CadPrompt.ForPoint("Specify start point of text");
 
@@ -550,17 +552,22 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             GeoPoint2 at = c.Input.Point;
-            yield return CadPrompt.ForDistance("Specify height", at, null, Length(height));
 
-            if (c.Input.Kind == CadInputKind.Number)
+            // A style of a fixed height (its height not 0) gives every text that height, and AutoCAD does not ask for one.
+            if (fixedHeight <= 0.0)
             {
-                if (c.Input.Number <= 0.0)
-                {
-                    c.Write("Value must be positive and nonzero.");
-                    yield break;
-                }
+                yield return CadPrompt.ForDistance("Specify height", at, null, Length(height));
 
-                height = c.Input.Number;
+                if (c.Input.Kind == CadInputKind.Number)
+                {
+                    if (c.Input.Number <= 0.0)
+                    {
+                        c.Write("Value must be positive and nonzero.");
+                        yield break;
+                    }
+
+                    height = c.Input.Number;
+                }
             }
 
             double rotation = c.Remembered("text.rotation", 0.0);
@@ -571,9 +578,17 @@ namespace GeometryHelper.Dxf.Viewer
                 rotation = c.Input.Number;
             }
 
-            c.Remember("text.height", height);
+            if (fixedHeight <= 0.0)
+            {
+                c.Remember("text.height", height);
+            }
+
             c.Remember("text.rotation", rotation);
-            double widthFactor = c.Remembered("text.widthFactor", 1.0);
+
+            // The width, slant and mirroring of the style are the text's own, as AutoCAD's TEXT copies them; a host's width wins.
+            double widthFactor = c.Remembered("text.widthFactor", record?.XScale ?? 1.0);
+            double oblique = record?.ObliquingAngle ?? 0.0;
+            byte flags = record?.FlagBits ?? 0;
 
             // The angle typed is from the X axis of the UCS, as AutoCAD's: the text keeps it from the world's.
             double angle = c.Session.Ucs.AngleToWorld(rotation);
@@ -602,6 +617,21 @@ namespace GeometryHelper.Dxf.Viewer
                         text.TextStyleName = style;
                     }
 
+                    if (oblique != 0.0)
+                    {
+                        text.Oblique = oblique;
+                    }
+
+                    if ((flags & 2) != 0)
+                    {
+                        text.IsMirroredInX = true;
+                    }
+
+                    if ((flags & 4) != 0)
+                    {
+                        text.IsMirroredInY = true;
+                    }
+
                     s.Append(c.Space, Current(c, text));
                 });
                 at += down;
@@ -611,7 +641,8 @@ namespace GeometryHelper.Dxf.Viewer
         private static IEnumerable<CadPrompt> MText(CadCommandContext c)
         {
             string style = TextStyle(c);
-            double height = c.Remembered("text.height", TextSize(c));
+            DxfTextStyleTableRecord record = StyleRecord(c, style);
+            double height = record != null && record.TextSize > 0.0 ? record.TextSize : c.Remembered("text.height", TextSize(c));
             c.Write("Current text style:  \"" + (style ?? "Standard") + "\"  Text height:  " + Length(height) + "  Annotative:  No");
             yield return CadPrompt.ForPoint("Specify first corner");
 
@@ -836,6 +867,13 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return !string.IsNullOrEmpty(name) && c.Database.TextStyleTable.Has(name) ? name : null;
+        }
+
+        /// <summary>The record of the style a new text is written in: the current one, else Standard; null where the drawing has neither.</summary>
+        private static DxfTextStyleTableRecord StyleRecord(CadCommandContext c, string style)
+        {
+            string name = style ?? "Standard";
+            return c.Database.TextStyleTable.Has(name) ? c.Database.TextStyleTable[name] : null;
         }
 
         private static double TextSize(CadCommandContext c)

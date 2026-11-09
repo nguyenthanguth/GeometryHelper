@@ -7,8 +7,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
     /// AutoCAD's Select Color dialog: the Index Color tab with the 255 colours of the index, and ByLayer and ByBlock where
-    /// they may be chosen; the True Color tab with red, green and blue, hue, saturation and luminance, and the hexadecimal;
-    /// the old colour beside the new one, OK and Cancel. Its logic is <see cref="SelectColorViewModel"/>.
+    /// they may be chosen; the True Color tab in the HSL model (a field of hue and saturation and a luminance bar, clicked or
+    /// dragged) or the RGB model (a bar for each of red, green and blue), with their boxes and the Color box; the old colour
+    /// beside the new one, OK and Cancel. Its logic is <see cref="SelectColorViewModel"/>.
     /// </summary>
     public partial class SelectColorWindow : Window
     {
@@ -48,6 +49,44 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 ((TextBox)sender).GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
                 e.Handled = true;
+            }
+        }
+
+        /// <summary>A press on the field, the luminance bar or a bar of red, green or blue picks there and holds the mouse for a drag.</summary>
+        private void OnPickDown(object sender, MouseButtonEventArgs e)
+        {
+            var area = (FrameworkElement)sender;
+            area.CaptureMouse();
+            Pick(area, e.GetPosition(area));
+            e.Handled = true;
+        }
+
+        /// <summary>A drag picks where the mouse is, taken to the edge of the picture outside it.</summary>
+        private void OnPickMove(object sender, MouseEventArgs e)
+        {
+            var area = (FrameworkElement)sender;
+
+            if (area.IsMouseCaptured)
+            {
+                Pick(area, e.GetPosition(area));
+            }
+        }
+
+        private void OnPickUp(object sender, MouseButtonEventArgs e) => ((FrameworkElement)sender).ReleaseMouseCapture();
+
+        private void Pick(FrameworkElement area, Point at)
+        {
+            if (area == FieldArea)
+            {
+                Model.PickField(at.X, at.Y, area.ActualWidth, area.ActualHeight);
+            }
+            else if (area == LuminanceArea)
+            {
+                Model.PickLuminance(at.Y, area.ActualHeight);
+            }
+            else if (area.Tag is string channel)
+            {
+                Model.PickChannel(int.Parse(channel, System.Globalization.CultureInfo.InvariantCulture), at.X, area.ActualWidth);
             }
         }
 

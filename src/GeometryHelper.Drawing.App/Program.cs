@@ -34,10 +34,11 @@ namespace GeometryHelper.Drawing.App
     /// loads a command plugin or a drawing plugin, <c>--tab Plugins</c> shows its tab, <c>--dialog plugins|plugin-settings|plugin-untrusted</c> draws the Plugin manager,
     /// the plugin's settings or the question before an untrusted load; <c>--dialog options</c> or <c>--dialog "settings:Canvas and
     /// cursor"</c> draws Global settings on a category; <c>--dialog color</c> or <c>--dialog truecolor</c> draws Select Color on
-    /// index 30, on its Index Color or True Color tab; <c>--dialog dsettings</c> or <c>--dialog "dsettings:Snap and Grid"</c> draws
+    /// index 30, on its Index Color or True Color tab (<c>truecolor-rgb</c> on its RGB model); <c>--dialog dsettings</c> or <c>--dialog "dsettings:Snap and Grid"</c> draws
     /// Drafting Settings on a tab; <c>--dialog osnap-menu</c> the OSNAP menu of the status bar, <c>--dialog snap-menu</c> the
     /// Shift+right-click menu of the point prompt <c>--run</c> leaves, and <c>--dialog drawings-menu</c> the right-click menu of
-    /// the first row of the DRAWINGS list.
+    /// the first row of the DRAWINGS list; <c>--dialog linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user</c>
+    /// draws the Linetype Manager, Load or Reload Linetypes, Select Linetype or the Hatch dialog, the lines of --run typed first.
     /// </summary>
     public static class Program
     {
@@ -316,11 +317,12 @@ namespace GeometryHelper.Drawing.App
                 width = (int)question.Width;
                 height = MeasuredHeight(root, width);
             }
-            else if (string.Equals(dialogName, "color", StringComparison.OrdinalIgnoreCase) || string.Equals(dialogName, "truecolor", StringComparison.OrdinalIgnoreCase))
+            else if (string.Equals(dialogName, "color", StringComparison.OrdinalIgnoreCase) || (dialogName ?? string.Empty).StartsWith("truecolor", StringComparison.OrdinalIgnoreCase))
             {
-                // Select Color on index 30, as the Layer manager shows it for a layer's colour cell.
+                // Select Color on index 30, as the Layer manager shows it for a layer's colour cell; truecolor-rgb on the RGB model.
                 var dialog = new SelectColorWindow(new SelectColorViewModel(DxfColor.FromColorIndex(DxfColorMethod.ByAci, 30), true));
-                dialog.Model.IsTrueColorTab = string.Equals(dialogName, "truecolor", StringComparison.OrdinalIgnoreCase);
+                dialog.Model.IsTrueColorTab = dialogName.StartsWith("truecolor", StringComparison.OrdinalIgnoreCase);
+                dialog.Model.ColorModel = string.Equals(dialogName, "truecolor-rgb", StringComparison.OrdinalIgnoreCase) ? "RGB" : "HSL";
                 root = dialog.Body;
                 window = dialog;
                 width = (int)dialog.Width;
@@ -368,6 +370,18 @@ namespace GeometryHelper.Drawing.App
                 window = new Window();
                 width = 260;
                 height = MeasuredHeight(root, width);
+            }
+            else if (model.Document != null && LinetypeOrHatchDialog(model, dialogName, ref run, out window, out root))
+            {
+                // The Linetype Manager, its Load dialog, Select Linetype or the Hatch dialog, after the lines of --run.
+                width = (int)window.Width;
+                height = (int)window.Height;
+            }
+            else if (model.Document != null && StyleDialog(model, dialogName, ref run, out window, out root))
+            {
+                // The Text Style dialog, the Dimension Style Manager and its dialogs, after the lines of --run.
+                width = (int)window.Width;
+                height = double.IsNaN(window.Height) ? MeasuredHeight(root, width) : (int)window.Height;
             }
             else if (dialogName != null && GlobalCategory(dialogName, out string category))
             {
@@ -629,6 +643,74 @@ namespace GeometryHelper.Drawing.App
             return null;
         }
 
+        /// <summary>
+        /// The dialogs of C9 a --dialog names, the lines of --run typed first: linetype (the Linetype Manager, its details shown,
+        /// the presenter's own linetypes waiting to be loaded), linetype-load (Load or Reload Linetypes on acadiso.lin or the
+        /// presenter's own set), select-linetype (Select Linetype), hatch (the Hatch dialog on ANSI31), hatch-gradient (on a
+        /// gradient) and hatch-user (on lines of the user's, doubled). False for any other name.
+        /// </summary>
+        private static bool LinetypeOrHatchDialog(MainViewModel model, string dialogName, ref string run, out Window window, out FrameworkElement root)
+        {
+            window = null;
+            root = null;
+            string name = (dialogName ?? string.Empty).ToLowerInvariant();
+
+            if (name != "linetype" && name != "linetype-load" && name != "select-linetype" && !name.StartsWith("hatch", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            foreach (string line in run == null ? Array.Empty<string>() : run.Split(';'))
+            {
+                model.Execute(line);
+            }
+
+            run = null;
+
+            switch (name)
+            {
+                case "linetype":
+                    LinetypeManagerViewModel manager = model.CreateLinetypeManager();
+                    manager.Add(CadLinetypeFile.BuiltIn.Where(l => l.Name == "DASHDOT" || l.Name == "GAS_LINE"), CadLinetypeFile.BuiltInName);
+                    manager.SelectedRow = manager.Rows.FirstOrDefault(r => r.Name == "DASHDOT");
+                    manager.ShowDetails = true;
+                    var managerWindow = new LinetypeManagerWindow(manager);
+                    window = managerWindow;
+                    root = managerWindow.Body;
+                    break;
+                case "linetype-load":
+                    var load = new LoadLinetypesViewModel(model.Document);
+
+                    foreach (LoadLinetypeRowViewModel row in load.Rows.Take(3))
+                    {
+                        row.IsChosen = true;
+                    }
+
+                    var loadWindow = new LoadLinetypesWindow(load);
+                    window = loadWindow;
+                    root = loadWindow.Body;
+                    break;
+                case "select-linetype":
+                    var select = new SelectLinetypeViewModel(model.Document, model.Document.Database.Celtype);
+                    var selectWindow = new SelectLinetypeWindow(select);
+                    window = selectWindow;
+                    root = selectWindow.Body;
+                    break;
+                default:
+                    CadHatchSettings settings = model.Document.HatchSettings.Clone();
+                    settings.Type = name == "hatch-gradient" ? CadHatchType.Gradient : name == "hatch-user" ? CadHatchType.UserDefined : settings.Type;
+                    settings.Double = name == "hatch-user";
+                    settings.Spacing = 2.0;
+                    settings.Angle = name == "hatch-user" ? 30.0 : settings.Angle;
+                    var hatchWindow = new HatchSettingsWindow(new HatchSettingsViewModel(model.Document, settings, false));
+                    window = hatchWindow;
+                    root = hatchWindow.Body;
+                    break;
+            }
+
+            return true;
+        }
+
         /// <summary>Whether a --dialog names Global settings: options, or settings: and one of its categories, given back.</summary>
         private static bool GlobalCategory(string dialogName, out string category)
         {
@@ -647,6 +729,80 @@ namespace GeometryHelper.Drawing.App
 
             category = categories.FirstOrDefault(c => string.Equals(c, dialogName.Substring("settings:".Length), StringComparison.OrdinalIgnoreCase));
             return category != null;
+        }
+
+        /// <summary>
+        /// The style dialogs (C10), after the lines of --run: <c>style</c> or <c>textstyle</c> (Text Style), <c>style-new</c> (its
+        /// name asked), <c>dimstyle</c> (the Manager), <c>dimstyle-new</c> (Create New Dimension Style), <c>dimstyle-modify[:Tab]</c>
+        /// (or <c>dimstyle-edit[:Tab]</c>) and
+        /// <c>dimstyle-override[:Tab]</c> of the style selected or current, <c>dimstyle-compare[:Other]</c>.
+        /// </summary>
+        private static bool StyleDialog(MainViewModel model, string dialogName, ref string run, out Window window, out FrameworkElement root)
+        {
+            window = null;
+            root = null;
+            string[] parts = (dialogName ?? string.Empty).Split(':');
+            string kind = parts[0].ToLowerInvariant();
+            kind = kind == "textstyle" ? "style" : kind == "dimstyle-edit" ? "dimstyle-modify" : kind;
+
+            if (kind != "style" && kind != "style-new" && !kind.StartsWith("dimstyle", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            foreach (string line in run == null ? Array.Empty<string>() : run.Split(';'))
+            {
+                model.Execute(line);
+            }
+
+            run = null;
+            DimStyleManagerViewModel manager = model.CreateDimStyleManager();
+
+            switch (kind)
+            {
+                case "style":
+                    var text = new TextStyleWindow(model.CreateTextStyle());
+                    (window, root) = (text, text.Body);
+                    return true;
+                case "style-new":
+                    var name = new StyleNameWindow(new StyleNameViewModel("New Text Style", "style1", null));
+                    (window, root) = (name, name.Body);
+                    return true;
+                case "dimstyle":
+                    var dialog = new DimStyleManagerWindow(manager);
+                    (window, root) = (dialog, dialog.Body);
+                    return true;
+                case "dimstyle-new":
+                    string start = manager.SelectedStyle?.Name;
+                    var ask = new StyleNameWindow(new StyleNameViewModel("Create New Dimension Style", "Copy of " + start, null, manager.Styles.Select(s => s.Name).ToList(), start));
+                    (window, root) = (ask, ask.Body);
+                    return true;
+                case "dimstyle-modify":
+                case "dimstyle-override":
+                    DimStyleEditViewModel editor = kind == "dimstyle-modify" ? manager.CreateModify() : manager.CreateOverride();
+
+                    if (parts.Length > 1)
+                    {
+                        editor.Tab = editor.Tabs.FirstOrDefault(t => string.Equals(t, parts[1], StringComparison.OrdinalIgnoreCase)) ?? editor.Tab;
+                    }
+
+                    var edit = new DimStyleEditWindow(editor);
+                    (window, root) = (edit, edit.Body);
+                    return true;
+                case "dimstyle-compare":
+                    DimStyleCompareViewModel compare = manager.CreateCompare();
+
+                    if (parts.Length > 1)
+                    {
+                        compare.Second = parts[1];
+                    }
+
+                    var against = new DimStyleCompareWindow(compare);
+                    (window, root) = (against, against.Body);
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         /// <summary>Waits for a task while the dispatcher runs, so that its awaits come back to this thread.</summary>

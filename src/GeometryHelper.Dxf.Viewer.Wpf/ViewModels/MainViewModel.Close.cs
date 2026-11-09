@@ -239,6 +239,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Raise(nameof(Space));
             Raise(nameof(View));
             Raise(nameof(CurrentLayer));
+            RaiseStyles();
             Raise(nameof(Prompt));
             Raise(nameof(IsCommandRunning));
             Raise(nameof(IsModelSpace));

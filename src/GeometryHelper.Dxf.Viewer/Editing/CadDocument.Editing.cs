@@ -787,15 +787,16 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (CadEditRecord record in records)
             {
-                if (record.Kind == CadEditRecordKind.SettingChanged)
-                {
-                    continue;
-                }
-
-                if (record.Kind == CadEditRecordKind.TableChanged)
+                // The drawing's linetype scale changes every dash drawn, as AutoCAD regenerates after LTSCALE: a new builder reads it.
+                if (record.Kind == CadEditRecordKind.TableChanged || (record.Kind == CadEditRecordKind.SettingChanged && string.Equals(record.Property, "$LTSCALE", StringComparison.Ordinal)))
                 {
                     tables = true;
                     all = true;
+                    continue;
+                }
+
+                if (record.Kind == CadEditRecordKind.SettingChanged)
+                {
                     continue;
                 }
 

@@ -1202,6 +1202,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             file.Session.UiRequested += OnUiRequested;
             ApplyTextDefaults(file.Session);
             document.Fonts = _settings.ToFonts(SkiaCanvasRenderer.HasFamily);
+            document.SupportFolders = _settings.SupportSearchFolders;
             document.FontMissing += (s, e) => Say(e.Message);
             document.Changed += OnDocumentChanged;
         }
@@ -1323,6 +1324,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "RECOVER":
                     ShowRecovered(e);
                     break;
+                case "LINETYPE":
+                case "HATCHSETTINGS":
+                case "HATCHEDIT":
+                    OnHatchOrLinetypeRequested(e);
+                    break;
+                case "STYLE":
+                case "DIMSTYLE":
+                    OnStyleRequest(e);
+                    break;
             }
         }
 
@@ -1359,6 +1369,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             RaiseCurrentColor();
+            RaiseCurrentLinetype();
+            RaiseStyles();
             UpdateProperties();
             RaiseModified();
 
@@ -1518,6 +1530,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Raise(nameof(Session));
             Raise(nameof(CurrentLayer));
             RaiseCurrentColor();
+            RaiseCurrentLinetype();
+            RaiseStyles();
             Raise(nameof(Prompt));
             Raise(nameof(IsCommandRunning));
             RaiseModified();

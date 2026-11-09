@@ -334,9 +334,31 @@ namespace GeometryHelper.Dxf.Viewer
 
             GeoPoint2 location = c.Input.Point;
             double radius = (location - vertex).Length;
+            AngularSector(first, second, vertex, points, location, rays, near, far, out double from, out double sweep);
+
+            if (sweep <= c.Session.Tolerance.EqualAngleRad / 1000.0 || radius <= c.Session.Tolerance.EqualPoint)
+            {
+                c.Write("*Invalid* The angle measures nothing.");
+                yield break;
+            }
+
+            DxfDimension made = first != null
+                ? (DxfDimension)new DxfLineAngularDimension2(first.StartPoint, first.EndPoint, second.StartPoint, second.EndPoint, P3(location), text ?? string.Empty, null)
+                : new DxfPoint3AngularDimension(P3(vertex), P3(points[0]), P3(points[1]), P3(location), text ?? string.Empty, null);
+            string words = Words(style, made, sweep, text, string.Empty);
+            c.Write("Dimension text = " + words);
+            double textHeight = TextHeight(c, style);
+            Place(c, style, textHeight, made, Angular(style, textHeight, vertex, radius, from, sweep, near, far, words));
+        }
+
+        /// <summary>
+        /// The angle an angular dimension measures, from where its arc is put: of two lines, the one of their four angles the
+        /// point lies in, each ray taking the line that runs along it; of a vertex and two points, the angle between them or the
+        /// one outside it. The rays and how far along each its object reaches are written into the arrays given.
+        /// </summary>
+        private static void AngularSector(DxfLine first, DxfLine second, GeoPoint2 vertex, GeoPoint2[] points, GeoPoint2 location, GeoVector2[] rays, double[] near, double[] far, out double from, out double sweep)
+        {
             double towards = Math.Atan2(location.Y - vertex.Y, location.X - vertex.X);
-            double from;
-            double sweep;
 
             if (first != null)
             {
@@ -384,20 +406,6 @@ namespace GeometryHelper.Dxf.Viewer
                 near[0] = far[0] = (p0 - vertex).Length;
                 near[1] = far[1] = (p1 - vertex).Length;
             }
-
-            if (sweep <= c.Session.Tolerance.EqualAngleRad / 1000.0 || radius <= c.Session.Tolerance.EqualPoint)
-            {
-                c.Write("*Invalid* The angle measures nothing.");
-                yield break;
-            }
-
-            DxfDimension made = first != null
-                ? (DxfDimension)new DxfLineAngularDimension2(first.StartPoint, first.EndPoint, second.StartPoint, second.EndPoint, P3(location), text ?? string.Empty, null)
-                : new DxfPoint3AngularDimension(P3(vertex), P3(points[0]), P3(points[1]), P3(location), text ?? string.Empty, null);
-            string words = Words(style, made, sweep, text, string.Empty);
-            c.Write("Dimension text = " + words);
-            double textHeight = TextHeight(c, style);
-            Place(c, style, textHeight, made, Angular(style, textHeight, vertex, radius, from, sweep, near, far, words));
         }
 
         private static GeoVector2 Along(DxfLine line)
@@ -462,32 +470,38 @@ namespace GeometryHelper.Dxf.Viewer
         /// The picture of an angular dimension: the arc of the dimension line about the vertex, an arrowhead at each end, the
         /// extension lines from the objects out to the arc (or in to it), and the words outside the arc at its middle.
         /// </summary>
-        private static List<DxfEntity> Angular(DxfDimStyleTableRecord style, double textHeight, GeoPoint2 vertex, double radius, double from, double sweep, double[] near, double[] far, string words)
+        internal static List<DxfEntity> Angular(DxfDimStyleTableRecord style, double textHeight, GeoPoint2 vertex, double radius, double from, double sweep, double[] near, double[] far, string words)
         {
             Sizes(style, textHeight, out double scale, out double arrow, out double height, out double gap, out double offset, out double beyond);
             var picture = new List<DxfEntity>();
             double to = from + sweep;
-            picture.Add(new DxfArc(P3(vertex), radius, Turned(from), Turned(to)));
+            picture.Add(Lined(new DxfArc(P3(vertex), radius, Turned(from), Turned(to)), style.Dimclrd, style.Dimlwd));
+            bool[] suppressed = { style.Dimse1, style.Dimse2 };
 
             for (int i = 0; i < 2; i++)
             {
                 double angle = i == 0 ? from : to;
                 var ray = new GeoVector2(Math.Cos(angle), Math.Sin(angle));
 
+                if (suppressed[i])
+                {
+                    continue;
+                }
+
                 if (radius > far[i] + offset)
                 {
-                    picture.Add(new DxfLine(P3(vertex + ray * (far[i] + offset)), P3(vertex + ray * (radius + beyond))));
+                    picture.Add(Lined(new DxfLine(P3(vertex + ray * (far[i] + offset)), P3(vertex + ray * (radius + beyond))), style.Dimclre, style.Dimlwe));
                 }
                 else if (radius < near[i] - offset)
                 {
-                    picture.Add(new DxfLine(P3(vertex + ray * (near[i] - offset)), P3(vertex + ray * Math.Max(0.0, radius - beyond))));
+                    picture.Add(Lined(new DxfLine(P3(vertex + ray * (near[i] - offset)), P3(vertex + ray * Math.Max(0.0, radius - beyond))), style.Dimclre, style.Dimlwe));
                 }
             }
 
             GeoPoint2 start = vertex + new GeoVector2(Math.Cos(from), Math.Sin(from)) * radius;
             GeoPoint2 end = vertex + new GeoVector2(Math.Cos(to), Math.Sin(to)) * radius;
-            picture.Add(Arrowhead(start, new GeoVector2(Math.Sin(from), -Math.Cos(from)), arrow));
-            picture.Add(Arrowhead(end, new GeoVector2(-Math.Sin(to), Math.Cos(to)), arrow));
+            AddArrow(picture, style, DxfDimArrowFlag.FirstArrow, start, new GeoVector2(Math.Sin(from), -Math.Cos(from)), arrow);
+            AddArrow(picture, style, DxfDimArrowFlag.SecondArrow, end, new GeoVector2(-Math.Sin(to), Math.Cos(to)), arrow);
             double middle = from + sweep / 2.0;
             double angleOfWords = Math.Atan2(Math.Cos(middle), -Math.Sin(middle));
 
@@ -497,7 +511,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             GeoPoint2 at = vertex + new GeoVector2(Math.Cos(middle), Math.Sin(middle)) * (radius + gap + height / 2.0);
-            picture.Add(Words(at, angleOfWords, height, words, scale));
+            picture.Add(Words(style, at, angleOfWords, height, words, scale));
             picture.Add(Definition(vertex));
             picture.Add(Definition(start));
             picture.Add(Definition(end));
@@ -566,7 +580,12 @@ namespace GeometryHelper.Dxf.Viewer
             try
             {
                 dimension.DimensionStyle = style;
-                number = dimension.FormatMeasurement(measured, string.Empty);
+
+                // A dimension in no drawing yet reads AutoCAD's own variables, not its style's: the measurement is written by a
+                // copy given the style's variables as its own, as the dimension reads them once it is in the drawing.
+                var probe = (DxfDimension)dimension.Clone();
+                probe.SetDimstyleData(style);
+                number = probe.FormatMeasurement(measured, string.Empty);
             }
             catch (Exception)
             {
@@ -583,28 +602,36 @@ namespace GeometryHelper.Dxf.Viewer
             return typed.Replace("<>", number);
         }
 
-        /// <summary>The picture of a linear dimension: the extension lines, the dimension line, two arrowheads and the words above the line.</summary>
-        private static List<DxfEntity> Linear(DxfDimStyleTableRecord style, double textHeight, GeoPoint2 p1, GeoPoint2 p2, GeoPoint2 q1, GeoPoint2 q2, string words)
+        /// <summary>
+        /// The picture of a linear dimension: the extension lines (each left out where DIMSE1 or DIMSE2 says), the dimension
+        /// line (each half left out where DIMSD1 or DIMSD2 says, run on by DIMDLE past ticks), two arrowheads of the style and
+        /// the words above the line.
+        /// </summary>
+        internal static List<DxfEntity> Linear(DxfDimStyleTableRecord style, double textHeight, GeoPoint2 p1, GeoPoint2 p2, GeoPoint2 q1, GeoPoint2 q2, string words)
         {
             Sizes(style, textHeight, out double scale, out double arrow, out double height, out double gap, out double offset, out double beyond);
             var picture = new List<DxfEntity>();
+            bool[] suppressed = { style.Dimse1, style.Dimse2 };
+            int side = 0;
 
             foreach (KeyValuePair<GeoPoint2, GeoPoint2> pair in new[] { new KeyValuePair<GeoPoint2, GeoPoint2>(p1, q1), new KeyValuePair<GeoPoint2, GeoPoint2>(p2, q2) })
             {
                 GeoVector2 up = pair.Value - pair.Key;
                 double length = up.Length;
 
-                if (length > offset)
+                if (length > offset && !suppressed[side])
                 {
                     GeoVector2 unit = up / length;
-                    picture.Add(new DxfLine(P3(pair.Key + unit * offset), P3(pair.Value + unit * beyond)));
+                    picture.Add(Lined(new DxfLine(P3(pair.Key + unit * offset), P3(pair.Value + unit * beyond)), style.Dimclre, style.Dimlwe));
                 }
+
+                side++;
             }
 
-            picture.Add(new DxfLine(P3(q1), P3(q2)));
             GeoVector2 along = (q2 - q1) / (q2 - q1).Length;
-            picture.Add(Arrowhead(q1, -along, arrow));
-            picture.Add(Arrowhead(q2, along, arrow));
+            DimensionLine(picture, style, q1, q2, along, scale);
+            AddArrow(picture, style, DxfDimArrowFlag.FirstArrow, q1, -along, arrow);
+            AddArrow(picture, style, DxfDimArrowFlag.SecondArrow, q2, along, arrow);
             double angle = Math.Atan2(along.Y, along.X);
 
             // The words read from the left or from below, as AutoCAD turns them, and stand above the line by the gap.
@@ -616,7 +643,7 @@ namespace GeometryHelper.Dxf.Viewer
             var readable = new GeoVector2(Math.Cos(angle), Math.Sin(angle));
             var above = new GeoVector2(-readable.Y, readable.X);
             GeoPoint2 middle = new GeoPoint2((q1.X + q2.X) / 2.0, (q1.Y + q2.Y) / 2.0) + above * (gap + height / 2.0);
-            picture.Add(Words(middle, angle, height, words, scale));
+            picture.Add(Words(style, middle, angle, height, words, scale));
             picture.Add(Definition(p1));
             picture.Add(Definition(p2));
             picture.Add(Definition(q2));
@@ -624,7 +651,7 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The picture of a radius or a diameter: the line to the words, the arrowheads on the rim, the words, a centre mark.</summary>
-        private static List<DxfEntity> Radial(DxfDimStyleTableRecord style, double textHeight, GeoPoint2 center, double radius, GeoPoint2 chord, GeoPoint2 far, GeoPoint2 location, bool diameter, string words)
+        internal static List<DxfEntity> Radial(DxfDimStyleTableRecord style, double textHeight, GeoPoint2 center, double radius, GeoPoint2 chord, GeoPoint2 far, GeoPoint2 location, bool diameter, string words)
         {
             Sizes(style, textHeight, out double scale, out double arrow, out double height, out double gap, out _, out _);
             var picture = new List<DxfEntity>();
@@ -633,12 +660,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             // Outside the rim, the line runs from the rim to the words; inside, from the centre (or the far rim) to the rim.
             GeoPoint2 from = outside ? location : diameter ? far : center;
-            picture.Add(new DxfLine(P3(from), P3(chord)));
-            picture.Add(Arrowhead(chord, outside ? -outward : outward, arrow));
+            picture.Add(Lined(new DxfLine(P3(from), P3(chord)), style.Dimclrd, style.Dimlwd));
+            AddArrow(picture, style, DxfDimArrowFlag.FirstArrow, chord, outside ? -outward : outward, arrow);
 
             if (diameter)
             {
-                picture.Add(Arrowhead(far, -outward, arrow));
+                AddArrow(picture, style, DxfDimArrowFlag.SecondArrow, far, -outward, arrow);
             }
 
             double angle = Math.Atan2(outward.Y, outward.X);
@@ -650,13 +677,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             var readable = new GeoVector2(Math.Cos(angle), Math.Sin(angle));
             var above = new GeoVector2(-readable.Y, readable.X);
-            picture.Add(Words(location + above * (gap + height / 2.0), angle, height, words, scale));
+            picture.Add(Words(style, location + above * (gap + height / 2.0), angle, height, words, scale));
             double mark = Math.Abs(style.Dimcen) * scale;
 
             if (mark > 0.0 && !diameter)
             {
-                picture.Add(new DxfLine(P3(center + new GeoVector2(-mark, 0.0)), P3(center + new GeoVector2(mark, 0.0))));
-                picture.Add(new DxfLine(P3(center + new GeoVector2(0.0, -mark)), P3(center + new GeoVector2(0.0, mark))));
+                picture.Add(Lined(new DxfLine(P3(center + new GeoVector2(-mark, 0.0)), P3(center + new GeoVector2(mark, 0.0))), style.Dimclrd, style.Dimlwd));
+                picture.Add(Lined(new DxfLine(P3(center + new GeoVector2(0.0, -mark)), P3(center + new GeoVector2(0.0, mark))), style.Dimclrd, style.Dimlwd));
             }
 
             picture.Add(Definition(diameter ? far : center));
@@ -682,11 +709,117 @@ namespace GeometryHelper.Dxf.Viewer
             return Picture(new DxfSolid(P3(tip), P3(back + side), P3(back - side)));
         }
 
-        private static DxfEntity Words(GeoPoint2 at, double angle, double height, string words, double scale)
+        /// <summary>
+        /// The arrowhead of one end as the style draws it (DIMBLK, or DIMBLK1 and DIMBLK2 where DIMSAH parts them): its shape
+        /// drawn into the picture (<see cref="CadArrowheads"/>), as AutoCAD's block of it would draw; closed filled where the
+        /// style names none, or a block of its own the presenter does not draw.
+        /// </summary>
+        private static void AddArrow(List<DxfEntity> picture, DxfDimStyleTableRecord style, DxfDimArrowFlag which, GeoPoint2 tip, GeoVector2 way, double size)
+        {
+            string name = ArrowOf(style, which);
+
+            if (name.Length == 0)
+            {
+                picture.Add(Arrowhead(tip, way, size));
+                return;
+            }
+
+            foreach (DxfEntity part in CadArrowheads.Shape(name, tip, way, size))
+            {
+                picture.Add(Lined(part, style.Dimclrd, style.Dimlwd));
+            }
+        }
+
+        /// <summary>The block name of an arrowhead of a style, upper case: empty for closed filled and for one that cannot be read.</summary>
+        private static string ArrowOf(DxfDimStyleTableRecord style, DxfDimArrowFlag which)
+        {
+            try
+            {
+                return (style.GetArrow(which)?.Name ?? string.Empty).ToUpperInvariant();
+            }
+            catch (Exception)
+            {
+                return string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// The dimension line between its two ends: whole, or the half of each end DIMSD1 or DIMSD2 leaves; run on past an end
+        /// by DIMDLE where that end is a tick, as AutoCAD runs it.
+        /// </summary>
+        private static void DimensionLine(List<DxfEntity> picture, DxfDimStyleTableRecord style, GeoPoint2 q1, GeoPoint2 q2, GeoVector2 along, double scale)
+        {
+            double dle = Math.Max(0.0, style.Dimdle) * scale;
+            GeoPoint2 a = CadArrowheads.IsTick(ArrowOf(style, DxfDimArrowFlag.FirstArrow)) && dle > 0.0 ? q1 - along * dle : q1;
+            GeoPoint2 b = CadArrowheads.IsTick(ArrowOf(style, DxfDimArrowFlag.SecondArrow)) && dle > 0.0 ? q2 + along * dle : q2;
+            bool first = !style.Dimsd1;
+            bool second = !style.Dimsd2;
+            var middle = new GeoPoint2((q1.X + q2.X) / 2.0, (q1.Y + q2.Y) / 2.0);
+
+            if (first && second)
+            {
+                picture.Add(Lined(new DxfLine(P3(a), P3(b)), style.Dimclrd, style.Dimlwd));
+            }
+            else if (first)
+            {
+                picture.Add(Lined(new DxfLine(P3(a), P3(middle)), style.Dimclrd, style.Dimlwd));
+            }
+            else if (second)
+            {
+                picture.Add(Lined(new DxfLine(P3(middle), P3(b)), style.Dimclrd, style.Dimlwd));
+            }
+        }
+
+        /// <summary>
+        /// Gives a line of the picture the colour and the lineweight of the style (DIMCLRD, DIMLWD; DIMCLRE, DIMLWE for the
+        /// extension lines) where the style sets one other than ByBlock, the default it is drawn with otherwise.
+        /// </summary>
+        private static T Lined<T>(T entity, DxfColor color, DxfLineWeight weight)
+            where T : DxfEntity
+        {
+            if (color != null && !color.IsByBlock)
+            {
+                entity.Color = color;
+            }
+
+            if (weight != DxfLineWeight.ByBlock)
+            {
+                entity.LineWeight = weight;
+            }
+
+            return entity;
+        }
+
+        /// <summary>The words of the dimension: an MTEXT in the style's text style (DIMTXSTY) and text colour (DIMCLRT), centred on its point.</summary>
+        private static DxfEntity Words(DxfDimStyleTableRecord style, GeoPoint2 at, double angle, double height, string words, double scale)
         {
             var text = new DxfMText { Location = P3(at), TextHeight = height > 0.0 ? height : 2.5 * scale, Attachment = DxfAttachmentPoint.MiddleCenter, Contents = words };
             text.Rotation = angle < 0.0 ? angle + 2.0 * Math.PI : angle;
-            return Picture(text);
+            string textStyle = null;
+
+            try
+            {
+                textStyle = style.Dimtxsty?.Name;
+            }
+            catch (Exception)
+            {
+                textStyle = null;
+            }
+
+            if (!string.IsNullOrEmpty(textStyle) && !string.Equals(textStyle, text.TextStyleName, StringComparison.OrdinalIgnoreCase))
+            {
+                text.TextStyleName = textStyle;
+            }
+
+            Picture(text);
+            DxfColor color = style.Dimclrt;
+
+            if (color != null && !color.IsByBlock)
+            {
+                text.Color = color;
+            }
+
+            return text;
         }
 
         private static DxfEntity Definition(GeoPoint2 at) => new DxfDBPoint(P3(at)) { Layer = "Defpoints" };

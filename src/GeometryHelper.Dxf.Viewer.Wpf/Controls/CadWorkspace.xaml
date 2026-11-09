@@ -130,7 +130,7 @@
                 <Setter Property="CornerRadius" Value="2" />
                 <Setter Property="Padding" Value="6,2" />
                 <Setter Property="Margin" Value="0,0,0,4" />
-                <Setter Property="ToolTip" Value="Not built yet: the linetype and lineweight of new objects; set an object's in Properties" />
+                <Setter Property="ToolTip" Value="Not built yet: the lineweight of new objects; set an object's in Properties" />
             </Style>
 
             <Style x:Key="PanelTitle" TargetType="TextBlock">
@@ -232,12 +232,109 @@
             <!-- The groups of the Annotate tab: Text, Dimensions, Leaders, each button starting its command as Home's do. -->
             <DataTemplate DataType="{x:Type local:AnnotateRibbonViewModel}">
                 <StackPanel Orientation="Horizontal">
+                    <StackPanel.Resources>
+                        <!--
+                        A style box: the combo box's look, opened by a click on it (StyleBox), with no button of its own; its list
+                        on the header's colour, the current style ticked, a model drawing's marked "model", the dialog's item last
+                        under a line.
+                        -->
+                        <Style x:Key="StyleBoxItem" TargetType="ComboBoxItem">
+                            <Setter Property="Foreground" Value="{StaticResource GhText}" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ComboBoxItem">
+                                        <Border x:Name="Row" Background="Transparent" BorderBrush="{StaticResource GhBorder}" BorderThickness="0" Padding="10,4">
+                                            <ContentPresenter />
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsHighlighted" Value="True">
+                                                <Setter TargetName="Row" Property="Background" Value="{StaticResource GhSelected}" />
+                                            </Trigger>
+                                            <DataTrigger Binding="{Binding IsDialog}" Value="True">
+                                                <Setter TargetName="Row" Property="BorderThickness" Value="0,1,0,0" />
+                                                <Setter TargetName="Row" Property="Margin" Value="0,4,0,0" />
+                                                <Setter TargetName="Row" Property="Padding" Value="10,6,10,4" />
+                                            </DataTrigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                        <DataTemplate x:Key="StyleBoxItemTemplate" DataType="{x:Type local:StyleBoxItemViewModel}">
+                            <DockPanel>
+                                <TextBlock x:Name="Tick" DockPanel.Dock="Left" Width="14" Margin="0,0,6,0" Text="✓" Foreground="{StaticResource GhOk}" Visibility="Hidden" />
+                                <TextBlock DockPanel.Dock="Right" Margin="8,0,0,0" Text="{Binding Hint}" Foreground="{StaticResource GhTextMuted}" />
+                                <TextBlock Text="{Binding Name}" />
+                            </DockPanel>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                    <Setter TargetName="Tick" Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                        <DataTemplate x:Key="StyleBoxChosenTemplate">
+                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                        </DataTemplate>
+                        <Style x:Key="StyleBoxCombo" TargetType="ComboBox" BasedOn="{StaticResource GhComboBox}">
+                            <Setter Property="local:StyleBox.OpensOnClick" Value="True" />
+                            <Setter Property="Width" Value="118" />
+                            <Setter Property="SelectedValuePath" Value="Name" />
+                            <Setter Property="ItemTemplate" Value="{StaticResource StyleBoxItemTemplate}" />
+                            <Setter Property="ItemContainerStyle" Value="{StaticResource StyleBoxItem}" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ComboBox">
+                                        <Grid>
+                                            <Border Background="{StaticResource GhInput}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="2" Padding="4,2">
+                                                <DockPanel>
+                                                    <local:IconView DockPanel.Dock="Right" Size="10" StrokeThickness="3" Stroke="{StaticResource GhTextMuted}" Data="{StaticResource GhIconChevron}" VerticalAlignment="Center" />
+                                                    <ContentPresenter Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{StaticResource StyleBoxChosenTemplate}" VerticalAlignment="Center" IsHitTestVisible="False" />
+                                                </DockPanel>
+                                            </Border>
+                                            <Popup Placement="Bottom" AllowsTransparency="True" Focusable="False" IsOpen="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" StaysOpen="False">
+                                                <Border Background="{StaticResource GhHeader}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" Padding="0,4" Margin="0,0,8,8"
+                                                        MinWidth="190" MaxHeight="320">
+                                                    <Border.Effect>
+                                                        <DropShadowEffect BlurRadius="16" ShadowDepth="6" Direction="270" Opacity="0.5" Color="Black" />
+                                                    </Border.Effect>
+                                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                        <ItemsPresenter />
+                                                    </ScrollViewer>
+                                                </Border>
+                                            </Popup>
+                                        </Grid>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                        <Style x:Key="StyleBoxLabel" TargetType="TextBlock">
+                            <Setter Property="Width" Value="36" />
+                            <Setter Property="Margin" Value="0,0,6,0" />
+                            <Setter Property="VerticalAlignment" Value="Center" />
+                            <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                        </Style>
+                    </StackPanel.Resources>
                     <Border Style="{StaticResource GroupBorder}">
                         <DockPanel>
                             <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Text" />
                             <StackPanel Orientation="Horizontal">
                                 <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconMText}" Content="Multiline Text" IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="MTEXT" ToolTip="MTEXT" />
                                 <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconText}" Content="Single Line" IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="TEXT" ToolTip="TEXT" Margin="0" />
+                                <!-- The current text style ($TEXTSTYLE), its last item the Text Style dialog, and the height TEXT offers. -->
+                                <StackPanel Margin="6,2,0,0" IsEnabled="{Binding Model.HasDocument}">
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                        <TextBlock Style="{StaticResource StyleBoxLabel}" Text="Style" />
+                                        <ComboBox Style="{StaticResource StyleBoxCombo}" ItemsSource="{Binding Model.TextStyleItems}" SelectedValue="{Binding Model.CurrentTextStyle, Mode=TwoWay}"
+                                                  ToolTip="Text style (STYLE)" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource StyleBoxLabel}" Text="Height" />
+                                        <Border Width="118" Background="{StaticResource GhInput}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="2" Padding="4,1">
+                                            <TextBox Style="{StaticResource GhTextBox}" FontFamily="{StaticResource GhMonoFont}" Text="{Binding Model.TextHeight, UpdateSourceTrigger=LostFocus}"
+                                                     ToolTip="Text height of the next Single Line text (TEXT, MTEXT)" />
+                                        </Border>
+                                    </StackPanel>
+                                </StackPanel>
                             </StackPanel>
                         </DockPanel>
                     </Border>
@@ -252,13 +349,27 @@
                                     <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconRadius}" Content="Radius" IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="DIMRADIUS" ToolTip="DIMRADIUS" />
                                     <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconDiameter}" Content="Diameter" IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="DIMDIAMETER" ToolTip="DIMDIAMETER" />
                                 </WrapPanel>
+                                <!-- The current dimension style ($DIMSTYLE), its last item the Dimension Style Manager. -->
+                                <StackPanel Orientation="Horizontal" Margin="6,2,0,0" VerticalAlignment="Top" IsEnabled="{Binding Model.HasDocument}">
+                                    <TextBlock Style="{StaticResource StyleBoxLabel}" Text="Style" />
+                                    <ComboBox Style="{StaticResource StyleBoxCombo}" ItemsSource="{Binding Model.DimStyleItems}" SelectedValue="{Binding Model.CurrentDimStyle, Mode=TwoWay}"
+                                              ToolTip="Dimension style (DIMSTYLE)" />
+                                </StackPanel>
                             </StackPanel>
                         </DockPanel>
                     </Border>
                     <Border Style="{StaticResource GroupBorder}">
                         <DockPanel>
                             <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Leaders" />
-                            <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconLeader}" Content="Multileader" IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="MLEADER" ToolTip="MLEADER" Margin="0" />
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconLeader}" Content="Multileader" IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="MLEADER" ToolTip="MLEADER" Margin="0" />
+                                <!-- The current multileader style (CMLEADERSTYLE), opened where the drawing has multileader styles. -->
+                                <StackPanel Orientation="Horizontal" Margin="6,2,0,0" VerticalAlignment="Top" IsEnabled="{Binding Model.HasMLeaderStyles}">
+                                    <TextBlock Style="{StaticResource StyleBoxLabel}" Text="Style" />
+                                    <ComboBox Style="{StaticResource StyleBoxCombo}" ItemsSource="{Binding Model.MLeaderStyleItems}" SelectedValue="{Binding Model.CurrentMLeaderStyle, Mode=TwoWay}"
+                                              ToolTip="Multileader style (CMLEADERSTYLE)" />
+                                </StackPanel>
+                            </StackPanel>
                         </DockPanel>
                     </Border>
                 </StackPanel>
@@ -511,13 +622,10 @@
                                                       SelectedItem="{Binding CurrentColor, Mode=TwoWay}" IsEnabled="{Binding HasDocument}"
                                                       ToolTip="The colour of new objects (CECOLOR)" />
                                         </DockPanel>
-                                        <Border Style="{StaticResource ValueBox}">
-                                            <DockPanel>
-                                                <local:IconView DockPanel.Dock="Right" Size="10" StrokeThickness="3" Stroke="{StaticResource GhTextMuted}"
-                                                                Data="{StaticResource GhIconChevron}" VerticalAlignment="Center" />
-                                                <TextBlock Text="ByLayer" />
-                                            </DockPanel>
-                                        </Border>
+                                        <!-- The linetype of new objects (CELTYPE): ByLayer, ByBlock, those loaded, and Other... for the Linetype Manager. -->
+                                        <ComboBox x:Name="LinetypeBox" Style="{StaticResource GhComboBox}" Margin="0,0,0,4" ItemsSource="{Binding CurrentLinetypeOptions}"
+                                                  SelectedItem="{Binding CurrentLinetype, Mode=TwoWay}" IsEnabled="{Binding HasDocument}"
+                                                  ToolTip="The linetype of new objects (CELTYPE); Other... shows the Linetype Manager" />
                                         <Border Style="{StaticResource ValueBox}" Margin="0">
                                             <DockPanel>
                                                 <local:IconView DockPanel.Dock="Right" Size="10" StrokeThickness="3" Stroke="{StaticResource GhTextMuted}"

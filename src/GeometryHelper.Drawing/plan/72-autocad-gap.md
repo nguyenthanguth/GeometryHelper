@@ -24,19 +24,19 @@ PDF, Print) stays, disabled, its tooltip saying "not built yet".
 | Draw | Ellipse (axis, centre) | ELLIPSE by axis ends or centre, other half or rotation; Arc (start, end or included angle) | built (r1); Arc built (g1) |
 | Draw | Multiple Points | POINT, one point a run | built (r1); PTYPE dialog cheap |
 | Draw | Circle TTR / TTT, Arc's eleven ways | the common ways only | cheap each |
-| Draw | Hatch, Gradient, Boundary | hatches drawn, not made | big (C4) |
+| Draw | Hatch, Gradient, Boundary | HATCH (H): pick points (islands Normal/Outer/Ignore), Select objects, Undo, seTtings (the Hatch dialog: Pattern, User defined, Solid, Gradient; angle, scale, spacing, double, ISO pen width, origin, associative); BOUNDARY (BO) | built (C9); no ribbon button, no preview while picking, gradients drawn flat |
 | Draw | Polygon, Construction Line, Ray, Spline, Donut, Revision Cloud, Wipeout, Region, Divide, Measure | XLINE (no Offset, no Reference), RAY, POLYGON, DONUT | built (g1); big (SPLINE fit, REVCLOUD, REGION) |
 | Modify | Move, Copy, Rotate, Mirror, Scale, Erase, Explode | all | built |
 | Modify | Trim, Extend, Offset, Fillet, Chamfer, Stretch, Array, Break, Join, Lengthen | none | big (C4, on hold) |
-| Modify | Edit Polyline, Edit Spline, Edit Hatch, Draworder, Align, Overkill, Reverse | none | big (C4) except DRAWORDER, REVERSE cheap |
+| Modify | Edit Polyline, Edit Spline, Edit Hatch, Draworder, Align, Overkill, Reverse | HATCHEDIT (HE): the Hatch dialog on a hatch, the owner gate first (C9); the rest none | built (C9) for Edit Hatch; big (C4) for the rest except DRAWORDER, REVERSE cheap |
 | Annotation | Text (Multiline, Single Line), Dimension (Linear, Aligned, Angular, Radius, Diameter), Leader | all | built |
-| Annotation | Arc length, Jogged, Ordinate dimensions; Table; style boxes (text, dimension, multileader, table) | none | big (dimension kinds), cheap (a read-only style box each) |
+| Annotation | Arc length, Jogged, Ordinate dimensions; Table; style boxes (text, dimension, multileader, table) | text, dimension and multileader style boxes, live, setting $TEXTSTYLE, $DIMSTYLE and CMLEADERSTYLE (C10) | built (C10, see [77-styles.md](77-styles.md)); big (dimension kinds); table style box left out |
 | Layers | Layer Properties, layer box, Make Current, Match Layer | all | built |
 | Layers | Off, Isolate, Freeze, Lock, Unisolate, Thaw all, Unlock, Layer Previous, Merge, Delete, Walk | the Layer manager does on, freeze, lock, delete; LAYOFF, LAYFRZ, LAYLCK, LAYON, LAYTHW, LAYULK, LAYISO (Off mode), LAYUNISO typed | built (g1), no buttons yet; big (LAYWALK, LAYMRG) |
 | Layers | colour picker of the layer dialog | queued | queued |
 | Block | Insert, Create, Edit, Edit Attributes | blocks drawn, attributes shown | big |
 | Properties | Match Properties | MATCHPROP | built |
-| Properties | Colour, Linetype, Lineweight boxes of new objects | shown "ByLayer", not live; tooltip says not built | cheap (CECOLOR, CELTYPE, CELWEIGHT boxes) |
+| Properties | Colour, Linetype, Lineweight boxes of new objects | linetype box live ($CELTYPE, Other... the Linetype Manager), LINETYPE (LT) manager with Load/Current/Delete/details, -LINETYPE ?/Create/Load/Set, CELTYPE, LTSCALE (LTS), CELTSCALE, Select Linetype from the Layer manager (C9); lineweight box shown "ByLayer", not live | built (C9) for linetypes; cheap (CELWEIGHT box) |
 | Properties | List | LIST | built (r1), in Utilities |
 | Groups | Group, Ungroup, Group Edit | none | big |
 | Utilities | Measure: Distance, Area | DIST, AREA (points or a closed object) | built (r1) |
@@ -63,12 +63,12 @@ The tab is left out: nothing in it is real yet.
 | Panel | AutoCAD 2021 | Presenter | Mark |
 |---|---|---|---|
 | Text | Multiline Text, Single Line | MTEXT, TEXT | built; tab (r1) |
-| Text | Check Spelling, Find Text, text style box, text height box | none | big (spelling), cheap (FIND read-only, style and height boxes) |
+| Text | Check Spelling, Find Text, text style box, text height box | text style box (its last item "Text style…" opens the Text Style dialog), text height box | built (C10); big (spelling), cheap (FIND read-only) |
 | Dimensions | Linear, Aligned, Angular, Radius, Diameter | all five | built; tab (r1) |
-| Dimensions | DIM (one command for all), Arc Length, Jogged, Ordinate, Quick, Continue, Baseline, Dimspace, Dimbreak, Inspect, Jog line, style box, Update | none | big (DIM, QDIM, Continue, Baseline); cheap (style box) |
+| Dimensions | DIM (one command for all), Arc Length, Jogged, Ordinate, Quick, Continue, Baseline, Dimspace, Dimbreak, Inspect, Jog line, style box, Update | style box (its last item "Dimension style…" opens the Manager; a model drawing's style marked "model") | built (C10); big (DIM, QDIM, Continue, Baseline); Update not built (a style changed in the Manager draws its dimensions again itself) |
 | Centerlines | Center Mark, Centerline | none | cheap (CENTERMARK as lines) |
 | Leaders | Multileader | MLEADER | built; tab (r1) |
-| Leaders | Add, Remove, Align, Collect leaders, style box | none | big |
+| Leaders | Add, Remove, Align, Collect leaders, style box | multileader style box (CMLEADERSTYLE), greyed where the drawing has no multileader style; no "Multileader style…" item, as no MLEADERSTYLE dialog is built | built (C10); big (the rest, MLEADERSTYLE) |
 | Tables | Table, Extract Data, Link Data | tables drawn | big |
 | Markup | Revision Cloud, Wipeout | wipeouts drawn | big |
 | Annotation Scaling | Scale list, Add Current Scale, Add/Delete Scales, Sync | no scale concept: the status bar's 1:1 is text | big; the group is left out |
@@ -160,8 +160,8 @@ Missing, by the mark:
 - **cheap**: DRAWORDER, REVERSE, CENTERMARK, COPYBASE without paste, DIST Multiple points, MODEL (TILEMODE), the drafting
   toggles' AutoCAD prompts in full (GRID's spacing); XLINE Offset and Ang Reference; the UNITS dialog; buttons for the g1
   layer commands. LAYOUT Delete needs the library to erase a layout (`DxfLayout` is not erased yet): big.
-- **big**: TRIM, EXTEND, OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, BREAK, JOIN, LENGTHEN, PEDIT, HATCH and HATCHEDIT (C4,
-  on hold); COPYCLIP, CUTCLIP, PASTECLIP; BLOCK, INSERT, WBLOCK, ATTDEF, EATTEDIT, BEDIT; DIM, QDIM, DIMCONTINUE,
+- **big**: TRIM, EXTEND, OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, BREAK, JOIN, LENGTHEN, PEDIT (C4, on hold; HATCH,
+  HATCHEDIT and BOUNDARY built in C9, [76-linetype-hatch.md](76-linetype-hatch.md)); COPYCLIP, CUTCLIP, PASTECLIP; BLOCK, INSERT, WBLOCK, ATTDEF, EATTEDIT, BEDIT; DIM, QDIM, DIMCONTINUE,
   DIMBASELINE, DIMSTYLE, STYLE, MLEADERSTYLE; TABLE; GROUP; QSELECT; PURGE, AUDIT; PLOT, EXPORTPDF; SPLINE; REVCLOUD;
   WIPEOUT made; tiled viewports (VPORTS); FIND and SPELL.
 - **out**: 3D (VIEWCUBE, ORBIT, solids, render), xrefs, PDF import, sheet sets, action recorder, LISP and VBA.

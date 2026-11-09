@@ -110,7 +110,9 @@ namespace GeometryHelper.Dxf.Viewer
         private double _titleTextHeight = 5.0;
         private double _widthFactor = 0.8;
         private List<string> _fontFolders = new List<string>(CadFonts.DefaultFolders);
-        private string _replacementFont = "simplex.shx";
+        private string _replacementFont = CadFonts.BuiltInName;
+        private string _fontMapFile = string.Empty;
+        private List<string> _supportFolders = new List<string>(CadSupportFiles.DefaultFolders);
         private SortedDictionary<string, string> _fontSubstitutions = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private int _checkEverySeconds = 30;
         private string _saveFolder = string.Empty;
@@ -302,9 +304,11 @@ namespace GeometryHelper.Dxf.Viewer
         // ---- Fonts
 
         /// <summary>
-        /// Gets or sets the folders the fonts of text styles are looked for in, in order, after the folder of the drawing: by
-        /// default AutoCAD's Fonts folder found on this machine and the Fonts folder of Windows
-        /// (<see cref="CadFonts.DefaultFolders"/>). Blank entries are left out and a folder given twice is kept once.
+        /// Gets or sets the folders the fonts of text styles are looked for in, in order, after the folder of the drawing, as
+        /// AutoCAD's support file search path: none by default (<see cref="CadFonts.DefaultFolders"/>), so that an SHX font is
+        /// read only from the drawing's folder and the folders the user lists, and AutoCAD's Fonts folders are never looked
+        /// for; a TrueType file is looked for in the Fonts folder of Windows as well. A list saved before keeps the folders it
+        /// holds. Blank entries are left out and a folder given twice is kept once.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the value is null.</exception>
         public IReadOnlyList<string> FontSearchFolders
@@ -315,10 +319,31 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Gets or sets the font text is drawn in where its style's font is not found, as AutoCAD's FONTALT: an SHX file, a
-        /// TrueType file or a typeface; simplex.shx by default, as in AutoCAD. Empty, or a font not found either, draws it in
-        /// <see cref="DrawingFont"/>.
+        /// TrueType file or a typeface, and after a comma the big font a style's big font not found is drawn in
+        /// (simplex.shx,gbcbig.shx); by default the presenter's own single-stroke font, GeometryHelper Simplex
+        /// (<see cref="CadFonts.BuiltInName"/>). Empty, or a font not found either, draws it in <see cref="DrawingFont"/>.
         /// </summary>
         public string ReplacementFont { get => _replacementFont; set => _replacementFont = (value ?? string.Empty).Trim(); }
+
+        /// <summary>
+        /// Gets or sets the font mapping file, as AutoCAD's FONTMAP: the path of a .fmp file of a line <c>oldfont;newfont</c>
+        /// for each font drawn in another, its pairs read into <see cref="FontSubstitutions"/> as the drawings are given their
+        /// fonts, a font the table names as well drawn as the table says; empty, the default, for none.
+        /// </summary>
+        public string FontMapFile { get => _fontMapFile; set => _fontMapFile = (value ?? string.Empty).Trim(); }
+
+        /// <summary>
+        /// Gets or sets the support file search folders: the user's own folders where linetype files (.lin) and hatch pattern
+        /// files (.pat) are looked for, in order, after the folder of the drawing, as AutoCAD's support path; none by default
+        /// (<see cref="CadSupportFiles.DefaultFolders"/>), the presenter's own linetypes and patterns then the only ones, and
+        /// AutoCAD's Support folders never looked for. Blank entries are left out and a folder given twice is kept once.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the value is null.</exception>
+        public IReadOnlyList<string> SupportSearchFolders
+        {
+            get => _supportFolders.AsReadOnly();
+            set => _supportFolders = (value ?? throw new ArgumentNullException(nameof(value))).Where(f => !string.IsNullOrWhiteSpace(f)).Select(f => f.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        }
 
         /// <summary>Gets the fonts drawn in others, as AutoCAD's font mapping file gives them: each name to the name it is drawn in (romans.shx to isocp.shx); none by default.</summary>
         public IReadOnlyDictionary<string, string> FontSubstitutions => _fontSubstitutions;
@@ -397,10 +422,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// <returns>The shortcuts.</returns>
         public CadShortcuts ToShortcuts() => new CadShortcuts(_aliases, _keys);
 
-        /// <summary>Gets the fonts a document's text is drawn in, as the font settings give them.</summary>
+        /// <summary>
+        /// Gets the fonts a document's text is drawn in, as the font settings give them: the pairs of <see cref="FontMapFile"/>
+        /// read into <see cref="FontSubstitutions"/>, a font the table names as well drawn as the table says.
+        /// </summary>
         /// <param name="familyExists">Whether the canvas has a TrueType typeface of a name; null to take every typeface as there.</param>
         /// <returns>The fonts.</returns>
-        public CadFonts ToFonts(Func<string, bool> familyExists = null) => new CadFonts(_fontFolders, _replacementFont, _fontSubstitutions, familyExists);
+        public CadFonts ToFonts(Func<string, bool> familyExists = null)
+            => new CadFonts(_fontFolders, _replacementFont, CadFonts.ReadFontMap(_fontMapFile).Concat(_fontSubstitutions), familyExists);
 
         /// <summary>
         /// Says the shortcuts that clash: an alias that is a command's own name of another command, written "DU is the name of
@@ -423,6 +452,7 @@ namespace GeometryHelper.Dxf.Viewer
             var copy = (GlobalSettings)MemberwiseClone();
             copy._layers = new List<GlobalLayer>(_layers);
             copy._fontFolders = new List<string>(_fontFolders);
+            copy._supportFolders = new List<string>(_supportFolders);
             copy._fontSubstitutions = Copy(_fontSubstitutions);
             copy._aliases = Copy(_aliases);
             copy._keys = Copy(_keys);
@@ -570,6 +600,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             w.CloseList();
             w.Value("replacement", _replacementFont);
+            w.Value("fontMap", _fontMapFile);
             w.Open("substitutions");
 
             foreach (KeyValuePair<string, string> pair in _fontSubstitutions)
@@ -578,6 +609,16 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             w.Close();
+            w.Close();
+            w.Open("support");
+            w.OpenList("searchFolders");
+
+            foreach (string folder in _supportFolders)
+            {
+                w.Value(null, folder);
+            }
+
+            w.CloseList();
             w.Close();
             w.Open("dataSources");
             w.Value("checkForModelChanges", CheckForModelChanges);
@@ -717,8 +758,10 @@ namespace GeometryHelper.Dxf.Viewer
                 Number("text", "titleTextHeight", v => _s.TitleTextHeight = v);
                 Number("text", "widthFactor", v => _s.WidthFactor = v);
                 Text("fonts", "replacement", v => _s.ReplacementFont = v);
+                Text("fonts", "fontMap", v => _s.FontMapFile = v);
                 Take("fonts", "searchFolders", e => _s.FontSearchFolders = e.Elements().Select(f => f.Value).ToList());
                 Take("fonts", "substitutions", e => _s.SetFontSubstitutions(Pairs(e)));
+                Take("support", "searchFolders", e => _s.SupportSearchFolders = e.Elements().Select(f => f.Value).ToList());
                 Flag("dataSources", "checkForModelChanges", v => _s.CheckForModelChanges = v);
                 Number("dataSources", "checkEverySeconds", v => _s.CheckEverySeconds = Whole(v));
                 Text("saveAndExport", "saveFolder", v => _s.SaveFolder = v);

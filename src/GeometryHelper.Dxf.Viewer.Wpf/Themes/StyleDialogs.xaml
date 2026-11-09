@@ -1,0 +1,278 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf">
+    <!-- The look the style dialogs (Text Style, Dimension Style Manager and its dialogs) share, dark as the window's others. -->
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml" />
+        <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Icons.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+    <local:BoolToVisibilityConverter x:Key="Shown" />
+    <local:RgbBrushConverter x:Key="RgbBrush" />
+
+    <Style x:Key="StyleLabel" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,0,8,0" />
+    </Style>
+
+    <!-- The title of a group of fields: 13 high, semibold. -->
+    <Style x:Key="StyleGroup" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Margin" Value="0,0,0,6" />
+    </Style>
+
+    <!-- A box typed in: framed by the border's colour on the input's, its words in mono type, greyed when off. -->
+    <Style x:Key="StyleBox" TargetType="TextBox" BasedOn="{StaticResource GhTextBox}">
+        <Setter Property="Padding" Value="4,2" />
+        <Setter Property="Background" Value="{StaticResource GhInput}" />
+        <Setter Property="BorderBrush" Value="{StaticResource GhBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="FontFamily" Value="{StaticResource GhMonoFont}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="2" Padding="{TemplateBinding Padding}">
+                        <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" Focusable="False"
+                                      HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- A box to tick with its words after it, the words greyed when off. -->
+    <Style x:Key="StyleCheck" TargetType="CheckBox" BasedOn="{StaticResource GhCheckBox}">
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="{StaticResource GhText}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <StackPanel Orientation="Horizontal" Background="Transparent">
+                        <Border x:Name="Box" Width="13" Height="13" CornerRadius="2" Background="{StaticResource GhInput}"
+                                BorderBrush="{StaticResource GhTextMuted}" BorderThickness="1" VerticalAlignment="Center">
+                            <Path x:Name="Tick" Data="M2.5 6.5 5 9 10 3.5" Stroke="White" StrokeThickness="1.6" StrokeStartLineCap="Round"
+                                  StrokeEndLineCap="Round" StrokeLineJoin="Round" Visibility="Collapsed" />
+                        </Border>
+                        <ContentPresenter x:Name="Words" Margin="6,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Box" Property="Background" Value="{StaticResource GhAccent}" />
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource GhAccent}" />
+                            <Setter TargetName="Tick" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="Content" Value="{x:Null}">
+                            <Setter TargetName="Words" Property="Margin" Value="0" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                            <Setter TargetName="Box" Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="StyleSideButton" TargetType="Button" BasedOn="{StaticResource GhDialogButton}">
+        <Setter Property="Margin" Value="0,0,0,6" />
+        <Setter Property="Padding" Value="8,5" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+    </Style>
+
+    <!-- The button of a dialog that does its work (OK, Apply, Modify…): the accent, its words dark. -->
+    <Style x:Key="StylePrimaryButton" TargetType="Button" BasedOn="{StaticResource GhDialogButton}">
+        <Setter Property="Background" Value="{StaticResource GhAccent}" />
+        <Setter Property="Foreground" Value="{StaticResource GhAccentInk}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Style.Triggers>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Background" Value="{StaticResource GhInput}" />
+                <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                <Setter Property="BorderThickness" Value="1" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- A tab of the dimension style's dialog: the selection's colour when shown, rounded at the top only. -->
+    <Style x:Key="StyleTab" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+        <Setter Property="FontFamily" Value="{StaticResource GhFont}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Margin" Value="0,0,2,0" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="Chrome" Background="Transparent" CornerRadius="4,4,0,0" Padding="11,6">
+                        <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource GhSelected}" />
+                            <Setter Property="Foreground" Value="{StaticResource GhText}" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Foreground" Value="{StaticResource GhText}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A box of words under a preview: framed, rounded. -->
+    <Style x:Key="StyleFrame" TargetType="Border">
+        <Setter Property="BorderBrush" Value="{StaticResource GhBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="10,8" />
+    </Style>
+
+    <!-- The dot of a notice: the accent's, the warning's where the notice says why something was refused (IsNoticeWarning). -->
+    <Style x:Key="NoticeDot" TargetType="Ellipse">
+        <Setter Property="Fill" Value="{StaticResource GhAccent}" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsNoticeWarning}" Value="True">
+                <Setter Property="Fill" Value="{StaticResource GhWarn}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- The black ground of a preview, as the canvas's. -->
+    <Style x:Key="StylePreview" TargetType="Border">
+        <Setter Property="BorderBrush" Value="{StaticResource GhBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Background" Value="{StaticResource GhCanvas}" />
+    </Style>
+
+    <!-- A list of styles: the current one marked, the selected one on the selection's colour. -->
+    <Style x:Key="StyleListItem" TargetType="ListBoxItem">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Border x:Name="Row" Background="Transparent" Padding="10,5">
+                        <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Row" Property="Background" Value="{StaticResource GhSelected}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A style of a list: the current mark, the name in semibold, then its font (text styles) or MODEL (a model drawing's). -->
+    <DataTemplate x:Key="StyleRowTemplate" DataType="{x:Type local:StyleRowViewModel}">
+        <DockPanel>
+            <TextBlock x:Name="Mark" DockPanel.Dock="Left" Text="✓" Width="14" Margin="0,0,6,0" Foreground="{StaticResource GhOk}" Visibility="Hidden" />
+            <TextBlock DockPanel.Dock="Right" Text="{Binding Detail}" Margin="6,0,0,0" Foreground="{StaticResource GhTextMuted}" FontFamily="{StaticResource GhMonoFont}" />
+            <Border DockPanel.Dock="Right" Background="{StaticResource GhSelected}" CornerRadius="3" Padding="5,0" Margin="6,0,0,0" VerticalAlignment="Center"
+                    Visibility="{Binding IsModel, Converter={StaticResource Shown}}">
+                <TextBlock Text="MODEL" FontSize="9" FontWeight="SemiBold" />
+            </Border>
+            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+        </DockPanel>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                <Setter TargetName="Mark" Property="Visibility" Value="Visible" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <!-- A font of the Font name list with its kind: SHX or TT. -->
+    <DataTemplate x:Key="FontItemTemplate" DataType="{x:Type local:FontItemViewModel}">
+        <StackPanel Orientation="Horizontal">
+            <Border CornerRadius="3" Margin="0,0,6,0" Padding="4,0" Background="{StaticResource GhSelected}" VerticalAlignment="Center">
+                <TextBlock x:Name="Mark" Text="SHX" FontSize="9" FontWeight="SemiBold" />
+            </Border>
+            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" FontFamily="{StaticResource GhMonoFont}" />
+        </StackPanel>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding IsTrueType}" Value="True">
+                <Setter TargetName="Mark" Property="Text" Value="TT" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <!--
+    A field of a dimension style's dialog, as the design lays it: the label with the variable beside it in small mono type,
+    then a box 168 wide holding a box to tick, a number (80 wide), a text, or a list with the colour's swatch before it and the
+    "…" of the Text Style dialog after it; a group's title instead for a header. Greyed where the field means nothing.
+    -->
+    <DataTemplate x:Key="DimFieldTemplate" DataType="{x:Type local:DimFieldViewModel}">
+        <Grid x:Name="Row" Margin="0,2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="168" />
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="Title" Grid.ColumnSpan="2" Text="{Binding Label}" FontSize="13" FontWeight="SemiBold" Margin="0,5,0,1" Visibility="Collapsed" />
+            <StackPanel x:Name="Caption" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                <TextBlock x:Name="CaptionText" Text="{Binding Label}" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding VariableText}" Margin="6,0,0,0" FontSize="10" FontFamily="{StaticResource GhMonoFont}" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+            </StackPanel>
+            <DockPanel x:Name="Control" Grid.Column="1" IsEnabled="{Binding IsEnabled}">
+                <Border x:Name="Swatch" DockPanel.Dock="Left" Width="12" Height="12" Margin="0,0,4,0" BorderBrush="#5B6573" BorderThickness="1"
+                        Background="{Binding SwatchRgb, Converter={StaticResource RgbBrush}}" Visibility="Collapsed" />
+                <Button x:Name="More" DockPanel.Dock="Right" Style="{StaticResource GhDialogButton}" Content="…" Width="26" Padding="0,3" Margin="4,0,0,0" Visibility="Collapsed"
+                        Command="{Binding DataContext.TextStylesCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" ToolTip="Open the Text style dialog" />
+                <Grid>
+                    <TextBox x:Name="Number" Style="{StaticResource StyleBox}" Width="80" HorizontalAlignment="Left" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" Visibility="Collapsed" />
+                    <TextBox x:Name="Typed" Style="{StaticResource StyleBox}" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" Visibility="Collapsed" />
+                    <ComboBox x:Name="Pick" Style="{StaticResource GhComboBox}" ItemsSource="{Binding Choices}" SelectedItem="{Binding SelectedChoice, Mode=TwoWay}"
+                              DisplayMemberPath="Label" Visibility="Collapsed" />
+                    <CheckBox x:Name="Tick" Style="{StaticResource StyleCheck}" IsChecked="{Binding IsChecked, Mode=TwoWay}" HorizontalAlignment="Left" Visibility="Collapsed" />
+                </Grid>
+            </DockPanel>
+        </Grid>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding HasTextStyleButton}" Value="True">
+                <Setter TargetName="More" Property="Visibility" Value="Visible" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Kind}" Value="Header">
+                <Setter TargetName="Title" Property="Visibility" Value="Visible" />
+                <Setter TargetName="Caption" Property="Visibility" Value="Collapsed" />
+                <Setter TargetName="Control" Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Kind}" Value="Number">
+                <Setter TargetName="Number" Property="Visibility" Value="Visible" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Kind}" Value="Angle">
+                <Setter TargetName="Number" Property="Visibility" Value="Visible" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Kind}" Value="Text">
+                <Setter TargetName="Typed" Property="Visibility" Value="Visible" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Kind}" Value="Choice">
+                <Setter TargetName="Pick" Property="Visibility" Value="Visible" />
+                <Setter TargetName="Swatch" Property="Visibility" Value="Visible" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding SwatchRgb}" Value="{x:Null}">
+                <Setter TargetName="Swatch" Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Kind}" Value="Flag">
+                <Setter TargetName="Tick" Property="Visibility" Value="Visible" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding IsEnabled}" Value="False">
+                <Setter TargetName="CaptionText" Property="Foreground" Value="{StaticResource GhTextMuted}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding IsValid}" Value="False">
+                <Setter TargetName="Number" Property="Foreground" Value="{StaticResource GhError}" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+</ResourceDictionary>

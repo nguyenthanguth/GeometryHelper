@@ -396,7 +396,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public override string ToString() => Command;
     }
 
-    /// <summary>A folder fonts are looked for in, as the Fonts page lists it: D:\Autodesk\AutoCAD\AutoCAD 2021\Fonts.</summary>
+    /// <summary>A folder fonts are looked for in, as the Fonts page lists it: D:\Fonts\Shx.</summary>
     public sealed class FontFolderRow : ObservableObject
     {
         private string _folder;
@@ -525,7 +525,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 new GlobalSettingCategory("Units and rounding", false, "Units are millimetres throughout; these settings change how values are shown."),
                 new GlobalSettingCategory("Layers, colours and lines", false, "The layers written to new drawings, with their colour, linetype and lineweight."),
                 new GlobalSettingCategory("Text and fonts", false, "Fonts of the app and of the drawings."),
-                new GlobalSettingCategory("Fonts", false, "Where the fonts of text styles are found, as AutoCAD's support path, and what draws a font not found, as FONTALT and the font mapping file. No font is shipped: the fonts are those of this machine; the folder of the drawing is looked in first."),
+                new GlobalSettingCategory("Fonts", false, "Where the fonts of text styles are found, as AutoCAD's support path, and what draws a font not found, as FONTALT and the font mapping file. The folder of the drawing is looked in first, then the folders listed here; AutoCAD's own folders are not looked in unless listed. A font not found is drawn in GeometryHelper Simplex (ghsimplex), the presenter's own single-stroke font, by default."),
                 new GlobalSettingCategory("Data sources", true, "For drawings made from a model (the MODEL categories). Where drawings get their objects."),
                 new GlobalSettingCategory("Shortcuts", false, "Commands, aliases and keys default to AutoCAD's. Type a command's aliases and keys parted by commas; a key or an alias used twice is shown in red."),
                 new GlobalSettingCategory("Save and export", false, "Where drawings are saved and how they are exported."),
@@ -539,7 +539,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             RemoveFontFolderCommand = new DelegateCommand(p => FontFolders.Remove(p as FontFolderRow));
             AddFontSubstitutionCommand = new DelegateCommand(_ => FontSubstitutions.Add(new FontSubstitutionRow(string.Empty, string.Empty)));
             RemoveFontSubstitutionCommand = new DelegateCommand(p => FontSubstitutions.Remove(p as FontSubstitutionRow));
-            ApplyCommand = new DelegateCommand(_ => Apply(), _ => !HasErrors);
+            AddSupportFolderCommand = new DelegateCommand(p => SupportFolders.Add(new FontFolderRow(p as string)));
+            RemoveSupportFolderCommand = new DelegateCommand(p => SupportFolders.Remove(p as FontFolderRow));
+            ApplyCommand =new DelegateCommand(_ => Apply(), _ => !HasErrors);
             OkCommand = new DelegateCommand(_ => Ok(), _ => !HasErrors);
             CancelCommand = new DelegateCommand(_ => CloseRequested?.Invoke(this, false));
             Load(_model.Settings.Clone());
@@ -606,6 +608,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets the command that takes a substitution out of the table, given its row.</summary>
         public ICommand RemoveFontSubstitutionCommand { get; }
+
+        /// <summary>Gets the support file search folders, where linetype (.lin) and hatch pattern (.pat) files are looked for, in order, edited in place; a blank one is left out.</summary>
+        public ObservableCollection<FontFolderRow> SupportFolders { get; } = new ObservableCollection<FontFolderRow>();
+
+        /// <summary>Gets the command of Add folder under the support file search folders: the folder given, else a blank row to type it in.</summary>
+        public ICommand AddSupportFolderCommand { get; }
+
+        /// <summary>Gets the command that takes a support folder out of the list, given its row.</summary>
+        public ICommand RemoveSupportFolderCommand { get; }
 
         /// <summary>Gets the model sources the host gives, with their state.</summary>
         public IReadOnlyList<CadSourceInfo> Sources => _model.SettingsSources;
@@ -735,6 +746,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 FontSubstitutions.Add(new FontSubstitutionRow(pair.Key, pair.Value));
             }
 
+            SupportFolders.Clear();
+
+            foreach (string folder in settings.SupportSearchFolders)
+            {
+                SupportFolders.Add(new FontFolderRow(folder));
+            }
+
             FillShortcuts(false);
             RaisePage();
         }
@@ -767,6 +785,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 _working.Layers = layers;
                 _working.FontSearchFolders = FontFolders.Select(r => r.Folder).ToList();
+                _working.SupportSearchFolders = SupportFolders.Select(r => r.Folder).ToList();
                 _working.SetFontSubstitutions(FontSubstitutions.Select(r => new KeyValuePair<string, string>(r.Font, r.DrawnIn)));
                 _working.SetShortcuts(
                     _allShortcuts.SelectMany(r => r.AliasList.Select(a => new KeyValuePair<string, string>(a, r.Command))),
@@ -896,6 +915,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     Text("Replacement font (FONTALT)", () => s.ReplacementFont, v => s.ReplacementFont = v),
                     Info("Where it is not found either", "Font where a style's is missing (Text and fonts)"),
+                }),
+                new GlobalSettingSection("Font mapping", new[]
+                {
+                    Text("Font mapping file (FONTMAP)", () => s.FontMapFile, v => s.FontMapFile = v),
                 }),
             };
 

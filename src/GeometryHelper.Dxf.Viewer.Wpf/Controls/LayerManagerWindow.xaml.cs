@@ -19,6 +19,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             InitializeComponent();
             DataContext = model;
             model.PickColor = dialog => SelectColorWindow.Pick(this, dialog);
+            model.PickLinetype = dialog => SelectLinetypeWindow.Pick(this, dialog);
             Closed += (s, e) => Model.Dispose();
         }
 

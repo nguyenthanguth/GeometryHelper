@@ -573,13 +573,12 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Erases the object from its file, as AutoCAD's <c>Erase</c> does: an entity is taken out of its block with every
-        /// record of it, as <see cref="DxfEntity.Erase"/> says; a layer, a linetype or a block nothing uses out of its table, as
-        /// their own <c>Erase</c> says; an XRECORD (<see cref="DxfXrecord"/>), a GROUP (<see cref="DxfGroup"/>) and a GEODATA
-        /// (<see cref="DxfGeoData"/>) with the entry of the dictionary that names it.
+        /// record of it, as <see cref="DxfEntity.Erase"/> says; a layer, a linetype, a text style or a block nothing uses out of
+        /// its table, as their own <c>Erase</c> says; an XRECORD (<see cref="DxfXrecord"/>), a GROUP (<see cref="DxfGroup"/>)
+        /// and a GEODATA (<see cref="DxfGeoData"/>) with the entry of the dictionary that names it.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the object is in no file, or is erased.</exception>
-        /// <exception cref="NotSupportedException">Thrown for an object not erased yet: a table, a text style, a dictionary, a
-        /// layout.</exception>
+        /// <exception cref="NotSupportedException">Thrown for an object not erased yet: a table, a dictionary, a layout.</exception>
         public virtual void Erase()
         {
             throw new NotSupportedException("A " + GetType().Name + " is not erased yet: entities, layers, linetypes, blocks, XRECORDs and GROUPs are.");
