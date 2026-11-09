@@ -93,6 +93,19 @@ another file of the folder was opened, or once it was saved with Save and shown 
 now says, for example, "Test bodies (from file)" until the drawing is made again. The out-of-date dot now shows on such a
 drawing too, checked in the source its file names without changing it.
 
+**NEW.** Dynamic input asks a point in two fields, as AutoCAD 2021's: X and Y, or distance and angle after a base point. Tab
+moves between them and locks a number typed. Enter takes the point from the locked fields and the cursor, so 300 locked, the
+cursor straight up and Enter draw a line 300 long at 90°. A coordinate typed whole, "@300<0" or "10,20", goes to the command
+line as typed. **CHANGED.** While dynamic input is shown, the canvas's own tip names an object snap only ("Endpoint").
+
+**NEW.** CECOLOR sets the colour of new objects ($CECOLOR): `Enter new object color [Truecolor/COlorbook] <BYLAYER>:`. The
+colour box of the Home tab's Properties panel shows and sets it, and its swatch and "More colors..." open Select Color. A true
+colour is refused, because the header holds an index.
+
+**NEW.** With Select by dragging off, a press on nothing dragged draws a lasso, as AutoCAD's. Drawn clockwise it takes what it
+holds whole (solid blue); counter-clockwise, what it touches (dashed green). Esc drops it. **FIXED.** A box clicked at its
+first corner keeps that corner on the drawing while the wheel zooms or the middle button pans.
+
 **CHANGED.** The presenter's canvas keeps a picture of the drawing and draws the selection and the entity under the cursor
 over it: moving the mouse over a sheet set of 107 565 items costs 3.3 ms, where it cost 254 ms; zooming and panning move the
 picture and draw it again once the view is still. Detail no eye could see is spared: items under half a pixel are one pixel,

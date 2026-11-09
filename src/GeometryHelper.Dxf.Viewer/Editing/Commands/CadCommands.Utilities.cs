@@ -9,8 +9,8 @@ namespace GeometryHelper.Dxf.Viewer
 {
     /// <summary>
     /// The commands of the Utilities panel and the drawing utilities: SELECTALL, MEASUREGEOM (Distance, Radius, Angle, ARea),
-    /// UNITS and -UNITS on the command line, LAYOUT's Rename and Set, and SCRIPT, which feeds the lines of a .scr file to the
-    /// command line as typed.
+    /// UNITS and -UNITS on the command line, LAYOUT's Rename and Set, SCRIPT, which feeds the lines of a .scr file to the
+    /// command line as typed, and CECOLOR, the colour of new objects.
     /// </summary>
     internal static partial class CadCommands
     {
@@ -351,6 +351,49 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 c.Write("Requires an integer between " + low.ToString(CultureInfo.InvariantCulture) + " and " + high.ToString(CultureInfo.InvariantCulture) + ".");
+            }
+        }
+
+        /// <summary>
+        /// CECOLOR: the colour new objects are drawn in ($CECOLOR), as AutoCAD asks it: ByLayer, ByBlock, a name from red to
+        /// white or an index 1 to 255, one undo step; Enter keeps it. The header holds an index alone, so Truecolor, red, green
+        /// and blue, and COlorbook are refused, said on the command line.
+        /// </summary>
+        private static IEnumerable<CadPrompt> CurrentColor(CadCommandContext c)
+        {
+            DxfColor old = c.Database.Cecolor;
+            string shown = old.IsByLayer ? "BYLAYER" : old.IsByBlock ? "BYBLOCK" : CadPropertyEditor.ColorName(old).ToLowerInvariant();
+            yield return CadPrompt.ForKeywordOrText("Enter new object color", new[] { "Truecolor", "COlorbook" }, shown);
+
+            if (c.Input.Is("Truecolor") || c.Input.Is("COlorbook"))
+            {
+                c.Write(c.Input.Is("Truecolor")
+                    ? "The drawing keeps the colour of new objects as an index: give an object a true colour in Properties."
+                    : "Color books are not available here.");
+                yield break;
+            }
+
+            if (c.Input.Kind != CadInputKind.Text)
+            {
+                yield break;
+            }
+
+            string error = CadPropertyEditor.ParseColor(c.Input.Text.Trim(), out DxfColor color);
+
+            if (error == null && color.IsByColor)
+            {
+                error = "The drawing keeps the colour of new objects as an index: ByLayer, ByBlock or 1 to 255.";
+            }
+
+            if (error != null)
+            {
+                c.Write(error);
+                yield break;
+            }
+
+            if (!color.Equals(old))
+            {
+                c.Apply(new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "$CECOLOR", shown, CadPropertyEditor.ColorName(color)) }, s => s.Database.Cecolor = color);
             }
         }
 

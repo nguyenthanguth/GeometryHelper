@@ -139,6 +139,10 @@ namespace GeometryHelper.Dxf.Viewer
         public static CadPrompt ForKeyword(string message, IReadOnlyList<string> keywords, string defaultValue = null)
             => new CadPrompt(CadPromptKind.Keyword, message, keywords ?? throw new ArgumentNullException(nameof(keywords)), defaultValue, null);
 
+        /// <summary>Asks for one of a list of keywords or a text, as CECOLOR takes Truecolor or a colour: "Enter new object color [Truecolor/COlorbook] &lt;BYLAYER&gt;:".</summary>
+        internal static CadPrompt ForKeywordOrText(string message, IReadOnlyList<string> keywords, string defaultValue)
+            => new CadPrompt(CadPromptKind.Keyword, message, keywords, defaultValue, null) { AcceptsText = true };
+
         /// <summary>Asks for a text.</summary>
         /// <param name="message">The message: "Enter text".</param>
         /// <param name="defaultValue">The default Enter takes; null for none.</param>

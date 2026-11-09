@@ -274,6 +274,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                     return Invalid("Requires an integer value or option keyword.", echo);
                 case CadPromptKind.Keyword:
+                    if (Prompt.AcceptsText)
+                    {
+                        return Answer(new CadInput(CadInputKind.Text, default, 0.0, typed, null), echo, null);
+                    }
+
                     return Invalid("Invalid option keyword.", echo);
                 case CadPromptKind.Selection:
                 case CadPromptKind.Entity:

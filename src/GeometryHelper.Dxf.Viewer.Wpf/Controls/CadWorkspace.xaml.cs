@@ -18,7 +18,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// Keys as AutoCAD's: Esc cancels the command, then clears the selection; Ctrl+O opens a DXF, Ctrl+W closes it, Ctrl+N asks a host for a new
     /// drawing from a model (<see cref="MainViewModel.NewFromModelRequested"/>), Ctrl+S saves, Ctrl+Shift+S
     /// saves as, Ctrl+Z undoes and Ctrl+Y redoes, Delete erases the selection; F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR,
-    /// F12 DYN (the prompt and what is typed shown beside the cursor), and Ctrl+9 shows or hides the command line.
+    /// F12 DYN (the prompt and what is typed shown beside the cursor, Tab moving between its fields at a point prompt), and
+    /// Ctrl+9 shows or hides the command line.
     /// Letters typed with the focus on the canvas go to the command line, where Enter or Space runs the line (Space types a
     /// space at a prompt for text) and Up and Down recall what was typed before. A value of Properties is committed by Enter
     /// or by leaving it, and Esc puts the old one back. DXF files dropped on it are opened.
@@ -218,6 +219,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             else if (modifiers == ModifierKeys.None && key == Key.Delete && !(Keyboard.FocusedElement is TextBox))
             {
                 _model.EraseSelection();
+                e.Handled = true;
+            }
+            else if (modifiers == ModifierKeys.None && key == Key.Tab && (Keyboard.FocusedElement == CommandBox || Keyboard.FocusedElement == CanvasView)
+                     && _model.TabDynamicInput())
+            {
+                // Tab moves between the fields of dynamic input, locking a number typed, as in AutoCAD.
                 e.Handled = true;
             }
             else if (modifiers == ModifierKeys.None && Toggle(key))

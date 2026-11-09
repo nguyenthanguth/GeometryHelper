@@ -755,16 +755,33 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        /// <summary>Enter or Space with nothing typed: the prompt's default or the end of the selection; with no command running, the last command again.</summary>
-        public void Enter() => Execute(string.Empty);
+        /// <summary>
+        /// Enter or Space with nothing typed: the prompt's default or the end of the selection; with no command running, the last
+        /// command again. A field of dynamic input locked by Tab gives the point instead (<see cref="TabDynamicInput"/>).
+        /// </summary>
+        public void Enter()
+        {
+            if (!TakeDynamicInput(string.Empty))
+            {
+                Execute(string.Empty);
+            }
+        }
 
-        /// <summary>Runs what is typed in the command line, then empties it.</summary>
+        /// <summary>
+        /// Runs what is typed in the command line, then empties it. While the fields of dynamic input are shown, a number typed
+        /// into one, or a field locked by Tab, gives the point with the cursor's value in the other; a coordinate typed whole,
+        /// "@300&lt;0" or "10,20", goes to the command line as typed.
+        /// </summary>
         public void SubmitCommand()
         {
             string text = CommandText;
             CommandText = string.Empty;
             _recall = -1;
-            Execute(text);
+
+            if (!TakeDynamicInput(text))
+            {
+                Execute(text);
+            }
         }
 
         /// <summary>
@@ -1325,6 +1342,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Raise(nameof(CurrentLayer));
             }
 
+            RaiseCurrentColor();
             UpdateProperties();
             RaiseModified();
 
@@ -1483,6 +1501,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Raise(nameof(Document));
             Raise(nameof(Session));
             Raise(nameof(CurrentLayer));
+            RaiseCurrentColor();
             Raise(nameof(Prompt));
             Raise(nameof(IsCommandRunning));
             RaiseModified();

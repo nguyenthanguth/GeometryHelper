@@ -401,7 +401,7 @@ namespace GeometryHelper.Dxf.Viewer
             => double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value) && !double.IsNaN(value) && !double.IsInfinity(value);
 
         /// <summary>A colour as the palette writes it: ByLayer, ByBlock, Red to White, an index 1 to 255, or red, green and blue.</summary>
-        private static string ParseColor(string text, out DxfColor color)
+        internal static string ParseColor(string text, out DxfColor color)
         {
             color = null;
 
@@ -448,6 +448,27 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return "A colour is ByLayer, ByBlock, a name from Red to White, an index 1 to 255, or red, green and blue as 255,128,0.";
+        }
+
+        /// <summary>A colour as the palette writes it, so that it can be typed back: ByLayer, ByBlock, Red to White, 30, or 10,20,30.</summary>
+        internal static string ColorName(DxfColor color)
+        {
+            if (color.IsByLayer)
+            {
+                return "ByLayer";
+            }
+
+            if (color.IsByBlock)
+            {
+                return "ByBlock";
+            }
+
+            if (color.IsByColor)
+            {
+                return color.Red.ToString(CultureInfo.InvariantCulture) + "," + color.Green.ToString(CultureInfo.InvariantCulture) + "," + color.Blue.ToString(CultureInfo.InvariantCulture);
+            }
+
+            return color.ColorIndex >= 1 && color.ColorIndex <= 7 ? ColorNames[color.ColorIndex] : color.ColorIndex.ToString(CultureInfo.InvariantCulture);
         }
 
         /// <summary>A lineweight as the palette writes it: ByLayer, ByBlock, Default, or one of AutoCAD's widths as 0.25 mm.</summary>

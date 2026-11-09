@@ -103,7 +103,7 @@ A command that fails part way has its edits taken back. Its outcome is `session.
 | draw | LINE, PLINE, CIRCLE, ARC, RECTANG, ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT, MTEXT, MLEADER, MVIEW, LAYOUT (New, Rename, Set, ?) |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
 | layers | LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO |
-| utilities | SELECTALL, UNITS, -UNITS, SCRIPT |
+| utilities | SELECTALL, UNITS, -UNITS, SCRIPT, CECOLOR |
 | dimension | DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER, DIMANGULAR |
 
 PROPERTIES, OPTIONS, LAYER and QSAVE ask the window for its panel or dialog (`UiRequested`), and say "is shown by the window"
@@ -196,6 +196,8 @@ and one undo takes it back. On a model drawing the edit goes through its owner a
 [Owners](owners.md#what-the-model-drawing-makes-of-each)).
 
 ## Layers
+
+CECOLOR, or the colour box of the Properties panel, sets the colour new objects take: ByLayer, ByBlock, a name or an index 1 to 255. A line drawn after CECOLOR red is red; a true colour is refused, because the header holds an index.
 
 Click a layer's colour in the Layer manager to choose it in Select Color: a colour of the index (1 to 255) or a true colour. A true colour is kept in the file as red, green and blue (group 420), with the nearest colour of the index beside it (group 62) for programs that read only the index. AREA after Add area keeps a total: a rectangle 100 by 50 added and a circle of radius 10 taken away leave `Total area = 4685.8407`. SCRIPT feeds each line of a .scr file to the command line as typed, a blank line being Enter, and stops at the first line refused.
 

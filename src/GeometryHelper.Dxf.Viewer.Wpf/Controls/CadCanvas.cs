@@ -38,8 +38,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// a notch; dragging with the middle button pans and double-clicking it zooms to the extents. With no command running a
     /// left click picks within 5 pixels (Shift+click adds or removes), and a click on nothing starts a box, as AutoCAD does
     /// with PICKDRAG 0: the box follows the cursor to the click that ends it, left to right a solid blue window that takes
-    /// what lies wholly inside, right to left a dashed green crossing that takes what it touches, Esc dropping it;
-    /// <see cref="SelectByDragging"/> lets a box be dragged too. The selected entities show their grips, which drag. With a
+    /// what lies wholly inside, right to left a dashed green crossing that takes what it touches, Esc dropping it; the first
+    /// corner stays on its point of the drawing while the wheel zooms or the middle button pans. <see cref="SelectByDragging"/>
+    /// lets a box be dragged too; with it off, a press on nothing dragged draws a lasso, as AutoCAD's: drawn clockwise a window,
+    /// counter-clockwise a crossing. The selected entities show their grips, which drag. With a
     /// command of <see cref="Session"/> running a click answers its prompt: a point prompt takes the point
     /// <see cref="Snap"/> gives, drawn with its marker and a rubber band from the prompt's base point, and "Select objects:"
     /// takes a click or a box; while MOVE, COPY, ROTATE, SCALE or MIRROR waits for its second point, a dashed ghost of the
@@ -87,6 +89,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public static readonly DependencyProperty GridSpacingProperty = DependencyProperty.Register(
             nameof(GridSpacing), typeof(double), typeof(CadCanvas), new PropertyMetadata(10.0, OnSceneChanged));
 
+        /// <summary>Identifies the <see cref="DynamicInput"/> property.</summary>
+        public static readonly DependencyProperty DynamicInputProperty = DependencyProperty.Register(
+            nameof(DynamicInput), typeof(bool), typeof(CadCanvas), new PropertyMetadata(false, (d, e) => ((CadCanvas)d).InvalidateVisual()));
+
         private const double GridPixels = 6.0;
         private const double DragPixels = 4.0;
         private const int SettleMilliseconds = 80;
@@ -128,6 +134,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private bool _renderQueued;
         private Point? _panFrom;
         private Point? _boxFrom;
+        private GeoPoint2 _boxCorner;
+        private List<GeoPoint2> _lasso;
         private Point _boxTo;
         private bool _boxing;
         private bool _boxOpen;
@@ -229,6 +237,41 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             get => (bool)GetValue(ShowGridProperty);
             set => SetValue(ShowGridProperty, value);
+        }
+
+        /// <summary>
+        /// Gets or sets whether the box of dynamic input (DYN) is shown beside the cursor, which then gives the distance and
+        /// angle: the tip of a point prompt names an object snap alone, "Endpoint", above the cursor, and the grid, ortho and
+        /// polar none, as AutoCAD shows one tip. Off, the tip shows the distance and angle from the base point too,
+        /// "Grid · 215.4 &lt; 22°".
+        /// </summary>
+        public bool DynamicInput
+        {
+            get => (bool)GetValue(DynamicInputProperty);
+            set => SetValue(DynamicInputProperty, value);
+        }
+
+        /// <summary>
+        /// Gets the tip a point prompt shows beside the cursor now; empty for none. A test reads it. With dynamic input shown
+        /// it names an object snap alone, as AutoCAD's: the grid, ortho and polar give none.
+        /// </summary>
+        internal string PromptTip
+        {
+            get
+            {
+                if (!CadPicking.WantsPoint(Session) || !_cursor.HasValue)
+                {
+                    return string.Empty;
+                }
+
+                if (DynamicInput)
+                {
+                    CadSnapKind kind = _snapped?.Kind ?? CadSnapKind.None;
+                    return kind == CadSnapKind.None || kind == CadSnapKind.Grid || kind == CadSnapKind.Ortho || kind == CadSnapKind.Polar ? string.Empty : kind.ToString();
+                }
+
+                return TipText(_snapped, Session.Prompt.BasePoint, _snapped?.Point ?? _cursor.Value);
+            }
         }
 
         /// <summary>Gets or sets the spacing of the grid in drawing units; 10 by default, as the snap grid.</summary>
@@ -641,6 +684,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             bool any = _boxFrom.HasValue || _dragGrip >= 0;
             _boxFrom = null;
+            _lasso = null;
             _boxing = false;
             _boxOpen = false;
             _dragGrip = -1;
@@ -702,9 +746,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 DrawCrosshair(drawingContext);
             }
 
-            if (_boxing && _boxFrom.HasValue)
+            if (_lasso != null && view != null)
             {
-                Point a = _boxFrom.Value;
+                DrawLasso(drawingContext, view, scale);
+            }
+            else if (_boxing && _boxFrom.HasValue)
+            {
+                Point a = BoxCorner();
                 bool crossing = _boxTo.X < a.X;
                 drawingContext.DrawRectangle(crossing ? CrossingFill : WindowFill, crossing ? CrossingPen : WindowPen, new Rect(a, _boxTo));
             }
@@ -775,10 +823,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 else if (_boxOpen && _boxFrom.HasValue)
                 {
                     // The click that ends a box started by a click; its release is not a click of its own.
-                    Point from = _boxFrom.Value;
+                    Point from = BoxCorner();
+                    GeoPoint2 corner = _boxCorner;
                     CancelGesture();
                     _swallowUp = true;
-                    SelectBox(from, p, (Keyboard.Modifiers & ModifierKeys.Shift) != 0);
+                    SelectBox(corner, from, p, (Keyboard.Modifiers & ModifierKeys.Shift) != 0);
                 }
                 else if (!IsRunning && _hotGrip >= 0)
                 {
@@ -790,6 +839,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 else
                 {
                     _boxFrom = p;
+                    _boxCorner = DrawingAt(p);
                     _boxTo = p;
                     _boxing = false;
                     _pressOnObject = IsObjectAt(p);
@@ -867,21 +917,36 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
             else if (e.ChangedButton == MouseButton.Left && _boxFrom.HasValue && !_boxOpen)
             {
-                Point from = _boxFrom.Value;
+                Point from = BoxCorner();
+                Point pressed = _boxFrom.Value;
+                GeoPoint2 corner = _boxCorner;
                 bool boxing = _boxing;
+                List<GeoPoint2> lasso = _lasso;
+                _lasso = null;
                 ReleaseMouseCapture();
                 bool shift = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
 
-                if (boxing && SelectByDragging)
+                if (lasso != null && CadPicking.IsLoop(lasso))
+                {
+                    // A lasso drawn clockwise takes what it holds whole, counter-clockwise what it touches.
+                    CancelGesture();
+
+                    if (Document != null && Space != null)
+                    {
+                        CadPicking.LassoDone(Document, Space, Session, lasso, shift);
+                        SelectionChanged?.Invoke(this, EventArgs.Empty);
+                    }
+                }
+                else if (boxing && SelectByDragging)
                 {
                     CancelGesture();
-                    SelectBox(from, at, shift);
+                    SelectBox(corner, from, at, shift);
                 }
                 else if (_pressOnObject || !TakesBox)
                 {
                     // An object pressed is the one picked, wherever the button is let go.
                     CancelGesture();
-                    Click(_pressOnObject ? from : at, shift);
+                    Click(_pressOnObject ? pressed : at, shift);
                 }
                 else
                 {
@@ -1209,10 +1274,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (_boxFrom.HasValue)
             {
                 _boxTo = p;
-                Vector moved = p - _boxFrom.Value;
+                Vector moved = p - BoxCorner();
+                bool far = Math.Abs(moved.X) > DragPixels || Math.Abs(moved.Y) > DragPixels;
+
+                // Select by dragging off, a press on nothing dragged draws a lasso, as AutoCAD's: its points kept in drawing
+                // units, one every 2 pixels.
+                if (_lasso == null && far && !_boxOpen && !SelectByDragging && !_pressOnObject && TakesBox)
+                {
+                    _lasso = new List<GeoPoint2> { _boxCorner };
+                }
+
+                if (_lasso != null)
+                {
+                    if ((p - ToScreen(view, _lasso[_lasso.Count - 1], scale)).Length >= 2.0)
+                    {
+                        _lasso.Add(cursor);
+                    }
+
+                    InvalidateVisual();
+                    return;
+                }
 
                 // A press on an object picks it unless a box may be dragged.
-                _boxing |= (Math.Abs(moved.X) > DragPixels || Math.Abs(moved.Y) > DragPixels) && (SelectByDragging || !_pressOnObject);
+                _boxing |= far && (SelectByDragging || !_pressOnObject);
 
                 if (_boxing)
                 {
@@ -1294,7 +1378,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             InvalidateVisual();
         }
 
-        private void SelectBox(Point a, Point b, bool remove)
+        /// <summary>A box ended: its first corner kept in drawing units and shown at <paramref name="a"/>, its second at <paramref name="b"/>.</summary>
+        private void SelectBox(GeoPoint2 corner, Point a, Point b, bool remove)
         {
             CadDocument document = Document;
             CadView view = View;
@@ -1305,7 +1390,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             double scale = PixelScale;
-            view.ScreenToDrawing(a.X * scale, a.Y * scale, out double x0, out double y0);
+            double x0 = corner.X;
+            double y0 = corner.Y;
             view.ScreenToDrawing(b.X * scale, b.Y * scale, out double x1, out double y1);
             var box = new DisplayBox(Math.Min(x0, x1), Math.Min(y0, y1), Math.Max(x0, x1), Math.Max(y0, y1));
             CadPicking.BoxDone(document, Space, Session, box, b.X < a.X, remove);
@@ -1393,6 +1479,56 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             view.DrawingToPixel(point.X, point.Y, out double px, out double py);
             return new Point(px / scale, py / scale);
+        }
+
+        /// <summary>The point of the drawing under a point of the canvas; the origin with no view.</summary>
+        private GeoPoint2 DrawingAt(Point p)
+        {
+            CadView view = View;
+
+            if (view == null)
+            {
+                return default;
+            }
+
+            double scale = PixelScale;
+            view.ScreenToDrawing(p.X * scale, p.Y * scale, out double x, out double y);
+            return new GeoPoint2(x, y);
+        }
+
+        /// <summary>
+        /// Where the canvas shows the first corner of a box now: the corner is kept in drawing units, so that a wheel zoom or a
+        /// pan while a box waits for its second click keeps it on the same point of the drawing.
+        /// </summary>
+        private Point BoxCorner()
+        {
+            CadView view = View;
+            return view == null ? _boxFrom.Value : ToScreen(view, _boxCorner, PixelScale);
+        }
+
+        /// <summary>The lasso being drawn, closed back to its start: solid blue drawn clockwise, a window; dashed green the other way, a crossing.</summary>
+        private void DrawLasso(DrawingContext dc, CadView view, double scale)
+        {
+            if (_lasso.Count < 2)
+            {
+                return;
+            }
+
+            bool crossing = CadPicking.SignedArea(_lasso) > 0.0;
+            var geometry = new StreamGeometry();
+
+            using (StreamGeometryContext context = geometry.Open())
+            {
+                context.BeginFigure(ToScreen(view, _lasso[0], scale), true, true);
+
+                for (int i = 1; i < _lasso.Count; i++)
+                {
+                    context.LineTo(ToScreen(view, _lasso[i], scale), true, false);
+                }
+            }
+
+            geometry.Freeze();
+            dc.DrawGeometry(crossing ? CrossingFill : WindowFill, crossing ? CrossingPen : WindowPen, geometry);
         }
 
         /// <summary>
@@ -1483,16 +1619,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             DrawMarker(dc, _snapped, to);
-            string tip = TipText(_snapped, basePoint, target);
+            string tip = PromptTip;
 
             if (tip.Length > 0)
             {
                 var text = new FormattedText(tip, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, TipFace, 10.0, TipInk, VisualTreeHelper.GetDpi(this).PixelsPerDip);
                 double w = text.Width + 16.0;
 
-                // Beside the cursor, below and to the right; turned to the other side where the canvas ends.
+                // Beside the cursor, below and to the right; turned to the other side where the canvas ends. With the box of
+                // dynamic input below the cursor, the name of the snap goes above it.
                 double left = to.X + 16.0 + w > ActualWidth ? to.X - 16.0 - w : to.X + 16.0;
-                double top = to.Y + 14.0 + 22.0 > ActualHeight ? to.Y - 14.0 - 22.0 : to.Y + 14.0;
+                double top = DynamicInput || to.Y + 14.0 + 22.0 > ActualHeight ? to.Y - 14.0 - 22.0 : to.Y + 14.0;
                 var box = new Rect(left, top, w, 22.0);
                 dc.DrawRoundedRectangle(TipFill, TipPen, box, 2.0, 2.0);
                 dc.DrawText(text, new Point(box.X + 8.0, box.Y + (22.0 - text.Height) / 2.0));

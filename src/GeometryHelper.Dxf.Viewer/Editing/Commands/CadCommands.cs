@@ -77,6 +77,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("UNITS", Units));
             registry.Add(new CadCommand("-UNITS", UnitsTyped));
             registry.Add(new CadCommand("SCRIPT", Script));
+            registry.Add(new CadCommand("CECOLOR", CurrentColor));
         }
 
         /// <summary>A point of the plan in space, at nought height.</summary>

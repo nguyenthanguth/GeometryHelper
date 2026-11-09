@@ -152,6 +152,8 @@ switches the status toggles, and `--layers` draws the Layer manager instead.
 
 The window's ribbon has the tabs Home (Draw, Modify, Annotation, Layers, Properties, Utilities, View), Annotate (Single Line and Multiline Text; Linear, Aligned, Angular, Radius and Diameter dimensions; Multileader), View (Zoom Extents, Window, Previous, In and Out, Pan, Regen; Model and Layout; the Drawings list and the Properties panel shown or hidden; Grid, Snap, Ortho, Polar and Osnap), Plugins and Settings. Every button runs a command through the same path as typing it. A thing that is not built yet (Paste, PDF and Print, Insert, Manage and Output) has no button, or one that says so; the comparison with AutoCAD 2021, tab by tab, is in the drawing plan, 72-autocad-gap.md.
 
+At a point prompt the box beside the cursor has two fields: X and Y, or the distance and angle from the base point. Tab moves from one to the other, and a number typed there is locked, drawn darker with a lock. Enter takes the point from the locked fields and the cursor's value in the other. A coordinate typed whole goes to the command line as typed. With Select by dragging off, click at one corner and click at the other for a box, or press on nothing and drag round the objects for a lasso: drawn clockwise it is a window, counter-clockwise a crossing.
+
 F12 (DYN) shows the prompt, the cursor's coordinates or its distance and angle from the base point, and what you type beside the cursor; Global settings > Canvas and cursor > Input sets it on or off at start. Ctrl+9 hides or shows the command line; typing still reaches it while hidden. `--dialog color` and `--dialog truecolor` draw Select Color in screenshot mode, and `--toggle DYN` switches dynamic input.
 
 ## See also
