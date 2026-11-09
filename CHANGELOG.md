@@ -6,6 +6,23 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The presenter's Layer manager has AutoCAD 2021's VP columns while a layout is current: VP Freeze, New VP Freeze,
+VP Color, VP Linetype, VP Lineweight, VP Transparency and VP Plot Style, acting on the viewport worked through or the one
+selected on the paper, an override marked blue; its right-click menu freezes and thaws a layer in all viewports, adds a
+layer frozen in them all and takes overrides out. VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt) and LAYVPI are typed
+as in AutoCAD, and MVIEW freezes the layers of New VP Freeze in the viewport it makes. A viewport is drawn without the
+layers frozen in it and with its overrides: TEXT, cyan, overridden red in the plan viewport is red there alone. Each change
+is one undo step, through `CadViewportLayerEditor`. In the core, `DxfLayerViewportProperties`' colour, linetype,
+lineweight, transparency and the new `PlotStyleName` are set as AutoCAD 2021 writes them (ADSK_XREC_LAYER_*_OVR), with
+`RemoveColorOverride()` and its like and `DxfLayerTableRecord.RemoveViewportOverrides(viewport)`; AutoCAD 2021 audits such
+a drawing with no error and reads every override back.
+
+**NEW.** The status bar's right end follows AutoCAD 2021: MODEL is a label on the Model tab, PAPER a raised button on the
+paper and MODEL a pressed one through a viewport; the scale opens AutoCAD's list (Scale to fit, 1:1 to 1:100, 2:1 to
+100:1, Custom..., which runs the new VPSCALE and asks the scale on the command line); a padlock locks the display of the
+viewport worked through or selected, its scale then grey; on the Model tab the place shows the annotation scale
+(CANNOSCALE) and its list the drawing's scales.
+
 **NEW.** The presenter gives dimensions AutoCAD 2021's grips: a linear or aligned one its two extension line origins, the
 two ends of its dimension line and its words; a radius its chord point and words, a diameter its two chord points and
 words; an angle its vertex, line points, arc and words; an ordinate its feature and leader end. Dragging one rewrites the

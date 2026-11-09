@@ -675,6 +675,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void OnOsnapArrow(object sender, RoutedEventArgs e) => ShowMenu(_model?.OsnapMenu(), (UIElement)sender);
 
+        /// <summary>The scale of the status bar clicked: the scale list opened over it, as AutoCAD's.</summary>
+        private void OnScaleMenu(object sender, RoutedEventArgs e) => ShowMenu(_model?.ScaleMenu(), (UIElement)sender);
+
         /// <summary>The arrow of a split button of the ribbon, or the title of Modify: its menu dropped under it, as AutoCAD's ribbon drops one.</summary>
         private void OnRibbonMenu(object sender, RoutedEventArgs e)
         {

@@ -14,7 +14,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// current layer cannot be frozen), the refusal said on the command line. It reads the table again whenever the drawing's
     /// tables change, an undo among them.
     /// </summary>
-    public sealed class LayerManagerViewModel : ObservableObject, IDisposable
+    public sealed partial class LayerManagerViewModel : ObservableObject, IDisposable
     {
         /// <summary>The colour names of AutoCAD's indices 1 to 7, which the colour cell offers.</summary>
         public static readonly IReadOnlyList<string> ColorNames = new[] { "Red", "Yellow", "Green", "Cyan", "Blue", "Magenta", "White" };
@@ -46,14 +46,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _delete = new DelegateCommand(_ => Delete(), _ => _selected != null);
             DeleteCommand = _delete;
             Document.Changed += OnChanged;
+            Document.ActiveViewportChanged += OnActiveViewportChanged;
             Refresh();
         }
 
         /// <summary>Gets the document.</summary>
         public CadDocument Document { get; }
 
-        /// <summary>Gets the title of the dialog: "Layer manager · plan.dxf".</summary>
-        public string Title => "Layer manager · " + Document.Title;
+        /// <summary>Gets the title of the dialog: "Layer manager · plan.dxf", and in a layout " · Layout1, viewport 2 1:20 current" after it.</summary>
+        public string Title => "Layer manager · " + Document.Title + ViewportTitle();
 
         /// <summary>Gets the rows of the layers whose name holds the search text, by name.</summary>
         public ObservableCollection<LayerRowViewModel> Rows { get; } = new ObservableCollection<LayerRowViewModel>();
@@ -154,13 +155,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Stops following the document's changes, as the dialog does when it closes.</summary>
-        public void Dispose() => Document.Changed -= OnChanged;
+        public void Dispose()
+        {
+            Document.Changed -= OnChanged;
+            Document.ActiveViewportChanged -= OnActiveViewportChanged;
+        }
 
         /// <summary>Reads the layer table again.</summary>
         public void Refresh()
         {
             string chosen = _selected?.Name;
+            var chosenNames = new HashSet<string>(Rows.Where(r => r.IsChosen).Select(r => r.Name), StringComparer.OrdinalIgnoreCase);
             string current = Document.Database.Clayer;
+            ReadViewport();
             var layers = Document.Layers.ToList();
             layers.Sort((a, b) =>
             {
@@ -183,7 +190,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 int index = record == null ? 7 : Math.Abs(record.ColorIndex);
                 DxfLineWeight weight = record == null ? DxfLineWeight.ByLineWeightDefault : record.LineWeight;
                 DxfColor color = record == null ? DxfColor.FromColorIndex(DxfColorMethod.ByAci, 7) : record.Color;
-                Rows.Add(new LayerRowViewModel(this, layer, index, color, weight, string.Equals(layer.Name, current, StringComparison.OrdinalIgnoreCase)));
+                var row = new LayerRowViewModel(this, layer, index, color, weight, string.Equals(layer.Name, current, StringComparison.OrdinalIgnoreCase)) { IsChosen = chosenNames.Contains(layer.Name) };
+
+                if (record != null)
+                {
+                    row.ReadViewport(record, _target);
+                }
+
+                Rows.Add(row);
             }
 
             _selected = chosen == null ? null : Rows.FirstOrDefault(r => string.Equals(r.Name, chosen, StringComparison.OrdinalIgnoreCase));
@@ -192,7 +206,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _delete.RaiseCanExecuteChanged();
             int frozen = layers.Count(l => l.IsFrozen);
             int locked = layers.Count(l => l.IsLocked);
-            Summary = MainViewModel.Count(layers.Count) + (layers.Count == 1 ? " layer" : " layers") + " · " + MainViewModel.Count(frozen) + " frozen · " + MainViewModel.Count(locked) + " locked";
+            Summary = _target != null
+                ? ViewportSummary(layers.Count)
+                : MainViewModel.Count(layers.Count) + (layers.Count == 1 ? " layer" : " layers") + " · " + MainViewModel.Count(frozen) + " frozen · " + MainViewModel.Count(locked) + " locked";
         }
 
         /// <summary>The name of a colour index: Red to White for 1 to 7, else "Color 30".</summary>
@@ -235,9 +251,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return false;
         }
 
+        private void OnActiveViewportChanged(object sender, EventArgs e) => Refresh();
+
         private void OnChanged(object sender, CadDocumentChangedEventArgs e)
         {
-            if (e.TablesChanged || e.Kind == CadChangeKind.Undo || e.Kind == CadChangeKind.Redo)
+            // A viewport's frozen layers are of the viewport, not of the layer table: the VP Freeze column reads them again.
+            if (e.TablesChanged || e.Kind == CadChangeKind.Undo || e.Kind == CadChangeKind.Redo
+                || (HasViewportColumns && e.Handles.Any(h => Document.FindEntity(h) is DxfViewport)))
             {
                 Refresh();
             }
@@ -245,7 +265,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     }
 
     /// <summary>One layer of the Layer manager.</summary>
-    public sealed class LayerRowViewModel : ObservableObject
+    public sealed partial class LayerRowViewModel : ObservableObject
     {
         private readonly LayerManagerViewModel _owner;
         private readonly CadLayerInfo _layer;
@@ -389,21 +409,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             get => _weight == DxfLineWeight.ByLineWeightDefault ? "Default" : ((int)_weight / 100.0).ToString("0.00", CultureInfo.InvariantCulture);
             set
             {
-                string typed = (value ?? string.Empty).Trim();
-                DxfLineWeight weight;
-
-                if (string.Equals(typed, "Default", StringComparison.OrdinalIgnoreCase))
+                if (!TryWeight(value, out DxfLineWeight weight))
                 {
-                    weight = DxfLineWeight.ByLineWeightDefault;
-                }
-                else if (double.TryParse(typed.Replace("mm", string.Empty).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double mm)
-                    && Enum.IsDefined(typeof(DxfLineWeight), (int)Math.Round(mm * 100.0)) && mm >= 0.0)
-                {
-                    weight = (DxfLineWeight)(int)Math.Round(mm * 100.0);
-                }
-                else
-                {
-                    _owner.Done(CadEditResult.Refuse("Invalid lineweight \"" + typed + "\": give Default or one of AutoCAD's widths, as 0.35."));
                     Raise(nameof(Weight));
                     return;
                 }
@@ -420,6 +427,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <inheritdoc/>
         public override string ToString() => Name;
+
+        /// <summary>Reads a lineweight typed or picked: Default, or one of AutoCAD's widths in millimetres; another is refused on the command line.</summary>
+        private bool TryWeight(string value, out DxfLineWeight weight)
+        {
+            string typed = (value ?? string.Empty).Trim();
+
+            if (string.Equals(typed, "Default", StringComparison.OrdinalIgnoreCase))
+            {
+                weight = DxfLineWeight.ByLineWeightDefault;
+                return true;
+            }
+
+            if (double.TryParse(typed.Replace("mm", string.Empty).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double mm)
+                && Enum.IsDefined(typeof(DxfLineWeight), (int)Math.Round(mm * 100.0)) && mm >= 0.0)
+            {
+                weight = (DxfLineWeight)(int)Math.Round(mm * 100.0);
+                return true;
+            }
+
+            weight = DxfLineWeight.ByLineWeightDefault;
+            _owner.Done(CadEditResult.Refuse("Invalid lineweight \"" + typed + "\": give Default or one of AutoCAD's widths, as 0.35."));
+            return false;
+        }
 
         /// <summary>After a change made, the manager has read the table again; after one refused, the cell shows the old value.</summary>
         private void Change(bool made, string property)

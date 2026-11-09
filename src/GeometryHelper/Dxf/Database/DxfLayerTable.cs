@@ -546,7 +546,7 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gets whether the layer looks otherwise in some viewport, as AutoCAD's <c>HasOverrides</c>: whether an XRECORD of its
         /// extension dictionary that AutoCAD keeps overrides in (ADSK_XREC_LAYER_COLOR_OVR, ADSK_XREC_LAYER_LINETYPE_OVR,
-        /// ADSK_XREC_LAYER_LINEWT_OVR, ADSK_XREC_LAYER_ALPHA_OVR) names a viewport.
+        /// ADSK_XREC_LAYER_LINEWT_OVR, ADSK_XREC_LAYER_ALPHA_OVR, ADSK_XREC_LAYER_PLOTSTYLE_OVR) names a viewport.
         /// </summary>
         public bool HasOverrides => DxfLayerViewportProperties.Overrides(this).Count > 0;
 
@@ -597,6 +597,24 @@ namespace GeometryHelper.Dxf
                     dictionary.Remove(key);
                 }
             }
+        }
+
+        /// <summary>
+        /// Takes out the overrides of the layer in one viewport, as AutoCAD's <c>RemoveViewportOverrides</c>: the viewport's list
+        /// of each XRECORD that holds one, an XRECORD left with none taken out with its entry; those of the other viewports kept.
+        /// Nothing where it has none there.
+        /// </summary>
+        /// <param name="viewport">The viewport.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the viewport is null.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the layer is erased.</exception>
+        public void RemoveViewportOverrides(DxfViewport viewport)
+        {
+            if (viewport == null)
+            {
+                throw new ArgumentNullException(nameof(viewport));
+            }
+
+            DxfLayerViewportProperties.Forget(this, viewport.Handle);
         }
 
         /// <summary>

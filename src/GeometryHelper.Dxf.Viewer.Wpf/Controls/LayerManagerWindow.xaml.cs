@@ -18,6 +18,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Model = model ?? throw new ArgumentNullException(nameof(model));
             InitializeComponent();
             DataContext = model;
+
+            // Wider in a layout, for the VP columns.
+            Width = model.WindowWidth;
+            Height = model.WindowHeight;
             model.PickColor = dialog => SelectColorWindow.Pick(this, dialog);
             model.PickLinetype = dialog => SelectLinetypeWindow.Pick(this, dialog);
             Closed += (s, e) => Model.Dispose();

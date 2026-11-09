@@ -199,9 +199,15 @@ is on it, nothing points at it and it is not 0, Defpoints or the current layer, 
 LAYER_INDEX and LAYER_FILTER objects a drawing may keep are left as they are.
 
 A layer's look in a viewport is `layer.GetViewportOverrides(viewport)`, a [`DxfLayerViewportProperties`](xref:GeometryHelper.Dxf.DxfLayerViewportProperties) of its colour,
-linetype, lineweight and transparency there, each the override AutoCAD keeps in the layer's extension dictionary
-(ADSK_XREC_LAYER_COLOR_OVR and the three others) else the layer's own; `RemoveAllOverrides()` takes them out, and erasing a
-viewport takes its overrides out of the layers.
+linetype, lineweight, transparency and plot style there, each the override AutoCAD keeps in the layer's extension
+dictionary (ADSK_XREC_LAYER_COLOR_OVR and the four others) else the layer's own. Set, each is written as AutoCAD 2021 writes
+it: steel given the colour 1 in the viewport 226 holds the XRECORD ADSK_XREC_LAYER_COLOR_OVR of
+`102 {ADSK_LYR_COLOR_OVERRIDE, 335 226, 420 -1023410175, 102 }`, a second viewport's list after the first. A plot style is
+refused in a drawing plotted by colour, as AutoCAD answers ePlotStyleInColorDependentMode. `RemoveColorOverride()` and its
+like take one out, `layer.RemoveViewportOverrides(viewport)` those of one viewport, `RemoveAllOverrides()` them all, and
+erasing a viewport takes its overrides out of the layers. The layers frozen in a viewport are its own:
+`viewport.FreezeLayersInViewport(layers)`, `ThawLayersInViewport` and `GetFrozenLayers()` (group 331), and
+`layer.ViewportVisibilityDefault` freezes a layer in the viewports made from now on (flag 2 of group 70).
 
 ### Layer states and filters
 

@@ -486,6 +486,16 @@ namespace GeometryHelper.Dxf.Viewer
                 Record = record;
             }
 
+            /// <summary>A layer as one viewport shows it: its colour, lineweight and linetype there.</summary>
+            public LayerState(DxfLayerTableRecord record, DxfLayerViewportProperties look)
+                : this(record)
+            {
+                Rgb = SafeRgb(look.Color);
+                int weight = (int)look.LineWeight;
+                LineWeight = weight >= 0 ? weight / 100.0 : 0.25;
+                Linetype = look.Linetype ?? "Continuous";
+            }
+
             public bool Visible { get; }
 
             public int Rgb { get; }
@@ -1307,7 +1317,40 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint3 center = viewport.CenterPoint;
             GeoPoint2 view = viewport.ViewCenter;
             double twist = viewport.TwistAngle;
-            list.Add(new DisplayViewport2(center.X, center.Y, viewport.Width, viewport.Height, view.X, view.Y, scale, twist, _modelCache, frozen, style, handle, layerName));
+            list.Add(new DisplayViewport2(center.X, center.Y, viewport.Width, viewport.Height, view.X, view.Y, scale, twist, ModelSeenThrough(viewport), frozen, style, handle, layerName));
+        }
+
+        /// <summary>
+        /// The display list of model space a viewport shows: that of model space as it stands, or, where a layer looks otherwise
+        /// in the viewport (its colour, linetype or lineweight overridden there, as the Layer manager's VP columns set them),
+        /// model space drawn again with those layers as the viewport has them, as AutoCAD regenerates each viewport.
+        /// </summary>
+        private DisplayList2 ModelSeenThrough(DxfViewport viewport)
+        {
+            List<DxfLayerViewportProperties> looks = null;
+
+            foreach (DxfLayerTableRecord layer in _database.LayerTable)
+            {
+                if (layer.HasViewportOverrides(viewport))
+                {
+                    looks = looks ?? new List<DxfLayerViewportProperties>();
+                    looks.Add(layer.GetViewportOverrides(viewport));
+                }
+            }
+
+            if (looks == null || _database.ModelSpace == null)
+            {
+                return _modelCache;
+            }
+
+            var inner = new DisplayBuilder(_database, _document);
+
+            foreach (DxfLayerViewportProperties look in looks)
+            {
+                inner._layers[look.Layer.Name] = new LayerState(look.Layer, look);
+            }
+
+            return inner.Build(_database.ModelSpace, false);
         }
 
         private void DrawText(DxfDBText text, Frame frame, DisplayList2 list, DisplayStyle style, string handle, string layerName)

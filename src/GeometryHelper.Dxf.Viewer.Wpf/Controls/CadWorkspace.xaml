@@ -2292,10 +2292,37 @@
                     </TextBlock>
                     <TextBlock Text="{Binding CursorText}" Width="170" TextAlignment="Right" FontFamily="{StaticResource GhMonoFont}" FontSize="12"
                                FontWeight="Normal" Margin="0,0,12,0" VerticalAlignment="Center" />
-                    <!-- MODEL/PAPER: in a layout a button, as AutoCAD's, MSPACE on the paper and PSPACE through a viewport. -->
-                    <Button Style="{StaticResource GhFlatButton}" Content="{Binding SpaceLabel}" Command="{Binding ToggleSpaceCommand}" FontWeight="SemiBold"
-                            FontSize="11" Foreground="{StaticResource GhText}" Margin="0,0,12,0" VerticalAlignment="Center"
-                            ToolTip="Model or paper space of the layout (MSPACE, PSPACE); Ctrl+R goes to the next viewport" />
+                    <!-- MODEL/PAPER: on the Model tab a label; in a layout a button, as AutoCAD's, raised on the paper (a click runs
+                         MSPACE) and pressed through a viewport (a click runs PSPACE). -->
+                    <Button x:Name="SpaceButton" Content="{Binding SpaceLabel}" Command="{Binding ToggleSpaceCommand}" Margin="0,0,12,0" VerticalAlignment="Center"
+                            Visibility="{Binding HasDocument, Converter={StaticResource Shown}}" Focusable="False">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Face" Padding="8,2" CornerRadius="2" BorderThickness="1" BorderBrush="Transparent" Background="Transparent">
+                                    <TextBlock Text="{TemplateBinding Content}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource GhText}" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding IsSpaceButton}" Value="True">
+                                        <Setter TargetName="Face" Property="BorderBrush" Value="{StaticResource GhBorder}" />
+                                        <Setter TargetName="Face" Property="Background" Value="{StaticResource GhPanel}" />
+                                        <Setter Property="ToolTip" Value="Paper space: click to enter a viewport (MSPACE); Ctrl+R goes to the next viewport" />
+                                    </DataTrigger>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding IsSpaceButton}" Value="True" />
+                                            <Condition Binding="{Binding IsWorkingInModel}" Value="True" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter TargetName="Face" Property="BorderBrush" Value="{StaticResource GhAccent}" />
+                                        <Setter TargetName="Face" Property="Background" Value="{StaticResource GhSelected}" />
+                                        <Setter Property="ToolTip" Value="Model space of a viewport: click to return to paper space (PSPACE); Ctrl+R goes to the next viewport" />
+                                    </MultiDataTrigger>
+                                    <DataTrigger Binding="{Binding IsSpaceButton}" Value="False">
+                                        <Setter Property="IsHitTestVisible" Value="False" />
+                                    </DataTrigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
                     <ItemsControl ItemsSource="{Binding Toggles}" Focusable="False" Visibility="{Binding HasDocument, Converter={StaticResource Shown}}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -2324,11 +2351,77 @@
                     <ToggleButton Style="{StaticResource GhStatusToggle}" Content="{Binding DynamicInput.Name}" IsChecked="{Binding DynamicInput.IsOn, Mode=TwoWay}"
                                   Margin="0,0,12,0" FontSize="11" Visibility="{Binding HasDocument, Converter={StaticResource Shown}}"
                                   ToolTip="Dynamic input (DYN, F12): the prompt, the coordinates and what you type, beside the cursor. Ctrl+9 shows or hides the command line." />
-                    <!-- The scale of the viewport worked through or selected; 1:1 otherwise. -->
-                    <ComboBox Style="{StaticResource GhComboBox}" ItemsSource="{Binding ViewportScales}" SelectedItem="{Binding ViewportScale, Mode=TwoWay}"
-                              Width="84" FontSize="11" VerticalAlignment="Center" ToolTip="Viewport scale"
-                              Visibility="{Binding HasViewportScale, Converter={StaticResource Shown}}" />
-                    <TextBlock Text="1:1" VerticalAlignment="Center" Visibility="{Binding HasViewportScale, Converter={StaticResource Hidden}}" />
+                    <!-- The scale: on the Model tab the annotation scale (CANNOSCALE), in a layout that of the viewport worked through
+                         or selected, grey while its display is locked; a click opens the scale list. -->
+                    <Button x:Name="ScaleButton" Click="OnScaleMenu" Padding="6,2" VerticalAlignment="Center" Focusable="False"
+                            Visibility="{Binding HasStatusScale, Converter={StaticResource Shown}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="ScaleText" Text="{Binding StatusScale}" FontSize="11" FontWeight="Medium" VerticalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{StaticResource GhText}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsViewportLocked}" Value="True">
+                                                <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <Path Data="M1,1.5 4,4.5 7,1.5" Stroke="{StaticResource GhTextMuted}" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                  Margin="4,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource GhFlatButton}">
+                                <Setter Property="ToolTip" Value="{Binding StatusScale}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsModelSpace}" Value="True">
+                                        <Setter Property="ToolTip" Value="Annotation scale (CANNOSCALE): click for the drawing's scales" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsModelSpace}" Value="False">
+                                        <Setter Property="ToolTip" Value="Viewport scale: click for the scales" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsViewportLocked}" Value="True">
+                                        <Setter Property="ToolTip" Value="Viewport scale, locked: unlock the viewport's display to change it" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <!-- The padlock: the Display locked of the viewport worked through or selected, as AutoCAD's. -->
+                    <Button x:Name="LockButton" Style="{StaticResource GhFlatButton}" Command="{Binding ToggleViewportLockCommand}" Width="22" Height="20" Padding="0"
+                            Margin="2,0,0,0" VerticalAlignment="Center" Focusable="False" Visibility="{Binding HasViewportScale, Converter={StaticResource Shown}}">
+                        <Viewbox Width="13" Height="13">
+                            <Path x:Name="LockPath" Width="24" Height="24" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round">
+                                <Path.Style>
+                                    <Style TargetType="Path">
+                                        <Setter Property="Data" Value="M6,11 h12 v10 H6 z M8,11 V7 a4,4 0 0 1 7.5,-2" />
+                                        <Setter Property="Stroke" Value="{StaticResource GhTextMuted}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsViewportLocked}" Value="True">
+                                                <Setter Property="Data" Value="M6,11 h12 v10 H6 z M8,11 V7 a4,4 0 0 1 8,0 v4" />
+                                                <Setter Property="Stroke" Value="#E3B341" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Path.Style>
+                            </Path>
+                        </Viewbox>
+                        <Button.ToolTip>
+                            <TextBlock>
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="Viewport display unlocked: click to lock" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsViewportLocked}" Value="True">
+                                                <Setter Property="Text" Value="Viewport display locked: click to unlock" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Button.ToolTip>
+                    </Button>
                 </StackPanel>
             </DockPanel>
         </Border>
