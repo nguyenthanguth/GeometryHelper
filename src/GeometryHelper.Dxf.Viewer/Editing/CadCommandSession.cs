@@ -118,6 +118,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets or sets the view of the canvas, which ZOOM and PAN change; null where there is none, as in a test.</summary>
         public CadView View { get; set; }
 
+        /// <summary>The view of the canvas in the units of the space worked in: through the viewport worked in, in model units; else <see cref="View"/>.</summary>
+        internal CadView WorkView => View != null && Document.ActiveViewport is DxfViewport viewport ? CadViewports.ModelView(View, viewport) : View;
+
         /// <summary>
         /// Gets or sets how near a picked point must come to an object to pick it, in drawing units: the pick box in pixels
         /// divided by the view's pixels per unit. 3 until set.
@@ -358,7 +361,7 @@ namespace GeometryHelper.Dxf.Viewer
                     return AnswerPoint(point, Prompt.Text, control);
                 case CadPromptKind.Selection:
                 case CadPromptKind.Entity:
-                    IReadOnlyList<string> picked = Document.GetPickIndex(Document.CurrentSpace).Pick(point.X, point.Y, PickAperture);
+                    IReadOnlyList<string> picked = Document.GetPickIndex(Document.WorkingSpace).Pick(point.X, point.Y, PickAperture);
 
                     if (picked.Count == 0)
                     {

@@ -665,7 +665,7 @@ namespace GeometryHelper.Dxf.Viewer
             return percent.ToString(CultureInfo.InvariantCulture);
         }
 
-        private static string ScaleText(DxfStandardScaleType scale)
+        internal static string ScaleText(DxfStandardScaleType scale)
         {
             string name = scale.ToString();
 

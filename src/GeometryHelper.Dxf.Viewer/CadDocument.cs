@@ -142,6 +142,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Drops the sheet worked out, so that the next <see cref="PaperBounds"/> reads the plot settings a page setup wrote.</summary>
         internal void ForgetPaper() => _paper = null;
 
+        /// <summary>Gets or sets the handle of the viewport of this layout whose model space is worked in (MSPACE); null on the paper.</summary>
+        internal string Through { get; set; }
+
+        /// <summary>Gets or sets the handle of the viewport last worked through, which MSPACE and the MODEL button enter again.</summary>
+        internal string LastThrough { get; set; }
+
         /// <inheritdoc/>
         public override string ToString() => Name;
     }
@@ -263,7 +269,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets model space.</summary>
         public CadSpace ModelSpace { get; }
 
-        /// <summary>Gets or sets the space the canvas shows.</summary>
+        /// <summary>Gets or sets the space the canvas shows; see <see cref="WorkingSpace"/> for the one edits go into.</summary>
         public CadSpace CurrentSpace { get; set; }
 
         /// <summary>Gets the selection.</summary>

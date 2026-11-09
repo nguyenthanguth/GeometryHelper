@@ -118,9 +118,11 @@ The function keys, Delete and the Ctrl keys of [the defaults](editing.md#aliases
 
 | Mouse | Does |
 |---|---|
-| wheel | zooms about the cursor, 1.2 times a notch |
+| wheel | zooms about the cursor, 1.2 times a notch; through a viewport, its view (unless its display is locked) |
 | middle button dragged | pans |
-| middle button double-clicked | zooms to the extents, the paper included in a layout |
+| middle button double-clicked | zooms to the extents, the paper included in a layout; through a viewport, its view to model space's extents |
+| left double click in a layout | inside a viewport's frame works through it (MSPACE); off every frame goes back to the paper (PSPACE); a click in another viewport's frame works through that one |
+| MODEL / PAPER on the status bar, Ctrl+R | MSPACE or PSPACE in a layout; Ctrl+R the next viewport; the scale list beside it sets the scale of the viewport worked through or selected |
 | left click, no command running | picks within the pickbox; Shift+click adds or removes; a click on nothing starts a box |
 | click / double click in DRAWINGS | selects the row / opens it; the right-click menu has Open, Close, Close Selected Drawings, Close All Other Drawings, Close All Drawings |
 | Shift+right-click, a point asked | the object snap menu; the snap chosen is taken for that point alone |

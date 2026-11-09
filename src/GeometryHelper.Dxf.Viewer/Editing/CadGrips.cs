@@ -31,6 +31,15 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>A corner of a viewport's frame: resizes the frame, the corner across from it kept, the scale and the centre of the view kept.</summary>
         Corner,
+
+        /// <summary>A point a dimension measures from (an extension line's origin, a chord point, a line point or the vertex of an angle, an ordinate's feature or leader end): moves that point.</summary>
+        DefinitionPoint,
+
+        /// <summary>An end of a dimension's line, or the arc of an angular one: moves the line, or the arc, through the point.</summary>
+        DimensionLine,
+
+        /// <summary>The words of a dimension: moves them, as DIMTEDIT does.</summary>
+        Text,
     }
 
     /// <summary>One grip of an entity: where it is drawn and what dragging it does.</summary>
@@ -59,13 +68,18 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>
     /// The grips of each kind of entity and what dragging each does, as AutoCAD's: a line's two ends and middle, a circle's
     /// centre and four quadrants, an arc's ends, middle and centre, a polyline's vertices and the middles of its segments, a
-    /// text's, an MTEXT's and a block reference's insertion point, a viewport's four corners and middle. Entities of other
-    /// kinds have none: a dimension among them, as the library does not draw a dimension's block anew (its picture is
-    /// AutoCAD's, or Part B's, which draws its own), so a point dragged would not be seen to move.
+    /// text's, an MTEXT's and a block reference's insertion point, a viewport's four corners and middle, and a dimension's as
+    /// AutoCAD 2021 gives them (see <see cref="Of"/>), its picture drawn anew after each drag. Entities of other kinds have none.
     /// </summary>
-    public static class CadGrips
+    public static partial class CadGrips
     {
-        /// <summary>Gets the grips of an entity.</summary>
+        /// <summary>
+        /// Gets the grips of an entity. A dimension's, as AutoCAD 2021's: a linear or aligned one's two extension line origins,
+        /// the two ends of its dimension line, then its words; a radius's chord point and its words, a diameter's two chord
+        /// points and its words; a three-point angle's vertex, its two line points, its arc and its words, an angle between two
+        /// lines the two ends of each line, its arc and its words; an ordinate's feature and its leader's end. A dimension
+        /// drawn in no plan, or with no picture of its own, has none.
+        /// </summary>
         /// <param name="entity">The entity.</param>
         /// <returns>The grips in the order of their indices; empty for an entity with none.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the entity is null.</exception>
@@ -143,6 +157,9 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfBlockReference insert:
                     Add(CadGripKind.Insertion, insert.Position.X, insert.Position.Y);
                     break;
+                case DxfDimension dimension:
+                    DimensionGrips(dimension, (kind, at) => Add(kind, at.X, at.Y));
+                    break;
                 case DxfViewport viewport when !(viewport.On && viewport.Number == 1):
                     {
                         // The four corners from the lower left round counter-clockwise, then the middle; the viewport of the sheet has none.
@@ -164,14 +181,20 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Drags a grip of an entity to a point, as AutoCAD's stretch mode does: one undo step through
         /// <see cref="CadDocument.ApplyEdit"/>. An arc dragged by an end or its middle is the arc through the three points then
-        /// (the moved one and the two kept); a quadrant makes a circle's radius the distance to the point.
+        /// (the moved one and the two kept); a quadrant makes a circle's radius the distance to the point. A dimension's grip
+        /// rewrites its points of definition and its picture is drawn anew: an extension line's origin moved keeps the
+        /// dimension line where it is (an aligned one's at the same distance from what it measures); an end of the dimension
+        /// line moves the line through the point, words the user placed going with it; the words go where DIMTEDIT puts them,
+        /// the dimension line with them where DIMTMOVE is 0; a radius's or a diameter's chord point goes round its circle
+        /// towards the point, words the user placed turning with it.
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="handle">The handle of the entity.</param>
         /// <param name="gripIndex">The index of the grip, as <see cref="Of"/> gives it.</param>
         /// <param name="to">The point it is dragged to, in drawing units.</param>
         /// <returns>What came of it: refused for an entity on a locked layer, a grip it has not, or a shape that cannot be (an
-        /// arc through three points in a line, a circle of no radius).</returns>
+        /// arc through three points in a line, a circle of no radius, a chord point dragged to its centre); failed, the
+        /// drawing as it was, for a dimension that would measure nothing.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the document is null.</exception>
         public static CadEditResult Drag(CadDocument document, string handle, int gripIndex, GeoPoint2 to)
         {
@@ -205,6 +228,12 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             CadGrip grip = grips[gripIndex];
+
+            if (entity is DxfDimension)
+            {
+                return DragDimension(document, handle, gripIndex, grip.Point, to);
+            }
+
             GeoVector2 moved = to - grip.Point;
             var shift = new GeoVector3(moved.X, moved.Y, 0.0);
             string property = "Grip " + gripIndex;

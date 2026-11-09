@@ -97,7 +97,7 @@ namespace GeometryHelper.Dxf.Viewer
                 case "ALL":
                     var all = new List<string>();
 
-                    foreach (DxfEntity entity in Document.CurrentSpace.Block)
+                    foreach (DxfEntity entity in Document.WorkingSpace.Block)
                     {
                         if (!string.IsNullOrEmpty(entity.Handle) && !(entity is DxfViewport viewport && viewport.Number == 1))
                         {
@@ -119,7 +119,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                     foreach (string handle in _previous)
                     {
-                        if (Document.FindEntity(handle) != null && ReferenceEquals(Document.FindSpace(handle), Document.CurrentSpace))
+                        if (Document.FindEntity(handle) != null && ReferenceEquals(Document.FindSpace(handle), Document.WorkingSpace))
                         {
                             previous.Add(handle);
                         }
@@ -222,7 +222,7 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoPoint2 first = _band[0];
                 var box = new DisplayBox(Math.Min(first.X, point.X), Math.Min(first.Y, point.Y), Math.Max(first.X, point.X), Math.Max(first.Y, point.Y));
                 bool crossing = _option == "Crossing" || (_option == "BOX" && point.X < first.X);
-                PickIndex index = Document.GetPickIndex(Document.CurrentSpace);
+                PickIndex index = Document.GetPickIndex(Document.WorkingSpace);
                 List<string> found = new List<string>(crossing ? index.Crossing(box) : index.Window(box));
                 EndOption();
                 return GatherWhole(found);
@@ -303,7 +303,7 @@ namespace GeometryHelper.Dxf.Viewer
             string option = _option;
             var points = new List<GeoPoint2>(_band);
             EndOption();
-            PickIndex index = Document.GetPickIndex(Document.CurrentSpace);
+            PickIndex index = Document.GetPickIndex(Document.WorkingSpace);
 
             if (option == "Fence" && points.Count >= 2)
             {
@@ -325,7 +325,7 @@ namespace GeometryHelper.Dxf.Viewer
             Write(Prompt.Text);
             List<GeoPoint2> points = _multiple;
             _multiple = null;
-            PickIndex index = Document.GetPickIndex(Document.CurrentSpace);
+            PickIndex index = Document.GetPickIndex(Document.WorkingSpace);
             var found = new List<string>();
             var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -375,7 +375,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                     foreach (DxfEntity member in group.GetAllEntityIds())
                     {
-                        if (member.Handle != null && Document.FindEntity(member.Handle) != null && ReferenceEquals(Document.FindSpace(member.Handle), Document.CurrentSpace))
+                        if (member.Handle != null && Document.FindEntity(member.Handle) != null && ReferenceEquals(Document.FindSpace(member.Handle), Document.WorkingSpace))
                         {
                             members.Add(member.Handle);
                         }
@@ -394,7 +394,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private string LastVisible()
         {
-            PickIndex index = Document.GetPickIndex(Document.CurrentSpace);
+            PickIndex index = Document.GetPickIndex(Document.WorkingSpace);
             string last = null;
             ulong highest = 0;
 

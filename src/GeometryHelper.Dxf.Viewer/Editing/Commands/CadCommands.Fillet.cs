@@ -836,7 +836,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (added != null)
                 {
-                    s.Append(space ?? s.Document.CurrentSpace, added);
+                    s.Append(space ?? s.Document.WorkingSpace, added);
                 }
             });
 

@@ -42,6 +42,10 @@ The list of work on the drawing stack: Part A, the 2D presenter (`GeometryHelper
       screenshot mode shared with Drawing.App through `CadAppHost`
 - [x] Blocks round 2: EATTEDIT live with Apply kept open, INSERT drags the block, -ATTEDIT picks one attribute, ATTSYNC,
       Block Definition previews the selection, redefine a block brought from another drawing
+- [x] Dimension grips: extension origins, dimension line, text, chord points, angular and ordinate points; STRETCH of a
+      grip edit measures anew
+- [x] Model space through a viewport: double click in, MSPACE/PSPACE, MODEL/PAPER, Ctrl+R, ZOOM nXP, viewport scale in
+      Properties and the status bar, Display locked
 - [x] Properties: editable rows for ellipses, polylines (vertex browse), hatches, dimensions (overrides by group), MTEXT,
       INSERTs with attributes, viewports, multileaders; MATCHPROP with Settings and special properties
 - [x] SETVAR and 47 system variables typed by name (OSMODE, CLAYER, FILLETRAD, PICKFIRST...), drawing ones one undo step,
@@ -81,9 +85,8 @@ the ones wanted.
 - [ ] Utilities: command line AutoComplete (suggestions as you type, mid-string search, most used first) (M) (running)
 - [ ] Modify (running): PEDIT (Close/Open, Join, Width, Edit vertex, Fit/Spline/Decurve, Ltype gen, Reverse, Multiple; lines and
       arcs made a polyline) (L)
-- [ ] Dimensions: dimension grips (text position, dimension line, extension origins) (M) (running)
-- [ ] Layouts (running): MSPACE/PSPACE through a viewport (double click inside, the MODEL/PAPER button) and the viewport scale in
-      Properties and the status bar (L)
+- [ ] Layouts: the status bar's MODEL/PAPER button, viewport scale list and padlock restyled to the design (StatusSpace
+      board, v104); twisted viewports entered; one undo step per wheel or pan gesture; a ZOOM Previous list per viewport (S)
 - [ ] Files: recent files on the start screen and the application menu (S) (running)
 - [ ] Draw: REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style) (M) (running)
 - [ ] Layers: VP Freeze per viewport (VPLAYER, the Layer manager's VP columns, LAYVPI) (M)

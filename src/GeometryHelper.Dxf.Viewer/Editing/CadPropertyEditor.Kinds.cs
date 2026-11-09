@@ -522,20 +522,6 @@ namespace GeometryHelper.Dxf.Viewer
 
                 case "On":
                     return Flag(text, CadProperties.YesNoChoices, label, (e, on) => ((DxfViewport)e).On = on, out write, out error);
-                case "Display locked":
-                    return Flag(text, CadProperties.YesNoChoices, label, (e, on) => ((DxfViewport)e).Locked = on, out write, out error);
-                case "Standard scale":
-                    {
-                        bool known = CadProperties.TryParseScale(text, out DxfStandardScaleType scale);
-                        write = e => ((DxfViewport)e).StandardScale = scale;
-                        error = known ? null : "Standard scale is one of AutoCAD's, as 1:50; type another into Custom scale.";
-                        return true;
-                    }
-
-                case "Custom scale":
-                    write = e => ((DxfViewport)e).CustomScale = v;
-                    error = number && v > 0.0 ? null : notPositive;
-                    return true;
             }
 
             error = null;

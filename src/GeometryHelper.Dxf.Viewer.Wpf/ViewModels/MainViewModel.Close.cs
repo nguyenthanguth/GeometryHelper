@@ -195,6 +195,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             file.Session.PromptChanged -= OnPromptChanged;
             file.Session.UiRequested -= OnUiRequested;
             document.Changed -= OnDocumentChanged;
+            document.ActiveViewportChanged -= OnActiveViewportChanged;
             document.Xrefs.Dispose();
             bool wasCurrent = file == _current;
 

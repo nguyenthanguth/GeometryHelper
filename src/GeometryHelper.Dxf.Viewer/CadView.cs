@@ -103,6 +103,14 @@ namespace GeometryHelper.Dxf.Viewer
             CenterY = y + (py - Height / 2.0) / PixelsPerUnit;
         }
 
+        /// <summary>Puts a point of the drawing at the centre at a zoom, as a view through a viewport is made.</summary>
+        internal void Set(double centerX, double centerY, double pixelsPerUnit)
+        {
+            CenterX = centerX;
+            CenterY = centerY;
+            PixelsPerUnit = Math.Max(MinZoom, Math.Min(MaxZoom, pixelsPerUnit));
+        }
+
         /// <summary>Shows a box wholly, with a margin, as ZOOM Extents does.</summary>
         /// <param name="box">The box; an empty box shows the origin at 1 pixel to the unit.</param>
         /// <param name="marginFraction">The margin as a fraction of the canvas, 0.05 for 5 per cent on each side.</param>

@@ -45,6 +45,8 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("MTEXT", MText));
             registry.Add(new CadCommand("MLEADER", MLeader));
             registry.Add(new CadCommand("MVIEW", MView));
+            registry.Add(new CadCommand("MSPACE", ModelSpaceThrough));
+            registry.Add(new CadCommand("PSPACE", PaperSpace));
 
             registry.Add(new CadCommand("DIMLINEAR", DimLinear));
             registry.Add(new CadCommand("DIMALIGNED", DimAligned));
@@ -215,7 +217,7 @@ namespace GeometryHelper.Dxf.Viewer
             // Points of a relative size take the size of the view regenerated in, as AutoCAD's.
             if (c.Session.View != null)
             {
-                c.Document.PointViewHeight = c.Session.View.VisibleBox.Height;
+                c.Document.PointViewHeight = c.Session.WorkView.VisibleBox.Height;
             }
 
             c.Document.Regen();
@@ -224,6 +226,19 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static IEnumerable<CadPrompt> Zoom(CadCommandContext c)
         {
+            // Through a viewport the viewport's view is zoomed; through one whose display is locked, the paper, as AutoCAD's.
+            DxfViewport through = c.Document.ActiveViewport;
+
+            if (through != null && !through.Locked)
+            {
+                foreach (CadPrompt prompt in ZoomThrough(c, through.Handle))
+                {
+                    yield return prompt;
+                }
+
+                yield break;
+            }
+
             CadView view = c.Session.View;
 
             if (view == null)
@@ -234,9 +249,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             yield return CadPrompt.ForPoint("Specify corner of window, enter a scale factor (nX or nXP)", null, new[] { "All", "Extents", "Previous", "Window" }, "real time", true);
             DisplayBox before = view.VisibleBox;
+            CadSpace shown = c.Document.CurrentSpace;
 
             // What the space draws and, in a layout, its sheet, as a double click of the middle button shows them.
-            DisplayBox extents = c.Document.GetDisplay(c.Space).Bounds.Union(c.Space.PaperBounds);
+            DisplayBox extents = c.Document.GetDisplay(shown).Bounds.Union(shown.PaperBounds);
 
             if (c.Input.IsNone)
             {
@@ -315,6 +331,14 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 GeoPoint2 second = c.Input.Point;
+
+                // Corners picked through a locked viewport are points of model space, shown on the paper where it zooms.
+                if (through != null)
+                {
+                    first = CadViewports.ToPaper(through, first);
+                    second = CadViewports.ToPaper(through, second);
+                }
+
                 var box = new DisplayBox(Math.Min(first.X, second.X), Math.Min(first.Y, second.Y), Math.Max(first.X, second.X), Math.Max(first.Y, second.Y));
 
                 if (box.Width <= 0.0 || box.Height <= 0.0)
@@ -333,8 +357,183 @@ namespace GeometryHelper.Dxf.Viewer
             c.Session.Views.Add(before);
         }
 
+        /// <summary>
+        /// ZOOM through a viewport: its view zoomed, the paper as it is, one undo step. All and Extents fit model space's
+        /// extents to the frame; nX scales the view as it is, n that of the extents; nXP sets the viewport's scale, n paper
+        /// units to the model unit, so 1/50XP shows model space at 1:50; Window fits the window picked; Previous goes back.
+        /// </summary>
+        private static IEnumerable<CadPrompt> ZoomThrough(CadCommandContext c, string handle)
+        {
+            yield return CadPrompt.ForPoint("Specify corner of window, enter a scale factor (nX or nXP)", null, new[] { "All", "Extents", "Previous", "Window" }, "real time", true);
+            var viewport = (DxfViewport)c.Document.FindEntity(handle);
+
+            if (viewport == null)
+            {
+                yield break;
+            }
+
+            DisplayBox before = CadViewports.ViewBox(viewport);
+            DisplayBox extents = c.Document.GetDisplay(c.Document.ModelSpace).Bounds;
+            GeoPoint2 center = viewport.ViewCenter;
+            double height = viewport.ViewHeight;
+
+            if (c.Input.IsNone)
+            {
+                c.Write("Real-time zoom is the mouse wheel's: the view is as it was.");
+                yield break;
+            }
+
+            if (c.Input.Is("All") || c.Input.Is("Extents"))
+            {
+                if (!extents.IsEmpty)
+                {
+                    CadViewports.Fit(viewport, extents, out center, out height);
+                }
+            }
+            else if (c.Input.Kind == CadInputKind.Text)
+            {
+                string typed = c.Input.Text.Trim();
+                bool paper = typed.EndsWith("XP", StringComparison.OrdinalIgnoreCase);
+                bool relative = !paper && typed.EndsWith("X", StringComparison.OrdinalIgnoreCase);
+                string number = typed.Substring(0, typed.Length - (paper ? 2 : relative ? 1 : 0));
+
+                if (!TryFactor(number, out double factor))
+                {
+                    c.Write("Requires a point, a scale factor above nought (nX or nXP), or an option keyword.");
+                    yield break;
+                }
+
+                if (paper)
+                {
+                    height = viewport.Height / factor;
+                }
+                else
+                {
+                    if (!relative && !extents.IsEmpty)
+                    {
+                        CadViewports.Fit(viewport, extents, out center, out height);
+                    }
+
+                    height /= factor;
+                }
+            }
+            else if (c.Input.Is("Previous"))
+            {
+                if (c.Session.Views.Count == 0)
+                {
+                    c.Write("No previous view saved.");
+                    yield break;
+                }
+
+                DisplayBox previous = c.Session.Views[c.Session.Views.Count - 1];
+                c.Session.Views.RemoveAt(c.Session.Views.Count - 1);
+                CadViewports.Fit(viewport, previous, out center, out height);
+                c.Apply(c.Document.ViewRecord(handle, center, height), CadDocument.ViewWriter(handle, center, height));
+                yield break;
+            }
+            else if (c.Input.IsPoint || c.Input.Is("Window"))
+            {
+                GeoPoint2 first;
+
+                if (c.Input.IsPoint)
+                {
+                    first = c.Input.Point;
+                }
+                else
+                {
+                    yield return CadPrompt.ForPoint("Specify first corner");
+
+                    if (!c.Input.IsPoint)
+                    {
+                        yield break;
+                    }
+
+                    first = c.Input.Point;
+                }
+
+                yield return CadPrompt.ForPoint("Specify opposite corner", first);
+
+                if (!c.Input.IsPoint)
+                {
+                    yield break;
+                }
+
+                GeoPoint2 second = c.Input.Point;
+                var box = new DisplayBox(Math.Min(first.X, second.X), Math.Min(first.Y, second.Y), Math.Max(first.X, second.X), Math.Max(first.Y, second.Y));
+
+                if (box.Width <= 0.0 || box.Height <= 0.0)
+                {
+                    c.Write("*Invalid window*");
+                    yield break;
+                }
+
+                CadViewports.Fit(viewport, box, out center, out height);
+            }
+            else
+            {
+                yield break;
+            }
+
+            if (c.Apply(c.Document.ViewRecord(handle, center, height), CadDocument.ViewWriter(handle, center, height)).Succeeded)
+            {
+                c.Session.Views.Add(before);
+            }
+        }
+
+        /// <summary>A scale factor typed, as 2, 0.5 or 1/50: a finite number above nought.</summary>
+        private static bool TryFactor(string text, out double factor)
+        {
+            factor = 0.0;
+            int slash = text.IndexOf('/');
+
+            if (slash > 0)
+            {
+                if (!double.TryParse(text.Substring(0, slash), NumberStyles.Float, CultureInfo.InvariantCulture, out double over)
+                    || !double.TryParse(text.Substring(slash + 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double under) || under == 0.0)
+                {
+                    return false;
+                }
+
+                factor = over / under;
+            }
+            else if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out factor))
+            {
+                return false;
+            }
+
+            return factor > 0.0 && !double.IsInfinity(factor);
+        }
+
         private static IEnumerable<CadPrompt> Pan(CadCommandContext c)
         {
+            DxfViewport through = c.Document.ActiveViewport;
+
+            if (through != null && !through.Locked)
+            {
+                // Through a viewport its view is panned, one undo step; the paper stays.
+                string handle = through.Handle;
+                yield return CadPrompt.ForPoint("Specify base point or displacement");
+
+                if (!c.Input.IsPoint)
+                {
+                    yield break;
+                }
+
+                GeoPoint2 start = c.Input.Point;
+                yield return CadPrompt.ForPoint("Specify second point", start);
+                GeoVector2 shift = c.Input.IsPoint ? c.Input.Point - start : new GeoVector2(start.X, start.Y);
+                var viewport = (DxfViewport)c.Document.FindEntity(handle);
+                DisplayBox before = CadViewports.ViewBox(viewport);
+                GeoPoint2 center = viewport.ViewCenter - shift;
+
+                if (c.Apply(c.Document.ViewRecord(handle, center, viewport.ViewHeight), CadDocument.ViewWriter(handle, center, viewport.ViewHeight)).Succeeded)
+                {
+                    c.Session.Views.Add(before);
+                }
+
+                yield break;
+            }
+
             CadView view = c.Session.View;
 
             if (view == null)
@@ -353,6 +552,13 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 from = c.Input.Point;
             yield return CadPrompt.ForPoint("Specify second point", from);
             GeoVector2 move = c.Input.IsPoint ? c.Input.Point - from : new GeoVector2(from.X, from.Y);
+
+            // A displacement through a locked viewport is of model space, the paper moving by it at the viewport's scale.
+            if (through != null)
+            {
+                move = move * (through.Height / through.ViewHeight);
+            }
+
             c.Session.Views.Add(view.VisibleBox);
             view.Pan(move.X * view.PixelsPerUnit, -move.Y * view.PixelsPerUnit);
         }

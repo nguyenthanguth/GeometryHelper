@@ -479,7 +479,7 @@ namespace GeometryHelper.Dxf.Viewer
         private static double Cross(GeoVector2 a, GeoVector2 b) => a.X * b.Y - a.Y * b.X;
 
         /// <summary>Where two lines, drawn on as far as needed, meet; false where they are parallel within the tolerance.</summary>
-        private static bool Meet(DxfLine a, DxfLine b, Tolerance tolerance, out GeoPoint2 point)
+        internal static bool Meet(DxfLine a, DxfLine b, Tolerance tolerance, out GeoPoint2 point)
         {
             point = default;
             var p = new GeoPoint2(a.StartPoint.X, a.StartPoint.Y);

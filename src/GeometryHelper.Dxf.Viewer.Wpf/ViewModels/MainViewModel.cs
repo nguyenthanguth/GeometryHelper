@@ -344,8 +344,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets whether model space is shown.</summary>
         public bool IsModelSpace => Space?.IsModel ?? false;
 
-        /// <summary>Gets MODEL or PAPER, as the status bar shows; empty with no drawing.</summary>
-        public string SpaceLabel => _current == null ? string.Empty : IsModelSpace ? "MODEL" : "PAPER";
+        /// <summary>Gets MODEL or PAPER, as the status bar shows: MODEL on the Model tab and through a viewport of a layout; empty with no drawing.</summary>
+        public string SpaceLabel => _current == null ? string.Empty : IsWorkingInModel ? "MODEL" : "PAPER";
 
         /// <summary>Gets the label at the top left of the canvas, <see cref="ModelViewportLabel"/> in model space and empty in a layout.</summary>
         public string ViewportLabel => IsModelSpace ? ModelViewportLabel : string.Empty;
@@ -978,6 +978,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 if (_files.TryGetValue(full, out KnownFile other) && other.Document != null)
                 {
                     other.Document.Changed -= OnDocumentChanged;
+                    other.Document.ActiveViewportChanged -= OnActiveViewportChanged;
                 }
 
                 _files[full] = _current;
@@ -1212,6 +1213,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             document.SupportFolders = _settings.SupportSearchFolders;
             document.FontMissing += (s, e) => Say(e.Message);
             document.Changed += OnDocumentChanged;
+            document.ActiveViewportChanged += OnActiveViewportChanged;
         }
 
         private void Say(string line)
@@ -1669,9 +1671,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             SelectionLabel = info.Label;
             PropertyGroups = groups;
+            RaiseViewportScale();
         }
 
-        /// <summary>The values a row's drop-down offers: the layers, the colours by name, the linetypes, AutoCAD's lineweights.</summary>
+        /// <summary>The values a row's drop-down offers: the layers, the colours by name, the linetypes, AutoCAD's lineweights, a viewport's standard scales and Yes or No for its display locked.</summary>
         private IReadOnlyList<string> OptionsOf(string label)
         {
             switch (label)
@@ -1694,6 +1697,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return linetypes;
                 case "Lineweight":
                     return WeightOptions;
+                case "Standard scale":
+                    return CadViewports.StandardScales;
+                case "Display locked":
+                    return new[] { "Yes", "No" };
                 default:
                     return null;
             }

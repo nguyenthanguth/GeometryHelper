@@ -30,7 +30,7 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     c.Write("Analyzing the selected data...");
                     c.Write("Analyzing internal islands...");
-                    IReadOnlyList<CadBoundaryLoop> loops = CadBoundaryFinder.Find(c.Document, c.Space, c.Input.Point, c.Session.Tolerance, c.Session.View?.VisibleBox);
+                    IReadOnlyList<CadBoundaryLoop> loops = CadBoundaryFinder.Find(c.Document, c.Space, c.Input.Point, c.Session.Tolerance, c.Session.WorkView?.VisibleBox);
 
                     if (loops == null)
                     {
@@ -360,7 +360,7 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
 
-                IReadOnlyList<CadBoundaryLoop> loops = CadBoundaryFinder.Find(c.Document, c.Space, c.Input.Point, c.Session.Tolerance, c.Session.View?.VisibleBox);
+                IReadOnlyList<CadBoundaryLoop> loops = CadBoundaryFinder.Find(c.Document, c.Space, c.Input.Point, c.Session.Tolerance, c.Session.WorkView?.VisibleBox);
 
                 if (loops == null)
                 {
