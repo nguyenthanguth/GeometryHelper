@@ -229,6 +229,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             // The start screen: no document shown.
+            SyncInPlace();
             SpaceTabs.Clear();
             Layers = Array.Empty<CadLayerInfo>();
             RebuildRows();

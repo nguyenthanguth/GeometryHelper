@@ -48,8 +48,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             set => Set(ref _commandLineShown, value);
         }
 
-        /// <summary>Gets whether the box of dynamic input is shown: DYN on and a command running; with none, nothing is shown.</summary>
-        public bool IsDynamicInputShown => DynamicInput.IsOn && IsCommandRunning && Prompt.Length > 0;
+        /// <summary>Gets whether the box of dynamic input is shown: DYN on and a command running, not while it edits a text in place; with none, nothing is shown.</summary>
+        public bool IsDynamicInputShown => DynamicInput.IsOn && IsCommandRunning && Prompt.Length > 0 && Session?.Prompt?.InPlace == null;
 
         /// <summary>Gets the prompt the box of dynamic input shows, as the command line's: "Specify next point or [Undo]:"; empty while it is hidden.</summary>
         public string DynamicInputPrompt => IsDynamicInputShown ? Prompt : string.Empty;

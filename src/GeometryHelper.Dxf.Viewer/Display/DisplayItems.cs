@@ -706,7 +706,7 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>A piece of text, placed by the point its alignment names; the canvas measures and draws it in a font.</summary>
     public sealed class DisplayText2 : DisplayItem2
     {
-        private readonly DisplayBox _bounds;
+        private DisplayBox _bounds;
         private readonly double _width = double.NaN;
         private readonly double _descent;
 
@@ -821,6 +821,21 @@ namespace GeometryHelper.Dxf.Viewer
         public double Oblique { get; }
 
         /// <summary>
+        /// Gets what an MTEXT whose words are in more than one look is drawn as, in place of <see cref="Text"/> drawn whole: a
+        /// text for each run, in its own font, face, height, width, slant and colour, after the run before, and a line under,
+        /// over or through a run its codes line; null for a text of one look, drawn whole. The text keeps its words, height and
+        /// width as one text has them, for what reads it; its box takes in the parts. "AB{\C1;CD}" 2.5 high is drawn as AB in
+        /// the MTEXT's colour and CD in red after it.
+        /// </summary>
+        public IReadOnlyList<DisplayItem2> Parts { get; private set; }
+
+        /// <summary>Gets whether the canvas draws the letters in the bold face of <see cref="FontName"/>, as a run of an MTEXT coded <c>|b1</c> is drawn.</summary>
+        public bool IsBold { get; internal set; }
+
+        /// <summary>Gets whether the canvas draws the letters in the italic face of <see cref="FontName"/>, as a run of an MTEXT coded <c>|i1</c> is drawn.</summary>
+        public bool IsItalic { get; internal set; }
+
+        /// <summary>
         /// Gets whether the text is drawn backwards: laid out and drawn as always in its own frame (along <see cref="Rotation"/>
         /// and up it), that frame then turned over along its baseline, so that the letters run against <see cref="Rotation"/>
         /// and read as in a mirror. A text in a block inserted mirrored, written backwards or upside down is drawn so; a canvas
@@ -875,9 +890,37 @@ namespace GeometryHelper.Dxf.Viewer
         /// <inheritdoc/>
         public override DisplayBox Bounds => _bounds;
 
+        /// <summary>Gives the text the parts it is drawn as (<see cref="Parts"/>), its box grown to take them in.</summary>
+        internal void SetParts(IReadOnlyList<DisplayItem2> parts)
+        {
+            Parts = parts;
+
+            foreach (DisplayItem2 part in parts)
+            {
+                DisplayBox box = part.Bounds;
+
+                if (box.Width >= 0.0 && box.Height >= 0.0)
+                {
+                    _bounds = _bounds.Add(box.MinX, box.MinY).Add(box.MaxX, box.MaxY);
+                }
+            }
+        }
+
         /// <inheritdoc/>
         public override double DistanceTo(double x, double y)
         {
+            if (Parts != null)
+            {
+                double nearest = double.PositiveInfinity;
+
+                foreach (DisplayItem2 part in Parts)
+                {
+                    nearest = Math.Min(nearest, part.DistanceTo(x, y));
+                }
+
+                return nearest;
+            }
+
             // The text's box in its own frame: along the baseline and up it.
             double cos = Math.Cos(-Rotation);
             double sin = Math.Sin(-Rotation);

@@ -57,6 +57,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CanvasView.SelectionChanged += (s, e) => _model?.RefreshHistory();
             CanvasView.SnapMenuRequested += (s, e) => ShowMenu(_model?.SnapOverrideMenu(), CanvasView);
 
+            // Text edited in place: a double click on a text edits it; the editor follows the view; a click outside it ends it.
+            CanvasView.ObjectDoubleClicked += (s, e) => _model?.EditTextAt(e.Handle);
+            CanvasView.ViewChanged += (s, e) => PlaceInPlace(false);
+            CanvasView.PixelSizeChanged += (s, e) => PlaceInPlace(false);
+            CanvasView.PreviewMouseDown += OnCanvasDownWhileEditing;
+            MTextEditorBox.EscapePressed += (s, e) => _model?.EscapeTextEditor();
+            MTextEditorBox.CloseRequested += (s, e) => _model?.CloseTextEditor(true);
+            MTextEditorBox.SizeChanged += (s, e) => PlaceInPlace(false);
+
             // Autosave (Global settings › Save and export): looked at every minute while the workspace is shown.
             _autosave.Tick += (s, e) => AutosaveIfDue();
             Loaded += (s, e) => _autosave.Start();
@@ -190,7 +199,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             Key key = e.Key == Key.System ? e.SystemKey : e.Key;
             ModifierKeys modifiers = Keyboard.Modifiers;
-            bool inEditor = Keyboard.FocusedElement is TextBox box && box != CommandBox;
+            bool inEditor = (Keyboard.FocusedElement is TextBox box && box != CommandBox) || Keyboard.FocusedElement is CadMTextEditBox;
 
             if (modifiers == ModifierKeys.None && FileList.IsKeyboardFocusWithin && (key == Key.Enter || key == Key.Delete))
             {
@@ -241,7 +250,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.Redo();
                 e.Handled = true;
             }
-            else if (modifiers == ModifierKeys.None && key == Key.Delete && !(Keyboard.FocusedElement is TextBox))
+            else if (modifiers == ModifierKeys.None && key == Key.Delete && !(Keyboard.FocusedElement is TextBox) && !inEditor)
             {
                 _model.EraseSelection();
                 e.Handled = true;
@@ -252,7 +261,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 // Tab moves between the fields of dynamic input, locking a number typed, as in AutoCAD.
                 e.Handled = true;
             }
-            else if (modifiers == ModifierKeys.None && Toggle(key))
+            else if (modifiers == ModifierKeys.None && !(Keyboard.FocusedElement is CadMTextEditBox) && Toggle(key))
             {
                 e.Handled = true;
             }
@@ -276,7 +285,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             // As in AutoCAD, typing with the focus on the canvas types into the command line; hidden (Ctrl+9), the text is kept
             // there all the same, and dynamic input shows it beside the cursor.
-            if (!(Keyboard.FocusedElement is TextBox) && !(Keyboard.FocusedElement is ComboBox) && !string.IsNullOrEmpty(e.Text)
+            if (!(Keyboard.FocusedElement is TextBox) && !(Keyboard.FocusedElement is ComboBox) && !(Keyboard.FocusedElement is CadMTextEditBox) && !string.IsNullOrEmpty(e.Text)
                 && !char.IsControl(e.Text[0]) && e.Text != " " && _model != null)
             {
                 _model.CommandText += e.Text;
@@ -296,7 +305,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             base.OnKeyDown(e);
 
-            if (_model == null || Keyboard.FocusedElement is TextBox || Keyboard.FocusedElement is ButtonBase)
+            if (_model == null || Keyboard.FocusedElement is TextBox || Keyboard.FocusedElement is ButtonBase || Keyboard.FocusedElement is CadMTextEditBox)
             {
                 return;
             }
@@ -401,6 +410,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.CloseRequested -= OnCloseRequested;
                 _model.DraftingSettingsRequested -= OnDraftingSettingsRequested;
                 _model.StyleDialogRequested -= OnStyleDialogRequested;
+                _model.InPlaceEditChanged -= OnInPlaceEditChanged;
             }
 
             _model = e.NewValue as MainViewModel;
@@ -430,6 +440,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.ShowWriteBlock = dialog => WriteBlockWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowAttributeDefinition = dialog => AttributeDefinitionWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowAttributeEditor = dialog => AttributeEditorWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowPasteSpecial = dialog => PasteSpecialWindow.Show(Window.GetWindow(this), dialog);
+                _model.AskKeepMTextChanges = () => CadQuestionWindow.AskKeepMTextChanges(Window.GetWindow(this));
+                _model.InPlaceEditChanged += OnInPlaceEditChanged;
 
                 if (CanvasView.PixelWidth > 0 && CanvasView.PixelHeight > 0)
                 {
@@ -668,6 +681,184 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     CommandBox.CaretIndex = CommandBox.Text.Length;
                     e.Handled = true;
                     break;
+            }
+        }
+
+        /// <summary>The arrow under Paste: Paste, Paste as Block, Paste to Original Coordinates, Paste Special.</summary>
+        private void OnPasteMenu(object sender, RoutedEventArgs e) => ShowMenu(_model?.PasteMenu(), (UIElement)sender);
+
+        /// <summary>A menu of the Text Editor tab: Symbol, Justification, Line Spacing, Case, Clear; the editor keeps the keyboard.</summary>
+        private void OnEditorMenu(object sender, RoutedEventArgs e)
+        {
+            var button = (Button)sender;
+
+            if (button.DataContext is TextEditorViewModel editor)
+            {
+                ShowMenu(editor.Menu(button.CommandParameter as string ?? button.Tag as string), button);
+            }
+        }
+
+        /// <summary>A box of the Text Editor tab (height, oblique, tracking, width): Enter sets the value and gives the keyboard back to the words.</summary>
+        private void OnEditorBoxKey(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter || e.Key == Key.Escape)
+            {
+                var box = (TextBox)sender;
+
+                if (e.Key == Key.Enter)
+                {
+                    box.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+                }
+                else
+                {
+                    box.GetBindingExpression(TextBox.TextProperty)?.UpdateTarget();
+                }
+
+                MTextEditorBox.Focus();
+                e.Handled = true;
+            }
+        }
+
+        /// <summary>The edit box of a single-line text: Enter ends the edit with its words, Esc cancels it, as AutoCAD 2021's TEXTEDIT.</summary>
+        private void OnInPlaceKey(object sender, KeyEventArgs e)
+        {
+            if (_model == null)
+            {
+                return;
+            }
+
+            if (e.Key == Key.Enter)
+            {
+                e.Handled = true;
+                _model.CommitInPlace(InPlaceTextBox.Text);
+            }
+            else if (e.Key == Key.Escape)
+            {
+                e.Handled = true;
+                _model.CancelInPlace();
+            }
+        }
+
+        /// <summary>The edit box losing the keyboard to another part of the window ends the edit with its words, as a click outside it does.</summary>
+        private void OnInPlaceLostFocus(object sender, KeyboardFocusChangedEventArgs e)
+        {
+            if (_model != null && _model.IsTextEditShown && InPlaceTextBox.IsVisible && !InPlaceTextBox.IsKeyboardFocusWithin && e.NewFocus is UIElement)
+            {
+                _model.CommitInPlace(InPlaceTextBox.Text);
+            }
+        }
+
+        /// <summary>A click on the canvas while a text is edited in place ends the edit with its words, as in AutoCAD; it picks nothing.</summary>
+        private void OnCanvasDownWhileEditing(object sender, MouseButtonEventArgs e)
+        {
+            if (_model == null || e.ChangedButton != MouseButton.Left)
+            {
+                return;
+            }
+
+            if (_model.IsTextEditShown)
+            {
+                _model.CommitInPlace(InPlaceTextBox.Text);
+                e.Handled = true;
+            }
+            else if (_model.IsMTextEditorShown)
+            {
+                _model.CloseTextEditor(true);
+                e.Handled = true;
+            }
+        }
+
+        private void OnInPlaceEditChanged(object sender, EventArgs e) => PlaceInPlace(true);
+
+        /// <summary>
+        /// Puts the editor of the text edited in place over it: the edit box of a single-line text with its baseline on the
+        /// text's, as high as the text on the canvas and turned with it, its words all selected; the MTEXT editor's frame with
+        /// the MTEXT's attachment point on its own. Hidden when no text is edited.
+        /// </summary>
+        /// <param name="opened">Whether the edit has just started, so that the editor takes the keyboard and its words.</param>
+        private void PlaceInPlace(bool opened)
+        {
+            CadInPlaceEdit edit = _model?.InPlaceEdit;
+            CadView view = CanvasView.View;
+
+            if (edit == null || view == null || CanvasView.ActualWidth <= 0.0 || CanvasView.PixelWidth <= 0)
+            {
+                InPlaceTextBox.Visibility = Visibility.Collapsed;
+                MTextEditorBox.Visibility = Visibility.Collapsed;
+
+                if (MTextEditorBox.Model != null)
+                {
+                    MTextEditorBox.Model = null;
+                }
+
+                if (opened && (InPlaceTextBox.IsKeyboardFocusWithin || MTextEditorBox.IsKeyboardFocused))
+                {
+                    CanvasView.Focus();
+                }
+
+                return;
+            }
+
+            double scale = CanvasView.PixelWidth / CanvasView.ActualWidth;
+            double unit = view.PixelsPerUnit / scale;
+            view.DrawingToPixel(edit.Location.X, edit.Location.Y, out double px, out double py);
+            double x = px / scale;
+            double y = py / scale;
+            double degrees = -edit.Rotation * 180.0 / Math.PI;
+
+            if (edit.Kind == CadInPlaceKind.Text)
+            {
+                MTextEditorBox.Visibility = Visibility.Collapsed;
+                double size = Math.Max(8.0, edit.Height * unit / 0.72);
+                string family = _model.TrueTypeFamilyOf(edit.StyleName) ?? "Arial";
+                int rgb = _model.DrawnRgbOf(edit.Handle);
+                rgb = ((rgb >> 16) & 0xFF) + ((rgb >> 8) & 0xFF) + (rgb & 0xFF) < 60 ? 0xFFFFFF : rgb;
+                InPlaceTextBox.FontFamily = new System.Windows.Media.FontFamily(family);
+                InPlaceTextBox.FontSize = size;
+                InPlaceTextBox.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb));
+                InPlaceTextBox.MinWidth = Math.Max(40.0, size * 3.0);
+
+                // The box's baseline on the text's: the font's ascent and the box's padding and border above it.
+                double ascent = size * InPlaceTextBox.FontFamily.Baseline;
+                double left = x - 5.0;
+                double top = y - ascent - 1.0;
+                Canvas.SetLeft(InPlaceTextBox, left);
+                Canvas.SetTop(InPlaceTextBox, top);
+                InPlaceTextBox.RenderTransform = new System.Windows.Media.RotateTransform(degrees, 5.0, y - top);
+                InPlaceTextBox.Visibility = Visibility.Visible;
+
+                if (opened)
+                {
+                    InPlaceTextBox.Text = edit.Value;
+                    InPlaceTextBox.UpdateLayout();
+                    InPlaceTextBox.Focus();
+                    InPlaceTextBox.SelectAll();
+                }
+
+                return;
+            }
+
+            InPlaceTextBox.Visibility = Visibility.Collapsed;
+
+            if (MTextEditorBox.Model != _model.TextEditor)
+            {
+                MTextEditorBox.Model = _model.TextEditor;
+            }
+
+            MTextEditorBox.PixelsPerUnit = unit;
+            MTextEditorBox.DefaultRgb = edit.Handle != null ? _model.DrawnRgbOf(edit.Handle) : _model.LayerRgbOf(null);
+            MTextEditorBox.LayerRgb = _model.LayerRgbOf(edit.Handle);
+            MTextEditorBox.Visibility = Visibility.Visible;
+            MTextEditorBox.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            Point anchor = MTextEditorBox.Anchor;
+            Canvas.SetLeft(MTextEditorBox, x - anchor.X);
+            Canvas.SetTop(MTextEditorBox, y - anchor.Y);
+            MTextEditorBox.RenderTransform = new System.Windows.Media.RotateTransform(degrees, anchor.X, anchor.Y);
+
+            if (opened)
+            {
+                MTextEditorBox.Focus();
+                Keyboard.Focus(MTextEditorBox);
             }
         }
 

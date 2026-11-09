@@ -92,6 +92,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         public void OpenUndoStep() => Session.EnsureGroup(Command.Name);
 
+        /// <summary>
+        /// Closes the command's undo step opened so far, so that its edits up to now are one step and those it makes next
+        /// another, as TEXTEDIT makes one step of each text it edits.
+        /// </summary>
+        public void CloseUndoStep() => Session.CloseGroup();
+
         /// <summary>Gets a number kept from a run of a command before, as the radius CIRCLE offers next.</summary>
         /// <param name="key">The name it is kept under.</param>
         /// <param name="fallback">The value where none is kept.</param>
