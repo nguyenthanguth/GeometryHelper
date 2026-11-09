@@ -229,6 +229,310 @@
                 </StackPanel>
             </DataTemplate>
 
+            <!--
+            The contextual Text Editor tab of the MTEXT editor, as the design draws it: Style, Formatting, Paragraph, Insert,
+            Spell Check (off: no dictionary ships), Tools, Options and Close. What is not built is greyed with its reason.
+            -->
+            <DataTemplate DataType="{x:Type local:TextEditorViewModel}">
+                <StackPanel Orientation="Horizontal">
+                    <StackPanel.Resources>
+                        <Geometry x:Key="IconStyle">M5 20 12 4l7 16M8 14h8</Geometry>
+                        <Geometry x:Key="IconHeight">M4 6V4h10v2M9 4v16M18 6v12M16 8l2-2 2 2M16 16l2 2 2-2</Geometry>
+                        <Geometry x:Key="IconMatch">M5 3h10v6H5zM9 9v4M9 13h8v8H9z</Geometry>
+                        <Geometry x:Key="IconJustify">M4 4h16v16H4zM7 7h2v2H7z</Geometry>
+                        <Geometry x:Key="IconBullets">M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01</Geometry>
+                        <Geometry x:Key="IconSpacing">M10 6h10M10 12h10M10 18h10M5 4v16M3 6l2-2 2 2M3 18l2 2 2-2</Geometry>
+                        <Geometry x:Key="IconColumns">M4 4h7v16H4zM13 4h7v16h-7z</Geometry>
+                        <Geometry x:Key="IconSymbol">M16 12a4 4 0 1 0-1.2 2.9M16 8v5a2 2 0 0 0 4 0v-1a8 8 0 1 0-3 6.2</Geometry>
+                        <Geometry x:Key="IconField">M4 6h16v12H4zM8 10h3M8 14h8M14 10h2</Geometry>
+                        <Geometry x:Key="IconSpell">M4 17l4-10 4 10M5.5 13h5M14 14l3 3 5-6</Geometry>
+                        <Geometry x:Key="IconDictionary">M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11</Geometry>
+                        <Geometry x:Key="IconFind">M10 10m-6 0a6 6 0 1 0 12 0a6 6 0 1 0-12 0M14.5 14.5 20 20M7 10h6</Geometry>
+                        <Geometry x:Key="IconImport">M12 3v12M7 10l5 5 5-5M4 21h16</Geometry>
+                        <Geometry x:Key="IconCaps">M4 18 8 6l4 12M5.5 14h5M14 18l3-12 3 12M15 14h4</Geometry>
+                        <Geometry x:Key="IconMore">M5 12h.01M12 12h.01M19 12h.01</Geometry>
+                        <Geometry x:Key="IconRuler">M3 8h18v8H3zM7 8v3M11 8v4M15 8v3M19 8v4</Geometry>
+                        <Geometry x:Key="IconCloseEditor">M6 6l12 12M18 6 6 18</Geometry>
+                        <Geometry x:Key="AlignLeft">M4 6h16M4 10h10M4 14h16M4 18h10</Geometry>
+                        <Geometry x:Key="AlignCentre">M4 6h16M7 10h10M4 14h16M7 18h10</Geometry>
+                        <Geometry x:Key="AlignRight">M4 6h16M10 10h10M4 14h16M10 18h10</Geometry>
+                        <Geometry x:Key="AlignJustify">M4 6h16M4 10h16M4 14h16M4 18h16</Geometry>
+                        <Geometry x:Key="AlignDistribute">M4 6h16M4 10h16M4 14h16M4 18h2M11 18h2M18 18h2</Geometry>
+                        <!-- B, I, S, U, O: a small framed square, the accent when on. -->
+                        <Style x:Key="FormatToggle" TargetType="ToggleButton">
+                            <Setter Property="Width" Value="22" />
+                            <Setter Property="Height" Value="20" />
+                            <Setter Property="Margin" Value="0,0,2,0" />
+                            <Setter Property="Foreground" Value="{StaticResource GhText}" />
+                            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                            <Setter Property="Focusable" Value="False" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="Chrome" Background="{StaticResource GhInput}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="2">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="Chrome" Property="Background" Value="{StaticResource GhSelected}" />
+                                                <Setter TargetName="Chrome" Property="BorderBrush" Value="{StaticResource GhAccent}" />
+                                            </Trigger>
+                                            <Trigger Property="IsEnabled" Value="False">
+                                                <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                                                <Setter Property="Opacity" Value="0.5" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                        <!-- An alignment: its icon, on the selection's ground when it is the paragraph's. -->
+                        <Style x:Key="AlignToggle" TargetType="ToggleButton" BasedOn="{StaticResource GhStatusToggle}">
+                            <Setter Property="Width" Value="22" />
+                            <Setter Property="Height" Value="20" />
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="Margin" Value="0,0,2,0" />
+                            <Setter Property="Focusable" Value="False" />
+                            <Setter Property="ContentTemplate">
+                                <Setter.Value>
+                                    <DataTemplate>
+                                        <local:IconView Size="14" StrokeThickness="1.8" Data="{Binding Tag, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                                    </DataTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                        <Style x:Key="EditorBox" TargetType="TextBox" BasedOn="{StaticResource GhTextBox}">
+                            <Setter Property="Width" Value="36" />
+                            <Setter Property="Padding" Value="4,0" />
+                            <Setter Property="FontFamily" Value="{StaticResource GhMonoFont}" />
+                            <Setter Property="FontSize" Value="11" />
+                            <Setter Property="Margin" Value="3,0,6,0" />
+                        </Style>
+                        <!-- The tab is wide: its big buttons and groups are drawn a little closer than Home's, as the design draws them. -->
+                        <Style x:Key="BigButton" TargetType="Button" BasedOn="{StaticResource BigButton}">
+                            <Setter Property="MinWidth" Value="44" />
+                            <Setter Property="Padding" Value="3,4" />
+                            <Setter Property="Margin" Value="0,0,2,0" />
+                        </Style>
+                        <Style x:Key="BigToggle" TargetType="ToggleButton" BasedOn="{StaticResource BigToggle}">
+                            <Setter Property="MinWidth" Value="44" />
+                            <Setter Property="Padding" Value="3,4" />
+                            <Setter Property="Margin" Value="0,0,2,0" />
+                        </Style>
+                        <Style x:Key="GroupBorder" TargetType="Border" BasedOn="{StaticResource GroupBorder}">
+                            <Setter Property="Padding" Value="4,0" />
+                            <Setter Property="Margin" Value="0,0,4,0" />
+                        </Style>
+                        <Style x:Key="EditorMenuButton" TargetType="Button" BasedOn="{StaticResource GhFlatButton}">
+                            <Setter Property="Padding" Value="6,1" />
+                            <Setter Property="Margin" Value="0,0,6,0" />
+                            <Setter Property="Focusable" Value="False" />
+                            <Setter Property="Background" Value="{StaticResource GhInput}" />
+                            <Setter Property="BorderBrush" Value="{StaticResource GhBorder}" />
+                            <Setter Property="BorderThickness" Value="1" />
+                        </Style>
+                    </StackPanel.Resources>
+
+                    <!-- Style: the style, Annotative (off), the height; Mask greyed. -->
+                    <Border Style="{StaticResource GroupBorder}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Style" />
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource IconStyle}" Content="{Binding StyleName}" IsEnabled="True" Focusable="False"
+                                        ToolTip="The text style of the MTEXT: STYLE changes it" />
+                                <StackPanel>
+                                    <Button Style="{StaticResource SmallButton}" Tag="{StaticResource IconStyle}" Content="Annotative" ToolTip="Annotative text is not built yet" />
+                                    <StackPanel Orientation="Horizontal" Margin="4,0,0,4">
+                                        <local:IconView Size="14" StrokeThickness="1.8" Data="{StaticResource IconHeight}" />
+                                        <TextBox Style="{StaticResource EditorBox}" Width="64" Text="{Binding HeightText, UpdateSourceTrigger=LostFocus}" ToolTip="Text height" KeyDown="OnEditorBoxKey" />
+                                    </StackPanel>
+                                    <Button Style="{StaticResource SmallButton}" Tag="{StaticResource IconField}" Content="Mask" ToolTip="Background mask is not built yet" />
+                                </StackPanel>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <!-- Formatting: B I S U O, Match (greyed), case, clear, oblique, tracking, width; the font and the colour. -->
+                    <Border Style="{StaticResource GroupBorder}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Formatting" />
+                            <StackPanel Orientation="Horizontal">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                        <ToggleButton Style="{StaticResource FormatToggle}" Content="B" FontWeight="Bold" IsChecked="{Binding IsBold, Mode=OneWay}" IsEnabled="{Binding CanBold}"
+                                                      Command="{Binding ToggleCommand}" CommandParameter="Bold" ToolTip="Bold  Ctrl+B" />
+                                        <ToggleButton Style="{StaticResource FormatToggle}" Content="I" FontStyle="Italic" IsChecked="{Binding IsItalic, Mode=OneWay}" IsEnabled="{Binding CanBold}"
+                                                      Command="{Binding ToggleCommand}" CommandParameter="Italic" ToolTip="Italic  Ctrl+I" />
+                                        <ToggleButton Style="{StaticResource FormatToggle}" IsChecked="{Binding IsStrikethrough, Mode=OneWay}" Command="{Binding ToggleCommand}" CommandParameter="Strikethrough" ToolTip="Strikethrough">
+                                            <TextBlock Text="S" TextDecorations="Strikethrough" />
+                                        </ToggleButton>
+                                        <ToggleButton Style="{StaticResource FormatToggle}" IsChecked="{Binding IsUnderline, Mode=OneWay}" Command="{Binding ToggleCommand}" CommandParameter="Underline" ToolTip="Underline  Ctrl+U">
+                                            <TextBlock Text="U" TextDecorations="Underline" />
+                                        </ToggleButton>
+                                        <ToggleButton Style="{StaticResource FormatToggle}" IsChecked="{Binding IsOverline, Mode=OneWay}" Command="{Binding ToggleCommand}" CommandParameter="Overline" ToolTip="Overline">
+                                            <TextBlock Text="O" TextDecorations="OverLine" />
+                                        </ToggleButton>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                        <Button Style="{StaticResource SmallButton}" Tag="{StaticResource IconMatch}" Content="Match" Margin="0,0,6,0" ToolTip="Match Text Formatting is not built yet" />
+                                        <Button Style="{StaticResource EditorMenuButton}" Content="aA ▾" FontWeight="SemiBold" Tag="Case" Click="OnEditorMenu" ToolTip="Change Case" />
+                                        <Button Style="{StaticResource EditorMenuButton}" Content="Clear ▾" Foreground="{StaticResource GhTextMuted}" Tag="Clear" Click="OnEditorMenu" ToolTip="Remove Character Formatting" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="Oblique" Foreground="{StaticResource GhTextMuted}" FontSize="11" VerticalAlignment="Center" />
+                                        <TextBox Style="{StaticResource EditorBox}" Text="{Binding ObliqueText, UpdateSourceTrigger=LostFocus}" ToolTip="Oblique angle" KeyDown="OnEditorBoxKey" />
+                                        <TextBlock Text="Tracking" Foreground="{StaticResource GhTextMuted}" FontSize="11" VerticalAlignment="Center" />
+                                        <TextBox Style="{StaticResource EditorBox}" Text="{Binding TrackingText, UpdateSourceTrigger=LostFocus}" ToolTip="Tracking" KeyDown="OnEditorBoxKey" />
+                                        <TextBlock Text="Width" Foreground="{StaticResource GhTextMuted}" FontSize="11" VerticalAlignment="Center" />
+                                        <TextBox Style="{StaticResource EditorBox}" Text="{Binding WidthFactorText, UpdateSourceTrigger=LostFocus}" ToolTip="Width factor" KeyDown="OnEditorBoxKey" />
+                                    </StackPanel>
+                                </StackPanel>
+                                <StackPanel Width="128" Margin="4,0,0,0">
+                                    <DockPanel Margin="0,0,0,4">
+                                        <Border DockPanel.Dock="Left" Background="#1F4E79" CornerRadius="3" Padding="4,0" Margin="0,0,4,0" VerticalAlignment="Center"
+                                                Visibility="{Binding IsShxFont, Converter={StaticResource Shown}}">
+                                            <TextBlock Text="SHX" FontSize="9" FontWeight="SemiBold" />
+                                        </Border>
+                                        <ComboBox Style="{StaticResource GhComboBox}" ItemsSource="{Binding Fonts}" SelectedItem="{Binding Font, Mode=TwoWay}" Focusable="False" ToolTip="Font"
+                                                  FontFamily="{StaticResource GhMonoFont}" FontSize="11" />
+                                    </DockPanel>
+                                    <ComboBox Style="{StaticResource GhComboBox}" ItemsSource="{Binding Colors}" SelectedItem="{Binding SelectedColor, Mode=TwoWay}" Focusable="False" ToolTip="Color"
+                                              Margin="0,0,0,4">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type local:TextEditorChoice}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Width="10" Height="10" BorderBrush="#5B6573" BorderThickness="1" Margin="0,0,6,0" VerticalAlignment="Center"
+                                                            Background="{Binding Rgb, Converter={StaticResource RgbBrush}}" />
+                                                    <TextBlock Text="{Binding Name}" />
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                    <Border Style="{StaticResource ValueBox}" ToolTip="Background mask is not built yet">
+                                        <TextBlock Text="Background mask…" Foreground="{StaticResource GhTextMuted}" />
+                                    </Border>
+                                </StackPanel>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <!-- Paragraph: justification and line spacing menus, bullets greyed, the five alignments. -->
+                    <Border Style="{StaticResource GroupBorder}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Paragraph" />
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource IconJustify}" Content="Justification ▾" IsEnabled="True" Focusable="False"
+                                        Click="OnEditorMenu" CommandParameter="Justification" ToolTip="Justification of the MTEXT: TL to BR" />
+                                <StackPanel>
+                                    <Button Style="{StaticResource SmallButton}" Tag="{StaticResource IconBullets}" Content="Bullets and Numbering ▾" ToolTip="Bullets and numbering are not built yet" />
+                                    <Button Style="{StaticResource SmallButton}" Tag="{StaticResource IconSpacing}" Content="Line Spacing ▾" IsEnabled="True" Focusable="False"
+                                            Click="OnEditorMenu" CommandParameter="LineSpacing" ToolTip="Line spacing of the MTEXT" />
+                                    <StackPanel Orientation="Horizontal">
+                                        <ToggleButton Style="{StaticResource AlignToggle}" Tag="{StaticResource AlignLeft}" Command="{Binding AlignCommand}" CommandParameter="l" ToolTip="Left"
+                                                      IsChecked="{Binding IsAlignedLeft, Mode=OneWay}" />
+                                        <ToggleButton Style="{StaticResource AlignToggle}" Tag="{StaticResource AlignCentre}" Command="{Binding AlignCommand}" CommandParameter="c" ToolTip="Centre"
+                                                      IsChecked="{Binding IsAlignedCentre, Mode=OneWay}" />
+                                        <ToggleButton Style="{StaticResource AlignToggle}" Tag="{StaticResource AlignRight}" Command="{Binding AlignCommand}" CommandParameter="r" ToolTip="Right"
+                                                      IsChecked="{Binding IsAlignedRight, Mode=OneWay}" />
+                                        <ToggleButton Style="{StaticResource AlignToggle}" Tag="{StaticResource AlignJustify}" Command="{Binding AlignCommand}" CommandParameter="j" ToolTip="Justify"
+                                                      IsChecked="{Binding IsJustified, Mode=OneWay}" />
+                                        <ToggleButton Style="{StaticResource AlignToggle}" Tag="{StaticResource AlignDistribute}" Command="{Binding AlignCommand}" CommandParameter="d" ToolTip="Distribute"
+                                                      IsChecked="{Binding IsDistributed, Mode=OneWay}" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <!-- Insert: Columns and Field greyed, the Symbol menu. -->
+                    <Border Style="{StaticResource GroupBorder}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Insert" />
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource IconColumns}" Content="Columns ▾" ToolTip="Columns are not built yet" />
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource IconSymbol}" Content="Symbol ▾" IsEnabled="True" Focusable="False"
+                                        Click="OnEditorMenu" CommandParameter="Symbol" ToolTip="Insert a symbol" />
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource IconField}" Content="Field" Margin="0" ToolTip="Fields are not built yet" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <!-- Spell Check: off, no dictionary ships with the app. -->
+                    <Border Style="{StaticResource GroupBorder}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Spell Check" />
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource IconSpell}" Content="Spell Check off" ToolTip="No dictionary ships with the app" />
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource IconDictionary}" Content="Edit Dictionaries" Margin="0" ToolTip="No dictionary ships with the app" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <!-- Tools: Find and Replace in the words; Import Text and AutoCAPS greyed. -->
+                    <Border Style="{StaticResource GroupBorder}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Tools" />
+                            <StackPanel Orientation="Horizontal">
+                                <Grid>
+                                    <ToggleButton Style="{StaticResource BigToggle}" Tag="{StaticResource IconFind}" Content="Find &amp; Replace" Focusable="False"
+                                                  IsChecked="{Binding IsFindShown, Mode=TwoWay}" ToolTip="Find and replace in the words" />
+                                    <Popup IsOpen="{Binding IsFindShown, Mode=TwoWay}" StaysOpen="False" Placement="Bottom" AllowsTransparency="True">
+                                        <Border Background="{StaticResource GhHeader}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" Padding="12,10" Width="280">
+                                            <StackPanel>
+                                                <TextBlock Text="Find what" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,2" />
+                                                <TextBox Style="{StaticResource GhTextBox}" Text="{Binding FindText, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,6" />
+                                                <TextBlock Text="Replace with" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,2" />
+                                                <TextBox Style="{StaticResource GhTextBox}" Text="{Binding ReplaceText, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,6" />
+                                                <CheckBox Style="{StaticResource GhCheckBox}" Content="Match case" IsChecked="{Binding MatchCase}" Margin="0,0,0,8" />
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                                    <Button Style="{StaticResource GhDialogButton}" Content="Find Next" Padding="10,3" Margin="0,0,6,0" Command="{Binding FindNextCommand}" />
+                                                    <Button Style="{StaticResource GhDialogButton}" Content="Replace All" Padding="10,3" Command="{Binding ReplaceAllCommand}" />
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding FindMessage}" Foreground="{StaticResource GhTextMuted}" Margin="0,6,0,0" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </Border>
+                                    </Popup>
+                                </Grid>
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource IconImport}" Content="Import Text" ToolTip="Importing text from a file is not built yet" />
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource IconCaps}" Content="AutoCAPS" Margin="0" ToolTip="AutoCAPS is not built yet" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <!-- Options: More greyed, the ruler, the editor's undo and redo. -->
+                    <Border Style="{StaticResource GroupBorder}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Options" />
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource IconMore}" Content="More ▾" ToolTip="Character set, editor settings: not built yet" />
+                                <ToggleButton Style="{StaticResource BigToggle}" Tag="{StaticResource IconRuler}" Content="Ruler" IsChecked="{Binding IsRulerShown, Mode=TwoWay}" Focusable="False" ToolTip="Show or hide the ruler" />
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconUndo}" Content="Undo" IsEnabled="{Binding CanUndo}" Command="{Binding UndoCommand}" Focusable="False" ToolTip="Undo  Ctrl+Z" />
+                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconRedo}" Content="Redo" IsEnabled="{Binding CanRedo}" Command="{Binding RedoCommand}" Focusable="False" Margin="0" ToolTip="Redo  Ctrl+Y" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <!-- Close: the words kept. -->
+                    <Border Style="{StaticResource GroupBorder}" BorderThickness="0">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Close" />
+                            <Button Style="{StaticResource BigButton}" Content="Close Text Editor" IsEnabled="True" Command="{Binding CloseCommand}" Focusable="False" Margin="0"
+                                    ToolTip="Close the editor, keeping the words  Ctrl+Enter">
+                                <Button.ContentTemplate>
+                                    <DataTemplate>
+                                        <StackPanel>
+                                            <local:IconView Size="26" StrokeThickness="1.6" HorizontalAlignment="Center" Stroke="#F26B3A"
+                                                            Data="{StaticResource IconCloseEditor}" />
+                                            <TextBlock Text="{Binding}" Margin="0,4,0,0" HorizontalAlignment="Center" MaxWidth="66" TextWrapping="Wrap" TextAlignment="Center" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </Button.ContentTemplate>
+                            </Button>
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
+            </DataTemplate>
+
             <!-- The groups of the Annotate tab: Text, Dimensions, Leaders, each button starting its command as Home's do. -->
             <DataTemplate DataType="{x:Type local:AnnotateRibbonViewModel}">
                 <StackPanel Orientation="Horizontal">
@@ -530,8 +834,38 @@
                                   Command="{Binding SelectTabCommand}" CommandParameter="{Binding PluginsTab}" Margin="0,0,4,0" />
                     <ToggleButton Style="{StaticResource GhRibbonTab}" Content="Settings" IsChecked="{Binding SettingsTab.IsTabSelected, Mode=OneWay}"
                                   Command="{Binding SelectTabCommand}" CommandParameter="{Binding SettingsTab}" />
+                    <!-- The contextual Text Editor tab, green, while an MTEXT is written or edited. -->
+                    <ToggleButton Content="Text Editor" IsChecked="{Binding TextEditorTab.IsTabSelected, Mode=OneWay}" Margin="4,0,0,0"
+                                  Command="{Binding SelectTabCommand}" CommandParameter="{Binding TextEditorTab}"
+                                  Visibility="{Binding TextEditorTab.IsTabVisible, Converter={StaticResource Shown}}">
+                        <ToggleButton.Style>
+                            <Style TargetType="ToggleButton" BasedOn="{StaticResource GhRibbonTab}">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ToggleButton">
+                                            <Border x:Name="Chrome" Background="#2F8F4E" CornerRadius="2,2,0,0" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter TextElement.Foreground="White" TextElement.FontWeight="SemiBold" />
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ToggleButton.Style>
+                    </ToggleButton>
                 </StackPanel>
-                <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="0,1,0,0" Padding="12,6">
+                <Border Padding="12,6">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="BorderBrush" Value="{StaticResource GhBorder}" />
+                            <Setter Property="BorderThickness" Value="0,1,0,0" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding TextEditorTab.IsTabSelected}" Value="True">
+                                    <Setter Property="BorderBrush" Value="#2F8F4E" />
+                                    <Setter Property="BorderThickness" Value="0,2,0,0" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
                     <Grid>
                     <ContentPresenter Content="{Binding SelectedTab.TabContent}" Visibility="{Binding IsHomeTabSelected, Converter={StaticResource Hidden}}" />
                     <!-- Home is hidden, not collapsed, under another tab, so that the ribbon keeps its height and the canvas stays put. -->
@@ -637,11 +971,16 @@
                                 </StackPanel>
                             </DockPanel>
                         </Border>
-                        <!-- Clipboard is hidden until COPYCLIP and PASTECLIP are built: a button for what does not exist is not shown. -->
-                        <Border Style="{StaticResource GroupBorder}" Visibility="Collapsed">
+                        <!-- Clipboard: Paste (PASTECLIP), its arrow the other pastes as AutoCAD's: Paste as Block, to Original Coordinates, Paste Special. -->
+                        <Border Style="{StaticResource GroupBorder}">
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Clipboard" />
-                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconPaste}" Content="Paste" Margin="0" />
+                                <StackPanel>
+                                    <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconPaste}" Content="Paste" Margin="0" IsEnabled="{Binding HasDocument}"
+                                            Command="{Binding StartCommandCommand}" CommandParameter="PASTECLIP" ToolTip="PASTECLIP  Ctrl+V" />
+                                    <Button Style="{StaticResource GhFlatButton}" Content="▾" Padding="6,0" HorizontalAlignment="Center" IsEnabled="{Binding HasDocument}"
+                                            Click="OnPasteMenu" ToolTip="Paste as Block, Paste to Original Coordinates, Paste Special" Foreground="{StaticResource GhTextMuted}" />
+                                </StackPanel>
                             </DockPanel>
                         </Border>
                         <Border Style="{StaticResource GroupBorder}">
@@ -883,6 +1222,13 @@
                                 </StackPanel>
                             </StackPanel>
                         </Border>
+                    </Canvas>
+                    <!-- Text edited in place: TEXTEDIT's box over a single-line text, the MTEXT editor's frame over an MTEXT. -->
+                    <Canvas x:Name="InPlaceLayer">
+                        <TextBox x:Name="InPlaceTextBox" Visibility="Collapsed" Background="Black" BorderBrush="{StaticResource GhTextMuted}" BorderThickness="1"
+                                 Padding="4,0" CaretBrush="White" SelectionBrush="{StaticResource GhAccent}" VerticalContentAlignment="Center"
+                                 PreviewKeyDown="OnInPlaceKey" LostKeyboardFocus="OnInPlaceLostFocus" />
+                        <local:CadMTextEditBox x:Name="MTextEditorBox" Visibility="Collapsed" />
                     </Canvas>
                     <StackPanel Width="680" HorizontalAlignment="Center" VerticalAlignment="Center"
                                 Visibility="{Binding HasDocument, Converter={StaticResource Hidden}}">

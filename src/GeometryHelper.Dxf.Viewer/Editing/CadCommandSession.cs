@@ -35,6 +35,12 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gets or sets whether the window did what was asked; a LAYER not handled runs its prompts on the command line.</summary>
         public bool Handled { get; set; }
+
+        /// <summary>
+        /// Gets or sets what the window's dialog answered, for a command that goes on with it: for PASTESPEC the paste chosen,
+        /// PASTECLIP, PASTEBLOCK, PASTEORIG or TEXT; null where it was cancelled or asks nothing.
+        /// </summary>
+        public string Answer { get; set; }
     }
 
     /// <summary>
@@ -93,6 +99,13 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gets or sets the tolerance of the commands' checks, as whether two points given are one; <see cref="GeometryHelper.Tolerance.Default"/> until set.</summary>
         public Tolerance Tolerance { get; set; } = Tolerance.Default;
+
+        /// <summary>
+        /// Gets or sets the clipboard COPYCLIP, CUTCLIP and COPYBASE put objects on and the PASTE commands take them from: one in
+        /// memory of this session's own until set; the window sets the Windows clipboard, so that objects go between its drawings
+        /// and other copies of the app.
+        /// </summary>
+        public ICadClipboard Clipboard { get; set; } = new CadMemoryClipboard();
 
         /// <summary>Gets or sets where the cursor is, in drawing units, so that a number typed at a point prompt is a distance along the rubber band, as AutoCAD's direct distance entry.</summary>
         public GeoPoint2? Cursor { get; set; }
@@ -485,6 +498,16 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
+        /// <summary>Closes the command's undo step opened so far, so that the edits it makes next are a step of their own, as TEXTEDIT makes one step of each text.</summary>
+        internal void CloseGroup()
+        {
+            if (_grouped)
+            {
+                Document.EndGroup();
+                _grouped = false;
+            }
+        }
+
         internal CadEditResult Apply(string name, IReadOnlyList<CadEditRecord> planned, Action<CadEditScope> apply)
         {
             EnsureGroup(name);
@@ -499,11 +522,14 @@ namespace GeometryHelper.Dxf.Viewer
             return result;
         }
 
-        internal bool Request(string name, CadDocument document = null)
+        internal bool Request(string name, CadDocument document = null) => Ask(name, document).Handled;
+
+        /// <summary>Asks the window for something and gives back what it did and answered.</summary>
+        internal CadUiRequestEventArgs Ask(string name, CadDocument document = null)
         {
             var args = new CadUiRequestEventArgs(name, document);
             UiRequested?.Invoke(this, args);
-            return args.Handled;
+            return args;
         }
 
         private bool Gather(List<string> handles)

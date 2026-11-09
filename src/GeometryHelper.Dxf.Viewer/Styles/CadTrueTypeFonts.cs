@@ -15,6 +15,15 @@ namespace GeometryHelper.Dxf.Viewer
     {
         private static readonly Lazy<SortedDictionary<string, string>> Files = new Lazy<SortedDictionary<string, string>>(Scan);
 
+        /// <summary>
+        /// Gets or sets how wide the canvas draws letters of a TrueType font one unit high at their own width: given the family
+        /// (null for the canvas's own font), whether bold, whether italic and the letters, the width from the start of the first
+        /// to the end of the last. The runs of an MTEXT in several looks are put one after another by it; where it is null, as in
+        /// a test with no canvas, a letter is taken as 0.6 of the height wide, as a text's picking box takes it. The window sets
+        /// it to the canvas's own measure.
+        /// </summary>
+        public static Func<string, bool, bool, string, double> MeasureWidth { get; set; }
+
         /// <summary>Gets the families found, in ordinal order, letters of either case the same: Arial, Calibri, ...</summary>
         public static IReadOnlyList<string> Families => Files.Value.Keys.ToList();
 

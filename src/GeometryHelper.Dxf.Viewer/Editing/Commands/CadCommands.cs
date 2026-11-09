@@ -98,6 +98,15 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("PTYPE", PointStyle));
             registry.Add(new CadCommand("PDMODE", PointMode));
             registry.Add(new CadCommand("PDSIZE", PointSize));
+            registry.Add(new CadCommand("COPYCLIP", CopyClip, true));
+            registry.Add(new CadCommand("CUTCLIP", CutClip, true));
+            registry.Add(new CadCommand("COPYBASE", CopyBase, true));
+            registry.Add(new CadCommand("PASTECLIP", PasteClip));
+            registry.Add(new CadCommand("PASTEBLOCK", PasteBlock));
+            registry.Add(new CadCommand("PASTEORIG", PasteOrig));
+            registry.Add(new CadCommand("PASTESPEC", PasteSpecial));
+            registry.Add(new CadCommand("TEXTEDIT", TextEdit));
+            registry.Add(new CadCommand("MTEDIT", MTextEdit));
         }
 
         /// <summary>A point of the plan in space, at nought height.</summary>

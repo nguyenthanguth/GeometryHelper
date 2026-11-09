@@ -41,7 +41,10 @@ namespace GeometryHelper.Drawing.App
     /// draws the Linetype Manager, Load or Reload Linetypes, Select Linetype or the Hatch dialog, the lines of --run typed first;
     /// <c>--dialog missing-shx|missing-shx-replace</c> draws Missing SHX files for the drawing opened, or for a drawing of
     /// styles whose SHX files are missing where it has none; <c>--dialog ptype</c> draws Point Style, the lines of --run typed
-    /// first (<c>--run "PDMODE;34"</c>).
+    /// first (<c>--run "PDMODE;34"</c>); <c>--dialog pastespec</c> draws Paste Special for what the lines of --run copied
+    /// (<c>--run "COPYCLIP;ALL;"</c>), or for twelve objects of plan-level2.dxf where they copied none. A text edited in place
+    /// is drawn as its prompt leaves it: <c>--run "TEXTEDIT;10,20"</c> shows the edit box over a TEXT or the MTEXT editor with
+    /// its Text Editor tab over an MTEXT picked at the point, <c>--run "MTEXT;0,100;200,40"</c> the editor of a new MTEXT.
     /// </summary>
     public static class Program
     {
@@ -62,7 +65,7 @@ namespace GeometryHelper.Drawing.App
             }
 
             var app = new Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
-            var model = new MainViewModel();
+            var model = new MainViewModel { Clipboard = new CadWindowsClipboard() };
             var window = new MainWindow(model);
             DrawingWorkspace drawings = window.WorkspaceView.AddModelDrawings(model, DrawingWorkspaceExtensions.DefaultSources(Tolerance.Default), Tolerance.Default);
 
@@ -220,7 +223,7 @@ namespace GeometryHelper.Drawing.App
 
             if (output == null || width < 100 || height < 100 || (cursor != null && cursor.Length != 2))
             {
-                Console.Error.WriteLine("Usage: GeometryHelper.Drawing.App --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--new-drawing \"Test bodies\" Assembly] [--tab Drawing] [--pick view|dimension|mark|line] [--hand-edit] [--dialog new|new-source|new-settings|update|settings[:Tab]|export|message|run-plugin|plugins|plugin-settings|plugin-untrusted|color|truecolor|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|missing-shx|missing-shx-replace|ptype] [--plugin path.dll]");
+                Console.Error.WriteLine("Usage: GeometryHelper.Drawing.App --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--new-drawing \"Test bodies\" Assembly] [--tab Drawing] [--pick view|dimension|mark|line] [--hand-edit] [--dialog new|new-source|new-settings|update|settings[:Tab]|export|message|run-plugin|plugins|plugin-settings|plugin-untrusted|color|truecolor|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|missing-shx|missing-shx-replace|ptype|pastespec] [--plugin path.dll]");
                 return 2;
             }
 
@@ -412,6 +415,24 @@ namespace GeometryHelper.Drawing.App
 
                 run = null;
                 var dialog = new PointStyleWindow(model.CreatePointStyle() ?? new PointStyleViewModel(CadDocument.From(new DxfDatabase("AC1027"), "plan-level2.dxf")));
+                root = dialog.Body;
+                window = dialog;
+                width = (int)dialog.Width;
+                height = (int)dialog.Height;
+            }
+            else if (string.Equals(dialogName, "pastespec", StringComparison.OrdinalIgnoreCase))
+            {
+                // Paste Special for what the lines of --run copied, or for twelve objects of plan-level2.dxf, as the design has
+                // it, where they copied none; Drawing entities as a block chosen, as the design shows.
+                foreach (string line in (run ?? string.Empty).Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    model.Execute(line);
+                }
+
+                run = null;
+                CadClipboardData data = model.Clipboard.GetData() ?? new CadClipboardData("  0\nEOF\n", null, null, "plan-level2.dxf", "Model", 12);
+                var dialog = new PasteSpecialWindow(new PasteSpecialViewModel(data));
+                dialog.Model.Selected = dialog.Model.Formats[1];
                 root = dialog.Body;
                 window = dialog;
                 width = (int)dialog.Width;

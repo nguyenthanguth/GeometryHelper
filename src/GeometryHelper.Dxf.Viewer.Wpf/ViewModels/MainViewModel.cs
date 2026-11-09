@@ -106,6 +106,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             MatchLayerCommand = new DelegateCommand(_ => StartCommand("LAYMCH"));
             NewFromModelCommand = new DelegateCommand(_ => _newFromModel?.Invoke(this, EventArgs.Empty), _ => _newFromModel != null);
             SelectTabCommand = new DelegateCommand(p => SelectedTab = p as CadWorkspaceExtension);
+
+            // The runs of an MTEXT of several looks are put one after another as the canvas measures their letters.
+            CadTrueTypeFonts.MeasureWidth = SkiaCanvasRenderer.MeasureWidth;
         }
 
         /// <summary>
@@ -1201,6 +1204,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             file.Session = new CadCommandSession(document, Commands());
             file.Session.PromptChanged += OnPromptChanged;
             file.Session.UiRequested += OnUiRequested;
+            file.Session.Clipboard = _clipboard;
             ApplyTextDefaults(file.Session);
             document.Fonts = _settings.ToFonts(SkiaCanvasRenderer.HasFamily);
             document.SupportFolders = _settings.SupportSearchFolders;
@@ -1282,6 +1286,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 RaiseSpace();
             }
 
+            SyncInPlace();
             Revision++;
         }
 
@@ -1336,6 +1341,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     break;
                 case "PTYPE":
                     OnPointStyleRequested(e);
+                    break;
+                case "PASTESPEC":
+                    OnPasteSpecialRequested(e);
                     break;
             }
         }
@@ -1542,6 +1550,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             RaiseSpace();
             ((DelegateCommand)StartCommandCommand).RaiseCanExecuteChanged();
             SyncHistory();
+            SyncInPlace();
         }
 
         private void RaiseSpace()

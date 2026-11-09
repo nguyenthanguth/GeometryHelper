@@ -678,7 +678,17 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             GeoPoint2 b = c.Input.Point;
-            yield return CadPrompt.ForString("Enter text");
+
+            // The box lies along the axes of the UCS, the text turned with it, as AutoCAD's.
+            CadUcs ucs = c.Session.Ucs;
+            GeoPoint2 ua = ucs.ToUcs(a);
+            GeoPoint2 ub = ucs.ToUcs(b);
+            double width = Math.Abs(ub.X - ua.X);
+            GeoPoint2 corner = ucs.ToWorld(new GeoPoint2(Math.Min(ua.X, ub.X), Math.Max(ua.Y, ub.Y)));
+
+            // The window writes the words in the MTEXT editor over the box; the command line takes them typed.
+            var edit = new CadInPlaceEdit(CadInPlaceKind.MText, null, string.Empty, corner, height, ucs.IsWorld ? 0.0 : ucs.AngleToWorld(0.0), width, style, 1);
+            yield return CadPrompt.ForInPlaceEdit("Enter text", edit);
 
             if (c.Input.Kind != CadInputKind.Text || c.Input.Text.Length == 0)
             {
@@ -693,13 +703,6 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 words = DxfMText.WidthChange + widthFactor.ToString("0.0000", CultureInfo.InvariantCulture) + ";" + words;
             }
-
-            // The box lies along the axes of the UCS, the text turned with it, as AutoCAD's.
-            CadUcs ucs = c.Session.Ucs;
-            GeoPoint2 ua = ucs.ToUcs(a);
-            GeoPoint2 ub = ucs.ToUcs(b);
-            double width = Math.Abs(ub.X - ua.X);
-            GeoPoint2 corner = ucs.ToWorld(new GeoPoint2(Math.Min(ua.X, ub.X), Math.Max(ua.Y, ub.Y)));
             c.Remember("text.height", height);
             c.Apply(null, s =>
             {
@@ -715,6 +718,7 @@ namespace GeometryHelper.Dxf.Viewer
                     text.TextStyleName = style;
                 }
 
+                ApplyBox(text, edit);
                 s.Append(c.Space, Current(c, text));
             });
         }

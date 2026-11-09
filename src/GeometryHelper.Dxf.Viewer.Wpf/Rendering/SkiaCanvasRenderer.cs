@@ -70,6 +70,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private static readonly ConditionalWeakTable<DisplaySegments2, double[]> SpacingsOf = new ConditionalWeakTable<DisplaySegments2, double[]>();
 
+        private static readonly Dictionary<string, SKTypeface> Measured = new Dictionary<string, SKTypeface>(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, SKTypeface> _faces = new Dictionary<string, SKTypeface>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>Draws a space of a document.</summary>
@@ -383,6 +384,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case DisplayFill2 area:
                     DrawFill(canvas, area, m, fill, options, background, item.Style.Rgb, isSelected || isHover, color);
                     break;
+                case DisplayText2 text when text.Parts != null:
+                    // An MTEXT of several looks: its runs and their lines, each in its own colour, all in the selection's when selected.
+                    foreach (DisplayItem2 part in text.Parts)
+                    {
+                        DrawItem(canvas, document, part, m, zoom, options, stroke, fill, isSelected, isHover, background);
+                    }
+
+                    break;
                 case DisplayText2 text:
                     DrawText(canvas, text, m, zoom, stroke, fill, color, options);
                     break;
@@ -672,6 +681,57 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
+        /// Measures letters as the canvas draws them, for <see cref="CadTrueTypeFonts.MeasureWidth"/>: the width of the letters one
+        /// unit high in the family's face, bold or italic, the canvas's own font (Arial) for none.
+        /// </summary>
+        /// <param name="family">The family, or a font file.</param>
+        /// <param name="bold">Whether bold.</param>
+        /// <param name="italic">Whether italic.</param>
+        /// <param name="text">The letters.</param>
+        /// <returns>The width.</returns>
+        public static double MeasureWidth(string family, bool bold, bool italic, string text)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return 0.0;
+            }
+
+            string key = (family ?? string.Empty) + "|" + (bold ? "b" : string.Empty) + (italic ? "i" : string.Empty);
+            SKTypeface face;
+
+            lock (Measured)
+            {
+                if (!Measured.TryGetValue(key, out face))
+                {
+                    string name = string.IsNullOrEmpty(family) ? "Arial" : Path.HasExtension(family) ? Path.GetFileNameWithoutExtension(family) : family;
+                    face = SKFontManager.Default.MatchFamily(name, new SKFontStyle(bold ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal, SKFontStyleWidth.Normal, italic ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright))
+                        ?? SKTypeface.Default;
+                    Measured[key] = face;
+                }
+            }
+
+            // The size the canvas sets letters one unit high at (see DrawText): their capitals as high as the unit.
+            using (var font = new SKFont(face, (float)(1.0 / 0.72 * 100.0)))
+            {
+                return font.MeasureText(text) / 100.0;
+            }
+        }
+
+        /// <summary>The bold or italic face of a typeface's family, the typeface itself where the family has none.</summary>
+        private SKTypeface Styled(SKTypeface regular, bool bold, bool italic)
+        {
+            string key = "\u0001" + regular.FamilyName + "|" + (bold ? "b" : string.Empty) + (italic ? "i" : string.Empty);
+
+            if (!_faces.TryGetValue(key, out SKTypeface face))
+            {
+                face = SKFontManager.Default.MatchFamily(regular.FamilyName, new SKFontStyle(bold ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal, SKFontStyleWidth.Normal, italic ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright)) ?? regular;
+                _faces[key] = face;
+            }
+
+            return face;
+        }
+
+        /// <summary>
         /// The typeface of a text: the family a TrueType style names; the file a style names, at the full path the fonts found
         /// it at, else from the Fonts folder of Windows, else the family of its name; the canvas's own for an SHX font not
         /// drawn by its strokes, and for none.
@@ -750,7 +810,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             float px = (float)m.X(text.X, text.Y);
             float py = (float)m.Y(text.X, text.Y);
 
-            using (var font = new SKFont(Face(text.FontName, options.FontName), (float)(heightPx / 0.72)))
+            SKTypeface typeface = text.IsBold || text.IsItalic ? Styled(Face(text.FontName, options.FontName), text.IsBold, text.IsItalic) : Face(text.FontName, options.FontName);
+
+            using (var font = new SKFont(typeface, (float)(heightPx / 0.72)))
             {
                 font.ScaleX = (float)text.WidthFactor;
                 font.SkewX = (float)-Math.Tan(text.Oblique);

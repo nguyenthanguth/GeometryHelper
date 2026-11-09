@@ -69,6 +69,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets the point a rubber band is drawn from and a typed relative point, distance or angle is measured from; null for none.</summary>
         public GeoPoint2? BasePoint { get; }
 
+        /// <summary>
+        /// Gets the text edited in place on the canvas where the prompt asks for one, as TEXTEDIT and MTEXT ask: the window shows
+        /// its edit box or the MTEXT editor over the text and answers the prompt with the words when the edit ends, Enter with
+        /// nothing where it is cancelled; a test answers it as any prompt for text. Null for every other prompt.
+        /// </summary>
+        public CadInPlaceEdit InPlace { get; private set; }
+
         /// <summary>Gets the whole text the command line shows: <c>Specify base point or [Displacement] &lt;Displacement&gt;:</c>.</summary>
         public string Text
         {
@@ -148,6 +155,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="defaultValue">The default Enter takes; null for none.</param>
         /// <returns>The prompt.</returns>
         public static CadPrompt ForString(string message, string defaultValue = null) => new CadPrompt(CadPromptKind.String, message, null, defaultValue, null);
+
+        /// <summary>Asks for the words of a text edited in place (<see cref="InPlace"/>): a prompt for text the window answers from its editor.</summary>
+        /// <param name="message">The message: "Edit text".</param>
+        /// <param name="edit">The text edited.</param>
+        /// <returns>The prompt.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the edit is null.</exception>
+        public static CadPrompt ForInPlaceEdit(string message, CadInPlaceEdit edit)
+            => new CadPrompt(CadPromptKind.String, message, null, null, null) { InPlace = edit ?? throw new ArgumentNullException(nameof(edit)) };
 
         /// <summary>Asks for a whole number.</summary>
         /// <param name="message">The message.</param>

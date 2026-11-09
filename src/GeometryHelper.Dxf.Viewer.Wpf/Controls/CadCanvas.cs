@@ -32,6 +32,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public double Y { get; }
     }
 
+    /// <summary>The object an event of the canvas is about, as the one double-clicked.</summary>
+    public sealed class CadObjectEventArgs : EventArgs
+    {
+        /// <summary>Makes the arguments.</summary>
+        /// <param name="handle">The handle of the object.</param>
+        public CadObjectEventArgs(string handle)
+        {
+            Handle = handle;
+        }
+
+        /// <summary>Gets the handle of the object.</summary>
+        public string Handle { get; }
+    }
+
     /// <summary>
     /// The canvas of the presenter: one space of a <see cref="CadDocument"/> drawn through <see cref="SkiaCanvasRenderer"/> into
     /// a bitmap of the device's pixels, and handled with the mouse as AutoCAD is. The wheel zooms about the cursor, 1.2 times
@@ -191,6 +205,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Raised by Shift+right-click while a point is asked: the window shows the object snap menu at the cursor.</summary>
         public event EventHandler SnapMenuRequested;
+
+        /// <summary>Raised by a double click on an object with no command running: the window edits a text in place, as AutoCAD's double click runs TEXTEDIT.</summary>
+        public event EventHandler<CadObjectEventArgs> ObjectDoubleClicked;
 
         /// <summary>Gets or sets the document shown.</summary>
         public CadDocument Document
@@ -823,6 +840,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 e.Handled = true;
             }
+            else if (e.ChangedButton == MouseButton.Left && e.ClickCount == 2 && !IsRunning && ObjectDoubleClicked != null && ObjectAt(p) is string handle)
+            {
+                CancelGesture();
+                ObjectDoubleClicked(this, new CadObjectEventArgs(handle));
+                e.Handled = true;
+            }
             else if (e.ChangedButton == MouseButton.Left)
             {
                 Track(p);
@@ -1219,6 +1242,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private bool TakesBox => !IsRunning || Session.Prompt?.Kind == CadPromptKind.Selection;
 
         /// <summary>Whether an entity lies within the pickbox of a point of the canvas.</summary>
+        /// <summary>The object nearest a point of the canvas within the pick box, or null.</summary>
+        private string ObjectAt(Point p)
+        {
+            CadDocument document = Document;
+            CadView view = View;
+
+            if (document == null || Space == null || view == null)
+            {
+                return null;
+            }
+
+            double scale = PixelScale;
+            view.ScreenToDrawing(p.X * scale, p.Y * scale, out double x, out double y);
+            IReadOnlyList<string> found = document.GetPickIndex(Space).Pick(x, y, PickboxPixels * scale / view.PixelsPerUnit);
+            return found.Count > 0 ? found[0] : null;
+        }
+
         private bool IsObjectAt(Point p)
         {
             CadDocument document = Document;
