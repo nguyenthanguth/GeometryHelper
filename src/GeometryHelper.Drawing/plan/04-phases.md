@@ -15,6 +15,12 @@ Part B shows its sheets in it.
 | C2 | A | Light editing: grips, move, copy, erase, rotate, scale, Properties edited, simple drawing commands, text and dimension edits, undo, save | built, awaiting review |
 | C3 | A | Command plugins: load, unload, reload | built, awaiting review |
 | C4 | A | The full drafting commands (trim, extend, offset, fillet, hatch, ...), later, one by one, as they are needed (A18) | later |
+| C5 | A | The drawings list: double click opens, right click menu (Open, Close, Close selected, Close other, Close all) | queued 2026-11-09 (maintainer) |
+| C6 | A | Object snap interface: Drafting Settings (OSNAP tab), the status-bar snap menu, Shift+right-click snap menu, AutoCAD's markers | queued 2026-11-09 |
+| C7 | A | UCS as AutoCAD: UCS command (World, Object, View, Origin, ZAxis, 3point, X/Y/Z, Previous, Save, Restore, Delete), UCSICON, PLAN, named UCS in the file; grid, ortho, polar, snap and coordinates follow it | queued 2026-11-09 |
+| C8 | A | Repair of DXF files (RECOVER, AUDIT) and fonts (SHX and TrueType, font substitution, STYLE) | queued 2026-11-09 |
+| C9 | A | Linetypes as AutoCAD (LINETYPE manager, load from .lin, create simple and complex, LTSCALE) and HATCH creation (patterns, solid, gradient, from a point or objects) with HATCHEDIT | queued 2026-11-09 |
+| G8 | B | Several sheets one after another: views, part list and title block flow onto Sheet 1, 2, 3 ... when they do not fit one | queued 2026-11-09 |
 | G0 | B | Research and spec | spec done; the maintainer's list of Tekla faults not collected |
 | G1 | B | Hidden-line projection, written to DXF | built, awaiting review |
 | G2 | B | Views (viewports) and the drawing document L7, owners | built, awaiting review |
@@ -69,6 +75,17 @@ The UI design is a claude.ai Design artifact (see the README), made first; each 
 2. `PLUGINLOAD` / `NETLOAD`, `PLUGINUNLOAD`, `PLUGINRELOAD` through collectible load contexts and shadow copies, trusted
    folders, one undo step per run -> verify: see [60-plugins.md](60-plugins.md), checks for command plugins.
 3. The Plugin manager dialog, the plugin template -> verify: install, load, unload, reload and remove from the UI.
+
+### C5 to C9 and G8: requests of 2026-11-09
+
+Written as the maintainer asked; each is a phase with its own checks when it starts.
+
+- **C5.** The drawings list opens a drawing on a double click, not a click; the right-click menu has Open, Close, Close selected, Close other, Close all, each through the window's close path (the question about unsaved changes included). -> verify: view-model tests; a click only selects.
+- **C6.** Drafting Settings dialog with the OSNAP tab (Endpoint, Midpoint, Center, Geometric Center, Node, Quadrant, Intersection, Extension, Insertion, Perpendicular, Tangent, Nearest, Apparent Intersection, Parallel, Object Snap On, Tracking), a status-bar drop-down of the modes, the Shift+right-click menu, and AutoCAD's marker shapes and colours at the cursor. -> verify: each mode on a test drawing gives the exact point; screenshots beside AutoCAD's.
+- **C7.** UCS in the plane first (Origin, Z rotation, 3point, Object, View, World, Previous, Save, Restore, Delete, the UCS icon, PLAN), kept in the file's UCS table, with grid, snap, ortho, polar, the crosshair, typed coordinates and the readout following it; the 3D parts (X and Y rotation, Face, a Z axis out of the plane) follow only if the presenter ever shows 3D. -> verify: a point typed in a rotated UCS lands where AutoCAD puts it; the saved file reads in AutoCAD with the same UCS.
+- **C8.** RECOVER and AUDIT in the presenter and a tolerant reader: a damaged file (bad handles, missing sections, dangling owners, invalid values, a truncated tail) opens with what can be read and a report of what was repaired. Fonts: SHX shape files read from the AutoCAD Fonts folder of the user's machine (never bundled), TrueType through the system, substitution where one is missing, the STYLE command. -> verify: damaged copies of synthetic drawings; text of an SHX style drawn as AutoCAD draws it.
+- **C9.** LINETYPE (manager, load from a .lin file, create simple and complex linetypes with text and shapes, LTSCALE, CELTSCALE) and HATCH (pattern, user-defined, solid, gradient; pick an internal point or select objects; associative; island styles; patterns from a .pat file) with HATCHEDIT. No Autodesk file is shipped: a small set of our own patterns and linetypes, and the user's files loaded from disk. -> verify: written files open in AutoCAD with AUDIT clean and draw the same.
+- **G8.** The model drawing flows onto several sheets one after another (Sheet 1 of N ...) when its views, part list and title block do not fit one sheet, each sheet a layout of the same DXF, views not cut across a sheet, the title block numbers set. This is the reading as the model drawing; if the maintainer meant Part A's layouts, those already hold any number. -> verify: a general arrangement that needs three sheets gives three layouts; nothing overlaps or leaves a sheet; update keeps them.
 
 ### C4: the full drafting commands (on hold)
 
