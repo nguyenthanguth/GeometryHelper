@@ -93,6 +93,12 @@ another file of the folder was opened, or once it was saved with Save and shown 
 now says, for example, "Test bodies (from file)" until the drawing is made again. The out-of-date dot now shows on such a
 drawing too, checked in the source its file names without changing it.
 
+**CHANGED.** Reading a DXF entity finds the groups of its record once for the readings that follow one another, not once for
+each property: a HATCH whose loops, pattern and extents are read one by one is parsed once, and the placing of an INSERT
+(`BlockTransform`) is read in under half the time. The display of a drawing of 16 268 entities and 5 684 INSERTs is built in
+0.88 s where it took 1.26 s (.NET Framework 4.8). Nothing read or saved changes, and no memory is kept beyond the last eight
+records read.
+
 **NEW.** Dynamic input asks a point in two fields, as AutoCAD 2021's: X and Y, or distance and angle after a base point. Tab
 moves between them and locks a number typed. Enter takes the point from the locked fields and the cursor, so 300 locked, the
 cursor straight up and Enter draw a line 300 long at 90°. A coordinate typed whole, "@300<0" or "10,20", goes to the command

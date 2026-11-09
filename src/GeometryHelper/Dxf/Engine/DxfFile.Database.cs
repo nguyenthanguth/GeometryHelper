@@ -15,9 +15,14 @@ namespace GeometryHelper.Dxf
 
         private static readonly DxfFile Template = new DxfFile(TemplateBytes, TemplateBytes.Length, null);
 
+        // How many of the records read last keep their groups for the readings that follow, as ParsedOf keeps them.
+        private const int RecentRecords = 8;
+
         private readonly bool _detached;
         private readonly DxfFile _origin;
+        private readonly Parsed[] _recent = new Parsed[RecentRecords];
         private DxfFile _holder;
+        private int _recentNext;
 
         /// <summary>Whether the file holds entities made in code, not yet in a file, rather than copies of a drawing's.</summary>
         internal bool IsMadeInCode => ReferenceEquals(_origin, Template);
@@ -4032,9 +4037,85 @@ namespace GeometryHelper.Dxf
             }
 
             Rec head = HeadOf(item);
-            List<Pair> pairs = PairsOf(head);
-            int at = OwnIndexOf(head, pairs, code);
-            return at < 0 ? null : Text(head, pairs[at]);
+            Parsed parsed = ParsedOf(head);
+            int at = OwnIndexOf(head, parsed.Pairs, parsed.Data, parsed.Body, code);
+            return at < 0 ? null : Text(head, parsed.Pairs[at]);
+        }
+
+        /// <summary>
+        /// The groups of a record as found once: where each stands (<see cref="PairsOf"/>), where its extended data begins
+        /// (<see cref="DataAt"/>) and where its type's own part does (<see cref="BodyAt"/>), and its own groups once
+        /// <see cref="OwnGroupsOf(DxfItem, int)"/> has read them. Taken only for the very bytes it was found in, read in the same
+        /// code page: the bytes of a record are never changed once written, and every writing of a record writes new ones, so
+        /// a record changed by any setter is found anew.
+        /// </summary>
+        private sealed class Parsed
+        {
+            private readonly byte[] _bytes;
+            private readonly int _start;
+            private readonly int _end;
+            private readonly DxfReader.TextDecoding _decoding;
+            private IReadOnlyList<DxfTypedValue> _own;
+
+            internal Parsed(Rec record, DxfReader.TextDecoding decoding, List<Pair> pairs, int data, int body)
+            {
+                _bytes = record.Bytes;
+                _start = record.Start;
+                _end = record.End;
+                _decoding = decoding;
+                Pairs = pairs;
+                Data = data;
+                Body = body;
+            }
+
+            /// <summary>The groups as <see cref="PairsOf"/> finds them; read, never changed.</summary>
+            internal List<Pair> Pairs { get; }
+
+            /// <summary>Where the extended data begins, as <see cref="DataAt"/> finds it.</summary>
+            internal int Data { get; }
+
+            /// <summary>Where the type's own part begins, as <see cref="BodyAt"/> finds it; -1 where it has none.</summary>
+            internal int Body { get; }
+
+            /// <summary>The own groups, as <see cref="OwnGroupsOf(DxfItem, int)"/> gives them; null until they are read. The first kept.</summary>
+            internal IReadOnlyList<DxfTypedValue> Own
+            {
+                get => Volatile.Read(ref _own);
+                set => Interlocked.CompareExchange(ref _own, value, null);
+            }
+
+            /// <summary>Whether these are the groups of a record as it stands: found in its very bytes, read in the code page given.</summary>
+            internal bool Holds(Rec record, DxfReader.TextDecoding decoding)
+                => ReferenceEquals(_bytes, record.Bytes) && _start == record.Start && _end == record.End && ReferenceEquals(_decoding, decoding);
+        }
+
+        /// <summary>
+        /// The groups of a record, found once for the readings of it that follow one another: the last
+        /// <see cref="RecentRecords"/> records read are kept, so a HATCH whose display reads its loops, its pattern and its
+        /// extents one property at a time finds its groups once, not once for each, and a LINE read for its visibility and then
+        /// its linetype scale once, not twice. Threads that read at once share them: each finds the same groups, and a record
+        /// found by two is found twice.
+        /// </summary>
+        private Parsed ParsedOf(Rec record)
+        {
+            DxfReader.TextDecoding decoding = _decoding;
+            Parsed[] recent = _recent;
+
+            for (int i = 0; i < recent.Length; i++)
+            {
+                Parsed kept = Volatile.Read(ref recent[i]);
+
+                if (kept != null && kept.Holds(record, decoding))
+                {
+                    return kept;
+                }
+            }
+
+            List<Pair> pairs = PairsOf(record);
+            int data = DataAt(record, pairs);
+            var parsed = new Parsed(record, decoding, pairs, data, BodyAt(record, pairs, data));
+            Volatile.Write(ref recent[(Interlocked.Increment(ref _recentNext) & int.MaxValue) % recent.Length], parsed);
+            return parsed;
         }
 
         /// <summary>
@@ -4044,8 +4125,9 @@ namespace GeometryHelper.Dxf
         internal bool IsArrayInsert(DxfItem item)
         {
             Rec head = HeadOf(item);
-            List<Pair> pairs = PairsOf(head);
-            int body = BodyAt(head, pairs, DataAt(head, pairs));
+            Parsed parsed = ParsedOf(head);
+            List<Pair> pairs = parsed.Pairs;
+            int body = parsed.Body;
 
             if (body >= 0 && Text(head, pairs[body]).Trim() == "AcDbMInsertBlock")
             {
@@ -4054,7 +4136,7 @@ namespace GeometryHelper.Dxf
 
             foreach (int code in new[] { 70, 71 })
             {
-                int at = OwnIndexOf(head, pairs, code);
+                int at = OwnIndexOf(head, pairs, parsed.Data, body, code);
 
                 if (at >= 0 && int.TryParse(Text(head, pairs[at]).Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int count) && count > 1)
                 {
@@ -4072,10 +4154,9 @@ namespace GeometryHelper.Dxf
         internal string CommonValueOf(DxfItem item, int code)
         {
             Rec head = HeadOf(item);
-            List<Pair> pairs = PairsOf(head);
-            int data = DataAt(head, pairs);
-            int body = BodyAt(head, pairs, data);
-            int end = body >= 0 ? body : data;
+            Parsed parsed = ParsedOf(head);
+            List<Pair> pairs = parsed.Pairs;
+            int end = parsed.Body >= 0 ? parsed.Body : parsed.Data;
             bool braced = false;
 
             for (int i = 1; i < end; i++)
@@ -4097,7 +4178,12 @@ namespace GeometryHelper.Dxf
         private int OwnIndexOf(Rec record, List<Pair> pairs, int code)
         {
             int data = DataAt(record, pairs);
-            int body = BodyAt(record, pairs, data);
+            return OwnIndexOf(record, pairs, data, BodyAt(record, pairs, data), code);
+        }
+
+        /// <summary>The index of the first group of a code in the type's own part, as <see cref="OwnIndexOf(Rec, List{Pair}, int)"/> finds it, where the extended data and the own part begin being known.</summary>
+        private int OwnIndexOf(Rec record, List<Pair> pairs, int data, int body, int code)
+        {
             bool braced = false;
 
             for (int i = body >= 0 ? body + 1 : 1; i < data; i++)
@@ -4256,9 +4342,17 @@ namespace GeometryHelper.Dxf
         internal IReadOnlyList<DxfTypedValue> OwnGroupsOf(DxfItem item, int index, List<int> places)
         {
             Rec record = RecordAt(item, index);
-            List<Pair> pairs = PairsOf(record);
-            int data = DataAt(record, pairs);
-            int body = BodyAt(record, pairs, data);
+            Parsed parsed = ParsedOf(record);
+            IReadOnlyList<DxfTypedValue> own = parsed.Own;
+
+            if (own != null && places == null)
+            {
+                return own;
+            }
+
+            List<Pair> pairs = parsed.Pairs;
+            int data = parsed.Data;
+            int body = parsed.Body;
             var groups = new List<DxfTypedValue>();
             bool braced = false;
 
@@ -4276,7 +4370,9 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            return groups.AsReadOnly();
+            own = groups.AsReadOnly();
+            parsed.Own = own;
+            return own;
         }
 
         /// <summary>
