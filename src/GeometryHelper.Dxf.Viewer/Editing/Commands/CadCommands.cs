@@ -142,6 +142,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("PURGE", PurgeTyped));
             registry.Add(new CadCommand("-PURGE", PurgeTyped));
             registry.Add(new CadCommand("SELECTIONCYCLING", SelectionCyclingCommand));
+            AddXrefsTo(registry);
         }
 
         /// <summary>A point of the plan in space, at nought height.</summary>

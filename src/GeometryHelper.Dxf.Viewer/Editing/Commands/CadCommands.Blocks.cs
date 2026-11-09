@@ -924,7 +924,7 @@ namespace GeometryHelper.Dxf.Viewer
             return from > 0.0 && to > 0.0 ? from / to : 1.0;
         }
 
-        private static double UnitMillimetres(DxfUnits units)
+        internal static double UnitMillimetres(DxfUnits units)
         {
             switch (units)
             {

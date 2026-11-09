@@ -453,6 +453,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.WindowsPrinters = WindowsPrinters;
                 _model.ShowQuickSelect = dialog => QuickSelectWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowFindReplace = dialog => FindReplaceWindow.Show(Window.GetWindow(this), dialog);
+                MainViewModel shown = _model;
+                _model.ShowExternalReferences = palette => ExternalReferencesWindow.ShowPalette(Window.GetWindow(this), shown, palette);
+                _model.ShowAttachReference = dialog => AttachReferenceWindow.Show(Window.GetWindow(this), dialog);
 
                 if (CanvasView.PixelWidth > 0 && CanvasView.PixelHeight > 0)
                 {

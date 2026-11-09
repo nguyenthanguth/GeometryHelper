@@ -124,6 +124,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return Draw(database, fonts, width, height, new DisplayBox(0.0, 0.0, 0.0, 0.0));
         }
 
+        /// <summary>The picture of model space of a drawing, as the attach dialog and the External References palette preview an external reference.</summary>
+        internal static BitmapSource Drawing(DxfDatabase database, CadFonts fonts, int width, int height) => Draw(database, fonts, width, height, DisplayBox.Empty);
+
         /// <summary>Draws model space of a drawing, zoomed to what it draws and a box given, white on the black ground of the canvas.</summary>
         private static BitmapSource Draw(DxfDatabase database, CadFonts fonts, int width, int height, DisplayBox fit)
         {

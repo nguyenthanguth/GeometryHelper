@@ -205,5 +205,28 @@ namespace GeometryHelper.UnitTest.Dxf
             db.DetachXref(column);
             Assert.Throws<InvalidOperationException>(() => db.DetachXref(column));
         }
+
+        [Fact]
+        public void ThePathOfAReference_IsSetAsAutoCadsPathNameSetsIt_InGroupOneOfItsBlock()
+        {
+            DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
+            DxfBlockTableRecord column = db.AttachXref("column.dxf", "COLUMN");
+
+            column.PathName = "..\\xref\\column.dxf";
+
+            Assert.Equal("..\\xref\\column.dxf", column.PathName);
+            string block = Records(db.ToText()).Single(r => r.StartsWith("  0\nBLOCK\n", StringComparison.Ordinal) && r.Contains("\n  2\nCOLUMN\n"));
+            Assert.EndsWith("  3\nCOLUMN\n  1\n..\\xref\\column.dxf\n", block, StringComparison.Ordinal);
+            Assert.Equal("..\\xref\\column.dxf", DxfDatabase.Parse(db.ToText()).BlockTable["COLUMN"].PathName);
+
+            var made = new DxfBlockTableRecord { Name = "PLAIN" };
+            Assert.Throws<InvalidOperationException>(() => made.PathName = "plain.dxf");
+            string before = db.ToText();
+            Assert.Throws<ArgumentException>(() => column.PathName = " ");
+            Assert.Throws<ArgumentException>(() => column.PathName = "a\nb.dxf");
+            Assert.Throws<ArgumentNullException>(() => column.PathName = null);
+            Assert.Throws<InvalidOperationException>(() => db.BlockTable["BOLT"].PathName = "bolt.dxf");
+            Assert.Equal(before, db.ToText());
+        }
     }
 }

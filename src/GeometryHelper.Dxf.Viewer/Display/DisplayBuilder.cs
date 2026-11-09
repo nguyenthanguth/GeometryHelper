@@ -40,10 +40,37 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The draw order of each block met in the <see cref="Build"/> running, by handle, null for one in its own order; looked up only, never listed.</summary>
         private readonly Dictionary<string, IReadOnlyList<DxfEntity>> _orders = new Dictionary<string, IReadOnlyList<DxfEntity>>(StringComparer.OrdinalIgnoreCase);
 
+        /// <summary>The builders of the drawings external references show, by block name and file: looked up only, never listed.</summary>
+        private readonly Dictionary<string, DisplayBuilder> _referenced = new Dictionary<string, DisplayBuilder>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>The builder of the drawing that references this one; null for the document's own drawing.</summary>
+        private readonly DisplayBuilder _host;
+
+        /// <summary>What the layers of a drawing referenced are named after in the drawing that shows it, GRID| for GRID's; null for the document's own.</summary>
+        private readonly string _prefix;
+
+        /// <summary>The folder of the drawing a referenced one is in, which its own references are found from; null for the document's own, whose folder is read as it stands (<see cref="Folder"/>).</summary>
+        private readonly string _folder;
+
+        /// <summary>The folder references are found from: of the drawing referenced, or of the document's own as it stands now (saved since this builder was made, or not).</summary>
+        private string Folder => _host == null ? _document?.DrawingFolder : _folder;
+
+        /// <summary>Whether the frames of images are drawn (IMAGEFRAME 1 or 2), as AutoCAD 2021 draws them until set off.</summary>
+        private readonly bool _imageFrames = true;
+
         public DisplayBuilder(DxfDatabase database, CadDocument document = null)
+            : this(database, document, null, null, null)
+        {
+        }
+
+        /// <summary>Makes the builder of a drawing an external reference shows, its layers named after the reference.</summary>
+        private DisplayBuilder(DxfDatabase database, CadDocument document, DisplayBuilder host, string prefix, string folder)
         {
             _database = database;
             _document = document;
+            _host = host;
+            _prefix = prefix;
+            _folder = folder;
             double scale = 1.0;
 
             try
@@ -71,14 +98,52 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (DxfLayerTableRecord layer in database.LayerTable)
             {
-                _layers[layer.Name] = new LayerState(layer);
+                _layers[Prefixed(layer.Name)] = new LayerState(layer);
+            }
+
+            try
+            {
+                if (database.NamedObjectsDictionary?.Contains("ACAD_IMAGE_VARS") == true && database.NamedObjectsDictionary.GetAt("ACAD_IMAGE_VARS") is DxfRasterVariables variables)
+                {
+                    _imageFrames = variables.ImageFrame != DxfFrameSetting.ImageFrameOff;
+                }
+            }
+            catch (Exception)
+            {
+                _imageFrames = true;
             }
         }
 
         /// <summary>Gives the builder the display list of model space its viewports draw, made before it or kept from another builder.</summary>
         internal void UseModel(DisplayList2 model) => _modelCache = model;
 
-        internal bool IsLayerVisible(string name) => !_layers.TryGetValue(name ?? "0", out LayerState state) || state.Visible;
+        internal bool IsLayerVisible(string name)
+        {
+            LayerState state = LayerNamed(name ?? "0");
+            return state == null || state.Visible;
+        }
+
+        /// <summary>
+        /// The layer of a name as it is drawn: the drawing's own; in a drawing referenced, a record of the drawing that shows
+        /// it first (GRID|WALLS as AutoCAD keeps it there, or the layer of the INSERT a layer 0 takes), then its own.
+        /// </summary>
+        private LayerState LayerNamed(string name)
+        {
+            if (_host != null)
+            {
+                LayerState shown = _host.LayerNamed(name);
+
+                if (shown != null)
+                {
+                    return shown;
+                }
+            }
+
+            return _layers.TryGetValue(name, out LayerState state) ? state : null;
+        }
+
+        /// <summary>A layer's name as the drawing showing it names it: GRID|WALLS for WALLS of the reference GRID; 0 and every layer of the document's own drawing as they are.</summary>
+        private string Prefixed(string layer) => _prefix == null || layer == "0" ? layer : _prefix + layer;
 
         public DisplayList2 Build(DxfBlockTableRecord space, bool isModel)
         {
@@ -221,12 +286,12 @@ namespace GeometryHelper.Dxf.Viewer
         private string LayerOf(DxfEntity entity, Frame frame)
         {
             string layer = entity.Layer ?? "0";
-            return layer == "0" && frame.BlockLayer != null ? frame.BlockLayer : layer;
+            return layer == "0" && frame.BlockLayer != null ? frame.BlockLayer : Prefixed(layer);
         }
 
         private DisplayStyle StyleOf(DxfEntity entity, Frame frame, string layerName)
         {
-            _layers.TryGetValue(layerName, out LayerState layer);
+            LayerState layer = LayerNamed(layerName);
             DxfColor color = entity.Color;
             int rgb;
 
@@ -519,6 +584,9 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfDBPoint point when _pdmode != 0:
                     AddPoint(point, frame.Matrix, list, style, handle, layerName);
                     return;
+                case DxfRasterImage picture when !(picture is DxfWipeout):
+                    DrawImage(picture, frame, list, style, handle, layerName);
+                    return;
                 case DxfPolyline wide when wide.HasWidth:
                     if (AddWide(wide, frame.Matrix, list, style, handle, layerName))
                     {
@@ -563,6 +631,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             GeoTransform3 transform = reference.BlockTransform;
             Affine2 own = new Affine2(transform[0, 0], transform[1, 0], transform[0, 1], transform[1, 1], transform[0, 3], transform[1, 3]);
+
+            if (block.IsFromExternalReference)
+            {
+                DrawXref(reference, block, own, frame, list, handle, layerName, style);
+                return;
+            }
+
             int columns = 1;
             int rows = 1;
             double columnSpacing = 0.0;
@@ -592,6 +667,208 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             DrawAttributes(reference, frame, list, handle, layerName, style);
+        }
+
+        /// <summary>
+        /// An INSERT of an external reference: the model space of the drawing it names, found and read by the document's
+        /// <see cref="CadXrefManager"/>, drawn under the INSERT with its base point ($INSBASE) at the insertion point, picked as
+        /// the INSERT, its layers named after the reference (GRID|WALLS) and its layer 0 taking the INSERT's, as AutoCAD shows
+        /// one. Its own references are followed, but not its overlays, nor a drawing being drawn already. One unloaded shows
+        /// nothing; one not found or not read shows its path at the insertion point, as AutoCAD shows it.
+        /// </summary>
+        private void DrawXref(DxfBlockReference reference, DxfBlockTableRecord block, Affine2 own, Frame frame, DisplayList2 list, string handle, string layerName, DisplayStyle style)
+        {
+            if (_document == null || (_host != null && block.IsFromOverlayReference))
+            {
+                return;
+            }
+
+            CadXrefManager xrefs = _document.Xrefs;
+            CadXrefContent content = xrefs.ContentOf(block, Folder, _host == null, out string missing);
+
+            if (content == null)
+            {
+                if (missing != null)
+                {
+                    DrawMissing(missing, reference, own, frame, list, handle, layerName, style);
+                }
+
+                return;
+            }
+
+            if (!xrefs.Enter(content))
+            {
+                return;
+            }
+
+            try
+            {
+                string key = block.Name + "|" + content.FullPath;
+
+                if (!_referenced.TryGetValue(key, out DisplayBuilder builder))
+                {
+                    builder = new DisplayBuilder(content.Database, _document, this, block.Name + "|", System.IO.Path.GetDirectoryName(content.FullPath));
+                    _referenced[key] = builder;
+                }
+
+                // The drawing's base point comes to the insertion point, in place of the origin of the block that names it.
+                GeoPoint3 origin = block.Origin;
+                GeoPoint3 basePoint = GeoPoint3.Origin;
+
+                try
+                {
+                    basePoint = content.Database.Insbase;
+                }
+                catch (Exception)
+                {
+                    basePoint = GeoPoint3.Origin;
+                }
+
+                Affine2 placed = Affine2.Translation(origin.X - basePoint.X, origin.Y - basePoint.Y).Then(own);
+                Frame inner = frame.Child(placed.Then(frame.Matrix));
+                inner.RootHandle = handle;
+                inner.BlockLayer = layerName;
+                inner.BlockRgb = style.Rgb;
+                inner.BlockLineWeight = style.LineWeight;
+                builder.DrawReferenced(inner, list);
+            }
+            finally
+            {
+                xrefs.Leave();
+            }
+        }
+
+        /// <summary>The model space of a drawing referenced, drawn into the list of the drawing showing it under a frame.</summary>
+        private void DrawReferenced(Frame frame, DisplayList2 list)
+        {
+            foreach (DxfEntity entity in Ordered(_database.ModelSpace))
+            {
+                try
+                {
+                    Draw(entity, frame, list, null);
+                }
+                catch (Exception)
+                {
+                    // One entity of a drawing referenced that cannot be drawn never stops the others.
+                }
+            }
+        }
+
+        /// <summary>The path of an external reference not found, written at its insertion point in the drawing's text height.</summary>
+        private void DrawMissing(string path, DxfBlockReference reference, Affine2 own, Frame frame, DisplayList2 list, string handle, string layerName, DisplayStyle style)
+        {
+            double height = 2.5;
+
+            try
+            {
+                height = _database.Textsize > 0.0 ? _database.Textsize : 2.5;
+            }
+            catch (Exception)
+            {
+                height = 2.5;
+            }
+
+            GeoPoint3 at = reference.Position;
+            Affine2 m = frame.Matrix;
+            list.Add(Text(FaceOf(null), path, m.X(at.X, at.Y), m.Y(at.X, at.Y), height * own.Scale * m.Scale, own.Rotation + m.Rotation, 1.0, 0, 0, style, handle, layerName, 0.0, false));
+        }
+
+        /// <summary>
+        /// An IMAGE: its picture (<see cref="DisplayImage2"/>), the file its definition names found as an external reference is,
+        /// then its frame where IMAGEFRAME shows frames. A picture unloaded, not found or not shown (its Show image off) is drawn
+        /// as its frame alone, whatever IMAGEFRAME says; one not found has its file's name written in its corner, as AutoCAD
+        /// shows it.
+        /// </summary>
+        private void DrawImage(DxfRasterImage image, Frame frame, DisplayList2 list, DisplayStyle style, string handle, string layerName)
+        {
+            image.GetOrientation(out GeoPoint3 origin, out GeoVector3 u, out GeoVector3 v);
+            Affine2 m = frame.Matrix;
+            double x = m.X(origin.X, origin.Y);
+            double y = m.Y(origin.X, origin.Y);
+            double ux = m.X(origin.X + u.X, origin.Y + u.Y) - x;
+            double uy = m.Y(origin.X + u.X, origin.Y + u.Y) - y;
+            double vx = m.X(origin.X + v.X, origin.Y + v.Y) - x;
+            double vy = m.Y(origin.X + v.X, origin.Y + v.Y) - y;
+            double[] ring = null;
+            IReadOnlyList<GeoPoint3> corners = image.GetVertices();
+
+            if (image.IsClipped && corners.Count >= 4)
+            {
+                ring = new double[2 * (corners.Count - 1)];
+
+                for (int i = 0; i + 1 < corners.Count; i++)
+                {
+                    ring[2 * i] = m.X(corners[i].X, corners[i].Y);
+                    ring[2 * i + 1] = m.Y(corners[i].X, corners[i].Y);
+                }
+            }
+
+            DxfRasterImageDef definition = image.ImageDef;
+            string saved = definition?.SourceFileName ?? string.Empty;
+            string found = null;
+            bool loaded = definition != null && image.ShowImage;
+
+            if (loaded && _document != null)
+            {
+                string name = CadXrefManager.ImageName(_database, definition);
+                loaded = _host != null || name == null || _document.Xrefs.IsImageLoaded(name, definition);
+                found = loaded ? _document.Xrefs.Locate(saved, Folder) : null;
+            }
+
+            var picture = new DisplayImage2(x, y, ux, uy, vx, vy, ring == null ? null : new[] { ring }, ring != null && image.IsClipInverted, found, saved, style, handle, layerName)
+            {
+                IsTransparent = image.ImageTransparency,
+                Brightness = image.Brightness,
+                Contrast = image.Contrast,
+                Fade = image.Fade,
+                FileStamp = Stamp(found),
+            };
+            list.Add(picture);
+
+            if (!_imageFrames && found != null)
+            {
+                return;
+            }
+
+            foreach (object shape in image.GetGeometry())
+            {
+                AddShape(shape, m, list, style, handle, layerName, false, false);
+            }
+
+            if (found == null && loaded && saved.Length > 0)
+            {
+                // The file's name in the corner of the frame, a tenth of its shorter side high.
+                double width = Math.Sqrt(ux * ux + uy * uy);
+                double height = Math.Sqrt(vx * vx + vy * vy);
+                double size = Math.Min(width, height) / 10.0;
+
+                if (size > 0.0)
+                {
+                    double ax = ux / width;
+                    double ay = uy / width;
+                    double bx = vx / height;
+                    double by = vy / height;
+                    list.Add(Text(FaceOf(null), saved, x + (ax + bx) * size / 2.0, y + (ay + by) * size / 2.0, size, Math.Atan2(uy, ux), 1.0, 0, 0, style, handle, layerName, 0.0, false));
+                }
+            }
+        }
+
+        /// <summary>The last write time of a file in ticks, so that a picture changed on disk is read again; nought for none.</summary>
+        private static long Stamp(string path)
+        {
+            if (path == null)
+            {
+                return 0L;
+            }
+
+            try
+            {
+                return System.IO.File.GetLastWriteTimeUtc(path).Ticks;
+            }
+            catch (Exception)
+            {
+                return 0L;
+            }
         }
 
         /// <summary>
