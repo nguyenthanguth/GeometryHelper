@@ -37,7 +37,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 ToggleButton home = Descendants(workspace).OfType<ToggleButton>().First(t => Equals(t.Content, "Home"));
                 var row = (Panel)VisualTreeHelper.GetParent(home);
                 List<UIElement> children = row.Children.Cast<UIElement>().ToList();
-                Assert.Equal(new[] { "Home", "Insert", "Annotate", "View", "Plugins", "Settings", "Text Editor" }, children.OfType<ToggleButton>().Select(t => (string)t.Content));
+                Assert.Equal(new[] { "Home", "Insert", "Annotate", "View", "Plugins", "Settings", "Text Editor", "Table Cell" }, children.OfType<ToggleButton>().Select(t => (string)t.Content));
                 ToggleButton insertTab = children.OfType<ToggleButton>().Single(t => Equals(t.Content, "Insert"));
                 Assert.True(children.IndexOf(children.OfType<ItemsControl>().Single()) < children.IndexOf(insertTab));
 

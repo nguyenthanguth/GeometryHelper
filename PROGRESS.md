@@ -35,10 +35,10 @@ which aims to work like AutoCAD 2021 and replace it, and Part B, model drawings 
 - [x] Ribbon shrinks to the window as AutoCAD's: Home, Annotate Dimensions panel, Text Editor tab
 - [x] C19 Speed at scale: an edit patches the display instead of redrawing it (1-line move at 1 000 000 entities 10.6 s -> 0.6 s)
 - [x] C18a Tables: TABLE, -TABLE, TABLESTYLE, TABLEDIT, editing cells, the Table Cell tab
+- [x] Ribbon round 3: the Insert tab (Block, Block Definition, Reference, the block gallery); Annotate and View shrink to 1 280 px
 
 ### In progress
 
-- [ ] Ribbon round 3: Insert tab, Annotate and View shrink to 1 280 px (running)
 
 ### To do
 
@@ -54,7 +54,8 @@ which aims to work like AutoCAD 2021 and replace it, and Part B, model drawings 
 - [ ] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
 - [ ] Tables: set the current table style in drawings made new (DICTIONARYVAR class in the template)
 
-- [ ] Ribbon: check drop-downs at 125 % and 150 % display scaling; pin and Esc by hand
+- [ ] Ribbon: check drop-downs and the Insert block gallery at 125 % and 150 % display scaling; pin and Esc by hand
+- [ ] Ribbon: disabled buttons barely look greyed (GhFlatButton); Home panels a few pixels wider than their design widths
 - [ ] XLINE and RAY: pick and snap test only the visible part (they cost 9 times a line today) (running)
 - [ ] Speed: undo by deltas (undo reloads the whole drawing, 2.5 s at 1 000 000 entities) (running)
 - [ ] Speed: draw the first display off the UI thread (10–13 s at 1 000 000 entities)
