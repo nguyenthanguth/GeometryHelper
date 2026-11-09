@@ -57,7 +57,7 @@ namespace GeometryHelper.Dxf.Viewer
             // What the drawing shows and how it sorts.
             registry.AddVariable(Flag("ORTHOMODE", s => s.Document.Database.Orthomode, (c, v) => c.Database.Orthomode = v, "$ORTHOMODE"));
             registry.AddVariable(Flag("LWDISPLAY", s => s.Document.Database.LineWeightDisplay, (c, v) => c.Database.LineWeightDisplay = v, "$LWDISPLAY"));
-            registry.AddVariable(CadSystemVariable.Whole("IMAGEFRAME", true, 0, 2, ImageFrameOf, (c, v) => ImageVariables(c.Database).ImageFrame = (DxfFrameSetting)v, "IMAGEFRAME", ImageFrameRefused));
+            registry.AddVariable(CadSystemVariable.Whole("IMAGEFRAME", true, 0, 2, ImageFrameOf, (c, v) => ImageVariables(c.Database).ImageFrame = (DxfFrameSetting)v, "IMAGEFRAME", ImageFrameRefused).Recorded(CadEditRecordKind.TableChanged));
             registry.AddVariable(CadSystemVariable.Whole("SORTENTS", true, 0, 127, s => s.Document.Database.SortEnts, (c, v) => c.Database.SortEnts = v));
             registry.AddVariable(CadSystemVariable.Whole("TILEMODE", false, 0, 1, s => s.Document.CurrentSpace.IsModel ? 1 : 0, SetTileMode));
             registry.AddVariable(CadSystemVariable.Text("CANNOSCALE", true, s => s.Document.Database.Cannoscale, CurrentAnnotationScale));

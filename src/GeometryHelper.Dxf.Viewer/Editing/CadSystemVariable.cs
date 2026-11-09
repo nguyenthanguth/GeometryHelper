@@ -32,6 +32,7 @@ namespace GeometryHelper.Dxf.Viewer
     {
         private readonly Func<CadCommandSession, string> _show;
         private Func<CadCommandContext, IEnumerable<CadPrompt>> _ask;
+        private CadEditRecordKind _recordKind = CadEditRecordKind.SettingChanged;
 
         private CadSystemVariable(string name, CadVariableKind kind, bool inDrawing, Func<CadCommandSession, string> show)
         {
@@ -161,6 +162,16 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>A variable that can only be read.</summary>
         internal static CadSystemVariable ReadOnly(string name, CadVariableKind kind, Func<CadCommandSession, string> show) => new CadSystemVariable(name, kind, false, show);
+
+        /// <summary>
+        /// Gives a variable of the drawing the kind its change is recorded as: a setting changed until set; a table changed for
+        /// IMAGEFRAME, kept in the drawing's objects, so that every space is drawn again as it was before it was a variable.
+        /// </summary>
+        internal CadSystemVariable Recorded(CadEditRecordKind kind)
+        {
+            _recordKind = kind;
+            return this;
+        }
 
         /// <summary>Gives the variable its own prompts for when its name is typed alone.</summary>
         internal CadSystemVariable Asking(Func<CadCommandContext, IEnumerable<CadPrompt>> own)
@@ -305,7 +316,7 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            c.Apply(new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, record ?? "$" + Name, old, value) }, s => set());
+            c.Apply(new[] { new CadEditRecord(_recordKind, null, record ?? "$" + Name, old, value) }, s => set());
         }
     }
 }

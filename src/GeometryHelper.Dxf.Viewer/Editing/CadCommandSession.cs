@@ -302,7 +302,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Answers the prompt with a point picked on the canvas, as <see cref="Feed(GeoPoint2)"/> does, saying whether Shift was
         /// held: at a prompt for one object the answer carries it (<see cref="CadInput.Shift"/>), as TRIM extends an object
-        /// picked with Shift held, and EXTEND trims one. At any other prompt Shift changes nothing.
+        /// picked with Shift held, and EXTEND trims one; at "Select objects:" the object picked is taken out of the objects
+        /// gathered, as AutoCAD takes it out. At any other prompt Shift changes nothing.
         /// </summary>
         /// <param name="point">The point, in drawing units.</param>
         /// <param name="shift">Whether Shift was held as the point was picked.</param>
@@ -311,8 +312,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Answers the prompt with a point picked on the canvas, as <see cref="Feed(GeoPoint2, bool)"/> does, saying whether Ctrl
-        /// was held as well: at a prompt for a point the answer carries it (<see cref="CadInput.Control"/>), as a grip edit takes
-        /// its first point picked with Ctrl held as Copy. At any other prompt Ctrl changes nothing.
+        /// was held too: at a prompt for a point, a distance or an angle the answer carries it (<see cref="CadInput.Control"/>), as
+        /// ARC draws an arc whose end is picked with Ctrl held clockwise rather than counter-clockwise, and a grip edit takes its
+        /// first point picked with Ctrl held as Copy.
         /// </summary>
         /// <param name="point">The point, in drawing units.</param>
         /// <param name="shift">Whether Shift was held as the point was picked.</param>
@@ -323,6 +325,20 @@ namespace GeometryHelper.Dxf.Viewer
             if (Prompt == null)
             {
                 return false;
+            }
+
+            if (_option != null)
+            {
+                return OptionPoint(point, Prompt.Text);
+            }
+
+            if (_multiple != null && Prompt.Kind == CadPromptKind.Selection)
+            {
+                // Multiple: the points are kept, and the objects at them found at Enter.
+                Write(Prompt.Text);
+                _multiple.Add(point);
+                Changed();
+                return true;
             }
 
             switch (Prompt.Kind)
@@ -349,7 +365,7 @@ namespace GeometryHelper.Dxf.Viewer
                         return Answer(new CadInput(CadInputKind.Selection, point, 0.0, null, new[] { picked[0] }) { Shift = shift }, Prompt.Text, null);
                     }
 
-                    return TakeSelection(new[] { picked[0] }, point);
+                    return TakeSelection(new[] { picked[0] }, point, shift);
                 default:
                     return Invalid("Point is not valid here.");
             }
@@ -359,8 +375,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// Takes text typed on the command line and Enter: with no command running, the name of one to start (or Enter alone
         /// running the last again); else the answer to the prompt, a keyword by its capital letters, a number, a point as
         /// <c>x,y</c>, <c>@dx,dy</c>, <c>@distance&lt;angle</c> or <c>distance&lt;angle</c>, a number alone at a point prompt
-        /// being a distance along the rubber band towards the cursor, and ALL at "Select objects:" every object of the space. A
-        /// point modifier, FROM, M2P, TT or a point filter, starts at a prompt for a point (<see cref="StartPointModifier"/>).
+        /// being a distance along the rubber band towards the cursor. At "Select objects:" the options of AutoCAD 2021: ALL
+        /// every object of the space, Window, Crossing and BOX by two corners, Fence, WPolygon and CPolygon by points until
+        /// Enter, Last the object made last, Previous the objects the command before took, Group by name, Remove and Add to
+        /// take out and put in, Undo the last change, Multiple points until Enter, SIngle to end with the first objects taken,
+        /// AUto; anything else is "*Invalid selection*" with the options listed.
+        /// A point modifier, FROM, M2P, TT or a point filter, starts at a prompt for a point (<see cref="StartPointModifier"/>).
         /// </summary>
         /// <param name="text">The text.</param>
         /// <returns>Whether it was taken.</returns>
@@ -375,6 +395,11 @@ namespace GeometryHelper.Dxf.Viewer
             if (Prompt == null)
             {
                 return Start(text);
+            }
+
+            if (_option != null)
+            {
+                return OptionText(text.Trim());
             }
 
             string typed = Prompt.Kind == CadPromptKind.String ? text : text.Trim();
@@ -415,21 +440,14 @@ namespace GeometryHelper.Dxf.Viewer
                     return Invalid("Invalid option keyword.", echo);
                 case CadPromptKind.Selection:
                 case CadPromptKind.Entity:
-                    if (Prompt.Kind == CadPromptKind.Selection && string.Equals(typed, "ALL", StringComparison.OrdinalIgnoreCase))
+                    if (Prompt.Kind == CadPromptKind.Selection)
                     {
-                        var all = new List<string>();
+                        string option = Options.MatchKeyword(typed);
 
-                        foreach (DxfEntity entity in Document.CurrentSpace.Block)
+                        if (option != null)
                         {
-                            if (!string.IsNullOrEmpty(entity.Handle) && !(entity is DxfViewport viewport && viewport.Number == 1))
-                            {
-                                all.Add(entity.Handle);
-                            }
+                            return SelectOption(option, echo);
                         }
-
-                        Write(echo);
-                        _whole.UnionWith(all);
-                        return Gather(all);
                     }
 
                     if (TryPoint(typed, out GeoPoint2 pickedAt))
@@ -437,7 +455,7 @@ namespace GeometryHelper.Dxf.Viewer
                         return Feed(pickedAt);
                     }
 
-                    return Invalid("*Invalid selection*", echo);
+                    return Prompt.Kind == CadPromptKind.Selection ? InvalidSelection(echo) : Invalid("*Invalid selection*", echo);
                 case CadPromptKind.Point:
                     if (TryNeeded(typed, out GeoPoint2 needed))
                     {
@@ -496,14 +514,19 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>Answers "Select objects:" with objects picked by a click, a window or a crossing box; at a prompt for one object, the first.</summary>
+        /// <summary>
+        /// Answers "Select objects:" with objects picked by a click, a window or a crossing box, or with Shift held takes them
+        /// out of those gathered: "1 found, 1 removed, 2 total". At "Remove objects:" they are taken out either way. At a prompt
+        /// for one object, the first.
+        /// </summary>
         /// <param name="handles">The handles.</param>
+        /// <param name="remove">Whether they are taken out, as a pick or a box with Shift held takes them out.</param>
         /// <returns>Whether the prompt took them.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the handles are null.</exception>
-        public bool FeedSelection(IEnumerable<string> handles) => TakeSelection(handles, null);
+        public bool FeedSelection(IEnumerable<string> handles, bool remove = false) => TakeSelection(handles, null, remove);
 
-        /// <summary>Answers "Select objects:" with objects, a click's point with them where one picked them.</summary>
-        private bool TakeSelection(IEnumerable<string> handles, GeoPoint2? clicked)
+        /// <summary>Answers "Select objects:" with objects, a click's point with them where one picked them, or takes them out.</summary>
+        private bool TakeSelection(IEnumerable<string> handles, GeoPoint2? clicked, bool remove)
         {
             if (handles == null)
             {
@@ -543,6 +566,11 @@ namespace GeometryHelper.Dxf.Viewer
             Write(Prompt.Text);
             var gathered = new List<string>(Document.WithGroups(found));
 
+            if (remove || _removing)
+            {
+                return Gather(gathered, true);
+            }
+
             // The object a click picked is kept with the click's point, as -ATTEDIT takes the one attribute clicked; any
             // other way of selecting takes an object whole.
             foreach (string handle in gathered)
@@ -557,7 +585,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            return Gather(gathered);
+            return Gather(gathered, false);
         }
 
         /// <summary>
@@ -576,12 +604,21 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
+            if (_option != null)
+            {
+                OptionEnter();
+                return;
+            }
+
+            if (Prompt.Kind == CadPromptKind.Selection && _multiple != null)
+            {
+                MultipleEnter();
+                return;
+            }
+
             if (Prompt.Kind == CadPromptKind.Selection)
             {
-                var handles = new List<string>(_gathered);
-                List<KeyValuePair<string, GeoPoint2>> clicks = _clicks.FindAll(p => !_whole.Contains(p.Key));
-                ClearGathering();
-                Answer(new CadInput(CadInputKind.Selection, default, 0.0, null, handles) { Clicks = clicks }, Prompt.Text, null);
+                EndSelection();
                 return;
             }
 
@@ -702,32 +739,81 @@ namespace GeometryHelper.Dxf.Viewer
             _whole.Clear();
         }
 
-        private bool Gather(List<string> handles)
+        /// <summary>The end of "Select objects:": the objects gathered answer it, kept for Previous.</summary>
+        private void EndSelection()
+        {
+            var handles = new List<string>(_gathered);
+            List<KeyValuePair<string, GeoPoint2>> clicks = _clicks.FindAll(p => !_whole.Contains(p.Key));
+            string echo = Prompt.Text;
+            ClearGathering();
+            RememberSelection(handles);
+            ResetOptions();
+            Answer(new CadInput(CadInputKind.Selection, default, 0.0, null, handles) { Clicks = clicks }, echo, null);
+        }
+
+        /// <summary>
+        /// Adds objects to those gathered, "2 found (1 duplicate), 3 total", or takes them out, "1 found, 1 removed, 2 total";
+        /// the change kept for Undo. With SIngle, the first objects added end the selection.
+        /// </summary>
+        private bool Gather(List<string> handles, bool remove)
         {
             int before = _gathered.Count;
             int duplicates = 0;
+            var changed = new List<string>();
 
             foreach (string handle in handles)
             {
-                if (!_gathered.Add(handle))
+                if (remove ? _gathered.Remove(handle) : _gathered.Add(handle))
+                {
+                    changed.Add(handle);
+                }
+                else if (!remove)
                 {
                     duplicates++;
                 }
             }
 
-            string found = handles.Count.ToString(CultureInfo.InvariantCulture) + " found";
-
-            if (duplicates > 0)
+            if (remove)
             {
-                found += " (" + duplicates.ToString(CultureInfo.InvariantCulture) + " duplicate)";
+                foreach (string handle in changed)
+                {
+                    _whole.Remove(handle);
+                    _clicks.RemoveAll(p => string.Equals(p.Key, handle, StringComparison.OrdinalIgnoreCase));
+                }
             }
 
-            if (before > 0 || duplicates > 0)
+            if (changed.Count > 0)
             {
-                found += ", " + _gathered.Count.ToString(CultureInfo.InvariantCulture) + " total";
+                _steps.Add(new KeyValuePair<List<string>, List<string>>(remove ? new List<string>() : changed, remove ? changed : new List<string>()));
+            }
+
+            string found = handles.Count.ToString(CultureInfo.InvariantCulture) + " found";
+
+            if (remove)
+            {
+                found += ", " + changed.Count.ToString(CultureInfo.InvariantCulture) + " removed, " + _gathered.Count.ToString(CultureInfo.InvariantCulture) + " total";
+            }
+            else
+            {
+                if (duplicates > 0)
+                {
+                    found += " (" + duplicates.ToString(CultureInfo.InvariantCulture) + " duplicate)";
+                }
+
+                if (before > 0 || duplicates > 0)
+                {
+                    found += ", " + _gathered.Count.ToString(CultureInfo.InvariantCulture) + " total";
+                }
             }
 
             Write(found);
+
+            if (_single && !remove && handles.Count > 0 && Prompt != null && Prompt.Kind == CadPromptKind.Selection)
+            {
+                EndSelection();
+                return true;
+            }
+
             Changed();
             return handles.Count > 0;
         }
@@ -817,6 +903,12 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             Prompt = _body.Current ?? throw new InvalidOperationException("The command " + Current.Name + " asked a null prompt.");
+
+            if (Prompt.Kind == CadPromptKind.Selection)
+            {
+                ResetOptions();
+            }
+
             Changed();
         }
 
@@ -859,6 +951,7 @@ namespace GeometryHelper.Dxf.Viewer
             _modifiers.Clear();
             _trackPoints.Clear();
             ClearGathering();
+            ResetOptions();
             LastOutcome = outcome;
 
             if (cleared)

@@ -89,6 +89,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         public GeoPoint2? Mark { get; private set; }
 
+        /// <summary>
+        /// Gets the band an option of "Select objects:" draws while the prompt asks its next point: the box of Window, Crossing
+        /// and BOX from its first corner, the line of Fence and the polygon of WPolygon and CPolygon through the points given,
+        /// each to the cursor. Null for every other prompt.
+        /// </summary>
+        public CadSelectionBand Band { get; internal set; }
+
         /// <summary>Gives the prompt a block dragged with the cursor (<see cref="Drag"/>).</summary>
         internal CadPrompt Dragging(CadBlockDrag drag)
         {
@@ -364,8 +371,9 @@ namespace GeometryHelper.Dxf.Viewer
         public bool Shift { get; internal set; }
 
         /// <summary>
-        /// Gets whether Ctrl was held as the point was picked on the canvas, as a grip edit takes a first point picked with Ctrl
-        /// as Copy; false for every other answer.
+        /// Gets whether Ctrl was held as the point, distance or angle was picked on the canvas, as ARC and PLINE take a point picked
+        /// with Ctrl held to draw the arc the other way round, and a grip edit takes its first point so picked as Copy; false for
+        /// an answer typed and for every other answer.
         /// </summary>
         public bool Control { get; internal set; }
 

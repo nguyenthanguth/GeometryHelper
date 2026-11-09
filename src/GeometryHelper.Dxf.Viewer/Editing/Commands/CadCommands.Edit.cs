@@ -338,7 +338,19 @@ namespace GeometryHelper.Dxf.Viewer
             yield return CadPrompt.ForKeyword("Erase source objects?", new[] { "Yes", "No" }, "No");
             GeoVector2 along = second - first;
             var normal = new GeoVector3(-along.Y, along.X, 0.0).Normalize();
-            Transform(c, c.Selected, GeoTransform3.Mirror(new GeoPlane3(P3(first), normal)), !c.Input.Is("Yes"), "Mirror", Values(first.X, first.Y, second.X, second.Y));
+            GeoTransform3 mirror = GeoTransform3.Mirror(new GeoPlane3(P3(first), normal));
+
+            // MIRRTEXT 0, AutoCAD's default, keeps texts readable; 1 mirrors them with the rest.
+            Func<DxfEntity, ReadableMirror> readable = null;
+
+            if (!c.Database.Mirrtext)
+            {
+                CadDocument document = c.Document;
+                Tolerance tolerance = c.Session.Tolerance;
+                readable = entity => Readable(document, entity, mirror, tolerance);
+            }
+
+            Transform(c, c.Selected, mirror, !c.Input.Is("Yes"), "Mirror", Values(first.X, first.Y, second.X, second.Y), readable);
         }
 
         private static IEnumerable<CadPrompt> Explode(CadCommandContext c)
@@ -719,8 +731,11 @@ namespace GeometryHelper.Dxf.Viewer
             c.Remember("displacement.y", displacement.Y);
         }
 
-        /// <summary>Moves, turns, scales or mirrors entities, or copies of them; gives the handles of the copies.</summary>
-        private static List<string> Transform(CadCommandContext c, IReadOnlyList<string> handles, GeoTransform3 transform, bool copy, string how = "Move", string value = null)
+        /// <summary>
+        /// Moves, turns, scales or mirrors entities, or copies of them; gives the handles of the copies. A mirror that keeps
+        /// texts readable gives each its own move (<paramref name="readable"/>), worked out before it moves.
+        /// </summary>
+        private static List<string> Transform(CadCommandContext c, IReadOnlyList<string> handles, GeoTransform3 transform, bool copy, string how = "Move", string value = null, Func<DxfEntity, ReadableMirror> readable = null)
         {
             var planned = new List<CadEditRecord>();
 
@@ -742,16 +757,19 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     DxfEntity entity = s.Document.FindEntity(handle);
+                    ReadableMirror kept = readable?.Invoke(entity);
 
                     if (copy)
                     {
-                        DxfEntity copied = entity.GetTransformedCopy(transform);
+                        DxfEntity copied = entity.GetTransformedCopy(kept?.Transform ?? transform);
                         CadOwnerTag.Remove(copied);
                         s.Append(s.Document.FindSpace(handle), copied);
+                        kept?.Finish(copied);
                     }
                     else
                     {
-                        entity.TransformBy(transform);
+                        entity.TransformBy(kept?.Transform ?? transform);
+                        kept?.Finish(entity);
                     }
                 }
             });

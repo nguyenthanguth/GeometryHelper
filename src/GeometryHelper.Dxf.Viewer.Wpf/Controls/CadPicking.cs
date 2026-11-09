@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Dxf.Viewer.Wpf
@@ -8,8 +7,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <summary>
     /// What a click and a box do, as AutoCAD does with PICKADD on. With no command running: a click on an entity adds it,
     /// Shift+click adds or removes it, a click on nothing clears the selection; a box adds what it takes, and with Shift held
-    /// removes it. With a command running: a click answers a point prompt with the snapped point, and a click or a box answers
-    /// "Select objects:". The canvas and the view model both go through here, so a test of the one holds for the other.
+    /// removes it. With a command running: a click answers a point prompt with the snapped point, and a click, a box or a lasso
+    /// answers "Select objects:", with Shift held taking out what it picks, as AutoCAD's. The canvas and the view model both go
+    /// through here, so a test of the one holds for the other.
     /// </summary>
     internal static class CadPicking
     {
@@ -42,7 +42,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             if (session != null && session.IsRunning)
             {
-                return WantsObjects(session) && session.FeedSelection(new[] { handle });
+                return WantsObjects(session) && session.FeedSelection(new[] { handle }, shift);
             }
 
             IReadOnlyList<string> group = document.WithGroups(new[] { handle });
@@ -100,12 +100,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>A left click at a point of the drawing.</summary>
         /// <returns>Whether the selection or the command changed.</returns>
-        public static bool Click(CadDocument document, CadSpace space, CadCommandSession session, ObjectSnap snap, GeoPoint2 cursor, double aperture, bool shift)
-            => Click(document, space, session, snap, cursor, aperture, shift, false);
-
-        /// <summary>A left click at a point of the drawing, Ctrl held or not, as a grip edit takes a first point picked with Ctrl as Copy.</summary>
-        /// <returns>Whether the selection or the command changed.</returns>
-        internal static bool Click(CadDocument document, CadSpace space, CadCommandSession session, ObjectSnap snap, GeoPoint2 cursor, double aperture, bool shift, bool control)
+        public static bool Click(CadDocument document, CadSpace space, CadCommandSession session, ObjectSnap snap, GeoPoint2 cursor, double aperture, bool shift, bool control = false)
         {
             if (session != null && session.IsRunning)
             {
@@ -121,6 +116,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         return false;
                     }
 
+                    // Ctrl held as the point is picked turns an arc of ARC or PLINE the other way, as in AutoCAD, and a grip
+                    // edit's first point copies.
                     return session.Feed(snapped?.Point ?? cursor, false, control);
                 }
 
@@ -144,7 +141,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 PickIndex index = document.GetPickIndex(space);
                 IReadOnlyList<string> found = crossing ? index.Crossing(box) : index.Window(box);
-                session.FeedSelection(found);
+                session.FeedSelection(found, shift);
                 return found;
             }
 
@@ -193,7 +190,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return new string[0];
             }
 
-            IReadOnlyList<string> found = Lasso(document.GetPickIndex(space), ring, SignedArea(ring) > 0.0);
+            PickIndex index = document.GetPickIndex(space);
+            IReadOnlyList<string> found = SignedArea(ring) > 0.0 ? index.CrossingPolygon(ring) : index.WindowPolygon(ring);
 
             if (!running)
             {
@@ -202,7 +200,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (running)
             {
-                session.FeedSelection(found);
+                session.FeedSelection(found, shift);
             }
             else if (shift)
             {
@@ -215,164 +213,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             return found;
         }
-
-        /// <summary>The entities a lasso takes: those whose every item lies inside it, or for a crossing those an item of which it touches; ordinal order.</summary>
-        private static IReadOnlyList<string> Lasso(PickIndex index, IReadOnlyList<GeoPoint2> ring, bool crossing)
-        {
-            var handles = new SortedSet<string>(StringComparer.Ordinal);
-
-            foreach (DisplayItem2 item in index.ItemsNear(Bounds(ring)))
-            {
-                handles.Add(item.Handle);
-            }
-
-            var found = new List<string>();
-
-            foreach (string handle in handles)
-            {
-                bool any = false;
-                bool all = true;
-
-                foreach (int i in index.IndicesOf(handle))
-                {
-                    DisplayItem2 item = index.List.Items[i];
-                    bool inside = Inside(item, ring, out bool touches);
-                    any |= touches;
-                    all &= inside;
-                }
-
-                if (crossing ? any : all)
-                {
-                    found.Add(handle);
-                }
-            }
-
-            return found;
-        }
-
-        /// <summary>Whether an item lies wholly inside a ring: every vertex inside and no edge crossing the ring; and whether it touches the ring at all.</summary>
-        private static bool Inside(DisplayItem2 item, IReadOnlyList<GeoPoint2> ring, out bool touches)
-        {
-            if (item is DisplayRay2 ray)
-            {
-                // A line without end is never wholly inside; it touches the ring where its part across the ring's box,
-                // grown so that its ends lie outside the ring, crosses an edge.
-                DisplayBox around = Bounds(ring);
-                around = around.Inflate(Math.Max(1.0, Math.Max(around.Width, around.Height)));
-                touches = ray.TryClip(around, out double x0, out double y0, out double x1, out double y1) && Crosses(ring, x0, y0, x1, y1);
-                return false;
-            }
-
-            bool inside = true;
-            touches = item is DisplayFill2 fill && fill.Contains(ring[0].X, ring[0].Y);
-
-            foreach (KeyValuePair<double[], bool> chain in Chains(item))
-            {
-                double[] xy = chain.Key;
-                int n = xy.Length / 2;
-
-                for (int k = 0; k < n; k++)
-                {
-                    bool vertexIn = Contains(ring, xy[2 * k], xy[2 * k + 1]);
-                    touches |= vertexIn;
-                    inside &= vertexIn;
-                    int next = k + 1 < n ? k + 1 : chain.Value && n > 2 ? 0 : -1;
-
-                    if (next >= 0 && Crosses(ring, xy[2 * k], xy[2 * k + 1], xy[2 * next], xy[2 * next + 1]))
-                    {
-                        touches = true;
-                        inside = false;
-                    }
-                }
-            }
-
-            return inside;
-        }
-
-        /// <summary>The outline of an item as chains of points, each with whether it closes: an arc flattened, a fill's rings, the box of a text or a viewport.</summary>
-        private static IEnumerable<KeyValuePair<double[], bool>> Chains(DisplayItem2 item)
-        {
-            switch (item)
-            {
-                case DisplayPolyline2 chain:
-                    yield return new KeyValuePair<double[], bool>(chain.Xy.ToArray(), chain.Closed);
-                    break;
-                case DisplaySegments2 segments:
-                    for (int i = 0; i + 3 < segments.Xy.Count; i += 4)
-                    {
-                        yield return new KeyValuePair<double[], bool>(new[] { segments.Xy[i], segments.Xy[i + 1], segments.Xy[i + 2], segments.Xy[i + 3] }, false);
-                    }
-
-                    break;
-                case DisplayArc2 arc:
-                    yield return new KeyValuePair<double[], bool>(arc.Flatten(Math.Max(arc.Radius * 1E-3, 1E-9)), false);
-                    break;
-                case DisplayFill2 fill:
-                    foreach (double[] ring in fill.Rings)
-                    {
-                        yield return new KeyValuePair<double[], bool>(ring, true);
-                    }
-
-                    break;
-                default:
-                    DisplayBox box = item.Bounds;
-
-                    if (!box.IsEmpty)
-                    {
-                        yield return new KeyValuePair<double[], bool>(new[] { box.MinX, box.MinY, box.MaxX, box.MinY, box.MaxX, box.MaxY, box.MinX, box.MaxY }, true);
-                    }
-
-                    break;
-            }
-        }
-
-        /// <summary>Whether a point lies inside a ring, by the even-odd rule.</summary>
-        private static bool Contains(IReadOnlyList<GeoPoint2> ring, double x, double y)
-        {
-            bool inside = false;
-
-            for (int i = 0, j = ring.Count - 1; i < ring.Count; j = i++)
-            {
-                GeoPoint2 a = ring[i];
-                GeoPoint2 b = ring[j];
-
-                if ((a.Y > y) != (b.Y > y) && x < (b.X - a.X) * (y - a.Y) / (b.Y - a.Y) + a.X)
-                {
-                    inside = !inside;
-                }
-            }
-
-            return inside;
-        }
-
-        /// <summary>Whether a segment crosses an edge of a ring, each through the other's line.</summary>
-        private static bool Crosses(IReadOnlyList<GeoPoint2> ring, double ax, double ay, double bx, double by)
-        {
-            for (int i = 0, j = ring.Count - 1; i < ring.Count; j = i++)
-            {
-                GeoPoint2 c = ring[j];
-                GeoPoint2 d = ring[i];
-
-                if (Math.Max(ax, bx) < Math.Min(c.X, d.X) || Math.Min(ax, bx) > Math.Max(c.X, d.X) || Math.Max(ay, by) < Math.Min(c.Y, d.Y) || Math.Min(ay, by) > Math.Max(c.Y, d.Y))
-                {
-                    continue;
-                }
-
-                double d1 = Side(c.X, c.Y, d.X, d.Y, ax, ay);
-                double d2 = Side(c.X, c.Y, d.X, d.Y, bx, by);
-                double d3 = Side(ax, ay, bx, by, c.X, c.Y);
-                double d4 = Side(ax, ay, bx, by, d.X, d.Y);
-
-                if (((d1 > 0.0 && d2 < 0.0) || (d1 < 0.0 && d2 > 0.0)) && ((d3 > 0.0 && d4 < 0.0) || (d3 < 0.0 && d4 > 0.0)))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static double Side(double ax, double ay, double bx, double by, double px, double py) => (bx - ax) * (py - ay) - (by - ay) * (px - ax);
 
         private static DisplayBox Bounds(IReadOnlyList<GeoPoint2> ring)
         {

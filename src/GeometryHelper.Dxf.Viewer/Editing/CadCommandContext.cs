@@ -62,6 +62,7 @@ namespace GeometryHelper.Dxf.Viewer
             if (_preSelected.Count > 0)
             {
                 handles = _preSelected;
+                Session.RememberSelection(handles);
             }
             else
             {

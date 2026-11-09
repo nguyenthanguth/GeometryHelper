@@ -114,7 +114,7 @@ namespace GeometryHelper.Dxf.Viewer
     /// A grid over the items of one display list that answers, without looking at every item, which of them lie near a
     /// point or in a box. Picking and window selection never use the pixels: they ask this index in drawing coordinates.
     /// </summary>
-    public sealed class PickIndex
+    public sealed partial class PickIndex
     {
         private readonly DisplayList2 _list;
 
