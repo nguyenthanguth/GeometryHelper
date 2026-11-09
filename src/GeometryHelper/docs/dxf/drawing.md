@@ -178,6 +178,12 @@ drawing into it, each keeping its handle, out of the draw order (SORTENTSTABLE) 
 that of the block it enters. 3 000 blocks nested one inside the next are built from the bottom up, each added and given an
 INSERT of the one before, in 0.11 seconds, and erased one by one, each looked up by name, in 0.2 seconds.
 
+A block's draw order is its [`DxfDrawOrderTable`](xref:GeometryHelper.Dxf.DxfDrawOrderTable), read by `DrawOrderTable`
+(null where the block has none) or made by `CreateDrawOrderTable()` under ACAD_SORTENTS in the block's extension dictionary,
+as AutoCAD's `DrawOrderTable` is: `GetFullDrawOrder()` gives the entities back to front, and `MoveToTop`, `MoveToBottom`,
+`MoveAbove` and `MoveBelow` reorder them, giving the sort handles out again in the new order and writing only the entries
+that differ from an entity's own handle.
+
 ### Layers
 
 The `LayerTable` holds a [`DxfLayerTableRecord`](xref:GeometryHelper.Dxf.DxfLayerTableRecord) for each layer, found by its name in either case: its `Color`, `ColorIndex`,
