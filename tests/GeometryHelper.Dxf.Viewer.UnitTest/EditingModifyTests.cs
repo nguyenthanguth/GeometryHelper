@@ -322,7 +322,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             var xline = new DxfXline { BasePoint = new GeoPoint3(0, 0, 0), UnitDir = new GeoVector3(1, 0, 0) };
             CadDocument document = Drawing(xline, Line(30, -10, 30, 10), Line(70, -10, 70, 10));
 
-            // The display draws no xline yet, so it is reached by a fence rather than a click.
+            // The xline is reached by a fence between the two lines, which crosses it at (50, 0) only.
             Start(document, "TR", "F", P(50, -5), P(50, 5), Enter, Enter);
             Assert.Null(document.FindEntity(xline.Handle));
             List<DxfRay> rays = All<DxfRay>(document.ModelSpace);

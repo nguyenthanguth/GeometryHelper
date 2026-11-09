@@ -25,6 +25,7 @@
     <Geometry x:Key="GhIconScale">M4 20V10h10v10zM14 10l6-6M14 4h6v6</Geometry>
     <Geometry x:Key="GhIconMirror">M12 3v18M7 7 3 12l4 5zM17 7l4 5-4 5z</Geometry>
     <Geometry x:Key="GhIconErase">M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3</Geometry>
+    <Geometry x:Key="GhIconExplode">M12 12h.01M12 3v5M12 16v5M3 12h5M16 12h5M6 6l3 3M18 6l-3 3M6 18l3-3M18 18l-3-3</Geometry>
     <Geometry x:Key="GhIconStretch">M3 8h10v8H3zM13 12h8M18 9l3 3-3 3</Geometry>
     <Geometry x:Key="GhIconTrim">M9 3v18M3 12h6M14 9l6 6M20 9l-6 6</Geometry>
     <Geometry x:Key="GhIconExtend">M20 3v18M4 12h16M16 8l4 4-4 4</Geometry>

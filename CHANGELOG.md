@@ -112,8 +112,10 @@ through (200, 300) zoom to the box from (0, 0) to (200, 300). A crossing box or 
 never does.
 
 **NEW.** Home › Modify of the presenter's ribbon is laid out as AutoCAD 2021's panel, with buttons for the commands it had
-only on the command line: Stretch, Trim with Extend on its arrow, Fillet with Chamfer, Array (rectangular) with Polar Array,
-and Offset; its title drops Break at Point, Break, Join, Lengthen and Align, as AutoCAD's panel slides out.
+only on the command line: Stretch, Trim with Extend on its arrow, Fillet with Chamfer, Array (rectangular) with Polar Array;
+Erase, Explode and Offset by their icons; a row of Break, Join, Lengthen and Align under them; and its title drops Break at
+Point, Break, Join, Lengthen and Align, as AutoCAD's panel slides out. A split button shows the command last picked from its
+arrow: Extend picked once from Trim's leaves it reading Extend and running EXTEND until Trim is picked again.
 
 **NEW.** The presenter's TRIM (TR), EXTEND (EX), BREAK (BR), BREAKATPOINT, JOIN (J) and LENGTHEN (LEN) as AutoCAD 2021's:
 TRIM and EXTEND in the Quick and Standard modes with Fence, Crossing, Edge, eRase and Undo, Shift-pick switching between the
