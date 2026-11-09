@@ -6,7 +6,8 @@ using System.Windows.Input;
 namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
-    /// The Hatch Creation tab of AutoCAD as a dialog, for HATCH's seTtings and HATCHEDIT: the type, the pattern and its preview,
+    /// The Hatch Creation tab of AutoCAD as a dialog, for HATCH's seTtings and HATCHEDIT: the pattern file (built-in, or a .pat
+    /// file chosen by Browse…), the type, the pattern and its preview,
     /// the angle, scale or spacing, double, ISO pen width, origin, island detection, association, and a gradient's colours. Its
     /// logic is <see cref="HatchSettingsViewModel"/>.
     /// </summary>
@@ -20,6 +21,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             InitializeComponent();
             DataContext = model;
             model.PickColor = dialog => SelectColorWindow.Pick(this, dialog);
+            model.BrowsePatternFile = PickPatternFile;
         }
 
         /// <summary>Gets the view model.</summary>
@@ -40,6 +42,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 DragMove();
             }
+        }
+
+        /// <summary>Browse…: a .pat file; null where none was chosen.</summary>
+        private string PickPatternFile()
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "Hatch pattern files (*.pat)|*.pat|All files (*.*)|*.*", Title = "Select Pattern File" };
+            return dialog.ShowDialog(this) == true ? dialog.FileName : null;
         }
 
         /// <summary>A box of the dialog: Enter takes what is typed, as leaving the box does, and does not press OK.</summary>

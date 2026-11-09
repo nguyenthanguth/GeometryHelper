@@ -241,7 +241,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Adds linetypes to load when OK is pressed, as Load... adds those chosen: each the drawing has, or the list has
-        /// already, passed over and said.
+        /// already, passed over and said. One of <see cref="CadLinetypeFile.BuiltIn"/> itself is loaded from its definition
+        /// whatever the path.
         /// </summary>
         /// <param name="linetypes">The linetypes.</param>
         /// <param name="path">The file they are of: a full path, or <see cref="CadLinetypeFile.BuiltInName"/>.</param>
@@ -268,8 +269,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     continue;
                 }
 
+                // One of the presenter's own set, listed by the Load dialog before a file's, is written from its definition.
+                string from = CadLinetypeFile.BuiltIn.Contains(linetype) ? CadLinetypeFile.BuiltInName : path;
                 _deleted.RemoveAll(d => string.Equals(d, linetype.Name, StringComparison.OrdinalIgnoreCase));
-                Rows.Add(new LinetypeRowViewModel(linetype.Name, linetype.Description, linetype.Elements.Select(e => e.Length).ToList(), linetype, path));
+                Rows.Add(new LinetypeRowViewModel(linetype.Name, linetype.Description, linetype.Elements.Select(e => e.Length).ToList(), linetype, from));
             }
 
             Message = present.Count == 0 ? string.Empty : "Already loaded: " + string.Join(", ", present) + ".";
@@ -470,11 +473,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     }
 
     /// <summary>
-    /// AutoCAD's Load or Reload Linetypes dialog: the file (the presenter's own set, GeometryHelper.lin, unless the user
-    /// chooses one of their support folders or another by File...) and its linetypes, several chosen at once.
+    /// AutoCAD's Load or Reload Linetypes dialog: the presenter's own linetypes (GeometryHelper.lin), several chosen at once,
+    /// and those of a .lin file the user chooses by Browse… after them, a name of the presenter's set winning; Built-in goes
+    /// back to the presenter's set alone. A file of 4 linetypes, one of them DASHED, lists the 39 of the set and then 3.
     /// </summary>
     public sealed class LoadLinetypesViewModel : ObservableObject
     {
+        /// <summary>The words of the file box while no file is chosen: Built-in (GeometryHelper.lin).</summary>
+        public const string BuiltInText = "Built-in (" + CadLinetypeFile.BuiltInName + ")";
+
         private string _file;
         private string _message = string.Empty;
 
@@ -484,13 +491,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public LoadLinetypesViewModel(CadDocument document)
         {
             Document = document ?? throw new ArgumentNullException(nameof(document));
-            Files = new ObservableCollection<string> { CadLinetypeFile.BuiltInName };
-
-            foreach (string path in CadSupportFiles.List(document, ".lin"))
-            {
-                Files.Add(path);
-            }
-
             Rows = new ObservableCollection<LoadLinetypeRowViewModel>();
             File = CadSupportFiles.DefaultLinetypeFile(document);
             SelectAllCommand = new DelegateCommand(_ =>
@@ -500,38 +500,45 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     row.IsChosen = true;
                 }
             });
+            BrowseCommand = new DelegateCommand(_ => Browse());
+            BuiltInCommand = new DelegateCommand(_ => File = CadLinetypeFile.BuiltInName, _ => !IsBuiltIn);
         }
 
         /// <summary>Gets the document.</summary>
         public CadDocument Document { get; }
 
-        /// <summary>Gets the files offered: the presenter's own set, then the .lin files of the drawing's folder and the support folders, then any chosen by File...</summary>
-        public ObservableCollection<string> Files { get; }
-
-        /// <summary>Gets or sets the file: one of <see cref="Files"/>, or a path chosen by File..., added to them; its linetypes are read at once.</summary>
+        /// <summary>
+        /// Gets or sets the file: <see cref="CadLinetypeFile.BuiltInName"/> for the presenter's set alone, or a path or a name
+        /// found in the support folders, whose linetypes are read at once and listed after the set's.
+        /// </summary>
         public string File
         {
             get => _file;
             set
             {
-                if (value != null && !Files.Contains(value, StringComparer.OrdinalIgnoreCase))
-                {
-                    Files.Add(value);
-                }
-
-                value = Files.FirstOrDefault(f => string.Equals(f, value, StringComparison.OrdinalIgnoreCase)) ?? value;
-
                 if (Set(ref _file, value))
                 {
                     Read();
+                    Raise(nameof(IsBuiltIn));
+                    Raise(nameof(FileText));
+                    (BuiltInCommand as DelegateCommand)?.RaiseCanExecuteChanged();
                 }
             }
         }
 
+        /// <summary>Gets whether the presenter's own set is listed alone, no file chosen.</summary>
+        public bool IsBuiltIn => string.Equals((_file ?? string.Empty).Trim(), CadLinetypeFile.BuiltInName, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>Gets the words of the file box: <see cref="BuiltInText"/>, or the path of the file chosen.</summary>
+        public string FileText => IsBuiltIn ? BuiltInText : FilePath ?? _file;
+
+        /// <summary>Gets the line under the file box.</summary>
+        public string Hint => "A .lin file chosen with Browse… lists its linetypes after the built-in ones; a built-in name wins.";
+
         /// <summary>Gets the file the linetypes are read from: a full path, or <see cref="CadLinetypeFile.BuiltInName"/>.</summary>
         public string FilePath { get; private set; }
 
-        /// <summary>Gets the linetypes of the file.</summary>
+        /// <summary>Gets the linetypes: the presenter's own set, then those of the file chosen whose names the set has not.</summary>
         public ObservableCollection<LoadLinetypeRowViewModel> Rows { get; }
 
         /// <summary>Gets the linetypes chosen.</summary>
@@ -544,8 +551,28 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             private set => Set(ref _message, value ?? string.Empty);
         }
 
-        /// <summary>Gets the command that chooses every linetype the file has.</summary>
+        /// <summary>Gets the command that chooses every linetype listed.</summary>
         public ICommand SelectAllCommand { get; }
+
+        /// <summary>Gets the command of Browse…: a .lin file, through <see cref="BrowseFile"/>, read at once.</summary>
+        public ICommand BrowseCommand { get; }
+
+        /// <summary>Gets the command of Built-in: the presenter's set alone again; off while it is.</summary>
+        public ICommand BuiltInCommand { get; }
+
+        /// <summary>Gets or sets how the window asks for a .lin file: its path, or null where none was chosen.</summary>
+        public Func<string> BrowseFile { get; set; }
+
+        /// <summary>Asks for a .lin file through <see cref="BrowseFile"/> and lists its linetypes after the set's.</summary>
+        public void Browse()
+        {
+            string path = BrowseFile?.Invoke();
+
+            if (!string.IsNullOrWhiteSpace(path))
+            {
+                File = path;
+            }
+        }
 
         private void Read()
         {
@@ -553,30 +580,38 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             IReadOnlyList<CadLinetypeDefinition> linetypes = null;
             string name = (_file ?? string.Empty).Trim();
 
+            foreach (CadLinetypeDefinition linetype in CadLinetypeFile.BuiltIn)
+            {
+                Rows.Add(new LoadLinetypeRowViewModel(linetype));
+            }
+
             if (string.Equals(name, CadLinetypeFile.BuiltInName, StringComparison.OrdinalIgnoreCase))
             {
                 FilePath = CadLinetypeFile.BuiltInName;
-                linetypes = CadLinetypeFile.BuiltIn;
+                Message = string.Empty;
+                return;
             }
-            else
-            {
-                FilePath = CadSupportFiles.Find(Document, name);
 
-                try
-                {
-                    linetypes = FilePath == null ? null : CadLinetypeFile.Read(FilePath);
-                }
-                catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is ArgumentException || e is NotSupportedException)
-                {
-                    linetypes = null;
-                }
+            FilePath = CadSupportFiles.Find(Document, name);
+
+            try
+            {
+                linetypes = FilePath == null ? null : CadLinetypeFile.Read(FilePath);
+            }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is ArgumentException || e is NotSupportedException)
+            {
+                linetypes = null;
             }
 
             Message = linetypes == null ? "Cannot read linetype file \"" + name + "\"." : string.Empty;
 
+            // The file's linetypes after the set's, a name the set has passed over.
             foreach (CadLinetypeDefinition linetype in linetypes ?? Array.Empty<CadLinetypeDefinition>())
             {
-                Rows.Add(new LoadLinetypeRowViewModel(linetype));
+                if (!Rows.Any(r => string.Equals(r.Name, linetype.Name, StringComparison.OrdinalIgnoreCase)))
+                {
+                    Rows.Add(new LoadLinetypeRowViewModel(linetype));
+                }
             }
         }
     }

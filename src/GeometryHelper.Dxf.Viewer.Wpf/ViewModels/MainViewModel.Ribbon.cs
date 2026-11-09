@@ -142,8 +142,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// Makes a new empty drawing and shows it, as AutoCAD's NEW: a drawing of R2013 in millimetres with the layer 0 and
-        /// Layout1, named Drawing1.dxf, then Drawing2.dxf, and listed under Open drawings until it is saved to a file of its own.
+        /// Makes a new empty drawing and shows it, as AutoCAD's NEW: a drawing of R2013 of the presenter's metric template
+        /// (<see cref="CadTemplate"/>, the settings of acadiso.dwt: millimetres, ISO-25) with the layer 0 and Layout1, named
+        /// Drawing1.dxf, then Drawing2.dxf, and listed under Open drawings until it is saved to a file of its own.
         /// </summary>
         /// <returns>The document.</returns>
         public CadDocument NewDrawing()
@@ -157,7 +158,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
             while (_files.ContainsKey(name) || _files.Values.Any(f => f.Document != null && string.Equals(f.Document.Title, name, StringComparison.OrdinalIgnoreCase)));
 
-            CadDocument document = CadDocument.From(new DxfDatabase("AC1027"), name);
+            CadDocument document = CadDocument.From(CadTemplate.CreateMetric(), name);
             OpenDocument(document, name);
             return document;
         }

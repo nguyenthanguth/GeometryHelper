@@ -163,7 +163,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             Assert.Equal("GH_25", manager.SelectedStyle.Name);
             DxfDimStyleTableRecord style = document.Database.DimStyleTable["GH_25"];
-            Assert.Equal("_ARCHTICK", style.Dimblk.Name);
+            Assert.Equal("_ArchTick", style.Dimblk.Name);
             Assert.Equal(3.0, style.Dimasz);
             Assert.Equal(1, style.Dimdec);
             DimStyleCompareViewModel compare = manager.CreateCompare();

@@ -419,6 +419,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.PickColor = dialog => SelectColorWindow.Pick(Window.GetWindow(this), dialog);
                 _model.ShowLinetypeManager = manager => LinetypeManagerWindow.Show(Window.GetWindow(this), manager);
                 _model.ShowHatchSettings = settings => HatchSettingsWindow.Show(Window.GetWindow(this), settings);
+                _model.ShowMissingShx = dialog => MissingShxWindow.Show(Window.GetWindow(this), dialog);
 
                 if (CanvasView.PixelWidth > 0 && CanvasView.PixelHeight > 0)
                 {

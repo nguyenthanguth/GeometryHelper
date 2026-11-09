@@ -40,10 +40,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     }
 
     /// <summary>
-    /// The Hatch Creation tab of AutoCAD as a dialog, for HATCH's seTtings and for HATCHEDIT: the type (Pattern, User defined,
-    /// Solid, Gradient), the pattern with its preview, the angle, scale or spacing, double, ISO pen width, origin, whether the
-    /// hatch follows its objects, the island detection style, and a gradient's name, two colours and centring. The preview is
-    /// a square hatched by the presenter's own hatch display. <see cref="Settings"/> holds the result once OK is pressed.
+    /// The Hatch Creation tab of AutoCAD as a dialog, for HATCH's seTtings and for HATCHEDIT: the pattern file (the presenter's
+    /// own 48 patterns, or those and a .pat file's chosen by Browse…), the type (Pattern, User defined, Solid, Gradient), the
+    /// pattern with its preview, the angle, scale or spacing, double, ISO pen width, origin, whether the hatch follows its
+    /// objects, the island detection style, and a gradient's name, two colours and centring. The preview is a square hatched by
+    /// the presenter's own hatch display. <see cref="Settings"/> holds the result once OK is pressed.
     /// </summary>
     public sealed class HatchSettingsViewModel : ObservableObject
     {
@@ -51,6 +52,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private static readonly string[] StyleNames = { "Normal", "Outer", "Ignore" };
 
         private readonly CadDocument _document;
+        private readonly DelegateCommand _builtInCommand;
+        private IReadOnlyList<HatchPatternChoice> _patterns;
+        private string _patternFile;
+        private int _fromFile;
         private HatchPatternChoice _pattern;
         private string _angle;
         private string _scale;
@@ -71,7 +76,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _document = document ?? throw new ArgumentNullException(nameof(document));
             Settings = (settings ?? throw new ArgumentNullException(nameof(settings))).Clone();
             Title = editing ? "Hatch Editor" : "Hatch Creation";
-            Patterns = Find(document);
+            string own = Settings.PatternFile;
+            _patternFile = string.IsNullOrWhiteSpace(own) || string.Equals(own, CadPatternFile.BuiltInName, StringComparison.OrdinalIgnoreCase) ? null : own;
+            _patterns = Find(document, _patternFile, out _fromFile, out string fault);
+            _message = fault ?? string.Empty;
             _pattern = Patterns.FirstOrDefault(p => string.Equals(p.Name, Settings.PatternName, StringComparison.OrdinalIgnoreCase));
             _angle = Text(Settings.Angle);
             _scale = Text(Settings.Scale);
@@ -80,6 +88,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _originY = Text(Settings.OriginY);
             PickColor1Command = new DelegateCommand(_ => PickGradientColor(true));
             PickColor2Command = new DelegateCommand(_ => PickGradientColor(false));
+            BrowseCommand = new DelegateCommand(_ => Browse());
+            _builtInCommand = new DelegateCommand(_ => PatternFile = null, _ => !IsBuiltInFile);
             Refresh();
         }
 
@@ -120,8 +130,83 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets whether the type has an angle: all but a solid fill.</summary>
         public bool HasAngle => Settings.Type != CadHatchType.Solid;
 
-        /// <summary>Gets the patterns offered: the presenter's own, then those of the .pat files of the user's support folders, each name once, the presenter's winning.</summary>
-        public IReadOnlyList<HatchPatternChoice> Patterns { get; }
+        /// <summary>
+        /// Gets the patterns offered: the presenter's own, then those of the pattern file chosen (<see cref="PatternFile"/>),
+        /// then those of the .pat files of the user's support folders, each name once, the presenter's winning.
+        /// </summary>
+        public IReadOnlyList<HatchPatternChoice> Patterns => _patterns;
+
+        /// <summary>
+        /// Gets or sets the .pat file chosen by Browse…, whose patterns are offered after the presenter's own and are read from
+        /// it when the hatch is made; null for none, the presenter's own set (GeometryHelper.pat) alone. Set, the patterns are
+        /// listed again and the pattern chosen is kept where it is still offered, else ANSI31 is chosen.
+        /// </summary>
+        public string PatternFile
+        {
+            get => _patternFile;
+            set
+            {
+                string file = string.IsNullOrWhiteSpace(value) || string.Equals(value.Trim(), CadPatternFile.BuiltInName, StringComparison.OrdinalIgnoreCase) ? null : value.Trim();
+
+                if (!Set(ref _patternFile, file))
+                {
+                    return;
+                }
+
+                HatchPatternChoice before = _pattern;
+                _patterns = Find(_document, file, out _fromFile, out string fault);
+                Message = fault;
+                _pattern = null;
+                Raise(nameof(Patterns));
+                Raise(nameof(IsBuiltInFile));
+                Raise(nameof(PatternFileText));
+                Raise(nameof(PatternFileHint));
+                _builtInCommand.RaiseCanExecuteChanged();
+                // The pattern chosen kept by its name; one of the file left gives way to ANSI31; one offered by no file stays as named.
+                string name = before?.Name ?? Settings.PatternName;
+                HatchPatternChoice kept = _patterns.FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
+
+                if (kept != null || before != null)
+                {
+                    Pattern = kept ?? _patterns.First();
+                }
+                else
+                {
+                    Raise(nameof(Pattern));
+                    Raise(nameof(PatternCaption));
+                }
+            }
+        }
+
+        /// <summary>Gets whether no pattern file is chosen: the presenter's own set alone.</summary>
+        public bool IsBuiltInFile => _patternFile == null;
+
+        /// <summary>Gets the words of the Pattern file box: "Built-in (GeometryHelper.pat)", or the path of the file chosen.</summary>
+        public string PatternFileText => _patternFile ?? "Built-in (" + CadPatternFile.BuiltInName + ")";
+
+        /// <summary>
+        /// Gets the line under the Pattern file box: "48 built-in patterns.", or with a file chosen "The 48 built-in patterns,
+        /// then 6 from this file; a built-in name wins."
+        /// </summary>
+        public string PatternFileHint
+        {
+            get
+            {
+                int own = CadPatternFile.BuiltIn.Count(p => !string.Equals(p.Name, "SOLID", StringComparison.OrdinalIgnoreCase));
+                string count = own.ToString(CultureInfo.InvariantCulture);
+                return _patternFile == null ? count + " built-in patterns."
+                    : "The " + count + " built-in patterns, then " + _fromFile.ToString(CultureInfo.InvariantCulture) + " from this file; a built-in name wins.";
+            }
+        }
+
+        /// <summary>Gets the command of Browse…: a .pat file, through <see cref="BrowsePatternFile"/>.</summary>
+        public ICommand BrowseCommand { get; }
+
+        /// <summary>Gets the command of Built-in: the presenter's own set alone again; off while it is.</summary>
+        public ICommand BuiltInCommand => _builtInCommand;
+
+        /// <summary>Gets or sets how the window asks for a .pat file: its path, or null where none was chosen.</summary>
+        public Func<string> BrowsePatternFile { get; set; }
 
         /// <summary>Gets or sets the pattern chosen.</summary>
         public HatchPatternChoice Pattern
@@ -134,10 +219,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     Settings.PatternName = value.Name;
                     Settings.PatternFile = value.File;
                     Raise(nameof(IsIso));
+                    Raise(nameof(PatternCaption));
                     Refresh();
                 }
             }
         }
+
+        /// <summary>
+        /// Gets the words under the preview: the pattern's description (ANSI Iron, Brick, Stone masonry), or for a pattern of the
+        /// file chosen its name and the file's, "GRATING-30 · from steel-works.pat".
+        /// </summary>
+        public string PatternCaption
+            => _pattern == null ? string.Empty
+               : _patternFile != null && string.Equals(_pattern.File, _patternFile, StringComparison.OrdinalIgnoreCase) ? _pattern.Name + " · from " + _pattern.Source
+               : _pattern.Description;
 
         /// <summary>Gets or sets the angle in degrees, as typed.</summary>
         public string Angle
@@ -341,6 +436,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
+        /// <summary>Asks for a .pat file through <see cref="BrowsePatternFile"/> and offers its patterns after the presenter's own.</summary>
+        public void Browse()
+        {
+            string path = BrowsePatternFile?.Invoke();
+
+            if (!string.IsNullOrWhiteSpace(path))
+            {
+                PatternFile = path;
+            }
+        }
+
         private void PickGradientColor(bool first)
         {
             var dialog = new SelectColorViewModel(first ? Settings.GradientColor1 : Settings.GradientColor2, false);
@@ -379,11 +485,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return true;
         }
 
-        /// <summary>The presenter's own patterns, then those of the user's support folders, each name once.</summary>
-        private static IReadOnlyList<HatchPatternChoice> Find(CadDocument document)
+        /// <summary>
+        /// The presenter's own patterns, then those of the file chosen, counted, then those of the user's support folders, each
+        /// name once; the fault where the file chosen cannot be read.
+        /// </summary>
+        private static IReadOnlyList<HatchPatternChoice> Find(CadDocument document, string chosen, out int fromChosen, out string fault)
         {
             var choices = new List<HatchPatternChoice>();
             var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            fault = null;
 
             void Add(IEnumerable<CadHatchPattern> patterns, Func<CadHatchPattern, string> file, string source)
             {
@@ -397,28 +507,53 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             Add(CadPatternFile.BuiltIn, p => null, CadPatternFile.BuiltInName);
+            int own = choices.Count;
+
+            // The file chosen by Browse…, its patterns read from it by name when the hatch is made.
+            if (chosen != null)
+            {
+                IReadOnlyList<CadHatchPattern> patterns = Read(chosen, out bool read);
+                fault = read ? null : "Cannot read pattern file \"" + chosen + "\".";
+                Add(patterns, p => chosen, SafeFileName(chosen));
+            }
+
+            fromChosen = choices.Count - own;
 
             foreach (string path in CadSupportFiles.List(document, ".pat"))
             {
                 string name = Path.GetFileNameWithoutExtension(path);
 
                 // A pattern in a file of its own name is found on the support path, as AutoCAD finds a custom one; any other by its file.
-                Add(Read(path), p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase) ? null : path, Path.GetFileName(path));
+                Add(Read(path, out _), p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase) ? null : path, Path.GetFileName(path));
             }
 
             return choices.AsReadOnly();
         }
 
-        private static IReadOnlyList<CadHatchPattern> Read(string path)
+        private static IReadOnlyList<CadHatchPattern> Read(string path, out bool read)
         {
             try
             {
+                read = true;
                 return CadPatternFile.Read(path);
             }
-            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is ArgumentException || e is NotSupportedException)
             {
                 GeometryHelperLog.Debug("HatchSettingsViewModel: " + path + " was not read (" + e.Message + ").");
+                read = false;
                 return Array.Empty<CadHatchPattern>();
+            }
+        }
+
+        private static string SafeFileName(string path)
+        {
+            try
+            {
+                return Path.GetFileName(path);
+            }
+            catch (ArgumentException)
+            {
+                return path;
             }
         }
 

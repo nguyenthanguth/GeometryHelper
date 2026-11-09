@@ -340,6 +340,9 @@ namespace GeometryHelper.Dxf.Viewer
                         Row("Name", () => insert.Name),
                         Row("Rotation", () => f.Angle(insert.Rotation)));
                     break;
+                case DxfMLeader mleader:
+                    Group("Leaders", Row("Arrowhead", () => CadArrowheads.NameOf(mleader.ArrowSymbol)));
+                    break;
                 case DxfDimension dimension:
                     Group("Misc", Row("Dim style", () => dimension.DimensionStyleName));
                     Group(

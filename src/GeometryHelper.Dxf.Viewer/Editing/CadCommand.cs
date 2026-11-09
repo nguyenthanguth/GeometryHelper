@@ -134,6 +134,7 @@ namespace GeometryHelper.Dxf.Viewer
                 ["D"] = "DIMSTYLE",
                 ["DST"] = "DIMSTYLE",
                 ["DDIM"] = "DIMSTYLE",
+                ["DDPTYPE"] = "PTYPE",
             },
             new Dictionary<string, string>
             {

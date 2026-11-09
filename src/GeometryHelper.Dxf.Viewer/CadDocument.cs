@@ -276,6 +276,15 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
+        /// <summary>
+        /// Gets or sets the height of the view, in drawing units, that sizes the points of a relative size (PDSIZE nought or below)
+        /// when a space is next drawn, as AutoCAD sizes them by the viewport at a regeneration: with PDSIZE -10 and a view 300
+        /// high, each point's symbol is 30 across. A display list already made keeps its sizes until <see cref="Regen"/>; REGEN
+        /// sets it from the view of its command line first. Nought, the default, takes the height of the drawing's extents,
+        /// else of its limits.
+        /// </summary>
+        public double PointViewHeight { get; set; }
+
         /// <summary>Gets the display list of a space, made on the first call and kept.</summary>
         /// <param name="space">The space.</param>
         /// <returns>The items to draw.</returns>

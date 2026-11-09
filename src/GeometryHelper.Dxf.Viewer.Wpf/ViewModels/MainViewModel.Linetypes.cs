@@ -74,9 +74,28 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <returns>The manager.</returns>
         public LinetypeManagerViewModel CreateLinetypeManager() => _current == null ? null : new LinetypeManagerViewModel(_current.Document);
 
+        /// <summary>
+        /// Gets the .pat file last chosen in the Hatch dialog by Browse… while the window is open, offered again by the next
+        /// Hatch dialog of any drawing whose settings name no file of their own; null for the built-in patterns alone.
+        /// </summary>
+        public string HatchPatternFile { get; private set; }
+
         /// <summary>Makes the Hatch dialog on the settings of the next hatch of the drawing shown; null with none open.</summary>
         /// <returns>The dialog.</returns>
-        public HatchSettingsViewModel CreateHatchSettings() => _current == null ? null : new HatchSettingsViewModel(_current.Document, _current.Document.HatchSettings, false);
+        public HatchSettingsViewModel CreateHatchSettings() => _current == null ? null : HatchDialog(_current.Document, _current.Document.HatchSettings, false);
+
+        /// <summary>The Hatch dialog on settings, the pattern file of the session offered where the settings name none.</summary>
+        private HatchSettingsViewModel HatchDialog(CadDocument document, CadHatchSettings settings, bool editing)
+        {
+            var dialog = new HatchSettingsViewModel(document, settings, editing);
+
+            if (dialog.IsBuiltInFile && HatchPatternFile != null)
+            {
+                dialog.PatternFile = HatchPatternFile;
+            }
+
+            return dialog;
+        }
 
         /// <summary>Shows the Linetype Manager and applies it where OK is pressed, saying what it refused.</summary>
         private bool OpenLinetypeManager()
@@ -123,11 +142,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "HATCHSETTINGS":
                     if (ShowHatchSettings != null)
                     {
-                        var settings = new HatchSettingsViewModel(document, document.HatchSettings, false);
+                        HatchSettingsViewModel settings = HatchDialog(document, document.HatchSettings, false);
 
                         if (ShowHatchSettings(settings))
                         {
                             document.HatchSettings = settings.Settings;
+                            HatchPatternFile = settings.PatternFile;
                         }
 
                         e.Handled = true;
@@ -137,8 +157,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "HATCHEDIT":
                     if (ShowHatchSettings != null && document.HatchBeingEdited != null)
                     {
-                        var edited = new HatchSettingsViewModel(document, document.HatchBeingEdited, true);
-                        document.HatchBeingEdited = ShowHatchSettings(edited) ? edited.Settings : null;
+                        HatchSettingsViewModel edited = HatchDialog(document, document.HatchBeingEdited, true);
+                        bool ok = ShowHatchSettings(edited);
+                        document.HatchBeingEdited = ok ? edited.Settings : null;
+                        HatchPatternFile = ok ? edited.PatternFile : HatchPatternFile;
                         e.Handled = true;
                     }
 

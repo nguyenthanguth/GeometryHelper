@@ -250,6 +250,205 @@ namespace GeometryHelper.Dxf.Viewer
             Flush();
         }
 
+        /// <summary>
+        /// A LWPOLYLINE with a width, as AutoCAD fills it: each segment of a width a band about its centre line, straight or along
+        /// its arc, from its start width to its end width, and a segment of none a line. A band wider than twice its arc's
+        /// radius crosses the centre, as the dot of AutoCAD's arrowhead _Dot fills a disc. False, nothing added, for a polyline
+        /// whose normal is not the world's Z, which is drawn by its centre line.
+        /// </summary>
+        private bool AddWide(DxfPolyline polyline, Affine2 m, DisplayList2 list, DisplayStyle style, string handle, string layer)
+        {
+            GeoVector3 normal = polyline.Normal;
+            int n = polyline.NumberOfVertices;
+
+            if (n < 2 || !(normal.Z > 0.0) || !IsFlat(normal))
+            {
+                return false;
+            }
+
+            int edges = polyline.Closed ? n : n - 1;
+
+            for (int i = 0; i < edges; i++)
+            {
+                GeoPoint2 p0 = polyline.GetPoint2dAt(i);
+                GeoPoint2 p1 = polyline.GetPoint2dAt((i + 1) % n);
+                double w0 = polyline.GetStartWidthAt(i) / 2.0;
+                double w1 = polyline.GetEndWidthAt(i) / 2.0;
+                double bulge = polyline.GetBulgeAt(i);
+                double dx = p1.X - p0.X;
+                double dy = p1.Y - p0.Y;
+                double chord = Math.Sqrt(dx * dx + dy * dy);
+
+                if (!(chord > 0.0))
+                {
+                    continue;
+                }
+
+                var ring = new List<double>();
+
+                if (Math.Abs(bulge) < 1E-12)
+                {
+                    double nx = -dy / chord;
+                    double ny = dx / chord;
+
+                    if (w0 <= 0.0 && w1 <= 0.0)
+                    {
+                        list.Add(new DisplayPolyline2(new[] { m.X(p0.X, p0.Y), m.Y(p0.X, p0.Y), m.X(p1.X, p1.Y), m.Y(p1.X, p1.Y) }, false, style, handle, layer));
+                        continue;
+                    }
+
+                    Ring(ring, m, p0.X + nx * w0, p0.Y + ny * w0);
+                    Ring(ring, m, p1.X + nx * w1, p1.Y + ny * w1);
+                    Ring(ring, m, p1.X - nx * w1, p1.Y - ny * w1);
+                    Ring(ring, m, p0.X - nx * w0, p0.Y - ny * w0);
+                }
+                else
+                {
+                    Bulge(p0.X, p0.Y, p1.X, p1.Y, bulge, out double cx, out double cy, out double radius, out double start, out double sweep);
+                    int steps = Math.Max(2, (int)Math.Ceiling(Math.Abs(sweep) / ArcStep));
+
+                    if (w0 <= 0.0 && w1 <= 0.0)
+                    {
+                        for (int k = 0; k <= steps; k++)
+                        {
+                            double angle = start + sweep * k / steps;
+                            Ring(ring, m, cx + radius * Math.Cos(angle), cy + radius * Math.Sin(angle));
+                        }
+
+                        list.Add(new DisplayPolyline2(ring.ToArray(), false, style, handle, layer) { IsSampled = true });
+                        continue;
+                    }
+
+                    // The outer edge forward, then the inner back; an inner radius below nought lies across the centre.
+                    for (int k = 0; k <= steps; k++)
+                    {
+                        double angle = start + sweep * k / steps;
+                        double r = radius + w0 + (w1 - w0) * k / steps;
+                        Ring(ring, m, cx + r * Math.Cos(angle), cy + r * Math.Sin(angle));
+                    }
+
+                    for (int k = steps; k >= 0; k--)
+                    {
+                        double angle = start + sweep * k / steps;
+                        double r = radius - w0 - (w1 - w0) * k / steps;
+                        Ring(ring, m, cx + r * Math.Cos(angle), cy + r * Math.Sin(angle));
+                    }
+                }
+
+                list.Add(new DisplayFill2(new[] { ring.ToArray() }, false, style, handle, layer));
+            }
+
+            return true;
+        }
+
+        private static void Ring(List<double> ring, Affine2 m, double x, double y)
+        {
+            ring.Add(m.X(x, y));
+            ring.Add(m.Y(x, y));
+        }
+
+        /// <summary>
+        /// A POINT as PDMODE draws it, other than the dot of 0: nothing for 1, a plus for 2, a cross for 3, a tick up from the
+        /// point for 4, with a circle (32), a square (64) or both (96) about it, each the size PDSIZE gives (see
+        /// <see cref="PointSize"/>) and turned back by the point's <see cref="DxfDBPoint.EcsRotation"/>, which AutoCAD measures
+        /// clockwise. A mode of 5 to 31 is drawn as its dot.
+        /// </summary>
+        private void AddPoint(DxfDBPoint point, Affine2 m, DisplayList2 list, DisplayStyle style, string handle, string layer)
+        {
+            GeoPoint3 at = point.Position;
+            int shape = _pdmode & 31;
+            double half = PointSize(m) / 2.0;
+            double turn = -point.EcsRotation;
+            double cos = Math.Cos(turn);
+            double sin = Math.Sin(turn);
+
+            void Line(double u0, double v0, double u1, double v1)
+            {
+                double x0 = at.X + u0 * cos - v0 * sin;
+                double y0 = at.Y + u0 * sin + v0 * cos;
+                double x1 = at.X + u1 * cos - v1 * sin;
+                double y1 = at.Y + u1 * sin + v1 * cos;
+                list.Add(new DisplayPolyline2(new[] { m.X(x0, y0), m.Y(x0, y0), m.X(x1, y1), m.Y(x1, y1) }, false, style, handle, layer));
+            }
+
+            switch (shape)
+            {
+                case 1:
+                    break;
+                case 2:
+                    Line(-half, 0.0, half, 0.0);
+                    Line(0.0, -half, 0.0, half);
+                    break;
+                case 3:
+                    Line(-half, -half, half, half);
+                    Line(-half, half, half, -half);
+                    break;
+                case 4:
+                    Line(0.0, 0.0, 0.0, half);
+                    break;
+                default:
+                    list.Add(new DisplayPolyline2(new[] { m.X(at.X, at.Y), m.Y(at.X, at.Y) }, false, style, handle, layer));
+                    break;
+            }
+
+            if ((_pdmode & 32) != 0)
+            {
+                AddCircle(new GeoCircle3(at, new GeoVector3(0.0, 0.0, 1.0), half), m, list, style, handle, layer);
+            }
+
+            if ((_pdmode & 64) != 0)
+            {
+                Line(-half, -half, half, -half);
+                Line(half, -half, half, half);
+                Line(half, half, -half, half);
+                Line(-half, half, -half, -half);
+            }
+        }
+
+        /// <summary>
+        /// The size of a point's symbol in the units of the frame it is drawn in, as PDSIZE gives it: above nought in drawing
+        /// units; below nought that percentage of the height of the view; nought five per cent of it, as AutoCAD sizes them at a
+        /// regeneration. The view is <see cref="CadDocument.PointViewHeight"/> where it is set, else the height of the drawing's
+        /// extents, else of its limits: a symbol of a relative size is of one size on the sheet whatever block it is in.
+        /// </summary>
+        private double PointSize(Affine2 m)
+        {
+            if (_pdsize > 0.0)
+            {
+                return _pdsize;
+            }
+
+            double percent = _pdsize < 0.0 ? -_pdsize : 5.0;
+            double scale = m.Scale > 0.0 ? m.Scale : 1.0;
+            return _pointViewHeight * percent / 100.0 / scale;
+        }
+
+        /// <summary>The height of the view relative point sizes are taken from: the document's, else the drawing's extents, else its limits, else 1.</summary>
+        private static double ViewHeightOf(DxfDatabase database, CadDocument document)
+        {
+            if (document != null && document.PointViewHeight > 0.0 && !double.IsInfinity(document.PointViewHeight))
+            {
+                return document.PointViewHeight;
+            }
+
+            try
+            {
+                double extents = database.Extmax.Y - database.Extmin.Y;
+
+                if (extents > 0.0 && extents < 1E19)
+                {
+                    return extents;
+                }
+
+                double limits = database.Limmax.Y - database.Limmin.Y;
+                return limits > 0.0 && !double.IsInfinity(limits) ? limits : 1.0;
+            }
+            catch (Exception)
+            {
+                return 1.0;
+            }
+        }
+
         /// <summary>The arc a bulge draws from one vertex to the next: its centre, radius, start angle and signed sweep.</summary>
         private static void Bulge(double x0, double y0, double x1, double y1, double bulge, out double cx, out double cy, out double radius, out double start, out double sweep)
         {

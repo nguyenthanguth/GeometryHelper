@@ -125,14 +125,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Assert.True(result.Succeeded, result.Message);
             DxfDimStyleTableRecord record = document.Database.DimStyleTable[style];
-            Assert.Equal("_ARCHTICK", record.Dimblk.Name);
+            Assert.Equal("_ArchTick", record.Dimblk.Name);
             Assert.Equal(3.0, record.Dimasz);
             dimension = Entity<DxfRotatedDimension>(document, handle);
-            Assert.Equal(2, dimension.DimBlock.OfType<DxfSolid>().Count());
+            Assert.Equal(2, dimension.DimBlock.OfType<DxfPolyline>().Count(p => p.ConstantWidth > 0.0));
             Assert.Equal(2, solids);
             DxfLine line = dimension.DimBlock.OfType<DxfLine>().Single(l => Math.Abs(l.StartPoint.Y - l.EndPoint.Y) < 1E-9 && l.StartPoint.Y < -1.0);
             Assert.Equal(300.0 + 2.0 * 1.25 * Scale(record), Math.Abs(line.EndPoint.X - line.StartPoint.X), 9);
-            Assert.Contains("_ARCHTICK", document.Database.ToText(), StringComparison.Ordinal);
+            Assert.Contains("_ArchTick", document.Database.ToText(), StringComparison.Ordinal);
             AssertReopens(document);
 
             Assert.True(document.Undo());

@@ -7,41 +7,59 @@ namespace GeometryHelper.Dxf.Viewer
 {
     /// <summary>
     /// AutoCAD's arrowheads of dimensions and leaders: the names its Dimension Style Manager lists, the blocks it makes for
-    /// them when a style first uses one (<c>_ARCHTICK</c>, <c>_DOT</c>), and their shapes, one unit long with the tip at the
-    /// origin and the body towards -X, as AutoCAD and ezdxf draw them.
+    /// them when a style or a leader first uses one (<c>_ArchTick</c>, <c>_Dot</c>), and their shapes, one unit long with the
+    /// tip at the origin and the body towards -X, entity for entity as AutoCAD 2021 writes them.
     /// </summary>
     /// <remarks>
-    /// Closed filled has no block: a style names none for it. A style that names a block of another name (a user arrow) is
-    /// listed under that name and drawn closed filled by the presenter.
+    /// <para>
+    /// Closed filled has no block: a style names none for it. Each other block holds what AutoCAD 2021 puts in it, on layer 0,
+    /// colour and linetype ByBlock, its lines, circles and arcs of lineweight ByBlock: Closed is the three sides of a triangle
+    /// one long and a third wide with a line down its middle; Dot a polyline of two half circles 0.5 wide about the tip, which
+    /// fills a disc of radius 0.5, and a line from -0.5 to -1; Architectural tick a polyline 0.15 wide from (-0.5, -0.5) to
+    /// (0.5, 0.5). A dimension's picture and the presenter draw an arrowhead from the same shapes, placed at its tip and scaled
+    /// by its size.
+    /// </para>
+    /// <para>
+    /// A style that names a block of another name (a user arrow) is listed under that name and drawn closed filled in a
+    /// dimension's picture.
+    /// </para>
     /// </remarks>
     public static class CadArrowheads
     {
         /// <summary>The name of AutoCAD's own arrowhead, which needs no block.</summary>
         public const string ClosedFilled = "Closed filled";
 
+        // Half the width of the closed arrowheads and Open, the half height of Open 30 and of the datum triangles, as AutoCAD
+        // 2021 writes them (tan 15 and tan 30 degrees to eight places).
+        private const double Sixth = 1.0 / 6.0;
+        private const double Open30 = 0.26794919;
+        private const double Datum = 0.57735027;
+
         private static readonly KeyValuePair<string, string>[] Table =
         {
             new KeyValuePair<string, string>(ClosedFilled, string.Empty),
-            new KeyValuePair<string, string>("Closed blank", "_CLOSEDBLANK"),
-            new KeyValuePair<string, string>("Dot", "_DOT"),
-            new KeyValuePair<string, string>("Architectural tick", "_ARCHTICK"),
-            new KeyValuePair<string, string>("Oblique", "_OBLIQUE"),
-            new KeyValuePair<string, string>("Open", "_OPEN"),
-            new KeyValuePair<string, string>("Origin indicator", "_ORIGIN"),
-            new KeyValuePair<string, string>("Right angle", "_OPEN90"),
-            new KeyValuePair<string, string>("Open 30", "_OPEN30"),
-            new KeyValuePair<string, string>("Dot small", "_DOTSMALL"),
-            new KeyValuePair<string, string>("Dot blank", "_DOTBLANK"),
-            new KeyValuePair<string, string>("Dot small blank", "_SMALL"),
-            new KeyValuePair<string, string>("Box", "_BOXBLANK"),
-            new KeyValuePair<string, string>("Box filled", "_BOXFILLED"),
-            new KeyValuePair<string, string>("Datum triangle", "_DATUMBLANK"),
-            new KeyValuePair<string, string>("Datum triangle filled", "_DATUMFILLED"),
-            new KeyValuePair<string, string>("Integral", "_INTEGRAL"),
-            new KeyValuePair<string, string>("None", "_NONE"),
+            new KeyValuePair<string, string>("Closed blank", "_ClosedBlank"),
+            new KeyValuePair<string, string>("Closed", "_Closed"),
+            new KeyValuePair<string, string>("Dot", "_Dot"),
+            new KeyValuePair<string, string>("Architectural tick", "_ArchTick"),
+            new KeyValuePair<string, string>("Oblique", "_Oblique"),
+            new KeyValuePair<string, string>("Open", "_Open"),
+            new KeyValuePair<string, string>("Origin indicator", "_Origin"),
+            new KeyValuePair<string, string>("Origin indicator 2", "_Origin2"),
+            new KeyValuePair<string, string>("Right angle", "_Open90"),
+            new KeyValuePair<string, string>("Open 30", "_Open30"),
+            new KeyValuePair<string, string>("Dot small", "_DotSmall"),
+            new KeyValuePair<string, string>("Dot blank", "_DotBlank"),
+            new KeyValuePair<string, string>("Dot small blank", "_Small"),
+            new KeyValuePair<string, string>("Box", "_BoxBlank"),
+            new KeyValuePair<string, string>("Box filled", "_BoxFilled"),
+            new KeyValuePair<string, string>("Datum triangle", "_DatumBlank"),
+            new KeyValuePair<string, string>("Datum triangle filled", "_DatumFilled"),
+            new KeyValuePair<string, string>("Integral", "_Integral"),
+            new KeyValuePair<string, string>("None", "_None"),
         };
 
-        /// <summary>Gets the names of the arrowheads, in the order of AutoCAD's list: Closed filled, Closed blank, Dot, ... None.</summary>
+        /// <summary>Gets the names of the arrowheads, in the order of AutoCAD's list: Closed filled, Closed blank, Closed, Dot, ... None.</summary>
         public static IReadOnlyList<string> Names { get; } = Array.ConvertAll(Table, p => p.Key);
 
         /// <summary>Gets the name of the arrowhead a style's block draws: Closed filled for none, the block's own name for a user arrow.</summary>
@@ -68,15 +86,22 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// Gets the block of an arrowhead in a drawing, made as AutoCAD makes it the first time a style uses it: the shape one
-        /// unit long, colour ByBlock, on layer 0; null for Closed filled. A user arrow is the block of that name, where the
-        /// drawing has it. Call it inside an edit of the document, as it may add a block.
+        /// Gets the block of an arrowhead in a drawing, made as AutoCAD makes it the first time a style or a leader uses it:
+        /// <c>_ArchTick</c> for Architectural tick, its shape one unit long (<see cref="CadArrowheads"/>); null for Closed
+        /// filled. A drawing that has the block, by a name of either case, keeps its own. A user arrow is the block of that
+        /// name, where the drawing has it. Call it inside an edit of the document, as it may add a block.
         /// </summary>
         /// <param name="database">The drawing.</param>
-        /// <param name="name">The name of the arrowhead, as <see cref="Names"/> lists it.</param>
+        /// <param name="name">The name of the arrowhead, as <see cref="Names"/> lists it, letters of either case the same.</param>
         /// <returns>The block, or null for Closed filled and for a name the drawing has no block of.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the drawing is null.</exception>
         public static DxfBlockTableRecord Ensure(DxfDatabase database, string name)
         {
+            if (database == null)
+            {
+                throw new ArgumentNullException(nameof(database));
+            }
+
             string block = BlockOf(name);
 
             if (block == null)
@@ -97,7 +122,12 @@ namespace GeometryHelper.Dxf.Viewer
             var record = new DxfBlockTableRecord { Name = block };
             database.BlockTable.Add(record);
 
-            foreach (DxfEntity entity in Shape(block, new GeoPoint2(0.0, 0.0), new GeoVector2(1.0, 0.0), 1.0))
+            // AutoCAD's lineweight ByBlock from R2000, which brought lineweights; a POLYLINE before R14, which has no LWPOLYLINE.
+            string version = database.Version ?? string.Empty;
+            bool weights = string.CompareOrdinal(version, "AC1015") >= 0;
+            bool lightweight = string.CompareOrdinal(version, "AC1014") >= 0;
+
+            foreach (DxfEntity entity in Shape(block, new GeoPoint2(0.0, 0.0), new GeoVector2(1.0, 0.0), 1.0, weights, lightweight))
             {
                 record.AppendEntity(entity);
             }
@@ -110,93 +140,84 @@ namespace GeometryHelper.Dxf.Viewer
             => string.Equals(blockName, "_ARCHTICK", StringComparison.OrdinalIgnoreCase) || string.Equals(blockName, "_OBLIQUE", StringComparison.OrdinalIgnoreCase);
 
         /// <summary>
-        /// The entities of an arrowhead of a block name (empty for Closed filled), its tip at a point, pointing a way, a size
-        /// long, colour ByBlock: lines, arcs, circles and filled SOLIDs, a filled dot as a fan of SOLIDs.
+        /// The entities of an arrowhead of a block name, letters of either case the same, its tip at a point, pointing a way of
+        /// unit length, a size long, as AutoCAD's block of it holds them (see <see cref="CadArrowheads"/>): closed filled, the
+        /// SOLID of a triangle a third as wide as long, for no name and for a name not AutoCAD's; none for <c>_None</c>. A
+        /// dimension's picture takes them with the lineweight it is drawn with (<paramref name="weights"/> false) and its dots
+        /// and ticks as LWPOLYLINEs; a block of a file before R14 holds them as POLYLINEs.
         /// </summary>
-        internal static List<DxfEntity> Shape(string blockName, GeoPoint2 tip, GeoVector2 way, double size)
+        internal static List<DxfEntity> Shape(string blockName, GeoPoint2 tip, GeoVector2 way, double size, bool weights = false, bool lightweight = true)
         {
-            var parts = new List<DxfEntity>();
-            GeoVector2 x = way * size;
-            var y = new GeoVector2(-x.Y, x.X);
-            Func<double, double, GeoPoint3> at = (u, v) => CadCommands.P3(tip + x * u + y * v);
-            string name = (blockName ?? string.Empty).ToUpperInvariant();
-            double angle = Math.Atan2(way.Y, way.X);
+            var parts = new Shapes(tip, way, size, weights, lightweight);
 
-            switch (name)
+            switch ((blockName ?? string.Empty).ToUpperInvariant())
             {
-                case "":
-                    parts.Add(new DxfSolid(at(0, 0), at(-1, 1.0 / 6.0), at(-1, -1.0 / 6.0)));
-                    break;
                 case "_CLOSEDBLANK":
-                    Lines(parts, at, -1, 1.0 / 6.0, 0, 0, -1, -1.0 / 6.0, -1, 1.0 / 6.0);
+                    parts.Line(-1, Sixth, 0, 0).Line(0, 0, -1, -Sixth).Line(-1, Sixth, -1, -Sixth);
+                    break;
+                case "_CLOSED":
+                    parts.Line(-1, Sixth, 0, 0).Line(0, 0, -1, -Sixth).Line(-1, Sixth, -1, -Sixth).Line(0, 0, -1, 0);
                     break;
                 case "_DOT":
-                    Disc(parts, at, 0.5, 0.0);
-                    Lines(parts, at, -0.5, 0, -1, 0);
+                    parts.Donut(0.25).Line(-0.5, 0, -1, 0);
                     break;
                 case "_ARCHTICK":
-                    double w = 0.075 / Math.Sqrt(2.0);
-                    parts.Add(new DxfSolid(at(-0.5 + w, -0.5 - w), at(-0.5 - w, -0.5 + w), at(0.5 + w, 0.5 - w), at(0.5 - w, 0.5 + w)));
+                    parts.Wide(0.15, -0.5, -0.5, 0.5, 0.5);
                     break;
                 case "_OBLIQUE":
-                    Lines(parts, at, -0.5, -0.5, 0.5, 0.5);
+                    parts.Line(-0.5, -0.5, 0.5, 0.5);
                     break;
                 case "_OPEN":
-                case "_OPEN90":
-                case "_OPEN30":
-                    double h = Math.Sin((name == "_OPEN" ? 18.924644 : name == "_OPEN90" ? 90.0 : 30.0) * Math.PI / 360.0);
-                    Lines(parts, at, -1, h, 0, 0, -1, -h);
-                    Lines(parts, at, 0, 0, -1, 0);
+                    parts.Line(-1, Sixth, 0, 0).Line(-1, -Sixth, 0, 0).Line(0, 0, -1, 0);
                     break;
                 case "_ORIGIN":
-                    parts.Add(new DxfCircle(at(0, 0), new GeoVector3(0, 0, 1), 0.5 * size));
-                    Lines(parts, at, 0, 0, -1, 0);
+                    parts.Circle(0.5).Line(0, 0, -1, 0);
+                    break;
+                case "_ORIGIN2":
+                    parts.Circle(0.5).Circle(0.25).Line(-0.5, 0, -1, 0);
+                    break;
+                case "_OPEN90":
+                    parts.Line(-0.5, 0.5, 0, 0).Line(0, 0, -0.5, -0.5).Line(0, 0, -1, 0);
+                    break;
+                case "_OPEN30":
+                    parts.Line(-1, Open30, 0, 0).Line(0, 0, -1, -Open30).Line(0, 0, -1, 0);
                     break;
                 case "_DOTSMALL":
-                    Disc(parts, at, 0.125, 0.0);
+                    parts.Donut(0.0625);
                     break;
                 case "_DOTBLANK":
-                    parts.Add(new DxfCircle(at(0, 0), new GeoVector3(0, 0, 1), 0.5 * size));
-                    Lines(parts, at, -0.5, 0, -1, 0);
+                    parts.Circle(0.5).Line(-0.5, 0, -1, 0);
                     break;
                 case "_SMALL":
-                    parts.Add(new DxfCircle(at(0, 0), new GeoVector3(0, 0, 1), 0.25 * size));
+                    parts.Circle(0.25);
                     break;
                 case "_BOXBLANK":
-                    Lines(parts, at, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5, -0.5, -0.5);
-                    Lines(parts, at, -0.5, 0, -1, 0);
+                    parts.Line(-0.5, -0.5, 0.5, -0.5).Line(0.5, -0.5, 0.5, 0.5).Line(0.5, 0.5, -0.5, 0.5).Line(-0.5, 0.5, -0.5, -0.5).Line(-0.5, 0, -1, 0);
                     break;
                 case "_BOXFILLED":
-                    parts.Add(new DxfSolid(at(-0.5, -0.5), at(0.5, -0.5), at(-0.5, 0.5), at(0.5, 0.5)));
-                    Lines(parts, at, -0.5, 0, -1, 0);
+                    parts.Solid(-0.5, 0.5, 0.5, 0.5, -0.5, -0.5, 0.5, -0.5).Line(-0.5, 0, -1, 0);
                     break;
                 case "_DATUMBLANK":
-                    Lines(parts, at, 0, 0.577350269, 0, -0.577350269, -1, 0, 0, 0.577350269);
+                    parts.Line(0, Datum, -1, 0).Line(-1, 0, 0, -Datum).Line(0, -Datum, 0, Datum);
                     break;
                 case "_DATUMFILLED":
-                    parts.Add(new DxfSolid(at(0, 0.577350269), at(0, -0.577350269), at(-1, 0)));
+                    parts.Solid(0, Datum, -1, 0, 0, -Datum, 0, -Datum);
                     break;
                 case "_INTEGRAL":
-                    double r = 0.3535534;
-                    parts.Add(new DxfArc(at(-r, 0), r * size, Turned(angle - Math.PI / 2.0), Turned(angle)));
-                    parts.Add(new DxfArc(at(r, 0), r * size, Turned(angle + Math.PI / 2.0), Turned(angle + Math.PI)));
+                    // 102 to 168 and 282 to 348 degrees, in AutoCAD's radians of ten places.
+                    parts.Arc(0.44488802, -0.09133463, 0.45416667, 1.780235837, 2.932153143).Arc(-0.44488802, 0.09133463, 0.45416667, 4.921828491, 6.073745797);
                     break;
                 case "_NONE":
                     break;
                 default:
-                    parts.Add(new DxfSolid(at(0, 0), at(-1, 1.0 / 6.0), at(-1, -1.0 / 6.0)));
+                    parts.Solid(0, 0, -1, Sixth, -1, -Sixth, -1, -Sixth);
                     break;
             }
 
-            foreach (DxfEntity part in parts)
-            {
-                part.Color = DxfColor.ByBlock;
-            }
-
-            return parts;
+            return parts.All;
         }
 
-        /// <summary>The block name of an arrowhead's name: empty for Closed filled, null for a name not AutoCAD's.</summary>
+        /// <summary>The block name of an arrowhead's name, letters of either case the same: empty for Closed filled, null for a name not AutoCAD's.</summary>
         internal static string BlockOf(string name)
         {
             foreach (KeyValuePair<string, string> pair in Table)
@@ -210,32 +231,102 @@ namespace GeometryHelper.Dxf.Viewer
             return null;
         }
 
-        /// <summary>A run of lines through points given as u, v pairs of the arrowhead's frame.</summary>
-        private static void Lines(List<DxfEntity> parts, Func<double, double, GeoPoint3> at, params double[] uv)
+        /// <summary>
+        /// The entities of one arrowhead, each given in the frame of the unit arrowhead (x along the arrow from its tip, y to its
+        /// left) and placed at the tip, turned the way it points and scaled by its size.
+        /// </summary>
+        private sealed class Shapes
         {
-            for (int i = 2; i + 1 < uv.Length; i += 2)
+            private readonly GeoPoint2 _tip;
+            private readonly GeoVector2 _x;
+            private readonly GeoVector2 _y;
+            private readonly double _size;
+            private readonly double _turn;
+            private readonly bool _weights;
+            private readonly bool _lightweight;
+
+            internal Shapes(GeoPoint2 tip, GeoVector2 way, double size, bool weights, bool lightweight)
             {
-                parts.Add(new DxfLine(at(uv[i - 2], uv[i - 1]), at(uv[i], uv[i + 1])));
+                _weights = weights;
+                _lightweight = lightweight;
+                _tip = tip;
+                _x = way * size;
+                _y = new GeoVector2(-_x.Y, _x.X);
+                _size = size;
+                _turn = Math.Atan2(way.Y, way.X);
             }
-        }
 
-        /// <summary>A filled disc about a point on the arrowhead's axis, as sixteen SOLIDs from its centre, as the drawing of a donut fills it.</summary>
-        private static void Disc(List<DxfEntity> parts, Func<double, double, GeoPoint3> at, double radius, double u)
-        {
-            const int Sides = 16;
+            internal List<DxfEntity> All { get; } = new List<DxfEntity>();
 
-            for (int i = 0; i < Sides; i++)
+            internal Shapes Line(double x1, double y1, double x2, double y2) => Add(new DxfLine(At(x1, y1), At(x2, y2)), true);
+
+            internal Shapes Circle(double radius) => Add(new DxfCircle(At(0, 0), new GeoVector3(0, 0, 1), radius * _size), true);
+
+            /// <summary>An arc about a centre, its angles in radians in the unit frame, counter-clockwise from the start.</summary>
+            internal Shapes Arc(double cx, double cy, double radius, double start, double end)
+                => Add(new DxfArc(At(cx, cy), radius * _size, Turned(start + _turn), Turned(end + _turn)), true);
+
+            /// <summary>A SOLID of four corners in DXF's order (10, 11, 12, 13).</summary>
+            internal Shapes Solid(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4)
+                => Add(new DxfSolid(At(x1, y1), At(x2, y2), At(x3, y3), At(x4, y4)), false);
+
+            /// <summary>A filled dot as AutoCAD writes one: a closed polyline of two half circles through (-h, 0) and (h, 0), 0.5 wide.</summary>
+            internal Shapes Donut(double half) => Polyline(0.5, true, 1.0, -half, 0.0, half, 0.0);
+
+            /// <summary>A straight polyline of a constant width through points given as x, y pairs.</summary>
+            internal Shapes Wide(double width, params double[] xy) => Polyline(width, false, 0.0, xy);
+
+            private Shapes Polyline(double width, bool closed, double bulge, params double[] xy)
             {
-                double a = 2.0 * Math.PI * i / Sides;
-                double b = 2.0 * Math.PI * (i + 1) / Sides;
-                parts.Add(new DxfSolid(at(u, 0), at(u + radius * Math.Cos(a), radius * Math.Sin(a)), at(u + radius * Math.Cos(b), radius * Math.Sin(b))));
-            }
-        }
+                double wide = width * _size;
+                var points = new List<GeoPoint3>();
 
-        private static double Turned(double angle)
-        {
-            angle -= Math.Floor(angle / (2.0 * Math.PI)) * 2.0 * Math.PI;
-            return angle >= 2.0 * Math.PI ? 0.0 : angle;
+                for (int i = 0; i + 1 < xy.Length; i += 2)
+                {
+                    points.Add(At(xy[i], xy[i + 1]));
+                }
+
+                if (!_lightweight)
+                {
+                    return Add(new DxfPolyline2d(DxfPoly2dType.SimplePoly, points, 0.0, closed, wide, wide, points.ConvertAll(p => bulge)), false);
+                }
+
+                var polyline = new DxfPolyline();
+
+                // The width of the whole polyline (43) and of each vertex (40, 41), as AutoCAD writes both.
+                polyline.ConstantWidth = wide;
+
+                foreach (GeoPoint3 p in points)
+                {
+                    polyline.AddVertexAt(polyline.NumberOfVertices, new GeoPoint2(p.X, p.Y), bulge, wide, wide);
+                }
+
+                polyline.Closed = closed;
+                return Add(polyline, false);
+            }
+
+            /// <summary>Gives a part AutoCAD's look of an arrowhead's: colour and linetype ByBlock, and a curve its lineweight ByBlock where weights are written.</summary>
+            private Shapes Add(DxfEntity part, bool weighted)
+            {
+                part.Color = DxfColor.ByBlock;
+                part.Linetype = "ByBlock";
+
+                if (weighted && _weights)
+                {
+                    part.LineWeight = DxfLineWeight.ByBlock;
+                }
+
+                All.Add(part);
+                return this;
+            }
+
+            private GeoPoint3 At(double x, double y) => CadCommands.P3(_tip + _x * x + _y * y);
+
+            private static double Turned(double angle)
+            {
+                angle -= Math.Floor(angle / (2.0 * Math.PI)) * 2.0 * Math.PI;
+                return angle >= 2.0 * Math.PI ? 0.0 : angle;
+            }
         }
     }
 }

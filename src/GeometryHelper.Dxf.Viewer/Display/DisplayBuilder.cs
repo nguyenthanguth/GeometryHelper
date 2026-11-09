@@ -28,6 +28,9 @@ namespace GeometryHelper.Dxf.Viewer
         private readonly Dictionary<string, double[]> _dashes = new Dictionary<string, double[]>(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, TextFont> _fonts = new Dictionary<string, TextFont>(StringComparer.OrdinalIgnoreCase);
         private readonly double _ltScale;
+        private readonly int _pdmode;
+        private readonly double _pdsize;
+        private double _pointViewHeight = 1.0;
         private readonly DisplayStyle _defaultStyle = new DisplayStyle(0xFFFFFF, 0.0, null);
 
         /// <summary>The patterns of the hatches met in the <see cref="Build"/> running, null for one drawn by its boundary; looked up only, never listed.</summary>
@@ -51,6 +54,18 @@ namespace GeometryHelper.Dxf.Viewer
 
             _ltScale = scale > 0.0 ? scale : 1.0;
 
+            // How points are drawn, read once as LTSCALE is: a change of PDMODE or PDSIZE makes a new builder.
+            try
+            {
+                _pdmode = database.Pdmode;
+                _pdsize = database.Pdsize;
+            }
+            catch (Exception)
+            {
+                _pdmode = 0;
+                _pdsize = 0.0;
+            }
+
             foreach (DxfLayerTableRecord layer in database.LayerTable)
             {
                 _layers[layer.Name] = new LayerState(layer);
@@ -69,6 +84,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             // The patterns are kept for this build only: an edit between two builds may have changed a hatch.
             _patterns.Clear();
+
+            // A point of a relative size takes the view as it stands when its space is drawn, as AutoCAD's at a regeneration.
+            if (_pdmode != 0 && _pdsize <= 0.0)
+            {
+                _pointViewHeight = ViewHeightOf(_database, _document);
+            }
 
             foreach (DxfEntity entity in space)
             {
@@ -431,6 +452,16 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     return;
+                case DxfDBPoint point when _pdmode != 0:
+                    AddPoint(point, frame.Matrix, list, style, handle, layerName);
+                    return;
+                case DxfPolyline wide when wide.HasWidth:
+                    if (AddWide(wide, frame.Matrix, list, style, handle, layerName))
+                    {
+                        return;
+                    }
+
+                    break;
             }
 
             IReadOnlyList<object> shapes = entity.GetGeometry();

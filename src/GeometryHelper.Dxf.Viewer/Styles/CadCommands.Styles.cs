@@ -109,11 +109,14 @@ namespace GeometryHelper.Dxf.Viewer
             c.Write(result.Succeeded ? "\"" + c.Database.TextStyleTable[name].Name + "\" is now the current text style." : result.Message);
         }
 
-        /// <summary>Takes a font typed: an SHX by its file (romans, romans.shx) where the fonts find it or it is named .shx, else a TrueType family or file.</summary>
+        /// <summary>
+        /// Takes a font typed: an SHX by its file (romans, romans.shx) where the fonts find it, it is named .shx or it is the
+        /// presenter's own (ghsimplex, written ghsimplex.shx), else a TrueType family or file.
+        /// </summary>
         private static void Font(CadCommandContext c, CadTextStyleSettings settings, string typed)
         {
             string extension = Path.GetExtension(typed).ToLowerInvariant();
-            bool shx = extension == ".shx" || (extension.Length == 0 && c.Document.Fonts.Locate(typed + ".shx", c.Document.FontFolder) != null);
+            bool shx = extension == ".shx" || (extension.Length == 0 && (CadFonts.IsBuiltIn(typed) || c.Document.Fonts.Locate(typed + ".shx", c.Document.FontFolder) != null));
 
             if (shx)
             {

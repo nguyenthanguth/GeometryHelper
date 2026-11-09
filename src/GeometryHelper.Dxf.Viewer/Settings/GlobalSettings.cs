@@ -333,6 +333,13 @@ namespace GeometryHelper.Dxf.Viewer
         public string FontMapFile { get => _fontMapFile; set => _fontMapFile = (value ?? string.Empty).Trim(); }
 
         /// <summary>
+        /// Gets or sets whether the Missing SHX files dialog is shown once as a drawing opens whose text styles name SHX fonts
+        /// not found, as AutoCAD shows it: on by default; its Do not show again turns it off. The command line says the
+        /// missing files in one line either way.
+        /// </summary>
+        public bool ShowMissingShxDialog { get; set; } = true;
+
+        /// <summary>
         /// Gets or sets the support file search folders: the user's own folders where linetype files (.lin) and hatch pattern
         /// files (.pat) are looked for, in order, after the folder of the drawing, as AutoCAD's support path; none by default
         /// (<see cref="CadSupportFiles.DefaultFolders"/>), the presenter's own linetypes and patterns then the only ones, and
@@ -601,6 +608,7 @@ namespace GeometryHelper.Dxf.Viewer
             w.CloseList();
             w.Value("replacement", _replacementFont);
             w.Value("fontMap", _fontMapFile);
+            w.Value("showMissingShxDialog", ShowMissingShxDialog);
             w.Open("substitutions");
 
             foreach (KeyValuePair<string, string> pair in _fontSubstitutions)
@@ -759,6 +767,7 @@ namespace GeometryHelper.Dxf.Viewer
                 Number("text", "widthFactor", v => _s.WidthFactor = v);
                 Text("fonts", "replacement", v => _s.ReplacementFont = v);
                 Text("fonts", "fontMap", v => _s.FontMapFile = v);
+                Flag("fonts", "showMissingShxDialog", v => _s.ShowMissingShxDialog = v);
                 Take("fonts", "searchFolders", e => _s.FontSearchFolders = e.Elements().Select(f => f.Value).ToList());
                 Take("fonts", "substitutions", e => _s.SetFontSubstitutions(Pairs(e)));
                 Take("support", "searchFolders", e => _s.SupportSearchFolders = e.Elements().Select(f => f.Value).ToList());

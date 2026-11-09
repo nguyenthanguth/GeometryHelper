@@ -95,6 +95,9 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("STYLE", StyleDialog));
             registry.Add(new CadCommand("-STYLE", StyleTyped));
             registry.Add(new CadCommand("DIMSTYLE", DimStyleDialog));
+            registry.Add(new CadCommand("PTYPE", PointStyle));
+            registry.Add(new CadCommand("PDMODE", PointMode));
+            registry.Add(new CadCommand("PDSIZE", PointSize));
         }
 
         /// <summary>A point of the plan in space, at nought height.</summary>
@@ -165,6 +168,13 @@ namespace GeometryHelper.Dxf.Viewer
         private static IEnumerable<CadPrompt> Regen(CadCommandContext c)
         {
             c.Write("Regenerating model.");
+
+            // Points of a relative size take the size of the view regenerated in, as AutoCAD's.
+            if (c.Session.View != null)
+            {
+                c.Document.PointViewHeight = c.Session.View.VisibleBox.Height;
+            }
+
             c.Document.Regen();
             yield break;
         }

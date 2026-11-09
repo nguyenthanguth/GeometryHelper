@@ -11,6 +11,25 @@
                 <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml" />
                 <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Icons.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <!-- The file box: read only, in mono type, muted while it names the built-in set. -->
+            <Style x:Key="FileBox" TargetType="TextBox" BasedOn="{StaticResource GhTextBox}">
+                <Setter Property="FontFamily" Value="{StaticResource GhMonoFont}" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsBuiltIn}" Value="True">
+                        <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <!-- Built-in: dimmer than a muted word while there is nothing to go back from. -->
+            <Style x:Key="ResetButton" TargetType="Button" BasedOn="{StaticResource GhDialogButton}">
+                <Style.Triggers>
+                    <Trigger Property="IsEnabled" Value="False">
+                        <Setter Property="Foreground" Value="#6B7480" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
         </ResourceDictionary>
     </Window.Resources>
 
@@ -35,15 +54,19 @@
                 </DockPanel>
             </Border>
 
-            <!-- The file: one of the support folders' .lin files or the presenter's own set, or another by File... -->
-            <Border DockPanel.Dock="Top" Padding="16,12,16,8">
+            <!-- The file: the presenter's own set, or a .lin file chosen by Browse… whose linetypes follow the set's. -->
+            <StackPanel DockPanel.Dock="Top" Margin="16,12,16,8">
                 <DockPanel>
                     <TextBlock DockPanel.Dock="Left" Text="File:" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                    <Button DockPanel.Dock="Right" Style="{StaticResource GhDialogButton}" Content="File..." Margin="8,0,0,0" Click="OnBrowse" />
-                    <ComboBox Style="{StaticResource GhComboBox}" ItemsSource="{Binding Files}" SelectedItem="{Binding File, Mode=TwoWay}"
-                              FontFamily="{StaticResource GhMonoFont}" ToolTip="The .lin file the linetypes are read from: one found, or one chosen by File..." />
+                    <Button DockPanel.Dock="Right" Style="{StaticResource ResetButton}" Content="Built-in" Padding="14,5" Margin="8,0,0,0"
+                            Command="{Binding BuiltInCommand}" ToolTip="Go back to the built-in linetypes" />
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhDialogButton}" Content="Browse…" Padding="14,5" Margin="8,0,0,0" Command="{Binding BrowseCommand}" />
+                    <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" Background="{StaticResource GhInput}" Padding="8,5">
+                        <TextBox Style="{StaticResource FileBox}" Text="{Binding FileText, Mode=OneWay}" IsReadOnly="True" ToolTip="{Binding FileText}" />
+                    </Border>
                 </DockPanel>
-            </Border>
+                <TextBlock Text="{Binding Hint}" Foreground="{StaticResource GhTextMuted}" Margin="0,8,0,0" TextWrapping="Wrap" />
+            </StackPanel>
 
             <Border DockPanel.Dock="Top" Padding="16,0,16,6">
                 <DockPanel>

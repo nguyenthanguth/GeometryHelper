@@ -93,6 +93,24 @@ another file of the folder was opened, or once it was saved with Save and shown 
 now says, for example, "Test bodies (from file)" until the drawing is made again. The out-of-date dot now shows on such a
 drawing too, checked in the source its file names without changing it.
 
+**NEW.** The presenter's NEW starts from its own metric template, `CadTemplate.CreateMetric()`: the settings of acadiso.dwt
+written into the header, so that AutoCAD opens the drawing as metric too, with ISO-25 current (arrowheads and text 2.5, a
+decimal comma) and the text styles Standard and Annotative in Arial, as AutoCAD 2021's has them.
+
+**NEW.** The presenter's 20 arrowheads, Closed and Origin indicator 2 among them, make AutoCAD 2021's blocks entity for entity
+(`_Dot` a polyline 0.5 wide of two half circles) the first time a dimension style or a multileader uses them; AutoCAD's AUDIT
+finds no error in a drawing using all 19. **CHANGED.** Arrowhead blocks are named as AutoCAD names them (`_ArchTick`, not
+`_ARCHTICK`).
+
+**NEW.** PTYPE (DDPTYPE), PDMODE and PDSIZE, and points drawn as PDMODE says, in drawing units or as a share of the view;
+LWPOLYLINEs with a width are drawn filled, as AutoCAD fills them.
+
+**NEW.** The Hatch dialog has a Pattern file row: Browse… adds a .pat file's patterns after the 48 built-in ones (a built-in
+name wins). Load or Reload Linetypes shows the built-in GeometryHelper.lin, then the linetypes of a .lin file chosen by Browse….
+A drawing opened whose text styles name SHX files not found shows Missing SHX files: the files, the styles that use them and
+what they are drawn in, a replacement to pick for each or FONTALT kept (Global settings' `ShowMissingShxDialog`, on by default).
+**FIXED.** `-STYLE` and the Text Style dialog take the built-in font `ghsimplex` as an SHX font, not as a TrueType family.
+
 **CHANGED.** Close is orange-red in the WPF apps, as designed: the footer Close of the Layer manager, Plugin manager, plugin
 settings, Text style, Dimension style manager and Compare dimension styles is filled #C2410C, the title-bar cross of every
 dialog and of the main window is drawn #F26B3A and fills orange-red under the mouse, and the close cross of an open drawing in

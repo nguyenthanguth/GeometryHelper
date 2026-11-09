@@ -552,6 +552,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ListFolder(known.Folder);
             Show(known);
             Say("Opened " + document.Title + ": " + Count(document.EntityCount) + " entities, " + Count(document.Layers.Count) + " layers.");
+            OfferMissingFonts(document);
             return true;
         }
 

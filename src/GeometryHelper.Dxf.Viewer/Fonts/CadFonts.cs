@@ -429,8 +429,18 @@ namespace GeometryHelper.Dxf.Viewer
             return comma < 0 ? (which == 0 ? Replacement : string.Empty) : (which == 0 ? Replacement.Substring(0, comma) : Replacement.Substring(comma + 1)).Trim();
         }
 
-        private static bool IsBuiltIn(string name)
-            => string.Equals(name, BuiltInName, StringComparison.OrdinalIgnoreCase) || string.Equals(name, BuiltInName + ".shx", StringComparison.OrdinalIgnoreCase);
+        /// <summary>
+        /// Gets whether a font's name is that of the presenter's own font, as a text style, FONTALT or a font typed names it:
+        /// ghsimplex or ghsimplex.shx, letters of either case the same, the spaces around it left out; no file on disk is
+        /// looked for.
+        /// </summary>
+        /// <param name="name">The font's name or file; null for none.</param>
+        /// <returns>True for <see cref="BuiltInName"/>, with or without .shx.</returns>
+        public static bool IsBuiltIn(string name)
+        {
+            string trimmed = (name ?? string.Empty).Trim();
+            return string.Equals(trimmed, BuiltInName, StringComparison.OrdinalIgnoreCase) || string.Equals(trimmed, BuiltInName + ".shx", StringComparison.OrdinalIgnoreCase);
+        }
 
         /// <summary>A name as <see cref="Substitutions"/> gives it, by its whole name or its name without the extension; the name itself where none is given.</summary>
         private string Substitute(string name)

@@ -787,8 +787,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (CadEditRecord record in records)
             {
-                // The drawing's linetype scale changes every dash drawn, as AutoCAD regenerates after LTSCALE: a new builder reads it.
-                if (record.Kind == CadEditRecordKind.TableChanged || (record.Kind == CadEditRecordKind.SettingChanged && string.Equals(record.Property, "$LTSCALE", StringComparison.Ordinal)))
+                // The drawing's linetype scale changes every dash drawn, as AutoCAD regenerates after LTSCALE, and its point
+                // style every point: a new builder reads them.
+                if (record.Kind == CadEditRecordKind.TableChanged || (record.Kind == CadEditRecordKind.SettingChanged && Redraws(record.Property)))
                 {
                     tables = true;
                     all = true;
@@ -819,6 +820,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             return touched;
         }
+
+        /// <summary>Whether a setting of the header changes how every space is drawn: $LTSCALE, $PDMODE and $PDSIZE.</summary>
+        private static bool Redraws(string property)
+            => string.Equals(property, "$LTSCALE", StringComparison.Ordinal) || string.Equals(property, "$PDMODE", StringComparison.Ordinal) || string.Equals(property, "$PDSIZE", StringComparison.Ordinal);
 
         /// <summary>Drops the display lists of the spaces edits touched and raises <see cref="Changed"/>.</summary>
         private void Announce(CadChangeKind kind, string name, IReadOnlyList<CadEditRecord> records)

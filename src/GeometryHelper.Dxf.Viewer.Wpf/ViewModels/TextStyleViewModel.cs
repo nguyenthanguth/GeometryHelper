@@ -65,9 +65,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
     /// <summary>
     /// AutoCAD's Text Style dialog (STYLE, ST): the styles of the drawing (all, or those in use), a preview of the one
-    /// selected, Set Current, New, Delete and Rename, its font (the SHX files of the font folders and the TrueType families of
-    /// the machine, a font style for TrueType, a big font for SHX), its height, and the effects upside down, backwards,
-    /// vertical, width factor and oblique angle. Apply writes the style, one undo step, every text written in it drawn again;
+    /// selected, Set Current, New, Delete and Rename, its font (the presenter's own GeometryHelper Simplex, the SHX files of the
+    /// font folders and the TrueType families of the machine, a font style for TrueType, a big font for SHX), its height, and
+    /// the effects upside down, backwards, vertical, width factor and oblique angle. Apply writes the style, one undo step, every text written in it drawn again;
     /// a change not applied is asked about before another style is shown or the dialog closes, as AutoCAD asks.
     /// </summary>
     public sealed class TextStyleViewModel : ObservableObject
@@ -77,6 +77,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>The filter of the styles texts are written in.</summary>
         public const string StylesInUse = "Styles in use";
+
+        /// <summary>
+        /// The name the Font Name list gives the presenter's own font, first in the list: GeometryHelper Simplex (built-in). A
+        /// style given it names the file ghsimplex.shx (<see cref="CadFonts.BuiltInName"/>).
+        /// </summary>
+        public const string BuiltInFont = CadFonts.BuiltInTitle + " (built-in)";
 
         private static readonly string[] Styles4 = { "Regular", "Bold", "Italic", "Bold Italic" };
 
@@ -108,9 +114,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _document = document ?? throw new ArgumentNullException(nameof(document));
             _shxFiles = ShxFiles(document.Fonts.Folders.Concat(new[] { document.HasFile ? Path.GetDirectoryName(document.FileName) : null }));
             var fonts = new List<FontItemViewModel>();
-            fonts.AddRange(_shxFiles.Where(f => !f.Value).Select(f => new FontItemViewModel(f.Key, false)));
+            fonts.AddRange(_shxFiles.Where(f => !f.Value && !CadFonts.IsBuiltIn(f.Key)).Select(f => new FontItemViewModel(f.Key, false)));
             fonts.AddRange(CadTrueTypeFonts.Families.Select(f => new FontItemViewModel(f, true)));
-            FontNames = fonts.OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase).ThenBy(f => f.IsTrueType).ToList();
+            fonts.Add(new FontItemViewModel(BuiltInFont, false));
+            FontNames = Ordered(fonts);
             BigFonts = _shxFiles.Where(f => f.Value).Select(f => f.Key).ToList();
             SetCurrentCommand = new DelegateCommand(_ => SetCurrent());
             NewCommand = new DelegateCommand(_ => New(AskName?.Invoke("New Text Style", NextName())));
@@ -175,7 +182,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        /// <summary>Gets the fonts: the SHX files of the font folders and the TrueType families, in the order of their names.</summary>
+        /// <summary>
+        /// Gets the fonts: the presenter's own first (<see cref="BuiltInFont"/>), then the SHX files of the font folders and the
+        /// TrueType families, in the order of their names; a file ghsimplex.shx of a folder is passed over for the presenter's own.
+        /// </summary>
         public IReadOnlyList<FontItemViewModel> FontNames { get; private set; }
 
         /// <summary>Gets or sets the font, as listed.</summary>
@@ -587,7 +597,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (!FontNames.Any(f => string.Equals(f.Name, _fontName, StringComparison.OrdinalIgnoreCase)))
             {
-                FontNames = FontNames.Concat(new[] { new FontItemViewModel(_fontName, IsTrueType) }).OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase).ToList();
+                FontNames = Ordered(FontNames.Concat(new[] { new FontItemViewModel(_fontName, IsTrueType) }));
                 Raise(nameof(FontNames));
             }
 
@@ -660,7 +670,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
             else
             {
-                settings.FileName = _fontName ?? "txt";
+                settings.FileName = _fontName == BuiltInFont ? CadFonts.BuiltInName + ".shx" : _fontName ?? "txt";
 
                 // The file the style had, as it spelled it (txt, not txt.shx), where the font is the same.
                 if (_saved != null && string.Equals(FontOf(_saved), _fontName, StringComparison.OrdinalIgnoreCase))
@@ -675,7 +685,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return true;
         }
 
-        /// <summary>The font of a style as the list names it: its TrueType family, else its SHX file with .shx.</summary>
+        /// <summary>The fonts in the list's order: the presenter's own first, then by name, an SHX file before a TrueType family of the same name.</summary>
+        private static List<FontItemViewModel> Ordered(IEnumerable<FontItemViewModel> fonts)
+            => fonts.OrderBy(f => f.Name == BuiltInFont ? 0 : 1).ThenBy(f => f.Name, StringComparer.OrdinalIgnoreCase).ThenBy(f => f.IsTrueType).ToList();
+
+        /// <summary>The font of a style as the list names it: its TrueType family, the presenter's own font by its name in the list, else its SHX file with .shx.</summary>
         private static string FontOf(CadTextStyleSettings settings)
         {
             if (settings.Font.TypeFace.Length > 0)
@@ -684,6 +698,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             string file = settings.FileName ?? string.Empty;
+
+            if (CadFonts.IsBuiltIn(file))
+            {
+                return BuiltInFont;
+            }
             string extension = Path.GetExtension(file).ToLowerInvariant();
 
             if (extension == ".ttf" || extension == ".ttc" || extension == ".otf")

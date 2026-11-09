@@ -37,8 +37,10 @@ namespace GeometryHelper.Drawing.App
     /// index 30, on its Index Color or True Color tab (<c>truecolor-rgb</c> on its RGB model); <c>--dialog dsettings</c> or <c>--dialog "dsettings:Snap and Grid"</c> draws
     /// Drafting Settings on a tab; <c>--dialog osnap-menu</c> the OSNAP menu of the status bar, <c>--dialog snap-menu</c> the
     /// Shift+right-click menu of the point prompt <c>--run</c> leaves, and <c>--dialog drawings-menu</c> the right-click menu of
-    /// the first row of the DRAWINGS list; <c>--dialog linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user</c>
-    /// draws the Linetype Manager, Load or Reload Linetypes, Select Linetype or the Hatch dialog, the lines of --run typed first.
+    /// the first row of the DRAWINGS list; <c>--dialog linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file</c>
+    /// draws the Linetype Manager, Load or Reload Linetypes, Select Linetype or the Hatch dialog, the lines of --run typed first;
+    /// <c>--dialog missing-shx|missing-shx-replace</c> draws Missing SHX files for the drawing opened, or for a drawing of
+    /// styles whose SHX files are missing where it has none.
     /// </summary>
     public static class Program
     {
@@ -217,7 +219,7 @@ namespace GeometryHelper.Drawing.App
 
             if (output == null || width < 100 || height < 100 || (cursor != null && cursor.Length != 2))
             {
-                Console.Error.WriteLine("Usage: GeometryHelper.Drawing.App --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--new-drawing \"Test bodies\" Assembly] [--tab Drawing] [--pick view|dimension|mark|line] [--hand-edit] [--dialog new|new-source|new-settings|update|settings[:Tab]|export|message|run-plugin|plugins|plugin-settings|plugin-untrusted|color|truecolor|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu] [--plugin path.dll]");
+                Console.Error.WriteLine("Usage: GeometryHelper.Drawing.App --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--new-drawing \"Test bodies\" Assembly] [--tab Drawing] [--pick view|dimension|mark|line] [--hand-edit] [--dialog new|new-source|new-settings|update|settings[:Tab]|export|message|run-plugin|plugins|plugin-settings|plugin-untrusted|color|truecolor|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|missing-shx|missing-shx-replace] [--plugin path.dll]");
                 return 2;
             }
 
@@ -370,6 +372,34 @@ namespace GeometryHelper.Drawing.App
                 window = new Window();
                 width = 260;
                 height = MeasuredHeight(root, width);
+            }
+            else if (dialogName != null && dialogName.StartsWith("missing-shx", StringComparison.OrdinalIgnoreCase))
+            {
+                // Missing SHX files for the drawing opened, or for a drawing of three styles whose SHX files are missing;
+                // missing-shx-replace on Specify a replacement.
+                CadDocument document = model.Document;
+                IReadOnlyList<CadMissingFont> missing = document?.FindMissingFonts() ?? Array.Empty<CadMissingFont>();
+
+                if (missing.Count == 0)
+                {
+                    var database = new DxfDatabase("AC1027");
+                    database.TextStyleTable["Standard"].FileName = CadFonts.BuiltInName + ".shx";
+                    database.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "HZ", FileName = CadFonts.BuiltInName + ".shx", BigFontFileName = "hztxt.shx" });
+                    database.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "Notes-CN", FileName = CadFonts.BuiltInName + ".shx", BigFontFileName = "hztxt.shx" });
+                    database.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "Dims", FileName = "romand.shx" });
+                    database.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "TITLE", FileName = "romand.shx" });
+                    database.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "TSSD_Note", FileName = "tssdeng.shx" });
+                    document = CadDocument.From(database, "plan-level2.dxf");
+                    document.Fonts = new GlobalSettings().ToFonts();
+                    missing = document.FindMissingFonts();
+                }
+
+                var dialog = new MissingShxWindow(new MissingShxViewModel(document, missing));
+                dialog.Model.Replace = dialogName.EndsWith("-replace", StringComparison.OrdinalIgnoreCase);
+                root = dialog.Body;
+                window = dialog;
+                width = (int)dialog.Width;
+                height = (int)dialog.Height;
             }
             else if (model.Document != null && LinetypeOrHatchDialog(model, dialogName, ref run, out window, out root))
             {
@@ -647,7 +677,8 @@ namespace GeometryHelper.Drawing.App
         /// The dialogs of C9 a --dialog names, the lines of --run typed first: linetype (the Linetype Manager, its details shown,
         /// the presenter's own linetypes waiting to be loaded), linetype-load (Load or Reload Linetypes on acadiso.lin or the
         /// presenter's own set), select-linetype (Select Linetype), hatch (the Hatch dialog on ANSI31), hatch-gradient (on a
-        /// gradient) and hatch-user (on lines of the user's, doubled). False for any other name.
+        /// gradient), hatch-user (on lines of the user's, doubled), hatch-solid (on a solid fill) and hatch-file (a .pat file of
+        /// the user's chosen, a pattern of it shown). False for any other name.
         /// </summary>
         private static bool LinetypeOrHatchDialog(MainViewModel model, string dialogName, ref string run, out Window window, out FrameworkElement root)
         {
@@ -698,11 +729,26 @@ namespace GeometryHelper.Drawing.App
                     break;
                 default:
                     CadHatchSettings settings = model.Document.HatchSettings.Clone();
-                    settings.Type = name == "hatch-gradient" ? CadHatchType.Gradient : name == "hatch-user" ? CadHatchType.UserDefined : settings.Type;
+                    settings.Type = name == "hatch-gradient" ? CadHatchType.Gradient : name == "hatch-user" ? CadHatchType.UserDefined : name == "hatch-solid" ? CadHatchType.Solid : settings.Type;
                     settings.Double = name == "hatch-user";
                     settings.Spacing = 2.0;
                     settings.Angle = name == "hatch-user" ? 30.0 : settings.Angle;
-                    var hatchWindow = new HatchSettingsWindow(new HatchSettingsViewModel(model.Document, settings, false));
+                    var hatch = new HatchSettingsViewModel(model.Document, settings, false);
+
+                    // hatch-file: a .pat file of six patterns chosen by Browse…, GRATING-30 of it chosen.
+                    if (name == "hatch-file")
+                    {
+                        string folder = Path.Combine(Path.GetTempPath(), "GeometryHelper", "ScreenshotPatterns");
+                        Directory.CreateDirectory(folder);
+                        string pat = Path.Combine(folder, "steel-works.pat");
+                        File.WriteAllText(pat, "*GRATING-30,Grating at 30 degrees\n30, 0,0, 0,5\n120, 0,0, 0,5\n*CHEQUER,Chequer plate\n45, 0,0, 0,6, 3,-3\n135, 0,0, 0,6, 3,-3\n"
+                            + "*MESH-50,Mesh 50\n0, 0,0, 0,50\n90, 0,0, 0,50\n*BOLTS,Bolt pattern\n0, 0,0, 10,10, 0,-10\n*FLOOR-PL,Floor plate\n60, 0,0, 0,8, 4,-4\n"
+                            + "*ANSI31,Not the built-in one\n45, 0,0, 0,1\n*WELD,Weld\n45, 0,0, 0,2, 1,-1\n");
+                        hatch.PatternFile = pat;
+                        hatch.Pattern = hatch.Patterns.First(p => p.Name == "GRATING-30");
+                    }
+
+                    var hatchWindow = new HatchSettingsWindow(hatch);
                     window = hatchWindow;
                     root = hatchWindow.Body;
                     break;

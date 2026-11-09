@@ -18,7 +18,9 @@ namespace GeometryHelper.Dxf.Viewer
     /// the ends of a line; the centre, radius, diameter and circumference of a circle; the centre, radius and the start and end
     /// angles (in degrees) of an arc; the contents, height, rotation (in degrees) and position of a text and of an MTEXT; the
     /// text override of a dimension, "&lt;&gt; TYP" showing 3000 TYP on a dimension of 3 000, an empty one its measurement and
-    /// one of a single space, which is not trimmed as every other value is, no text at all, as AutoCAD reads it. With
+    /// one of a single space, which is not trimmed as every other value is, no text at all, as AutoCAD reads it; the arrowhead
+    /// of a multileader, one of <see cref="CadArrowheads.Names"/> (its block made as AutoCAD makes it on first use) or a block
+    /// of the drawing as a user arrow. With
     /// no entity selected, the first five set the drawing's current settings, which new entities take.
     /// </remarks>
     public static class CadPropertyEditor
@@ -206,6 +208,34 @@ namespace GeometryHelper.Dxf.Viewer
                 case "Text override" when entity is DxfDimension:
                     write = e => Override(db, (DxfDimension)e, text);
                     return null;
+                case "Arrowhead" when entity is DxfMLeader:
+                    {
+                        // One of AutoCAD's arrowheads, its block made on first use, or a block of the drawing as a user arrow.
+                        string name = null;
+
+                        foreach (string arrow in CadArrowheads.Names)
+                        {
+                            if (string.Equals(arrow, text, StringComparison.OrdinalIgnoreCase))
+                            {
+                                name = arrow;
+                                break;
+                            }
+                        }
+
+                        if (name == null && text.Length > 0 && db.BlockTable.Has(text) && !text.StartsWith("*", StringComparison.Ordinal))
+                        {
+                            name = db.BlockTable[text].Name;
+                        }
+
+                        if (name == null)
+                        {
+                            return "The drawing has no arrowhead \"" + text + "\".";
+                        }
+
+                        normal = name;
+                        write = e => ((DxfMLeader)e).ArrowSymbol = CadArrowheads.Ensure(db, name);
+                        return null;
+                    }
             }
 
             return Own(label, text, entity, ref write);

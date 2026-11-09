@@ -40,7 +40,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// Loads linetypes into a document as one undo step, named as given: each of a file on disk through the library's
         /// loader, each of <see cref="CadLinetypeFile.BuiltInName"/> from its definition; one the drawing has already passed
         /// over, one the drawing cannot take (its text style or shape missing) refused alone, the others loaded. DASHED of
-        /// the presenter's own set loaded into a new drawing is an LTYPE of a dash 6 and a gap 1.5, 7.5 long.
+        /// the presenter's own set loaded into a new drawing is an LTYPE of a dash 6 and a gap 1.5, 7.5 long. A linetype of
+        /// <see cref="CadLinetypeFile.BuiltIn"/> itself is written from its definition whatever the path, so that the Load
+        /// dialog's list, the presenter's own set followed by a file's, loads in one step.
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="linetypes">The linetypes, as read from the file.</param>
@@ -104,7 +106,7 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     try
                     {
-                        if (own)
+                        if (own || CadLinetypeFile.BuiltIn.Contains(linetype))
                         {
                             Add(s.Database, linetype);
                         }
