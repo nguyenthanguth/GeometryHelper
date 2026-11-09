@@ -96,6 +96,19 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         public CadSelectionBand Band { get; internal set; }
 
+        /// <summary>
+        /// Gets whether the prompt follows the cursor, as REVCLOUD's Freehand follows the crosshairs: the canvas answers it with
+        /// each point the cursor moves to, and the history keeps none of those answers. False for every other prompt.
+        /// </summary>
+        public bool Tracks { get; private set; }
+
+        /// <summary>Makes the prompt one the cursor's moves answer (<see cref="Tracks"/>).</summary>
+        internal CadPrompt Tracking()
+        {
+            Tracks = true;
+            return this;
+        }
+
         /// <summary>Gives the prompt a block dragged with the cursor (<see cref="Drag"/>).</summary>
         internal CadPrompt Dragging(CadBlockDrag drag)
         {

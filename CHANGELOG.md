@@ -6,6 +6,23 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The presenter has PEDIT (PE) and REVCLOUD, with AutoCAD 2021's prompts word for word, storing what AutoCAD
+stores (both checked against AutoCAD's own console). PEDIT turns a line or an arc picked into a LWPOLYLINE, and takes
+Close, Open, Join, Width, Edit vertex (Next, Previous, Break, Insert, Move, Regen, Straighten, Tangent, Width, with the
+vertex marked by a cross), Fit, Spline, Decurve, Ltype gen, Reverse and Undo, one undo step a run; Multiple edits several
+at once and joins them within a fuzz distance by Extend, Add or Both: the lines (0, 0) to (100, 0), (103, 0) to (103, 50)
+and (100, 50) to (0, 52) joined at 4 are one polyline through (103, 0) and (103, 49.94), as in AutoCAD. Fit and Spline
+make the POLYLINE AutoCAD makes, and Spline of (0, 0), (100, 0), (100, 50), (0, 80) gives AutoCAD's 9 vertices of the
+curve, to 8 places. REVCLOUD clouds a rectangle, a polygon, the cursor's path or an object it replaces, with Arc length,
+Style (Normal, Calligraphy) and Modify: a circle of radius 20 at an arc length of 5 is AutoCAD's 25 vertices of bulge
+0.52056705, and the arc lengths are kept divided by DIMSCALE, as AutoCAD keeps them. A drawing made with every option
+audits clean in AutoCAD 2021. `CadPrompt.Tracks` says a prompt follows the cursor, as Freehand does.
+
+**FIXED.** `DxfPolyline2d.SplineFit` puts the vertices of the curve after the first vertex of the frame, where AutoCAD 2021
+keeps them, rather than after the last; `CurveFit` reads the width at the joint of a tapered segment off the two arcs'
+lengths, as AutoCAD does: a segment from width 1 to 3 whose arcs are 25.723 and 24.733 long is 2.0197 wide at its joint,
+not 2.
+
 **NEW.** The presenter takes AutoCAD's point modifiers at any prompt for a point, typed or from the top of the
 Shift+right-click menu (Temporary track point, From, Mid Between 2 Points, Point Filters with .X .Y .Z .XY .XZ .YZ), with
 AutoCAD's prompts. LINE with FROM, the base point 100,50 and the offset `@30,20` starts at (130, 70); M2P (or MTP) between

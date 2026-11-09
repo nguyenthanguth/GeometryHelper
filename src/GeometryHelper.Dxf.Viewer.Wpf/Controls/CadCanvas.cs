@@ -1517,6 +1517,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             CursorMoved?.Invoke(this, new CadCursorEventArgs(x, y));
 
+            // A prompt that follows the cursor, as REVCLOUD's Freehand, takes each point the cursor moves to.
+            if (session != null && session.Prompt != null && session.Prompt.Tracks && !_panFrom.HasValue)
+            {
+                session.Feed(cursor);
+            }
+
             if (_panFrom.HasValue)
             {
                 Point from = _panFrom.Value;

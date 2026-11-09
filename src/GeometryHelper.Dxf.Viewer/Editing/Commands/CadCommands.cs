@@ -124,6 +124,8 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("BREAKATPOINT", BreakAtPoint));
             registry.Add(new CadCommand("JOIN", Join));
             registry.Add(new CadCommand("LENGTHEN", Lengthen));
+            registry.Add(new CadCommand("PEDIT", Pedit));
+            registry.Add(new CadCommand("REVCLOUD", RevCloud));
             AddBlocksTo(registry);
             registry.Add(new CadCommand("COPYCLIP", CopyClip, true));
             registry.Add(new CadCommand("CUTCLIP", CutClip, true));

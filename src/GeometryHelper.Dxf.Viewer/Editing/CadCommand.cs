@@ -158,6 +158,7 @@ namespace GeometryHelper.Dxf.Viewer
                 ["BR"] = "BREAK",
                 ["J"] = "JOIN",
                 ["LEN"] = "LENGTHEN",
+                ["PE"] = "PEDIT",
                 ["B"] = "BLOCK",
                 ["-B"] = "-BLOCK",
                 ["BMAKE"] = "BLOCK",
