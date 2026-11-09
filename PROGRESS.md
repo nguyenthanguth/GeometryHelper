@@ -1,7 +1,8 @@
 # Progress
 
-The list of work on the drawing stack: Part A, the 2D presenter (`GeometryHelper.Dxf.Viewer`, `.Wpf`, `Drawing.App`),
-which aims to work like AutoCAD 2021 and replace it, and Part B, model drawings (`GeometryHelper.Drawing`).
+The list of work on the drawing stack: Part A, the 2D presenter (`GeometryHelper.Dxf.Viewer`, `.Wpf`, and its app
+`GeometryHelper.Dxf.App`), which aims to work like AutoCAD 2021 and replace it, and Part B, model drawings
+(`GeometryHelper.Drawing`). Part A is finished, to AutoCAD's standard, before any work on Part B starts.
 
 - `[x]` done and merged into `main`; `[ ]` to do; `(running)` an agent is on it now.
 - The maintainer adds, removes or reorders items here; the lead takes the next open item from the top of each section,
@@ -45,6 +46,7 @@ which aims to work like AutoCAD 2021 and replace it, and Part B, model drawings 
 
 - [ ] GeometryHelper.Dxf.App (running): a DXF-only app for Part A (the presenter alone, no Drawing); the screenshot and dialog modes
       move into Dxf.Viewer.Wpf, shared with Drawing.App (after ribbon round 3)
+- [ ] AutoCAD parity check: compare the presenter's commands, system variables, options, prompts and dialogs with      AutoCAD 2021's 2D set, list every gap here by area, ranked by how often a drafter uses it
 - [ ] Images of the view (running): PNGOUT, JPGOUT, BMPOUT as AutoCAD's: the drawing area as shown, at the window's pixel size,
       all objects or those selected; asks the file name
 - [ ] Images of an area: PNG and JPG devices in PLOT and -PLOT ("GeometryHelper PNG", "GeometryHelper JPG", as AutoCAD's
