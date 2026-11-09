@@ -15,7 +15,8 @@ namespace GeometryHelper.Dxf.Viewer
     {
         /// <summary>
         /// Draws a dimension's block anew from its points and the variables it reads now (its overrides, else its style's): a
-        /// linear, aligned, radius, diameter or angular dimension whose block is its own anonymous one. The entities of the block
+        /// linear, aligned, ordinate, radius, diameter or angular dimension whose block is its own anonymous one, a linear one's
+        /// jog of DIMJOGLINE with it. The entities of the block
         /// are erased and the new picture appended. False, and nothing changed, for another kind or a block not its own.
         /// </summary>
         internal static bool Redraw(DxfDimension dimension)
@@ -92,6 +93,8 @@ namespace GeometryHelper.Dxf.Viewer
                     GeoPoint2 a = P2(aligned.XLine1Point);
                     GeoPoint2 b = P2(aligned.XLine2Point);
                     return LinearPicture(dimension, style, textHeight, a, b, P2(aligned.DimLinePoint), Math.Atan2(b.Y - a.Y, b.X - a.X));
+                case DxfOrdinateDimension ordinate:
+                    return OrdinatePicture(dimension, style, textHeight, ordinate);
                 case DxfRadialDimension radial:
                     return RadialPicture(dimension, style, textHeight, P2(radial.Center), P2(radial.ChordPoint), false);
                 case DxfDiametricDimension diametric:
@@ -125,7 +128,8 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 q1 = Foot(p1, onLine, along, oblique);
             GeoPoint2 q2 = Foot(p2, onLine, along, oblique);
             string words = Formatted(dimension, measured, string.Empty);
-            List<DxfEntity> picture = Linear(style, textHeight, p1, p2, q1, q2, words);
+            GeoPoint2? jog = JogOf(dimension);
+            List<DxfEntity> picture = Linear(style, textHeight, p1, p2, q1, q2, words, !dimension.UsingDefaultTextPosition, jog, jog.HasValue ? JogHeight(dimension, style, textHeight) : 0.0);
 
             if (dimension.UsingDefaultTextPosition)
             {

@@ -47,6 +47,25 @@ GB already exists. Redefine?" in the window, `Block "GB" already exists. Redefin
 of -INSERT; Yes gives the drawing's block the other's entities, base point and unit. AutoCAD 2021 audited drawings left by
 ATTSYNC, -ATTEDIT and a redefinition with no error.
 
+**NEW.** The presenter makes ordinate and jogged dimensions and has AutoCAD's DIM command. DIMORDINATE (DOR) measures a
+point from the origin of the UCS along X or Y as its leader runs (Xdatum, Ydatum, Mtext, Text, Angle): (300, 40) with its
+leader ending at (310, 80) is an X datum of 300, its leader jogged two arrowheads before its end, as AutoCAD 2021 draws
+it. DIMCONTINUE, DIMBASELINE and QDIM's Ordinate go on from an ordinate dimension. DIMJOGLINE (DJL) puts a jog in a linear
+dimension's line and Remove takes it out; the jog is kept in the dimension's extended data as AutoCAD keeps it
+(ACAD_DSTYLE_DIMJAG_POSITION), and AutoCAD 2021 draws it where the presenter put it. DIM dimensions what is clicked, a
+line (or two, for their angle), a circle's diameter, an arc's radius, or two points, and its options run DIMANGULAR,
+DIMBASELINE, DIMCONTINUE and DIMORDINATE, align and distribute dimensions, and set the layer new ones go on. AutoCAD 2021
+audited drawings of R2000, R2013 and R2018 with 51 dimensions of every kind made so with no error.
+
+**CHANGED.** A linear dimension's picture is laid out from its style as AutoCAD 2021 lays it out, where its words always
+stood above the line before: DIMTAD 0 puts them on the line, broken about them by DIMGAP, 2 on the side away from the
+points measured and 4 below; DIMJUST puts them next to or over an extension line; DIMTIX, DIMSOXD, DIMATFIT and DIMTOFL
+move the words or the arrowheads outside where both do not fit, and DIMTIH and DIMTOH keep the words level. Against the
+pictures AutoCAD 2021 draws itself for 86 linear and ordinate dimensions, they differ only by the size of the words,
+which the presenter takes from their height where it finds no font (up to 0.5), and by AutoCAD starting the line at the
+back of a closed arrowhead. A drawing made new in code, whose Standard style has AutoCAD's DIMTAD of 0, now has its
+dimension lines broken about the words.
+
 **NEW.** The presenter attaches and shows external references and images, as AutoCAD 2021 does: XATTACH and IMAGEATTACH
 (the Attach External Reference and Attach Image dialogs), the External References palette (XREF, ER, IMAGE), -XREF,
 -IMAGE, IMAGECLIP, IMAGEFRAME and TRANSPARENCY. A DXF referenced is read and drawn under its INSERT, its layers named after

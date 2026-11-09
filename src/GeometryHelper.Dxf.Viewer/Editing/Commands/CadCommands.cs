@@ -58,6 +58,9 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("DIMTEDIT", DimTextEdit));
             registry.Add(new CadCommand("DIMSPACE", DimSpace));
             registry.Add(new CadCommand("DIMBREAK", DimBreak));
+            registry.Add(new CadCommand("DIMORDINATE", DimOrdinate));
+            registry.Add(new CadCommand("DIMJOGLINE", DimJogLine));
+            registry.Add(new CadCommand("DIM", Dim));
 
             registry.Add(new CadCommand("ELLIPSE", Ellipse));
             registry.Add(new CadCommand("POINT", Point));

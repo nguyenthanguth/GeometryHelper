@@ -565,6 +565,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The block INSERT placed last, which -INSERT offers next, as AutoCAD's INSNAME.</summary>
         internal string LastBlock { get; set; }
 
+        /// <summary>The layer new dimensions are put on, as AutoCAD's DIMLAYER that DIM's LAyer sets; null for the current layer.</summary>
+        internal string DimLayer { get; set; }
+
         /// <summary>
         /// Gets the values the commands remember from one run to the next, by name, as TEXT the height last typed
         /// ("text.height"); a host sets a default here, as Global settings sets the text height of TEXT and MTEXT, their width

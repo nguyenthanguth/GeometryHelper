@@ -22,7 +22,11 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static IEnumerable<CadPrompt> DimAligned(CadCommandContext c) => DimLine(c, true);
 
-        private static IEnumerable<CadPrompt> DimLine(CadCommandContext c, bool aligned)
+        /// <summary>
+        /// DIMLINEAR and DIMALIGNED: two origins (or a line selected), then where the line goes. DIM gives the first origin it
+        /// was answered with as <paramref name="first"/>, and the command goes on from there.
+        /// </summary>
+        private static IEnumerable<CadPrompt> DimLine(CadCommandContext c, bool aligned, GeoPoint2? first = null)
         {
             DxfDimStyleTableRecord style = DimStyle(c);
 
@@ -32,13 +36,17 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            yield return CadPrompt.ForPoint("Specify first extension line origin or", null, null, "select object");
+            if (!first.HasValue)
+            {
+                yield return CadPrompt.ForPoint("Specify first extension line origin or", null, null, "select object");
+            }
+
             GeoPoint2 p1;
             GeoPoint2 p2;
 
-            if (c.Input.IsPoint)
+            if (first.HasValue || c.Input.IsPoint)
             {
-                p1 = c.Input.Point;
+                p1 = first ?? c.Input.Point;
                 yield return CadPrompt.ForPoint("Specify second extension line origin", p1);
 
                 if (!c.Input.IsPoint)
@@ -108,8 +116,16 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            GeoPoint2 location = c.Input.Point;
+            MakeLinear(c, style, aligned, p1, p2, c.Input.Point, text, fixedAngle, null);
+        }
 
+        /// <summary>
+        /// Makes a linear (or an aligned) dimension of two origins, its line through a point, as DIMLINEAR and DIMALIGNED make
+        /// it; its words given or the measurement, turned where <paramref name="textAngle"/> says. The handle of the dimension,
+        /// or null where it measures nothing.
+        /// </summary>
+        private static string MakeLinear(CadCommandContext c, DxfDimStyleTableRecord style, bool aligned, GeoPoint2 p1, GeoPoint2 p2, GeoPoint2 location, string text, double? fixedAngle, double? textAngle)
+        {
             // A linear dimension measures along the X or Y axis of the UCS, as AutoCAD's: in a UCS turned 30 degrees it is a
             // rotated dimension of 30 or 120 degrees.
             CadUcs ucs = c.Session.Ucs;
@@ -120,7 +136,7 @@ namespace GeometryHelper.Dxf.Viewer
             if (measured <= c.Session.Tolerance.EqualPoint)
             {
                 c.Write("*Invalid* The dimension measures nothing.");
-                yield break;
+                return null;
             }
 
             GeoPoint2 q1 = location + along * ((p1 - location).X * along.X + (p1 - location).Y * along.Y);
@@ -131,7 +147,26 @@ namespace GeometryHelper.Dxf.Viewer
             string words = Words(style, made, measured, text, string.Empty);
             c.Write("Dimension text = " + words);
             double textHeight = TextHeight(c, style);
-            Place(c, style, textHeight, made, Linear(style, textHeight, p1, p2, q1, q2, words));
+            return AddedHandle(Place(c, style, textHeight, made, WithTextAngle(made, Linear(style, textHeight, p1, p2, q1, q2, words), textAngle)));
+        }
+
+        /// <summary>Gives a dimension to be made the angle its words were given (Text angle), and its picture's words that turn.</summary>
+        private static List<DxfEntity> WithTextAngle(DxfDimension made, List<DxfEntity> picture, double? textAngle)
+        {
+            if (textAngle.HasValue)
+            {
+                made.TextRotation = textAngle.Value;
+
+                foreach (DxfEntity entity in picture)
+                {
+                    if (entity is DxfMText words)
+                    {
+                        words.Rotation = textAngle.Value;
+                    }
+                }
+            }
+
+            return picture;
         }
 
         private static IEnumerable<CadPrompt> DimRadial(CadCommandContext c, bool diameter)
@@ -202,7 +237,17 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            GeoPoint2 location = c.Input.Point;
+            MakeRadial(c, style, center, radius, diameter, c.Input.Point, text, null);
+        }
+
+        /// <summary>
+        /// Makes a radius (or a diameter) dimension of a circle, its line toward a point, as DIMRADIUS and DIMDIAMETER make it;
+        /// its words given or the measurement, turned where <paramref name="textAngle"/> says. The handle of the dimension.
+        /// </summary>
+        private static string MakeRadial(CadCommandContext c, DxfDimStyleTableRecord style, GeoPoint2 center, double radius, bool diameter, GeoPoint2 location, string text, double? textAngle)
+        {
+            double measured = diameter ? 2.0 * radius : radius;
+            string prefix = diameter ? "%%c" : "R";
             GeoVector2 toward = location - center;
 
             if (toward.Length <= c.Session.Tolerance.EqualPoint)
@@ -219,10 +264,17 @@ namespace GeometryHelper.Dxf.Viewer
                 : new DxfRadialDimension(P3(center), P3(chord), leader, text ?? string.Empty, null);
             string words = Words(style, made, measured, text, prefix);
             double textHeight = TextHeight(c, style);
-            Place(c, style, textHeight, made, Radial(style, textHeight, center, radius, chord, far, location, diameter, words));
+            return AddedHandle(Place(c, style, textHeight, made, WithTextAngle(made, Radial(style, textHeight, center, radius, chord, far, location, diameter, words), textAngle)));
         }
 
-        private static IEnumerable<CadPrompt> DimAngular(CadCommandContext c)
+        private static IEnumerable<CadPrompt> DimAngular(CadCommandContext c) => DimAngularFrom(c, null, null);
+
+        /// <summary>
+        /// DIMANGULAR: an arc, two lines or a vertex and two points, then where the arc goes. DIM gives the object it was
+        /// answered with as <paramref name="given"/>, and the second line where one was picked as <paramref name="secondGiven"/>,
+        /// and the command goes on from there.
+        /// </summary>
+        private static IEnumerable<CadPrompt> DimAngularFrom(CadCommandContext c, DxfEntity given, DxfLine secondGiven)
         {
             DxfDimStyleTableRecord style = DimStyle(c);
 
@@ -232,7 +284,11 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            yield return CadPrompt.ForEntity("Select arc, circle, line, or", null, "specify vertex");
+            if (given == null)
+            {
+                yield return CadPrompt.ForEntity("Select arc, circle, line, or", null, "specify vertex");
+            }
+
             GeoPoint2 vertex;
             DxfLine first = null;
             DxfLine second = null;
@@ -243,9 +299,9 @@ namespace GeometryHelper.Dxf.Viewer
             var far = new double[2];
             var points = new GeoPoint2[2];
 
-            if (c.Input.Kind == CadInputKind.Selection)
+            if (given != null || c.Input.Kind == CadInputKind.Selection)
             {
-                DxfEntity picked = c.Document.FindEntity(c.Input.Handles[0]);
+                DxfEntity picked = given ?? c.Document.FindEntity(c.Input.Handles[0]);
 
                 if (picked is DxfArc arc && arc.Normal.Z > 0.0)
                 {
@@ -256,9 +312,15 @@ namespace GeometryHelper.Dxf.Viewer
                 else if (picked is DxfLine line)
                 {
                     first = line;
-                    yield return CadPrompt.ForEntity("Select second line");
+                    DxfLine other = secondGiven;
 
-                    if (c.Input.Kind != CadInputKind.Selection || !(c.Document.FindEntity(c.Input.Handles[0]) is DxfLine other) || ReferenceEquals(other, line))
+                    if (other == null)
+                    {
+                        yield return CadPrompt.ForEntity("Select second line");
+                        other = c.Input.Kind == CadInputKind.Selection ? c.Document.FindEntity(c.Input.Handles[0]) as DxfLine : null;
+                    }
+
+                    if (other == null || ReferenceEquals(other, line))
                     {
                         c.Write("Object selected is not a second line.");
                         yield break;
@@ -605,12 +667,28 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// The picture of a linear dimension: the extension lines (each left out where DIMSE1 or DIMSE2 says), the dimension
         /// line (each half left out where DIMSD1 or DIMSD2 says, run on by DIMDLE past ticks), two arrowheads of the style and
-        /// the words above the line.
+        /// the words, placed as AutoCAD places them from the style's variables (see <see cref="LinearLayout"/>).
         /// </summary>
-        internal static List<DxfEntity> Linear(DxfDimStyleTableRecord style, double textHeight, GeoPoint2 p1, GeoPoint2 p2, GeoPoint2 q1, GeoPoint2 q2, string words)
+        /// <remarks>
+        /// <paramref name="placed"/> says the words were put somewhere by hand (DIMTEDIT): they are drawn where the caller
+        /// puts them, so the line is not broken for them and they are not moved outside. <paramref name="jog"/> is the point of
+        /// a jog of DIMJOGLINE on the line, drawn <paramref name="jogHeight"/> high.
+        /// </remarks>
+        internal static List<DxfEntity> Linear(DxfDimStyleTableRecord style, double textHeight, GeoPoint2 p1, GeoPoint2 p2, GeoPoint2 q1, GeoPoint2 q2, string words, bool placed = false, GeoPoint2? jog = null, double jogHeight = 0.0)
         {
             Sizes(style, textHeight, out double scale, out double arrow, out double height, out double gap, out double offset, out double beyond);
             var picture = new List<DxfEntity>();
+            GeoVector2 along = (q2 - q1) / (q2 - q1).Length;
+            double angle = Math.Atan2(along.Y, along.X);
+
+            // The words read from the left or from below, as AutoCAD turns them.
+            if (angle > Math.PI / 2.0 + 1E-9 || angle <= -Math.PI / 2.0 + 1E-9)
+            {
+                angle += Math.PI;
+            }
+
+            DxfEntity text = Words(style, default, angle, height, words, scale);
+            LinearLayout layout = LayOut(style, p1, p2, q1, q2, along, angle, WordsWidth(new List<DxfEntity> { text }, words, height), height, gap, arrow, beyond, placed);
             bool[] suppressed = { style.Dimse1, style.Dimse2 };
             int side = 0;
 
@@ -622,32 +700,348 @@ namespace GeometryHelper.Dxf.Viewer
                 if (length > offset && !suppressed[side])
                 {
                     GeoVector2 unit = up / length;
-                    picture.Add(Lined(new DxfLine(P3(pair.Key + unit * offset), P3(pair.Value + unit * beyond)), style.Dimclre, style.Dimlwe));
+                    double longer = layout.OverExtension == side + 1 ? layout.Longer : 0.0;
+                    picture.Add(Lined(new DxfLine(P3(pair.Key + unit * offset), P3(pair.Value + unit * (beyond + longer))), style.Dimclre, style.Dimlwe));
                 }
 
                 side++;
             }
 
-            GeoVector2 along = (q2 - q1) / (q2 - q1).Length;
-            DimensionLine(picture, style, q1, q2, along, scale);
-            AddArrow(picture, style, DxfDimArrowFlag.FirstArrow, q1, -along, arrow);
-            AddArrow(picture, style, DxfDimArrowFlag.SecondArrow, q2, along, arrow);
-            double angle = Math.Atan2(along.Y, along.X);
+            // The line between the extension lines, drawn where the arrowheads stand inside or DIMTOFL says, broken about words
+            // centred on it and at a jog; and outside, the short lines the arrowheads stand on and the line run on to words there.
+            var segments = new List<KeyValuePair<GeoPoint2, GeoPoint2>>();
 
-            // The words read from the left or from below, as AutoCAD turns them, and stand above the line by the gap.
-            if (angle > Math.PI / 2.0 + 1E-9 || angle <= -Math.PI / 2.0 + 1E-9)
+            if (layout.ArrowsInside || style.Dimtofl)
             {
-                angle += Math.PI;
+                DimensionLine(segments, style, q1, q2, along, scale);
             }
 
-            var readable = new GeoVector2(Math.Cos(angle), Math.Sin(angle));
-            var above = new GeoVector2(-readable.Y, readable.X);
-            GeoPoint2 middle = new GeoPoint2((q1.X + q2.X) / 2.0, (q1.Y + q2.Y) / 2.0) + above * (gap + height / 2.0);
-            picture.Add(Words(style, middle, angle, height, words, scale));
+            if (layout.Break > 0.0)
+            {
+                segments = Broken(segments, layout.Middle, along, layout.Break);
+            }
+
+            if (jog.HasValue && jogHeight > 0.0)
+            {
+                GeoPoint2 at = Foot(jog.Value, q1, along, 0.0);
+                segments = Broken(segments, at, along, jogHeight / 2.0);
+                var square = new GeoVector2(-along.Y, along.X);
+
+                // AutoCAD 2021's jog: a jog 3.75 high about x = 25 runs 23.125, 24.375 up 1.875, 25.625 down 1.875, 26.875.
+                GeoPoint2[] zigzag = { at - along * (jogHeight / 2.0), at - along * (jogHeight / 6.0) + square * (jogHeight / 2.0), at + along * (jogHeight / 6.0) - square * (jogHeight / 2.0), at + along * (jogHeight / 2.0) };
+
+                for (int i = 0; i + 1 < zigzag.Length; i++)
+                {
+                    segments.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(zigzag[i], zigzag[i + 1]));
+                }
+            }
+
+            foreach (KeyValuePair<GeoPoint2, GeoPoint2> segment in layout.Outside)
+            {
+                segments.Add(segment);
+            }
+
+            foreach (KeyValuePair<GeoPoint2, GeoPoint2> segment in segments)
+            {
+                picture.Add(Lined(new DxfLine(P3(segment.Key), P3(segment.Value)), style.Dimclrd, style.Dimlwd));
+            }
+
+            if (!layout.ArrowsSuppressed)
+            {
+                AddArrow(picture, style, DxfDimArrowFlag.FirstArrow, q1, layout.ArrowsInside ? -along : along, arrow);
+                AddArrow(picture, style, DxfDimArrowFlag.SecondArrow, q2, layout.ArrowsInside ? along : -along, arrow);
+            }
+
+            var mtext = (DxfMText)text;
+            mtext.Location = P3(layout.At);
+
+            if (layout.Angle != angle)
+            {
+                mtext.Rotation = layout.Angle < 0.0 ? layout.Angle + 2.0 * Math.PI : layout.Angle;
+            }
+
+            picture.Add(text);
             picture.Add(Definition(p1));
             picture.Add(Definition(p2));
             picture.Add(Definition(q2));
             return picture;
+        }
+
+        /// <summary>Where the parts of a linear dimension stand, as <see cref="LayOut"/> works them out.</summary>
+        private sealed class LinearLayout
+        {
+            /// <summary>The middle of the words.</summary>
+            public GeoPoint2 At { get; set; }
+
+            /// <summary>The angle the words are turned to, in radians.</summary>
+            public double Angle { get; set; }
+
+            public bool ArrowsInside { get; set; }
+
+            /// <summary>Whether the arrowheads are left out, as DIMSOXD leaves them out where they do not fit.</summary>
+            public bool ArrowsSuppressed { get; set; }
+
+            /// <summary>The point of the line the words stand centred on, and half the length taken out of the line for them; nought for none.</summary>
+            public GeoPoint2 Middle { get; set; }
+
+            public double Break { get; set; }
+
+            /// <summary>The extension line the words stand over (DIMJUST 3 or 4), 1 or 2; nought for none.</summary>
+            public int OverExtension { get; set; }
+
+            /// <summary>How much further that extension line runs, on under the words.</summary>
+            public double Longer { get; set; }
+
+            /// <summary>The lines outside the extension lines: those the arrowheads stand on, and the line run on to words there.</summary>
+            public List<KeyValuePair<GeoPoint2, GeoPoint2>> Outside { get; } = new List<KeyValuePair<GeoPoint2, GeoPoint2>>();
+        }
+
+        /// <summary>
+        /// Works out where the words and the arrowheads of a linear dimension stand, from the style's variables, as AutoCAD 2021
+        /// draws them. DIMTAD puts the words on the line, breaking it by DIMGAP about them (0), above it (1, and JIS, 3), on the
+        /// side away from the points measured (2) or below it (4). Words kept level by DIMTIH on a line that is not level stand
+        /// on it for 0, 1 and 4, and off it, clear of it by DIMGAP, for 2 and 3. DIMJUST puts them in the middle (0), next to
+        /// the first or the second extension line (1, 2), or over and along one of them (3, 4). Where the words and the
+        /// arrowheads do not both fit between the extension lines, DIMTIX keeps the words inside (DIMSOXD then leaves out
+        /// arrowheads that do not fit), else DIMATFIT moves both out (0), the arrowheads first (1), the words first (2), or (3)
+        /// the words where the arrowheads fit, else the arrowheads; words outside stand past the second extension line (the
+        /// first for DIMJUST 1), the line run on to them, and words kept level by DIMTOH stand on a level landing.
+        /// </summary>
+        /// <remarks>
+        /// With arrowheads of 2.5 and DIMGAP 0.625, a dimension of 100 has its words "100", 5.3 wide, in the middle; of 5, its
+        /// words "5" inside and its arrowheads outside on lines 2.5 long; of 7, under DIMATFIT 3, its arrowheads inside and its
+        /// words 3.9 past the second extension line, as AutoCAD 2021 draws them. Words need their width between the extension
+        /// lines, and DIMGAP each side where the line is broken for them; the arrowheads two lengths and DIMGAP; ticks never
+        /// move out.
+        /// </remarks>
+        private static LinearLayout LayOut(DxfDimStyleTableRecord style, GeoPoint2 p1, GeoPoint2 p2, GeoPoint2 q1, GeoPoint2 q2, GeoVector2 along, double angle, double width, double height, double gap, double arrow, double beyond, bool placed)
+        {
+            var layout = new LinearLayout { Angle = angle };
+            double length = (q2 - q1).Length;
+            int tad = style.Dimtad;
+            int just = style.Dimjust;
+            bool ticks = CadArrowheads.IsTick(ArrowOf(style, DxfDimArrowFlag.FirstArrow)) && CadArrowheads.IsTick(ArrowOf(style, DxfDimArrowFlag.SecondArrow));
+            double inside = style.Dimtih ? 0.0 : angle;
+            bool level = Parallel(inside, angle);
+            bool centred = tad == 0 || (!level && (tad == 1 || tad == 4));
+            double half = Chord(width, height, gap, inside - angle);
+            double needText = centred ? 2.0 * half : width;
+            double needArrows = ticks ? 0.0 : 2.0 * arrow + gap;
+            double needBoth = centred ? needText + (ticks ? 0.0 : 2.0 * arrow) : Math.Max(needText, needArrows);
+            bool textInside;
+            bool arrowsInside;
+
+            if (placed || just == 3 || just == 4)
+            {
+                textInside = true;
+                arrowsInside = needArrows <= length;
+            }
+            else if (style.Dimtix || needBoth <= length)
+            {
+                textInside = true;
+                arrowsInside = needBoth <= length;
+            }
+            else
+            {
+                switch (style.Dimatfit)
+                {
+                    case 0:
+                        textInside = false;
+                        arrowsInside = false;
+                        break;
+                    case 1:
+                        textInside = needText <= length;
+                        arrowsInside = false;
+                        break;
+                    case 2:
+                        textInside = false;
+                        arrowsInside = needArrows <= length;
+                        break;
+                    default:
+                        arrowsInside = needArrows <= length;
+                        textInside = !arrowsInside && needText <= length;
+                        break;
+                }
+            }
+
+            layout.ArrowsInside = arrowsInside;
+            layout.ArrowsSuppressed = !arrowsInside && style.Dimtix && style.Dimsoxd;
+            bool arrowsOut = !arrowsInside && !layout.ArrowsSuppressed && !ticks;
+            var readable = new GeoVector2(Math.Cos(angle), Math.Sin(angle));
+            var above = new GeoVector2(-readable.Y, readable.X);
+            var middle = new GeoPoint2((q1.X + q2.X) / 2.0, (q1.Y + q2.Y) / 2.0);
+            double lift = gap + height / 2.0;
+            int outerSide = just == 1 ? 1 : 2;
+
+            for (int end = 1; end <= 2 && arrowsOut; end++)
+            {
+                // The short line an arrowhead outside stands on, an arrowhead long; on the side of words outside the line run on
+                // to them is drawn instead.
+                if (textInside || end != outerSide)
+                {
+                    GeoPoint2 tip = end == 1 ? q1 : q2;
+                    GeoVector2 outward = end == 1 ? -along : along;
+                    layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(tip + outward * arrow, tip + outward * (2.0 * arrow)));
+                }
+            }
+
+            if (placed)
+            {
+                layout.At = middle + above * lift;
+                return layout;
+            }
+
+            if (just == 3 || just == 4)
+            {
+                // Over an extension line: along it, past its end by DIMEXE, DIMGAP and half the words; beside it on the side
+                // above them, the extension line run on under them, or with DIMTAD 0 on it.
+                GeoPoint2 foot = just == 3 ? q1 : q2;
+                GeoVector2 up = foot - (just == 3 ? p1 : p2);
+                GeoVector2 unit = up.Length > 1E-12 ? up / up.Length : new GeoVector2(-along.Y, along.X);
+                double turned = Math.Atan2(unit.Y, unit.X);
+
+                if (turned > Math.PI / 2.0 + 1E-9 || turned <= -Math.PI / 2.0 + 1E-9)
+                {
+                    turned += Math.PI;
+                }
+
+                var beside = new GeoVector2(-Math.Sin(turned), Math.Cos(turned));
+                layout.OverExtension = just - 2;
+                layout.Longer = tad == 0 ? 0.0 : width + 2.0 * gap;
+                layout.Angle = turned;
+                layout.At = foot + unit * (beyond + gap + width / 2.0) + beside * (tad == 0 ? 0.0 : tad == 4 ? -lift : lift);
+                return layout;
+            }
+
+            if (textInside)
+            {
+                // Next to an extension line, an arrowhead and twice DIMGAP in from it, where the words and that much each side
+                // fit; else in the middle.
+                double from = (centred ? half : width / 2.0 + gap) + gap + (ticks ? 0.0 : arrow);
+                GeoPoint2 on = just == 1 && 2.0 * from <= length ? q1 + along * from : just == 2 && 2.0 * from <= length ? q2 - along * from : middle;
+                layout.Angle = inside;
+
+                if (centred)
+                {
+                    layout.At = on;
+
+                    // Words forced inside that do not fit leave the line whole.
+                    if (needText <= length)
+                    {
+                        layout.Middle = on;
+                        layout.Break = half;
+                    }
+                }
+                else
+                {
+                    // Level words off a slanting line stand clear of it by DIMGAP, their box square to it.
+                    double off = level ? lift : (width / 2.0 + gap) * Math.Abs(Math.Sin(inside - angle)) + (height / 2.0 + gap) * Math.Abs(Math.Cos(inside - angle));
+                    layout.At = on + above * (Side(tad, above, p1, p2, middle) * off);
+                }
+
+                return layout;
+            }
+
+            // Outside, past the extension line on the words' side: the line runs on under words above it, or up to words on it;
+            // words kept level off a slanting line stand on a level landing from the end of the line run on.
+            double outward2 = style.Dimtoh ? 0.0 : angle;
+            GeoPoint2 start = outerSide == 1 ? q1 : q2;
+            GeoVector2 away = outerSide == 1 ? -along : along;
+            double clear = arrowsOut ? 2.0 * arrow : ticks ? 0.0 : arrow;
+            layout.Angle = outward2;
+
+            if (!Parallel(outward2, angle))
+            {
+                GeoPoint2 bend = start + away * clear;
+                var flat = new GeoVector2(away.X < -1E-9 ? -1.0 : 1.0, 0.0);
+                var up2 = new GeoVector2(0.0, 1.0);
+                double landing = tad == 0 ? arrow : width + gap;
+
+                if (clear > (arrowsOut ? arrow : 0.0))
+                {
+                    layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(start + away * (arrowsOut ? arrow : 0.0), bend));
+                }
+
+                layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(bend, bend + flat * landing));
+                layout.At = tad == 0 ? bend + flat * (landing + gap + width / 2.0) : bend + flat * (gap + width / 2.0) + up2 * (Side(tad, up2, p1, p2, middle) * lift);
+                return layout;
+            }
+
+            bool onLine = tad == 0;
+            double centre = clear + width / 2.0 + gap;
+            double reach = onLine ? clear : centre + width / 2.0 + gap;
+            layout.At = start + away * centre + (onLine ? new GeoVector2(0.0, 0.0) : above * (Side(tad, above, p1, p2, middle) * lift));
+            layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(start + away * (arrowsOut ? arrow : 0.0), start + away * reach));
+            return layout;
+        }
+
+        /// <summary>Whether words turned to one angle run along a line at another, either way.</summary>
+        private static bool Parallel(double words, double line) => Math.Abs(Math.Sin(words - line)) <= 1E-9;
+
+        /// <summary>
+        /// Half the length of a line through the middle of words, at an angle to them, that lies within their box grown by the
+        /// gap: half their width and the gap for a line along them.
+        /// </summary>
+        private static double Chord(double width, double height, double gap, double turn)
+        {
+            double along = Math.Abs(Math.Cos(turn));
+            double across = Math.Abs(Math.Sin(turn));
+            double a = along > 1E-9 ? (width / 2.0 + gap) / along : double.MaxValue;
+            double b = across > 1E-9 ? (height / 2.0 + gap) / across : double.MaxValue;
+            return Math.Min(a, b);
+        }
+
+        /// <summary>
+        /// The side of the dimension line words off it stand on, toward <paramref name="above"/> (1) or away from it (-1): above
+        /// for DIMTAD 1 and JIS (3), below for 4, and for 2 on the side away from the points measured.
+        /// </summary>
+        private static double Side(int tad, GeoVector2 above, GeoPoint2 p1, GeoPoint2 p2, GeoPoint2 middle)
+        {
+            switch (tad)
+            {
+                case 2:
+                    var measured = new GeoPoint2((p1.X + p2.X) / 2.0, (p1.Y + p2.Y) / 2.0);
+                    return (middle - measured).X * above.X + (middle - measured).Y * above.Y < 0.0 ? -1.0 : 1.0;
+                case 4:
+                    return -1.0;
+                default:
+                    return 1.0;
+            }
+        }
+
+        /// <summary>Takes the length of the line within <paramref name="half"/> of a point on it out of segments along it.</summary>
+        private static List<KeyValuePair<GeoPoint2, GeoPoint2>> Broken(List<KeyValuePair<GeoPoint2, GeoPoint2>> segments, GeoPoint2 at, GeoVector2 along, double half)
+        {
+            var kept = new List<KeyValuePair<GeoPoint2, GeoPoint2>>();
+
+            foreach (KeyValuePair<GeoPoint2, GeoPoint2> segment in segments)
+            {
+                double s = (segment.Key - at).X * along.X + (segment.Key - at).Y * along.Y;
+                double e = (segment.Value - at).X * along.X + (segment.Value - at).Y * along.Y;
+                double low = Math.Min(s, e);
+                double high = Math.Max(s, e);
+
+                if (high <= -half || low >= half)
+                {
+                    kept.Add(segment);
+                    continue;
+                }
+
+                GeoPoint2 lowPoint = s <= e ? segment.Key : segment.Value;
+                GeoPoint2 highPoint = s <= e ? segment.Value : segment.Key;
+
+                if (low < -half)
+                {
+                    kept.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(lowPoint, at - along * half));
+                }
+
+                if (high > half)
+                {
+                    kept.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(at + along * half, highPoint));
+                }
+            }
+
+            return kept;
         }
 
         /// <summary>The picture of a radius or a diameter: the line to the words, the arrowheads on the rim, the words, a centre mark.</summary>
@@ -747,7 +1141,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// The dimension line between its two ends: whole, or the half of each end DIMSD1 or DIMSD2 leaves; run on past an end
         /// by DIMDLE where that end is a tick, as AutoCAD runs it.
         /// </summary>
-        private static void DimensionLine(List<DxfEntity> picture, DxfDimStyleTableRecord style, GeoPoint2 q1, GeoPoint2 q2, GeoVector2 along, double scale)
+        private static void DimensionLine(List<KeyValuePair<GeoPoint2, GeoPoint2>> segments, DxfDimStyleTableRecord style, GeoPoint2 q1, GeoPoint2 q2, GeoVector2 along, double scale)
         {
             double dle = Math.Max(0.0, style.Dimdle) * scale;
             GeoPoint2 a = CadArrowheads.IsTick(ArrowOf(style, DxfDimArrowFlag.FirstArrow)) && dle > 0.0 ? q1 - along * dle : q1;
@@ -758,15 +1152,15 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (first && second)
             {
-                picture.Add(Lined(new DxfLine(P3(a), P3(b)), style.Dimclrd, style.Dimlwd));
+                segments.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(a, b));
             }
             else if (first)
             {
-                picture.Add(Lined(new DxfLine(P3(a), P3(middle)), style.Dimclrd, style.Dimlwd));
+                segments.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(a, middle));
             }
             else if (second)
             {
-                picture.Add(Lined(new DxfLine(P3(middle), P3(b)), style.Dimclrd, style.Dimlwd));
+                segments.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(middle, b));
             }
         }
 
@@ -846,6 +1240,7 @@ namespace GeometryHelper.Dxf.Viewer
         private static CadEditResult Place(CadCommandContext c, DxfDimStyleTableRecord style, double textHeight, DxfDimension dimension, List<DxfEntity> picture)
         {
             CadSpace space = c.Space;
+            string layer = c.Session.DimLayer;
             return c.Apply(null, s =>
             {
                 var block = new DxfBlockTableRecord { Name = "*D" };
@@ -866,6 +1261,12 @@ namespace GeometryHelper.Dxf.Viewer
                 dimension.Layer = s.Database.Clayer;
                 space.Block.AppendEntity(dimension);
                 dimension.SetDatabaseDefaults(s.Database);
+
+                // DIM's LAyer (AutoCAD's DIMLAYER) puts it on a layer of its own where that layer is still in the drawing.
+                if (!string.IsNullOrEmpty(layer) && s.Database.LayerTable.Has(layer))
+                {
+                    dimension.Layer = layer;
+                }
 
                 // A text height other than the style's is an override, as DIMOVERRIDE writes one, so that a CAD drawing the
                 // dimension again from its style draws its text as high as its picture has it.

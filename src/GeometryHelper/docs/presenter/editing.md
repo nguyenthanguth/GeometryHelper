@@ -94,7 +94,7 @@ A command that fails part way has its edits taken back. Its outcome is `session.
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 153 commands, named as AutoCAD names them:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 156 commands, named as AutoCAD names them:
 
 | Group | Commands |
 |---|---|
@@ -108,11 +108,25 @@ A command that fails part way has its edits taken back. Its outcome is `session.
 | blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select), BASE |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
 | plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT ([Plotting](plot.md)) |
-| dimension | DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK |
+| dimension | DIM (Angular, Baseline, Continue, Ordinate, aLign, Distribute, LAyer, Undo), DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove) |
 | tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT |
 | selection | QSELECT, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, PICKSTYLE, SELECTIONCYCLING |
 | housekeeping | PURGE, -PURGE (Blocks, Dimstyles, LAyers, LTypes, MUltileaderstyles, Plotstyles, SHapes, textSTyles, Tablestyles, Visualstyles, Regapps, Zero-length geometry, Empty text objects, All) |
 | references and images | XATTACH, IMAGEATTACH, XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), IMAGEFRAME, TRANSPARENCY |
+
+A dimension's picture is laid out from its style as AutoCAD 2021 lays it out: DIMTAD puts the words on the line, which
+is broken about them by DIMGAP (0), above it (1, and JIS, 3), on the side away from the points measured (2) or below it
+(4); DIMJUST puts them in the middle, next to an extension line or over one; and where the words and the arrowheads do
+not both fit, DIMTIX, DIMSOXD, DIMATFIT and DIMTOFL say what moves outside, DIMTIH and DIMTOH whether the words stay
+level. With ISO-25's sizes a dimension of 100 has its words "100" in the middle, one of 5 its words inside and its
+arrowheads outside, and one of 7 its arrowheads inside and its words 3.9 past the second extension line. DIMORDINATE
+(DOR) measures a point from the origin of the UCS along X where its leader runs up or down, along Y where it runs aside:
+(300, 40) with its leader ending at (310, 80) is an X datum of 300, the leader jogged two arrowheads before its end.
+DIMCONTINUE, DIMBASELINE and QDIM's Ordinate go on from an ordinate dimension, each leader ending level with the last.
+DIMJOGLINE (DJL) puts a jog in the line of a linear dimension, kept as AutoCAD keeps it (ACAD_DSTYLE_DIMJAG_POSITION) and
+drawn 1.5 times the height of the words; Remove takes it out. DIM dimensions what is clicked: a line, then where its
+dimension goes or a second line for the angle; a circle's diameter, an arc's radius; a click on nothing starts a linear
+dimension. Its options run the commands of their names, and LAyer puts the dimensions made next on a layer.
 
 TABLE (TB) shows the Insert Table dialog ([`CadInsertTableRequest`](xref:GeometryHelper.Dxf.Viewer.CadInsertTableRequest)),
 asks `Specify insertion point:` (or two corners for Specify window) and opens the title for typing in the MTEXT editor:
@@ -178,7 +192,7 @@ to bottom as its prompts do, and a [command plugin](plugins.md) is written the s
 ### Aliases and keys
 
 [`CadShortcuts`](xref:GeometryHelper.Dxf.Viewer.CadShortcuts) holds the aliases and the keys as data. The defaults are
-AutoCAD's: 109 aliases (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
+AutoCAD's: 112 aliases (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
 DIMLINEAR, `MV` MVIEW, and the rest) and 21 keys (F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR, F11 OTRACK, F12 DYN, Delete ERASE,
 Ctrl+Z U, Ctrl+Y REDO, Ctrl+S QSAVE, Ctrl+1 PROPERTIES, Ctrl+A SELECTALL, Ctrl+C COPYCLIP, Ctrl+X CUTCLIP, Ctrl+V PASTECLIP, Ctrl+Shift+C COPYBASE, Ctrl+Shift+V PASTEBLOCK, Ctrl+P PLOT, Ctrl+Shift+A PICKSTYLE, Ctrl+W SELECTIONCYCLING). A registry's `Shortcuts` is replaced, from
 [global settings](app.md#global-settings), by another set; letters of either case are the same, and a name wins over an
