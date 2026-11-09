@@ -412,6 +412,13 @@ namespace GeometryHelper.Dxf.Viewer
                     DrawBlock(dimension.DimBlock, Affine2.Identity, dimension, frame, list, handle, layerName, style);
                     return;
                 case DxfBlockReference reference:
+                    // The snap Insertion takes the point of an INSERT of the space itself, not of one nested in a block.
+                    if (frame.RootHandle == null && forcedHandle == null)
+                    {
+                        GeoPoint3 at = reference.Position;
+                        list.AddInsertionPoint(handle, frame.Matrix.X(at.X, at.Y), frame.Matrix.Y(at.X, at.Y));
+                    }
+
                     DrawInsert(reference, frame, list, handle, layerName, style);
                     return;
                 case DxfAttributeDefinition definition when frame.RootHandle != null && !definition.Constant:
@@ -419,11 +426,31 @@ namespace GeometryHelper.Dxf.Viewer
                     // definition, which has no ATTRIB, shows its value.
                     return;
                 case DxfDBText text:
-                    DrawText(text, frame, list, style, handle, layerName);
-                    return;
+                    {
+                        int before = list.Count;
+                        DrawText(text, frame, list, style, handle, layerName);
+
+                        // A TEXT of the space and an ATTRIB shown give the snap Insertion the point they are placed by.
+                        if ((text is DxfAttributeReference || (frame.RootHandle == null && forcedHandle == null)) && list.Count > before && list.Items[list.Count - 1] is DisplayText2 drawn)
+                        {
+                            list.AddInsertionPoint(handle, drawn.X, drawn.Y);
+                        }
+
+                        return;
+                    }
+
                 case DxfMText mtext:
-                    DrawMText(mtext, frame, list, style, handle, layerName);
-                    return;
+                    {
+                        int before = list.Count;
+                        DrawMText(mtext, frame, list, style, handle, layerName);
+
+                        if (frame.RootHandle == null && forcedHandle == null && list.Count > before && list.Items[list.Count - 1] is DisplayText2 drawn)
+                        {
+                            list.AddInsertionPoint(handle, drawn.X, drawn.Y);
+                        }
+
+                        return;
+                    }
                 case DxfHatch hatch:
                     DrawHatch(hatch, frame, list, style, handle, layerName);
                     return;

@@ -46,9 +46,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
     /// <summary>
     /// AutoCAD's Drafting Settings (DSETTINGS, DS, OS) on what the presenter has: Snap and Grid (snap on, its X and Y
-    /// spacing, grid on), Polar Tracking (on, the increment angle) and Object Snap (Object Snap On, the fourteen snaps with
-    /// their markers, Select All and Clear All; Object Snap Tracking greyed, not built yet). Apply gives them to the window at
-    /// once, OK applies and closes, Cancel drops them; the snaps ticked are kept in the settings file by the window.
+    /// spacing, grid on), Polar Tracking (on, the increment angle) and Object Snap (Object Snap On, Object Snap Tracking On,
+    /// the fourteen snaps with their markers, Select All and Clear All). Apply gives them to the window at once, OK applies
+    /// and closes, Cancel drops them; the snaps ticked are kept in the settings file by the window.
     /// </summary>
     public sealed class DraftingSettingsViewModel : ObservableObject
     {
@@ -69,6 +69,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private bool _isGridSnapOn;
         private bool _isGridOn;
         private bool _isPolarOn;
+        private bool _isTrackingOn;
         private string _snapX;
         private string _snapY;
         private string _increment;
@@ -83,6 +84,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _isGridSnapOn = model.Toggles.First(t => t.Name == "SNAP").IsOn;
             _isGridOn = model.Toggles.First(t => t.Name == "GRID").IsOn;
             _isPolarOn = model.Toggles.First(t => t.Name == "POLAR").IsOn;
+            _isTrackingOn = model.Toggles.First(t => t.Name == "OTRACK").IsOn;
             _snapX = Text(model.Snap.GridX);
             _snapY = Text(model.Snap.GridY);
             _increment = Text(model.Snap.PolarAngle * 180.0 / Math.PI);
@@ -166,6 +168,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             set => Set(ref _isPolarOn, value);
         }
 
+        /// <summary>Gets or sets "Object Snap Tracking On (F11)": the status bar's OTRACK.</summary>
+        public bool IsTrackingOn
+        {
+            get => _isTrackingOn;
+            set => Set(ref _isTrackingOn, value);
+        }
+
         /// <summary>Gets or sets the snap X spacing, as typed.</summary>
         public string SnapX
         {
@@ -213,8 +222,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public ICommand CancelCommand { get; }
 
         /// <summary>
-        /// Gives the window the settings at once: the snaps ticked (<see cref="MainViewModel.SnapModes"/>), OSNAP, SNAP, GRID
-        /// and POLAR, the snap spacing and the polar increment.
+        /// Gives the window the settings at once: the snaps ticked (<see cref="MainViewModel.SnapModes"/>), OSNAP, SNAP, GRID,
+        /// POLAR and OTRACK, the snap spacing and the polar increment.
         /// </summary>
         /// <returns>Whether they were taken: false where a spacing or the increment is not a number above nought, said in <see cref="Notice"/>.</returns>
         public bool Apply()
@@ -237,6 +246,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _model.Toggles.First(t => t.Name == "SNAP").IsOn = _isGridSnapOn;
             _model.Toggles.First(t => t.Name == "GRID").IsOn = _isGridOn;
             _model.Toggles.First(t => t.Name == "POLAR").IsOn = _isPolarOn;
+            _model.Toggles.First(t => t.Name == "OTRACK").IsOn = _isTrackingOn;
             _model.Snap.GridX = x;
             _model.Snap.GridY = y;
             _model.Snap.PolarAngle = degrees * Math.PI / 180.0;

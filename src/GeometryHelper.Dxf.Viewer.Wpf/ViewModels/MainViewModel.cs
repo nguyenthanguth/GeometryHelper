@@ -79,6 +79,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 new StatusToggleViewModel("SNAP", true),
                 new StatusToggleViewModel("ORTHO", false),
                 new StatusToggleViewModel("POLAR", false),
+                new StatusToggleViewModel("OTRACK", true),
                 new StatusToggleViewModel("OSNAP", true),
             };
 
@@ -436,7 +437,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets whether the canvas shows its dot grid (GRID, F7).</summary>
         public bool GridOn => Toggles.First(t => t.Name == "GRID").IsOn;
 
-        /// <summary>Gets the toggles of the status bar: GRID, SNAP, ORTHO, POLAR and OSNAP.</summary>
+        /// <summary>Gets the toggles of the status bar: GRID, SNAP, ORTHO, POLAR, OTRACK and OSNAP.</summary>
         public ObservableCollection<StatusToggleViewModel> Toggles { get; }
 
         /// <summary>Gets whether the drawing shown differs from its file.</summary>
@@ -1256,8 +1257,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            // An object snap taken for one point (END typed, the Shift+right-click menu) ends with the prompt it was taken at.
+            // An object snap taken for one point (END typed, the Shift+right-click menu) ends with the prompt it was taken at, and
+            // so do the points acquired for tracking and the object clicked first for an apparent intersection.
             Snap.Override = null;
+            Snap.ClearAcquired();
             SyncHistory();
             Raise(nameof(Prompt));
             Raise(nameof(IsCommandRunning));
@@ -1452,6 +1455,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Snap.IsOn = On("OSNAP");
             Snap.Ortho = On("ORTHO");
             Snap.Polar = On("POLAR");
+            Snap.Tracking = On("OTRACK");
             Snap.GridSnap = On("SNAP");
             Raise(nameof(GridOn));
         }

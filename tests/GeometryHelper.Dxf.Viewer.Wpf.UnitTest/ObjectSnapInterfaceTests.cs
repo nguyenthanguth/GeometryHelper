@@ -38,9 +38,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             foreach (string name in new[] { "Extension", "Insertion", "Apparent Intersection", "Parallel" })
             {
                 CadMenuItemViewModel item = items.Single(i => i.Header == name);
-                Assert.False(item.IsEnabled);
-                Assert.Equal("Not built yet.", item.ToolTip);
-                Assert.False(item.Command.CanExecute(null));
+                Assert.True(item.IsEnabled);
+                Assert.Null(item.ToolTip);
+                Assert.True(item.Command.CanExecute(null));
             }
 
             Assert.All(items.Where(i => !i.IsSeparator && i.Header != "Object Snap Settings..."), i => Assert.True(i.IsCheckable));
@@ -97,9 +97,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             dialog.SelectAllCommand.Execute(null);
             Assert.All(dialog.Modes, r => Assert.Equal(r.IsAvailable, r.IsChecked));
-            dialog.Modes.Single(r => r.Name == "Parallel").IsChecked = true;
-            Assert.False(dialog.Modes.Single(r => r.Name == "Parallel").IsChecked);
-            Assert.Equal("Not built yet.", dialog.Modes.Single(r => r.Name == "Parallel").ToolTip);
+            Assert.True(dialog.Modes.Single(r => r.Name == "Parallel").IsChecked);
+            Assert.Null(dialog.Modes.Single(r => r.Name == "Parallel").ToolTip);
 
             dialog.ClearAllCommand.Execute(null);
             dialog.Modes.Single(r => r.Name == "Geometric Center").IsChecked = true;
@@ -180,7 +179,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             IReadOnlyList<CadMenuItemViewModel> items = model.SnapOverrideMenu();
 
-            Assert.Equal(new[] { "Endpoint", "Midpoint", "Intersection", "Center", "Geometric Center", "Quadrant", "Tangent", "Perpendicular", "Node", "Nearest", "None", string.Empty, "Osnap Settings..." },
+            Assert.Equal(new[] { "Endpoint", "Midpoint", "Intersection", "Apparent Intersection", "Extension", "Center", "Geometric Center", "Quadrant", "Tangent", "Perpendicular", "Parallel", "Node", "Insertion", "Nearest", "None", string.Empty, "Osnap Settings..." },
                 items.Select(i => i.Header));
             items.Single(i => i.Header == "Midpoint").Command.Execute(null);
             Assert.Equal(CadSnapModes.Midpoint, model.Snap.Override);
@@ -195,15 +194,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
-        public void NoneTypedTakesNoSnapForThePoint_AndASnapNotBuiltIsSaidSo()
+        public void NoneTypedTakesNoSnapForThePoint_AfterExtTyped()
         {
             var model = new MainViewModel();
             OpenRoom(model);
             model.StartCommand("LINE");
 
             model.Execute("EXT");
-            Assert.Null(model.Snap.Override);
-            Assert.Contains("Extension object snap is not built yet.", model.History);
+            Assert.Equal(CadSnapModes.Extension, model.Snap.Override);
 
             model.Execute("NON");
             Assert.Equal(CadSnapKind.None, model.SnapAt(new GeoPoint2(3999.5, 0.4), 2.0).Kind);

@@ -76,20 +76,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             new SnapModeInfo(CadSnapKind.Node, CadSnapModes.Node, "NOD", "NODE"),
             new SnapModeInfo(CadSnapKind.Quadrant, CadSnapModes.Quadrant, "QUA", "QUADRANT"),
             new SnapModeInfo(CadSnapKind.Intersection, CadSnapModes.Intersection, "INT", "INTERSECTION"),
-            new SnapModeInfo(CadSnapKind.Extension, CadSnapModes.None, "EXT", "EXTENSION"),
-            new SnapModeInfo(CadSnapKind.Insertion, CadSnapModes.None, "INS", "INSERTION"),
+            new SnapModeInfo(CadSnapKind.Extension, CadSnapModes.Extension, "EXT", "EXTENSION"),
+            new SnapModeInfo(CadSnapKind.Insertion, CadSnapModes.Insertion, "INS", "INSERTION"),
             new SnapModeInfo(CadSnapKind.Perpendicular, CadSnapModes.Perpendicular, "PER", "PERPENDICULAR"),
             new SnapModeInfo(CadSnapKind.Tangent, CadSnapModes.Tangent, "TAN", "TANGENT"),
             new SnapModeInfo(CadSnapKind.Nearest, CadSnapModes.Nearest, "NEA", "NEAREST"),
-            new SnapModeInfo(CadSnapKind.ApparentIntersection, CadSnapModes.None, "APP", "APPINT"),
-            new SnapModeInfo(CadSnapKind.Parallel, CadSnapModes.None, "PAR", "PARALLEL"),
+            new SnapModeInfo(CadSnapKind.ApparentIntersection, CadSnapModes.ApparentIntersection, "APP", "APPINT"),
+            new SnapModeInfo(CadSnapKind.Parallel, CadSnapModes.Parallel, "PAR", "PARALLEL"),
         };
 
-        /// <summary>The order of AutoCAD's Shift+right-click menu, the snaps built only.</summary>
+        /// <summary>The order of AutoCAD's Shift+right-click menu, its object snaps.</summary>
         private static readonly CadSnapKind[] OverrideMenuOrder =
         {
-            CadSnapKind.Endpoint, CadSnapKind.Midpoint, CadSnapKind.Intersection, CadSnapKind.Center, CadSnapKind.GeometricCenter, CadSnapKind.Quadrant,
-            CadSnapKind.Tangent, CadSnapKind.Perpendicular, CadSnapKind.Node, CadSnapKind.Nearest,
+            CadSnapKind.Endpoint, CadSnapKind.Midpoint, CadSnapKind.Intersection, CadSnapKind.ApparentIntersection, CadSnapKind.Extension, CadSnapKind.Center,
+            CadSnapKind.GeometricCenter, CadSnapKind.Quadrant, CadSnapKind.Tangent, CadSnapKind.Perpendicular, CadSnapKind.Parallel, CadSnapKind.Node,
+            CadSnapKind.Insertion, CadSnapKind.Nearest,
         };
 
         private EventHandler _draftingSettingsRequested;
@@ -164,7 +165,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// Gets the items of the Shift+right-click menu while a point is asked, in AutoCAD's order: the snaps built, each taken
+        /// Gets the items of the Shift+right-click menu while a point is asked, in AutoCAD's order: the fourteen snaps, each taken
         /// for the next point alone (<see cref="OverrideSnap"/>), None, then "Osnap Settings...". Empty while no point is asked.
         /// </summary>
         /// <returns>The items.</returns>

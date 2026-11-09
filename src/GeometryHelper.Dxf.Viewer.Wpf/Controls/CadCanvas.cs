@@ -110,6 +110,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private const double GridPixels = 6.0;
         private const double DragPixels = 4.0;
         private const int SettleMilliseconds = 80;
+
+        /// <summary>How long the cursor rests on a point before it is acquired for tracking, Extension or Parallel: half a second.</summary>
+        private const int RestMilliseconds = 500;
         private const double GripSize = 8.0;
         private const int GripLimit = 100;
         private const double UcsIconArm = 44.0;
@@ -168,6 +171,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private int _gripRgb = 0x3D9BFF;
         private Brush _gripBrush = DefaultGripBrush;
         private CadSnapResult _snapped;
+        private DispatcherTimer _rest;
+        private GeoPoint2? _restAt;
+        private double _restAperture;
         private int _hotGrip = -1;
         private int _dragGrip = -1;
         private GeoPoint2 _dragTo;
@@ -185,6 +191,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _renderQueued = false;
                 StopQueue();
                 _settle?.Stop();
+                _rest?.Stop();
             };
         }
 
@@ -1016,6 +1023,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         protected override void OnMouseLeave(MouseEventArgs e)
         {
             base.OnMouseLeave(e);
+            _rest?.Stop();
+            _restAt = null;
 
             if (_mouse.HasValue)
             {
@@ -1454,6 +1463,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 _snapped = CadPicking.Snap(document, Space, Snap, cursor, aperture, session.Prompt.BasePoint);
                 SetHover(null);
+                RestartRest(cursor, aperture);
                 InvalidateVisual();
                 return;
             }
@@ -1488,6 +1498,58 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 InvalidateVisual();
             }
+        }
+
+        /// <summary>The cursor moved at a point prompt: the wait for it to rest starts again, where tracking, Extension or Parallel can use a rest.</summary>
+        private void RestartRest(GeoPoint2 cursor, double aperture)
+        {
+            ObjectSnap snap = Snap;
+            _rest?.Stop();
+            _restAt = null;
+
+            if (snap == null || !(snap.Tracking || ((snap.Override ?? (snap.IsOn ? snap.Modes : CadSnapModes.None)) & (CadSnapModes.Extension | CadSnapModes.Parallel)) != 0))
+            {
+                return;
+            }
+
+            if (_rest == null)
+            {
+                _rest = new DispatcherTimer(DispatcherPriority.Input, Dispatcher) { Interval = TimeSpan.FromMilliseconds(RestMilliseconds) };
+                _rest.Tick += (s, e) => AcquireAtRest();
+            }
+
+            _restAt = cursor;
+            _restAperture = aperture;
+            _rest.Start();
+        }
+
+        /// <summary>
+        /// The cursor has rested for <see cref="RestMilliseconds"/> at a point prompt: the point under it is acquired, or let go,
+        /// as AutoCAD acquires one when the cursor pauses on it, and the snap is worked out again from it.
+        /// </summary>
+        /// <returns>Whether a point was acquired or let go.</returns>
+        internal bool AcquireAtRest()
+        {
+            _rest?.Stop();
+            CadCommandSession session = Session;
+            CadDocument document = Document;
+
+            if (!_restAt.HasValue || document == null || Space == null || !CadPicking.WantsPoint(session))
+            {
+                return false;
+            }
+
+            GeoPoint2 at = _restAt.Value;
+            _restAt = null;
+
+            if (!CadPicking.Acquire(document, Space, Snap, at, _restAperture, session.Prompt.BasePoint))
+            {
+                return false;
+            }
+
+            _snapped = CadPicking.Snap(document, Space, Snap, at, _restAperture, session.Prompt.BasePoint);
+            InvalidateVisual();
+            return true;
         }
 
         private void SetHover(string hover)
@@ -1887,6 +1949,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 dc.DrawRectangle(null, BasePen, new Rect(from.X - 5.0, from.Y - 5.0, 10.0, 10.0));
             }
 
+            DrawTracking(dc, view, scale);
             DrawMarker(dc, _snapped, to);
             string tip = PromptTip;
 
@@ -1902,6 +1965,46 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 var box = new Rect(left, top, w, 22.0);
                 dc.DrawRoundedRectangle(TipFill, TipPen, box, 2.0, 2.0);
                 dc.DrawText(text, new Point(box.X + 8.0, box.Y + (22.0 - text.Height) / 2.0));
+            }
+        }
+
+        /// <summary>
+        /// The points acquired, as AutoCAD marks them: a small cross, 7 pixels across, a line acquired for Parallel by the
+        /// marker of Parallel; and the dotted paths of the snap to its point (an extension, a parallel, tracking lines).
+        /// </summary>
+        private void DrawTracking(DrawingContext dc, CadView view, double scale)
+        {
+            Pen pen = MarkerPen(Options.Background);
+            ObjectSnap snap = Snap;
+
+            if (snap != null)
+            {
+                foreach (CadAcquiredPoint acquired in snap.Acquired)
+                {
+                    Point at = ToScreen(view, acquired.Point, scale);
+
+                    if (acquired.Kind == CadSnapKind.Parallel)
+                    {
+                        DrawMarker(dc, CadSnapKind.Parallel, at, pen);
+                        continue;
+                    }
+
+                    dc.DrawLine(pen, new Point(at.X - 3.5, at.Y), new Point(at.X + 3.5, at.Y));
+                    dc.DrawLine(pen, new Point(at.X, at.Y - 3.5), new Point(at.X, at.Y + 3.5));
+                }
+            }
+
+            if (_snapped == null)
+            {
+                return;
+            }
+
+            foreach (IReadOnlyList<GeoPoint2> track in _snapped.Tracks)
+            {
+                for (int i = 1; i < track.Count; i++)
+                {
+                    dc.DrawLine(DottedPen(pen), ToScreen(view, track[i - 1], scale), ToScreen(view, track[i], scale));
+                }
             }
         }
 

@@ -120,14 +120,14 @@
                     </StackPanel>
                 </StackPanel>
 
-                <!-- Object Snap: on, tracking (not built), the fourteen snaps in two columns, Select All and Clear All. -->
+                <!-- Object Snap: on, tracking on, the fourteen snaps in two columns, Select All and Clear All. -->
                 <DockPanel Visibility="{Binding IsObjectSnapTab, Converter={StaticResource Shown}}">
                     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,14">
                         <StackPanel Orientation="Horizontal">
                             <CheckBox Style="{StaticResource Check}" IsChecked="{Binding IsSnapOn, Mode=TwoWay}" />
                             <TextBlock Text="Object Snap On (F3)" VerticalAlignment="Center" Margin="0,0,24,0" />
-                            <CheckBox Style="{StaticResource Check}" IsEnabled="False" ToolTip="Not built yet." />
-                            <TextBlock Text="Object Snap Tracking On (F11)" VerticalAlignment="Center" Foreground="{StaticResource GhTextMuted}" ToolTip="Not built yet." />
+                            <CheckBox Style="{StaticResource Check}" IsChecked="{Binding IsTrackingOn, Mode=TwoWay}" />
+                            <TextBlock Text="Object Snap Tracking On (F11)" VerticalAlignment="Center" />
                         </StackPanel>
                     </DockPanel>
                     <StackPanel DockPanel.Dock="Right" Margin="16,0,0,0">

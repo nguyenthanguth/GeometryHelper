@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Dxf.Viewer
 {
@@ -9,7 +10,12 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     public sealed class DisplayList2
     {
+        private static readonly IReadOnlyList<GeoPoint2> NoPoints = Array.Empty<GeoPoint2>();
+
         private readonly List<DisplayItem2> _items = new List<DisplayItem2>();
+
+        // The insertion points by handle, for the snap Insertion: looked up only, never enumerated.
+        private readonly Dictionary<string, List<GeoPoint2>> _insertions = new Dictionary<string, List<GeoPoint2>>(StringComparer.OrdinalIgnoreCase);
         private DisplayBox _bounds = DisplayBox.Empty;
 
         /// <summary>Gets the items in the order they are drawn, the first at the back.</summary>
@@ -36,6 +42,31 @@ namespace GeometryHelper.Dxf.Viewer
 
             _items.Add(item);
             _bounds = _bounds.Union(item is DisplayRay2 ray ? DisplayBox.Empty.Add(ray.X, ray.Y) : item.Bounds);
+        }
+
+        /// <summary>
+        /// The insertion points of an entity, as the snap Insertion takes them: of an INSERT its insertion point and those of
+        /// its attributes shown, of a TEXT or an MTEXT the point it is placed by; empty for any other entity. In drawing units,
+        /// in the order they were drawn.
+        /// </summary>
+        internal IReadOnlyList<GeoPoint2> InsertionPointsOf(string handle)
+            => handle != null && _insertions.TryGetValue(handle, out List<GeoPoint2> points) ? points : NoPoints;
+
+        /// <summary>Keeps an insertion point of an entity.</summary>
+        internal void AddInsertionPoint(string handle, double x, double y)
+        {
+            if (string.IsNullOrEmpty(handle))
+            {
+                return;
+            }
+
+            if (!_insertions.TryGetValue(handle, out List<GeoPoint2> points))
+            {
+                points = new List<GeoPoint2>();
+                _insertions[handle] = points;
+            }
+
+            points.Add(new GeoPoint2(x, y));
         }
     }
 
