@@ -43,8 +43,8 @@ which aims to work like AutoCAD 2021 and replace it, and Part B, model drawings 
 ### To do
 
 - [ ] Ribbon: check drop-downs at 125 % and 150 % display scaling; pin and Esc by hand
-- [ ] XLINE and RAY: pick and snap test only the visible part (they cost 9 times a line today)
-- [ ] Speed: undo by deltas (undo reloads the whole drawing, 2.5 s at 1 000 000 entities)
+- [ ] XLINE and RAY: pick and snap test only the visible part (they cost 9 times a line today) (running)
+- [ ] Speed: undo by deltas (undo reloads the whole drawing, 2.5 s at 1 000 000 entities) (running)
 - [ ] Speed: draw the first display off the UI thread (10–13 s at 1 000 000 entities)
 - [ ] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels (needs a decision)
 - [ ] Speed: highlight of 100 000 selected objects (1.2–1.6 s)
