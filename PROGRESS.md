@@ -42,6 +42,7 @@ The list of work on the drawing stack: Part A, the 2D presenter (`GeometryHelper
       screenshot mode shared with Drawing.App through `CadAppHost`
 - [x] Blocks round 2: EATTEDIT live with Apply kept open, INSERT drags the block, -ATTEDIT picks one attribute, ATTSYNC,
       Block Definition previews the selection, redefine a block brought from another drawing
+- [x] Layers per viewport: VP Freeze, New VP Freeze, VP Color, Linetype, Lineweight, Transparency, Plot Style (as AutoCAD      stores them), VPLAYER, LAYVPI; the status bar's MODEL/PAPER, scale list and padlock to the design
 - [x] Command line AutoComplete (most used first, aliases, variables, mid-string, synonyms, AutoCorrect, Input Settings,
       Recent Commands); the application menu with Recent Documents (pins, previews); the DXF app's own start screen
 - [x] PEDIT (single and Multiple, every option) and REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style,
@@ -92,9 +93,9 @@ the ones wanted.
       Extend for arc ends in a fuzz join (S)
 - [ ] REVCLOUD: the 2021 approximate arc length (REVCLOUDARCVARIANCE), REVCLOUDPROPERTIES, a Freehand preview, Modify on
       more than closed polylines (S)
-- [ ] Layouts (running): the status bar's MODEL/PAPER button, viewport scale list and padlock restyled to the design (StatusSpace
-      board, v104); twisted viewports entered; one undo step per wheel or pan gesture; a ZOOM Previous list per viewport (S)
-- [ ] Layers: VP Freeze per viewport (VPLAYER, the Layer manager's VP columns, LAYVPI) (M) (running)
+- [ ] Layouts: twisted viewports entered; one undo step per wheel or pan gesture; a ZOOM Previous list per viewport;
+      SCALELISTEDIT (Custom… runs VPSCALE now); Rename and Isolate in the Layer manager; New VP Freeze on viewports made
+      through the core's API, not only MVIEW (S)
 - [ ] Dimensions: MLEADERSTYLE, the Multileader Style Manager (M, design first) (running)
 - [ ] Dimensions: associative dimensions that follow their geometry (DIMASSOC 2, DIMREASSOCIATE) (L) (running)
 - [ ] Blocks: BEDIT, the Block Editor (L, design first)
