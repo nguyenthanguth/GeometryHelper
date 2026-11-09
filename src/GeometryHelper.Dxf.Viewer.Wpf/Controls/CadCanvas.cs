@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -1137,16 +1138,54 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (e.OldValue is CadCommandSession old)
             {
                 old.PromptChanged -= canvas.OnPromptChanged;
+                old.UiRequested -= canvas.OnImageRequested;
             }
 
             if (e.NewValue is CadCommandSession next)
             {
                 next.PromptChanged += canvas.OnPromptChanged;
+                next.UiRequested += canvas.OnImageRequested;
             }
 
             canvas._ghost.Follow(e.NewValue as CadCommandSession);
 
             canvas.RequestRender();
+        }
+
+        /// <summary>
+        /// IMAGEOUT, the image of PNGOUT, JPGOUT or BMPOUT: the scene the canvas keeps, drawn anew at its view and size with its
+        /// colours, its grid where all objects are written, and none of what is drawn over it (cursor, grips, highlight, the
+        /// UCS icon); with objects selected, those alone on the background.
+        /// </summary>
+        private void OnImageRequested(object sender, CadUiRequestEventArgs e)
+        {
+            CadImageJob job = e.Image;
+            CadView view = View;
+
+            if (e.Name != "IMAGEOUT" || job?.FileName == null || view == null || Document == null || e.Document != Document)
+            {
+                return;
+            }
+
+            e.Handled = true;
+
+            try
+            {
+                using (SKBitmap picture = CadRasterWriter.Draw(Document, job.Space, view, Options, job.Handles))
+                {
+                    if (job.Handles == null && ShowGrid && job.Space.IsModel)
+                    {
+                        DrawGrid(picture, view, PixelScale, Document.Ucs.WorkingOf(job.Space));
+                    }
+
+                    File.WriteAllBytes(job.FileName, CadRasterWriter.Encode(picture, job.Format));
+                }
+            }
+            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is ArgumentException || exception is NotSupportedException)
+            {
+                GeometryHelperLog.Warn("CadCanvas: the image " + job.FileName + " was not written.", exception);
+                ((CadCommandSession)sender).Write("The image was not written: " + exception.Message);
+            }
         }
 
         private static void OnSceneChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)

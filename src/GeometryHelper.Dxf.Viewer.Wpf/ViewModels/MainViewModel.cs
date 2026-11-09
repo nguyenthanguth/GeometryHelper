@@ -1375,6 +1375,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "-PLOT":
                     OnPlotFileRequested(sender, e);
                     break;
+                case "PNGOUT":
+                case "JPGOUT":
+                case "BMPOUT":
+                    OnImageFileRequested(e);
+                    break;
                 case "QSELECT":
                     OnQuickSelectRequested(e);
                     break;

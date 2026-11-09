@@ -132,7 +132,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 canvas.ClipRect(new SKRect(Math.Min(x0, x1), Math.Min(y0, y1), Math.Max(x0, x1), Math.Max(y0, y1)));
                 var options = new CanvasOptions { Background = 0xFFFFFF, Paper = 0xFFFFFF };
-                DrawList(canvas, document, space, document.GetDisplay(space), m, page.Area, options, null, null, null, 0xFFFFFF);
+                DrawList(canvas, document, space, document.GetDisplay(space), m, page.Area, options, null, null, null, null, 0xFFFFFF);
             }
             finally
             {
@@ -160,6 +160,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         internal void RenderScene(SKCanvas canvas, CadDocument document, CadSpace space, CadView view, CanvasOptions options)
         {
             Draw(canvas, document, space, view, options ?? new CanvasOptions(), null, null);
+        }
+
+        /// <summary>
+        /// Draws a space with only some of its entities, as PNGOUT writes the objects selected: the scene of
+        /// <see cref="RenderScene"/>, its background and a layout's paper, with every other entity left out. A viewport among
+        /// them is drawn with what it shows.
+        /// </summary>
+        /// <param name="canvas">The canvas to draw on.</param>
+        /// <param name="document">The document.</param>
+        /// <param name="space">The space to draw.</param>
+        /// <param name="view">What part of it is shown and at what zoom.</param>
+        /// <param name="options">How to draw it.</param>
+        /// <param name="handles">The entities drawn.</param>
+        internal void RenderOnly(SKCanvas canvas, CadDocument document, CadSpace space, CadView view, CanvasOptions options, IReadOnlyCollection<string> handles)
+        {
+            Draw(canvas, document, space, view, options ?? new CanvasOptions(), null, null, new HashSet<string>(handles, StringComparer.OrdinalIgnoreCase));
         }
 
         /// <summary>
@@ -231,7 +247,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        private void Draw(SKCanvas canvas, CadDocument document, CadSpace space, CadView view, CanvasOptions options, IReadOnlyCollection<string> selection, string hover)
+        private void Draw(SKCanvas canvas, CadDocument document, CadSpace space, CadView view, CanvasOptions options, IReadOnlyCollection<string> selection, string hover, HashSet<string> only = null)
         {
             if (canvas == null)
             {
@@ -253,7 +269,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             var selected = selection == null ? null : new HashSet<string>(selection, StringComparer.OrdinalIgnoreCase);
-            DrawList(canvas, document, space, list, m, view.VisibleBox, options, selected, hover, null, space.IsModel ? options.Background : options.Paper);
+            DrawList(canvas, document, space, list, m, view.VisibleBox, options, selected, hover, only, null, space.IsModel ? options.Background : options.Paper);
         }
 
         /// <summary>The ring of a box, its four corners.</summary>
@@ -320,9 +336,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>
         /// The items of a list the view shows, in the order of the list: through the space's pick index where the list is one
         /// the document indexes, else by looking at each. Items under half a pixel are gathered into runs of single pixels of
-        /// one colour, each run drawn before the next item larger than that, so the order holds.
+        /// one colour, each run drawn before the next item larger than that, so the order holds. Where <paramref name="only"/>
+        /// is given, the items of other entities are left out.
         /// </summary>
-        private void DrawList(SKCanvas canvas, CadDocument document, CadSpace model, DisplayList2 list, Affine2 m, DisplayBox visible, CanvasOptions options, HashSet<string> selected, string hover, ISet<string> frozen, int background)
+        private void DrawList(SKCanvas canvas, CadDocument document, CadSpace model, DisplayList2 list, Affine2 m, DisplayBox visible, CanvasOptions options, HashSet<string> selected, string hover, HashSet<string> only, ISet<string> frozen, int background)
         {
             double zoom = m.Scale;
 
@@ -344,6 +361,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     DisplayItem2 item = items[shown == null ? k : shown[k]];
 
                     if (shown == null && !item.Bounds.Intersects(visible))
+                    {
+                        continue;
+                    }
+
+                    if (only != null && (item.Handle == null || !only.Contains(item.Handle)))
                     {
                         continue;
                     }
@@ -1113,7 +1135,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             double halfH = viewport.Height / 2.0 / viewport.Scale;
             double reach = Math.Sqrt(halfW * halfW + halfH * halfH);
             var visible = new DisplayBox(viewport.ViewCenterX - reach, viewport.ViewCenterY - reach, viewport.ViewCenterX + reach, viewport.ViewCenterY + reach);
-            DrawList(canvas, document, document?.ModelSpace, viewport.Model, inner, visible, options, null, null, viewport.FrozenLayers, paperBackground);
+            DrawList(canvas, document, document?.ModelSpace, viewport.Model, inner, visible, options, null, null, null, viewport.FrozenLayers, paperBackground);
             canvas.Restore();
 
             if (cos == 0.0 && sin == 0.0)

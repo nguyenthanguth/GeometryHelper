@@ -16,6 +16,14 @@ members. Its pictures are the same as before, pixel for pixel but for the clock 
 options. `CadWorkspace.AppName` puts
 the app's name in the title bar and on the start screen, "GeometryHelper Drawing" unless a host gives its own.
 
+**NEW.** The presenter has PNGOUT, JPGOUT and BMPOUT, as AutoCAD 2021's: the file from the Create Raster File dialog (on
+the command line with no window, `Enter file name <C:\Plans\plan.png>:`), then `Select objects or <all objects and
+viewports>:`. Enter writes the drawing area as it is shown, at its size in pixels, on its background, with its grid and
+without the cursor, grips, UCS icon or selection highlight; objects selected are written alone in the same view. A PNG is
+8-bit RGB, a JPEG of quality 90, a bitmap of 24 bits; the same view gives the same bytes. Nothing is printed and nothing
+is undone. A 1 920 by 1 080 PNG of a drawing of 100 000 entities is 1.2 MB, written in 0.25 s (.NET Framework 4.8; 0.20
+s on .NET 10). `CadImageJob` is what the command hands the window, and `CadRasterWriter` writes one with no window.
+
 **NEW.** The presenter's ribbon has an Insert tab, after a host's tabs and before Annotate, as AutoCAD 2021's for what is
 built: Block (Insert, whose arrow drops a gallery of the drawing's blocks, a click on a tile starting INSERT with that
 block; Edit Attribute), Block Definition (Create Block and Write Block, Define Attributes, Set Base Point) and Reference
