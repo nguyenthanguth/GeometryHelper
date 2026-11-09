@@ -62,6 +62,14 @@ drawn again in 1.4 s instead of 9.9 s, though the edit itself takes 6.4 s instea
 it is patched. Under .NET 8 with a heap of 4 GB the old presenter ran out at the second edit of a single line; the new one
 goes on through that move (4.3 s, drawn in 1.1 s), its undo and a layer switched off and on.
 
+**CHANGED.** The presenter's `PickIndex` hands an XLINE or a RAY to a pick, a snap or a selection only where it passes
+through the box asked about or near it, where before every one was handed to every pick and snap. On a drawing of
+100 000 lines, arcs and circles with 200 xlines and rays among them, 20 000 snaps take 40 ms instead of 119 to 136 ms and
+20 000 picks 20 ms instead of 73 to 98 ms under .NET 8, and 60 ms instead of 220 to 243 ms and 27 ms instead of 108 to
+119 ms under .NET Framework 4.8; with no xline they take 22 to 28 ms and 14 to 19 ms. What is picked, snapped and selected
+is the same, bit for bit. `ItemsNear` now leaves out an xline or ray that passes the box by further than the box's own
+size, unless it is drawn for a block reference, whose insertion point a snap takes from any of its items.
+
 **NEW.** The presenter selects and tidies as AutoCAD 2021 does. QSELECT shows Quick Select over the rows of the
 Properties panel (`CadQuickSelect`): Line, Layer, `= Equals`, WALLS selects the lines of WALLS and says `312 item(s)
 selected.`, in 0.25 s over 100 000 objects. FIND shows Find and Replace (`CadFind`) over TEXT, MTEXT, attribute values,

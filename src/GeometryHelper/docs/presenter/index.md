@@ -72,6 +72,11 @@ On a drawing of 99 856 lines in 10.6 MB, on .NET 8:
 | `Window` over a box of 100 by 100, which takes 100 entities | 0.56 ms |
 | `ItemsNear` for a box 100 by 100, which meets 121 items | 0.33 ms |
 
+An XLINE or a RAY has no end, so it is kept out of the grid and tried only against the box asked about, grown by its own
+size: one that passes further off is never handed to a pick or a snap. On a drawing of 100 000 lines, arcs and circles
+with 200 xlines and rays among them, 20 000 snaps take 40 ms and 20 000 picks 20 ms on .NET 8, against 22 to 28 ms and
+14 to 19 ms with no xline at all; when every xline was handed to every pick they took 119 to 136 ms and 73 to 98 ms.
+
 The display list is made once and kept until an edit touches the space, so panning and zooming afterwards cost only the
 drawing of what is on the screen. An edit, an undo or a redo then draws again only what it changed: the entities its
 records name, those that read a layer it switched off, froze or recoloured, and those that share a dimension's picture
