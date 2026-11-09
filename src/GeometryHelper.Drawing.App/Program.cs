@@ -34,7 +34,10 @@ namespace GeometryHelper.Drawing.App
     /// loads a command plugin or a drawing plugin, <c>--tab Plugins</c> shows its tab, <c>--dialog plugins|plugin-settings|plugin-untrusted</c> draws the Plugin manager,
     /// the plugin's settings or the question before an untrusted load; <c>--dialog options</c> or <c>--dialog "settings:Canvas and
     /// cursor"</c> draws Global settings on a category; <c>--dialog color</c> or <c>--dialog truecolor</c> draws Select Color on
-    /// index 30, on its Index Color or True Color tab.
+    /// index 30, on its Index Color or True Color tab; <c>--dialog dsettings</c> or <c>--dialog "dsettings:Snap and Grid"</c> draws
+    /// Drafting Settings on a tab; <c>--dialog osnap-menu</c> the OSNAP menu of the status bar, <c>--dialog snap-menu</c> the
+    /// Shift+right-click menu of the point prompt <c>--run</c> leaves, and <c>--dialog drawings-menu</c> the right-click menu of
+    /// the first row of the DRAWINGS list.
     /// </summary>
     public static class Program
     {
@@ -70,6 +73,24 @@ namespace GeometryHelper.Drawing.App
                 catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
                 {
                     GeometryHelperLog.Warn("Program: the settings could not be saved after DYN was switched.", ex);
+                }
+            };
+
+            // The object snaps ticked in the OSNAP menu or Drafting Settings are kept too, as AutoCAD keeps OSMODE.
+            model.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName != nameof(MainViewModel.SnapModes))
+                {
+                    return;
+                }
+
+                try
+                {
+                    model.Settings.Save(model.SettingsPath);
+                }
+                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+                {
+                    GeometryHelperLog.Warn("Program: the settings could not be saved after the object snaps changed.", ex);
                 }
             };
 
@@ -192,7 +213,7 @@ namespace GeometryHelper.Drawing.App
 
             if (output == null || width < 100 || height < 100 || (cursor != null && cursor.Length != 2))
             {
-                Console.Error.WriteLine("Usage: GeometryHelper.Drawing.App --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--new-drawing \"Test bodies\" Assembly] [--tab Drawing] [--pick view|dimension|mark|line] [--hand-edit] [--dialog new|new-source|new-settings|update|settings[:Tab]|export|message|run-plugin|plugins|plugin-settings|plugin-untrusted|color|truecolor] [--plugin path.dll]");
+                Console.Error.WriteLine("Usage: GeometryHelper.Drawing.App --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--new-drawing \"Test bodies\" Assembly] [--tab Drawing] [--pick view|dimension|mark|line] [--hand-edit] [--dialog new|new-source|new-settings|update|settings[:Tab]|export|message|run-plugin|plugins|plugin-settings|plugin-untrusted|color|truecolor|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu] [--plugin path.dll]");
                 return 2;
             }
 
@@ -301,6 +322,49 @@ namespace GeometryHelper.Drawing.App
                 window = dialog;
                 width = (int)dialog.Width;
                 height = (int)dialog.Height;
+            }
+            else if (dialogName != null && dialogName.StartsWith("dsettings", StringComparison.OrdinalIgnoreCase))
+            {
+                // Drafting Settings on a tab, as DSETTINGS shows it: --dialog dsettings, or --dialog "dsettings:Snap and Grid".
+                int colon = dialogName.IndexOf(':');
+                var dialog = new DraftingSettingsWindow(model.CreateDraftingSettings(colon < 0 ? null : dialogName.Substring(colon + 1)));
+                root = dialog.Body;
+                window = dialog;
+                width = (int)dialog.Width;
+                height = (int)dialog.Height;
+            }
+            else if (dialogName != null && dialogName.EndsWith("-menu", StringComparison.OrdinalIgnoreCase))
+            {
+                // A menu of the window, drawn as it opens: the lines of --run typed first, for the menu of a point prompt.
+                // Each part is one line of the command line; an empty part is Enter.
+                foreach (string line in run == null ? Array.Empty<string>() : run.Split(';'))
+                {
+                    model.Execute(line);
+                }
+
+                run = null;
+                FileRowViewModel row = model.FileRows.FirstOrDefault(r => !r.IsHeader);
+
+                if (row != null)
+                {
+                    model.SelectFileRow(row);
+                }
+
+                IReadOnlyList<CadMenuItemViewModel> items = string.Equals(dialogName, "osnap-menu", StringComparison.OrdinalIgnoreCase) ? model.OsnapMenu()
+                    : string.Equals(dialogName, "snap-menu", StringComparison.OrdinalIgnoreCase) ? model.SnapOverrideMenu()
+                    : string.Equals(dialogName, "drawings-menu", StringComparison.OrdinalIgnoreCase) ? model.FileRowMenu(row)
+                    : Array.Empty<CadMenuItemViewModel>();
+
+                if (items.Count == 0)
+                {
+                    Console.Error.WriteLine("--dialog " + dialogName + ": no such menu, or nothing to show: snap-menu needs a point asked (--run \"LINE\"), drawings-menu a drawing.");
+                    return 2;
+                }
+
+                root = CadMenus.Make(items);
+                window = new Window();
+                width = 260;
+                height = MeasuredHeight(root, width);
             }
             else if (dialogName != null && GlobalCategory(dialogName, out string category))
             {

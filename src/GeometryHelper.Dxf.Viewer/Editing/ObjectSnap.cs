@@ -35,7 +35,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The point of an object nearest the cursor.</summary>
         Nearest = 128,
 
-        /// <summary>Every snap.</summary>
+        /// <summary>A POINT object.</summary>
+        Node = 256,
+
+        /// <summary>The centroid of the area a closed polyline holds, taken with the cursor on the polyline or near the centroid.</summary>
+        GeometricCenter = 512,
+
+        /// <summary>
+        /// The eight snaps the presenter had first, Endpoint to Nearest; <see cref="Node"/> and <see cref="GeometricCenter"/>
+        /// are not in it, so that a set kept as "every snap but Nearest" takes the same points as before they came.
+        /// </summary>
         All = Endpoint | Midpoint | Center | Quadrant | Intersection | Perpendicular | Tangent | Nearest,
     }
 
@@ -77,6 +86,24 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>The cursor held on a polar angle from the base point (POLAR).</summary>
         Polar,
+
+        /// <summary>A POINT object (NODe).</summary>
+        Node,
+
+        /// <summary>The centroid of a closed polyline (GCEn).</summary>
+        GeometricCenter,
+
+        /// <summary>The insertion point of a block or a text (INSertion): drawn in Drafting Settings; no snap gives it yet.</summary>
+        Insertion,
+
+        /// <summary>A point on the extension of a line or an arc (EXTension): drawn in Drafting Settings; no snap gives it yet.</summary>
+        Extension,
+
+        /// <summary>Where two objects would cross if extended (APParent intersection): drawn in Drafting Settings; no snap gives it yet.</summary>
+        ApparentIntersection,
+
+        /// <summary>A point on a line parallel to another (PARallel): drawn in Drafting Settings; no snap gives it yet.</summary>
+        Parallel,
     }
 
     /// <summary>The point a snap gave, which snap gave it and, for an object snap, the object.</summary>
@@ -108,13 +135,17 @@ namespace GeometryHelper.Dxf.Viewer
     /// through a space's <see cref="PickIndex"/>, so an INSERT's lines and arcs are snapped to where it places them.
     /// </summary>
     /// <remarks>
-    /// AutoCAD's order is kept: a snap to a point near the cursor (endpoint, midpoint, centre, quadrant, intersection) wins,
-    /// the nearest of them first; then a snap the object under the cursor gives wherever its point lies (perpendicular,
-    /// tangent, and the centre of a circle whose rim is under the cursor); then nearest. Where no object snap is found, the
+    /// AutoCAD's order is kept: a snap to a point near the cursor (endpoint, midpoint, centre, node, quadrant, intersection,
+    /// geometric centre) wins, the nearest of them first; then a snap the object under the cursor gives wherever its point
+    /// lies (perpendicular, tangent, the centre of a circle whose rim is under the cursor and the centroid of a closed
+    /// polyline under it); then nearest. A POINT is a node, not an endpoint, as in AutoCAD. Where no object snap is found, the
     /// cursor is put on the grid, then held level or upright (ortho) or on a polar angle from the base point.
     /// </remarks>
     public sealed class ObjectSnap
     {
+        // The snaps of the point being worked out: the override, else the modes while snaps are on.
+        private CadSnapModes _active;
+
         /// <summary>Makes the snaps of AutoCAD's default: endpoint, midpoint, centre, quadrant and intersection, on.</summary>
         /// <param name="tolerance">The tolerance of the comparisons: whether lines are parallel, whether a point lies on an arc's sweep.</param>
         public ObjectSnap(Tolerance tolerance)
@@ -135,6 +166,14 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gets or sets whether object snaps are on (OSNAP, F3).</summary>
         public bool IsOn { get; set; }
+
+        /// <summary>
+        /// Gets or sets the object snaps of the next point alone, as AutoCAD's override typed at a point prompt (END, MID) or
+        /// chosen from the Shift+right-click menu: taken in place of <see cref="Modes"/>, whether <see cref="IsOn"/> is on or
+        /// off; <see cref="CadSnapModes.None"/> takes no object snap for that point (NONe). Null, as it is until set, for no
+        /// override. The window clears it once the point is taken.
+        /// </summary>
+        public CadSnapModes? Override { get; set; }
 
         /// <summary>Gets or sets whether the cursor is held level or upright from the base point (ORTHO, F8).</summary>
         public bool Ortho { get; set; }
@@ -171,7 +210,9 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new ArgumentNullException(nameof(index));
             }
 
-            if (IsOn && Modes != CadSnapModes.None && aperture > 0.0)
+            _active = Override ?? (IsOn ? Modes : CadSnapModes.None);
+
+            if (_active != CadSnapModes.None && aperture > 0.0)
             {
                 CadSnapResult found = ObjectSnapAt(index, cursor, aperture, basePoint);
 
@@ -261,13 +302,24 @@ namespace GeometryHelper.Dxf.Viewer
             return best == null ? null : new CadSnapResult(best.Kind, best.Point, best.Handle);
         }
 
-        private bool Has(CadSnapModes mode) => (Modes & mode) != 0;
+        private bool Has(CadSnapModes mode) => (_active & mode) != 0;
 
         private void AddChain(IReadOnlyList<double> xy, int count, bool closed, bool sampled, DisplayItem2 item, GeoPoint2 cursor, double aperture, GeoPoint2? basePoint,
             List<Candidate> near, List<Candidate> onObject, List<Candidate> nearest, List<Curve> curves)
         {
             if (count == 0)
             {
+                return;
+            }
+
+            if (count == 1)
+            {
+                // A chain of one point is a POINT: a node, as in AutoCAD, not an endpoint.
+                if (Has(CadSnapModes.Node))
+                {
+                    Near(near, CadSnapKind.Node, new GeoPoint2(xy[0], xy[1]), item.Handle, cursor, aperture);
+                }
+
                 return;
             }
 
@@ -285,6 +337,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             int segments = closed && count > 2 ? count : count - 1;
+            bool under = false;
 
             for (int i = 0; i < segments; i++)
             {
@@ -305,6 +358,7 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
+                under = true;
                 curves.Add(Curve.Segment(a, b, item.Handle));
 
                 if (Has(CadSnapModes.Nearest))
@@ -323,6 +377,52 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                 }
             }
+
+            // The centroid of a closed polyline: near the cursor, or with the cursor on the polyline, as the centre of a circle is.
+            if (Has(CadSnapModes.GeometricCenter) && closed && count > 2 && item is DisplayPolyline2 && Centroid(xy, count, out GeoPoint2 centroid))
+            {
+                Near(near, CadSnapKind.GeometricCenter, centroid, item.Handle, cursor, aperture);
+
+                if (under)
+                {
+                    onObject.Add(new Candidate(CadSnapKind.GeometricCenter, centroid, item.Handle, (centroid - cursor).Length));
+                }
+            }
+        }
+
+        /// <summary>The centroid of the area a ring holds, worked out from its first point; false where the ring holds no area.</summary>
+        private bool Centroid(IReadOnlyList<double> xy, int count, out GeoPoint2 centroid)
+        {
+            double x0 = xy[0];
+            double y0 = xy[1];
+            double twice = 0.0;
+            double cx = 0.0;
+            double cy = 0.0;
+            double perimeter = 0.0;
+
+            for (int i = 0; i < count; i++)
+            {
+                int j = (i + 1) % count;
+                double ax = xy[2 * i] - x0;
+                double ay = xy[2 * i + 1] - y0;
+                double bx = xy[2 * j] - x0;
+                double by = xy[2 * j + 1] - y0;
+                double cross = ax * by - bx * ay;
+                twice += cross;
+                cx += (ax + bx) * cross;
+                cy += (ay + by) * cross;
+                perimeter += Math.Sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay));
+            }
+
+            // A ring whose area is no more than a strip of the point tolerance along its outline holds none: a sliver has no centroid.
+            if (Math.Abs(twice) / 2.0 <= Tolerance.EqualPoint * perimeter)
+            {
+                centroid = default;
+                return false;
+            }
+
+            centroid = new GeoPoint2(x0 + cx / (3.0 * twice), y0 + cy / (3.0 * twice));
+            return true;
         }
 
         private void AddArc(DisplayArc2 arc, GeoPoint2 cursor, double aperture, GeoPoint2? basePoint, List<Candidate> near, List<Candidate> onObject, List<Candidate> nearest, List<Curve> curves)

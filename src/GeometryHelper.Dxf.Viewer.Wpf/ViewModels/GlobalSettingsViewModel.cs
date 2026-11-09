@@ -455,6 +455,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ["PLUGINUNLOAD"] = "Unload a plugin",
             ["PLUGINRELOAD"] = "Reload a plugin after rebuilding it",
             ["OSNAP"] = "Status toggle: object snaps",
+            ["DSETTINGS"] = "Drafting Settings: object snaps, snap and polar",
             ["GRID"] = "Status toggle: the dot grid",
             ["ORTHO"] = "Status toggle: ortho",
             ["SNAP"] = "Status toggle: grid snap",
@@ -727,7 +728,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }),
             };
 
-            CadSnapModes[] snaps = { CadSnapModes.Endpoint, CadSnapModes.Midpoint, CadSnapModes.Center, CadSnapModes.Quadrant, CadSnapModes.Intersection, CadSnapModes.Perpendicular, CadSnapModes.Tangent, CadSnapModes.Nearest };
+            CadSnapModes[] snaps = { CadSnapModes.Endpoint, CadSnapModes.Midpoint, CadSnapModes.Center, CadSnapModes.Quadrant, CadSnapModes.Intersection, CadSnapModes.Perpendicular, CadSnapModes.Tangent, CadSnapModes.Nearest, CadSnapModes.Node, CadSnapModes.GeometricCenter };
             _pages["Canvas and cursor"] = new[]
             {
                 new GlobalSettingSection("Zoom and pan", new[]
@@ -745,7 +746,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }),
                 new GlobalSettingSection("Object snaps", new[]
                 {
-                    new GlobalSettingRow(GlobalSettingKind.Checks, "Snap to", null, () => string.Empty, null, Changed, checks: snaps.Select(m => new GlobalSettingCheck(m == CadSnapModes.Center ? "Centre" : m.ToString(),
+                    new GlobalSettingRow(GlobalSettingKind.Checks, "Snap to", null, () => string.Empty, null, Changed, checks: snaps.Select(m => new GlobalSettingCheck(m == CadSnapModes.Center ? "Centre" : m == CadSnapModes.GeometricCenter ? "Geometric centre" : m.ToString(),
                         () => (s.Snaps & m) != 0, on => { s.Snaps = on ? s.Snaps | m : s.Snaps & ~m; Changed(); })).ToList()),
                     Number("Aperture", "px", () => s.AperturePixels, v => s.AperturePixels = Whole(v)),
                     Toggle("F3 toggles snaps", () => s.F3TogglesSnaps, v => s.F3TogglesSnaps = v),

@@ -80,6 +80,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets whether the file is open, so that its row shows the small x that closes it (CLOSE).</summary>
         public bool IsOpen { get; internal set; }
 
+        /// <summary>Gets whether the row is selected in the list: a click selects it, Ctrl and Shift add to the selection; a double click opens it.</summary>
+        public bool IsSelected
+        {
+            get => _isSelected;
+            internal set => Set(ref _isSelected, value);
+        }
+
+        private bool _isSelected;
+
         /// <inheritdoc/>
         public override string ToString() => Label;
     }

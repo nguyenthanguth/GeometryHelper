@@ -1,0 +1,151 @@
+<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.DraftingSettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+        Title="Drafting Settings" Width="560" Height="470" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Background="#262B33">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml" />
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Icons.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <local:BoolToVisibilityConverter x:Key="Shown" />
+            <local:SnapMarkerConverter x:Key="Marker" />
+
+            <!-- A check box with its words beside it, greyed and saying why while it is off. -->
+            <Style x:Key="Check" TargetType="CheckBox" BasedOn="{StaticResource GhCheckBox}">
+                <Setter Property="Margin" Value="0,0,8,0" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
+            </Style>
+
+            <Style x:Key="Label" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="Margin" Value="0,0,8,0" />
+            </Style>
+
+            <Style x:Key="NumberBox" TargetType="TextBox" BasedOn="{StaticResource GhTextBox}">
+                <Setter Property="Width" Value="90" />
+                <Setter Property="Padding" Value="6,3" />
+                <Setter Property="Background" Value="{StaticResource GhInput}" />
+                <Setter Property="FontFamily" Value="{StaticResource GhMonoFont}" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+            </Style>
+
+            <!-- A snap of the Object Snap tab: its box, its marker, its name; a snap not built greyed with "Not built yet.". -->
+            <DataTemplate x:Key="SnapTemplate" DataType="{x:Type local:SnapModeRowViewModel}">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,9" ToolTip="{Binding ToolTip}" ToolTipService.ShowOnDisabled="True"
+                            IsEnabled="{Binding IsAvailable}" Background="Transparent">
+                    <CheckBox Style="{StaticResource Check}" IsChecked="{Binding IsChecked, Mode=TwoWay}" />
+                    <Image Source="{Binding Kind, Converter={StaticResource Marker}}" Width="16" Height="16" Margin="0,0,8,0" />
+                    <TextBlock x:Name="Name" Text="{Binding Name}" VerticalAlignment="Center" />
+                </StackPanel>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsAvailable}" Value="False">
+                        <Setter TargetName="Name" Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
+            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
+            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+        <DockPanel>
+            <!-- Header: the title, dragged to move the dialog, and the close button. -->
+            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" MouseLeftButtonDown="OnHeaderDown">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhFlatButton}" Width="24" Height="24" Command="{Binding CancelCommand}" ToolTip="Close">
+                        <local:IconView Size="14" StrokeThickness="2" Stroke="{StaticResource GhTextMuted}" Data="{StaticResource GhIconClose}" />
+                    </Button>
+                    <TextBlock Text="Drafting Settings" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <!-- Footer: why a value was refused, then OK, Cancel and Apply. -->
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button Style="{StaticResource GhDialogButton}" Content="OK" Padding="18,5" Margin="0,0,6,0" Click="OnOk" IsDefault="True" />
+                        <Button Style="{StaticResource GhDialogButton}" Content="Cancel" Padding="14,5" Margin="0,0,6,0" Command="{Binding CancelCommand}" IsCancel="True" />
+                        <Button Style="{StaticResource GhDialogButton}" Content="Apply" Padding="14,5" Click="OnApply" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding Notice}" Foreground="{StaticResource GhWarn}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                </DockPanel>
+            </Border>
+
+            <!-- The tabs, in AutoCAD's order. -->
+            <Border DockPanel.Dock="Top" Padding="16,10,16,0">
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton Style="{StaticResource GhChip}" Content="Snap and Grid" IsChecked="{Binding IsSnapAndGridTab, Mode=TwoWay}" Margin="0,0,6,0" />
+                    <RadioButton Style="{StaticResource GhChip}" Content="Polar Tracking" IsChecked="{Binding IsPolarTrackingTab, Mode=TwoWay}" Margin="0,0,6,0" />
+                    <RadioButton Style="{StaticResource GhChip}" Content="Object Snap" IsChecked="{Binding IsObjectSnapTab, Mode=TwoWay}" />
+                </StackPanel>
+            </Border>
+
+            <Grid Margin="16,14">
+                <!-- Snap and Grid: the snap grid on, its spacing along X and Y, and the grid shown. -->
+                <StackPanel Visibility="{Binding IsSnapAndGridTab, Converter={StaticResource Shown}}">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <CheckBox Style="{StaticResource Check}" IsChecked="{Binding IsGridSnapOn, Mode=TwoWay}" />
+                        <TextBlock Text="Snap On (F9)" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock Style="{StaticResource Label}" Text="Snap spacing" FontWeight="SemiBold" Margin="0,4,0,8" />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Style="{StaticResource Label}" Text="Snap X spacing:" Width="110" />
+                        <TextBox Style="{StaticResource NumberBox}" Text="{Binding SnapX}" KeyDown="OnBoxKeyDown" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <TextBlock Style="{StaticResource Label}" Text="Snap Y spacing:" Width="110" />
+                        <TextBox Style="{StaticResource NumberBox}" Text="{Binding SnapY}" KeyDown="OnBoxKeyDown" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <CheckBox Style="{StaticResource Check}" IsChecked="{Binding IsGridOn, Mode=TwoWay}" />
+                        <TextBlock Text="Grid On (F7)" VerticalAlignment="Center" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Polar Tracking: on, and the increment angle the cursor is held on. -->
+                <StackPanel Visibility="{Binding IsPolarTrackingTab, Converter={StaticResource Shown}}">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                        <CheckBox Style="{StaticResource Check}" IsChecked="{Binding IsPolarOn, Mode=TwoWay}" />
+                        <TextBlock Text="Polar Tracking On (F10)" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource Label}" Text="Increment angle:" Width="110" />
+                        <ComboBox Style="{StaticResource GhComboBox}" Width="90" IsEditable="False" ItemsSource="{Binding IncrementAngles}"
+                                  SelectedItem="{Binding IncrementAngle, Mode=TwoWay}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Object Snap: on, tracking (not built), the fourteen snaps in two columns, Select All and Clear All. -->
+                <DockPanel Visibility="{Binding IsObjectSnapTab, Converter={StaticResource Shown}}">
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,14">
+                        <StackPanel Orientation="Horizontal">
+                            <CheckBox Style="{StaticResource Check}" IsChecked="{Binding IsSnapOn, Mode=TwoWay}" />
+                            <TextBlock Text="Object Snap On (F3)" VerticalAlignment="Center" Margin="0,0,24,0" />
+                            <CheckBox Style="{StaticResource Check}" IsEnabled="False" ToolTip="Not built yet." />
+                            <TextBlock Text="Object Snap Tracking On (F11)" VerticalAlignment="Center" Foreground="{StaticResource GhTextMuted}" ToolTip="Not built yet." />
+                        </StackPanel>
+                    </DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Margin="16,0,0,0">
+                        <Button Style="{StaticResource GhDialogButton}" Content="Select All" Command="{Binding SelectAllCommand}" Margin="0,0,0,6" />
+                        <Button Style="{StaticResource GhDialogButton}" Content="Clear All" Command="{Binding ClearAllCommand}" />
+                    </StackPanel>
+                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource Label}" Text="Object Snap modes" FontWeight="SemiBold" Margin="0,0,0,10" />
+                    <ItemsControl ItemsSource="{Binding Modes}" ItemTemplate="{StaticResource SnapTemplate}" Focusable="False">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Vertical" Height="232" ItemWidth="180" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                </DockPanel>
+            </Grid>
+        </DockPanel>
+    </Border>
+</Window>

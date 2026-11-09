@@ -93,6 +93,26 @@ another file of the folder was opened, or once it was saved with Save and shown 
 now says, for example, "Test bodies (from file)" until the drawing is made again. The out-of-date dot now shows on such a
 drawing too, checked in the source its file names without changing it.
 
+**NEW.** `DxfDatabase.Recover(path or stream, out DxfRepairReport)` opens a damaged DXF as AutoCAD's RECOVER does, and
+`DxfDatabase.Audit(fix)` checks an open drawing as AUDIT does; each reports what it found (`DxfRepairReport`, `DxfRepair`, 26
+kinds of `DxfRepairKind`) and what it fixed. Lines that are not group codes, a file cut short, sections missing or out of
+order, a BLOCK without ENDBLK, a POLYLINE without SEQEND, numbers that are no numbers or not finite, wrong vertex and loop
+counts, duplicate and missing handles, a `$HANDSEED` too low, owners that name nothing, text of R2007+ not in UTF-8, and layers,
+linetypes and styles the tables lack are repaired; a sound file opens byte for byte as before (a drawing of 21.8 MB and 36 112
+entities reports "No errors found." in 0.25 s). The presenter has RECOVER and AUDIT (Yes is one undo step), and a file that
+cannot be read as it is opens as "<name> (recovered)", unsaved.
+
+**NEW.** The presenter's DRAWINGS list works like a list of files: a click selects a row (Ctrl and Shift add to the
+selection), a double click or Enter opens it, and Delete does nothing. The right-click menu has Open, Close, Close Selected
+Drawings, Close All Other Drawings and Close All Drawings. Three drawings closed with two of them changed bring one question
+listing both.
+
+**NEW.** Object snaps as in AutoCAD 2021: Drafting Settings (DSETTINGS, DS, OS) with Snap and Grid, Polar Tracking and Object
+Snap tabs; the OSNAP arrow and right click on the status bar; Shift+right-click at a point prompt; END, MID, CEN and the other
+keywords typed for the next point only; AutoCAD's markers, 9 pixels across, yellow on a dark canvas; and the new snaps Node and
+Geometric Center (an L of 30 by 10 and 10 by 20 snaps to its centroid (11, 11)). **CHANGED.** A POINT snaps as a Node, not an
+Endpoint. Extension, Parallel, Apparent Intersection, Insertion and Object Snap Tracking are listed greyed, not built yet.
+
 **CHANGED.** Reading a DXF entity finds the groups of its record once for the readings that follow one another, not once for
 each property: a HATCH whose loops, pattern and extents are read one by one is parsed once, and the placing of an INSERT
 (`BlockTransform`) is read in under half the time. The display of a drawing of 16 268 entities and 5 684 INSERTs is built in

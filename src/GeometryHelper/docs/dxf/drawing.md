@@ -28,6 +28,10 @@ ezdxf 1.4.5 on its drawings of R12, R2000, R2007 and R2018, recover and audit fi
 ezdxf reads each value as set, and every untouched record keeps its bytes (186, 306, 359 and 361 of them; of the two
 more the header has, `$PEXTMIN` and `$PEXTMAX`, which ezdxf leaves empty, grow to hold what the edits draw in paper space).
 
+## Damaged files
+
+`DxfDatabase.Recover(path, out report)`, or `Recover(stream, out report)`, opens a damaged file as AutoCAD's RECOVER does: what can be read, repaired, with a [`DxfRepairReport`](xref:GeometryHelper.Dxf.DxfRepairReport) of what was found, each a [`DxfRepair`](xref:GeometryHelper.Dxf.DxfRepair) of a `DxfRepairKind`, a sentence with its line or handle, fixed or not. A sound file is opened as `Open` opens it, every byte kept, and the report is empty: an architectural drawing of AutoCAD 2010 of 21.8 MB and 36 112 entities gives "No errors found." in 0.25 s on .NET 10 and 0.36 s on .NET Framework. The file is read as pairs of lines whatever is wrong with them, a line that is not a group code left out and the next read as the code; a file cut short is closed with its ENDSEC and EOF; sections are closed and put in order; a number that is no number is read as the number it begins with (`500mm` as 500), or nought; an entity with a number that is not finite is left out; the counts of a LWPOLYLINE and a HATCH are set to their parts; a handle two records have, or one missing, is given a new one, and an owner that names nothing is pointed at the block, table or polyline the record stands in. Layers, linetypes, text styles and dimension styles the entities name and the tables lack are added. An INSERT of a block not defined, a type unknown, and a missing TABLES, BLOCKS or OBJECTS section are reported and left. `Audit(fix)` checks an open drawing the same way and, with `true`, fixes in place what does not need the file written again. In the presenter, RECOVER and AUDIT are commands, and a file that cannot be read as it is opens as `<name> (recovered)`, unsaved.
+
 ## The drawing
 
 ### The header

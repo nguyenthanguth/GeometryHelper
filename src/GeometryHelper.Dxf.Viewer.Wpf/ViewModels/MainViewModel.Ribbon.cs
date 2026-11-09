@@ -191,7 +191,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        /// <summary>The commands of the window this file adds: NEW, SAVEAS, PROPERTIESCLOSE and the six toggles of the status bar, DYN the last.</summary>
+        /// <summary>
+        /// The commands of the window this file adds: NEW, SAVEAS, PROPERTIESCLOSE, the six toggles of the status bar, DYN the
+        /// last, and DSETTINGS with AutoCAD's aliases DS and OS.
+        /// </summary>
         private void AddWindowCommands(CadCommandRegistry registry)
         {
             registry.Add(new CadCommand("NEW", NewBody));
@@ -202,6 +205,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 registry.Add(new CadCommand(name, c => ToggleBody(c, name)));
             }
+
+            registry.Add(new CadCommand("DSETTINGS", DraftingSettingsBody));
+            var aliases = new Dictionary<string, string> { ["DS"] = "DSETTINGS", ["OS"] = "DSETTINGS" };
+            registry.Shortcuts = new CadShortcuts(registry.Shortcuts.Aliases.Concat(aliases), registry.Shortcuts.Keys);
         }
 
         /// <summary>Does what a command of the window left to be done once it ended.</summary>

@@ -5,7 +5,7 @@ tabs Home, Insert, Annotate, View, Manage, Output), quick access toolbar, status
 Part A (the 2D presenter: `GeometryHelper.Dxf.Viewer`, `.Dxf.Viewer.Wpf`, `Drawing.App`) has. Each item is marked:
 
 - **built**: there, and reached from where AutoCAD puts it; **(r1)** marks what the round "ribbon1" added, **(g1)** what
-  the round "cmdgaps" added (commands typed only: no ribbon button yet).
+  the round "cmdgaps" added (commands typed only: no ribbon button yet), **(c56)** what phases C5 and C6 added.
 - **cheap**: under some 150 lines on what the library and the presenter have now.
 - **big**: needs a new part (a dialog, a clipboard format, a geometry tool, a block editor).
 - **out**: out of scope for a 2D presenter of DXF (3D, rendering, cloud, sheet sets).
@@ -83,6 +83,7 @@ The tab is left out: nothing in it is real yet.
 | Model Viewports | Viewport Configuration, Named, Join, Restore | none | big (tiled viewports) |
 | Palettes | Properties, Layer Properties, Tool Palettes, Sheet Set Manager, Design Center, External References | Properties panel, Layer manager | built; Interface toggles (r1); the rest out |
 | Interface | File Tabs, Layout Tabs, Switch Windows, Tile, Cascade, Toolbars | the DRAWINGS list and Properties shown or hidden | built (r1); file tabs as AutoCAD's cheap |
+| Interface | the file tab's right-click menu (Close, Close All Drawings, Close All Other Drawings) | the DRAWINGS list: a click selects (Ctrl, Shift add), a double click or Enter opens, Delete does nothing; right click: Open, Close, Close Selected Drawings, Close All Other Drawings, Close All Drawings, one question for several drawings with changes | built (c56); New, Save, Save All, Copy Full File Path, Open File Location of AutoCAD's menu cheap |
 | Drafting | (status bar in AutoCAD) | Grid, Snap, Ortho, Polar, Osnap toggles, the status bar's own state | built (r1) |
 
 ## Ribbon: Manage
@@ -126,6 +127,12 @@ The tab is left out: Plot and PDF are on hold.
 | Model / layout tabs, + | the tabs; + runs LAYOUT New | built; + (r1) |
 | Coordinates | X and Y of the cursor | built |
 | Grid, Snap, Ortho, Polar, Osnap | the five toggles, F7, F9, F8, F10, F3, and typed (r1) | built |
+| Osnap's arrow and right click: the snaps ticked, Object Snap Settings... | the fourteen snaps, the ten built ticked on and off at once and kept in the settings file, the four not built greyed "Not built yet." | built (c56) |
+| Drafting Settings (DSETTINGS, DS, OS): Snap and Grid, Polar Tracking, Object Snap, 3D Object Snap, Dynamic Input, Quick Properties, Selection Cycling | Snap and Grid (snap on, X and Y spacing, grid on), Polar Tracking (on, increment angle), Object Snap (on, the fourteen snaps with their markers, Select All, Clear All; tracking greyed) | built (c56); grid spacing, polar spacing, additional angles cheap; the other tabs left out |
+| Shift+right-click at a point prompt; END, MID, CEN, GCE, NOD, QUA, INT, PER, TAN, NEA, NON typed | the snap menu (Endpoint to Nearest of those built, None, Osnap Settings...) and the keywords typed, each for the next point alone; EXT, INS, APP, PAR typed say "not built yet" | built (c56); Temporary track point, From, Mid Between 2 Points, Point Filters big |
+| AutoSnap markers | AutoCAD's shapes 9 pixels across, 1.5 wide, yellow on a dark canvas and dark on a light one, with the snap's name as the tip | built (c56) |
+| Object snaps Endpoint, Midpoint, Center, Geometric Center, Node, Quadrant, Intersection, Perpendicular, Tangent, Nearest | all ten; a POINT is a node, not an endpoint | built; Node and Geometric Center (c56) |
+| Object snaps Extension, Insertion, Apparent Intersection, Parallel | none | big (Extension and Parallel need acquired points and tracking lines; Insertion needs the insertion points of blocks and texts beside the display list; Apparent Intersection needs extended crossings) |
 | Object snap tracking, Isometric drafting, Dynamic input (F12), Lineweight, Transparency, Selection cycling | none | queued (dynamic input); cheap (LWDISPLAY toggle, Global settings has it); big (tracking) |
 | Annotation scale, Annotation visibility, Auto scale | "1:1" as text | big |
 | Units, Quick Properties, Lock UI, Isolate Objects, Clean Screen, Customization | none | cheap (Clean Screen: hide both panels; Isolate as a display filter big) |
@@ -139,7 +146,7 @@ What the command line knows, under AutoCAD's names and aliases:
   DIMRADIUS, DIMDIAMETER, DIMANGULAR.
 - Modify: MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR, EXPLODE, MATCHPROP.
 - Layers and settings: LAYER, LAYMCUR, LAYMCH, PROPERTIES, PROPERTIESCLOSE (r1), OPTIONS, GRID, SNAP, ORTHO, POLAR,
-  OSNAP typed (r1: "Enter mode [ON/OFF]", SNAP also a spacing).
+  OSNAP typed (r1: "Enter mode [ON/OFF]", SNAP also a spacing), DSETTINGS (DS, OS) (c56).
 - Inquiry (r1): DIST (DI), AREA (AA), ID, LIST (LI, LS).
 - Files: NEW (r1), QSAVE, SAVEAS (r1), CLOSE, LAYOUT New and ? (r1, LO), Rename and Set (g1).
 - Round g1: XLINE (XL), RAY, POLYGON (POL), DONUT (DO), SELECTALL (Ctrl+A), LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK,

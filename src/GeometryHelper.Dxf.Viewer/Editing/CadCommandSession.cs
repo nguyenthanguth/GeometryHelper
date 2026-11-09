@@ -18,16 +18,20 @@ namespace GeometryHelper.Dxf.Viewer
         Failed,
     }
 
-    /// <summary>A request of a command to the window: open Properties, the Layer manager, Global settings, or save.</summary>
+    /// <summary>A request of a command to the window: open Properties, the Layer manager, Global settings, save, or show a drawing RECOVER opened.</summary>
     public sealed class CadUiRequestEventArgs : EventArgs
     {
-        internal CadUiRequestEventArgs(string name)
+        internal CadUiRequestEventArgs(string name, CadDocument document = null)
         {
             Name = name;
+            Document = document;
         }
 
-        /// <summary>Gets what is asked: PROPERTIES, LAYER, OPTIONS, QSAVE.</summary>
+        /// <summary>Gets what is asked: PROPERTIES, LAYER, OPTIONS, QSAVE, RECOVER.</summary>
         public string Name { get; }
+
+        /// <summary>Gets the document to show, for RECOVER the drawing recovered; null for the other requests.</summary>
+        public CadDocument Document { get; }
 
         /// <summary>Gets or sets whether the window did what was asked; a LAYER not handled runs its prompts on the command line.</summary>
         public bool Handled { get; set; }
@@ -481,9 +485,9 @@ namespace GeometryHelper.Dxf.Viewer
             return result;
         }
 
-        internal bool Request(string name)
+        internal bool Request(string name, CadDocument document = null)
         {
-            var args = new CadUiRequestEventArgs(name);
+            var args = new CadUiRequestEventArgs(name, document);
             UiRequested?.Invoke(this, args);
             return args.Handled;
         }

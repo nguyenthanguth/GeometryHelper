@@ -19,7 +19,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// drawing from a model (<see cref="MainViewModel.NewFromModelRequested"/>), Ctrl+S saves, Ctrl+Shift+S
     /// saves as, Ctrl+Z undoes and Ctrl+Y redoes, Delete erases the selection; F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR,
     /// F12 DYN (the prompt and what is typed shown beside the cursor, Tab moving between its fields at a point prompt), and
-    /// Ctrl+9 shows or hides the command line.
+    /// Ctrl+9 shows or hides the command line. In the DRAWINGS list a click selects a row, a double click or Enter opens it,
+    /// Delete does nothing and a right click shows Open and the Close items; OSNAP of the status bar has the menu of the object
+    /// snaps on its arrow and its right click, and Shift+right-click on the canvas while a point is asked gives the snap menu.
     /// Letters typed with the focus on the canvas go to the command line, where Enter or Space runs the line (Space types a
     /// space at a prompt for text) and Up and Down recall what was typed before. A value of Properties is committed by Enter
     /// or by leaving it, and Esc puts the old one back. DXF files dropped on it are opened.
@@ -49,6 +51,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CanvasView.PixelSizeChanged += (s, e) => _model?.SetCanvasSize(CanvasView.PixelWidth, CanvasView.PixelHeight);
             CanvasView.HistoryWritten += (s, e) => _model?.RefreshHistory();
             CanvasView.SelectionChanged += (s, e) => _model?.RefreshHistory();
+            CanvasView.SnapMenuRequested += (s, e) => ShowMenu(_model?.SnapOverrideMenu(), CanvasView);
 
             // Autosave (Global settings › Save and export): looked at every minute while the workspace is shown.
             _autosave.Tick += (s, e) => AutosaveIfDue();
@@ -158,6 +161,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             dialog.ShowDialog();
         }
 
+        /// <summary>Shows Drafting Settings as a dialog over the window, on a tab; null for Object Snap.</summary>
+        /// <param name="tab">The tab, as "Snap and Grid".</param>
+        public void ShowDraftingSettings(string tab = null)
+        {
+            if (_model == null)
+            {
+                return;
+            }
+
+            var dialog = new DraftingSettingsWindow(_model.CreateDraftingSettings(tab)) { Owner = Window.GetWindow(this) };
+            dialog.ShowDialog();
+        }
+
         /// <inheritdoc/>
         protected override void OnPreviewKeyDown(KeyEventArgs e)
         {
@@ -172,7 +188,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ModifierKeys modifiers = Keyboard.Modifiers;
             bool inEditor = Keyboard.FocusedElement is TextBox box && box != CommandBox;
 
-            if (key == Key.Escape && !inEditor)
+            if (modifiers == ModifierKeys.None && FileList.IsKeyboardFocusWithin && (key == Key.Enter || key == Key.Delete))
+            {
+                // In the DRAWINGS list Enter opens the row clicked, and Delete does nothing: it neither erases objects nor removes a file.
+                e.Handled = _model.FileListKey(key == Key.Enter ? "Enter" : "Delete");
+            }
+            else if (key == Key.Escape && !inEditor)
             {
                 if (!CanvasView.CancelGesture())
                 {
@@ -374,6 +395,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.SettingsRequested -= OnSettingsRequested;
                 _model.SettingsApplied -= OnSettingsApplied;
                 _model.CloseRequested -= OnCloseRequested;
+                _model.DraftingSettingsRequested -= OnDraftingSettingsRequested;
             }
 
             _model = e.NewValue as MainViewModel;
@@ -389,6 +411,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.SettingsRequested += OnSettingsRequested;
                 _model.SettingsApplied += OnSettingsApplied;
                 _model.CloseRequested += OnCloseRequested;
+                _model.DraftingSettingsRequested += OnDraftingSettingsRequested;
                 _model.AskSaveChanges = document => CadQuestionWindow.AskSave(Window.GetWindow(this), new[] { document });
                 _model.AskSaveAll = documents => CadQuestionWindow.AskSave(Window.GetWindow(this), documents);
                 _model.PickColor = dialog => SelectColorWindow.Pick(Window.GetWindow(this), dialog);
@@ -413,6 +436,75 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private void OnPluginManagerRequested(object sender, EventArgs e) => ShowPluginManager();
 
         private void OnSettingsRequested(object sender, string category) => ShowGlobalSettings(category);
+
+        /// <summary>DSETTINGS and the menus' settings item: Drafting Settings, after the menu or the command line is done with.</summary>
+        private void OnDraftingSettingsRequested(object sender, EventArgs e) => Dispatcher.BeginInvoke(new Action(() => ShowDraftingSettings()));
+
+        /// <summary>A click on a row of the DRAWINGS list selects it, Ctrl and Shift adding; a double click opens it.</summary>
+        private void OnFileRowDown(object sender, MouseButtonEventArgs e)
+        {
+            if (_model == null || !(((FrameworkElement)sender).DataContext is FileRowViewModel row))
+            {
+                return;
+            }
+
+            FileList.Focus();
+
+            if (e.ClickCount == 2)
+            {
+                _model.Activate(row);
+            }
+            else
+            {
+                ModifierKeys modifiers = Keyboard.Modifiers;
+                _model.SelectFileRow(row, (modifiers & ModifierKeys.Control) != 0, (modifiers & ModifierKeys.Shift) != 0);
+            }
+
+            e.Handled = true;
+        }
+
+        /// <summary>A right click on a row: the row selected alone unless it is selected already, then its menu.</summary>
+        private void OnFileRowRightUp(object sender, MouseButtonEventArgs e)
+        {
+            if (_model == null || !(((FrameworkElement)sender).DataContext is FileRowViewModel row))
+            {
+                return;
+            }
+
+            if (!row.IsSelected)
+            {
+                _model.SelectFileRow(row);
+            }
+
+            ShowMenu(_model.FileRowMenu(row), (UIElement)sender);
+            e.Handled = true;
+        }
+
+        /// <summary>A right click on OSNAP of the status bar: the menu of the object snaps, as its arrow gives.</summary>
+        private void OnStatusToggleRightUp(object sender, MouseButtonEventArgs e)
+        {
+            if (_model != null && ((FrameworkElement)sender).DataContext is StatusToggleViewModel toggle && toggle.Name == "OSNAP")
+            {
+                ShowMenu(_model.OsnapMenu(), (UIElement)sender);
+                e.Handled = true;
+            }
+        }
+
+        private void OnOsnapArrow(object sender, RoutedEventArgs e) => ShowMenu(_model?.OsnapMenu(), (UIElement)sender);
+
+        /// <summary>Opens a menu of a view model's items at the mouse.</summary>
+        private static void ShowMenu(System.Collections.Generic.IReadOnlyList<CadMenuItemViewModel> items, UIElement target)
+        {
+            if (items == null || items.Count == 0)
+            {
+                return;
+            }
+
+            ContextMenu menu = CadMenus.Make(items);
+            menu.PlacementTarget = target;
+            menu.Placement = PlacementMode.MousePoint;
+            menu.IsOpen = true;
+        }
 
         /// <summary>CLOSE typed: the drawing shown closed once the command has ended.</summary>
         private void OnCloseRequested(object sender, EventArgs e) => Dispatcher.BeginInvoke(new Action(() => _model?.CloseDocument()));

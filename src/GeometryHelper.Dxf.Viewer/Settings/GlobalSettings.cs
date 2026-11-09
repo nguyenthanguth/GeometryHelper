@@ -170,7 +170,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
         public double WheelZoomFactor { get => _wheelZoomFactor; set => _wheelZoomFactor = Range(value, 1.01, 4.0, nameof(WheelZoomFactor)); }
 
-        /// <summary>Gets or sets the object snaps on: every one but Nearest by default.</summary>
+        /// <summary>Gets or sets the object snaps on: those of <see cref="CadSnapModes.All"/> but Nearest by default, Node and Geometric Center off.</summary>
         public CadSnapModes Snaps { get; set; } = CadSnapModes.All & ~CadSnapModes.Nearest;
 
         /// <summary>Gets or sets how near the cursor a snap is taken, in pixels, 2 to 50: 10 by default, as AutoCAD's APERTURE.</summary>
@@ -559,7 +559,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>The names of the snaps on, in the order of their flags.</summary>
         internal static IEnumerable<string> SnapNames(CadSnapModes modes)
-            => new[] { CadSnapModes.Endpoint, CadSnapModes.Midpoint, CadSnapModes.Center, CadSnapModes.Quadrant, CadSnapModes.Intersection, CadSnapModes.Perpendicular, CadSnapModes.Tangent, CadSnapModes.Nearest }
+            => new[] { CadSnapModes.Endpoint, CadSnapModes.Midpoint, CadSnapModes.Center, CadSnapModes.Quadrant, CadSnapModes.Intersection, CadSnapModes.Perpendicular, CadSnapModes.Tangent, CadSnapModes.Nearest, CadSnapModes.Node, CadSnapModes.GeometricCenter }
                 .Where(m => (modes & m) != 0).Select(m => m.ToString());
 
         internal static int Colour(int value, string name)

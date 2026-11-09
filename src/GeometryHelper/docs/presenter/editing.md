@@ -135,7 +135,7 @@ snap.Snap(document.GetPickIndex(document.ModelSpace), new GeoPoint2(50.3, 0.4), 
 
 | Property | Default | |
 |---|---|---|
-| `Modes` | Endpoint, Midpoint, Center, Quadrant, Intersection | a [`CadSnapModes`](xref:GeometryHelper.Dxf.Viewer.CadSnapModes) set; Perpendicular, Tangent and Nearest can be added |
+| `Modes` | Endpoint, Midpoint, Center, Quadrant, Intersection, Node and GeometricCenter can be added too | a [`CadSnapModes`](xref:GeometryHelper.Dxf.Viewer.CadSnapModes) set; Perpendicular, Tangent and Nearest can be added |
 | `IsOn` | true | F3 |
 | `Ortho`, `Polar`, `PolarAngle` | off, off, a quarter turn | F8, F10 |
 | `GridSnap`, `GridX`, `GridY`, `GridOrigin` | off, 10, 10, the origin | F9 |

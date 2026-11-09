@@ -45,8 +45,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// command of <see cref="Session"/> running a click answers its prompt: a point prompt takes the point
     /// <see cref="Snap"/> gives, drawn with its marker and a rubber band from the prompt's base point, and "Select objects:"
     /// takes a click or a box; while MOVE, COPY, ROTATE, SCALE or MIRROR waits for its second point, a dashed ghost of the
-    /// objects follows the cursor. A right click is Enter; Esc cancels. <see cref="ShowGrid"/> draws grid lines under the
-    /// drawing.
+    /// objects follows the cursor. A right click is Enter; Shift+right-click while a point is asked asks for the object snap
+    /// menu (<see cref="SnapMenuRequested"/>); Esc cancels. <see cref="ShowGrid"/> draws grid lines under the drawing.
     /// <para>
     /// The drawing is kept as a picture and drawn again only when what it shows changes: the drawing, its layers, the view,
     /// the size or the colours. The selection is drawn over a copy of that picture and the entity under the cursor over the
@@ -110,7 +110,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private static readonly Pen CrossPenDark = Frozen(new Pen(Solid(0x1A1A1A), 1.0));
         private static readonly Pen GhostPen = Frozen(new Pen(Solid(0x3D9BFF), 1.2) { DashStyle = new DashStyle(new[] { 6.0, 3.0 }, 0.0) });
         private static readonly Pen RubberPen =Frozen(new Pen(Solid(0x3D9BFF), 1.0) { DashStyle = new DashStyle(new[] { 4.0, 3.0 }, 0.0) });
-        private static readonly Pen MarkerPen = Frozen(new Pen(Solid(0xE0A800), 2.0));
+        private static readonly Pen DarkMarkerPen = Frozen(new Pen(Solid(0xFFFF00), CadSnapMarker.LineWidth));
+        private static readonly Pen LightMarkerPen = Frozen(new Pen(Solid(0x1A1A1A), CadSnapMarker.LineWidth));
+        private static readonly Pen DarkDottedPen = Frozen(new Pen(Solid(0xFFFF00), 1.0) { DashStyle = new DashStyle(new[] { 1.0, 2.0 }, 0.0) });
+        private static readonly Pen LightDottedPen = Frozen(new Pen(Solid(0x1A1A1A), 1.0) { DashStyle = new DashStyle(new[] { 1.0, 2.0 }, 0.0) });
         private static readonly Pen BasePen = Frozen(new Pen(Solid(0x3FB950), 2.0));
         private static readonly Brush TipFill = Solid(0x1A1E24);
         private static readonly Pen TipPen = Frozen(new Pen(Solid(0x3A414C), 1.0));
@@ -182,6 +185,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Raised when the canvas has written a line into the session's history, as a grip drag refused.</summary>
         public event EventHandler HistoryWritten;
+
+        /// <summary>Raised by Shift+right-click while a point is asked: the window shows the object snap menu at the cursor.</summary>
+        public event EventHandler SnapMenuRequested;
 
         /// <summary>Gets or sets the document shown.</summary>
         public CadDocument Document
@@ -267,7 +273,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 if (DynamicInput)
                 {
                     CadSnapKind kind = _snapped?.Kind ?? CadSnapKind.None;
-                    return kind == CadSnapKind.None || kind == CadSnapKind.Grid || kind == CadSnapKind.Ortho || kind == CadSnapKind.Polar ? string.Empty : kind.ToString();
+                    return kind == CadSnapKind.None || kind == CadSnapKind.Grid || kind == CadSnapKind.Ortho || kind == CadSnapKind.Polar ? string.Empty : CadSnapMarker.NameOf(kind);
                 }
 
                 return TipText(_snapped, Session.Prompt.BasePoint, _snapped?.Point ?? _cursor.Value);
@@ -959,6 +965,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 e.Handled = true;
             }
+            else if (e.ChangedButton == MouseButton.Right && (Keyboard.Modifiers & ModifierKeys.Shift) != 0 && CadPicking.WantsPoint(Session))
+            {
+                // Shift+right-click while a point is asked: the object snap menu, as AutoCAD's, its choice for that point alone.
+                SnapMenuRequested?.Invoke(this, EventArgs.Empty);
+                e.Handled = true;
+            }
             else if (e.ChangedButton == MouseButton.Right && IsRunning)
             {
                 // A right click is Enter while a command runs, as AutoCAD has it by default.
@@ -1639,7 +1651,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The tip by the cursor, as AutoCAD's dynamic input: the snap's name, the distance and the angle from the base point.</summary>
         private static string TipText(CadSnapResult snapped, GeoPoint2? basePoint, GeoPoint2 target)
         {
-            string kind = snapped == null || snapped.Kind == CadSnapKind.None ? string.Empty : snapped.Kind.ToString();
+            string kind = snapped == null ? string.Empty : CadSnapMarker.NameOf(snapped.Kind);
 
             if (!basePoint.HasValue)
             {
@@ -1653,63 +1665,46 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return kind.Length == 0 ? measured : kind + " · " + measured;
         }
 
-        /// <summary>The marker of a snap, as AutoCAD draws it: endpoint a square, midpoint a triangle, centre a circle, quadrant a diamond, intersection a cross, perpendicular a corner, tangent a circle with a line on top, nearest an hourglass.</summary>
-        private static void DrawMarker(DrawingContext dc, CadSnapResult snapped, Point p)
+        /// <summary>
+        /// The marker of a snap over the kept picture, as AutoCAD draws it (<see cref="CadSnapMarker"/>): its shape 9 pixels
+        /// across, 1.5 wide, yellow on a dark background and dark on a light one.
+        /// </summary>
+        private void DrawMarker(DrawingContext dc, CadSnapResult snapped, Point p)
         {
             if (snapped == null)
             {
                 return;
             }
 
-            const double r = 5.0;
-
-            switch (snapped.Kind)
-            {
-                case CadSnapKind.Endpoint:
-                    dc.DrawRectangle(null, MarkerPen, new Rect(p.X - r, p.Y - r, 2 * r, 2 * r));
-                    break;
-                case CadSnapKind.Midpoint:
-                    dc.DrawGeometry(null, MarkerPen, Polygon(new Point(p.X, p.Y - r - 1), new Point(p.X + r + 1, p.Y + r), new Point(p.X - r - 1, p.Y + r)));
-                    break;
-                case CadSnapKind.Center:
-                    dc.DrawEllipse(null, MarkerPen, p, r + 1, r + 1);
-                    break;
-                case CadSnapKind.Quadrant:
-                    dc.DrawGeometry(null, MarkerPen, Polygon(new Point(p.X, p.Y - r - 1), new Point(p.X + r + 1, p.Y), new Point(p.X, p.Y + r + 1), new Point(p.X - r - 1, p.Y)));
-                    break;
-                case CadSnapKind.Intersection:
-                    dc.DrawLine(MarkerPen, new Point(p.X - r, p.Y - r), new Point(p.X + r, p.Y + r));
-                    dc.DrawLine(MarkerPen, new Point(p.X - r, p.Y + r), new Point(p.X + r, p.Y - r));
-                    break;
-                case CadSnapKind.Perpendicular:
-                    dc.DrawLine(MarkerPen, new Point(p.X - r, p.Y - r), new Point(p.X - r, p.Y + r));
-                    dc.DrawLine(MarkerPen, new Point(p.X - r, p.Y + r), new Point(p.X + r, p.Y + r));
-                    dc.DrawLine(MarkerPen, new Point(p.X - r, p.Y), new Point(p.X, p.Y));
-                    dc.DrawLine(MarkerPen, new Point(p.X, p.Y), new Point(p.X, p.Y + r));
-                    break;
-                case CadSnapKind.Tangent:
-                    dc.DrawEllipse(null, MarkerPen, p, r, r);
-                    dc.DrawLine(MarkerPen, new Point(p.X - r, p.Y - r), new Point(p.X + r, p.Y - r));
-                    break;
-                case CadSnapKind.Nearest:
-                    dc.DrawGeometry(null, MarkerPen, Polygon(new Point(p.X - r, p.Y - r), new Point(p.X + r, p.Y - r), new Point(p.X - r, p.Y + r), new Point(p.X + r, p.Y + r)));
-                    break;
-            }
+            DrawMarker(dc, snapped.Kind, p, MarkerPen(Options.Background));
         }
 
-        private static System.Windows.Media.Geometry Polygon(params Point[] points)
+        /// <summary>Draws a snap kind's marker about a point with a pen, as the canvas and Drafting Settings draw it.</summary>
+        internal static void DrawMarker(DrawingContext dc, CadSnapKind kind, Point p, Pen pen)
         {
-            var figure = new PathFigure { StartPoint = points[0], IsClosed = true };
-
-            for (int i = 1; i < points.Length; i++)
+            foreach (CadMarkerStroke stroke in CadSnapMarker.Strokes(kind))
             {
-                figure.Segments.Add(new LineSegment(points[i], true));
-            }
+                var figure = new PathFigure { StartPoint = new Point(p.X + stroke.Points[0].X, p.Y + stroke.Points[0].Y), IsClosed = stroke.IsClosed, IsFilled = stroke.IsFilled };
 
-            var geometry = new PathGeometry(new[] { figure });
-            geometry.Freeze();
-            return geometry;
+                for (int i = 1; i < stroke.Points.Count; i++)
+                {
+                    figure.Segments.Add(new LineSegment(new Point(p.X + stroke.Points[i].X, p.Y + stroke.Points[i].Y), true));
+                }
+
+                var geometry = new PathGeometry(new[] { figure });
+                geometry.Freeze();
+                dc.DrawGeometry(stroke.IsFilled ? pen.Brush : null, stroke.IsDotted ? DottedPen(pen) : pen, geometry);
+            }
         }
+
+        /// <summary>The pen of the markers on a background: AutoCAD's yellow on a dark one, dark grey on a light one.</summary>
+        internal static Pen MarkerPen(int background)
+        {
+            int rgb = CadSnapMarker.ColorOn(background);
+            return rgb == 0xFFFF00 ? DarkMarkerPen : LightMarkerPen;
+        }
+
+        private static Pen DottedPen(Pen pen) => pen == LightMarkerPen ? LightDottedPen : DarkDottedPen;
 
         private void RequestRender()
         {

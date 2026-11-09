@@ -18,8 +18,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// file, types commands, clicks points and reads the result here.
     /// </summary>
     /// <remarks>
-    /// The list holds every file opened and the other DXF files of their folders, grouped by folder; a click opens one or
-    /// shows it again. Each space of each file keeps its own view, zoomed to the extents of the space the first time it is
+    /// The list holds every file opened and the other DXF files of their folders, grouped by folder; a click selects a row,
+    /// and a double click or Enter opens it or shows it again. Each space of each file keeps its own view, zoomed to the extents of the space the first time it is
     /// shown and refitted when the canvas changes size until the user zooms or pans. Commands come from
     /// <see cref="CadCommandRegistry.CreateDefault"/>, with two of the Layers panel added: LAYMCUR (Make Current) and LAYMCH
     /// (Match Layer). The status toggles drive <see cref="Snap"/>: OSNAP its object snaps, ORTHO, POLAR, and SNAP a grid of 10.
@@ -538,8 +538,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
             catch (Exception ex) when (!(ex is OutOfMemoryException))
             {
-                Say("Cannot open " + System.IO.Path.GetFileName(full) + ": " + ex.Message);
-                return false;
+                return OpenRecovered(full, ex);
             }
 
             foreach (CadWorkspaceExtension extension in _extensions)
@@ -835,7 +834,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     foreach (string word in line.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries))
                     {
-                        session.Feed(word);
+                        if (!TakeSnapOverride(session, word))
+                        {
+                            session.Feed(word);
+                        }
                     }
                 }
             }
@@ -1245,6 +1247,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
+            // An object snap taken for one point (END typed, the Shift+right-click menu) ends with the prompt it was taken at.
+            Snap.Override = null;
             SyncHistory();
             Raise(nameof(Prompt));
             Raise(nameof(IsCommandRunning));
@@ -1306,6 +1310,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         e.Handled = true;
                     }
 
+                    break;
+                case "RECOVER":
+                    ShowRecovered(e);
                     break;
             }
         }
@@ -1676,6 +1683,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
             }
 
+            RestoreFileSelection();
             Raise(nameof(AllChipText));
             Raise(nameof(DxfChipText));
             Raise(nameof(HasOwnFiles));

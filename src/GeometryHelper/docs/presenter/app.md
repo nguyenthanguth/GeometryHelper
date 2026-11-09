@@ -121,6 +121,8 @@ The function keys, Delete and the Ctrl keys of [the defaults](editing.md#aliases
 | middle button dragged | pans |
 | middle button double-clicked | zooms to the extents, the paper included in a layout |
 | left click, no command running | picks within the pickbox; Shift+click adds or removes; a click on nothing starts a box |
+| click / double click in DRAWINGS | selects the row / opens it; the right-click menu has Open, Close, Close Selected Drawings, Close All Other Drawings, Close All Drawings |
+| Shift+right-click, a point asked | the object snap menu; the snap chosen is taken for that point alone |
 | left button dragged, no command running | with Select by dragging on, a box as above; off, the box waits for a click at its other corner (left to right a window in solid blue, right to left a crossing in dashed green) |
 | cursor over an entity | drawn 2 pixels wide in its colour taken halfway to the selection colour |
 | a grip dragged | drags that grip |
@@ -155,6 +157,8 @@ The window's ribbon has the tabs Home (Draw, Modify, Annotation, Layers, Propert
 At a point prompt the box beside the cursor has two fields: X and Y, or the distance and angle from the base point. Tab moves from one to the other, and a number typed there is locked, drawn darker with a lock. Enter takes the point from the locked fields and the cursor's value in the other. A coordinate typed whole goes to the command line as typed. With Select by dragging off, click at one corner and click at the other for a box, or press on nothing and drag round the objects for a lasso: drawn clockwise it is a window, counter-clockwise a crossing.
 
 F12 (DYN) shows the prompt, the cursor's coordinates or its distance and angle from the base point, and what you type beside the cursor; Global settings > Canvas and cursor > Input sets it on or off at start. Ctrl+9 hides or shows the command line; typing still reaches it while hidden. `--dialog color` and `--dialog truecolor` draw Select Color in screenshot mode, and `--toggle DYN` switches dynamic input.
+
+OSNAP's arrow on the status bar lists the fourteen snaps; Object Snap Settings... opens Drafting Settings (DSETTINGS, DS, OS) with the Snap and Grid, Polar Tracking and Object Snap tabs. A POINT is a node. `ObjectSnap.Override` takes snaps for the next point alone, whether OSNAP is on or not, as END typed at a prompt does; `CadSnapMarker` gives each kind's marker as strokes in pixels, 9 across.
 
 ## See also
 

@@ -170,6 +170,63 @@
         </Style.Triggers>
     </Style>
 
+    <!-- A menu of the window (CadMenus): dark, an item highlighted under the mouse, its tick in a narrow gutter, greyed when off. -->
+    <Style x:Key="GhContextMenu" TargetType="ContextMenu">
+        <Setter Property="Background" Value="{StaticResource GhInput}" />
+        <Setter Property="BorderBrush" Value="{StaticResource GhBorder}" />
+        <Setter Property="Foreground" Value="{StaticResource GhText}" />
+        <Setter Property="FontFamily" Value="{StaticResource GhFont}" />
+        <Setter Property="FontSize" Value="{StaticResource GhFontSize}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContextMenu">
+                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" Padding="0,3">
+                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="GhMenuItem" TargetType="MenuItem">
+        <Setter Property="Foreground" Value="{StaticResource GhText}" />
+        <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <Border x:Name="Row" Background="Transparent" Padding="0,4,16,4">
+                        <DockPanel>
+                            <TextBlock x:Name="Tick" DockPanel.Dock="Left" Width="22" Text="&#x2713;" TextAlignment="Center" FontWeight="Bold"
+                                       Foreground="{StaticResource GhAccent}" Visibility="Hidden" VerticalAlignment="Center" />
+                            <ContentPresenter ContentSource="Header" VerticalAlignment="Center" RecognizesAccessKey="False" />
+                        </DockPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Tick" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Row" Property="Background" Value="{StaticResource GhSelected}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="GhMenuSeparator" TargetType="Separator">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Separator">
+                    <Border Height="1" Margin="22,3,8,3" Background="{StaticResource GhBorder}" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- A check box: a small box on the input colour, filled with the accent and ticked when checked. -->
     <Style x:Key="GhCheckBox" TargetType="CheckBox">
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />

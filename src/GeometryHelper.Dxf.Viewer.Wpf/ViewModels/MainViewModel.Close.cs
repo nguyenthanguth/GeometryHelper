@@ -122,6 +122,45 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return true;
         }
 
+        /// <summary>
+        /// Closes the documents of several files at once, as Close All Drawings of the list: with one, as
+        /// <see cref="CloseDocument"/>; with more, one with changes not saved is asked about with <see cref="AskSaveChanges"/>
+        /// and several with <see cref="AskSaveAll"/>, once, listing them. Cancel, or a save that fails, closes none. The one
+        /// shown is let go last, so that the next document shown is one left open.
+        /// </summary>
+        private bool CloseFiles(IEnumerable<KnownFile> files)
+        {
+            List<KnownFile> open = files.Where(f => f?.Document != null).Distinct()
+                .OrderBy(f => f.Path, StringComparer.OrdinalIgnoreCase).ThenBy(f => f.Path, StringComparer.Ordinal).ToList();
+
+            if (open.Count <= 1)
+            {
+                return open.Count == 1 && CloseDocument(open[0].Document);
+            }
+
+            foreach (KnownFile file in open.Where(f => f.Session.IsRunning))
+            {
+                file.Session.Escape();
+            }
+
+            List<KnownFile> unsaved = open.Where(f => f.Document.IsModified).ToList();
+            CadSaveChoice choice = unsaved.Count == 0 ? CadSaveChoice.DontSave
+                : unsaved.Count == 1 ? AskSaveChanges?.Invoke(unsaved[0].Document) ?? CadSaveChoice.Cancel
+                : AskSaveAll?.Invoke(unsaved.Select(f => f.Document).ToList()) ?? CadSaveChoice.Cancel;
+
+            if (choice == CadSaveChoice.Cancel || (choice == CadSaveChoice.Save && unsaved.Any(f => !SaveFile(f))))
+            {
+                return false;
+            }
+
+            foreach (KnownFile file in open.Where(f => f != _current).Concat(open.Where(f => f == _current)).ToList())
+            {
+                Release(file);
+            }
+
+            return true;
+        }
+
         private void CloseFile(FileRowViewModel row)
         {
             if (row != null && !row.IsHeader && row.Path != null && _files.TryGetValue(row.Path, out KnownFile file) && file.Document != null)
