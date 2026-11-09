@@ -19,6 +19,12 @@ namespace GeometryHelper.Dxf.Viewer
                 case GeoLine3 line:
                     list.Add(new DisplayPolyline2(new[] { m.X(line.StartPoint.X, line.StartPoint.Y), m.Y(line.StartPoint.X, line.StartPoint.Y), m.X(line.EndPoint.X, line.EndPoint.Y), m.Y(line.EndPoint.X, line.EndPoint.Y) }, false, style, handle, layer));
                     return;
+                case GeoRay3 ray:
+                    AddEndless(ray.Origin, ray.Direction, false, m, list, style, handle, layer);
+                    return;
+                case GeoXLine3 xline:
+                    AddEndless(xline.Origin, xline.Direction, true, m, list, style, handle, layer);
+                    return;
                 case GeoArc3 arc:
                     AddArc(arc.Center, arc.Normal, arc.StartPoint, arc.SweptAngle, arc.Radius, arc, m, list, style, handle, layer);
                     return;
@@ -96,6 +102,26 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             list.Add(new DisplayPolyline2(xy.ToArray(), closed, style, handle, layer) { IsSampled = shape is GeoEllipse3 || shape is GeoSpline3 });
+        }
+
+        /// <summary>
+        /// An XLINE or a RAY as a line without end from its base point the way it runs, both placed by the frame. One that
+        /// runs straight out of the drawing's plane is seen end on, as the point it is drawn as.
+        /// </summary>
+        private static void AddEndless(GeoPoint3 origin, GeoVector3 direction, bool bothWays, Affine2 m, DisplayList2 list, DisplayStyle style, string handle, string layer)
+        {
+            double x = m.X(origin.X, origin.Y);
+            double y = m.Y(origin.X, origin.Y);
+            double dx = m.A * direction.X + m.C * direction.Y;
+            double dy = m.B * direction.X + m.D * direction.Y;
+
+            if (Math.Sqrt(dx * dx + dy * dy) <= 1E-12 * Math.Max(1.0, direction.Length) * Math.Max(1.0, m.Scale))
+            {
+                list.Add(new DisplayPolyline2(new[] { x, y }, false, style, handle, layer));
+                return;
+            }
+
+            list.Add(new DisplayRay2(x, y, dx, dy, bothWays, style, handle, layer));
         }
 
         private void AddCircle(GeoCircle3 circle, Affine2 m, DisplayList2 list, DisplayStyle style, string handle, string layer)

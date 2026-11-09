@@ -377,6 +377,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case DisplaySegments2 segments:
                     DrawSegments(canvas, segments, m, zoom, stroke, fill, color);
                     break;
+                case DisplayRay2 ray:
+                    DrawRay(canvas, ray, m, stroke);
+                    break;
                 case DisplayArc2 arc:
                     DrawArc(canvas, arc, m, zoom, stroke);
                     break;
@@ -444,6 +447,63 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 using (SKPath path = builder.Detach()) canvas.DrawPath(path, stroke);
             }
+        }
+
+        /// <summary>
+        /// An XLINE or a RAY: the part of it the canvas shows, its clip taken back into the drawing and grown by a few pixels.
+        /// A dashed one starts a whole number of its patterns from its base point, so that its dashes stay put as the view
+        /// pans, as AutoCAD's do.
+        /// </summary>
+        private static void DrawRay(SKCanvas canvas, DisplayRay2 ray, Affine2 m, SKPaint stroke)
+        {
+            double det = m.Determinant;
+
+            if (det == 0.0)
+            {
+                return;
+            }
+
+            SKRect clip = canvas.LocalClipBounds;
+            double margin = stroke.StrokeWidth + 2.0;
+            DisplayBox box = DisplayBox.Empty;
+
+            foreach (double[] corner in new[] { new double[] { clip.Left - margin, clip.Top - margin }, new double[] { clip.Right + margin, clip.Top - margin }, new double[] { clip.Right + margin, clip.Bottom + margin }, new double[] { clip.Left - margin, clip.Bottom + margin } })
+            {
+                // The screen's corner taken back into the drawing by the inverse of the view's matrix.
+                double sx = corner[0] - m.E;
+                double sy = corner[1] - m.F;
+                box = box.Add((m.D * sx - m.C * sy) / det, (m.A * sy - m.B * sx) / det);
+            }
+
+            if (!ray.TryClip(box, out double x0, out double y0, out double x1, out double y1))
+            {
+                return;
+            }
+
+            double[] dashes = ray.Style.Dashes;
+
+            if (stroke.PathEffect != null && dashes != null && dashes.Length > 0)
+            {
+                double period = 0.0;
+
+                foreach (double dash in dashes)
+                {
+                    period += Math.Abs(dash);
+                }
+
+                period *= dashes.Length % 2 == 0 ? 1.0 : 2.0;
+                double along = (x0 - ray.X) * ray.Dx + (y0 - ray.Y) * ray.Dy;
+
+                // Not for a pattern so long on the screen that the start would be pushed far off it.
+                if (period > 0.0 && period * m.Scale < 1E5)
+                {
+                    double start = Math.Floor(along / period) * period;
+                    x0 = ray.X + start * ray.Dx;
+                    y0 = ray.Y + start * ray.Dy;
+                }
+            }
+
+            canvas.DrawLine((float)m.X(x0, y0), (float)m.Y(x0, y0), (float)m.X(x1, y1), (float)m.Y(x1, y1), stroke);
         }
 
         /// <summary>

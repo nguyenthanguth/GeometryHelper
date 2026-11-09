@@ -15,7 +15,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets the items in the order they are drawn, the first at the back.</summary>
         public IReadOnlyList<DisplayItem2> Items => _items;
 
-        /// <summary>Gets the box that holds every item.</summary>
+        /// <summary>
+        /// Gets the box that holds every item, of a <see cref="DisplayRay2"/> its base point alone, as AutoCAD's ZOOM Extents
+        /// takes an XLINE or a RAY: a line 100 by 50 from the origin and an XLINE through (200, 300) are held from (0, 0) to
+        /// (200, 300).
+        /// </summary>
         public DisplayBox Bounds => _bounds;
 
         /// <summary>Gets the number of items.</summary>
@@ -31,7 +35,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             _items.Add(item);
-            _bounds = _bounds.Union(item.Bounds);
+            _bounds = _bounds.Union(item is DisplayRay2 ray ? DisplayBox.Empty.Add(ray.X, ray.Y) : item.Bounds);
         }
     }
 

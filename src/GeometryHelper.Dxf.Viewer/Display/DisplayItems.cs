@@ -281,6 +281,145 @@ namespace GeometryHelper.Dxf.Viewer
         }
     }
 
+    /// <summary>
+    /// A line without end: an XLINE, running both ways through its base point, or a RAY, running on from it. Its box reaches
+    /// without end the ways it runs, so that every view it crosses draws it and a pick anywhere along it finds it; the box of
+    /// its <see cref="DisplayList2"/> holds its base point alone, as AutoCAD's ZOOM Extents does. The canvas draws the part
+    /// the view shows (<see cref="TryClip"/>).
+    /// </summary>
+    public sealed class DisplayRay2 : DisplayItem2
+    {
+        private readonly DisplayBox _bounds;
+
+        /// <summary>Makes a line without end.</summary>
+        /// <param name="x">The X of the base point.</param>
+        /// <param name="y">The Y of the base point.</param>
+        /// <param name="dx">The X of the way it runs; the way need not be of unit length.</param>
+        /// <param name="dy">The Y of the way it runs.</param>
+        /// <param name="bothWays">True for an XLINE, which runs both ways; false for a RAY, which runs on from its base point only.</param>
+        /// <param name="style">How it is drawn.</param>
+        /// <param name="handle">The handle of the entity.</param>
+        /// <param name="layer">The layer.</param>
+        /// <exception cref="ArgumentException">Thrown when the way has no length or is not a finite number.</exception>
+        public DisplayRay2(double x, double y, double dx, double dy, bool bothWays, DisplayStyle style, string handle, string layer)
+            : base(style, handle, layer)
+        {
+            double length = Math.Sqrt(dx * dx + dy * dy);
+
+            if (!(length > 0.0) || double.IsInfinity(length))
+            {
+                throw new ArgumentException("A line without end needs a finite way of some length.", nameof(dx));
+            }
+
+            X = x;
+            Y = y;
+            Dx = dx / length;
+            Dy = dy / length;
+            IsBothWays = bothWays;
+            _bounds = new DisplayBox(Reach(x, Dx, -1.0), Reach(y, Dy, -1.0), Reach(x, Dx, 1.0), Reach(y, Dy, 1.0));
+        }
+
+        /// <summary>Gets the X of the base point.</summary>
+        public double X { get; }
+
+        /// <summary>Gets the Y of the base point.</summary>
+        public double Y { get; }
+
+        /// <summary>Gets the X of the way it runs, of unit length.</summary>
+        public double Dx { get; }
+
+        /// <summary>Gets the Y of the way it runs, of unit length.</summary>
+        public double Dy { get; }
+
+        /// <summary>Gets whether it runs both ways, as an XLINE; false for a RAY.</summary>
+        public bool IsBothWays { get; }
+
+        /// <summary>
+        /// Gets the box the line reaches: without end along each axis it runs along, its base point's along one it runs
+        /// across. An XLINE level through (200, 300) has the box from minus to plus infinity in X and from 300 to 300 in Y.
+        /// </summary>
+        public override DisplayBox Bounds => _bounds;
+
+        /// <inheritdoc/>
+        public override double DistanceTo(double x, double y)
+        {
+            double t = (x - X) * Dx + (y - Y) * Dy;
+
+            if (!IsBothWays && t < 0.0)
+            {
+                t = 0.0;
+            }
+
+            double qx = X + t * Dx - x;
+            double qy = Y + t * Dy - y;
+            return Math.Sqrt(qx * qx + qy * qy);
+        }
+
+        /// <inheritdoc/>
+        public override bool Touches(DisplayBox box) => TryClip(box, out _, out _, out _, out _);
+
+        /// <summary>
+        /// Gets the part of the line inside a box, as the canvas draws it in the view: an XLINE level through (200, 300) in
+        /// the box from (500, 290) to (510, 310) is the segment from (500, 300) to (510, 300). The ends run the way the line does.
+        /// </summary>
+        /// <param name="box">The box.</param>
+        /// <param name="x0">The X of the start of the part.</param>
+        /// <param name="y0">The Y of the start of the part.</param>
+        /// <param name="x1">The X of the end of the part.</param>
+        /// <param name="y1">The Y of the end of the part.</param>
+        /// <returns>True when the line meets the box; false, the ends nought, when it passes by.</returns>
+        public bool TryClip(DisplayBox box, out double x0, out double y0, out double x1, out double y1)
+        {
+            x0 = y0 = x1 = y1 = 0.0;
+
+            if (box.IsEmpty)
+            {
+                return false;
+            }
+
+            // The distances along the line between which it lies within the box: each pair of sides cuts the range down.
+            double from = IsBothWays ? double.NegativeInfinity : 0.0;
+            double to = double.PositiveInfinity;
+
+            if (!Narrow(X, Dx, box.MinX, box.MaxX, ref from, ref to) || !Narrow(Y, Dy, box.MinY, box.MaxY, ref from, ref to))
+            {
+                return false;
+            }
+
+            x0 = X + from * Dx;
+            y0 = Y + from * Dy;
+            x1 = X + to * Dx;
+            y1 = Y + to * Dy;
+            return true;
+        }
+
+        /// <summary>Cuts the range of distances along the line down to those at which one coordinate lies between two values.</summary>
+        private static bool Narrow(double at, double way, double min, double max, ref double from, ref double to)
+        {
+            if (way == 0.0)
+            {
+                return at >= min && at <= max;
+            }
+
+            double a = (min - at) / way;
+            double b = (max - at) / way;
+            from = Math.Max(from, Math.Min(a, b));
+            to = Math.Min(to, Math.Max(a, b));
+            return from <= to;
+        }
+
+        /// <summary>How far one coordinate of the line reaches one way along its axis: without end where the line runs that way, else its base point's.</summary>
+        private double Reach(double at, double way, double sign)
+        {
+            if (way == 0.0)
+            {
+                return at;
+            }
+
+            return way * sign > 0.0 || IsBothWays ? sign * double.PositiveInfinity : at;
+        }
+    }
+
     /// <summary>An arc of a circle, or a whole circle; the canvas flattens it to the screen's accuracy.</summary>
     public sealed class DisplayArc2 : DisplayItem2
     {
