@@ -269,7 +269,9 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (replaced != cell)
                     {
+                        // The table drawn anew with the new words, as AutoCAD draws it after a replace.
                         table.SetTextString(result.Row, result.Column, replaced);
+                        table.RecomputeTableBlock();
                     }
 
                     break;

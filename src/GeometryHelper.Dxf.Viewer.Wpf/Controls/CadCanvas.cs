@@ -126,6 +126,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private static readonly Brush DefaultGripBrush = Solid(0x3D9BFF);
         private static readonly Brush HotGripBrush = Solid(0xF85149);
         private static readonly Brush DragGripBrush = Solid(0x3FB950);
+        private static readonly Brush CellFill = Frozen(new SolidColorBrush(Color.FromArgb(46, 0x3D, 0x9B, 0xFF)));
+        private static readonly Pen CellPen = Frozen(new Pen(Solid(0x3D9BFF), 3.0));
+        private static readonly Brush CellBrush = Solid(0x3D9BFF);
+        private static readonly Brush BandFill = Solid(0x5B6573);
+        private static readonly Brush BandHot = Frozen(new SolidColorBrush(Color.FromArgb(153, 0xD2, 0x99, 0x22)));
         private static readonly Pen CrossPenLight = Frozen(new Pen(Solid(0xE6E9ED), 1.0));
         private static readonly Pen CrossPenDark = Frozen(new Pen(Solid(0x1A1A1A), 1.0));
         private static readonly Pen GhostPen = Frozen(new Pen(Solid(0x3D9BFF), 1.2) { DashStyle = new DashStyle(new[] { 6.0, 3.0 }, 0.0) });
@@ -224,6 +229,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Raised by a double click on an object with no command running: the window edits a text in place, as AutoCAD's double click runs TEXTEDIT.</summary>
         public event EventHandler<CadObjectEventArgs> ObjectDoubleClicked;
+
+        /// <summary>
+        /// Gets or sets what a click with no command running inside a cell of a table does (the point, whether Shift was held):
+        /// true where it selected the cell, and the click selects nothing else. A click on a line of the table's grid, within the
+        /// pick box, picks the table as any object. Set by the window.
+        /// </summary>
+        public Func<GeoPoint2, bool, bool> CellClicked { get; set; }
+
+        /// <summary>Gets or sets what a double click with no command running inside a cell of a table does: true where it opened the cell for typing. Set by the window.</summary>
+        public Func<GeoPoint2, bool> CellDoubleClicked { get; set; }
+
+        /// <summary>Gets or sets what a click with no command running outside every cell does: the cells of a table selected let go. Set by the window.</summary>
+        public Action CellsLetGo { get; set; }
+
+        /// <summary>Gets or sets what gives the corners of the cells of a table selected and of their table, which the canvas draws; null for none. Set by the window.</summary>
+        public Func<GeoPoint2[][]> CellOutline { get; set; }
 
         /// <summary>Gets or sets the document shown.</summary>
         public CadDocument Document
@@ -792,6 +813,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 DrawUcsIcon(drawingContext, view, scale);
                 DrawTags(drawingContext, view, scale);
                 DrawGrips(drawingContext, view, scale);
+                DrawCells(drawingContext, view, scale);
                 DrawPrompt(drawingContext, view, scale);
                 DrawCrosshair(drawingContext);
             }
@@ -860,6 +882,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     Cursor = Cursors.SizeAll;
                 }
 
+                e.Handled = true;
+            }
+            else if (e.ChangedButton == MouseButton.Left && e.ClickCount == 2 && !IsRunning && CellDoubleClicked != null && InsideCell(p) && CellDoubleClicked(DrawingAt(p)))
+            {
+                CancelGesture();
+                _swallowUp = true;
                 e.Handled = true;
             }
             else if (e.ChangedButton == MouseButton.Left && e.ClickCount == 2 && !IsRunning && ObjectDoubleClicked != null && ObjectAt(p) is string handle)
@@ -1600,6 +1628,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             double aperture = (CadPicking.WantsPoint(Session) ? AperturePixels : PickboxPixels) * scale / view.PixelsPerUnit;
             var at = new GeoPoint2(x, y);
 
+            // A click inside a cell of a table, away from its lines, selects the cell, as AutoCAD's.
+            if ((Session == null || !Session.IsRunning) && !_cycler.IsArmed && CellClicked != null)
+            {
+                if (InsideCell(p) && CellClicked(at, shift))
+                {
+                    SelectionChanged?.Invoke(this, EventArgs.Empty);
+                    InvalidateVisual();
+                    return;
+                }
+
+                // A click anywhere else lets the cells go, as AutoCAD's does.
+                CellsLetGo?.Invoke();
+            }
+
             // Shift+Space armed: each click at one place takes the next object there, as AutoCAD's cycling.
             if (_cycler.IsArmed && (Session == null || !Session.IsRunning))
             {
@@ -1961,6 +2003,94 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Point at = corner + yArm * 20.0 + xArm * 10.0;
                 dc.DrawText(w, new Point(at.X - w.Width / 2.0, at.Y - w.Height / 2.0));
             }
+        }
+
+        /// <summary>
+        /// The cells of a table selected, as AutoCAD 2021 draws them: the range in the accent, filled lightly, a grip at the middle
+        /// of each of its sides, and the table's column letters above it and row numbers left of it, those of the range in amber.
+        /// </summary>
+        private void DrawCells(DrawingContext dc, CadView view, double scale)
+        {
+            GeoPoint2[][] outline = CellOutline?.Invoke();
+
+            if (outline == null || outline.Length < 2)
+            {
+                return;
+            }
+
+            Point[] range = Array.ConvertAll(outline[0], p => ToScreen(view, p, scale));
+            Point[] table = Array.ConvertAll(outline[1], p => ToScreen(view, p, scale));
+            dc.DrawGeometry(CellFill, CellPen, Polygon(range));
+            double half = GripSize / 2.0;
+
+            for (int k = 0; k < 4; k++)
+            {
+                Point a = range[k], b = range[(k + 1) % 4];
+                dc.DrawRectangle(CellBrush, null, new Rect((a.X + b.X) / 2.0 - half, (a.Y + b.Y) / 2.0 - half, GripSize, GripSize));
+            }
+
+            // The bands of column letters over the table and row numbers left of it, the range's part in amber.
+            Vector across = table[1] - table[0];
+            Vector down = table[3] - table[0];
+
+            if (across.Length < 1.0 || down.Length < 1.0)
+            {
+                return;
+            }
+
+            Vector up = down / down.Length * -16.0;
+            Vector left = across / across.Length * -22.0;
+            dc.DrawGeometry(BandFill, null, Polygon(new[] { table[0] + up, table[1] + up, table[1], table[0] }));
+            dc.DrawGeometry(BandFill, null, Polygon(new[] { table[0] + left, table[0], table[3], table[3] + left }));
+            // A corner of the range carried onto the table's top (or left) edge.
+            Point Along(Point p, Vector axis) => table[0] + axis * ((p - table[0]) * axis / axis.LengthSquared);
+            Point c0 = Along(range[0], across), c1 = Along(range[1], across);
+            Point w0 = Along(range[0], down), w3 = Along(range[3], down);
+            dc.DrawGeometry(BandHot, null, Polygon(new[] { c0 + up, c1 + up, c1, c0 }));
+            dc.DrawGeometry(BandHot, null, Polygon(new[] { w0 + left, w0, w3, w3 + left }));
+        }
+
+        /// <summary>Whether a point of the canvas falls in one cell of a table of the space shown, the pick box about it in that cell too, away from its lines.</summary>
+        private bool InsideCell(Point p)
+        {
+            CadView view = View;
+
+            if (Document == null || Space == null || view == null)
+            {
+                return false;
+            }
+
+            GeoPoint2 at = DrawingAt(p);
+            double aperture = PickboxPixels * PixelScale / view.PixelsPerUnit;
+
+            if (!CadTableEditor.TryCellAt(Space, at, out string handle, out int row, out int column))
+            {
+                return false;
+            }
+
+            foreach (GeoPoint2 near in new[] { new GeoPoint2(at.X - aperture, at.Y), new GeoPoint2(at.X + aperture, at.Y), new GeoPoint2(at.X, at.Y - aperture), new GeoPoint2(at.X, at.Y + aperture) })
+            {
+                if (!CadTableEditor.TryCellAt(Space, near, out string other, out int r, out int c) || other != handle || r != row || c != column)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static StreamGeometry Polygon(Point[] points)
+        {
+            var geometry = new StreamGeometry();
+
+            using (StreamGeometryContext context = geometry.Open())
+            {
+                context.BeginFigure(points[0], true, true);
+                context.PolyLineTo(points.Skip(1).ToList(), true, false);
+            }
+
+            geometry.Freeze();
+            return geometry;
         }
 
         private void DrawGrips(DrawingContext dc, CadView view, double scale)

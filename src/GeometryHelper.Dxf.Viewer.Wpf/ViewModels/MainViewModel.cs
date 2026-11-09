@@ -1290,6 +1290,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             SyncInPlace();
+            SyncTableCell();
             Revision++;
 
             // PICKSTYLE typed or switched by its key: Group Selection follows. A split button's option answers its prompt.
@@ -1344,7 +1345,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     break;
                 case "STYLE":
                 case "DIMSTYLE":
+                case "TABLESTYLE":
                     OnStyleRequest(e);
+                    break;
+                case "TABLE":
+                    OnInsertTableRequested(e);
                     break;
                 case "PTYPE":
                     OnPointStyleRequested(e);
@@ -1420,6 +1425,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             RaiseStyles();
             UpdateProperties();
             RaiseModified();
+            SyncTableCell();
 
             if (e.Kind != CadChangeKind.Saved)
             {

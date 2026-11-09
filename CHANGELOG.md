@@ -15,6 +15,19 @@ metre 10.584811 by 7.938608 mm, and drawn by its pixels, decoded off the window'
 shown as a reference is read and drawn in 0.90 s, where opening it alone takes 0.87 s. `DxfBlockTableRecord.PathName`
 is now set as well as read.
 
+**NEW.** Tables made, styled and edited as in AutoCAD 2021. The core library reads and writes table styles
+(`DxfTableStyle`, `db.TableStyleDictionary.SetAt(name, new DxfTableStyle())`, a table's `TableStyle` now set as well),
+makes tables in code (`new DxfTable(position, rows, columns, rowHeight, columnWidth)`, appended in a new `*T1` block, its
+title merged across) and draws a table anew in its block from its cells (`DxfTable.RecomputeTableBlock`): fills, grid
+lines by their looks, the text of each cell at its alignment. In the presenter, TABLE (TB) shows the Insert Table
+dialog and opens the title for typing, Tab, Shift+Tab and Enter moving on: five columns 63.5 wide and four rows of data
+of AutoCAD's Standard make a table 317.5 by 56. -TABLE asks on the command line, TABLEDIT, a double click or F2 types in a
+cell, and TABLESTYLE (TS) shows the Table Style dialog with New and Modify (General, Text, Borders). A click in a cell
+selects it with the Table Cell tab: rows and columns put in and taken out, merge and unmerge, alignment, fill and
+borders, each one undo step; a cell of a table of 100 rows of 20 columns is written and drawn in about 50 ms. AutoCAD
+2021 audited drawings of R2000, R2013 and R2018 made so with no error and lists their tables as tables. A table turned
+is now drawn where it stands: its block was turned twice.
+
 **NEW.** `GeometryHelper.Dxf.Viewer`, `GeometryHelper.Dxf.Viewer.Wpf` and the `GeometryHelper.Drawing.App` window are a 2D
 presenter for any DXF, built as AutoCAD behaves (not packed yet). A file opens as a `CadDocument` drawn from display
 lists through SkiaSharp: 100 000 entities open in 0.9 s, a click picks in 0.007 ms and a window of 1 000 entities draws

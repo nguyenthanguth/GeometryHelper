@@ -872,11 +872,10 @@ namespace GeometryHelper.Dxf.Viewer
                     return;
                 case DxfTable table:
                     {
-                        // A table is drawn by the block AutoCAD drew it with, placed at its point along its direction.
+                        // A table is drawn by the block AutoCAD drew it with, placed at its point: the block's entities stand turned
+                        // along the table's direction already, as AutoCAD draws them and TransformBy carries them.
                         GeoPoint3 at = table.Position;
-                        GeoVector3 direction = table.Direction;
-                        Affine2 placement = Affine2.ScaleRotate(1.0, 1.0, Math.Atan2(direction.Y, direction.X)).Then(Affine2.Translation(at.X, at.Y));
-                        DrawBlock(table.BlockTableRecord, placement, table, frame, list, handle, layerName, style);
+                        DrawBlock(table.BlockTableRecord, Affine2.Translation(at.X, at.Y), table, frame, list, handle, layerName, style);
                         return;
                     }
 

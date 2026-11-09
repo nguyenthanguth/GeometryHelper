@@ -61,6 +61,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             // Text edited in place: a double click on a text edits it; the editor follows the view; a click outside it ends it.
             CanvasView.ObjectDoubleClicked += (s, e) => _model?.EditTextAt(e.Handle);
+
+            // Table cells: a click in a cell selects it, a double click opens it for typing, and the cells selected are drawn.
+            CanvasView.CellClicked = (point, shift) => _model != null && _model.SelectTableCellAt(point, shift);
+            CanvasView.CellDoubleClicked = point => _model != null && _model.EditTableCellAt(point);
+            CanvasView.CellOutline = () => _model?.TableCellOutline();
+            CanvasView.CellsLetGo = () => _model?.ClearTableCell();
             CanvasView.ViewChanged += (s, e) => PlaceInPlace(false);
             CanvasView.PixelSizeChanged += (s, e) => PlaceInPlace(false);
             CanvasView.PreviewMouseDown += OnCanvasDownWhileEditing;
@@ -207,6 +213,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 // In the DRAWINGS list Enter opens the row clicked, and Delete does nothing: it neither erases objects nor removes a file.
                 e.Handled = _model.FileListKey(key == Key.Enter ? "Enter" : "Delete");
+            }
+            else if (!inEditor && _model.TableCell != null && _model.CommandText.Length == 0 && (modifiers & ~ModifierKeys.Shift) == 0
+                     && TableCellKey(key) is string cellKey && _model.TableCellKey(cellKey, modifiers == ModifierKeys.Shift))
+            {
+                // Cells of a table selected: the arrows move them, Delete empties them, F2 opens one for typing, Esc lets them go.
+                e.Handled = true;
             }
             else if (key == Key.Escape && !inEditor)
             {
@@ -417,6 +429,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.DraftingSettingsRequested -= OnDraftingSettingsRequested;
                 _model.StyleDialogRequested -= OnStyleDialogRequested;
                 _model.InPlaceEditChanged -= OnInPlaceEditChanged;
+                _model.TableCellChanged -= OnTableCellChanged;
             }
 
             _model = e.NewValue as MainViewModel;
@@ -442,6 +455,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.ShowMissingShx = dialog => MissingShxWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowPointStyle = dialog => PointStyleWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowBlockDefinition = dialog => BlockDefinitionWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowInsertTable = dialog => InsertTableWindow.Show(Window.GetWindow(this), dialog, over => StyleDialogs.ShowTableStyle(over, _model));
+                _model.TableCellChanged += OnTableCellChanged;
                 _model.ShowBlocksPalette = dialog => BlocksPaletteWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowWriteBlock = dialog => WriteBlockWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowAttributeDefinition = dialog => AttributeDefinitionWindow.Show(Window.GetWindow(this), dialog);
@@ -517,6 +532,27 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>STYLE, DIMSTYLE and the style boxes' last items: the Text Style dialog or the Dimension Style Manager, after the command or the box is done with.</summary>
         private void OnStyleDialogRequested(object sender, string name) => Dispatcher.BeginInvoke(new Action(() => StyleDialogs.Show(Window.GetWindow(this), _model, name)));
+
+        /// <summary>The name of a key the cells of a table take; null for any other.</summary>
+        private static string TableCellKey(Key key)
+        {
+            switch (key)
+            {
+                case Key.Left:
+                case Key.Right:
+                case Key.Up:
+                case Key.Down:
+                case Key.Delete:
+                case Key.F2:
+                case Key.Escape:
+                    return key.ToString();
+                default:
+                    return null;
+            }
+        }
+
+        /// <summary>The cells of a table selected changed: the canvas draws them anew.</summary>
+        private void OnTableCellChanged(object sender, EventArgs e) => CanvasView.InvalidateVisual();
 
         /// <summary>A click on a row of the DRAWINGS list selects it, Ctrl and Shift adding; a double click opens it.</summary>
         private void OnFileRowDown(object sender, MouseButtonEventArgs e)

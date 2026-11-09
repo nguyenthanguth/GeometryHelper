@@ -139,6 +139,8 @@ namespace GeometryHelper.Dxf.Viewer
                 ["ST"] = "STYLE",
                 ["D"] = "DIMSTYLE",
                 ["DST"] = "DIMSTYLE",
+                ["TB"] = "TABLE",
+                ["TS"] = "TABLESTYLE",
                 ["DDIM"] = "DIMSTYLE",
                 ["DDPTYPE"] = "PTYPE",
                 ["O"] = "OFFSET",

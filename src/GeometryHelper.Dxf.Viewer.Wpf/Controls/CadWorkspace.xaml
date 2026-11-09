@@ -413,6 +413,11 @@
                 </StackPanel>
             </DataTemplate>
 
+            <!-- The contextual Table Cell tab while cells of a table are selected: its own control (TableCellRibbon). -->
+            <DataTemplate DataType="{x:Type local:TableCellViewModel}">
+                <local:TableCellRibbon />
+            </DataTemplate>
+
             <!--
             The contextual Text Editor tab of the MTEXT editor, as the design draws it: Style, Formatting, Paragraph, Insert,
             Spell Check (off: no dictionary ships), Tools, Options and Close. What is not built is greyed with its reason. To fit
@@ -1099,6 +1104,24 @@
                             </Style>
                         </ToggleButton.Style>
                     </ToggleButton>
+                    <!-- The contextual Table Cell tab, green as the Text Editor's, while cells of a table are selected. -->
+                    <ToggleButton Content="Table Cell" IsChecked="{Binding TableCellTab.IsTabSelected, Mode=OneWay}" Margin="4,0,0,0"
+                                  Command="{Binding SelectTabCommand}" CommandParameter="{Binding TableCellTab}"
+                                  Visibility="{Binding TableCellTab.IsTabVisible, Converter={StaticResource Shown}}">
+                        <ToggleButton.Style>
+                            <Style TargetType="ToggleButton" BasedOn="{StaticResource GhRibbonTab}">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ToggleButton">
+                                            <Border Background="#2F8F4E" CornerRadius="2,2,0,0" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter TextElement.Foreground="White" TextElement.FontWeight="SemiBold" />
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ToggleButton.Style>
+                    </ToggleButton>
                 </StackPanel>
                 <Border Padding="12,6">
                     <Border.Style>
@@ -1107,6 +1130,10 @@
                             <Setter Property="BorderThickness" Value="0,1,0,0" />
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding TextEditorTab.IsTabSelected}" Value="True">
+                                    <Setter Property="BorderBrush" Value="#2F8F4E" />
+                                    <Setter Property="BorderThickness" Value="0,2,0,0" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding TableCellTab.IsTabSelected}" Value="True">
                                     <Setter Property="BorderBrush" Value="#2F8F4E" />
                                     <Setter Property="BorderThickness" Value="0,2,0,0" />
                                 </DataTrigger>

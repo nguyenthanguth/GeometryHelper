@@ -18,7 +18,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// Keys as AutoCAD's editor: letters type, Enter a new paragraph, Backspace and Delete, the arrows, Home and End (Shift
     /// selecting), Ctrl+A, Ctrl+B, Ctrl+I, Ctrl+U, Ctrl+Z and Ctrl+Y, Ctrl+C, Ctrl+X and Ctrl+V as plain text, Ctrl+Enter
     /// closes keeping the words, Esc asks (<see cref="EscapePressed"/>). Lines are 1.25 times their tallest letters apart, as
-    /// the canvas sets them.
+    /// the canvas sets them. In a table cell, as AutoCAD's: Tab keeps the words and goes to the next cell, Shift+Tab to the
+    /// one before, Enter to the one below, and Alt+Enter starts a new paragraph.
     /// </remarks>
     public sealed class CadMTextEditBox : FrameworkElement
     {
@@ -337,11 +338,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             bool shift = (modifiers & ModifierKeys.Shift) != 0;
             bool control = (modifiers & ModifierKeys.Control) != 0;
+            bool inCell = _model.Edit.IsTableCell;
 
             switch (key)
             {
                 case System.Windows.Input.Key.Escape:
                     EscapePressed?.Invoke(this, EventArgs.Empty);
+                    return true;
+                case System.Windows.Input.Key.Tab when inCell && !control:
+                    _model.Edit.Move = shift ? CadTableCellMove.Previous : CadTableCellMove.Next;
+                    CloseRequested?.Invoke(this, EventArgs.Empty);
+                    return true;
+                case System.Windows.Input.Key.Enter when inCell && !control && (modifiers & ModifierKeys.Alt) == 0:
+                    _model.Edit.Move = CadTableCellMove.Down;
+                    CloseRequested?.Invoke(this, EventArgs.Empty);
                     return true;
                 case System.Windows.Input.Key.Enter when control:
                     CloseRequested?.Invoke(this, EventArgs.Empty);

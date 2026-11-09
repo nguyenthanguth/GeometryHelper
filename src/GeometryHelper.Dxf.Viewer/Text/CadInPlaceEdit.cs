@@ -85,5 +85,37 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gets whether the editor changed the box: its width, attachment or line spacing.</summary>
         public bool ChangesBox => (NewWidth.HasValue && NewWidth.Value >= 0.0 && NewWidth.Value != Width) || NewAttachment.HasValue || NewLineSpacing.HasValue;
+
+        /// <summary>Gets the row of the table cell edited, from nought, where <see cref="Handle"/> is a table's; -1 for any other text.</summary>
+        public int TableRow { get; internal set; } = -1;
+
+        /// <summary>Gets the column of the table cell edited, from nought; -1 for any other text.</summary>
+        public int TableColumn { get; internal set; } = -1;
+
+        /// <summary>Gets whether a table cell is edited.</summary>
+        public bool IsTableCell => TableRow >= 0 && TableColumn >= 0;
+
+        /// <summary>
+        /// Gets or sets where the editor of a table cell goes once the words are written, as AutoCAD's keys move it: Tab to the
+        /// next cell, Shift+Tab to the one before, Enter to the cell below; none where the edit ends. The window sets it before
+        /// it answers the prompt.
+        /// </summary>
+        public CadTableCellMove Move { get; set; }
+    }
+
+    /// <summary>Where the editor of a table cell goes after the words are written.</summary>
+    public enum CadTableCellMove
+    {
+        /// <summary>Nowhere: the edit ends.</summary>
+        None,
+
+        /// <summary>The next cell along the row, then the first of the next row (Tab).</summary>
+        Next,
+
+        /// <summary>The cell before, then the last of the row above (Shift+Tab).</summary>
+        Previous,
+
+        /// <summary>The cell below (Enter).</summary>
+        Down,
     }
 }

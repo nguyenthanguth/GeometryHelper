@@ -23,7 +23,7 @@ namespace GeometryHelper.Dxf
     /// The file holds the cells one after another, row by row, each from its group 171: its kind, flags, merging (173, 175,
     /// 176), the overrides it has of its own (177, or 91 from R2007 on), and its text in groups 3 and 1 in a file before R2007,
     /// or between <c>301 CELL_VALUE</c> and <c>304 ACVALUE_END</c> from R2007 on, its text in 303 and 302. A cell's look AutoCAD takes
-    /// from the table style, which the library does not read: <see cref="Alignment(int, int)"/>, <see cref="TextHeight(int, int)"/>
+    /// from the table style (<see cref="DxfTableStyle"/>): <see cref="Alignment(int, int)"/>, <see cref="TextHeight(int, int)"/>
     /// and the other reads of a cell's look give its own override, null where it has none.
     /// </para>
     /// <para>
@@ -664,10 +664,14 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Gets the table style of the table (its 342), as AutoCAD's <c>TableStyle</c> gives its id: the TABLESTYLE object of the
-        /// dictionary ACAD_TABLESTYLE, read as the library keeps an object it has no class for; null where the table names none
-        /// the drawing has.
+        /// Gets or sets the table style of the table (its 342), as AutoCAD's <c>TableStyle</c> gives its id: the TABLESTYLE object
+        /// of the dictionary ACAD_TABLESTYLE, a <see cref="DxfTableStyle"/>; null where the table names none the drawing has.
         /// </summary>
+        /// <value>Set, a table style of the table's drawing, its handle written in the 342; the block the table is drawn with is
+        /// not drawn anew (<see cref="RecomputeTableBlock"/>).</value>
+        /// <exception cref="ArgumentNullException">Thrown when the style set is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the style set is not a <see cref="DxfTableStyle"/> of the table's drawing.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the table is in no drawing, or is erased.</exception>
         public DxfDBObject TableStyle
         {
             get
@@ -676,6 +680,31 @@ namespace GeometryHelper.Dxf
                 string handle = g.Text(342, g.Sub)?.Trim();
                 DxfItem style = handle == null || !IsResident ? null : Item.File.ObjectItem(handle);
                 return style == null ? null : OfObject(style);
+            }
+
+            set
+            {
+                if (value == null)
+                {
+                    throw new ArgumentNullException(nameof(value));
+                }
+
+                CheckEditable();
+
+                if (!IsResident)
+                {
+                    throw new InvalidOperationException("The table is in no drawing to take a table style of: add it to one first.");
+                }
+
+                if (!(value is DxfTableStyle) || !value.IsResident || value.IsErased || !ReferenceEquals(value.Item.File, Item.File))
+                {
+                    throw new ArgumentException("A table takes a table style of its own drawing: " + value + " is not one.", nameof(value));
+                }
+
+                MergeAsLoaded();
+                DxfDimGroups g = Own();
+                g.Set(342, value.Handle, g.Sub, Order);
+                g.Write(Order);
             }
         }
 

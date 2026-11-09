@@ -824,7 +824,7 @@ namespace GeometryHelper.Dxf
         /// A number as AutoCAD 2021 writes every real of a table, with its point: 9 written 9.0, 7.5 as it is (D33g, D37), so
         /// that a row put in 9 high is <c>141 9.0</c> and a column 20 wide <c>142 20.0</c>.
         /// </summary>
-        private static string AsReal(double value)
+        internal static string AsReal(double value)
         {
             string exact = Numbers.Exact(value + 0.0);
             return exact.IndexOf('.') >= 0 || exact.IndexOf('E') >= 0 || exact.IndexOf('e') >= 0 ? exact : exact + ".0";
