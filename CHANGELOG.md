@@ -6,6 +6,17 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The presenter's ARC, CIRCLE, PLINE, TEXT and MTEXT take every option AutoCAD 2021 offers, with its prompts word
+for word. ARC draws by Start, Center, End, Angle or chord Length, the Center first, by Start, End and Angle, Direction or
+Radius, and goes on tangent from the last line or arc at Enter: after a line from (0, 0) to (10, 0), Enter and (20, 10)
+give the quarter arc of radius 10 about (10, 10). A point picked with Ctrl held draws the arc clockwise. CIRCLE takes Ttr,
+a circle of radius 15 touching two lines that meet square at (0, 0) centred on (15, 15), and Tan, Tan, Tan as 3P with
+`_tan` before each pick, the circle touching three sides of a square 40 across of radius 20. PLINE takes Width, Halfwidth
+and Length, the widths kept per vertex and PLINEWID set to the ending width, and in arc mode Angle, CEnter, Direction,
+Radius and Second pt. TEXT takes Justify, its fifteen justifications, and Style, and Enter at its first prompt goes on
+five thirds of the height below the last text. MTEXT takes Height, Justify, Line spacing, Rotation, Style, Width and
+Columns at its corner, static and dynamic columns stored as AutoCAD stores them.
+
 **NEW.** GeometryHelper DXF, `GeometryHelper.Dxf.App.exe`, the presenter's own app: the window of the 2D presenter with no
 model drawing, built only on `GeometryHelper.Dxf.Viewer` and its controls, to open, edit and plot DXF drawings in place of
 AutoCAD. `GeometryHelper.Dxf.App.exe plan.dxf` opens a drawing, as a file association does; its command plugins are kept in

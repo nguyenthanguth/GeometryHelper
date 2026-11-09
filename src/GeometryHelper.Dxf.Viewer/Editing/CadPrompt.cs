@@ -333,6 +333,12 @@ namespace GeometryHelper.Dxf.Viewer
         public bool Shift { get; internal set; }
 
         /// <summary>
+        /// Gets whether Ctrl was held as the point, distance or angle was picked on the canvas, as ARC and PLINE take a point picked
+        /// with Ctrl held to draw the arc the other way round; false for an answer typed and for every other answer.
+        /// </summary>
+        public bool Control { get; internal set; }
+
+        /// <summary>
         /// The objects of a selection that clicks alone picked, each with the point it was clicked at, in the order clicked; an
         /// object a window, a crossing box or ALL took as well is not among them. Empty for every other answer.
         /// </summary>

@@ -244,7 +244,18 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="point">The point, in drawing units.</param>
         /// <param name="shift">Whether Shift was held as the point was picked.</param>
         /// <returns>Whether the prompt took it.</returns>
-        public bool Feed(GeoPoint2 point, bool shift)
+        public bool Feed(GeoPoint2 point, bool shift) => Feed(point, shift, false);
+
+        /// <summary>
+        /// Answers the prompt with a point picked on the canvas, as <see cref="Feed(GeoPoint2, bool)"/> does, saying whether Ctrl
+        /// was held too: at a prompt for a point, a distance or an angle the answer carries it (<see cref="CadInput.Control"/>), as
+        /// ARC draws an arc whose end is picked with Ctrl held clockwise rather than counter-clockwise.
+        /// </summary>
+        /// <param name="point">The point, in drawing units.</param>
+        /// <param name="shift">Whether Shift was held as the point was picked.</param>
+        /// <param name="control">Whether Ctrl was held as the point was picked.</param>
+        /// <returns>Whether the prompt took it.</returns>
+        public bool Feed(GeoPoint2 point, bool shift, bool control)
         {
             if (Prompt == null)
             {
@@ -254,14 +265,14 @@ namespace GeometryHelper.Dxf.Viewer
             switch (Prompt.Kind)
             {
                 case CadPromptKind.Point:
-                    return Answer(new CadInput(CadInputKind.Point, point, 0.0, null, null), Prompt.Text, point);
+                    return Answer(new CadInput(CadInputKind.Point, point, 0.0, null, null) { Control = control }, Prompt.Text, point);
                 case CadPromptKind.Distance:
                     if (Prompt.BasePoint == null)
                     {
                         return Invalid("Requires numeric distance or option keyword.");
                     }
 
-                    return Answer(new CadInput(CadInputKind.Number, point, (point - Prompt.BasePoint.Value).Length, null, null), Prompt.Text, point);
+                    return Answer(new CadInput(CadInputKind.Number, point, (point - Prompt.BasePoint.Value).Length, null, null) { Control = control }, Prompt.Text, point);
                 case CadPromptKind.Angle:
                     if (Prompt.BasePoint == null)
                     {
@@ -269,7 +280,7 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     GeoVector2 way = point - Prompt.BasePoint.Value;
-                    return Answer(new CadInput(CadInputKind.Number, point, Ucs.AngleToUcs(Math.Atan2(way.Y, way.X)), null, null), Prompt.Text, point);
+                    return Answer(new CadInput(CadInputKind.Number, point, Ucs.AngleToUcs(Math.Atan2(way.Y, way.X)), null, null) { Control = control }, Prompt.Text, point);
                 case CadPromptKind.Selection:
                 case CadPromptKind.Entity:
                     IReadOnlyList<string> picked = Document.GetPickIndex(Document.CurrentSpace).Pick(point.X, point.Y, PickAperture);

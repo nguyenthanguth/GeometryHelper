@@ -100,7 +100,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>A left click at a point of the drawing.</summary>
         /// <returns>Whether the selection or the command changed.</returns>
-        public static bool Click(CadDocument document, CadSpace space, CadCommandSession session, ObjectSnap snap, GeoPoint2 cursor, double aperture, bool shift)
+        public static bool Click(CadDocument document, CadSpace space, CadCommandSession session, ObjectSnap snap, GeoPoint2 cursor, double aperture, bool shift, bool control = false)
         {
             if (session != null && session.IsRunning)
             {
@@ -116,7 +116,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         return false;
                     }
 
-                    return session.Feed(snapped?.Point ?? cursor);
+                    // Ctrl held as the point is picked turns an arc of ARC or PLINE the other way, as in AutoCAD.
+                    return session.Feed(snapped?.Point ?? cursor, false, control);
                 }
 
                 return WantsObjects(session) && session.Feed(cursor, shift);

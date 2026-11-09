@@ -80,7 +80,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Session(document);
 
             Run(session, "C");
-            Assert.Equal("Specify center point for circle or [3P/2P]:", session.PromptText);
+            Assert.Equal("Specify center point for circle or [3P/2P/Ttr (tan tan radius)]:", session.PromptText);
             Run(session, P(0, 0));
             Assert.Equal("Specify radius of circle or [Diameter]:", session.PromptText);
             Run(session, "15");

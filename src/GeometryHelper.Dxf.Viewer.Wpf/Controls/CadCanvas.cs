@@ -1718,7 +1718,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            if (CadPicking.Click(document, Space, Session, Snap, at, aperture, shift))
+            if (CadPicking.Click(document, Space, Session, Snap, at, aperture, shift, (Keyboard.Modifiers & ModifierKeys.Control) != 0))
             {
                 SelectionChanged?.Invoke(this, EventArgs.Empty);
             }
