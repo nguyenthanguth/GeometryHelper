@@ -39,6 +39,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return snap.Snap(document.GetPickIndex(space), cursor, aperture, basePoint);
         }
 
+        /// <summary>The cursor has rested at a point prompt: a point is acquired or let go for Extension, Parallel and tracking (<see cref="ObjectSnap.Acquire"/>).</summary>
+        /// <returns>Whether one was.</returns>
+        public static bool Acquire(CadDocument document, CadSpace space, ObjectSnap snap, GeoPoint2 cursor, double aperture, GeoPoint2? basePoint)
+        {
+            if (snap == null)
+            {
+                return false;
+            }
+
+            snap.Ucs = document.Ucs.WorkingOf(space);
+            return snap.Acquire(document.GetPickIndex(space), cursor, aperture, basePoint);
+        }
+
         /// <summary>A left click at a point of the drawing.</summary>
         /// <returns>Whether the selection or the command changed.</returns>
         public static bool Click(CadDocument document, CadSpace space, CadCommandSession session, ObjectSnap snap, GeoPoint2 cursor, double aperture, bool shift)
@@ -50,6 +63,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 if (WantsPoint(session))
                 {
                     CadSnapResult snapped = Snap(document, space, snap, cursor, aperture, session.Prompt.BasePoint);
+
+                    // A click on the object an Extended Apparent Intersection offers picks it as the first of two, and takes no point.
+                    if (snap != null && snap.TakeFirstObject(snapped))
+                    {
+                        return false;
+                    }
+
                     return session.Feed(snapped?.Point ?? cursor);
                 }
 

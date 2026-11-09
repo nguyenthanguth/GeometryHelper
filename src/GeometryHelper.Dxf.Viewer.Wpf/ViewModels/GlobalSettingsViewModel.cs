@@ -447,7 +447,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// </remarks>
     public sealed class GlobalSettingsViewModel : ObservableObject
     {
-        private static readonly string[] Toggles = { "OSNAP", "GRID", "ORTHO", "SNAP", "POLAR", "DYN" };
+        private static readonly string[] Toggles = { "OSNAP", "GRID", "ORTHO", "SNAP", "POLAR", "OTRACK", "DYN" };
 
         private static readonly string[] NamedColours =
         {
@@ -499,6 +499,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ["ORTHO"] = "Status toggle: ortho",
             ["SNAP"] = "Status toggle: grid snap",
             ["POLAR"] = "Status toggle: polar tracking",
+            ["OTRACK"] = "Status toggle: object snap tracking",
             ["DYN"] = "Status toggle: input at the cursor",
         };
 
@@ -827,7 +828,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }),
             };
 
-            CadSnapModes[] snaps = { CadSnapModes.Endpoint, CadSnapModes.Midpoint, CadSnapModes.Center, CadSnapModes.Quadrant, CadSnapModes.Intersection, CadSnapModes.Perpendicular, CadSnapModes.Tangent, CadSnapModes.Nearest, CadSnapModes.Node, CadSnapModes.GeometricCenter };
+            CadSnapModes[] snaps =
+            {
+                CadSnapModes.Endpoint, CadSnapModes.Midpoint, CadSnapModes.Center, CadSnapModes.Quadrant, CadSnapModes.Intersection, CadSnapModes.Perpendicular, CadSnapModes.Tangent, CadSnapModes.Nearest,
+                CadSnapModes.Node, CadSnapModes.GeometricCenter, CadSnapModes.Extension, CadSnapModes.Insertion, CadSnapModes.ApparentIntersection, CadSnapModes.Parallel,
+            };
             _pages["Canvas and cursor"] = new[]
             {
                 new GlobalSettingSection("Zoom and pan", new[]
@@ -845,7 +850,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }),
                 new GlobalSettingSection("Object snaps", new[]
                 {
-                    new GlobalSettingRow(GlobalSettingKind.Checks, "Snap to", null, () => string.Empty, null, Changed, checks: snaps.Select(m => new GlobalSettingCheck(m == CadSnapModes.Center ? "Centre" : m == CadSnapModes.GeometricCenter ? "Geometric centre" : m.ToString(),
+                    new GlobalSettingRow(GlobalSettingKind.Checks, "Snap to", null, () => string.Empty, null, Changed, checks: snaps.Select(m => new GlobalSettingCheck(m == CadSnapModes.Center ? "Centre" : m == CadSnapModes.GeometricCenter ? "Geometric centre" : m == CadSnapModes.ApparentIntersection ? "Apparent intersection" : m.ToString(),
                         () => (s.Snaps & m) != 0, on => { s.Snaps = on ? s.Snaps | m : s.Snaps & ~m; Changed(); })).ToList()),
                     Number("Aperture", "px", () => s.AperturePixels, v => s.AperturePixels = Whole(v)),
                     Toggle("F3 toggles snaps", () => s.F3TogglesSnaps, v => s.F3TogglesSnaps = v),

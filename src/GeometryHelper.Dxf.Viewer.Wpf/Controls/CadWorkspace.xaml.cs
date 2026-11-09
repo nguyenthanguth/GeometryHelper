@@ -18,7 +18,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// Keys as AutoCAD's: Esc cancels the command, then clears the selection; Ctrl+O opens a DXF, Ctrl+W closes it, Ctrl+N asks a host for a new
     /// drawing from a model (<see cref="MainViewModel.NewFromModelRequested"/>), Ctrl+S saves, Ctrl+Shift+S
     /// saves as, Ctrl+Z undoes and Ctrl+Y redoes, Delete erases the selection; F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR,
-    /// F12 DYN (the prompt and what is typed shown beside the cursor, Tab moving between its fields at a point prompt), and
+    /// F11 OTRACK, F12 DYN (the prompt and what is typed shown beside the cursor, Tab moving between its fields at a point prompt), and
     /// Ctrl+9 shows or hides the command line. In the DRAWINGS list a click selects a row, a double click or Enter opens it,
     /// Delete does nothing and a right click shows Open and the Close items; OSNAP of the status bar has the menu of the object
     /// snaps on its arrow and its right click, and Shift+right-click on the canvas while a point is asked gives the snap menu.
@@ -372,6 +372,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     break;
                 case Key.F10:
                     name = "POLAR";
+                    break;
+                case Key.F11:
+                    name = "OTRACK";
                     break;
                 default:
                     return false;

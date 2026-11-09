@@ -289,8 +289,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         {
             var model = new MainViewModel();
 
-            Assert.Equal(new[] { "GRID", "SNAP", "ORTHO", "POLAR", "OSNAP" }, model.Toggles.Select(t => t.Name));
-            Assert.Equal(new[] { false, true, false, false, true }, model.Toggles.Select(t => t.IsOn));
+            Assert.Equal(new[] { "GRID", "SNAP", "ORTHO", "POLAR", "OTRACK", "OSNAP" }, model.Toggles.Select(t => t.Name));
+            Assert.Equal(new[] { false, true, false, false, true, true }, model.Toggles.Select(t => t.IsOn));
 
             model.Toggles[0].ToggleCommand.Execute(null);
 

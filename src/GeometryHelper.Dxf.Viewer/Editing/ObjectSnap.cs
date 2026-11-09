@@ -4,7 +4,12 @@ using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Dxf.Viewer
 {
-    /// <summary>The object snaps that may be taken, as AutoCAD's OSMODE sets them.</summary>
+    /// <summary>
+    /// The object snaps that may be taken, with AutoCAD's OSMODE values: Endpoint 1, Midpoint 2, Center 4, Node 8, Quadrant 16,
+    /// Intersection 32, Insertion 64, Perpendicular 128, Tangent 256, Nearest 512, Geometric Center 1024, Apparent
+    /// Intersection 2048, Extension 4096 and Parallel 8192, so that an OSMODE of 4133 reads as Endpoint, Center,
+    /// Intersection and Extension.
+    /// </summary>
     [Flags]
     public enum CadSnapModes
     {
@@ -20,30 +25,49 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The centre of an arc or a circle.</summary>
         Center = 4,
 
+        /// <summary>A POINT object.</summary>
+        Node = 8,
+
         /// <summary>The points of a circle or an arc at 0, 90, 180 and 270 degrees.</summary>
-        Quadrant = 8,
+        Quadrant = 16,
 
         /// <summary>Where two objects cross.</summary>
-        Intersection = 16,
-
-        /// <summary>The foot of the perpendicular from the base point to an object.</summary>
-        Perpendicular = 32,
-
-        /// <summary>Where a line from the base point touches a circle or an arc.</summary>
-        Tangent = 64,
-
-        /// <summary>The point of an object nearest the cursor.</summary>
-        Nearest = 128,
-
-        /// <summary>A POINT object.</summary>
-        Node = 256,
-
-        /// <summary>The centroid of the area a closed polyline holds, taken with the cursor on the polyline or near the centroid.</summary>
-        GeometricCenter = 512,
+        Intersection = 32,
 
         /// <summary>
-        /// The eight snaps the presenter had first, Endpoint to Nearest; <see cref="Node"/> and <see cref="GeometricCenter"/>
-        /// are not in it, so that a set kept as "every snap but Nearest" takes the same points as before they came.
+        /// The insertion point of a block, a text, an MTEXT or an attribute: taken near the point, or with the cursor anywhere on
+        /// the object, as AutoCAD takes the base point of a block from any of its lines.
+        /// </summary>
+        Insertion = 64,
+
+        /// <summary>The foot of the perpendicular from the base point to an object.</summary>
+        Perpendicular = 128,
+
+        /// <summary>Where a line from the base point touches a circle or an arc.</summary>
+        Tangent = 256,
+
+        /// <summary>The point of an object nearest the cursor.</summary>
+        Nearest = 512,
+
+        /// <summary>The centroid of the area a closed polyline holds, taken with the cursor on the polyline or near the centroid.</summary>
+        GeometricCenter = 1024,
+
+        /// <summary>
+        /// Where two objects would cross if both ran on, lines as endless lines and arcs as whole circles: two under the cursor,
+        /// or one clicked first (Extended Apparent Intersection) and one under the cursor after.
+        /// </summary>
+        ApparentIntersection = 2048,
+
+        /// <summary>A point on the run of a line or an arc beyond an end the cursor rested on.</summary>
+        Extension = 4096,
+
+        /// <summary>A point on the line through the base point parallel to a line the cursor rested on.</summary>
+        Parallel = 8192,
+
+        /// <summary>
+        /// The eight snaps the presenter had first, Endpoint to Nearest; <see cref="Node"/>, <see cref="GeometricCenter"/> and
+        /// the snaps after them are not in it, so that a set kept as "every snap but Nearest" takes the same points as before
+        /// they came.
         /// </summary>
         All = Endpoint | Midpoint | Center | Quadrant | Intersection | Perpendicular | Tangent | Nearest,
     }
@@ -93,27 +117,40 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The centroid of a closed polyline (GCEn).</summary>
         GeometricCenter,
 
-        /// <summary>The insertion point of a block or a text (INSertion): drawn in Drafting Settings; no snap gives it yet.</summary>
+        /// <summary>The insertion point of a block, a text or an attribute (INSertion).</summary>
         Insertion,
 
-        /// <summary>A point on the extension of a line or an arc (EXTension): drawn in Drafting Settings; no snap gives it yet.</summary>
+        /// <summary>A point on the run of a line or an arc beyond an acquired end (EXTension).</summary>
         Extension,
 
-        /// <summary>Where two objects would cross if extended (APParent intersection): drawn in Drafting Settings; no snap gives it yet.</summary>
+        /// <summary>Where two objects would cross if both ran on (APParent intersection).</summary>
         ApparentIntersection,
 
-        /// <summary>A point on a line parallel to another (PARallel): drawn in Drafting Settings; no snap gives it yet.</summary>
+        /// <summary>A point on the line through the base point parallel to an acquired line (PARallel).</summary>
         Parallel,
+
+        /// <summary>A point on a tracking line from an acquired point, or where two tracking lines cross (OTRACK).</summary>
+        Tracking,
+
+        /// <summary>
+        /// The object under the cursor offered as the first of an apparent intersection: a click picks it, as AutoCAD's
+        /// Extended Apparent Intersection does, and takes no point (<see cref="ObjectSnap.TakeFirstObject"/>).
+        /// </summary>
+        ExtendedApparentIntersection,
     }
 
     /// <summary>The point a snap gave, which snap gave it and, for an object snap, the object.</summary>
     public sealed class CadSnapResult
     {
-        internal CadSnapResult(CadSnapKind kind, GeoPoint2 point, string handle)
+        private static readonly IReadOnlyList<IReadOnlyList<GeoPoint2>> NoTracks = Array.Empty<IReadOnlyList<GeoPoint2>>();
+
+        internal CadSnapResult(CadSnapKind kind, GeoPoint2 point, string handle, IReadOnlyList<IReadOnlyList<GeoPoint2>> tracks = null, object source = null)
         {
             Kind = kind;
             Point = point;
             Handle = handle;
+            Tracks = tracks ?? NoTracks;
+            Source = source;
         }
 
         /// <summary>Gets which snap gave the point; <see cref="CadSnapKind.None"/> for the cursor itself.</summary>
@@ -124,6 +161,55 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gets the handle of the object snapped to, or null for a grid, ortho, polar or no snap.</summary>
         public string Handle { get; }
+
+        /// <summary>
+        /// Gets the dotted paths drawn to the point, each a chain of points in drawing units that ends at the point: from the
+        /// acquired end along an extension, from the base point along a parallel, from each acquired point along its tracking
+        /// line; none for any other snap. The extension of an arc runs round its circle in steps of 5 degrees at most.
+        /// </summary>
+        public IReadOnlyList<IReadOnlyList<GeoPoint2>> Tracks { get; }
+
+        /// <summary>The object an Extended Apparent Intersection offers, kept for <see cref="ObjectSnap.TakeFirstObject"/>.</summary>
+        internal object Source { get; }
+
+        /// <inheritdoc/>
+        public override string ToString() => Kind + " " + Point;
+    }
+
+    /// <summary>
+    /// A point acquired by resting the cursor on it, as AutoCAD acquires one: a snap point tracking lines run from (OTRACK), the
+    /// end of a line or an arc whose run Extension follows, or a line Parallel runs alongside. It is drawn as a small cross, a
+    /// line's as the marker of Parallel.
+    /// </summary>
+    public sealed class CadAcquiredPoint
+    {
+        internal CadAcquiredPoint(CadSnapKind kind, GeoPoint2 point, string handle)
+        {
+            Kind = kind;
+            Point = point;
+            Handle = handle;
+        }
+
+        /// <summary>Gets the snap that found it: an endpoint, a midpoint, <see cref="CadSnapKind.Extension"/> for the end of a run, <see cref="CadSnapKind.Parallel"/> for a line.</summary>
+        public CadSnapKind Kind { get; }
+
+        /// <summary>Gets the point, in drawing units: on a line acquired for Parallel, the point the cursor rested on.</summary>
+        public GeoPoint2 Point { get; }
+
+        /// <summary>Gets the handle of the object it lies on.</summary>
+        public string Handle { get; }
+
+        /// <summary>The unit direction a line's end runs on in, outward; null where the point is no end of a line.</summary>
+        internal GeoVector2? Along { get; set; }
+
+        /// <summary>The arc whose end the point is; null where it is none.</summary>
+        internal DisplayArc2 Arc { get; set; }
+
+        /// <summary>Whether the point is the end of <see cref="Arc"/> at its start angle, the run then going back against the sweep.</summary>
+        internal bool AtArcStart { get; set; }
+
+        /// <summary>The unit direction of a line acquired for Parallel; null for a point.</summary>
+        internal GeoVector2? Direction { get; set; }
 
         /// <inheritdoc/>
         public override string ToString() => Kind + " " + Point;
@@ -136,12 +222,20 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     /// <remarks>
     /// AutoCAD's order is kept: a snap to a point near the cursor (endpoint, midpoint, centre, node, quadrant, intersection,
-    /// geometric centre) wins, the nearest of them first; then a snap the object under the cursor gives wherever its point
-    /// lies (perpendicular, tangent, the centre of a circle whose rim is under the cursor and the centroid of a closed
-    /// polyline under it); then nearest. A POINT is a node, not an endpoint, as in AutoCAD. Where no object snap is found, the
-    /// cursor is put on the grid, then held level or upright (ortho) or on a polar angle from the base point.
+    /// apparent intersection, insertion, geometric centre, the crossing of two tracking lines) wins, the nearest of them
+    /// first; then a snap the object under the cursor gives wherever its point lies (perpendicular, tangent, the centre of a
+    /// circle whose rim is under the cursor, the centroid of a closed polyline under it, the insertion point of a block or a
+    /// text under it, the apparent intersection with an object clicked first); then a point on an extension, a parallel or a
+    /// tracking line near the cursor; then the object offered as the first of an extended apparent intersection; then
+    /// nearest. A POINT is a node, not an endpoint, as in AutoCAD. Where no object snap is found, the cursor is put on the
+    /// grid, then held level or upright (ortho) or on a polar angle from the base point.
+    /// <para>
+    /// Extension, Parallel and object snap tracking work from points acquired by resting the cursor (<see cref="Acquire"/>):
+    /// seven at most, the oldest let go first, each let go when the cursor rests on it again, and all of them by
+    /// <see cref="ClearAcquired"/>, which the window calls once a point is taken.
+    /// </para>
     /// </remarks>
-    public sealed class ObjectSnap
+    public sealed partial class ObjectSnap
     {
         // The snaps of the point being worked out: the override, else the modes while snaps are on.
         private CadSnapModes _active;
@@ -174,6 +268,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// override. The window clears it once the point is taken.
         /// </summary>
         public CadSnapModes? Override { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether object snap tracking is on (OTRACK, F11): from each point acquired, lines run level and upright,
+        /// or on every polar angle while <see cref="Polar"/> is on, and the cursor is held on one near it or where two cross.
+        /// </summary>
+        public bool Tracking { get; set; }
+
+        /// <summary>Gets the points acquired, the oldest first; seven at most.</summary>
+        public IReadOnlyList<CadAcquiredPoint> Acquired => _acquired;
 
         /// <summary>Gets or sets whether the cursor is held level or upright from the base point (ORTHO, F8).</summary>
         public bool Ortho { get; set; }
@@ -282,30 +385,54 @@ namespace GeometryHelper.Dxf.Viewer
 
         private CadSnapResult ObjectSnapAt(PickIndex index, GeoPoint2 cursor, double aperture, GeoPoint2? basePoint)
         {
+            var found = new Found();
+            Gather(index, cursor, aperture, basePoint, found);
+            List<Candidate> near = found.Near;
+            var tracked = new List<Candidate>();
+            var offered = new List<Candidate>();
+
+            if (Has(CadSnapModes.ApparentIntersection))
+            {
+                AddApparent(found.Curves, cursor, aperture, near, found.OnObject, offered);
+            }
+
+            AddTracking(cursor, aperture, basePoint, near, tracked);
+            Candidate best = Best(near) ?? Best(found.OnObject) ?? Best(tracked) ?? Best(offered) ?? Best(found.Nearest);
+            return best == null ? null : new CadSnapResult(best.Kind, best.Point, best.Handle, best.Tracks, best.Source);
+        }
+
+        /// <summary>The snaps of the items under the aperture: the points near the cursor, those the objects under it give, the nearest points, and the curves under it.</summary>
+        private void Gather(PickIndex index, GeoPoint2 cursor, double aperture, GeoPoint2? basePoint, Found found)
+        {
             var box = new DisplayBox(cursor.X - aperture, cursor.Y - aperture, cursor.X + aperture, cursor.Y + aperture);
             IReadOnlyList<DisplayItem2> items = index.ItemsNear(box);
-            var near = new List<Candidate>();
-            var onObject = new List<Candidate>();
-            var nearest = new List<Candidate>();
-            var curves = new List<Curve>();
+            List<Candidate> near = found.Near;
+            List<Candidate> onObject = found.OnObject;
+            List<Candidate> nearest = found.Nearest;
+            List<Curve> curves = found.Curves;
 
             foreach (DisplayItem2 item in items)
             {
                 switch (item)
                 {
                     case DisplayPolyline2 chain:
-                        AddChain(chain.Xy, chain.Count, chain.Closed, chain.IsSampled, item, cursor, aperture, basePoint, near, onObject, nearest, curves);
+                        AddChain(chain.Xy, chain.Count, chain.Closed, chain.IsSampled, item, cursor, aperture, basePoint, near, onObject, nearest, curves, found.Ends);
                         break;
                     case DisplayFill2 fill:
                         foreach (double[] ring in fill.Rings)
                         {
-                            AddChain(ring, ring.Length / 2, true, false, item, cursor, aperture, basePoint, near, onObject, nearest, curves);
+                            AddChain(ring, ring.Length / 2, true, false, item, cursor, aperture, basePoint, near, onObject, nearest, curves, found.Ends);
                         }
 
                         break;
                     case DisplayArc2 arc:
-                        AddArc(arc, cursor, aperture, basePoint, near, onObject, nearest, curves);
+                        AddArc(arc, cursor, aperture, basePoint, near, onObject, nearest, curves, found.Ends);
                         break;
+                }
+
+                if (Has(CadSnapModes.Insertion))
+                {
+                    AddInsertion(index.List, item, cursor, aperture, near, onObject);
                 }
             }
 
@@ -313,15 +440,38 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 AddIntersections(curves, cursor, aperture, near);
             }
+        }
 
-            Candidate best = Best(near) ?? Best(onObject) ?? Best(nearest);
-            return best == null ? null : new CadSnapResult(best.Kind, best.Point, best.Handle);
+        /// <summary>
+        /// The insertion points of the block or text an item is drawn for: near the cursor, or wherever they lie with the cursor
+        /// on the item, as AutoCAD takes a block's base point from any of its lines.
+        /// </summary>
+        private static void AddInsertion(DisplayList2 list, DisplayItem2 item, GeoPoint2 cursor, double aperture, List<Candidate> near, List<Candidate> onObject)
+        {
+            IReadOnlyList<GeoPoint2> points = list.InsertionPointsOf(item.Handle);
+
+            if (points.Count == 0)
+            {
+                return;
+            }
+
+            double reach = item.DistanceTo(cursor.X, cursor.Y);
+
+            foreach (GeoPoint2 point in points)
+            {
+                Near(near, CadSnapKind.Insertion, point, item.Handle, cursor, aperture);
+
+                if (reach <= aperture)
+                {
+                    onObject.Add(new Candidate(CadSnapKind.Insertion, point, item.Handle, reach));
+                }
+            }
         }
 
         private bool Has(CadSnapModes mode) => (_active & mode) != 0;
 
         private void AddChain(IReadOnlyList<double> xy, int count, bool closed, bool sampled, DisplayItem2 item, GeoPoint2 cursor, double aperture, GeoPoint2? basePoint,
-            List<Candidate> near, List<Candidate> onObject, List<Candidate> nearest, List<Curve> curves)
+            List<Candidate> near, List<Candidate> onObject, List<Candidate> nearest, List<Curve> curves, List<End> ends)
         {
             if (count == 0)
             {
@@ -369,13 +519,19 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoPoint2 foot = Foot(cursor, a, b, out _);
                 double reach = (foot - cursor).Length;
 
+                if (ends != null && !sampled)
+                {
+                    AddEnd(ends, a, b, item.Handle, cursor, aperture, reach);
+                    AddEnd(ends, b, a, item.Handle, cursor, aperture, reach);
+                }
+
                 if (reach > aperture)
                 {
                     continue;
                 }
 
                 under = true;
-                curves.Add(Curve.Segment(a, b, item.Handle));
+                curves.Add(Curve.Segment(a, b, item.Handle, reach, foot, sampled));
 
                 if (Has(CadSnapModes.Nearest))
                 {
@@ -441,7 +597,7 @@ namespace GeometryHelper.Dxf.Viewer
             return true;
         }
 
-        private void AddArc(DisplayArc2 arc, GeoPoint2 cursor, double aperture, GeoPoint2? basePoint, List<Candidate> near, List<Candidate> onObject, List<Candidate> nearest, List<Curve> curves)
+        private void AddArc(DisplayArc2 arc, GeoPoint2 cursor, double aperture, GeoPoint2? basePoint, List<Candidate> near, List<Candidate> onObject, List<Candidate> nearest, List<Curve> curves, List<End> ends)
         {
             var center = new GeoPoint2(arc.Cx, arc.Cy);
             double reach = arc.DistanceTo(cursor.X, cursor.Y);
@@ -451,6 +607,12 @@ namespace GeometryHelper.Dxf.Viewer
                 arc.PointAt(arc.Start, out double sx, out double sy);
                 arc.PointAt(arc.Start + arc.Sweep, out double ex, out double ey);
                 arc.PointAt(arc.Start + arc.Sweep / 2.0, out double mx, out double my);
+
+                if (ends != null)
+                {
+                    AddEnd(ends, arc, true, new GeoPoint2(sx, sy), cursor, aperture, reach);
+                    AddEnd(ends, arc, false, new GeoPoint2(ex, ey), cursor, aperture, reach);
+                }
 
                 if (Has(CadSnapModes.Endpoint))
                 {
@@ -493,7 +655,7 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            curves.Add(Curve.Arc(arc));
+            curves.Add(Curve.Arc(arc, reach));
 
             if (Has(CadSnapModes.Nearest))
             {
@@ -573,7 +735,8 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        private IEnumerable<GeoPoint2> Cross(Curve a, Curve b)
+        /// <summary>Where two curves cross; <paramref name="extended"/>, where they would cross run on, segments as endless lines and arcs as whole circles.</summary>
+        private IEnumerable<GeoPoint2> Cross(Curve a, Curve b, bool extended = false)
         {
             if (a.Radius < 0.0 && b.Radius < 0.0)
             {
@@ -593,7 +756,7 @@ namespace GeometryHelper.Dxf.Viewer
                 double slackT = Tolerance.EqualPoint / r.Length;
                 double slackU = Tolerance.EqualPoint / s.Length;
 
-                if (t >= -slackT && t <= 1.0 + slackT && u >= -slackU && u <= 1.0 + slackU)
+                if (extended || (t >= -slackT && t <= 1.0 + slackT && u >= -slackU && u <= 1.0 + slackU))
                 {
                     yield return a.A + r * t;
                 }
@@ -603,7 +766,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (a.Radius >= 0.0 && b.Radius >= 0.0)
             {
-                foreach (GeoPoint2 point in CircleCircle(a, b))
+                foreach (GeoPoint2 point in CircleCircle(a, b, extended))
                 {
                     yield return point;
                 }
@@ -614,13 +777,13 @@ namespace GeometryHelper.Dxf.Viewer
             Curve line = a.Radius < 0.0 ? a : b;
             Curve circle = a.Radius < 0.0 ? b : a;
 
-            foreach (GeoPoint2 point in LineCircle(line, circle))
+            foreach (GeoPoint2 point in LineCircle(line, circle, extended))
             {
                 yield return point;
             }
         }
 
-        private IEnumerable<GeoPoint2> LineCircle(Curve line, Curve circle)
+        private IEnumerable<GeoPoint2> LineCircle(Curve line, Curve circle, bool extended)
         {
             GeoVector2 d = line.B - line.A;
             double length = d.Length;
@@ -642,6 +805,19 @@ namespace GeometryHelper.Dxf.Viewer
                 // A line within the tolerance of touching the circle touches it at the foot from the centre.
                 GeoPoint2 foot = Foot(circle.Center, line.A, line.B, out double tf);
 
+                if (extended)
+                {
+                    // Run on, the line is endless: the foot is taken wherever it lies, the circle whole.
+                    foot = line.A + d * (((circle.Center.X - line.A.X) * d.X + (circle.Center.Y - line.A.Y) * d.Y) / a);
+
+                    if (Math.Abs((foot - circle.Center).Length - circle.Radius) <= Tolerance.EqualPoint)
+                    {
+                        yield return foot;
+                    }
+
+                    yield break;
+                }
+
                 if (Math.Abs((foot - circle.Center).Length - circle.Radius) <= Tolerance.EqualPoint && tf >= -slack && tf <= 1.0 + slack && circle.Covers(foot, Tolerance))
                 {
                     yield return foot;
@@ -656,14 +832,14 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 GeoPoint2 point = line.A + d * t;
 
-                if (t >= -slack && t <= 1.0 + slack && circle.Covers(point, Tolerance))
+                if (extended || (t >= -slack && t <= 1.0 + slack && circle.Covers(point, Tolerance)))
                 {
                     yield return point;
                 }
             }
         }
 
-        private IEnumerable<GeoPoint2> CircleCircle(Curve a, Curve b)
+        private IEnumerable<GeoPoint2> CircleCircle(Curve a, Curve b, bool extended)
         {
             GeoVector2 between = b.Center - a.Center;
             double d = between.Length;
@@ -682,7 +858,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (GeoPoint2 point in points)
             {
-                if (a.Covers(point, Tolerance) && b.Covers(point, Tolerance))
+                if (extended || (a.Covers(point, Tolerance) && b.Covers(point, Tolerance)))
                 {
                     yield return point;
                 }
@@ -730,45 +906,72 @@ namespace GeometryHelper.Dxf.Viewer
             return a + ab * clamped;
         }
 
+        /// <summary>
+        /// The best of the candidates: the nearest, then by kind, handle, X and Y; of candidates equal in all of these, the
+        /// first found, so that the choice never rests on how a sort treats a tie.
+        /// </summary>
         private static Candidate Best(List<Candidate> list)
         {
-            if (list.Count == 0)
+            Candidate best = null;
+
+            foreach (Candidate candidate in list)
             {
-                return null;
+                if (best == null || Compare(candidate, best) < 0)
+                {
+                    best = candidate;
+                }
             }
 
-            list.Sort((a, b) =>
+            return best;
+        }
+
+        private static int Compare(Candidate a, Candidate b)
+        {
+            int c = a.Reach.CompareTo(b.Reach);
+
+            if (c == 0)
             {
-                int c = a.Reach.CompareTo(b.Reach);
+                c = a.Kind.CompareTo(b.Kind);
+            }
 
-                if (c == 0)
-                {
-                    c = a.Kind.CompareTo(b.Kind);
-                }
+            if (c == 0)
+            {
+                c = string.CompareOrdinal(a.Handle, b.Handle);
+            }
 
-                if (c == 0)
-                {
-                    c = string.CompareOrdinal(a.Handle, b.Handle);
-                }
+            if (c == 0)
+            {
+                c = a.Point.X.CompareTo(b.Point.X);
+            }
 
-                if (c == 0)
-                {
-                    c = a.Point.X.CompareTo(b.Point.X);
-                }
+            return c != 0 ? c : a.Point.Y.CompareTo(b.Point.Y);
+        }
 
-                return c != 0 ? c : a.Point.Y.CompareTo(b.Point.Y);
-            });
-            return list[0];
+        /// <summary>What <see cref="Gather"/> finds under the aperture.</summary>
+        private sealed class Found
+        {
+            public List<Candidate> Near { get; } = new List<Candidate>();
+
+            public List<Candidate> OnObject { get; } = new List<Candidate>();
+
+            public List<Candidate> Nearest { get; } = new List<Candidate>();
+
+            public List<Curve> Curves { get; } = new List<Curve>();
+
+            /// <summary>The ends of lines and arcs near the cursor, gathered only while a point is acquired; null otherwise.</summary>
+            public List<End> Ends { get; set; }
         }
 
         private sealed class Candidate
         {
-            public Candidate(CadSnapKind kind, GeoPoint2 point, string handle, double reach)
+            public Candidate(CadSnapKind kind, GeoPoint2 point, string handle, double reach, IReadOnlyList<IReadOnlyList<GeoPoint2>> tracks = null, object source = null)
             {
                 Kind = kind;
                 Point = point;
                 Handle = handle;
                 Reach = reach;
+                Tracks = tracks;
+                Source = source;
             }
 
             public CadSnapKind Kind { get; }
@@ -778,6 +981,10 @@ namespace GeometryHelper.Dxf.Viewer
             public string Handle { get; }
 
             public double Reach { get; }
+
+            public IReadOnlyList<IReadOnlyList<GeoPoint2>> Tracks { get; }
+
+            public object Source { get; }
         }
 
         /// <summary>A straight segment (a radius below nought) or an arc, crossed with others for intersections.</summary>
@@ -795,9 +1002,42 @@ namespace GeometryHelper.Dxf.Viewer
 
             public string Handle { get; private set; }
 
-            public static Curve Segment(GeoPoint2 a, GeoPoint2 b, string handle) => new Curve { A = a, B = b, Handle = handle };
+            /// <summary>How far the cursor lies from it.</summary>
+            public double Reach { get; private set; }
 
-            public static Curve Arc(DisplayArc2 arc) => new Curve { _arc = arc, Center = new GeoPoint2(arc.Cx, arc.Cy), Radius = arc.Radius, Handle = arc.Handle };
+            /// <summary>The point of a segment nearest the cursor; for an arc, see <see cref="NearestTo"/>.</summary>
+            public GeoPoint2 Foot { get; private set; }
+
+            /// <summary>Whether it is a piece of a curve drawn as a chain (a spline, an ellipse), whose run means nothing.</summary>
+            public bool Sampled { get; private set; }
+
+            public static Curve Segment(GeoPoint2 a, GeoPoint2 b, string handle, double reach, GeoPoint2 foot, bool sampled)
+                => new Curve { A = a, B = b, Handle = handle, Reach = reach, Foot = foot, Sampled = sampled };
+
+            public static Curve Arc(DisplayArc2 arc, double reach) => new Curve { _arc = arc, Center = new GeoPoint2(arc.Cx, arc.Cy), Radius = arc.Radius, Handle = arc.Handle, Reach = reach };
+
+            /// <summary>The point of the curve nearest a point: the foot on a segment, on an arc the point at its angle, else the nearer end.</summary>
+            public GeoPoint2 NearestTo(GeoPoint2 cursor)
+            {
+                if (_arc == null)
+                {
+                    return Foot;
+                }
+
+                double angle = Math.Atan2(cursor.Y - _arc.Cy, cursor.X - _arc.Cx);
+                _arc.PointAt(angle, out double x, out double y);
+
+                if (_arc.IsCircle || _arc.CoversDirection(x, y))
+                {
+                    return new GeoPoint2(x, y);
+                }
+
+                _arc.PointAt(_arc.Start, out double sx, out double sy);
+                _arc.PointAt(_arc.Start + _arc.Sweep, out double ex, out double ey);
+                var s = new GeoPoint2(sx, sy);
+                var e = new GeoPoint2(ex, ey);
+                return (s - cursor).Length <= (e - cursor).Length ? s : e;
+            }
 
             public bool Covers(GeoPoint2 point, Tolerance tolerance)
             {

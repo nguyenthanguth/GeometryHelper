@@ -677,9 +677,13 @@ namespace GeometryHelper.Dxf.Viewer
             return hex.Length == 6 && int.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out rgb);
         }
 
-        /// <summary>The names of the snaps on, in the order of their flags.</summary>
+        /// <summary>The names of the snaps on, in the order they came to the presenter.</summary>
         internal static IEnumerable<string> SnapNames(CadSnapModes modes)
-            => new[] { CadSnapModes.Endpoint, CadSnapModes.Midpoint, CadSnapModes.Center, CadSnapModes.Quadrant, CadSnapModes.Intersection, CadSnapModes.Perpendicular, CadSnapModes.Tangent, CadSnapModes.Nearest, CadSnapModes.Node, CadSnapModes.GeometricCenter }
+            => new[]
+                {
+                    CadSnapModes.Endpoint, CadSnapModes.Midpoint, CadSnapModes.Center, CadSnapModes.Quadrant, CadSnapModes.Intersection, CadSnapModes.Perpendicular, CadSnapModes.Tangent, CadSnapModes.Nearest,
+                    CadSnapModes.Node, CadSnapModes.GeometricCenter, CadSnapModes.Extension, CadSnapModes.Insertion, CadSnapModes.ApparentIntersection, CadSnapModes.Parallel,
+                }
                 .Where(m => (modes & m) != 0).Select(m => m.ToString());
 
         internal static int Colour(int value, string name)

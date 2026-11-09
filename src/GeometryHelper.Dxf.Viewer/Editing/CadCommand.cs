@@ -161,6 +161,7 @@ namespace GeometryHelper.Dxf.Viewer
                 ["F8"] = "ORTHO",
                 ["F9"] = "SNAP",
                 ["F10"] = "POLAR",
+                ["F11"] = "OTRACK",
                 ["F12"] = "DYN",
                 ["Delete"] = "ERASE",
                 ["Ctrl+Z"] = "U",

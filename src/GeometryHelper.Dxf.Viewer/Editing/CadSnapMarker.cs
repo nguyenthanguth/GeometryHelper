@@ -37,7 +37,8 @@ namespace GeometryHelper.Dxf.Viewer
     /// <see cref="ColorOn"/>. Endpoint is a square, Midpoint a triangle, Center a circle, Geometric Center a circle with a dot,
     /// Node a circle with a cross, Quadrant a diamond, Intersection a cross, Extension a small cross on a dotted line,
     /// Insertion two squares, Perpendicular a right angle, Tangent a circle with a line on top, Nearest an hourglass, Apparent
-    /// Intersection a cross in a square and Parallel two slanted lines. A circle is a ring of 24 points.
+    /// Intersection a cross in a square, Extended Apparent Intersection the same with three dots below, Parallel two slanted
+    /// lines and a point of object snap tracking a small cross, 4.5 across. A circle is a ring of 24 points.
     /// </summary>
     public static class CadSnapMarker
     {
@@ -90,6 +91,14 @@ namespace GeometryHelper.Dxf.Viewer
                     return new[] { Square(-h, -h, h, h), Chain(false, -h, -h, h, h), Chain(false, -h, h, h, -h) };
                 case CadSnapKind.Parallel:
                     return new[] { Chain(false, -h, h * 0.6, -h * 0.1, -h * 0.6), Chain(false, h * 0.1, h * 0.6, h, -h * 0.6) };
+                case CadSnapKind.ExtendedApparentIntersection:
+                    return new[]
+                    {
+                        Square(-h, -h, h, h), Chain(false, -h, -h, h, h), Chain(false, -h, h, h, -h),
+                        Dot(-3.0, h + 2.5), Dot(0.0, h + 2.5), Dot(3.0, h + 2.5),
+                    };
+                case CadSnapKind.Tracking:
+                    return new[] { Chain(false, -h * 0.5, -h * 0.5, h * 0.5, h * 0.5), Chain(false, -h * 0.5, h * 0.5, h * 0.5, -h * 0.5) };
                 default:
                     return Array.Empty<CadMarkerStroke>();
             }
@@ -108,6 +117,10 @@ namespace GeometryHelper.Dxf.Viewer
                     return "Geometric Center";
                 case CadSnapKind.ApparentIntersection:
                     return "Apparent Intersection";
+                case CadSnapKind.ExtendedApparentIntersection:
+                    return "Extended Apparent Intersection";
+                case CadSnapKind.Tracking:
+                    return "Object Snap Tracking";
                 default:
                     return kind.ToString();
             }
@@ -128,6 +141,18 @@ namespace GeometryHelper.Dxf.Viewer
         private static CadMarkerStroke Square(double x0, double y0, double x1, double y1) => Chain(true, x0, y0, x1, y0, x1, y1, x0, y1);
 
         private static CadMarkerStroke Circle(double radius) => new CadMarkerStroke(Ring(radius), true);
+
+        private static CadMarkerStroke Dot(double x, double y)
+        {
+            GeoPoint2[] ring = Ring(0.7);
+
+            for (int i = 0; i < ring.Length; i++)
+            {
+                ring[i] = new GeoPoint2(ring[i].X + x, ring[i].Y + y);
+            }
+
+            return new CadMarkerStroke(ring, true, filled: true);
+        }
 
         private static CadMarkerStroke Chain(bool closed, params double[] xy) => new CadMarkerStroke(Points(xy), closed);
 

@@ -93,6 +93,18 @@ another file of the folder was opened, or once it was saved with Save and shown 
 now says, for example, "Test bodies (from file)" until the drawing is made again. The out-of-date dot now shows on such a
 drawing too, checked in the source its file names without changing it.
 
+**NEW.** The presenter's last object snaps, as AutoCAD 2021's: Extension, Parallel, Apparent Intersection, Insertion and
+object snap tracking (OTRACK, F11, on the status bar before OSNAP and in Drafting Settings). A rest of half a second on a
+point acquires it, seven at most: the end of a line from (0, 0) to (100, 0) rested on gives (150, 0) along its run to a
+cursor at (150, 0.4), and with tracking, (100, 30) above it and the crossing (100, 50) with the level line of a second end
+at (200, 50), the paths drawn dotted. Parallel holds the rubber band along a line rested on; Apparent Intersection gives
+(100, 0) for two lines that stop short of it, or picks one object with a click and takes where the next would meet it;
+Insertion takes an INSERT's point from any of its lines, and the point of a TEXT, an MTEXT or an attribute. EXT, PAR, APP,
+APPINT and INS typed take them for one point. **CHANGED.** `CadSnapModes` carries AutoCAD's OSMODE values (Node 8, Tangent
+256, Nearest 512, Geometric Center 1024); the settings file keeps snaps by name and reads as before. A snap over 100 000
+entities with every mode on and seven points acquired takes 6 microseconds; with the modes of before, 1 microsecond, as
+before.
+
 **NEW.** The presenter edits dimensions as AutoCAD 2021 does: DIMCONTINUE (DCO) and DIMBASELINE (DBA) go on from the last
 linear or angular dimension, or one selected, on the same line or DIMDLI further out, with Undo inside; QDIM dimensions the
 ends of lines and polylines and the centres of circles in a row, staggered, from a base or as radii and diameters; DIMEDIT
@@ -214,7 +226,7 @@ listing both.
 Snap tabs; the OSNAP arrow and right click on the status bar; Shift+right-click at a point prompt; END, MID, CEN and the other
 keywords typed for the next point only; AutoCAD's markers, 9 pixels across, yellow on a dark canvas; and the new snaps Node and
 Geometric Center (an L of 30 by 10 and 10 by 20 snaps to its centroid (11, 11)). **CHANGED.** A POINT snaps as a Node, not an
-Endpoint. Extension, Parallel, Apparent Intersection, Insertion and Object Snap Tracking are listed greyed, not built yet.
+Endpoint.
 
 **CHANGED.** Reading a DXF entity finds the groups of its record once for the readings that follow one another, not once for
 each property: a HATCH whose loops, pattern and extents are read one by one is parsed once, and the placing of an INSERT

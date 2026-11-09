@@ -111,7 +111,7 @@ tab (see [Command plugins](plugins.md)), a Settings tab, and the tabs a host add
 | Ctrl+N | asks a host for a new drawing from a model |
 | Ctrl+Z, Ctrl+Y | undo, redo |
 | Delete | erases the selection |
-| F3, F7, F8, F9, F10, F12 | OSNAP, GRID, ORTHO, SNAP, POLAR, DYN |
+| F3, F7, F8, F9, F10, F11, F12 | OSNAP, GRID, ORTHO, SNAP, POLAR, OTRACK, DYN |
 
 The function keys, Delete and the Ctrl keys of [the defaults](editing.md#aliases-and-keys) are rows of the Shortcuts category and can be changed.
 
@@ -160,7 +160,7 @@ At a point prompt the box beside the cursor has two fields: X and Y, or the dist
 
 F12 (DYN) shows the prompt, the cursor's coordinates or its distance and angle from the base point, and what you type beside the cursor; Global settings > Canvas and cursor > Input sets it on or off at start. Ctrl+9 hides or shows the command line; typing still reaches it while hidden. `--dialog color` and `--dialog truecolor` draw Select Color in screenshot mode, and `--toggle DYN` switches dynamic input.
 
-OSNAP's arrow on the status bar lists the fourteen snaps; Object Snap Settings... opens Drafting Settings (DSETTINGS, DS, OS) with the Snap and Grid, Polar Tracking and Object Snap tabs. A POINT is a node. `ObjectSnap.Override` takes snaps for the next point alone, whether OSNAP is on or not, as END typed at a prompt does; `CadSnapMarker` gives each kind's marker as strokes in pixels, 9 across.
+OSNAP's arrow on the status bar lists the fourteen snaps; Object Snap Settings... opens Drafting Settings (DSETTINGS, DS, OS) with the Snap and Grid, Polar Tracking and Object Snap tabs, Object Snap Tracking On (F11) among them. OTRACK on the status bar, before OSNAP and on as in AutoCAD, switches object snap tracking: at a point prompt, a rest of half a second on a snap point acquires it, marked by a small cross, and the cursor is then held on the level and upright lines through it (every polar angle while POLAR is on) and where two of them cross, the lines drawn dotted. EXT, PAR, APP (or APPINT) and INS typed at a point prompt take Extension, Parallel, Apparent Intersection and Insertion for that point alone. A POINT is a node. `ObjectSnap.Override` takes snaps for the next point alone, whether OSNAP is on or not, as END typed at a prompt does; `CadSnapMarker` gives each kind's marker as strokes in pixels, 9 across.
 
 ## See also
 

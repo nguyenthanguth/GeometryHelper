@@ -117,7 +117,7 @@ to bottom as its prompts do, and a [command plugin](plugins.md) is written the s
 
 [`CadShortcuts`](xref:GeometryHelper.Dxf.Viewer.CadShortcuts) holds the aliases and the keys as data. The defaults are
 AutoCAD's: 45 aliases (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
-DIMLINEAR, `MV` MVIEW, and the rest) and 12 keys (F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR, F12 DYN, Delete ERASE,
+DIMLINEAR, `MV` MVIEW, and the rest) and 13 keys (F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR, F11 OTRACK, F12 DYN, Delete ERASE,
 Ctrl+Z U, Ctrl+Y REDO, Ctrl+S QSAVE, Ctrl+1 PROPERTIES, Ctrl+A SELECTALL). A registry's `Shortcuts` is replaced, from
 [global settings](app.md#global-settings), by another set; letters of either case are the same, and a name wins over an
 alias of the same letters.
@@ -140,16 +140,32 @@ snap.Snap(document.GetPickIndex(document.ModelSpace), new GeoPoint2(50.3, 0.4), 
 
 | Property | Default | |
 |---|---|---|
-| `Modes` | Endpoint, Midpoint, Center, Quadrant, Intersection, Node and GeometricCenter can be added too | a [`CadSnapModes`](xref:GeometryHelper.Dxf.Viewer.CadSnapModes) set; Perpendicular, Tangent and Nearest can be added |
+| `Modes` | Endpoint, Midpoint, Center, Quadrant, Intersection | a [`CadSnapModes`](xref:GeometryHelper.Dxf.Viewer.CadSnapModes) set with AutoCAD's OSMODE values (Endpoint 1 to Parallel 8192); Node, Insertion, Perpendicular, Tangent, Nearest, GeometricCenter, ApparentIntersection, Extension and Parallel can be added |
 | `IsOn` | true | F3 |
+| `Tracking` | off | F11, object snap tracking |
 | `Ortho`, `Polar`, `PolarAngle` | off, off, a quarter turn | F8, F10 |
 | `GridSnap`, `GridX`, `GridY`, `GridOrigin` | off, 10, 10, the origin | F9 |
 
-AutoCAD's order is kept. A snap to a point near the cursor (endpoint, midpoint, centre, quadrant, intersection) wins, the
-nearest of them first; then a snap the object under the cursor gives wherever its point lies (perpendicular, tangent, and
-the centre of a circle whose rim is under the cursor); then nearest. Where none is found the cursor is put on the grid, then
-held level or upright from the base point (ortho) or on a polar angle. The result is a
-[`CadSnapResult`](xref:GeometryHelper.Dxf.Viewer.CadSnapResult): the point, which [`CadSnapKind`](xref:GeometryHelper.Dxf.Viewer.CadSnapKind) gave it, and the handle of the object.
+AutoCAD's order is kept. A snap to a point near the cursor (endpoint, midpoint, centre, quadrant, intersection, apparent
+intersection, insertion, the crossing of two tracking lines) wins, the nearest of them first; then a snap the object under
+the cursor gives wherever its point lies (perpendicular, tangent, the centre of a circle whose rim is under the cursor, the
+insertion point of a block or a text under it); then a point on an extension, a parallel or a tracking line; then nearest.
+Where none is found the cursor is put on the grid, then held level or upright from the base point (ortho) or on a polar
+angle. The result is a [`CadSnapResult`](xref:GeometryHelper.Dxf.Viewer.CadSnapResult): the point, which
+[`CadSnapKind`](xref:GeometryHelper.Dxf.Viewer.CadSnapKind) gave it, the handle of the object, and the dotted `Tracks` drawn
+to it.
+
+Extension, Parallel and tracking work from points acquired by resting the cursor, as AutoCAD's do: `Acquire` is called
+when the cursor pauses (the window waits half a second), and lets go a point rested on again; seven are kept at most, and
+`ClearAcquired` lets them all go once a point is taken. A line from (0, 0) to (100, 0), its end rested on with Extension
+on, gives (150, 0) to a cursor at (150, 0.4); with tracking on instead, it gives (100, 30) to a cursor at (100.4, 30), and
+with a second end acquired at (200, 50), the crossing (100, 50) of the two tracking lines. Parallel acquires the line
+under the cursor and holds the rubber band along the line through the base point parallel to it. Apparent Intersection
+gives where two objects under the cursor would cross run on, lines as endless lines and arcs as whole circles: two lines
+(0, 0) to (98, 0) and (100, 2) to (100, 50) give (100, 0). With one object under the cursor it offers it as the first of
+an Extended Apparent Intersection; a click picks it (`TakeFirstObject`) and takes no point, and the object under the
+cursor after gives where the two would cross. Insertion gives the insertion point of an INSERT from anywhere on its lines,
+and the point a TEXT, an MTEXT or an attribute is placed by.
 
 ## Grips
 
