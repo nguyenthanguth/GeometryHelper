@@ -174,7 +174,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             string layerName = layer.Name;
-            var record = new CadEditRecord(CadEditRecordKind.TableChanged, null, "Color of " + layerName, layer.Color.ToString(), color.ToString());
+            var record = new CadEditRecord(CadEditRecordKind.TableChanged, null, "Color of " + layerName, layer.Color.ToString(), color.ToString()) { IsLayerLook = true };
             return document.ApplyEdit("LAYER", new[] { record }, s => s.Database.LayerTable[layerName].Color = color);
         }
 
@@ -251,7 +251,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             string set = document.Database.LinetypeTable[wanted].Name;
             string layerName = layer.Name;
-            var record = new CadEditRecord(CadEditRecordKind.TableChanged, null, "Linetype of " + layerName, layer.LinetypeName, set);
+            var record = new CadEditRecord(CadEditRecordKind.TableChanged, null, "Linetype of " + layerName, layer.LinetypeName, set) { IsLayerLook = true };
             return document.ApplyEdit("LAYER", new[] { record }, s => s.Database.LayerTable[layerName].LinetypeName = set);
         }
 
@@ -275,14 +275,14 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             string layerName = layer.Name;
-            var record = new CadEditRecord(CadEditRecordKind.TableChanged, null, "Lineweight of " + layerName, layer.LineWeight.ToString(), lineWeight.ToString());
+            var record = new CadEditRecord(CadEditRecordKind.TableChanged, null, "Lineweight of " + layerName, layer.LineWeight.ToString(), lineWeight.ToString()) { IsLayerLook = true };
             return document.ApplyEdit("LAYER", new[] { record }, s => s.Database.LayerTable[layerName].LineWeight = lineWeight);
         }
 
         private static CadEditResult Set(CadDocument document, DxfLayerTableRecord layer, string what, bool old, bool value, Action<DxfLayerTableRecord> write)
         {
             string layerName = layer.Name;
-            var record = new CadEditRecord(CadEditRecordKind.TableChanged, null, what + " " + layerName, old ? "Yes" : "No", value ? "Yes" : "No");
+            var record = new CadEditRecord(CadEditRecordKind.TableChanged, null, what + " " + layerName, old ? "Yes" : "No", value ? "Yes" : "No") { IsLayerLook = true };
             return document.ApplyEdit("LAYER", new[] { record }, s => write(s.Database.LayerTable[layerName]));
         }
 

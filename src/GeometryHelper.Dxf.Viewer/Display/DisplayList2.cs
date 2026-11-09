@@ -18,6 +18,25 @@ namespace GeometryHelper.Dxf.Viewer
         private readonly Dictionary<string, List<GeoPoint2>> _insertions = new Dictionary<string, List<GeoPoint2>>(StringComparer.OrdinalIgnoreCase);
         private DisplayBox _bounds = DisplayBox.Empty;
 
+        // The entities of the space in the order they were drawn, each with its items and the layers it read, so that an edit
+        // draws again only the entities it changed (see DisplayBuilder.Patch).
+        private readonly List<DisplayRun> _runs = new List<DisplayRun>();
+
+        // The bit of each layer the runs read, numbered as the layers were first met; looked up only, never enumerated.
+        private readonly Dictionary<string, int> _layerBits;
+
+        /// <summary>Makes an empty list.</summary>
+        public DisplayList2()
+            : this(null)
+        {
+        }
+
+        /// <summary>Makes an empty list that numbers its layers as an older list of the same space did, so that it can be patched as that one could.</summary>
+        internal DisplayList2(DisplayList2 older)
+        {
+            _layerBits = older == null ? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase) : new Dictionary<string, int>(older._layerBits, StringComparer.OrdinalIgnoreCase);
+        }
+
         /// <summary>Gets the items in the order they are drawn, the first at the back.</summary>
         public IReadOnlyList<DisplayItem2> Items => _items;
 
@@ -68,6 +87,92 @@ namespace GeometryHelper.Dxf.Viewer
 
             points.Add(new GeoPoint2(x, y));
         }
+
+        /// <summary>Gets the entities of the space in the order they were drawn, each with its place in <see cref="Items"/> and the layers it read.</summary>
+        internal IReadOnlyList<DisplayRun> Runs => _runs;
+
+        /// <summary>Gets or sets the height of the view the points of a relative size were sized by when the list was made.</summary>
+        internal double PointViewHeight { get; set; }
+
+        /// <summary>Gets or sets the folder the fonts were first looked for in when the list was made; null for none.</summary>
+        internal string FontFolder { get; set; }
+
+        /// <summary>The bit a layer takes in the masks of the runs: one each for the first 63 layers met, the last shared by the rest.</summary>
+        internal ulong LayerBit(string layer)
+        {
+            if (!_layerBits.TryGetValue(layer ?? string.Empty, out int bit))
+            {
+                bit = _layerBits.Count;
+                _layerBits[layer ?? string.Empty] = bit;
+            }
+
+            return 1UL << Math.Min(bit, 63);
+        }
+
+        /// <summary>The mask of the bits of some layers; nought where no run read any of them.</summary>
+        internal ulong LayerMask(IEnumerable<string> layers)
+        {
+            ulong mask = 0;
+
+            foreach (string layer in layers)
+            {
+                if (_layerBits.TryGetValue(layer ?? string.Empty, out int bit))
+                {
+                    mask |= 1UL << Math.Min(bit, 63);
+                }
+            }
+
+            return mask;
+        }
+
+        /// <summary>Closes the run of an entity drawn: the items added since <paramref name="start"/>, the layers it read, and the other entities and anonymous blocks it read (null for none).</summary>
+        internal void AddRun(string handle, int start, ulong layers, string[] reads) => _runs.Add(new DisplayRun(handle, start, _items.Count - start, layers, reads));
+
+        /// <summary>Takes the run of an entity from an older list of the same space as it was drawn there: its items, its insertion points and its layers.</summary>
+        internal void CopyRun(DisplayList2 from, DisplayRun run)
+        {
+            int start = _items.Count;
+            int end = run.Start + run.Count;
+
+            for (int i = run.Start; i < end; i++)
+            {
+                Add(from._items[i]);
+            }
+
+            if (!string.IsNullOrEmpty(run.Handle) && from._insertions.TryGetValue(run.Handle, out List<GeoPoint2> points))
+            {
+                _insertions[run.Handle] = points;
+            }
+
+            _runs.Add(new DisplayRun(run.Handle, start, run.Count, run.Layers, run.Reads));
+        }
+    }
+
+    /// <summary>
+    /// One entity of a space as its display list holds it: its handle, its items from <see cref="Start"/>, the bits of the
+    /// layers it read, and the handles of what else it read that an edit of another entity can change: the anonymous blocks
+    /// it drew (a dimension's picture, which a copy of it shares) and the words a leader runs its hook on to.
+    /// </summary>
+    internal readonly struct DisplayRun
+    {
+        public DisplayRun(string handle, int start, int count, ulong layers, string[] reads)
+        {
+            Handle = handle;
+            Start = start;
+            Count = count;
+            Layers = layers;
+            Reads = reads;
+        }
+
+        public string Handle { get; }
+
+        public int Start { get; }
+
+        public int Count { get; }
+
+        public ulong Layers { get; }
+
+        public string[] Reads { get; }
     }
 
     /// <summary>

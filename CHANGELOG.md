@@ -26,6 +26,20 @@ the file list close a drawing, asking first about unsaved changes. An owner (`Ca
 control of the entities it wrote: an edit of one goes to its owner in the same undo step, or is refused in the words the
 command line shows.
 
+**CHANGED.** The presenter draws again only what an edit changed. After an edit, an undo or a redo the display list of a
+space is patched from the one before: the entities the edit names, those that read a layer switched off, frozen or
+recoloured, and those that share a dimension's picture or the words of a leader are drawn anew, and every other entity
+keeps its items, the list item for item the one a REGEN makes. On a drawing of a million entities (3.9 million items)
+under .NET 8, a line moved is drawn again in 0.46 s instead of 9.6 s and its edit kept for undo in 23 ms instead of
+567 ms (the drawing is now compressed for undo on a worker thread), an undo of it is drawn in 0.45 s, and a layer of a
+third of the entities switched off in 0.53 s; under .NET Framework 4.8 the line takes 0.59 s instead of 10.6 s and the
+layer 0.69 s instead of 8.3 s. The pick index is made in half the time (0.26 s instead of 0.51 s), a block's entities are
+listed once a regeneration rather than once an INSERT, and a style of no dashes is shared, so the first display of the
+million is 8 to 17 per cent faster and holds 230 MB less. Moving 100 000 of them at once under .NET Framework 4.8 is
+drawn again in 1.4 s instead of 9.9 s, though the edit itself takes 6.4 s instead of 4.3 s, the old list being kept until
+it is patched. Under .NET 8 with a heap of 4 GB the old presenter ran out at the second edit of a single line; the new one
+goes on through that move (4.3 s, drawn in 1.1 s), its undo and a layer switched off and on.
+
 **NEW.** The presenter selects and tidies as AutoCAD 2021 does. QSELECT shows Quick Select over the rows of the
 Properties panel (`CadQuickSelect`): Line, Layer, `= Equals`, WALLS selects the lines of WALLS and says `312 item(s)
 selected.`, in 0.25 s over 100 000 objects. FIND shows Find and Replace (`CadFind`) over TEXT, MTEXT, attribute values,

@@ -37,8 +37,18 @@ namespace GeometryHelper.Dxf.Viewer
         private readonly Dictionary<DxfHatch, HatchPattern> _patterns = new Dictionary<DxfHatch, HatchPattern>();
         private DisplayList2 _modelCache;
 
-        /// <summary>The draw order of each block met in the <see cref="Build"/> running, by handle, null for one in its own order; looked up only, never listed.</summary>
-        private readonly Dictionary<string, IReadOnlyList<DxfEntity>> _orders = new Dictionary<string, IReadOnlyList<DxfEntity>>(StringComparer.OrdinalIgnoreCase);
+        /// <summary>The entities of each block met in the <see cref="Build"/> running in the order they are drawn, by handle; looked up only, never listed.</summary>
+        private readonly Dictionary<string, BlockContent> _orders = new Dictionary<string, BlockContent>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>The styles of no dashes made, one for each colour and weight; looked up only, never listed.</summary>
+        private readonly Dictionary<PlainStyle, DisplayStyle> _plainStyles = new Dictionary<PlainStyle, DisplayStyle>();
+
+        /// <summary>The list the <see cref="Patch"/> running fills, and the bits of the layers the entity being drawn has read.</summary>
+        private DisplayList2 _building;
+        private ulong _runLayers;
+
+        /// <summary>The handles of the anonymous blocks and other entities the entity being drawn has read; null for none yet.</summary>
+        private List<string> _runReads;
 
         /// <summary>The builders of the drawings external references show, by block name and file: looked up only, never listed.</summary>
         private readonly Dictionary<string, DisplayBuilder> _referenced = new Dictionary<string, DisplayBuilder>(StringComparer.OrdinalIgnoreCase);
@@ -145,35 +155,139 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>A layer's name as the drawing showing it names it: GRID|WALLS for WALLS of the reference GRID; 0 and every layer of the document's own drawing as they are.</summary>
         private string Prefixed(string layer) => _prefix == null || layer == "0" ? layer : _prefix + layer;
 
-        public DisplayList2 Build(DxfBlockTableRecord space, bool isModel)
+        /// <summary>
+        /// The layers an entity is drawn differently on by this builder than by an older one of the same drawing: switched on
+        /// or off, frozen or thawed, given another colour, lineweight or linetype, added or taken away; in ordinal order.
+        /// </summary>
+        internal List<string> LayersChangedSince(DisplayBuilder older)
         {
-            var list = new DisplayList2();
-            var root = new Frame(Affine2.Identity);
+            var changed = new List<string>();
 
-            // The patterns are kept for this build only: an edit between two builds may have changed a hatch.
-            _patterns.Clear();
+            foreach (KeyValuePair<string, LayerState> pair in _layers)
+            {
+                if (!older._layers.TryGetValue(pair.Key, out LayerState was) || !pair.Value.DrawsAs(was))
+                {
+                    changed.Add(pair.Key);
+                }
+            }
 
+            foreach (KeyValuePair<string, LayerState> pair in older._layers)
+            {
+                if (!_layers.ContainsKey(pair.Key))
+                {
+                    changed.Add(pair.Key);
+                }
+            }
+
+            changed.Sort(StringComparer.Ordinal);
+            return changed;
+        }
+
+        public DisplayList2 Build(DxfBlockTableRecord space, bool isModel) => Patch(space, isModel, null, null, 0);
+
+        /// <summary>
+        /// Draws a space again from the list made of it before an edit: the entities whose handles are in
+        /// <paramref name="handles"/>, those that read a layer of <paramref name="layers"/> (bits of the older list's
+        /// <see cref="DisplayList2.LayerBit"/>), those of no handle and those the older list did not draw are drawn anew, and
+        /// every other entity's items are taken from the older list as they stand, so that a MOVE of one line in a drawing of
+        /// a million entities draws one line. The list is the one <see cref="Build"/> would make, item for item, as long as the
+        /// handles and layers name everything the edits changed; where the older list is null, drawn at another height of the
+        /// view for points of a relative size or another font folder, or holds two entities of one handle out of their order,
+        /// every entity is drawn anew.
+        /// </summary>
+        public DisplayList2 Patch(DxfBlockTableRecord space, bool isModel, DisplayList2 older, ISet<string> handles, ulong layers)
+        {
             // A point of a relative size takes the view as it stands when its space is drawn, as AutoCAD's at a regeneration.
             if (_pdmode != 0 && _pdsize <= 0.0)
             {
                 _pointViewHeight = ViewHeightOf(_database, _document);
             }
 
-            _orders.Clear();
+            string fontFolder = _document?.FontFolder;
 
-            foreach (DxfEntity entity in Ordered(space))
+            if (older != null && (older.PointViewHeight != _pointViewHeight || !string.Equals(older.FontFolder, fontFolder, StringComparison.Ordinal)))
             {
-                try
-                {
-                    Draw(entity, root, list, null);
-                }
-                catch (Exception)
-                {
-                    // One entity that cannot be drawn never stops the others.
-                }
+                older = null;
             }
 
+            var list = new DisplayList2(older) { PointViewHeight = _pointViewHeight, FontFolder = fontFolder };
+            var root = new Frame(Affine2.Identity);
+
+            // The patterns are kept for this build only: an edit between two builds may have changed a hatch.
             _patterns.Clear();
+            _orders.Clear();
+            _building = list;
+            IReadOnlyList<DisplayRun> runs = older?.Runs;
+            Dictionary<string, int> byHandle = null;
+            int next = 0;
+            HashSet<string> keys = runs == null ? null : KeysOf(runs, handles);
+
+            try
+            {
+                foreach (DxfEntity entity in (IEnumerable<DxfEntity>)ContentOf(space)?.Entities ?? space)
+                {
+                    string handle = HandleOf(entity);
+
+                    if (runs != null && !string.IsNullOrEmpty(handle))
+                    {
+                        // The entities stand in the older list's order but where an edit added or erased one, so its runs
+                        // are walked along with them, and looked up by handle only once the two part.
+                        int found = -1;
+
+                        if (next < runs.Count && string.Equals(runs[next].Handle, handle, StringComparison.OrdinalIgnoreCase))
+                        {
+                            found = next;
+                        }
+                        else
+                        {
+                            byHandle = byHandle ?? RunsByHandle(runs);
+
+                            if (byHandle == null)
+                            {
+                                // Two entities of one handle out of their order: the runs cannot be told apart.
+                                return Patch(space, isModel, null, null, 0);
+                            }
+
+                            if (!byHandle.TryGetValue(handle, out found))
+                            {
+                                found = -1;
+                            }
+                        }
+
+                        if (found >= 0)
+                        {
+                            next = found + 1;
+                            DisplayRun run = runs[found];
+
+                            if ((run.Layers & layers) == 0 && (handles == null || !handles.Contains(handle)) && !Reads(run, keys))
+                            {
+                                list.CopyRun(older, run);
+                                continue;
+                            }
+                        }
+                    }
+
+                    int start = list.Count;
+                    _runLayers = 0;
+                    _runReads = null;
+
+                    try
+                    {
+                        Draw(entity, root, list, null);
+                    }
+                    catch (Exception)
+                    {
+                        // One entity that cannot be drawn never stops the others.
+                    }
+
+                    list.AddRun(handle, start, _runLayers, _runReads?.ToArray());
+                }
+            }
+            finally
+            {
+                _building = null;
+                _patterns.Clear();
+            }
 
             if (isModel)
             {
@@ -184,16 +298,116 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// The entities of a block in the order they are drawn: that of its draw order (SORTENTSTABLE, as DRAWORDER writes it),
-        /// the back first, or the order of the block where it has none. Read once a build for each block.
+        /// What an edit of the entities of some handles can change beyond them: the handles themselves, and the anonymous blocks
+        /// and other entities those entities read when they were drawn, so that a copy of a dimension, which shares its
+        /// original's picture, is drawn again when the original moves the picture. Null where no handle is named.
         /// </summary>
-        private IEnumerable<DxfEntity> Ordered(DxfBlockTableRecord block)
+        private static HashSet<string> KeysOf(IReadOnlyList<DisplayRun> runs, ISet<string> handles)
+        {
+            if (handles == null || handles.Count == 0)
+            {
+                return null;
+            }
+
+            var keys = new HashSet<string>(handles, StringComparer.OrdinalIgnoreCase);
+
+            for (int i = 0; i < runs.Count; i++)
+            {
+                if (runs[i].Reads != null && !string.IsNullOrEmpty(runs[i].Handle) && handles.Contains(runs[i].Handle))
+                {
+                    keys.UnionWith(runs[i].Reads);
+                }
+            }
+
+            return keys;
+        }
+
+        /// <summary>Whether a run read one of the keys an edit can have changed.</summary>
+        private static bool Reads(DisplayRun run, HashSet<string> keys)
+        {
+            if (run.Reads == null || keys == null)
+            {
+                return false;
+            }
+
+            foreach (string read in run.Reads)
+            {
+                if (keys.Contains(read))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Notes that the entity being drawn read an anonymous block or another entity, by its handle.</summary>
+        private void Read(string handle)
+        {
+            if (_building == null || string.IsNullOrEmpty(handle))
+            {
+                return;
+            }
+
+            _runReads = _runReads ?? new List<string>();
+
+            if (!_runReads.Contains(handle))
+            {
+                _runReads.Add(handle);
+            }
+        }
+
+        /// <summary>The handle of an entity of the space; null for none, or for one whose record cannot be read, which is drawn anew.</summary>
+        private static string HandleOf(DxfEntity entity)
+        {
+            try
+            {
+                return entity?.Handle;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>The place of each run by its handle; null where two runs share a handle.</summary>
+        private static Dictionary<string, int> RunsByHandle(IReadOnlyList<DisplayRun> runs)
+        {
+            var byHandle = new Dictionary<string, int>(runs.Count, StringComparer.OrdinalIgnoreCase);
+
+            for (int i = 0; i < runs.Count; i++)
+            {
+                string handle = runs[i].Handle;
+
+                if (string.IsNullOrEmpty(handle))
+                {
+                    continue;
+                }
+
+                if (byHandle.ContainsKey(handle))
+                {
+                    return null;
+                }
+
+                byHandle[handle] = i;
+            }
+
+            return byHandle;
+        }
+
+        /// <summary>
+        /// The entities of a block in the order they are drawn: that of its draw order (SORTENTSTABLE, as DRAWORDER writes it),
+        /// the back first, or the order of the block where it has none. Read once a build for each block, so that a block
+        /// inserted 8 000 times is listed once, not 8 000 times; null where the block cannot be listed whole, to be walked as
+        /// it stands each time.
+        /// </summary>
+        private BlockContent ContentOf(DxfBlockTableRecord block)
         {
             string handle = block.Handle;
 
-            if (handle != null && _orders.TryGetValue(handle, out IReadOnlyList<DxfEntity> known))
+            if (handle != null && _orders.TryGetValue(handle, out BlockContent known))
             {
-                return known ?? (IEnumerable<DxfEntity>)block;
+                return known;
             }
 
             IReadOnlyList<DxfEntity> ordered = null;
@@ -207,12 +421,57 @@ namespace GeometryHelper.Dxf.Viewer
                 // A draw order that cannot be read leaves the block in its own order.
             }
 
-            if (handle != null)
+            if (ordered == null)
             {
-                _orders[handle] = ordered;
+                try
+                {
+                    ordered = new List<DxfEntity>(block);
+                }
+                catch (Exception)
+                {
+                    ordered = null;
+                }
             }
 
-            return ordered ?? (IEnumerable<DxfEntity>)block;
+            BlockContent content = ordered == null ? null : new BlockContent(ordered, IsAnonymous(block));
+
+            if (handle != null)
+            {
+                _orders[handle] = content;
+            }
+
+            return content;
+        }
+
+        /// <summary>Whether a block is anonymous (*D1, *T2, *U3): flagged so, or named with a star.</summary>
+        private static bool IsAnonymous(DxfBlockTableRecord block)
+        {
+            try
+            {
+                return block.IsAnonymous || (block.Name != null && block.Name.StartsWith("*", StringComparison.Ordinal));
+            }
+            catch (Exception)
+            {
+                return true;
+            }
+        }
+
+        /// <summary>The entities of a block in the order they are drawn, and whether each is shown, worked out the first time an INSERT meets it.</summary>
+        private sealed class BlockContent
+        {
+            public BlockContent(IReadOnlyList<DxfEntity> entities, bool isAnonymous)
+            {
+                Entities = entities;
+                Shown = new sbyte[entities.Count];
+                IsAnonymous = isAnonymous;
+            }
+
+            public IReadOnlyList<DxfEntity> Entities { get; }
+
+            public bool IsAnonymous { get; }
+
+            /// <summary>For each entity 1 where it is shown, -1 where it is hidden (group 60), 0 until known.</summary>
+            public sbyte[] Shown { get; }
         }
 
         private sealed class LayerState
@@ -236,6 +495,10 @@ namespace GeometryHelper.Dxf.Viewer
             public string Linetype { get; }
 
             public DxfLayerTableRecord Record { get; }
+
+            /// <summary>Whether an entity on this layer is drawn as on another: both shown or both hidden, of one colour, lineweight and linetype.</summary>
+            public bool DrawsAs(LayerState other)
+                => Visible == other.Visible && Rgb == other.Rgb && LineWeight.Equals(other.LineWeight) && string.Equals(Linetype, other.Linetype, StringComparison.OrdinalIgnoreCase);
         }
 
         private sealed class Frame
@@ -339,13 +602,51 @@ namespace GeometryHelper.Dxf.Viewer
                 linetype = frame.BlockLinetype;
             }
 
-            double[] dashes = DashesOf(linetype, entity.LinetypeScale * frame.Matrix.Scale);
-            return new DisplayStyle(rgb, weight, dashes);
+            // The entity's own linetype scale is read only for a linetype that has dashes to scale.
+            double[] dashes = IsContinuous(linetype) ? null : DashesOf(linetype, entity.LinetypeScale * frame.Matrix.Scale);
+
+            if (dashes != null)
+            {
+                return new DisplayStyle(rgb, weight, dashes);
+            }
+
+            // A style of no dashes is one object for each colour and weight, not one for each item: a drawing of a million
+            // entities holds a few hundred, not four million.
+            var key = new PlainStyle(rgb, weight);
+
+            if (!_plainStyles.TryGetValue(key, out DisplayStyle style))
+            {
+                style = new DisplayStyle(rgb, weight, null);
+                _plainStyles[key] = style;
+            }
+
+            return style;
         }
+
+        /// <summary>The colour and the bits of the weight of a style of no dashes.</summary>
+        private readonly struct PlainStyle : IEquatable<PlainStyle>
+        {
+            private readonly int _rgb;
+            private readonly long _weight;
+
+            public PlainStyle(int rgb, double weight)
+            {
+                _rgb = rgb;
+                _weight = BitConverter.DoubleToInt64Bits(weight);
+            }
+
+            public bool Equals(PlainStyle other) => _rgb == other._rgb && _weight == other._weight;
+
+            public override bool Equals(object obj) => obj is PlainStyle other && Equals(other);
+
+            public override int GetHashCode() => (_rgb * 397) ^ _weight.GetHashCode();
+        }
+
+        private static bool IsContinuous(string linetype) => string.IsNullOrEmpty(linetype) || string.Equals(linetype, "Continuous", StringComparison.OrdinalIgnoreCase);
 
         private double[] DashesOf(string linetype, double scale)
         {
-            if (string.IsNullOrEmpty(linetype) || string.Equals(linetype, "Continuous", StringComparison.OrdinalIgnoreCase))
+            if (IsContinuous(linetype))
             {
                 return null;
             }
@@ -488,14 +789,20 @@ namespace GeometryHelper.Dxf.Viewer
             public double WidthFactor { get; }
         }
 
-        private void Draw(DxfEntity entity, Frame frame, DisplayList2 list, string forcedHandle)
+        /// <summary>Draws an entity under a frame; <paramref name="shown"/> where its block has found it shown already, so that it is not read again.</summary>
+        private void Draw(DxfEntity entity, Frame frame, DisplayList2 list, string forcedHandle, bool shown = false)
         {
-            if (entity == null || !entity.Visible || frame.Depth > MaxDepth)
+            if (entity == null || (!shown && !entity.Visible) || frame.Depth > MaxDepth)
             {
                 return;
             }
 
             string layerName = LayerOf(entity, frame);
+
+            if (_building != null)
+            {
+                _runLayers |= _building.LayerBit(layerName);
+            }
 
             if (!IsLayerVisible(layerName))
             {
@@ -573,7 +880,7 @@ namespace GeometryHelper.Dxf.Viewer
                         return;
                     }
 
-                case DxfLeader leader when TryExplode(leader, out IReadOnlyList<DxfEntity> parts):
+                case DxfLeader leader when ReadAnnotation(leader) && TryExplode(leader, out IReadOnlyList<DxfEntity> parts):
                     // A leader is drawn as AutoCAD breaks it: its arrowhead, then its line or spline.
                     foreach (DxfEntity part in parts)
                     {
@@ -604,6 +911,24 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 AddShape(shape, frame.Matrix, list, style, handle, layerName, fill, mask);
             }
+        }
+
+        /// <summary>Notes the words a leader points to, whose place and width its hook runs on by; always true.</summary>
+        private bool ReadAnnotation(DxfLeader leader)
+        {
+            if (_building != null)
+            {
+                try
+                {
+                    Read(leader.Annotation?.Handle);
+                }
+                catch (Exception)
+                {
+                    // A leader whose annotation cannot be read points to none.
+                }
+            }
+
+            return true;
         }
 
         private static bool TryExplode(DxfEntity entity, out IReadOnlyList<DxfEntity> parts)
@@ -741,7 +1066,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The model space of a drawing referenced, drawn into the list of the drawing showing it under a frame.</summary>
         private void DrawReferenced(Frame frame, DisplayList2 list)
         {
-            foreach (DxfEntity entity in Ordered(_database.ModelSpace))
+            foreach (DxfEntity entity in (IEnumerable<DxfEntity>)ContentOf(_database.ModelSpace)?.Entities ?? _database.ModelSpace)
             {
                 try
                 {
@@ -913,11 +1238,50 @@ namespace GeometryHelper.Dxf.Viewer
             inner.BlockRgb = style.Rgb;
             inner.BlockLineWeight = style.LineWeight;
 
-            foreach (DxfEntity entity in Ordered(block))
+            BlockContent content = ContentOf(block);
+
+            if (_building != null && (content?.IsAnonymous ?? IsAnonymous(block)))
+            {
+                // A dimension's or a table's picture may be shared with a copy, and moved by an edit of the other.
+                Read(block.Handle);
+            }
+
+            if (content == null)
+            {
+                foreach (DxfEntity entity in block)
+                {
+                    try
+                    {
+                        Draw(entity, inner, list, null);
+                    }
+                    catch (Exception)
+                    {
+                        // One entity of a block that cannot be drawn never stops the others.
+                    }
+                }
+
+                return;
+            }
+
+            IReadOnlyList<DxfEntity> entities = content.Entities;
+            sbyte[] shown = content.Shown;
+
+            for (int i = 0; i < entities.Count; i++)
             {
                 try
                 {
-                    Draw(entity, inner, list, null);
+                    // Whether an entity of the block is shown is read once a build, not once an INSERT.
+                    DxfEntity entity = entities[i];
+
+                    if (shown[i] == 0 && entity != null)
+                    {
+                        shown[i] = entity.Visible ? (sbyte)1 : (sbyte)-1;
+                    }
+
+                    if (shown[i] >= 0)
+                    {
+                        Draw(entity, inner, list, null, shown[i] > 0);
+                    }
                 }
                 catch (Exception)
                 {

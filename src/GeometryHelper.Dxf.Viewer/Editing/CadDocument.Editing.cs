@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Threading.Tasks;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -17,10 +18,11 @@ namespace GeometryHelper.Dxf.Viewer
     /// How undo works. The library writes a change into the drawing at once and has no undo of its own; an erased entity's
     /// handle is never given again, and a record written anew is written in the library's style, not in the bytes the file had.
     /// So an edit is not undone by setting its old values back: the document keeps the drawing as it stood before the first
-    /// edit and after every step, each saved to bytes and compressed (a drawing of 10 MB takes about a tenth of that), and
-    /// undoing a step reads the drawing it stood at before. Undoing every step gives the drawing back byte for byte, its
-    /// handles and its <c>$HANDSEED</c> among it, and redo is as exact. The records of a step say what it changed, so that only
-    /// the spaces it touched are drawn again and an owner can recognise its own edits.
+    /// edit and after every step, each saved to bytes at once and compressed on a worker thread (a drawing of 10 MB takes about
+    /// a tenth of that), and undoing a step reads the drawing it stood at before. Undoing every step gives the drawing back byte
+    /// for byte, its handles and its <c>$HANDSEED</c> among it, and redo is as exact. The records of a step say what it changed,
+    /// so that only the entities it touched are drawn again (see <see cref="GetDisplay"/>) and an owner can recognise its own
+    /// edits.
     /// </para>
     /// <para>
     /// After an undo or a redo <see cref="Database"/> is a new <see cref="DxfDatabase"/> read from those bytes, so an entity is
@@ -30,7 +32,7 @@ namespace GeometryHelper.Dxf.Viewer
     /// </remarks>
     public sealed partial class CadDocument
     {
-        private readonly List<byte[]> _states = new List<byte[]>();
+        private readonly List<KeptState> _states = new List<KeptState>();
         private readonly List<CadUndoStep> _steps = new List<CadUndoStep>();
         private int _position;
         private int _savedPosition;
@@ -237,7 +239,7 @@ namespace GeometryHelper.Dxf.Viewer
             var records = new List<CadEditRecord>(planned.Count + scope.Records.Count);
             records.AddRange(planned);
             records.AddRange(scope.Records);
-            _byHandle = null;
+            KeepHandles(records, scope);
             _entityCount = null;
 
             if (records.Exists(r => r.Kind == CadEditRecordKind.TableChanged))
@@ -256,6 +258,54 @@ namespace GeometryHelper.Dxf.Viewer
 
             Announce(CadChangeKind.Edit, name, records);
             return CadEditResult.Done(records);
+        }
+
+        /// <summary>
+        /// Brings the index of handles up to date after an edit without walking every space again where it can: an entity the
+        /// edit added through its scope is put in, one it erased stays and is found erased, and one it moved or changed is the
+        /// same object; any other edit (a table, an entity added by a record alone) drops the index, to be made again when next
+        /// asked. A drawing of a million entities is then not walked after every edit.
+        /// </summary>
+        private void KeepHandles(IReadOnlyList<CadEditRecord> records, CadEditScope scope)
+        {
+            if (_byHandle == null)
+            {
+                return;
+            }
+
+            foreach (CadEditRecord record in records)
+            {
+                switch (record.Kind)
+                {
+                    case CadEditRecordKind.Transformed:
+                    case CadEditRecordKind.PropertyChanged:
+                    case CadEditRecordKind.Reshaped:
+                    case CadEditRecordKind.Erased:
+                    case CadEditRecordKind.SettingChanged:
+                        continue;
+                    case CadEditRecordKind.TableChanged when record.IsLayerLook:
+                        continue;
+                    case CadEditRecordKind.Added:
+                        DxfEntity entity = scope.AddedEntityOf(record);
+                        CadSpace space = record.Space == null ? null : _spaces.Find(s => string.Equals(s.Name, record.Space, StringComparison.OrdinalIgnoreCase));
+
+                        if (entity != null && space != null && !string.IsNullOrEmpty(record.Handle) && string.Equals(entity.Handle, record.Handle, StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (!_byHandle.ContainsKey(record.Handle))
+                            {
+                                _byHandle[record.Handle] = entity;
+                                _spaceByHandle[record.Handle] = space;
+                            }
+
+                            continue;
+                        }
+
+                        break;
+                }
+
+                _byHandle = null;
+                return;
+            }
         }
 
         /// <summary>The planned changes of entities whose owner takes its edits itself: those of the rules MoveOnly and Edit.</summary>
@@ -512,7 +562,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (made)
             {
-                Reload(_states[_position], null);
+                Reload(_states[_position].Bytes, null);
                 Changed?.Invoke(this, new CadDocumentChangedEventArgs(CadChangeKind.Rollback, name, Array.Empty<string>(), _spaces.ToArray(), true));
             }
         }
@@ -533,7 +583,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             EnsureStart();
             int kept = _groupRecords.Count;
-            return new CadGroupMark(kept == 0 ? _states[_position] : Snapshot(), kept);
+            return new CadGroupMark(kept == 0 ? _states[_position].Bytes : Snapshot(), kept);
         }
 
         /// <summary>Reads the drawing back to a savepoint <see cref="MarkGroup"/> took in the group still open, the records made since dropped.</summary>
@@ -565,7 +615,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             CadUndoStep step = _steps[_position - 1];
             _position--;
-            Reload(_states[_position], step.Records);
+            Reload(_states[_position].Bytes, step.Records);
             Announce(CadChangeKind.Undo, step.Name, step.Records);
             return true;
         }
@@ -581,7 +631,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             CadUndoStep step = _steps[_position];
             _position++;
-            Reload(_states[_position], step.Records);
+            Reload(_states[_position].Bytes, step.Records);
             Announce(CadChangeKind.Redo, step.Name, step.Records);
             return true;
         }
@@ -632,6 +682,7 @@ namespace GeometryHelper.Dxf.Viewer
             _builder = new DisplayBuilder(Database, this);
             _displays.Clear();
             _indexes.Clear();
+            _stale.Clear();
             _byHandle = null;
             _entityCount = null;
             Changed?.Invoke(this, new CadDocumentChangedEventArgs(CadChangeKind.Regen, null, Array.Empty<string>(), _spaces.ToArray(), true));
@@ -649,7 +700,7 @@ namespace GeometryHelper.Dxf.Viewer
         {
             if (_states.Count == 0)
             {
-                _states.Add(Snapshot());
+                _states.Add(Keep());
                 _savedPosition = 0;
             }
         }
@@ -669,14 +720,14 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             _steps.Add(new CadUndoStep(name, records.ToArray()));
-            _states.Add(Snapshot());
+            _states.Add(Keep());
             _position++;
         }
 
         /// <summary>Reads the drawing back as it stood after the last step, an edit or a group that failed taken back.</summary>
         private void TakeBack()
         {
-            Reload(_states[_position], null);
+            Reload(_states[_position].Bytes, null);
 
             if (_groupDepth > 0)
             {
@@ -691,15 +742,43 @@ namespace GeometryHelper.Dxf.Viewer
         {
             var raw = new MemoryStream();
             Database.Save(raw);
-            byte[] bytes = raw.ToArray();
+            return Pack(raw.GetBuffer(), (int)raw.Length);
+        }
+
+        /// <summary>The drawing as it stands, saved now and compressed on a worker thread, for a step of the undo list.</summary>
+        private KeptState Keep()
+        {
+            var raw = new MemoryStream();
+            Database.Save(raw);
+            return new KeptState(raw.GetBuffer(), (int)raw.Length);
+        }
+
+        private static byte[] Pack(byte[] raw, int length)
+        {
             var packed = new MemoryStream();
 
             using (var deflate = new DeflateStream(packed, CompressionLevel.Fastest, true))
             {
-                deflate.Write(bytes, 0, bytes.Length);
+                deflate.Write(raw, 0, length);
             }
 
             return packed.ToArray();
+        }
+
+        /// <summary>
+        /// A drawing kept for undo: saved at once, as the step stands, and compressed on a worker thread, so that an edit of a
+        /// drawing of a million entities (140 MB as text) does not wait for its packing; an undo that needs it first waits.
+        /// </summary>
+        private sealed class KeptState
+        {
+            private readonly Task<byte[]> _packing;
+
+            public KeptState(byte[] raw, int length)
+            {
+                _packing = Task.Run(() => Pack(raw, length));
+            }
+
+            public byte[] Bytes => _packing.GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -717,7 +796,8 @@ namespace GeometryHelper.Dxf.Viewer
 
             bytes.Position = 0;
             DxfDatabase database = DxfDatabase.Open(bytes);
-            HashSet<CadSpace> drop = records == null ? new HashSet<CadSpace>(_spaces) : Touched(records, out _);
+            var drop = new HashSet<CadSpace>(records == null ? _spaces : new List<CadSpace>());
+            DisplayBuilder older = _builder;
             Database = database;
             _builder = new DisplayBuilder(database, this);
             _byHandle = null;
@@ -761,6 +841,13 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 _displays.Remove(space);
                 _indexes.Remove(space);
+                _stale.Remove(space);
+            }
+
+            if (records != null)
+            {
+                // The drawing read back differs from the one shown by the records' entities alone.
+                Invalidate(records, older);
             }
 
             var alive = new List<string>();
@@ -791,6 +878,7 @@ namespace GeometryHelper.Dxf.Viewer
                     _spaces[i] = new CadSpace(this, space.Layout.LayoutName, false, space.Block, space.Layout);
                     _displays.Remove(space);
                     _indexes.Remove(space);
+                    _stale.Remove(space);
 
                     if (CurrentSpace == space)
                     {
@@ -851,14 +939,103 @@ namespace GeometryHelper.Dxf.Viewer
             return touched;
         }
 
+        /// <summary>
+        /// Drops or marks stale the display lists of the spaces edits touched. Where every record names an entity of a space or
+        /// a layer's look alone (<see cref="CadEditRecord.IsLayerLook"/>), a space's list is kept with those handles and the
+        /// layers drawn differently since <paramref name="older"/>, and the next <see cref="GetDisplay"/> draws only their
+        /// entities again; a layout goes whole where model space changed, as its viewports draw model space's list; any other
+        /// edit drops the lists of the spaces it touched, as before.
+        /// </summary>
+        private void Invalidate(IReadOnlyList<CadEditRecord> records, DisplayBuilder older)
+        {
+            HashSet<CadSpace> touched = Touched(records, out _);
+            var handles = new Dictionary<CadSpace, List<string>>();
+            bool whole = false;
+            bool layers = false;
+
+            foreach (CadEditRecord record in records)
+            {
+                if (record.Kind == CadEditRecordKind.TableChanged)
+                {
+                    layers |= record.IsLayerLook;
+                    whole |= !record.IsLayerLook;
+                }
+                else if (record.Kind == CadEditRecordKind.SettingChanged)
+                {
+                    whole |= Redraws(record.Property);
+                }
+                else
+                {
+                    CadSpace space = record.Space == null || record.Handle == null ? null : _spaces.Find(s => string.Equals(s.Name, record.Space, StringComparison.OrdinalIgnoreCase));
+
+                    if (space == null)
+                    {
+                        whole = true;
+                        continue;
+                    }
+
+                    if (!handles.TryGetValue(space, out List<string> named))
+                    {
+                        named = new List<string>();
+                        handles[space] = named;
+                    }
+
+                    named.Add(record.Handle);
+                }
+            }
+
+            List<string> changedLayers = !whole && layers ? _builder.LayersChangedSince(older) : new List<string>();
+            bool modelChanged = touched.Contains(ModelSpace);
+
+            foreach (CadSpace space in touched)
+            {
+                _indexes.Remove(space);
+
+                if (whole || (!space.IsModel && (layers || modelChanged)))
+                {
+                    _displays.Remove(space);
+                    _stale.Remove(space);
+                    continue;
+                }
+
+                if (_displays.TryGetValue(space, out DisplayList2 list))
+                {
+                    _displays.Remove(space);
+                    _stale[space] = new StaleDisplay(list);
+                }
+
+                if (_stale.TryGetValue(space, out StaleDisplay stale))
+                {
+                    stale.Handles.UnionWith(handles.TryGetValue(space, out List<string> named) ? named : new List<string>());
+                    stale.Layers.UnionWith(changedLayers);
+                }
+            }
+        }
+
+        /// <summary>A display list an edit changed, with the handles of the entities and the layers it changed since the list was made.</summary>
+        private sealed class StaleDisplay
+        {
+            public StaleDisplay(DisplayList2 list)
+            {
+                List = list;
+            }
+
+            public DisplayList2 List { get; }
+
+            public HashSet<string> Handles { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            public HashSet<string> Layers { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        }
+
         /// <summary>Whether a setting of the header changes how every space is drawn: $LTSCALE, $PDMODE and $PDSIZE.</summary>
         private static bool Redraws(string property)
             => string.Equals(property, "$LTSCALE", StringComparison.Ordinal) || string.Equals(property, "$PDMODE", StringComparison.Ordinal) || string.Equals(property, "$PDSIZE", StringComparison.Ordinal);
 
-        /// <summary>Drops the display lists of the spaces edits touched and raises <see cref="Changed"/>.</summary>
+        /// <summary>Drops or marks stale the display lists of the spaces edits touched and raises <see cref="Changed"/>.</summary>
         private void Announce(CadChangeKind kind, string name, IReadOnlyList<CadEditRecord> records)
         {
             HashSet<CadSpace> touched = Touched(records, out bool tables);
+            DisplayBuilder older = _builder;
 
             if (tables && kind == CadChangeKind.Edit)
             {
@@ -866,11 +1043,7 @@ namespace GeometryHelper.Dxf.Viewer
                 _builder = new DisplayBuilder(Database, this);
             }
 
-            foreach (CadSpace space in touched)
-            {
-                _displays.Remove(space);
-                _indexes.Remove(space);
-            }
+            Invalidate(records, older);
 
             var handles = new SortedSet<string>(StringComparer.Ordinal);
 
@@ -910,6 +1083,9 @@ namespace GeometryHelper.Dxf.Viewer
     {
         private readonly List<CadEditRecord> _records = new List<CadEditRecord>();
         private readonly HashSet<string> _handled;
+
+        // The entity of each record Added made, by the record itself; looked up only, never enumerated.
+        private readonly Dictionary<CadEditRecord, DxfEntity> _added = new Dictionary<CadEditRecord, DxfEntity>();
 
         internal CadEditScope(CadDocument document, HashSet<string> handled)
         {
@@ -973,8 +1149,13 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new ArgumentNullException(nameof(entity));
             }
 
-            _records.Add(new CadEditRecord(CadEditRecordKind.Added, entity.Handle) { Space = space.Name });
+            var record = new CadEditRecord(CadEditRecordKind.Added, entity.Handle) { Space = space.Name };
+            _records.Add(record);
+            _added[record] = entity;
         }
+
+        /// <summary>The entity <see cref="Added"/> recorded with a record of this scope; null for a record made otherwise.</summary>
+        internal DxfEntity AddedEntityOf(CadEditRecord record) => _added.TryGetValue(record, out DxfEntity entity) ? entity : null;
 
         /// <summary>Records a change the planned records did not name, found while writing.</summary>
         /// <param name="record">The record.</param>
