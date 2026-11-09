@@ -34,13 +34,19 @@ which aims to work like AutoCAD 2021 and replace it, and Part B, model drawings 
 - [x] Picking takes the object drawn on top (draw order)
 - [x] Ribbon shrinks to the window as AutoCAD's: Home, Annotate Dimensions panel, Text Editor tab
 - [x] C19 Speed at scale: an edit patches the display instead of redrawing it (1-line move at 1 000 000 entities 10.6 s -> 0.6 s)
+- [x] C18a Tables: TABLE, -TABLE, TABLESTYLE, TABLEDIT, editing cells, the Table Cell tab
 
 ### In progress
 
-- [ ] C18a Tables: TABLE, TABLESTYLE, editing cells, Table Cell tab (running)
 - [ ] Ribbon round 3: Insert tab, Annotate and View shrink to 1 280 px (running)
 
 ### To do
+
+- [ ] GeometryHelper.Dxf.App: a DXF-only app for Part A (the presenter alone, no Drawing); the screenshot and dialog modes
+      move into Dxf.Viewer.Wpf, shared with Drawing.App (after ribbon round 3)
+- [ ] Tables: the cell right-click menu, column letters and row numbers, autofill and width grips, drag-select a range
+- [ ] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
+- [ ] Tables: set the current table style in drawings made new (DICTIONARYVAR class in the template)
 
 - [ ] Ribbon: check drop-downs at 125 % and 150 % display scaling; pin and Esc by hand
 - [ ] XLINE and RAY: pick and snap test only the visible part (they cost 9 times a line today) (running)
@@ -69,6 +75,8 @@ which aims to work like AutoCAD 2021 and replace it, and Part B, model drawings 
 - [ ] Picking: the object on top wins among those within a tenth of the pickbox (now), or always within the whole pickbox
 
 ## Part B: model drawings
+
+On hold: Part A is finished first, and the maintainer may change Part B before it goes on.
 
 - [x] G1 Hidden-line projection written to DXF
 - [x] G2 Views (viewports), the drawing document, owners
