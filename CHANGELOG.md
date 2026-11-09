@@ -12,7 +12,7 @@ lists through SkiaSharp: 100 000 entities open in 0.9 s, a click picks in 0.007 
 in under 1 ms. It edits as AutoCAD does, with a command line that has AutoCAD's prompts, names and aliases, object snaps,
 grips, Properties edited in place, a layer manager, and undo and redo that give the start file back byte for byte.
 Command plugins load and unload at run time (collectible load contexts on .NET 8), and global settings are kept as JSON:
-colours, crosshair size, text height and autosave copies that never touch the file. CLOSE, Ctrl+W and the x on a row of
+colours, crosshair size, text height and autosave copies that never touch the file. CLOSE and the x on a row of
 the file list close a drawing, asking first about unsaved changes. An owner (`CadOwnerRegistry`, tag `GH_OWNER`) keeps
 control of the entities it wrote: an edit of one goes to its owner in the same undo step, or is refused in the words the
 command line shows.
@@ -27,7 +27,9 @@ undo step. DRAWORDER (DR) and TEXTTOFRONT write AutoCAD's sort table, which the 
 and UNGROUP make and change the GROUP objects of ACAD_GROUP, and with PICKSTYLE 1 (Ctrl+Shift+A switches it) a pick of
 one member takes its group. -PURGE (PU) deletes the unused blocks, dimension, text, multileader and table styles,
 layers, linetypes and plot styles, the lines of no length and the empty texts, asking of each name where told to, and
-never what AutoCAD keeps: layer 0, Defpoints, Standard, ByLayer, ByBlock, Continuous or the current ones.
+never what AutoCAD keeps: layer 0, Defpoints, Standard, ByLayer, ByBlock, Continuous or the current ones. Where two or
+more objects lie under a click, the list of them is shown near the cursor (SELECTIONCYCLING 2, as AutoCAD's default), and
+Ctrl+W switches it off and on as AutoCAD's does; Ctrl+W no longer closes the drawing, which CLOSE and the x on its row do.
 
 **NEW.** `GeometryHelper.Drawing` makes a model drawing, in the manner of Tekla's, from a `DrawingSource` of
 `DrawingObject` bodies: views along the axes and an isometric view with exact hidden-line projection (2 000 objects in

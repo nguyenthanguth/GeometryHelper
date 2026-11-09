@@ -1183,7 +1183,7 @@
                                                     <Ellipse x:Name="Dot" Width="8" Height="8" Fill="{StaticResource GhAccent}" Margin="0,0,8,0" VerticalAlignment="Center"
                                                              Visibility="Collapsed" />
                                                     <Button DockPanel.Dock="Right" Style="{StaticResource GhFlatButton}" Width="18" Height="18" Margin="6,0,0,0" VerticalAlignment="Center"
-                                                            Visibility="{Binding IsOpen, Converter={StaticResource Shown}}" ToolTip="Close (CLOSE, Ctrl+W)"
+                                                            Visibility="{Binding IsOpen, Converter={StaticResource Shown}}" ToolTip="Close (CLOSE)"
                                                             Command="{Binding DataContext.CloseFileCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
                                                         <local:IconView x:Name="CloseCross" Size="10" StrokeThickness="2.4" Stroke="{StaticResource GhCloseCross}" Data="{StaticResource GhIconClose}" />
                                                     </Button>

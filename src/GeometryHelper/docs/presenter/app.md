@@ -83,7 +83,7 @@ and the copies are not listed in the file list.
 
 ## Closing a drawing
 
-A drawing is closed by CLOSE on the command line, Ctrl+W, or the x on its row in the file list. A command cannot close its own
+A drawing is closed by CLOSE on the command line or the x on its row in the file list. A command cannot close its own
 document while it runs, so CLOSE raises `CloseRequested` and the window closes the document once the command has ended.
 
 - A command running is ended first, as Esc would end it.
@@ -106,7 +106,8 @@ tab (see [Command plugins](plugins.md)), a Settings tab, and the tabs a host add
 |---|---|
 | Esc | cancels the command; then clears the selection |
 | Space, Enter | ends a command or a prompt; Enter alone runs the last command again |
-| Ctrl+O, Ctrl+W | opens a DXF, closes the drawing |
+| Ctrl+O | opens a DXF |
+| Ctrl+W | switches selection cycling on and off, as AutoCAD 2021 |
 | Ctrl+S, Ctrl+Shift+S | saves, saves as |
 | Ctrl+N | asks a host for a new drawing from a model |
 | Ctrl+Z, Ctrl+Y | undo, redo |

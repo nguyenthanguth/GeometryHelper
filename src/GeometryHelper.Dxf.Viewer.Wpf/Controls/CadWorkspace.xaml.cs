@@ -16,7 +16,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <see cref="MainViewModel"/>; a window or a host such as a Tekla plugin puts it in and lets it run.
     /// </summary>
     /// <remarks>
-    /// Keys as AutoCAD's: Esc cancels the command, then clears the selection; Ctrl+O opens a DXF, Ctrl+W closes it, Ctrl+N asks a host for a new
+    /// Keys as AutoCAD's: Esc cancels the command, then clears the selection; Ctrl+O opens a DXF, Ctrl+W switches selection cycling, Ctrl+N asks a host for a new
     /// drawing from a model (<see cref="MainViewModel.NewFromModelRequested"/>), Ctrl+S saves, Ctrl+Shift+S
     /// saves as, Ctrl+Z undoes and Ctrl+Y redoes, Delete erases the selection; F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR,
     /// F11 OTRACK, F12 DYN (the prompt and what is typed shown beside the cursor, Tab moving between its fields at a point prompt), and
@@ -218,11 +218,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             else if (modifiers == ModifierKeys.Control && key == Key.O)
             {
                 ShowOpenDialog();
-                e.Handled = true;
-            }
-            else if (modifiers == ModifierKeys.Control && key == Key.W && _model.HasDocument)
-            {
-                _model.CloseDocument();
                 e.Handled = true;
             }
             else if (modifiers == ModifierKeys.Control && key == Key.N && _model.NewFromModelCommand.CanExecute(null))

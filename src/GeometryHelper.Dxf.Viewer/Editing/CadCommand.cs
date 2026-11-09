@@ -196,6 +196,7 @@ namespace GeometryHelper.Dxf.Viewer
                 ["Ctrl+Shift+V"] = "PASTEBLOCK",
                 ["Ctrl+P"] = "PLOT",
                 ["Ctrl+Shift+A"] = "PICKSTYLE",
+                ["Ctrl+W"] = "SELECTIONCYCLING",
             });
 
         private static IReadOnlyDictionary<string, string> Copy(IEnumerable<KeyValuePair<string, string>> pairs)

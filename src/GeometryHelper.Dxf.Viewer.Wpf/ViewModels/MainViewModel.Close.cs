@@ -19,7 +19,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         Cancel,
     }
 
-    /// <summary>Closing documents: CLOSE, Ctrl+W, the x of a row of the file list, and the window closed.</summary>
+    /// <summary>Closing documents: CLOSE, the x of a row of the file list, and the window closed.</summary>
     public sealed partial class MainViewModel
     {
         private DelegateCommand _closeFileCommand;
@@ -256,7 +256,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             if (CloseRequested == null)
             {
-                c.Write("CLOSE is done by the window; Ctrl+W closes the drawing shown.");
+                c.Write("CLOSE is done by the window; the x on the row of the drawing closes it.");
             }
             else
             {

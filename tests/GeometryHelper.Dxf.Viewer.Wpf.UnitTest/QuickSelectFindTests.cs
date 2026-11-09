@@ -122,6 +122,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
+        public void CtrlW_SwitchesSelectionCycling_AndLeavesTheDrawingOpen()
+        {
+            using (var folder = new TestFolder())
+            {
+                MainViewModel model = Open(folder);
+                CadDocument document = model.Document;
+
+                Assert.True(model.RunKey("Ctrl+W"));
+                Assert.Equal("<Selection Cycling off>", model.History.Last());
+                Assert.Equal(0, document.SelectionCycling);
+                Assert.Same(document, model.Document);
+
+                Assert.True(model.RunKey("Ctrl+W"));
+                Assert.Equal("<Selection Cycling on>", model.History.Last());
+                Assert.Equal(2, document.SelectionCycling);
+            }
+        }
+
+        [Fact]
         public void ObjectsOverlappingAtAPick_AreListed_AndShiftSpaceCyclesThroughThem()
         {
             var db = new DxfDatabase("AC1027");
