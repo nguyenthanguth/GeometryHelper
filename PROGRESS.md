@@ -42,6 +42,8 @@ The list of work on the drawing stack: Part A, the 2D presenter (`GeometryHelper
       screenshot mode shared with Drawing.App through `CadAppHost`
 - [x] Blocks round 2: EATTEDIT live with Apply kept open, INSERT drags the block, -ATTEDIT picks one attribute, ATTSYNC,
       Block Definition previews the selection, redefine a block brought from another drawing
+- [x] PEDIT (single and Multiple, every option) and REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style,
+      Modify), checked vertex by vertex against AutoCAD's own where its console has the command
 - [x] Dimension grips: extension origins, dimension line, text, chord points, angular and ordinate points; STRETCH of a
       grip edit measures anew
 - [x] Model space through a viewport: double click in, MSPACE/PSPACE, MODEL/PAPER, Ctrl+R, ZOOM nXP, viewport scale in
@@ -83,12 +85,15 @@ the ones wanted.
 - [ ] Variables: PICKADD, POLARMODE, ATTREQ, ATTDIA, FILEDIA, CMDDIA; AUTOSNAP's other bits; DYNMODE values; ORTHOMODE
       written to the drawing; new dimensions follow DIMSCALE; polar angle field in Global settings (S)
 - [ ] Utilities: command line AutoComplete (suggestions as you type, mid-string search, most used first) (M) (running)
-- [ ] Modify (running): PEDIT (Close/Open, Join, Width, Edit vertex, Fit/Spline/Decurve, Ltype gen, Reverse, Multiple; lines and
-      arcs made a polyline) (L)
+- [ ] Core: `DxfPolyline2d.CurveFit` tangents differ from AutoCAD's for closed polylines (AutoCAD bisects) and open ones of 4
+      or more vertices (64.41 against 63.43 degrees in one case); `DxfPolyline3d.SplineFit` vertex order (M)
+- [ ] PEDIT: PEACCEPT and PLINETYPE read through SETVAR; a spline turned into a polyline with a precision; 3D polylines;
+      Extend for arc ends in a fuzz join (S)
+- [ ] REVCLOUD: the 2021 approximate arc length (REVCLOUDARCVARIANCE), REVCLOUDPROPERTIES, a Freehand preview, Modify on
+      more than closed polylines (S)
 - [ ] Layouts (running): the status bar's MODEL/PAPER button, viewport scale list and padlock restyled to the design (StatusSpace
       board, v104); twisted viewports entered; one undo step per wheel or pan gesture; a ZOOM Previous list per viewport (S)
 - [ ] Files: recent files on the start screen and the application menu (S) (running)
-- [ ] Draw: REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style) (M) (running)
 - [ ] Layers: VP Freeze per viewport (VPLAYER, the Layer manager's VP columns, LAYVPI) (M) (running)
 - [ ] Dimensions: MLEADERSTYLE, the Multileader Style Manager (M, design first) (running)
 - [ ] Dimensions: associative dimensions that follow their geometry (DIMASSOC 2, DIMREASSOCIATE) (L)
