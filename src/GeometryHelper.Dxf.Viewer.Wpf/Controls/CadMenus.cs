@@ -30,7 +30,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             _theme = _theme ?? new ResourceDictionary { Source = new Uri("pack://application:,,,/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml", UriKind.Absolute) };
             var menu = new ContextMenu { Style = (Style)_theme["GhContextMenu"] };
+            Fill(menu, items);
+            return menu;
+        }
+
+        /// <summary>Adds the items to a menu or to an item's own menu, as "Point Filters" opens the six filters.</summary>
+        private static void Fill(ItemsControl menu, IEnumerable<CadMenuItemViewModel> items)
+        {
             var itemStyle = (Style)_theme["GhMenuItem"];
+            var submenuStyle = (Style)_theme["GhSubmenuItem"];
             var separatorStyle = (Style)_theme["GhMenuSeparator"];
 
             foreach (CadMenuItemViewModel item in items)
@@ -52,18 +60,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     header = row;
                 }
 
-                menu.Items.Add(new MenuItem
+                var menuItem = new MenuItem
                 {
-                    Style = itemStyle,
+                    Style = item.Items.Count > 0 ? submenuStyle : itemStyle,
                     Header = header,
                     Command = item.Command,
                     IsEnabled = item.IsEnabled,
                     IsChecked = item.IsChecked,
                     ToolTip = item.ToolTip,
-                });
+                };
+                Fill(menuItem, item.Items);
+                menu.Items.Add(menuItem);
             }
-
-            return menu;
         }
 
         /// <summary>Gets a snap kind's marker as a picture 16 pixels across, drawn as the canvas draws it on a dark background.</summary>

@@ -57,7 +57,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             model.StartCommand("LINE");
             Assert.Equal(new[] { "Endpoint", "Midpoint", "Intersection", "Apparent Intersection", "Extension", "Center", "Geometric Center", "Quadrant", "Tangent", "Perpendicular", "Parallel", "Node", "Insertion", "Nearest" },
-                model.SnapOverrideMenu().TakeWhile(i => i.Header != "None").Select(i => i.Header));
+                model.SnapOverrideMenu().SkipWhile(i => i.Header != "Endpoint").TakeWhile(i => i.Header != "None").Select(i => i.Header));
         }
 
         [Fact]

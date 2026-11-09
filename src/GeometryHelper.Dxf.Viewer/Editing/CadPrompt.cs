@@ -120,8 +120,18 @@ namespace GeometryHelper.Dxf.Viewer
                     text.Append(" <").Append(Default).Append('>');
                 }
 
-                return text.Append(':').ToString();
+                return _noColon ? text.ToString() : text.Append(':').ToString();
             }
+        }
+
+        // Whether the text ends without a colon, as AutoCAD's "of" of a point filter.
+        private bool _noColon;
+
+        /// <summary>Makes the prompt's text end without a colon, as AutoCAD writes "of" after ".X".</summary>
+        internal CadPrompt WithoutColon()
+        {
+            _noColon = true;
+            return this;
         }
 
         /// <summary>Asks for a point.</summary>

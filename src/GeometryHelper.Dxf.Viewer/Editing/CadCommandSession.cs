@@ -78,7 +78,7 @@ namespace GeometryHelper.Dxf.Viewer
     /// COPY and the other commands that edit at their end change nothing when Esc ends them first. A command that throws has
     /// its edits taken back.
     /// </remarks>
-    public sealed class CadCommandSession
+    public sealed partial class CadCommandSession
     {
         private const string Unknown = "Unknown command \"{0}\".  Press F1 for help.";
 
@@ -254,22 +254,9 @@ namespace GeometryHelper.Dxf.Viewer
             switch (Prompt.Kind)
             {
                 case CadPromptKind.Point:
-                    return Answer(new CadInput(CadInputKind.Point, point, 0.0, null, null), Prompt.Text, point);
                 case CadPromptKind.Distance:
-                    if (Prompt.BasePoint == null)
-                    {
-                        return Invalid("Requires numeric distance or option keyword.");
-                    }
-
-                    return Answer(new CadInput(CadInputKind.Number, point, (point - Prompt.BasePoint.Value).Length, null, null), Prompt.Text, point);
                 case CadPromptKind.Angle:
-                    if (Prompt.BasePoint == null)
-                    {
-                        return Invalid("Requires valid numeric angle or second point.");
-                    }
-
-                    GeoVector2 way = point - Prompt.BasePoint.Value;
-                    return Answer(new CadInput(CadInputKind.Number, point, Ucs.AngleToUcs(Math.Atan2(way.Y, way.X)), null, null), Prompt.Text, point);
+                    return AnswerPoint(point, Prompt.Text);
                 case CadPromptKind.Selection:
                 case CadPromptKind.Entity:
                     IReadOnlyList<string> picked = Document.GetPickIndex(Document.CurrentSpace).Pick(point.X, point.Y, PickAperture);
@@ -298,7 +285,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// Takes text typed on the command line and Enter: with no command running, the name of one to start (or Enter alone
         /// running the last again); else the answer to the prompt, a keyword by its capital letters, a number, a point as
         /// <c>x,y</c>, <c>@dx,dy</c>, <c>@distance&lt;angle</c> or <c>distance&lt;angle</c>, a number alone at a point prompt
-        /// being a distance along the rubber band towards the cursor, and ALL at "Select objects:" every object of the space.
+        /// being a distance along the rubber band towards the cursor, and ALL at "Select objects:" every object of the space. A
+        /// point modifier, FROM, M2P, TT or a point filter, starts at a prompt for a point (<see cref="StartPointModifier"/>).
         /// </summary>
         /// <param name="text">The text.</param>
         /// <returns>Whether it was taken.</returns>
@@ -326,6 +314,11 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     return Answer(new CadInput(CadInputKind.Keyword, default, 0.0, keyword, null), echo, null);
                 }
+            }
+
+            if (StartPointModifier(typed))
+            {
+                return true;
             }
 
             switch (Prompt.Kind)
@@ -372,6 +365,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                     return Invalid("*Invalid selection*", echo);
                 case CadPromptKind.Point:
+                    if (TryNeeded(typed, out GeoPoint2 needed))
+                    {
+                        return Answer(new CadInput(CadInputKind.Point, needed, 0.0, typed, null), echo, needed);
+                    }
+
                     if (TryPoint(typed, out GeoPoint2 point))
                     {
                         return Answer(new CadInput(CadInputKind.Point, point, 0.0, typed, null), echo, point);
@@ -657,15 +655,53 @@ namespace GeometryHelper.Dxf.Viewer
             return handles.Count > 0;
         }
 
+        /// <summary>
+        /// Answers a prompt for a point, a distance or an angle with a point: a distance or an angle measured from the prompt's
+        /// base point. With no echo the history is left as it is, as for the point a modifier (FROM, M2P) gives.
+        /// </summary>
+        private bool AnswerPoint(GeoPoint2 point, string echo)
+        {
+            switch (Prompt.Kind)
+            {
+                case CadPromptKind.Point:
+                    return Answer(new CadInput(CadInputKind.Point, point, 0.0, null, null), echo, point);
+                case CadPromptKind.Distance:
+                    if (Prompt.BasePoint == null)
+                    {
+                        return Invalid("Requires numeric distance or option keyword.");
+                    }
+
+                    return Answer(new CadInput(CadInputKind.Number, point, (point - Prompt.BasePoint.Value).Length, null, null), echo, point);
+                default:
+                    if (Prompt.BasePoint == null)
+                    {
+                        return Invalid("Requires valid numeric angle or second point.");
+                    }
+
+                    GeoVector2 way = point - Prompt.BasePoint.Value;
+                    return Answer(new CadInput(CadInputKind.Number, point, Ucs.AngleToUcs(Math.Atan2(way.Y, way.X)), null, null), echo, point);
+            }
+        }
+
         private bool Answer(CadInput input, string echo, GeoPoint2? point)
         {
-            Write(echo);
+            if (echo != null)
+            {
+                Write(echo);
+            }
 
             if (point.HasValue)
             {
                 LastPoint = point.Value;
             }
 
+            // The prompt of a point modifier (Base point:, First point of mid:) takes the answer in place of the command.
+            if (_modifiers.Count > 0)
+            {
+                return TakeModifierInput(input);
+            }
+
+            _trackPoints.Clear();
             _context.Input = input;
             Advance();
             return true;
@@ -743,6 +779,8 @@ namespace GeometryHelper.Dxf.Viewer
             _context = null;
             Current = null;
             Prompt = null;
+            _modifiers.Clear();
+            _trackPoints.Clear();
             ClearGathering();
             LastOutcome = outcome;
 

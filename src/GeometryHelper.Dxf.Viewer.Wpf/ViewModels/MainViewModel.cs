@@ -1259,8 +1259,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             // An object snap taken for one point (END typed, the Shift+right-click menu) ends with the prompt it was taken at, and
             // so do the points acquired for tracking and the object clicked first for an apparent intersection.
+            // The temporary track points (TT) given for the point asked stay acquired until it is given.
             Snap.Override = null;
             Snap.ClearAcquired();
+
+            foreach (GeoPoint2 tracked in _current.Session.TemporaryTrackPoints)
+            {
+                Snap.AcquireTrackPoint(tracked);
+            }
+
             SyncHistory();
             Raise(nameof(Prompt));
             Raise(nameof(IsCommandRunning));

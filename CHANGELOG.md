@@ -6,6 +6,15 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The presenter takes AutoCAD's point modifiers at any prompt for a point, typed or from the top of the
+Shift+right-click menu (Temporary track point, From, Mid Between 2 Points, Point Filters with .X .Y .Z .XY .XZ .YZ), with
+AutoCAD's prompts. LINE with FROM, the base point 100,50 and the offset `@30,20` starts at (130, 70); M2P (or MTP) between
+(0, 0) and (100, 40) gives (50, 20); `.X` of (30, 999) with (888, 40) at `(need YZ):` gives (30, 40), and `40,3` typed
+there gives Y 40; TT at the midpoint (2 000, 0) of a wall holds the cursor at (2 000.3, 700) on (2 000, 700) while OTRACK
+is on. Coordinates are the UCS's, Z is asked and left out, each point a modifier asks may be snapped, and modifiers nest,
+as FROM with M2P for its base point. `CadCommandSession.StartPointModifier`, `TemporaryTrackPoints` and
+`ObjectSnap.AcquireTrackPoint` are the API; `CadMenuItemViewModel.Items` holds a submenu.
+
 **NEW.** GeometryHelper DXF, `GeometryHelper.Dxf.App.exe`, the presenter's own app: the window of the 2D presenter with no
 model drawing, built only on `GeometryHelper.Dxf.Viewer` and its controls, to open, edit and plot DXF drawings in place of
 AutoCAD. `GeometryHelper.Dxf.App.exe plan.dxf` opens a drawing, as a file association does; its command plugins are kept in
