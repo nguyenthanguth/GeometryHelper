@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
@@ -22,8 +23,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// Ctrl+9 shows or hides the command line. In the DRAWINGS list a click selects a row, a double click or Enter opens it,
     /// Delete does nothing and a right click shows Open and the Close items; OSNAP of the status bar has the menu of the object
     /// snaps on its arrow and its right click, and Shift+right-click on the canvas while a point is asked gives the snap menu.
-    /// The arrows of Trim, Fillet and Array on the ribbon drop their other commands (Extend, Chamfer, Polar Array), and the
-    /// title of Modify the rest of the group, as AutoCAD 2021's panel slides out.
+    /// The arrows of Trim, Fillet and Array on the ribbon drop their other commands (Extend, Chamfer, Polar Array), the button
+    /// then showing and running the one picked until another is, and the title of Modify the rest of the group, as AutoCAD
+    /// 2021's panel slides out.
     /// Letters typed with the focus on the canvas go to the command line, where Enter or Space runs the line (Space types a
     /// space at a prompt for text) and Up and Down recall what was typed before. A value of Properties is committed by Enter
     /// or by leaving it, and Esc puts the old one back. DXF files dropped on it are opened.
@@ -514,6 +516,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 menu.PlacementTarget = button;
                 menu.Placement = PlacementMode.Bottom;
                 menu.IsOpen = true;
+            }
+        }
+
+        /// <summary>
+        /// An item of a split button's menu picked: the button beside the arrow takes its label, icon and command, as AutoCAD's
+        /// split buttons show the one used last, until another is picked. Extend picked from Trim's arrow leaves the button
+        /// reading Extend and running EXTEND. Kept for the window's session only.
+        /// </summary>
+        private void OnSplitChoice(object sender, RoutedEventArgs e)
+        {
+            var item = (MenuItem)sender;
+
+            if (item.Parent is ContextMenu menu && menu.PlacementTarget is Button arrow && arrow.Parent is Panel split && split.Children.Count > 0 && split.Children[0] is Button main)
+            {
+                string name = AutomationProperties.GetName(item);
+                main.Content = string.IsNullOrEmpty(name) ? item.Header : name;
+                main.Tag = item.Tag;
+                main.CommandParameter = item.CommandParameter;
+                main.ToolTip = item.ToolTip;
             }
         }
 

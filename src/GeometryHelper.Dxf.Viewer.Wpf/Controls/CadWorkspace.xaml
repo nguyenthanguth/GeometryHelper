@@ -106,6 +106,35 @@
                 <Setter Property="Margin" Value="0,0,8,2" />
             </Style>
 
+            <!-- A small button of the ribbon shown by its icon alone, its Content the name its tooltip and screen readers give. -->
+            <Style x:Key="IconButton" TargetType="Button" BasedOn="{StaticResource SmallButton}">
+                <Setter Property="AutomationProperties.Name" Value="{Binding Content, RelativeSource={RelativeSource Self}}" />
+                <Setter Property="ContentTemplate">
+                    <Setter.Value>
+                        <DataTemplate>
+                            <local:IconView Size="16" StrokeThickness="1.8"
+                                            Data="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}}" />
+                        </DataTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- A button of the row under a group's columns: a 14 pixel icon and its label. -->
+            <Style x:Key="RowButton" TargetType="Button" BasedOn="{StaticResource SmallButton}">
+                <Setter Property="Margin" Value="0,2,8,0" />
+                <Setter Property="ContentTemplate">
+                    <Setter.Value>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <local:IconView Size="14" StrokeThickness="1.8"
+                                                Data="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                <TextBlock Text="{Binding}" Margin="5,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <!-- The column of small buttons of a group, three to a column. -->
             <Style x:Key="SmallColumn" TargetType="WrapPanel">
                 <Setter Property="Orientation" Value="Vertical" />
@@ -587,7 +616,12 @@
                                         </ContextMenu>
                                     </Button.ContextMenu>
                                 </Button>
-                                <!-- As AutoCAD 2021's panel: Move, Copy, Stretch; Rotate, Mirror, Scale; Trim, Fillet and Array, each with its arrow; Erase and Offset. -->
+                                <!--
+                                As AutoCAD 2021's panel: Move, Copy, Stretch; Rotate, Mirror, Scale; Trim, Fillet and Array, each with its
+                                arrow and showing the command last picked from it (OnSplitChoice); Erase, Explode and Offset by their icons;
+                                and under them a row of Break, Join, Lengthen and Align.
+                                -->
+                                <StackPanel>
                                 <StackPanel Orientation="Horizontal">
                                     <WrapPanel Style="{StaticResource SmallColumn}">
                                         <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconMove}" Content="Move" IsEnabled="{Binding HasDocument}" Command="{Binding StartCommandCommand}" CommandParameter="MOVE" ToolTip="MOVE" />
@@ -606,8 +640,8 @@
                                                 <Path Data="M1 1 4 4 7 1" Stroke="{StaticResource GhTextMuted}" StrokeThickness="1.4" VerticalAlignment="Center" HorizontalAlignment="Center" />
                                                 <Button.ContextMenu>
                                                     <ContextMenu Style="{StaticResource GhContextMenu}" DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                                        <MenuItem Style="{StaticResource GhMenuItem}" Header="Trim" Command="{Binding StartCommandCommand}" CommandParameter="TRIM" ToolTip="TRIM" />
-                                                        <MenuItem Style="{StaticResource GhMenuItem}" Header="Extend" Command="{Binding StartCommandCommand}" CommandParameter="EXTEND" ToolTip="EXTEND" />
+                                                        <MenuItem Style="{StaticResource GhMenuItem}" Header="Trim" Tag="{StaticResource GhIconTrim}" Click="OnSplitChoice" Command="{Binding StartCommandCommand}" CommandParameter="TRIM" ToolTip="TRIM" />
+                                                        <MenuItem Style="{StaticResource GhMenuItem}" Header="Extend" Tag="{StaticResource GhIconExtend}" Click="OnSplitChoice" Command="{Binding StartCommandCommand}" CommandParameter="EXTEND" ToolTip="EXTEND" />
                                                     </ContextMenu>
                                                 </Button.ContextMenu>
                                             </Button>
@@ -618,8 +652,8 @@
                                                 <Path Data="M1 1 4 4 7 1" Stroke="{StaticResource GhTextMuted}" StrokeThickness="1.4" VerticalAlignment="Center" HorizontalAlignment="Center" />
                                                 <Button.ContextMenu>
                                                     <ContextMenu Style="{StaticResource GhContextMenu}" DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                                        <MenuItem Style="{StaticResource GhMenuItem}" Header="Fillet" Command="{Binding StartCommandCommand}" CommandParameter="FILLET" ToolTip="FILLET" />
-                                                        <MenuItem Style="{StaticResource GhMenuItem}" Header="Chamfer" Command="{Binding StartCommandCommand}" CommandParameter="CHAMFER" ToolTip="CHAMFER" />
+                                                        <MenuItem Style="{StaticResource GhMenuItem}" Header="Fillet" Tag="{StaticResource GhIconFillet}" Click="OnSplitChoice" Command="{Binding StartCommandCommand}" CommandParameter="FILLET" ToolTip="FILLET" />
+                                                        <MenuItem Style="{StaticResource GhMenuItem}" Header="Chamfer" Tag="{StaticResource GhIconChamfer}" Click="OnSplitChoice" Command="{Binding StartCommandCommand}" CommandParameter="CHAMFER" ToolTip="CHAMFER" />
                                                     </ContextMenu>
                                                 </Button.ContextMenu>
                                             </Button>
@@ -630,17 +664,27 @@
                                                 <Path Data="M1 1 4 4 7 1" Stroke="{StaticResource GhTextMuted}" StrokeThickness="1.4" VerticalAlignment="Center" HorizontalAlignment="Center" />
                                                 <Button.ContextMenu>
                                                     <ContextMenu Style="{StaticResource GhContextMenu}" DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                                        <MenuItem Style="{StaticResource GhMenuItem}" Header="Rectangular Array" Command="{Binding StartCommandCommand}" CommandParameter="ARRAYRECT" ToolTip="ARRAYRECT" />
-                                                        <MenuItem Style="{StaticResource GhMenuItem}" Header="Polar Array" Command="{Binding StartCommandCommand}" CommandParameter="ARRAYPOLAR" ToolTip="ARRAYPOLAR" />
+                                                        <MenuItem Style="{StaticResource GhMenuItem}" Header="Rectangular Array" AutomationProperties.Name="Array" Tag="{StaticResource GhIconArrayRect}" Click="OnSplitChoice" Command="{Binding StartCommandCommand}" CommandParameter="ARRAYRECT" ToolTip="ARRAYRECT" />
+                                                        <MenuItem Style="{StaticResource GhMenuItem}" Header="Polar Array" Tag="{StaticResource GhIconArrayPolar}" Click="OnSplitChoice" Command="{Binding StartCommandCommand}" CommandParameter="ARRAYPOLAR" ToolTip="ARRAYPOLAR" />
                                                     </ContextMenu>
                                                 </Button.ContextMenu>
                                             </Button>
                                         </StackPanel>
                                     </WrapPanel>
                                     <WrapPanel Style="{StaticResource SmallColumn}">
-                                        <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconErase}" Content="Erase" IsEnabled="{Binding HasDocument}" Command="{Binding StartCommandCommand}" CommandParameter="ERASE" ToolTip="ERASE" />
-                                        <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconOffset}" Content="Offset" IsEnabled="{Binding HasDocument}" Command="{Binding StartCommandCommand}" CommandParameter="OFFSET" ToolTip="OFFSET" />
+                                        <Button Style="{StaticResource IconButton}" Tag="{StaticResource GhIconErase}" Content="Erase" IsEnabled="{Binding HasDocument}" Command="{Binding StartCommandCommand}" CommandParameter="ERASE" ToolTip="Erase (ERASE)" />
+                                        <Button Style="{StaticResource IconButton}" Tag="{StaticResource GhIconExplode}" Content="Explode" IsEnabled="{Binding HasDocument}" Command="{Binding StartCommandCommand}" CommandParameter="EXPLODE" ToolTip="Explode (EXPLODE)" />
+                                        <Button Style="{StaticResource IconButton}" Tag="{StaticResource GhIconOffset}" Content="Offset" IsEnabled="{Binding HasDocument}" Command="{Binding StartCommandCommand}" CommandParameter="OFFSET" ToolTip="Offset (OFFSET)" />
                                     </WrapPanel>
+                                </StackPanel>
+                                <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="0,1,0,0" Margin="0,2,0,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Style="{StaticResource RowButton}" Tag="{StaticResource GhIconBreak}" Content="Break" IsEnabled="{Binding HasDocument}" Command="{Binding StartCommandCommand}" CommandParameter="BREAK" ToolTip="BREAK" />
+                                        <Button Style="{StaticResource RowButton}" Tag="{StaticResource GhIconJoin}" Content="Join" IsEnabled="{Binding HasDocument}" Command="{Binding StartCommandCommand}" CommandParameter="JOIN" ToolTip="JOIN" />
+                                        <Button Style="{StaticResource RowButton}" Tag="{StaticResource GhIconLengthen}" Content="Lengthen" IsEnabled="{Binding HasDocument}" Command="{Binding StartCommandCommand}" CommandParameter="LENGTHEN" ToolTip="LENGTHEN" />
+                                        <Button Style="{StaticResource RowButton}" Tag="{StaticResource GhIconAlign}" Content="Align" IsEnabled="{Binding HasDocument}" Command="{Binding StartCommandCommand}" CommandParameter="ALIGN" ToolTip="ALIGN" Margin="0,2,0,0" />
+                                    </StackPanel>
+                                </Border>
                                 </StackPanel>
                             </DockPanel>
                         </Border>
