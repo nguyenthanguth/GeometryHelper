@@ -42,6 +42,8 @@ The list of work on the drawing stack: Part A, the 2D presenter (`GeometryHelper
       screenshot mode shared with Drawing.App through `CadAppHost`
 - [x] Blocks round 2: EATTEDIT live with Apply kept open, INSERT drags the block, -ATTEDIT picks one attribute, ATTSYNC,
       Block Definition previews the selection, redefine a block brought from another drawing
+- [x] Properties: editable rows for ellipses, polylines (vertex browse), hatches, dimensions (overrides by group), MTEXT,
+      INSERTs with attributes, viewports, multileaders; MATCHPROP with Settings and special properties
 - [x] SETVAR and 47 system variables typed by name (OSMODE, CLAYER, FILLETRAD, PICKFIRST...), drawing ones one undo step,
       window ones kept in the settings file
 - [x] Grip modes: Space cycles STRETCH, MOVE, ROTATE, SCALE, MIRROR with Base point, Copy, Undo, Reference; Ctrl copies;
@@ -71,9 +73,9 @@ the ones wanted.
       against AutoCAD (S)
 - [ ] Draw: AUDIT a drawing made with every ARC, CIRCLE, PLINE, TEXT and MTEXT option, and compare ARC and PLINE entity
       by entity with AutoCAD's own; check Ctrl, ANGDIR 1 and the MTEXT column defaults against AutoCAD (S)
-- [ ] Properties: editable rows for polylines, hatches, dimensions, MTEXT, INSERTs (attributes), viewports, multileaders (L) (running)
-- [ ] Properties (running): MATCHPROP Settings dialog and special properties (dimension, text, hatch, polyline, viewport, table,
-      multileader) (M)
+- [ ] Properties: MATCHPROP's Property Settings window restyled to the design (MatchPropSettings board, v104) (S)
+- [ ] Properties: dimension rows Ext line fixed and length (core DIMFXLENON), Fill color, Fractional type, Text view
+      direction, Text position X/Y; hatch origin kept through angle and scale; MATCHPROP plot style and gradient hatch (S)
 - [ ] Variables: PICKADD, POLARMODE, ATTREQ, ATTDIA, FILEDIA, CMDDIA; AUTOSNAP's other bits; DYNMODE values; ORTHOMODE
       written to the drawing; new dimensions follow DIMSCALE; polar angle field in Global settings (S)
 - [ ] Utilities: command line AutoComplete (suggestions as you type, mid-string search, most used first) (M) (running)
