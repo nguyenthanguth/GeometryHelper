@@ -160,9 +160,11 @@ done
 
 ### Usage limits
 
-- Watch the plan usage in the background and wake me at 90 percent: at the start of a long task, run
-  `%TEMP%/gk/leader/usage-watch.sh` in the background, once per session. It reads `usage.ps1` every 5 minutes and exits
-  when the 5-hour session reaches 90 % or the week 95 %.
+- Check the usage by reading the OAuth access token (`claudeAiOauth.accessToken`) of `~/.claude/.credentials.json` and
+  sending it to `GET https://api.anthropic.com/api/oauth/usage` with the headers `Authorization: Bearer <token>` and
+  `anthropic-beta: oauth-2025-04-20`. The answer gives the percent used of the 5-hour session and of the week. Never print,
+  log or copy the token.
+- Watch it in the background through a long task, every 5 minutes, and wake at 90 percent.
 - At 90 % of the session, launch no agent and wait for the reset. At 95 % of the week, stop every agent and tell the
   maintainer to switch accounts.
 
