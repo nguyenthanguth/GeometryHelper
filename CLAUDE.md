@@ -160,25 +160,11 @@ done
 
 ### Usage limits
 
-The plan's usage is watched throughout a long run, so that work pauses before a limit stops it halfway.
-
-- `usage.ps1` reads the numbers `/usage` shows: a GET of `https://api.anthropic.com/api/oauth/usage` with the OAuth token
-  of `~/.claude/.credentials.json` and the header `anthropic-beta: oauth-2025-04-20`. It prints one line per limit,
-  `group|kind|percent|resets_at` (`session|session|46|…`, `weekly|weekly_all|60|…`), or `unavailable: …`. The token is
-  read fresh, sent only to api.anthropic.com, and never printed, logged or copied.
-- At the start of a multi-step task the lead starts `usage-watch.sh` in the background ("Watch the plan usage in the
-  background and wake me at 90 percent"). It runs `usage.ps1` every 5 minutes, appends each reading to `usage-log.txt`,
-  and exits, which wakes the lead, as soon as the 5-hour session reaches 90 % or the weekly limit 95 %. Start it once per
-  session; restart it after it has exited and the session has reset.
-- Before launching any agent, the lead runs `usage.ps1`. At 90 % or more of the session it launches nothing and waits for
-  the reset. At 95 % or more of the week it stops every agent and tells the maintainer, here and on Telegram, to switch
-  accounts.
-- Every agent brief carries the same rule: run `usage.ps1` before each long step; at 90 % of the session or 95 % of the
-  week, commit the work as `WIP: …` on its branch and report PAUSED with what is left, so the lead can resume it after the
-  reset. An `unavailable` reading means carry on.
-- The scripts live outside the repository, in `%TEMP%/gk/leader/` (`usage.ps1`, `usage-watch.sh`, `usage-log.txt`), since
-  they handle the account's credentials. The method is the one of the maintainer's agent-flow-claude repository
-  (`server/src/plan-usage.ts`).
+- Watch the plan usage in the background and wake me at 90 percent: at the start of a long task, run
+  `%TEMP%/gk/leader/usage-watch.sh` in the background, once per session. It reads `usage.ps1` every 5 minutes and exits
+  when the 5-hour session reaches 90 % or the week 95 %.
+- At 90 % of the session, launch no agent and wait for the reset. At 95 % of the week, stop every agent and tell the
+  maintainer to switch accounts.
 
 <!-- code-review-graph MCP tools -->
 ## MCP Tools: code-review-graph
