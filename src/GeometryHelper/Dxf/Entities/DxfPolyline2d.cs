@@ -314,8 +314,10 @@ namespace GeometryHelper.Dxf
         /// vertex the fitting adds (flag 1 of its group 70) after the vertex the segment leaves, so that the curve passes through
         /// every vertex in the direction its tangent gives there: the one the vertex is given (<see cref="DxfVertex2d.TangentUsed"/>)
         /// or that of the circle through it and its two neighbours; flag 2 of the polyline's group 70. The pair is the biarc of
-        /// equal tangent lengths, so that three vertices on a circle give that circle's arcs; a vertex's widths are split at the
-        /// middle between its two arcs. A fitted polyline is straightened first. Each vertex of the frame keeps its handle.
+        /// equal tangent lengths, so that three vertices on a circle give that circle's arcs. A segment's widths run along its
+        /// two arcs, the width at the joint read off at the first arc's share of their length, as AutoCAD reads it: a segment
+        /// from width 1 to 3 whose first arc is 25.723 long and second 24.733 is 2.0197 wide at the joint. A fitted polyline is
+        /// straightened first. Each vertex of the frame keeps its handle.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the polyline has fewer than two vertices, or is erased.</exception>
         public void CurveFit()
@@ -347,7 +349,9 @@ namespace GeometryHelper.Dxf
                 IReadOnlyList<DxfTypedValue> own = vertices[i].Value;
                 double start = DxfFollowers.Number(own, 40, DefaultStartWidth);
                 double end = DxfFollowers.Number(own, 41, DefaultEndWidth);
-                double middle = 0.5 * (start + end);
+                double reach = ArcLength(points[i], joint, first);
+                double whole = reach + ArcLength(joint, points[j], second);
+                double middle = whole > 0.0 ? start + (end - start) * (reach / whole) : 0.5 * (start + end);
                 var change = new List<KeyValuePair<int, string>>(DxfFollowers.NumberChange(own, 42, first, 0.0, true));
 
                 if (start != end)
@@ -366,6 +370,14 @@ namespace GeometryHelper.Dxf
             SetGroups(new KeyValuePair<int, string>(70, ((GetInt(70, 0) & ~4) | 2).ToString(CultureInfo.InvariantCulture)), new KeyValuePair<int, string>(75, null));
         }
 
+        /// <summary>The length of a segment from one point to another of a bulge: its chord where it is straight, else its arc's.</summary>
+        private static double ArcLength(GeoPoint2 from, GeoPoint2 to, double bulge)
+        {
+            double chord = (to - from).Length;
+            double sweep = 4.0 * Math.Atan(Math.Abs(bulge));
+            return sweep == 0.0 ? chord : chord * sweep / (2.0 * Math.Sin(sweep / 2.0));
+        }
+
         /// <summary>
         /// Fits the polyline with a spline, as AutoCAD's <c>SplineFit</c> (PEDIT Spline): of the header's SPLINETYPE (5 quadratic,
         /// 6 cubic, cubic where the file gives none) and SPLINESEGS (8 where it gives none), as
@@ -381,7 +393,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Fits the polyline with a spline, as AutoCAD's <c>SplineFit</c>: its vertices made the frame of a uniform B-spline
         /// (flag 16 of their group 70, each keeping its handle), clamped to the first and last vertex of an open polyline and
-        /// running round a closed one, and the vertices of the curve added after them (flag 8), a number of segments to each
+        /// running round a closed one, and the vertices of the curve added after the first of them (flag 8), where AutoCAD
+        /// keeps them, a number of segments to each
         /// span of the spline; flag 4 of the polyline's group 70 and group 75, 5 or 6. A negative number of segments gives as many,
         /// each the arc through its ends and the spline's point between them, as AutoCAD's SPLINESEGS below nought fits arcs to
         /// them. The widths run evenly from the first vertex's start width to the last's end width. A cubic on the frame (0, 0),
@@ -448,7 +461,9 @@ namespace GeometryHelper.Dxf
             }
 
             SetGroupsAtMany(changes, VertexOrder);
-            int place = RecordCount > 1 && RecordType(RecordCount - 1) == "SEQEND" ? RecordCount - 1 : RecordCount;
+
+            // The vertices of the curve follow the first of the frame, as AutoCAD keeps them.
+            int place = vertices[0].Key + 1;
 
             foreach (DxfVertex2d vertex in made)
             {

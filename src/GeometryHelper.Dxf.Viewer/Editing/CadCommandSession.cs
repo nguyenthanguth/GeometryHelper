@@ -860,7 +860,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         private bool Answer(CadInput input, string echo, GeoPoint2? point)
         {
-            if (echo != null)
+            // The points a prompt that follows the cursor takes are not written, as AutoCAD writes none of the path.
+            if (echo != null && !(Prompt.Tracks && input.IsPoint))
             {
                 Write(echo);
             }
